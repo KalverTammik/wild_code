@@ -1,3 +1,38 @@
+/* Special right frame for toggle button */
+#SidebarRightFrame {
+    background: #232b33;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    min-width: 2px;
+    max-width: 32px;
+}
+
+#SidebarRightFrame #ToggleButton {
+    background: #2e3a44;
+    border-radius: 14px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    padding: 0;
+    color: #c5c5d2;
+    font-size: 14px;
+    border: none;
+    box-shadow: 0 0 6px rgba(9, 144, 143, 0.2);
+}
+
+#SidebarRightFrame #ToggleButton:hover {
+    background: #3a3f4a;
+}
+
+#SidebarRightFrame #ToggleButton:pressed {
+    background: #1f2229;
+}
+
+#SidebarRightFrame #ToggleButton > * {
+    min-width: 10px;
+    min-height: 10px;
+}
 /* Sidebar Container */
 #Sidebar {
     background-color: #21272e;
@@ -45,13 +80,9 @@
 
 /* Toggle Button (Minimal Teal Accent) */
 #ToggleButton {
-    background-color: #2e2f38;
-    border: 1px solid #0b4544;
-    border-radius: 8px;
     font-size: 12px;
     color: #c5c5d2;
-    padding: 6px 12px;
-    transition: all 0.2s ease-in-out;
+
 }
 
 #ToggleButton:hover {
@@ -62,3 +93,4 @@
 #ToggleButton:pressed {
     background-color: #1f2229;
 }
+

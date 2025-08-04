@@ -52,7 +52,7 @@ class PluginDialog(QDialog):
         )
         dialog_layout.addWidget(self.header_widget)
 
-        # Central content area (sidebar + main content)
+        # Central content area (sidebar + main content + right sidebar)
         content_layout = QHBoxLayout()
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
@@ -64,6 +64,7 @@ class PluginDialog(QDialog):
         content_widget = QWidget()
         content_widget.setLayout(center_layout)
         content_layout.addWidget(content_widget)
+
 
         dialog_layout.addLayout(content_layout)
 
