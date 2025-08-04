@@ -9,6 +9,8 @@ from .languages.language_manager import LanguageManager
 from .module_manager import ModuleManager
 from .widgets.sidebar import Sidebar
 from .utils.SessionManager import SessionManager
+from .constants.file_paths import FilePaths
+from .config.setup import Version, FooterWidget
 
 lang = LanguageManager()
 
@@ -42,8 +44,12 @@ class PluginDialog(QDialog):
         center_layout.addWidget(self.switch_button)
 
         center_layout.addWidget(self.moduleStack)
-        self.footer = QLabel(lang.translate("footer_text"))
-        center_layout.addWidget(self.footer)
+        # Replace old footer QLabel with FooterWidget
+        # metadata_path = FilePaths.get_file_path(FilePaths.metadata)
+        # self.footer = QLabel(Version.get_footer_text(metadata_path))
+        # center_layout.addWidget(self.footer)
+        self.footer_widget = FooterWidget(show_left=True, show_right=True)
+        center_layout.addWidget(self.footer_widget)
         main_layout.addLayout(center_layout)
         self.setLayout(main_layout)
 
