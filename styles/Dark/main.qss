@@ -1,9 +1,40 @@
+/* Standardized object names for scalable styling */
+#PrimaryButton {
+    background-color: rgb(9,144,143);
+    color: #ffffff;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+#PrimaryButton:hover {
+    background-color: #004d40;
+    box-shadow: 0px 0px 10px #00796b;
+}
+
+#PrimaryButton:pressed {
+    background-color: #2e2f38;
+}
+
+#DialogTitle {
+    color: #e0e0e6;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+#FormGroup {
+    border: 1px solid #0b4544;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 12px;
+}
 /* ========================================== */
 /* 🌙 Dark Mode Theme */
 /* ========================================== */
 * {
     background-color: #1d252b; /* Dark background */
-    color: #c5c5d2; /* Light text */
+    color: #e0e0e6; /* Light text - improved contrast */
     border: none;
     font-size: 12px;
 }

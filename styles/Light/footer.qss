@@ -1,6 +1,70 @@
-/* Footer QSS for Light Theme */
+
+#footerLinkButton {
+    color: #22223b; /* high-contrast for readability */
+    font-size: 12px;
+    background: transparent;
+    border: none;
+    padding: 2px 0;
+    margin: 0;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#footerLinkButton:hover {
+    color: #22223b; /* same as body text in light theme */
+    text-decoration: underline;
+}
+
+#footerLinkButton:pressed {
+    color: #3a7ca5; /* hint of blue, but soft */
+    text-decoration: underline;
+}
+
+#footerLinkButton:focus {
+    outline: none;
+    text-decoration: underline;
+    border-bottom: 1px dashed #bbb;
+}
+#footerCopyrightLabel {
+    color: #111118;
+    font-size: 12px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-weight: normal;
+}
+
+#footerLeftFrame {
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+#footerLinkSeparator {
+    color: #444;
+    font-size: 10px;
+    padding: 0 2px;
+}
+
 #footerLabel {
-    color: gray;
+    color: #444;
     font-size: 10px;
     padding: 4px 0 0 0;
+}
+
+#footerLabel a {
+    color: #005a9e;
+    text-decoration: none;
+    border-bottom: 1px dotted #2188ff;
+    padding-bottom: 1px;
+}
+
+#footerLabel a:hover, #footerLabel a:active {
+    color: #003366;
+    border-bottom: 1.5px solid #005a9e;
+    background: rgba(33,136,255,0.08);
+    text-decoration: none;
 }

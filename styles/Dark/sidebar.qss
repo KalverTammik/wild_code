@@ -1,87 +1,64 @@
 /* Sidebar Container */
 #Sidebar {
-    background-color: #1d252b;
-    border: 1px solid #0b4544;
-    border-radius: 10px;
-    padding: 0px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    background-color: #21272e;
+    border-radius: 8px;
+    padding: 8px;
 }
 
-/* Navigation Frame */
-#SidebarNavFrame {
-    background-color: #24252e;
-    border: 1px solid #0b4544;
-    border-radius: 10px;
-    padding: 5px;
-}
-
-#SidebarNavFrame QPushButton {
-    background-color: #359692;
-    border: 1px solid #0aa8a7;
-    border-radius: 4px;
-    padding: 4px 4px;
-    color: #feffff;
-    font-size: 10px;
-    font-weight: normal;
-    text-align: left;
-    margin-bottom: 8px;
-}
-
-#SidebarNavFrame QPushButton:hover {
-    background-color: #2e5c58;
-    border: 1px solid #47a5b1;
-}
-
-#SidebarNavFrame QPushButton:pressed {
-    background-color: #1e252b;
-    border: 1px solid #359692;
-}
-
-/* Settings Frame */
+/* Navigation and Settings Frames */
+#SidebarNavFrame,
 #SettingsFrame {
-    background-color: #24252e;
-    border: 1px solid #0b4544;
-    border-radius: 10px;
-    padding: 0px;
+    background-color: transparent;
+    padding: 4px 0;
 }
 
+/* Sidebar Buttons with Branded Teal Glow */
+#SidebarNavFrame QPushButton,
 #SettingsFrame QPushButton {
-    background-color: #359692;
-    border: 1px solid #0aa8a7;
-    border-radius: 4px;
+    background-color: rgb(9, 144, 143);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
     padding: 6px 12px;
-    color: #feffff;
+    text-align: left;
     font-size: 12px;
     font-weight: normal;
-    text-align: left;
+
+    /* Very soft ambient glow by default */
+    box-shadow: 0 0 2px rgba(9, 144, 143, 0.05);
+    transition: all 0.2s ease-in-out;
 }
 
+#SidebarNavFrame QPushButton:hover,
 #SettingsFrame QPushButton:hover {
-    background-color: #2e5c58;
-    border: 1px solid #47a5b1;
+    background-color: rgb(7, 120, 120); /* slightly darker teal */
+    box-shadow: 0 0 6px rgba(9, 144, 143, 0.2); /* increased glow */
+    color: #ffffff;
 }
 
+#SidebarNavFrame QPushButton:pressed,
 #SettingsFrame QPushButton:pressed {
-    background-color: #1e252b;
-    border: 1px solid #359692;
-    border-radius: 10px;
-    padding: 5px;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.18);
+    background-color: #1e252b; /* muted pressed */
+    color: #47a5b1;            /* soft teal text */
+    box-shadow: inset 0 0 4px rgba(9, 144, 143, 0.15); /* inner glow */
 }
 
-/* Toggle Button */
+/* Toggle Button (Minimal Teal Accent) */
 #ToggleButton {
-    background-color: #303a42;
+    background-color: #2e2f38;
     border: 1px solid #0b4544;
-    border-radius: 10px;
+    border-radius: 8px;
     font-size: 12px;
     color: #c5c5d2;
+    padding: 6px 12px;
+    transition: all 0.2s ease-in-out;
 }
 
 #ToggleButton:hover {
-    background-color: #2e2f38;
+    background-color: #3a3f4a;
+    box-shadow: 0 0 6px rgba(9, 144, 143, 0.2);
 }
 
 #ToggleButton:pressed {
-    background-color: #1d252b;
+    background-color: #1f2229;
 }

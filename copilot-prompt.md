@@ -8,7 +8,7 @@
 You're helping me build a modular plugin system for a Qt-based (e.g., PyQt5 or QGIS) application.
 
 Design Requirements:
-1. Use `BaseModule` as the base class for all new modules.
+1. Use `BaseModule` as the base class for all new modules. if importin use from .base_module import BaseModuel to aviod import mistakes.
 2. The plugin has multiple **modules**, but only one is active at a time.
 3. Each module has:
    - A toolbar/header area with buttons and dropdowns (inputs)
@@ -89,16 +89,42 @@ Design Requirements:
 - Use centralized QSS files (`styles/DarkTheme.qss` and `styles/LightTheme.qss`) for theme-specific styling.
 - No inline styling unless absolutely necessary; prefer centralized QSS.
 
-### Layouts
-- Use `QVBoxLayout` for vertical stacking of sections and `QHBoxLayout` for horizontal controls.
-- Never use absolute positioning.
-- Group related fields in `QGroupBox` with consistent spacing and titles.
-- Use `QFrame` for visual separation of content sections (e.g., headers/footers).
+## Layout Design Guidelines
+
+### General Principles
+- All UI layouts must follow a **structured, modular, and visually aligned** format.
+- Do **not** use absolute positioning (`move()`, `setGeometry()`) — always use layouts.
+- Layouts should reflect logical groupings of fields, actions, and labels.
+- All dialogs must follow **top-down visual flow** using `QVBoxLayout`.
+
+---
+
+### Section Composition
+- Use `QVBoxLayout` to structure the overall vertical flow of the dialog.
+- Use `QHBoxLayout` for inline controls, action rows, or label+input pairs.
+- Nest layouts as needed for granular control.
+
+---
+
+### Component Grouping
+- Use `QGroupBox` to **group related controls** (e.g., "Location Info", "Work Details").
+  - Each `QGroupBox` must have a clear, descriptive title.
+  - Internally use `QVBoxLayout` or `QFormLayout` for aligned inputs.
+- Use `QFrame` with `QFrame.HLine` or `QFrame.VLine` as **visual dividers** between sections.
+- Use consistent internal spacing (`setSpacing(8)`) and margin padding (`setContentsMargins(8, 8, 8, 8)`).
+
+---
+
+### Button Rows
+- Always place dialog decision buttons at the **bottom-right** using `QHBoxLayout`:
+
+
 
 ### Typography & Colors
 - Avoid using inline styling; use `theme_manager.py` to handle styling dynamically.
 - Ensure all text and background colors adapt to the active theme (dark or light).
-- For specific object-based styling, use object names (e.g., `#myobject`) in the QSS files.
+- **Standardize object names for widgets** (e.g., `#PrimaryButton`, `#DialogTitle`, `#FormGroup`) and reflect these in QSS. This enables general, scalable, and maintainable styling across the plugin.
+- For specific object-based styling, use these standardized object names in the QSS files.
 
 ### Buttons and Interaction
 - Use a primary action button with teal glow (e.g., **Save**, **Apply**) that adapts to the active theme.
@@ -121,9 +147,77 @@ Design Requirements:
 ### QSS Files
 
 Base themes are:
-- `styles/DarkTheme.qss`: Contains styles for the dark theme.
-- `styles/LightTheme.qss`: Contains styles for the light theme.
+- `styles/Dark/...`: Contains styles for the dark theme.
+- `styles/Light/...`: Contains styles for the light theme.
 - Ensure both QSS files define consistent styles for all widgets, dialogs, and frames.
+
+## QSS Styling Guidelines
+
+### General Rules
+- All style rules must be defined in `.qss` files, not inline.
+- Base styles belong in `styles/main.qss`.
+- Component-specific styles are split by layout section:
+  - `header.qss`, `sidebar.qss`, `login.qss`, `footer.qss`, etc.
+  - if more component-specific styles are neccesery add file pointing to layout component
+
+### Naming & Reuse
+- Use `objectName` selectors (e.g., `#saveButton`, `#headerLabel`) for component overrides.
+- Common styles (e.g., for `QPushButton`, `QLineEdit`, `QFrame`) must be declared globally in `main.qss`.
+
+### Theme Switching
+- Every theme must have both `DarkTheme.qss` and `LightTheme.qss` versions.
+- File naming: `main.qss`, `main_light.qss`, `header.qss`, `header_light.qss`, etc.
+- Apply themes dynamically via `theme_manager.py`.
+
+### Limitations
+- Qt QSS **does not support variables, nesting, or animations**.
+- Do not use unsupported pseudo-elements (`::after`, `:not()`).
+
+## Theme Color Usage Rules
+
+### General Principles
+- Maintain a consistent **color palette** for both dark and light themes.
+- All colors must be declared in centralized QSS files (`main.qss`, `main_light.qss`).
+- Accent color: `rgb(9,144,143)` — shared across themes as primary brand highlight.
+- Avoid hardcoded inline `setStyleSheet()` calls with color values.
+
+### Color Roles (informal naming)
+| Role              | Dark Theme        | Light Theme       |
+|-------------------|-------------------|-------------------|
+| Main BG           | `#1d252b`         | `#ffffff`         |
+| Input BG          | `#303a42`         | `#f5f5f5`         |
+| Text              | `#c5c5d2`         | `#333333`         |
+| Disabled BG       | `#24252e`         | `#e0e0e0`         |
+| Button (normal)   | `rgb(9,144,143)`  | `rgb(9,144,143)`  |
+| Button Hover      | `#004d40`         | `#00796b`         |
+| Button Pressed    | `#2d2e3a`         | `#cccccc` |
+| Focus Border      | `#0b4544`         | `#0078d4`         |
+
+### Contrast & Accessibility
+- Button hover/pressed states must have at least **4.5:1 contrast** against base background.
+- Use hover styles that include color *and* shadow/border feedback.
+
+### Reference
+- [Qt Style Sheet Reference](https://doc.qt.io/qt-5/stylesheet-reference.html)
+- [WCAG Contrast Guidelines](https://www.w3.org/WAI/WCAG21/quickref/#contrast-minimum)
+
+
+### Component Rules
+- Buttons (`QPushButton`) must use consistent padding, font, and hover styles.
+- Inputs (`QLineEdit`, `QTextEdit`) must have defined focus, hover, and disabled states.
+- Section layouts should use rounded borders, dividers (`QFrame.HLine`), and consistent spacing.
+
+### Example
+```css
+/* main.qss */
+QLineEdit {
+    background-color: #303a42;
+    color: #ececf1;
+    border: 1px solid #0b4544;
+    border-radius: 5px;
+    padding: 6px;
+}
+
 
 ### Web Link and Module URL Management
 - All static and module-related URLs are managed centrally in UrlManager.py.
@@ -131,3 +225,26 @@ Base themes are:
 - Module-specific URLs are defined in the Module enum and WebModules class, and full URLs are built using the OpenLink class.
 - To add a new module or link, update the enum/class and/or config.json—no need to hardcode URLs throughout the codebase.
 - To open any link in the browser, use the loadWebpage.open_webpage(url) utility.
+
+## Resource and Theme Integration Checklist
+
+**Always use the centralized resource management classes from `constants/file_paths.py`:**
+
+- **Icons/Images:** Use `ResourcePaths` (e.g., `ResourcePaths.ICON`, `ResourcePaths.EYE_ICON`)
+- **QSS/Theme Files:** Use `QssPaths` (e.g., `QssPaths.LIGHT_THEME`, `QssPaths.DARK_THEME`, `QssPaths.LOGIN`)
+- **Config/Manuals:** Use `ConfigPaths` (e.g., `ConfigPaths.CONFIG`, `ConfigPaths.METADATA`, `ConfigPaths.USER_MANUAL`)
+- **Module Icons:** Use `ModuleIconPaths.get_module_icon(module_name)` or `ModuleIconPaths.MODULE_ICONS[...]`
+
+**Never hardcode file paths or QSS filenames in modules. Always reference them via the appropriate class.**
+
+**To apply a theme or QSS:**
+
+- Use `ThemeManager.apply_theme(self, QssPaths.LIGHT_THEME)` or the relevant QSS path.
+- For modular QSS, pass a list of QSS files from `QssPaths` as needed.
+
+**When adding a new module:**
+
+- If your module needs a unique icon, add it to `ModuleIconPaths.MODULE_ICONS` in `file_paths.py`.
+- If your module needs a user manual or config, add the path to `ConfigPaths`.
+
+**For web links and URLs:** Use `UrlManager.py` and `WebLinks` for all static/module URLs.
