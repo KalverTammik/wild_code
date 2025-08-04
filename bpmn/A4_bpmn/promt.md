@@ -84,3 +84,12 @@ Lisa iga ülesandele ka lane vastavalt rollile (köök, kuller, klient) ning vaj
 * Väljasta **ainult `.bpmn` XML-fail**, **ilma markdowni või selgitusteta**.
 
 
+### Enne faili lõpetamist:
+
+* Kontrolli, et kõigil avatud XML-märgenditel oleks sulgemismärgend.
+
+* Kontrolli, et märgendid oleksid õiges järjekorras pesastatud (st <t*ask> sees ei sulgeta enne välimisi).
+
+* Kasuta vajadusel XML parserit (nt lxml.etree) väljundi valideerimiseks enne salvestamist.
+
+* Ära väljasta faili, kui XML pole 100% parseeritav ilma veateateta.
