@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_PizzaOrder"
+                  targetNamespace="http://example.com/bpmn/pizza">
+
+  <bpmn:process id="PizzaOrderProcess" isExecutable="true">
+
+    <bpmn:laneSet id="LaneSet_Main">
+      <bpmn:lane id="Lane_Client" name="Klient">
+        <bpmn:flowNodeRef>StartEvent_Order</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>UserTask_PlaceOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndEvent_OrderReceived</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Restaurant" name="Pizzarestoran">
+        <bpmn:flowNodeRef>ServiceTask_ConfirmOrder</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ExclusiveGateway_CheckInventory</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ScriptTask_PreparePizza</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ManualTask_PackPizza</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>SendTask_SendFailureNotice</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Courier" name="Kuller">
+        <bpmn:flowNodeRef>UserTask_DeliverPizza</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>UserTask_ConfirmDelivery</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="StartEvent_Order" name="Tellimuse algus">
+      <bpmn:outgoing>Flow_OrderPlaced</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:userTask id="UserTask_PlaceOrder" name="Klient esitab tellimuse">
+      <bpmn:incoming>Flow_OrderPlaced</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToConfirmation</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="ServiceTask_ConfirmOrder" name="Restoran kinnitab tellimuse">
+      <bpmn:incoming>Flow_ToConfirmation</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToInventoryCheck</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="ExclusiveGateway_CheckInventory" name="Varude kontroll">
+      <bpmn:incoming>Flow_ToInventoryCheck</bpmn:incoming>
+      <bpmn:outgoing>Flow_InventoryOk</bpmn:outgoing>
+      <bpmn:outgoing>Flow_InventoryFail</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:scriptTask id="ScriptTask_PreparePizza" name="Pitsa valmistamine">
+      <bpmn:incoming>Flow_InventoryOk</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToPacking</bpmn:outgoing>
+    </bpmn:scriptTask>
+
+    <bpmn:manualTask id="ManualTask_PackPizza" name="Pitsa pakkimine">
+      <bpmn:incoming>Flow_ToPacking</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCourier</bpmn:outgoing>
+    </bpmn:manualTask>
+
+    <bpmn:userTask id="UserTask_DeliverPizza" name="Kuller toimetab pitsa kohale">
+      <bpmn:incoming>Flow_ToCourier</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToDeliveryConfirm</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="UserTask_ConfirmDelivery" name="Klient kinnitab kättesaamise">
+      <bpmn:incoming>Flow_ToDeliveryConfirm</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEnd</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:sendTask id="SendTask_SendFailureNotice" name="Saada kliendile teade: varusid pole">
+      <bpmn:incoming>Flow_InventoryFail</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEnd</bpmn:outgoing>
+    </bpmn:sendTask>
+
+    <bpmn:endEvent id="EndEvent_OrderReceived" name="Tellimus lõppenud">
+      <bpmn:incoming>Flow_ToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Flows -->
+    <bpmn:sequenceFlow id="Flow_OrderPlaced" sourceRef="StartEvent_Order" targetRef="UserTask_PlaceOrder" name="Tellimus esitatud"/>
+    <bpmn:sequenceFlow id="Flow_ToConfirmation" sourceRef="UserTask_PlaceOrder" targetRef="ServiceTask_ConfirmOrder" name="Saada restoranile"/>
+    <bpmn:sequenceFlow id="Flow_ToInventoryCheck" sourceRef="ServiceTask_ConfirmOrder" targetRef="ExclusiveGateway_CheckInventory" name="Varude kontroll"/>
+    <bpmn:sequenceFlow id="Flow_InventoryOk" sourceRef="ExclusiveGateway_CheckInventory" targetRef="ScriptTask_PreparePizza" name="Varud olemas"/>
+    <bpmn:sequenceFlow id="Flow_InventoryFail" sourceRef="ExclusiveGateway_CheckInventory" targetRef="SendTask_SendFailureNotice" name="Varud puuduvad"/>
+    <bpmn:sequenceFlow id="Flow_ToPacking" sourceRef="ScriptTask_PreparePizza" targetRef="ManualTask_PackPizza" name="Valmis pakkimiseks"/>
+    <bpmn:sequenceFlow id="Flow_ToCourier" sourceRef="ManualTask_PackPizza" targetRef="UserTask_DeliverPizza" name="Anna kullerile"/>
+    <bpmn:sequenceFlow id="Flow_ToDeliveryConfirm" sourceRef="UserTask_DeliverPizza" targetRef="UserTask_ConfirmDelivery" name="Kohaletoimetatud"/>
+    <bpmn:sequenceFlow id="Flow_ToEnd" sourceRef="UserTask_ConfirmDelivery" targetRef="EndEvent_OrderReceived" name="Tellimus lõpetatud"/>
+    <bpmn:sequenceFlow id="Flow_ToEnd_Fail" sourceRef="SendTask_SendFailureNotice" targetRef="EndEvent_OrderReceived" name="Tellimus tühistatud"/>
+
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_PizzaOrder">
+    <bpmndi:BPMNPlane id="BPMNPlane_PizzaOrder" bpmnElement="PizzaOrderProcess">
+
+      <!-- Client Lane -->
+      <bpmndi:BPMNShape id="Shape_StartEvent_Order" bpmnElement="StartEvent_Order">
+        <dc:Bounds x="100" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_UserTask_PlaceOrder" bpmnElement="UserTask_PlaceOrder">
+        <dc:Bounds x="200" y="90" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_OrderReceived" bpmnElement="EndEvent_OrderReceived">
+        <dc:Bounds x="1100" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Restaurant Lane -->
+      <bpmndi:BPMNShape id="Shape_ServiceTask_ConfirmOrder" bpmnElement="ServiceTask_ConfirmOrder">
+        <dc:Bounds x="370" y="90" width="140" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ExclusiveGateway_CheckInventory" bpmnElement="ExclusiveGateway_CheckInventory" isMarkerVisible="true">
+        <dc:Bounds x="560" y="95" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ScriptTask_PreparePizza" bpmnElement="ScriptTask_PreparePizza">
+        <dc:Bounds x="670" y="90" width="140" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_ManualTask_PackPizza" bpmnElement="ManualTask_PackPizza">
+        <dc:Bounds x="870" y="90" width="140" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SendTask_SendFailureNotice" bpmnElement="SendTask_SendFailureNotice">
+        <dc:Bounds x="670" y="200" width="160" height="60"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Courier Lane -->
+      <bpmndi:BPMNShape id="Shape_UserTask_DeliverPizza" bpmnElement="UserTask_DeliverPizza">
+        <dc:Bounds x="1060" y="90" width="140" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_UserTask_ConfirmDelivery" bpmnElement="UserTask_ConfirmDelivery">
+        <dc:Bounds x="1280" y="90" width="160" height="60"/>
+      </bpmndi:BPMNShape>
+
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Edge_Flow_OrderPlaced" bpmnElement="Flow_OrderPlaced">
+        <di:waypoint x="136" y="118"/>
+        <di:waypoint x="200" y="118"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ToConfirmation" bpmnElement="Flow_ToConfirmation">
+        <di:waypoint x="320" y="118"/>
+        <di:waypoint x="370" y="118"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ToInventoryCheck" bpmnElement="Flow_ToInventoryCheck">
+        <di:waypoint x="510" y="118"/>
+        <di:waypoint x="560" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_InventoryOk" bpmnElement="Flow_InventoryOk">
+        <di:waypoint x="610" y="120"/>
+        <di:waypoint x="670" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_InventoryFail" bpmnElement="Flow_InventoryFail">
+        <di:waypoint x="585" y="145"/>
+        <di:waypoint x="750" y="200"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ToPacking" bpmnElement="Flow_ToPacking">
+        <di:waypoint x="810" y="120"/>
+        <di:waypoint x="870" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ToCourier" bpmnElement="Flow_ToCourier">
+        <di:waypoint x="1010" y="120"/>
+        <di:waypoint x="1060" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ToDeliveryConfirm" bpmnElement="Flow_ToDeliveryConfirm">
+        <di:waypoint x="1200" y="120"/>
+        <di:waypoint x="1280" y="120"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ToEnd" bpmnElement="Flow_ToEnd">
+        <di:waypoint x="1440" y="120"/>
+        <di:waypoint x="1136" y="118"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ToEnd_Fail" bpmnElement="Flow_ToEnd_Fail">
+        <di:waypoint x="830" y="230"/>
+        <di:waypoint x="1136" y="118"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
