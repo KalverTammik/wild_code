@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_Arvete_Seadistamine"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Arvete_Seadistamise_Protsess" isExecutable="true">
+    <!-- Start Event -->
+    <bpmn:startEvent id="StartEvent_Alusta" name="Alusta arvete seadistamist">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Kontrolli müügiarvete mooduli olemasolu -->
+    <bpmn:exclusiveGateway id="Gateway_MoodulOlemas" name="Kas müügiarvete moodul on aktiveeritud?">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2_Jah</bpmn:outgoing>
+      <bpmn:outgoing>Flow_3_Ei</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Admin seadistab rollid -->
+    <bpmn:task id="Task_SeadistaRollid" name="Administraator seadistab rollid ja õigused">
+      <bpmn:incoming>Flow_2_Jah</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Teavitus mooduli puudumisel -->
+    <bpmn:endEvent id="EndEvent_LopetaPuudub" name="Lõpeta: moodul puudub">
+      <bpmn:incoming>Flow_3_Ei</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Seadista tootegrupid -->
+    <bpmn:task id="Task_SeadistaGrupid" name="Seadista tootegrupid (pea- ja alamgrupid)">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Seadista hinnakirjad -->
+    <bpmn:task id="Task_SeadistaHinnakiri" name="Lisa ja määra hinnakirjad">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Seadista maksumäärad -->
+    <bpmn:task id="Task_SeadistaMaksumaard" name="Seadista käibemaksumäärad">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Lisa tooted -->
+    <bpmn:task id="Task_LisaTooted" name="Lisa tooted ja määra aktiivne staatus">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Seadista valuuta -->
+    <bpmn:task id="Task_Valuuta" name="Määra keskkonna valuuta">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Seadista vaiketähtaeg -->
+    <bpmn:task id="Task_Tahtaeg" name="Määra müügiarvete vaiketähtaeg">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Kontrolli seadistuste lõpuleviimist -->
+    <bpmn:exclusiveGateway id="Gateway_Kontroll" name="Kas kõik parameetrid on seadistatud?">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11_Jah</bpmn:outgoing>
+      <bpmn:outgoing>Flow_12_Ei</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Protsessi lõpp -->
+    <bpmn:endEvent id="EndEvent_Valmis" name="Valmis: alusta müügiarvete koostamist">
+      <bpmn:incoming>Flow_11_Jah</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Tagasi seadistama -->
+    <bpmn:task id="Task_TagasiSeadistama" name="Tagasi: kontrolli seadistusi">
+      <bpmn:incoming>Flow_12_Ei</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_Alusta" targetRef="Gateway_MoodulOlemas"/>
+    <bpmn:sequenceFlow id="Flow_2_Jah" sourceRef="Gateway_MoodulOlemas" targetRef="Task_SeadistaRollid" name="Jah"/>
+    <bpmn:sequenceFlow id="Flow_3_Ei" sourceRef="Gateway_MoodulOlemas" targetRef="EndEvent_LopetaPuudub" name="Ei"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_SeadistaRollid" targetRef="Task_SeadistaGrupid"/>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_SeadistaGrupid" targetRef="Task_SeadistaHinnakiri"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_SeadistaHinnakiri" targetRef="Task_SeadistaMaksumaard"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_SeadistaMaksumaard" targetRef="Task_LisaTooted"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Task_LisaTooted" targetRef="Task_Valuuta"/>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_Valuuta" targetRef="Task_Tahtaeg"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_Tahtaeg" targetRef="Gateway_Kontroll"/>
+    <bpmn:sequenceFlow id="Flow_11_Jah" sourceRef="Gateway_Kontroll" targetRef="EndEvent_Valmis" name="Jah"/>
+    <bpmn:sequenceFlow id="Flow_12_Ei" sourceRef="Gateway_Kontroll" targetRef="Task_TagasiSeadistama" name="Ei"/>
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="Task_TagasiSeadistama" targetRef="Gateway_Kontroll"/>
+
+    <!-- Märkused -->
+    <bpmn:textAnnotation id="Note_Moodul">
+      <bpmn:text>Kontrolli kas moodul Müügiarved on aktiveeritud</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Moodul" sourceRef="Gateway_MoodulOlemas" targetRef="Note_Moodul"/>
+
+    <bpmn:textAnnotation id="Note_TooteStaatus">
+      <bpmn:text>Toodete kasutamiseks peab toote staatus olema 'Aktiivne'</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Staatus" sourceRef="Task_LisaTooted" targetRef="Note_TooteStaatus"/>
+  </bpmn:process>
+
+  <!-- Diagramm ja kujundid -->
+  <bpmndi:BPMNDiagram id="Diagram_ArveteSeadistamine">
+    <bpmndi:BPMNPlane id="Plane_Arvete" bpmnElement="Arvete_Seadistamise_Protsess">
+      <bpmndi:BPMNShape id="Shape_Start" bpmnElement="StartEvent_Alusta">
+        <dc:Bounds x="100" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_MoodulOlemas" bpmnElement="Gateway_MoodulOlemas" isMarkerVisible="true">
+        <dc:Bounds x="160" y="95" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_SeadistaRollid" bpmnElement="Task_SeadistaRollid">
+        <dc:Bounds x="240" y="80" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_Puudub" bpmnElement="EndEvent_LopetaPuudub">
+        <dc:Bounds x="240" y="180" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Grupid" bpmnElement="Task_SeadistaGrupid">
+        <dc:Bounds x="380" y="80" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Hinnakiri" bpmnElement="Task_SeadistaHinnakiri">
+        <dc:Bounds x="520" y="80" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Maksud" bpmnElement="Task_SeadistaMaksumaard">
+        <dc:Bounds x="660" y="80" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Tooted" bpmnElement="Task_LisaTooted">
+        <dc:Bounds x="800" y="80" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Valuuta" bpmnElement="Task_Valuuta">
+        <dc:Bounds x="940" y="80" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Tahtaeg" bpmnElement="Task_Tahtaeg">
+        <dc:Bounds x="1080" y="80" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_Kontroll" bpmnElement="Gateway_Kontroll" isMarkerVisible="true">
+        <dc:Bounds x="1220" y="95" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_Valmis" bpmnElement="EndEvent_Valmis">
+        <dc:Bounds x="1300" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Tagasi" bpmnElement="Task_TagasiSeadistama">
+        <dc:Bounds x="1220" y="180" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
