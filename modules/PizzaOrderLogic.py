@@ -1,4 +1,5 @@
 from PyQt5.QtCore import QObject
+from PyQt5.QtWidgets import QMessageBox
 
 class PizzaOrderLogic(QObject):
     """
@@ -19,8 +20,13 @@ class PizzaOrderLogic(QObject):
         """
         Simulate restaurant confirming the order.
         """
-        # TODO: Implement confirmation logic
-        return True
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Kinnitus")
+        msg.setText("Tellimus on kinnitatud!")
+        msg.exec_()
+        # Jump to next step: check inventory
+        return self.checkInventory()
 
     def checkInventory(self):
         """

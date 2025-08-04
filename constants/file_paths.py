@@ -19,7 +19,8 @@ class FilePaths:
     LOGIN_DIALOG = "login_dialog"
     CONFIG = "config"
     metadata = "metadata"
-    
+    user_manual = "user_manual"
+
     MODULE_ICONS = {
         "SettingsModule": os.path.join(PLUGIN_ROOT, RESOURCE, "icon.png"),
         "ProjectCardModule": os.path.join(PLUGIN_ROOT, RESOURCE, "Valisee.png"),
@@ -46,6 +47,7 @@ class FilePaths:
             FilePaths.LOGIN_DIALOG: os.path.join(PLUGIN_ROOT, STYLES, "LoginTheme.qss"),
             FilePaths.CONFIG: os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json"),
             FilePaths.metadata: os.path.join(PLUGIN_ROOT, "metadata.txt"),
+            FilePaths.user_manual: os.path.join(PLUGIN_ROOT, MODULES, "PizzaOrderModuleUserManual.html"),
         }
         return paths.get(file_key, None)  # Return None if the key is not found
 
