@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QFile, QDir
 from PyQt5.QtWidgets import QApplication
 import os
-from ..constants.file_paths import FilePaths
+from ..constants.file_paths import ResourcePaths
 
 import glob
 
@@ -26,28 +26,27 @@ class ThemeManager:
         Returns the theme name ("light" or "dark").
         """
         from PyQt5.QtGui import QIcon
-        from ..constants.file_paths import FilePaths
         # Support for logout icon
         header_widget = getattr(widget, 'header_widget', None)
         theme = ThemeManager.load_theme_setting()
         if theme == "dark":
             ThemeManager.apply_dark_theme(widget, theme_base_dir, qss_files)
-            icon_path = FilePaths.get_file_path(FilePaths.LIGHTNESS_ICON)
+            icon_path = ResourcePaths.LIGHTNESS_ICON
             if switch_button is not None:
                 switch_button.setIcon(QIcon(icon_path))
                 switch_button.setText("")
             if header_widget:
-                logout_icon_path = FilePaths.get_file_path(FilePaths.LOGOUT_BRIGHT)
+                logout_icon_path = ResourcePaths.LOGOUT_BRIGHT
                 if logout_icon_path:
                     header_widget.set_logout_icon(QIcon(logout_icon_path))
         else:
             ThemeManager.apply_light_theme(widget, theme_base_dir, qss_files)
-            icon_path = FilePaths.get_file_path(FilePaths.DARKNESS_ICON)
+            icon_path = ResourcePaths.DARKNESS_ICON
             if switch_button is not None:
                 switch_button.setIcon(QIcon(icon_path))
                 switch_button.setText("")
             if header_widget:
-                logout_icon_path = FilePaths.get_file_path(FilePaths.LOGOUT_DARK)
+                logout_icon_path = ResourcePaths.LOGOUT_DARK
                 if logout_icon_path:
                     header_widget.set_logout_icon(QIcon(logout_icon_path))
         return theme
@@ -81,26 +80,25 @@ class ThemeManager:
         Saves the new theme to QGIS settings.
         """
         from PyQt5.QtGui import QIcon
-        from ..constants.file_paths import FilePaths
         header_widget = getattr(widget, 'header_widget', None)
         if current_theme == "light":
             ThemeManager.apply_dark_theme(widget, theme_base_dir, qss_files)
-            icon_path = FilePaths.get_file_path(FilePaths.LIGHTNESS_ICON)
+            icon_path = ResourcePaths.LIGHTNESS_ICON
             switch_button.setIcon(QIcon(icon_path))
             switch_button.setText("")
             if header_widget:
-                logout_icon_path = FilePaths.get_file_path(FilePaths.LOGOUT_BRIGHT)
+                logout_icon_path = ResourcePaths.LOGOUT_BRIGHT
                 if logout_icon_path:
                     header_widget.set_logout_icon(QIcon(logout_icon_path))
             ThemeManager.save_theme_setting("dark")
             return "dark"
         else:
             ThemeManager.apply_light_theme(widget, theme_base_dir, qss_files)
-            icon_path = FilePaths.get_file_path(FilePaths.DARKNESS_ICON)
+            icon_path = ResourcePaths.DARKNESS_ICON
             switch_button.setIcon(QIcon(icon_path))
             switch_button.setText("")
             if header_widget:
-                logout_icon_path = FilePaths.get_file_path(FilePaths.LOGOUT_DARK)
+                logout_icon_path = ResourcePaths.LOGOUT_DARK
                 if logout_icon_path:
                     header_widget.set_logout_icon(QIcon(logout_icon_path))
             ThemeManager.save_theme_setting("light")

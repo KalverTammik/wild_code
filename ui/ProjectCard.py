@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton
 from ..widgets.theme_manager import ThemeManager  # Use ThemeManager for styling
-from ..constants.file_paths import FilePaths  # Use FilePaths for theme paths
+from ..constants.file_paths import QssPaths  # Use QssPaths for theme paths
 
 class ProjectCard(QWidget):
     def __init__(self, title, description, price, brand, parent=None):
@@ -8,8 +8,7 @@ class ProjectCard(QWidget):
         self.setLayout(QVBoxLayout())
         
         # Apply theme dynamically
-        theme_path = FilePaths.get_file_path(FilePaths.LIGHT_THEME)  # Use FilePaths for the theme path
-        ThemeManager.apply_theme(self, theme_path)
+        ThemeManager.apply_theme(self, QssPaths.LIGHT_THEME)
 
         # Title
         title_label = QLabel(f"<b>{title}</b>")

@@ -1,10 +1,10 @@
 
 import os
 import json
-from ..constants.file_paths import FilePaths, PLUGIN_ROOT, CONFIG_DIR
+from ..constants.file_paths import ConfigPaths, PLUGIN_ROOT, CONFIG_DIR
 from PyQt5.QtGui import QCursor
 
-config_file_path = os.path.join(PLUGIN_ROOT, CONFIG_DIR, FilePaths.get_file_path(FilePaths.CONFIG))
+config_file_path = ConfigPaths.CONFIG
 
 with open(config_file_path, "r") as json_content:
     config = json.load(json_content)

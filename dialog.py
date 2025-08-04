@@ -13,7 +13,7 @@ from .languages.language_manager import LanguageManager
 from .module_manager import ModuleManager
 from .widgets.sidebar import Sidebar
 from .utils.SessionManager import SessionManager
-from .constants.file_paths import FilePaths, STYLES
+from .constants.file_paths import ResourcePaths, QssPaths, ConfigPaths, ModuleIconPaths
 from .config.setup import Version
 
 lang = LanguageManager()

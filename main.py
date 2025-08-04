@@ -4,7 +4,7 @@ from qgis.PyQt.QtGui import QIcon  # Import QIcon to set an icon for the toolbar
 from .dialog import PluginDialog
 import sip  # Add this import at the top
 from .login_dialog import LoginDialog  # Import the login dialog class
-from .constants.file_paths import FilePaths  # Import the FilePaths class
+from .constants.file_paths import ResourcePaths, QssPaths  # Use new resource management classes
 from .utils.SessionManager import SessionManager  # Import the SessionManager
 
 class WildCodePlugin:
@@ -15,7 +15,7 @@ class WildCodePlugin:
         self.loginDialog = None  # Reference to LoginDialog
 
     def initGui(self):
-        icon_path = FilePaths.get_file_path(FilePaths.ICON)  # Use FilePaths for the icon path
+        icon_path = ResourcePaths.ICON
         self.action = QAction(QIcon(icon_path), "Wild Code", self.iface.mainWindow())  # Set the icon for the action
         self.action.triggered.connect(self.run)
         self.iface.addToolBarIcon(self.action)
@@ -45,7 +45,7 @@ class WildCodePlugin:
                 dlg.raise_()
                 dlg.activateWindow()
         else:
-            theme_path = FilePaths.get_file_path(FilePaths.LIGHT_THEME)
+            theme_path = QssPaths.LIGHT_THEME
             self.loginDialog = LoginDialog(theme_path=theme_path)
             self.loginDialog.accepted.connect(self.handle_login_success)
             self.loginDialog.finished.connect(self.reset_login_dialog)

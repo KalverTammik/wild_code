@@ -1,4 +1,4 @@
-from .constants.file_paths import FilePaths
+from .constants.file_paths import ModuleIconPaths
 
 
 # Define module variables for easier maintenance
@@ -32,7 +32,7 @@ class ModuleManager:
         """Register a new module with its icon and human-readable name."""
         self.modules[module.name] = {
             "module": module,
-            "icon": FilePaths.get_module_icon(module.name),
+            "icon": ModuleIconPaths.get_module_icon(module.name),
             "display_name": self.get_module_name(module.name),  # Get human-readable name
         }
     def getModuleIcon(self, moduleName):

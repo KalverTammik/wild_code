@@ -10,7 +10,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.core import Qgis
 
 from .widgets.theme_manager import ThemeManager
-from .constants.file_paths import FilePaths
+from .constants.file_paths import ResourcePaths, QssPaths
 from .languages.language_manager import LanguageManager
 from .constants.DialogLabels import DialogLabels
 from .utils.SessionManager import SessionManager
@@ -38,13 +38,13 @@ class LoginDialog(QDialog):
 
 
         # Apply the last stored theme (persistent, no switch button)
-        theme_base_dir = FilePaths.get_file_path('styles') or os.path.join(os.path.dirname(__file__), 'styles')
+        theme_base_dir = os.path.join(os.path.dirname(__file__), 'styles')
         # Use login.qss if available, otherwise fallback to all qss
         ThemeManager.set_initial_theme(
             self,
             None,  # No switch button
             theme_base_dir,
-            qss_files=["login.qss"]
+            qss_files=[QssPaths.LOGIN]
         )
 
         layout = QVBoxLayout()
@@ -74,7 +74,7 @@ class LoginDialog(QDialog):
         password_row.addWidget(self.password_input)
         self.toggle_password_button = QPushButton()
         self.toggle_password_button.setObjectName("togglePasswordButton")
-        self.toggle_password_button.setIcon(QIcon(FilePaths.get_file_path(FilePaths.EYE_ICON)))
+        self.toggle_password_button.setIcon(QIcon(ResourcePaths.EYE_ICON))
         self.toggle_password_button.setCheckable(True)
         self.toggle_password_button.setText("")
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)

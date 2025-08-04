@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame, QPushButton, QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import pyqtSignal, Qt, QPropertyAnimation, QEasingCurve
-from ..constants.file_paths import FilePaths
+from ..constants.file_paths import QssPaths
 from ..widgets.theme_manager import ThemeManager
 from ..modules.SettingsModule import SettingsModule  # Import the SettingsModule
 from ..module_manager import ModuleManager, SETTINGS_MODULE
@@ -96,8 +96,7 @@ class Sidebar(QWidget):
 
     def applyStyles(self):
         """Apply styles to the sidebar using ThemeManager."""
-        theme_path = FilePaths.get_file_path(FilePaths.SIDEBAR)
-        ThemeManager.apply_theme(self, theme_path)
+        ThemeManager.apply_theme(self, QssPaths.SIDEBAR)
 
 
     def addItem(self, displayName, uniqueIdentifier, iconPath=None):

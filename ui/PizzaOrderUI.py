@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGroupBox
 from ..widgets.theme_manager import ThemeManager
-from ..constants.file_paths import FilePaths  # Use FilePaths for theme paths
-from ..constants.file_paths import FilePaths  # Import FilePaths for user manual path
+from ..constants.file_paths import QssPaths, ConfigPaths
 class PizzaOrderUI(QWidget):
     """
     UI for pizza ordering process.
@@ -15,8 +14,7 @@ class PizzaOrderUI(QWidget):
         self.initUI()
 
     def initUI(self):
-        theme_path = FilePaths.get_file_path(FilePaths.LIGHT_THEME)  # Use FilePaths for the theme path
-        self.themeManager.apply_theme(self, theme_path)
+        self.themeManager.apply_theme(self, QssPaths.LIGHT_THEME)
         mainLayout = QVBoxLayout(self)
 
         # Top horizontal layout for Help button
@@ -65,7 +63,7 @@ class PizzaOrderUI(QWidget):
     def showUserManual(self):
         import os
         from PyQt5.QtWidgets import QDialog, QTextBrowser, QVBoxLayout
-        manual_path = FilePaths.get_file_path(FilePaths.user_manual)
+        manual_path = ConfigPaths.PIZZA_ORDER_USER_MANUAL
         dlg = QDialog(self)
         dlg.setWindowTitle("Pizza Order Module - User Manual")
         dlg.resize(600, 500)

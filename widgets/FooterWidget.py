@@ -1,5 +1,5 @@
 from ..config.setup import Version, config
-from ..constants.file_paths import FilePaths
+from ..constants.file_paths import ConfigPaths
 from ..modules.UrlManager import WebLinks
 from .theme_manager import ThemeManager
 
@@ -39,7 +39,7 @@ class FooterWidget(QWidget):
 
         # Right part: QGIS and plugin version
         if show_right:
-            metadata_file = FilePaths.get_file_path(FilePaths.metadata)
+            metadata_file = ConfigPaths.METADATA
             qgis_version = Qgis.QGIS_VERSION
             plugin_version = Version.get_plugin_version(metadata_file)
             right_label = QLabel(f"QGIS {qgis_version} | Plugin v{plugin_version}")
