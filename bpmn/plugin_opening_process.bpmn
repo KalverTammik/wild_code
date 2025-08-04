@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:open-bpmn="http://open-bpmn.org/XMLSchema" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:extensionElements>
+    <open-bpmn:auto-align/>
+  </bpmn:extensionElements>
+  <bpmn:process id="Process_PluginOpening" isExecutable="true" processType="Public">
+    <bpmn:startEvent id="StartEvent_1" name="Plugin Opened">
+      <bpmn:documentation id="documentation_Wp7vIQ"/>
+      <bpmn:outgoing>sequenceFlow_FJ8wIg</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_LoadSession" name="Load Session">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_1_1</bpmn:outgoing>
+      <bpmn:documentation id="documentation_1FLdJg"/>
+      <bpmn:incoming>sequenceFlow_FJ8wIg</bpmn:incoming>
+    </bpmn:task>
+    <bpmn:task id="Task_SetupUI" name="Setup UI Components">
+      <bpmn:incoming>Flow_1_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:documentation id="documentation_U6eCCg"/>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_SessionValid" name="Session Valid?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+      <bpmn:documentation id="documentation_E49gew"/>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_ShowLoginDialog" name="Show Login Dialog">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      <bpmn:documentation id="documentation_acGRyA"/>
+    </bpmn:task>
+    <bpmn:task id="Task_ShowPluginDialog" name="Show Plugin Dialog">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+      <bpmn:documentation id="documentation_g3eVzQ"/>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_1" name="Plugin Ready">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:documentation id="documentation_XRfo0w"/>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1_1" sourceRef="Task_LoadSession" targetRef="Task_SetupUI">
+      <bpmn:documentation id="documentation_Yp3Phg"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_SetupUI" targetRef="Gateway_SessionValid">
+      <bpmn:documentation id="documentation_lCLIOw"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Gateway_SessionValid" targetRef="Task_ShowLoginDialog">
+      <bpmn:documentation id="documentation_pL5rng"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Gateway_SessionValid" targetRef="Task_ShowPluginDialog">
+      <bpmn:documentation id="documentation_9gCfSA"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_ShowLoginDialog" targetRef="EndEvent_1">
+      <bpmn:documentation id="documentation_iWUK2w"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_ShowPluginDialog" targetRef="EndEvent_1">
+      <bpmn:documentation id="documentation_AQgkSQ"/>
+    </bpmn:sequenceFlow>
+    <bpmn:documentation id="documentation_7b3UTQ"/>
+    <bpmn:sequenceFlow id="sequenceFlow_FJ8wIg" sourceRef="StartEvent_1" targetRef="Task_LoadSession">
+      <bpmn:documentation id="documentation_A6wVew"/>
+    </bpmn:sequenceFlow>
+    <bpmn:subProcess id="SubProcess_LoginDialog" name="Login Dialog Process">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      <bpmn:task id="Task_ThemeSetup" name="Setup Theme">
+        <bpmn:outgoing>Flow_3_1</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="Task_UserInput" name="Capture User Input">
+        <bpmn:incoming>Flow_3_1</bpmn:incoming>
+        <bpmn:outgoing>Flow_3_2</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:exclusiveGateway id="Gateway_ValidateLogin" name="Validate Login">
+        <bpmn:incoming>Flow_3_2</bpmn:incoming>
+        <bpmn:outgoing>Flow_3_3</bpmn:outgoing>
+        <bpmn:outgoing>Flow_3_4</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:task id="Task_LoginSuccess" name="Login Success">
+        <bpmn:incoming>Flow_3_3</bpmn:incoming>
+        <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="Task_LoginFailure" name="Login Failure">
+        <bpmn:incoming>Flow_3_4</bpmn:incoming>
+        <bpmn:outgoing>Flow_3_2</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:sequenceFlow id="Flow_3_1" sourceRef="Task_ThemeSetup" targetRef="Task_UserInput"/>
+      <bpmn:sequenceFlow id="Flow_3_2" sourceRef="Task_UserInput" targetRef="Gateway_ValidateLogin"/>
+      <bpmn:sequenceFlow id="Flow_3_3" sourceRef="Gateway_ValidateLogin" targetRef="Task_LoginSuccess"/>
+      <bpmn:sequenceFlow id="Flow_3_4" sourceRef="Gateway_ValidateLogin" targetRef="Task_LoginFailure"/>
+    </bpmn:subProcess>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane bpmnElement="Process_PluginOpening" id="BPMNPlane_1">
+      <bpmndi:BPMNShape bpmnElement="StartEvent_1" id="Shape_StartEvent_1">
+        <dc:Bounds height="36.0" width="36.0" x="-53.0" y="117.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_mH3wxA">
+          <dc:Bounds height="20.0" width="100.0" x="-85.0" y="156.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_LoadSession" id="Shape_Task_LoadSession">
+        <dc:Bounds height="50.0" width="100.0" x="53.0" y="108.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_SetupUI" id="Shape_Task_SetupUI">
+        <dc:Bounds height="50.0" width="100.0" x="199.0" y="108.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Gateway_SessionValid" id="Shape_Gateway_SessionValid">
+        <dc:Bounds height="50" width="50" x="350" y="95"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_ON4GRw">
+          <dc:Bounds height="20.0" width="100.0" x="325.0" y="148.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_ShowLoginDialog" id="Shape_Task_ShowLoginDialog">
+        <dc:Bounds height="50" width="100" x="450" y="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_ShowPluginDialog" id="Shape_Task_ShowPluginDialog">
+        <dc:Bounds height="50" width="100" x="450" y="150"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="EndEvent_1" id="Shape_EndEvent_1">
+        <dc:Bounds height="36.0" width="36.0" x="954.0" y="102.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_S6dlWQ">
+          <dc:Bounds height="20.0" width="100.0" x="922.0" y="141.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="SubProcess_LoginDialog" id="Shape_SubProcess_LoginDialog">
+        <dc:Bounds height="200.0" width="300.0" x="450.0" y="50.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_ThemeSetup" id="Shape_Task_ThemeSetup">
+        <dc:Bounds height="50.0" width="100.0" x="460.0" y="60.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_UserInput" id="Shape_Task_UserInput">
+        <dc:Bounds height="50.0" width="100.0" x="460.0" y="120.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Gateway_ValidateLogin" id="Shape_Gateway_ValidateLogin">
+        <dc:Bounds height="50.0" width="50.0" x="480.0" y="180.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_LoginSuccess" id="Shape_Task_LoginSuccess">
+        <dc:Bounds height="50.0" width="100.0" x="540.0" y="180.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_LoginFailure" id="Shape_Task_LoginFailure">
+        <dc:Bounds height="50.0" width="100.0" x="420.0" y="180.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="Flow_1_1" id="Edge_Flow_1_1">
+        <di:waypoint x="153.0" y="133.0"/>
+        <di:waypoint x="199.0" y="133.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_2" id="Edge_Flow_2">
+        <di:waypoint x="299.0" y="138.0"/>
+        <di:waypoint x="325.0" y="138.0"/>
+        <di:waypoint x="325.0" y="120.0"/>
+        <di:waypoint x="350.0" y="120.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_3" id="Edge_Flow_3">
+        <di:waypoint x="400.0" y="120.0"/>
+        <di:waypoint x="425.0" y="120.0"/>
+        <di:waypoint x="425.0" y="75.0"/>
+        <di:waypoint x="450.0" y="75.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_4" id="Edge_Flow_4">
+        <di:waypoint x="400.0" y="120.0"/>
+        <di:waypoint x="425.0" y="120.0"/>
+        <di:waypoint x="425.0" y="175.0"/>
+        <di:waypoint x="450.0" y="175.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_5" id="Edge_Flow_5">
+        <di:waypoint x="550.0" y="75.0"/>
+        <di:waypoint x="575.0" y="75.0"/>
+        <di:waypoint x="575.0" y="118.0"/>
+        <di:waypoint x="954.0" y="118.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_6" id="Edge_Flow_6">
+        <di:waypoint x="550.0" y="175.0"/>
+        <di:waypoint x="575.0" y="175.0"/>
+        <di:waypoint x="575.0" y="118.0"/>
+        <di:waypoint x="954.0" y="118.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sequenceFlow_FJ8wIg" id="BPMNEdge_CzjMRg" sourceElement="Shape_StartEvent_1" targetElement="Shape_Task_LoadSession">
+        <di:waypoint x="-19.0" y="143.0"/>
+        <di:waypoint x="18.0" y="143.0"/>
+        <di:waypoint x="18.0" y="133.0"/>
+        <di:waypoint x="53.0" y="133.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_3_1" id="Edge_Flow_3_1">
+        <di:waypoint x="510.0" y="85.0"/>
+        <di:waypoint x="510.0" y="120.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_3_2" id="Edge_Flow_3_2">
+        <di:waypoint x="510.0" y="145.0"/>
+        <di:waypoint x="510.0" y="180.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_3_3" id="Edge_Flow_3_3">
+        <di:waypoint x="505.0" y="205.0"/>
+        <di:waypoint x="540.0" y="205.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_3_4" id="Edge_Flow_3_4">
+        <di:waypoint x="505.0" y="205.0"/>
+        <di:waypoint x="420.0" y="205.0"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

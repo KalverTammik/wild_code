@@ -1,17 +1,19 @@
 import os
 import platform
 
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, Qt
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QComboBox
 )
 from qgis.PyQt.QtGui import QIcon
+from qgis.core import Qgis
 
 from .widgets.theme_manager import ThemeManager
 from .constants.file_paths import FilePaths
 from .languages.language_manager import LanguageManager
 from .constants.DialogLabels import DialogLabels
 from .utils.SessionManager import SessionManager
+from .config.setup import Version, FooterWidget
 
 lang = LanguageManager(language="et")
 
@@ -84,6 +86,14 @@ class LoginDialog(QDialog):
         button_layout.addStretch()
         button_layout.addWidget(self.login_button)
         layout.addLayout(button_layout)
+
+        # Remove old footer_label QLabel
+        # self.footer_label = QLabel(f"QGIS {qgis_version} | Plugin v{plugin_version}")
+        # self.footer_label.setAlignment(Qt.AlignCenter)
+        # self.footer_label.setObjectName("footerLabel")
+        # layout.addWidget(self.footer_label)
+        self.footer_widget = FooterWidget(show_left=False, show_right=True)
+        layout.addWidget(self.footer_widget)
 
         self.toggle_password_button.setStyleSheet("")
         self.login_button.setStyleSheet("")

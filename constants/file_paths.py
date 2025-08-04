@@ -3,6 +3,8 @@ import os
 # Base directory of the plugin
 BASE_DIR = os.path.dirname(__file__)
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(__file__))
+
+CONFIG_DIR = "config"
 RESOURCE = "resources"
 STYLES = "styles"
 MODULES = "modules"
@@ -15,6 +17,8 @@ class FilePaths:
     DARK_THEME = "dark_theme"
     SIDEBAR = "sidebar"
     LOGIN_DIALOG = "login_dialog"
+    CONFIG = "config"
+    metadata = "metadata"
     
     MODULE_ICONS = {
         "SettingsModule": os.path.join(PLUGIN_ROOT, RESOURCE, "icon.png"),
@@ -40,6 +44,8 @@ class FilePaths:
             FilePaths.DARK_THEME: os.path.join(PLUGIN_ROOT, STYLES, "DarkTheme.qss"),
             FilePaths.SIDEBAR: os.path.join(PLUGIN_ROOT, STYLES, "Sidebar.qss"),
             FilePaths.LOGIN_DIALOG: os.path.join(PLUGIN_ROOT, STYLES, "LoginTheme.qss"),
+            FilePaths.CONFIG: os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json"),
+            FilePaths.metadata: os.path.join(PLUGIN_ROOT, "metadata.txt"),
         }
         return paths.get(file_key, None)  # Return None if the key is not found
 
