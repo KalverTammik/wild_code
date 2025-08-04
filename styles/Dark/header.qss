@@ -1,0 +1,27 @@
+/* Header QSS for Dark Theme */
+#headerTitleLabel {
+    color: #ececf1;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+#themeSwitchButton, #logoutButton {
+    background-color: #23272e;
+    color: #ececf1;
+    border: 1px solid #0b4544;
+    border-radius: 5px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+#themeSwitchButton:hover, #logoutButton:hover {
+    background-color: #2e5c58;
+    border: 1px solid #47a5b1;
+}
+
+#themeSwitchButton:pressed, #logoutButton:pressed {
+    background-color: #1e252b;
+    border: 1px solid #359692;
+}

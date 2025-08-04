@@ -1,0 +1,6 @@
+/* Footer QSS for Light Theme */
+#footerLabel {
+    color: gray;
+    font-size: 10px;
+    padding: 4px 0 0 0;
+}

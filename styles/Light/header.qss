@@ -1,0 +1,27 @@
+/* Header QSS for Light Theme */
+#headerTitleLabel {
+    color: #24292e;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+#themeSwitchButton, #logoutButton {
+    background-color: #fafbfc;
+    color: #24292e;
+    border: 1px solid #e1e4e8;
+    border-radius: 5px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+#themeSwitchButton:hover, #logoutButton:hover {
+    background-color: #e1e4e8;
+    border: 1px solid #2188ff;
+}
+
+#themeSwitchButton:pressed, #logoutButton:pressed {
+    background-color: #d1d5da;
+    border: 1px solid #0366d6;
+}

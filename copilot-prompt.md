@@ -112,52 +112,22 @@ Design Requirements:
 
 ---
 
-## Theme Management
 
 ### Theme Manager
-- Use `widgets/theme_manager.py` to handle theme switching and apply styles dynamically.
-- Ensure the theme manager loads the appropriate QSS file (`styles/DarkTheme.qss` or `styles/LightTheme.qss`) based on user preference or system settings.
-- Provide a method to toggle between themes programmatically.
+- Use `widgets/theme_manager.py` to handle theme switching and apply styles dynamically on new module UIs.
+- Ensure that each new module responds to theme changes as described in theme_manager
+
 
 ### QSS Files
+
+Base themes are:
 - `styles/DarkTheme.qss`: Contains styles for the dark theme.
 - `styles/LightTheme.qss`: Contains styles for the light theme.
 - Ensure both QSS files define consistent styles for all widgets, dialogs, and frames.
-- Use shared variables for colors and fonts to maintain consistency across themes.
 
-## Registered Modules
-- **Weather Update Module**: Provides real-time weather updates and forecasts.
-- **Joke Generator Module**: Fetches and displays random jokes from the internet, with optional auto-refresh functionality.
-- **Project Card Module**: Provides reusable project card widgets for displaying project attributes.
-  - **Features**:
-    - Displays project attributes such as title, description, budget (price), and client (brand).
-    - Includes buttons for [Details], [Mark Complete], and [✎ Edit].
-    - Dynamically applies the active theme using `ThemeManager`.
-    - Can be reused in other modules like `ProjectFeedModule`.
-
-## Joke Generator Module
-- **Category Selection**: Choose between "General", "Programming", and "Dad Joke".
-- **Get Joke Button**: Fetches a random joke from the selected category.
-- **Auto-Refresh**: Automatically fetches a new joke every 10 seconds when enabled.
-- **API**: Uses `https://icanhazdadjoke.com` for fetching jokes.
-
-## 🆕 Login and Session Management (updated 2025-08-01)
-All user login interactions must go through `login_dialog.py`.
-
-Upon successful login:
-- Receive an API token and user object from the SaaS backend.
-- Store in-memory using `SessionManager` (in `SessionManager.py`).
-- Open the main plugin dialog (`PluginDialog` in `dialog.py`) to initialize and activate modules.
-- Do not store or persist credentials or tokens unless securely encrypted.
-
-`SessionManager` must expose:
-- `getToken(): str`
-- `getUser(): dict`
-- `isLoggedIn(): bool`
-- `clear(): None`
-
-Token must be added as a Bearer header for all API calls made by modules.
-
-On plugin unload or logout, call `SessionManager.clear()` to wipe the session.
-
-Any module that performs API calls must check `SessionManager.isLoggedIn()` before running.
+### Web Link and Module URL Management
+- All static and module-related URLs are managed centrally in UrlManager.py.
+- Static links (home, privacy, terms, etc.) are loaded from config.json and accessed via the WebLinks class.
+- Module-specific URLs are defined in the Module enum and WebModules class, and full URLs are built using the OpenLink class.
+- To add a new module or link, update the enum/class and/or config.json—no need to hardcode URLs throughout the codebase.
+- To open any link in the browser, use the loadWebpage.open_webpage(url) utility.

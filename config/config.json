@@ -1,4 +1,7 @@
 {
     "graphql_endpoint": "api.kavitro.com/graphql",
-    "weblink": "https://app.kavitro.com"
+    "weblink": "https://app.kavitro.com",
+    "api_base": "https://api.kavitro.com/v1",
+    "privacy": "https://kavitro.com/et/privaatsuspoliitika/",
+    "terms": "https://kavitro.com/et/kasutustingimused/"
 }

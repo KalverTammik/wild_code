@@ -10,6 +10,7 @@ STYLES = "styles"
 MODULES = "modules"
 FLOW_MODULE = "flowmodule"
 
+
 class FilePaths:
     ICON = "icon"
     EYE_ICON = "eye_icon"
@@ -20,6 +21,10 @@ class FilePaths:
     CONFIG = "config"
     metadata = "metadata"
     user_manual = "user_manual"
+    LIGHTNESS_ICON = "lightness_icon"
+    DARKNESS_ICON = "darkness_icon"
+    LOGOUT_BRIGHT = "logout_bright"
+    LOGOUT_DARK = "logout_dark"
 
     MODULE_ICONS = {
         "SettingsModule": os.path.join(PLUGIN_ROOT, RESOURCE, "icon.png"),
@@ -48,6 +53,10 @@ class FilePaths:
             FilePaths.CONFIG: os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json"),
             FilePaths.metadata: os.path.join(PLUGIN_ROOT, "metadata.txt"),
             FilePaths.user_manual: os.path.join(PLUGIN_ROOT, MODULES, "PizzaOrderModuleUserManual.html"),
+            FilePaths.LIGHTNESS_ICON: os.path.join(PLUGIN_ROOT, RESOURCE, "brightness.png"),
+            FilePaths.DARKNESS_ICON: os.path.join(PLUGIN_ROOT, RESOURCE, "darkness.png"),
+            FilePaths.LOGOUT_BRIGHT: os.path.join(PLUGIN_ROOT, RESOURCE, "logout_bright.png"),
+            FilePaths.LOGOUT_DARK: os.path.join(PLUGIN_ROOT, RESOURCE, "logout_dark.png"),
         }
         return paths.get(file_key, None)  # Return None if the key is not found
 
