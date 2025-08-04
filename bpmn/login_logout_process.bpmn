@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_WildCodeLoginLogout" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="WildCodeLoginLogoutProcess" isExecutable="true">
+    <bpmn:startEvent id="StartEvent" name="Start Plugin">
+      <bpmn:outgoing>Flow_LoadSession</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:scriptTask id="Task_LoadSession" name="Load Session">
+      <bpmn:documentation>SessionManager.load() loads session data from QSettings.</bpmn:documentation>
+      <bpmn:incoming>Flow_LoadSession</bpmn:incoming>
+      <bpmn:outgoing>Flow_CheckSessionValid</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:exclusiveGateway id="Gateway_SessionValid" name="Is Session Valid?">
+      <bpmn:documentation>SessionManager.revalidateSession() checks if the session is valid and not expired.</bpmn:documentation>
+      <bpmn:incoming>Flow_CheckSessionValid</bpmn:incoming>
+      <bpmn:outgoing>Flow_SessionValid</bpmn:outgoing>
+      <bpmn:outgoing>Flow_SessionInvalid</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_OpenPluginDialog" name="Open PluginDialog">
+      <bpmn:documentation>Show PluginDialog if session is valid and user is logged in.</bpmn:documentation>
+      <bpmn:incoming>Flow_SessionValid</bpmn:incoming>
+      <bpmn:incoming>Flow_LoginSuccess</bpmn:incoming>
+      <bpmn:outgoing>Flow_PluginDialogOpen</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_OpenLoginDialog" name="Open LoginDialog">
+      <bpmn:documentation>Show LoginDialog if session is invalid or user is not logged in.</bpmn:documentation>
+      <bpmn:incoming>Flow_SessionInvalid</bpmn:incoming>
+      <bpmn:incoming>Flow_Logout</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserInput</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:userTask id="Task_UserInput" name="User Enters Credentials">
+      <bpmn:documentation>User enters username and password in LoginDialog.</bpmn:documentation>
+      <bpmn:incoming>Flow_UserInput</bpmn:incoming>
+      <bpmn:outgoing>Flow_ValidateCredentials</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:scriptTask id="Task_ValidateCredentials" name="Validate Credentials">
+      <bpmn:documentation>Check credentials (mock API call or real API in production).</bpmn:documentation>
+      <bpmn:incoming>Flow_ValidateCredentials</bpmn:incoming>
+      <bpmn:outgoing>Flow_CredentialsValid</bpmn:outgoing>
+      <bpmn:outgoing>Flow_CredentialsInvalid</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:exclusiveGateway id="Gateway_CredentialsValid" name="Are Credentials Valid?">
+      <bpmn:documentation>Decision: Are the credentials correct?</bpmn:documentation>
+      <bpmn:incoming>Flow_CredentialsValid</bpmn:incoming>
+      <bpmn:outgoing>Flow_LoginSuccess</bpmn:outgoing>
+      <bpmn:outgoing>Flow_RetryLogin</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:scriptTask id="Task_SetSession" name="Set Session">
+      <bpmn:documentation>SessionManager.setSession() saves the session and user info.</bpmn:documentation>
+      <bpmn:incoming>Flow_LoginSuccess</bpmn:incoming>
+      <bpmn:outgoing>Flow_OpenPluginDialogAfterLogin</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:sequenceFlow id="Flow_LoadSession" sourceRef="StartEvent" targetRef="Task_LoadSession">
+      <bpmn:documentation>Start plugin triggers session load.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_CheckSessionValid" sourceRef="Task_LoadSession" targetRef="Gateway_SessionValid">
+      <bpmn:documentation>After loading session, check if session is valid.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SessionValid" name="Valid" sourceRef="Gateway_SessionValid" targetRef="Task_OpenPluginDialog">
+      <bpmn:documentation>Session is valid and user is logged in.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SessionInvalid" name="Invalid" sourceRef="Gateway_SessionValid" targetRef="Task_OpenLoginDialog">
+      <bpmn:documentation>Session is invalid or expired, open LoginDialog.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_UserInput" sourceRef="Task_OpenLoginDialog" targetRef="Task_UserInput">
+      <bpmn:documentation>User is prompted to enter credentials.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ValidateCredentials" sourceRef="Task_UserInput" targetRef="Task_ValidateCredentials">
+      <bpmn:documentation>Validate the entered credentials.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_CredentialsValid" sourceRef="Task_ValidateCredentials" targetRef="Gateway_CredentialsValid">
+      <bpmn:documentation>Decision: Are credentials valid?</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_LoginSuccess" name="Yes" sourceRef="Gateway_CredentialsValid" targetRef="Task_SetSession">
+      <bpmn:documentation>Credentials are valid, set session and proceed.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_RetryLogin" name="No" sourceRef="Gateway_CredentialsValid" targetRef="Task_UserInput">
+      <bpmn:documentation>Credentials invalid, prompt user to try again.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_OpenPluginDialogAfterLogin" sourceRef="Task_SetSession" targetRef="Task_OpenPluginDialog">
+      <bpmn:documentation>After setting session, open PluginDialog.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_PluginDialogOpen" sourceRef="Task_OpenPluginDialog" targetRef="Gateway_PluginDialogOpen">
+      <bpmn:documentation>PluginDialog is open, user can interact or logout.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:parallelGateway id="Gateway_PluginDialogOpen" name="PluginDialog Open">
+      <bpmn:documentation>User can either close the dialog or logout.</bpmn:documentation>
+      <bpmn:incoming>Flow_PluginDialogOpen</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserLogout</bpmn:outgoing>
+      <bpmn:outgoing>Flow_UserCloseDialog</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:userTask id="Task_UserLogout" name="User Clicks Logout">
+      <bpmn:documentation>User clicks the logout button in PluginDialog.</bpmn:documentation>
+      <bpmn:incoming>Flow_UserLogout</bpmn:incoming>
+      <bpmn:outgoing>Flow_Logout</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_UserLogout" sourceRef="Gateway_PluginDialogOpen" targetRef="Task_UserLogout">
+      <bpmn:documentation>User chooses to logout.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:scriptTask id="Task_ClearSession" name="Clear Session">
+      <bpmn:documentation>SessionManager.clear() clears session and persistent storage.</bpmn:documentation>
+      <bpmn:incoming>Flow_Logout</bpmn:incoming>
+      <bpmn:outgoing>Flow_OpenLoginAfterLogout</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:sequenceFlow id="Flow_Logout" sourceRef="Task_UserLogout" targetRef="Task_ClearSession">
+      <bpmn:documentation>After logout, clear session.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_OpenLoginAfterLogout" sourceRef="Task_ClearSession" targetRef="Task_OpenLoginDialog">
+      <bpmn:documentation>After clearing session, show LoginDialog again.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="Task_UserCloseDialog" name="User Closes PluginDialog">
+      <bpmn:documentation>User closes the PluginDialog window (not a logout).</bpmn:documentation>
+      <bpmn:incoming>Flow_UserCloseDialog</bpmn:incoming>
+      <bpmn:outgoing>Flow_End</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_UserCloseDialog" sourceRef="Gateway_PluginDialogOpen" targetRef="Task_UserCloseDialog">
+      <bpmn:documentation>User closes the PluginDialog window.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+    <bpmn:endEvent id="EndEvent" name="End">
+      <bpmn:incoming>Flow_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_End" sourceRef="Task_UserCloseDialog" targetRef="EndEvent">
+      <bpmn:documentation>Process ends when user closes PluginDialog.</bpmn:documentation>
+    </bpmn:sequenceFlow>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="WildCodeLoginLogoutDiagram">
+    <bpmndi:BPMNPlane id="WildCodeLoginLogoutPlane" bpmnElement="WildCodeLoginLogoutProcess">
+      <bpmndi:BPMNShape id="Shape_StartEvent" bpmnElement="StartEvent">
+        <dc:Bounds x="100" y="100" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_LoadSession" bpmnElement="Task_LoadSession">
+        <dc:Bounds x="180" y="95" width="120" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_SessionValid" bpmnElement="Gateway_SessionValid" isMarkerVisible="true">
+        <dc:Bounds x="340" y="100" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_OpenPluginDialog" bpmnElement="Task_OpenPluginDialog">
+        <dc:Bounds x="440" y="60" width="120" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_OpenLoginDialog" bpmnElement="Task_OpenLoginDialog">
+        <dc:Bounds x="440" y="160" width="120" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_UserInput" bpmnElement="Task_UserInput">
+        <dc:Bounds x="600" y="160" width="120" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ValidateCredentials" bpmnElement="Task_ValidateCredentials">
+        <dc:Bounds x="760" y="160" width="120" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_CredentialsValid" bpmnElement="Gateway_CredentialsValid" isMarkerVisible="true">
+        <dc:Bounds x="920" y="160" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_SetSession" bpmnElement="Task_SetSession">
+        <dc:Bounds x="1020" y="120" width="120" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_PluginDialogOpen" bpmnElement="Gateway_PluginDialogOpen" isMarkerVisible="true">
+        <dc:Bounds x="1180" y="60" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_UserLogout" bpmnElement="Task_UserLogout">
+        <dc:Bounds x="1280" y="30" width="120" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ClearSession" bpmnElement="Task_ClearSession">
+        <dc:Bounds x="1420" y="30" width="120" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_UserCloseDialog" bpmnElement="Task_UserCloseDialog">
+        <dc:Bounds x="1280" y="120" width="120" height="50"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent" bpmnElement="EndEvent">
+        <dc:Bounds x="1460" y="120" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Edge_Flow_LoadSession" bpmnElement="Flow_LoadSession">
+        <di:waypoint x="136" y="118" />
+        <di:waypoint x="180" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_CheckSessionValid" bpmnElement="Flow_CheckSessionValid">
+        <di:waypoint x="300" y="120" />
+        <di:waypoint x="340" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_SessionValid" bpmnElement="Flow_SessionValid">
+        <di:waypoint x="365" y="125" />
+        <di:waypoint x="440" y="85" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_SessionInvalid" bpmnElement="Flow_SessionInvalid">
+        <di:waypoint x="365" y="150" />
+        <di:waypoint x="440" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_PluginDialogOpen" bpmnElement="Flow_PluginDialogOpen">
+        <di:waypoint x="560" y="85" />
+        <di:waypoint x="1180" y="85" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_UserLogout" bpmnElement="Flow_UserLogout">
+        <di:waypoint x="1230" y="85" />
+        <di:waypoint x="1280" y="55" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_UserCloseDialog" bpmnElement="Flow_UserCloseDialog">
+        <di:waypoint x="1230" y="110" />
+        <di:waypoint x="1280" y="145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_UserInput" bpmnElement="Flow_UserInput">
+        <di:waypoint x="560" y="185" />
+        <di:waypoint x="600" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ValidateCredentials" bpmnElement="Flow_ValidateCredentials">
+        <di:waypoint x="720" y="185" />
+        <di:waypoint x="760" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_CredentialsValid" bpmnElement="Flow_CredentialsValid">
+        <di:waypoint x="880" y="185" />
+        <di:waypoint x="920" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_LoginSuccess" bpmnElement="Flow_LoginSuccess">
+        <di:waypoint x="945" y="185" />
+        <di:waypoint x="1020" y="145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_RetryLogin" bpmnElement="Flow_RetryLogin">
+        <di:waypoint x="945" y="210" />
+        <di:waypoint x="660" y="210" />
+        <di:waypoint x="660" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_OpenPluginDialogAfterLogin" bpmnElement="Flow_OpenPluginDialogAfterLogin">
+        <di:waypoint x="1140" y="145" />
+        <di:waypoint x="1180" y="85" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Logout" bpmnElement="Flow_Logout">
+        <di:waypoint x="1400" y="55" />
+        <di:waypoint x="1420" y="55" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_OpenLoginAfterLogout" bpmnElement="Flow_OpenLoginAfterLogout">
+        <di:waypoint x="1540" y="55" />
+        <di:waypoint x="1540" y="185" />
+        <di:waypoint x="560" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_End" bpmnElement="Flow_End">
+        <di:waypoint x="1400" y="145" />
+        <di:waypoint x="1460" y="138" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+        <di:waypoint x="260" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0g6ufwe_di" bpmnElement="Flow_0g6ufwe">
+        <di:waypoint x="1940" y="440" />
+        <di:waypoint x="1940" y="470" />
+        <di:waypoint x="315" y="470" />
+        <di:waypoint x="315" y="165" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_2" bpmnElement="Flow_2">
+        <di:waypoint x="810" y="140" />
+        <di:waypoint x="860" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_6" bpmnElement="Flow_6" targetElement="Shape_Task_UserInput">
+        <di:waypoint x="1185" y="165" />
+        <di:waypoint x="1185" y="227" />
+        <di:waypoint x="910" y="227" />
+        <di:waypoint x="910" y="180" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1040" y="202" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_3" bpmnElement="Flow_3">
+        <di:waypoint x="960" y="140" />
+        <di:waypoint x="1010" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_4" bpmnElement="Flow_4">
+        <di:waypoint x="1110" y="140" />
+        <di:waypoint x="1160" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_5" bpmnElement="Flow_5">
+        <di:waypoint x="1210" y="140" />
+        <di:waypoint x="1235" y="140" />
+        <di:waypoint x="1268" y="140" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1214" y="115" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0etqes5_di" bpmnElement="Flow_0etqes5">
+        <di:waypoint x="1368" y="140" />
+        <di:waypoint x="1440" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06dm068_di" bpmnElement="Flow_06dm068">
+        <di:waypoint x="1490" y="180" />
+        <di:waypoint x="1490" y="265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1s9gkxc_di" bpmnElement="Flow_1s9gkxc">
+        <di:waypoint x="1545" y="290" />
+        <di:waypoint x="1615" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ca5hot_di" bpmnElement="Flow_0ca5hot">
+        <di:waypoint x="1665" y="290" />
+        <di:waypoint x="1740" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1tiezlt_di" bpmnElement="Flow_1tiezlt">
+        <di:waypoint x="1640" y="315" />
+        <di:waypoint x="1640" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_122cxt5_di" bpmnElement="Flow_122cxt5">
+        <di:waypoint x="1840" y="290" />
+        <di:waypoint x="1920" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07izcbl_di" bpmnElement="Flow_07izcbl">
+        <di:waypoint x="2020" y="290" />
+        <di:waypoint x="2100" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11w3zlh_di" bpmnElement="Flow_11w3zlh">
+        <di:waypoint x="2200" y="290" />
+        <di:waypoint x="2280" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1q8nv1i_di" bpmnElement="Flow_1q8nv1i">
+        <di:waypoint x="2380" y="290" />
+        <di:waypoint x="2462" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_05i4tsb_di" bpmnElement="Flow_05i4tsb">
+        <di:waypoint x="1690" y="400" />
+        <di:waypoint x="1740" y="400" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0nkjygq_di" bpmnElement="Flow_0nkjygq">
+        <di:waypoint x="1840" y="400" />
+        <di:waypoint x="1890" y="400" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

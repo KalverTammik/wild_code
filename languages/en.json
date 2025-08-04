@@ -1,0 +1,9 @@
+{
+    "login_title": "Login",
+    "username_label": "Username:",
+    "password_label": "Password:",
+    "login_button": "Login",
+    "toggle_password": "Show Password",
+    "language_label": "Language:",
+    "mailabl_listener": "Mailabl Listener"
+}

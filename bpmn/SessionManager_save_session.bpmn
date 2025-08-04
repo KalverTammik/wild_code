@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:open-bpmn="http://open-bpmn.org/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="SessionManagerSaveSessionDetails" targetNamespace="http://wild_code/SessionManager/save_session">
+  <bpmn:extensionElements>
+    <open-bpmn:auto-align/>
+  </bpmn:extensionElements>
+  <bpmn:process id="SaveSessionProcess" isExecutable="true" name="SessionManager.save_session Detailed Flow" processType="Public">
+    <bpmn:startEvent id="Start_SaveSession" name="Start save_session">
+      <bpmn:outgoing>Flow_StartToCheckInstance</bpmn:outgoing>
+      <bpmn:documentation id="documentation_iFl6Kg"/>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gateway_InstanceCheck" name="Is _instance initialized?">
+      <bpmn:incoming>Flow_StartToCheckInstance</bpmn:incoming>
+      <bpmn:outgoing>Flow_YesInstance</bpmn:outgoing>
+      <bpmn:outgoing>Flow_NoInstance</bpmn:outgoing>
+      <bpmn:documentation id="documentation_G7dTEg"/>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_InitializeInstance" name="Initialize SessionManager._instance">
+      <bpmn:incoming>Flow_NoInstance</bpmn:incoming>
+      <bpmn:outgoing>Flow_InitToSettings</bpmn:outgoing>
+      <bpmn:documentation>If _instance is not set, create a new SessionManager singleton and set apiToken and loggedInUser to None.</bpmn:documentation>
+    </bpmn:task>
+    <bpmn:task id="Task_CreateQSettings" name="Create QSettings Object">
+      <bpmn:incoming>Flow_YesInstance</bpmn:incoming>
+      <bpmn:incoming>Flow_InitToSettings</bpmn:incoming>
+      <bpmn:outgoing>Flow_SettingsToToken</bpmn:outgoing>
+      <bpmn:documentation>Instantiate QSettings to access persistent storage.</bpmn:documentation>
+    </bpmn:task>
+    <bpmn:task id="Task_SetToken" name="Set 'session/token'">
+      <bpmn:incoming>Flow_SettingsToToken</bpmn:incoming>
+      <bpmn:outgoing>Flow_TokenToUser</bpmn:outgoing>
+      <bpmn:documentation>Write SessionManager._instance.apiToken to QSettings under key 'session/token'.</bpmn:documentation>
+    </bpmn:task>
+    <bpmn:task id="Task_SetUser" name="Set 'session/active_user'">
+      <bpmn:incoming>Flow_TokenToUser</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserToEnd</bpmn:outgoing>
+      <bpmn:documentation>Write SessionManager._instance.loggedInUser to QSettings under key 'session/active_user'.</bpmn:documentation>
+    </bpmn:task>
+    <bpmn:endEvent id="End_SaveSession" name="Session Data Saved">
+      <bpmn:incoming>Flow_UserToEnd</bpmn:incoming>
+      <bpmn:documentation id="documentation_6mLYJA"/>
+    </bpmn:endEvent>
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_StartToCheckInstance" sourceRef="Start_SaveSession" targetRef="Gateway_InstanceCheck">
+      <bpmn:documentation id="documentation_GkwLOA"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_YesInstance" name="Yes" sourceRef="Gateway_InstanceCheck" targetRef="Task_CreateQSettings">
+      <bpmn:documentation id="documentation_Gxuytg"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_NoInstance" name="No" sourceRef="Gateway_InstanceCheck" targetRef="Task_InitializeInstance">
+      <bpmn:documentation id="documentation_6jxIbQ"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_InitToSettings" sourceRef="Task_InitializeInstance" targetRef="Task_CreateQSettings">
+      <bpmn:documentation id="documentation_Z2a11A"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_SettingsToToken" sourceRef="Task_CreateQSettings" targetRef="Task_SetToken">
+      <bpmn:documentation id="documentation_bCKOIw"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_TokenToUser" sourceRef="Task_SetToken" targetRef="Task_SetUser">
+      <bpmn:documentation id="documentation_yYc7fw"/>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_UserToEnd" sourceRef="Task_SetUser" targetRef="End_SaveSession">
+      <bpmn:documentation id="documentation_5BE0CQ"/>
+    </bpmn:sequenceFlow>
+    <bpmn:documentation id="documentation_U7eyMw"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="SaveSessionDiagram">
+    <bpmndi:BPMNPlane bpmnElement="SaveSessionProcess" id="SaveSessionPlane">
+      <bpmndi:BPMNShape bpmnElement="Start_SaveSession" id="Shape_Start_SaveSession">
+        <dc:Bounds height="36" width="36" x="50" y="100"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_03KTdg">
+          <dc:Bounds height="20.0" width="100.0" x="18.0" y="139.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Gateway_InstanceCheck" id="Shape_Gateway_InstanceCheck">
+        <dc:Bounds height="50" width="50" x="120" y="95"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_v2f0uQ">
+          <dc:Bounds height="20.0" width="100.0" x="95.0" y="148.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_InitializeInstance" id="Shape_Task_InitializeInstance">
+        <dc:Bounds height="60" width="140" x="200" y="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_CreateQSettings" id="Shape_Task_CreateQSettings">
+        <dc:Bounds height="60" width="140" x="200" y="140"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_SetToken" id="Shape_Task_SetToken">
+        <dc:Bounds height="60" width="140" x="370" y="140"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_SetUser" id="Shape_Task_SetUser">
+        <dc:Bounds height="60" width="140" x="540" y="140"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_SaveSession" id="Shape_End_SaveSession">
+        <dc:Bounds height="36" width="36" x="710" y="155"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_qGSbrQ">
+          <dc:Bounds height="20.0" width="100.0" x="678.0" y="194.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <!-- Edges (Waypoints) -->
+      <bpmndi:BPMNEdge bpmnElement="Flow_StartToCheckInstance" id="Edge_Flow_StartToCheckInstance">
+        <di:waypoint x="86.0" y="118.0"/>
+        <di:waypoint x="103.0" y="118.0"/>
+        <di:waypoint x="103.0" y="120.0"/>
+        <di:waypoint x="120.0" y="120.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_YesInstance" id="Edge_Flow_YesInstance">
+        <di:waypoint x="170.0" y="120.0"/>
+        <di:waypoint x="185.0" y="120.0"/>
+        <di:waypoint x="185.0" y="170.0"/>
+        <di:waypoint x="200.0" y="170.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_NoInstance" id="Edge_Flow_NoInstance">
+        <di:waypoint x="170.0" y="120.0"/>
+        <di:waypoint x="185.0" y="120.0"/>
+        <di:waypoint x="185.0" y="70.0"/>
+        <di:waypoint x="200.0" y="70.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_InitToSettings" id="Edge_Flow_InitToSettings">
+        <di:waypoint x="270.0" y="100.0"/>
+        <di:waypoint x="270.0" y="140.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_SettingsToToken" id="Edge_Flow_SettingsToToken">
+        <di:waypoint x="340.0" y="170.0"/>
+        <di:waypoint x="370.0" y="170.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_TokenToUser" id="Edge_Flow_TokenToUser">
+        <di:waypoint x="510.0" y="170.0"/>
+        <di:waypoint x="540.0" y="170.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_UserToEnd" id="Edge_Flow_UserToEnd">
+        <di:waypoint x="680.0" y="170.0"/>
+        <di:waypoint x="695.0" y="170.0"/>
+        <di:waypoint x="695.0" y="173.0"/>
+        <di:waypoint x="710.0" y="173.0"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

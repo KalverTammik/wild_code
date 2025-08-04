@@ -1,0 +1,14 @@
+{
+    "login_title": "Sisselogimine",
+    "language_label": "Keel:",
+    "username_label": "Kasutajanimi:",
+    "password_label": "Parool:",
+    "login_button": "Logi sisse",
+    "wild_code_plugin_title": "Wild Code Plugin",
+    "home_page": "Tere tulemast avalehele!",
+    "settings_page": "Seadete leht",
+    "about_page": "Teave leht",
+    "mailabl_listener": "Mailabl Listener",
+    "switch_to_dark_mode": "Lülita tumedale režiimile",
+    "switch_to_light_mode": "Lülita heledale režiimile"
+}

@@ -1,0 +1,14 @@
+{
+    "login_title": "Connexion",
+    "username_label": "Nom d'utilisateur:",
+    "password_label": "Mot de passe:",
+    "login_button": "Connexion",
+    "toggle_password": "Afficher le mot de passe",
+    "language_label": "Langue:",
+    "wild_code_plugin_title": "Plugin Wild Code",
+    "home_page": "Bienvenue sur la page d'accueil !",
+    "settings_page": "Page des paramètres",
+    "about_page": "Page à propos",
+    "switch_to_dark_mode": "Passer en mode sombre",
+    "mailabl_listener": "Mailabl Listener"
+}

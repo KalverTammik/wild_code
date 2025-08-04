@@ -1,0 +1,12 @@
+{
+    "login_title": "Login",
+    "language_label": "Language:",
+    "username_label": "Username:",
+    "password_label": "Password:",
+    "login_button": "Login",
+    "wild_code_plugin_title": "Wild Code Plugin",
+    "home_page": "Welcome to the Home Page!",
+    "settings_page": "Settings Page",
+    "about_page": "About Page",
+    "switch_to_dark_mode": "Switch to Dark Mode"
+}
