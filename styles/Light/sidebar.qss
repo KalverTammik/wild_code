@@ -1,0 +1,36 @@
+/* Special right frame for toggle button */
+#SidebarRightFrame {
+    background: #e6eaf0;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    min-width: 2px;
+    max-width: 32px;
+}
+
+#SidebarRightFrame #ToggleButton {
+    background: #f5f7fa;
+    border-radius: 14px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    padding: 0;
+    color: #4a4a5a;
+    font-size: 14px;
+    border: none;
+    box-shadow: 0 0 6px rgba(9, 144, 143, 0.12);
+}
+
+#SidebarRightFrame #ToggleButton:hover {
+    background: #e0e6ed;
+}
+
+#SidebarRightFrame #ToggleButton:pressed {
+    background: #cfd8e3;
+}
+
+#SidebarRightFrame #ToggleButton > * {
+    min-width: 10px;
+    min-height: 10px;
+}
+/* Sidebar QSS for Light Theme */

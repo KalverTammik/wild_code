@@ -1,5 +1,9 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QStackedWidget
+
+import os
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QStackedWidget, QWidget
 from PyQt5.QtGui import QMouseEvent
+from .widgets.FooterWidget import FooterWidget
+from .widgets.HeaderWidget import HeaderWidget
 from qgis.PyQt.QtWidgets import QDialog as QgisQDialog  # If needed elsewhere, otherwise can be removed
 from qgis.core import QgsMessageLog, Qgis
 
@@ -9,10 +13,11 @@ from .languages.language_manager import LanguageManager
 from .module_manager import ModuleManager
 from .widgets.sidebar import Sidebar
 from .utils.SessionManager import SessionManager
-from .constants.file_paths import FilePaths
-from .config.setup import Version, FooterWidget
+from .constants.file_paths import ResourcePaths, QssPaths, ConfigPaths, ModuleIconPaths
+from .config.setup import Version
 
 lang = LanguageManager()
+
 
 class PluginDialog(QDialog):
     _instance = None
@@ -25,42 +30,62 @@ class PluginDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle(lang.translate("wild_code_plugin_title"))  # Set window title
+        self.setWindowTitle(lang.translate("wild_code_plugin_title"))
 
+        from PyQt5.QtWidgets import QSizePolicy
         self.moduleManager = ModuleManager()
         self.moduleStack = QStackedWidget()
+        self.moduleStack.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.sidebar = Sidebar()
         self.sidebar.itemClicked.connect(self.switchModule)
 
-        main_layout = QHBoxLayout()
-        main_layout.addWidget(self.sidebar)
+
+
+        # Main vertical layout for the dialog
+        dialog_layout = QVBoxLayout()
+        dialog_layout.setContentsMargins(0, 0, 0, 0)
+        dialog_layout.setSpacing(0)
+
+        # Header at the absolute top
+        self.header_widget = HeaderWidget(
+            title=lang.translate("wild_code_plugin_title"),
+            switch_callback=self.toggle_theme,
+            logout_callback=self.logout
+        )
+        dialog_layout.addWidget(self.header_widget)
+
+        # Central content area (sidebar + main content + right sidebar)
+        content_layout = QHBoxLayout()
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+        content_layout.addWidget(self.sidebar)
 
         center_layout = QVBoxLayout()
-        self.header = QLabel(lang.translate("wild_code_plugin_title"))
-        center_layout.addWidget(self.header)
-
-        self.switch_button = QPushButton(lang.translate("switch_to_dark_mode"))
-        self.switch_button.clicked.connect(self.toggle_theme)
-        center_layout.addWidget(self.switch_button)
-
         center_layout.addWidget(self.moduleStack)
-        # Replace old footer QLabel with FooterWidget
-        # metadata_path = FilePaths.get_file_path(FilePaths.metadata)
-        # self.footer = QLabel(Version.get_footer_text(metadata_path))
-        # center_layout.addWidget(self.footer)
+        content_widget = QWidget()
+        content_widget.setLayout(center_layout)
+        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        content_layout.addWidget(content_widget)
+
+
+        dialog_layout.addLayout(content_layout)
+
+        # Footer at the absolute bottom
         self.footer_widget = FooterWidget(show_left=True, show_right=True)
-        center_layout.addWidget(self.footer_widget)
-        main_layout.addLayout(center_layout)
-        self.setLayout(main_layout)
+        dialog_layout.addWidget(self.footer_widget)
 
-        self.current_theme = "light"
-        self.apply_theme()
+        self.setLayout(dialog_layout)
+        
+
+        self.theme_base_dir = os.path.join(os.path.dirname(__file__), 'styles')
+        # Load and apply the theme from QGIS settings (persistent)
+        self.current_theme = ThemeManager.set_initial_theme(
+            self,
+            self.header_widget.switchButton,
+            self.theme_base_dir,
+            qss_files=["main.qss", "sidebar.qss", "header.qss", "footer.qss"]
+        )
         self.loadModules()
-
-        self.logout_button = QPushButton("Logout")
-        self.logout_button.clicked.connect(self.logout)
-        self.layout().addWidget(self.logout_button)
-
         self.destroyed.connect(self._on_destroyed)
 
     def _on_destroyed(self, obj):
@@ -73,8 +98,11 @@ class PluginDialog(QDialog):
         from .modules.ProjectCardModule import ProjectCardModule
         from .modules.ProjectFeedModule import ProjectFeedModule
         from .modules.ImageOfTheDayModule import ImageOfTheDayModule
+
         from .modules.BookQuoteModule import BookQuoteModule
         from .modules.PizzaOrderModule import PizzaOrderModule
+        from .modules.Hinnapakkuja.HinnapakkujaModule import HinnapakkujaModule
+        from .modules.GptAssistant.GptAssistantModule import GptAssistantModule
 
         jokeModule = JokeGeneratorModule()
         weatherModule = WeatherUpdateModule()
@@ -83,6 +111,8 @@ class PluginDialog(QDialog):
         imageOfTheDayModule = ImageOfTheDayModule()
         bookQuoteModule = BookQuoteModule()
         pizzaOrderModule = PizzaOrderModule()
+        hinnapakkujaModule = HinnapakkujaModule()
+        gptAssistantModule = GptAssistantModule()
 
         self.moduleManager.registerModule(jokeModule)
         self.moduleManager.registerModule(weatherModule)
@@ -91,12 +121,15 @@ class PluginDialog(QDialog):
         self.moduleManager.registerModule(imageOfTheDayModule)
         self.moduleManager.registerModule(bookQuoteModule)
         self.moduleManager.registerModule(pizzaOrderModule)
-
+        self.moduleManager.registerModule(hinnapakkujaModule)
+        self.moduleManager.registerModule(gptAssistantModule)
         for moduleName, moduleInfo in self.moduleManager.modules.items():
             iconPath = moduleInfo["icon"]
             displayName = moduleInfo["display_name"]
-            self.sidebar.addItem(displayName, moduleName, iconPath)
-            self.moduleStack.addWidget(moduleInfo["module"].get_widget())
+            widget = moduleInfo["module"].get_widget()
+            if widget is not None:
+                self.sidebar.addItem(displayName, moduleName, iconPath)
+                self.moduleStack.addWidget(widget)
 
     def switchModule(self, moduleName):
         try:
@@ -109,17 +142,20 @@ class PluginDialog(QDialog):
         except Exception as e:
             QgsMessageLog.logMessage(f"Error switching module: {e}", "Wild Code", level=Qgis.Critical)
 
-    def toggle_theme(self):
-        self.current_theme = "dark" if self.current_theme == "light" else "light"
-        self.apply_theme()
 
-    def apply_theme(self):
-        if self.current_theme == "light":
-            ThemeManager.apply_light_theme(self)
-            self.switch_button.setText(lang.translate("switch_to_dark_mode"))
-        else:
-            ThemeManager.apply_dark_theme(self)
-            self.switch_button.setText(lang.translate("switch_to_light_mode"))
+    def toggle_theme(self):
+        # Use ThemeManager to toggle theme and update icon
+        qss_files = ["main.qss", "sidebar.qss", "header.qss"]
+        new_theme = ThemeManager.toggle_theme(
+            self,
+            self.current_theme,
+            self.header_widget.switchButton,
+            self.theme_base_dir,
+            qss_files=qss_files
+        )
+        self.current_theme = new_theme
+
+
 
     def mousePressEvent(self, event: QMouseEvent):
         super().mousePressEvent(event)

@@ -1,0 +1,96 @@
+/* Special right frame for toggle button */
+#SidebarRightFrame {
+    background: #232b33;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    min-width: 2px;
+    max-width: 32px;
+}
+
+#SidebarRightFrame #ToggleButton {
+    background: #2e3a44;
+    border-radius: 14px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    padding: 0;
+    color: #c5c5d2;
+    font-size: 14px;
+    border: none;
+    box-shadow: 0 0 6px rgba(9, 144, 143, 0.2);
+}
+
+#SidebarRightFrame #ToggleButton:hover {
+    background: #3a3f4a;
+}
+
+#SidebarRightFrame #ToggleButton:pressed {
+    background: #1f2229;
+}
+
+#SidebarRightFrame #ToggleButton > * {
+    min-width: 10px;
+    min-height: 10px;
+}
+/* Sidebar Container */
+#Sidebar {
+    background-color: #21272e;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+/* Navigation and Settings Frames */
+#SidebarNavFrame,
+#SettingsFrame {
+    background-color: transparent;
+    padding: 4px 0;
+}
+
+/* Sidebar Buttons with Branded Teal Glow */
+#SidebarNavFrame QPushButton,
+#SettingsFrame QPushButton {
+    background-color: rgb(9, 144, 143);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: normal;
+
+    /* Very soft ambient glow by default */
+    box-shadow: 0 0 2px rgba(9, 144, 143, 0.05);
+    transition: all 0.2s ease-in-out;
+}
+
+#SidebarNavFrame QPushButton:hover,
+#SettingsFrame QPushButton:hover {
+    background-color: rgb(7, 120, 120); /* slightly darker teal */
+    box-shadow: 0 0 6px rgba(9, 144, 143, 0.2); /* increased glow */
+    color: #ffffff;
+}
+
+#SidebarNavFrame QPushButton:pressed,
+#SettingsFrame QPushButton:pressed {
+    background-color: #1e252b; /* muted pressed */
+    color: #47a5b1;            /* soft teal text */
+    box-shadow: inset 0 0 4px rgba(9, 144, 143, 0.15); /* inner glow */
+}
+
+/* Toggle Button (Minimal Teal Accent) */
+#ToggleButton {
+    font-size: 12px;
+    color: #c5c5d2;
+
+}
+
+#ToggleButton:hover {
+    background-color: #3a3f4a;
+    box-shadow: 0 0 6px rgba(9, 144, 143, 0.2);
+}
+
+#ToggleButton:pressed {
+    background-color: #1f2229;
+}
+

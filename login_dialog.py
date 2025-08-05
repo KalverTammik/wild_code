@@ -2,6 +2,7 @@ import os
 import platform
 
 from PyQt5.QtCore import pyqtSignal, Qt
+from .widgets.FooterWidget import FooterWidget
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QComboBox
 )
@@ -9,11 +10,11 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.core import Qgis
 
 from .widgets.theme_manager import ThemeManager
-from .constants.file_paths import FilePaths
+from .constants.file_paths import ResourcePaths, QssPaths
 from .languages.language_manager import LanguageManager
 from .constants.DialogLabels import DialogLabels
 from .utils.SessionManager import SessionManager
-from .config.setup import Version, FooterWidget
+from .config.setup import Version
 
 lang = LanguageManager(language="et")
 
@@ -35,10 +36,16 @@ class LoginDialog(QDialog):
         self.setWindowTitle(title)
         self.setFixedSize(300, 400)
 
-        theme_path = FilePaths.get_file_path(FilePaths.LOGIN_DIALOG)
-        print(f"Applying theme for login dialog: {theme_path}")
-        if theme_path:
-            ThemeManager.apply_theme(self, theme_path)
+
+        # Apply the last stored theme (persistent, no switch button)
+        theme_base_dir = os.path.join(os.path.dirname(__file__), 'styles')
+        # Use login.qss if available, otherwise fallback to all qss
+        ThemeManager.set_initial_theme(
+            self,
+            None,  # No switch button
+            theme_base_dir,
+            qss_files=[QssPaths.LOGIN]
+        )
 
         layout = QVBoxLayout()
 
@@ -51,27 +58,28 @@ class LoginDialog(QDialog):
         layout.addWidget(self.language_switch)
 
         self.username_label = QLabel(username_label)
+        self.username_label.setObjectName("usernameLabel")
         layout.addWidget(self.username_label)
         self.username_input = QLineEdit()
+        self.username_input.setObjectName("usernameInput")
         layout.addWidget(self.username_input)
 
-        password_label_layout = QHBoxLayout()
         self.password_label = QLabel(password_label)
-        password_label_layout.addWidget(self.password_label)
-
+        self.password_label.setObjectName("passwordLabel")
+        layout.addWidget(self.password_label)
+        password_row = QHBoxLayout()
+        self.password_input = QLineEdit()
+        self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.setObjectName("passwordInput")
+        password_row.addWidget(self.password_input)
         self.toggle_password_button = QPushButton()
         self.toggle_password_button.setObjectName("togglePasswordButton")
-        self.toggle_password_button.setIcon(QIcon(FilePaths.get_file_path(FilePaths.EYE_ICON)))
+        self.toggle_password_button.setIcon(QIcon(ResourcePaths.EYE_ICON))
         self.toggle_password_button.setCheckable(True)
         self.toggle_password_button.setText("")
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
-        password_label_layout.addWidget(self.toggle_password_button)
-
-        layout.addLayout(password_label_layout)
-
-        self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.Password)
-        layout.addWidget(self.password_input)
+        password_row.addWidget(self.toggle_password_button, alignment=Qt.AlignRight)
+        layout.addLayout(password_row)
 
         self.errorLabel = QLabel("")
         self.errorLabel.setStyleSheet("color: red;")

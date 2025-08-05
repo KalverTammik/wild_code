@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame, QPushButton, QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import pyqtSignal, Qt, QPropertyAnimation, QEasingCurve
-from ..constants.file_paths import FilePaths
+from ..constants.file_paths import QssPaths
 from ..widgets.theme_manager import ThemeManager
 from ..modules.SettingsModule import SettingsModule  # Import the SettingsModule
 from ..module_manager import ModuleManager, SETTINGS_MODULE
@@ -76,15 +76,33 @@ class Sidebar(QWidget):
         # Add settings button to the buttonTexts dictionary
         self.buttonTexts[self.settingsButton] = self.settingsButton.text()
 
-        # Add toggle button at the top
-        self.toggleButton = QPushButton("«", self)
+
+        # Special right frame for toggle button (furthest right in sidebar layout)
+        self.rightFrame = QFrame(self)
+        self.rightFrame.setObjectName("SidebarRightFrame")
+        self.rightFrame.setFixedWidth(32)
+        self.rightFrame.setLayout(QVBoxLayout())
+        self.rightFrame.layout().setContentsMargins(0, 20, 0, 0)
+        self.rightFrame.layout().setSpacing(0)
+
+        self.toggleButton = QPushButton("«", self.rightFrame)
         self.toggleButton.setObjectName("ToggleButton")
-        self.toggleButton.setFixedSize(20, 20)  # Smaller size for the toggle button
+        self.toggleButton.setFixedSize(28, 28)
         self.toggleButton.setToolTip("Collapse Sidebar")
         self.toggleButton.clicked.connect(self.toggleSidebar)
+        self.rightFrame.layout().addWidget(self.toggleButton, alignment=Qt.AlignTop | Qt.AlignHCenter)
 
-        # Add toggle button to the top of the layout
-        self.layout().insertWidget(0, self.toggleButton, alignment=Qt.AlignHCenter)
+        # Remove rightFrame from settings area if present, and add to sidebar layout as last widget
+        # (If already present, this is a no-op)
+        if self.rightFrame.parent() is not self:
+            self.rightFrame.setParent(self)
+        # Remove if already in layout (avoid duplicates)
+        layout = self.layout()
+        for i in reversed(range(layout.count())):
+            item = layout.itemAt(i)
+            if item and item.widget() is self.rightFrame:
+                layout.takeAt(i)
+        layout.addWidget(self.rightFrame, alignment=Qt.AlignRight)
 
         # Initialize animation for sidebar width
         self.animation = QPropertyAnimation(self, b"minimumWidth")
@@ -96,8 +114,7 @@ class Sidebar(QWidget):
 
     def applyStyles(self):
         """Apply styles to the sidebar using ThemeManager."""
-        theme_path = FilePaths.get_file_path(FilePaths.SIDEBAR)
-        ThemeManager.apply_theme(self, theme_path)
+        ThemeManager.apply_theme(self, QssPaths.SIDEBAR)
 
 
     def addItem(self, displayName, uniqueIdentifier, iconPath=None):

@@ -1,4 +1,7 @@
-from .constants.file_paths import FilePaths
+GPT_ASSISTANT_MODULE = "GPT_ASSISTANT_MODULE"
+# Hinnapakkuja module registration
+HINNAPAKKUJA_MODULE = "HINNAPAKKUJA_MODULE"
+from .constants.file_paths import ModuleIconPaths
 
 
 # Define module variables for easier maintenance
@@ -21,6 +24,7 @@ MODULE_NAMES = {
     IMAGE_OF_THE_DAY_MODULE: "Pildi päev",
     BOOK_QUOTE_MODULE: "Raamatu tsitaat",
     WORKFLOW_DESIGNER_MODULE: "Töövoo kujundaja",
+    GPT_ASSISTANT_MODULE: "GPT-4o abiline",
 }
 
 class ModuleManager:
@@ -32,7 +36,7 @@ class ModuleManager:
         """Register a new module with its icon and human-readable name."""
         self.modules[module.name] = {
             "module": module,
-            "icon": FilePaths.get_module_icon(module.name),
+            "icon": ModuleIconPaths.get_module_icon(module.name),
             "display_name": self.get_module_name(module.name),  # Get human-readable name
         }
     def getModuleIcon(self, moduleName):

@@ -1,0 +1,65 @@
+
+#footerLeftFrame {
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+#footerLinkButton {
+    color: #aaaaaa; /* low-contrast muted tone */
+    font-size: 12px;
+    background: transparent;
+    border: none;
+    padding: 2px 0;
+    margin: 0;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#footerLinkButton:hover {
+    color: #c5c5d2; /* same as body text */
+    text-decoration: underline;
+}
+
+#footerLinkButton:pressed {
+    color: #9cbfc5; /* hint of teal, but soft */
+    text-decoration: underline;
+}
+
+#footerLinkButton:focus {
+    outline: none;
+    text-decoration: underline;
+    border-bottom: 1px dashed #555;
+}
+
+
+#footerLinkSeparator {
+    color: #b0b0b0;
+    font-size: 10px;
+    padding: 0px;
+}
+
+
+#footerLabel {
+    color: #b0b0b0;
+    font-size: 10px;
+    padding: 0 0 0 0;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+#footerLabel a {
+    color: #47a5b1;
+    text-decoration: none;
+    border-bottom: 1px dotted #47a5b1;
+    padding-bottom: 1px;
+ 
+}
+
+#footerLabel a:hover, #footerLabel a:active {
+    color: #00bcd4;
+    border-bottom: 1.5px solid #00bcd4;
+    background: rgba(0,188,212,0.08);
+    text-decoration: none;
+}
