@@ -98,9 +98,11 @@ class PluginDialog(QDialog):
         from .modules.ProjectCardModule import ProjectCardModule
         from .modules.ProjectFeedModule import ProjectFeedModule
         from .modules.ImageOfTheDayModule import ImageOfTheDayModule
+
         from .modules.BookQuoteModule import BookQuoteModule
         from .modules.PizzaOrderModule import PizzaOrderModule
         from .modules.Hinnapakkuja.HinnapakkujaModule import HinnapakkujaModule
+        from .modules.GptAssistant.GptAssistantModule import GptAssistantModule
 
         jokeModule = JokeGeneratorModule()
         weatherModule = WeatherUpdateModule()
@@ -110,6 +112,7 @@ class PluginDialog(QDialog):
         bookQuoteModule = BookQuoteModule()
         pizzaOrderModule = PizzaOrderModule()
         hinnapakkujaModule = HinnapakkujaModule()
+        gptAssistantModule = GptAssistantModule()
 
         self.moduleManager.registerModule(jokeModule)
         self.moduleManager.registerModule(weatherModule)
@@ -119,11 +122,14 @@ class PluginDialog(QDialog):
         self.moduleManager.registerModule(bookQuoteModule)
         self.moduleManager.registerModule(pizzaOrderModule)
         self.moduleManager.registerModule(hinnapakkujaModule)
+        self.moduleManager.registerModule(gptAssistantModule)
         for moduleName, moduleInfo in self.moduleManager.modules.items():
             iconPath = moduleInfo["icon"]
             displayName = moduleInfo["display_name"]
-            self.sidebar.addItem(displayName, moduleName, iconPath)
-            self.moduleStack.addWidget(moduleInfo["module"].get_widget())
+            widget = moduleInfo["module"].get_widget()
+            if widget is not None:
+                self.sidebar.addItem(displayName, moduleName, iconPath)
+                self.moduleStack.addWidget(widget)
 
     def switchModule(self, moduleName):
         try:

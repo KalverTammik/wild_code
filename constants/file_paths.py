@@ -49,6 +49,7 @@ class ModuleIconPaths:
         "WeatherUpdateModule": os.path.join(PLUGIN_ROOT, RESOURCE, "weather_icon.png"),
         "ImageOfTheDayModule": os.path.join(PLUGIN_ROOT, RESOURCE, "image_of_the_day.png"),
         "BookQuoteModule": os.path.join(PLUGIN_ROOT, RESOURCE, "book_quote.png"),
+        "GPT_ASSISTANT_MODULE": os.path.join(PLUGIN_ROOT, RESOURCE, "eye_icon.png"),
         "HINNAPAKKUJA_MODULE": os.path.join(PLUGIN_ROOT, RESOURCE, "Valisee_u.png"),
     }
 

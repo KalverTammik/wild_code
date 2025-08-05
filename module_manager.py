@@ -1,3 +1,4 @@
+GPT_ASSISTANT_MODULE = "GPT_ASSISTANT_MODULE"
 # Hinnapakkuja module registration
 HINNAPAKKUJA_MODULE = "HINNAPAKKUJA_MODULE"
 from .constants.file_paths import ModuleIconPaths
@@ -23,6 +24,7 @@ MODULE_NAMES = {
     IMAGE_OF_THE_DAY_MODULE: "Pildi päev",
     BOOK_QUOTE_MODULE: "Raamatu tsitaat",
     WORKFLOW_DESIGNER_MODULE: "Töövoo kujundaja",
+    GPT_ASSISTANT_MODULE: "GPT-4o abiline",
 }
 
 class ModuleManager:
