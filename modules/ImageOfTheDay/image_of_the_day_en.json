@@ -1,0 +1,7 @@
+{
+  "image_of_the_day_fetch_button": "Fetch Image Info",
+  "image_of_the_day_placeholder": "Image info will appear here.",
+  "image_of_the_day_error": "Error fetching image: {error}",
+  "image_of_the_day_view_image": "View Image",
+  "image_of_the_day_no_image": "No image available."
+}

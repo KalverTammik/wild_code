@@ -13,6 +13,7 @@ class HinnapakkujaLogic:
         import json
         import os
         # Load typical nodes definition
+        # TODO: Use centralized path constant for typical_nodes.json if available
         nodes_path = os.path.join(os.path.dirname(__file__), '../data/typical_nodes.json')
         with open(nodes_path, 'r', encoding='utf-8') as f:
             node_defs = json.load(f)["nodes"]

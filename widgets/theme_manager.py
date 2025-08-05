@@ -57,13 +57,14 @@ class ThemeManager:
 
         :param widget: The widget to apply the theme to.
         :param theme_dir: Path to the theme directory (e.g., styles/Dark/ or styles/Light/).
-        :param qss_files: List of QSS filenames to load (e.g., ["main.qss", "sidebar.qss"]). If None, loads all .qss files in the directory.
+        :param qss_files: List of QSS filenames to load (e.g., [QssPaths.MAIN, QssPaths.SIDEBAR]). If None, loads all .qss files in the directory.
         """
         try:
             theme = ""
             if qss_files is None:
                 # Load all .qss files in the directory, sorted alphabetically
-                qss_files = sorted([os.path.basename(f) for f in glob.glob(os.path.join(theme_dir, "*.qss"))])
+                from ..constants.file_paths import QssPaths
+                qss_files = [QssPaths.MAIN, QssPaths.SIDEBAR]  # Default QSS files, can be extended as needed
             for qss_file in qss_files:
                 qss_path = os.path.join(theme_dir, qss_file)
                 if os.path.exists(qss_path):
@@ -111,7 +112,8 @@ class ThemeManager:
         :param theme_base_dir: The base styles directory (e.g., styles/).
         :param qss_files: List of QSS files to load (optional).
         """
-        dark_theme_dir = os.path.join(theme_base_dir, "Dark")
+        from ..constants.file_paths import StylePaths
+        dark_theme_dir = StylePaths.DARK
         ThemeManager.apply_theme(widget, dark_theme_dir, qss_files)
 
     @staticmethod
@@ -121,5 +123,6 @@ class ThemeManager:
         :param theme_base_dir: The base styles directory (e.g., styles/).
         :param qss_files: List of QSS files to load (optional).
         """
-        light_theme_dir = os.path.join(theme_base_dir, "Light")
+        from ..constants.file_paths import StylePaths
+        light_theme_dir = StylePaths.LIGHT
         ThemeManager.apply_theme(widget, light_theme_dir, qss_files)

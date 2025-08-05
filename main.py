@@ -1,4 +1,9 @@
 import os
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 from qgis.PyQt.QtWidgets import QAction
 from qgis.PyQt.QtGui import QIcon  # Import QIcon to set an icon for the toolbar action
 from .dialog import PluginDialog

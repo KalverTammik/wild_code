@@ -33,6 +33,11 @@ class QssPaths:
     SIDEBAR_THEME = os.path.join(PLUGIN_ROOT, STYLES, "Sidebar.qss")
     LOGIN_THEME = os.path.join(PLUGIN_ROOT, STYLES, "LoginTheme.qss")
 
+# Theme directory paths (for modular theme loading)
+class StylePaths:
+    DARK = os.path.join(PLUGIN_ROOT, STYLES, "Dark")
+    LIGHT = os.path.join(PLUGIN_ROOT, STYLES, "Light")
+
 # Config, metadata, manuals, etc.
 class ConfigPaths:
     CONFIG = os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json")

@@ -10,12 +10,25 @@ class LanguageManager:
         self.load_language()
 
     def load_language(self):
-        lang_file = os.path.join(os.path.dirname(__file__), f"{self.language}.json")  # Adjusted path
+        lang_file = os.path.join(os.path.dirname(__file__), f"{self.language}.json")
+        self.translations = {}
+        # Load main language file
         if os.path.exists(lang_file):
             with open(lang_file, "r", encoding="utf-8") as file:
-                self.translations = json.load(file)
+                self.translations.update(json.load(file))
         else:
             print(f"Language file {lang_file} not found. Defaulting to empty translations.")
+
+        # Load all module-specific translation files (e.g., JokeGenerator/ui/joke_generator_et.json)
+        plugin_root = os.path.dirname(os.path.dirname(__file__))
+        for root, dirs, files in os.walk(plugin_root):
+            for fname in files:
+                if fname.endswith(f"_{self.language}.json"):
+                    try:
+                        with open(os.path.join(root, fname), "r", encoding="utf-8") as f:
+                            self.translations.update(json.load(f))
+                    except Exception as e:
+                        print(f"Failed to load module translation {fname}: {e}")
 
     def translate(self, key):
         return self.translations.get(key, key)  # Return the key itself if no translation is found

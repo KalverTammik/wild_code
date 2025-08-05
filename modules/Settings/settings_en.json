@@ -1,0 +1,9 @@
+{
+  "save_setting": "Save Setting",
+  "setting_key": "Setting Key",
+  "setting_value": "Setting Value",
+  "setting_saved_title": "Setting Saved",
+  "setting_saved_message": "Setting '{key}' saved with value '{value}'.",
+  "setting_error_title": "Error",
+  "setting_error_message": "Please enter a setting key."
+}

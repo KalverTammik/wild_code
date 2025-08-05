@@ -1,0 +1,18 @@
+{
+  "pizza_margherita": "Margherita",
+  "pizza_pepperoni": "Pepperoni",
+  "pizza_veggie": "Taimetoitlane",
+  "topping_cheese": "Juust",
+  "topping_mushrooms": "Seened",
+  "topping_olives": "Oliivid",
+  "customer_name": "Kliendi nimi",
+  "customer_address": "Aadress",
+  "order_button": "Esita tellimus",
+  "select_pizza": "Vali pitsa",
+  "select_toppings": "Vali lisandid",
+  "customer_info": "Kliendi info",
+  "order_success_title": "Tellimus esitatud",
+  "order_success_message": "Aitäh, {customer_name}! Sinu {pizza} pitsa tellimus on vastu võetud.",
+  "order_error_title": "Viga",
+  "order_error_message": "Palun täida kõik väljad ja vali pitsa."
+}

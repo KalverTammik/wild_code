@@ -1,3 +1,11 @@
+# Centralized Path and QSS Management
+
+- All file and directory paths (styles, QSS, translations, resources, etc.) must be referenced via the central file path manager (`constants/file_paths.py`).
+- Do not hardcode or construct paths with `os.path` in modules or widgets. If a new path is needed, add it to the file path manager.
+- All QSS filenames must be referenced via constants in the file path manager (e.g., `QssPaths`). Never use string literals for QSS files in modules or widgets.
+- All theme directory paths (e.g., `styles/Dark/`, `styles/Light/`) must be referenced via `StylePaths` in the file path manager. Never construct these paths inline or with `os.path` in modules or widgets.
+- If a new path or QSS file is needed, add it to the file path manager and use the constant throughout the codebase.
+- All modules and widgets must import and use these constants for any file or directory access.
 # Copilot Prompt: QGIS Plugin Coding Guidelines
 
 > 🧠 Tip: To help Copilot follow these rules more accurately, keep key files open while working. Copilot prioritizes context from open and recently edited files.
@@ -151,6 +159,42 @@ Base themes are:
 - `styles/Light/...`: Contains styles for the light theme.
 - Ensure both QSS files define consistent styles for all widgets, dialogs, and frames.
 
+
+## Translation & Localization Guidelines
+
+### General Principles
+- All user-facing text must be translatable using the centralized `LanguageManager` class.
+- The default language is Estonian (`et`), but all modules must support dynamic language switching.
+- Never hardcode UI strings; always use `LanguageManager.translate(key)` for all labels, tooltips, and messages.
+
+### Translation File Structure
+- Global translations are stored in `languages/{lang}.json` (e.g., `languages/et.json`, `languages/en.json`).
+- Each module may provide its own translation file named `{module_name}_{lang}.json` (e.g., `joke_generator_et.json`) placed in the module's directory.
+- Module translation files should only contain keys unique to that module.
+
+### Loading & Merging Logic
+- `LanguageManager` loads the main language file and then merges all module-specific translation files for the active language.
+- If a translation key exists in both the global and a module file, the module file takes precedence for that key.
+- All translation files must be valid JSON and use flat key-value pairs.
+
+### Best Practices
+- Always use descriptive, namespaced keys (e.g., `joke_category_label`, `pizza_order_button`).
+- When adding a new module, create a translation file for each supported language, even if only partially translated.
+- To add a new language, create both a global and module translation file for that language.
+- Use `LanguageManager.set_language(lang)` to switch languages at runtime and update all UI text accordingly.
+
+### Example Usage
+```python
+label.setText(lang_manager.translate("joke_category_label"))
+```
+
+### Troubleshooting
+- If translation keys appear in the UI instead of values, ensure:
+  - The translation files are named and placed correctly.
+  - The `LanguageManager` is loading both global and module files.
+  - The correct language is set in user settings.
+
+---
 ## QSS Styling Guidelines
 
 ### General Rules
@@ -217,7 +261,7 @@ QLineEdit {
     border-radius: 5px;
     padding: 6px;
 }
-
+```
 
 ### Web Link and Module URL Management
 - All static and module-related URLs are managed centrally in UrlManager.py.

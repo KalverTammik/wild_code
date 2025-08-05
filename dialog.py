@@ -1,4 +1,5 @@
 
+
 import os
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QStackedWidget, QWidget
 from PyQt5.QtGui import QMouseEvent
@@ -16,7 +17,9 @@ from .utils.SessionManager import SessionManager
 from .constants.file_paths import ResourcePaths, QssPaths, ConfigPaths, ModuleIconPaths
 from .config.setup import Version
 
-lang = LanguageManager()
+# Shared managers for all modules
+lang_manager = LanguageManager()
+theme_manager = ThemeManager()
 
 
 class PluginDialog(QDialog):
@@ -30,7 +33,7 @@ class PluginDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle(lang.translate("wild_code_plugin_title"))
+        self.setWindowTitle(lang_manager.translate("wild_code_plugin_title"))
 
         from PyQt5.QtWidgets import QSizePolicy
         self.moduleManager = ModuleManager()
@@ -48,7 +51,7 @@ class PluginDialog(QDialog):
 
         # Header at the absolute top
         self.header_widget = HeaderWidget(
-            title=lang.translate("wild_code_plugin_title"),
+            title=lang_manager.translate("wild_code_plugin_title"),
             switch_callback=self.toggle_theme,
             logout_callback=self.logout
         )
@@ -93,26 +96,28 @@ class PluginDialog(QDialog):
 
     def loadModules(self):
 
-        from .modules.example_module import WeatherUpdateModule
-        from .modules.joke_generator_module import JokeGeneratorModule
-        from .modules.ProjectCardModule import ProjectCardModule
-        from .modules.ProjectFeedModule import ProjectFeedModule
-        from .modules.ImageOfTheDayModule import ImageOfTheDayModule
 
-        from .modules.BookQuoteModule import BookQuoteModule
-        from .modules.PizzaOrderModule import PizzaOrderModule
-        from .modules.Hinnapakkuja.HinnapakkujaModule import HinnapakkujaModule
-        from .modules.GptAssistant.GptAssistantModule import GptAssistantModule
+        from .modules.WeatherUpdate.WeatherUpdateUI import WeatherUpdateUI
+        from .modules.JokeGenerator.JokeGeneratorModule import JokeGeneratorModule
+        from .modules.ProjectCard.ProjectCardUI import ProjectCardUI
+        from .modules.ProjectFeed.ProjectFeedUI import ProjectFeedUI
+        from .modules.ImageOfTheDay.ImageOfTheDayUI import ImageOfTheDayUI
+        from .modules.BookQuote.BookQuoteUI import BookQuoteUI
+        from .modules.PizzaOrder.PizzaOrderUI import PizzaOrderUI
+        from .modules.Settings.SettingsUI import SettingsUI
+        from .modules.Hinnapakkuja.HinnapakkujaUI import HinnapakkujaUI
+        from .modules.GptAssistant.GptAssistantUI import GptAssistantUI
 
-        jokeModule = JokeGeneratorModule()
-        weatherModule = WeatherUpdateModule()
-        projectCardModule = ProjectCardModule()
-        projectFeedModule = ProjectFeedModule()
-        imageOfTheDayModule = ImageOfTheDayModule()
-        bookQuoteModule = BookQuoteModule()
-        pizzaOrderModule = PizzaOrderModule()
-        hinnapakkujaModule = HinnapakkujaModule()
-        gptAssistantModule = GptAssistantModule()
+        jokeModule = JokeGeneratorModule(theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"]) 
+        weatherModule = WeatherUpdateUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
+        projectCardModule = ProjectCardUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
+        projectFeedModule = ProjectFeedUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
+        imageOfTheDayModule = ImageOfTheDayUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
+        bookQuoteModule = BookQuoteUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
+        pizzaOrderModule = PizzaOrderUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
+        settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
+        hinnapakkujaModule = HinnapakkujaUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
+        gptAssistantModule = GptAssistantUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
 
         self.moduleManager.registerModule(jokeModule)
         self.moduleManager.registerModule(weatherModule)
