@@ -98,6 +98,7 @@ class PluginDialog(QDialog):
         from .modules.ImageOfTheDayModule import ImageOfTheDayModule
         from .modules.BookQuoteModule import BookQuoteModule
         from .modules.PizzaOrderModule import PizzaOrderModule
+        from .modules.Hinnapakkuja.HinnapakkujaModule import HinnapakkujaModule
 
         jokeModule = JokeGeneratorModule()
         weatherModule = WeatherUpdateModule()
@@ -106,6 +107,7 @@ class PluginDialog(QDialog):
         imageOfTheDayModule = ImageOfTheDayModule()
         bookQuoteModule = BookQuoteModule()
         pizzaOrderModule = PizzaOrderModule()
+        hinnapakkujaModule = HinnapakkujaModule()
 
         self.moduleManager.registerModule(jokeModule)
         self.moduleManager.registerModule(weatherModule)
@@ -114,7 +116,7 @@ class PluginDialog(QDialog):
         self.moduleManager.registerModule(imageOfTheDayModule)
         self.moduleManager.registerModule(bookQuoteModule)
         self.moduleManager.registerModule(pizzaOrderModule)
-
+        self.moduleManager.registerModule(hinnapakkujaModule)
         for moduleName, moduleInfo in self.moduleManager.modules.items():
             iconPath = moduleInfo["icon"]
             displayName = moduleInfo["display_name"]

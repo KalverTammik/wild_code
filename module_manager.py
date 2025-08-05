@@ -1,3 +1,5 @@
+# Hinnapakkuja module registration
+HINNAPAKKUJA_MODULE = "HINNAPAKKUJA_MODULE"
 from .constants.file_paths import ModuleIconPaths
 
 
