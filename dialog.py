@@ -32,8 +32,10 @@ class PluginDialog(QDialog):
 
         self.setWindowTitle(lang.translate("wild_code_plugin_title"))
 
+        from PyQt5.QtWidgets import QSizePolicy
         self.moduleManager = ModuleManager()
         self.moduleStack = QStackedWidget()
+        self.moduleStack.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.sidebar = Sidebar()
         self.sidebar.itemClicked.connect(self.switchModule)
 
@@ -60,9 +62,9 @@ class PluginDialog(QDialog):
 
         center_layout = QVBoxLayout()
         center_layout.addWidget(self.moduleStack)
-        center_layout.addStretch(1)
         content_widget = QWidget()
         content_widget.setLayout(center_layout)
+        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         content_layout.addWidget(content_widget)
 
 
