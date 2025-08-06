@@ -1,0 +1,7 @@
+# Exclude prompt and internal files from release archives
+copilot-prompt.md export-ignore
+audit.md export-ignore
+*.prompt.md export-ignore
+*.prompt.txt export-ignore
+*.prompt export-ignore
+# Add more internal or dev-only files below as needed
