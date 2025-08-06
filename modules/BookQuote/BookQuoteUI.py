@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollAr
 from PyQt5.QtCore import Qt
 from ...languages.language_manager import LanguageManager
 from ...widgets.theme_manager import ThemeManager
+from ...constants.file_paths import QssPaths
 from .BookQuoteLogic import BookQuoteLogic
 
 
@@ -32,7 +33,7 @@ class BookQuoteUI(QWidget):
         self.lang_manager = lang_manager
         self.theme_manager = theme_manager
         self.theme_dir = theme_dir
-        self.qss_files = qss_files or ["main.qss", "sidebar.qss"]
+        self.qss_files = qss_files or [QssPaths.MAIN, QssPaths.SIDEBAR]
         self.setup_ui()
         if self.theme_dir:
             self.theme_manager.apply_theme(self, self.theme_dir, qss_files=self.qss_files)

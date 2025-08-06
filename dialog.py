@@ -1,6 +1,7 @@
 
 
 import os
+from .constants.file_paths import StylePaths, QssPaths
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QStackedWidget, QWidget
 from PyQt5.QtGui import QMouseEvent
 from .widgets.FooterWidget import FooterWidget
@@ -14,8 +15,7 @@ from .languages.language_manager import LanguageManager
 from .module_manager import ModuleManager
 from .widgets.sidebar import Sidebar
 from .utils.SessionManager import SessionManager
-from .constants.file_paths import ResourcePaths, QssPaths, ConfigPaths, ModuleIconPaths
-from .config.setup import Version
+
 
 # Shared managers for all modules
 lang_manager = LanguageManager()
@@ -80,13 +80,13 @@ class PluginDialog(QDialog):
         self.setLayout(dialog_layout)
         
 
-        self.theme_base_dir = os.path.join(os.path.dirname(__file__), 'styles')
+        self.theme_base_dir = StylePaths.DARK  # Default to dark theme dir; switch as needed
         # Load and apply the theme from QGIS settings (persistent)
         self.current_theme = ThemeManager.set_initial_theme(
             self,
             self.header_widget.switchButton,
             self.theme_base_dir,
-            qss_files=["main.qss", "sidebar.qss", "header.qss", "footer.qss"]
+            qss_files=[QssPaths.MAIN, QssPaths.SIDEBAR, QssPaths.HEADER, QssPaths.FOOTER]
         )
         self.loadModules()
         self.destroyed.connect(self._on_destroyed)
@@ -108,16 +108,17 @@ class PluginDialog(QDialog):
         from .modules.Hinnapakkuja.HinnapakkujaUI import HinnapakkujaUI
         from .modules.GptAssistant.GptAssistantUI import GptAssistantUI
 
-        jokeModule = JokeGeneratorModule(theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"]) 
-        weatherModule = WeatherUpdateUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
-        projectCardModule = ProjectCardUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
-        projectFeedModule = ProjectFeedUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
-        imageOfTheDayModule = ImageOfTheDayUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
-        bookQuoteModule = BookQuoteUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
-        pizzaOrderModule = PizzaOrderUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
-        settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
-        hinnapakkujaModule = HinnapakkujaUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
-        gptAssistantModule = GptAssistantUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=["main.qss", "sidebar.qss"])
+        qss_modular = [QssPaths.MAIN, QssPaths.SIDEBAR]
+        jokeModule = JokeGeneratorModule(theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        weatherModule = WeatherUpdateUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        projectCardModule = ProjectCardUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        projectFeedModule = ProjectFeedUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        imageOfTheDayModule = ImageOfTheDayUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        bookQuoteModule = BookQuoteUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        pizzaOrderModule = PizzaOrderUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        hinnapakkujaModule = HinnapakkujaUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        gptAssistantModule = GptAssistantUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
 
         self.moduleManager.registerModule(jokeModule)
         self.moduleManager.registerModule(weatherModule)
@@ -150,7 +151,7 @@ class PluginDialog(QDialog):
 
     def toggle_theme(self):
         # Use ThemeManager to toggle theme and update icon
-        qss_files = ["main.qss", "sidebar.qss", "header.qss"]
+        qss_files = [QssPaths.MAIN, QssPaths.SIDEBAR, QssPaths.HEADER]
         new_theme = ThemeManager.toggle_theme(
             self,
             self.current_theme,

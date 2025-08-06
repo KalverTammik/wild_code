@@ -2,6 +2,7 @@
 
 - All file and directory paths (styles, QSS, translations, resources, etc.) must be referenced via the central file path manager (`constants/file_paths.py`).
 - Do not hardcode or construct paths with `os.path` in modules or widgets. If a new path is needed, add it to the file path manager.
+- **When adding paths for a module in `file_paths.py`, always define the module name as a constant in `constants/module_names.py` (e.g., `GPT_ASSISTANT_MODULE = "GptAssistant"`). Never use string literals for module names in path construction. Always use these constants for all path building.**
 - All QSS filenames must be referenced via constants in the file path manager (e.g., `QssPaths`). Never use string literals for QSS files in modules or widgets.
 - All theme directory paths (e.g., `styles/Dark/`, `styles/Light/`) must be referenced via `StylePaths` in the file path manager. Never construct these paths inline or with `os.path` in modules or widgets.
 - If a new path or QSS file is needed, add it to the file path manager and use the constant throughout the codebase.
@@ -28,7 +29,7 @@ Design Requirements:
    - Implement `activate()`, `deactivate()`, `run()`, and `reset()` methods as needed.
    - Set up its UI within the `__init__` method using `self.widget`.
    - Provide `get_widget()` to return the module’s main QWidget.
-   - have  a unique name for the module in `module_manager.py` ( and use it like. `self.name = JOKE_GENERATOR_MODULE`)
+   - have a unique name for the module defined in `constants/module_names.py` (and use it like `self.name = JOKE_GENERATOR_MODULE`)
 7. All module UIs follow a uniform dark theme and layout conventions.
 8. Module logic and UI are separated (logic.py and ui.py per module).
 9. The plugin remembers the last-used module and user settings using QSettings.
@@ -288,7 +289,8 @@ QLineEdit {
 
 **When adding a new module:**
 
-- If your module needs a unique icon, add it to `ModuleIconPaths.MODULE_ICONS` in `file_paths.py`.
-- If your module needs a user manual or config, add the path to `ConfigPaths`.
+- Add the module name as a constant in `constants/module_names.py`.
+- If your module needs a unique icon, add it to `ModuleIconPaths.MODULE_ICONS` in `constants/module_icons.py` using the module name constant.
+- If your module needs a user manual or config, add the path to `ConfigPaths` in `file_paths.py` using the module name constant.
 
 **For web links and URLs:** Use `UrlManager.py` and `WebLinks` for all static/module URLs.

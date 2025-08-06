@@ -3,9 +3,10 @@ PriceCache: Handles local price caching for suppliers (mock implementation)
 """
 import json
 import os
+from ....constants.file_paths import DataPaths
 
 class PriceCache:
-    CACHE_FILE = os.path.join(os.path.dirname(__file__), '../data/price_cache.json')
+    CACHE_FILE = DataPaths.PRICE_CACHE
 
     @staticmethod
     def load_prices():

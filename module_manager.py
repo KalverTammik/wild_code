@@ -1,18 +1,6 @@
-GPT_ASSISTANT_MODULE = "GPT_ASSISTANT_MODULE"
-# Hinnapakkuja module registration
-HINNAPAKKUJA_MODULE = "HINNAPAKKUJA_MODULE"
-from .constants.file_paths import ModuleIconPaths
 
-
-# Define module variables for easier maintenance
-SETTINGS_MODULE = "SettingsModule"
-PROJECT_CARD_MODULE = "ProjectCardModule"
-PROJECT_FEED_MODULE = "ProjectFeedModule"
-JOKE_GENERATOR_MODULE = "JokeGeneratorModule"
-WEATHER_UPDATE_MODULE = "WeatherUpdateModule"
-IMAGE_OF_THE_DAY_MODULE = "ImageOfTheDayModule"
-BOOK_QUOTE_MODULE = "BookQuoteModule"
-WORKFLOW_DESIGNER_MODULE = "WorkflowDesignerModule"
+from .constants.module_icons import ModuleIconPaths
+from .constants.module_names import SETTINGS_MODULE, PROJECT_CARD_MODULE, PROJECT_FEED_MODULE, JOKE_GENERATOR_MODULE, WEATHER_UPDATE_MODULE, IMAGE_OF_THE_DAY_MODULE, BOOK_QUOTE_MODULE, WORKFLOW_DESIGNER_MODULE, GPT_ASSISTANT_MODULE, HINNAPAKKUJA_MODULE
 
 
 MODULE_NAMES = {
@@ -20,7 +8,7 @@ MODULE_NAMES = {
     PROJECT_CARD_MODULE: "Edasi/tagasi andmed",
     PROJECT_FEED_MODULE: "Scrollivad andmed",
     JOKE_GENERATOR_MODULE: "Naljad",
-    WEATHER_UPDATE_MODULE: "Ilmateade",  # Added missing module
+    WEATHER_UPDATE_MODULE: "Ilmateade",  
     IMAGE_OF_THE_DAY_MODULE: "Pildi päev",
     BOOK_QUOTE_MODULE: "Raamatu tsitaat",
     WORKFLOW_DESIGNER_MODULE: "Töövoo kujundaja",

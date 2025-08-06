@@ -1,14 +1,18 @@
+
+
 import os
+from .base_paths import BASE_DIR, PLUGIN_ROOT, CONFIG_DIR, RESOURCE, STYLES, MODULES, FLOW_MODULE, DATA_DIR
+from .module_names import HINNAPAKKUJA_MODULE, GPT_ASSISTANT_MODULE
 
-# Base directory of the plugin
-BASE_DIR = os.path.dirname(__file__)
-PLUGIN_ROOT = os.path.dirname(os.path.dirname(__file__))
+# Data paths (for module data files)
+class DataPaths:
+    TYPICAL_NODES = os.path.join(PLUGIN_ROOT, MODULES, HINNAPAKKUJA_MODULE, DATA_DIR, 'typical_nodes.json')
+    PRICE_CACHE = os.path.join(PLUGIN_ROOT, MODULES, HINNAPAKKUJA_MODULE, DATA_DIR, 'price_cache.json')
 
-CONFIG_DIR = "config"
-RESOURCE = "resources"
-STYLES = "styles"
-MODULES = "modules"
-FLOW_MODULE = "flowmodule"
+# GptAssistant module paths
+class GptAssistantPaths:
+    ENV = os.path.join(PLUGIN_ROOT, MODULES, GPT_ASSISTANT_MODULE, '.env')
+    README = os.path.join(PLUGIN_ROOT, MODULES, GPT_ASSISTANT_MODULE, 'README_QGIS_OPENAI.txt')
 
 
 
@@ -44,21 +48,5 @@ class ConfigPaths:
     METADATA = os.path.join(PLUGIN_ROOT, "metadata.txt")
     USER_MANUAL = os.path.join(PLUGIN_ROOT, MODULES, "PizzaOrderModuleUserManual.html")
 
-# Module-specific icons
-class ModuleIconPaths:
-    MODULE_ICONS = {
-        "SettingsModule": os.path.join(PLUGIN_ROOT, RESOURCE, "icon.png"),
-        "ProjectCardModule": os.path.join(PLUGIN_ROOT, RESOURCE, "Valisee.png"),
-        "ProjectFeedModule": os.path.join(PLUGIN_ROOT, RESOURCE, "Valisee_s.png"),
-        "JokeGeneratorModule": os.path.join(PLUGIN_ROOT, RESOURCE, "eye_icon.png"),
-        "WeatherUpdateModule": os.path.join(PLUGIN_ROOT, RESOURCE, "weather_icon.png"),
-        "ImageOfTheDayModule": os.path.join(PLUGIN_ROOT, RESOURCE, "image_of_the_day.png"),
-        "BookQuoteModule": os.path.join(PLUGIN_ROOT, RESOURCE, "book_quote.png"),
-        "GPT_ASSISTANT_MODULE": os.path.join(PLUGIN_ROOT, RESOURCE, "eye_icon.png"),
-        "HINNAPAKKUJA_MODULE": os.path.join(PLUGIN_ROOT, RESOURCE, "Valisee_u.png"),
-    }
 
-    @staticmethod
-    def get_module_icon(module_name):
-        return ModuleIconPaths.MODULE_ICONS.get(module_name, None)
 

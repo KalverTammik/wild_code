@@ -1,0 +1,7 @@
+{
+    "gptassistant_title": "Assistant GPT-4o",
+    "gptassistant_prompt_label": "Entrez une question pour GPT-4o :",
+    "gptassistant_placeholder": "Question ou instruction...",
+    "gptassistant_ask_button": "Demander à l'IA",
+    "gptassistant_response_label": "Réponse :"
+}

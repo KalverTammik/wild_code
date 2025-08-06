@@ -27,7 +27,8 @@ class GptAssistantUI(QWidget):
                 print(f"[GPT DEBUG] os.environ.get('OPENAI_API_KEY') before dotenv/manual: {env_key}")
                 if not env_key:
                     # Always use the same path for dotenv and manual fallback
-                    env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".env"))
+                    from ...constants.file_paths import GptAssistantPaths
+                    env_path = GptAssistantPaths.ENV
                     # Try dotenv first
                     try:
                         from dotenv import load_dotenv

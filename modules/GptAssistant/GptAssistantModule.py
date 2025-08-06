@@ -3,6 +3,7 @@ GptAssistantModule: Main entry point for GPT-4o assistant integration.
 """
 from .ui.GptAssistantDialog import GptAssistantDialog
 import os
+from ...constants.file_paths import GptAssistantPaths
 import importlib
 from PyQt5.QtWidgets import QMessageBox, QDialog, QVBoxLayout, QLabel, QPushButton, QTextEdit
 from ...BaseModule import BaseModule
@@ -31,7 +32,7 @@ class GptAssistantModule(BaseModule, QObject):
         self.dialog.askButton.clicked.connect(self.onAskClicked)
 
     def _load_api_key_from_env(self):
-        env_path = os.path.join(os.path.dirname(__file__), ".env")
+        env_path = GptAssistantPaths.ENV
         api_key = None
         # Try to use python-dotenv if available
         try:
@@ -70,7 +71,7 @@ class GptAssistantModule(BaseModule, QObject):
         layout.addWidget(label)
         text = QTextEdit()
         text.setReadOnly(True)
-        with open(os.path.join(os.path.dirname(__file__), "README_QGIS_OPENAI.txt"), encoding="utf-8") as f:
+        with open(GptAssistantPaths.README, encoding="utf-8") as f:
             text.setPlainText(f.read())
         layout.addWidget(text)
         ok_btn = QPushButton("OK")

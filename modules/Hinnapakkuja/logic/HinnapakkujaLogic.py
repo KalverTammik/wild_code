@@ -11,11 +11,9 @@ class HinnapakkujaLogic:
         Returns a dict with all calculation results for rendering.
         """
         import json
-        import os
-        # Load typical nodes definition
-        # TODO: Use centralized path constant for typical_nodes.json if available
-        nodes_path = os.path.join(os.path.dirname(__file__), '../data/typical_nodes.json')
-        with open(nodes_path, 'r', encoding='utf-8') as f:
+        from ....constants.file_paths import DataPaths
+        # Load typical nodes definition from centralized constant
+        with open(DataPaths.TYPICAL_NODES, 'r', encoding='utf-8') as f:
             node_defs = json.load(f)["nodes"]
 
         # Calculate quantities based on user input

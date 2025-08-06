@@ -1,5 +1,7 @@
+
 import json
 import os
+
 
 DEFAULT_LANGUAGE = "et"  # Set Estonian as the default language
 
