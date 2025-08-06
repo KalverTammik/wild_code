@@ -1,0 +1,8 @@
+{
+  "weather_search_placeholder": "Sisesta linna nimi...",
+  "weather_search_button": "Otsi",
+  "weather_info_placeholder": "Ilmainfo ilmub siia.",
+  "weather_enter_city": "Palun sisesta linna nimi.",
+  "weather_current_label": "Praegune ilm {city}: {temp}°C, {description}",
+  "weather_error": "Viga ilmainfo toomisel: {error}"
+}

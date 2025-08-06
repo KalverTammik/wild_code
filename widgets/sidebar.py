@@ -3,8 +3,13 @@ from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import pyqtSignal, Qt, QPropertyAnimation, QEasingCurve
 from ..constants.file_paths import QssPaths
 from ..widgets.theme_manager import ThemeManager
-from ..modules.SettingsModule import SettingsModule  # Import the SettingsModule
+from ..modules.Settings.SettingsUI import SettingsUI  # Import the SettingsModule
 from ..module_manager import ModuleManager, SETTINGS_MODULE
+from ..languages.language_manager import LanguageManager
+
+# Shared managers for all modules
+lang_manager = LanguageManager()
+theme_manager = ThemeManager()
 
 class Sidebar(QWidget):
     """A modular sidebar component with advanced styling and layout."""
@@ -50,11 +55,22 @@ class Sidebar(QWidget):
         self.settingsLayout.addWidget(self.settingsButton)
         self.layout().addWidget(self.settingsFrame)
 
-       # Create an instance of SettingsModule
-        self.settingsModule = SettingsModule()  # Create an instance
 
-        # Connect the button to activateSettingsModule
-        self.settingsButton.clicked.connect(self.settingsModule.activateSettingsModule)
+
+        from ..constants.file_paths import  QssPaths, STYLES
+        self.theme_base_dir = STYLES
+        self.settingsModule = SettingsUI(
+            lang_manager,
+            theme_manager,
+            theme_dir=self.theme_base_dir,
+            qss_files=[QssPaths.MAIN, QssPaths.SIDEBAR]
+        )
+
+        # Connect the button to show the Settings UI
+        self.settingsButton.clicked.connect(self.showSettingsModule)
+
+    def showSettingsModule(self):
+        self.settingsModule.show()
 
         # Apply shadow effect to SidebarNavFrame
         nav_shadow = QGraphicsDropShadowEffect(self)

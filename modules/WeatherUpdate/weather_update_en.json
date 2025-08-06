@@ -1,0 +1,8 @@
+{
+  "weather_search_placeholder": "Enter city name...",
+  "weather_search_button": "Search",
+  "weather_info_placeholder": "Weather information will appear here.",
+  "weather_enter_city": "Please enter a city name.",
+  "weather_current_label": "Current Weather in {city}: {temp}°C, {description}",
+  "weather_error": "Error fetching weather data: {error}"
+}

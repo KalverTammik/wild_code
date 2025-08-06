@@ -11,11 +11,14 @@ FILES_TO_MONITOR = [
     "main.py"
 ]
 
+# Import centralized path constants
+from .constants.file_paths import LanguagePaths
+
 # Path to the master translation file
-MASTER_TRANSLATION_FILE = "languages/base.json"
+MASTER_TRANSLATION_FILE = LanguagePaths.BASE_JSON
 
 # Path to the languages directory
-LANGUAGES_DIR = "languages"
+LANGUAGES_DIR = LanguagePaths.LANGUAGES_DIR
 
 class TranslationAgent(FileSystemEventHandler):
     def on_modified(self, event):

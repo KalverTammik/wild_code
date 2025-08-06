@@ -1,0 +1,7 @@
+{
+  "image_of_the_day_fetch_button": "Lae pildi info",
+  "image_of_the_day_placeholder": "Pildi info ilmub siia.",
+  "image_of_the_day_error": "Viga pildi laadimisel: {error}",
+  "image_of_the_day_view_image": "Vaata pilti",
+  "image_of_the_day_no_image": "Pilti pole saadaval."
+}
