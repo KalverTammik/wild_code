@@ -24,6 +24,8 @@ class Sidebar(QWidget):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().setSpacing(6)
         
+        # Track module navigation buttons by uniqueIdentifier
+        self.moduleButtons = {}
         # Navigation Items Container
         self.SidebarNavFrame = QFrame(self)
         self.SidebarNavFrame.setObjectName("SidebarNavFrame")
@@ -137,9 +139,27 @@ class Sidebar(QWidget):
         button = QPushButton(displayName, self.SidebarNavFrame)
         if iconPath:
             button.setIcon(QIcon(iconPath))  # Set the icon if provided
-        # Emit the unique identifier (module class name) when the button is clicked
-        button.clicked.connect(lambda: self.emitItemClicked(uniqueIdentifier))
+        # Only emit if enabled (not active)
+        def handler():
+            if button.isEnabled():
+                self.emitItemClicked(uniqueIdentifier)
+        button.clicked.connect(handler)
         self.SidebarNavLayout.addWidget(button)
+        self.moduleButtons[uniqueIdentifier] = button
+
+    def setActiveModule(self, module_name):
+        """Enable all module buttons except the active one, which is disabled and unclickable."""
+        for name, button in self.moduleButtons.items():
+            if name == module_name:
+                button.setEnabled(False)
+                button.setProperty('active', True)
+                button.style().unpolish(button)
+                button.style().polish(button)
+            else:
+                button.setEnabled(True)
+                button.setProperty('active', False)
+                button.style().unpolish(button)
+                button.style().polish(button)
 
     def emitItemClicked(self, itemName):
         """Emit the custom signal with the clicked item's name."""

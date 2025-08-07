@@ -20,17 +20,18 @@ class ProjectCardUI(QWidget):
                 self.lang_manager = LanguageManager()
         else:
             self.lang_manager = lang_manager
-        self.theme_manager = theme_manager
-        from ...constants.file_paths import StylePaths
+        from ...constants.file_paths import StylePaths, QssPaths
         self.theme_dir = theme_dir or StylePaths.DARK
-        from ...constants.file_paths import QssPaths
         self.qss_files = qss_files or [QssPaths.MAIN, QssPaths.SIDEBAR]
+        self.theme_manager = theme_manager
         self.logic = ProjectCardLogic()
         self.setup_ui()
-        if self.theme_dir:
+        # Always apply the main theme, even if theme_manager is None
+        if self.theme_manager is not None:
             self.theme_manager.apply_theme(self, self.theme_dir, qss_files=self.qss_files)
         else:
-            raise ValueError("theme_dir must be provided to ProjectCardUI for theme application.")
+            from ...widgets.theme_manager import ThemeManager
+            ThemeManager.apply_theme(self, self.theme_dir, qss_files=self.qss_files)
 
     def setup_ui(self):
         layout = QVBoxLayout(self)

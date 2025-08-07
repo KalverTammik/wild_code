@@ -1,6 +1,6 @@
 from ..config.setup import Version, config
 from ..constants.file_paths import ConfigPaths
-from ..modules.UrlManager import WebLinks
+from ..utils.url_manager import WebLinks
 from .theme_manager import ThemeManager
 
 # Add missing imports

@@ -11,6 +11,8 @@ import sip  # Add this import at the top
 from .login_dialog import LoginDialog  # Import the login dialog class
 from .constants.file_paths import ResourcePaths, QssPaths  # Use new resource management classes
 from .utils.SessionManager import SessionManager  # Import the SessionManager
+from .module_manager import ModuleManager
+from .utils.module_discovery import register_all_modules
 
 class WildCodePlugin:
     def __init__(self, iface):
@@ -18,6 +20,9 @@ class WildCodePlugin:
         self.action = None
         self.pluginDialog = None  # Reference to PluginDialog
         self.loginDialog = None  # Reference to LoginDialog
+        # Initialize ModuleManager and register all modules (metadata only)
+        self.module_manager = ModuleManager()
+        register_all_modules(self.module_manager)
 
     def initGui(self):
         icon_path = ResourcePaths.ICON
