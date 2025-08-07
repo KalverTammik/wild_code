@@ -1,7 +1,12 @@
 from PyQt5.QtWidgets import QWidget
 
 class BaseModule:
-    def __init__(self):
+    def __init__(self, name, display_name, icon, lang_manager, theme_manager):
+        self.name = name
+        self.display_name = display_name
+        self.icon = icon
+        self.lang_manager = lang_manager
+        self.theme_manager = theme_manager
         self.widget = QWidget()
 
     def activate(self):

@@ -8,5 +8,6 @@ class SideBarButtonNames:
         PROJECT_CARD_MODULE: "Project Card",
         PROJECT_FEED_MODULE: "Project Feed",
         GPT_ASSISTANT_MODULE: "GPT Assistant",
-        USER_TEST_MODULE: "User Test"
+        USER_TEST_MODULE: "User Test",
+        DIALOG_SIZE_WATCHER_MODULE: "Dialog Size Watcher"
     }

@@ -1,12 +1,4 @@
-from wild_code.constants.module_names import (
-    PROJECTS_MODULE,
-    CONTRACT_MODULE,
-    SETTINGS_MODULE,
-    PROJECT_CARD_MODULE,
-    PROJECT_FEED_MODULE,
-    GPT_ASSISTANT_MODULE,
-    USER_TEST_MODULE
-)
+from wild_code.constants.module_names import *
 
 class SideBarButtonNames:
     BUTTONS = {
@@ -16,5 +8,6 @@ class SideBarButtonNames:
         PROJECT_CARD_MODULE: "Projektikaart",
         PROJECT_FEED_MODULE: "Projektivoog",
         GPT_ASSISTANT_MODULE: "GPT abiline",
-        USER_TEST_MODULE: "Kasutajatest"
+        USER_TEST_MODULE: "Kasutajatest",
+        DIALOG_SIZE_WATCHER_MODULE: "Dialoogi X Y"
     }

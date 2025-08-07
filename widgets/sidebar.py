@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame, QPushButton, QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame, QPushButton, QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect, QHBoxLayout
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtCore import pyqtSignal, Qt, QPropertyAnimation, QEasingCurve
 from ..constants.file_paths import QssPaths
@@ -16,29 +16,48 @@ class Sidebar(QWidget):
     # Custom signal to emit the name of the clicked item
     itemClicked = pyqtSignal(str)
     
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        # Initialize animation for sidebar width (bounce effect) FIRST
+        self.animation = QPropertyAnimation(self, b"minimumWidth")
+        self.animation.setDuration(300)  # Animation duration in milliseconds
+        self.animation.setEasingCurve(QEasingCurve.OutBounce)  # Bounce effect
+        # Store the original (expanded) sidebar width after layout is set up
+        self._expanded_width = None
+
         self.setObjectName("Sidebar")
-        self.setLayout(QVBoxLayout())
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        self.layout().setSpacing(6)
-        
+        main_layout = QHBoxLayout()
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        self.setLayout(main_layout)
+
         # Track module navigation buttons by uniqueIdentifier
         self.moduleButtons = {}
+        # Store original button texts for toggling
+        self.buttonTexts = {}
+
+        # SidebarMainFrame: holds nav, spacer, settings (vertical)
+        self.SidebarMainFrame = QFrame(self)
+        self.SidebarMainFrame.setObjectName("SidebarMainFrame")
+        self.SidebarMainLayout = QVBoxLayout(self.SidebarMainFrame)
+        self.SidebarMainLayout.setContentsMargins(0, 0, 0, 0)
+        self.SidebarMainLayout.setSpacing(6)
+
         # Navigation Items Container
-        self.SidebarNavFrame = QFrame(self)
+        self.SidebarNavFrame = QFrame(self.SidebarMainFrame)
         self.SidebarNavFrame.setObjectName("SidebarNavFrame")
         self.SidebarNavLayout = QVBoxLayout(self.SidebarNavFrame)
         self.SidebarNavLayout.setContentsMargins(0, 6, 6, 6)
-        self.layout().addWidget(self.SidebarNavFrame)
-        
+        self.SidebarMainLayout.addWidget(self.SidebarNavFrame)
+
         # Vertical Spacer
         spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        self.layout().addItem(spacer)
+        self.SidebarMainLayout.addItem(spacer)
 
         # Settings Module
-        self.settingsFrame = QFrame(self)
+        self.settingsFrame = QFrame(self.SidebarMainFrame)
         self.settingsFrame.setObjectName("SettingsFrame")
         self.settingsLayout = QVBoxLayout(self.settingsFrame)
         self.settingsLayout.setContentsMargins(0, 6, 6, 6)
@@ -53,8 +72,46 @@ class Sidebar(QWidget):
         self.settingsButton = QPushButton(settings_name, self.settingsFrame)
         if settings_icon:
             self.settingsButton.setIcon(QIcon(settings_icon))
+        self.settingsButton.setText(settings_name)  # Ensure visible name is set
         self.settingsLayout.addWidget(self.settingsButton)
-        self.layout().addWidget(self.settingsFrame)
+        self.SidebarMainLayout.addWidget(self.settingsFrame)
+
+        # Add SidebarMainFrame to main layout (left)
+        main_layout.addWidget(self.SidebarMainFrame)
+
+        # SidebarRightFrame: 2px vertical line (spacer), toggle button overflows left (all styling via QSS)
+        self.rightFrame = QFrame(self)
+        self.rightFrame.setObjectName("SidebarRightFrame")
+        self.rightFrame.setFixedWidth(2)
+        self.rightFrame.setLayout(QVBoxLayout())
+        self.rightFrame.layout().setContentsMargins(0, 0, 0, 0)
+        self.rightFrame.layout().setSpacing(0)
+
+        # Toggle button: visually overflow left, sits on top of the line (all styling via QSS)
+        self.toggleButton = QPushButton("«", self)
+        self.toggleButton.setObjectName("SidebarToggleButton")
+        self.toggleButton.setFixedSize(28, 28)
+        self.toggleButton.setFixedWidth(28)  # Ensure fixed width
+        self.toggleButton.setToolTip("Collapse Sidebar")
+        self.toggleButton.clicked.connect(self.toggleSidebar)
+        self.rightFrame.layout().addWidget(self.toggleButton, alignment=Qt.AlignTop | Qt.AlignHCenter)
+
+        # Add SidebarRightFrame to main layout (right)
+        main_layout.addWidget(self.rightFrame, alignment=Qt.AlignRight)
+
+        # Now that all widgets/frames are created, set expanded width
+        self._set_expanded_width_later()
+
+    def _set_expanded_width_later(self):
+        # Use a single-shot timer to set the expanded width after the widget is shown
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, self._store_expanded_width)
+
+    def _store_expanded_width(self):
+        self._expanded_width = self.width()
+    def applyStyles(self):
+        """Apply styles to the sidebar and toggle button using ThemeManager and QSS only."""
+        ThemeManager.apply_theme(self, QssPaths.SIDEBAR)
 
 
 
@@ -70,62 +127,42 @@ class Sidebar(QWidget):
         # Connect the button to show the Settings UI
         self.settingsButton.clicked.connect(self.showSettingsModule)
 
+        # Initialize animation for sidebar width (bounce effect)
+        self.animation = QPropertyAnimation(self, b"minimumWidth")
+        self.animation.setDuration(300)  # Animation duration in milliseconds
+        self.animation.setEasingCurve(QEasingCurve.OutBounce)  # Bounce effect
+
+        # Store the original (expanded) sidebar width after layout is set up
+        self._expanded_width = None
+        # Now that all widgets/frames are created, set expanded width
+        self._set_expanded_width_later()
+
+    def _set_expanded_width_later(self):
+        # Use a single-shot timer to set the expanded width after the widget is shown
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, self._store_expanded_width)
+
+    def _store_expanded_width(self):
+        self._expanded_width = self.width()
+
     def showSettingsModule(self):
         self.settingsModule.show()
-
         # Apply shadow effect to SidebarNavFrame
         nav_shadow = QGraphicsDropShadowEffect(self)
         nav_shadow.setBlurRadius(20)
         nav_shadow.setOffset(0, 5)
         nav_shadow.setColor(QColor(192, 192, 192))  # Light gray shadow to match background
         self.SidebarNavFrame.setGraphicsEffect(nav_shadow)
-
         # Apply shadow effect to SettingsFrame
         settings_shadow = QGraphicsDropShadowEffect(self)
         settings_shadow.setBlurRadius(20)
         settings_shadow.setOffset(0, 5)
         settings_shadow.setColor(QColor(192, 192, 192))  # Light gray shadow to match background
         self.settingsFrame.setGraphicsEffect(settings_shadow)
-
         # Store original button texts for toggling
         self.buttonTexts = {}
-
         # Add settings button to the buttonTexts dictionary
         self.buttonTexts[self.settingsButton] = self.settingsButton.text()
-
-
-        # Special right frame for toggle button (furthest right in sidebar layout)
-        self.rightFrame = QFrame(self)
-        self.rightFrame.setObjectName("SidebarRightFrame")
-        self.rightFrame.setFixedWidth(32)
-        self.rightFrame.setLayout(QVBoxLayout())
-        self.rightFrame.layout().setContentsMargins(0, 20, 0, 0)
-        self.rightFrame.layout().setSpacing(0)
-
-        self.toggleButton = QPushButton("«", self.rightFrame)
-        self.toggleButton.setObjectName("ToggleButton")
-        self.toggleButton.setFixedSize(28, 28)
-        self.toggleButton.setToolTip("Collapse Sidebar")
-        self.toggleButton.clicked.connect(self.toggleSidebar)
-        self.rightFrame.layout().addWidget(self.toggleButton, alignment=Qt.AlignTop | Qt.AlignHCenter)
-
-        # Remove rightFrame from settings area if present, and add to sidebar layout as last widget
-        # (If already present, this is a no-op)
-        if self.rightFrame.parent() is not self:
-            self.rightFrame.setParent(self)
-        # Remove if already in layout (avoid duplicates)
-        layout = self.layout()
-        for i in reversed(range(layout.count())):
-            item = layout.itemAt(i)
-            if item and item.widget() is self.rightFrame:
-                layout.takeAt(i)
-        layout.addWidget(self.rightFrame, alignment=Qt.AlignRight)
-
-        # Initialize animation for sidebar width
-        self.animation = QPropertyAnimation(self, b"minimumWidth")
-        self.animation.setDuration(300)  # Animation duration in milliseconds
-        self.animation.setEasingCurve(QEasingCurve.OutBounce)  # Bounce effect
-
         # Apply Styles
         self.applyStyles()
 
@@ -185,14 +222,24 @@ class Sidebar(QWidget):
                     # Restore original text
                     widget.setText(self.buttonTexts.get(widget, ""))
 
+
         # Handle settings button separately
         if not isCompact:
+            self.buttonTexts[self.settingsButton] = self.settingsButton.text()
             self.settingsButton.setText("")
         else:
-            self.settingsButton.setText(self.buttonTexts.get(self.settingsButton, ""))
+            # Always restore the settings button name
+            settings_name = self.settingsButton.text() if self.settingsButton.text() else self.settingsButton.objectName()
+            self.settingsButton.setText(self.buttonTexts.get(self.settingsButton, settings_name))
 
         # Animate sidebar width for compact/expanded mode
         self.animation.stop()
         self.animation.setStartValue(self.width())
-        self.animation.setEndValue(50 if not isCompact else 200)
+        if not isCompact:
+            self.animation.setEndValue(50)
+        else:
+            # Use stored expanded width if available, else fallback to 200
+            self.animation.setEndValue(self._expanded_width if self._expanded_width else 200)
+        # Always use bounce effect for both directions
+        self.animation.setEasingCurve(QEasingCurve.OutBounce)
         self.animation.start()

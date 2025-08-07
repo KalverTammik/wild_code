@@ -21,6 +21,9 @@ theme_manager = ThemeManager()
 
 
 class PluginDialog(QDialog):
+    @staticmethod
+    def get_instance():
+        return PluginDialog._instance
     _instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -31,8 +34,8 @@ class PluginDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self._geometry_restored = False
         self.setWindowTitle(lang_manager.translate("wild_code_plugin_title"))
-
         from PyQt5.QtWidgets import QSizePolicy
         self.moduleManager = ModuleManager()
         self.moduleStack = QStackedWidget()
@@ -40,7 +43,13 @@ class PluginDialog(QDialog):
         self.sidebar = Sidebar()
         self.sidebar.itemClicked.connect(self.switchModule)
 
-
+        # Geometry watcher and update subscribers
+        self._geometry_update_callbacks = []
+        from wild_code.utils.dialog_geometry_watcher import DialogGeometryWatcher
+        self._geometry_watcher = DialogGeometryWatcher(
+            self,
+            on_update=self._notify_geometry_update
+        )
 
         # Main vertical layout for the dialog
         dialog_layout = QVBoxLayout()
@@ -53,27 +62,31 @@ class PluginDialog(QDialog):
             switch_callback=self.toggle_theme,
             logout_callback=self.logout
         )
-        dialog_layout.addWidget(self.header_widget)
 
+        dialog_layout.addWidget(self.header_widget)
+  
+
+  
         # Central content area (sidebar + main content + right sidebar)
         content_layout = QHBoxLayout()
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
         content_layout.addWidget(self.sidebar)
 
+        # Center layout: stacked widget + footer
         center_layout = QVBoxLayout()
+        center_layout.setContentsMargins(0, 0, 0, 0)
+        center_layout.setSpacing(0)
         center_layout.addWidget(self.moduleStack)
+        self.footer_widget = FooterWidget(show_left=True, show_right=True)
+        center_layout.addWidget(self.footer_widget)
+
         content_widget = QWidget()
         content_widget.setLayout(center_layout)
         content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         content_layout.addWidget(content_widget)
 
-
         dialog_layout.addLayout(content_layout)
-
-        # Footer at the absolute bottom
-        self.footer_widget = FooterWidget(show_left=True, show_right=True)
-        dialog_layout.addWidget(self.footer_widget)
 
         self.setLayout(dialog_layout)
         
@@ -89,11 +102,28 @@ class PluginDialog(QDialog):
         self.loadModules()
         self.destroyed.connect(self._on_destroyed)
 
+    def _notify_geometry_update(self, x, y, w, h):
+        for cb in self._geometry_update_callbacks:
+            try:
+                cb(x, y, w, h)
+            except Exception as e:
+                print(f"[PluginDialog] Error in geometry update callback: {e}")
+
+    def subscribe_geometry_updates(self, callback):
+        self._geometry_update_callbacks.append(callback)
+        # Immediately call with current geometry
+        geo = self.geometry()
+        callback(geo.x(), geo.y(), geo.width(), geo.height())
+        def unsubscribe():
+            if callback in self._geometry_update_callbacks:
+                self._geometry_update_callbacks.remove(callback)
+        return unsubscribe
+
+
     def _on_destroyed(self, obj):
         PluginDialog._instance = None
 
     def loadModules(self):
-
 
 
         from .modules.ProjectCard.ProjectCardUI import ProjectCardUI
@@ -104,7 +134,8 @@ class PluginDialog(QDialog):
         from .modules.UserTest.TestUserDataDialog import TestUserDataDialog
         from .modules.projects.ProjectsModule import ProjectsModule
         from .modules.contract.ContractModule import ContractModule
-
+        from .modules.DialogSizeWatcher.logic import DialogSizeWatcherModule
+        from .constants.module_names import DIALOG_SIZE_WATCHER_MODULE
 
         qss_modular = [QssPaths.MAIN, QssPaths.SIDEBAR]
         projectCardModule = ProjectCardUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
@@ -115,7 +146,13 @@ class PluginDialog(QDialog):
         testUserDataDialog = TestUserDataDialog(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         contractModule = ContractModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-
+        dialogSizeWatcherModule = DialogSizeWatcherModule(
+            name=DIALOG_SIZE_WATCHER_MODULE,
+            display_name=lang_manager.sidebar_button(DIALOG_SIZE_WATCHER_MODULE),
+            icon=None,
+            lang_manager=lang_manager,
+            theme_manager=theme_manager
+        )
 
         self.moduleManager.registerModule(projectCardModule)
         self.moduleManager.registerModule(projectFeedModule)
@@ -124,14 +161,16 @@ class PluginDialog(QDialog):
         self.moduleManager.registerModule(testUserDataDialog)
         self.moduleManager.registerModule(projectsModule)
         self.moduleManager.registerModule(contractModule)
+        self.moduleManager.registerModule(dialogSizeWatcherModule)
 
         for moduleName, moduleInfo in self.moduleManager.modules.items():
             iconPath = moduleInfo["icon"]
             displayName = moduleInfo["display_name"]
-            widget = moduleInfo["module"].get_widget()
+            widget = moduleInfo["module"].get_widget() if hasattr(moduleInfo["module"], "get_widget") else moduleInfo["module"]
             if widget is not None:
                 self.sidebar.addItem(displayName, moduleName, iconPath)
                 self.moduleStack.addWidget(widget)
+
 
     def switchModule(self, moduleName):
         try:
@@ -139,6 +178,9 @@ class PluginDialog(QDialog):
             activeModule = self.moduleManager.getActiveModule()
             if activeModule:
                 self.moduleStack.setCurrentWidget(activeModule["module"].get_widget())
+                # Set header title to module display name
+                display_name = activeModule.get("display_name", moduleName)
+                self.header_widget.set_title(display_name)
             else:
                 raise AttributeError("No active module found.")
         except Exception as e:
@@ -183,6 +225,7 @@ class PluginDialog(QDialog):
         self.close()
 
     def showEvent(self, event):
+        # Geometry is now handled by the persistent watcher
         if not SessionManager().isLoggedIn():
             self.close()
         super().showEvent(event)

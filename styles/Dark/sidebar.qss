@@ -1,37 +1,32 @@
 /* Special right frame for toggle button */
+/* Sidebar vertical line spacer for toggle */
 #SidebarRightFrame {
     background: #232b33;
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
-    min-width: 2px;
-    max-width: 32px;
+    min-width: 28px;
+    max-width: 28px;
+    border: none;
 }
 
-#SidebarRightFrame #ToggleButton {
+/* Toggle button visually overflows left of the line */
+#SidebarToggleButton {
     background: #2e3a44;
     border-radius: 14px;
     min-width: 28px;
     min-height: 28px;
     max-width: 28px;
     max-height: 28px;
-    padding: 0;
+    margin-left: -14px;
     color: #c5c5d2;
     font-size: 14px;
-    border: none;
+    border: 2px solid #232b33;
     box-shadow: 0 0 6px rgba(9, 144, 143, 0.2);
+    z-index: 2;
 }
-
-#SidebarRightFrame #ToggleButton:hover {
+#SidebarToggleButton:hover {
     background: #3a3f4a;
 }
-
-#SidebarRightFrame #ToggleButton:pressed {
+#SidebarToggleButton:pressed {
     background: #1f2229;
-}
-
-#SidebarRightFrame #ToggleButton > * {
-    min-width: 10px;
-    min-height: 10px;
 }
 /* Sidebar Container */
 #Sidebar {

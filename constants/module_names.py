@@ -1,4 +1,3 @@
-# New modules
 PROJECTS_MODULE = "ProjectsModule"
 CONTRACT_MODULE = "ContractModule"
 SETTINGS_MODULE = "SettingsModule"
@@ -11,3 +10,5 @@ BOOK_QUOTE_MODULE = "BookQuoteModule"
 WORKFLOW_DESIGNER_MODULE = "WorkflowDesignerModule"
 GPT_ASSISTANT_MODULE = "GptAssistant"
 USER_TEST_MODULE = "UserTestModule"
+
+DIALOG_SIZE_WATCHER_MODULE = "DialogSizeWatcherModule"

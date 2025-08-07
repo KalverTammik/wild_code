@@ -8,10 +8,20 @@ class HeaderWidget(QWidget):
         layout.setContentsMargins(10, 6, 10, 6)
         layout.setSpacing(10)
 
+
         self.titleLabel = QLabel(title)
         self.titleLabel.setObjectName("headerTitleLabel")
-        self.titleLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        layout.addWidget(self.titleLabel, 1, Qt.AlignLeft | Qt.AlignVCenter)
+        self.titleLabel.setFixedWidth(180)  # Fixed width for consistent layout
+        self.titleLabel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        layout.addWidget(self.titleLabel, 0, Qt.AlignLeft | Qt.AlignVCenter)
+
+        # Search widget (centered, no functionality yet)
+        from PyQt5.QtWidgets import QLineEdit
+        self.searchEdit = QLineEdit()
+        self.searchEdit.setPlaceholderText("Search...")
+        self.searchEdit.setObjectName("headerSearchEdit")
+        self.searchEdit.setFixedWidth(220)
+        layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
 
         self.switchButton = QPushButton()
         self.switchButton.setObjectName("themeSwitchButton")

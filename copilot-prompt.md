@@ -22,7 +22,9 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
 
 ## 2. Architecture & Module System
 
-- Use `BaseModule` as the base class for all new modules.
+**All new modules must inherit from `BaseModule`.**
+**Do not use class-level attributes for `name`, `display_name`, or `icon`. Always set these as instance attributes in the constructor.**
+**The constructor for every module must accept `name`, `display_name`, `icon`, `lang_manager`, and `theme_manager` as arguments, and assign them to `self.name`, `self.display_name`, and `self.icon`.**
 - Only one module is active at a time; modules are activated/deactivated via sidebar or menu.
 - Each module must implement:  
   - `activate()`, `deactivate()`, `run()`, `reset()`, `get_widget()`
@@ -182,3 +184,60 @@ When setting up translations for a new module, follow these steps:
 5. In your module's UI code, make sure to use the `LanguageManager` for any translatable text or labels.
 
 By following these steps, your module will support translations seamlessly, and the sidebar buttons will be correctly labeled in the selected language.
+
+## Module Creation & Registration Guidelines
+
+
+When adding a new module, follow these unified steps to ensure consistency and avoid registration errors:
+
+1. **Module Structure**
+    - Each module must be in its own subdirectory under `modules/` with the required files: `__init__.py`, `ui.py`, `logic.py`, and a `lang/` directory for translations.
+    - Do not place new modules as single files in `modules/`.
+
+
+2. **Class Definition**
+    - Inherit from `BaseModule`.
+    - The module must define a unique `name` as a class attribute (e.g., `name = "MyModuleName"`).
+    - The constructor should accept any needed managers (e.g., `lang_manager`, `theme_manager`) and other dependencies.
+    - Implement all required methods: `activate`, `deactivate`, `run`, `reset`, `get_widget`.
+    - Use `lang_manager.translate()` for all user-facing strings, including `display_name` if needed.
+
+3. **Translations**
+    - Use `LanguageManager` for all translations.
+    - Translation files must be Python files (`.py`) and placed in the module's `lang/` directory (e.g., `modules/ProjectCard/lang/en.py`).
+    - Sidebar button names must be defined in `languages/sidebar_button_names_<lang>.py` using string keys matching module class names.
+
+
+4. **Registration & Integration**
+    - **You must import, instantiate, and register the new module in the `loadModules` method of your main dialog (e.g., `dialog.py`).**
+    - Register the module using only the module instance: `registerModule(moduleInstance)`.
+    - Do **not** pass keyword arguments like `name`, `display_name`, or `icon` to `registerModule()` unless the method signature in `module_manager.py` explicitly supports them.
+    - Each module must provide a `get_widget()` method that returns the QWidget to display.
+    - The `registerModule` method will automatically handle the icon and display name for the sidebar using the module's `name` class attribute and the language manager. You do not need to set `display_name` or `icon` in your module unless you want to override the defaults.
+    - Before registering a module, always check the current signature of `registerModule()` in `module_manager.py`.
+    - If you need to support extra metadata, update the method and all usages accordingly.
+    - If you see `TypeError: registerModule() got an unexpected keyword argument`, remove all extra arguments and follow these rules.
+
+**Important:** If you do not add your new module to the `loadModules` method, it will not be registered, will not appear in the sidebar, and will not be usable in the plugin. Always update `loadModules` when adding a new module.
+
+**Example module skeleton:**
+```python
+from .BaseModule import BaseModule
+
+class ExampleModule(BaseModule):
+    def __init__(self, name, display_name, icon, lang_manager, theme_manager):
+        super().__init__(name, display_name, icon, lang_manager, theme_manager)
+        # ... module-specific initialization ...
+    def activate(self):
+        pass
+    def deactivate(self):
+        pass
+    def run(self):
+        pass
+    def reset(self):
+        pass
+    def get_widget(self):
+        return self.widget
+```
+
+These rules ensure all modules are created, structured, and registered consistently in the wild_code plugin.
