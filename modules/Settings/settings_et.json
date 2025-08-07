@@ -1,9 +1,0 @@
-{
-  "save_setting": "Salvesta seade",
-  "setting_key": "Seadme võti",
-  "setting_value": "Seadme väärtus",
-  "setting_saved_title": "Seade salvestatud",
-  "setting_saved_message": "Seade '{key}' salvestatud väärtusega '{value}'.",
-  "setting_error_title": "Viga",
-  "setting_error_message": "Palun sisesta seadme võti."
-}

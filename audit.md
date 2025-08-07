@@ -21,11 +21,8 @@ This audit prompt provides a step-by-step checklist to ensure your project compl
 - [ ] All QSS files are named and organized as per standards (e.g., `main.qss`, `header.qss`).
 
 ## Stage 3: Translation and Localization
-- [ ] All user-facing text uses translation keys via `LanguageManager.translate(key)` or equivalent.
-- [ ] No hardcoded UI strings in any module or widget.
-- [ ] All translation keys are present in each supported language file (`languages/{lang}.json`).
-- [ ] Each module with unique UI text has its own translation file (e.g., `joke_generator_et.json`).
-- [ ] The global `lang_manager` instance is defined after the `LanguageManager` class in `language_manager.py`.
+ [ ] All user-facing text uses translation keys via `LanguageManager_NEW.translate(key)` or equivalent.
+ [ ] The global `lang_manager` instance is defined after the `LanguageManager_NEW` class in `language_manager.py`.
 
 ## Stage 4: Module and Logic Structure
 - [ ] All modules inherit from `BaseModule` and follow the modular structure.

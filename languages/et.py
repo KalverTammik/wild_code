@@ -1,17 +1,5 @@
 TRANSLATIONS = {
     "projects_module_loaded": "Projektide moodul laaditud!",
-    "SettingsModule": "Seaded",
-    "ProjectCardModule": "Projektikaart",
-    "ProjectFeedModule": "Projektivoog",
-    "JokeGeneratorModule": "Naljageneraator",
-    "WeatherUpdateModule": "Ilmateade",
-    "ImageOfTheDayModule": "Päeva pilt",
-    "BookQuoteModule": "Raamatu tsitaat",
-    "WorkflowDesignerModule": "Töövoo kujundaja",
-    "GptAssistant": "GPT abiline",
-    "ProjectsModule": "Projektid",
-    "ContractModule": "Lepingud",
-    "UserTestModule": "Kasutajatest",
     "api_endpoint_not_configured": "API lõpp-punkti pole seadistatud.",
     "config_error": "Seadistuse viga: {error}",
     "login_failed": "Sisselogimine ebaõnnestus: {error}",
@@ -32,4 +20,5 @@ TRANSLATIONS = {
     "switch_to_light_mode": "Lülita heledale režiimile",
     "unknown_module": "Tundmatu moodul: {module}",
     "query_file_not_found": "Päringu faili ei leitud: {file}"
+    ,"save_setting": "Salvesta säte"
 }

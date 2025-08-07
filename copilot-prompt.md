@@ -102,12 +102,17 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
 
 ## 7. Translation & Localization
 
-- All user-facing text must be translatable using `LanguageManager`.
-- Default language is Estonian (`et`); support dynamic language switching.
-- Never hardcode UI strings; always use translation keys.
-- Global translations in `languages/{lang}.json`.
-- Module translations in `{module_name}_{lang}.json` in the module directory.
-- `LanguageManager` merges global and module translations.
+- All modules must use `LanguageManager` from `language_manager.py` for translations.
+- Translation files must be Python files (`.py`), not JSON or JS.
+- Each module must keep its translations in `modules/ModuleName/lang/en.py`, `et.py`, etc. (one file per language per module).
+- Sidebar button names must be defined in `languages/sidebar_button_names_<lang>.py` using string keys matching module class names (e.g., "ProjectsModule").
+- No JavaScript or JSON translation files are to be used for Python modules.
+- All translation keys should be typo-proof and auto-completable by using string keys matching module class names.
+- The `sidebar_button` method must be used for sidebar button translations in all new modules and UI components.
+- If a translation is missing, the key itself is shown as a fallback.
+- No legacy translation systems (JSON, JS) are to be used in new code.
+- All translation files for sidebar/global keys must be kept in the `languages/` directory and follow the naming convention: `<lang>.py` and `sidebar_button_names_<lang>.py`.
+
 
 ---
 
@@ -146,3 +151,34 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
 ## 11. Appendix: Examples & Troubleshooting
 
 - Place code snippets, file structure examples, and troubleshooting tips here.
+
+---
+
+## Example: Setting Up Translations in a Module
+
+When setting up translations for a new module, follow these steps:
+
+1. Import the `LanguageManager`:
+    ```python
+    from languages.language_manager import LanguageManager
+    ```
+
+2. Initialize the language manager with the desired language (e.g., Estonian):
+    ```python
+    lang = LanguageManager(language="et")
+    ```
+
+3. Set the text of your labels or other translatable strings using the `translate` or `sidebar_button` method:
+    ```python
+    label.setText(lang.translate("project_description_placeholder"))
+    label.setText(lang.sidebar_button("ProjectsModule"))
+    ```
+
+4. Ensure that your translation files are named correctly and placed in the module's lang directory:
+    - `modules/ProjectCard/lang/en.py` for English translations for ProjectCard module.
+    - `modules/ProjectCard/lang/et.py` for Estonian translations for ProjectCard module.
+    - `languages/sidebar_button_names_et.py` for the Estonian sidebar button names.
+
+5. In your module's UI code, make sure to use the `LanguageManager` for any translatable text or labels.
+
+By following these steps, your module will support translations seamlessly, and the sidebar buttons will be correctly labeled in the selected language.

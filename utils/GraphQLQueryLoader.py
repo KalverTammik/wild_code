@@ -24,11 +24,11 @@ class GraphQLQueryLoader:
             ValueError: If the module is unknown.
         """
         if not hasattr(QueryPaths, module.upper()):
-            raise ValueError(self.lang.translate("unknown_module").format(module=module))
+            raise ValueError(self.lang.get("unknown_module").format(module=module))
         folder = getattr(QueryPaths, module.upper())
         query_path = os.path.join(folder, query_filename)
         if not os.path.exists(query_path):
-            raise FileNotFoundError(self.lang.translate("query_file_not_found").format(file=query_path))
+            raise FileNotFoundError(self.lang.get("query_file_not_found").format(file=query_path))
         with open(query_path, 'r', encoding='utf-8') as f:
             return f.read()
 

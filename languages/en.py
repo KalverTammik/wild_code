@@ -1,17 +1,5 @@
 TRANSLATIONS = {
     "projects_module_loaded": "Projects module loaded!",
-    "SettingsModule": "Settings",
-    "ProjectCardModule": "Project Card",
-    "ProjectFeedModule": "Project Feed",
-    "JokeGeneratorModule": "Joke Generator",
-    "WeatherUpdateModule": "Weather Update",
-    "ImageOfTheDayModule": "Image of the Day",
-    "BookQuoteModule": "Book Quote",
-    "WorkflowDesignerModule": "Workflow Designer",
-    "GptAssistant": "GPT Assistant",
-    "ProjectsModule": "Projects",
-    "ContractModule": "Contract",
-    "UserTestModule": "User Test",
     "api_endpoint_not_configured": "API endpoint not configured.",
     "config_error": "Configuration error: {error}",
     "login_failed": "Login failed: {error}",
@@ -27,4 +15,5 @@ TRANSLATIONS = {
     "mailabl_listener": "Mailabl Listener",
     "unknown_module": "Unknown module: {module}",
     "query_file_not_found": "Query file not found: {file}"
+    ,"save_setting": "Save setting"
 }

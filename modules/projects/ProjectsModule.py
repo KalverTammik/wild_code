@@ -1,7 +1,7 @@
 
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from PyQt5.QtWidgets import QLabel
-from ...languages.language_manager import LanguageManager_NEW
+from ...languages.language_manager import LanguageManager
 
 
 class ProjectsModule(ModuleBaseUI):
@@ -15,7 +15,7 @@ class ProjectsModule(ModuleBaseUI):
         super().__init__(parent)
         # Use LanguageManager_NEW if not provided
         if lang_manager is None:
-            self.lang_manager = LanguageManager_NEW()
+            self.lang_manager = LanguageManager()
         else:
             self.lang_manager = lang_manager
         self.theme_manager = theme_manager

@@ -1,45 +1,11 @@
 
-import json
-import os
-
-
 DEFAULT_LANGUAGE = "et"  # Set Estonian as the default language
 
-class LanguageManager:
-    def __init__(self, language=DEFAULT_LANGUAGE):
-        self.language = language
-        self.translations = {}
-        self.load_language()
-
-    def load_language(self):
-        lang_file = os.path.join(os.path.dirname(__file__), f"{self.language}.json")
-        self.translations = {}
-        # Load main language file
-        if os.path.exists(lang_file):
-            with open(lang_file, "r", encoding="utf-8") as file:
-                self.translations.update(json.load(file))
-        else:
-            print(f"Language file {lang_file} not found. Defaulting to empty translations.")
-
-        # Load all module-specific translation files (e.g., JokeGenerator/ui/joke_generator_et.json)
-        plugin_root = os.path.dirname(os.path.dirname(__file__))
-        for root, dirs, files in os.walk(plugin_root):
-            for fname in files:
-                if fname.endswith(f"_{self.language}.json"):
-                    try:
-                        with open(os.path.join(root, fname), "r", encoding="utf-8") as f:
-                            self.translations.update(json.load(f))
-                    except Exception as e:
-                        print(f"Failed to load module translation {fname}: {e}")
-
-    def translate(self, key):
-        return self.translations.get(key, key)  # Return the key itself if no translation is found
-
-
-# New LanguageManager_NEW class using Python translation files
+import os
+import json
 import importlib.util
 
-class LanguageManager_NEW:
+class LanguageManager:
     def __init__(self, language=DEFAULT_LANGUAGE):
         self.language = language
         self.translations = {}
@@ -57,6 +23,20 @@ class LanguageManager_NEW:
             self.translations.update(getattr(lang_mod, "TRANSLATIONS", {}))
         else:
             print(f"Python language file {lang_py} not found. Defaulting to empty translations.")
+
+        # Load and merge module translations from each module's lang/<lang>.py
+        plugin_root = os.path.dirname(os.path.dirname(__file__))
+        for root, dirs, files in os.walk(os.path.join(plugin_root, "modules")):
+            if os.path.basename(root) == "lang":
+                lang_file = os.path.join(root, f"{self.language}.py")
+                if os.path.exists(lang_file):
+                    try:
+                        spec = importlib.util.spec_from_file_location(f"module_lang_{os.path.basename(os.path.dirname(root))}_{self.language}", lang_file)
+                        lang_mod = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(lang_mod)
+                        self.translations.update(getattr(lang_mod, "TRANSLATIONS", {}))
+                    except Exception as e:
+                        print(f"Failed to load module translation {lang_file}: {e}")
 
         # Load sidebar button names from class-based file
         sidebar_py = os.path.join(os.path.dirname(__file__), f"sidebar_button_names_{self.language}.py")

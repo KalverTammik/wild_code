@@ -1,6 +1,6 @@
 
 from .constants.module_icons import ModuleIconPaths
-from .languages.language_manager import LanguageManager_NEW
+from .languages.language_manager import LanguageManager
 from .constants.module_names import SETTINGS_MODULE, PROJECT_CARD_MODULE, PROJECT_FEED_MODULE, GPT_ASSISTANT_MODULE, PROJECTS_MODULE, CONTRACT_MODULE
 
 
@@ -21,7 +21,7 @@ class ModuleManager:
     def __init__(self, lang_manager=None):
         self.modules = {}  # Dictionary to store modules by name
         self.activeModule = None  # Reference to the currently active module
-        self.lang_manager = lang_manager or LanguageManager_NEW()
+        self.lang_manager = lang_manager or LanguageManager()
 
     def registerModule(self, module):
         """Register a new module with its icon, human-readable name, and internal name."""

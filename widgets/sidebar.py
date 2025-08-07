@@ -7,7 +7,6 @@ from ..modules.Settings.SettingsUI import SettingsUI  # Import the SettingsModul
 from ..module_manager import ModuleManager, SETTINGS_MODULE
 from ..languages.language_manager import LanguageManager
 
-# Shared managers for all modules
 lang_manager = LanguageManager()
 theme_manager = ThemeManager()
 
@@ -57,7 +56,7 @@ class Sidebar(QWidget):
 
 
 
-        from ..constants.file_paths import  QssPaths, STYLES
+        from ..constants.file_paths import STYLES  # QssPaths already imported at top
         self.theme_base_dir = STYLES
         self.settingsModule = SettingsUI(
             lang_manager,

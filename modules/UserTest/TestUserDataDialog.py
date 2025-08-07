@@ -7,15 +7,27 @@ from ...languages.language_manager import LanguageManager
 from ...utils.SessionManager import SessionManager
 from ...constants.module_names import USER_TEST_MODULE
 
+
+
 class TestUserDataDialog(QDialog):
     """
     Test dialog to load and display user data (me) from GraphQL API.
     Follows all copilot-prompt.md standards and module interface.
     """
-    def __init__(self, lang_manager, theme_manager, theme_dir=None, qss_files=None, parent=None):
+    def __init__(self, lang_manager=None, theme_manager=None, theme_dir=None, qss_files=None, parent=None):
         super().__init__(parent)
         self.name = USER_TEST_MODULE
-        self.lang = lang_manager
+        # Ensure we always use LanguageManager_NEW
+        if lang_manager is None:
+            self.lang = LanguageManager()
+        elif not hasattr(lang_manager, 'sidebar_button'):
+            language = getattr(lang_manager, 'language', None)
+            if language:
+                self.lang = LanguageManager(language=language)
+            else:
+                self.lang = LanguageManager()
+        else:
+            self.lang = lang_manager
         self.theme_manager = theme_manager
         self.theme_dir = theme_dir
         self.qss_files = qss_files

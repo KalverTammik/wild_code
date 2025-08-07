@@ -4,11 +4,21 @@ from ...widgets.theme_manager import ThemeManager
 from .SettingsLogic import SettingsLogic
 
 class SettingsUI(QWidget):
-    def __init__(self, lang_manager: LanguageManager, theme_manager: ThemeManager, theme_dir=None, qss_files=None):
+    def __init__(self, lang_manager=None, theme_manager=None, theme_dir=None, qss_files=None):
         super().__init__()
         from ...module_manager import SETTINGS_MODULE
         self.name = SETTINGS_MODULE
-        self.lang_manager = lang_manager
+        # Ensure we always use LanguageManager_NEW
+        if lang_manager is None:
+            self.lang_manager = LanguageManager()
+        elif not hasattr(lang_manager, 'sidebar_button'):
+            language = getattr(lang_manager, 'language', None)
+            if language:
+                self.lang_manager = LanguageManager(language=language)
+            else:
+                self.lang_manager = LanguageManager()
+        else:
+            self.lang_manager = lang_manager
         self.theme_manager = theme_manager
         from ...constants.file_paths import StylePaths
         self.theme_dir = theme_dir or StylePaths.DARK
