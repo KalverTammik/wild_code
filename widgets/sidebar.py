@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame, QPushButton, QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect, QHBoxLayout
 from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtCore import pyqtSignal, Qt, QPropertyAnimation, QEasingCurve
+from PyQt5.QtCore import pyqtSignal, Qt, QPropertyAnimation, QEasingCurve, QSize
 from ..constants.file_paths import QssPaths
 from ..widgets.theme_manager import ThemeManager
 from ..modules.Settings.SettingsUI import SettingsUI  # Import the SettingsModule
@@ -79,22 +79,28 @@ class Sidebar(QWidget):
         # Add SidebarMainFrame to main layout (left)
         main_layout.addWidget(self.SidebarMainFrame)
 
-        # SidebarRightFrame: 2px vertical line (spacer), toggle button overflows left (all styling via QSS)
+        # SidebarRightFrame: toggle button centered, no border/background, icon only
         self.rightFrame = QFrame(self)
         self.rightFrame.setObjectName("SidebarRightFrame")
-        self.rightFrame.setFixedWidth(2)
-        self.rightFrame.setLayout(QVBoxLayout())
-        self.rightFrame.layout().setContentsMargins(0, 0, 0, 0)
-        self.rightFrame.layout().setSpacing(0)
+        self.rightFrame.setFixedWidth(24)
+        self.rightFrame.setFixedHeight(24)
+        right_layout = QVBoxLayout()
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
+        self.rightFrame.setLayout(right_layout)
 
-        # Toggle button: visually overflow left, sits on top of the line (all styling via QSS)
-        self.toggleButton = QPushButton("«", self)
+        # Toggle button: icon only, no border/background, no padding
+        self.toggleButton = QPushButton(self)
         self.toggleButton.setObjectName("SidebarToggleButton")
-        self.toggleButton.setFixedSize(28, 28)
-        self.toggleButton.setFixedWidth(28)  # Ensure fixed width
+        self.toggleButton.setFixedSize(24, 24)
+        self.toggleButton.setIcon(QIcon())  # Set your icon here, e.g. QIcon(':/icons/sidebar_toggle.svg')
+        self.toggleButton.setIconSize(QSize(24, 24))
         self.toggleButton.setToolTip("Collapse Sidebar")
+        self.toggleButton.setText("«")  # Set initial text to match expanded state
         self.toggleButton.clicked.connect(self.toggleSidebar)
-        self.rightFrame.layout().addWidget(self.toggleButton, alignment=Qt.AlignTop | Qt.AlignHCenter)
+        right_layout.addStretch(1)
+        right_layout.addWidget(self.toggleButton, alignment=Qt.AlignCenter)
+        right_layout.addStretch(1)
 
         # Add SidebarRightFrame to main layout (right)
         main_layout.addWidget(self.rightFrame, alignment=Qt.AlignRight)

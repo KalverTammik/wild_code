@@ -2,23 +2,23 @@
 /* Sidebar vertical line spacer for toggle */
 #SidebarRightFrame {
     background: #232b33;
-    min-width: 28px;
-    max-width: 28px;
+    min-width: 24px;
+    max-width: 24px;
     border: none;
 }
 
 /* Toggle button visually overflows left of the line */
 #SidebarToggleButton {
-    background: #2e3a44;
-    border-radius: 14px;
-    min-width: 28px;
-    min-height: 28px;
-    max-width: 28px;
-    max-height: 28px;
-    margin-left: -14px;
+    border: none;
+    background: none;
+    padding: 0;
+    min-width: 24px;
+    min-height: 24px;
+    max-width: 24px;
+    max-height: 24px;
+    margin-left: -12px;
     color: #c5c5d2;
     font-size: 14px;
-    border: 2px solid #232b33;
     box-shadow: 0 0 6px rgba(9, 144, 143, 0.2);
     z-index: 2;
 }
