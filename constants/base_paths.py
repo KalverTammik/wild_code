@@ -1,3 +1,4 @@
+
 import os
 
 # Base directory of the plugin
@@ -8,5 +9,17 @@ CONFIG_DIR = "config"
 RESOURCE = "resources"
 STYLES = "styles"
 MODULES = "modules"
-FLOW_MODULE = "flowmodule"
 DATA_DIR = "data"
+QUERIES = 'queries'
+GRAPHQL = 'graphql'
+USER_QUERIES = 'user'
+PROJECT_QUERIES = 'projects'
+CONTRACT_QUERIES = 'contracts'
+EASEMENT_QUERIES = 'easements'
+TAGS_QUERIES = 'tags'
+STATUS_QUERIES = 'statuses'
+TASK_QUERIES = 'tasks'
+COORDINATION_QUERIES = 'coordinations'
+SUBMISSION_QUERIES = 'submissions'
+SPECIFICATION_QUERIES = 'specifications'
+PROPERTIES_QUERIES = 'properties'

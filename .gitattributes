@@ -4,4 +4,5 @@ audit.md export-ignore
 *.prompt.md export-ignore
 *.prompt.txt export-ignore
 *.prompt export-ignore
-# Add more internal or dev-only files below as needed
+# Exclude the bpmn directory from release archives
+bpmn/ export-ignore

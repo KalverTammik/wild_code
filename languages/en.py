@@ -1,9 +1,13 @@
-
-{
+TRANSLATIONS = {
     "projects_module_loaded": "Projects module loaded!",
     "SettingsModule": "Settings",
     "ProjectCardModule": "Project Card",
     "ProjectFeedModule": "Project Feed",
+    "JokeGeneratorModule": "Joke Generator",
+    "WeatherUpdateModule": "Weather Update",
+    "ImageOfTheDayModule": "Image of the Day",
+    "BookQuoteModule": "Book Quote",
+    "WorkflowDesignerModule": "Workflow Designer",
     "GptAssistant": "GPT Assistant",
     "ProjectsModule": "Projects",
     "ContractModule": "Contract",

@@ -1,31 +1,35 @@
 
 from .constants.module_icons import ModuleIconPaths
-from .constants.module_names import SETTINGS_MODULE, PROJECT_CARD_MODULE, PROJECT_FEED_MODULE, JOKE_GENERATOR_MODULE, WEATHER_UPDATE_MODULE, IMAGE_OF_THE_DAY_MODULE, BOOK_QUOTE_MODULE, WORKFLOW_DESIGNER_MODULE, GPT_ASSISTANT_MODULE, HINNAPAKKUJA_MODULE
+from .languages.language_manager import LanguageManager_NEW
+from .constants.module_names import SETTINGS_MODULE, PROJECT_CARD_MODULE, PROJECT_FEED_MODULE, GPT_ASSISTANT_MODULE, PROJECTS_MODULE, CONTRACT_MODULE
 
 
+
+
+# Use class names as translation keys for all modules
 MODULE_NAMES = {
-    SETTINGS_MODULE: "Seaded",
-    PROJECT_CARD_MODULE: "Edasi/tagasi andmed",
-    PROJECT_FEED_MODULE: "Scrollivad andmed",
-    JOKE_GENERATOR_MODULE: "Naljad",
-    WEATHER_UPDATE_MODULE: "Ilmateade",  
-    IMAGE_OF_THE_DAY_MODULE: "Pildi päev",
-    BOOK_QUOTE_MODULE: "Raamatu tsitaat",
-    WORKFLOW_DESIGNER_MODULE: "Töövoo kujundaja",
-    GPT_ASSISTANT_MODULE: "GPT-4o abiline",
+    SETTINGS_MODULE: "SettingsModule",
+    PROJECT_CARD_MODULE: "ProjectCardModule",
+    PROJECT_FEED_MODULE: "ProjectFeedModule",
+    GPT_ASSISTANT_MODULE: "GptAssistant",
+    PROJECTS_MODULE: "ProjectsModule",
+    CONTRACT_MODULE: "ContractModule",
 }
 
+
 class ModuleManager:
-    def __init__(self):
+    def __init__(self, lang_manager=None):
         self.modules = {}  # Dictionary to store modules by name
         self.activeModule = None  # Reference to the currently active module
+        self.lang_manager = lang_manager or LanguageManager_NEW()
 
     def registerModule(self, module):
-        """Register a new module with its icon and human-readable name."""
+        """Register a new module with its icon, human-readable name, and internal name."""
         self.modules[module.name] = {
             "module": module,
+            "name": module.name,  # Store the internal name for reference
             "icon": ModuleIconPaths.get_module_icon(module.name),
-            "display_name": self.get_module_name(module.name),  # Get human-readable name
+            "display_name": self.get_module_name(module.name),  # Human-readable name (for language handling)
         }
     def getModuleIcon(self, moduleName):
         """Retrieve the icon for a registered module."""
@@ -34,10 +38,12 @@ class ModuleManager:
             return module_info.get("icon", None)
         return None
 
-    @staticmethod
-    def get_module_name(module_name):
-        """Retrieve the human-readable name for a given module."""
-        return MODULE_NAMES.get(module_name, module_name)  # Default to the module_name if not found
+
+    def get_module_name(self, module_name):
+        """Retrieve the human-readable name for a given module, using the injected language manager (must be LanguageManager_NEW)."""
+        if not self.lang_manager or not hasattr(self.lang_manager, 'sidebar_button'):
+            raise RuntimeError("lang_manager must be LanguageManager_NEW with sidebar_button method.")
+        return self.lang_manager.sidebar_button(module_name)
     def activateModule(self, moduleName):
         """Activate a module by name."""
         if moduleName in self.modules:

@@ -1,4 +1,10 @@
 {
+    "api_endpoint_not_configured": "Point de terminaison API non configuré.",
+    "config_error": "Erreur de configuration : {error}",
+    "login_failed": "Échec de la connexion : {error}",
+    "no_api_token_received": "Aucun jeton API reçu.",
+    "login_failed_response": "Échec de la connexion : {error}",
+    "network_error": "Erreur réseau : {error}",
     "login_title": "Connexion",
     "username_label": "Nom d'utilisateur:",
     "password_label": "Mot de passe:",
@@ -10,5 +16,7 @@
     "settings_page": "Page des paramètres",
     "about_page": "Page à propos",
     "switch_to_dark_mode": "Passer en mode sombre",
-    "mailabl_listener": "Mailabl Listener"
+    "mailabl_listener": "Mailabl Listener",
+    "unknown_module": "Module inconnu : {module}",
+    "query_file_not_found": "Fichier de requête introuvable : {file}"
 }

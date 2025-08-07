@@ -35,6 +35,49 @@ class LanguageManager:
     def translate(self, key):
         return self.translations.get(key, key)  # Return the key itself if no translation is found
 
+
+# New LanguageManager_NEW class using Python translation files
+import importlib.util
+
+class LanguageManager_NEW:
+    def __init__(self, language=DEFAULT_LANGUAGE):
+        self.language = language
+        self.translations = {}
+        self.sidebar_buttons = {}
+        self.load_language()
+
+    def load_language(self):
+        self.translations = {}
+        self.sidebar_buttons = {}
+        lang_py = os.path.join(os.path.dirname(__file__), f"{self.language}.py")
+        if os.path.exists(lang_py):
+            spec = importlib.util.spec_from_file_location(f"lang_{self.language}", lang_py)
+            lang_mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(lang_mod)
+            self.translations.update(getattr(lang_mod, "TRANSLATIONS", {}))
+        else:
+            print(f"Python language file {lang_py} not found. Defaulting to empty translations.")
+
+        # Load sidebar button names from class-based file
+        sidebar_py = os.path.join(os.path.dirname(__file__), f"sidebar_button_names_{self.language}.py")
+        if os.path.exists(sidebar_py):
+            spec = importlib.util.spec_from_file_location(f"sidebar_{self.language}", sidebar_py)
+            sidebar_mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(sidebar_mod)
+            self.sidebar_buttons = getattr(sidebar_mod.SideBarButtonNames, "BUTTONS", {})
+        else:
+            print(f"Sidebar button names file {sidebar_py} not found. Defaulting to empty sidebar buttons.")
+
+    def translate(self, key):
+        return self.translations.get(key, key)
+
+    def sidebar_button(self, key):
+        return self.sidebar_buttons.get(key, key)
+
+    def set_language(self, language):
+        self.language = language
+        self.load_language()
+
     def set_language(self, language):
         self.language = language
         self.load_language()

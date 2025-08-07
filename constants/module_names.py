@@ -1,5 +1,6 @@
-# Centralized module name constants for use across the plugin
-
+# New modules
+PROJECTS_MODULE = "ProjectsModule"
+CONTRACT_MODULE = "ContractModule"
 SETTINGS_MODULE = "SettingsModule"
 PROJECT_CARD_MODULE = "ProjectCardModule"
 PROJECT_FEED_MODULE = "ProjectFeedModule"
@@ -9,4 +10,4 @@ IMAGE_OF_THE_DAY_MODULE = "ImageOfTheDayModule"
 BOOK_QUOTE_MODULE = "BookQuoteModule"
 WORKFLOW_DESIGNER_MODULE = "WorkflowDesignerModule"
 GPT_ASSISTANT_MODULE = "GptAssistant"
-HINNAPAKKUJA_MODULE = "Hinnapakkuja"
+USER_TEST_MODULE = "UserTestModule"

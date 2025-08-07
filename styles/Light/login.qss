@@ -1,3 +1,7 @@
+QLabel#errorLabel {
+    color: #d32f2f;
+    font-weight: bold;
+}
 QPushButton#togglePasswordButton {
     background: transparent;
     border: none;

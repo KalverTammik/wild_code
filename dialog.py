@@ -1,5 +1,3 @@
-
-
 import os
 from .constants.file_paths import StylePaths, QssPaths
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QStackedWidget, QWidget
@@ -97,38 +95,36 @@ class PluginDialog(QDialog):
     def loadModules(self):
 
 
-        from .modules.WeatherUpdate.WeatherUpdateUI import WeatherUpdateUI
-        from .modules.JokeGenerator.JokeGeneratorModule import JokeGeneratorModule
+
         from .modules.ProjectCard.ProjectCardUI import ProjectCardUI
         from .modules.ProjectFeed.ProjectFeedUI import ProjectFeedUI
-        from .modules.ImageOfTheDay.ImageOfTheDayUI import ImageOfTheDayUI
-        from .modules.BookQuote.BookQuoteUI import BookQuoteUI
-        from .modules.PizzaOrder.PizzaOrderUI import PizzaOrderUI
         from .modules.Settings.SettingsUI import SettingsUI
-        from .modules.Hinnapakkuja.HinnapakkujaUI import HinnapakkujaUI
-        from .modules.GptAssistant.GptAssistantUI import GptAssistantUI
+        #from .modules.Hinnapakkuja.HinnapakkujaUI import HinnapakkujaUI
+        #from .modules.GptAssistant.GptAssistantUI import GptAssistantUI
+        from .modules.UserTest.TestUserDataDialog import TestUserDataDialog
+        from .modules.projects.ProjectsModule import ProjectsModule
+        from .modules.contract.ContractModule import ContractModule
+
 
         qss_modular = [QssPaths.MAIN, QssPaths.SIDEBAR]
-        jokeModule = JokeGeneratorModule(theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        weatherModule = WeatherUpdateUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         projectCardModule = ProjectCardUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         projectFeedModule = ProjectFeedUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        imageOfTheDayModule = ImageOfTheDayUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        bookQuoteModule = BookQuoteUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        pizzaOrderModule = PizzaOrderUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        hinnapakkujaModule = HinnapakkujaUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        gptAssistantModule = GptAssistantUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        #hinnapakkujaModule = HinnapakkujaUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        #gptAssistantModule = GptAssistantUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        testUserDataDialog = TestUserDataDialog(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        contractModule = ContractModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
 
-        self.moduleManager.registerModule(jokeModule)
-        self.moduleManager.registerModule(weatherModule)
+
         self.moduleManager.registerModule(projectCardModule)
         self.moduleManager.registerModule(projectFeedModule)
-        self.moduleManager.registerModule(imageOfTheDayModule)
-        self.moduleManager.registerModule(bookQuoteModule)
-        self.moduleManager.registerModule(pizzaOrderModule)
-        self.moduleManager.registerModule(hinnapakkujaModule)
-        self.moduleManager.registerModule(gptAssistantModule)
+        #self.moduleManager.registerModule(hinnapakkujaModule)
+        #self.moduleManager.registerModule(gptAssistantModule)
+        self.moduleManager.registerModule(testUserDataDialog)
+        self.moduleManager.registerModule(projectsModule)
+        self.moduleManager.registerModule(contractModule)
+
         for moduleName, moduleInfo in self.moduleManager.modules.items():
             iconPath = moduleInfo["icon"]
             displayName = moduleInfo["display_name"]

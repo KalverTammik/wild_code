@@ -1,0 +1,158 @@
+### Query Storage & Loading
+
+Q: How are your GraphQL queries currently stored? (e.g., as .graphql files, strings in Python, or in a database)
+A: grpahql files
+
+Q: Do you have a loader utility for these, or is it ad hoc?
+Following is answere from copilot asking the question
+"You do have a loader utility for your API data transfer. Specifically, you use the GraphQLQueryLoader class to load GraphQL queries by module and query name:
+This approach is not ad hoc; it centralizes and standardizes how queries are loaded and managed. Additionally, you use a requestBuilder utility to construct and send requests:
+So, your API data transfer is handled through dedicated loader and request builder utilities, not in an ad hoc manner."
+
+### Request Builder
+
+Q: Is your requestBuilder a class, a set of functions, or something else?
+A: RequestBuilder is a class 
+Example code:
+class requestBuilder:
+    @staticmethod
+    def construct_and_send_request(query: str, variables: dict) -> requests.Response:       
+        graphql_url = GraphQLSettings.graphql_endpoint()
+        access_token = load_token()
+        if not access_token:
+            text = ("Access token not found. Please connect first.")
+            heading = pealkiri.infoSimple
+            ModernMessageDialog.Info_messages_modern_REPLACE_WITH_DECISIONMAKER(heading,text)
+            return None
+
+        sanitized_variables = requestBuilder.sanitize_for_json(variables)
+
+        # Construct the request payload
+        payload = {
+            "query": query,
+            "variables": sanitized_variables
+        }
+
+        # Construct the HTTP headers with the access token
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+            "User-Agent": f"QGIS/{Qgis.QGIS_VERSION} ({platform.system()} {platform.release()})"
+        }
+        #print(f"payload is_printed {payload}")
+        # Send the POST request to the GraphQL endpoint with timeout
+        try:
+            # Send the POST request to the GraphQL endpoint with timeout
+            response = requests.post(graphql_url, headers=headers, json=payload, timeout=30)
+            
+            #print(f"response is_printed {response}")
+        except requests.Timeout:
+            print("Request timed out.")
+            return None
+        
+        except requests.RequestException as e:
+            print(f"Request failed: {e}")
+            return None
+
+
+        # Handle HTTP status codes
+        if response.status_code == 502:
+            print("Received 502 Bad Gateway.")
+            return None
+        
+        # Check for empty response
+        if not response.content:
+            print(f"Empty response received for query: {query}")
+            return None
+
+        # Parse the JSON response
+        data = response.json()
+
+
+        # Check if the response is empty
+        if not data:
+            #print(f"Data returned empty - maybe need to check query: {query}")
+            return None
+
+        
+        # Check for errors in the response
+        errors = data.get('errors', [])
+        #print(f"Errors: {errors}")
+        if errors:
+            #print(f"errors: errors")
+            RequestErrorHandler.handle_error(errors)
+
+        
+        return response
+
+    @staticmethod
+    def sanitize_for_json(obj):
+        """
+        Recursively convert QVariant types to native Python types for JSON serialization.
+        """
+
+        if isinstance(obj, dict):
+            return {k: requestBuilder.sanitize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [requestBuilder.sanitize_for_json(v) for v in obj]
+        elif isinstance(obj, QVariant):
+            return None if obj.isNull() else obj.value()  # ✅ this is the key fix
+        elif hasattr(obj, 'value'):
+            return obj.value()  # handles QVariant-like types
+        return obj
+
+Its not perfect but it does the trick!
+
+
+Q: Does it handle authentication tokens, retries, and error handling centrally?
+A: Authentications need to be handled set in our new version in SessionManager.py. My old method we do not bother with, it is bad handling!
+Errors are handled in separate class 
+
+class RequestErrorHandler:
+    def handle_error(errors):
+        if errors:
+            error_messages = [error.get('message', 'Unknown error') for error in errors]
+            error_message = '\n'.join(error_messages)
+            text = (f"GraphQL request failed:\n{error_message}")
+            heading = pealkiri.warningSimple
+            ModernMessageDialog.Info_messages_modern_REPLACE_WITH_DECISIONMAKER(heading,text)
+            #print(f"Error message: {text}")
+            return True  # Indicate that an error occurred
+        return False  # No error occurred
+Same - it does the trick!
+
+### Response Parsing
+
+Q: Do you want to standardize response parsing (e.g., always return a dict, or a custom object)?
+A: i think i use dict - had a lot of trouble converting it to table view or transfear to other outputs. i think there also too dificult methods were used
+
+Q: Should there be a base parser for common fields (like errors, status), with module-specific extensions?
+A:Hard to say at this point! 
+
+### Error Handling & Translation
+
+Q: Are all error/status messages routed through your translation system?
+A: According to this rule set we anyway need to comply to copilot-prmpt.md rules. so short - target is to centralize!
+Q: Do you want to centralize error handling for all API calls?
+A: Look above hanle similar solution would be create!
+
+### Session & Token Management
+
+Q: Is your SessionManager responsible for all token storage/refresh, or do some modules handle it themselves?Q
+A: USe SessionManager.py lgics to answere that. 
+Q: Should all API calls automatically use the current session/token?
+A: YES
+
+### Extending to New Modules
+
+Q: How often do you add new modules/queries?
+A: Rearly!
+Q: Would you prefer a registry/config file for modules, or is dynamic discovery (e.g., scanning a folder) better?
+A: i think i prefer registri i already started "UIManager.py" but this also needs a rethink. Iwill attach as i had in the other plugin 
+
+### Testing & Debugging
+
+Q: Do you have a preferred way to log API requests/responses for debugging?
+A: No - but maybe not needed at the first stage - make suggestions!
+Q: Should there be a debug mode for verbose output?
+A: not considered yet

@@ -1,5 +1,4 @@
-
-{
+TRANSLATIONS = {
     "projects_module_loaded": "Projektide moodul laaditud!",
     "SettingsModule": "Seaded",
     "ProjectCardModule": "Projektikaart",

@@ -1,6 +1,0 @@
-{
-  "gpt_input_placeholder": "Enter your question...",
-  "gpt_ask_button": "Ask",
-  "gpt_response_placeholder": "Response will appear here.",
-  "gpt_api_key_error": "OpenAI API key is missing. Please set the OPENAI_API_KEY environment variable."
-}

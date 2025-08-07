@@ -1,4 +1,3 @@
-
 from qgis.PyQt.QtCore import QSettings
 from qgis.core import QgsApplication, QgsAuthMethodConfig
 
@@ -122,3 +121,11 @@ class SessionManager:
             return False
         return True
 
+    def get_token(self):
+        """Return the current session's API token, or None if not logged in."""
+        # The token is stored as self.apiToken (not self.api_token)
+        if hasattr(self, 'apiToken') and self.apiToken:
+            return self.apiToken
+        # Fallback: try to get from QSettings if not present in memory
+        token = self.settings.value("session/token", None)
+        return token
