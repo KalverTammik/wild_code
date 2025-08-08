@@ -1,27 +1,4 @@
-"""
-Project Card Layout Skeleton:
 
-+-------------------------------------------------------------+
-| [Main Card Frame]  (QFrame, QHBoxLayout)                    |
-|                                                             |
-|  +-----------------------------------------------+          |
-|  | [Header Frame] (QFrame, QVBoxLayout)          | [StatusWidget] |
-|  |                                               |          |
-|  |  +-------------------------------+            |          |
-|  |  | [Name + Number]                |            |          |
-|  |  +-------------------------------+            |          |
-|  |                                               |          |
-|  |  [Client label]                               |          |
-|  |                                               |          |
-|  |  [MembersWidget]                              |          |
-|  +-----------------------------------------------+          |
-|                                                             |
-|  +-----------------------------------------------+          |
-|  | [ExtraData Frame] (QFrame, QVBoxLayout)                 |
-|  |   [ExtraDataWidget]                                     |
-|  +-----------------------------------------------+          |
-+-------------------------------------------------------------+
-"""
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QScrollArea, QWidget, QFrame, QHBoxLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFontMetrics
@@ -31,38 +8,47 @@ from PyQt5.QtWidgets import QWidget, QLabel
 
 
 
-class HeaderFrame(QFrame):
+class ProjectHeaderFrame(QFrame):
     def __init__(self, project, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.NoFrame)
-        layout = QVBoxLayout(self)
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+
+        # Left: Name and client info
+        name_client_frame = QFrame()
+        name_client_layout = QVBoxLayout(name_client_frame)
+        name_client_layout.setContentsMargins(0, 0, 0, 0)
+
         # Name and number
         name = project.get('name', 'No Name')
         number = project.get('number', '-')
-        name_label = QLabel(f"<b>{name}</b> <span style='color: #888;'>#{number}</span>")
+        name_label = QLabel(f"<b>{name}</b> <span class='project-number'>#{number}</span>")
         name_label.setTextFormat(Qt.RichText)
-        layout.addWidget(name_label)
+        name_label.setObjectName("ProjectNameLabel")
+        name_client_layout.addWidget(name_label)
         # Client label
         client = project.get('client')
         if client:
-            client_label = QLabel(f"<b>Klient:</b> {client['displayName']}")
+            client_label = QLabel(f"<b>Klient:</b> <span class='client-name'>{client['displayName']}</span>")
             client_label.setTextFormat(Qt.RichText)
-            layout.addWidget(client_label)
-        # MembersWidget
-        members_widget = MembersWidget(project)
-        layout.addWidget(members_widget)
+            client_label.setObjectName("ProjectClientLabel")
+            name_client_layout.addWidget(client_label)
+        name_client_frame.setLayout(name_client_layout)
+        layout.addWidget(name_client_frame)
 
-class ExtraDataFrame(QFrame):
+
+
+class ExtraInfoFrame(QFrame):
     def __init__(self, project, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.NoFrame)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        extra_data_widget = ExtraDataWidget(project)
-        layout.addWidget(extra_data_widget)
+        extra_info_widget = ExtraInfoWidget(project)
+        layout.addWidget(extra_info_widget)
 
-class MembersWidget(QWidget):
+class ProjectMembersWidget(QWidget):
     def __init__(self, project, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -75,20 +61,26 @@ class MembersWidget(QWidget):
             name = node.get('displayName', '-')
             responsible = m.get('isResponsible')
             deleted = node.get('deletedAt')
-            style = "font-weight:bold;" if responsible else ""
-            style += "text-decoration:line-through;" if deleted else ""
+            classes = []
             if responsible:
-                responsible_list.append(f"<span style='{style}'>{name}</span>")
+                classes.append('responsible')
+            if deleted:
+                classes.append('deleted')
+            class_str = ' '.join(classes)
+            if responsible:
+                responsible_list.append(f"<span class='{class_str}'>{name}</span>")
             else:
-                participants_list.append(f"<span style='{style}'>{name}</span>")
+                participants_list.append(f"<span class='{class_str}'>{name}</span>")
         resp_label = QLabel(f"<b>Vastutaja:</b> {', '.join(responsible_list) if responsible_list else '-'}")
         resp_label.setTextFormat(Qt.RichText)
+        resp_label.setObjectName("ProjectResponsibleLabel")
         part_label = QLabel(f"<b>Osalejad:</b> {', '.join(participants_list) if participants_list else '-'}")
         part_label.setTextFormat(Qt.RichText)
+        part_label.setObjectName("ProjectParticipantsLabel")
         layout.addWidget(resp_label)
         layout.addWidget(part_label)
 
-class ExtraDataWidget(QWidget):
+class ExtraInfoWidget(QWidget):
     def __init__(self, project, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -113,7 +105,7 @@ class StatusWidget(QWidget):
         # Public/Private
         if not project.get('isPublic'):
             pub_label = QLabel("!")
-            pub_label.setStyleSheet("color: #e53935; font-weight: bold;")
+            pub_label.setObjectName("ProjectPrivateIcon")
             row.addWidget(pub_label)
         # Status
         status = project.get('status', {})
@@ -122,11 +114,9 @@ class StatusWidget(QWidget):
         status_label = QLabel(status_name)
         status_label.setAlignment(Qt.AlignCenter)
         status_label.setFixedWidth(100)
-        # Status badge: adjust for dark/light, remove bold from status name
-        if theme == 'dark':
-            status_label.setStyleSheet(f"QLabel {{ background: #{status_color}; color: #232323; border-radius: 6px; padding: 2px 8px; }}")
-        else:
-            status_label.setStyleSheet(f"QLabel {{ background: #{status_color}; color: #fff; border-radius: 6px; padding: 2px 8px; }}")
+        status_label.setObjectName("ProjectStatusLabel")
+        # Theming for status badge is now handled in project_card.qss using objectName and dynamic property
+        status_label.setProperty("statusColor", status_color)
         row.addWidget(status_label)
         row.addStretch(1)
         main_layout.addLayout(row)
@@ -294,24 +284,39 @@ class ProjectsModule(ModuleBaseUI):
         except Exception as e:
             pass
 
-
-        # Main card layout: horizontal (header frame left, status widget right)
-        main_layout = QVBoxLayout(card)
+        # Main card layout: horizontal (content left, status right)
+        main_layout = QHBoxLayout(card)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Top: Main content row (header frame + status widget)
-        content_row = QHBoxLayout()
-        content_row.setContentsMargins(0, 0, 0, 0)
-        header_frame = HeaderFrame(project)
-        content_row.addWidget(header_frame)
-        content_row.addStretch(1)
-        status_widget = StatusWidget(project, theme)
-        content_row.addWidget(status_widget, alignment=Qt.AlignRight)
-        main_layout.addLayout(content_row)
+        # Left: Inner frame holding header+members+extra data (vertical)
 
-        # Below: Extra data frame
-        extra_data_frame = ExtraDataFrame(project)
-        main_layout.addWidget(extra_data_frame)
+        content_frame = QFrame()
+        content_layout = QVBoxLayout(content_frame)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Header and members row
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)
+        header_frame = ProjectHeaderFrame(project)
+        header_row.addWidget(header_frame, alignment=Qt.AlignTop)
+        header_row.addStretch(1)
+        members_widget = ProjectMembersWidget(project)
+        header_row.addWidget(members_widget, alignment=Qt.AlignRight | Qt.AlignTop)
+        content_layout.addLayout(header_row)
+
+        # Extra info frame below
+        extra_info_frame = ExtraInfoFrame(project)
+        content_layout.addWidget(extra_info_frame)
+
+        main_layout.addWidget(content_frame)
+
+        # Right: Status widget (top aligned)
+        status_widget = StatusWidget(project, theme)
+        status_col = QVBoxLayout()
+        status_col.setContentsMargins(0, 0, 0, 0)
+        status_col.addWidget(status_widget, alignment=Qt.AlignTop | Qt.AlignRight)
+        status_col.addStretch(1)
+        main_layout.addLayout(status_col)
 
         return card
 

@@ -7,3 +7,52 @@ QFrame#ProjectCard {
 QLabel {
     color: #eee;
 }
+
+QLabel#ProjectNameLabel {
+    font-size: 18px;
+    font-weight: bold;
+}
+QLabel#ProjectClientLabel {
+    color: #aaa;
+    font-size: 13px;
+}
+QLabel#ProjectResponsibleLabel {
+    margin-top: 4px;
+    font-weight: bold;
+}
+QLabel#ProjectParticipantsLabel {
+    margin-top: 2px;
+}
+QLabel#ProjectStatusLabel {
+    border-radius: 6px;
+    padding: 2px 8px;
+    min-width: 80px;
+    font-weight: normal;
+    background: #444;
+    color: #fff;
+}
+QLabel#ProjectStatusLabel[statusColor] {
+    /* This will be overridden dynamically in code if needed */
+}
+QLabel#ProjectPrivateIcon {
+    color: #e53935;
+    font-weight: bold;
+    font-size: 16px;
+    margin-right: 6px;
+}
+/* RichText span classes */
+span.project-number {
+    color: #bbb;
+    font-weight: normal;
+}
+span.client-name {
+    color: #aaa;
+    font-style: italic;
+}
+span.responsible {
+    font-weight: bold;
+}
+span.deleted {
+    text-decoration: line-through;
+    color: #666;
+}
