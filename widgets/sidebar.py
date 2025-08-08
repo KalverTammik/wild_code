@@ -117,7 +117,10 @@ class Sidebar(QWidget):
         self._expanded_width = self.width()
     def applyStyles(self):
         """Apply styles to the sidebar and toggle button using ThemeManager and QSS only."""
-        ThemeManager.apply_theme(self, QssPaths.SIDEBAR)
+        theme = ThemeManager.load_theme_setting()
+        from ..constants.file_paths import StylePaths
+        theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
+        ThemeManager.apply_theme(self, theme_dir, [QssPaths.SIDEBAR])
 
 
 

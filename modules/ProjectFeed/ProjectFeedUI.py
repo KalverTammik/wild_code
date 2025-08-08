@@ -7,6 +7,11 @@ from .ProjectCard import ProjectCard
 from ...utils.pagination import PaginatedDataLoader
 
 class ProjectFeedUI(QWidget):
+    def on_theme_toggled(self):
+        """
+        Call this method when the global theme is toggled to re-apply the correct style.
+        """
+        self.applyStyles()
     dataFetched = pyqtSignal(list, bool)
     def __init__(self, lang_manager=None, theme_manager=None, theme_dir=None, qss_files=None):
         super().__init__()
@@ -25,20 +30,34 @@ class ProjectFeedUI(QWidget):
             self.lang_manager = lang_manager
         from ...constants.file_paths import StylePaths, QssPaths
         self.theme_dir = theme_dir or StylePaths.DARK
-        self.qss_files = qss_files or [QssPaths.MAIN, QssPaths.SIDEBAR]
+        # Use MAIN QSS only, as PROJECT_FEED does not exist
+        self.qss_files = qss_files or [QssPaths.MAIN]
         self.theme_manager = theme_manager
         self.logic = ProjectFeedLogic()
         self.loader = PaginatedDataLoader(self.logic.fetch_projects, batch_size=10)
         self.setup_ui()
-        # Always apply the main theme, even if theme_manager is None
-        if self.theme_manager is not None:
-            self.theme_manager.apply_theme(self, self.theme_dir, qss_files=self.qss_files)
-        else:
-            from ...widgets.theme_manager import ThemeManager
-            ThemeManager.apply_theme(self, self.theme_dir, qss_files=self.qss_files)
+        self.applyStyles()
 
+    def applyStyles(self):
+        """
+        Apply the current theme to this widget. Call this after a theme toggle.
+        """
+        from ...constants.file_paths import StylePaths
+        theme = ThemeManager.load_theme_setting() if self.theme_manager else "dark"
+        theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
+        if self.theme_manager is not None:
+            self.theme_manager.apply_theme(self, theme_dir, [self.qss_files[0]])
+            if hasattr(self, 'scroll_content'):
+                self.theme_manager.apply_theme(self.scroll_content, theme_dir, [self.qss_files[0]])
+        else:
+            ThemeManager.apply_theme(self, theme_dir, [self.qss_files[0]])
+            if hasattr(self, 'scroll_content'):
+                ThemeManager.apply_theme(self.scroll_content, theme_dir, [self.qss_files[0]])
+        # (Re)connect signals if needed
         self.dataFetched.connect(self._on_data_fetched)
         self.loader.set_on_data_loaded(self._on_loader_data_loaded)
+
+  
 
     def setup_ui(self):
         layout = QVBoxLayout(self)

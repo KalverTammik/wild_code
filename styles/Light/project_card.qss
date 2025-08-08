@@ -1,0 +1,9 @@
+QFrame#ProjectCard {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fff;
+}
+QLabel {
+    color: #222;
+}

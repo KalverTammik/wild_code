@@ -1,0 +1,6 @@
+fragment PropertyFields on Property {
+  id
+  displayAddress
+  cadastralUnitNumber
+  # Add more fields as needed
+}

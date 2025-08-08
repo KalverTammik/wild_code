@@ -23,7 +23,6 @@ LANGUAGES_DIR = LanguagePaths.LANGUAGES_DIR
 class TranslationAgent(FileSystemEventHandler):
     def on_modified(self, event):
         if any(file in event.src_path for file in FILES_TO_MONITOR):
-            print(f"Detected changes in {event.src_path}")
             self.update_translations()
 
     def extract_keys(self):
@@ -91,7 +90,6 @@ if __name__ == "__main__":
     event_handler = TranslationAgent()
     observer = Observer()
     observer.schedule(event_handler, path=".", recursive=False)
-    print("Translation agent is running...")
     observer.start()
     try:
         while True:

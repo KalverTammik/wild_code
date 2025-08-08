@@ -1,0 +1,16 @@
+/* ModuleToolbar.qss - Light Theme */
+#ToolbarArea {
+    background: #f0f0f0;
+    border-bottom: 1px solid #e0e0e0;
+}
+#ToolbarArea QLabel {
+    color: #070707;
+
+    font-size: 13px;
+    padding: 6px 12px;
+}
+#ToolbarArea #SpecialToolbarLabel {
+    color: #cf2121;
+    font-weight: bold;
+}
+

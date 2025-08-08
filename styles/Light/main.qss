@@ -220,3 +220,33 @@ QScrollBar::add-line, QScrollBar::sub-line {
 QScrollBar::add-page, QScrollBar::sub-page {
     background: #f5f5f5;
 }
+
+
+#ToolbarArea #SpecialToolbarLabel {
+    color: #cf2121; /* or any color you want */
+    font-weight: bold;
+}
+
+/* Project Feed Data Area & Card Styling */
+.ProjectFeedDataArea {
+    background: #f9f9f9;
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.ProjectCard {
+    background: #ffffff;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    padding: 12px;
+    color: #222;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.ProjectCard QLabel {
+    color: #333;
+}
+
+

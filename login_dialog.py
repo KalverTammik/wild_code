@@ -188,7 +188,6 @@ class LoginDialog(QDialog):
                     SessionManager().setSession(self.api_token, self.user)
                     SessionManager().save_credentials(username, password, api_token)
                     self.loginSuccessful.emit(self.api_token)
-                    print("Successful login: API key received.")
                     self.accept()
                 else:
                     self.errorLabel.setText(lang.translate("no_api_token_received"))

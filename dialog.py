@@ -106,8 +106,9 @@ class PluginDialog(QDialog):
         for cb in self._geometry_update_callbacks:
             try:
                 cb(x, y, w, h)
+
             except Exception as e:
-                print(f"[PluginDialog] Error in geometry update callback: {e}")
+                pass
 
     def subscribe_geometry_updates(self, callback):
         self._geometry_update_callbacks.append(callback)
@@ -123,10 +124,8 @@ class PluginDialog(QDialog):
     def _on_destroyed(self, obj):
         PluginDialog._instance = None
 
+
     def loadModules(self):
-
-
-        from .modules.ProjectCard.ProjectCardUI import ProjectCardUI
         from .modules.ProjectFeed.ProjectFeedUI import ProjectFeedUI
         from .modules.Settings.SettingsUI import SettingsUI
         #from .modules.Hinnapakkuja.HinnapakkujaUI import HinnapakkujaUI
@@ -138,13 +137,12 @@ class PluginDialog(QDialog):
         from .constants.module_names import DIALOG_SIZE_WATCHER_MODULE
 
         qss_modular = [QssPaths.MAIN, QssPaths.SIDEBAR]
-        projectCardModule = ProjectCardUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         projectFeedModule = ProjectFeedUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         #hinnapakkujaModule = HinnapakkujaUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         #gptAssistantModule = GptAssistantUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         testUserDataDialog = TestUserDataDialog(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        self.projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         contractModule = ContractModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         dialogSizeWatcherModule = DialogSizeWatcherModule(
             name=DIALOG_SIZE_WATCHER_MODULE,
@@ -154,12 +152,11 @@ class PluginDialog(QDialog):
             theme_manager=theme_manager
         )
 
-        self.moduleManager.registerModule(projectCardModule)
         self.moduleManager.registerModule(projectFeedModule)
         #self.moduleManager.registerModule(hinnapakkujaModule)
         #self.moduleManager.registerModule(gptAssistantModule)
         self.moduleManager.registerModule(testUserDataDialog)
-        self.moduleManager.registerModule(projectsModule)
+        self.moduleManager.registerModule(self.projectsModule)
         self.moduleManager.registerModule(contractModule)
         self.moduleManager.registerModule(dialogSizeWatcherModule)
 
@@ -198,6 +195,9 @@ class PluginDialog(QDialog):
             qss_files=qss_files
         )
         self.current_theme = new_theme
+        # Restyle project cards after theme toggle
+        if hasattr(self, 'projectsModule'):
+            self.projectsModule.on_theme_toggled()
 
 
 

@@ -1,0 +1,44 @@
+query Projects($first: Int, $after: String) {
+  projects(
+    first: $first
+    after: $after
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        id
+        name
+        number
+        status {
+            name
+            color
+        }
+        startAt
+        dueAt
+        createdAt
+        updatedAt
+        isPublic
+        members {
+          edges {
+            node {
+              id
+              displayName
+              deletedAt
+            }
+            isResponsible
+          }
+        }
+        client {
+          id
+          displayName
+        }
+      }
+    }
+  }
+}
+# import ProjectFields from '../fragments/ProjectFields.graphql'

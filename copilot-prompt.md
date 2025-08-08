@@ -1,3 +1,31 @@
+## Theme and QSS Requirements for All Modules
+
+1. **Centralized Theme Management**
+   - All theme logic (theme detection, toggling, QSS application) must use the shared `ThemeManager`.
+   - Never hardcode theme logic or QSS paths in individual modules/widgets.
+
+2. **QSS File Structure**
+   - All theme-specific QSS files must be placed in `styles/Light/` and `styles/Dark/` folders.
+   - Each module/widget with custom styling must have its own QSS file (e.g., `project_card.qss`).
+
+3. **Widget Styling**
+   - Assign a unique `objectName` to any widget that needs custom QSS (e.g., `"ProjectCard"`).
+   - Apply QSS using `ThemeManager.apply_theme(widget, theme_dir, [qss_file])` for all such widgets.
+
+4. **Dynamic Restyling**
+   - Any module that creates dynamic content (e.g., cards, list items) must implement a method to re-apply QSS to all such widgets (e.g., `restyle_project_cards()`).
+   - After toggling the theme, the main dialog must call these restyle methods for all active modules.
+
+5. **Theme Toggle Integration**
+   - The main dialog’s `toggle_theme` method must:
+     - Call `ThemeManager.toggle_theme(...)` to update the global theme.
+     - Call each module’s restyle method (e.g., `projectsModule.on_theme_toggled()`) to update all content.
+
+6. **No Direct QSS File Reading**
+   - Do not read QSS files directly in modules. Always use `ThemeManager.apply_theme`.
+
+7. **Documentation**
+   - All new modules/widgets must document how they support theme switching and QSS application.
 # QGIS Plugin Coding Guidelines
 
 ## Table of Contents
@@ -57,12 +85,47 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
 
 ## 4. API, Data, and Query Standards
 
-- All API connections must use the central `APIClient` class.
-- All data transfer must use session/token management via `SessionManager`.
-- Use `PaginatedDataLoader` for large/unbounded lists; batch size must be configurable.
-- All modules must use `GraphQLQueryLoader` for loading GraphQL queries.
-- All file and directory paths for API queries, configs, and resources must be referenced via the central file path manager.
-- Never use `requests` or `open()` directly in modules.
+
+### Project Rule: Building New API Requests
+
+**When to use `APIClient`:**
+- Always use the central `APIClient` class for any API or GraphQL request in modules, widgets, or helpers.
+- Never use `requests` or `open()` directly in any module, widget, or helper—these are only allowed inside `APIClient`.
+- All authentication/session handling must go through `SessionManager` (used by `APIClient`).
+
+
+**What to create when building a new API request:**
+1. **GraphQL Query File:**
+   - Place your query in a `.graphql` file in the appropriate `queries/` subdirectory.
+   - Use modular GraphQL fragments for any field set used in more than one query (e.g., `ProjectFields`, `PropertyFields`).
+   - Store all reusable fragments in `queries/graphql/fragments/` for global use across modules (e.g., projects, contracts, properties).
+   - Import fragments into your main queries using the loader's convention (e.g., `# import ProjectFields from '../fragments/ProjectFields.graphql'`).
+   - Load queries using `GraphQLQueryLoader`.
+2. **API Call:**
+   - Use `APIClient.send_query(query, variables, require_auth=True)` to send the request.
+   - Do not build or send HTTP requests manually.
+   - Do not trigger API requests in the module constructor. Always defer data loading until the user activates or interacts with the module (e.g., in the `activate()` method).
+3. **Error Handling:**
+   - Always handle errors using the language manager for user-facing messages.
+   - Use the error structure and translation patterns in `APIClient`.
+4. **Path Management:**
+   - Reference all file paths (queries, configs, etc.) via `constants/file_paths.py`.
+5. **Session/Token:**
+   - If authentication is required, ensure `require_auth=True` and that the session is valid.
+
+**Fragment Guidelines:**
+- Always check for and use global fragments before creating new ones.
+- Place all reusable fragments in the global `fragments/` directory.
+- Name fragments clearly and keep them focused on a single entity (e.g., `ProjectFields`, `PropertyFields`).
+- Document new fragments for discoverability and maintainability.
+
+**Summary:**
+- All API requests must be routed through `APIClient`.
+- All queries must be loaded via `GraphQLQueryLoader`.
+- Never hardcode URLs, tokens, or file paths—use constants and managers.
+- Follow the error and translation patterns established in `APIClient`.
+
+This ensures all API interactions are secure, maintainable, and consistent across the project.
 
 ---
 
@@ -77,7 +140,49 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
 ---
 
 ## 6. UI/UX & Theming Guidelines
+### Theme Application Pattern (REQUIRED)
 
+**Always apply QSS themes using the following pattern in all modules and widgets:**
+
+
+1. Determine the current theme:
+    ```python
+    theme = ThemeManager.load_theme_setting()
+    ```
+2. Set the theme directory:
+    ```python
+    from ..constants.file_paths import StylePaths
+    theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
+    ```
+
+3. Apply the theme using the correct directory and a list of QSS files that match the context of your widget or module:
+    ```python
+    from ..constants.file_paths import QssPaths
+    # For any widget or module, select the QSS file(s) that best match its purpose:
+    #   - For a toolbar widget or module: [QssPaths.MODULE_TOOLBAR]
+    #   - For a sidebar widget or module: [QssPaths.SIDEBAR]
+    #   - For a footer widget or module:  [QssPaths.FOOTER]
+    #   - For a main window or general UI: [QssPaths.MAIN]
+    #   - For custom or composite UIs, combine as needed:
+    ThemeManager.apply_theme(self, theme_dir, [QssPaths.SIDEBAR])  # Sidebar example
+    ThemeManager.apply_theme(self, theme_dir, [QssPaths.MODULE_TOOLBAR])  # Toolbar example
+    ThemeManager.apply_theme(self, theme_dir, [QssPaths.FOOTER])  # Footer example
+    ThemeManager.apply_theme(self, theme_dir, [QssPaths.MAIN])    # Main/general example
+    ThemeManager.apply_theme(self, theme_dir, [QssPaths.MAIN, QssPaths.SIDEBAR])  # Composite example
+    ```
+
+**Always select the QSS file(s) that are appropriate for the specific widget or module you are developing—this pattern applies universally to both widgets and modules.**
+
+**Never pass a QSS file name as the theme_dir argument. Always use the theme directory and a list of QSS file names.**
+
+**Example for a custom widget:**
+```python
+theme = ThemeManager.load_theme_setting()
+theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
+ThemeManager.apply_theme(self, theme_dir, [QssPaths.SIDEBAR])
+```
+
+This ensures correct and consistent theme application across the plugin.
 ### General Design
 - Use dark theme as default; support seamless switching to light theme.
 - All dialogs/widgets must have rounded corners and soft shadow borders.

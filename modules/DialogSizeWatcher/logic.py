@@ -13,12 +13,10 @@ class DialogSizeWatcherModule(BaseModule):
     def activate(self):
         from wild_code.dialog import PluginDialog
         self._dialog = PluginDialog.get_instance()
-        print("[DialogSizeWatcher] activate called", self._dialog)
         if self._dialog is not None and hasattr(self._dialog, 'subscribe_geometry_updates'):
             self._unsubscribe = self._dialog.subscribe_geometry_updates(self.widget.update_size)
 
     def deactivate(self):
-        print("[DialogSizeWatcher] deactivate called")
         if self._unsubscribe:
             self._unsubscribe()
             self._unsubscribe = None

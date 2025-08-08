@@ -1,36 +1,330 @@
+"""
+Project Card Layout Skeleton:
 
++-------------------------------------------------------------+
+| [Main Card Frame]  (QFrame, QHBoxLayout)                    |
+|                                                             |
+|  +-----------------------------------------------+          |
+|  | [Header Frame] (QFrame, QVBoxLayout)          | [StatusWidget] |
+|  |                                               |          |
+|  |  +-------------------------------+            |          |
+|  |  | [Name + Number]                |            |          |
+|  |  +-------------------------------+            |          |
+|  |                                               |          |
+|  |  [Client label]                               |          |
+|  |                                               |          |
+|  |  [MembersWidget]                              |          |
+|  +-----------------------------------------------+          |
+|                                                             |
+|  +-----------------------------------------------+          |
+|  | [ExtraData Frame] (QFrame, QVBoxLayout)                 |
+|  |   [ExtraDataWidget]                                     |
+|  +-----------------------------------------------+          |
++-------------------------------------------------------------+
+"""
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QScrollArea, QWidget, QFrame, QHBoxLayout
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFontMetrics
 from ...ui.ModuleBaseUI import ModuleBaseUI
-from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QLabel
+
+
+
+class HeaderFrame(QFrame):
+    def __init__(self, project, parent=None):
+        super().__init__(parent)
+        self.setFrameShape(QFrame.NoFrame)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        # Name and number
+        name = project.get('name', 'No Name')
+        number = project.get('number', '-')
+        name_label = QLabel(f"<b>{name}</b> <span style='color: #888;'>#{number}</span>")
+        name_label.setTextFormat(Qt.RichText)
+        layout.addWidget(name_label)
+        # Client label
+        client = project.get('client')
+        if client:
+            client_label = QLabel(f"<b>Klient:</b> {client['displayName']}")
+            client_label.setTextFormat(Qt.RichText)
+            layout.addWidget(client_label)
+        # MembersWidget
+        members_widget = MembersWidget(project)
+        layout.addWidget(members_widget)
+
+class ExtraDataFrame(QFrame):
+    def __init__(self, project, parent=None):
+        super().__init__(parent)
+        self.setFrameShape(QFrame.NoFrame)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        extra_data_widget = ExtraDataWidget(project)
+        layout.addWidget(extra_data_widget)
+
+class MembersWidget(QWidget):
+    def __init__(self, project, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        members = project.get('members', {}).get('edges', [])
+        responsible_list = []
+        participants_list = []
+        for m in members:
+            node = m.get('node', {})
+            name = node.get('displayName', '-')
+            responsible = m.get('isResponsible')
+            deleted = node.get('deletedAt')
+            style = "font-weight:bold;" if responsible else ""
+            style += "text-decoration:line-through;" if deleted else ""
+            if responsible:
+                responsible_list.append(f"<span style='{style}'>{name}</span>")
+            else:
+                participants_list.append(f"<span style='{style}'>{name}</span>")
+        resp_label = QLabel(f"<b>Vastutaja:</b> {', '.join(responsible_list) if responsible_list else '-'}")
+        resp_label.setTextFormat(Qt.RichText)
+        part_label = QLabel(f"<b>Osalejad:</b> {', '.join(participants_list) if participants_list else '-'}")
+        part_label.setTextFormat(Qt.RichText)
+        layout.addWidget(resp_label)
+        layout.addWidget(part_label)
+
+class ExtraDataWidget(QWidget):
+    def __init__(self, project, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        # Placeholder for future data
+        label = QLabel("<i>Lisaandmed tulevad siia...</i>")
+        label.setTextFormat(Qt.RichText)
+        layout.addWidget(label)
+
+class StatusWidget(QWidget):
+    # List of possible status names for width calculation
+    STATUS_NAMES = [
+        "Uus", "Töös", "Lõpetatud", "Ootel", "Katkestatud", "Tagasi lükatud", "Kinnitatud", "Tühistatud", "Arhiveeritud"
+    ]
+    def __init__(self, project, theme, parent=None):
+        super().__init__(parent)
+        from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        # Public/Private
+        if not project.get('isPublic'):
+            pub_label = QLabel("!")
+            pub_label.setStyleSheet("color: #e53935; font-weight: bold;")
+            row.addWidget(pub_label)
+        # Status
+        status = project.get('status', {})
+        status_name = status.get('name', '-')
+        status_color = status.get('color', 'cccccc')
+        status_label = QLabel(status_name)
+        status_label.setAlignment(Qt.AlignCenter)
+        status_label.setFixedWidth(100)
+        # Status badge: adjust for dark/light, remove bold from status name
+        if theme == 'dark':
+            status_label.setStyleSheet(f"QLabel {{ background: #{status_color}; color: #232323; border-radius: 6px; padding: 2px 8px; }}")
+        else:
+            status_label.setStyleSheet(f"QLabel {{ background: #{status_color}; color: #fff; border-radius: 6px; padding: 2px 8px; }}")
+        row.addWidget(status_label)
+        row.addStretch(1)
+        main_layout.addLayout(row)
+        # Dates below status
+        dates_widget = DatesWidget(project)
+        main_layout.addWidget(dates_widget)
+class DatesWidget(QWidget):
+    def __init__(self, project, parent=None):
+        super().__init__(parent)
+        import datetime
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        def format_date(label, value, due=False):
+            if not value:
+                return f"<b>{label}:</b> -"
+            try:
+                dt = datetime.datetime.fromisoformat(value)
+                today = datetime.datetime.now().date()
+                date_str = dt.strftime('%d.%m.%Y')
+                style = ""
+                if due:
+                    days_left = (dt.date() - today).days
+                    if days_left < 0:
+                        style = "color:#e53935;font-weight:bold;"  # Red for overdue
+                    elif days_left <= 3:
+                        style = "color:#ff9800;font-weight:bold;"  # Orange for due soon
+                return f"<b>{label}:</b> <span style='{style}'>{date_str}</span>"
+            except Exception:
+                return f"<b>{label}:</b> {value}"
+
+        date_items = [
+            ("Algus", project.get('startAt'), False),
+            ("Tähtaeg", project.get('dueAt'), True),
+            ("Loodud", project.get('createdAt'), False),
+            ("Muudetud", project.get('updatedAt'), False),
+        ]
+        for label, value, due in date_items:
+            lbl = QLabel(format_date(label, value, due))
+            lbl.setTextFormat(Qt.RichText)
+            layout.addWidget(lbl)
+        layout.addStretch(1)
 from ...languages.language_manager import LanguageManager
+from ...utils.api_client import APIClient
+from ...utils.GraphQLQueryLoader import GraphQLQueryLoader
+from ...utils.pagination import PaginatedDataLoader
+from ...constants.file_paths import QueryPaths
+
 
 
 class ProjectsModule(ModuleBaseUI):
+
+    def on_theme_toggled(self):
+        """
+        Call this method after ThemeManager.toggle_theme(...) is used.
+        It will restyle all project cards to match the new theme.
+        """
+        self.restyle_project_cards()
+        # Example usage (in your theme toggle handler):
+        # ThemeManager.toggle_theme(...)
+        # projects_module.on_theme_toggled()
+
+    def restyle_project_cards(self):
+        """Re-apply the current theme to all visible project cards."""
+        try:
+            from ...widgets.theme_manager import ThemeManager
+            from ...constants.file_paths import StylePaths
+            theme = ThemeManager.load_theme_setting()
+            theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
+            for i in range(self.feed_layout.count()):
+                widget = self.feed_layout.itemAt(i).widget()
+                if isinstance(widget, QFrame) and widget.objectName() == "ProjectCard":
+                    ThemeManager.apply_theme(widget, theme_dir, ["project_card.qss"])
+        except Exception as e:
+            pass
     name = "ProjectsModule"
 
     def get_widget(self):
-        """Return the widget instance for use in module manager or UI stack."""
         return self
 
     def __init__(self, lang_manager=None, theme_manager=None, theme_dir=None, qss_files=None, parent=None):
         super().__init__(parent)
-        # Use LanguageManager_NEW if not provided
-        if lang_manager is None:
-            self.lang_manager = LanguageManager()
-        else:
-            self.lang_manager = lang_manager
+        self.lang_manager = lang_manager or LanguageManager()
         self.theme_manager = theme_manager
         self.theme_dir = theme_dir
         self.qss_files = qss_files or []
-        # Example: apply theme if theme_manager is provided
         if self.theme_manager and self.theme_dir and self.qss_files:
             self.theme_manager.apply_theme(self, self.theme_dir, self.qss_files)
-        # Use lang_manager for translated label if available (now always LanguageManager_NEW)
-        label_text = self.lang_manager.translate("projects_module_loaded")
-        self.display_area.layout().addWidget(QLabel(label_text))
+
+        # Remove placeholder label
+        for i in reversed(range(self.display_area.layout().count())):
+            widget = self.display_area.layout().itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+
+        # Set up scroll area for project feed
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.feed_content = QWidget()
+        self.feed_layout = QVBoxLayout(self.feed_content)
+        self.feed_content.setLayout(self.feed_layout)
+        self.scroll_area.setWidget(self.feed_content)
+        self.display_area.layout().addWidget(self.scroll_area)
+
+        # API and query setup
+        self.api_client = APIClient(self.lang_manager)
+        self.query_loader = GraphQLQueryLoader(self.lang_manager)
+        self.query = self.query_loader.load_query("PROJECT", "ListAllProjects.graphql")
+        # Pagination state
+        self.projects_end_cursor = None
+        self.has_more = True
+        self.is_loading = False
+        self.batch_size = 5
+        self.fetched_projects = []
+
+        # Connect scroll event
+        self.scroll_area.verticalScrollBar().valueChanged.connect(self.on_scroll)
+
+        # Only load projects when module is activated
+        self._activated = False
+
+    def load_next_batch(self):
+        if self.is_loading or not self.has_more:
+            return
+        self.is_loading = True
+        variables = {
+            "first": self.batch_size,
+            "after": self.projects_end_cursor,
+            # No restrictions: do not set where/search/orderBy/trashed unless needed
+        }
+        try:
+            data = self.api_client.send_query(self.query, variables)
+            print("Received data from API:", data)  # Debug print
+            projects = data.get("projects", {}).get("edges", [])
+            page_info = data.get("projects", {}).get("pageInfo", {})
+            self.projects_end_cursor = page_info.get("endCursor")
+            self.has_more = page_info.get("hasNextPage", False)
+            self.add_projects_to_feed([edge["node"] for edge in projects])
+        except Exception as e:
+            import traceback
+            import sys
+            tb = traceback.format_exc()
+            print(f"GraphQL error: {e}\n{tb}", file=sys.stderr)
+            self.feed_layout.addWidget(QLabel(f"GraphQL error: {e}"))
+        self.is_loading = False
+
+    def add_projects_to_feed(self, projects):
+        for project in projects:
+            card = self.create_project_card(project)
+            self.feed_layout.addWidget(card)
+        self.fetched_projects.extend(projects)
+
+
+    def create_project_card(self, project):
+        card = QFrame()
+        card.setFrameShape(QFrame.StyledPanel)
+        card.setObjectName("ProjectCard")
+
+        # Use ThemeManager to apply the correct QSS for the card (dynamic, theme-aware)
+        try:
+            from ...widgets.theme_manager import ThemeManager
+            from ...constants.file_paths import StylePaths
+            theme = ThemeManager.load_theme_setting()
+            theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
+            ThemeManager.apply_theme(card, theme_dir, ["project_card.qss"])
+        except Exception as e:
+            pass
+
+
+        # Main card layout: horizontal (header frame left, status widget right)
+        main_layout = QVBoxLayout(card)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Top: Main content row (header frame + status widget)
+        content_row = QHBoxLayout()
+        content_row.setContentsMargins(0, 0, 0, 0)
+        header_frame = HeaderFrame(project)
+        content_row.addWidget(header_frame)
+        content_row.addStretch(1)
+        status_widget = StatusWidget(project, theme)
+        content_row.addWidget(status_widget, alignment=Qt.AlignRight)
+        main_layout.addLayout(content_row)
+
+        # Below: Extra data frame
+        extra_data_frame = ExtraDataFrame(project)
+        main_layout.addWidget(extra_data_frame)
+
+        return card
+
+    def on_scroll(self, value):
+        bar = self.scroll_area.verticalScrollBar()
+        if value == bar.maximum() and self.has_more and not self.is_loading:
+            self.load_next_batch()
 
     def activate(self):
         """Activate the module."""
-        pass
+        if not self._activated:
+            self._activated = True
+            self.load_next_batch()
 
     def deactivate(self):
         """Deactivate the module."""

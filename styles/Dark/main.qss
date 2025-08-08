@@ -1,3 +1,29 @@
+#ToolbarArea #SpecialToolbarLabel {
+    color: #cf2121; /* or any color you want */
+    font-weight: bold;
+}
+
+/* Project Feed Data Area & Card Styling */
+.ProjectFeedDataArea {
+    background: #23242a;
+    border: 1px solid #35353f;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.ProjectCard {
+    background: #282a36;
+    border: 1px solid #35353f;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    padding: 12px;
+    color: #e0e0e6;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.ProjectCard QLabel {
+    color: #e0e0e6;
+}
 /* Standardized object names for scalable styling */
 #PrimaryButton {
     background-color: rgb(9,144,143);

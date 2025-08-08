@@ -1,0 +1,14 @@
+fragment ProjectFields on Project {
+  id
+  name
+  number
+  status {
+    name
+    color
+  }
+  startAt
+  dueAt
+  createdAt
+  updatedAt
+  # Add more fields as needed
+}

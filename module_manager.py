@@ -9,7 +9,6 @@ from .constants.module_names import SETTINGS_MODULE, PROJECT_CARD_MODULE, PROJEC
 # Use class names as translation keys for all modules
 MODULE_NAMES = {
     SETTINGS_MODULE: "SettingsModule",
-    PROJECT_CARD_MODULE: "ProjectCardModule",
     PROJECT_FEED_MODULE: "ProjectFeedModule",
     GPT_ASSISTANT_MODULE: "GptAssistant",
     PROJECTS_MODULE: "ProjectsModule",

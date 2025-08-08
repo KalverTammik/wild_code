@@ -1,12 +1,13 @@
+
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QLabel
 from PyQt5.QtCore import Qt
+from ...constants.file_paths import QssPaths
 
 class DialogSizeWatcherUI(QWidget):
     def __init__(self, lang_manager, theme_manager):
         super().__init__()
         self.lang_manager = lang_manager
         self.theme_manager = theme_manager
-        print("[DialogSizeWatcherUI] __init__ called")
         self.init_ui()
 
     def init_ui(self):
@@ -38,14 +39,25 @@ class DialogSizeWatcherUI(QWidget):
         else:
             # fallback: try to get from parent or use None
             theme_dir = None
-        print(f"[DialogSizeWatcherUI] theme_dir for apply_theme: {theme_dir}")
+
         if theme_dir is not None:
-            self.theme_manager.apply_theme(self, theme_dir)
+            self.theme_manager.apply_theme(self, theme_dir, [QssPaths.MAIN])
         else:
-            print("[DialogSizeWatcherUI] Skipping apply_theme: theme_dir is None")
+            pass
+
+    def refresh_theme(self, theme_dir=None):
+        """
+        Re-apply the theme for this widget. Call this after a theme toggle.
+        """
+        if theme_dir is None:
+            if hasattr(self.theme_manager, 'theme_dir'):
+                theme_dir = self.theme_manager.theme_dir
+            else:
+                theme_dir = None
+        if theme_dir is not None:
+            self.theme_manager.apply_theme(self, theme_dir, [QssPaths.MAIN])
 
     def update_size(self, x, y, width, height):
-        print(f"[DialogSizeWatcherUI] update_size: x={x}, y={y}, width={width}, height={height}")
         self.x_edit.setText(str(x))
         self.y_edit.setText(str(y))
         self.width_edit.setText(str(width))

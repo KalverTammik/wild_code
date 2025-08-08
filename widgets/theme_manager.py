@@ -1,3 +1,21 @@
+"""
+ThemeManager module for wild_code plugin.
+
+This module provides theme management utilities for PyQt5/QGIS plugins, supporting both light and dark modes.
+It handles loading, saving, toggling, and applying QSS-based themes to widgets, and manages theme-related icons and settings.
+
+Key Features:
+- Save and load theme preference using QGIS settings
+- Apply light or dark theme stylesheets to widgets
+- Toggle theme with UI feedback (icon, logout icon)
+- Integrate with QSS files and resource paths
+- Designed for modular use in plugin UIs
+
+Usage:
+    ThemeManager.set_initial_theme(widget, switch_button, theme_base_dir, qss_files)
+    ThemeManager.toggle_theme(widget, current_theme, switch_button, theme_base_dir, qss_files)
+    ThemeManager.apply_theme(widget, theme_dir, qss_files)
+"""
 from PyQt5.QtCore import QFile, QDir
 from PyQt5.QtWidgets import QApplication
 import os
@@ -71,8 +89,9 @@ class ThemeManager:
                     with open(qss_path, "r", encoding="utf-8") as file:
                         theme += file.read() + "\n"
             widget.setStyleSheet(theme)
+
         except Exception as e:
-            print(f"Error applying theme from {theme_dir}: {e}")
+            pass
 
     @staticmethod
     def toggle_theme(widget, current_theme, switch_button, theme_base_dir, qss_files=None):

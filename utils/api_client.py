@@ -25,38 +25,32 @@ class APIClient:
             raise RuntimeError(self.lang.translate("config_error"))
 
     def send_query(self, query: str, variables: dict = None, require_auth: bool = True, timeout: int = 10):
-        print("[APIClient] Preparing to send query...")
         payload = {"query": query}
         if variables:
             payload["variables"] = variables
-        print(f"[APIClient] Payload: {payload}")
         headers = {
             "Content-Type": "application/json",
             "User-Agent": f"QGIS/{platform.system()} {platform.release()}"
         }
-        print(f"[APIClient] Headers before auth: {headers}")
         if require_auth:
-            print("[APIClient] Authentication required, attempting to get token...")
             token = self.session_manager.get_token() if hasattr(self.session_manager, 'get_token') else None
-            print(f"[APIClient] Token obtained: {token}")
             if token:
                 headers["Authorization"] = f"Bearer {token}"
-        print(f"[APIClient] Final headers: {headers}")
-        print(f"[APIClient] Sending POST to {self.api_url}")
         try:
             response = requests.post(self.api_url, json=payload, headers=headers, timeout=timeout)
-            print(f"[APIClient] Response status code: {response.status_code}")
-            print(f"[APIClient] Response text: {response.text}")
             if response.status_code == 200:
                 data = response.json()
-                print(f"[APIClient] Response JSON: {data}")
                 if "errors" in data:
-                    print(f"[APIClient] GraphQL errors: {data['errors']}")
-                    raise Exception(self.lang.translate("graphql_error").format(error=str(data["errors"])))
+                    # Print and raise the raw GraphQL errors for debugging
+                    print("GraphQL errors:", data["errors"])
+                    raise Exception(f"GraphQL errors: {data['errors']}")
                 return data.get("data", {})
             else:
-                print(f"[APIClient] Non-200 response: {response.text}")
                 raise Exception(self.lang.translate("login_failed_response").format(error=response.text))
         except Exception as e:
-            print(f"[APIClient] Exception occurred: {e}")
+            # Print the raw exception for debugging
+            import traceback
+            import sys
+            tb = traceback.format_exc()
+            print(f"APIClient Exception: {e}\n{tb}", file=sys.stderr)
             raise Exception(self.lang.translate("network_error").format(error=str(e)))
