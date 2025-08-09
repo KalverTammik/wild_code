@@ -126,61 +126,61 @@ class PluginDialog(QDialog):
 
 
     def loadModules(self):
-        from .modules.ProjectFeed.ProjectFeedUI import ProjectFeedUI
-        from .modules.Settings.SettingsUI import SettingsUI
-        #from .modules.Hinnapakkuja.HinnapakkujaUI import HinnapakkujaUI
-        #from .modules.GptAssistant.GptAssistantUI import GptAssistantUI
-        from .modules.UserTest.TestUserDataDialog import TestUserDataDialog
-        from .modules.projects.ProjectsModule import ProjectsModule
+        print("[PluginDialog] loadModules called")
+
+        from .modules.projects.ProjectsUi import ProjectsModule
         from .modules.contract.ContractModule import ContractModule
-        from .modules.DialogSizeWatcher.logic import DialogSizeWatcherModule
-        from .constants.module_names import DIALOG_SIZE_WATCHER_MODULE
+        from .modules.Settings.SettingsUI import SettingsUI
+        from .modules.UserTest.TestUserDataDialog import TestUserDataDialog
 
         qss_modular = [QssPaths.MAIN, QssPaths.SIDEBAR]
-        projectFeedModule = ProjectFeedUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        #hinnapakkujaModule = HinnapakkujaUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        #gptAssistantModule = GptAssistantUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        testUserDataDialog = TestUserDataDialog(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         self.projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         contractModule = ContractModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        dialogSizeWatcherModule = DialogSizeWatcherModule(
-            name=DIALOG_SIZE_WATCHER_MODULE,
-            display_name=lang_manager.sidebar_button(DIALOG_SIZE_WATCHER_MODULE),
-            icon=None,
-            lang_manager=lang_manager,
-            theme_manager=theme_manager
-        )
+        testUserDataDialog = TestUserDataDialog(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
 
-        self.moduleManager.registerModule(projectFeedModule)
-        #self.moduleManager.registerModule(hinnapakkujaModule)
-        #self.moduleManager.registerModule(gptAssistantModule)
-        self.moduleManager.registerModule(testUserDataDialog)
         self.moduleManager.registerModule(self.projectsModule)
         self.moduleManager.registerModule(contractModule)
-        self.moduleManager.registerModule(dialogSizeWatcherModule)
+        self.moduleManager.registerModule(testUserDataDialog)
+
+        print("[PluginDialog] Registered modules:")
+        for moduleName in self.moduleManager.modules:
+            print(f"  - {moduleName}")
 
         for moduleName, moduleInfo in self.moduleManager.modules.items():
             iconPath = moduleInfo["icon"]
             displayName = moduleInfo["display_name"]
             widget = moduleInfo["module"].get_widget() if hasattr(moduleInfo["module"], "get_widget") else moduleInfo["module"]
+            # Ensure widget is an instance, not a class
+            if isinstance(widget, type):
+                widget = widget()
+            print(f"[PluginDialog] Adding sidebar item: displayName={displayName}, moduleName={moduleName}, iconPath={iconPath}")
             if widget is not None:
                 self.sidebar.addItem(displayName, moduleName, iconPath)
                 self.moduleStack.addWidget(widget)
 
 
     def switchModule(self, moduleName):
+        print(f"[PluginDialog] switchModule called with moduleName: {moduleName}")
         try:
             self.moduleManager.activateModule(moduleName)
             activeModule = self.moduleManager.getActiveModule()
+            print(f"[PluginDialog] Active module after activation: {activeModule}")
             if activeModule:
+                print(f"[PluginDialog] Setting current widget to: {activeModule['module']}")
                 self.moduleStack.setCurrentWidget(activeModule["module"].get_widget())
                 # Set header title to module display name
                 display_name = activeModule.get("display_name", moduleName)
+                print(f"[PluginDialog] Setting header title to: {display_name}")
                 self.header_widget.set_title(display_name)
+                # Force update/repaint for debugging
+                print("[PluginDialog] Forcing moduleStack update/repaint...")
+                self.moduleStack.update()
+                self.moduleStack.repaint()
             else:
                 raise AttributeError("No active module found.")
         except Exception as e:
+            print(f"[PluginDialog] Error in switchModule: {e}")
             QgsMessageLog.logMessage(f"Error switching module: {e}", "Wild Code", level=Qgis.Critical)
 
 

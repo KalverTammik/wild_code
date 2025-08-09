@@ -4,10 +4,7 @@ class SideBarButtonNames:
     BUTTONS = {
         PROJECTS_MODULE: "Projects",
         CONTRACT_MODULE: "Contract",
-        SETTINGS_MODULE: "Settings",
-        PROJECT_CARD_MODULE: "Project Card",
-        PROJECT_FEED_MODULE: "Project Feed",
-        GPT_ASSISTANT_MODULE: "GPT Assistant",
+        SETTINGS_MODULE: "Settings",   
         USER_TEST_MODULE: "User Test",
         DIALOG_SIZE_WATCHER_MODULE: "Dialog Size Watcher"
     }

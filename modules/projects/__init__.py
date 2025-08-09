@@ -1,6 +1,2 @@
-# Each module should provide this function in its __init__.py
-# Example for modules/projects/__init__.py
 
-def get_module_metadata():
-    from .ProjectsModule import ProjectsModule
-    return ProjectsModule()  # Return a ProjectsModule instance for registration
+# Legacy ProjectsModule_LEGACY registration removed. This file is now intentionally empty or can provide new modular registration if needed.

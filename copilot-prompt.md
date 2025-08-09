@@ -1,3 +1,6 @@
+## Module UI Standard
+
+**Rule:** All module `get_widget()` methods must return a `QWidget` instance, never a class. This ensures compatibility with `addWidget()` and prevents runtime errors. If a module needs to provide a new widget each time, it should instantiate and return it within `get_widget()`.
 ## Theme and QSS Requirements for All Modules
 
 1. **Centralized Theme Management**
@@ -6,11 +9,11 @@
 
 2. **QSS File Structure**
    - All theme-specific QSS files must be placed in `styles/Light/` and `styles/Dark/` folders.
-   - Each module/widget with custom styling must have its own QSS file (e.g., `project_card.qss`).
+   - Each module/widget with custom styling must have its own QSS file (e.g., `NewModule.qss`).
 
 3. **Widget Styling**
-   - Assign a unique `objectName` to any widget that needs custom QSS (e.g., `"ProjectCard"`).
-   - Apply QSS using `ThemeManager.apply_theme(widget, theme_dir, [qss_file])` for all such widgets.
+   - Assign a unique `objectName` to any widget that needs custom QSS (e.g., `"NewModule"`).
+   - Apply QSS using `ThemeManager.apply_theme(widget, theme_dir, QssPaths.VARIABLE)` for all such widgets. If Variable does not exist create if new file was created
 
 4. **Dynamic Restyling**
    - Any module that creates dynamic content (e.g., cards, list items) must implement a method to re-apply QSS to all such widgets (e.g., `restyle_project_cards()`).
@@ -67,7 +70,7 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
 ## 3. Directory & File Structure
 
 - Each module must be in its own subdirectory under `modules/`.
-- Required files: `__init__.py`, `ui.py`, `logic.py`, `translations/`
+- Required files: `__init__.py`, `[NewModuleName]Ui.py`, `[NewModuleName]logic.py`, `translations/`
 - Example:
   ```
   modules/
@@ -76,8 +79,8 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
           ui.py
           logic.py
           translations/
-              joke_generator_en.json
-              joke_generator_et.json
+              joke_generator_en.py
+              joke_generator_et.py
   ```
 - Do not place new modules as single files in `modules/`.
 

@@ -1,11 +1,11 @@
-QFrame#ProjectCard {
-    border: 1px solid #ccc;
+QFrame#ModuleInfoCard {
+    border: 1px solid #444;
     border-radius: 8px;
     padding: 12px;
-    background: #fff;
+    background: #232323;
 }
 QLabel {
-    color: #222;
+    color: #eee;
 }
 
 QLabel#ProjectNameLabel {
@@ -13,7 +13,7 @@ QLabel#ProjectNameLabel {
     font-weight: bold;
 }
 QLabel#ProjectClientLabel {
-    color: #666;
+    color: #aaa;
     font-size: 13px;
 }
 QLabel#ProjectResponsibleLabel {
@@ -28,8 +28,8 @@ QLabel#ProjectStatusLabel {
     padding: 2px 8px;
     min-width: 80px;
     font-weight: normal;
-    background: #e0e0e0;
-    color: #232323;
+    background: #444;
+    color: #fff;
 }
 QLabel#ProjectStatusLabel[statusColor] {
     /* This will be overridden dynamically in code if needed */
@@ -42,11 +42,11 @@ QLabel#ProjectPrivateIcon {
 }
 /* RichText span classes */
 span.project-number {
-    color: #888;
+    color: #bbb;
     font-weight: normal;
 }
 span.client-name {
-    color: #444;
+    color: #aaa;
     font-style: italic;
 }
 span.responsible {
@@ -54,5 +54,5 @@ span.responsible {
 }
 span.deleted {
     text-decoration: line-through;
-    color: #b0b0b0;
+    color: #666;
 }

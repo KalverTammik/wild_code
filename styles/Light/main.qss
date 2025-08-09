@@ -235,7 +235,7 @@ QScrollBar::add-page, QScrollBar::sub-page {
     padding: 16px;
 }
 
-.ProjectCard {
+.ModuleInfoCard {
     background: #ffffff;
     border: 1px solid #cccccc;
     border-radius: 6px;
@@ -245,7 +245,7 @@ QScrollBar::add-page, QScrollBar::sub-page {
     box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 
-.ProjectCard QLabel {
+.ModuleInfoCard QLabel {
     color: #333;
 }
 

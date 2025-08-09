@@ -1,8 +1,7 @@
 PROJECTS_MODULE = "ProjectsModule"
 CONTRACT_MODULE = "ContractModule"
 SETTINGS_MODULE = "SettingsModule"
-PROJECT_CARD_MODULE = "ProjectCardModule"
-PROJECT_FEED_MODULE = "ProjectFeedModule"
+
 JOKE_GENERATOR_MODULE = "JokeGeneratorModule"
 WEATHER_UPDATE_MODULE = "WeatherUpdateModule"
 IMAGE_OF_THE_DAY_MODULE = "ImageOfTheDayModule"

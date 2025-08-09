@@ -1,7 +1,7 @@
 
 from .constants.module_icons import ModuleIconPaths
 from .languages.language_manager import LanguageManager
-from .constants.module_names import SETTINGS_MODULE, PROJECT_CARD_MODULE, PROJECT_FEED_MODULE, GPT_ASSISTANT_MODULE, PROJECTS_MODULE, CONTRACT_MODULE
+from .constants.module_names import SETTINGS_MODULE, GPT_ASSISTANT_MODULE, PROJECTS_MODULE, CONTRACT_MODULE
 
 
 
@@ -9,7 +9,7 @@ from .constants.module_names import SETTINGS_MODULE, PROJECT_CARD_MODULE, PROJEC
 # Use class names as translation keys for all modules
 MODULE_NAMES = {
     SETTINGS_MODULE: "SettingsModule",
-    PROJECT_FEED_MODULE: "ProjectFeedModule",
+
     GPT_ASSISTANT_MODULE: "GptAssistant",
     PROJECTS_MODULE: "ProjectsModule",
     CONTRACT_MODULE: "ContractModule",

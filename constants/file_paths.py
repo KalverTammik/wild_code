@@ -51,6 +51,7 @@ class QssPaths:
     FOOTER = "footer.qss"
     LOGIN = "login.qss"
     MODULE_TOOLBAR = "ModuleToolbar.qss"
+    MODULE_CARD = "ModuleCard.qss"
     LIGHT_THEME = os.path.join(PLUGIN_ROOT, STYLES, "LightTheme.qss")
     DARK_THEME = os.path.join(PLUGIN_ROOT, STYLES, "DarkTheme.qss")
     SIDEBAR_THEME = os.path.join(PLUGIN_ROOT, STYLES, "Sidebar.qss")
