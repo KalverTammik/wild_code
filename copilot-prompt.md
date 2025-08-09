@@ -17,13 +17,13 @@
    - Apply QSS using `ThemeManager.apply_module_style(widget, [QssPaths.VARIABLE])` for all such widgets. If the QSS variable does not exist, create a new QSS file and add it to `QssPaths`.
 
 4. **Dynamic Restyling**
-   - Any module that creates dynamic content (e.g., cards, list items) must implement a method to re-apply QSS to all such widgets (e.g., `restyle_project_cards()`).
-   - After toggling the theme, the main dialog must call these restyle methods for all active modules.
+   - Any module that creates dynamic content (e.g., cards, list items) must implement a method to re-apply QSS to all such widgets (e.g., `rethem_[some logical name here]()`).
+   - After toggling the theme, the main dialog must call these restyle methods for all active modules. This is done in fialog.py-s  toggle_theme method. There each new widget that is developed into widgets directoy or module must be registered as 
 
 5. **Theme Toggle Integration**
    - The main dialog’s `toggle_theme` method must:
      - Call `ThemeManager.toggle_theme(...)` to update the global theme.
-     - Call each module’s restyle method (e.g., `projectsModule.on_theme_toggled()`) to update all content.
+     - Call each module’s restyle method (e.g., `rethem_[module or_widget]()`) to update all content.
 
 6. **No Direct QSS File Reading**
    - Do not read QSS files directly in modules. Always use `ThemeManager.apply_module_style`.

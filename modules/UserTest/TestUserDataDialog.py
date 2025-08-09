@@ -11,6 +11,10 @@ from ...constants.module_names import USER_TEST_MODULE
 
 class TestUserDataDialog(QDialog):
     """
+    This module supports dynamic theme switching via ThemeManager.apply_module_style.
+    Call retheme_user_test() to re-apply QSS after a theme change.
+    """
+    """
     Test dialog to load and display user data (me) from GraphQL API.
     Follows all copilot-prompt.md standards and module interface.
     """
@@ -119,4 +123,12 @@ class TestUserDataDialog(QDialog):
     def deactivate(self):
         """Deactivate the module."""
         pass
+
+    def retheme_user_test(self):
+        """
+        Re-applies the correct theme and QSS to the user test dialog, forcing a style refresh.
+        """
+        from ...widgets.theme_manager import ThemeManager
+        from ...constants.file_paths import QssPaths
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN])
 

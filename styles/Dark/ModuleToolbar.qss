@@ -1,3 +1,7 @@
+#ToolbarArea #SpecialToolbarLabel {
+    color: #cf2121; /* or any color you want */
+    font-weight: bold;
+}
 
 /* ModuleToolbar.qss - Dark Theme */
 #ToolbarArea {

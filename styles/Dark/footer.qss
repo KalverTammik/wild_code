@@ -1,70 +1,74 @@
+/* ===== Footer: minimal, readable, with subtle top glow ===== */
 
-#footerLeftFrame {
-    background: transparent;
-    border: none;
-    margin: 0;
+/* Outer frame with top glow + rule */
+QFrame#footerWidgetFrame {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0    rgba(9,144,143,0.16),
+        stop:0.03 rgba(9,144,143,0.08),
+        stop:0.055 #1d252b,
+        stop:1    #1d252b
+    );
+    border-top: 1px solid rgba(9,144,143,0.65);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
     padding: 0;
-}
-
-#footerLinkButton {
-    color: #e0e0e6; /* high-contrast, matches main.qss */
-    font-size: 12px;
-    background: transparent;
-    border: none;
-    padding: 2px 0;
     margin: 0;
-    text-align: left;
-    text-decoration: none;
-    cursor: pointer;
 }
 
-
-#footerLinkButton:hover {
-    color: #00bcd4; /* accent color for hover */
-    text-decoration: underline;
-}
-
-
-#footerLinkButton:pressed {
-    color: #47a5b1; /* accent teal, matches main.qss link */
-    text-decoration: underline;
-}
-
-#footerLinkButton:focus {
-    outline: none;
-    text-decoration: underline;
-    border-bottom: 1px dashed #555;
-}
-
-
-
-#footerLinkSeparator {
+/* === New single-label left layout === */
+QLabel#footerLeftLabel {
     color: #c5c5d2;
-    font-size: 10px;
-    padding: 0px;
-}
-
-
-
-#footerLabel {
-    color: #e0e0e6;
     font-size: 11px;
-    padding: 0 0 0 0;
-    text-align: center;
-    letter-spacing: 0.5px;
+    padding: 0;
+    margin: 0;
+}
+QLabel#footerLeftLabel a {
+    color: #c5c5d2;
+    text-decoration: none;
+}
+QLabel#footerLeftLabel a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+QLabel#footerLeftLabel a:active {
+    color: #a8f1ef;
+}
+QLabel#footerLeftLabel:disabled,
+QLabel#footerLeftLabel a:disabled {
+    color: rgba(197,197,210,0.5);
 }
 
-#footerLabel a {
-    color: #47a5b1;
-    text-decoration: none;
-    border-bottom: 1px dotted #47a5b1;
-    padding-bottom: 1px;
- 
+/* Right-side "QGIS X.X | Plugin vX.X" */
+QLabel#footerLabel {
+    color: #c5c5d2;
+    font-size: 11px;
+    padding: 0;
+    margin-left: 8px;
+}
+QLabel#footerLabel:disabled {
+    color: rgba(197,197,210,0.5);
 }
 
-#footerLabel a:hover, #footerLabel a:active {
-    color: #00bcd4;
-    border-bottom: 1.5px solid #00bcd4;
-    background: rgba(0,188,212,0.08);
-    text-decoration: none;
+/* === Legacy layout compatibility (safe to keep; remove if unused) === */
+QWidget#footerLeftFrame { background: transparent; padding: 0; margin: 0; }
+QLabel#footerCopyrightLabel { color: #c5c5d2; padding-right: 6px; }
+QPushButton#footerLinkButton {
+    color: #c5c5d2; border: none; background: transparent;
+    padding: 0 6px; margin: 0; font-size: 11px;
+}
+QPushButton#footerLinkButton:hover { color: #ffffff; text-decoration: underline; }
+QPushButton#footerLinkButton:pressed { color: #a8f1ef; }
+QPushButton#footerLinkButton:focus { outline: none; }
+QLabel#footerLinkSeparator { color: rgba(197,197,210,0.40); padding: 0 4px; }
+
+/* === Optional compact mode (setProperty("compact", True)) === */
+QFrame#footerWidgetFrame[compact="true"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0    rgba(9,144,143,0.14),
+        stop:0.03 rgba(9,144,143,0.07),
+        stop:0.05 #1d252b,
+        stop:1    #1d252b
+    );
+    border-top: 1px solid rgba(9,144,143,0.55);
 }

@@ -1,58 +1,138 @@
+/* ===== Module Card (Dark) ===== */
+
 QFrame#ModuleInfoCard {
-    border: 1px solid #444;
-    border-radius: 8px;
-    padding: 12px;
-    background: #232323;
+    background: #1f262d;
+    border: 1px solid #2c343d;
+    border-radius: 12px;
+    padding: 0;
+    /* subtle inner highlight at top, darker shadow at bottom */
+    background-color: #1f262d;
+    background-image: qlineargradient(
+        x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(255,255,255,0.04),
+        stop:0.05 rgba(255,255,255,0.02),
+        stop:0.92 rgba(0,0,0,0.20), /* darker, starts earlier */
+        stop:1 rgba(0,0,0,0.28)     /* stronger bottom shadow */
+    );
+    transition: 120ms ease;
 }
-QLabel {
-    color: #eee;
+QFrame#ModuleInfoCard:hover {
+    border-color: rgba(9,144,143,0.55);
+    background-color: #232b33;
 }
 
+/* compact density */
+QFrame#ModuleInfoCard[compact="true"] {
+    border-radius: 10px;
+}
+
+/* content area (optional if you want a divider feel) */
+QFrame#CardContent { background: transparent; }
+
+/* header labels */
 QLabel#ProjectNameLabel {
-    font-size: 18px;
-    font-weight: bold;
+    color: #e8e9ef;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
 }
-QLabel#ProjectClientLabel {
-    color: #aaa;
-    font-size: 13px;
-}
-QLabel#ProjectResponsibleLabel {
-    margin-top: 4px;
-    font-weight: bold;
-}
+QLabel#ProjectClientLabel,
+QLabel#ProjectResponsibleLabel,
 QLabel#ProjectParticipantsLabel {
-    margin-top: 2px;
+    color: #c5c5d2;
+    font-size: 12px;
 }
-QLabel#ProjectStatusLabel {
-    border-radius: 6px;
-    padding: 2px 8px;
-    min-width: 80px;
-    font-weight: normal;
-    background: #444;
-    color: #fff;
-}
-QLabel#ProjectStatusLabel[statusColor] {
-    /* This will be overridden dynamically in code if needed */
-}
+
+/* private icon */
 QLabel#ProjectPrivateIcon {
-    color: #e53935;
-    font-weight: bold;
-    font-size: 16px;
-    margin-right: 6px;
+    background: #e53935;
+    color: #ffffff;
+    border-radius: 8px;
+    font-weight: 700;
 }
-/* RichText span classes */
-span.project-number {
-    color: #bbb;
-    font-weight: normal;
+QLabel#DateLine { color:#c5c5d2; font-size:12px; }
+QLabel#DateMeta { color:rgba(197,197,210,0.75); font-size:11px; }
+
+QLabel#DateDueLine { color:#c5c5d2; font-size:12px; }
+QLabel#DateDueLine[dueState="soon"] {
+    color:#ffb74d;
+    font-weight:600;           /* bold for soon */
 }
-span.client-name {
-    color: #aaa;
-    font-style: italic;
+QLabel#DateDueLine[dueState="overdue"] {
+    color:#e53935;
+    font-weight:700;           /* bolder for overdue */
 }
-span.responsible {
-    font-weight: bold;
+QLabel#DateDueLine[dueState="none"] {
+    color:rgba(197,197,210,0.75);
+    font-weight:400;
 }
-span.deleted {
-    text-decoration: line-through;
-    color: #666;
+
+
+
+
+/* Container */
+QFrame#InfocardHeaderFrame { background: transparent; }
+
+/* Name line */
+
+
+/* Number badge */
+QLabel#ProjectNumberBadge {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #e8f6f6;
+    background: rgba(9,144,143,0.18);
+    border: 1px solid rgba(9,144,143,0.45);
+}
+
+/* Client */
+QLabel#ProjectClientLabel {
+    color: #c5c5d2;
+    font-size: 12px;
+}
+QLabel#ClientIcon {
+    color: rgba(197,197,210,0.85);
+}
+
+/* Compact */
+QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectNameLabel { font-size: 14px; }
+QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectClientLabel { font-size: 11px; }
+
+
+/* Name line (kept for completeness) */
+QLabel#ProjectNameLabel {
+    color: #e8e9ef;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+/* Number badge — DARK (pill, smaller, polite) */
+QLabel#ProjectNumberBadge {
+    padding: 2px 8px;
+    border-radius: 999px;                 /* pill shape */
+    font-size: 10px;                      /* smaller */
+    font-weight: 600;
+    color: #e8f6f6;
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 rgba(9,144,143,0.22),
+        stop:1 rgba(9,144,143,0.14)
+    );
+    border: 1px solid rgba(9,144,143,0.45);
+}
+QLabel#ProjectNumberBadge:hover {
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 rgba(9,144,143,0.26),
+        stop:1 rgba(9,144,143,0.18)
+    );
+    border-color: rgba(9,144,143,0.55);
+}
+
+/* Compact tweak */
+QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectNumberBadge {
+    font-size: 9px;
+    padding: 1px 6px;
+    min-width: 28px;
 }

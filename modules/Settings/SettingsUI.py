@@ -4,6 +4,10 @@ from ...widgets.theme_manager import ThemeManager
 from .SettingsLogic import SettingsLogic
 
 class SettingsUI(QWidget):
+    """
+    This module supports dynamic theme switching via ThemeManager.apply_module_style.
+    Call retheme_settings() to re-apply QSS after a theme change.
+    """
     def __init__(self, lang_manager=None, theme_manager=None, theme_dir=None, qss_files=None):
         super().__init__()
         from ...module_manager import SETTINGS_MODULE
@@ -63,3 +67,11 @@ class SettingsUI(QWidget):
         pass
     def get_widget(self):
         return self
+
+    def retheme_settings(self):
+        """
+        Re-applies the correct theme and QSS to the settings UI, forcing a style refresh.
+        """
+        from ...widgets.theme_manager import ThemeManager
+        from ...constants.file_paths import QssPaths
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN])

@@ -1,229 +1,244 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame, QPushButton, QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect, QHBoxLayout
+# sidebar.py
+from PyQt5.QtCore import Qt, QSize, QEasingCurve, QTimer, pyqtSignal, QPoint, QPropertyAnimation
 from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtCore import pyqtSignal, Qt, QPropertyAnimation, QEasingCurve, QSize
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QFrame, QPushButton, QToolButton,
+    QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect, QLabel
+)
+
 from ..constants.file_paths import QssPaths
 from ..widgets.theme_manager import ThemeManager
-from ..modules.Settings.SettingsUI import SettingsUI  # Import the SettingsModule
+from ..modules.Settings.SettingsUI import SettingsUI
 from ..module_manager import ModuleManager, SETTINGS_MODULE
 from ..languages.language_manager import LanguageManager
 
 lang_manager = LanguageManager()
 theme_manager = ThemeManager()
 
+
 class Sidebar(QWidget):
-    """A modular sidebar component with advanced styling and layout."""
-    
-    # Custom signal to emit the name of the clicked item
+    """A modular sidebar with compact/expanded modes, floating toggle handle, and theme-aware styling."""
+
+    # Click signal with module identifier
     itemClicked = pyqtSignal(str)
-    
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        # Initialize animation for sidebar width (bounce effect) FIRST
-        self.animation = QPropertyAnimation(self, b"minimumWidth")
-        self.animation.setDuration(300)  # Animation duration in milliseconds
-        self.animation.setEasingCurve(QEasingCurve.OutBounce)  # Bounce effect
-        # Store the original (expanded) sidebar width after layout is set up
-        self._expanded_width = None
+        # --- state ---
+        self._pulse_on = False
+        self._expanded_width = 220
+        self._compact_width = 50
+        self._is_compact = False
+        self.moduleButtons = {}
+        self.buttonTexts = {}
+        self._shadows_applied = False
 
-        self.setObjectName("Sidebar")
-        main_layout = QHBoxLayout()
+        self.setObjectName("SidebarRoot")
+
+        # --- layout root ---
+        main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        self.setLayout(main_layout)
 
-        # Track module navigation buttons by uniqueIdentifier
-        self.moduleButtons = {}
-        # Store original button texts for toggling
-        self.buttonTexts = {}
+        # --- left container we animate ---
+        self.container = QFrame(self)
+        self.container.setObjectName("SidebarContainer")
+        self.container.setFixedWidth(self._expanded_width)
+        main_layout.addWidget(self.container)
 
-        # SidebarMainFrame: holds nav, spacer, settings (vertical)
-        self.SidebarMainFrame = QFrame(self)
+        # Inside container: main frame (nav + spacer + settings)
+        self.SidebarMainFrame = QFrame(self.container)
         self.SidebarMainFrame.setObjectName("SidebarMainFrame")
-        self.SidebarMainLayout = QVBoxLayout(self.SidebarMainFrame)
-        self.SidebarMainLayout.setContentsMargins(0, 0, 0, 0)
-        self.SidebarMainLayout.setSpacing(6)
+        cm = QVBoxLayout(self.SidebarMainFrame)
+        cm.setContentsMargins(0, 0, 0, 0)
+        cm.setSpacing(6)
 
-        # Navigation Items Container
+        # Navigation frame
         self.SidebarNavFrame = QFrame(self.SidebarMainFrame)
         self.SidebarNavFrame.setObjectName("SidebarNavFrame")
-        self.SidebarNavLayout = QVBoxLayout(self.SidebarNavFrame)
-        self.SidebarNavLayout.setContentsMargins(0, 6, 6, 6)
-        self.SidebarMainLayout.addWidget(self.SidebarNavFrame)
+        nav_layout = QVBoxLayout(self.SidebarNavFrame)
+        nav_layout.setContentsMargins(0, 6, 6, 6)
+        nav_layout.setSpacing(4)
+        cm.addWidget(self.SidebarNavFrame)
 
-        # Vertical Spacer
-        spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        self.SidebarMainLayout.addItem(spacer)
+        # Spacer pushes settings down
+        cm.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
-        # Settings Module
+        # Settings
         self.settingsFrame = QFrame(self.SidebarMainFrame)
         self.settingsFrame.setObjectName("SettingsFrame")
-        self.settingsLayout = QVBoxLayout(self.settingsFrame)
-        self.settingsLayout.setContentsMargins(0, 6, 6, 6)
-        # Create an instance of ModuleManager
-        module_manager = ModuleManager()
+        sl = QVBoxLayout(self.settingsFrame)
+        sl.setContentsMargins(0, 6, 6, 6)
+        cm.addWidget(self.settingsFrame)
 
-        # Get the display name and icon for the Settings module
+        # Settings button
+        module_manager = ModuleManager()
         settings_name = module_manager.get_module_name(SETTINGS_MODULE)
         settings_icon = module_manager.getModuleIcon(SETTINGS_MODULE)
-
-        # Create the Settings button
         self.settingsButton = QPushButton(settings_name, self.settingsFrame)
         if settings_icon:
             self.settingsButton.setIcon(QIcon(settings_icon))
-        self.settingsButton.setText(settings_name)  # Ensure visible name is set
-        self.settingsLayout.addWidget(self.settingsButton)
-        self.SidebarMainLayout.addWidget(self.settingsFrame)
-
-        # Add SidebarMainFrame to main layout (left)
-        main_layout.addWidget(self.SidebarMainFrame)
-
-        # SidebarRightFrame: toggle button centered, no border/background, icon only
-        self.rightFrame = QFrame(self)
-        self.rightFrame.setObjectName("SidebarRightFrame")
-        self.rightFrame.setFixedWidth(24)
-        self.rightFrame.setFixedHeight(24)
-        right_layout = QVBoxLayout()
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(0)
-        self.rightFrame.setLayout(right_layout)
-
-        # Toggle button: icon only, no border/background, no padding
-        self.toggleButton = QPushButton(self)
-        self.toggleButton.setObjectName("SidebarToggleButton")
-        self.toggleButton.setFixedSize(24, 24)
-        self.toggleButton.setIcon(QIcon())  # Set your icon here, e.g. QIcon(':/icons/sidebar_toggle.svg')
-        self.toggleButton.setIconSize(QSize(24, 24))
-        self.toggleButton.setToolTip("Collapse Sidebar")
-        self.toggleButton.setText("«")  # Set initial text to match expanded state
-        self.toggleButton.clicked.connect(self.toggleSidebar)
-        right_layout.addStretch(1)
-        right_layout.addWidget(self.toggleButton, alignment=Qt.AlignCenter)
-        right_layout.addStretch(1)
-
-        # Add SidebarRightFrame to main layout (right)
-        main_layout.addWidget(self.rightFrame, alignment=Qt.AlignRight)
-
-        # Now that all widgets/frames are created, set expanded width
-        self._set_expanded_width_later()
-
-    def _set_expanded_width_later(self):
-        # Use a single-shot timer to set the expanded width after the widget is shown
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, self._store_expanded_width)
-
-    def _store_expanded_width(self):
-        self._expanded_width = self.width()
-    def applyStyles(self):
-        """Apply styles to the sidebar using centralized ThemeManager only."""
-        ThemeManager.apply_module_style(self, [QssPaths.SIDEBAR])
-        self.settingsModule = SettingsUI(
-            lang_manager,
-            theme_manager
-        )
         self.settingsButton.clicked.connect(self.showSettingsModule)
-        self.animation = QPropertyAnimation(self, b"minimumWidth")
-        self.animation.setDuration(300)
-        self.animation.setEasingCurve(QEasingCurve.OutBounce)
-        self._expanded_width = None
-        self._set_expanded_width_later()
+        sl.addWidget(self.settingsButton)
 
-    def showSettingsModule(self):
-        self.settingsModule.show()
-        # Apply shadow effect to SidebarNavFrame
-        nav_shadow = QGraphicsDropShadowEffect(self)
-        nav_shadow.setBlurRadius(20)
-        nav_shadow.setOffset(0, 5)
-        nav_shadow.setColor(QColor(192, 192, 192))  # Light gray shadow to match background
-        self.SidebarNavFrame.setGraphicsEffect(nav_shadow)
-        # Apply shadow effect to SettingsFrame
-        settings_shadow = QGraphicsDropShadowEffect(self)
-        settings_shadow.setBlurRadius(20)
-        settings_shadow.setOffset(0, 5)
-        settings_shadow.setColor(QColor(192, 192, 192))  # Light gray shadow to match background
-        self.settingsFrame.setGraphicsEffect(settings_shadow)
-        # Store original button texts for toggling
-        self.buttonTexts = {}
-        # Add settings button to the buttonTexts dictionary
-        self.buttonTexts[self.settingsButton] = self.settingsButton.text()
-        # Apply Styles
-        self.applyStyles()
+        # Mount main frame into container
+        container_layout = QVBoxLayout(self.container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.addWidget(self.SidebarMainFrame)
 
-    def applyStyles(self):
-        """Apply styles to the sidebar using ThemeManager."""
-        ThemeManager.apply_theme(self, QssPaths.SIDEBAR)
+        # --- floating toggle handle (not part of layout) ---
+        self.toggleButton = QToolButton(self)
+        self.toggleButton.setObjectName("SidebarToggleButton")
+        self.toggleButton.setAutoRaise(True)
+        self.toggleButton.setFixedSize(22, 44)        # slim, tall target
+        self.toggleButton.setToolTip("Collapse Sidebar")
+        self.toggleButton.setText("«")                # expanded → show collapse glyph
+        self.toggleButton.clicked.connect(self.toggleSidebar)
+        self._apply_toggle_shadow()
+        self.toggleButton.raise_()
 
+        # --- width animation (animate container min width for reliability) ---
+        self.animation = QPropertyAnimation(self.container, b"minimumWidth")
+        self.animation.setDuration(280)
+        self.animation.setEasingCurve(QEasingCurve.OutCubic)
+        self.animation.finished.connect(self._position_toggle)
 
+        # keep min/max equal so layout respects width during animation
+        self.container.setMinimumWidth(self._expanded_width)
+        self.container.setMaximumWidth(self._expanded_width)
+
+        # store expanded width after first layout
+        QTimer.singleShot(0, self._store_expanded_width)
+        QTimer.singleShot(0, self._position_toggle)
+
+        # active pulse (optional)
+        self._pulse_timer = QTimer(self)
+        self._pulse_timer.timeout.connect(self._pulse_active)
+        self._pulse_timer.start(1400)
+
+        # theme
+        self.retheme_sidebar()
+
+    # ---------- external API ----------
     def addItem(self, displayName, uniqueIdentifier, iconPath=None):
-        """Add a navigation item to the sidebar with an optional icon."""
-        button = QPushButton(displayName, self.SidebarNavFrame)
+        btn = QPushButton(displayName, self.SidebarNavFrame)
+        btn.setObjectName("SidebarNavButton")
         if iconPath:
-            button.setIcon(QIcon(iconPath))  # Set the icon if provided
-        # Only emit if enabled (not active)
+            btn.setIcon(QIcon(iconPath))
+
         def handler():
-            if button.isEnabled():
+            if btn.isEnabled():
                 self.emitItemClicked(uniqueIdentifier)
-        button.clicked.connect(handler)
-        self.SidebarNavLayout.addWidget(button)
-        self.moduleButtons[uniqueIdentifier] = button
+
+        btn.clicked.connect(handler)
+        self.SidebarNavFrame.layout().addWidget(btn)
+        self.moduleButtons[uniqueIdentifier] = btn
+        self.buttonTexts[btn] = displayName
 
     def setActiveModule(self, module_name):
-        """Enable all module buttons except the active one, which is disabled and unclickable."""
-        for name, button in self.moduleButtons.items():
-            if name == module_name:
-                button.setEnabled(False)
-                button.setProperty('active', True)
-                button.style().unpolish(button)
-                button.style().polish(button)
-            else:
-                button.setEnabled(True)
-                button.setProperty('active', False)
-                button.style().unpolish(button)
-                button.style().polish(button)
+        for name, btn in self.moduleButtons.items():
+            active = (name == module_name)
+            btn.setEnabled(True)
+            btn.setProperty('active', active)
+            btn.style().unpolish(btn); btn.style().polish(btn)
 
     def emitItemClicked(self, itemName):
-        """Emit the custom signal with the clicked item's name."""
         self.itemClicked.emit(itemName)
 
+    def showSettingsModule(self):
+        # Replace with your SettingsUI show logic if needed
+        dlg = SettingsUI(lang_manager, theme_manager)
+        dlg.show()
+
+    def retheme_sidebar(self):
+        ThemeManager.apply_module_style(self, [QssPaths.SIDEBAR])
+
+        if not self._shadows_applied:
+            self._apply_section_shadows()
+            self._shadows_applied = True
+
+        # refresh [compact="true"] rules
+        self.setProperty("compact", self._is_compact)
+        self.style().unpolish(self); self.style().polish(self)
+        self._position_toggle()
+
+    # ---------- internals ----------
+    def _apply_section_shadows(self):
+        # soft inner shadows for nav + settings
+        for frame in (self.SidebarNavFrame, self.settingsFrame):
+            sh = QGraphicsDropShadowEffect(self)
+            sh.setBlurRadius(18)
+            sh.setOffset(0, 4)
+            sh.setColor(QColor(0, 0, 0, 40))  # subtle; fine for both themes
+            frame.setGraphicsEffect(sh)
+
+    def _apply_toggle_shadow(self):
+        sh = QGraphicsDropShadowEffect(self.toggleButton)
+        sh.setBlurRadius(12)
+        sh.setXOffset(0)
+        sh.setYOffset(2)
+        sh.setColor(QColor(0, 0, 0, 80))
+        self.toggleButton.setGraphicsEffect(sh)
+
+    def _pulse_active(self):
+        self._pulse_on = not self._pulse_on
+        for btn in self.moduleButtons.values():
+            if btn.property('active'):
+                btn.setProperty('pulse', self._pulse_on)
+                btn.style().unpolish(btn); btn.style().polish(btn)
+
+    def _store_expanded_width(self):
+        self._expanded_width = max(self._expanded_width, self.container.width())
+        self.container.setMinimumWidth(self._expanded_width)
+        self.container.setMaximumWidth(self._expanded_width)
+        self._position_toggle()
+
+    def _position_toggle(self):
+        """Float the handle at the vertical center of the sidebar’s right edge."""
+        cont = self.container.geometry()
+        x = cont.right() - self.toggleButton.width() // 2
+        y = self.height() // 2 - self.toggleButton.height() // 2
+        self.toggleButton.move(QPoint(max(0, x), max(0, y)))
+        self.toggleButton.raise_()
+
     def toggleSidebar(self):
-        """Toggle between expanded and compact sidebar modes."""
-        isCompact = self.toggleButton.text() == "»"  # Check current state
+        self._is_compact = not self._is_compact
+        self.setProperty("compact", self._is_compact)
 
-        # Update toggle button text
-        self.toggleButton.setText("«" if isCompact else "»")
-        self.toggleButton.setToolTip("Expand Sidebar" if isCompact else "Collapse Sidebar")
+        # texts visibility
+        for btn, original in self.buttonTexts.items():
+            btn.setText("" if self._is_compact else original)
 
-        # Toggle button text visibility
-        for i in range(self.SidebarNavLayout.count()):
-            widget = self.SidebarNavLayout.itemAt(i).widget()
-            if isinstance(widget, QPushButton):
-                if not isCompact:
-                    # Store original text and hide it
-                    self.buttonTexts[widget] = widget.text()
-                    widget.setText("")
-                else:
-                    # Restore original text
-                    widget.setText(self.buttonTexts.get(widget, ""))
-
-
-        # Handle settings button separately
-        if not isCompact:
-            self.buttonTexts[self.settingsButton] = self.settingsButton.text()
+        # settings button
+        if self._is_compact:
             self.settingsButton.setText("")
+            self.toggleButton.setText("»")
+            self.toggleButton.setToolTip("Expand Sidebar")
         else:
-            # Always restore the settings button name
-            settings_name = self.settingsButton.text() if self.settingsButton.text() else self.settingsButton.objectName()
-            self.settingsButton.setText(self.buttonTexts.get(self.settingsButton, settings_name))
+            self.settingsButton.setText(self.buttonTexts.get(self.settingsButton, self.settingsButton.text()))
+            self.toggleButton.setText("«")
+            self.toggleButton.setToolTip("Collapse Sidebar")
 
-        # Animate sidebar width for compact/expanded mode
+        start_w = self.container.width()
+        end_w = self._compact_width if self._is_compact else self._expanded_width
+
+        # animate min width; clamp max so layout cooperates
         self.animation.stop()
-        self.animation.setStartValue(self.width())
-        if not isCompact:
-            self.animation.setEndValue(50)
-        else:
-            # Use stored expanded width if available, else fallback to 200
-            self.animation.setEndValue(self._expanded_width if self._expanded_width else 200)
-        # Always use bounce effect for both directions
-        self.animation.setEasingCurve(QEasingCurve.OutBounce)
+        self.container.setMaximumWidth(end_w)
+        self.animation.setStartValue(start_w)
+        self.animation.setEndValue(end_w)
         self.animation.start()
+
+        # also set fixed widths immediately so mouse hit-tests feel right
+        self.container.setMinimumWidth(end_w)
+        self.container.setMaximumWidth(end_w)
+
+        # refresh style for [compact="true"]
+        self.style().unpolish(self); self.style().polish(self)
+        QTimer.singleShot(0, self._position_toggle)
+
+    # keep the handle centered when the widget resizes
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self._position_toggle()

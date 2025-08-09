@@ -1,70 +1,74 @@
+/* ===== Footer: minimal, readable, with subtle top glow (Light Theme) ===== */
 
-#footerLinkButton {
-    color: #22223b; /* high-contrast for readability */
-    font-size: 12px;
-    background: transparent;
-    border: none;
-    padding: 2px 0;
-    margin: 0;
-    text-align: left;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-#footerLinkButton:hover {
-    color: #22223b; /* same as body text in light theme */
-    text-decoration: underline;
-}
-
-#footerLinkButton:pressed {
-    color: #3a7ca5; /* hint of blue, but soft */
-    text-decoration: underline;
-}
-
-#footerLinkButton:focus {
-    outline: none;
-    text-decoration: underline;
-    border-bottom: 1px dashed #bbb;
-}
-#footerCopyrightLabel {
-    color: #111118;
-    font-size: 12px;
-    background: transparent;
-    border: none;
+/* Outer frame with top glow + rule */
+QFrame#footerWidgetFrame {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0    rgba(0,120,212,0.15),   /* soft blue glow */
+        stop:0.03 rgba(0,120,212,0.08),
+        stop:0.055 #f6f7f8,               /* transition into base color */
+        stop:1    #f6f7f8
+    );
+    border-top: 1px solid rgba(0,120,212,0.65);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
     padding: 0;
     margin: 0;
-    font-weight: normal;
 }
 
-#footerLeftFrame {
-    background: transparent;
-    border: none;
-    margin: 0;
+/* === New single-label left layout === */
+QLabel#footerLeftLabel {
+    color: #333333;
+    font-size: 11px;
     padding: 0;
+    margin: 0;
 }
-
-#footerLinkSeparator {
-    color: #444;
-    font-size: 10px;
-    padding: 0 2px;
-}
-
-#footerLabel {
-    color: #444;
-    font-size: 10px;
-    padding: 4px 0 0 0;
-}
-
-#footerLabel a {
-    color: #005a9e;
+QLabel#footerLeftLabel a {
+    color: #333333;
     text-decoration: none;
-    border-bottom: 1px dotted #2188ff;
-    padding-bottom: 1px;
+}
+QLabel#footerLeftLabel a:hover {
+    color: #000000;
+    text-decoration: underline;
+}
+QLabel#footerLeftLabel a:active {
+    color: #0078d4; /* blue accent on press */
+}
+QLabel#footerLeftLabel:disabled,
+QLabel#footerLeftLabel a:disabled {
+    color: rgba(51,51,51,0.5);
 }
 
-#footerLabel a:hover, #footerLabel a:active {
-    color: #003366;
-    border-bottom: 1.5px solid #005a9e;
-    background: rgba(33,136,255,0.08);
-    text-decoration: none;
+/* Right-side "QGIS X.X | Plugin vX.X" */
+QLabel#footerLabel {
+    color: #333333;
+    font-size: 11px;
+    padding: 0;
+    margin-left: 8px;
+}
+QLabel#footerLabel:disabled {
+    color: rgba(51,51,51,0.5);
+}
+
+/* === Legacy layout compatibility (safe to keep; remove if unused) === */
+QWidget#footerLeftFrame { background: transparent; padding: 0; margin: 0; }
+QLabel#footerCopyrightLabel { color: #333333; padding-right: 6px; }
+QPushButton#footerLinkButton {
+    color: #333333; border: none; background: transparent;
+    padding: 0 6px; margin: 0; font-size: 11px;
+}
+QPushButton#footerLinkButton:hover { color: #000000; text-decoration: underline; }
+QPushButton#footerLinkButton:pressed { color: #0078d4; }
+QPushButton#footerLinkButton:focus { outline: none; }
+QLabel#footerLinkSeparator { color: rgba(51,51,51,0.40); padding: 0 4px; }
+
+/* === Optional compact mode (setProperty("compact", True)) === */
+QFrame#footerWidgetFrame[compact="true"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0    rgba(0,120,212,0.13),
+        stop:0.03 rgba(0,120,212,0.07),
+        stop:0.05 #f6f7f8,
+        stop:1    #f6f7f8
+    );
+    border-top: 1px solid rgba(0,120,212,0.55);
 }

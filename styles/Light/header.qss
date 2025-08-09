@@ -1,27 +1,78 @@
-/* Header QSS for Light Theme */
-#headerTitleLabel {
-    color: #24292e;
-    font-size: 18px;
-    font-weight: bold;
-    letter-spacing: 1px;
+/* ===== Header (Light) — minimal, readable, with subtle bottom glow ===== */
+
+QFrame#headerWidgetFrame {
+    background: qlineargradient(x1:0, y1:1, x2:0, y2:0,
+        stop:0    rgba(0,120,212,0.15),   /* soft blue glow at bottom */
+        stop:0.03 rgba(0,120,212,0.08),
+        stop:0.055 #f6f7f8,
+        stop:1    #f6f7f8
+    );
+    border-bottom: 1px solid rgba(0,120,212,0.65);
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    padding: 0;
+    margin: 0;
 }
 
-#themeSwitchButton, #logoutButton {
-    background-color: #fafbfc;
+/* Title */
+QLabel#headerTitleLabel {
+    color: #24292e;
+    background: rgba(0,120,212,0.10);      /* soft blue background */
+    border: 1px solid rgba(0,120,212,0.55);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+QLabel#headerTitleLabel:hover {
+    box-shadow: 0px 0px 8px rgba(0,120,212,0.3);
+}
+
+
+/* Search */
+QLineEdit#headerSearchEdit {
+    background: #ffffff;
+    color: #24292e;
+    border: 1px solid #d0d7de;
+    border-top-color: #eaeef2;
+    border-bottom-color: #9da7b3;
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+QLineEdit#headerSearchEdit::placeholder {
+    color: rgba(36,41,46,0.55);
+}
+QLineEdit#headerSearchEdit:focus {
+    border: 1px solid #2188ff;
+    background: #ffffff;
+}
+
+/* Buttons */
+QPushButton#themeSwitchButton,
+QPushButton#logoutButton {
+    background: #fafbfc;
     color: #24292e;
     border: 1px solid #e1e4e8;
-    border-radius: 5px;
-    padding: 6px 14px;
+    border-radius: 6px;
+    padding: 6px 12px;
     font-size: 13px;
-    font-weight: normal;
 }
-
-#themeSwitchButton:hover, #logoutButton:hover {
-    background-color: #e1e4e8;
-    border: 1px solid #2188ff;
+QPushButton#themeSwitchButton:hover,
+QPushButton#logoutButton:hover {
+    background: #e1e4e8;
+    border-color: #2188ff;
+    color: #000000;
 }
-
-#themeSwitchButton:pressed, #logoutButton:pressed {
-    background-color: #d1d5da;
-    border: 1px solid #0366d6;
+QPushButton#themeSwitchButton:pressed,
+QPushButton#logoutButton:pressed {
+    background: #d1d5da;
+    border-color: #0366d6;
+}
+QPushButton#themeSwitchButton:focus,
+QPushButton#logoutButton:focus {
+    outline: none;
+    border-color: #2188ff;
 }

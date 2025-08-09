@@ -1,84 +1,112 @@
-from ..config.setup import Version, config
-from ..constants.file_paths import ConfigPaths
-from ..utils.url_manager import WebLinks
-from .theme_manager import ThemeManager
-
-# Add missing imports
-from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton
+from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QLabel, QFrame, QSizePolicy
+from qgis.PyQt.QtCore import Qt, QUrl
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtCore import QUrl
-from qgis.PyQt.QtCore import Qt
 from qgis.core import Qgis
 
+from ..config.setup import Version, config
+from ..utils.url_manager import WebLinks
+from ..widgets.theme_manager import ThemeManager
+from ..constants.file_paths import QssPaths
 import datetime
-import os
+
 
 class FooterWidget(QWidget):
-    def __init__(self, parent=None, show_left=True, show_right=True):
+    def retheme_footer(self):
+        """
+        Re-applies the correct theme and QSS to the footer, forcing a style refresh.
+        """
+        from ..widgets.theme_manager import ThemeManager
+        from ..constants.file_paths import QssPaths
+        print(f"[FooterWidget] Retheming footer with QSS: {QssPaths.FOOTER}")
+        ThemeManager.apply_module_style(self.findChild(QFrame, "footerWidgetFrame"), [QssPaths.FOOTER])
+        frame = self.findChild(QFrame, "footerWidgetFrame")
+        if frame:
+            frame.setStyleSheet(frame.styleSheet())
+            frame.style().unpolish(frame)
+            frame.style().polish(frame)
+            frame.update()
+    def __init__(self, parent=None, show_left=True, show_right=True, compact=False):
         super().__init__(parent)
-        layout = QHBoxLayout()
-        layout.setContentsMargins(6, 1, 6, 1)  # left, top, right, bottom
-        layout.setSpacing(2)
 
-        # Automated year for copyright
-        current_year = datetime.datetime.now().year
+        # Outer frame for the glow + top border (styled via QSS)
+        frame = QFrame(self)
+        frame.setObjectName("footerWidgetFrame")
 
-        # Left part: copyright, homepage, privacy, and terms links from config via WebLinks
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(8, 2, 8, 2 if compact else 3)
+        layout.setSpacing(6)
+
+        # Left: one rich-text label with programmatic links (no visible hrefs)
         if show_left:
-            weblinks = WebLinks(config)
-            left_frame = QWidget()
-            left_frame.setObjectName("footerLeftFrame")
-            left_frame_layout = QHBoxLayout()
-            left_frame_layout.setContentsMargins(0, 0, 0, 0)
-            left_frame_layout.setSpacing(0)
-            # Copyright label (no links)
-            copyright_label = QLabel(f'© {current_year} <b>Valisee</b> | ')
-            copyright_label.setObjectName("footerCopyrightLabel")
-            copyright_label.setTextFormat(Qt.RichText)
-            copyright_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            left_frame_layout.addWidget(copyright_label)
-            # Links as flat buttons styled as links
+            current_year = datetime.datetime.now().year
+            wl = WebLinks(config)
 
-            link_buttons = []
-            link_info = [
-                (weblinks.home, "Koduleht"),
-                (weblinks.privacy, "Privaatsus"),
-                (weblinks.terms, "Kasutustingimused")
-            ]
-            for idx, (url, text) in enumerate(link_info):
-                btn = QPushButton(text)
-                btn.setObjectName("footerLinkButton")
-                btn.setCursor(Qt.PointingHandCursor)
-                btn.setFlat(True)
-                btn.setFocusPolicy(Qt.NoFocus)
-                btn.clicked.connect(lambda checked, u=url: QDesktopServices.openUrl(QUrl(u)))
-                link_buttons.append(btn)
-                left_frame_layout.addWidget(btn)
-                if idx < len(link_info) - 1:
-                    sep = QLabel("|")
-                    sep.setObjectName("footerLinkSeparator")
-                    sep.setAlignment(Qt.AlignVCenter)
-                    left_frame_layout.addWidget(sep)
-            left_frame.setLayout(left_frame_layout)
-            layout.addWidget(left_frame)
+            left_label = FooterLinksLabel(
+                [f"© {current_year} Valisee", "Koduleht", "Privaatsus", "Kasutustingimused"],
+                [None, wl.home, wl.privacy, wl.terms],
+            )
+            left_label.setObjectName("footerLeftLabel")
+            left_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            left_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+            left_label.setCursor(Qt.PointingHandCursor)
+
+            layout.addWidget(left_label)
         else:
             layout.addStretch(1)
 
-        # Right part: QGIS and plugin version
+        # Right: versions
         if show_right:
+            from ..constants.file_paths import ConfigPaths
             metadata_file = ConfigPaths.METADATA
             qgis_version = Qgis.QGIS_VERSION
             plugin_version = Version.get_plugin_version(metadata_file)
-            right_label = QLabel(f"QGIS {qgis_version} | Plugin v{plugin_version}")
-            right_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            right_label.setObjectName("footerLabel")
-            layout.addWidget(right_label)
+
+            right = QLabel(f"QGIS {qgis_version} | Plugin v{plugin_version}")
+            right.setObjectName("footerLabel")
+            right.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            right.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+            layout.addStretch(1)
+            layout.addWidget(right)
         else:
             layout.addStretch(1)
 
-        self.setLayout(layout)
+        # Set final layout on the widget
+        outer = QHBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(frame)
 
-        # Apply footer style using centralized ThemeManager logic (main + footer QSS)
-        from ..widgets.theme_manager import ThemeManager
-        from ..constants.file_paths import QssPaths
-        ThemeManager.apply_module_style(self, [QssPaths.FOOTER])
+        # Apply QSS (your ThemeManager call)
+
+        print(f"[FooterWidget] Applying QSS files: {QssPaths.FOOTER}")
+        ThemeManager.apply_module_style(frame, [QssPaths.FOOTER])
+        
+
+
+class FooterLinksLabel(QLabel):
+    def __init__(self, text_segments, urls, parent=None):
+        """
+        text_segments: ["© 2025 Valisee", "Koduleht", "Privaatsus", "Kasutustingimused"]
+        urls:          [None, home_url, privacy_url, terms_url]
+                       (None means not clickable)
+        """
+        super().__init__(parent)
+        self.segments = text_segments
+        self.urls = urls
+
+        # Build rich text with href tokens but no visible URLs
+        html_parts = []
+        for seg, url in zip(text_segments, urls):
+            if url:
+                html_parts.append(f'<a href="{url}">{seg}</a>')
+            else:
+                html_parts.append(seg)
+
+        self.setText(" | ".join(html_parts))
+        self.setTextFormat(Qt.RichText)
+        self.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        self.setOpenExternalLinks(False)  # handle ourselves for full control
+        self.linkActivated.connect(self.open_link)
+
+    def open_link(self, link: str):
+        QDesktopServices.openUrl(QUrl(link))

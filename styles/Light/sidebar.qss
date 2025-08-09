@@ -1,31 +1,73 @@
-/* Special right frame for toggle button */
-/* Sidebar vertical line spacer for toggle */
-#SidebarRightFrame {
-    background: #e6eaf0;
-    min-width: 24px;
-    max-width: 24px;
-    border: none;
+/* ===== Sidebar (Light) ===== */
+
+QWidget#SidebarRoot { background: transparent; }
+
+QFrame#SidebarContainer {
+    background: #f6f7f8;
+    border-right: 1px solid rgba(0,120,212,0.65);
+    background: qlineargradient(x1:1, y1:0, x2:0.94, y2:0,
+        stop:0 rgba(0,120,212,0.15),
+        stop:1 rgba(0,120,212,0.00)
+    ), #f6f7f8;
 }
 
-/* Toggle button visually overflows left of the line */
-#SidebarToggleButton {
+QFrame#SidebarNavFrame,
+QFrame#SettingsFrame {
+    background: #ffffff;
+    border: 1px solid #e1e4e8;
+    border-radius: 10px;
+    padding: 4px;
+}
+
+QPushButton#SidebarNavButton {
+    background: transparent;
+    color: #24292e;
     border: none;
-    background: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    text-align: left;
+}
+QPushButton#SidebarNavButton:hover {
+    background: rgba(0,120,212,0.10);
+    color: #000;
+}
+QPushButton#SidebarNavButton[active="true"] {
+    background: rgba(0,120,212,0.16);
+    color: #000;
+    border: 1px solid rgba(0,120,212,0.45);
+}
+
+QFrame#SettingsFrame > QPushButton {
+    background: #fafbfc;
+    color: #24292e;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+QFrame#SettingsFrame > QPushButton:hover {
+    background: #e1e4e8;
+    border-color: #2188ff;
+    color: #000;
+}
+
+QFrame#SidebarRightFrame { background: transparent; }
+/* Floating edge handle */
+QToolButton#SidebarToggleButton {
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 rgba(0,0,0,0.05),
+        stop:1 rgba(0,0,0,0.12)
+    );
+    color: #24292e;
+    border: 1px solid rgba(0,0,0,0.20);
+    border-radius: 8px;
     padding: 0;
-    min-width: 24px;
-    min-height: 24px;
-    max-width: 24px;
-    max-height: 24px;
-    margin-left: -12px;
-    color: #4a4a5a;
-    font-size: 14px;
-    box-shadow: 0 0 6px rgba(9, 144, 143, 0.12);
-    z-index: 2;
 }
-#SidebarToggleButton:hover {
-    background: #e0e6ed;
+QToolButton#SidebarToggleButton:hover {
+    border-color: rgba(9,144,143,0.55);
 }
-#SidebarToggleButton:pressed {
-    background: #cfd8e3;
-}
-/* Sidebar QSS for Light Theme */
+
+
+QWidget#SidebarRoot[compact="true"] QPushButton#SidebarNavButton { padding: 6px 6px; }
+QWidget#SidebarRoot[compact="true"] QFrame#SidebarNavFrame,
+QWidget#SidebarRoot[compact="true"] QFrame#SettingsFrame { padding: 2px; }
+

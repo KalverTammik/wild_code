@@ -195,9 +195,27 @@ class PluginDialog(QDialog):
             qss_files=qss_files
         )
         self.current_theme = new_theme
+        # Restyle header after theme toggle
+        if hasattr(self, 'header_widget'):
+            self.header_widget.retheme_header()
+        # Restyle sidebar after theme toggle
+        if hasattr(self, 'sidebar'):
+            self.sidebar.retheme_sidebar()
         # Restyle project cards after theme toggle
         if hasattr(self, 'projectsModule'):
-            self.projectsModule.on_theme_toggled()
+            self.projectsModule.rethem_project()
+        # Restyle contract module after theme toggle
+        if hasattr(self, 'contractModule'):
+            self.contractModule.retheme_contract()
+        # Restyle settings module after theme toggle
+        if hasattr(self, 'settingsModule'):
+            self.settingsModule.retheme_settings()
+        # Restyle user test dialog after theme toggle
+        if hasattr(self, 'testUserDataDialog'):
+            self.testUserDataDialog.retheme_user_test()
+        # Restyle footer after theme toggle
+        if hasattr(self, 'footer_widget'):
+            self.footer_widget.retheme_footer()
 
 
 

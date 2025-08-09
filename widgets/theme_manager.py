@@ -31,9 +31,11 @@ class ThemeManager:
         Centralized method to apply the correct theme (light/dark) and QSS file(s) to a widget.
         Usage: ThemeManager.apply_module_style(widget, [QssPaths.MODULE_CARD])
         """
+        print(f"[ThemeManager] Applying module style to {widget.objectName()} with QSS files: {qss_files}")
         theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
         from ..constants.file_paths import StylePaths
         theme_dir = StylePaths.DARK if theme == 'dark' else StylePaths.LIGHT
+        print(f"[ThemeManager] Applying theme: {theme} from {theme_dir} qss_files: {qss_files}")
         ThemeManager.apply_theme(widget, theme_dir, qss_files)
     @staticmethod
     def save_theme_setting(theme_name):

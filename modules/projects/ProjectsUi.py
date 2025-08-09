@@ -16,7 +16,7 @@ from ...constants.file_paths import StylePaths, QssPaths
 from .ProjectsLogic import ProjectsFeedLogic
 
 class ProjectsModule(BaseModule):
-    def on_theme_toggled(self):
+    def rethem_project(self):
         """
         Called by the main dialog after a theme toggle. Re-applies the theme to the main widget and all cards.
         Uses centralized ThemeManager.apply_module_style for all theming.
@@ -39,9 +39,12 @@ class ProjectsModule(BaseModule):
         self.widget = QWidget()
         self.widget.setLayout(QVBoxLayout())
         self.feed_content = QWidget()
+        from PyQt5.QtWidgets import QSizePolicy
+        self.feed_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.feed_layout = QVBoxLayout()
         self.feed_content.setLayout(self.feed_layout)
-        self.widget.layout().addWidget(self.feed_content)
+        self.feed_layout.addStretch(1)  # allow layout to expand and enable scrolling
+        # self.widget.layout().addWidget(self.feed_content)  # <-- REMOVED: do not add feed_content directly
 
         # Add scroll area for feed
         self.scroll_area = QScrollArea()
@@ -78,3 +81,4 @@ class ProjectsModule(BaseModule):
     def load_next_batch(self):
         items = self.feed_logic.fetch_next_batch()
         ModuleFeedBuilder.add_items_to_feed(self, items)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
