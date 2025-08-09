@@ -12,11 +12,11 @@ class ContractModule(ModuleBaseUI):
         super().__init__(parent)
         self.lang_manager = lang_manager
         self.theme_manager = theme_manager
-        self.theme_dir = theme_dir
-        self.qss_files = qss_files or []
-        # Example: apply theme if theme_manager is provided
-        if self.theme_manager and self.theme_dir and self.qss_files:
-            self.theme_manager.apply_theme(self, self.theme_dir, self.qss_files)
+        # Centralized theming
+        if self.theme_manager:
+            from ...widgets.theme_manager import ThemeManager
+            from ...constants.file_paths import QssPaths
+            ThemeManager.apply_module_style(self, [QssPaths.MAIN])
         # Use lang_manager for translated label if available
         label_text = self.lang_manager.translate("Contract module loaded!") if self.lang_manager else "Contract module loaded!"
         self.display_area.layout().addWidget(QLabel(label_text))

@@ -19,18 +19,13 @@ class SettingsUI(QWidget):
                 self.lang_manager = LanguageManager()
         else:
             self.lang_manager = lang_manager
-        from ...constants.file_paths import StylePaths, QssPaths
-        self.theme_dir = theme_dir or StylePaths.DARK
-        self.qss_files = qss_files or [QssPaths.MAIN, QssPaths.SIDEBAR]
+        from ...widgets.theme_manager import ThemeManager
+        from ...constants.file_paths import QssPaths
         self.theme_manager = theme_manager
         self.logic = SettingsLogic()
         self.setup_ui()
-        # Always apply the main theme, even if theme_manager is None
-        if self.theme_manager is not None:
-            self.theme_manager.apply_theme(self, self.theme_dir, qss_files=self.qss_files)
-        else:
-            from ...widgets.theme_manager import ThemeManager
-            ThemeManager.apply_theme(self, self.theme_dir, qss_files=self.qss_files)
+        # Centralized theming: always use main theme for this module
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN])
 
     def setup_ui(self):
         layout = QVBoxLayout(self)

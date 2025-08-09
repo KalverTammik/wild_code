@@ -35,6 +35,11 @@ class HeaderWidget(QWidget):
 
         self.setLayout(layout)
 
+        # Apply header style using centralized ThemeManager logic (main + header QSS)
+        from .theme_manager import ThemeManager
+        from ..constants.file_paths import QssPaths
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
+
 
     def set_switch_icon(self, icon):
         self.switchButton.setIcon(icon)

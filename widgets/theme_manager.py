@@ -24,6 +24,17 @@ from ..constants.file_paths import ResourcePaths
 import glob
 
 class ThemeManager:
+
+    @staticmethod
+    def apply_module_style(widget, qss_files):
+        """
+        Centralized method to apply the correct theme (light/dark) and QSS file(s) to a widget.
+        Usage: ThemeManager.apply_module_style(widget, [QssPaths.MODULE_CARD])
+        """
+        theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
+        from ..constants.file_paths import StylePaths
+        theme_dir = StylePaths.DARK if theme == 'dark' else StylePaths.LIGHT
+        ThemeManager.apply_theme(widget, theme_dir, qss_files)
     @staticmethod
     def save_theme_setting(theme_name):
         from qgis.core import QgsSettings

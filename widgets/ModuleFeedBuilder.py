@@ -12,26 +12,14 @@ class ModuleFeedBuilder:
         """
         Adds item cards to the feed layout of the given module instance.
         Handles all UI updates after adding cards.
-        Always uses the user's preferred theme (light/dark) for card theming.
+        Uses centralized ThemeManager.apply_module_style for card theming.
         """
-        theme_manager = getattr(module_instance, 'theme_manager', None)
-        # Always get the preferred theme from settings
-        theme_dir = None
-        if theme_manager and hasattr(theme_manager, 'load_theme_setting'):
-            from ..constants.file_paths import StylePaths
-            theme = theme_manager.load_theme_setting()
-            if theme == 'dark':
-                theme_dir = StylePaths.DARK
-            else:
-                theme_dir = StylePaths.LIGHT
-        else:
-            theme_dir = getattr(module_instance, 'theme_dir', None)
         for item in items:
-            card = ModuleFeedBuilder.create_item_card(
-                item,
-                theme_manager=theme_manager,
-                theme_dir=theme_dir
-            )
+            card = ModuleFeedBuilder.create_item_card(item)
+            # Centralized theming for card
+            from ..widgets.theme_manager import ThemeManager
+            from ..constants.file_paths import QssPaths
+            ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
             module_instance.feed_layout.addWidget(card)
         module_instance.feed_content.updateGeometry()
         module_instance.feed_content.adjustSize()
@@ -44,33 +32,27 @@ class ModuleFeedBuilder:
         module_instance.widget.show()
 
     @staticmethod
-    def retheme_cards_in_layout(layout, theme_manager, theme_dir):
+    def retheme_cards_in_layout(layout):
         """
-        Re-applies the universal card theme to all ModuleInfoCard widgets in the given layout.
-        Call this from any module's on_theme_toggled to robustly retheme all cards.
+        Re-applies the universal card theme to all ModuleInfoCard widgets in the given layout using centralized theming.
         """
-        print(f"Retheming cards in layout with theme_dir: {theme_dir} and QssPaths.MODULE_CARD")
         from PyQt5.QtWidgets import QFrame
+        from ..widgets.theme_manager import ThemeManager
+        from ..constants.file_paths import QssPaths
         for i in range(layout.count()):
             widget = layout.itemAt(i).widget()
             if isinstance(widget, QFrame) and widget.objectName() == "ModuleInfoCard":
-                # Clear and re-apply stylesheet for robust retheming
                 widget.setStyleSheet("")
-                print(f"Theming {widget.objectName()} with {theme_dir} and {QssPaths.MODULE_CARD}")
-                if theme_manager and theme_dir:
-                    theme_manager.apply_theme(widget, theme_dir, [QssPaths.MODULE_CARD])
+                ThemeManager.apply_module_style(widget, [QssPaths.MODULE_CARD])
                 widget.style().unpolish(widget)
                 widget.style().polish(widget)
                 widget.update()
 
     @staticmethod
-    def create_item_card(item, theme_manager=None, theme_dir=None):
+    def create_item_card(item):
         card = QFrame()
         card.setFrameShape(QFrame.StyledPanel)
         card.setObjectName("ModuleInfoCard")
-        # Always apply the universal module card theme
-        if theme_manager and theme_dir:
-            theme_manager.apply_theme(card, theme_dir, [QssPaths.MODULE_CARD])
         main_layout = QHBoxLayout(card)
         main_layout.setContentsMargins(0, 0, 0, 0)
         content_frame = QFrame()

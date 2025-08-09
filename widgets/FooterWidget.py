@@ -78,8 +78,7 @@ class FooterWidget(QWidget):
 
         self.setLayout(layout)
 
-        # Apply footer style using ThemeManager (main + footer QSS)
-        from ..constants.file_paths import StylePaths, QssPaths
-        theme = ThemeManager.load_theme_setting()
-        theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
-        ThemeManager.apply_theme(self, theme_dir, [QssPaths.MAIN, QssPaths.FOOTER])
+        # Apply footer style using centralized ThemeManager logic (main + footer QSS)
+        from ..widgets.theme_manager import ThemeManager
+        from ..constants.file_paths import QssPaths
+        ThemeManager.apply_module_style(self, [QssPaths.FOOTER])

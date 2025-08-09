@@ -19,38 +19,20 @@ class ProjectsModule(BaseModule):
     def on_theme_toggled(self):
         """
         Called by the main dialog after a theme toggle. Re-applies the theme to the main widget and all cards.
-        Always updates self.theme_dir from settings before applying theme.
+        Uses centralized ThemeManager.apply_module_style for all theming.
         """
-        if self.theme_manager and hasattr(self.theme_manager, 'load_theme_setting'):
-            from ...constants.file_paths import StylePaths
-            theme = self.theme_manager.load_theme_setting()
-            if theme == 'dark':
-                self.theme_dir = StylePaths.DARK
-            else:
-                self.theme_dir = StylePaths.LIGHT
-        if self.theme_manager and self.theme_dir:
-            self.theme_manager.apply_theme(self.widget, self.theme_dir, [])
-        # Re-apply theme to all module cards in the feed
-        for i in range(self.feed_layout.count()):
-            card = self.feed_layout.itemAt(i).widget()
-            if card and self.theme_manager and self.theme_dir:
-                self.theme_manager.apply_theme(card, self.theme_dir, [QssPaths.MODULE_CARD])
+        if self.theme_manager:
+            self.theme_manager.apply_module_style(self.widget, [])
+            for i in range(self.feed_layout.count()):
+                card = self.feed_layout.itemAt(i).widget()
+                if card:
+                    self.theme_manager.apply_module_style(card, [QssPaths.MODULE_CARD])
     def on_scroll(self, value):
         bar = self.scroll_area.verticalScrollBar()
         if value == bar.maximum() and self.feed_logic.has_more and not self.feed_logic.is_loading:
             self.load_next_batch()
     def __init__(self, name="ProjectsModule", display_name=None, icon=None, lang_manager=None, theme_manager=None, theme_dir=None, qss_files=None):
         super().__init__(name, display_name or "Projects", icon, lang_manager or LanguageManager(), theme_manager)
-        # Always set theme_dir from settings for correct theme on reload
-        if self.theme_manager and hasattr(self.theme_manager, 'load_theme_setting'):
-            from ...constants.file_paths import StylePaths
-            theme = self.theme_manager.load_theme_setting()
-            if theme == 'dark':
-                self.theme_dir = StylePaths.DARK
-            else:
-                self.theme_dir = StylePaths.LIGHT
-        else:
-            self.theme_dir = theme_dir
         self.feed_logic = ProjectsFeedLogic("PROJECT", "ListAllProjects.graphql", self.lang_manager)
 
         # Main widget and layout
@@ -68,8 +50,8 @@ class ProjectsModule(BaseModule):
         self.widget.layout().addWidget(self.scroll_area)
 
         # Theming
-        if self.theme_manager and self.theme_dir:
-            self.theme_manager.apply_theme(self.widget, self.theme_dir, [])
+        if self.theme_manager:
+            self.theme_manager.apply_module_style(self.widget, [])
 
         # Connect scroll event for infinite scroll
         self.scroll_area.verticalScrollBar().valueChanged.connect(self.on_scroll)

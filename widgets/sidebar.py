@@ -116,43 +116,18 @@ class Sidebar(QWidget):
     def _store_expanded_width(self):
         self._expanded_width = self.width()
     def applyStyles(self):
-        """Apply styles to the sidebar and toggle button using ThemeManager and QSS only."""
-        theme = ThemeManager.load_theme_setting()
-        from ..constants.file_paths import StylePaths
-        theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
-        ThemeManager.apply_theme(self, theme_dir, [QssPaths.SIDEBAR])
-
-
-
-        from ..constants.file_paths import STYLES  # QssPaths already imported at top
-        self.theme_base_dir = STYLES
+        """Apply styles to the sidebar using centralized ThemeManager only."""
+        ThemeManager.apply_module_style(self, [QssPaths.SIDEBAR])
         self.settingsModule = SettingsUI(
             lang_manager,
-            theme_manager,
-            theme_dir=self.theme_base_dir,
-            qss_files=[QssPaths.MAIN, QssPaths.SIDEBAR]
+            theme_manager
         )
-
-        # Connect the button to show the Settings UI
         self.settingsButton.clicked.connect(self.showSettingsModule)
-
-        # Initialize animation for sidebar width (bounce effect)
         self.animation = QPropertyAnimation(self, b"minimumWidth")
-        self.animation.setDuration(300)  # Animation duration in milliseconds
-        self.animation.setEasingCurve(QEasingCurve.OutBounce)  # Bounce effect
-
-        # Store the original (expanded) sidebar width after layout is set up
+        self.animation.setDuration(300)
+        self.animation.setEasingCurve(QEasingCurve.OutBounce)
         self._expanded_width = None
-        # Now that all widgets/frames are created, set expanded width
         self._set_expanded_width_later()
-
-    def _set_expanded_width_later(self):
-        # Use a single-shot timer to set the expanded width after the widget is shown
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, self._store_expanded_width)
-
-    def _store_expanded_width(self):
-        self._expanded_width = self.width()
 
     def showSettingsModule(self):
         self.settingsModule.show()

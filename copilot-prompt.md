@@ -5,7 +5,8 @@
 
 1. **Centralized Theme Management**
    - All theme logic (theme detection, toggling, QSS application) must use the shared `ThemeManager`.
-   - Never hardcode theme logic or QSS paths in individual modules/widgets.
+   - All modules and widgets must use `ThemeManager.apply_module_style(widget, [QssPaths.VARIABLE])` for theming.
+   - Never hardcode theme logic or QSS paths in individual modules/widgets. Never use direct `theme_dir` or `qss_files` logic.
 
 2. **QSS File Structure**
    - All theme-specific QSS files must be placed in `styles/Light/` and `styles/Dark/` folders.
@@ -13,7 +14,7 @@
 
 3. **Widget Styling**
    - Assign a unique `objectName` to any widget that needs custom QSS (e.g., `"NewModule"`).
-   - Apply QSS using `ThemeManager.apply_theme(widget, theme_dir, QssPaths.VARIABLE)` for all such widgets. If Variable does not exist create if new file was created
+   - Apply QSS using `ThemeManager.apply_module_style(widget, [QssPaths.VARIABLE])` for all such widgets. If the QSS variable does not exist, create a new QSS file and add it to `QssPaths`.
 
 4. **Dynamic Restyling**
    - Any module that creates dynamic content (e.g., cards, list items) must implement a method to re-apply QSS to all such widgets (e.g., `restyle_project_cards()`).
@@ -25,10 +26,11 @@
      - Call each module’s restyle method (e.g., `projectsModule.on_theme_toggled()`) to update all content.
 
 6. **No Direct QSS File Reading**
-   - Do not read QSS files directly in modules. Always use `ThemeManager.apply_theme`.
+   - Do not read QSS files directly in modules. Always use `ThemeManager.apply_module_style`.
 
 7. **Documentation**
-   - All new modules/widgets must document how they support theme switching and QSS application.
+   - All new modules/widgets must document how they support theme switching and QSS application. Add a docstring such as:
+     - "This module supports dynamic theme switching via ThemeManager.apply_module_style."
 # QGIS Plugin Coding Guidelines
 
 ## Table of Contents
@@ -145,45 +147,21 @@ This ensures all API interactions are secure, maintainable, and consistent acros
 ## 6. UI/UX & Theming Guidelines
 ### Theme Application Pattern (REQUIRED)
 
-**Always apply QSS themes using the following pattern in all modules and widgets:**
+**Always apply QSS themes using the following universal pattern in all modules and widgets:**
 
-
-1. Determine the current theme:
-    ```python
-    theme = ThemeManager.load_theme_setting()
-    ```
-2. Set the theme directory:
-    ```python
-    from ..constants.file_paths import StylePaths
-    theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
-    ```
-
-3. Apply the theme using the correct directory and a list of QSS files that match the context of your widget or module:
-    ```python
-    from ..constants.file_paths import QssPaths
-    # For any widget or module, select the QSS file(s) that best match its purpose:
-    #   - For a toolbar widget or module: [QssPaths.MODULE_TOOLBAR]
-    #   - For a sidebar widget or module: [QssPaths.SIDEBAR]
-    #   - For a footer widget or module:  [QssPaths.FOOTER]
-    #   - For a main window or general UI: [QssPaths.MAIN]
-    #   - For custom or composite UIs, combine as needed:
-    ThemeManager.apply_theme(self, theme_dir, [QssPaths.SIDEBAR])  # Sidebar example
-    ThemeManager.apply_theme(self, theme_dir, [QssPaths.MODULE_TOOLBAR])  # Toolbar example
-    ThemeManager.apply_theme(self, theme_dir, [QssPaths.FOOTER])  # Footer example
-    ThemeManager.apply_theme(self, theme_dir, [QssPaths.MAIN])    # Main/general example
-    ThemeManager.apply_theme(self, theme_dir, [QssPaths.MAIN, QssPaths.SIDEBAR])  # Composite example
-    ```
+```python
+from ..constants.file_paths import QssPaths
+from ..widgets.theme_manager import ThemeManager
+ThemeManager.apply_module_style(self, [QssPaths.SIDEBAR])  # Sidebar example
+ThemeManager.apply_module_style(self, [QssPaths.MODULE_TOOLBAR])  # Toolbar example
+ThemeManager.apply_module_style(self, [QssPaths.FOOTER])  # Footer example
+ThemeManager.apply_module_style(self, [QssPaths.MAIN])    # Main/general example
+ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.SIDEBAR])  # Composite example
+```
 
 **Always select the QSS file(s) that are appropriate for the specific widget or module you are developing—this pattern applies universally to both widgets and modules.**
 
-**Never pass a QSS file name as the theme_dir argument. Always use the theme directory and a list of QSS file names.**
-
-**Example for a custom widget:**
-```python
-theme = ThemeManager.load_theme_setting()
-theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
-ThemeManager.apply_theme(self, theme_dir, [QssPaths.SIDEBAR])
-```
+**Never use direct theme_dir or qss_files logic. Always use ThemeManager.apply_module_style.**
 
 This ensures correct and consistent theme application across the plugin.
 ### General Design
