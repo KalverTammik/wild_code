@@ -40,6 +40,7 @@ class APIClient:
             response = requests.post(self.api_url, json=payload, headers=headers, timeout=timeout)
             if response.status_code == 200:
                 data = response.json()
+                print(f"API response: {data}")  # Debugging output
                 if "errors" in data:
                     # Print and raise the raw GraphQL errors for debugging
                     print("GraphQL errors:", data["errors"])

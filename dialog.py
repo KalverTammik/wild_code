@@ -129,18 +129,35 @@ class PluginDialog(QDialog):
         print("[PluginDialog] loadModules called")
 
         from .modules.projects.ProjectsUi import ProjectsModule
-        from .modules.contract.ContractModule import ContractModule
+        # from .modules.contract.ContractModule import ContractModule
+        from .modules.contract.ContractUi import ContractUi
         from .modules.Settings.SettingsUI import SettingsUI
         from .modules.UserTest.TestUserDataDialog import TestUserDataDialog
 
         qss_modular = [QssPaths.MAIN, QssPaths.SIDEBAR]
         settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         self.projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        contractModule = ContractModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        self.contractUI = ContractUi(lang_manager=lang_manager, theme_manager=theme_manager)
         testUserDataDialog = TestUserDataDialog(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
 
         self.moduleManager.registerModule(self.projectsModule)
-        self.moduleManager.registerModule(contractModule)
+        # self.moduleManager.registerModule(contractModule)
+        # Register ContractUi directly with module manager-like structure
+        class _ContractWrap:
+            def __init__(self, widget):
+                self.name = "ContractModule"
+                self._w = widget
+            def get_widget(self):
+                return self._w
+            def activate(self):
+                pass
+            def deactivate(self):
+                pass
+            def retheme_contract(self):
+                if hasattr(self._w, 'retheme_contract'):
+                    self._w.retheme_contract()
+        self.contractModule = _ContractWrap(self.contractUI)
+        self.moduleManager.registerModule(self.contractModule)
         self.moduleManager.registerModule(testUserDataDialog)
 
         print("[PluginDialog] Registered modules:")
@@ -205,8 +222,8 @@ class PluginDialog(QDialog):
         if hasattr(self, 'projectsModule'):
             self.projectsModule.rethem_project()
         # Restyle contract module after theme toggle
-        if hasattr(self, 'contractModule'):
-            self.contractModule.retheme_contract()
+        if hasattr(self, 'contractUI') and hasattr(self.contractUI, 'retheme_contract'):
+            self.contractUI.retheme_contract()
         # Restyle settings module after theme toggle
         if hasattr(self, 'settingsModule'):
             self.settingsModule.retheme_settings()

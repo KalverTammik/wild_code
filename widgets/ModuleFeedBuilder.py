@@ -23,6 +23,7 @@ from .status_color_helper import StatusColorHelper
 class ModuleFeedBuilder:
     @staticmethod
     def create_item_card(item):
+        print("[ModuleFeedBuilder] Creating item card for:", item)
         card = QFrame()
         card.setObjectName("ModuleInfoCard")
         card.setProperty("compact", False)

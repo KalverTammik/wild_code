@@ -1,0 +1,52 @@
+query contracts($first: Int, $after: String, $search: String, $where: QueryContractsWhereWhereConditions, $orderBy: [QueryContractsOrderByOrderByClause!], $trashed: Trashed) {
+  contracts(
+    first: $first
+    after: $after
+    search: $search
+    where: $where
+    orderBy: $orderBy
+    trashed: $trashed
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        __typename
+        id
+        number
+        name
+        sum {
+          amount
+          currencyCode
+        }
+        signedAt
+        completedAt
+        warrantyDueAt
+        members {
+          edges {
+            node {
+              id
+              displayName
+              deletedAt
+            }
+            isResponsible
+          }
+        }
+        status {
+          id
+          name
+          color
+          type
+        }
+        type {
+          name
+        }
+        description
+      }
+    }
+  }
+}
