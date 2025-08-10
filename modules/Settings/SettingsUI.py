@@ -34,11 +34,17 @@ class SettingsUI(QWidget):
         self._user_labels = {}
         self._pills_container = None
         self._pill_checks = {}
+        # Roles UI storage
+        self._roles_container = None
         # Track settings changes
         self._pending_changes = False
         self._pending_settings = {}
         self._original_settings = {}
-        self._confirm_btn = None
+        # Confirm buttons across cards
+        self._confirm_btns = []
+        # Modules available for module-specific cards
+        self._available_modules = []
+        self._module_cards = {}
         self.setup_ui()
         # Centralized theming
         ThemeManager.apply_module_style(self, [QssPaths.MAIN])
@@ -56,17 +62,21 @@ class SettingsUI(QWidget):
         self.scroll_area.setWidget(self.cards_container)
         root.addWidget(self.scroll_area)
 
-        # Add one mock card to demonstrate UI/UX (no functionality)
-        mock = self._build_mock_setup_card()
-        self._cards.append(mock)
-        self.cards_layout.insertWidget(0, mock)
+        # Add one User card first
+        user_card = self._build_user_setup_card()
+        self._cards.append(user_card)
+        self.cards_layout.insertWidget(0, user_card)
         # Apply card-specific theming if available
         try:
-            ThemeManager.apply_module_style(mock, [QssPaths.SETUP_CARD])
+            ThemeManager.apply_module_style(user_card, [QssPaths.SETUP_CARD])
         except Exception:
             pass
 
-    def _build_mock_setup_card(self) -> QWidget:
+        # Build module-specific cards if already known
+        if self._available_modules:
+            self._build_module_cards()
+
+    def _build_user_setup_card(self) -> QWidget:
         card = QFrame(self)
         card.setObjectName("SetupCard")
         card.setFrameShape(QFrame.NoFrame)
@@ -75,16 +85,13 @@ class SettingsUI(QWidget):
         lay.setSpacing(10)
         # Header
         hdr = QHBoxLayout(); hdr.setContentsMargins(0,0,0,0)
-        title = QLabel(self.lang_manager.translate("Layer Setup (Mock)"))
+        # Show translated User name on the left
+        title = QLabel(self.lang_manager.translate("User"))
         title.setObjectName("SetupCardTitle")
-        desc = QLabel(self.lang_manager.translate("Configure project-related options. This is a mock card for UI/UX only."))
-        desc.setObjectName("SetupCardDescription")
-        desc.setWordWrap(True)
         hdr.addWidget(title, 0)
         hdr.addStretch(1)
         lay.addLayout(hdr)
-        lay.addWidget(desc)
-        # Content (placeholder)
+        # Content
         content = QFrame(card); content.setObjectName("SetupCardContent")
         cl = QVBoxLayout(content); cl.setContentsMargins(0,0,0,0); cl.setSpacing(6)
         # User info labels (populated on activate)
@@ -93,6 +100,17 @@ class SettingsUI(QWidget):
         self._user_labels['email'] = QLabel(self.lang_manager.translate("Email") + ": —")
         cl.addWidget(self._user_labels['id'])
         cl.addWidget(self._user_labels['name'])
+        # Roles section (directly after Name)
+        roles_title = QLabel(self.lang_manager.translate("Roles"))
+        roles_title.setObjectName("SetupCardSectionTitle")
+        cl.addWidget(roles_title)
+        self._roles_container = QFrame(content)
+        self._roles_container.setObjectName("RolesPills")
+        self._roles_layout = QHBoxLayout(self._roles_container)
+        self._roles_layout.setContentsMargins(0,0,0,0)
+        self._roles_layout.setSpacing(6)
+        cl.addWidget(self._roles_container)
+        # Email shown after roles
         cl.addWidget(self._user_labels['email'])
         # Module access pills section (populated on activate)
         pills_title = QLabel(self.lang_manager.translate("Module access"))
@@ -108,19 +126,86 @@ class SettingsUI(QWidget):
         # Footer actions: Confirm button appears when there are pending changes
         ftr = QHBoxLayout(); ftr.setContentsMargins(0,6,0,0)
         ftr.addStretch(1)
-        self._confirm_btn = QPushButton(self.lang_manager.translate("Confirm"))
-        self._confirm_btn.setEnabled(False)
-        self._confirm_btn.setVisible(False)
-        self._confirm_btn.clicked.connect(self._on_confirm_clicked)
-        ftr.addWidget(self._confirm_btn)
+        confirm_btn = QPushButton(self.lang_manager.translate("Confirm"))
+        confirm_btn.setEnabled(False)
+        confirm_btn.setVisible(False)
+        confirm_btn.clicked.connect(self._on_confirm_clicked)
+        ftr.addWidget(confirm_btn)
+        self._confirm_btns.append(confirm_btn)
         lay.addLayout(ftr)
         return card
+
+    def _build_module_cards(self):
+        # Remove existing module cards first
+        for name, card in list(self._module_cards.items()):
+            card.setParent(None)
+        self._module_cards.clear()
+        # Insert after the first card (user card)
+        insert_index = 1
+        for module_name in self._available_modules:
+            card = self._build_module_card(module_name)
+            self._module_cards[module_name] = card
+            self.cards_layout.insertWidget(insert_index, card)
+            insert_index += 1
+            try:
+                ThemeManager.apply_module_style(card, [QssPaths.SETUP_CARD])
+            except Exception:
+                pass
+
+    def _build_module_card(self, module_name: str) -> QWidget:
+        card = QFrame(self)
+        card.setObjectName("SetupCard")
+        card.setFrameShape(QFrame.NoFrame)
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(16, 16, 16, 16)
+        lay.setSpacing(10)
+        # Header
+        hdr = QHBoxLayout(); hdr.setContentsMargins(0,0,0,0)
+        title = QLabel(self.lang_manager.sidebar_button(module_name))
+        title.setObjectName("SetupCardTitle")
+        hdr.addWidget(title, 0)
+        hdr.addStretch(1)
+        lay.addLayout(hdr)
+        # Content placeholder with red border
+        content = QFrame(card)
+        content.setObjectName("ModuleSettingsPlaceholder")
+        content.setStyleSheet("border: 1px solid #d33; min-height: 64px; border-radius: 6px;")
+        cl = QVBoxLayout(content); cl.setContentsMargins(8,8,8,8); cl.setSpacing(6)
+        placeholder_lbl = QLabel(self.lang_manager.translate("Module settings placeholder"), content)
+        cl.addWidget(placeholder_lbl)
+        lay.addWidget(content)
+        # Footer confirm button for this card (same behavior)
+        ftr = QHBoxLayout(); ftr.setContentsMargins(0,6,0,0)
+        ftr.addStretch(1)
+        confirm_btn = QPushButton(self.lang_manager.translate("Confirm"))
+        confirm_btn.setEnabled(False)
+        confirm_btn.setVisible(False)
+        confirm_btn.clicked.connect(self._on_confirm_clicked)
+        ftr.addWidget(confirm_btn)
+        self._confirm_btns.append(confirm_btn)
+        lay.addLayout(ftr)
+        return card
+
+    def set_available_modules(self, module_names):
+        # Expect a list of internal module names to show cards for
+        module_names = module_names or []
+        # Deduplicate while preserving order
+        seen = set()
+        ordered = []
+        for n in module_names:
+            if n not in seen:
+                seen.add(n)
+                ordered.append(n)
+        self._available_modules = ordered
+        if getattr(self, '_initialized', False):
+            self._build_module_cards()
 
     def activate(self):
         if not self._initialized:
             self._initialized = True
-            # Future: create cards from registry and bind state
-            pass
+            # Build module cards if modules were provided before initialization
+            if self._available_modules:
+                self._build_module_cards()
         # Load user data once when activated
         if not getattr(self, '_user_loaded', False):
             try:
@@ -136,7 +221,8 @@ class SettingsUI(QWidget):
                 self._user_labels['id'].setText(f"ID: {uid}")
                 self._user_labels['name'].setText(self.lang_manager.translate("Name") + f": {full_name}")
                 self._user_labels['email'].setText(self.lang_manager.translate("Email") + f": {email}")
-                # Update module access pills
+                # Update roles and module access pills
+                self._update_roles(user.get("roles"))
                 self._update_module_pills(user.get("abilities"))
                 # After pills are created, load original settings and sync UI
                 self._load_original_settings()
@@ -171,6 +257,37 @@ class SettingsUI(QWidget):
                 ThemeManager.apply_module_style(card, [QssPaths.SETUP_CARD])
             except Exception:
                 pass
+
+    def _update_roles(self, roles):
+        import json
+        roles = roles or []
+        if isinstance(roles, str):
+            try:
+                roles = json.loads(roles)
+            except Exception:
+                roles = []
+        # Clear previous
+        if hasattr(self, '_roles_layout'):
+            while self._roles_layout.count():
+                item = self._roles_layout.takeAt(0)
+                w = item.widget()
+                if w is not None:
+                    w.setParent(None)
+        # Build role pills (reuse AccessPill styling)
+        for r in roles:
+            name = r.get('displayName') or r.get('name') or str(r.get('id') or '')
+            if not name:
+                continue
+            pill = QFrame(self._roles_container)
+            pill.setObjectName("AccessPill")
+            pill.setProperty('active', True)
+            pill.setProperty('inactive', False)
+            pill.style().unpolish(pill); pill.style().polish(pill)
+            hl = QHBoxLayout(pill); hl.setContentsMargins(6,0,6,0); hl.setSpacing(4)
+            lbl = QLabel(name, pill)
+            hl.addWidget(lbl)
+            self._roles_layout.addWidget(pill)
+        self._roles_layout.addStretch(1)
 
     def _update_module_pills(self, abilities):
         import json
@@ -260,9 +377,13 @@ class SettingsUI(QWidget):
 
     def _set_dirty(self, dirty: bool):
         self._pending_changes = bool(dirty)
-        if self._confirm_btn is not None:
-            self._confirm_btn.setVisible(self._pending_changes)
-            self._confirm_btn.setEnabled(self._pending_changes)
+        # Toggle all confirm buttons across cards
+        for btn in getattr(self, '_confirm_btns', []):
+            try:
+                btn.setVisible(self._pending_changes)
+                btn.setEnabled(self._pending_changes)
+            except Exception:
+                pass
 
     def has_unsaved_changes(self) -> bool:
         return bool(self._pending_changes)

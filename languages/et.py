@@ -19,6 +19,13 @@ TRANSLATIONS = {
     "switch_to_dark_mode": "Lülita tumedale režiimile",
     "switch_to_light_mode": "Lülita heledale režiimile",
     "unknown_module": "Tundmatu moodul: {module}",
-    "query_file_not_found": "Päringu faili ei leitud: {file}"
-    ,"save_setting": "Salvesta säte"
+    "query_file_not_found": "Päringu faili ei leitud: {file}",
+    "save_setting": "Salvesta säte",
+    "User": "Kasutaja",
+    "Roles": "Rollid",
+    "Module access": "Moodulite ligipääs",
+    "Confirm": "Kinnita",
+    "Name": "Nimi",
+    "Email": "E-post",
+    "Module settings placeholder": "Mooduli seadete kohatäide"
 }

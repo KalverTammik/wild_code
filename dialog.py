@@ -183,8 +183,19 @@ class PluginDialog(QDialog):
                 # Do not add Settings or legacy UserTest to the top module list; both are accessible differently
                 if moduleName not in (SETTINGS_MODULE, USER_TEST_MODULE):
                     self.sidebar.addItem(displayName, moduleName, iconPath)
+                    # Track modules visible in sidebar for settings module cards
+                    try:
+                        self._sidebar_modules.append(moduleName)
+                    except AttributeError:
+                        self._sidebar_modules = [moduleName]
                 self.moduleStack.addWidget(widget)
-
+        # Inform Settings module which module cards to show (only those visible in sidebar)
+        try:
+            visible = getattr(self, '_sidebar_modules', [])
+            if hasattr(self, 'settingsModule') and hasattr(self.settingsModule, 'set_available_modules'):
+                self.settingsModule.set_available_modules(visible)
+        except Exception:
+            pass
 
     def _confirm_unsaved_settings_if_needed(self, target_module) -> bool:
         """Check for unsaved changes in Settings and prompt the user.

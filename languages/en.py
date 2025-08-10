@@ -14,6 +14,13 @@ TRANSLATIONS = {
     "language_label": "Language:",
     "mailabl_listener": "Mailabl Listener",
     "unknown_module": "Unknown module: {module}",
-    "query_file_not_found": "Query file not found: {file}"
-    ,"save_setting": "Save setting"
+    "query_file_not_found": "Query file not found: {file}",
+    "save_setting": "Save setting",
+    "User": "User",
+    "Roles": "Roles",
+    "Module access": "Module access",
+    "Confirm": "Confirm",
+    "Name": "Name",
+    "Email": "Email",
+    "Module settings placeholder": "Module settings placeholder"
 }
