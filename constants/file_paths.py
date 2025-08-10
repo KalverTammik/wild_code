@@ -1,4 +1,3 @@
-
 import os
 from .base_paths import PLUGIN_ROOT, CONFIG_DIR, RESOURCE, STYLES, MODULES
 from .module_names import GPT_ASSISTANT_MODULE
@@ -52,6 +51,7 @@ class QssPaths:
     LOGIN = "login.qss"
     MODULE_TOOLBAR = "ModuleToolbar.qss"
     MODULE_CARD = "ModuleCard.qss"
+    SETUP_CARD = "SetupCard.qss"
     LIGHT_THEME = os.path.join(PLUGIN_ROOT, STYLES, "LightTheme.qss")
     DARK_THEME = os.path.join(PLUGIN_ROOT, STYLES, "DarkTheme.qss")
     SIDEBAR_THEME = os.path.join(PLUGIN_ROOT, STYLES, "Sidebar.qss")

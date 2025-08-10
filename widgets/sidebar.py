@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import (
 
 from ..constants.file_paths import QssPaths
 from ..widgets.theme_manager import ThemeManager
-from ..modules.Settings.SettingsUI import SettingsUI
 from ..module_manager import ModuleManager, SETTINGS_MODULE
 from ..languages.language_manager import LanguageManager
 
@@ -77,10 +76,13 @@ class Sidebar(QWidget):
         settings_name = module_manager.get_module_name(SETTINGS_MODULE)
         settings_icon = module_manager.getModuleIcon(SETTINGS_MODULE)
         self.settingsButton = QPushButton(settings_name, self.settingsFrame)
+        self.settingsButton.setObjectName("SidebarSettingsButton")
         if settings_icon:
             self.settingsButton.setIcon(QIcon(settings_icon))
         self.settingsButton.clicked.connect(self.showSettingsModule)
         sl.addWidget(self.settingsButton)
+        # remember original label for compact mode toggle
+        self.buttonTexts[self.settingsButton] = settings_name
 
         # Mount main frame into container
         container_layout = QVBoxLayout(self.container)
@@ -142,14 +144,18 @@ class Sidebar(QWidget):
             btn.setEnabled(True)
             btn.setProperty('active', active)
             btn.style().unpolish(btn); btn.style().polish(btn)
+        # also reflect active state on the bottom Settings button
+        if hasattr(self, 'settingsButton'):
+            is_settings = (module_name == SETTINGS_MODULE)
+            self.settingsButton.setProperty('active', is_settings)
+            self.settingsButton.style().unpolish(self.settingsButton); self.settingsButton.style().polish(self.settingsButton)
 
     def emitItemClicked(self, itemName):
         self.itemClicked.emit(itemName)
 
     def showSettingsModule(self):
-        # Replace with your SettingsUI show logic if needed
-        dlg = SettingsUI(lang_manager, theme_manager)
-        dlg.show()
+        # Switch to the registered Settings module in the main stack
+        self.emitItemClicked(SETTINGS_MODULE)
 
     def retheme_sidebar(self):
         ThemeManager.apply_module_style(self, [QssPaths.SIDEBAR])

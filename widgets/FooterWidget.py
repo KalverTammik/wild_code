@@ -17,7 +17,6 @@ class FooterWidget(QWidget):
         """
         from ..widgets.theme_manager import ThemeManager
         from ..constants.file_paths import QssPaths
-        print(f"[FooterWidget] Retheming footer with QSS: {QssPaths.FOOTER}")
         ThemeManager.apply_module_style(self.findChild(QFrame, "footerWidgetFrame"), [QssPaths.FOOTER])
         frame = self.findChild(QFrame, "footerWidgetFrame")
         if frame:
@@ -78,7 +77,6 @@ class FooterWidget(QWidget):
 
         # Apply QSS (your ThemeManager call)
 
-        print(f"[FooterWidget] Applying QSS files: {QssPaths.FOOTER}")
         ThemeManager.apply_module_style(frame, [QssPaths.FOOTER])
         
 

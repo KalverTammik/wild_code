@@ -38,6 +38,7 @@ class APIClient:
                 headers["Authorization"] = f"Bearer {token}"
         try:
             response = requests.post(self.api_url, json=payload, headers=headers, timeout=timeout)
+            
             if response.status_code == 200:
                 data = response.json()
                 print(f"API response: {data}")  # Debugging output

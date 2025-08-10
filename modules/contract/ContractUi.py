@@ -24,6 +24,12 @@ class ContractUi(ModuleBaseUI):
             ThemeManager.apply_module_style(self, [QssPaths.MAIN])
 
 
+        # Content label
+        text = self.logic.get_welcome_text() if self.logic else (
+            self.lang_manager.translate("Contract module loaded!") if self.lang_manager else "Contract module loaded!"
+        )
+        self.display_area.layout().addWidget(QLabel(text))
+
         # Build feed area similar to Projects
         self.feed_content = QWidget()
         from PyQt5.QtWidgets import QSizePolicy
@@ -45,8 +51,13 @@ class ContractUi(ModuleBaseUI):
         self.scroll_area.verticalScrollBar().valueChanged.connect(self.on_scroll)
         self._activated = False
 
-        # Initial load
-        self.load_next_batch()
+        # Initial load removed; will load on activate()
+        # self.load_next_batch()
+
+    def activate(self):
+        if not getattr(self, "_activated", False):
+            self._activated = True
+            self.load_next_batch()
 
     def retheme_contract(self):
         """

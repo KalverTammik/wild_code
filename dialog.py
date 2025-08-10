@@ -10,7 +10,8 @@ from qgis.core import QgsMessageLog, Qgis
 from .login_dialog import LoginDialog
 from .widgets.theme_manager import ThemeManager
 from .languages.language_manager import LanguageManager
-from .module_manager import ModuleManager
+from .module_manager import ModuleManager, SETTINGS_MODULE
+from .constants.module_names import USER_TEST_MODULE
 from .widgets.sidebar import Sidebar
 from .utils.SessionManager import SessionManager
 
@@ -35,6 +36,7 @@ class PluginDialog(QDialog):
         super().__init__(parent)
 
         self._geometry_restored = False
+        self._debug = False  # toggle to True for verbose logs
         self.setWindowTitle(lang_manager.translate("wild_code_plugin_title"))
         from PyQt5.QtWidgets import QSizePolicy
         self.moduleManager = ModuleManager()
@@ -126,7 +128,8 @@ class PluginDialog(QDialog):
 
 
     def loadModules(self):
-        print("[PluginDialog] loadModules called")
+        if getattr(self, "_debug", False):
+            print("[PluginDialog] loadModules called")
 
         from .modules.projects.ProjectsUi import ProjectsModule
         # from .modules.contract.ContractModule import ContractModule
@@ -135,11 +138,12 @@ class PluginDialog(QDialog):
         from .modules.UserTest.TestUserDataDialog import TestUserDataDialog
 
         qss_modular = [QssPaths.MAIN, QssPaths.SIDEBAR]
-        settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
+        self.settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         self.projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         self.contractUI = ContractUi(lang_manager=lang_manager, theme_manager=theme_manager)
         testUserDataDialog = TestUserDataDialog(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
 
+        self.moduleManager.registerModule(self.settingsModule)
         self.moduleManager.registerModule(self.projectsModule)
         # self.moduleManager.registerModule(contractModule)
         # Register ContractUi directly with module manager-like structure
@@ -150,7 +154,8 @@ class PluginDialog(QDialog):
             def get_widget(self):
                 return self._w
             def activate(self):
-                pass
+                if hasattr(self._w, 'activate'):
+                    self._w.activate()
             def deactivate(self):
                 pass
             def retheme_contract(self):
@@ -160,9 +165,10 @@ class PluginDialog(QDialog):
         self.moduleManager.registerModule(self.contractModule)
         self.moduleManager.registerModule(testUserDataDialog)
 
-        print("[PluginDialog] Registered modules:")
-        for moduleName in self.moduleManager.modules:
-            print(f"  - {moduleName}")
+        if getattr(self, "_debug", False):
+            print("[PluginDialog] Registered modules:")
+            for moduleName in self.moduleManager.modules:
+                print(f"  - {moduleName}")
 
         for moduleName, moduleInfo in self.moduleManager.modules.items():
             iconPath = moduleInfo["icon"]
@@ -171,33 +177,80 @@ class PluginDialog(QDialog):
             # Ensure widget is an instance, not a class
             if isinstance(widget, type):
                 widget = widget()
-            print(f"[PluginDialog] Adding sidebar item: displayName={displayName}, moduleName={moduleName}, iconPath={iconPath}")
+            if getattr(self, "_debug", False):
+                print(f"[PluginDialog] Adding sidebar item: displayName={displayName}, moduleName={moduleName}, iconPath={iconPath}")
             if widget is not None:
-                self.sidebar.addItem(displayName, moduleName, iconPath)
+                # Do not add Settings or legacy UserTest to the top module list; both are accessible differently
+                if moduleName not in (SETTINGS_MODULE, USER_TEST_MODULE):
+                    self.sidebar.addItem(displayName, moduleName, iconPath)
                 self.moduleStack.addWidget(widget)
 
 
+    def _confirm_unsaved_settings_if_needed(self, target_module) -> bool:
+        """Check for unsaved changes in Settings and prompt the user.
+        Returns True if navigation may proceed, False to cancel.
+        """
+        try:
+            from PyQt5.QtWidgets import QMessageBox
+            settings_widget = getattr(self, 'settingsModule', None)
+            if not settings_widget:
+                return True
+            # Only prompt when currently in Settings and navigating away
+            active = self.moduleManager.getActiveModule()
+            if not active or active.get('name') != SETTINGS_MODULE or target_module == SETTINGS_MODULE:
+                return True
+            has_changes = False
+            if hasattr(settings_widget, 'has_unsaved_changes') and callable(settings_widget.has_unsaved_changes):
+                has_changes = settings_widget.has_unsaved_changes()
+            if not has_changes:
+                return True
+            # Ask user
+            mbox = QMessageBox(self)
+            mbox.setIcon(QMessageBox.Warning)
+            mbox.setWindowTitle(self.tr("Unsaved changes"))
+            mbox.setText(self.tr("You have unsaved Settings changes."))
+            mbox.setInformativeText(self.tr("Do you want to save your changes or discard them?"))
+            save_btn = mbox.addButton(self.tr("Save"), QMessageBox.AcceptRole)
+            discard_btn = mbox.addButton(self.tr("Discard"), QMessageBox.DestructiveRole)
+            cancel_btn = mbox.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+            mbox.setDefaultButton(save_btn)
+            mbox.exec_()
+            clicked = mbox.clickedButton()
+            if clicked == save_btn:
+                if hasattr(settings_widget, 'apply_pending_changes'):
+                    settings_widget.apply_pending_changes()
+                return True
+            elif clicked == discard_btn:
+                if hasattr(settings_widget, 'revert_pending_changes'):
+                    settings_widget.revert_pending_changes()
+                return True
+            else:
+                return False
+        except Exception as e:
+            QgsMessageLog.logMessage(f"Prompt failed: {e}", "Wild Code", level=Qgis.Warning)
+            return True
+
     def switchModule(self, moduleName):
-        print(f"[PluginDialog] switchModule called with moduleName: {moduleName}")
+        # Intercept navigation for unsaved Settings changes
+        if not self._confirm_unsaved_settings_if_needed(moduleName):
+            return
         try:
             self.moduleManager.activateModule(moduleName)
             activeModule = self.moduleManager.getActiveModule()
-            print(f"[PluginDialog] Active module after activation: {activeModule}")
             if activeModule:
-                print(f"[PluginDialog] Setting current widget to: {activeModule['module']}")
                 self.moduleStack.setCurrentWidget(activeModule["module"].get_widget())
                 # Set header title to module display name
                 display_name = activeModule.get("display_name", moduleName)
-                print(f"[PluginDialog] Setting header title to: {display_name}")
                 self.header_widget.set_title(display_name)
-                # Force update/repaint for debugging
-                print("[PluginDialog] Forcing moduleStack update/repaint...")
+                # Update sidebar active state (also mark Settings button when selected)
+                if hasattr(self, 'sidebar'):
+                    self.sidebar.setActiveModule(moduleName)
+                # Update/repaint
                 self.moduleStack.update()
                 self.moduleStack.repaint()
             else:
                 raise AttributeError("No active module found.")
         except Exception as e:
-            print(f"[PluginDialog] Error in switchModule: {e}")
             QgsMessageLog.logMessage(f"Error switching module: {e}", "Wild Code", level=Qgis.Critical)
 
 
@@ -263,9 +316,50 @@ class PluginDialog(QDialog):
         # Geometry is now handled by the persistent watcher
         if not SessionManager().isLoggedIn():
             self.close()
+        else:
+            # On first show, if a preferred module exists, activate it; else leave stack as default (welcome)
+            if not hasattr(self, '_preferred_checked'):
+                self._preferred_checked = True
+                try:
+                    from qgis.core import QgsSettings
+                    s = QgsSettings()
+                    pref = s.value("wild_code/preferred_module", "")
+                    if pref and pref in self.moduleManager.modules:
+                        self.switchModule(pref)
+                except Exception:
+                    pass
         super().showEvent(event)
 
     def closeEvent(self, event):
+        # Prompt on close if Settings has unsaved changes
+        try:
+            settings_widget = getattr(self, 'settingsModule', None)
+            if settings_widget and hasattr(settings_widget, 'has_unsaved_changes') and settings_widget.has_unsaved_changes():
+                from PyQt5.QtWidgets import QMessageBox
+                mbox = QMessageBox(self)
+                mbox.setIcon(QMessageBox.Warning)
+                mbox.setWindowTitle(self.tr("Unsaved changes"))
+                mbox.setText(self.tr("You have unsaved Settings changes."))
+                mbox.setInformativeText(self.tr("Do you want to save your changes or discard them?"))
+                save_btn = mbox.addButton(self.tr("Save"), QMessageBox.AcceptRole)
+                discard_btn = mbox.addButton(self.tr("Discard"), QMessageBox.DestructiveRole)
+                cancel_btn = mbox.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+                mbox.setDefaultButton(save_btn)
+                mbox.exec_()
+                clicked = mbox.clickedButton()
+                if clicked == save_btn:
+                    if hasattr(settings_widget, 'apply_pending_changes'):
+                        settings_widget.apply_pending_changes()
+                    event.accept()
+                elif clicked == discard_btn:
+                    if hasattr(settings_widget, 'revert_pending_changes'):
+                        settings_widget.revert_pending_changes()
+                    event.accept()
+                else:
+                    event.ignore()
+                    return
+        except Exception as e:
+            QgsMessageLog.logMessage(f"Close prompt failed: {e}", "Wild Code", level=Qgis.Warning)
         super().closeEvent(event)
 
     def handleSessionExpiration(self):

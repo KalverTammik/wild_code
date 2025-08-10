@@ -21,6 +21,8 @@ class TestUserDataDialog(QDialog):
     def __init__(self, lang_manager=None, theme_manager=None, theme_dir=None, qss_files=None, parent=None):
         super().__init__(parent)
         self.name = USER_TEST_MODULE
+        # Mark as legacy: hidden from main module list, kept for reference
+        self.is_legacy = True
         # Ensure we always use LanguageManager_NEW
         if lang_manager is None:
             self.lang = LanguageManager()

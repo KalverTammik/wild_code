@@ -1,0 +1,37 @@
+/* Setup Card specific styles (Dark) */
+#SetupCard {
+  background: rgba(25,25,30,0.75);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+#SetupCardTitle {
+  font-weight: 600;
+  font-size: 13px;
+}
+#SetupCardDescription {
+  color: #aab;
+}
+
+#AccessPills QFrame#AccessPill {
+  font-size: 10px; /* smaller */
+  border-radius: 10px;
+  padding: 2px 6px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: transparent;
+}
+#AccessPills QFrame#AccessPill:hover {
+  border-color: rgba(255,255,255,0.20);
+}
+#AccessPills QFrame#AccessPill[active="true"] {
+  background: rgba(60,180,75,0.20);
+  color: #dff6e5;
+}
+#AccessPills QFrame#AccessPill[inactive="true"] {
+  background: rgba(128,128,128,0.14);
+  color: rgba(220,220,220,0.55);
+}
+#AccessPills QFrame#AccessPill QLabel { border: none; background: transparent; }
+#AccessPills QFrame#AccessPill QLabel { color: inherit; }
+#AccessPills QFrame#AccessPill[inactive="true"] QLabel { text-decoration: line-through; }
+
+#AccessPills QFrame#AccessPill QCheckBox { margin-right: 4px; }
