@@ -1,7 +1,7 @@
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QScrollArea
 from PyQt5.QtCore import Qt
-from ...widgets.ModuleFeedBuilder import ModuleFeedBuilder
+from ...widgets.DataDisplayWidgets.ModuleFeedBuilder import ModuleFeedBuilder
 from ...constants.file_paths import QssPaths
 
 class ContractUi(ModuleBaseUI):

@@ -1,17 +1,9 @@
 import os
-from pyclbr import Class
 from .base_paths import PLUGIN_ROOT, RESOURCE
 from .module_names import (
     SETTINGS_MODULE,
     PROJECTS_MODULE,
     CONTRACT_MODULE,
-    GPT_ASSISTANT_MODULE,
-    DIALOG_SIZE_WATCHER_MODULE,
-    JOKE_GENERATOR_MODULE,
-    WEATHER_UPDATE_MODULE,
-    IMAGE_OF_THE_DAY_MODULE,
-    BOOK_QUOTE_MODULE,
-    WORKFLOW_DESIGNER_MODULE,
 )
 
 

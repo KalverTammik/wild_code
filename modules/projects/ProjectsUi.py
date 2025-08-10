@@ -6,7 +6,7 @@ from ...languages.language_manager import LanguageManager
 # PyQt5
 from PyQt5.QtWidgets import QVBoxLayout, QScrollArea, QWidget
 from PyQt5.QtCore import Qt
-from ...widgets.ModuleFeedBuilder import ModuleFeedBuilder
+from ...widgets.DataDisplayWidgets.ModuleFeedBuilder import ModuleFeedBuilder
 from ...constants.file_paths import StylePaths, QssPaths
 
 
