@@ -1,0 +1,33 @@
+query tasks($first: Int, $after: String, $search: String, $where: QueryTasksWhereWhereConditions, $orderBy: [QueryTasksOrderByOrderByClause!], $trashed: Trashed) {
+  tasks(
+    first: $first
+    after: $after
+    search: $search
+    where: $where
+    orderBy: $orderBy
+    trashed: $trashed
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        __typename
+        id
+        status {
+          id
+          name
+          color
+          type
+        }
+        priority
+        type {
+          name
+        }
+      }
+    }
+  }
+}

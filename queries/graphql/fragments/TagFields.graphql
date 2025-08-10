@@ -1,0 +1,4 @@
+fragment TagFields on Tag {
+  id
+  name
+}

@@ -1,0 +1,69 @@
+query contracts($first: Int, $propertiesFirst: Int, $propertiesAfter: String, $after: String, $where: QueryPropertiesWhereWhereConditions) {
+  properties(
+    first: $first, 
+    after: $after,
+		where: $where
+  ) 
+  {
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    edges {
+      node {
+        id
+				projects {
+					pageInfo {
+						endCursor
+						hasNextPage
+                    }
+                    edges {
+                      node {
+                          id
+                          parentId
+                          name
+                          number
+                          status{
+                              name
+                              color
+                                }
+                          startAt
+                          dueAt
+                          isPublic
+                          isSubproject
+                          filesPath
+                          isMember
+                          createdAt
+                          updatedAt
+                          deletedAt
+                          responsible {
+                                edges {
+                                    node {
+                                        id
+                                        displayName
+                                          }
+                                      }
+                            }
+                          properties
+                                  (
+                                  first: $propertiesFirst
+                                  after: $propertiesAfter
+                                      ){
+                                  pageInfo {
+                                      count
+                                      currentPage
+                                      startCursor
+                                      endCursor
+                                      hasNextPage
+                                      hasPreviousPage
+                                      lastPage
+                                      total
+                                  }
+                    }
+                  }
+        }
+      }
+    }
+  }
+}
+}

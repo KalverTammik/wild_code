@@ -1,0 +1,10 @@
+fragment ProjectFieldsMinimal on Project {
+  id
+  name
+  number
+  status { name color }
+  startAt
+  dueAt
+  createdAt
+  updatedAt
+}

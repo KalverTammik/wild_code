@@ -1,0 +1,26 @@
+query properties($first: Int, $after: String) {
+    properties(
+    first: $first
+    after: $after
+    ) {
+        pageInfo {
+            count
+            currentPage
+            startCursor
+            endCursor
+            hasNextPage
+            hasPreviousPage
+            lastPage
+            total
+        }
+        edges {
+            node { 
+                id 
+                cadastralUnit {
+                number
+            }
+          }
+        }
+    }
+}
+

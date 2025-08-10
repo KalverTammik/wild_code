@@ -1,0 +1,44 @@
+query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyTasksOrderByOrderByClause!]) {
+  property(id: $id) {
+    __typename
+    id
+    tasks(first: $first, after: $after, orderBy: $orderBy) {
+      pageInfo {
+        hasNextPage
+        endCursor
+        total
+      }
+      edges {
+        node {
+          __typename
+          id
+          title
+          startAt
+          dueAt
+          members {
+            edges {
+              node {
+                id
+                displayName
+                deletedAt
+              }
+              isResponsible
+            }
+          }
+          status {
+            id
+            name
+            color
+            type
+          }
+          priority
+          description
+          type {
+            name
+          }
+        }
+      }
+    }
+  }
+}
+

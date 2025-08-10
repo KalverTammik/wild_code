@@ -1,0 +1,12 @@
+query GetPropertyTags($id: ID!) {
+    property(id: $id) {
+        tags(first: 50) {
+            edges {
+                node {
+                    id
+                    name
+                }
+            }
+        }
+    }
+}

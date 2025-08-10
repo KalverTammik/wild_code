@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 from .StatusWidget import StatusWidget
 from .MembersView import MembersView
 from .ExtraInfoWidget import ExtraInfoFrame
+from .TagsWidget import TagsWidget
 
 
 
@@ -35,6 +36,13 @@ class ModuleFeedBuilder:
 
         header_row = QHBoxLayout(); header_row.setContentsMargins(0, 0, 0, 0)
         header_row.addWidget(InfocardHeaderFrame(item), alignment=Qt.AlignTop)
+        # Insert tags between header and members if present
+        try:
+            tw = TagsWidget(item)
+            if tw.isVisible():
+                header_row.addWidget(tw, alignment=Qt.AlignTop)
+        except Exception as e:
+            print("[ModuleFeedBuilder] TagsWidget error:", e)
         header_row.addStretch(1)
         header_row.addWidget(MembersView(item), alignment=Qt.AlignRight | Qt.AlignTop)
         cl.addLayout(header_row)

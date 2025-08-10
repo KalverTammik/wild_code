@@ -36,13 +36,13 @@ class StatusWidget(QWidget):
             pub.setAlignment(Qt.AlignCenter)
             # themed private icon (using ICON_ADD as requested)
             icon_path = MiscIcons.ICON_IS_PRIVATE
-            print(f"[StatusWidget] Using private icon: {icon_path}")
+            #print(f"[StatusWidget] Using private icon: {icon_path}")
             pm = QPixmap(icon_path)
             if not pm.isNull():
-                print("[StatusWidget] Setting private icon pixmap")
+                #print("[StatusWidget] Setting private icon pixmap")
                 pub.setPixmap(pm.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             else:
-                print("[StatusWidget] Private icon pixmap is null, using default")
+                #print("[StatusWidget] Private icon pixmap is null, using default")
                 pub.setText("P")
 
             pub.setFixedSize(16, 16)

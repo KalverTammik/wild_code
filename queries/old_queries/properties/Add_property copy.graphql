@@ -1,0 +1,35 @@
+mutation CreateProperty($input: CreatePropertyInput!) {
+  createProperty(
+    input: $input
+  ) {
+    id
+    displayAddress
+    immovableNumber 
+    cadastralUnit {
+      number
+      firstRegistration
+      lastUpdated
+    }
+    address {
+      street
+      houseNumber 
+      apartmentNumber
+      city
+      state
+      county
+      postalCode
+      country {
+        code
+        displayName
+      }
+    }
+    area {
+      size
+      unit
+    }
+    notes
+    createdAt
+    updatedAt
+  }
+}
+

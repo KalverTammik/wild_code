@@ -1,0 +1,30 @@
+query contracts($first: Int, $after: String) {
+    contracts(
+        first: $first, 
+        after: $after
+
+    ) {
+        pageInfo {
+            count
+            currentPage
+            startCursor
+            endCursor
+            hasNextPage
+            hasPreviousPage
+            lastPage
+            total
+        }
+        edges{
+            node{
+                id,
+                name,
+                status{
+                    name
+                    }
+                type{
+                    name
+                    }
+            }
+            }
+        }
+    }

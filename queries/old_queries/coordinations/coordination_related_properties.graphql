@@ -1,0 +1,28 @@
+
+query coordination($id: ID!) {
+  coordination(id: $id) {
+    __typename
+    id
+
+
+    properties(
+      first: 25
+      after: ""
+      orderBy: [{column: DISPLAY_ADDRESS, order: ASC}]
+    ) {
+      pageInfo {
+        hasNextPage
+        endCursor
+        total
+      }
+      edges {
+        node {
+          id
+          displayAddress
+          cadastralUnitNumber
+        }
+      }
+    }
+    
+  }
+}

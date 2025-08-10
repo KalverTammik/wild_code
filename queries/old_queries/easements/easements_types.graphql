@@ -1,0 +1,16 @@
+query easementTypes($first: Int, $after: String) {
+  easementTypes(first: $first, after: $after) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      currentPage
+      total
+    }
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+}

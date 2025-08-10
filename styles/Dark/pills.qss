@@ -1,0 +1,55 @@
+/* Container nudge */
+#TagsWidget { margin-left: 8px; }
+
+/* Base tag pill */
+#TagPill[role="tag"] {
+  border-radius: 5px;
+  background: rgba(9,144,143,0.18);
+  color: #eaeef2;
+  border: 1px solid rgba(9,144,143,0.35);
+  transition: 120ms ease;
+}
+
+/* Hover + active feedback */
+#TagPill[role="tag"]:hover {
+  border-color: rgba(9,144,143,0.55);
+  background: rgba(9,144,143,0.22);
+}
+#TagPill[role="tag"][active="true"] {
+  background: rgba(9,144,143,0.24);
+  border-color: rgba(9,144,143,0.60);
+}
+
+/* Optional muted/inactive variant (if you set pill.setProperty("inactive", True)) */
+#TagPill[role="tag"][inactive="true"] {
+  background: rgba(255,255,255,0.05);
+  color: rgba(197,197,210,0.70);
+  border-color: rgba(255,255,255,0.10);
+}
+
+/* Keyboard focus ring (a11y) if a child gains focus */
+#TagPill[role="tag"]:focus-within {
+  box-shadow: 0 0 0 2px rgba(9,144,143,0.28);
+  border-color: rgba(9,144,143,0.65);
+}
+
+/* Label inside pill */
+#TagPill[role="tag"] QLabel#TagPillLabel {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 10px;
+  color: #eaeef2; /* explicit light text in dark theme */
+  /* optional:
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  */
+}
+
+/* “+N veel” overflow pill (if you add role="more") */
+#TagPill[role="more"] {
+  background: rgba(255,255,255,0.06);
+  color: rgba(230,235,240,0.9);
+  border: 1px dashed rgba(230,235,240,0.25);
+}

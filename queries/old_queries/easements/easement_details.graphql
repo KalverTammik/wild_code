@@ -1,0 +1,38 @@
+query easement($id: ID!) {
+  easement(id: $id) {
+    __typename
+    id
+    status {
+      id
+      name
+      color
+      type
+    }
+    type {
+      id
+      name
+    }
+    name
+    number
+    isNotarized
+    notarialNumber
+    startAt
+    effectiveAt
+    dueAt
+    filesPath
+    notes
+    createdAt
+    updatedAt
+    members(first: 50, orderBy: [{column: DISPLAY_NAME, order: ASC}]) {
+      edges {
+        node {
+          id
+          firstName
+          displayName
+          deletedAt
+        }
+      }
+    }
+    
+  }
+}

@@ -1,0 +1,41 @@
+query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyEasementsOrderByOrderByClause!]) {
+  property(id: $id) {
+    __typename
+    id
+    easements(first: $first, after: $after, orderBy: $orderBy) {
+      pageInfo {
+        hasNextPage
+        endCursor
+        total
+      }
+      edges {
+        node {
+          __typename
+          id
+          number
+          name
+          members {
+            edges {
+              node {
+                id
+                displayName
+                deletedAt
+              }
+            }
+          }
+          status {
+            id
+            name
+            color
+            type
+          }
+          type {
+            name
+          }
+          filesPath
+        }
+      }
+    }
+  }
+}
+

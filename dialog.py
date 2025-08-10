@@ -15,7 +15,6 @@ from .widgets.sidebar import Sidebar
 from .utils.SessionManager import SessionManager
 from .widgets.WelcomePage import WelcomePage
 
-
 # Shared managers for all modules
 lang_manager = LanguageManager()
 theme_manager = ThemeManager()
@@ -317,8 +316,6 @@ class PluginDialog(QDialog):
         # Restyle footer after theme toggle
         if hasattr(self, 'footer_widget'):
             self.footer_widget.retheme_footer()
-
-
 
     def mousePressEvent(self, event: QMouseEvent):
         super().mousePressEvent(event)

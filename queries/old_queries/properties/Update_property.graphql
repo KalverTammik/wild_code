@@ -1,0 +1,15 @@
+mutation updateProperty($input: UpdatePropertyInput!) {
+    updateProperty(input: $input) {
+            __typename
+            id
+            address{
+                street
+                street
+                city
+                state
+                county
+            }
+        }
+    }
+
+

@@ -1,0 +1,39 @@
+/* TagsWidget container nudge */
+#TagsWidget { margin-left: 8px; }
+
+/* Base tag pill */
+#TagPill[role="tag"] {
+  border-radius: 5px;                          /* pill shape */
+  background: rgba(9, 144, 144, 0.356);             /* soft teal wash */
+  color: #dcfffe;                               /* readable on light */
+  border: 1px solid rgba(9,144,143,0.30);
+  transition: 120ms ease;
+}
+
+/* Hover / active feedback */
+#TagPill[role="tag"]:hover {
+  border-color: rgba(9,144,143,0.55);
+  background: rgba(9,144,143,0.14);
+}
+
+/* Optional muted variant (if you set pill.setProperty("inactive", True)) */
+#TagPill[role="tag"][inactive="true"] {
+  background: rgba(0,0,0,0.04);
+  color: rgba(20,20,20,0.55);
+  border-color: rgba(0,0,0,0.15);
+}
+
+/* Text inside the pill */
+#TagPill[role="tag"] QLabel#TagPillLabel {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 9px;                               /* tidy, compact */
+  color: inherit;
+}
+
+/* Compact density (if you ever set pill.setProperty("compact", True)) */
+#TagPill[role="tag"][compact="true"] {
+  border-radius: 5px;
+}

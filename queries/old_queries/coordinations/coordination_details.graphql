@@ -1,0 +1,30 @@
+query coordination($id: ID!) {
+  coordination(id: $id) {
+    __typename
+    id
+    number
+    jobNumber
+    jobName
+    externalCode
+    processingPeriod
+    stage {
+      id
+      name
+    }
+    startAt
+    receivedAt
+    agreedAt
+    dueAt
+    tags(first: 50) {
+      pageInfo {
+        total
+      }
+      edges {
+        node {
+          id
+          name
+        }
+      }
+    }
+  }
+}

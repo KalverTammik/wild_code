@@ -1,0 +1,16 @@
+mutation UpdateCoordination($input: UpdateCoordinationInput!) {
+updateCoordination(input: $input) {
+    __typename
+    id
+    properties{
+      edges {
+        node {
+          id
+          displayAddress
+          cadastralUnitNumber
+        }
+      }
+    }
+  }
+}
+

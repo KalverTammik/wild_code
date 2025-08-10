@@ -1,0 +1,55 @@
+
+query task($id: ID!) {
+  task(id: $id) {
+    __typename
+    id
+    status {
+      id
+      name
+      color
+      type
+    }
+    parentId
+    parent {
+      id
+      title
+    }
+    title
+    description
+    priority
+    startAt
+    dueAt
+    isMember
+    type {
+      id
+      name
+    }
+    completedAt
+    createdAt
+    updatedAt
+    type {
+      id
+      name
+    }
+
+    properties(
+      first: 25
+      after: ""
+      orderBy: [{column: DISPLAY_ADDRESS, order: ASC}]
+    ) {
+      pageInfo {
+        hasNextPage
+        endCursor
+        total
+      }
+      edges {
+        node {
+          id
+          displayAddress
+          cadastralUnitNumber
+        }
+      }
+    }
+    
+  }
+}

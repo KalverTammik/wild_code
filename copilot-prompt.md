@@ -11,6 +11,7 @@
 2. **QSS File Structure**
    - All theme-specific QSS files must be placed in `styles/Light/` and `styles/Dark/` folders.
    - Each module/widget with custom styling must have its own QSS file (e.g., `NewModule.qss`).
+   - Reusable chip/pill styling must live in `pills.qss` and be applied via `ThemeManager.apply_module_style(widget, [QssPaths.PILLS])`.
 
 3. **Widget Styling**
    - Assign a unique `objectName` to any widget that needs custom QSS (e.g., `"NewModule"`).

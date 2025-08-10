@@ -1,0 +1,28 @@
+query easements($id: ID!, $propertiesFirst: Int, $propertiesAfter: String) {
+  easement(
+    id: $id
+  ) {
+    id
+        properties(
+            first: $propertiesFirst
+            after: $propertiesAfter
+                ){
+            pageInfo {
+                count
+                currentPage
+                startCursor
+                endCursor
+                hasNextPage
+                hasPreviousPage
+                lastPage
+                total
+            }
+            edges {
+                node {
+                    cadastralUnitNumber
+                }
+            }
+        }
+    }
+}
+

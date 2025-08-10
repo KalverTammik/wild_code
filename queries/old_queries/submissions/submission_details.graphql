@@ -1,0 +1,143 @@
+query submission($id: ID!) {
+  submission(id: $id) {
+    __typename
+    id
+    status {
+      id
+      name
+      color
+      type
+    }
+    number
+    name
+    type {
+      id
+      name
+    }
+    filesPath
+    receivedAt
+    processedAt
+    dueAt
+    description
+    createdAt
+    updatedAt
+    members(first: 50, orderBy: [{column: DISPLAY_NAME, order: ASC}]) {
+      edges {
+        node {
+          id
+          firstName
+          displayName
+          deletedAt
+        }
+        isResponsible
+      }
+    }
+    contacts(first: 5, after: "", orderBy: [{column: DISPLAY_NAME, order: ASC}]) {
+      pageInfo {
+        hasNextPage
+        endCursor
+        total
+      }
+      edges {
+        node {
+          id
+          type
+          displayName
+          address {
+            line1
+            line2
+            city
+            state
+            postalCode
+            country {
+              code
+              displayName
+            }
+          }
+          phones(first: 1, where: {column: IS_DEFAULT, operator: EQ, value: true}) {
+            edges {
+              node {
+                code
+                value
+              }
+            }
+          }
+          emails(first: 1, where: {column: IS_DEFAULT, operator: EQ, value: true}) {
+            edges {
+              node {
+                value
+              }
+            }
+          }
+          websites(first: 1, where: {column: IS_DEFAULT, operator: EQ, value: true}) {
+            edges {
+              node {
+                value
+              }
+            }
+          }
+          linkedins(first: 1, where: {column: IS_DEFAULT, operator: EQ, value: true}) {
+            edges {
+              node {
+                value
+              }
+            }
+          }
+        }
+      }
+    }
+    properties(
+      first: 5
+      after: ""
+      orderBy: [{column: DISPLAY_ADDRESS, order: ASC}]
+    ) {
+      pageInfo {
+        hasNextPage
+        endCursor
+        total
+      }
+      edges {
+        node {
+          id
+          displayAddress
+          cadastralUnitNumber
+        }
+      }
+    }
+    files(first: 5, after: "", orderBy: [{column: FILE_NAME, order: ASC}]) {
+      pageInfo {
+        hasNextPage
+        endCursor
+        total
+      }
+      edges {
+        node {
+          __typename
+          uuid
+          fileName
+          ext
+          size
+          humanReadableSize
+          uploader {
+            displayName
+          }
+          createdAt
+        }
+      }
+    }
+    tags(first: 50) {
+      pageInfo {
+        total
+      }
+      edges {
+        node {
+          id
+          name
+        }
+      }
+    }
+    followers {
+      id
+    }
+  }
+}

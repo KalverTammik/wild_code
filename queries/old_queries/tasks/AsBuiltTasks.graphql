@@ -1,0 +1,92 @@
+query tasks(
+      $first: Int, 
+      $after: String, 
+      $propertiesFirst:Int, 
+      $propertiesAfter: String, 
+      $search: String, 
+      $where: QueryTasksWhereWhereConditions, 
+      $orderBy: [QueryTasksOrderByOrderByClause!], 
+      $trashed: Trashed
+      ) {
+  tasks(
+    first: $first
+    after: $after
+    search: $search
+    where: $where
+    orderBy: $orderBy
+    trashed: $trashed
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        __typename
+        id
+        responsible {
+          edges {
+            node {
+              id
+              displayName
+              deletedAt
+            }
+            isResponsible
+          }
+        }
+        title
+        priority
+        startAt
+        dueAt
+        members {
+          edges {
+            node {
+              id
+              displayName
+              deletedAt
+            }
+            isResponsible
+          }
+        }
+        type {
+          id
+          name
+        }
+        status {
+          id
+          name
+          color
+          type
+        }
+        priority
+        description
+        type {
+          name
+        }
+                  properties(
+              first: $propertiesFirst 
+              after: $propertiesAfter
+                      ) {
+                      pageInfo {
+                          count
+                          currentPage
+                          startCursor
+                          endCursor
+                          hasNextPage
+                          hasPreviousPage
+                          lastPage
+                          total
+                      }
+                      edges {
+                          node {
+                              id,
+                              cadastralUnitNumber
+                              }
+                          }
+                      }
+      }
+    }
+  }
+}

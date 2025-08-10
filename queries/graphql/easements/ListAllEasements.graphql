@@ -1,0 +1,26 @@
+query easements($first: Int, $after: String, $search: String, $where: QueryEasementsWhereWhereConditions, $orderBy: [QueryEasementsOrderByOrderByClause!], $trashed: Trashed) {
+  easements(
+    first: $first
+    after: $after
+    search: $search
+    where: $where
+    orderBy: $orderBy
+    trashed: $trashed
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        id
+        name
+        status { id name color type }
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}

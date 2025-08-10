@@ -1,0 +1,17 @@
+query tags($first: Int, $after: String, $where: QueryTagsWhereWhereConditions) {
+    tags(first: $first, after: $after, where: $where) {
+        pageInfo {
+            hasNextPage
+            endCursor
+            currentPage
+            total
+        }
+        edges {
+            node {
+                __typename
+                id
+                name
+            }
+        }
+    }
+}

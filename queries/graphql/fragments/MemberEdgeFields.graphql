@@ -1,0 +1,6 @@
+fragment MemberEdgeFields on MemberEdgeConnection {
+  edges {
+    node { id displayName deletedAt }
+    isResponsible
+  }
+}

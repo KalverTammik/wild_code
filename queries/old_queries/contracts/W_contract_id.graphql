@@ -1,0 +1,28 @@
+query contract($id: ID!, $propertiesFirst: Int, $propertiesAfter: String) {
+  contract(
+    id: $id
+  ) {
+    id
+        properties(
+            first: $propertiesFirst
+            after: $propertiesAfter
+                ){
+            pageInfo {
+                count
+                currentPage
+                startCursor
+                endCursor
+                hasNextPage
+                hasPreviousPage
+                lastPage
+                total
+            }
+            edges {
+                node {
+                    cadastralUnitNumber
+                }
+            }
+        }
+    }
+}
+

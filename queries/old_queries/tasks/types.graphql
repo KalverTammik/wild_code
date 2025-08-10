@@ -1,0 +1,16 @@
+query taskTypes($first: Int, $after: String, $where: QueryTaskTypesWhereWhereConditions, $orderBy: [QueryTaskTypesOrderByOrderByClause!])) {
+  taskTypes(first: $first, after: $after, where: $where, orderBy: $orderBy) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      currentPage
+      total
+    }
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+query statuses($first: Int, $after: String, $search: String, $where: QueryStatusesWhereWhereConditions, $orderBy: [QueryStatusesOrderByOrderByClause!], $trashed: Trashed) {
+  statuses(
+    first: $first
+    after: $after
+    search: $search
+    where: $where
+    orderBy: $orderBy
+    trashed: $trashed
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        id
+        name
+        color
+        type
+      }
+    }
+  }
+}
+# import StatusFields from '../fragments/StatusFields.graphql'

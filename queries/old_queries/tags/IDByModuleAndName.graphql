@@ -1,0 +1,11 @@
+query tags($first: Int, $after: String, $where: QueryTagsWhereWhereConditions) {
+    tags(first: $first, after: $after, where: $where) {
+        edges {
+            node {
+                id
+                name
+                module
+            }
+        }
+    }
+}

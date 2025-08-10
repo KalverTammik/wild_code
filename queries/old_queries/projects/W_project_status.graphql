@@ -1,0 +1,88 @@
+query projects($first: Int, $propertiesFirst: Int, $propertiesAfter: String, $after: String, $search: String, $where: QueryProjectsWhereWhereConditions, 
+$orderBy: [QueryProjectsOrderByOrderByClause!],
+$trashed: Trashed) {   
+    projects(
+    first: $first
+    after: $after
+    search: $search
+    where: $where
+    orderBy: $orderBy
+    trashed: $trashed
+  ) 
+     {
+        pageInfo {
+            count
+            currentPage
+            startCursor
+            endCursor
+            hasNextPage
+            hasPreviousPage
+            lastPage
+            total
+        }
+        edges {
+            node {
+                id
+                parentId
+                name
+                number
+                status{
+                    name
+                    color
+                }
+                startAt
+                dueAt
+                isPublic
+                isSubproject
+                filesPath
+                description
+                notes
+                isMember
+                createdAt
+                updatedAt
+                deletedAt
+                properties
+                        (
+                    first: $propertiesFirst
+                    after: $propertiesAfter
+                        ){
+                    pageInfo {
+                        count
+                        currentPage
+                        startCursor
+                        endCursor
+                        hasNextPage
+                        hasPreviousPage
+                        lastPage
+                        total
+                    }
+                    edges {
+                        node {
+                            id
+                            immovableNumber
+                            displayAddress
+                            cadastralUnitNumber
+                        }
+                    }
+                }
+                responsible {
+                    edges {
+                        node {
+                            id
+                            displayName
+                                        }
+                                    }
+                }
+                tags{
+                    edges{
+                        node
+                            {
+                            id
+                            name
+                            }
+                        }
+                }
+            }
+        }
+    }
+}

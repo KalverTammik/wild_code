@@ -7,10 +7,7 @@ from ...languages.language_manager import LanguageManager
 from PyQt5.QtWidgets import QVBoxLayout, QScrollArea, QWidget
 from PyQt5.QtCore import Qt
 from ...widgets.DataDisplayWidgets.ModuleFeedBuilder import ModuleFeedBuilder
-from ...constants.file_paths import StylePaths, QssPaths
-
-
-
+from ...constants.file_paths import QssPaths
 
 # Import the new feed logic
 from .ProjectsLogic import ProjectsFeedLogic

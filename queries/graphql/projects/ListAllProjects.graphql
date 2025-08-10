@@ -37,6 +37,9 @@ query Projects($first: Int, $after: String) {
           id
           displayName
         }
+        tags(first: 10) {
+          edges { node { id name } }
+        }
       }
     }
   }
