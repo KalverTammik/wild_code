@@ -26,9 +26,98 @@ import glob
 class ThemeManager:
     _debug = False
 
+    # Semantic icon names (basenames). Theme variants live under resources/icons/Light|Dark
+    ICON_SETTINGS_GEAR = "icons8-gear-50.png"
+    ICON_LIST = "icons8-list-50.png"
+    ICON_SEARCH = "icons8-search-location-50.png"
+    ICON_SAVE = "icons8-save-50.png"
+    ICON_TREE = "icons8-tree-structure-50.png"
+    ICON_USER = "icons8-username-50.png"
+    ICON_LOGIN = "icons8-login-50.png"
+    ICON_LOGOUT = "icons8-logout-rounded-left-50.png"
+    ICON_HELP = "icons8-help-50.png"
+    ICON_INFO = "icons8-info-50.png"
+    ICON_FLOW = "icons8-flow-50.png"
+    ICON_HIERARCHY = "icons8-hierarchy-50.png"
+    ICON_WRENCH = "icons8-wrench-50.png"
+    ICON_TASKS = "icons8-tasks-50.png"
+    ICON_TABLE_GRAPH = "icons8-table-and-graph-50.png"
+    ICON_CHECK = "icons8-double-tick-50.png"
+    ICON_ERROR = "icons8-error-50.png"
+    ICON_WARNING = "icons8-notification-50.png"
+    ICON_CLEAR = "icons8-clear-search-50.png"
+    ICON_ADD = "icons8-add-50.png"
+    ICON_REMOVE = "icons8-remove-50.png"
+    ICON_WAIT = "icons8-wait-50.png"
+    ICON_BUFFERING = "icons8-buffering-50.png"
+
     @staticmethod
     def set_debug(enabled: bool):
         ThemeManager._debug = bool(enabled)
+
+    @staticmethod
+    def resolve_icon_path(icon_name_or_path: str) -> str:
+        """Resolve an icon path honoring the current theme.
+        If a themed variant exists under resources/icons/Dark or Light, return that path.
+        Accepts either a basename (e.g., 'settings.svg'/'settings.png') or an absolute path to a default icon.
+        """
+        if not icon_name_or_path:
+            return None
+        try:
+            theme = ThemeManager.load_theme_setting()
+        except Exception:
+            theme = 'light'
+        from ..constants.base_paths import PLUGIN_ROOT, RESOURCE
+        base_icons_dir = os.path.join(PLUGIN_ROOT, RESOURCE, 'icons')
+
+        # Determine basename and default fallback
+        if os.path.isabs(icon_name_or_path):
+            basename = os.path.basename(icon_name_or_path)
+            fallback = icon_name_or_path
+        else:
+            basename = icon_name_or_path
+            # default (non-themed) fallback under resources/icons
+            fallback = os.path.join(base_icons_dir, basename)
+
+        # Support both .png and .svg variants
+        stem, ext = os.path.splitext(basename)
+        exts = []
+        if ext:
+            exts.append(ext)
+        if '.png' not in exts:
+            exts.append('.png')
+        if '.svg' not in exts:
+            exts.append('.svg')
+
+        themed_dirs = []
+        if theme == 'dark':
+            themed_dirs += [os.path.join(base_icons_dir, 'Dark'), os.path.join(base_icons_dir, 'dark')]
+        else:
+            themed_dirs += [os.path.join(base_icons_dir, 'Light'), os.path.join(base_icons_dir, 'light')]
+
+        for d in themed_dirs:
+            for e in exts:
+                themed_path = os.path.join(d, f"{stem}{e}")
+                if os.path.exists(themed_path):
+                    return themed_path
+
+        # Fallback to base icons folder versions
+        for e in exts:
+            candidate = os.path.join(base_icons_dir, f"{stem}{e}")
+            if os.path.exists(candidate):
+                return candidate
+
+        return fallback
+
+    @staticmethod
+    def get_icon_path(icon_name_or_path: str) -> str:
+        return ThemeManager.resolve_icon_path(icon_name_or_path)
+
+    @staticmethod
+    def get_qicon(icon_name_or_path: str):
+        from PyQt5.QtGui import QIcon
+        p = ThemeManager.resolve_icon_path(icon_name_or_path)
+        return QIcon(p) if p else QIcon()
 
     @staticmethod
     def apply_module_style(widget, qss_files):

@@ -27,5 +27,14 @@ TRANSLATIONS = {
     "Confirm": "Kinnita",
     "Name": "Nimi",
     "Email": "E-post",
-    "Module settings placeholder": "Mooduli seadete kohatäide"
+    "Module settings placeholder": "Mooduli seadete kohatäide",
+    # Lisatud: Tere tulemast lehe ja kihi valiku tekstid
+    "Welcome": "Tere tulemast",
+    "Select a module from the left or open Settings to set your preferred module.": "Vali vasakult moodul või ava Seaded, et määrata eelistatud moodul.",
+    "Open Settings": "Ava Seaded",
+    # Lisatud: ModuleCard/kihi valija sildid
+    "Element layer": "Elemendi kiht",
+    "Archive layer": "Arhiivikihi",
+    "Select layer": "Vali kiht",
+    "Choose layers used by this module (element and archive).": "Vali selle mooduli kasutatavad kihid (elemendi ja arhiivi)."
 }

@@ -45,10 +45,9 @@ QLabel#ProjectParticipantsLabel {
 
 /* private icon */
 QLabel#ProjectPrivateIcon {
-    background: #e53935;
-    color: #ffffff;
-    border-radius: 8px;
-    font-weight: 700;
+    background: transparent;
+    color: transparent;
+
 }
 QLabel#DateLine { color:#c5c5d2; font-size:12px; }
 QLabel#DateMeta { color:rgba(197,197,210,0.75); font-size:11px; }

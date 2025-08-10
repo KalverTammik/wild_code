@@ -10,6 +10,7 @@ from ..constants.file_paths import QssPaths
 from ..widgets.theme_manager import ThemeManager
 from ..module_manager import ModuleManager, SETTINGS_MODULE
 from ..languages.language_manager import LanguageManager
+from ..constants.module_icons import ModuleIconPaths
 
 lang_manager = LanguageManager()
 theme_manager = ThemeManager()
@@ -72,13 +73,12 @@ class Sidebar(QWidget):
         cm.addWidget(self.settingsFrame)
 
         # Settings button
-        module_manager = ModuleManager()
-        settings_name = module_manager.get_module_name(SETTINGS_MODULE)
-        settings_icon = module_manager.getModuleIcon(SETTINGS_MODULE)
+        settings_name = lang_manager.sidebar_button(SETTINGS_MODULE)
+        settings_icon_path = ModuleIconPaths.get_module_icon(SETTINGS_MODULE)
         self.settingsButton = QPushButton(settings_name, self.settingsFrame)
         self.settingsButton.setObjectName("SidebarSettingsButton")
-        if settings_icon:
-            self.settingsButton.setIcon(QIcon(settings_icon))
+        if settings_icon_path:
+            self.settingsButton.setIcon(QIcon(settings_icon_path))
         self.settingsButton.clicked.connect(self.showSettingsModule)
         sl.addWidget(self.settingsButton)
         # remember original label for compact mode toggle
@@ -177,6 +177,18 @@ class Sidebar(QWidget):
         self.setProperty("compact", self._is_compact)
         self.style().unpolish(self); self.style().polish(self)
         self._position_toggle()
+
+        # refresh settings icon for current theme
+        if hasattr(self, 'settingsButton'):
+            icon_path = ModuleIconPaths.get_module_icon(SETTINGS_MODULE)
+            if icon_path:
+                self.settingsButton.setIcon(QIcon(icon_path))
+
+        # refresh module nav icons for current theme
+        for uniqueIdentifier, btn in self.moduleButtons.items():
+            themed_icon = ModuleIconPaths.get_module_icon(uniqueIdentifier)
+            if themed_icon:
+                btn.setIcon(QIcon(themed_icon))
 
     # ---------- internals ----------
     def _apply_section_shadows(self):

@@ -11,7 +11,6 @@ from .login_dialog import LoginDialog
 from .widgets.theme_manager import ThemeManager
 from .languages.language_manager import LanguageManager
 from .module_manager import ModuleManager, SETTINGS_MODULE
-from .constants.module_names import USER_TEST_MODULE
 from .widgets.sidebar import Sidebar
 from .utils.SessionManager import SessionManager
 from .widgets.WelcomePage import WelcomePage
@@ -146,13 +145,11 @@ class PluginDialog(QDialog):
         # from .modules.contract.ContractModule import ContractModule
         from .modules.contract.ContractUi import ContractUi
         from .modules.Settings.SettingsUI import SettingsUI
-        from .modules.UserTest.TestUserDataDialog import TestUserDataDialog
 
         qss_modular = [QssPaths.MAIN, QssPaths.SIDEBAR]
         self.settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         self.projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         self.contractUI = ContractUi(lang_manager=lang_manager, theme_manager=theme_manager)
-        testUserDataDialog = TestUserDataDialog(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
 
         self.moduleManager.registerModule(self.settingsModule)
         self.moduleManager.registerModule(self.projectsModule)
@@ -174,7 +171,6 @@ class PluginDialog(QDialog):
                     self._w.retheme_contract()
         self.contractModule = _ContractWrap(self.contractUI)
         self.moduleManager.registerModule(self.contractModule)
-        self.moduleManager.registerModule(testUserDataDialog)
 
         if getattr(self, "_debug", False):
             print("[PluginDialog] Registered modules:")
@@ -191,8 +187,8 @@ class PluginDialog(QDialog):
             if getattr(self, "_debug", False):
                 print(f"[PluginDialog] Adding sidebar item: displayName={displayName}, moduleName={moduleName}, iconPath={iconPath}")
             if widget is not None:
-                # Do not add Settings or legacy UserTest to the top module list; both are accessible differently
-                if moduleName not in (SETTINGS_MODULE, USER_TEST_MODULE):
+                # Do not add Settings to the top module list; it's accessible via header/button
+                if moduleName != SETTINGS_MODULE:
                     self.sidebar.addItem(displayName, moduleName, iconPath)
                     # Track modules visible in sidebar for settings module cards
                     try:
@@ -312,9 +308,6 @@ class PluginDialog(QDialog):
         # Restyle settings module after theme toggle
         if hasattr(self, 'settingsModule'):
             self.settingsModule.retheme_settings()
-        # Restyle user test dialog after theme toggle
-        if hasattr(self, 'testUserDataDialog'):
-            self.testUserDataDialog.retheme_user_test()
         # Update welcome page texts using current language
         try:
             if hasattr(self, 'welcomePage'):

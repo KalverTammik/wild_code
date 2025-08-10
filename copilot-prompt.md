@@ -327,3 +327,185 @@ class ExampleModule(BaseModule):
 ```
 
 These rules ensure all modules are created, structured, and registered consistently in the wild_code plugin.
+
+---
+
+## 12. Settings Architecture & Behavior
+
+This plugin uses a structured, card-based Settings system with clear separation of concerns and centralized theming and translations.
+
+Components
+- `modules/Settings/SettingsUI.py` (orchestrator)
+  - Owns the layout (scrollable list of SetupCards), theming reapplication, and dirty-state aggregation.
+  - Creates one `UserCard` and 0..N `ModuleCard`s (one per visible module in sidebar).
+  - Lifecycle:
+    - `set_available_modules(module_names)` is called by the dialog to inform which module cards to build.
+    - `activate()` loads the user via `SettingsLogic`, builds access pills, loads original settings, reflects preferred selection, and activates module cards.
+    - `deactivate()` asks module cards to release memory.
+  - Dirty-state and confirms:
+    - User-card (preferred module change) shows a single confirm on that card.
+    - Each ModuleCard manages its own confirm visibility via a `pendingChanged` signal.
+    - `has_unsaved_changes()` returns true if either the user preferred has changed or any module card is dirty; used to guard navigation.
+  - Theming: applies `QssPaths.MAIN` to itself and `QssPaths.SETUP_CARD` to each card; calls `card.retheme()` on theme toggle.
+
+- `modules/Settings/SettingsLogic.py` (persistence, data mapping)
+  - Loads user data through `GraphQLQueryLoader` and `APIClient`.
+  - Parses roles and maps abilities to module access with `get_module_access_from_abilities()`.
+  - Preferred module persistence via `QgsSettings` key `wild_code/preferred_module`.
+  - Tracks original vs pending preferred and provides `apply_pending_changes()` / `revert_pending_changes()`.
+  - Respects `set_available_modules()` when computing the access map so pills align with sidebar visibility.
+
+- `modules/Settings/cards/UserCard.py` (user info, roles, access, preferred)
+  - Shows ID, Name, Email, Roles (read-only pills) and Module access pills.
+  - Preferred selector uses single-selection behavior implemented with `QCheckBox` (styled like radio via QSS). Allows unselecting all to prefer the Welcome page.
+  - Emits `preferredChanged(str|None)` when selection changes.
+  - API: `set_user()`, `set_roles()`, `set_access_map()`, `set_preferred()`, `revert()`, `retheme()`.
+
+- `modules/Settings/cards/ModuleCard.py` (per-module settings)
+  - Contains two layer selectors (Element/Archive) using the shared `LayerTreePicker` widget.
+  - Signals `pendingChanged(bool)` to show/hide its own Confirm button.
+  - API: `on_settings_activate(snapshot)`, `on_settings_deactivate()`, `apply()`, `revert()`, `has_pending_changes()`.
+
+- `widgets/WelcomePage.py` (welcome when no preferred)
+  - Displayed when there is no preferred module set.
+  - Provides `openSettingsRequested` to jump into Settings.
+  - Uses `LanguageManager` centrally; call `welcomePage.retranslate(lang_manager)` when language changes.
+
+Flow
+1. Dialog builds modules and sidebar, then passes visible modules to Settings via `set_available_modules`.
+2. Entering Settings triggers `SettingsUI.activate()`:
+   - Load user, set roles, compute access map, build access pills.
+   - Load original preferred via logic, then call `UserCard.set_preferred(original)` to reflect it.
+   - Build a shared layer-tree snapshot for all ModuleCards and call `on_settings_activate(snapshot)` on each.
+3. Changing preferred or module settings marks dirty and shows per-card confirm(s).
+4. Confirm applies and persists changes using logic and per-card apply handlers.
+5. Leaving Settings or closing dialog prompts to save/discard when `has_unsaved_changes()` is true.
+
+Notes
+- Preferred key: `wild_code/preferred_module` (string module name). Removing the key means Welcome page on startup.
+- Access mapping is extendable; ensure subjects map to module constants and are filtered by `available_modules`.
+- When programmatically updating preferred, block signals on the checkboxes to avoid spurious dirty state.
+
+---
+
+## 13. Layer Selection Widget: LayerTreePicker (layer_dropdown.py)
+
+Purpose
+- Provide a memory-friendly, reusable, hierarchical layer picker with a familiar dropdown UX.
+
+Files
+- `widgets/layer_dropdown.py`
+  - `build_snapshot_from_project(project=None)` produces a nested Python structure of the current QGIS layer tree.
+  - `LayerTreePicker` is the widget that shows a button; clicking opens a Qt.Popup with a scrollable `QTreeWidget`.
+  - `LayerDropdown` is a deprecated alias that inherits `LayerTreePicker` for backward compatibility.
+
+Snapshot helpers
+- `build_snapshot_from_project()` returns a nested list of dicts like:
+  - Group: `{ "type": "group", "name": str, "children": [...] }`
+  - Layer: `{ "type": "layer", "id": str, "name": str }`
+- Internal `_snapshot_from_group(group_node)` recursively walks the QGIS layer tree.
+- Pass the same snapshot to multiple pickers to avoid repeated tree traversal and reduce memory usage.
+
+LayerTreePicker API
+- ctor: `LayerTreePicker(parent=None, project=None, placeholder="Select layer")`
+- Snapshot:
+  - `setSnapshot(snapshot)` / `getSnapshot()`
+- Project:
+  - `project()` / `setProject(project)`
+- Selection:
+  - `selectedLayerId() -> str`
+  - `selectedLayer() -> QgsMapLayer | None`
+  - `setSelectedLayerId(layer_id: str)`
+  - `clearSelection()`
+- Lifecycle:
+  - `on_settings_activate(snapshot=None)`
+  - `on_settings_deactivate()`
+- Signals:
+  - `layerChanged(QgsMapLayer|None)`
+  - `layerIdChanged(str)`
+
+Behavior
+- Initially shows a button with placeholder text.
+- On click, opens a popup containing the hierarchical tree (groups and layers).
+- Selecting a layer updates the button text, emits signals, and closes the popup.
+- Supports lazy building: call `on_settings_activate(snapshot)` before display; call `on_settings_deactivate()` to release memory.
+
+Integration pattern
+- Build one snapshot per Settings activation and share:
+```python
+from ...widgets.layer_dropdown import build_snapshot_from_project
+shared_snapshot = build_snapshot_from_project()
+for card in module_cards:
+    card.on_settings_activate(snapshot=shared_snapshot)
+```
+- In a card:
+```python
+self._element_picker = LayerTreePicker(self, placeholder=lang.translate("Select layer"))
+self._archive_picker = LayerTreePicker(self, placeholder=lang.translate("Select layer"))
+self._element_picker.layerIdChanged.connect(self._on_element_changed)
+self._archive_picker.layerIdChanged.connect(self._on_archive_changed)
+```
+
+Styling
+- The popup frame has objectName `LayerTreePopup`. Add QSS rules in your theme if you want to style it specially.
+
+Deprecated
+- `LayerDropdown` remains as an alias for compatibility but should not be used in new code. Prefer `LayerTreePicker`.
+
+---
+
+## 14. Icons & Themed Assets (REQUIRED)
+
+- All UI icons must be theme-aware and resolved centrally. Do not hardcode absolute file paths in widgets or modules.
+- Storage layout:
+  - Base icons: `resources/icons/`
+  - Theme variants (optional): `resources/icons/Light/` and `resources/icons/Dark/` with identical filenames
+- Formats:
+  - Prefer transparent PNG; SVG is supported as a fallback. Avoid any white/solid backgrounds.
+
+### 14.1 Semantic basenames via ThemeManager
+- Use semantic basenames exposed by `ThemeManager` (e.g., `ThemeManager.ICON_INFO`).
+- Get a themed path or QIcon:
+  - `ThemeManager.get_icon_path(ThemeManager.ICON_INFO)`
+  - `ThemeManager.get_qicon(ThemeManager.ICON_INFO)`
+- ThemeManager automatically picks a Light/Dark variant if present; otherwise falls back to the base in `resources/icons/`.
+
+Example:
+```python
+from ..widgets.theme_manager import ThemeManager
+button.setIcon(ThemeManager.get_qicon(ThemeManager.ICON_SAVE))
+```
+
+### 14.2 Module icons for the sidebar
+- Module icons are centralized in `constants/module_icons.py` under `ModuleIconPaths.MODULE_ICONS`.
+- Retrieve them with `ModuleIconPaths.get_module_icon(module_name)` (theme-aware).
+- Do not reference module icon paths directly in UI code; let `ModuleManager`/`ModuleIconPaths` supply them.
+
+Example:
+```python
+from ..constants.module_icons import ModuleIconPaths
+icon_path = ModuleIconPaths.get_module_icon("ProjectsModule")
+```
+
+### 14.3 Themed path helper for generic icons
+- For non-module assets when you need a path string, use `ModuleIconPaths.themed(<basename>)`.
+
+Example:
+```python
+from ..constants.module_icons import ModuleIconPaths, ICON_SEARCH
+path = ModuleIconPaths.themed(ICON_SEARCH)
+```
+
+### 14.4 Adding a new icon (checklist)
+1) Download from Icons8 (Fluency Systems Regular) and keep the original filename or use lowercase kebab-case.
+2) Place the file in `resources/icons/`.
+3) (Optional) Add Light/Dark variants under `resources/icons/Light/` and `resources/icons/Dark/` using the same filename.
+4) If it’s a generic UI icon, consider exposing a basename constant in `ThemeManager` for reuse; otherwise reference the basename directly where needed.
+5) If it’s a module icon, add/update the mapping in `ModuleIconPaths.MODULE_ICONS`.
+6) Never build absolute paths in UI code; always resolve via `ThemeManager` or `ModuleIconPaths`.
+
+### 14.5 Rules and tips
+- PNG preferred (transparent); SVG OK.
+- Avoid background fills; ensure good contrast in both themes or provide variants.
+- Do not duplicate file names between unrelated icons.
+- Keep icons consistent with the Icons8 Fluency Systems Regular style.

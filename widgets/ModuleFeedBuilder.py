@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 from functools import lru_cache
 
 from PyQt5.QtCore import Qt, QLocale, QDateTime
-from PyQt5.QtGui import QColor, QFont
+from PyQt5.QtGui import QColor, QFont, QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame,
     QSizePolicy, QGraphicsDropShadowEffect
@@ -16,7 +16,9 @@ from PyQt5.QtWidgets import (
 from ..widgets.DateHelpers import DateHelpers           # or: from ..utils.date_helpers import DateHelpers
 from ..widgets.theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
+from ..constants.module_icons import ModuleIconPaths, DateIcons, MiscIcons
 from .status_color_helper import StatusColorHelper
+import os
 
 
 # ================== Module Feed ==================
@@ -193,10 +195,21 @@ class StatusWidget(QWidget):
         row.addStretch(1)  # push everything right
 
         if not item_data.get('isPublic'):
-            pub = QLabel("!")
+            pub = QLabel()
             pub.setObjectName("ProjectPrivateIcon")
             pub.setToolTip("Privaatne")
             pub.setAlignment(Qt.AlignCenter)
+            # themed private icon (using ICON_ADD as requested)
+            icon_path = MiscIcons.ICON_IS_PRIVATE
+            print(f"[StatusWidget] Using private icon: {icon_path}")
+            pm = QPixmap(icon_path)
+            if not pm.isNull():
+                print("[StatusWidget] Setting private icon pixmap")
+                pub.setPixmap(pm.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            else:
+                print("[StatusWidget] Private icon pixmap is null, using default")
+                pub.setText("P")
+                
             pub.setFixedSize(16, 16)
             row.addWidget(pub, 0, Qt.AlignRight | Qt.AlignVCenter)
 
