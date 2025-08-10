@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame, QHBoxLayout, QPushButton, QCheckBox
 from ...languages.language_manager import LanguageManager
 from ...widgets.theme_manager import ThemeManager
-# from .SettingsLogic import SettingsLogic  # Not needed for mock UI
+from .SettingsLogic import SettingsLogic
 from ...constants.file_paths import QssPaths
 from ...constants.module_names import PROJECTS_MODULE, CONTRACT_MODULE
 from ...utils.GraphQLQueryLoader import GraphQLQueryLoader
@@ -27,7 +27,8 @@ class SettingsUI(QWidget):
         else:
             self.lang_manager = lang_manager
         self.theme_manager = theme_manager
-        # self.logic = SettingsLogic()  # Not used in mock phase
+        # Logic layer
+        self.logic = SettingsLogic()
         self._cards = []
         self._initialized = False
         self._user_loaded = False
@@ -36,7 +37,7 @@ class SettingsUI(QWidget):
         self._pill_checks = {}
         # Roles UI storage
         self._roles_container = None
-        # Track settings changes
+        # Track settings changes (UI-level for buttons visibility)
         self._pending_changes = False
         self._pending_settings = {}
         self._original_settings = {}
@@ -140,12 +141,15 @@ class SettingsUI(QWidget):
         for name, card in list(self._module_cards.items()):
             card.setParent(None)
         self._module_cards.clear()
+        # Rebuild _cards to keep first (user) card, then module cards
+        self._cards = self._cards[:1]
         # Insert after the first card (user card)
         insert_index = 1
-        for module_name in self._available_modules:
+        for module_name in self.logic.get_available_modules():
             card = self._build_module_card(module_name)
             self._module_cards[module_name] = card
             self.cards_layout.insertWidget(insert_index, card)
+            self._cards.append(card)
             insert_index += 1
             try:
                 ThemeManager.apply_module_style(card, [QssPaths.SETUP_CARD])
@@ -189,7 +193,7 @@ class SettingsUI(QWidget):
     def set_available_modules(self, module_names):
         # Expect a list of internal module names to show cards for
         module_names = module_names or []
-        # Deduplicate while preserving order
+        # Keep local for building cards
         seen = set()
         ordered = []
         for n in module_names:
@@ -197,6 +201,8 @@ class SettingsUI(QWidget):
                 seen.add(n)
                 ordered.append(n)
         self._available_modules = ordered
+        # Inform logic for access calculation
+        self.logic.set_available_modules(ordered)
         if getattr(self, '_initialized', False):
             self._build_module_cards()
 
@@ -209,11 +215,7 @@ class SettingsUI(QWidget):
         # Load user data once when activated
         if not getattr(self, '_user_loaded', False):
             try:
-                ql = GraphQLQueryLoader(self.lang_manager)
-                api = APIClient(self.lang_manager, SessionManager(), ConfigPaths.CONFIG)
-                query = ql.load_query("USER", "me.graphql")
-                data = api.send_query(query)
-                user = data.get("me", {}) or {}
+                user = self.logic.load_user(self.lang_manager)
                 uid = user.get("id", "—")
                 full_name = f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() or "—"
                 email = user.get("email", "—")
@@ -222,7 +224,8 @@ class SettingsUI(QWidget):
                 self._user_labels['name'].setText(self.lang_manager.translate("Name") + f": {full_name}")
                 self._user_labels['email'].setText(self.lang_manager.translate("Email") + f": {email}")
                 # Update roles and module access pills
-                self._update_roles(user.get("roles"))
+                role_names = self.logic.parse_roles(user.get("roles"))
+                self._update_roles(role_names)
                 self._update_module_pills(user.get("abilities"))
                 # After pills are created, load original settings and sync UI
                 self._load_original_settings()
@@ -231,8 +234,8 @@ class SettingsUI(QWidget):
                 # Show error in place of user data
                 self._user_labels['id'].setText(str(e))
         else:
-            # Sync UI with original settings when re-activating (in case theme or other events)
-            self._apply_selection_to_pills(self._original_settings.get('preferred_module'))
+            # Sync UI with original settings when re-activating
+            self._apply_selection_to_pills(self.logic.get_original_preferred())
             self._set_dirty(False)
 
     def deactivate(self):
@@ -252,20 +255,41 @@ class SettingsUI(QWidget):
         Re-applies the correct theme and QSS to the settings UI and setup cards.
         """
         ThemeManager.apply_module_style(self, [QssPaths.MAIN])
-        for card in getattr(self, '_cards', []):
+        # Apply SetupCard styling to all current cards (user + modules)
+        for card in list(getattr(self, '_cards', [])) + list(getattr(self, '_module_cards', {}).values()):
             try:
                 ThemeManager.apply_module_style(card, [QssPaths.SETUP_CARD])
             except Exception:
                 pass
+        # Repolish dynamic styled widgets (pills) so properties reapply
+        self._repolish_dynamic_widgets()
+
+    def _repolish_dynamic_widgets(self):
+        """Force Qt to re-evaluate style for dynamic-property-based pills after theme change."""
+        def repolish(widget):
+            try:
+                widget.style().unpolish(widget)
+                widget.style().polish(widget)
+                widget.update()
+            except Exception:
+                pass
+        # Access pills
+        if getattr(self, '_pills_container', None):
+            for i in range(self._pills_layout.count()):
+                item = self._pills_layout.itemAt(i)
+                w = item.widget()
+                if isinstance(w, QFrame) and w.objectName() == 'AccessPill':
+                    repolish(w)
+        # Role pills
+        if getattr(self, '_roles_container', None):
+            for i in range(self._roles_layout.count()):
+                item = self._roles_layout.itemAt(i)
+                w = item.widget()
+                if isinstance(w, QFrame) and w.objectName() == 'AccessPill':
+                    repolish(w)
 
     def _update_roles(self, roles):
-        import json
-        roles = roles or []
-        if isinstance(roles, str):
-            try:
-                roles = json.loads(roles)
-            except Exception:
-                roles = []
+        # roles is a list of role names
         # Clear previous
         if hasattr(self, '_roles_layout'):
             while self._roles_layout.count():
@@ -274,10 +298,7 @@ class SettingsUI(QWidget):
                 if w is not None:
                     w.setParent(None)
         # Build role pills (reuse AccessPill styling)
-        for r in roles:
-            name = r.get('displayName') or r.get('name') or str(r.get('id') or '')
-            if not name:
-                continue
+        for name in roles or []:
             pill = QFrame(self._roles_container)
             pill.setObjectName("AccessPill")
             pill.setProperty('active', True)
@@ -290,29 +311,10 @@ class SettingsUI(QWidget):
         self._roles_layout.addStretch(1)
 
     def _update_module_pills(self, abilities):
-        import json
-        # Normalize abilities to list of dicts
-        if isinstance(abilities, str):
-            try:
-                abilities = json.loads(abilities)
-            except Exception:
-                abilities = []
-        abilities = abilities or []
-        subjects = set()
-        for ab in abilities:
-            subj = ab.get('subject')
-            if isinstance(subj, list) and subj:
-                subjects.add(str(subj[0]))
-            elif isinstance(subj, str):
-                subjects.add(subj)
-        # Map subjects to plugin modules we show
-        subject_to_module = {
-            'Project': PROJECTS_MODULE,
-            'Contract': CONTRACT_MODULE,
-        }
+        # Build pills based on access returned by logic
+        access = self.logic.get_module_access_from_abilities(abilities)
         # Clear previous pills
         if hasattr(self, '_pills_container') and self._pills_container:
-            # remove widgets from layout
             while self._pills_layout.count():
                 item = self._pills_layout.takeAt(0)
                 w = item.widget()
@@ -320,8 +322,7 @@ class SettingsUI(QWidget):
                     w.setParent(None)
         self._pill_checks = {}
         # Build pills
-        for subject, module_name in subject_to_module.items():
-            has_access = subject in subjects
+        for module_name, has_access in access.items():
             label_text = self.lang_manager.sidebar_button(module_name)
             pill = QFrame(self._pills_container)
             pill.setObjectName("AccessPill")
@@ -352,15 +353,12 @@ class SettingsUI(QWidget):
                             other_c.blockSignals(True)
                             other_c.setChecked(False)
                             other_c.blockSignals(False)
-                    # set pending preferred module
-                    self._pending_settings['preferred_module'] = m
+                    # set pending preferred module via logic
+                    self.logic.set_pending_preferred(m)
                 else:
                     # if all unchecked, clear pending preferred module
-                    if all(not cb.isChecked() for cb in self._pill_checks.values()):
-                        self._pending_settings['preferred_module'] = None
-                    else:
-                        # some other checkbox became checked, handled there
-                        pass
+                    selected = self._get_selected_preferred_from_ui()
+                    self.logic.set_pending_preferred(selected)
                 self._update_dirty_state()
             chk.stateChanged.connect(on_changed)
             self._pill_checks[module_name] = chk
@@ -370,10 +368,7 @@ class SettingsUI(QWidget):
 
     # --- Change tracking helpers ---
     def _update_dirty_state(self):
-        orig = self._original_settings.get('preferred_module', None)
-        curr = self._pending_settings.get('preferred_module', self._get_selected_preferred_from_ui())
-        dirty = (curr or None) != (orig or None)
-        self._set_dirty(dirty)
+        self._set_dirty(self.logic.has_unsaved_changes())
 
     def _set_dirty(self, dirty: bool):
         self._pending_changes = bool(dirty)
@@ -386,7 +381,7 @@ class SettingsUI(QWidget):
                 pass
 
     def has_unsaved_changes(self) -> bool:
-        return bool(self._pending_changes)
+        return self.logic.has_unsaved_changes()
 
     def _get_selected_preferred_from_ui(self):
         for m, cb in self._pill_checks.items():
@@ -400,46 +395,23 @@ class SettingsUI(QWidget):
             cb.blockSignals(True)
             cb.setChecked(m == module_name)
             cb.blockSignals(False)
-        # keep pending in sync with UI but not dirty
-        if module_name is None:
-            if 'preferred_module' in self._pending_settings:
-                del self._pending_settings['preferred_module']
-        else:
-            self._pending_settings['preferred_module'] = module_name
+        # keep logic pending in sync with UI but not dirty
+        self.logic.set_pending_preferred(module_name)
         self._set_dirty(False)
 
     def _load_original_settings(self):
-        try:
-            from qgis.core import QgsSettings
-            s = QgsSettings()
-            pref = s.value("wild_code/preferred_module", "") or None
-        except Exception:
-            pref = None
-        self._original_settings['preferred_module'] = pref
-        # Sync UI without marking dirty
-        self._apply_selection_to_pills(pref)
+        self.logic.load_original_settings()
+        self._apply_selection_to_pills(self.logic.get_original_preferred())
 
     def _on_confirm_clicked(self):
         self.apply_pending_changes()
 
     def apply_pending_changes(self):
-        # Persist settings
-        try:
-            from qgis.core import QgsSettings
-            s = QgsSettings()
-            pref = self._pending_settings.get('preferred_module', self._get_selected_preferred_from_ui())
-            if pref:
-                s.setValue("wild_code/preferred_module", pref)
-            else:
-                s.remove("wild_code/preferred_module")
-            # Update originals and clear dirty
-            self._original_settings['preferred_module'] = pref
-            self._set_dirty(False)
-        except Exception:
-            # If settings fail to save, keep dirty so user can retry
-            pass
+        # Persist settings via logic
+        self.logic.apply_pending_changes()
+        self._set_dirty(self.logic.has_unsaved_changes())
 
     def revert_pending_changes(self):
         # Revert UI to original settings, clear pending
-        self._apply_selection_to_pills(self._original_settings.get('preferred_module'))
-        self._set_dirty(False)
+        self.logic.revert_pending_changes()
+        self._apply_selection_to_pills(self.logic.get_original_preferred())
