@@ -316,6 +316,16 @@ class PluginDialog(QDialog):
         # Restyle footer after theme toggle
         if hasattr(self, 'footer_widget'):
             self.footer_widget.retheme_footer()
+        # Also re-theme any TagsWidget instances without importing its class
+        try:
+            from PyQt5.QtWidgets import QWidget as _QW
+            for tw in self.findChildren(_QW, "TagsWidget"):
+                if hasattr(tw, 'retheme') and callable(tw.retheme):
+                    tw.retheme()
+        except Exception:
+            pass
+
+
 
     def mousePressEvent(self, event: QMouseEvent):
         super().mousePressEvent(event)
