@@ -99,12 +99,14 @@ class SettingsLogic:
         return self._original_preferred
 
     def set_pending_preferred(self, module_name: Optional[str]):
+        # None means user prefers Welcome page
         self._pending_preferred = module_name or None
 
     def get_pending_preferred(self) -> Optional[str]:
         return self._pending_preferred
 
     def has_unsaved_changes(self) -> bool:
+        # Track change even if moving to None (welcome)
         return (self._pending_preferred or None) != (self._original_preferred or None)
 
     def apply_pending_changes(self):
@@ -114,6 +116,7 @@ class SettingsLogic:
             if self._pending_preferred:
                 s.setValue("wild_code/preferred_module", self._pending_preferred)
             else:
+                # None -> remove setting to show Welcome
                 s.remove("wild_code/preferred_module")
             self._original_preferred = self._pending_preferred
         except Exception:

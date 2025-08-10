@@ -1,37 +1,89 @@
-/* Setup Card specific styles (Dark) */
+/* =========================================
+   Setup Card — DARK
+   ========================================= */
+
+/* Card chrome */
 #SetupCard {
-  background: rgba(25,25,30,0.75);
+  background: #1f262d;                    /* subtle translucent works too */
   border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.06);
-}
-#SetupCardTitle {
-  font-weight: 600;
-  font-size: 13px;
-}
-#SetupCardDescription {
-  color: #aab;
+  border: 1px solid #2c343d;
 }
 
-#AccessPills QFrame#AccessPill {
-  font-size: 10px; /* smaller */
-  border-radius: 10px;
-  padding: 2px 6px;
-  border: 1px solid rgba(255,255,255,0.12);
+/* Titles */
+#SetupCardTitle                           { font-weight: 600; font-size: 13px; }
+#SetupCardDescription                     { color: #aab; }
+#SetupCard QLabel#SetupCardSectionTitle   { color: #e0e0e6; font-weight: 600; }
+
+/* -----------------------------------------
+   Roles (read-only pills)
+   ----------------------------------------- */
+#SetupCard #RolesPills QFrame#AccessPill {
+  font-size: 10px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+}
+#SetupCard #RolesPills QFrame#AccessPill QLabel {
+  color: #e0e0e6;
+  border: none; background: transparent;
+}
+
+/* -----------------------------------------
+   Module access pills (with radios)
+   ----------------------------------------- */
+#SetupCard #AccessPills QFrame#AccessPill {
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  transition: 120ms ease;
+}
+#SetupCard #AccessPills QFrame#AccessPill:hover {
+  border-color: rgba(9,144,143,0.55);
+}
+#SetupCard #AccessPills QFrame#AccessPill[active="true"] {
+  background: rgba(9,144,143,0.14);
+  border-color: rgba(9,144,143,0.45);
+  color: #a8f1ef;
+}
+#SetupCard #AccessPills QFrame#AccessPill[inactive="true"] {
+  background: rgba(255,255,255,0.04);
+  color: rgba(197,197,210,0.65);
+}
+#SetupCard #AccessPills QFrame#AccessPill QLabel {
+  border: none; background: transparent; color: inherit;
+}
+#SetupCard #AccessPills QFrame#AccessPill[inactive="true"] QLabel {
+  text-decoration: line-through;
+}
+
+/* Radio/Checkbox (preferred) — indicator + spacing */
+#SetupCard #AccessPills QFrame#AccessPill > QRadioButton#PreferredModuleRadio,
+#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModuleRadio {
+  margin-right: 6px;
   background: transparent;
 }
-#AccessPills QFrame#AccessPill:hover {
-  border-color: rgba(255,255,255,0.20);
+#SetupCard #AccessPills QFrame#AccessPill > QRadioButton#PreferredModuleRadio::indicator,
+#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModuleRadio::indicator {
+  width: 14px; height: 14px; border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.35);
+  background: #26313a;
 }
-#AccessPills QFrame#AccessPill[active="true"] {
-  background: rgba(60,180,75,0.20);
-  color: #dff6e5;
+#SetupCard #AccessPills QFrame#AccessPill > QRadioButton#PreferredModuleRadio::indicator:checked,
+#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModuleRadio::indicator:checked {
+  border-color: rgb(9,144,143);
+  background: radial-gradient(circle at 50% 50%, rgba(9,144,143,1) 40%, transparent 42%);
 }
-#AccessPills QFrame#AccessPill[inactive="true"] {
-  background: rgba(128,128,128,0.14);
-  color: rgba(220,220,220,0.55);
+#SetupCard #AccessPills QFrame#AccessPill > QRadioButton#PreferredModuleRadio::indicator:disabled,
+#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModuleRadio::indicator:disabled {
+  background: #2a333b; border: 1px dashed rgba(255,255,255,0.25);
 }
-#AccessPills QFrame#AccessPill QLabel { border: none; background: transparent; }
-#AccessPills QFrame#AccessPill QLabel { color: inherit; }
-#AccessPills QFrame#AccessPill[inactive="true"] QLabel { text-decoration: line-through; }
 
-#AccessPills QFrame#AccessPill QCheckBox { margin-right: 4px; }
+/* Keyboard focus ring on the pill when its radio is focused */
+#SetupCard #AccessPills QFrame#AccessPill:focus-within {
+  box-shadow: 0 0 0 2px rgba(9,144,143,0.25);
+  border-color: rgba(9,144,143,0.55);
+  border-radius: 999px;
+}

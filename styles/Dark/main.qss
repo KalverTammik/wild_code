@@ -204,3 +204,4 @@ QLabel a {
 }
 QLabel a:hover { color: #ffffff; text-decoration: underline; }
 QLabel a:active { color: #a8f1ef; }
+

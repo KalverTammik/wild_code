@@ -150,6 +150,15 @@ class Sidebar(QWidget):
             self.settingsButton.setProperty('active', is_settings)
             self.settingsButton.style().unpolish(self.settingsButton); self.settingsButton.style().polish(self.settingsButton)
 
+    def clearActive(self):
+        """Clear active state on all sidebar buttons (used when showing Welcome page)."""
+        for btn in self.moduleButtons.values():
+            btn.setProperty('active', False)
+            btn.style().unpolish(btn); btn.style().polish(btn)
+        if hasattr(self, 'settingsButton'):
+            self.settingsButton.setProperty('active', False)
+            self.settingsButton.style().unpolish(self.settingsButton); self.settingsButton.style().polish(self.settingsButton)
+
     def emitItemClicked(self, itemName):
         self.itemClicked.emit(itemName)
 

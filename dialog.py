@@ -14,6 +14,7 @@ from .module_manager import ModuleManager, SETTINGS_MODULE
 from .constants.module_names import USER_TEST_MODULE
 from .widgets.sidebar import Sidebar
 from .utils.SessionManager import SessionManager
+from .widgets.WelcomePage import WelcomePage
 
 
 # Shared managers for all modules
@@ -44,6 +45,10 @@ class PluginDialog(QDialog):
         self.moduleStack.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.sidebar = Sidebar()
         self.sidebar.itemClicked.connect(self.switchModule)
+
+        # Create welcome page (default view)
+        self.welcomePage = WelcomePage(lang_manager=lang_manager, theme_manager=theme_manager)
+        self.welcomePage.openSettingsRequested.connect(lambda: self.switchModule(SETTINGS_MODULE))
 
         # Geometry watcher and update subscribers
         self._geometry_update_callbacks = []
@@ -102,6 +107,12 @@ class PluginDialog(QDialog):
             qss_files=[QssPaths.MAIN, QssPaths.SIDEBAR, QssPaths.HEADER, QssPaths.FOOTER]
         )
         self.loadModules()
+        # Ensure welcome page is present as the first page in the stack
+        try:
+            self.moduleStack.insertWidget(0, self.welcomePage)
+            self.moduleStack.setCurrentWidget(self.welcomePage)
+        except Exception:
+            pass
         self.destroyed.connect(self._on_destroyed)
 
     def _notify_geometry_update(self, x, y, w, h):
@@ -260,10 +271,20 @@ class PluginDialog(QDialog):
                 self.moduleStack.update()
                 self.moduleStack.repaint()
             else:
-                raise AttributeError("No active module found.")
+                self._show_welcome()
         except Exception as e:
             QgsMessageLog.logMessage(f"Error switching module: {e}", "Wild Code", level=Qgis.Critical)
 
+    def _show_welcome(self):
+        try:
+            self.moduleStack.setCurrentWidget(self.welcomePage)
+            self.header_widget.set_title(lang_manager.translate("Welcome"))
+            if hasattr(self, 'sidebar'):
+                self.sidebar.clearActive()
+            # Ensure welcome page text uses the current language
+            self.welcomePage.retranslate(lang_manager)
+        except Exception:
+            pass
 
     def toggle_theme(self):
         # Use ThemeManager to toggle theme and update icon
@@ -294,6 +315,12 @@ class PluginDialog(QDialog):
         # Restyle user test dialog after theme toggle
         if hasattr(self, 'testUserDataDialog'):
             self.testUserDataDialog.retheme_user_test()
+        # Update welcome page texts using current language
+        try:
+            if hasattr(self, 'welcomePage'):
+                self.welcomePage.retranslate(lang_manager)
+        except Exception:
+            pass
         # Restyle footer after theme toggle
         if hasattr(self, 'footer_widget'):
             self.footer_widget.retheme_footer()
@@ -328,7 +355,7 @@ class PluginDialog(QDialog):
         if not SessionManager().isLoggedIn():
             self.close()
         else:
-            # On first show, if a preferred module exists, activate it; else leave stack as default (welcome)
+            # On first show, if a preferred module exists, activate it; else show welcome
             if not hasattr(self, '_preferred_checked'):
                 self._preferred_checked = True
                 try:
@@ -337,8 +364,10 @@ class PluginDialog(QDialog):
                     pref = s.value("wild_code/preferred_module", "")
                     if pref and pref in self.moduleManager.modules:
                         self.switchModule(pref)
+                    else:
+                        self._show_welcome()
                 except Exception:
-                    pass
+                    self._show_welcome()
         super().showEvent(event)
 
     def closeEvent(self, event):
