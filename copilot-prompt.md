@@ -18,13 +18,16 @@
    - Apply QSS using `ThemeManager.apply_module_style(widget, [QssPaths.VARIABLE])` for all such widgets. If the QSS variable does not exist, create a new QSS file and add it to `QssPaths`.
 
 4. **Dynamic Restyling**
-   - Any module that creates dynamic content (e.g., cards, list items) must implement a method to re-apply QSS to all such widgets (e.g., `rethem_[some logical name here]()`).
-   - After toggling the theme, the main dialog must call these restyle methods for all active modules. This is done in fialog.py-s  toggle_theme method. There each new widget that is developed into widgets directoy or module must be registered as 
+  - Any module that creates dynamic content (e.g., cards, list items) must implement a method to re-apply QSS to all such widgets (e.g., `rethem_[some logical name here]()`), and it should re-apply QSS via `ThemeManager.apply_module_style` to the module root and its cards.
+  - After toggling the theme, the main dialog calls module retheme methods (e.g., `rethem_project()`, `retheme_settings()`, etc.).
+  - Generic sweep: the dialog also calls `retheme()` on any child widget that exposes that method (found via `findChildren(QWidget)`), allowing widgets like `TagsWidget` to self-update without dialog-level imports. Widgets opt-in by implementing `retheme()`.
 
 5. **Theme Toggle Integration**
    - The main dialog’s `toggle_theme` method must:
-     - Call `ThemeManager.toggle_theme(...)` to update the global theme.
-     - Call each module’s restyle method (e.g., `rethem_[module or_widget]()`) to update all content.
+     - Call `ThemeManager.toggle_theme(...)` to update the global theme and header toggle icon.
+     - Re-apply styles to top-level UI (header, sidebar, footer) via their dedicated `retheme_*` methods.
+     - Call each active module’s retheme method (e.g., `rethem_project()`, `retheme_settings()`), which re-applies module/card QSS.
+     - Finally, perform a generic sweep to invoke `retheme()` on any child widget that provides it (no class imports in dialog).
 
 6. **No Direct QSS File Reading**
    - Do not read QSS files directly in modules. Always use `ThemeManager.apply_module_style`.
@@ -165,6 +168,20 @@ ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.SIDEBAR])  # Comp
 **Never use direct theme_dir or qss_files logic. Always use ThemeManager.apply_module_style.**
 
 This ensures correct and consistent theme application across the plugin.
+
+### Initial Theme Load (REQUIRED)
+
+- On dialog initialization, call `ThemeManager.set_initial_theme(dialog, switch_button, theme_base_dir, qss_files=[QssPaths.MAIN, QssPaths.SIDEBAR, QssPaths.HEADER, QssPaths.FOOTER])`.
+- Each module should apply its own QSS to its root widget right after the UI is built, e.g. `theme_manager.apply_module_style(self.widget, [QssPaths.MAIN])` or a module-specific QSS.
+- Widgets with custom QSS (like pills) must apply their QSS in `__init__` (e.g., `ThemeManager.apply_module_style(self, [QssPaths.PILLS])`) and implement `retheme()` to support live switching.
+
+### New Module UI checklist
+
+- Build the root widget and set layouts.
+- Apply module QSS: `theme_manager.apply_module_style(self.widget, [QssPaths.MAIN] /* or module-specific */)`.
+- Implement `rethem_[module]()` to re-apply module and card styles on theme toggle.
+- If the module creates dynamic widgets (cards, lists), ensure those widgets implement `retheme()` when they have theme-dependent visuals (e.g., shadows) and/or call a helper to re-apply styles to children.
+- The main dialog will call the module’s `rethem_*()` and also run a generic child `retheme()` sweep.
 ### General Design
 - Use dark theme as default; support seamless switching to light theme.
 - All dialogs/widgets must have rounded corners and soft shadow borders.

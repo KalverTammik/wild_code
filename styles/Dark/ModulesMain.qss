@@ -1,0 +1,21 @@
+/* ModulesMain.qss - Dark Theme */
+QWidget {
+    background: #23272e;
+    border-radius: 8px;
+    border: 1px solid #333842;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #f0f0f0;
+}
+
+QLabel {
+    font-size: 14px;
+    color: #f0f0f0;
+}
+
+QPushButton {
+    background: #193b3b;
+    border-radius: 6px;
+    border: 1px solid #09908f;
+    padding: 4px 12px;
+    color: #09e0e0;
+}

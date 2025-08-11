@@ -53,6 +53,7 @@ class QssPaths:
     MODULE_CARD = "ModuleCard.qss"
     SETUP_CARD = "SetupCard.qss"
     PILLS = "pills.qss"
+    MODULES_MAIN = "ModulesMain.qss"
     LIGHT_THEME = os.path.join(PLUGIN_ROOT, STYLES, "LightTheme.qss")
     DARK_THEME = os.path.join(PLUGIN_ROOT, STYLES, "DarkTheme.qss")
     SIDEBAR_THEME = os.path.join(PLUGIN_ROOT, STYLES, "Sidebar.qss")

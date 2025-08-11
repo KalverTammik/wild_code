@@ -45,10 +45,6 @@ class ContractsFeedLogic:
         variables = {
             "first": self.batch_size,
             "after": self.end_cursor,
-            "search": None,
-            "where": None,
-            "orderBy": [{"column": "ID", "order": "ASC"}],
-            "trashed": "WITHOUT",
         }
         try:
             data = self.api_client.send_query(self.query, variables)

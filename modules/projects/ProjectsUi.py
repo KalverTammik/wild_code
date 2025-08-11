@@ -19,7 +19,7 @@ class ProjectsModule(BaseModule):
         Uses centralized ThemeManager.apply_module_style for all theming.
         """
         if self.theme_manager:
-            self.theme_manager.apply_module_style(self.widget, [])
+            self.theme_manager.apply_module_style(self.widget, [QssPaths.MODULES_MAIN])
             for i in range(self.feed_layout.count()):
                 card = self.feed_layout.itemAt(i).widget()
                 if card:
@@ -51,7 +51,7 @@ class ProjectsModule(BaseModule):
 
         # Theming
         if self.theme_manager:
-            self.theme_manager.apply_module_style(self.widget, [])
+            self.theme_manager.apply_module_style(self.widget, [QssPaths.MODULES_MAIN])
 
         # Connect scroll event for infinite scroll
         self.scroll_area.verticalScrollBar().valueChanged.connect(self.on_scroll)

@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt5.QtGui import QMouseEvent
 from .widgets.FooterWidget import FooterWidget
 from .widgets.HeaderWidget import HeaderWidget
-from qgis.PyQt.QtWidgets import QDialog as QgisQDialog  # If needed elsewhere, otherwise can be removed
+# Removed unused: from qgis.PyQt.QtWidgets import QDialog as QgisQDialog
 from qgis.core import QgsMessageLog, Qgis
 
 from .login_dialog import LoginDialog
@@ -316,16 +316,21 @@ class PluginDialog(QDialog):
         # Restyle footer after theme toggle
         if hasattr(self, 'footer_widget'):
             self.footer_widget.retheme_footer()
-        # Also re-theme any TagsWidget instances without importing its class
+        # Generic retheme pass: call retheme() on any child that provides it
+        self._retheme_dynamic_children()
+
+
+    def _retheme_dynamic_children(self):
+        """Find any child widgets that expose retheme() and call it.
+        Avoids importing specific widget classes in the dialog.
+        """
         try:
-            from PyQt5.QtWidgets import QWidget as _QW
-            for tw in self.findChildren(_QW, "TagsWidget"):
-                if hasattr(tw, 'retheme') and callable(tw.retheme):
-                    tw.retheme()
+            for w in self.findChildren(QWidget):
+                rt = getattr(w, 'retheme', None)
+                if callable(rt):
+                    rt()
         except Exception:
             pass
-
-
 
     def mousePressEvent(self, event: QMouseEvent):
         super().mousePressEvent(event)
