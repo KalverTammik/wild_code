@@ -38,21 +38,24 @@ class APIClient:
                 headers["Authorization"] = f"Bearer {token}"
         try:
             response = requests.post(self.api_url, json=payload, headers=headers, timeout=timeout)
-            
+
             if response.status_code == 200:
                 data = response.json()
-                print(f"API response: {data}")  # Debugging output
                 if "errors" in data:
-                    # Print and raise the raw GraphQL errors for debugging
-                    print("GraphQL errors:", data["errors"])
-                    raise Exception(f"GraphQL errors: {data['errors']}")
+                    # Raise the first GraphQL error message if present
+                    try:
+                        first_msg = data["errors"][0].get("message") or str(data["errors"][0])
+                    except Exception:
+                        first_msg = str(data.get("errors"))
+                    raise Exception(first_msg)
                 return data.get("data", {})
             else:
-                raise Exception(self.lang.translate("login_failed_response").format(error=response.text))
+                # Prefer server-provided body to aid diagnostics
+                try:
+                    body = response.text
+                except Exception:
+                    body = f"HTTP {response.status_code}"
+                raise Exception(self.lang.translate("login_failed_response").format(error=body))
         except Exception as e:
-            # Print the raw exception for debugging
-            import traceback
-            import sys
-            tb = traceback.format_exc()
-            print(f"APIClient Exception: {e}\n{tb}", file=sys.stderr)
-            raise Exception(self.lang.translate("network_error").format(error=str(e)))
+            # Surface the exception message (could be server message or network issue)
+            raise Exception(str(e) or self.lang.translate("network_error").format(error=""))

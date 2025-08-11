@@ -130,6 +130,9 @@ class LoginDialog(QDialog):
             self.password_input.setEchoMode(QLineEdit.Password)
 
     def authenticate_user(self):
+        """Authenticate the user using the shared APIClient and show a concise server message on failure."""
+        from .utils.api_client import APIClient
+
         if SessionManager().isLoggedIn():
             self.errorLabel.setText(DialogLabels.SESSION_ACTIVE_ERROR)
             self.errorLabel.show()
@@ -143,21 +146,7 @@ class LoginDialog(QDialog):
         username = self.username_input.text()
         password = self.password_input.text()
 
-        # Load API endpoint from config.json
-        try:
-            with open(ConfigPaths.CONFIG, "r", encoding="utf-8") as f:
-                config = json.load(f)
-            api_url = config.get("graphql_endpoint")
-            if not api_url:
-                self.errorLabel.setText(lang.translate("api_endpoint_not_configured"))
-                self.errorLabel.show()
-                return
-        except Exception as e:
-            self.errorLabel.setText(lang.translate("config_error"))
-            self.errorLabel.show()
-            return
-
-        # Construct GraphQL mutation for authentication
+        # Build GraphQL mutation (server accepts username/password in input)
         graphql = f'''
             mutation {{
                 login(input: {{ username: "{username}", password: "{password}" }}) {{
@@ -167,35 +156,29 @@ class LoginDialog(QDialog):
                 }}
             }}
         '''
-        payload = {"query": graphql}
-        headers = {
-            "Content-Type": "application/json",
-            "User-Agent": f"QGIS/{Qgis.QGIS_VERSION} ({platform.system()} {platform.release()})"
-        }
+
+        api = APIClient(lang)
         try:
-            response = requests.post(api_url, json=payload, headers=headers, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                if "errors" in data:
-                    self.errorLabel.setText(lang.translate("login_failed").format(error=str(data["errors"])))
-                    self.errorLabel.show()
-                    return
-                login_data = data.get("data", {}).get("login", {})
-                api_token = login_data.get("accessToken")
-                if api_token:
-                    self.api_token = api_token
-                    self.user = {"name": username, "email": username}
-                    SessionManager().setSession(self.api_token, self.user)
-                    SessionManager().save_credentials(username, password, api_token)
-                    self.loginSuccessful.emit(self.api_token)
-                    self.accept()
-                else:
-                    self.errorLabel.setText(lang.translate("no_api_token_received"))
-                    self.errorLabel.show()
+            # Use shared client for consistent headers and error handling; no auth required for login
+            data = api.send_query(graphql, variables=None, require_auth=False, timeout=10)
+            login_data = (data or {}).get("login", {})
+            api_token = login_data.get("accessToken")
+            if api_token:
+                self.api_token = api_token
+                self.user = {"name": username, "email": username}
+                SessionManager().setSession(self.api_token, self.user)
+                SessionManager().save_credentials(username, password, api_token)
+                self.loginSuccessful.emit(self.api_token)
+                self.accept()
             else:
-                self.errorLabel.setText(lang.translate("login_failed_response").format(error=response.text))
+                # One-shot diagnostic: show server-side response issue
+                self.errorLabel.setText(lang.translate("no_api_token_received"))
                 self.errorLabel.show()
         except Exception as e:
-            self.errorLabel.setText(lang.translate("network_error").format(error=str(e)))
+            # One-shot diagnostic: surface the server's message body without logging secrets
+            msg = str(e)
+            if not msg:
+                msg = lang.translate("login_failed")
+            self.errorLabel.setText(msg)
             self.errorLabel.show()
 
