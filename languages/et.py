@@ -6,7 +6,7 @@ TRANSLATIONS = {
     "no_api_token_received": "API võtit ei saadud.",
     "login_failed_response": "Sisselogimine ebaõnnestus: {error}",
     "network_error": "Võrgu viga: {error}",
-    "login_title": "Sisselogimine",
+    "login_title": "Logi sisse",
     "language_label": "Keel:",
     "username_label": "Kasutajanimi:",
     "password_label": "Parool:",
