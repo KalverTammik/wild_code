@@ -1,6 +1,9 @@
 import os
 from .base_paths import PLUGIN_ROOT, CONFIG_DIR, RESOURCE, STYLES, MODULES
-from .module_names import GPT_ASSISTANT_MODULE
+try:
+    from .module_names import GPT_ASSISTANT_MODULE
+except Exception:
+    GPT_ASSISTANT_MODULE = None
 
 # GraphQL query folder paths for each module (standards-compliant)
 from .base_paths import QUERIES, GRAPHQL, USER_QUERIES, PROJECT_QUERIES, CONTRACT_QUERIES, EASEMENT_QUERIES, TAGS_QUERIES, STATUS_QUERIES, TASK_QUERIES, COORDINATION_QUERIES, SUBMISSION_QUERIES, SPECIFICATION_QUERIES, PROPERTIES_QUERIES
@@ -26,10 +29,11 @@ class QueryPaths:
 # Data paths (for module data files)
 
 
-# GptAssistant module paths
-class GptAssistantPaths:
-    ENV = os.path.join(PLUGIN_ROOT, MODULES, GPT_ASSISTANT_MODULE, '.env')
-    README = os.path.join(PLUGIN_ROOT, MODULES, GPT_ASSISTANT_MODULE, 'README_QGIS_OPENAI.txt')
+# GptAssistant module paths (optional; defined only if module name exists)
+if GPT_ASSISTANT_MODULE:
+    class GptAssistantPaths:
+        ENV = os.path.join(PLUGIN_ROOT, MODULES, GPT_ASSISTANT_MODULE, '.env')
+        README = os.path.join(PLUGIN_ROOT, MODULES, GPT_ASSISTANT_MODULE, 'README_QGIS_OPENAI.txt')
 
 
 

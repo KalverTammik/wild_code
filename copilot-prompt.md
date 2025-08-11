@@ -182,6 +182,49 @@ This ensures correct and consistent theme application across the plugin.
 - Implement `rethem_[module]()` to re-apply module and card styles on theme toggle.
 - If the module creates dynamic widgets (cards, lists), ensure those widgets implement `retheme()` when they have theme-dependent visuals (e.g., shadows) and/or call a helper to re-apply styles to children.
 - The main dialog will call the module’s `rethem_*()` and also run a generic child `retheme()` sweep.
+
+### Tags hover/popup handling (pills)
+
+Purpose
+- Show a small info icon in each card header; hovering reveals a lightweight popup with the item’s tags (styled as pills).
+
+Key files
+- `widgets/DataDisplayWidgets/ModuleFeedBuilder.py` — integrates the icon and popup in cards.
+- `widgets/DataDisplayWidgets/TagsWidget.py` — renders tags as pills and exposes `retheme()`.
+- `styles/Light/pills.qss`, `styles/Dark/pills.qss` — pill styling, referenced via `QssPaths.PILLS`.
+
+Detection & integration
+- Tags are extracted with `ModuleFeedBuilder._extract_tag_names(item)` from `item['tags']['edges'][i]['node']['name']`.
+- `_item_has_tags(item)` guards whether to add the hover icon.
+- In each card header: if the item has tags, add `TagsHoverButton(item)` next to the title.
+
+Behavior
+- Hover over the icon shows `TagPopup` directly below the icon; leaving the icon starts a short hide timer.
+- The popup installs an event filter so it stays open while the cursor is over the popup or its children; leaving both areas hides it after a delay.
+- `TagPopup` is a non-activating tool window: `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint` and is reparented to the card’s top-level window for correct z-order in QGIS.
+- The popup applies `ThemeManager.apply_module_style(self, [QssPaths.PILLS])` and calls `TagsWidget.retheme()` in `showEvent` to reflect theme changes.
+- If an item has no tags, the popup closes immediately and no icon is added.
+
+Tunables
+- Hide delay when leaving the icon: `TagsHoverButton._hide_delay_ms` (default ~600 ms).
+- Additional hide delay after leaving the popup (shorter, e.g. 350 ms) to tolerate small cursor gaps.
+- Button size (20×20) and icon size (14×14) can be adjusted in `TagsHoverButton`.
+- Popup anchoring offset (below the icon) can be tweaked in `TagPopup.show_near()` if visual alignment needs tuning.
+
+Theming
+- Do not inline styles; rely on `pills.qss` via `QssPaths.PILLS`.
+- Ensure `TagsWidget` implements `retheme()` so pills update on theme toggle.
+
+Edge cases
+- Popup hidden behind the dialog: verify the popup is reparented to the top-level window and call `raise_()` after `show()`.
+- Fast pointer movement causing flicker: increase the hide delays slightly.
+- Items without tags: no hover icon is added.
+
+Test checklist
+- Hover over the icon → popup appears; move into popup → stays visible; leave both → hides after delay.
+- Toggle theme while popup is open → pills restyle immediately.
+- Scroll the feed with an open popup → behavior remains stable; reopen aligns to the icon.
+- Same experience across Projects and Contracts cards.
 ### General Design
 - Use dark theme as default; support seamless switching to light theme.
 - All dialogs/widgets must have rounded corners and soft shadow borders.

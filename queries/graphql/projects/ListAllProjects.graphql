@@ -14,6 +14,7 @@ query Projects($first: Int, $after: String) {
         id
         name
         number
+        description
         status {
             name
             color
