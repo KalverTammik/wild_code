@@ -37,4 +37,5 @@ TRANSLATIONS = {
     "Archive layer": "Arhiivikihi",
     "Select layer": "Vali kiht",
     "Choose layers used by this module (element and archive).": "Vali selle mooduli kasutatavad kihid (elemendi ja arhiivi)."
+    ,"logout_button_tooltip": "Logi välja"
 }

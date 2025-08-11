@@ -56,6 +56,12 @@ class HeaderWidget(QWidget):
         self.logoutButton = QPushButton("Logout")
         self.logoutButton.setObjectName("logoutButton")
         self.logoutButton.clicked.connect(logout_callback)
+        try:
+            from wild_code.languages.language_manager import LanguageManager
+            tooltip = LanguageManager().translations.get("logout_button_tooltip", "Log out")
+            self.logoutButton.setToolTip(tooltip)
+        except Exception:
+            self.logoutButton.setToolTip("Log out")
         layout.addWidget(self.logoutButton, 0, Qt.AlignRight | Qt.AlignVCenter)
 
         # Outer zero-margin wrapper (consistent with footer structure)

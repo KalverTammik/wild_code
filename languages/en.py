@@ -32,4 +32,5 @@ TRANSLATIONS = {
     "Archive layer": "Archive layer",
     "Select layer": "Select layer",
     "Choose layers used by this module (element and archive).": "Choose layers used by this module (element and archive)."
+    ,"logout_button_tooltip": "Log out from your account"
 }
