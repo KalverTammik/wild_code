@@ -33,4 +33,9 @@ TRANSLATIONS = {
     "Select layer": "Select layer",
     "Choose layers used by this module (element and archive).": "Choose layers used by this module (element and archive)."
     ,"logout_button_tooltip": "Log out from your account"
+    ,"search_tooltip": "This feature is not yet available"
+    ,"search_placeholder": "Search..."
+    ,"sidebar_collapse_tooltip": "Collapse Sidebar"
+    ,"sidebar_expand_tooltip": "Expand Sidebar"
+    ,"theme_switch_tooltip": "Switch between dark and light theme"
 }

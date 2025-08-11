@@ -36,7 +36,13 @@ class HeaderWidget(QWidget):
 
         # Search (center)
         self.searchEdit = QLineEdit()
-        self.searchEdit.setPlaceholderText("Search…")
+        try:
+            from wild_code.languages.language_manager import LanguageManager
+            lang_manager = LanguageManager()
+            placeholder = lang_manager.translations.get("search_placeholder", "search_placeholder")
+            self.searchEdit.setPlaceholderText(placeholder)
+        except Exception:
+            self.searchEdit.setPlaceholderText("search_placeholder")
         self.searchEdit.setObjectName("headerSearchEdit")
         self.searchEdit.setFixedWidth(220)
         shadow = QGraphicsDropShadowEffect(self.searchEdit)
@@ -45,23 +51,41 @@ class HeaderWidget(QWidget):
         shadow.setYOffset(1)
         shadow.setColor(QColor(9, 144, 143, 60))   # teal accent glow (rgb, alpha)
         self.searchEdit.setGraphicsEffect(shadow)
+        # Rakenda tooltip keelefailist
+        try:
+            from wild_code.languages.language_manager import LanguageManager
+            lang_manager = LanguageManager()
+            tooltip = lang_manager.translations.get("search_tooltip", "search_tooltip")
+            self.searchEdit.setToolTip(tooltip)
+        except Exception:
+            self.searchEdit.setToolTip("search_tooltip")
         layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
         
         # Right: theme switch + logout
         self.switchButton = QPushButton()
         self.switchButton.setObjectName("themeSwitchButton")
         self.switchButton.clicked.connect(switch_callback)
+        # Rakenda tooltip keelefailist
+        try:
+            from wild_code.languages.language_manager import LanguageManager
+            lang_manager = LanguageManager()
+            tooltip = lang_manager.translations.get("theme_switch_tooltip", "theme_switch_tooltip")
+            self.switchButton.setToolTip(tooltip)
+        except Exception:
+            self.switchButton.setToolTip("theme_switch_tooltip")
         layout.addWidget(self.switchButton, 0, Qt.AlignRight | Qt.AlignVCenter)
 
         self.logoutButton = QPushButton("Logout")
         self.logoutButton.setObjectName("logoutButton")
         self.logoutButton.clicked.connect(logout_callback)
+        # Rakenda tooltip keelefailist
         try:
             from wild_code.languages.language_manager import LanguageManager
-            tooltip = LanguageManager().translations.get("logout_button_tooltip", "Log out")
+            lang_manager = LanguageManager()
+            tooltip = lang_manager.translations.get("logout_button_tooltip", "logout_button_tooltip")
             self.logoutButton.setToolTip(tooltip)
         except Exception:
-            self.logoutButton.setToolTip("Log out")
+            self.logoutButton.setToolTip("logout_button_tooltip")
         layout.addWidget(self.logoutButton, 0, Qt.AlignRight | Qt.AlignVCenter)
 
         # Outer zero-margin wrapper (consistent with footer structure)

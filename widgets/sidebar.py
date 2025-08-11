@@ -94,7 +94,11 @@ class Sidebar(QWidget):
         self.toggleButton.setObjectName("SidebarToggleButton")
         self.toggleButton.setAutoRaise(True)
         self.toggleButton.setFixedSize(22, 44)        # slim, tall target
-        self.toggleButton.setToolTip("Collapse Sidebar")
+        try:
+            tooltip = lang_manager.translations.get("sidebar_collapse_tooltip", "sidebar_collapse_tooltip")
+            self.toggleButton.setToolTip(tooltip)
+        except Exception:
+            self.toggleButton.setToolTip("sidebar_collapse_tooltip")
         self.toggleButton.setText("«")                # expanded → show collapse glyph
         self.toggleButton.clicked.connect(self.toggleSidebar)
         self._apply_toggle_shadow()
@@ -241,7 +245,11 @@ class Sidebar(QWidget):
         if self._is_compact:
             self.settingsButton.setText("")
             self.toggleButton.setText("»")
-            self.toggleButton.setToolTip("Expand Sidebar")
+            try:
+                tooltip = lang_manager.translations.get("sidebar_expand_tooltip", "sidebar_expand_tooltip")
+                self.toggleButton.setToolTip(tooltip)
+            except Exception:
+                self.toggleButton.setToolTip("sidebar_expand_tooltip")
         else:
             self.settingsButton.setText(self.buttonTexts.get(self.settingsButton, self.settingsButton.text()))
             self.toggleButton.setText("«")
