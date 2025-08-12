@@ -67,6 +67,7 @@ class PluginDialog(QDialog):
             switch_callback=self.toggle_theme,
             logout_callback=self.logout
         )
+        self.header_widget.open_home_callback = self._show_welcome
 
         dialog_layout.addWidget(self.header_widget)
   

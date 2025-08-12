@@ -38,6 +38,28 @@ class WelcomePage(QWidget):
         layout.addLayout(hl)
         layout.addStretch(2)
 
+        # --- Custom header frame for A Tähe õppimine ---
+        self.custom_header_frame = QWidget()
+        self.custom_header_frame.setObjectName("WelcomeCustomHeaderFrame")
+        header_layout = QHBoxLayout(self.custom_header_frame)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(8)
+        # Ikkooni koht (placeholder)
+        self.icon_placeholder = QLabel()
+        self.icon_placeholder.setObjectName("WelcomeHeaderIcon")
+        self.icon_placeholder.setFixedSize(32, 32)
+        header_layout.addWidget(self.icon_placeholder)
+        # Pealkiri
+        self.header_title = QLabel("A Tähe õppimine")
+        self.header_title.setObjectName("WelcomeHeaderTitle")
+        header_layout.addWidget(self.header_title)
+        layout.addWidget(self.custom_header_frame)
+        # --- Teksti hoidja ---
+        self.text_holder = QLabel("A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole.")
+        self.text_holder.setObjectName("WelcomeHeaderTextHolder")
+        self.text_holder.setWordWrap(True)
+        layout.addWidget(self.text_holder)
+
         # Initial text setup
         self.retranslate(self.lang_manager)
         # Theme is applied at dialog level; child inherits. Optionally apply module QSS here if needed.

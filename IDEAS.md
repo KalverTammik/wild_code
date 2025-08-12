@@ -14,3 +14,4 @@ Siia faili kogume kõik arendusideed, mõtted ja tulevased plaanid. Kui tekib uu
 Lisa uusi ideid käsuga või kirjeldusega, et saaksime neid hiljem arutada ja ellu viia.
 
 - **2025-08-12:** Lisada võimalus kasutajal valida rakenduse keelt otse peaaknast, ilma seadete menüüsse minemata (nt rippmenüü või nupuriba kaudu).
+- **2025-08-12:** Palu Kalveril kontrollida, kas seadetes on õigesti seadistatud, et avaleht peab olema esmaselt avatav, kui ühtegi moodulit pole esmaseks valikuks määratud.

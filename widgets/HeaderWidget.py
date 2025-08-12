@@ -1,3 +1,4 @@
+import os
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
@@ -47,6 +48,15 @@ class HeaderWidget(QWidget):
         self.searchEdit.setFixedWidth(220)
         shadow = QGraphicsDropShadowEffect(self.searchEdit)
         shadow.setBlurRadius(14)                  # softer spread
+        # Home button (avalehe nupp)
+        from ..constants.file_paths import ResourcePaths
+        from PyQt5.QtGui import QIcon
+        self.homeButton = QPushButton()
+        self.homeButton.setObjectName("headerHomeButton")
+        self.homeButton.setIcon(QIcon(os.path.join(ResourcePaths.ICON, "../icons/Light/icons8-home-screen-50.png")))
+        self.homeButton.setToolTip("Avaleht")
+        self.homeButton.setFixedSize(32, 32)
+        layout.insertWidget(1, self.homeButton, 0, Qt.AlignLeft | Qt.AlignVCenter)
         shadow.setXOffset(0)
         shadow.setYOffset(1)
         shadow.setColor(QColor(9, 144, 143, 60))   # teal accent glow (rgb, alpha)
@@ -98,6 +108,8 @@ class HeaderWidget(QWidget):
         from ..constants.file_paths import QssPaths
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
 
+        self.homeButton.clicked.connect(self._open_home)
+
     def set_switch_icon(self, icon):
         self.switchButton.setIcon(icon)
         self.switchButton.setText("")
@@ -113,3 +125,8 @@ class HeaderWidget(QWidget):
 
     def set_title(self, text):
         self.titleLabel.setText(text)
+
+    def _open_home(self):
+        # Emit a custom signal or call a callback to open the welcome page
+        if hasattr(self, 'open_home_callback') and callable(self.open_home_callback):
+            self.open_home_callback()
