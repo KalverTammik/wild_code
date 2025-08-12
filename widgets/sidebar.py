@@ -253,7 +253,11 @@ class Sidebar(QWidget):
         else:
             self.settingsButton.setText(self.buttonTexts.get(self.settingsButton, self.settingsButton.text()))
             self.toggleButton.setText("«")
-            self.toggleButton.setToolTip("Collapse Sidebar")
+            try:
+                tooltip = lang_manager.translations.get("sidebar_collapse_tooltip", "sidebar_collapse_tooltip")
+                self.toggleButton.setToolTip(tooltip)
+            except Exception:
+                self.toggleButton.setToolTip("sidebar_collapse_tooltip")
 
         start_w = self.container.width()
         end_w = self._compact_width if self._is_compact else self._expanded_width

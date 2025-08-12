@@ -24,6 +24,18 @@ from ..constants.file_paths import ResourcePaths
 import glob
 
 class ThemeManager:
+    @staticmethod
+    def apply_tooltip_style():
+        """
+        Apply tooltip QSS globally to QApplication based on current theme.
+        """
+        from ..constants.file_paths import StylePaths, QssPaths
+        theme = ThemeManager.load_theme_setting()
+        theme_dir = StylePaths.DARK if theme == 'dark' else StylePaths.LIGHT
+        tooltip_qss_path = os.path.join(theme_dir, QssPaths.TOOLTIP)
+        if os.path.exists(tooltip_qss_path):
+            with open(tooltip_qss_path, "r", encoding="utf-8") as f:
+                QApplication.instance().setStyleSheet(f.read())
     _debug = False
 
     # Semantic icon names (basenames). Theme variants live under resources/icons/Light|Dark
@@ -176,6 +188,8 @@ class ThemeManager:
                 logout_icon_path = ResourcePaths.LOGOUT_DARK
                 if logout_icon_path:
                     header_widget.set_logout_icon(QIcon(logout_icon_path))
+        # Always apply tooltip style globally
+        ThemeManager.apply_tooltip_style()
         return theme
     @staticmethod
     def apply_theme(widget, theme_dir, qss_files=None):
