@@ -1,6 +1,5 @@
 
 # IDEAS.md
-TEHA — plugin muudab QGIS teema tumedaks laadides tõenäoliselt minu teema fail. Kalver tegeleb.
 
 ### Kuidas ülesandeid lahendatuks märkida?
 - Kui lahendad ülesande, lisa selle juurde kuupäev ja märksõna **[TEHTUD]** või **[POOLELI]**.
