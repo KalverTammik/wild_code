@@ -1,4 +1,6 @@
+
 # IDEAS.md
+TEHA — plugin muudab QGIS teema tumedaks laadides tõenäoliselt minu teema fail. Kalver tegeleb.
 
 ### Kuidas ülesandeid lahendatuks märkida?
 - Kui lahendad ülesande, lisa selle juurde kuupäev ja märksõna **[TEHTUD]** või **[POOLELI]**.
@@ -22,9 +24,10 @@ Lisa uusi ideid käsuga või kirjeldusega, et saaksime neid hiljem arutada ja el
 
 - **2025-08-12:** Lisada võimalus kasutajal valida rakenduse keelt otse peaaknast, ilma seadete menüüsse minemata (nt rippmenüü või nupuriba kaudu).
 - **2025-08-12:** Palu Kalveril kontrollida, kas seadetes on õigesti seadistatud, et avaleht peab olema esmaselt avatav, kui ühtegi moodulit pole esmaseks valikuks määratud.
-- **2025-08-12:** Avalehe tähe haldurisse lisada "B" ja "C" tähed ning võimalus valida neid rippmenüüst. Valiku põhjal kuvatakse iga tähe kohta erinev info (nt "C" puhul üks tekst, "B" puhul teine tekst).
+
+- **[TEHTUD 2025-08-12]** Avalehe tähe haldurisse lisatud "B" ja "C" tähed ning rippmenüü, mis kuvab iga tähe kohta erinevat infot.
 - **2025-08-12:** Visuaalid ja animatsioonid
-    - Tähe ikoon — iga tähe valikul kuvatakse suur, värviline täht (nt A punane, B sinine, C roheline) koos kerge “bounce” animatsiooniga.
+    - **[TEHTUD 2025-08-12]** Tähe ikoon — iga tähe valikul kuvatakse suur, värviline täht (nt A punane, B sinine, C roheline) koos kerge “bounce” animatsiooniga. (Paigutus ja animatsioon on implementeeritud WelcomePage-s)
     - Pildid tähega algavatest asjadest — kui valitakse A, ilmub õunapilt; B puhul banaan või buss; C puhul tsirkuseplakat. Võid kasutada QPixmap + fade-in efekti.
     - Lisa QPropertyAnimation, et tekst või pilt sujuvalt sisse/ välja libiseks.
 - **2025-08-12:** Värviline ja mänguline kujundus

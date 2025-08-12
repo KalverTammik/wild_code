@@ -1,4 +1,4 @@
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QComboBox
 
 
@@ -44,11 +44,12 @@ class WelcomePage(QWidget):
         header_layout = QHBoxLayout(self.custom_header_frame)
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(8)
-        # Ikkooni koht (placeholder)
-        self.icon_placeholder = QLabel()
-        self.icon_placeholder.setObjectName("WelcomeHeaderIcon")
-        self.icon_placeholder.setFixedSize(32, 32)
-        header_layout.addWidget(self.icon_placeholder)
+        # --- Tähe ikooni suur ja värviline kuvamine ---
+        self.letter_icon = QLabel()
+        self.letter_icon.setObjectName("WelcomeLetterIcon")
+        self.letter_icon.setFixedSize(80, 80)
+        self.letter_icon.setAlignment(Qt.AlignCenter)
+        header_layout.addWidget(self.letter_icon)  # kõige esimeseks
         # Pealkiri
         self.header_title = QLabel("A Tähe õppimine")
         self.header_title.setObjectName("WelcomeHeaderTitle")
@@ -94,6 +95,17 @@ class WelcomePage(QWidget):
             self.open_btn.setText("Open Settings")
 
     def _update_letter_info(self, letter):
+        from PyQt5.QtCore import QPropertyAnimation
+        color_map = {"A": "#e74c3c", "B": "#3498db", "C": "#27ae60"}
+        self.letter_icon.setText(f'<span style="font-size:64px; font-weight:700; color:{color_map.get(letter, "#333")}">{letter}</span>')
+        # Bounce animatsioon
+        anim = QPropertyAnimation(self.letter_icon, b"geometry")
+        rect = self.letter_icon.geometry()
+        anim.setDuration(350)
+        anim.setStartValue(rect)
+        anim.setKeyValueAt(0.5, rect.adjusted(0, -20, 0, 20))
+        anim.setEndValue(rect)
+        anim.start()
         if letter == "A":
             self.header_title.setText("A Tähe õppimine")
             self.text_holder.setText("A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole.")
