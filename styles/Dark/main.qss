@@ -1,3 +1,33 @@
+/* ---------- QComboBox Custom Styling ---------- */
+QComboBox {
+    background: #303a42;
+    color: #c5c5d2;
+    border: 1px solid #4d4d4d;
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+QComboBox:hover, QComboBox:focus {
+    background: #2e2f38;
+    border: 1px solid #1f5d5c;
+}
+QComboBox QAbstractItemView {
+    background: #2e2f38;
+    color: #c5c5d2;
+    border: 1px solid #1f5d5c;
+    selection-background-color: rgb(9,144,143);
+    selection-color: #ffffff;
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+QComboBox QAbstractItemView::item {
+    height: 28px;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+QComboBox QAbstractItemView::item:selected {
+    background: rgb(9,144,143);
+    color: #ffffff;
+}
 /* =========================================================
    DARK THEME — Core surface + controls
    Palette:

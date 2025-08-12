@@ -1,5 +1,5 @@
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QComboBox
 
 
 class WelcomePage(QWidget):
@@ -53,6 +53,15 @@ class WelcomePage(QWidget):
         self.header_title = QLabel("A Tähe õppimine")
         self.header_title.setObjectName("WelcomeHeaderTitle")
         header_layout.addWidget(self.header_title)
+        # --- Tähe valiku rippmenüü ---
+        from PyQt5.QtWidgets import QComboBox
+        self.letter_selector = QComboBox()
+        self.letter_selector.setObjectName("WelcomeLetterSelector")
+        self.letter_selector.addItems(["A", "B", "C"])
+        self.letter_selector.setFixedWidth(60)
+        # Paiguta rippmenüü pealkirja ja ikooni vahele
+        header_layout.insertWidget(1, self.letter_selector)
+        self.letter_selector.currentTextChanged.connect(self._update_letter_info)
         layout.addWidget(self.custom_header_frame)
         # --- Teksti hoidja ---
         self.text_holder = QLabel("A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole.")
@@ -83,3 +92,14 @@ class WelcomePage(QWidget):
             self.title_lbl.setText("Welcome")
             self.subtitle_lbl.setText("Select a module from the left or open Settings to set your preferred module.")
             self.open_btn.setText("Open Settings")
+
+    def _update_letter_info(self, letter):
+        if letter == "A":
+            self.header_title.setText("A Tähe õppimine")
+            self.text_holder.setText("A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole.")
+        elif letter == "B":
+            self.header_title.setText("B Tähe õppimine")
+            self.text_holder.setText("B täht on eesti tähestikus teine täht. Seda kasutatakse paljudes sõnades, näiteks 'banaan' ja 'buss'. B tähe õppimine aitab laiendada sõnavara ja parandada hääldust.")
+        elif letter == "C":
+            self.header_title.setText("C Tähe õppimine")
+            self.text_holder.setText("C täht esineb eesti keeles peamiselt võõrsõnades, näiteks 'cirkus' või 'cello'. C tähe tundmine aitab mõista ja lugeda rahvusvahelisi sõnu.")

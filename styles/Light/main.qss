@@ -1,3 +1,33 @@
+/* ---------- QComboBox Custom Styling ---------- */
+QComboBox {
+    background: #ffffff;
+    color: #24292e;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+QComboBox:hover, QComboBox:focus {
+    background: #f9fafb;
+    border: 1px solid #2188ff;
+}
+QComboBox QAbstractItemView {
+    background: #f9fafb;
+    color: #24292e;
+    border: 1px solid #2188ff;
+    selection-background-color: #0078d4;
+    selection-color: #ffffff;
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+QComboBox QAbstractItemView::item {
+    height: 28px;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+QComboBox QAbstractItemView::item:selected {
+    background: #0078d4;
+    color: #ffffff;
+}
 /* =========================================================
    LIGHT THEME — Core surface + controls
    Palette:
