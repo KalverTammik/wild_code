@@ -3,11 +3,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayo
 
 
 class WelcomePage(QWidget):
-    """
-    Simple welcome screen shown when no preferred module is set.
-    Offers a friendly intro and a button to open Settings to choose a preferred module.
-    Supports runtime retranslation via retranslate().
-    """
+
 
     openSettingsRequested = pyqtSignal()
 
@@ -15,6 +11,8 @@ class WelcomePage(QWidget):
         super().__init__(parent)
         self.setObjectName("WelcomePage")
         self.lang_manager = lang_manager
+        # Keep a reference to the current letter animation to avoid early GC
+        self._letter_anim = None
 
         # Build UI widgets and keep references for retranslation
         self.title_lbl = QLabel()
@@ -54,8 +52,7 @@ class WelcomePage(QWidget):
         self.header_title = QLabel("A Tähe õppimine")
         self.header_title.setObjectName("WelcomeHeaderTitle")
         header_layout.addWidget(self.header_title)
-        # --- Tähe valiku rippmenüü ---
-        from PyQt5.QtWidgets import QComboBox
+    # --- Tähe valiku rippmenüü ---
         self.letter_selector = QComboBox()
         self.letter_selector.setObjectName("WelcomeLetterSelector")
         self.letter_selector.addItems(["A", "B", "C"])
@@ -72,6 +69,11 @@ class WelcomePage(QWidget):
 
         # Initial text setup
         self.retranslate(self.lang_manager)
+        # Initialize letter icon/title/body for current selection
+        try:
+            self._update_letter_info(self.letter_selector.currentText())
+        except Exception:
+            pass
         # Theme is applied at dialog level; child inherits. Optionally apply module QSS here if needed.
         # if theme_manager:
         #     try:
@@ -99,13 +101,26 @@ class WelcomePage(QWidget):
         color_map = {"A": "#e74c3c", "B": "#3498db", "C": "#27ae60"}
         self.letter_icon.setText(f'<span style="font-size:64px; font-weight:700; color:{color_map.get(letter, "#333")}">{letter}</span>')
         # Bounce animatsioon
-        anim = QPropertyAnimation(self.letter_icon, b"geometry")
+        # Stop and dispose previous animation if any
+        try:
+            if getattr(self, "_letter_anim", None):
+                self._letter_anim.stop()
+                self._letter_anim.deleteLater()
+        except Exception:
+            pass
+        # Parent the animation to self and keep a reference so it isn't GC'd
+        self._letter_anim = QPropertyAnimation(self.letter_icon, b"geometry", self)
         rect = self.letter_icon.geometry()
-        anim.setDuration(350)
-        anim.setStartValue(rect)
-        anim.setKeyValueAt(0.5, rect.adjusted(0, -20, 0, 20))
-        anim.setEndValue(rect)
-        anim.start()
+        self._letter_anim.setDuration(350)
+        self._letter_anim.setStartValue(rect)
+        self._letter_anim.setKeyValueAt(0.5, rect.adjusted(0, -20, 0, 20))
+        self._letter_anim.setEndValue(rect)
+        # Clear reference on finish
+        try:
+            self._letter_anim.finished.connect(lambda: setattr(self, "_letter_anim", None))
+        except Exception:
+            pass
+        self._letter_anim.start()
         if letter == "A":
             self.header_title.setText("A Tähe õppimine")
             self.text_holder.setText("A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole.")
