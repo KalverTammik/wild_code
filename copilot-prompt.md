@@ -8,6 +8,30 @@
 - Avoid inline imports inside functions/methods. Prefer top-of-file imports. If necessary, add a `# inline import: reason` comment.
 - For Qt animations (e.g., `QPropertyAnimation`), always parent the animation and keep a reference on `self` to prevent garbage collection.
 - After multi-line edits, re-check the file for syntax/indentation errors before finishing changes.
+
+### WelcomePage & Learning Section (Debug Frames) Pattern
+
+- Welcome page behavior
+  - `widgets/WelcomePage.py` is shown when no preferred module is set.
+  - Exposes `openSettingsRequested` signal and `retranslate(lang_manager)` method.
+- Debug labels toggle
+  - Provide a checkable button in WelcomePage to toggle colorful “FRAME:” debug labels used for learning boundaries.
+  - Button text in Estonian: ON → “Peida FRAME sildid”, OFF → “Näita FRAME silte”.
+  - Default state in dev builds may be ON; in production it may be OFF based on preference.
+  - Wire `QPushButton.toggled(bool)` to a private handler that calls `set_debug(bool)`.
+- LetterSection contract
+  - `LetterSection(QWidget)` must implement `set_debug(enabled: bool)` that shows/hides its internal “FRAME:” labels and forwards the flag to child components (e.g., `LetterIconFrame`).
+  - `LetterSection` keeps its own header area (icon, selector, title) and a text holder; labels should use `setWordWrap(True)` for responsiveness.
+  - The selector signal should pass only the letter symbol downstream (e.g., `currentTextChanged.connect(lambda text: update_letter(text.split()[0]))`).
+- LetterIconFrame contract
+  - Must parent `QPropertyAnimation` and keep a reference on `self` to prevent GC while animating.
+  - May render the selected letter with color; any temporary inline styles must stay local to the widget and be migrated to QSS before release.
+- Responsiveness
+  - Use `QComboBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)` for compact selectors.
+  - Prefer layout spacing over absolute sizes; avoid fixed widths except for small icons.
+- Theming
+  - Do not apply global stylesheets. Use `ThemeManager.apply_module_style(...)` to apply QSS to WelcomePage/children where needed.
+  - If temporary inline styling is used during development, scope it to the specific widget and add a `# TODO:` to move rules into QSS.
 ## Theme and QSS Requirements for All Modules
 
 ### HOIATUS: Ära kasuta globaalset stiililehte (QApplication.setStyleSheet)

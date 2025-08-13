@@ -1,16 +1,15 @@
 
 
-# REEGLID
+# 🟨 **REEGLID**
 
 Siia faili kogume kõik arendusideed, mõtted ja tulevased plaanid. Ideede faili sisu on jagatud kolme plokki: Reeglid, Uued ideed ja Lõpetatud ideed.
 Kui tekib uus idee, lisatakse see automaatselt plokki "Uued ideed" koos lisamise kuupäeva ja lühikirjeldusega. Selle ploki ideede ette tuleb staatus TEHA (alati esimene valik) või POOLELI.
 Kui idee on läbi käidud ja korraldus antud see lõpetada, siis liigub see automaatselt "Lõpetatud ideed" plokki ja saab staatuse idee kirjelduse ette LÕPETATUD ning lisaks alustamise kuupäevale ka lõpetamise kuupäeva.
 
-# UUED IDEED
+# 🟩 **UUED IDEED**
 
 🟢 TEHA 2025-08-12 — avalehele lisada Google Maps kaardivaade.
 
-🟢 TEHA 2025-08-12 — plugin muudab QGIS teema tumedaks laadides tõenäoliselt minu teema fail. Kalver tegeleb.
 
 🟢 TEHA 2025-08-12: Värviline ja mänguline kujundus
 	- Taust võiks olla gradient (nt helesinine → valge), mitte lihtsalt hall.
@@ -31,7 +30,24 @@ Kui idee on läbi käidud ja korraldus antud see lõpetada, siis liigub see auto
 
 	- Kui on rohkem tähti, siis tähe valik lisab “täht õpitud” progressi. Võid panna QProgressBar alumisse ossa ja lasta tal täituda.
 
-# LÕPETATUD IDEED
+🟢 TEHA 2025-08-13: Rakendada debug-siltide lüliti muster kõigis moodulites
+	- Vastutaja: Kalver
+	- Standardiseeri “FRAME:” debug-siltide lülitus kõigis moodulites ja õppimise/diagnostika vaadetes.
+	- Igal moodulil, mis renderdab õppimise/diagnostika raame, peab olema `set_debug(bool)` API, mis peidab/näitab kõiki vastavaid silte ja delegeerib alamkomponentidele.
+	- Kui moodulil on alamsektsioonid (nt `LetterSection`, `LetterIconFrame`), siis need implementeerivad samuti `set_debug(bool)` ja on ühendatud vanemaga.
+	- WelcomePage’i muster on dokumenteeritud: vt `copilot-prompt.md` → “WelcomePage & Learning Section (Debug Frames) Pattern”. Rakenda sama lähenemine moodulites.
+	- Nupu sildid eesti keeles: ON → “Peida FRAME sildid”, OFF → “Näita FRAME silte”. Vaikeseade tootmises: OFF.
+	- Täiendavalt lisada lihtne `retheme()` tugi, et teema vahetusel jääks staatus ja stiil korrektseks.
+
+🟢 TEHA 2025-08-13: Ideede formaati lisada eraldi “Vastutaja” rida
+	- Vastutaja: Anneli
+	- REEGLID plokki lisada nõue, et igal ideel on “Vastutaja: <nimi>”.
+	- Uuendada olemasolevate ideede kirjed ja lisada neile vastutaja.
+	- Lisada IDEAS.md algusesse mini-šabloon uue idee jaoks (koos Vastutajaga).
+
+# 🟦 **LÕPETATUD IDEED**
+
+🔵 LÕPETATUD 2025-08-13 (lisatud 2025-08-12) — plugin muudab QGIS teema tumedaks laadides tõenäoliselt minu teema fail. Kalver tegeleb.
 
 🔵 LÕPETATUD 2025-08-12 (lisatud 2025-08-12) — Avalehe tähe haldurisse lisatud "B" ja "C" tähed ning rippmenüü, mis kuvab iga tähe kohta erinevat infot.
 
