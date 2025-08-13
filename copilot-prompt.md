@@ -1,6 +1,13 @@
 ## Module UI Standard
 
 **Rule:** All module `get_widget()` methods must return a `QWidget` instance, never a class. This ensures compatibility with `addWidget()` and prevents runtime errors. If a module needs to provide a new widget each time, it should instantiate and return it within `get_widget()`.
+
+## Python edit safety (indentation & imports)
+- Do not emit `self.*` or class member lines at top level. Keep member assignments inside methods with correct indentation.
+- Preserve the current indentation level when editing inside a method. Avoid accidental dedent/outdent.
+- Avoid inline imports inside functions/methods. Prefer top-of-file imports. If necessary, add a `# inline import: reason` comment.
+- For Qt animations (e.g., `QPropertyAnimation`), always parent the animation and keep a reference on `self` to prevent garbage collection.
+- After multi-line edits, re-check the file for syntax/indentation errors before finishing changes.
 ## Theme and QSS Requirements for All Modules
 
 1. **Centralized Theme Management**

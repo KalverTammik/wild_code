@@ -36,3 +36,30 @@ See fail on mõeldud ainult vigade ja probleemide jälgimiseks. Uued ideed ja ar
 - Kui probleem püsib, klooni plugin uuesti või kontrolli QGIS Python Console veateateid.
 
 Kui testitud, märgi staatus vastavalt: **TEHTUD** või **UUESTI LAHENDADA** ja lisa kuupäev.
+
+---
+
+### 2025-08-12: Inline importide ja valede taandetasemete risk widgets/ all
+**Staatus:** UUS
+**Vastutaja:** @kalver
+**Kirjeldus:** Mõnes failis on kasutusel funktsiooni sees olevad import-laused (inline imports), mis suurendavad riski, et automaatsed tööriistad (nt Copilot) lisavad ridu vale taandetasemega (nt `self.*` väljaspool meetodit), põhjustades süntaksi vigu.
+
+**Mõjutatud failid (näited):**
+- `widgets/DataDisplayWidgets/ModuleFeedBuilder.py` – `from PyQt5.QtCore import QSize` meetodi sees
+- `widgets/WelcomePage.py` – `from PyQt5.QtCore import QPropertyAnimation` meetodi sees
+- `widgets/theme_manager.py` – mitmed import’id meetodite sees (`QIcon`, `QgsSettings`, `file_paths`)
+- `widgets/layer_dropdown.py` – `from PyQt5.QtWidgets import QFrame` meetodi sees
+- `widgets/HeaderWidget.py` – mitmed import’id meetodite sees
+
+**Soovituslik lahendus:**
+1. Tõsta import-laused faili algusesse, kui puudub mõju jõudlusele või ring-sõltuvus.
+2. Kui inline import on vajalik (nt vältimaks raskete sõltuvuste laadimist), lisa kommentaar `# inline import: reason` ja jäta taand tase korrektselt meetodi sisse.
+3. Vii läbi kiire kontroll, et üheski failis ei oleks top-level `self.*` ridu.
+4. Lisa Copilot’i reeglitesse (copilot-prompt.md) juhis vältida inline import’e ja säilitada taanded.
+
+**Kordamise sammud:**
+1. Ava failid loetelust ja liigu importidele.
+2. Tõsta import ülaossa või märgista inline kommentaariga vastavalt.
+3. Salvesta ja käivita lühike süntaksikontroll (Problems paneel/linters) veendumaks, et taanded on paigas.
+
+Kui korrigeeritud, uuenda staatust: **ARENDAJA TAGASISIDEGA TESTIMISEK** (testimiseks) või **TEHTUD**.
