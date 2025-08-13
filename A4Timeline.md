@@ -42,3 +42,21 @@
 ---
 
 Jätka logi iga muudatuse kohta, et hiljem oleks lihtne jälgida tehtud tööd ja õppida varasematest lahendustest.
+
+---
+
+### 2025-08-13
+**Teema:** WelcomePage debug-siltide lüliti ja õppesektsiooni mustri dokumenteerimine
+**Tegevused:**
+- WelcomePage’i lisatud kontrollnupp (checkable) värviliste “FRAME:” siltide peitmiseks/näitamiseks.
+- Nupu sildid eesti keeles: ON → “Peida FRAME sildid”, OFF → “Näita FRAME silte”.
+- Lüliti ühendatud `LetterSection.set_debug(bool)` abil; `WelcomePage.set_debug(bool)` delegeerib alamsektsioonile.
+- `LetterSection` ja `LetterIconFrame` said `set_debug()` lepingu; animatsioonil (`QPropertyAnimation`) on vanem ja viide `self`-is, et vältida GC-d.
+- Parandatud taandevead `WelcomePage.__init__` sees – kogu UI ehitus (labelid, nupud, paigutused) on korrektselt meetodis.
+- Rippmenüü seadistatud `AdjustToContents`; pealkirja/teksti labelitel `setWordWrap(True)`.
+- Dokumenteeritud muster failis `copilot-prompt.md` jaotises “WelcomePage & Learning Section (Debug Frames) Pattern”.
+
+**Õppetund:**
+- Kõik `self.*` liikmete algväärtustused peavad jääma meetoditesse; pärast suuremaid muudatusi tee alati kiirkontroll süntaksi/taande vigade osas.
+- Õpetuslikud/diagnostilised raamid peavad olema lülitatavad; tootmises on mõistlik vaikimisi peidetud.
+- Teemastamine peab käima läbi `ThemeManager.apply_module_style(...)`; globaalset `setStyleSheet` ei tohi kasutada.

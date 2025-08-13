@@ -17,7 +17,7 @@ See fail on mõeldud ainult vigade ja probleemide jälgimiseks. Uued ideed ja ar
 ---
 
 ### 2025-08-12: Plugin ei rakenda tumedat teemat teise arendaja arvutis
-**Staatus:** ARENDAJA TAGASISIDEGA TESTIMISEK
+**Staatus:** TEHTUD 2025-08-13
 **Vastutaja:** @anneli
 **Kirjeldus:** Plugin muudab QGIS teema tumedaks laadides tõenäoliselt minu teema fail. Kalver tegeleb.
 
