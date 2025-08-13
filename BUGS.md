@@ -1,8 +1,7 @@
 
-# BUGS.md
+# 🟨 PROTSESSI JUHISED
 
-## Protsessi juhised
-- Iga vea juurde lisa @nimi, kes peab järgmise sammu tegema (nt @anneli, @kalver).
+- Iga vea juurde lisa Vastutaja: <nimi>, kes peab järgmise sammu tegema (kasuta legendi markereid: 🟠 Anneli, 🔵 Kalver, ⚪ Määramata).
 - Kasuta staatuse silte:
     - **UUS** – värskelt avastatud viga, pole veel uuritud.
     - **ARENDAJA TAGASISIDEGA TESTIMISEK** – arendaja on teinud paranduse, vaja testida.
@@ -11,14 +10,16 @@
 - Iga vea juures hoia lühike kirjeldus, sammud kordamiseks, vajadusel lahenduskäik ja kuupäevad.
 - Kui viga on lahendatud, jäta alles kogu info, lisa lõppu **TEHTUD** ja kuupäev.
 
-## Märkus
-See fail on mõeldud ainult vigade ja probleemide jälgimiseks. Uued ideed ja arendussoovid lisa IDEAS.md faili.
+## Märkus 
+Fail on mõeldud ainult vigade ja probleemide jälgimiseks. Uued ideed ja arendussoovid lisa IDEAS.md faili.
 
 ---
 
-### 2025-08-12: Plugin ei rakenda tumedat teemat teise arendaja arvutis
+# 🟥 BUGID
+
+### 2025-08-12: PLUGIN EI RAKENDA TUMEDAT TEEMAT TEISE ARENDAJA ARVUTIS
 **Staatus:** TEHTUD 2025-08-13
-**Vastutaja:** @anneli
+Vastutaja: 🟠 Anneli
 **Kirjeldus:** Plugin muudab QGIS teema tumedaks laadides tõenäoliselt minu teema fail. Kalver tegeleb.
 
 **Põhjus (leitud):** `ThemeManager.apply_tooltip_style()` kasutas varem `QApplication.instance().setStyleSheet(...)`, mis rakendas plugina QSS-i globaalselt tervele QGIS-ile (toolbarid muutusid tumedaks jne).
@@ -52,9 +53,9 @@ Kui testitud, märgi staatus vastavalt: **TEHTUD** või **UUESTI LAHENDADA** ja 
 
 ---
 
-### 2025-08-12: Inline importide ja valede taandetasemete risk widgets/ all
+### 2025-08-12: INLINE IMPORTIDE JA VALEDE TAANDETASEMETE RISK WIDGETS/ ALL
 **Staatus:** UUS
-**Vastutaja:** @kalver
+Vastutaja: 🔵 Kalver
 **Kirjeldus:** Mõnes failis on kasutusel funktsiooni sees olevad import-laused (inline imports), mis suurendavad riski, et automaatsed tööriistad (nt Copilot) lisavad ridu vale taandetasemega (nt `self.*` väljaspool meetodit), põhjustades süntaksi vigu.
 
 **Mõjutatud failid (näited):**
