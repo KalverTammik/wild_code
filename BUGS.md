@@ -21,6 +21,19 @@ See fail on mõeldud ainult vigade ja probleemide jälgimiseks. Uued ideed ja ar
 **Vastutaja:** @anneli
 **Kirjeldus:** Plugin muudab QGIS teema tumedaks laadides tõenäoliselt minu teema fail. Kalver tegeleb.
 
+**Põhjus (leitud):** `ThemeManager.apply_tooltip_style()` kasutas varem `QApplication.instance().setStyleSheet(...)`, mis rakendas plugina QSS-i globaalselt tervele QGIS-ile (toolbarid muutusid tumedaks jne).
+
+**Parandus:** Vältida globaalse `QApplication` stiili seadmist. Muutsime `apply_tooltip_style()` nii, et see seab ainult `QToolTip` paleti (taust/tekst) eikäivita üldist `setStyleSheet`-i.
+
+**Kuidas testida (regr-test):**
+1. Sulge QGIS.
+2. Tõmba plugin uuendustega või kopeeri muudetud failid.
+3. Ava QGIS ja käivita plugin.
+4. Kontrolli: QGIS enda tööriistaribad ja paneelid EI tohi vahetada värviskeemi; tumedus/valgus peab mõjutama ainult plugina dialoogi komponente. Tooltipid peaksid olema loetavad (tume teema → tume taust/hele tekst; hele teema → hele taust/tume tekst).
+5. Lülita plugina teemat (Light/Dark) ja kinnita, et QGIS-i globaalne stiil ei muutu.
+
+Kui OK, märgi staatus: **TEHTUD** ja lisa kuupäev. Kui QGIS UI ikka muutub, märgi **UUESTI LAHENDADA** ja lisa ekraanipildid.
+
 **Testi ja kontrolli:**
 - Kui plugin töötab Sinu arvutis, kuid mitte teisel arendajal, võib probleem olla tema QGIS-i või arenduskeskkonna vahemälus või failides.
 - Tüüpilised põhjused:

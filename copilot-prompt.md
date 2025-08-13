@@ -10,6 +10,16 @@
 - After multi-line edits, re-check the file for syntax/indentation errors before finishing changes.
 ## Theme and QSS Requirements for All Modules
 
+### HOIATUS: Ära kasuta globaalset stiililehte (QApplication.setStyleSheet)
+- KEELATUD: `QApplication.instance().setStyleSheet(...)` või `qApp.setStyleSheet(...)` – see lekib plugina teema kogu QGIS-i UI-sse (toolbarid, paneelid) ja rikub kasutaja teema.
+- Kasuta ainult lokaalset lähenemist:
+  - `ThemeManager.apply_module_style(widget, [...])` konkreetsele `QWidget`-ile.
+  - Tooltip’i puhul piirdume paleti seadistamisega (vt `ThemeManager.apply_tooltip_style()`), mitte QSS globaalse rakendamisega.
+- Antimuster (vältida): globaalne `setStyleSheet` rakendustasandil.
+- Õige muster: kutsu `setStyleSheet` ainult siht-`widget`il (või kasuta `ThemeManager.apply_module_style`).
+- Sümptomid rikkumisel: pärast plugina käivitamist muutuvad QGIS-i tööriistaribad/küljepaneelid tumedaks või stiil muutub segaseks. Kui näed seda, eemalda globaalne `setStyleSheet`.
+
+
 1. **Centralized Theme Management**
    - All theme logic (theme detection, toggling, QSS application) must use the shared `ThemeManager`.
    - All modules and widgets must use `ThemeManager.apply_module_style(widget, [QssPaths.VARIABLE])` for theming.

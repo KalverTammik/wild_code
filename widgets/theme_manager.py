@@ -27,15 +27,32 @@ class ThemeManager:
     @staticmethod
     def apply_tooltip_style():
         """
-        Apply tooltip QSS globally to QApplication based on current theme.
+        Scope tooltip styling without touching the global QApplication stylesheet.
+
+        Previously, this function loaded a tooltip.qss and applied it via
+        QApplication.instance().setStyleSheet(...), which leaked the plugin's
+        theme into the entire QGIS UI (toolbars, panels). To prevent that, we
+        only adjust the QToolTip palette here.
         """
-        from ..constants.file_paths import StylePaths, QssPaths
-        theme = ThemeManager.load_theme_setting()
-        theme_dir = StylePaths.DARK if theme == 'dark' else StylePaths.LIGHT
-        tooltip_qss_path = os.path.join(theme_dir, QssPaths.TOOLTIP)
-        if os.path.exists(tooltip_qss_path):
-            with open(tooltip_qss_path, "r", encoding="utf-8") as f:
-                QApplication.instance().setStyleSheet(f.read())
+        try:
+            from PyQt5.QtGui import QPalette, QColor
+            from PyQt5.QtWidgets import QToolTip
+            theme = ThemeManager.load_theme_setting()
+
+            pal = QPalette()
+            if theme == 'dark':
+                # Dark tooltip colors (match plugin dark-ish palette)
+                pal.setColor(QPalette.ToolTipBase, QColor(36, 48, 58))   # background
+                pal.setColor(QPalette.ToolTipText, QColor(232, 233, 239)) # text
+            else:
+                # Light tooltip colors
+                pal.setColor(QPalette.ToolTipBase, QColor(250, 250, 250))
+                pal.setColor(QPalette.ToolTipText, QColor(33, 37, 41))
+
+            QToolTip.setPalette(pal)
+        except Exception:
+            # Best-effort; never crash theme application due to tooltip styling
+            pass
     _debug = False
 
     # Semantic icon names (basenames). Theme variants live under resources/icons/Light|Dark
