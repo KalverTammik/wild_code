@@ -60,6 +60,28 @@ class Sidebar(QWidget):
         nav_layout = QVBoxLayout(self.SidebarNavFrame)
         nav_layout.setContentsMargins(0, 6, 6, 6)
         nav_layout.setSpacing(4)
+
+        # Home (Avaleht) button at very top
+        try:
+            home_label = lang_manager.sidebar_button("HOME")
+        except Exception:
+            home_label = "Avaleht"
+        if not home_label:
+            home_label = "Avaleht"
+        self.homeButton = QPushButton(home_label, self.SidebarNavFrame)
+        self.homeButton.setObjectName("SidebarHomeButton")
+        # Assign themed icon if available
+        try:
+            home_icon_path = ModuleIconPaths.get_module_icon("__HOME__")
+            if home_icon_path:
+                self.homeButton.setIcon(QIcon(home_icon_path))
+        except Exception:
+            pass
+        self.homeButton.clicked.connect(lambda: self.emitItemClicked("__HOME__"))
+        nav_layout.addWidget(self.homeButton)
+        # Track for compact toggle & active styling
+        self.moduleButtons["__HOME__"] = self.homeButton
+        self.buttonTexts[self.homeButton] = home_label
         cm.addWidget(self.SidebarNavFrame)
 
         # Spacer pushes settings down
@@ -162,6 +184,11 @@ class Sidebar(QWidget):
         if hasattr(self, 'settingsButton'):
             self.settingsButton.setProperty('active', False)
             self.settingsButton.style().unpolish(self.settingsButton); self.settingsButton.style().polish(self.settingsButton)
+
+    def setHomeActive(self):
+        if hasattr(self, 'homeButton'):
+            self.homeButton.setProperty('active', True)
+            self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
 
     def emitItemClicked(self, itemName):
         self.itemClicked.emit(itemName)

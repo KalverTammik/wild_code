@@ -37,6 +37,7 @@ ICON_ADD = "icons8-add-50.png"
 ICON_REMOVE = "icons8-remove-50.png"
 ICON_WAIT = "icons8-wait-50.png"
 ICON_BUFFERING = "icons8-buffering-50.png"
+ICON_HOME = "icons8-home-64.png"
 
 
 class DateIcons:
@@ -54,6 +55,7 @@ class ModuleIconPaths:
         SETTINGS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK,ICON_SETTINGS_GEAR),
         PROJECTS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK, ICON_TABLE_GRAPH),
         CONTRACT_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK, ICON_FLOW),
+    "__HOME__": os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK, ICON_HOME),  # Avaleht nupp
     }
 
     @staticmethod

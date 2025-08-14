@@ -19,7 +19,8 @@ QFrame#SettingsFrame {
     padding: 4px;
 }
 
-QPushButton#SidebarNavButton {
+QPushButton#SidebarNavButton,
+QPushButton#SidebarHomeButton {
     background: transparent;
     color: #24292e;
     border: none;
@@ -27,14 +28,22 @@ QPushButton#SidebarNavButton {
     padding: 6px 10px;
     text-align: left;
 }
-QPushButton#SidebarNavButton:hover {
+QPushButton#SidebarNavButton:hover,
+QPushButton#SidebarHomeButton:hover {
     background: rgba(0,120,212,0.10);
     color: #000;
 }
-QPushButton#SidebarNavButton[active="true"] {
-    background: rgba(0,120,212,0.16);
+QPushButton#SidebarNavButton[active="true"],
+QPushButton#SidebarHomeButton[active="true"] {
+    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+        stop:0 rgba(0,120,212,0.33),
+        stop:0.05 rgba(0,120,212,0.22),
+        stop:1 rgba(0,120,212,0.16));
     color: #000;
-    border: 1px solid rgba(0,120,212,0.45);
+    border: 1px solid rgba(0,120,212,0.55);
+    border-left: 4px solid #0078d4;
+    padding-left: 6px;
+    font-weight: 600;
 }
 
 QFrame#SettingsFrame > QPushButton {

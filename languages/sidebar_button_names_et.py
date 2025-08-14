@@ -5,5 +5,6 @@ class SideBarButtonNames:
         PROJECTS_MODULE: "Projektid",
         CONTRACT_MODULE: "Lepingud",
         SETTINGS_MODULE: "Seaded",
-        DIALOG_SIZE_WATCHER_MODULE: "Dialoog X Y"
+    DIALOG_SIZE_WATCHER_MODULE: "Dialoog X Y",
+    "HOME": "Avaleht"
     }

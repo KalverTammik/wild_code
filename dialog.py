@@ -67,7 +67,7 @@ class PluginDialog(QDialog):
             switch_callback=self.toggle_theme,
             logout_callback=self.logout
         )
-        self.header_widget.open_home_callback = self._show_welcome
+    # Avalehe nupp päises eemaldatud – kasutame külgriba Avaleht nuppu
 
         dialog_layout.addWidget(self.header_widget)
   
@@ -252,6 +252,15 @@ class PluginDialog(QDialog):
         # Intercept navigation for unsaved Settings changes
         if not self._confirm_unsaved_settings_if_needed(moduleName):
             return
+        # Home shortcut
+        if moduleName == "__HOME__":
+            self._show_welcome()
+            if hasattr(self, 'sidebar'):
+                self.sidebar.clearActive()
+                # mark home visually active if method exists
+                if hasattr(self.sidebar, 'setHomeActive'):
+                    self.sidebar.setHomeActive()
+            return
         try:
             self.moduleManager.activateModule(moduleName)
             activeModule = self.moduleManager.getActiveModule()
@@ -277,6 +286,8 @@ class PluginDialog(QDialog):
             self.header_widget.set_title(lang_manager.translate("Welcome"))
             if hasattr(self, 'sidebar'):
                 self.sidebar.clearActive()
+                if hasattr(self.sidebar, 'setHomeActive'):
+                    self.sidebar.setHomeActive()
             # Ensure welcome page text uses the current language
             self.welcomePage.retranslate(lang_manager)
         except Exception:
