@@ -102,3 +102,21 @@ Jätka logi iga muudatuse kohta, et hiljem oleks lihtne jälgida tehtud tööd j
 **Õppetund:**
 - Keskne autentimisvea interceptor vähendab korduskoodi ja parandab UX-i, vältides vaikseid tõrkeid.
 - Sündmuste logimine varakult lihtsustab hilisemat monitooringut ja vigade analüüsi.
+
+---
+
+### 2025-08-14
+**Teema:** Animatsioonide keskne utiliit ja DevControlsWidget stabiilsus; DateWidget üle tähtaja hoiatus
+**Tegevused:**
+- Ekstraheeritud jagatud animatsiooniutiliidid `utils/animation` paketti:
+	- `pulses.py` (create_colorize_pulse, build_glow_pulse), `groups.py` (AnimationGroupManager), `palettes.py` (teemastatud halo paletid), `controller.py` (AnimationController).
+- DevControlsWidget:
+	- Ühtlustatud halo: pulse aktiveerub, kui DBG või FRAME on ON; DBG korral oranž/roosa, muidu tsüaan/teal; nupud ei liigu.
+	- Viidud üle AnimationControllerile; `closeEvent` peatab animatsioonid korrektselt.
+	- Ikoon teemastatud `ThemeManager.get_qicon(...)` kaudu; tooltipid i18n LanguageManagerist.
+- Loodud lihtne `DateWidget` (silt + QDateEdit) ning lisatud üle tähtaja (overdue) punakas merevaigukarva vilkuv hoiatus sildile.
+- IDEAS.md täiendused: kontrolleri rakendamine teistes vidinates; animatsioonide test-harness; DateWidget "due soon" pehme vihje; moodulikaartide punase hoiatuspulsi ühtlustamine.
+
+**Õppetund:**
+- Keskne kontroller ja utiliidid vähendavad koodi dubleerimist ning hoiavad visuaalse käitumise kooskõlas.
+- Geomeetria animatsioone (y-offset) tuleks vältida peaelementidel; efektipõhine pulse on piisavalt informatiivne ja stabiilne.

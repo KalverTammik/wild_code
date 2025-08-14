@@ -43,4 +43,6 @@ TRANSLATIONS = {
     ,"sidebar_collapse_tooltip": "Ahenda külgriba"
     ,"sidebar_expand_tooltip": "Laienda külgriba"
         ,"theme_switch_tooltip": "Tume/Hele režiim"
+    ,"dev_dbg_tooltip": "Lülita arenduslogid (print) sisse/välja"
+    ,"dev_frames_tooltip": "Näita/peida FRAME sildid avalehel"
 }

@@ -38,4 +38,6 @@ TRANSLATIONS = {
     ,"sidebar_collapse_tooltip": "Collapse Sidebar"
     ,"sidebar_expand_tooltip": "Expand Sidebar"
     ,"theme_switch_tooltip": "Switch between dark and light theme"
+    ,"dev_dbg_tooltip": "Toggle developer logs (print) on/off"
+    ,"dev_frames_tooltip": "Show/Hide FRAME labels on the home page"
 }

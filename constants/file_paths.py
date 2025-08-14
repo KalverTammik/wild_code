@@ -52,6 +52,7 @@ class QssPaths:
     SIDEBAR = "sidebar.qss"
     HEADER = "header.qss"
     FOOTER = "footer.qss"
+    DEV_CONTROLS = "Valisee_u.qss"
     LOGIN = "login.qss"
     MODULE_TOOLBAR = "ModuleToolbar.qss"
     MODULE_CARD = "ModuleCard.qss"

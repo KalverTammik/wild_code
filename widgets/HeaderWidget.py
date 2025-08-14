@@ -62,6 +62,18 @@ class HeaderWidget(QWidget):
             self.searchEdit.setToolTip("search_tooltip")
         layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
         
+        # Right: Dev controls + theme switch + logout
+        # Optional callbacks set by parent controller
+        self.on_toggle_debug = None
+        self.on_toggle_frame_labels = None
+
+        # Dev controls extracted into dedicated widget
+        from .DevControlsWidget import DevControlsWidget
+        self.devControls = DevControlsWidget()
+        self.devControls.toggleDebugRequested.connect(self._emit_debug_toggle)
+        self.devControls.toggleFrameLabelsRequested.connect(self._emit_frame_labels_toggle)
+        layout.addWidget(self.devControls, 0, Qt.AlignRight | Qt.AlignVCenter)
+
         # Right: theme switch + logout
         self.switchButton = QPushButton()
         self.switchButton.setObjectName("themeSwitchButton")
@@ -98,7 +110,28 @@ class HeaderWidget(QWidget):
         from .theme_manager import ThemeManager
         from ..constants.file_paths import QssPaths
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
+        # Ensure DevControls' own QSS is applied last so its specific rules override header's generic QPushButton
+        try:
+            self.devControls.retheme()
+        except Exception:
+            pass
 
+
+    def _emit_debug_toggle(self, enabled: bool):
+        cb = getattr(self, 'on_toggle_debug', None)
+        if callable(cb):
+            try:
+                cb(bool(enabled))
+            except Exception:
+                pass
+
+    def _emit_frame_labels_toggle(self, enabled: bool):
+        cb = getattr(self, 'on_toggle_frame_labels', None)
+        if callable(cb):
+            try:
+                cb(bool(enabled))
+            except Exception:
+                pass
 
     def set_switch_icon(self, icon):
         self.switchButton.setIcon(icon)
@@ -112,9 +145,23 @@ class HeaderWidget(QWidget):
         from .theme_manager import ThemeManager
         from ..constants.file_paths import QssPaths
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
+        try:
+            self.devControls.retheme()
+        except Exception:
+            pass
 
     def set_title(self, text):
         self.titleLabel.setText(text)
 
     def _open_home(self):
         pass  # home nupp eemaldatud (kasuta külgriba Avaleht nuppu)
+        # Emit a custom signal or call a callback to open the welcome page
+        if hasattr(self, 'open_home_callback') and callable(self.open_home_callback):
+            self.open_home_callback()
+
+    def set_dev_states(self, debug_enabled: bool, frames_enabled: bool):
+        """Initialize or update the dev controls' checked states."""
+        try:
+            self.devControls.set_states(bool(debug_enabled), bool(frames_enabled))
+        except Exception:
+            pass
