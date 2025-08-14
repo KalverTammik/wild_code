@@ -14,7 +14,7 @@ ICON_FOLDER_DARK = "Dark"
 RANDOM_ICON_NAME = "Valisee_s.png"
 
 # Semantic UI icon names (basenames). ThemeManager will resolve full path.
-ICON_SETTINGS_GEAR = "icons8-gear-50.png"
+ICON_SETTINGS_GEAR = "icons8-settings-25.png"  # Ühtlustatud 25px variant
 ICON_LIST = "icons8-list-50.png"
 ICON_SEARCH = "icons8-search-location-50.png"
 ICON_SAVE = "icons8-save-50.png"
@@ -37,7 +37,8 @@ ICON_ADD = "icons8-add-50.png"
 ICON_REMOVE = "icons8-remove-50.png"
 ICON_WAIT = "icons8-wait-50.png"
 ICON_BUFFERING = "icons8-buffering-50.png"
-ICON_HOME = "icons8-home-64.png"
+ICON_HOME = "icons8-home-110.png"
+ICON_CONTRACT = "icons8-handshake-25.png"
 
 
 class DateIcons:
@@ -53,9 +54,9 @@ class ModuleIconPaths:
     MODULE_ICONS = {
         # Core (keep existing module icon mappings; do not change yet)
         SETTINGS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK,ICON_SETTINGS_GEAR),
-        PROJECTS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK, ICON_TABLE_GRAPH),
-        CONTRACT_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK, ICON_FLOW),
-    "__HOME__": os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK, ICON_HOME),  # Avaleht nupp
+        PROJECTS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'icons8-microsoft-powerpoint-30.png'),
+        CONTRACT_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'icons8-policy-document-25.png'),
+        "__HOME__": os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK, ICON_HOME),  # Avaleht nupp
     }
 
     @staticmethod

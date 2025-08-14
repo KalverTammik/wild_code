@@ -21,6 +21,7 @@ class Sidebar(QWidget):
 
     # Click signal with module identifier
     itemClicked = pyqtSignal(str)
+    helpRequested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -77,6 +78,11 @@ class Sidebar(QWidget):
                 self.homeButton.setIcon(QIcon(home_icon_path))
         except Exception:
             pass
+        # Ainult Avalehe nupu ikooni mõõt (50x50)
+        try:
+            self.homeButton.setIconSize(QSize(25, 25))
+        except Exception:
+            pass
         self.homeButton.clicked.connect(lambda: self.emitItemClicked("__HOME__"))
         nav_layout.addWidget(self.homeButton)
         # Track for compact toggle & active styling
@@ -87,22 +93,47 @@ class Sidebar(QWidget):
         # Spacer pushes settings down
         cm.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
-        # Settings
-        self.settingsFrame = QFrame(self.SidebarMainFrame)
-        self.settingsFrame.setObjectName("SettingsFrame")
-        sl = QVBoxLayout(self.settingsFrame)
-        sl.setContentsMargins(0, 6, 6, 6)
-        cm.addWidget(self.settingsFrame)
+        # Footer (docked meta bar) – replaces previous settingsFrame
+        self.footerBar = QFrame(self.SidebarMainFrame)
+        self.footerBar.setObjectName("SidebarFooterBar")
+        fl = QHBoxLayout(self.footerBar)
+        fl.setContentsMargins(6, 6, 6, 6)
+        fl.setSpacing(6)
+        cm.addWidget(self.footerBar)
 
-        # Settings button
+        # Help button (meta)
+        try:
+            help_label = lang_manager.translations.get("help_button_label", "Abi")
+        except Exception:
+            help_label = "Abi"
+        self.helpButton = QPushButton(help_label, self.footerBar)
+        self.helpButton.setObjectName("SidebarHelpButton")
+        # Set help icon (scaled) if available
+        try:
+            from ..constants.module_icons import ICON_HELP
+            help_icon_path = ModuleIconPaths.themed(ICON_HELP)
+            if help_icon_path:
+                self.helpButton.setIcon(QIcon(help_icon_path))
+                self.helpButton.setIconSize(QSize(25, 25))
+        except Exception:
+            pass
+        self.helpButton.clicked.connect(self._emit_help)
+        fl.addWidget(self.helpButton, 0, Qt.AlignLeft)
+        self.buttonTexts[self.helpButton] = help_label
+
+        # Settings button inside footer bar
         settings_name = lang_manager.sidebar_button(SETTINGS_MODULE)
         settings_icon_path = ModuleIconPaths.get_module_icon(SETTINGS_MODULE)
-        self.settingsButton = QPushButton(settings_name, self.settingsFrame)
+        self.settingsButton = QPushButton(settings_name, self.footerBar)
         self.settingsButton.setObjectName("SidebarSettingsButton")
         if settings_icon_path:
             self.settingsButton.setIcon(QIcon(settings_icon_path))
+        try:
+            self.settingsButton.setIconSize(QSize(25, 25))  # Ühtlustatud ikooni suurus
+        except Exception:
+            pass
         self.settingsButton.clicked.connect(self.showSettingsModule)
-        sl.addWidget(self.settingsButton)
+        fl.addWidget(self.settingsButton, 0, Qt.AlignLeft)
         # remember original label for compact mode toggle
         self.buttonTexts[self.settingsButton] = settings_name
 
@@ -154,6 +185,12 @@ class Sidebar(QWidget):
         btn.setObjectName("SidebarNavButton")
         if iconPath:
             btn.setIcon(QIcon(iconPath))
+        # Projekte nupp ikooni ühtlustatud suurus 25x25
+        if uniqueIdentifier in ('ProjectsModule', 'ContractModule'):
+            try:
+                btn.setIconSize(QSize(25, 25))  # Ühtlustatud ikooni suurus
+            except Exception:
+                pass
 
         def handler():
             if btn.isEnabled():
@@ -193,6 +230,9 @@ class Sidebar(QWidget):
     def emitItemClicked(self, itemName):
         self.itemClicked.emit(itemName)
 
+    def _emit_help(self):
+        self.helpRequested.emit()
+
     def showSettingsModule(self):
         # Switch to the registered Settings module in the main stack
         self.emitItemClicked(SETTINGS_MODULE)
@@ -220,11 +260,24 @@ class Sidebar(QWidget):
             themed_icon = ModuleIconPaths.get_module_icon(uniqueIdentifier)
             if themed_icon:
                 btn.setIcon(QIcon(themed_icon))
+            if uniqueIdentifier in ('ProjectsModule', 'ContractModule', '__HOME__'):
+                try:
+                    btn.setIconSize(QSize(25, 25))  # Tagame ühtluse ka teema vahetusel
+                except Exception:
+                    pass
+        # Settings ikooni värskendus ja suurus
+        if hasattr(self, 'settingsButton'):
+            try:
+                self.settingsButton.setIconSize(QSize(25, 25))
+            except Exception:
+                pass
 
     # ---------- internals ----------
     def _apply_section_shadows(self):
         # soft inner shadows for nav + settings
-        for frame in (self.SidebarNavFrame, self.settingsFrame):
+        for frame in (self.SidebarNavFrame, getattr(self, 'footerBar', None)):
+            if frame is None:
+                continue
             sh = QGraphicsDropShadowEffect(self)
             sh.setBlurRadius(18)
             sh.setOffset(0, 4)
