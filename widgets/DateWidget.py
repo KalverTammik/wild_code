@@ -27,7 +27,7 @@ class DateWidget(QWidget):
         layout.setSpacing(6)
 
         self._label = QLabel(self)
-        # Warning colorize effect for overdue state (inactive by default)
+        # Warning colorize effect for due-state hinting (inactive by default)
         self._label_colorize = QGraphicsColorizeEffect(self._label)
         self._label_colorize.setColor(QColor(220, 0, 0))
         self._label_colorize.setStrength(0.0)
@@ -63,18 +63,19 @@ class DateWidget(QWidget):
             except Exception:
                 text = f"{self._prefix}: {qdate.toString()}"
         self._label.setText(text)
-        # Apply/clear overdue warning animation
+        # Apply/clear due-state hint animation
         try:
             state = DateHelpers.due_state(py_date)
-            self._apply_overdue_warning(state == "overdue")
+            self._apply_due_hint(state)
         except Exception:
             # On any error, ensure animation is stopped
-            self._apply_overdue_warning(False)
+            self._apply_due_hint("ok")
 
-    def _apply_overdue_warning(self, is_overdue: bool):
-        """Blink the label red/orange if overdue; otherwise stop and reset."""
+    def _apply_due_hint(self, state: str):
+        """Visual hinting based on due state: 'overdue' blinks; 'soon' soft pulse; 'ok' off."""
         try:
-            if is_overdue and self._label_colorize is not None:
+            if state == "overdue" and self._label_colorize is not None:
+                # Faster, stronger red/amber blink
                 grp = create_colorize_pulse(
                     self._label_colorize,
                     QColor(220, 0, 0),       # deep red
@@ -85,7 +86,20 @@ class DateWidget(QWidget):
                     parent=self,
                 )
                 AnimationGroupManager.ensure(self, self._warn_anim_attr, grp)
+            elif state == "soon" and self._label_colorize is not None:
+                # Gentle, slower amber pulse with low intensity
+                grp = create_colorize_pulse(
+                    self._label_colorize,
+                    QColor(255, 170, 0),     # soft amber
+                    QColor(255, 210, 120),   # lighter amber
+                    duration=2200,
+                    strength_min=0.05,
+                    strength_max=0.25,
+                    parent=self,
+                )
+                AnimationGroupManager.ensure(self, self._warn_anim_attr, grp)
             else:
+                # "ok" or unknown -> stop any animation and reset effect
                 AnimationGroupManager.ensure(self, self._warn_anim_attr, None)
                 try:
                     if self._label_colorize is not None:

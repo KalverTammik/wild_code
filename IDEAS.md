@@ -149,6 +149,17 @@ Veendu, et `retheme()` ja keeleseaded ei kaoks login flow ajal.
 	- Miks mõni kaart (module element info) ei kasuta värskelt loodud punast hoiatuspulssi? Märgi uurimiseks.
 	- Kahtlus: efekt jäeti rakendamata või elutsükli haldus puudulik. Vaja üle vaadata ja ühtlustada rakendamine utiliitidega (`utils/animation`).
 
+🟢 TEHA 2025-08-14: Uuring — QGIS privaatne plugin-repo (DO Spaces + Laravel API)
+	- Vastutaja: Kalver
+	- Eesmärk: kinnitada privaatselt hallatava pluginirepositooriumi lahendus, mis toetab lihtsat paigaldust ja poolautomaatsed uuendused.
+	- Sisu: koosta kokkuvõte ja võtmekohad failis `docs/QGIS_Private_Repo_Study.md` (DO Spaces privaatsed objektid, Laraveli vahendus `plugins.xml` jaoks püsiva autentimisega, ZIP-idele presigned URL suunamised, QGIS Plugin Manageri seadistamine, GPL-märkused).
+	- Sammud:
+		1) CI: ehita ZIP + `plugins.xml` ja lae üles DO Spaces privaat-bucket’isse.
+		2) Laravel: `GET /api/qgis/plugins` (tagastab `plugins.xml`, Basic Auth või token), `GET /api/qgis/download/:file` (presigned redirect ZIP-ile).
+		3) QGIS: Lisa repo URL (Laravel endpoint), seadista Authentication Manager.
+		4) Test: uuenduste kontroll, installeerimine ja versiooni tõstmine.
+	- Märkmed: `plugins.xml` ei pea olema avalik; püsivalt ligipääsetav (autentitud) on parem kui aeguvad presigned lingid. ZIP-idele sobib presigned. Arvesta GPL-i nõuetega.
+
 
 # 🟦 **LÕPETATUD IDEED**
 
