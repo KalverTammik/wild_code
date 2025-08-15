@@ -115,7 +115,7 @@ Veendu, et `retheme()` ja keeleseaded ei kaoks login flow ajal.
 	- Eesmärk: tuua DevControlsWidget täielikult kooskõlla projekti tavadega (i18n, teemastatud ikoonid, diagnostika) ja parandada hooldatavust.
 	- Ülesanded:
 		1) TEHTUD 2025-08-13 — I18n: viia “DBG” ja “FRAME siltide” nuppude tooltipid LanguageManager’i alla (en/et võtmed, nt `dev_dbg_tooltip`, `dev_frames_tooltip`).
-		2) POOLELI 2025-08-13 — Teemastatud ikoon: asendada `QIcon(ResourcePaths.EYE_ICON)` kasutusega `ThemeManager.get_qicon(...)` ja lisada Light/Dark silmaikooni variandid, kui vaja.
+		2) POOLELI 2025-08-13 — Teemastatud ikoon: asendada `QIcon(ResourcePaths.EYE_ICON)` kasutusega `ThemeManager.get_qicon(...)` ja lisada Light/Dark silmaikooni variandid, kui vaja. (Vastutaja: 🟠 Anneli)
 		3) Diagnostika: asendada kriitilised `try/except: pass` plokid valikulise logiga (nt kui ThemeManager._debug on true), et vea korral oleks kontekst.
 		4) TEHTUD 2025-08-14 — Elutsükkel: lisada `closeEvent` või `deleteLater` hook, mis peatab animatsioonigrupid (kui need on aktiivsed) — topeltsäde hoidmiseks.
 		5) API viimistlus: kaaluda `set_debug_checked(bool)` ja `set_frames_checked(bool)` abi meetodeid; `set_states(...)` jääb põhi-API-ks.
