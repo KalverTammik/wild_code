@@ -160,6 +160,17 @@ Veendu, et `retheme()` ja keeleseaded ei kaoks login flow ajal.
 		4) Test: uuenduste kontroll, installeerimine ja versiooni tõstmine.
 	- Märkmed: `plugins.xml` ei pea olema avalik; püsivalt ligipääsetav (autentitud) on parem kui aeguvad presigned lingid. ZIP-idele sobib presigned. Arvesta GPL-i nõuetega.
 
+🟢 TEHA 2025-08-15: ModuleCardHeader ikoon ja number-märgi viimistlus
+**Kuupäev:** 2025-08-15
+**Staatus:** TEHA
+**Vastutaja:** 🟠 Anneli
+**Kirjeldus:**
+- Leia sobiv ikoon InfoCardHeader-i pealkirja reale (privaatuse kõrvale või vajadusel eraldi visuaalne aktsent).
+- Number-märgi (badge) visuaal vajab kohendust: ümaramad nurgad, ühtlane vertikaalne joondus.
+- Lisa QSS-is ümardus (border-radius) nii, et väiksemate kõrguste korral kohandub raadius (nt min(height/2 - 1px)).
+- Märkus: kui raadius > elemendi kõrgus/2, siis ei ilmu kaar korrektne — vajadusel vähendada raadiust (tingimuslik klass või style hack).
+- Kontrolli Light/Dark teemas kontrasti ja varju (kerge sisemine varjund võib parandada loetavust).
+
 
 # 🟦 **LÕPETATUD IDEED**
 

@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget, QFrame
 
 
 class StatusWidget(QWidget):
-    def __init__(self, item_data, theme=None, parent=None):
+    def __init__(self, item_data, theme=None, parent=None, show_private_icon=True):
         super().__init__(parent)
         # Outer layout holding a debug container frame
         outer_layout = QVBoxLayout(self); outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -29,7 +29,7 @@ class StatusWidget(QWidget):
         row = QHBoxLayout(); row.setContentsMargins(0, 0, 0, 0)
         row.addStretch(1)  # push everything right
 
-        if not item_data.get('isPublic'):
+        if show_private_icon and not item_data.get('isPublic'):
             pub = QLabel()
             pub.setObjectName("ProjectPrivateIcon")
             pub.setToolTip("Privaatne")

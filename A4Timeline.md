@@ -120,3 +120,18 @@ Jätka logi iga muudatuse kohta, et hiljem oleks lihtne jälgida tehtud tööd j
 **Õppetund:**
 - Keskne kontroller ja utiliidid vähendavad koodi dubleerimist ning hoiavad visuaalse käitumise kooskõlas.
 - Geomeetria animatsioone (y-offset) tuleks vältida peaelementidel; efektipõhine pulse on piisavalt informatiivne ja stabiilne.
+
+---
+
+### 2025-08-15
+**Teema:** Kaartide renderdamise parandused ja InfoCardHeader eraldamine
+**Tegevused:**
+- Parandatud ModuleFeedBuilder: taastatud korrektne `create_item_card` struktuur (vasak: InfoCardHeader + liikmed + ExtraInfo; parem: staatus) ja lisatud `add_items_to_feed` abimeetod.
+- Staatuses peidetud privaatsuse ikoon (kuvatakse nüüd pealkirja reas InfoCardHeader-is), väldib topeltkuvamist.
+- Lisatud kerge tilk varju kaartidele (`QGraphicsDropShadowEffect`).
+- Loodud eraldi InfoCardHeader (privaat ikoon, projekti nimi, number-märk, sildid/hover, klient) ja ühendatud feedi kaartidega.
+- Diagnostika: lisatud ühe-realine logi „[ModuleFeedBuilder] Added N card(s)“ kaarte lisamisel.
+
+**Õppetund:**
+- Suurte failide refaktoorimisel on ohutu liikuda väikeste sammudega ja vahepeal kompileerida; taandused kipuvad murduma.
+- Korduma kippuvad elemendid (header) tasub eraldada korduvkasutatavaks komponendiks; vähendab regressiooniriski.
