@@ -181,6 +181,8 @@ class Sidebar(QWidget):
 
     # ---------- external API ----------
     def addItem(self, displayName, uniqueIdentifier, iconPath=None):
+        import sys
+        print(f"[Sidebar] Adding button: {displayName} ({uniqueIdentifier})", file=sys.stderr)
         btn = QPushButton(displayName, self.SidebarNavFrame)
         btn.setObjectName("SidebarNavButton")
         if iconPath:
@@ -194,6 +196,7 @@ class Sidebar(QWidget):
 
         def handler():
             if btn.isEnabled():
+                print(f"[Sidebar] Button clicked: {uniqueIdentifier}", file=sys.stderr)
                 self.emitItemClicked(uniqueIdentifier)
 
         btn.clicked.connect(handler)

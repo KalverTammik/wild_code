@@ -1,44 +1,95 @@
+# -*- coding: utf-8 -*-
+"""
+Contracts module UI – residentne muster ModuleBaseUI peal.
+Erinevus teiste moodulitega: FEED_LOGIC klass, pealkiri, ning TYPE filter ON lubatud.
+"""
+
+from typing import Optional, Type, List, Any  
+
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QSizePolicy, QLabel
+
 from ...ui.ModuleBaseUI import ModuleBaseUI
-from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QScrollArea
-from PyQt5.QtCore import Qt, QTimer
-from ...widgets.DataDisplayWidgets.ModuleFeedBuilder import ModuleFeedBuilder
+from ...languages.language_manager import LanguageManager
+from ...widgets.StatusFilterWidget import StatusFilterWidget
+from ...widgets.TypeFilterWidget import TypeFilterWidget
+from ...utils.url_manager import Module
+from ...widgets.theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
+from ...utils.logger import debug as log_debug, is_debug as is_global_debug
+from ...constants.pagination import DEFAULT_BATCH_SIZE
+from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
+
+
+
+
 
 class ContractUi(ModuleBaseUI):
-    """
-    UI layer for the Contract module.
-    This class builds the QWidget tree and applies theme styles via ThemeManager.
-    """
-    def __init__(self, lang_manager=None, theme_manager=None, parent=None, logic=None):
+
+    NAME = "ContractModule"
+    TITLE_KEY = "Contracts"
+    MODULE_ENUM = Module.CONTRACT
+    FEED_LOGIC_CLS: Type[FeedLogic] = FeedLogic
+    BACKEND_ENTITY = "CONTRACT"
+    QUERY_FILE = "ListFilteredContracts.graphql"
+    USE_TYPE_FILTER = True
+    BATCH_SIZE = DEFAULT_BATCH_SIZE
+
+
+    def __init__(
+        self,
+        name: str = NAME,                          # kui sul NAME klassikonstant on; muidu eemalda
+        lang_manager: Optional[LanguageManager] = None,
+
+        theme_manager=None,
+        parent: Optional[QWidget] = None,
+        theme_dir: Optional[str] = None,           # <-- lisatud
+        qss_files: Optional[List[str]] = None,     # <-- lisatud
+        **kwargs: Any                              # <-- lisatud
+    ) -> None:
         super().__init__(parent)
+
+        self.name = name
+        self.setObjectName(name)
         self.lang_manager = lang_manager
         self.theme_manager = theme_manager
-        self.logic = logic
-        # Ensure predictable QSS targeting
-        self.setObjectName("ContractModule")
 
-        # Centralized theming
-        if self.theme_manager:
-            from ...widgets.theme_manager import ThemeManager
-            ThemeManager.apply_module_style(self, [QssPaths.MODULES_MAIN])
+        # lisatud, et dialog.py saaks edasi anda:
+        self.theme_dir = theme_dir
+        self.qss_files = qss_files
+        self._extra_init_kwargs = kwargs
 
-        # Clear ModuleBaseUI placeholders to let scroll area take full space
+        self.feed_logic = None
+        self._current_where = None
+
+        # --- Toolbar & filtrid (ühtne muster) ---
+        title = self.lang_manager.translate(self.TITLE_KEY) if self.lang_manager else self.TITLE_KEY
+        self.toolbar_area.set_title(title)
+
         try:
-            lay = self.display_area.layout()
-            while lay and lay.count():
-                item = lay.takeAt(0)
-                w = item.widget()
-                if w:
-                    w.deleteLater()
-        except Exception:
-            pass
+            self.status_filter = StatusFilterWidget(self.MODULE_ENUM, self.lang_manager, self.toolbar_area, debug=is_global_debug())
+            self.toolbar_area.register_filter_widget("status", self.status_filter)
 
-        # Build feed area similar to Projects
+            self.type_filter = None
+            if self.USE_TYPE_FILTER:
+                self.type_filter = TypeFilterWidget(self.MODULE_ENUM, self.lang_manager, self.toolbar_area, debug=is_global_debug())
+                self.toolbar_area.register_filter_widget("type", self.type_filter)
+
+            self.toolbar_area.filtersChanged.connect(self._on_filters_changed)
+        except Exception as e:
+            log_debug(f"[ContractUi] Toolbar init failed: {e}")
+
+        # --- Feed container & layout (ühine muster) ---
         self.feed_content = QWidget()
-        from PyQt5.QtWidgets import QSizePolicy
         self.feed_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        self.feed_layout = QVBoxLayout()
-        self.feed_content.setLayout(self.feed_layout)
+        self.feed_layout = QVBoxLayout(self.feed_content)
+        self.feed_layout.setContentsMargins(0, 0, 0, 0)
+        self.feed_layout.setSpacing(8)
+
+        self._empty_state = QLabel(self.lang_manager.translate("No contracts found") if self.lang_manager else "No contracts found")
+        self._empty_state.setAlignment(Qt.AlignCenter)
+        self._empty_state.setVisible(False)
+        self.feed_layout.addWidget(self._empty_state)
         self.feed_layout.addStretch(1)
 
         self.scroll_area = QScrollArea()
@@ -46,80 +97,98 @@ class ContractUi(ModuleBaseUI):
         self.scroll_area.setWidget(self.feed_content)
         self.display_area.layout().addWidget(self.scroll_area)
 
-        # Setup contracts feed logic
-        from .ContractLogic import ContractsFeedLogic
-        self.feed_logic = ContractsFeedLogic("CONTRACT", "ListAllContracts.graphql", lang_manager)
+        # Läved ja debounce (ühine muster)
+        self.PREFETCH_PX = 300
+        self.LOAD_DEBOUNCE_MS = 80
 
-        # Connect scroll event for infinite scroll
-        self.scroll_area.verticalScrollBar().valueChanged.connect(self.on_scroll)
-        self.scroll_area.verticalScrollBar().rangeChanged.connect(self.on_range_changed)
-        self._activated = False
+        # Engine alles pärast UI valmimist
+        self.init_feed_engine(self.load_next_batch, debounce_ms=self.LOAD_DEBOUNCE_MS)
 
-        # Initial load removed; will load on activate()
-        # self.load_next_batch()
-
-    def activate(self):
-        if not getattr(self, "_activated", False):
-            self._activated = True
-            self.load_next_batch()
-
-    def retheme_contract(self):
-        """
-        Re-applies the correct theme and QSS to the contract module UI, forcing a style refresh.
-        """
+        # Teema
         if self.theme_manager:
-            from ...widgets.theme_manager import ThemeManager
-            from ...constants.file_paths import QssPaths
-            ThemeManager.apply_module_style(self, [QssPaths.MODULES_MAIN])
-        # Also restyle cards in the feed
-        if hasattr(self, 'feed_layout'):
-            for i in range(self.feed_layout.count()):
-                w = self.feed_layout.itemAt(i).widget()
-                if w:
-                    from ...widgets.theme_manager import ThemeManager
-                    ThemeManager.apply_module_style(w, [QssPaths.MODULE_CARD])
+            try:
+                ThemeManager.apply_module_style(self._empty_state, [QssPaths.MODULE_CARD])
+                ThemeManager.apply_module_style(self, [QssPaths.MODULES_MAIN])
+            except Exception:
+                pass
 
-    def on_scroll(self, value):
-        bar = self.scroll_area.verticalScrollBar()
-        # Debug: observe scrolling values
+    # --- Aktivatsioon / deaktiveerimine (ühine muster) ---
+    def activate(self) -> None:
+        super().activate()
+
+        if self.feed_logic is None:
+            kwargs = {}
+            if self.BATCH_SIZE is not None:
+                kwargs["batch_size"] = self.BATCH_SIZE
+            self.feed_logic = self.FEED_LOGIC_CLS(self.BACKEND_ENTITY, self.QUERY_FILE, self.lang_manager, **kwargs)
+
+        # (valikuline) eellae filtrite sisud
         try:
-            print(f"[ContractUi] Scroll value={value}, max={bar.maximum()}, has_more={self.feed_logic.has_more}, is_loading={self.feed_logic.is_loading}")
+            if self.status_filter:
+                self.status_filter.ensure_loaded()
+            if self.type_filter:
+                self.type_filter.ensure_loaded()
         except Exception:
             pass
-        # Allow a small threshold to ensure we trigger near-bottom
-        if value >= max(0, bar.maximum() - 2) and self.feed_logic.has_more and not self.feed_logic.is_loading:
-            self.load_next_batch()
 
-    def on_range_changed(self, min_val, max_val):
-        # When content grows or initial range is set, auto-load if we're effectively at bottom and more is available
-        bar = self.scroll_area.verticalScrollBar()
-        try:
-            print(f"[ContractUi] Range changed: min={min_val}, max={max_val}, current={bar.value()}, has_more={self.feed_logic.has_more}")
-        except Exception:
-            pass
-        if bar.value() >= max(0, max_val - 2) and self.feed_logic.has_more and not self.feed_logic.is_loading:
-            # Slight delay to let layout settle
-            QTimer.singleShot(0, self.load_next_batch)
+        self.feed_load_engine.schedule_load()
 
+    def deactivate(self) -> None:
+        super().deactivate()
+
+    # --- Andmete laadimine ---
     def load_next_batch(self):
-        # Fetch and append, then auto-fill if still no scroll
-        prev_max = self.scroll_area.verticalScrollBar().maximum()
-        items = self.feed_logic.fetch_next_batch()
+        return self.process_next_batch(retheme_func=self._retheme)
+
+    # --- Filtrid (ühine muster) ---
+    def _on_filters_changed(self, filters: dict) -> None:
+        # Puhasta buffer filtri muutmisel, et laadida ainult uued andmed
+        if hasattr(self, 'feed_load_engine') and hasattr(self.feed_load_engine, 'buffer'):
+            self.feed_load_engine.buffer.clear()
+
+        where = {"AND": []}
+        status_ids = filters.get("status") or []
+        type_ids = filters.get("type") or []
+
+
+        if status_ids:
+            where["AND"].append({"column": "STATUS", "operator": "IN", "value": status_ids})
+        if self.USE_TYPE_FILTER and type_ids:
+            where["AND"].append({"column": "TYPE", "operator": "IN", "value": type_ids})
+        if not where["AND"]:
+            where = None
+
+        if where == self._current_where:
+            return
+
+        self._current_where = where
+
+        if self.feed_logic is None:
+            kwargs = {}
+            if self.BATCH_SIZE is not None:
+                kwargs["batch_size"] = self.BATCH_SIZE
+            self.feed_logic = self.FEED_LOGIC_CLS(self.BACKEND_ENTITY, self.QUERY_FILE, self.lang_manager, **kwargs)
+
         try:
-            print(f"[ContractUi] Loaded items: {len(items)} (prev_max={prev_max})")
+            self.feed_logic.set_where(where)
+        except Exception as e:
+            log_debug(f"[ContractUi] set_where failed: {e}")
+
+        self.clear_feed(self.feed_layout, self._empty_state)
+        try:
+            self.scroll_area.verticalScrollBar().setValue(0)
         except Exception:
             pass
-        if not items:
-            return
-        ModuleFeedBuilder.add_items_to_feed(self, items)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        # If after adding there is still no scroll room and more pages are available, auto-load next page
-        def _maybe_autofill():
-            bar = self.scroll_area.verticalScrollBar()
-            if bar.maximum() <= 0 and self.feed_logic.has_more and not self.feed_logic.is_loading:
-                try:
-                    print("[ContractUi] Auto-filling next batch (no scroll yet)")
-                except Exception:
-                    pass
-                self.load_next_batch()
-        QTimer.singleShot(0, _maybe_autofill)
+        self.feed_load_engine.schedule_load()
+
+    # --- Teema ---
+    def _retheme(self) -> None:
+        if self.theme_manager:
+            try:
+                ThemeManager.apply_module_style(self, [QssPaths.MODULES_MAIN])
+            except Exception:
+                pass
+
+    # --- Module contract ---
+    def get_widget(self) -> QWidget:
+        return self

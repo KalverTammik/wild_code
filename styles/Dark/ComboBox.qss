@@ -1,0 +1,169 @@
+/* =========================================================
+   ComboBox.qss (DARK THEME) — balanced final
+   Single source of truth for ALL QComboBox styling
+   Palette (dark):
+     Surface base:  #303a42
+     Surface hover: #2e2f38
+     Border base:   #4d4d4d
+     Border focus:  #1f5d5c
+     Text:          #c5c5d2
+     Accent:        rgb(9,144,143)
+   ========================================================= */
+
+/* ---------------------- Root control ---------------------- */
+QComboBox {
+    background: transparent;
+    color: #c5c5d2;
+    border: 1px solid #4d4d4d;
+    border-radius: 6px;
+    padding: 2px 8px;          /* comfy text insets */
+    padding-right: 28px;       /* reserve space for native arrow */
+    min-height: 20px;
+    min-width: 120px;
+    font-size: 12px;
+    margin-right: 6px;
+    outline: none;
+}
+QComboBox:hover {
+    background: #2e2f38;
+    border-color: #1f5d5c;
+}
+QComboBox:focus {
+    background: #2e2f38;
+    border-color: #1f5d5c;
+}
+QComboBox:pressed,
+QComboBox:on {                 /* popup open */
+    background: #2e2f38;
+    border-color: #1f5d5c;
+}
+QComboBox:disabled {
+    background: #24252e;
+    color: rgba(170,170,180,0.55);
+    border: 1px dashed rgba(120,120,130,0.50);
+}
+
+/* -------------------- Drop-down subcontrol -------------------- */
+/* keep this filled so the arrow strip never looks black */
+QComboBox::drop-down {
+    width: 20px;
+    border-left: 1px solid #4d4d4d;
+    background: #303a42;
+    margin: 0;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+QComboBox:hover::drop-down,
+QComboBox:focus::drop-down {
+    background: #2e2f38;
+    border-left-color: #1f5d5c;
+}
+QComboBox:pressed::drop-down,
+QComboBox:on::drop-down {
+    background: #3a3f4b;
+    border-left-color: #1f5d5c;
+}
+QComboBox:disabled::drop-down {
+    background: #24252e;
+    border-left-color: rgba(120,120,130,0.50);
+}
+
+/* ---------------------- Popup list ---------------------- */
+QComboBox QAbstractItemView {
+    background: #2e2f38;
+    color: #c5c5d2;
+    border: 1px solid #1f5d5c;
+    border-radius: 3px;
+    padding: 1px;              /* tight gutter to match light theme */
+    outline: none;
+}
+QComboBox QAbstractItemView::item {
+    height: 20px;
+    padding: 2px 6px;
+    margin: 0;
+    border-radius: 3px;
+}
+QComboBox QAbstractItemView::item:selected {
+    background: rgb(9,144,143);
+    color: #ffffff;
+}
+QComboBox QAbstractItemView::item:hover {
+    background: #3a3f4b;
+    color: #ffffff;
+}
+QComboBox QAbstractItemView::item:disabled {
+    color: rgba(197,197,210,0.40);
+}
+
+/* Scrollbar inside popup */
+QComboBox QAbstractItemView QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 4px 2px 4px 0;
+}
+QComboBox QAbstractItemView QScrollBar::handle:vertical {
+    min-height: 24px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.15);
+}
+QComboBox QAbstractItemView QScrollBar::add-line:vertical,
+QComboBox QAbstractItemView QScrollBar::sub-line:vertical {
+    height: 0;
+}
+QComboBox QAbstractItemView QScrollBar::add-page:vertical,
+QComboBox QAbstractItemView QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+
+/* ---------------------- RTL / LTR safety ---------------------- */
+QComboBox:right-to-left::drop-down {
+    border-right: 1px solid #4d4d4d;
+    border-left: none;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+QComboBox:right-to-left {
+    padding-left: 28px;
+    padding-right: 8px;
+}
+
+/* ---------------------- Context scoping ---------------------- */
+/* Tighter look in toolbars */
+QToolBar QComboBox {
+    min-height: 18px;
+    padding: 1px 6px;
+    padding-right: 24px;
+    border-radius: 5px;
+    font-size: 11px;
+}
+QToolBar QComboBox::drop-down { width: 18px; }
+
+/* Editors inside tables: slightly denser to match row height */
+QTableView QComboBox {
+    min-height: 18px;
+    padding: 1px 6px;
+    padding-right: 22px;
+    font-size: 11px;
+}
+
+/* ---------------------- Multi-select popup checkbox (QgsSelectableComboBox) ---------------------- */
+QComboBox QAbstractItemView::indicator {
+    width: 14px; height: 14px;
+    margin: 0 6px 0 0;                 /* small gap before text */
+    border: 1px solid #4d4d4d;
+    border-radius: 3px;
+    background: #303a42;
+}
+QComboBox QAbstractItemView::indicator:checked {
+    background: rgb(9,144,143);
+    border-color: rgb(9,144,143);
+}
+QComboBox QAbstractItemView::indicator:unchecked {
+    background: #303a42;
+}
+
+/* ---------------------- Nice-to-haves ---------------------- */
+/* prevent native focus rect artifacts on some platforms */
+QComboBox::indicator { width: 0; height: 0; }

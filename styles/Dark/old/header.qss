@@ -1,0 +1,86 @@
+/* ===== Header (Dark) — minimal, readable, with subtle bottom glow ===== */
+
+/* Outer frame with bottom glow + rule (mirror of footer’s top) */
+QFrame#headerWidgetFrame {
+    background: qlineargradient(x1:0, y1:1, x2:0, y2:0,
+        stop:0    rgba(9,144,143,0.16),   /* soft teal glow at bottom */
+        stop:0.03 rgba(9,144,143,0.08),
+        stop:0.055 #1d252b,               /* transition into base */
+        stop:1    #1d252b
+    );
+    border-bottom: 1px solid rgba(9,144,143,0.65);
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Title */
+/* Title label in dark mode */
+QLabel#headerTitleLabel {
+    color: #ffffff;
+    background: rgba(9,144,143,0.15);      /* soft teal background */
+    border: 1px solid rgba(9,144,143,0.65);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Optional subtle glow */
+QLabel#headerTitleLabel:hover {
+    box-shadow: 0px 0px 8px rgba(9,144,143,0.4);
+}
+
+
+/* Search */
+
+QLineEdit#headerSearchEdit::placeholder {
+    color: rgba(197,197,210,0.55);
+}
+QLineEdit#headerSearchEdit:focus {
+    border: 1px solid #1f5d5c;
+    background: #2e2f38;
+}
+
+QLineEdit#headerSearchEdit {
+    background: #303a42;
+    color: #c5c5d2;
+    border: 1px solid #4d4d4d;
+    border-top-color: #565869;    /* lighter top */
+    border-bottom-color: #1a1a1a; /* darker bottom for depth */
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+
+
+/* Buttons */
+QPushButton#themeSwitchButton,
+QPushButton#logoutButton {
+    background: #2d2e3a;
+    color: #c5c5d2;
+    border: 1px solid #565869;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+QPushButton#themeSwitchButton:hover,
+QPushButton#logoutButton:hover {
+    background: #00796b;         /* teal-tinted hover */
+    border-color: #004d40;
+    color: white;
+}
+QPushButton#themeSwitchButton:pressed,
+QPushButton#logoutButton:pressed {
+    background: #2d2e3a;
+    border-color: #8e8ea0;
+    color: #bdbecf;
+}
+QPushButton#themeSwitchButton:focus,
+QPushButton#logoutButton:focus {
+    outline: none;
+    border-color: #1f5d5c;
+}

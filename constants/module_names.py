@@ -11,5 +11,3 @@ GPT_ASSISTANT_MODULE = "GptAssistant"
 
 # Legacy/utility module constants (may not be registered, but used for sidebar labels)
 DIALOG_SIZE_WATCHER_MODULE = "DialogSizeWatcherModule"
-
-

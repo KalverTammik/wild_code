@@ -12,6 +12,9 @@ class APIClient:
         self.session_manager = session_manager or SessionManager()
         self.config_path = config_path or ConfigPaths.CONFIG
         self.api_url = self._load_api_url()
+        # Guard to prevent opening multiple login dialogs simultaneously
+        if not hasattr(APIClient, '_login_dialog_open'):
+            APIClient._login_dialog_open = False
 
     def _load_api_url(self):
         try:
@@ -47,6 +50,12 @@ class APIClient:
                         first_msg = data["errors"][0].get("message") or str(data["errors"][0])
                     except Exception:
                         first_msg = str(data.get("errors"))
+                    if first_msg and "Unauthenticated" in first_msg:
+                        from .SessionManager import SessionManager
+                        result = SessionManager.show_session_expired_dialog(lang_manager=self.lang)
+                        if result == "login":
+                            self.open_login_dialog()
+                        first_msg = self.lang.translate("session_expired")
                     raise Exception(first_msg)
                 return data.get("data", {})
             else:
@@ -58,4 +67,35 @@ class APIClient:
                 raise Exception(self.lang.translate("login_failed_response").format(error=body))
         except Exception as e:
             # Surface the exception message (could be server message or network issue)
-            raise Exception(str(e) or self.lang.translate("network_error").format(error=""))
+            msg = str(e)
+            if msg and "Unauthenticated" in msg:
+                from .SessionManager import SessionManager
+                result = SessionManager.show_session_expired_dialog(lang_manager=self.lang)
+                if result == "login":
+                    self.open_login_dialog()
+                msg = self.lang.translate("session_expired")
+            raise Exception(msg or self.lang.translate("network_error").format(error=""))
+
+    def open_login_dialog(self):
+        """Open the LoginDialog so the user can re-authenticate after session expiry.
+
+        Uses a class-level guard to avoid spawning multiple dialogs if multiple
+        requests fail concurrently. The dialog itself sets the session via
+        SessionManager on successful authentication.
+        """
+        if getattr(APIClient, '_login_dialog_open', False):
+            return
+        APIClient._login_dialog_open = True
+        try:
+            from ..login_dialog import LoginDialog  # inline import: avoid circular at module import time
+            dlg = LoginDialog()
+            dlg.exec_()
+        except Exception as e:
+            # Best-effort log without raising a secondary exception
+            try:
+                from .logger import error as log_error
+                log_error(f"Failed to open login dialog: {e}")
+            except Exception:
+                pass
+        finally:
+            APIClient._login_dialog_open = False

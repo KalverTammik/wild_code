@@ -1,3 +1,11 @@
+# === DEV NOTES: PYTHON PATCHING & INDENTATION RULES ===
+- Always use 4 spaces for indentation (never tabs)
+- All method bodies must be fully indented inside their class
+- Never leave stray code outside class or function scope
+- If editing, always read the full method and class structure first!
+- Always check for stray lines after patching, especially at file end
+- [Add your environment-specific rules here]
+# ================================================
 ## Module UI Standard
 
 **Rule:** All module `get_widget()` methods must return a `QWidget` instance, never a class. This ensures compatibility with `addWidget()` and prevents runtime errors. If a module needs to provide a new widget each time, it should instantiate and return it within `get_widget()`.
@@ -611,3 +619,47 @@ path = ModuleIconPaths.themed(ICON_SEARCH)
 - Avoid background fills; ensure good contrast in both themes or provide variants.
 - Do not duplicate file names between unrelated icons.
 - Keep icons consistent with the Icons8 Fluency Systems Regular style.
+
+---
+
+## Toolbar Filter Widget Pattern
+
+- All filter widgets (status, type, tags, etc.) must be registered with the module's ToolbarArea using `register_filter_widget(name, widget)`.
+- ToolbarArea connects each filter widget's `selectionChanged` signal to a centralized handler and emits a `filtersChanged` signal with all selected filter values as a dictionary.
+- Modules must listen for `filtersChanged` and update their feed logic accordingly.
+- This pattern ensures scalable, modular, and consistent filter management for all modules.
+
+## Standardized Module Activation Pattern
+
+- All modules must implement an `activate()` method.
+- Shared activation logic (status filter loading, activation flag) is now in `ModuleBaseUI.activate()`.
+- Each module should call `super().activate()` in its own `activate()` method, then add any module-specific activation logic (e.g., loading type filters, scheduling initial loads).
+- This ensures consistent activation behavior and makes future maintenance easier.
+
+Example:
+```python
+# In ModuleBaseUI
+    def activate(self):
+        if getattr(self, '_activated', False):
+            return
+        self._activated = True
+        try:
+            if hasattr(self, 'status_filter') and self.status_filter:
+                self.status_filter.ensure_loaded()
+        except Exception:
+            pass
+
+# In child module
+    def activate(self):
+        super().activate()
+        # module-specific activation logic
+```
+
+## UI Responsiveness Optimization
+
+We use `QCoreApplication.processEvents()` in all major batch UI update loops (feed item insertion, filter widget updates, card updates, widget removals) across modules and widgets. This ensures the UI remains responsive and elements update smoothly during long-running operations or batch loads. It is especially useful for:
+- Preventing UI freezing during large data loads
+- Keeping scrollbars, buttons, and widgets interactive
+- Allowing progressive rendering of feed items and cards
+
+Use with care: excessive calls in tight loops may impact performance or cause re-entrancy issues. Tune or remove as needed for your deployment.

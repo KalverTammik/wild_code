@@ -18,6 +18,44 @@ Näide uue idee lisamiseks:
 - ⚪ Määramata
 
 # 🟩 **UUED IDEED**
+# 🟢 TEHA 2025-08-19: Kontrolli OverdueCounterWidgeti
+	- Vastutaja: Kalver
+	- Kontrolli, kas OverdueCounterWidget töötab ootuspäraselt ja kas loendamine ning kuvamine on korrektne.
+
+🟢 TEHA 2025-08-23: Moodulite teema vahetuse meetodite standardiseerimine
+	- Vastutaja: Kalver
+	- Ühtlustada kõikide moodulite teema vahetuse meetodid (nt retheme_project, retheme_contract jne) ja tagada, et dialog.py kasutab õigeid meetodeid. Vajadusel lisada puuduvad meetodid moodulitesse.
+	
+🟢 Universaalne päise- ja jaluseala moodulitele
+**Kuupäev:** 2025-08-16
+**Staatus:** TEHA
+**Vastutaja:** ⚪ Määramata
+**Kirjeldus:**
+Luua universaalne päiseala (toolbar) ja jaluseala (footer), mis ehitatakse mooduli konfiguratsiooni põhjal. Päises saab olla filtreid, nuppe, silte, jne; jaluses loendurid, infotekstid, kiirtoimingud. Iga moodul annab oma tööriistade/infotööriistade konfiguratsiooni, mille põhjal päis/jalus ehitatakse dünaamiliselt. Võimaldab paindlikku ja hooldatavat UI-d kõigile moodulitele.
+
+
+**Näidis tool-config dict päise jaoks:**
+```python
+def get_tools(self):
+	return [
+		{"type": "filter", "name": "status", "widget": StatusFilterWidget},
+		{"type": "filter", "name": "type", "widget": TypeFilterWidget},
+		{"type": "button", "name": "clear", "icon": ICON_CLEAR, "callback": self.clear_filters},
+		{"type": "label", "name": "counter", "getter": self.get_counter_text},
+		# ...more tools...
+	]
+```
+
+**Näidis tool-config dict jaluse jaoks:**
+```python
+def get_footer_tools(self):
+	return [
+		{"type": "label", "name": "loaded_count", "getter": self.get_loaded_count_text},
+		{"type": "label", "name": "total_count", "getter": self.get_total_count_text},
+		{"type": "button", "name": "export", "icon": ICON_EXPORT, "callback": self.export_data},
+		# ...more footer tools...
+	]
+```
 
 🟢 Värviline ja mänguline kujundus
 **Kuupäev:** 2025-08-12
@@ -56,6 +94,15 @@ WelcomePage’i muster on dokumenteeritud: vt `copilot-prompt.md` → “Welcome
 Nupu sildid eesti keeles: ON → “Peida FRAME sildid”, OFF → “Näita FRAME silte”. Vaikeseade tootmises: OFF.
 Täiendavalt lisada lihtne `retheme()` tugi, et teema vahetusel jääks staatus ja stiil korrektseks.
 
+**Tooltip QSS rakendamise selgitus:**
+Varem rakendati `tooltip.qss` otse kogu QGIS UI-le, mis põhjustas globaalseid stiiliprobleeme (nt tumeda teema lekkimine kõikjale).
+Praegu kasutatakse ThemeManageris QToolTip paletti, mis mõjutab ainult värve, mitte kõiki QSS omadusi.
+Kui soovitakse pluginisiseselt QSS-i rakendada, tuleb luua custom lahendus, sest standardne QToolTip on globaalne.
+
+**Soovitus autorile:**
+Tooltip QSS rakendamine ainult pluginisiseselt pole võimalik standardse QToolTip kaudu, kuna see mõjutab kogu QGIS UI-d. Praegu kasutatakse paletipõhist lahendust, mis muudab ainult värve. Kui on vaja detailsemat QSS-i rakendust, tuleb luua custom tooltip-widget, mis võimaldab QSS-i rakendada ainult pluginis sees. See on keerulisem ja muudab standardset käitumist.
+Palun vaata üle, kas pluginisisesed custom tooltipid oleksid aktsepteeritav lahendus, või jääme paletipõhise lahenduse juurde, et vältida QGIS-i globaalseid stiiliprobleeme.
+
 🟢 Ideede formaati lisada eraldi “Vastutaja” rida
 **Kuupäev:** 2025-08-13
 **Staatus:** TEHA
@@ -90,6 +137,13 @@ Väldi lõputut tsüklit: maksimaalselt 1 automaatne retry konkreetse päringu k
 Logi sündmused diagnostikasse ("token_expired", "relogin_success", "relogin_cancel").
 Lisa kasutajale märguanne (nt väike infobanner) et sessioon aegus ja paluti uus login.
 Veendu, et `retheme()` ja keeleseaded ei kaoks login flow ajal.
+**2025-08-19 UPDATE:**
+ - Sessiooni aegumise dialoog näidatakse nüüd ainult korra sessiooni kohta, vältides lõputut tsüklit.
+ - Kasutajale pakutakse valikut: "Logi sisse" või "Tühista". Vajutuse sündmused logitakse konsooli (print).
+ - Vajutuse tulemus salvestatakse ja vajadusel seatakse püsiv lipp järgmise käivituse jaoks.
+ - Dialoogi avamine on integreeritud APIClienti kaudu, valmis päris login dialoogi ühendamiseks.
+ - Kogu dialoogi tekst on lokaliseeritud keelehalduri kaudu.
+ - Järgmine samm: päris login dialoogi avamine ja katkestatud päringute taastamine.
 
 🟢 TEHA 2025-08-13: Peida DEV-plokk mittedev-kasutajate eest
 	- Vastutaja: Kalver
@@ -170,6 +224,16 @@ Veendu, et `retheme()` ja keeleseaded ei kaoks login flow ajal.
 - Lisa QSS-is ümardus (border-radius) nii, et väiksemate kõrguste korral kohandub raadius (nt min(height/2 - 1px)).
 - Märkus: kui raadius > elemendi kõrgus/2, siis ei ilmu kaar korrektne — vajadusel vähendada raadiust (tingimuslik klass või style hack).
 - Kontrolli Light/Dark teemas kontrasti ja varju (kerge sisemine varjund võib parandada loetavust).
+
+🟢 Dashboard ideede inspiratsiooni kogumine (CodePen)
+**Kuupäev:** 2025-08-15
+**Staatus:** TEHA
+**Vastutaja:** 🟠 Anneli
+**Kirjeldus:**
+- Uuri CodePen’i dashboard’i näiteid ja mustreid: https://codepen.io/search/pens?q=dashboard&cursor=OQ
+- Koosta lühikokkuvõte (mis töötab QGIS/Qt kontekstis, mis mitte) ja paku välja 3–5 sobivaimat ideed (kriitiliselt hinnata/“challenge’ida” olemasolevaid mõtteid).
+- Lisa kõik kasulikud lingid eraldi dokumenti `docs/Dashboard_Links.md` (üks link rea kohta + lühikommentaar: „miks see meeldib / mida kasutaks”).
+- Soovi korral lisa väikesed kuvatõmmised inspiratsiooni offline-hoidmiseks.
 
 
 # 🟦 **LÕPETATUD IDEED**

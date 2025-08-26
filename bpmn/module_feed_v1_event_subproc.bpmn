@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:open-bpmn="http://open-bpmn.org/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_ModuleFeed_V1A" targetNamespace="http://example.com/bpmn/modulefeed">
+  <bpmn:extensionElements>
+    <open-bpmn:auto-align/>
+  </bpmn:extensionElements>
+  <bpmn:process id="Process_QGIS" isExecutable="false" name="Module Feed (V1 - Event SubProcesses)" processType="Public">
+    <!-- Lanes -->
+    <bpmn:laneSet id="LaneSet_QGIS">
+      <bpmn:lane id="Lane_UserScroll" name="User / ScrollBar">
+        <bpmn:flowNodeRef>Event_Scroll_Dummy</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_ModuleBaseUI" name="ModuleBaseUI / Module UIs">
+        <bpmn:flowNodeRef>Start_Activated</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Init</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Ready</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_FeedLoadEngine" name="FeedLoadEngine"/>
+      <bpmn:lane id="Lane_FeedLogic" name="FeedLogic"/>
+      <bpmn:lane id="Lane_ModuleFeedBuilder" name="ModuleFeedBuilder"/>
+      <bpmn:lane id="Lane_ThemeManager" name="ThemeManager"/>
+    </bpmn:laneSet>
+    <!-- Data Objects / Store declarations -->
+    <bpmn:dataObject id="Data_Items" name="Items[]"/>
+    <bpmn:dataObject id="Data_Buffer" name="Buffer[]"/>
+    <bpmn:dataObject id="Data_ViewportState" name="ViewportState"/>
+    <bpmn:dataObject id="Data_CardWidget" name="CardWidget (QWidget)"/>
+    <bpmn:dataObject id="Data_ThemeSpec" name="ThemeSpec"/>
+    <bpmn:dataStoreReference id="Store_FeedConfig" name="FeedConfig"/>
+    <!-- Main happy path (minimal) -->
+    <bpmn:startEvent id="Start_Activated" name="Module Activated">
+      <bpmn:outgoing>Flow_Start_Init</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_Init" name="Init (bind scroller, link FE)">
+      <bpmn:incoming>Flow_Start_Init</bpmn:incoming>
+      <bpmn:outgoing>Flow_Init_EndReady</bpmn:outgoing>
+      <bpmn:dataOutputAssociation>
+        <bpmn:targetRef>Data_ViewportState</bpmn:targetRef>
+      </bpmn:dataOutputAssociation>
+    </bpmn:task>
+    <bpmn:endEvent id="End_Ready" name="Ready (Idle)">
+      <bpmn:incoming>Flow_Init_EndReady</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_Init" sourceRef="Start_Activated" targetRef="Task_Init"/>
+    <bpmn:sequenceFlow id="Flow_Init_EndReady" sourceRef="Task_Init" targetRef="End_Ready"/>
+    <!-- Dummy scroll event only to keep User/ScrollBar lane non-empty -->
+    <bpmn:intermediateCatchEvent id="Event_Scroll_Dummy" name="Scroll (lane anchor)">
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+    <!-- Event SubProcess A: Non-interrupting (Scroll/Timer -> NearBottom? -> Drip or Load Path) -->
+    <bpmn:subProcess id="ESP_ScrollAndTimer" name="Scroll/Timer Driven Refill" triggeredByEvent="true">
+      <!-- Non-interrupting Starts -->
+      <bpmn:startEvent id="Start_ScrollEvent" isInterrupting="false" name="ScrollEvent (Message)">
+        <bpmn:messageEventDefinition/>
+        <bpmn:outgoing>ESP_Flow_Start_To_Gw</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:startEvent id="Start_DripTimer" isInterrupting="false" name="DripTimer (optional)">
+        <bpmn:timerEventDefinition/>
+        <bpmn:outgoing>ESP_Flow_Timer_To_Gw</bpmn:outgoing>
+      </bpmn:startEvent>
+      <!-- Decision: NearBottom? -->
+      <bpmn:exclusiveGateway id="Gateway_NearBottom" name="Near-bottom?">
+        <bpmn:incoming>ESP_Flow_Start_To_Gw</bpmn:incoming>
+        <bpmn:incoming>ESP_Flow_Timer_To_Gw</bpmn:incoming>
+        <bpmn:outgoing>ESP_Flow_Gw_To_Drip</bpmn:outgoing>
+        <bpmn:outgoing>ESP_Flow_Gw_To_Schedule</bpmn:outgoing>
+        <bpmn:documentation>NearBottom? = (scrollPos + margin) ≥ (maxScroll − threshold)</bpmn:documentation>
+      </bpmn:exclusiveGateway>
+      <!-- A1: Drip next -->
+      <bpmn:task id="Task_BufferDrip" name="DripNext (_progressive_insert_next)">
+        <bpmn:incoming>ESP_Flow_Gw_To_Drip</bpmn:incoming>
+        <bpmn:outgoing>ESP_Flow_Drip_End</bpmn:outgoing>
+        <bpmn:dataInputAssociation>
+          <bpmn:sourceRef>Data_Buffer</bpmn:sourceRef>
+        </bpmn:dataInputAssociation>
+        <bpmn:dataOutputAssociation>
+          <bpmn:targetRef>Data_ViewportState</bpmn:targetRef>
+        </bpmn:dataOutputAssociation>
+      </bpmn:task>
+      <!-- A2: Load path -->
+      <bpmn:task id="Task_ScheduleLoad" name="ScheduleLoad (debounced)">
+        <bpmn:incoming>ESP_Flow_Gw_To_Schedule</bpmn:incoming>
+        <bpmn:outgoing>ESP_Flow_Schedule_Guard</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="Task_LoadGuard" name="LoadGuard (alreadyLoading? backoff?)">
+        <bpmn:incoming>ESP_Flow_Schedule_Guard</bpmn:incoming>
+        <bpmn:outgoing>ESP_Flow_Guard_Fetch</bpmn:outgoing>
+        <bpmn:dataInputAssociation>
+          <bpmn:sourceRef>Store_FeedConfig</bpmn:sourceRef>
+        </bpmn:dataInputAssociation>
+      </bpmn:task>
+      <bpmn:serviceTask id="Task_FetchNextBatch" name="FetchNextBatch (FeedLogic)">
+        <bpmn:incoming>ESP_Flow_Guard_Fetch</bpmn:incoming>
+        <bpmn:outgoing>ESP_Flow_Fetch_BufferExtend</bpmn:outgoing>
+        <bpmn:dataOutputAssociation>
+          <bpmn:targetRef>Data_Items</bpmn:targetRef>
+        </bpmn:dataOutputAssociation>
+      </bpmn:serviceTask>
+      <bpmn:task id="Task_BufferExtend" name="BufferExtend (+= Items)">
+        <bpmn:incoming>ESP_Flow_Fetch_BufferExtend</bpmn:incoming>
+        <bpmn:outgoing>ESP_Flow_Buffer_StartProg</bpmn:outgoing>
+        <bpmn:dataInputAssociation>
+          <bpmn:sourceRef>Data_Items</bpmn:sourceRef>
+        </bpmn:dataInputAssociation>
+        <bpmn:dataOutputAssociation>
+          <bpmn:targetRef>Data_Buffer</bpmn:targetRef>
+        </bpmn:dataOutputAssociation>
+      </bpmn:task>
+      <bpmn:task id="Task_StartProgInsert" name="Start Progressive Insert">
+        <bpmn:incoming>ESP_Flow_Buffer_StartProg</bpmn:incoming>
+        <bpmn:outgoing>ESP_Flow_StartProg_End</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:endEvent id="ESP_End" name="End (A)">
+        <bpmn:incoming>ESP_Flow_Drip_End</bpmn:incoming>
+        <bpmn:incoming>ESP_Flow_StartProg_End</bpmn:incoming>
+      </bpmn:endEvent>
+      <!-- Sequence in Event SubProcess A -->
+      <bpmn:sequenceFlow id="ESP_Flow_Start_To_Gw" sourceRef="Start_ScrollEvent" targetRef="Gateway_NearBottom"/>
+      <bpmn:sequenceFlow id="ESP_Flow_Timer_To_Gw" sourceRef="Start_DripTimer" targetRef="Gateway_NearBottom"/>
+      <bpmn:sequenceFlow id="ESP_Flow_Gw_To_Drip" sourceRef="Gateway_NearBottom" targetRef="Task_BufferDrip"/>
+      <bpmn:sequenceFlow id="ESP_Flow_Gw_To_Schedule" sourceRef="Gateway_NearBottom" targetRef="Task_ScheduleLoad"/>
+      <bpmn:sequenceFlow id="ESP_Flow_Schedule_Guard" sourceRef="Task_ScheduleLoad" targetRef="Task_LoadGuard"/>
+      <bpmn:sequenceFlow id="ESP_Flow_Guard_Fetch" sourceRef="Task_LoadGuard" targetRef="Task_FetchNextBatch"/>
+      <bpmn:sequenceFlow id="ESP_Flow_Fetch_BufferExtend" sourceRef="Task_FetchNextBatch" targetRef="Task_BufferExtend"/>
+      <bpmn:sequenceFlow id="ESP_Flow_Buffer_StartProg" sourceRef="Task_BufferExtend" targetRef="Task_StartProgInsert"/>
+      <bpmn:sequenceFlow id="ESP_Flow_Drip_End" sourceRef="Task_BufferDrip" targetRef="ESP_End"/>
+      <bpmn:sequenceFlow id="ESP_Flow_StartProg_End" sourceRef="Task_StartProgInsert" targetRef="ESP_End"/>
+    </bpmn:subProcess>
+    <!-- Event SubProcess B: Interrupting Deactivation (Message -> Terminate) -->
+    <bpmn:subProcess id="ESP_Deactivation" name="Module Deactivation" triggeredByEvent="true">
+      <bpmn:startEvent id="Start_ModuleDeactivated" name="ModuleDeactivated (Message)">
+        <bpmn:messageEventDefinition/>
+        <bpmn:outgoing>ESP_Deact_Start_Term</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:endEvent id="End_Terminate" name="Terminate">
+        <bpmn:terminateEventDefinition/>
+        <bpmn:incoming>ESP_Deact_Start_Term</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="ESP_Deact_Start_Term" sourceRef="Start_ModuleDeactivated" targetRef="End_Terminate"/>
+    </bpmn:subProcess>
+    <!-- Event SubProcess C: Non-interrupting API Error handler for FetchNextBatch -->
+    <bpmn:subProcess id="ESP_ApiError" name="API Error Handler" triggeredByEvent="true">
+      <bpmn:startEvent id="Start_APIError" isInterrupting="false" name="APIError (non-interrupting)">
+        <bpmn:errorEventDefinition/>
+        <bpmn:outgoing>ESP_Err_Start_Show</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:task id="Task_ShowEmptyState" name="ShowEmptyState">
+        <bpmn:incoming>ESP_Err_Start_Show</bpmn:incoming>
+        <bpmn:outgoing>ESP_Err_Show_Retry</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:task id="Task_RetryBackoff" name="RetryBackoff">
+        <bpmn:incoming>ESP_Err_Show_Retry</bpmn:incoming>
+        <bpmn:outgoing>ESP_Err_Retry_End</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:endEvent id="ESP_Error_End" name="End (Error Handler)">
+        <bpmn:incoming>ESP_Err_Retry_End</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="ESP_Err_Start_Show" sourceRef="Start_APIError" targetRef="Task_ShowEmptyState"/>
+      <bpmn:sequenceFlow id="ESP_Err_Show_Retry" sourceRef="Task_ShowEmptyState" targetRef="Task_RetryBackoff"/>
+      <bpmn:sequenceFlow id="ESP_Err_Retry_End" sourceRef="Task_RetryBackoff" targetRef="ESP_Error_End"/>
+    </bpmn:subProcess>
+    <bpmn:documentation id="documentation_Iyvoog"/>
+  </bpmn:process>
+  <!-- Minimal DI: a single diagram and plane (auto-layout friendly) -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_ModuleFeed_V1A">
+    <bpmndi:BPMNPlane bpmnElement="Process_QGIS" id="BPMNPlane_ModuleFeed_V1A">
+      <!-- Core nodes -->
+      <bpmndi:BPMNShape bpmnElement="Start_Activated" id="Shape_Start_Activated">
+        <dc:Bounds height="36" width="36" x="160" y="160"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_Init" id="Shape_Task_Init">
+        <dc:Bounds height="70" width="160" x="230" y="145"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_Ready" id="Shape_End_Ready">
+        <dc:Bounds height="36" width="36" x="420" y="160"/>
+      </bpmndi:BPMNShape>
+      <!-- Event SubProcesses shapes (collapsed for clarity) -->
+      <bpmndi:BPMNShape bpmnElement="ESP_ScrollAndTimer" id="Shape_ESP_ScrollAndTimer" isExpanded="false">
+        <dc:Bounds height="120" width="260" x="560" y="80"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="ESP_Deactivation" id="Shape_ESP_Deactivation" isExpanded="false">
+        <dc:Bounds height="100" width="220" x="560" y="220"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="ESP_ApiError" id="Shape_ESP_ApiError" isExpanded="false">
+        <dc:Bounds height="100" width="240" x="560" y="340"/>
+      </bpmndi:BPMNShape>
+      <!-- Flows -->
+      <bpmndi:BPMNEdge bpmnElement="Flow_Start_Init" id="Edge_Flow_Start_Init">
+        <di:waypoint x="196" y="178"/>
+        <di:waypoint x="230" y="180"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_Init_EndReady" id="Edge_Flow_Init_EndReady">
+        <di:waypoint x="390" y="180"/>
+        <di:waypoint x="420" y="178"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape bpmnElement="Data_Items" id="BPMNShape_Gsd5Cw">
+        <dc:Bounds height="50.0" width="35.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_pGdaag">
+          <dc:Bounds x="0.0" y="0.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Data_Buffer" id="BPMNShape_VHqrKQ">
+        <dc:Bounds height="50.0" width="35.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_Wdv4cA">
+          <dc:Bounds x="0.0" y="0.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Data_ViewportState" id="BPMNShape_NTtKMA">
+        <dc:Bounds height="50.0" width="35.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_zMSV4w">
+          <dc:Bounds x="0.0" y="0.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Data_CardWidget" id="BPMNShape_1FvZ9Q">
+        <dc:Bounds height="50.0" width="35.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_9wyccA">
+          <dc:Bounds x="0.0" y="0.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Data_ThemeSpec" id="BPMNShape_A0LB0g">
+        <dc:Bounds height="50.0" width="35.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_Ml8gAA">
+          <dc:Bounds x="0.0" y="0.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Store_FeedConfig" id="BPMNShape_1MmEbg">
+        <dc:Bounds height="50.0" width="50.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_fUKKOA">
+          <dc:Bounds x="0.0" y="0.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Event_Scroll_Dummy" id="BPMNShape_lY0KJw">
+        <dc:Bounds height="36.0" width="36.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_xWSDvw">
+          <dc:Bounds x="0.0" y="0.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

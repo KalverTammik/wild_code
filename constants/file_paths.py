@@ -10,9 +10,11 @@ from .base_paths import QUERIES, GRAPHQL, USER_QUERIES, PROJECT_QUERIES, CONTRAC
 
 # GraphQL query folder paths for each module (standards-compliant)
 class QueryPaths:
+    STATUSES = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, STATUS_QUERIES)
     USER = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, USER_QUERIES)
     PROJECT = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, PROJECT_QUERIES)
     CONTRACT = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, CONTRACT_QUERIES)
+    STATUS = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, STATUS_QUERIES)
     EASEMENT = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, EASEMENT_QUERIES)
     TAGS = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, TAGS_QUERIES)
     STATUS = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, STATUS_QUERIES)
@@ -48,11 +50,12 @@ class ResourcePaths:
 
 # QSS file names (for modular theme loading)
 class QssPaths:
+    COMBOBOX = "ComboBox.qss"
     MAIN = "main.qss"
     SIDEBAR = "sidebar.qss"
     HEADER = "header.qss"
     FOOTER = "footer.qss"
-    DEV_CONTROLS = "Valisee_u.qss"
+    DEV_CONTROLS = "DevControls.qss"
     LOGIN = "login.qss"
     MODULE_TOOLBAR = "ModuleToolbar.qss"
     MODULE_CARD = "ModuleCard.qss"

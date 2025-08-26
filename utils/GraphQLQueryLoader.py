@@ -23,12 +23,16 @@ class GraphQLQueryLoader:
             FileNotFoundError: If the query file does not exist.
             ValueError: If the module is unknown.
         """
+        print(f"[method load_query] Loading query for module: {module}, filename: {query_filename}")
         if not hasattr(QueryPaths, module.upper()):
-            raise ValueError(self.lang.get("unknown_module").format(module=module))
+            raise ValueError(self.lang.translate("unknown_module").format(module=module))
         folder = getattr(QueryPaths, module.upper())
+        print(f"[method load_query] Query folder found: {folder}")
         query_path = os.path.join(folder, query_filename)
+        print(f"[method load_query] Loading GraphQL query from: {query_path}")  # Debug log
+        print(f"[method load_query] Query file exists: {os.path.exists(query_path)}")
         if not os.path.exists(query_path):
-            raise FileNotFoundError(self.lang.get("query_file_not_found").format(file=query_path))
+            raise FileNotFoundError(self.lang.translate("query_file_not_found").format(file=query_path))
         with open(query_path, 'r', encoding='utf-8') as f:
             return f.read()
 

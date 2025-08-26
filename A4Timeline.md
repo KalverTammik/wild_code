@@ -76,8 +76,22 @@ Jätka logi iga muudatuse kohta, et hiljem oleks lihtne jälgida tehtud tööd j
 
 ---
 
-### 2025-08-14
 **Teema:** Ikoonide ühtlustamine ja meta-funktsioonide dokitud footer
+---
+
+### 2025-08-15
+**Teema:** Debug-loggeri refaktor ja print-lahenduste ühtlustamine
+**Tegevused:**
+- Lisatud tsentraliseeritud logger (`utils/logger.py`), mis on seotud peaakna DBG-nupuga.
+- Kõik print() laused asendatud loggeri debug/info/error meetoditega, mis arvestavad lüliti olekut.
+- Algne debug-olek tuletatakse WILDCODE_DEBUG env-muutujast või QGIS seadetest.
+- Kontrollitud, et kõik muudatused läbivad süntaksi/lint-kontrolli.
+- Parandatud ContractUi ja StatusFilterWidgeti taandevead loggeri integreerimisel.
+**Õppetund:**
+- Tsentraliseeritud logimine võimaldab arenduse diagnostikat mugavalt sisse/välja lülitada.
+- Print-lahenduste ühtlustamine väldib segadust ja aitab arendusprotsessi jälgida.
+
+---
 **Tegevused:**
 - Ühtlustatud Avaleht, Projektid, Lepingud, Seaded ikoonide suurus 25x25 (koodis eksplitsiitselt `setIconSize`).
 - Projekti ikoon vahetatud `icons8-microsoft-powerpoint-30.png` (suurus piiratud 25x25) ühetaolisuse nimel.
@@ -126,7 +140,7 @@ Jätka logi iga muudatuse kohta, et hiljem oleks lihtne jälgida tehtud tööd j
 ### 2025-08-15
 **Teema:** Kaartide renderdamise parandused ja InfoCardHeader eraldamine
 **Tegevused:**
-- Parandatud ModuleFeedBuilder: taastatud korrektne `create_item_card` struktuur (vasak: InfoCardHeader + liikmed + ExtraInfo; parem: staatus) ja lisatud `add_items_to_feed` abimeetod.
+- Parandatud ModuleFeedBuilder: taastatud korrektne `create_item_card` struktuur (vasak: InfoCardHeader + liikmed + ExtraInfo; parem: staatus); varem lisatud `add_items_to_feed` abimeetod on nüüd eemaldatud (vastutus kaartide lisamisel elab BaseUI-s).
 - Staatuses peidetud privaatsuse ikoon (kuvatakse nüüd pealkirja reas InfoCardHeader-is), väldib topeltkuvamist.
 - Lisatud kerge tilk varju kaartidele (`QGraphicsDropShadowEffect`).
 - Loodud eraldi InfoCardHeader (privaat ikoon, projekti nimi, number-märk, sildid/hover, klient) ja ühendatud feedi kaartidega.
@@ -135,3 +149,26 @@ Jätka logi iga muudatuse kohta, et hiljem oleks lihtne jälgida tehtud tööd j
 **Õppetund:**
 - Suurte failide refaktoorimisel on ohutu liikuda väikeste sammudega ja vahepeal kompileerida; taandused kipuvad murduma.
 - Korduma kippuvad elemendid (header) tasub eraldada korduvkasutatavaks komponendiks; vähendab regressiooniriski.
+
+### 2025-08-15
+**Teema:** Plugin ei laadinud – eemaldatud tühi/staatiline DateWidget import
+**Tegevused:**
+- Eemaldatud `widgets/__init__.py` failist aegunud rida `from .DateWidget import DateWidget`, mis põhjustas `ModuleNotFoundError` (fail oli varem eemaldatud pärast refaktorit).
+- Plugin laadib taas korrektselt; ei ole teisi sõltuvaid viiteid DateWidget-ile.
+
+**Õppetund:**
+- Pärast suuremat harude liitmist tasub otsida orvuks jäänud ekspordid (`__init__.py`) ja puhastada need, et vältida käivitusaegseid import-tõrkeid.
+
+---
+
+### 2025-08-15
+**Teema:** DevControlsWidget – DBG pulse eemaldatud, Frames pulse viidud nupule; handleri parandus
+**Tegevused:**
+- Liigutatud halo/varjuefekt otse Frames nupule (varem oli konteinerraamil), et pulse oleks visuaalselt selgelt seotud nupuga.
+- Eemaldatud DBG nupu pulse; DBG jääb staatiliseks (colorize strength 0.0).
+- Parandatud `AttributeError: 'DevControlsWidget' object has no attribute '_on_local_frames_toggled'` – lisatud kohalikud `_on_local_frames_toggled` ja `_on_local_debug_toggled` handlerid, mis kutsuvad `AnimationController.apply_state(...)`.
+- Uuendatud `AnimationController`: glow pulse aktiveerub nüüd ainult siis, kui Frames on ON; Frames-i colorize pulse säilib; DBG pulse on keelatud.
+- Paigutus püsib stabiilselt horisontaalne; QSS rakendub läbi `DevControls.qss`.
+
+**Õppetund:**
+- Efekti sihtimine otse nupule annab selgema UX-i, kuid Qt lubab ühel vidinal korraga vaid ühe `graphicsEffect`i – kui on vaja korraga grupi-halo ja per-nupu efekte, on eraldi konteiner kasulik. Keskne kontroller hoiab käitumise ühtse ja koodi puhtana.

@@ -22,7 +22,11 @@ class LanguageManager:
             spec.loader.exec_module(lang_mod)
             self.translations.update(getattr(lang_mod, "TRANSLATIONS", {}))
         else:
-            print(f"Python language file {lang_py} not found. Defaulting to empty translations.")
+            try:
+                from ..utils.logger import debug as log_debug
+                log_debug(f"Python language file {lang_py} not found. Defaulting to empty translations.")
+            except Exception:
+                pass
 
         # Load and merge module translations from each module's lang/<lang>.py
         plugin_root = os.path.dirname(os.path.dirname(__file__))
@@ -36,7 +40,11 @@ class LanguageManager:
                         spec.loader.exec_module(lang_mod)
                         self.translations.update(getattr(lang_mod, "TRANSLATIONS", {}))
                     except Exception as e:
-                        print(f"Failed to load module translation {lang_file}: {e}")
+                        try:
+                            from ..utils.logger import debug as log_debug
+                            log_debug(f"Failed to load module translation {lang_file}: {e}")
+                        except Exception:
+                            pass
 
         # Load sidebar button names from class-based file
         sidebar_py = os.path.join(os.path.dirname(__file__), f"sidebar_button_names_{self.language}.py")
@@ -46,7 +54,11 @@ class LanguageManager:
             spec.loader.exec_module(sidebar_mod)
             self.sidebar_buttons = getattr(sidebar_mod.SideBarButtonNames, "BUTTONS", {})
         else:
-            print(f"Sidebar button names file {sidebar_py} not found. Defaulting to empty sidebar buttons.")
+            try:
+                from ..utils.logger import debug as log_debug
+                log_debug(f"Sidebar button names file {sidebar_py} not found. Defaulting to empty sidebar buttons.")
+            except Exception:
+                pass
 
     def translate(self, key):
         return self.translations.get(key, key)

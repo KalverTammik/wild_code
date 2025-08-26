@@ -40,4 +40,5 @@ TRANSLATIONS = {
     ,"theme_switch_tooltip": "Switch between dark and light theme"
     ,"dev_dbg_tooltip": "Toggle developer logs (print) on/off"
     ,"dev_frames_tooltip": "Show/Hide FRAME labels on the home page"
+    ,"session_expired": "Your session has expired. Please sign in again."
 }

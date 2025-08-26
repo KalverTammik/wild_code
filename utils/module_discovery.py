@@ -30,4 +30,8 @@ def register_all_modules(module_manager):
                 module_info = mod.get_module_metadata()
                 module_manager.registerModule(module_info)
         except Exception as e:
-            print(f"Failed to register module {module_name}: {e}")
+            try:
+                from ..utils.logger import debug as log_debug
+                log_debug(f"Failed to register module {module_name}: {e}")
+            except Exception:
+                pass

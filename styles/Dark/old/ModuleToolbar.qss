@@ -1,0 +1,16 @@
+#ToolbarArea #SpecialToolbarLabel {
+    color: #cf2121; /* or any color you want */
+    font-weight: bold;
+}
+
+/* ModuleToolbar.qss - Dark Theme */
+#ToolbarArea {
+    background: #23272e;
+    border-bottom: 1px solid #444a57;
+}
+#ToolbarArea QLabel {
+    color: #e0e0e0;
+    font-weight: 500;
+    font-size: 13px;
+    padding: 6px 12px;
+}

@@ -1,11 +1,8 @@
-query statuses($first: Int, $after: String, $search: String, $where: QueryStatusesWhereWhereConditions, $orderBy: [QueryStatusesOrderByOrderByClause!], $trashed: Trashed) {
+query statuses($first: Int, $after: String, $where: QueryStatusesWhereWhereConditions) {
   statuses(
     first: $first
     after: $after
-    search: $search
     where: $where
-    orderBy: $orderBy
-    trashed: $trashed
   ) {
     pageInfo {
       currentPage
@@ -23,4 +20,3 @@ query statuses($first: Int, $after: String, $search: String, $where: QueryStatus
     }
   }
 }
-# import StatusFields from '../fragments/StatusFields.graphql'

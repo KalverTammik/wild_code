@@ -1,3 +1,7 @@
+# wild_code package initializer
+
+from .main import WildCodePlugin
+
 def classFactory(iface):
-    from .main import WildCodePlugin
+    """QGIS calls this to instantiate the plugin."""
     return WildCodePlugin(iface)

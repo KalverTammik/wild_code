@@ -7,8 +7,14 @@ from .widgets.HeaderWidget import HeaderWidget
 # Removed unused: from qgis.PyQt.QtWidgets import QDialog as QgisQDialog
 from qgis.core import QgsMessageLog, Qgis
 
+from .modules.projects.ProjectsUi import ProjectsModule
+from .modules.contract.ContractUi import ContractUi
+from .modules.Settings.SettingsUI import SettingsUI
+
+
 from .login_dialog import LoginDialog
 from .widgets.theme_manager import ThemeManager
+from .utils.logger import set_debug as set_global_debug, debug as log_debug, info as log_info
 from .languages.language_manager import LanguageManager
 from .module_manager import ModuleManager, SETTINGS_MODULE
 from .widgets.sidebar import Sidebar
@@ -45,11 +51,16 @@ class PluginDialog(QDialog):
         except Exception:
             pass
         if self._debug:
-            print("[PluginDialog] __init__ start; debug=ON")
+            log_info("[PluginDialog] __init__ start; debug=ON")
             try:
                 ThemeManager.set_debug(True)
             except Exception:
                 pass
+        # Initialize global logger state early
+        try:
+            set_global_debug(bool(self._debug))
+        except Exception:
+            pass
         self.setWindowTitle(lang_manager.translate("wild_code_plugin_title"))
         from PyQt5.QtWidgets import QSizePolicy
         self.moduleManager = ModuleManager()
@@ -118,7 +129,7 @@ class PluginDialog(QDialog):
 
         self.setLayout(dialog_layout)
         if self._debug:
-            print("[PluginDialog] UI skeleton built (header/sidebar/stack/footer)")
+            log_debug("[PluginDialog] UI skeleton built (header/sidebar/stack/footer)")
         
 
         self.theme_base_dir = StylePaths.DARK  # Default to dark theme dir; switch as needed
@@ -127,10 +138,10 @@ class PluginDialog(QDialog):
             self,
             self.header_widget.switchButton,
             self.theme_base_dir,
-            qss_files=[QssPaths.MAIN, QssPaths.SIDEBAR, QssPaths.HEADER, QssPaths.FOOTER]
+            qss_files=[QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR, QssPaths.HEADER, QssPaths.FOOTER]
         )
         if self._debug:
-            print(f"[PluginDialog] initial theme loaded: {self.current_theme}")
+            log_debug(f"[PluginDialog] initial theme loaded: {self.current_theme}")
         self.loadModules()
         # Ensure welcome page is present as the first page in the stack
         try:
@@ -138,12 +149,18 @@ class PluginDialog(QDialog):
             self.moduleStack.setCurrentWidget(self.welcomePage)
         except Exception:
             pass
+        # Initial retheme sweep so centralized ComboBox.qss (and other module styles)
+        # are applied immediately without waiting for a manual theme toggle.
+        try:
+            self._retheme_dynamic_children()
+        except Exception:
+            pass
         if self._debug:
             try:
                 count = self.moduleStack.count()
             except Exception:
                 count = "?"
-            print(f"[PluginDialog] welcome page set; moduleStack count={count}")
+            log_debug(f"[PluginDialog] welcome page set; moduleStack count={count}")
         self.destroyed.connect(self._on_destroyed)
         # Initialize dev states (debug and frame labels) from settings
         try:
@@ -171,7 +188,7 @@ class PluginDialog(QDialog):
             except Exception as e:
                 pass
         if self._debug:
-            print(f"[PluginDialog] geometry update x={x} y={y} w={w} h={h}")
+            log_debug(f"[PluginDialog] geometry update x={x} y={y} w={w} h={h}")
 
     def subscribe_geometry_updates(self, callback):
         self._geometry_update_callbacks.append(callback)
@@ -187,7 +204,7 @@ class PluginDialog(QDialog):
     def _on_destroyed(self, obj):
         PluginDialog._instance = None
         if self._debug:
-            print("[PluginDialog] destroyed; singleton cleared")
+            log_debug("[PluginDialog] destroyed; singleton cleared")
 
     def _apply_debug_mode(self, enabled: bool):
         self._debug = bool(enabled)
@@ -201,8 +218,13 @@ class PluginDialog(QDialog):
             QgsSettings().setValue("wild_code/debug", "1" if enabled else "0")
         except Exception:
             pass
+        # Update global logger toggle so all modules respect the header button
+        try:
+            set_global_debug(bool(enabled))
+        except Exception:
+            pass
         if getattr(self, "_debug", False):
-            print(f"[PluginDialog] debug mode set to {enabled}")
+            log_info(f"[PluginDialog] debug mode set to {enabled}")
 
     def _apply_frame_labels(self, enabled: bool):
         # Forward to WelcomePage component
@@ -218,7 +240,7 @@ class PluginDialog(QDialog):
         except Exception:
             pass
         if getattr(self, "_debug", False):
-            print(f"[PluginDialog] welcome frame labels set to {enabled}")
+            log_debug(f"[PluginDialog] welcome frame labels set to {enabled}")
 
     def _on_header_debug_toggle(self, enabled: bool):
         self._apply_debug_mode(enabled)
@@ -229,43 +251,22 @@ class PluginDialog(QDialog):
 
     def loadModules(self):
         if getattr(self, "_debug", False):
-            print("[PluginDialog] loadModules called")
+            log_debug("[PluginDialog] loadModules called")
 
-        from .modules.projects.ProjectsUi import ProjectsModule
-        from .modules.contract.ContractUi import ContractUi
-        from .modules.Settings.SettingsUI import SettingsUI
-
-        qss_modular = [QssPaths.MAIN, QssPaths.SIDEBAR]
+    
+        qss_modular = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
         self.settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         self.projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         self.contractUI = ContractUi(lang_manager=lang_manager, theme_manager=theme_manager)
 
         self.moduleManager.registerModule(self.settingsModule)
         self.moduleManager.registerModule(self.projectsModule)
-
-        # Register ContractUi directly with module manager-like structure
-        class _ContractWrap:
-            def __init__(self, widget):
-                self.name = "ContractModule"
-                self._w = widget
-            def get_widget(self):
-                return self._w
-            def activate(self):
-                if hasattr(self._w, 'activate'):
-                    self._w.activate()
-            def deactivate(self):
-                pass
-            def retheme_contract(self):
-                if hasattr(self._w, 'retheme_contract'):
-                    self._w.retheme_contract()
-
-        self.contractModule = _ContractWrap(self.contractUI)
-        self.moduleManager.registerModule(self.contractModule)
+        self.moduleManager.registerModule(self.contractUI)
 
         if getattr(self, "_debug", False):
-            print("[PluginDialog] Registered modules:")
+            log_debug("[PluginDialog] Registered modules:")
             for moduleName in self.moduleManager.modules:
-                print(f"  - {moduleName}")
+                log_debug(f"  - {moduleName}")
 
         for moduleName, moduleInfo in self.moduleManager.modules.items():
             iconPath = moduleInfo["icon"]
@@ -275,7 +276,7 @@ class PluginDialog(QDialog):
             if isinstance(widget, type):
                 widget = widget()
             if getattr(self, "_debug", False):
-                print(f"[PluginDialog] Adding sidebar item: displayName={displayName}, moduleName={moduleName}, iconPath={iconPath}")
+                log_debug(f"[PluginDialog] Adding sidebar item: displayName={displayName}, moduleName={moduleName}, iconPath={iconPath}")
             if widget is not None:
                 # Do not add Settings to the top module list; it's accessible via header/button
                 if moduleName != SETTINGS_MODULE:
@@ -293,7 +294,7 @@ class PluginDialog(QDialog):
             if hasattr(self, 'settingsModule') and hasattr(self.settingsModule, 'set_available_modules'):
                 self.settingsModule.set_available_modules(visible)
                 if getattr(self, "_debug", False):
-                    print(f"[PluginDialog] settings available modules: {visible}")
+                    log_debug(f"[PluginDialog] settings available modules: {visible}")
         except Exception:
             pass
 
@@ -348,11 +349,15 @@ class PluginDialog(QDialog):
             return True
 
     def switchModule(self, moduleName):
+        import sys
+        print(f"[PluginDialog] switchModule called with: {moduleName}", file=sys.stderr)
         # Intercept navigation for unsaved Settings changes
         if not self._confirm_unsaved_settings_if_needed(moduleName):
+            print(f"[PluginDialog] switchModule: navigation blocked by unsaved settings", file=sys.stderr)
             return
         # Home shortcut
         if moduleName == "__HOME__":
+            print(f"[PluginDialog] switchModule: showing welcome page", file=sys.stderr)
             self._show_welcome()
             if hasattr(self, 'sidebar'):
                 self.sidebar.clearActive()
@@ -361,12 +366,16 @@ class PluginDialog(QDialog):
                     self.sidebar.setHomeActive()
             return
         if getattr(self, "_debug", False):
-            print(f"[PluginDialog] switchModule requested: {moduleName}")
+            log_debug(f"[PluginDialog] switchModule requested: {moduleName}")
         try:
+            print(f"[PluginDialog] activating module: {moduleName}", file=sys.stderr)
             self.moduleManager.activateModule(moduleName)
             activeModule = self.moduleManager.getActiveModule()
+            # print(f"[PluginDialog] activeModule after activation: {activeModule}", file=sys.stderr)
             if activeModule:
-                self.moduleStack.setCurrentWidget(activeModule["module"].get_widget())
+                widget = activeModule["module"].get_widget()
+                # print(f"[PluginDialog] setCurrentWidget: {widget}", file=sys.stderr)
+                self.moduleStack.setCurrentWidget(widget)
                 # Set header title to module display name
                 display_name = activeModule.get("display_name", moduleName)
                 self.header_widget.set_title(display_name)
@@ -377,10 +386,12 @@ class PluginDialog(QDialog):
                 self.moduleStack.update()
                 self.moduleStack.repaint()
                 if getattr(self, "_debug", False):
-                    print(f"[PluginDialog] switched to: {display_name} ({moduleName})")
+                    log_debug(f"[PluginDialog] switched to: {display_name} ({moduleName})")
             else:
+                print(f"[PluginDialog] activeModule is None, showing welcome page", file=sys.stderr)
                 self._show_welcome()
         except Exception as e:
+            print(f"[PluginDialog] Error switching module: {e}", file=sys.stderr)
             QgsMessageLog.logMessage(f"Error switching module: {e}", "Wild Code", level=Qgis.Critical)
 
     def _show_welcome(self):
@@ -394,15 +405,15 @@ class PluginDialog(QDialog):
             # Ensure welcome page text uses the current language
             self.welcomePage.retranslate(lang_manager)
             if getattr(self, "_debug", False):
-                print("[PluginDialog] showing WelcomePage")
+                log_debug("[PluginDialog] showing WelcomePage")
         except Exception:
             pass
 
     def toggle_theme(self):
         # Use ThemeManager to toggle theme and update icon
-        qss_files = [QssPaths.MAIN, QssPaths.SIDEBAR, QssPaths.HEADER]
+        qss_files = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR, QssPaths.HEADER]
         if getattr(self, "_debug", False):
-            print(f"[PluginDialog] toggle_theme from={self.current_theme}")
+            log_debug(f"[PluginDialog] toggle_theme from={self.current_theme}")
         new_theme = ThemeManager.toggle_theme(
             self,
             self.current_theme,
@@ -412,7 +423,7 @@ class PluginDialog(QDialog):
         )
         self.current_theme = new_theme
         if getattr(self, "_debug", False):
-            print(f"[PluginDialog] theme now={self.current_theme}; retheming widgets…")
+            log_debug(f"[PluginDialog] theme now={self.current_theme}; retheming widgets…")
         # Restyle header after theme toggle
         if hasattr(self, 'header_widget'):
             self.header_widget.retheme_header()
@@ -421,10 +432,10 @@ class PluginDialog(QDialog):
             self.sidebar.retheme_sidebar()
         # Restyle project cards after theme toggle
         if hasattr(self, 'projectsModule'):
-            self.projectsModule.rethem_project()
+            self.projectsModule._retheme()
         # Restyle contract module after theme toggle
         if hasattr(self, 'contractUI') and hasattr(self.contractUI, 'retheme_contract'):
-            self.contractUI.retheme_contract()
+            self.contractUI._retheme()
         # Restyle settings module after theme toggle
         if hasattr(self, 'settingsModule'):
             self.settingsModule.retheme_settings()
@@ -453,7 +464,7 @@ class PluginDialog(QDialog):
                     rt()
                     count += 1
             if getattr(self, "_debug", False):
-                print(f"[PluginDialog] retheme sweep done; widgets updated={count}")
+                log_debug(f"[PluginDialog] retheme sweep done; widgets updated={count}")
         except Exception:
             pass
 
@@ -479,7 +490,7 @@ class PluginDialog(QDialog):
     def logout(self):
         SessionManager.clear()
         if getattr(self, "_debug", False):
-            print("[PluginDialog] logout; session cleared; closing dialog")
+            log_info("[PluginDialog] logout; session cleared; closing dialog")
         self.close()
 
     def showEvent(self, event):
@@ -487,6 +498,13 @@ class PluginDialog(QDialog):
         if not SessionManager().isLoggedIn():
             self.close()
         else:
+            # Pärast edukat sisselogimist nulli needs_login flag
+            try:
+                from qgis.core import QgsSettings
+                s = QgsSettings()
+                s.setValue("session/needs_login", False)
+            except Exception:
+                pass
             # On first show, if a preferred module exists, activate it; else show welcome
             if not hasattr(self, '_preferred_checked'):
                 self._preferred_checked = True
@@ -495,7 +513,7 @@ class PluginDialog(QDialog):
                     s = QgsSettings()
                     pref = s.value("wild_code/preferred_module", "")
                     if getattr(self, "_debug", False):
-                        print(f"[PluginDialog] showEvent; preferred_module='{pref}'")
+                        log_debug(f"[PluginDialog] showEvent; preferred_module='{pref}'")
                     if pref and pref in self.moduleManager.modules:
                         self.switchModule(pref)
                     else:

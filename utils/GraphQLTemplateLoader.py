@@ -45,7 +45,11 @@ class GraphQLTemplateLoader:
                 if os.path.exists(abs_path):
                     fragments.append(self._read_file(abs_path))
                 else:
-                    print(f"[GraphQLTemplateLoader] Import not found: {abs_path}")
+                    try:
+                        from .logger import debug as log_debug
+                        log_debug(f"[GraphQLTemplateLoader] Import not found: {abs_path}")
+                    except Exception:
+                        pass
             else:
                 cleaned_lines.append(line)
         return ("".join(cleaned_lines), fragments)

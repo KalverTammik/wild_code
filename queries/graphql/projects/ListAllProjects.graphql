@@ -15,10 +15,11 @@ query Projects($first: Int, $after: String) {
         name
         number
         description
-        status {
-            name
-            color
-        }
+    status {
+      id
+      name
+      color
+    }
         startAt
         dueAt
         createdAt

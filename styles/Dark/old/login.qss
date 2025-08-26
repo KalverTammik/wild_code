@@ -1,0 +1,101 @@
+QLabel#errorLabel {
+    color: #d32f2f;
+    font-weight: bold;
+}
+/* ========================================== */
+/* Login Window Theme (DarkTheme version) */
+/* ========================================== */
+
+QDialog {
+    background-color: #23272e;
+    border: 1px solid #0b4544;
+    border-radius: 10px;
+}
+
+QLabel {
+    color: #ececf1;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+QLabel#footerLabel {
+    color: #b0b0b0;
+    font-size: 10px;
+    padding: 4px 0 0 0;
+}
+
+QLineEdit {
+    background-color: #303a42;
+    color: #ececf1;
+    border: 1px solid #0b4544;
+    border-radius: 5px;
+    padding: 6px;
+}
+
+QLineEdit:focus {
+    border: 1px solid #0b4544;
+    background-color: #23272e;
+}
+
+QPushButton {
+    background-color: #359692;
+    color: #ffffff;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #2e5c58;
+}
+
+QPushButton:pressed {
+    background-color: #1e252b;
+}
+
+QPushButton:disabled {
+    background-color: #23272e;
+    color: #959da5;
+}
+
+QPushButton#togglePasswordButton {
+    border: none;
+    background: transparent;
+    padding: 0;
+}
+QPushButton#togglePasswordButton:focus {
+    outline: none;
+    background: transparent;
+}
+QPushButton#togglePasswordButton:hover {
+    border: none;
+    background: rgba(9,144,143, 0.08);
+}
+QPushButton#togglePasswordButton:pressed {
+    border: none;
+    background: rgba(9,144,143, 0.16);
+}
+
+QComboBox {
+    background-color: #303a42;
+    color: #ececf1;
+    border: 1px solid #0b4544;
+    border-radius: 5px;
+    padding: 6px;
+}
+
+QComboBox:focus {
+    border: 1px solid #0b4544;
+}
+
+QComboBox::drop-down {
+    border: none;
+    background-color: #23272e;
+}
+
+QHBoxLayout, QVBoxLayout {
+    margin: 10px;
+    spacing: 10px;
+}

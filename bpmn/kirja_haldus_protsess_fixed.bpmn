@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="kirja_haldus_protsess" isExecutable="true">
+    <bpmn:startEvent id="Start_KiriSaabus" name="Kiri saabus"/>
+    
+    <bpmn:exclusiveGateway id="Gateway_Registreerimisotsus" name="Kas vajab registreerimist?"/>
+    
+    <bpmn:endEvent id="End_EiRegistreerita" name="Ei vaja registreerimist"/>
+
+    <bpmn:task id="Task_RegistreeriKiri" name="Registreeri kiri"/>
+    <bpmn:task id="Task_LisaTahtaeg" name="Lisa tähtaeg (5p)"/>
+    <bpmn:task id="Task_Delegeeri" name="Delegeeri töötajale"/>
+    
+    <bpmn:intermediateCatchEvent id="Event_Timer" name="Tähtaeg möödub">
+      <bpmn:timerEventDefinition />
+    </bpmn:intermediateCatchEvent>
+    
+    <bpmn:task id="Task_TeavitaHaldurit" name="Teavita haldurit"/>
+    <bpmn:endEvent id="End_TeavitusSaadetud" name="Teavitus saadetud">
+      <bpmn:messageEventDefinition />
+    </bpmn:endEvent>
+
+    <bpmn:task id="Task_TootajaVastab" name="Töötaja vastab"/>
+    <bpmn:endEvent id="End_Vastatud" name="Vastatud"/>
+
+    <!-- Flows -->
+    <bpmn:sequenceFlow id="flow1" sourceRef="Start_KiriSaabus" targetRef="Gateway_Registreerimisotsus"/>
+    <bpmn:sequenceFlow id="flow2" sourceRef="Gateway_Registreerimisotsus" targetRef="End_EiRegistreerita" name="Ei"/>
+    <bpmn:sequenceFlow id="flow3" sourceRef="Gateway_Registreerimisotsus" targetRef="Task_RegistreeriKiri" name="Jah"/>
+    <bpmn:sequenceFlow id="flow4" sourceRef="Task_RegistreeriKiri" targetRef="Task_LisaTahtaeg"/>
+    <bpmn:sequenceFlow id="flow5" sourceRef="Task_LisaTahtaeg" targetRef="Task_Delegeeri"/>
+    <bpmn:sequenceFlow id="flow6" sourceRef="Task_Delegeeri" targetRef="Task_TootajaVastab"/>
+    <bpmn:sequenceFlow id="flow7" sourceRef="Task_TootajaVastab" targetRef="End_Vastatud"/>
+    <bpmn:sequenceFlow id="flow8" sourceRef="Task_Delegeeri" targetRef="Event_Timer"/>
+    <bpmn:sequenceFlow id="flow9" sourceRef="Event_Timer" targetRef="Task_TeavitaHaldurit"/>
+    <bpmn:sequenceFlow id="flow10" sourceRef="Task_TeavitaHaldurit" targetRef="End_TeavitusSaadetud"/>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_kiri">
+    <bpmndi:BPMNPlane id="BPMNPlane_kiri" bpmnElement="kirja_haldus_protsess"/>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

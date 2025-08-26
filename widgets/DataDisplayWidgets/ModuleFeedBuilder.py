@@ -1,4 +1,4 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QFrame,
@@ -8,8 +8,11 @@ from .StatusWidget import StatusWidget
 from .MembersView import MembersView
 from .ExtraInfoWidget import ExtraInfoFrame
 from .InfoCardHeader import InfocardHeaderFrame
-from ..theme_manager import ThemeManager
-from ...constants.file_paths import QssPaths
+"""ModuleFeedBuilder
+
+Responsibility: build card widgets only.
+Insertion, theming, counter updates handled elsewhere (e.g., ModuleBaseUI).
+"""
 
 
 # ================== Module Feed ==================
@@ -74,37 +77,6 @@ class ModuleFeedBuilder:
 
         return card
 
-    @staticmethod
-    def add_items_to_feed(parent_ui, items):
-        """Append cards for given items into parent_ui.feed_layout above the stretch, with theming."""
-        if not items:
-            return
-        layout = getattr(parent_ui, 'feed_layout', None)
-        if layout is None:
-            return
-        insert_index = max(0, layout.count() - 1)
-        added = 0
-        for item in items:
-            try:
-                card = ModuleFeedBuilder.create_item_card(item)
-                # Apply theme styling to each card
-                try:
-                    ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
-                except Exception:
-                    pass
-                layout.insertWidget(insert_index, card)
-                insert_index += 1
-                added += 1
-            except Exception as e:
-                # Skip bad item but keep feed responsive
-                try:
-                    print(f"[ModuleFeedBuilder] Failed to build card: {e}")
-                except Exception:
-                    pass
-        # One-line debug for added count
-        try:
-            print(f"[ModuleFeedBuilder] Added {added} card(s)")
-        except Exception:
-            pass
+    # Legacy add_items_to_feed shim removed (use progressive insertion at UI level)
 
 

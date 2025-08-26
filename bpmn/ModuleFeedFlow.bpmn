@@ -1,0 +1,519 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<ns0:definitions xmlns:ns0="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:ns1="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:ns2="http://www.omg.org/spec/DD/20100524/DC" xmlns:ns3="http://www.omg.org/spec/DD/20100524/DI" xmlns:open-bpmn="http://open-bpmn.org/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" exporter="ChatGPT BPMN Mapper" exporterVersion="1.0" id="Defs_ModuleFeedFlow" targetNamespace="https://example.local/bpmn/module-feed">
+  <bpmn:extensionElements>
+    <open-bpmn:auto-align/>
+  </bpmn:extensionElements>
+  <ns0:collaboration id="Collab_ModuleFeed">
+    <ns0:participant id="Participant_Plugin" name="QGIS Plugin" processRef="Process_ModuleFeed"/>
+  </ns0:collaboration>
+  <ns0:process id="Process_ModuleFeed" isExecutable="false" name="Module Feed &amp; Card Insertion Flow" processType="Public">
+    <ns0:laneSet id="LaneSet_Main">
+      <ns0:lane id="Lane_User" name="User / ScrollBar">
+        <ns0:flowNodeRef>Event_Scroll</ns0:flowNodeRef>
+      </ns0:lane>
+      <ns0:lane id="Lane_ModuleBaseUI" name="ModuleBaseUI / Module UIs">
+        <ns0:flowNodeRef>Start_Activated</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_Init</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Gateway_HasFeedEngine</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_UIProgressiveInsert</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_InsertCard</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Gateway_NearBottom</ns0:flowNodeRef>
+        <ns0:flowNodeRef>SubProcess_ContractRenderQueue</ns0:flowNodeRef>
+        <ns0:flowNodeRef>End_Stable</ns0:flowNodeRef>
+      </ns0:lane>
+      <ns0:lane id="Lane_FeedLoadEngine" name="FeedLoadEngine">
+        <ns0:flowNodeRef>Task_BufferExtend</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_StartProgInsert</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_ProgNext</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_BufferDrip</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_ScheduleLoad</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_LoadGuard</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_BufferExtend2</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_StartProgInsert2</ns0:flowNodeRef>
+      </ns0:lane>
+      <ns0:lane id="Lane_FeedLogic" name="FeedLogic">
+        <ns0:flowNodeRef>Task_FetchNextBatch</ns0:flowNodeRef>
+        <ns0:flowNodeRef>Task_FetchNextBatch2</ns0:flowNodeRef>
+      </ns0:lane>
+      <ns0:lane id="Lane_ModuleFeedBuilder" name="ModuleFeedBuilder">
+        <ns0:flowNodeRef>Task_CreateCard</ns0:flowNodeRef>
+      </ns0:lane>
+      <ns0:lane id="Lane_ThemeManager" name="ThemeManager">
+        <ns0:flowNodeRef>Task_ApplyTheme</ns0:flowNodeRef>
+      </ns0:lane>
+    </ns0:laneSet>
+    <ns0:startEvent id="Start_Activated" name="Module activated">
+      <bpmn:documentation id="documentation_cYDgcQ"/>
+    </ns0:startEvent>
+    <ns0:task id="Task_Init" name="Init feed engine &amp; connect scroll handlers">
+      <bpmn:documentation id="documentation_8ZUbKw"/>
+    </ns0:task>
+    <ns0:exclusiveGateway id="Gateway_HasFeedEngine" name="Has FeedLoadEngine?">
+      <bpmn:documentation id="documentation_t319eA"/>
+    </ns0:exclusiveGateway>
+    <ns0:task id="Task_FetchNextBatch" name="feed_logic.fetch_next_batch()">
+      <bpmn:documentation id="documentation_RNOn4w"/>
+    </ns0:task>
+    <ns0:task id="Task_BufferExtend" name="engine.buffer.extend(items)">
+      <bpmn:documentation id="documentation_hBQS7Q"/>
+    </ns0:task>
+    <ns0:task id="Task_StartProgInsert" name="engine._start_progressive_insert()">
+      <bpmn:documentation id="documentation_9OK6Ow"/>
+    </ns0:task>
+    <ns0:task id="Task_ProgNext" name="engine._progressive_insert_next()">
+      <bpmn:documentation id="documentation_YtFYmQ"/>
+    </ns0:task>
+    <ns0:task id="Task_UIProgressiveInsert" name="ui._progressive_insert_card(item)">
+      <bpmn:documentation id="documentation_u2txGw"/>
+    </ns0:task>
+    <ns0:task id="Task_CreateCard" name="ModuleFeedBuilder.create_item_card(item)">
+      <bpmn:documentation id="documentation_DPhNNw"/>
+    </ns0:task>
+    <ns0:task id="Task_ApplyTheme" name="ThemeManager.apply_module_style(card, QssPaths.MODULE_CARD)">
+      <bpmn:documentation id="documentation_Gbosbg"/>
+    </ns0:task>
+    <ns0:task id="Task_InsertCard" name="Insert card into feed_layout">
+      <bpmn:documentation id="documentation_fz5ncg"/>
+    </ns0:task>
+    <ns0:intermediateCatchEvent id="Event_Scroll" name="Scroll / valueChanged">
+      <bpmn:documentation id="documentation_zQAH0A"/>
+    </ns0:intermediateCatchEvent>
+    <ns0:exclusiveGateway id="Gateway_NearBottom" name="Near bottom?">
+      <bpmn:documentation id="documentation_yrJpyg"/>
+    </ns0:exclusiveGateway>
+    <ns0:task id="Task_BufferDrip" name="engine._progressive_insert_next()">
+      <bpmn:documentation id="documentation_UKVvew"/>
+    </ns0:task>
+    <ns0:task id="Task_ScheduleLoad" name="engine.schedule_load()">
+      <bpmn:documentation id="documentation_y2pZng"/>
+    </ns0:task>
+    <ns0:task id="Task_LoadGuard" name="engine._load_next_batch_guarded()">
+      <bpmn:documentation id="documentation_EdJFzw"/>
+    </ns0:task>
+    <ns0:task id="Task_FetchNextBatch2" name="feed_logic.fetch_next_batch()">
+      <bpmn:documentation id="documentation_5xUHbQ"/>
+    </ns0:task>
+    <ns0:task id="Task_BufferExtend2" name="engine.buffer.extend(items)">
+      <bpmn:documentation id="documentation_E9MjBw"/>
+    </ns0:task>
+    <ns0:task id="Task_StartProgInsert2" name="engine._start_progressive_insert()">
+      <bpmn:documentation id="documentation_wQlzAA"/>
+    </ns0:task>
+    <ns0:subProcess id="SubProcess_ContractRenderQueue" name="ContractUi: progressive render queue" triggeredByEvent="false">
+      <bpmn:documentation id="documentation_zKppOw"/>
+    </ns0:subProcess>
+    <ns0:endEvent id="End_Stable" name="Viewport filled + idle">
+      <bpmn:documentation id="documentation_pgSlDA"/>
+    </ns0:endEvent>
+    <ns0:sequenceFlow id="Flow_1" sourceRef="Start_Activated" targetRef="Task_Init">
+      <bpmn:documentation id="documentation_MNQqoQ"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_2" sourceRef="Task_Init" targetRef="Gateway_HasFeedEngine">
+      <bpmn:documentation id="documentation_rFvotA"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_3" sourceRef="Gateway_HasFeedEngine" targetRef="Task_FetchNextBatch">
+      <bpmn:documentation id="documentation_BqH2dA"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_4" sourceRef="Task_FetchNextBatch" targetRef="Task_BufferExtend">
+      <bpmn:documentation id="documentation_MhlQvg"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_5" sourceRef="Task_BufferExtend" targetRef="Task_StartProgInsert">
+      <bpmn:documentation id="documentation_sTLnNg"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_6" sourceRef="Task_StartProgInsert" targetRef="Task_ProgNext">
+      <bpmn:documentation id="documentation_k40bdA"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_7" sourceRef="Task_ProgNext" targetRef="Task_UIProgressiveInsert">
+      <bpmn:documentation id="documentation_nW0rfw"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_8" sourceRef="Task_UIProgressiveInsert" targetRef="Task_CreateCard">
+      <bpmn:documentation id="documentation_eEy7Bg"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_9" sourceRef="Task_CreateCard" targetRef="Task_ApplyTheme">
+      <bpmn:documentation id="documentation_xupfFQ"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_10" sourceRef="Task_ApplyTheme" targetRef="Task_InsertCard">
+      <bpmn:documentation id="documentation_HulwDg"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_11" sourceRef="Task_InsertCard" targetRef="Event_Scroll">
+      <bpmn:documentation id="documentation_rFKwkA"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_12" sourceRef="Event_Scroll" targetRef="Gateway_NearBottom">
+      <bpmn:documentation id="documentation_BnKIag"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_13" sourceRef="Gateway_NearBottom" targetRef="Task_BufferDrip">
+      <bpmn:documentation id="documentation_lKowEg"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_14" sourceRef="Task_BufferDrip" targetRef="Task_UIProgressiveInsert">
+      <bpmn:documentation id="documentation_kZ0l9A"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_15" sourceRef="Gateway_NearBottom" targetRef="Task_ScheduleLoad">
+      <bpmn:documentation id="documentation_GjBsBw"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_16" sourceRef="Task_ScheduleLoad" targetRef="Task_LoadGuard">
+      <bpmn:documentation id="documentation_Mz2Mqw"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_17" sourceRef="Task_LoadGuard" targetRef="Task_FetchNextBatch2">
+      <bpmn:documentation id="documentation_qvx2Ng"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_18" sourceRef="Task_FetchNextBatch2" targetRef="Task_BufferExtend2">
+      <bpmn:documentation id="documentation_CP0x1w"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_19" sourceRef="Task_BufferExtend2" targetRef="Task_StartProgInsert2">
+      <bpmn:documentation id="documentation_KTyvDw"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_20" sourceRef="Task_StartProgInsert2" targetRef="Task_ProgNext">
+      <bpmn:documentation id="documentation_ZajLew"/>
+    </ns0:sequenceFlow>
+    <ns0:sequenceFlow id="Flow_21" sourceRef="Task_ProgNext" targetRef="End_Stable">
+      <bpmn:documentation id="documentation_cAZpDA"/>
+    </ns0:sequenceFlow>
+    <bpmn:documentation id="documentation_LtGCCA"/>
+  </ns0:process>
+  <ns1:BPMNDiagram id="BPMNDiagram_ModuleFeed">
+    <ns1:BPMNPlane bpmnElement="Collab_ModuleFeed" id="BPMNPlane_ModuleFeed">
+      <ns1:BPMNShape bpmnElement="Participant_Plugin" id="ParticipantShape_Plugin">
+        <ns2:Bounds height="420" width="3340" x="80" y="40"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Lane_User" id="LaneShape_Lane_User" isHorizontal="true">
+        <ns2:Bounds height="63.333333333333336" width="3340" x="80" y="60.0"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Lane_ModuleBaseUI" id="LaneShape_Lane_ModuleBaseUI" isHorizontal="true">
+        <ns2:Bounds height="63.333333333333336" width="3340" x="80" y="123.33333333333334"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Lane_FeedLoadEngine" id="LaneShape_Lane_FeedLoadEngine" isHorizontal="true">
+        <ns2:Bounds height="63.333333333333336" width="3340" x="80" y="186.66666666666669"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Lane_FeedLogic" id="LaneShape_Lane_FeedLogic" isHorizontal="true">
+        <ns2:Bounds height="63.333333333333336" width="3340" x="80" y="250.0"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Lane_ModuleFeedBuilder" id="LaneShape_Lane_ModuleFeedBuilder" isHorizontal="true">
+        <ns2:Bounds height="63.333333333333336" width="3340" x="80" y="313.33333333333337"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Lane_ThemeManager" id="LaneShape_Lane_ThemeManager" isHorizontal="true">
+        <ns2:Bounds height="63.333333333333336" width="3340" x="80" y="376.6666666666667"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Start_Activated" id="Shape_Start_Activated">
+        <ns2:Bounds height="40" width="40" x="120" y="80"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_Init" id="Shape_Task_Init">
+        <ns2:Bounds height="60" width="180" x="220" y="70"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Gateway_HasFeedEngine" id="Shape_Gateway_HasFeedEngine">
+        <ns2:Bounds height="50" width="50" x="430" y="85"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_FetchNextBatch" id="Shape_Task_FetchNextBatch">
+        <ns2:Bounds height="60" width="180" x="540" y="50"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_BufferExtend" id="Shape_Task_BufferExtend">
+        <ns2:Bounds height="60" width="180" x="740" y="50"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_StartProgInsert" id="Shape_Task_StartProgInsert">
+        <ns2:Bounds height="60" width="180" x="940" y="50"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_ProgNext" id="Shape_Task_ProgNext">
+        <ns2:Bounds height="60" width="180" x="1140" y="50"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_UIProgressiveInsert" id="Shape_Task_UIProgressiveInsert">
+        <ns2:Bounds height="60" width="180" x="1340" y="50"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_CreateCard" id="Shape_Task_CreateCard">
+        <ns2:Bounds height="60" width="180" x="1540" y="50"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_ApplyTheme" id="Shape_Task_ApplyTheme">
+        <ns2:Bounds height="60" width="180" x="1740" y="50"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_InsertCard" id="Shape_Task_InsertCard">
+        <ns2:Bounds height="60" width="180" x="1940" y="50"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Event_Scroll" id="Shape_Event_Scroll">
+        <ns2:Bounds height="50" width="50" x="2140" y="80"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Gateway_NearBottom" id="Shape_Gateway_NearBottom">
+        <ns2:Bounds height="50" width="50" x="2260" y="85"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_BufferDrip" id="Shape_Task_BufferDrip">
+        <ns2:Bounds height="60" width="180" x="2380" y="40"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_ScheduleLoad" id="Shape_Task_ScheduleLoad">
+        <ns2:Bounds height="60" width="180" x="2380" y="140"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_LoadGuard" id="Shape_Task_LoadGuard">
+        <ns2:Bounds height="60" width="180" x="2580" y="140"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_FetchNextBatch2" id="Shape_Task_FetchNextBatch2">
+        <ns2:Bounds height="60" width="180" x="2780" y="140"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_BufferExtend2" id="Shape_Task_BufferExtend2">
+        <ns2:Bounds height="60" width="180" x="2980" y="140"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="Task_StartProgInsert2" id="Shape_Task_StartProgInsert2">
+        <ns2:Bounds height="60" width="180" x="3180" y="140"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="SubProcess_ContractRenderQueue" id="Shape_SubProcess_ContractRenderQueue">
+        <ns2:Bounds height="200" width="420" x="1340" y="200"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNShape bpmnElement="End_Stable" id="Shape_End_Stable">
+        <ns2:Bounds height="40" width="40" x="3340" y="80"/>
+      </ns1:BPMNShape>
+      <ns1:BPMNEdge bpmnElement="Flow_1" id="Edge_Flow_1">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_2" id="Edge_Flow_2">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_3" id="Edge_Flow_3">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_4" id="Edge_Flow_4">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_5" id="Edge_Flow_5">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_6" id="Edge_Flow_6">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_7" id="Edge_Flow_7">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_8" id="Edge_Flow_8">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_9" id="Edge_Flow_9">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_10" id="Edge_Flow_10">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_11" id="Edge_Flow_11">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_12" id="Edge_Flow_12">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_13" id="Edge_Flow_13">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_14" id="Edge_Flow_14">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_15" id="Edge_Flow_15">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_16" id="Edge_Flow_16">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_17" id="Edge_Flow_17">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_18" id="Edge_Flow_18">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_19" id="Edge_Flow_19">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_20" id="Edge_Flow_20">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+      <ns1:BPMNEdge bpmnElement="Flow_21" id="Edge_Flow_21">
+        <ns3:waypoint x="0" y="0"/>
+        <ns3:waypoint x="0" y="0"/>
+      </ns1:BPMNEdge>
+    </ns1:BPMNPlane>
+  </ns1:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1" name="OpenBPMN Diagram">
+    <bpmndi:BPMNPlane id="BPMNPlane_1">
+      <bpmndi:BPMNShape bpmnElement="Start_Activated" id="BPMNShape_Wn08Nw">
+        <dc:Bounds height="36.0" width="36.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_TRbnSA">
+          <dc:Bounds height="20.0" width="100.0" x="-32.0" y="39.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_Init" id="BPMNShape_Jvyr9A">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Gateway_HasFeedEngine" id="BPMNShape_kl1IIA">
+        <dc:Bounds height="50.0" width="50.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_nx5GLQ">
+          <dc:Bounds height="20.0" width="100.0" x="-25.0" y="53.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_FetchNextBatch" id="BPMNShape_bdiYkw">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_BufferExtend" id="BPMNShape_3rnLdg">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_StartProgInsert" id="BPMNShape_0qH93g">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_ProgNext" id="BPMNShape_gJtDSQ">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_UIProgressiveInsert" id="BPMNShape_XBUdYA">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_CreateCard" id="BPMNShape_tW4amw">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_ApplyTheme" id="BPMNShape_fTT79Q">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_InsertCard" id="BPMNShape_n40vew">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Event_Scroll" id="BPMNShape_NzBE5Q">
+        <dc:Bounds height="36.0" width="36.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_ixWW7w">
+          <dc:Bounds height="20.0" width="100.0" x="-32.0" y="39.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Gateway_NearBottom" id="BPMNShape_faWrfw">
+        <dc:Bounds height="50.0" width="50.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_EXCwzA">
+          <dc:Bounds height="20.0" width="100.0" x="-25.0" y="53.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_BufferDrip" id="BPMNShape_r8FYaw">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_ScheduleLoad" id="BPMNShape_SReoIA">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_LoadGuard" id="BPMNShape_p2x20A">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_FetchNextBatch2" id="BPMNShape_fsdUGQ">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_BufferExtend2" id="BPMNShape_gVlQcQ">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Task_StartProgInsert2" id="BPMNShape_jrnSAA">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="SubProcess_ContractRenderQueue" id="BPMNShape_1mOfFw">
+        <dc:Bounds height="50.0" width="110.0" x="0.0" y="0.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End_Stable" id="BPMNShape_G02WCA">
+        <dc:Bounds height="36.0" width="36.0" x="0.0" y="0.0"/>
+        <bpmndi:BPMNLabel id="BPMNLabel_zy7FGg">
+          <dc:Bounds height="20.0" width="100.0" x="-32.0" y="39.0"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="Flow_1" id="BPMNEdge_8D7JIQ">
+        <di:waypoint x="3200.0" y="18.0"/>
+        <di:waypoint x="1655.0" y="18.0"/>
+        <di:waypoint x="1655.0" y="25.0"/>
+        <di:waypoint x="110.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_2" id="BPMNEdge_B31qIw">
+        <di:waypoint x="110.0" y="25.0"/>
+        <di:waypoint x="3800.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_3" id="BPMNEdge_RrvaUw">
+        <di:waypoint x="3800.0" y="25.0"/>
+        <di:waypoint x="310.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_4" id="BPMNEdge_OPvXOg">
+        <di:waypoint x="310.0" y="25.0"/>
+        <di:waypoint x="400.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_5" id="BPMNEdge_CAC8og">
+        <di:waypoint x="510.0" y="25.0"/>
+        <di:waypoint x="600.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_6" id="BPMNEdge_2Hkfew">
+        <di:waypoint x="710.0" y="25.0"/>
+        <di:waypoint x="800.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_7" id="BPMNEdge_0CAsHQ">
+        <di:waypoint x="910.0" y="25.0"/>
+        <di:waypoint x="1000.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_8" id="BPMNEdge_KspMfA">
+        <di:waypoint x="1110.0" y="25.0"/>
+        <di:waypoint x="1200.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_9" id="BPMNEdge_3roCcA">
+        <di:waypoint x="1310.0" y="25.0"/>
+        <di:waypoint x="1400.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_10" id="BPMNEdge_0h6gow">
+        <di:waypoint x="1510.0" y="25.0"/>
+        <di:waypoint x="1600.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_11" id="BPMNEdge_WKaxzA">
+        <di:waypoint x="1710.0" y="25.0"/>
+        <di:waypoint x="2555.0" y="25.0"/>
+        <di:waypoint x="2555.0" y="18.0"/>
+        <di:waypoint x="3400.0" y="18.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_12" id="BPMNEdge_u0S6aw">
+        <di:waypoint x="3436.0" y="18.0"/>
+        <di:waypoint x="3718.0" y="18.0"/>
+        <di:waypoint x="3718.0" y="25.0"/>
+        <di:waypoint x="4000.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_13" id="BPMNEdge_YkuWMg">
+        <di:waypoint x="4000.0" y="25.0"/>
+        <di:waypoint x="1910.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_14" id="BPMNEdge_4JdR0w">
+        <di:waypoint x="1800.0" y="25.0"/>
+        <di:waypoint x="1110.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_15" id="BPMNEdge_jpnixQ">
+        <di:waypoint x="4000.0" y="25.0"/>
+        <di:waypoint x="2110.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_16" id="BPMNEdge_JdDbQA">
+        <di:waypoint x="2110.0" y="25.0"/>
+        <di:waypoint x="2200.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_17" id="BPMNEdge_3rSBtw">
+        <di:waypoint x="2310.0" y="25.0"/>
+        <di:waypoint x="2400.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_18" id="BPMNEdge_zYfbFw">
+        <di:waypoint x="2510.0" y="25.0"/>
+        <di:waypoint x="2600.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_19" id="BPMNEdge_zqi1cA">
+        <di:waypoint x="2710.0" y="25.0"/>
+        <di:waypoint x="2800.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_20" id="BPMNEdge_k067mQ">
+        <di:waypoint x="2800.0" y="25.0"/>
+        <di:waypoint x="910.0" y="25.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Flow_21" id="BPMNEdge_vjmneQ">
+        <di:waypoint x="910.0" y="25.0"/>
+        <di:waypoint x="2255.0" y="25.0"/>
+        <di:waypoint x="2255.0" y="18.0"/>
+        <di:waypoint x="3600.0" y="18.0"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</ns0:definitions>

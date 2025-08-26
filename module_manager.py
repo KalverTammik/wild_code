@@ -44,13 +44,17 @@ class ModuleManager:
             raise RuntimeError("lang_manager must be LanguageManager_NEW with sidebar_button method.")
         return self.lang_manager.sidebar_button(module_name)
     def activateModule(self, moduleName):
-        """Activate a module by name."""
+        # Debug print removed
         if moduleName in self.modules:
+            # Debug print removed
             if self.activeModule:
+                # Debug print removed
                 self.activeModule["module"].deactivate()  # Deactivate the current module
             self.activeModule = self.modules[moduleName]
+            # Debug print removed
             self.activeModule["module"].activate()  # Activate the new module
         else:
+            # Debug print removed
             raise ValueError(f"Module '{moduleName}' not found.")
 
     def getActiveModule(self):

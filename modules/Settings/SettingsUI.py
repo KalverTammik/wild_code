@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea
+from PyQt5.QtCore import QCoreApplication
 from ...languages.language_manager import LanguageManager
 from ...widgets.theme_manager import ThemeManager
 from .SettingsLogic import SettingsLogic
@@ -107,6 +108,7 @@ class SettingsUI(QWidget):
                 ThemeManager.apply_module_style(card, [QssPaths.SETUP_CARD])
             except Exception:
                 pass
+            QCoreApplication.processEvents()
 
     def _build_module_card(self, module_name: str) -> QWidget:
         translated = self.lang_manager.sidebar_button(module_name)

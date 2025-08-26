@@ -1,0 +1,74 @@
+/* ===== Footer: minimal, readable, with subtle top glow ===== */
+
+/* Outer frame with top glow + rule */
+QFrame#footerWidgetFrame {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0    rgba(9,144,143,0.16),
+        stop:0.03 rgba(9,144,143,0.08),
+        stop:0.055 #1d252b,
+        stop:1    #1d252b
+    );
+    border-top: 1px solid rgba(9,144,143,0.65);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* === New single-label left layout === */
+QLabel#footerLeftLabel {
+    color: #c5c5d2;
+    font-size: 11px;
+    padding: 0;
+    margin: 0;
+}
+QLabel#footerLeftLabel a {
+    color: #c5c5d2;
+    text-decoration: none;
+}
+QLabel#footerLeftLabel a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+QLabel#footerLeftLabel a:active {
+    color: #a8f1ef;
+}
+QLabel#footerLeftLabel:disabled,
+QLabel#footerLeftLabel a:disabled {
+    color: rgba(197,197,210,0.5);
+}
+
+/* Right-side "QGIS X.X | Plugin vX.X" */
+QLabel#footerLabel {
+    color: #c5c5d2;
+    font-size: 11px;
+    padding: 0;
+    margin-left: 8px;
+}
+QLabel#footerLabel:disabled {
+    color: rgba(197,197,210,0.5);
+}
+
+/* === Legacy layout compatibility (safe to keep; remove if unused) === */
+QWidget#footerLeftFrame { background: transparent; padding: 0; margin: 0; }
+QLabel#footerCopyrightLabel { color: #c5c5d2; padding-right: 6px; }
+QPushButton#footerLinkButton {
+    color: #c5c5d2; border: none; background: transparent;
+    padding: 0 6px; margin: 0; font-size: 11px;
+}
+QPushButton#footerLinkButton:hover { color: #ffffff; text-decoration: underline; }
+QPushButton#footerLinkButton:pressed { color: #a8f1ef; }
+QPushButton#footerLinkButton:focus { outline: none; }
+QLabel#footerLinkSeparator { color: rgba(197,197,210,0.40); padding: 0 4px; }
+
+/* === Optional compact mode (setProperty("compact", True)) === */
+QFrame#footerWidgetFrame[compact="true"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0    rgba(9,144,143,0.14),
+        stop:0.03 rgba(9,144,143,0.07),
+        stop:0.05 #1d252b,
+        stop:1    #1d252b
+    );
+    border-top: 1px solid rgba(9,144,143,0.55);
+}

@@ -155,12 +155,20 @@ class ThemeManager:
         Usage: ThemeManager.apply_module_style(widget, [QssPaths.MODULE_CARD])
         """
         if ThemeManager._debug:
-            print(f"[ThemeManager] Applying module style to {widget.objectName()} with QSS files: {qss_files}")
+            try:
+                from ..utils.logger import debug as log_debug
+                log_debug(f"[ThemeManager] Applying module style to {widget.objectName()} with QSS files: {qss_files}")
+            except Exception:
+                pass
         theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
         from ..constants.file_paths import StylePaths
         theme_dir = StylePaths.DARK if theme == 'dark' else StylePaths.LIGHT
         if ThemeManager._debug:
-            print(f"[ThemeManager] Applying theme: {theme} from {theme_dir} qss_files: {qss_files}")
+            try:
+                from ..utils.logger import debug as log_debug
+                log_debug(f"[ThemeManager] Applying theme: {theme} from {theme_dir} qss_files: {qss_files}")
+            except Exception:
+                pass
         ThemeManager.apply_theme(widget, theme_dir, qss_files)
     @staticmethod
     def save_theme_setting(theme_name):
@@ -222,7 +230,8 @@ class ThemeManager:
             if qss_files is None:
                 # Load all .qss files in the directory, sorted alphabetically
                 from ..constants.file_paths import QssPaths
-                qss_files = [QssPaths.MAIN, QssPaths.SIDEBAR]  # Default QSS files, can be extended as needed
+                # Default QSS core set now explicitly includes ComboBox central styling
+                qss_files = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
             for qss_file in qss_files:
                 qss_path = os.path.join(theme_dir, qss_file)
                 if os.path.exists(qss_path):

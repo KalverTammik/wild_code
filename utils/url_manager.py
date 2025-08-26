@@ -5,11 +5,33 @@ import requests
 import webbrowser
 
 class Module(Enum):
-    """Enumeration of available modules."""
     PROJECT = "project"
     CONTRACT = "contract"
     USER = "user"
-    # Add more modules as needed
+    # lisa siia uued moodulid
+
+    # valikuline ebaregulaarne mitmus – vaikimisi lisame "s"
+    _PLURALS = {
+        # "property": "properties",  # kui tekib ebaregulaarne
+    }
+
+    def singular(self, upper: bool = False) -> str:
+        s = self.value
+        return s.upper() if upper else s
+
+    def plural(self, upper: bool = False) -> str:
+        base = self.value
+        plural = self._PLURALS.get(base, base + "s")
+        return plural.upper() if upper else plural
+
+    # mugav lühike API:
+    def api_key(self) -> str:
+        """Sageli vajame API-s ainsust ÜLAKIRJAS (nt BACKEND_ENTITY)."""
+        return self.singular(upper=True)
+
+    def api_collection(self) -> str:
+        """Sageli vajame API-s mitmust ÜLAKIRJAS (nt statuses where: MODULE=PROJECTS)."""
+        return self.plural(upper=True)
 
 class WebModules:
     """
@@ -65,7 +87,15 @@ class loadWebpage:
             response = requests.get(web_link, verify=False, timeout=10)
             webbrowser.open(response.url)
         except requests.exceptions.Timeout:
-            print("Request timed out")
+            try:
+                from .logger import debug as log_debug
+                log_debug("Request timed out")
+            except Exception:
+                pass
         except Exception as e:
-            print(f"Error opening webpage: {e}")
+            try:
+                from .logger import error as log_error
+                log_error(f"Error opening webpage: {e}")
+            except Exception:
+                pass
         

@@ -1,0 +1,22 @@
+query ListModuleStatuses($first: Int, $after: String, $where: QueryStatusesWhereWhereConditions) {
+  statuses(first: $first, after: $after, where: $where) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      currentPage
+      total
+    }
+    edges {
+      node {
+        __typename
+        id
+        name
+        color
+        description
+        type
+        isDefault
+        sortOrder
+      }
+    }
+  }
+}
