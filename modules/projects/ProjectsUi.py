@@ -65,6 +65,30 @@ class ProjectsModule(ModuleBaseUI):
             self.status_filter = StatusFilterWidget(self.MODULE_ENUM, self.lang_manager, self.toolbar_area, debug=is_global_debug())
             self.toolbar_area.register_filter_widget("status", self.status_filter)
 
+            # Move the global refresh button next to the status filter for better UX
+            try:
+                tb = getattr(self, 'toolbar_area', None)
+                refresh_btn = getattr(self, '_refresh_button', None)
+                if tb and refresh_btn and hasattr(tb, '_left_layout') and hasattr(tb, '_right_layout'):
+                    # remove from right layout if present
+                    try:
+                        tb._right_layout.removeWidget(refresh_btn)
+                    except Exception:
+                        pass
+                    # insert into left layout immediately after the status filter widget
+                    insert_idx = None
+                    for i in range(tb._left_layout.count()):
+                        w = tb._left_layout.itemAt(i).widget()
+                        if w is self.status_filter:
+                            insert_idx = i
+                            break
+                    if insert_idx is None:
+                        tb._left_layout.addWidget(refresh_btn)
+                    else:
+                        tb._left_layout.insertWidget(insert_idx + 1, refresh_btn)
+            except Exception:
+                pass
+
             # TYPE filter on selles moodulis välja lülitatud, kuid kood jääb ühtlaseks
             self.type_filter = None
             if self.USE_TYPE_FILTER:

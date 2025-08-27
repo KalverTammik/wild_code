@@ -103,6 +103,7 @@ class HeaderWidget(QWidget):
 
         # Outer zero-margin wrapper (consistent with footer structure)
         outer = QHBoxLayout(self)
+
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(frame)
 
