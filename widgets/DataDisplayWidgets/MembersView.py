@@ -87,7 +87,15 @@ class AvatarBubble(QLabel):
         )
 
         sh = QGraphicsDropShadowEffect(self)
-        sh.setBlurRadius(14); sh.setXOffset(0); sh.setYOffset(2); sh.setColor(QColor(0,0,0,80))
+        sh.setBlurRadius(14); sh.setXOffset(0); sh.setYOffset(2)
+        # Set theme-appropriate shadow color
+        try:
+            from ..theme_manager import ThemeManager
+            theme = ThemeManager.load_theme_setting()
+            shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
+        except Exception:
+            shadow_color = QColor(0, 0, 0, 120)  # default to dark shadow
+        sh.setColor(shadow_color)
         self.setGraphicsEffect(sh)
 
     def enterEvent(self, e):
@@ -179,6 +187,32 @@ class MembersView(QWidget):
             row.addWidget(QLabel("-"), 0, Qt.AlignVCenter)
 
         layout.addLayout(row)
+
+    def retheme(self):
+        """Update shadow colors and text colors based on current theme."""
+        try:
+            from ..theme_manager import ThemeManager
+            theme = ThemeManager.load_theme_setting()
+        except Exception:
+            theme = 'light'
+
+        # Update shadow colors for all avatar bubbles
+        shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
+
+        for bubble in self.findChildren(AvatarBubble):
+            if bubble.graphicsEffect():
+                bubble.graphicsEffect().setColor(shadow_color)
+
+        # Update deleted member text color
+        deleted_color = "#B0B0B0" if theme == 'dark' else "#9aa0a6"
+        for label in self.findChildren(QLabel, "ProjectResponsibleLabel"):
+            # Re-apply the HTML with updated color
+            current_text = label.text()
+            if "<span style='text-decoration:line-through;" in current_text:
+                # Replace the old color with new color
+                import re
+                updated_text = re.sub(r'color:#[0-9a-fA-F]{6}', f'color:{deleted_color}', current_text)
+                label.setText(updated_text)
 
     # Optional API for later updates
     def set_item(self, item_data: dict, *, compact: Optional[bool] = None):

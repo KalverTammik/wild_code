@@ -432,10 +432,10 @@ class PluginDialog(QDialog):
             self.sidebar.retheme_sidebar()
         # Restyle project cards after theme toggle
         if hasattr(self, 'projectsModule'):
-            self.projectsModule._retheme()
+            self.projectsModule.retheme_projects()
         # Restyle contract module after theme toggle
         if hasattr(self, 'contractUI') and hasattr(self.contractUI, 'retheme_contract'):
-            self.contractUI._retheme()
+            self.contractUI.retheme_contract()
         # Restyle settings module after theme toggle
         if hasattr(self, 'settingsModule'):
             self.settingsModule.retheme_settings()

@@ -110,6 +110,22 @@ class ToolbarArea(QWidget):
         even if the generic sweep order changes.
         """
         ThemeManager.apply_module_style(self, [QssPaths.MAIN])
+
+        # Propagate to registered filter widgets
+        for widget in getattr(self, 'filter_widgets', {}).values():
+            if hasattr(widget, 'retheme') and callable(widget.retheme):
+                try:
+                    widget.retheme()
+                except Exception:
+                    pass
+
+        # Propagate to any child widgets that have retheme methods
+        for child in self.findChildren(QWidget):
+            if hasattr(child, 'retheme') and callable(child.retheme) and child != self:
+                try:
+                    child.retheme()
+                except Exception:
+                    pass
    
     # --- Helpers ---
     def _clear_layout(self, layout: QHBoxLayout) -> None:

@@ -199,7 +199,30 @@ class SettingsUI(QWidget):
         """
         Re-applies the correct theme and QSS to the settings UI and setup cards.
         """
-        ThemeManager.apply_module_style(self, [QssPaths.MAIN])
+        if self.theme_manager:
+            try:
+                # Apply main module styling
+                ThemeManager.apply_module_style(self, [QssPaths.MODULES_MAIN])
+
+                # Apply styling to key child areas that need theme updates
+                if hasattr(self, 'display_area') and self.display_area:
+                    ThemeManager.apply_module_style(self.display_area, [QssPaths.MODULES_MAIN])
+
+                if hasattr(self, 'footer_area') and self.footer_area:
+                    ThemeManager.apply_module_style(self.footer_area, [QssPaths.MODULES_MAIN])
+
+                if hasattr(self, 'toolbar_area') and self.toolbar_area:
+                    ThemeManager.apply_module_style(self.toolbar_area, [QssPaths.MODULES_MAIN])
+
+                # Handle scroll area and cards container specifically for settings
+                if hasattr(self, 'scroll_area') and self.scroll_area:
+                    ThemeManager.apply_module_style(self.scroll_area, [QssPaths.MODULES_MAIN])
+
+                if hasattr(self, 'cards_container') and self.cards_container:
+                    ThemeManager.apply_module_style(self.cards_container, [QssPaths.MODULES_MAIN])
+            except Exception:
+                pass
+
         # Each card manages its own SetupCard styling
         for card in list(getattr(self, '_cards', [])) + list(getattr(self, '_module_cards', {}).values()):
             try:

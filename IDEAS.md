@@ -22,9 +22,20 @@ Näide uue idee lisamiseks:
 	- Vastutaja: Kalver
 	- Kontrolli, kas OverdueCounterWidget töötab ootuspäraselt ja kas loendamine ning kuvamine on korrektne.
 
-🟢 TEHA 2025-08-23: Moodulite teema vahetuse meetodite standardiseerimine
+� POOLELI 2025-08-23: Moodulite teema vahetuse meetodite standardiseerimine
 	- Vastutaja: Kalver
 	- Ühtlustada kõikide moodulite teema vahetuse meetodid (nt retheme_project, retheme_contract jne) ja tagada, et dialog.py kasutab õigeid meetodeid. Vajadusel lisada puuduvad meetodid moodulitesse.
+	- **Tehtud tööd (27.08.2025):**
+		- Standardiseeritud meetodite nimed: `retheme_projects()`, `retheme_contract()`, `retheme_settings()`, `retheme_user_test()`
+		- Lihtsustatud arhitektuur: asendatud keerulised stiili värskendused (`setStyleSheet("")/unpolish/polish`) otsese QSS rakendamisega
+		- Lisatud `retheme()` meetodid DataDisplayWidgets komponentidele (StatusWidget, MembersView, ModuleFeedBuilder)
+		- Parandatud olemasolevate kaartide teema värskendamine
+		- Teema-sõltuvad varju värvid kaartidele ja avataritele
+		- Kõik failid kompileeruvad edukalt, süntaksivigu pole
+	- **Järelejäänud töö:**
+		- Testida lihtsustatud lähenemist reaalses kasutuses
+		- Kontrollida WelcomePage'i kodeeritud värvide komplekssust vs kasulikkust
+		- Vajadusel täiendavad optimeerimised jõudluse parandamiseks
 	
 🟢 Universaalne päise- ja jaluseala moodulitele
 **Kuupäev:** 2025-08-16

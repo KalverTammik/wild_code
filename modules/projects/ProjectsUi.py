@@ -6,7 +6,7 @@ Erinevus teiste moodulitega: FEED_LOGIC klass, pealkiri, ning TYPE filtrit ei ka
 
 from typing import Optional, Type, List, Any  # <- veendu, et Optional/Type on imporditud
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QSizePolicy, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QSizePolicy, QLabel, QFrame
 
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...languages.language_manager import LanguageManager
@@ -151,7 +151,7 @@ class ProjectsModule(ModuleBaseUI):
 
     # --- Andmete laadimine ---
     def load_next_batch(self):
-        return self.process_next_batch(retheme_func=self._retheme)
+        return self.process_next_batch(retheme_func=self.retheme_projects)
 
     # --- Filtrid (ühine muster) ---
     def _on_filters_changed(self, filters: dict) -> None:
@@ -287,12 +287,48 @@ class ProjectsModule(ModuleBaseUI):
             pills.set_due_soon_active(True)
 
     # --- Teema ---
-    def _retheme(self) -> None:
+    def retheme_projects(self) -> None:
         if self.theme_manager:
             try:
+                # Apply main module styling
                 ThemeManager.apply_module_style(self, [QssPaths.MODULES_MAIN])
+
+                # Apply styling to key child areas that need theme updates
+                if hasattr(self, 'display_area') and self.display_area:
+                    ThemeManager.apply_module_style(self.display_area, [QssPaths.MODULES_MAIN])
+
+                if hasattr(self, 'footer_area') and self.footer_area:
+                    ThemeManager.apply_module_style(self.footer_area, [QssPaths.MODULES_MAIN])
+
+                if hasattr(self, 'toolbar_area') and self.toolbar_area:
+                    ThemeManager.apply_module_style(self.toolbar_area, [QssPaths.MODULES_MAIN])
             except Exception:
                 pass
+
+        # Retheme existing cards in the display area
+        try:
+            if hasattr(self, 'display_area') and self.display_area:
+                for card in self.display_area.findChildren(QWidget):
+                    if hasattr(card, 'retheme') and callable(card.retheme):
+                        try:
+                            card.retheme()
+                        except Exception:
+                            # Fallback: apply ModuleCard styling if retheme fails
+                            ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
+                    # Update shadow colors for QFrame cards
+                    elif isinstance(card, QFrame) and card.graphicsEffect():
+                        from PyQt5.QtGui import QGraphicsDropShadowEffect, QColor
+                        effect = card.graphicsEffect()
+                        if isinstance(effect, QGraphicsDropShadowEffect):
+                            try:
+                                from ...widgets.theme_manager import ThemeManager
+                                theme = ThemeManager.load_theme_setting()
+                                shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
+                                effect.setColor(shadow_color)
+                            except Exception:
+                                pass
+        except Exception:
+            pass
 
     # --- Module contract ---
     def get_widget(self) -> QWidget:

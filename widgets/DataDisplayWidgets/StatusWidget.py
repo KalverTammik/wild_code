@@ -93,3 +93,48 @@ class StatusWidget(QWidget):
 
         # Add the debug container to the outer layout
         outer_layout.addWidget(container)
+
+    def retheme(self):
+        """Update debug colors and status styling based on current theme."""
+        try:
+            from ..theme_manager import ThemeManager
+            theme = ThemeManager.load_theme_setting()
+        except Exception:
+            theme = 'light'
+
+        # Update debug container colors based on theme
+        if theme == 'dark':
+            debug_border = "#FF6B6B"  # lighter magenta for dark
+            debug_bg = "rgba(255,107,107,0.04)"
+            dates_border = "#6BFF6B"  # lighter green for dark
+            dates_bg = "rgba(107,255,107,0.04)"
+        else:
+            debug_border = "#FF00FF"  # original magenta
+            debug_bg = "rgba(255,0,255,0.04)"
+            dates_border = "#00C853"  # original green
+            dates_bg = "rgba(0,200,83,0.04)"
+
+        # Update status debug container
+        container = self.findChild(QFrame, "StatusDebugContainer")
+        if container:
+            container.setStyleSheet(
+                "QFrame#StatusDebugContainer {"
+                f"  border: 2px dashed {debug_border};"
+                f"  background-color: {debug_bg};"
+                "}"
+            )
+
+        # Update dates debug frame
+        dates_wrap = self.findChild(QFrame, "DatesDebugFrame")
+        if dates_wrap:
+            dates_wrap.setStyleSheet(
+                "QFrame#DatesDebugFrame {"
+                f"  border: 2px solid {dates_border};"
+                f"  background-color: {dates_bg};"
+                "}"
+            )
+
+        # Update status label shadow
+        if hasattr(self, 'status_label'):
+            from ...utils.apply_chip_shadow import apply_chip_shadow
+            apply_chip_shadow(self.status_label, theme)

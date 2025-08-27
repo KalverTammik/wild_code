@@ -17,7 +17,29 @@ class OverdueCounterWidget(QWidget):
 
     def set_overdue_count(self, count):
         self._count = count
-        self._label.setText(f'<span style="color:#d70000;font-weight:bold;">Overdue: {count}</span>')
+        self._update_display()
+
+    def _update_display(self):
+        """Update the display with current theme colors."""
+        count = self._count
+
+        # Get theme-appropriate colors
+        try:
+            from ..widgets.theme_manager import ThemeManager
+            theme = ThemeManager.load_theme_setting()
+        except Exception:
+            theme = 'light'
+
+        if theme == 'dark':
+            overdue_color = '#ff6b6b'  # lighter red for dark theme
+        else:
+            overdue_color = '#d70000'  # darker red for light theme
+
+        self._label.setText(f'<span style="color:{overdue_color};font-weight:bold;">Overdue: {count}</span>')
+
+    def retheme(self):
+        """Update colors based on current theme."""
+        self._update_display()
 
     def count(self):
         return self._count

@@ -72,7 +72,14 @@ class ModuleFeedBuilder:
         shadow = QGraphicsDropShadowEffect(card)
         shadow.setBlurRadius(20)
         shadow.setOffset(0, 4)
-        shadow.setColor(QColor(0, 0, 0, 60))
+        # Set theme-appropriate shadow color
+        try:
+            from ..theme_manager import ThemeManager
+            theme = ThemeManager.load_theme_setting()
+            shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
+        except Exception:
+            shadow_color = QColor(0, 0, 0, 120)  # default to dark shadow
+        shadow.setColor(shadow_color)
         card.setGraphicsEffect(shadow)
 
         return card
