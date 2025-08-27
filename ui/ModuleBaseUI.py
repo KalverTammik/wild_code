@@ -12,11 +12,12 @@ Põhimõtted:
 from typing import Optional, Callable
 
 from PyQt5.QtCore import Qt, QTimer, QCoreApplication
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 
 from ..widgets.DataDisplayWidgets.ModuleFeedBuilder import ModuleFeedBuilder
 from ..ui.ToolbarArea import ToolbarArea
 from ..widgets.FeedCounterWidget import FeedCounterWidget
+from ..widgets.OverdueDueSoonPillsWidget import OverdueDueSoonPillsWidget
 from .mixins.dedupe_mixin import DedupeMixin
 from .mixins.feed_counter_mixin import FeedCounterMixin
 from .mixins.progressive_load_mixin import ProgressiveLoadMixin
@@ -59,22 +60,34 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         self.layout.addWidget(self.display_area, 1)
         self.layout.addWidget(self.footer_area)
         self.display_area.setLayout(QVBoxLayout())
-        self.footer_area.setLayout(QVBoxLayout())
-
+        # Footer now horizontal to place counters + pills side by side
+        footer_layout = QHBoxLayout()
+        footer_layout.setContentsMargins(4, 2, 4, 2)
+        footer_layout.setSpacing(6)
+        self.footer_area.setLayout(footer_layout)
         self.feed_counter = FeedCounterWidget(self.footer_area)
         self.footer_area.layout().addWidget(self.feed_counter)
+        # Overdue / due soon pills now migrate to toolbar (right side) next to refresh
+        self.overdue_pills = None
 
         # Verbose flag: when True, short debug prints go to stdout
         self.verbose = False
 
         self._activated = False
 
-        # Add refresh button (right side) – triggers full feed session reset + initial load
+        # Add refresh button & pills (right side)
         try:
             self._refresh_button = QPushButton("⟳")
             self._refresh_button.setObjectName("FeedRefreshButton")
             self._refresh_button.setToolTip("Refresh feed (reset & reload)")
             self._refresh_button.clicked.connect(self._on_refresh_clicked)  # type: ignore[attr-defined]
+            # Create pills widget owned by toolbar for visual proximity (placed just left of refresh)
+            try:
+                self.overdue_pills = OverdueDueSoonPillsWidget(self.toolbar_area)
+            except Exception:
+                self.overdue_pills = None
+            if self.overdue_pills:
+                self.toolbar_area.add_right(self.overdue_pills)
             self.toolbar_area.add_right(self._refresh_button)
         except Exception:
             pass

@@ -18,6 +18,7 @@ from ...constants.file_paths import QssPaths
 from ...utils.logger import debug as log_debug, is_debug as is_global_debug
 from ...constants.pagination import DEFAULT_BATCH_SIZE  # ühtluse mõttes imporditud
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
+from datetime import datetime, timedelta
 
 class ProjectsModule(ModuleBaseUI):
     # --- mooduli spetsiifiline konfiguratsioon (ainus erinevus teistega) ---
@@ -107,6 +108,16 @@ class ProjectsModule(ModuleBaseUI):
             except Exception:
                 pass
 
+        # Connect overdue/due soon pill interactions if available
+        try:
+            pills = getattr(self, 'overdue_pills', None)
+            if pills and hasattr(pills, 'overdueClicked'):
+                pills.overdueClicked.connect(self._on_overdue_clicked)  # type: ignore
+            if pills and hasattr(pills, 'dueSoonClicked'):
+                pills.dueSoonClicked.connect(self._on_due_soon_clicked)  # type: ignore
+        except Exception:
+            pass
+
     # --- Aktivatsioon / deaktiveerimine (ühine muster) ---
     def activate(self) -> None:
         super().activate()
@@ -127,6 +138,13 @@ class ProjectsModule(ModuleBaseUI):
             pass
 
         self.feed_load_engine.schedule_load()
+        # Kick off overdue/due soon counts (defensive: attribute may not exist)
+        try:
+            pills = getattr(self, 'overdue_pills', None)
+            if pills and hasattr(pills, 'refresh_counts_for_projects'):
+                pills.refresh_counts_for_projects(self.lang_manager)
+        except Exception:
+            pass
 
     def deactivate(self) -> None:
         super().deactivate()
@@ -178,6 +196,95 @@ class ProjectsModule(ModuleBaseUI):
         except Exception:
             pass
         self.feed_load_engine.schedule_load()
+
+        # Reset pill active states when filters change
+        try:
+            pills = getattr(self, 'overdue_pills', None)
+            if pills:
+                pills.set_overdue_active(False)
+                pills.set_due_soon_active(False)
+        except Exception:
+            pass
+
+    # --- Overdue / Due-soon handlers ---
+    def _base_filter_and_list(self) -> List[dict]:
+        and_list: List[dict] = []
+        try:
+            status_ids = self.status_filter.selected_ids() if self.status_filter else []
+            if status_ids:
+                and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
+            if self.USE_TYPE_FILTER and self.type_filter:
+                type_ids = self.type_filter.selected_ids()
+                if type_ids:
+                    and_list.append({"column": "TYPE", "operator": "IN", "value": type_ids})
+        except Exception:
+            pass
+        return and_list
+
+    def _get_base_where(self) -> dict:
+        and_list = self._base_filter_and_list()
+        return {"AND": and_list} if and_list else {}
+
+    def _apply_where(self, where: dict) -> None:
+        if self.feed_logic is None:
+            kwargs = {}
+            if self.BATCH_SIZE is not None:
+                kwargs["batch_size"] = self.BATCH_SIZE
+            self.feed_logic = self.FEED_LOGIC_CLS(self.BACKEND_ENTITY, self.QUERY_FILE, self.lang_manager, **kwargs)
+        try:
+            self.feed_logic.set_where(where if where.get("AND") else None)
+        except Exception as e:
+            log_debug(f"[ProjectsModule] set_where (overdue/dueSoon) failed: {e}")
+        # Clear current feed UI
+        try:
+            self.clear_feed(self.feed_layout, self._empty_state)
+        except Exception:
+            pass
+        try:
+            self.scroll_area.verticalScrollBar().setValue(0)
+        except Exception:
+            pass
+        try:
+            if self.feed_load_engine:
+                self.feed_load_engine.buffer.clear()
+                self.feed_load_engine.schedule_load()
+        except Exception:
+            pass
+        self._current_where = where
+
+    def _on_overdue_clicked(self):
+        pills = getattr(self, 'overdue_pills', None)
+        if not pills:
+            return
+        if getattr(pills, '_overdue_active', False):
+            # Clear filter
+            self._apply_where(self._get_base_where())
+            pills.set_overdue_active(False)
+        else:
+            # Clear other filter first
+            if getattr(pills, '_due_soon_active', False):
+                pills.set_due_soon_active(False)
+            base_and = self._base_filter_and_list()
+            where = pills.build_overdue_where(base_and)
+            self._apply_where(where)
+            pills.set_overdue_active(True)
+
+    def _on_due_soon_clicked(self):
+        pills = getattr(self, 'overdue_pills', None)
+        if not pills:
+            return
+        if getattr(pills, '_due_soon_active', False):
+            # Clear filter
+            self._apply_where(self._get_base_where())
+            pills.set_due_soon_active(False)
+        else:
+            # Clear other filter first
+            if getattr(pills, '_overdue_active', False):
+                pills.set_overdue_active(False)
+            base_and = self._base_filter_and_list()
+            where = pills.build_due_soon_where(base_and)
+            self._apply_where(where)
+            pills.set_due_soon_active(True)
 
     # --- Teema ---
     def _retheme(self) -> None:

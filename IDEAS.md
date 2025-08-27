@@ -236,6 +236,23 @@ Veendu, et `retheme()` ja keeleseaded ei kaoks login flow ajal.
 - Soovi korral lisa väikesed kuvatõmmised inspiratsiooni offline-hoidmiseks.
 
 
+🟢 TEHA 2025-08-27: Uuri ja õpi, kuidas uued Overdue nupud töötavad
+**Staatus:** TEHA
+**Vastutaja:** 🟠 Anneli
+**Kirjeldus:**
+- Uuri ja õpi, kuidas meie uued Overdue nupud töötavad
+- Leia nende implementatsioonis loogilised vead
+- Mõtle filtri paigutuse üle ja paku välja parandusi
+
+🟢 TEHA 2025-08-27: Filtrite värskendusnupu ümberpaigutamine ja täiustused
+**Staatus:** TEHA
+**Vastutaja:** 🟠 Anneli
+**Kirjeldus:**
+- Filtrite värskendusnupp vajab ümberpaigutamist
+- Lisa sobiv ikoon
+- Mõtle muudele detailidele ja parandustele värskendusnupu jaoks
+
+
 # 🟦 **LÕPETATUD IDEED**
 
 🔵 LÕPETATUD 2025-08-13 (lisatud 2025-08-12) — plugin muudab QGIS teema tumedaks laadides tõenäoliselt minu teema fail. 
