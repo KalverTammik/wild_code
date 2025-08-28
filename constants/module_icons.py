@@ -14,7 +14,7 @@ ICON_FOLDER_DARK = "Dark"
 RANDOM_ICON_NAME = "Valisee_s.png"
 
 # Semantic UI icon names (basenames). ThemeManager will resolve full path.
-ICON_SETTINGS_GEAR = "icons8-settings-25.png"  # Ühtlustatud 25px variant
+ICON_SETTINGS_GEAR = "icons8-gear-100.png"
 ICON_LIST = "icons8-list-50.png"
 ICON_SEARCH = "icons8-search-location-50.png"
 ICON_SAVE = "icons8-save-50.png"

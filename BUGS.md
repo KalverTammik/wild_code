@@ -17,8 +17,6 @@ Fail on mõeldud ainult vigade ja probleemide jälgimiseks. Uued ideed ja arendu
 
 🟢 INLINE IMPORTIDE JA VALEDE TAANDETASEMETE RISK WIDGETS/ ALL
 **Kuupäev:** 2025-08-12
----
-
 ### 2025-08-13: DevControls (DBG/FRAME) nähtavus ja paigutus ebastabiilne teema vahetusel
 **Staatus:** UUS
 **Vastutaja:** @kalver
@@ -99,16 +97,16 @@ Kordamise sammud:
 2. Tõsta import ülaossa või märgista inline kommentaariga vastavalt.
 3. Salvesta ja käivita lühike süntaksikontroll (Problems paneel/linters) veendumaks, et taanded on paigas.
 
-Kui korrigeeritud, uuenda staatust: ARENDAJA TAGASISIDEGA TESTIMISEK (testimiseks) või LÕPETATUD.
+Kui korrigeeritud, uuenda staatust: TESTIMISEK (testimiseks) või LÕPETATUD.
 
  ┌────────────── 🟧 TESTIMISEL BUGID ─────────────┐
 
-(Hetkel tühi – siia lisatakse bugid kui staatus muutub ARENDAJA TAGASISIDEGA TESTIMISEKs)
+(Hetkel tühi – siia lisatakse bugid, kui staatus muutub TESTIMISEKs)
 Kui testitud, märgi staatus vastavalt: TEHTUD või UUESTI LAHENDADA ja lisa kuupäev.
 
  ┌────────────── 🟩 LÕPETATUD BUGID ─────────────┐
 
-(Hetkel tühi – kui bugi staatus muutub TEHTUD, tõsta täielik kirje siia koos kuupäevaga ja jäta algses plokis lühiviide või eemalda sealt.)
+(Kui bugi staatus muutub TEHTUD, tõsta täielik kirje siia koos lõpetamise kuupäevaga)
 
 🟢 PLUGIN EI RAKENDA TUMEDAT TEEMAT TEISE ARENDAJA ARVUTIS
 **Kuupäev:** 2025-08-12

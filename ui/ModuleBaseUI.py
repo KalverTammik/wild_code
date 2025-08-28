@@ -11,7 +11,7 @@ Põhimõtted:
 
 from typing import Optional, Callable
 
-from PyQt5.QtCore import Qt, QTimer, QCoreApplication
+from PyQt5.QtCore import Qt, QTimer, QCoreApplication, QEvent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 
 from ..widgets.DataDisplayWidgets.ModuleFeedBuilder import ModuleFeedBuilder
@@ -77,9 +77,32 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
 
         # Add refresh button & pills (right side)
         try:
-            self._refresh_button = QPushButton("⟳")
+            # Use a cross symbol to indicate cancel/clear action visually
+            self._refresh_button = QPushButton("✖")
             self._refresh_button.setObjectName("FeedRefreshButton")
-            self._refresh_button.setToolTip("Refresh feed (reset & reload)")
+            self._refresh_button.setToolTip("Tühista / Värskenda")
+            # Make the cross less visually dominant and the button circular.
+            # Use a fixed square size and a border-radius = half size to get a round button.
+            try:
+                size_px = 28
+                self._refresh_button.setFixedSize(size_px, size_px)
+                # lighter glyph, small font, transparent background and round shape
+                self._refresh_button.setStyleSheet(
+                    "color: #b0b0b0; font-size: 14px; background: transparent; border: 0px;"
+                    f"border-radius: {int(size_px/2)}px; padding: 0px;"
+                )
+                self._refresh_button.setFlat(True)
+                # Store original style for hover revert and enable hover behavior
+                try:
+                    self._refresh_button._orig_fixed_size = (size_px, size_px)
+                    self._refresh_button._orig_style = self._refresh_button.styleSheet()
+                    self._refresh_button._orig_text = self._refresh_button.text()
+                    # Install event filter so we can emulate themeSwitchButton hover behavior
+                    self._refresh_button.installEventFilter(self)
+                except Exception:
+                    pass
+            except Exception:
+                pass
             self._refresh_button.clicked.connect(self._on_refresh_clicked)  # type: ignore[attr-defined]
             # Create pills widget owned by toolbar for visual proximity (placed just left of refresh)
             try:
@@ -158,6 +181,48 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
                 self.process_next_batch()
         except Exception:
             pass
+
+    def eventFilter(self, watched, event):
+        """Handle hover for the refresh button to mimic theme switch hover styles.
+
+        On hover enter: show text 'Tühjenda' and apply theme-appropriate hover background/text.
+        On hover leave: revert to original compact circular style.
+        """
+        try:
+            if watched is getattr(self, '_refresh_button', None):
+                # Determine theme
+                from ..widgets.theme_manager import ThemeManager
+                theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
+                if event.type() == QEvent.Enter or event.type() == QEvent.HoverEnter:
+                    try:
+                        # Expand a bit to show text and apply hover colors matching header.qss
+                        if theme == 'dark':
+                            hover_bg = '#00796b'
+                            hover_color = 'white'
+                        else:
+                            hover_bg = '#e1e4e8'
+                            hover_color = '#000000'
+                        # Slightly widen the button to fit text while keeping height
+                        h, w = getattr(self._refresh_button, '_orig_fixed_size', (28, 28))
+                        self._refresh_button.setFixedSize(w + 34, h)
+                        self._refresh_button.setText('Tühjenda')
+                        self._refresh_button.setStyleSheet(f"background: {hover_bg}; color: {hover_color}; border-radius: {int(h/2)}px; padding: 4px 8px; border: none;")
+                    except Exception:
+                        pass
+                    return True
+                elif event.type() == QEvent.Leave or event.type() == QEvent.HoverLeave:
+                    try:
+                        # Revert to original compact circle
+                        h, w = getattr(self._refresh_button, '_orig_fixed_size', (28, 28))
+                        self._refresh_button.setFixedSize(h, w)
+                        self._refresh_button.setText(getattr(self._refresh_button, '_orig_text', '✖'))
+                        self._refresh_button.setStyleSheet(getattr(self._refresh_button, '_orig_style', ''))
+                    except Exception:
+                        pass
+                    return True
+        except Exception:
+            pass
+        return super().eventFilter(watched, event)
 
     # ------------------------------------------------------------------
     # Feed engine wiring
