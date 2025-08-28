@@ -133,9 +133,10 @@ class LoginDialog(QDialog):
         """Authenticate the user using the shared APIClient and show a concise server message on failure."""
         from .utils.api_client import APIClient
 
-        # Clear any stale session state before attempting login
-        if SessionManager().isLoggedIn():
-            SessionManager.clear()
+        # Always clear any existing session before attempting new login
+        # This ensures clean state regardless of previous login status
+        print("[DEBUG] Clearing any existing session before login")
+        SessionManager.clear()
 
         username = self.username_input.text()
         password = self.password_input.text()
@@ -166,12 +167,8 @@ class LoginDialog(QDialog):
                 print("[DEBUG] About to emit loginSuccessful signal")
                 self.loginSuccessful.emit(self.api_token, self.user)
                 print("[DEBUG] loginSuccessful signal emitted")
-                print(f"[DEBUG] Dialog is modal: {self.isModal()}")
-                print(f"[DEBUG] Dialog is visible: {self.isVisible()}")
-                self.close()  # Try close() instead of accept()
-                print("[DEBUG] close() called")
-                print(f"[DEBUG] Dialog result after close: {self.result()}")
-                print(f"[DEBUG] Dialog is visible after close: {self.isVisible()}")
+                self.close()  # Close the dialog
+                print("[DEBUG] Dialog closed")
             else:
                 # One-shot diagnostic: show server-side response issue
                 self.errorLabel.setText(lang.translate("no_api_token_received"))

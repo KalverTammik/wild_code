@@ -4,7 +4,6 @@ try:
     load_dotenv()
 except ImportError:
     pass
-from PyQt5.QtCore import Qt
 from qgis.PyQt.QtWidgets import QAction
 from qgis.PyQt.QtGui import QIcon
 from .dialog import PluginDialog
@@ -19,6 +18,9 @@ class WildCodePlugin:
     def __init__(self, iface):
         self.iface = iface
         self.action = None
+        self.loginDialog = None
+        self.pluginDialog = None
+        self.login_successful = False  # Flag to track login success
         self.pluginDialog = None  # Reference to PluginDialog
         self.loginDialog = None  # Reference to LoginDialog
         # Initialize ModuleManager and register all modules (metadata only)
@@ -43,36 +45,46 @@ class WildCodePlugin:
 
         if not session.revalidateSession():
             print("[DEBUG] Session validation failed - showing login dialog")
-            self.loginDialog = LoginDialog()
-            print(f"[DEBUG] LoginDialog created: {self.loginDialog}")
-            print("[DEBUG] Connecting signals...")
-            self.loginDialog.loginSuccessful.connect(self.handle_login_success, Qt.QueuedConnection)
-            print("[DEBUG] loginSuccessful signal connected with QueuedConnection")
-            self.loginDialog.finished.connect(self.reset_login_dialog)
-            print("[DEBUG] finished signal connected")
-            print("[DEBUG] About to call exec_()")
-            result = self.loginDialog.exec_()
-            print(f"[DEBUG] exec_() returned: {result}")
-            print(f"[DEBUG] LoginDialog result: {self.loginDialog.result()}")
+            self._show_login_dialog()
+            # Check if login was successful after dialog closes
+            if self.login_successful:
+                print("[DEBUG] Login was successful - showing main dialog")
+                self._show_main_dialog()
+                self.login_successful = False  # Reset flag
             return
 
         if session.isLoggedIn():
             print("[DEBUG] User is logged in - opening main dialog")
-            dlg = PluginDialog._instance
-            if dlg is None or not dlg.isVisible():
-                self.pluginDialog = PluginDialog()  # Try without parent first
-                self.pluginDialog.finished.connect(self.reset_plugin_dialog)
-                self.pluginDialog.show()
-            else:
-                dlg.raise_()
-                dlg.activateWindow()
+            self._show_main_dialog()
         else:
             print("[DEBUG] User not logged in - showing login dialog")
-            theme_path = QssPaths.LIGHT_THEME
-            self.loginDialog = LoginDialog(theme_path=theme_path)
-            self.loginDialog.loginSuccessful.connect(self.handle_login_success, Qt.QueuedConnection)
-            self.loginDialog.finished.connect(self.reset_login_dialog)
-            self.loginDialog.exec_()
+            self._show_login_dialog()
+            # Check if login was successful after dialog closes
+            if self.login_successful:
+                print("[DEBUG] Login was successful - showing main dialog")
+                self._show_main_dialog()
+                self.login_successful = False  # Reset flag
+
+    def _show_login_dialog(self):
+        """Unified method to show login dialog with consistent setup."""
+        print("[DEBUG] Showing login dialog")
+        self.loginDialog = LoginDialog()
+        self.loginDialog.loginSuccessful.connect(self.handle_login_success)
+        self.loginDialog.finished.connect(self.reset_login_dialog)
+        self.loginDialog.exec_()
+        print("[DEBUG] Login dialog closed")
+
+    def _show_main_dialog(self):
+        """Unified method to show main dialog."""
+        print("[DEBUG] Showing main dialog")
+        dlg = PluginDialog._instance
+        if dlg is None or not dlg.isVisible():
+            self.pluginDialog = PluginDialog()
+            self.pluginDialog.finished.connect(self.reset_plugin_dialog)
+            self.pluginDialog.show()
+        else:
+            dlg.raise_()
+            dlg.activateWindow()
 
     def reset_login_dialog(self):
         self.loginDialog = None
@@ -85,10 +97,10 @@ class WildCodePlugin:
             print("[DEBUG] handle_login_success called")
             print(f"[DEBUG] Received token: {api_token is not None}, user: {user}")
             print(f"[DEBUG] Token value: {api_token[:10] if api_token else 'None'}...")
-
-            # Defer PluginDialog creation until after login dialog is closed
-            from PyQt5.QtCore import QTimer
-            QTimer.singleShot(100, lambda: self._create_plugin_dialog(api_token, user))
+            
+            # Just set the flag - the run method will handle showing the dialog
+            self.login_successful = True
+            print("[DEBUG] Login success flag set to True")
                 
         except Exception as e:
             print(f"[WildCodePlugin] Error in handle_login_success: {e}")
@@ -96,29 +108,5 @@ class WildCodePlugin:
             print(f"[WildCodePlugin] Full traceback: {traceback.format_exc()}")
 
     def _create_plugin_dialog(self, api_token, user):
-        try:
-            print("[DEBUG] _create_plugin_dialog called")
-            print("[DEBUG] Checking PluginDialog instance...")
-            dlg = PluginDialog._instance
-            print(f"[DEBUG] PluginDialog._instance: {dlg}")
-            
-            if dlg is None or not dlg.isVisible():
-                print("[DEBUG] Creating new PluginDialog")
-                self.pluginDialog = PluginDialog()  # Try without parent first
-                print(f"[DEBUG] PluginDialog created: {self.pluginDialog}")
-                self.pluginDialog.finished.connect(self.reset_plugin_dialog)
-                print("[DEBUG] About to call show()")
-                self.pluginDialog.show()
-                print("[DEBUG] show() called successfully")
-            else:
-                print("[DEBUG] Raising existing PluginDialog")
-                dlg.raise_()
-                dlg.activateWindow()
-                
-        except Exception as e:
-            print(f"[WildCodePlugin] Error creating plugin dialog: {e}")
-            import traceback
-            print(f"[WildCodePlugin] Full traceback: {traceback.format_exc()}")
-            # Fallback: try to show a basic error message
-            from qgis.PyQt.QtWidgets import QMessageBox
-            QMessageBox.warning(None, "Login Success", f"Login successful but failed to open main interface: {str(e)}")
+        # This method is no longer needed with the simplified approach
+        pass

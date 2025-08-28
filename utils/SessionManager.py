@@ -9,7 +9,6 @@ class SessionManager:
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            print("[DEBUG] SessionManager.__new__ - creating new instance")
             cls._instance = super(SessionManager, cls).__new__(cls, *args, **kwargs)
             cls._instance.apiToken = None
             cls._instance.loggedInUser = None
@@ -18,8 +17,6 @@ class SessionManager:
             cls._instance.username = None
             cls._instance.password = None
             cls._instance.api_key = None
-        else:
-            print("[DEBUG] SessionManager.__new__ - returning existing instance")
         return cls._instance
 
 
@@ -31,7 +28,7 @@ class SessionManager:
         settings = SessionManager._instance.settings
         SessionManager._instance.apiToken = settings.value("session/token", None)
         SessionManager._instance.loggedInUser = settings.value("session/active_user", None)
-        print(f"[DEBUG] SessionManager.load() - apiToken loaded: {SessionManager._instance.apiToken is not None}")
+        print(f"[DEBUG] Session loaded: token={bool(SessionManager._instance.apiToken)}")
 
 
     @staticmethod
@@ -121,7 +118,6 @@ class SessionManager:
         if not SessionManager._instance:  # Ensure the instance is initialized
             SessionManager()
         logged_in = SessionManager._instance.apiToken is not None
-        print(f"[DEBUG] SessionManager.isLoggedIn() - apiToken is not None: {logged_in}")
         return logged_in
 
     @staticmethod
@@ -153,7 +149,7 @@ class SessionManager:
         """Set the session data and reset expired dialog flag."""
         if not SessionManager._instance:  # Ensure the instance is initialized
             SessionManager()
-        print(f"[DEBUG] SessionManager.setSession() - setting token: {apiToken is not None}, user: {user}")
+        print(f"[DEBUG] Setting session with token: {apiToken[:10] if apiToken else None}...")
         SessionManager._instance.apiToken = apiToken
         SessionManager._instance.loggedInUser = user
         SessionManager._instance._session_expired_shown = False
@@ -172,7 +168,6 @@ class SessionManager:
         if not SessionManager._instance:  # Ensure the instance is initialized
             SessionManager()
         is_expired = SessionManager.isSessionExpired()
-        print(f"[DEBUG] SessionManager.revalidateSession() - isExpired: {is_expired}")
         if is_expired:
             SessionManager.clear()
             return False
@@ -180,12 +175,8 @@ class SessionManager:
 
     def get_token(self):
         """Return the current session's API token, or None if not logged in."""
-        # The token is stored as self.apiToken (not self.api_token)
-        print(f"[DEBUG] SessionManager.get_token() - hasattr apiToken: {hasattr(self, 'apiToken')}, apiToken value: {getattr(self, 'apiToken', 'NOT_SET')}")
         if hasattr(self, 'apiToken') and self.apiToken:
-            print(f"[DEBUG] SessionManager.get_token() - returning in-memory token")
             return self.apiToken
         # Fallback: try to get from QSettings if not present in memory
         token = self.settings.value("session/token", None)
-        print(f"[DEBUG] SessionManager.get_token() - fallback to QSettings: {token is not None}")
         return token

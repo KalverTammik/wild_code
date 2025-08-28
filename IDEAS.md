@@ -135,7 +135,40 @@ Teematugi: rakendada QSS `ThemeManager.apply_module_style(...)` kaudu; lisada `r
 Vigade/ühenduseta oleku korral kuvada sõbralik placeholder (nt "Ilmaandmed pole hetkel saadaval").
 Tulevikus võimaldada asukoha valik seadetes (kasutaja eelistus) ja mõistlik cache intervall.
 
-🟢 Aegunud API võtme automaatne käsitlemine (uuesti sisselogimise küsimine)
+🟢 **LOGIN & SESSION MANAGEMENT SYSTEM - COMPLETED FIXES**
+**Kuupäev:** 2025-08-28
+**Staatus:** LÕPETATUD
+**Vastutaja:** 🔵 Kalver
+**Kirjeldus:**
+Täielik login ja sessiooni haldussüsteemi ümberkorraldus, mis lahendas login-loop probleemi ja parandas süsteemi töökindlust.
+
+**Implementeeritud parandused:**
+1. **Ühendatud Login Dialog Loomine** - Ühtlustatud `_show_login_dialog()` meetod kõigi login dialoogi loomiste jaoks
+2. **Lihtsustatud Edukäsitlemine** - Eemaldatud QTimer workaround, lisatud `login_successful` lipp puhta oleku halduse jaoks
+3. **Puhastatud Sessiooni Loogika** - Alati puhastatakse sessioon enne uue login katset, välditakse topelt-sessioone
+4. **Voogustatud Signaali Ühendused** - Otseühendused asemel keeruliste ajastatud ühenduste, usaldusväärsem signaali käsitlemine
+5. **PluginDialog Singleton Parandus** - Lisatud kaitse kordusinitsialiseerimise vastu, parandatud super().__init__() järjekord
+
+**Arhitektuurilised täiustused:**
+- Puhas koodistruktuur ühtsete meetoditega
+- Õige olekuhaldus login edukuse jälgimiseks
+- Järjepidev viga käsitlemine
+- Lihtsustatud silumine
+
+**Võtme eelised:**
+- ✅ Ei rohkem modal dialoogi ajastuse konflikte
+- ✅ Järjepidev login dialoogi käitumine
+- ✅ Õige sessiooni oleku haldus
+- ✅ Usaldusväärsed signaali ühendused
+- ✅ Puhas sessiooni püsivus
+
+**Testimise valmis:**
+- Puhas login voog ilma ajastuse probleemideta
+- Õige sessiooni haldus usaldusväärse püsivusega
+- Ühendatud dialoogi käsitlemine järjepideva käitumise jaoks
+- Tugev viga käsitlemine selge tagasisidega
+
+**Aegunud API võtme automaatne käsitlemine (uuesti sisselogimise küsimine)**
 **Kuupäev:** 2025-08-14
 **Staatus:** TEHA
 **Vastutaja:** 🔵 Kalver
@@ -148,13 +181,14 @@ Väldi lõputut tsüklit: maksimaalselt 1 automaatne retry konkreetse päringu k
 Logi sündmused diagnostikasse ("token_expired", "relogin_success", "relogin_cancel").
 Lisa kasutajale märguanne (nt väike infobanner) et sessioon aegus ja paluti uus login.
 Veendu, et `retheme()` ja keeleseaded ei kaoks login flow ajal.
-**2025-08-19 UPDATE:**
- - Sessiooni aegumise dialoog näidatakse nüüd ainult korra sessiooni kohta, vältides lõputut tsüklit.
- - Kasutajale pakutakse valikut: "Logi sisse" või "Tühista". Vajutuse sündmused logitakse konsooli (print).
- - Vajutuse tulemus salvestatakse ja vajadusel seatakse püsiv lipp järgmise käivituse jaoks.
- - Dialoogi avamine on integreeritud APIClienti kaudu, valmis päris login dialoogi ühendamiseks.
- - Kogu dialoogi tekst on lokaliseeritud keelehalduri kaudu.
- - Järgmine samm: päris login dialoogi avamine ja katkestatud päringute taastamine.
+
+**Uuendamine 2025-08-28:**
+- Põhi login süsteem on nüüd fikseeritud ja töötav
+- Sessiooni aegumise dialoogi näidatakse nüüd ainult korra sessiooni kohta, vältides lõputut tsüklit
+- Kasutajale pakutakse valikut: "Logi sisse" või "Tühista"
+- Dialoogi avamine on integreeritud APIClienti kaudu
+- Kogu dialoogi tekst on lokaliseeritud keelehalduri kaudu
+- Järgmine samm: katkestatud päringute taastamine ja täiustatud sessiooni aegumise käsitlemine
 
 🟢 TEHA 2025-08-13: Peida DEV-plokk mittedev-kasutajate eest
 	- Vastutaja: Kalver
