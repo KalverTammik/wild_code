@@ -28,7 +28,7 @@ TRANSLATIONS = {
     "Select a module from the left or open Settings to set your preferred module.": "Select a module from the left or open Settings to set your preferred module.",
     "Open Settings": "Open Settings",
     # Added: ModuleCard/layer picker labels
-    "Element layer": "Element layer",
+    "Modules main layer": "Modules main layer",
     "Archive layer": "Archive layer",
     "Select layer": "Select layer",
     "Choose layers used by this module (element and archive).": "Choose layers used by this module (element and archive)."

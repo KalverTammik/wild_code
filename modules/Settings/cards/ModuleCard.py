@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QVBoxLayout, QLabel, QFrame, QHBoxLayout
+from PyQt5.QtWidgets import QVBoxLayout, QLabel, QFrame, QHBoxLayout, QGroupBox
 from PyQt5.QtCore import pyqtSignal
 from .BaseCard import BaseCard
 from ....widgets.layer_dropdown import LayerTreePicker
@@ -13,7 +13,15 @@ class ModuleCard(BaseCard):
     pendingChanged = pyqtSignal(bool)
 
     def __init__(self, lang_manager, module_name: str, translated_name: str):
-        super().__init__(lang_manager, translated_name)
+        # Get module icon for the header
+        icon_path = None
+        try:
+            from ....constants.module_icons import ModuleIconPaths
+            icon_path = ModuleIconPaths.get_module_icon(module_name)
+        except Exception:
+            pass
+
+        super().__init__(lang_manager, translated_name, icon_path)
         self.module_name = module_name
         self._snapshot = None
         # Both pickers use the popup tree UX
@@ -24,8 +32,6 @@ class ModuleCard(BaseCard):
         self._orig_archive_id = ""
         self._pend_element_id = ""
         self._pend_archive_id = ""
-        self._element_name_lbl = None
-        self._archive_name_lbl = None
         self._build_ui()
 
     # --- UI ---
@@ -33,35 +39,54 @@ class ModuleCard(BaseCard):
         cw = self.content_widget()
         cl = QVBoxLayout(cw)
         cl.setContentsMargins(0, 0, 0, 0)
-        cl.setSpacing(10)
+        cl.setSpacing(12)  # Increased spacing between groups
 
-        sec1_title = QLabel(self.lang_manager.translate("Element layer"), cw)
-        sec1_title.setObjectName("SetupCardSectionTitle")
-        cl.addWidget(sec1_title)
+        # Main layer group
+        main_group = QGroupBox(self.lang_manager.translate("Modules main layer"), cw)
+        main_group.setObjectName("MainLayerGroup")
+        main_layout = QHBoxLayout(main_group)  # Changed to horizontal layout
+        main_layout.setContentsMargins(8, 8, 8, 8)
+        main_layout.setSpacing(12)  # Spacing between dropdown and explanation
 
-        row1 = QHBoxLayout(); row1.setContentsMargins(0,0,0,0); row1.setSpacing(8)
-        self._element_picker = LayerTreePicker(cw, placeholder=self.lang_manager.translate("Select layer"))
+        # Left side - Element picker
+        self._element_picker = LayerTreePicker(main_group, placeholder=self.lang_manager.translate("Select layer"))
         self._element_picker.layerIdChanged.connect(self._on_element_selected)
-        row1.addWidget(self._element_picker, 1)
-        self._element_name_lbl = QLabel("", cw)
-        self._element_name_lbl.setObjectName("SetupCardDescription")
-        row1.addWidget(self._element_name_lbl, 0)
-        cl.addLayout(row1)
+        main_layout.addWidget(self._element_picker, 2)  # Give more space to dropdown
 
-        sec2_title = QLabel(self.lang_manager.translate("Archive layer"), cw)
-        sec2_title.setObjectName("SetupCardSectionTitle")
-        cl.addWidget(sec2_title)
+        # Right side - Explanation text
+        explanation1 = QLabel("This is the primary layer for your module. Choose the layer that contains the main data you want to work with. This setting determines which layer will be used as the foundation for all module operations.", main_group)
+        explanation1.setObjectName("GroupExplanation")
+        explanation1.setWordWrap(True)
+        explanation1.setStyleSheet("color: #888; font-size: 11px; padding: 4px 0px;")
+        explanation1.setMinimumWidth(200)  # Ensure minimum width for readability
+        main_layout.addWidget(explanation1, 1)  # Equal space for explanation
 
-        self._archive_picker = LayerTreePicker(cw, placeholder=self.lang_manager.translate("Select layer"))
+        cl.addWidget(main_group)
+
+        # Archive layer group
+        archive_group = QGroupBox(self.lang_manager.translate("Archive layer"), cw)
+        archive_group.setObjectName("ArchiveLayerGroup")
+        archive_layout = QHBoxLayout(archive_group)  # Changed to horizontal layout
+        archive_layout.setContentsMargins(8, 8, 8, 8)
+        archive_layout.setSpacing(12)
+
+        # Left side - Archive picker
+        self._archive_picker = LayerTreePicker(archive_group, placeholder=self.lang_manager.translate("Select layer"))
         self._archive_picker.layerIdChanged.connect(self._on_archive_selected)
-        cl.addWidget(self._archive_picker, 1)
-        self._archive_name_lbl = QLabel("", cw)
-        self._archive_name_lbl.setObjectName("SetupCardDescription")
-        cl.addWidget(self._archive_name_lbl)
+        archive_layout.addWidget(self._archive_picker, 2)
 
-        info = QLabel(self.lang_manager.translate("Choose layers used by this module (element and archive)."), cw)
-        info.setObjectName("SetupCardDescription")
-        cl.addWidget(info)
+        # Right side - Explanation text
+        explanation2 = QLabel("This optional archive layer stores historical or backup data. Use this when you need to maintain a separate record of changes or historical versions of your data.", archive_group)
+        explanation2.setObjectName("GroupExplanation")
+        explanation2.setWordWrap(True)
+        explanation2.setStyleSheet("color: #888; font-size: 11px; padding: 4px 0px;")
+        explanation2.setMinimumWidth(200)
+        archive_layout.addWidget(explanation2, 1)
+
+        cl.addWidget(archive_group)
+
+        # Add stretch to push content up (no footer building here - use base class)
+        cl.addStretch(1)
 
     # --- Lifecycle hooks called by SettingsUI ---
     def on_settings_activate(self, snapshot=None):
@@ -82,6 +107,9 @@ class ModuleCard(BaseCard):
             self._archive_picker.setSelectedLayerId(self._orig_archive_id)
         self._sync_selected_names()
         self.pendingChanged.emit(self.has_pending_changes())
+
+        # Initialize footer display
+        self._update_stored_values_display()
 
     def on_settings_deactivate(self):
         if self._element_picker:
@@ -149,17 +177,33 @@ class ModuleCard(BaseCard):
         self.pendingChanged.emit(False)
 
     def _sync_selected_names(self):
-        # Update helper labels with selected layer names
+        # Update footer with stored values summary (labels removed from UI)
+        self._update_stored_values_display()
+
+    def _update_stored_values_display(self):
+        """Update footer with flowing text summary of stored values."""
+        # Get layer names directly from pickers instead of removed labels
         def name_for(picker):
             lyr = picker.selectedLayer() if picker else None
             try:
                 return lyr.name() if lyr else ""
             except Exception:
                 return ""
-        if self._element_name_lbl:
-            self._element_name_lbl.setText(name_for(self._element_picker))
-        if self._archive_name_lbl:
-            self._archive_name_lbl.setText(name_for(self._archive_picker))
+
+        element_name = name_for(self._element_picker)
+        archive_name = name_for(self._archive_picker)
+
+        parts = []
+        if element_name:
+            parts.append(f"📄 Main: {element_name}")
+        if archive_name:
+            parts.append(f"📁 Archive: {archive_name}")
+
+        if parts:
+            values_text = " | ".join(parts)
+            self.set_status_text(f"Active layers: {values_text}")
+        else:
+            self.set_status_text("No layers configured")
 
     # --- Handlers ---
     def _on_element_selected(self, layer_id: str):

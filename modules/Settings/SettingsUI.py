@@ -30,12 +30,6 @@ class SettingsUI(QWidget):
         self._cards = []
         self._initialized = False
         self._user_loaded = False
-        # Legacy attributes removed after refactor
-        # self._user_labels = {}
-        # self._pills_container = None
-        # self._pill_checks = {}
-        # self._roles_container = None
-        # Track settings changes (UI-level for buttons visibility)
         self._pending_changes = False
         self._pending_settings = {}
         self._original_settings = {}
@@ -47,7 +41,7 @@ class SettingsUI(QWidget):
         self._module_cards = {}
         self.setup_ui()
         # Centralized theming
-        ThemeManager.apply_module_style(self, [QssPaths.MAIN])
+        ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
 
     def setup_ui(self):
         root = QVBoxLayout(self)
@@ -56,8 +50,8 @@ class SettingsUI(QWidget):
         self.scroll_area.setWidgetResizable(True)
         self.cards_container = QWidget(self)
         self.cards_layout = QVBoxLayout(self.cards_container)
-        self.cards_layout.setContentsMargins(12, 12, 12, 12)
-        self.cards_layout.setSpacing(12)
+        self.cards_layout.setContentsMargins(6, 6, 6, 6)
+        self.cards_layout.setSpacing(6)
         self.cards_layout.addStretch(1)
         self.scroll_area.setWidget(self.cards_container)
         root.addWidget(self.scroll_area)
@@ -202,24 +196,8 @@ class SettingsUI(QWidget):
         if self.theme_manager:
             try:
                 # Apply main module styling
-                ThemeManager.apply_module_style(self, [QssPaths.MODULES_MAIN])
+                ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
 
-                # Apply styling to key child areas that need theme updates
-                if hasattr(self, 'display_area') and self.display_area:
-                    ThemeManager.apply_module_style(self.display_area, [QssPaths.MODULES_MAIN])
-
-                if hasattr(self, 'footer_area') and self.footer_area:
-                    ThemeManager.apply_module_style(self.footer_area, [QssPaths.MODULES_MAIN])
-
-                if hasattr(self, 'toolbar_area') and self.toolbar_area:
-                    ThemeManager.apply_module_style(self.toolbar_area, [QssPaths.MODULES_MAIN])
-
-                # Handle scroll area and cards container specifically for settings
-                if hasattr(self, 'scroll_area') and self.scroll_area:
-                    ThemeManager.apply_module_style(self.scroll_area, [QssPaths.MODULES_MAIN])
-
-                if hasattr(self, 'cards_container') and self.cards_container:
-                    ThemeManager.apply_module_style(self.cards_container, [QssPaths.MODULES_MAIN])
             except Exception:
                 pass
 

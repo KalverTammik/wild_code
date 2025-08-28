@@ -38,7 +38,14 @@ class PluginDialog(QDialog):
         return cls._instance
 
     def __init__(self, parent=None):
+        # Call super().__init__() first
         super().__init__(parent)
+        
+        # Prevent reinitialization if already initialized
+        if hasattr(self, '_initialized') and self._initialized:
+            return
+            
+        self._initialized = True
 
         self._geometry_restored = False
         self._debug = False  # toggle to True for verbose logs

@@ -70,7 +70,22 @@ QLabel#DateDueLine[dueState="none"] {
 
 
 /* Container */
-QFrame#InfocardHeaderFrame { background: transparent; }
+QFrame#InfocardHeaderFrame { 
+    background: qlineargradient(x1:0, y1:1, x2:0, y2:0,
+        stop:0    rgba(9,144,143,0.12),   /* soft teal glow at bottom */
+        stop:0.03 rgba(9,144,143,0.06),
+        stop:0.055 transparent,           /* transition to transparent */
+        stop:1    transparent
+    );
+    border-bottom: 1px solid rgba(9,144,143,0.45);
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: 0 1px 3px rgba(9,144,143,0.08);
+}
 
 /* Name line */
 

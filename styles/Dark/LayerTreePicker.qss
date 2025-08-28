@@ -1,0 +1,141 @@
+/* =========================================================
+   LayerTreePicker.qss (DARK THEME) — Layer selection popup
+   Single source of truth for LayerTreePicker dropdown styling
+   Palette (dark) - matching ComboBox:
+     Surface base:  #303a42
+     Surface hover: #2e2f38
+     Border base:   #4d4d4d
+     Border focus:  #1f5d5c
+     Text:          #c5c5d2
+     Accent:        rgb(9,144,143)
+   ========================================================= */
+
+/* =========================================
+   DROPDOWN BUTTON — COMBOBOX STYLE
+   ========================================= */
+QToolButton {
+    background: #303a42;
+    color: #c5c5d2;
+    border: 1px solid #4d4d4d;
+    border-radius: 6px;
+    padding: 2px 8px;          /* comfy text insets */
+    padding-right: 28px;       /* reserve space for arrow */
+    min-height: 20px;
+    min-width: 120px;
+    font-size: 12px;
+    margin-right: 6px;
+    outline: none;
+    transition: all 150ms ease;
+}
+
+QToolButton:hover {
+    background: #2e2f38;
+    border-color: #1f5d5c;
+    color: #e0e0e6;
+}
+
+QToolButton:pressed {
+    background: #252a33;
+    border-color: rgb(9,144,143);
+}
+
+QToolButton:focus {
+    border-color: #1f5d5c;
+    outline: none;
+}
+
+/* Remove default menu indicator */
+QToolButton::menu-indicator {
+    width: 0px;
+    height: 0px;
+}
+
+/* ---------------------- Popup container ---------------------- */
+
+/* ---------------------- Popup container ---------------------- */
+QFrame#LayerTreePopup {
+    background: #2e2f38;
+    color: #c5c5d2;
+    border: 1px solid #1f5d5c;
+    border-radius: 6px;
+    padding: 0;
+}
+
+/* ---------------------- Tree widget ---------------------- */
+QFrame#LayerTreePopup QTreeWidget {
+    background: #2e2f38;
+    color: #c5c5d2;
+    border: none;
+    border-radius: 0;
+    padding: 1px;              /* tight gutter to match ComboBox */
+    outline: none;
+    font-size: 12px;
+}
+
+/* Tree items */
+QFrame#LayerTreePopup QTreeWidget::item {
+    height: 20px;
+    padding: 2px 6px;
+    margin: 0;
+    border-radius: 3px;
+    color: #c5c5d2;
+}
+
+QFrame#LayerTreePopup QTreeWidget::item:selected {
+    background: rgb(9,144,143);
+    color: #ffffff;
+}
+
+QFrame#LayerTreePopup QTreeWidget::item:hover {
+    background: #3a3f4b;
+    color: #ffffff;
+}
+
+QFrame#LayerTreePopup QTreeWidget::item:disabled {
+    color: rgba(197,197,210,0.40);
+}
+
+/* Branch indicators (expand/collapse arrows) */
+QFrame#LayerTreePopup QTreeWidget::branch {
+    background: transparent;
+    border: none;
+    width: 12px;
+    height: 12px;
+}
+
+/* Scrollbar inside popup - matching ComboBox */
+QFrame#LayerTreePopup QTreeWidget QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 4px 2px 4px 0;
+}
+
+QFrame#LayerTreePopup QTreeWidget QScrollBar::handle:vertical {
+    min-height: 24px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.15);
+}
+
+QFrame#LayerTreePopup QTreeWidget QScrollBar::add-line:vertical,
+QFrame#LayerTreePopup QTreeWidget QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+QFrame#LayerTreePopup QTreeWidget QScrollBar::add-page:vertical,
+QFrame#LayerTreePopup QTreeWidget QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+
+/* ---------------------- Context scoping ---------------------- */
+/* Tighter look in toolbars */
+QToolBar QToolButton {
+    min-height: 18px;
+    padding: 1px 6px;
+    padding-right: 24px;
+    border-radius: 5px;
+    font-size: 11px;
+}
+
+/* ---------------------- Nice-to-haves ---------------------- */
+/* prevent native focus rect artifacts on some platforms */
+QToolButton::indicator { width: 0; height: 0; }

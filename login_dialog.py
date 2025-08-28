@@ -22,7 +22,7 @@ from .config.setup import Version
 lang = LanguageManager(language="et")
 
 class LoginDialog(QDialog):
-    loginSuccessful = pyqtSignal(str)
+    loginSuccessful = pyqtSignal(str, dict)
 
     def __init__(
         self,
@@ -133,15 +133,9 @@ class LoginDialog(QDialog):
         """Authenticate the user using the shared APIClient and show a concise server message on failure."""
         from .utils.api_client import APIClient
 
+        # Clear any stale session state before attempting login
         if SessionManager().isLoggedIn():
-            self.errorLabel.setText(DialogLabels.SESSION_ACTIVE_ERROR)
-            self.errorLabel.show()
-            return
-
-        if SessionManager.isSessionExpired():
-            self.errorLabel.setText(DialogLabels.SESSION_EXPIRED_ERROR)
-            self.errorLabel.show()
-            return
+            SessionManager.clear()
 
         username = self.username_input.text()
         password = self.password_input.text()
@@ -166,15 +160,25 @@ class LoginDialog(QDialog):
             if api_token:
                 self.api_token = api_token
                 self.user = {"name": username, "email": username}
+                print(f"[DEBUG] Login successful - setting session with token: {api_token[:10]}...")
                 SessionManager().setSession(self.api_token, self.user)
                 SessionManager().save_credentials(username, password, api_token)
-                self.loginSuccessful.emit(self.api_token)
-                self.accept()
+                print("[DEBUG] About to emit loginSuccessful signal")
+                self.loginSuccessful.emit(self.api_token, self.user)
+                print("[DEBUG] loginSuccessful signal emitted")
+                print(f"[DEBUG] Dialog is modal: {self.isModal()}")
+                print(f"[DEBUG] Dialog is visible: {self.isVisible()}")
+                self.close()  # Try close() instead of accept()
+                print("[DEBUG] close() called")
+                print(f"[DEBUG] Dialog result after close: {self.result()}")
+                print(f"[DEBUG] Dialog is visible after close: {self.isVisible()}")
             else:
                 # One-shot diagnostic: show server-side response issue
                 self.errorLabel.setText(lang.translate("no_api_token_received"))
                 self.errorLabel.show()
         except Exception as e:
+            # Clear session on any login failure to allow retry
+            SessionManager.clear()
             # One-shot diagnostic: surface the server's message body without logging secrets
             msg = str(e)
             if not msg:

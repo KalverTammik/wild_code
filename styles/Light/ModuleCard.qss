@@ -61,7 +61,22 @@ QLabel#DateDueLine[dueState="none"] {
 }
 
 
-QFrame#InfocardHeaderFrame { background: transparent; }
+QFrame#InfocardHeaderFrame { 
+    background: qlineargradient(x1:0, y1:1, x2:0, y2:0,
+        stop:0    rgba(0,120,212,0.10),   /* soft blue glow at bottom */
+        stop:0.03 rgba(0,120,212,0.05),
+        stop:0.055 transparent,           /* transition to transparent */
+        stop:1    transparent
+    );
+    border-bottom: 1px solid rgba(0,120,212,0.45);
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: 0 1px 3px rgba(0,120,212,0.06);
+}
 
 
 QLabel#ProjectNumberBadge {

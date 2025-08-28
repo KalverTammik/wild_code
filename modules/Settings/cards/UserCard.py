@@ -21,7 +21,7 @@ class UserCard(BaseCard):
     preferredChanged = pyqtSignal(object)
 
     def __init__(self, lang_manager):
-        super().__init__(lang_manager, lang_manager.translate("User"))
+        super().__init__(lang_manager, lang_manager.translate("User"), None)
 
         cw = self.content_widget()
         cl = QVBoxLayout(cw)

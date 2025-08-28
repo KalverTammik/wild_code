@@ -19,7 +19,7 @@ Näide uue idee lisamiseks:
 
 # 🟩 **UUED IDEED**
 # 🟢 TEHA 2025-08-19: Kontrolli OverdueCounterWidgeti
-	- Vastutaja: Kalver
+	- Vastutaja: Anneli
 	- Kontrolli, kas OverdueCounterWidget töötab ootuspäraselt ja kas loendamine ning kuvamine on korrektne.
 
 � POOLELI 2025-08-23: Moodulite teema vahetuse meetodite standardiseerimine

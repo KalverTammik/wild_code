@@ -9,6 +9,54 @@
   border: 1px solid #2c343d;
 }
 
+/* Header with separator gradient */
+#SetupCard QFrame#SetupCardHeader {
+    background: qlineargradient(x1:0, y1:1, x2:0, y2:0,
+        stop:0    rgba(9,144,143,0.12),   /* soft teal glow at bottom */
+        stop:0.03 rgba(9,144,143,0.06),
+        stop:0.055 transparent,           /* transition to transparent */
+        stop:1    transparent
+    );
+    border-bottom: 1px solid rgba(9,144,143,0.45);
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: 0 1px 3px rgba(9,144,143,0.08);
+}
+
+/* Group Boxes */
+#SetupCard QGroupBox {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 0;
+    margin: 0;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+#SetupCard QGroupBox::title {
+    color: #e0e0e6;
+    padding: 8px 12px;
+    left: 8px;
+    top: -8px;
+    background: #1f262d;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+/* Group explanation text */
+#SetupCard QLabel#GroupExplanation {
+    color: #888;
+    font-size: 11px;
+    padding: 4px 0px;
+    line-height: 1.4;
+}
+
 /* Titles */
 #SetupCardTitle                           { font-weight: 600; font-size: 13px; }
 #SetupCardDescription                     { color: #aab; }
@@ -86,4 +134,73 @@
   box-shadow: 0 0 0 2px rgba(9,144,143,0.25);
   border-color: rgba(9,144,143,0.55);
   border-radius: 999px;
+}
+
+/* =========================================
+   CONFIRM BUTTON — TEAL GREEN STYLING
+   ========================================= */
+#SetupCard QPushButton#ConfirmButton {
+  background: #0f766e;  /* teal-700 */
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  font-size: 12px;
+  min-width: 80px;
+  transition: all 150ms ease;
+}
+
+#SetupCard QPushButton#ConfirmButton:hover {
+  background: #115e59;  /* teal-800 */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.3);
+}
+
+#SetupCard QPushButton#ConfirmButton:pressed {
+  background: #042f2e;  /* teal-900 */
+  transform: translateY(0px);
+  box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2);
+}
+
+#SetupCard QPushButton#ConfirmButton:disabled {
+  background: #475569;  /* slate-600 */
+  color: #94a3b8;       /* slate-400 */
+  transform: none;
+  box-shadow: none;
+}
+
+/* =========================================
+   FOOTER AREA — STORED VALUES DISPLAY
+   ========================================= */
+#SetupCard QFrame#SetupCardFooter {
+  background: rgba(255,255,255,0.02);
+  border-radius: 6px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+#SetupCard QLabel#SetupCardStoredValues {
+  color: #aab;
+  font-size: 11px;
+  padding: 6px 8px;
+  background: rgba(15, 118, 110, 0.15);
+  border-radius: 4px;
+  border-left: 3px solid #0f766e;
+  margin: 0px;
+}
+
+/* =========================================
+   FOOTER STATUS AREA
+   ========================================= */
+#SetupCard QFrame#SetupCardFooterLeft {
+  background: transparent;
+}
+
+#SetupCard QLabel#SetupCardStatus {
+  color: #aab;
+  font-size: 11px;
+  padding: 4px 0px;
+  background: rgba(15, 118, 110, 0.12);
+  border-radius: 3px;
+  border-left: 2px solid #0f766e;
 }

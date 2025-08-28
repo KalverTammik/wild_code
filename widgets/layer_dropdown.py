@@ -1,5 +1,5 @@
 from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QToolButton, QMenu, QVBoxLayout, QTreeWidget, QTreeWidgetItem
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QToolButton, QMenu, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QLabel
 
 try:
     from qgis.core import QgsProject, QgsMapLayer
@@ -78,7 +78,7 @@ class LayerTreePicker(QWidget):
         main.setContentsMargins(0, 0, 0, 0)
         main.setSpacing(0)
 
-        # Toggle button (collapsed state)
+        # Toggle button (collapsed state) with dropdown arrow
         self._button = QToolButton(self)
         self._button.setText(self._placeholder)
         self._button.setToolButtonStyle(Qt.ToolButtonTextOnly)
@@ -90,8 +90,8 @@ class LayerTreePicker(QWidget):
         self._popup = QFrame(self, Qt.Popup | Qt.FramelessWindowHint)
         self._popup.setObjectName("LayerTreePopup")
         pl = QVBoxLayout(self._popup)
-        pl.setContentsMargins(6, 6, 6, 6)
-        pl.setSpacing(4)
+        pl.setContentsMargins(4, 4, 4, 4)
+        pl.setSpacing(2)
 
         self._tree = QTreeWidget(self._popup)
         self._tree.setHeaderHidden(True)
@@ -150,7 +150,17 @@ class LayerTreePicker(QWidget):
 
     def _update_button_label(self):
         name = self._resolve_layer_name(self._selected_layer_id)
-        self._button.setText(name or self._placeholder)
+        display_text = f"{name or self._placeholder} ▼"
+        self._button.setText(display_text)
+
+    def retheme(self):
+        """Apply theme styling to the dropdown button and arrow."""
+        try:
+            from .theme_manager import ThemeManager
+            from ..constants.file_paths import QssPaths
+            ThemeManager.apply_module_style(self, [QssPaths.LAYER_TREE_PICKER])
+        except Exception:
+            pass
 
     # Build / refresh --------------------------------------------------
     def refresh(self):
@@ -187,18 +197,48 @@ class LayerTreePicker(QWidget):
         if self._popup.isVisible():
             self._popup.hide()
             return
+
         # Build on demand
         if self._tree.topLevelItemCount() == 0:
-            self.refresh()
+            try:
+                self.refresh()
+            except Exception as e:
+                print(f"[LayerTreePicker] Refresh failed: {e}")
+                return
+
+        # Check if we have any items
+        if self._tree.topLevelItemCount() == 0:
+            print("[LayerTreePicker] No items to show in dropdown")
+            return
+
+        # Apply LayerTreePicker styling to the popup and button
+        try:
+            from .theme_manager import ThemeManager
+            from ..constants.file_paths import QssPaths
+            # Apply LayerTreePicker styling to the popup
+            ThemeManager.apply_module_style(self._popup, [QssPaths.LAYER_TREE_PICKER])
+            # Apply styling to the button container as well
+            ThemeManager.apply_module_style(self, [QssPaths.LAYER_TREE_PICKER])
+        except Exception as e:
+            print(f"[LayerTreePicker] Theme application failed: {e}")
+
         # Position under the button like a combobox popup
-        btn_rect = self._button.rect()
-        global_pos = self._button.mapToGlobal(btn_rect.bottomLeft())
-        width = max(self._button.width(), 300)
-        height = 280
-        # Resize and move
-        self._popup.resize(width, height)
-        self._popup.move(global_pos)
-        self._popup.show()
+        try:
+            btn_rect = self._button.rect()
+            global_pos = self._button.mapToGlobal(btn_rect.bottomLeft())
+            width = max(self._button.width(), 300)
+            height = 280
+
+            # Ensure popup is properly sized and positioned
+            self._popup.resize(width, height)
+            self._popup.move(global_pos)
+
+            print(f"[LayerTreePicker] Showing popup at {global_pos}, size {width}x{height}")
+            self._popup.show()
+            self._popup.raise_()
+            self._popup.activateWindow()
+        except Exception as e:
+            print(f"[LayerTreePicker] Popup positioning failed: {e}")
 
     # Internal builders ------------------------------------------------
     def _build_tree_from_snapshot(self, items, parent_item: QTreeWidgetItem):
