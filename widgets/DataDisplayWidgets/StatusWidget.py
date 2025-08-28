@@ -12,21 +12,12 @@ from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget, QFrame
 class StatusWidget(QWidget):
     def __init__(self, item_data, theme=None, parent=None, show_private_icon=True):
         super().__init__(parent)
-        # Outer layout holding a debug container frame
-        outer_layout = QVBoxLayout(self); outer_layout.setContentsMargins(0, 0, 0, 0)
+        # Main layout
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
-        container = QFrame(self)
-        container.setObjectName("StatusDebugContainer")
-        container.setStyleSheet(
-            "QFrame#StatusDebugContainer {"
-            "  border: 2px dashed #FF00FF;"          # vibrant magenta
-            "  background-color: rgba(255,0,255,0.04);"
-            "}"
-        )
-
-        main_layout = QVBoxLayout(container); main_layout.setContentsMargins(0, 0, 0, 0)
-
-        row = QHBoxLayout(); row.setContentsMargins(0, 0, 0, 0)
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
         row.addStretch(1)  # push everything right
 
         if show_private_icon and not item_data.get('isPublic'):
@@ -36,13 +27,10 @@ class StatusWidget(QWidget):
             pub.setAlignment(Qt.AlignCenter)
             # themed private icon (using ICON_ADD as requested)
             icon_path = MiscIcons.ICON_IS_PRIVATE
-            #print(f"[StatusWidget] Using private icon: {icon_path}")
             pm = QPixmap(icon_path)
             if not pm.isNull():
-                #print("[StatusWidget] Setting private icon pixmap")
                 pub.setPixmap(pm.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
             else:
-                #print("[StatusWidget] Private icon pixmap is null, using default")
                 pub.setText("P")
 
             pub.setFixedSize(16, 16)
@@ -77,62 +65,17 @@ class StatusWidget(QWidget):
         row.addWidget(self.status_label, 0, Qt.AlignRight | Qt.AlignVCenter)
         main_layout.addLayout(row)
 
-        # Wrap DatesWidget in its own debug frame (green) and align to the right
-        dates_wrap = QFrame(self)
-        dates_wrap.setObjectName("DatesDebugFrame")
-        dates_wrap.setStyleSheet(
-            "QFrame#DatesDebugFrame {"
-            "  border: 2px solid #00C853;"            # vibrant green
-            "  background-color: rgba(0,200,83,0.04);"
-            "}"
-        )
-        dw_layout = QVBoxLayout(dates_wrap); dw_layout.setContentsMargins(0, 0, 0, 0)
-        dw_layout.addWidget(DatesWidget(item_data))
-
-        main_layout.addWidget(dates_wrap, 0, Qt.AlignRight)
-
-        # Add the debug container to the outer layout
-        outer_layout.addWidget(container)
+        # Add DatesWidget underneath the status label
+        dates_widget = DatesWidget(item_data)
+        main_layout.addWidget(dates_widget, 0, Qt.AlignRight)
 
     def retheme(self):
-        """Update debug colors and status styling based on current theme."""
+        """Update status styling based on current theme."""
         try:
             from ..theme_manager import ThemeManager
             theme = ThemeManager.load_theme_setting()
         except Exception:
             theme = 'light'
-
-        # Update debug container colors based on theme
-        if theme == 'dark':
-            debug_border = "#FF6B6B"  # lighter magenta for dark
-            debug_bg = "rgba(255,107,107,0.04)"
-            dates_border = "#6BFF6B"  # lighter green for dark
-            dates_bg = "rgba(107,255,107,0.04)"
-        else:
-            debug_border = "#FF00FF"  # original magenta
-            debug_bg = "rgba(255,0,255,0.04)"
-            dates_border = "#00C853"  # original green
-            dates_bg = "rgba(0,200,83,0.04)"
-
-        # Update status debug container
-        container = self.findChild(QFrame, "StatusDebugContainer")
-        if container:
-            container.setStyleSheet(
-                "QFrame#StatusDebugContainer {"
-                f"  border: 2px dashed {debug_border};"
-                f"  background-color: {debug_bg};"
-                "}"
-            )
-
-        # Update dates debug frame
-        dates_wrap = self.findChild(QFrame, "DatesDebugFrame")
-        if dates_wrap:
-            dates_wrap.setStyleSheet(
-                "QFrame#DatesDebugFrame {"
-                f"  border: 2px solid {dates_border};"
-                f"  background-color: {dates_bg};"
-                "}"
-            )
 
         # Update status label shadow
         if hasattr(self, 'status_label'):

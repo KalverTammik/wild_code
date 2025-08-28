@@ -1,5 +1,5 @@
-from PyQt5.QtCore import QDateTime, QLocale, Qt
-from PyQt5.QtWidgets import QLabel, QWidget, QGridLayout, QSizePolicy
+from PyQt5.QtCore import QDateTime, QLocale, Qt, QPoint, QEvent, QTimer
+from PyQt5.QtWidgets import QLabel, QWidget, QGridLayout, QSizePolicy, QVBoxLayout, QHBoxLayout, QFrame
 from PyQt5.QtGui import QPixmap
 import datetime
 from typing import Optional
@@ -10,16 +10,12 @@ class DatesWidget(QWidget):
     def __init__(self, item_data, parent=None, compact=False):
         super().__init__(parent)
         self.setProperty("compact", compact)
+        self.item_data = item_data
 
-        grid = QGridLayout(self)
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(8 if not compact else 6)
-        grid.setVerticalSpacing(4 if not compact else 2)
-
-        # Column behaviors: icon column is narrow & fixed-ish; date column expands
-        grid.setColumnMinimumWidth(0, 20)
-        grid.setColumnStretch(0, 0)
-        grid.setColumnStretch(1, 1)
+        # Main layout - vertical to stack under status
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(2)
 
         locale = QLocale.system()
         today = datetime.datetime.now().date()
@@ -33,76 +29,119 @@ class DatesWidget(QWidget):
             if not dt:
                 return "–"
             qdt = QDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-            # keep dd.MM.yyyy so widths match nicely in light theme
             return locale.toString(qdt.date(), QLocale.ShortFormat)
 
         def full_tooltip(prefix: str, dt: Optional[datetime.datetime]) -> str:
-            # Use Qt locale-based formatting to avoid Windows strftime year>=1900 limitation
             return DateHelpers.build_label(prefix, dt, locale)
 
-        def get_icon_pixmap(basename: Optional[str]) -> Optional[QPixmap]:
-            if not basename:
-                return None
-            path = ModuleIconPaths.themed(basename)
-            pm = QPixmap(path)
-            return pm.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation) if not pm.isNull() else None
-
-        row = 0
-
-        def add_row(icon_pm: Optional[QPixmap], fallback_text: str, prefix: str, dt: Optional[datetime.datetime],
-                    obj_name: str = None, due_state: Optional[str] = None):
-            nonlocal row
-            if dt is None:
-                return  # hide pair entirely if not set
-
-            # Icon (pixmap if available, else fallback text)
-            icon = QLabel(self)
-            icon.setFixedWidth(20)
-            icon.setAlignment(Qt.AlignCenter)
-            icon.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-            if icon_pm is not None:
-                icon.setPixmap(icon_pm)
-            else:
-                icon.setText(fallback_text)
-
-            # Date value (centered within its column)
-            date = QLabel(short_date(dt), self)
-            date.setAlignment(Qt.AlignCenter)
-            date.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-            if obj_name:
-                date.setObjectName(obj_name)
-            date.setToolTip(full_tooltip(prefix, dt))
-            if due_state:
-                date.setProperty("dueState", due_state)
-                date.style().unpolish(date); date.style().polish(date)
-
-            grid.addWidget(icon, row, 0, alignment=Qt.AlignCenter)
-            grid.addWidget(date, row, 1, alignment=Qt.AlignCenter)
-            row += 1
-
-        # Start (use a neutral schedule icon for now)
-        start_pm = get_icon_pixmap(DateIcons.ICON_DATE_SOON)
-        add_row(start_pm, "[S]", "Algus", start_dt, obj_name="DateLine")
-
-        # Due (with state-based icon)
+        # Create the main due date display
         if due_dt:
-            state = DateHelpers.due_state(due_dt.date(), today)  # ok | soon | overdue
-        else:
-            state = None
-        due_icon = None
-        if state == 'overdue':
-            due_icon = DateIcons.ICON_DATE_OVERDUE
-        elif state == 'soon':
-            due_icon = DateIcons.ICON_DATE_SOON
-        else:
-            due_icon = DateIcons.ICON_DATE_SOON
-        due_pm = get_icon_pixmap(due_icon)
-        add_row(due_pm, "[D]", "Tähtaeg", due_dt, obj_name="DateDueLine", due_state=state)
+            state = DateHelpers.due_state(due_dt.date(), today)
 
-        # Created
-        created_pm = get_icon_pixmap(DateIcons.ICON_DATE_CREATED_AT)
-        add_row(created_pm, "[C]", "Loodud", created_dt, obj_name="DateMeta")
+            # Due date container
+            due_container = QFrame(self)
+            due_container.setObjectName("DueDateContainer")
+            due_layout = QHBoxLayout(due_container)
+            due_layout.setContentsMargins(4, 2, 4, 2)
+            due_layout.setSpacing(4)
 
-        # Updated
-        updated_pm = get_icon_pixmap(DateIcons.ICON_DATE_LAST_MODIFIED)
-        add_row(updated_pm, "[U]", "Muudetud", updated_dt, obj_name="DateMeta")
+            # Due date label
+            due_label = QLabel("Tähtaeg:")
+            due_label.setObjectName("DateLabel")
+            due_label.setStyleSheet("font-size: 10px; color: #666; font-weight: 500;")
+            due_layout.addWidget(due_label)
+
+            # Due date value
+            due_value = QLabel(short_date(due_dt))
+            due_value.setObjectName("DateValue")
+            due_value.setStyleSheet("font-size: 11px; font-weight: 600;")
+            due_value.setToolTip(full_tooltip("Tähtaeg", due_dt))
+
+            # Apply state-based styling
+            if state == 'overdue':
+                due_value.setStyleSheet("font-size: 11px; font-weight: 600; color: #d32f2f;")
+            elif state == 'soon':
+                due_value.setStyleSheet("font-size: 11px; font-weight: 600; color: #f57c00;")
+
+            due_layout.addWidget(due_value)
+            due_layout.addStretch()
+
+            # Make the container hoverable for showing all dates
+            due_container.setMouseTracking(True)
+            due_container.installEventFilter(self)
+
+            main_layout.addWidget(due_container)
+
+        # Store other dates for hover popup
+        self.other_dates = []
+        if start_dt:
+            self.other_dates.append(("Algus:", start_dt))
+        if created_dt:
+            self.other_dates.append(("Loodud:", created_dt))
+        if updated_dt:
+            self.other_dates.append(("Muudetud:", updated_dt))
+
+        self.hover_popup = None
+
+    def eventFilter(self, obj, event):
+        if obj.objectName() == "DueDateContainer":
+            if event.type() == QEvent.Enter:
+                self.show_dates_popup(obj)
+            elif event.type() == QEvent.Leave:
+                self.hide_dates_popup()
+        return super().eventFilter(obj, event)
+
+    def show_dates_popup(self, anchor_widget):
+        if not self.other_dates:
+            return
+
+        if self.hover_popup:
+            self.hide_dates_popup()
+
+        # Create popup widget
+        self.hover_popup = QWidget(self.window(), Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.hover_popup.setObjectName("DatesPopup")
+        self.hover_popup.setAttribute(Qt.WA_DeleteOnClose, True)
+        self.hover_popup.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self.hover_popup.setFocusPolicy(Qt.NoFocus)
+        self.hover_popup.setMouseTracking(True)
+
+        layout = QVBoxLayout(self.hover_popup)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(4)
+
+        # Add all other dates
+        locale = QLocale.system()
+        for label_text, dt in self.other_dates:
+            row_layout = QHBoxLayout()
+            row_layout.setSpacing(8)
+
+            label = QLabel(label_text)
+            label.setStyleSheet("font-size: 10px; color: #666; font-weight: 500;")
+            label.setFixedWidth(60)
+            row_layout.addWidget(label)
+
+            date_value = QLabel(self.short_date(dt, locale))
+            date_value.setStyleSheet("font-size: 11px; font-weight: 500;")
+            date_value.setToolTip(DateHelpers.build_label(label_text.replace(":", ""), dt, locale))
+            row_layout.addWidget(date_value)
+
+            layout.addLayout(row_layout)
+
+        # Position popup near the anchor widget
+        self.hover_popup.adjustSize()
+        pos = anchor_widget.mapToGlobal(QPoint(0, anchor_widget.height()))
+        self.hover_popup.move(pos)
+        self.hover_popup.show()
+        self.hover_popup.raise_()
+
+    def hide_dates_popup(self):
+        if self.hover_popup:
+            self.hover_popup.close()
+            self.hover_popup = None
+
+    def short_date(self, dt: Optional[datetime.datetime], locale) -> str:
+        if not dt:
+            return "–"
+        qdt = QDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        return locale.toString(qdt.date(), QLocale.ShortFormat)

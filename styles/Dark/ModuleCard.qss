@@ -66,6 +66,48 @@ QLabel#DateDueLine[dueState="none"] {
     font-weight:400;
 }
 
+/* New improved date widget styles */
+QFrame#DueDateContainer {
+    background-color: rgba(197,197,210,0.05);
+    border: 1px solid rgba(197,197,210,0.20);
+    border-radius: 6px;
+    margin-top: 2px;
+}
+
+QFrame#DueDateContainer:hover {
+    background-color: rgba(197,197,210,0.10);
+    border-color: rgba(197,197,210,0.40);
+}
+
+QLabel#DateLabel {
+    color: rgba(197,197,210,0.75);
+    font-size: 10px;
+    font-weight: 500;
+}
+
+QLabel#DateValue {
+    color: #c5c5d2;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+QLabel#DateValue[dueState="soon"] {
+    color: #ffb74d;
+    font-weight: 600;
+}
+
+QLabel#DateValue[dueState="overdue"] {
+    color: #e53935;
+    font-weight: 700;
+}
+
+QWidget#DatesPopup {
+    background-color: rgba(33, 37, 43, 0.95);
+    border: 1px solid rgba(197,197,210,0.30);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
 
 
 
