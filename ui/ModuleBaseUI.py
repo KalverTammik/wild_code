@@ -278,7 +278,9 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         insert_index = 1 if insert_at_top else max(0, layout.count() - 1)
         self._ignore_scroll_event = True
         try:
-            card = ModuleFeedBuilder.create_item_card(item)
+            # Pass module name to card creation for number display settings
+            module_name = getattr(self, 'name', None) or getattr(self, 'module_name', 'default')
+            card = ModuleFeedBuilder.create_item_card(item, module_name=module_name)
             ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
             # (Prints removed – keep console clean; BatchSummary remains elsewhere)
             layout.insertWidget(insert_index, card)

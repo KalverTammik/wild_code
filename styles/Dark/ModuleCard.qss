@@ -69,37 +69,25 @@ QLabel#DateDueLine[dueState="none"] {
 
 
 
-/* Container */
 QFrame#InfocardHeaderFrame { 
     background: qlineargradient(x1:0, y1:1, x2:0, y2:0,
-        stop:0    rgba(9,144,143,0.12),   /* soft teal glow at bottom */
-        stop:0.03 rgba(9,144,143,0.06),
-        stop:0.055 transparent,           /* transition to transparent */
+        stop:0    rgba(9,144,143,0.10),   /* softer teal glow at bottom */
+        stop:0.04 rgba(9,144,143,0.05),
+        stop:0.06 transparent,           /* smoother transition */
         stop:1    transparent
     );
-    border-bottom: 1px solid rgba(9,144,143,0.45);
+    border-bottom: 1px solid rgba(9,144,143,0.30);
     border-left: none;
     border-right: none;
     border-top: none;
     padding: 0;
     margin: 0;
     border-radius: 0;
-    box-shadow: 0 1px 3px rgba(9,144,143,0.08);
+    min-height: 24px;  /* Ensure consistent header height */
 }
 
 /* Name line */
 
-
-/* Number badge */
-QLabel#ProjectNumberBadge {
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #e8f6f6;
-    background: rgba(9,144,143,0.18);
-    border: 1px solid rgba(9,144,143,0.45);
-}
 
 /* Client */
 QLabel#ProjectClientLabel {
@@ -126,21 +114,15 @@ QLabel#ProjectNameLabel {
 /* Number badge — DARK (pill, smaller, polite) */
 QLabel#ProjectNumberBadge {
     padding: 2px 8px;
-    border-radius: 999px;                 /* pill shape */
-    font-size: 10px;                      /* smaller */
+    border-radius: 10px;
+    font-size: 10px;
     font-weight: 600;
     color: #e8f6f6;
-    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-        stop:0 rgba(9,144,143,0.22),
-        stop:1 rgba(9,144,143,0.14)
-    );
+    background: rgba(9,144,143,0.20);
     border: 1px solid rgba(9,144,143,0.45);
 }
 QLabel#ProjectNumberBadge:hover {
-    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-        stop:0 rgba(9,144,143,0.26),
-        stop:1 rgba(9,144,143,0.18)
-    );
+    background: rgba(9,144,143,0.25);
     border-color: rgba(9,144,143,0.55);
 }
 

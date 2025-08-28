@@ -212,11 +212,12 @@ class TagsHoverButton(QToolButton):
 
 
 class InfocardHeaderFrame(QFrame):
-    def __init__(self, item_data, parent=None, compact=False):
+    def __init__(self, item_data, parent=None, compact=False, module_name=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.NoFrame)
         self.setObjectName("InfocardHeaderFrame")
         self.setProperty("compact", compact)
+        self.module_name = module_name or "default"
 
         root = QHBoxLayout(self); root.setContentsMargins(0, 0, 0, 0); root.setSpacing(8 if not compact else 6)
 
@@ -228,7 +229,10 @@ class InfocardHeaderFrame(QFrame):
         number = item_data.get('number', '-')
         client = (item_data.get('client') or {}).get('displayName')
 
-        # Name row: optional private icon + elided name + number badge + optional tags hover
+        # Check if numbers should be shown for this module
+        show_numbers = self._should_show_numbers()
+
+        # Name row: conditional layout based on number display setting
         nameRow = QHBoxLayout(); nameRow.setContentsMargins(0,0,0,0); nameRow.setSpacing(8 if not compact else 6)
 
         if not item_data.get('isPublic'):
@@ -245,12 +249,16 @@ class InfocardHeaderFrame(QFrame):
             privateIcon.setFixedSize(16, 16)
             nameRow.addWidget(privateIcon, 0, Qt.AlignVCenter)
 
+        # If showing numbers, display them before the name
+        if show_numbers and number and number != '-':
+            numberBadge = QLabel(str(number)); numberBadge.setObjectName("ProjectNumberBadge")
+            numberBadge.setAlignment(Qt.AlignCenter); numberBadge.setMinimumWidth(36)
+            nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
+
         nameLabel = ElidedLabel(name); nameLabel.setObjectName("ProjectNameLabel"); nameLabel.setToolTip(name)
         nameRow.addWidget(nameLabel, 1, Qt.AlignVCenter)
 
-        numberBadge = QLabel(str(number)); numberBadge.setObjectName("ProjectNumberBadge")
-        numberBadge.setAlignment(Qt.AlignCenter); numberBadge.setMinimumWidth(36)
-        nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
+        # When not showing numbers, don't display them at all (no stretch needed)
 
         # Tags hover (only if tags exist)
         try:
@@ -273,3 +281,12 @@ class InfocardHeaderFrame(QFrame):
             leftL.addLayout(clientRow)
 
         root.addWidget(left, 1, Qt.AlignVCenter)
+
+    def _should_show_numbers(self):
+        """Check if numbers should be displayed for this module."""
+        try:
+            from ..theme_manager import ThemeManager
+            show_numbers = ThemeManager.load_module_setting(self.module_name, "show_numbers", True)
+            return bool(show_numbers)
+        except Exception:
+            return True  # Default to showing numbers if there's an error

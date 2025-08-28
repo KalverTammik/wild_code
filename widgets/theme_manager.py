@@ -37,7 +37,7 @@ class ThemeManager:
         try:
             from PyQt5.QtGui import QPalette, QColor
             from PyQt5.QtWidgets import QToolTip
-            theme = ThemeManager.load_theme_setting()
+            theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
 
             pal = QPalette()
             if theme == 'dark':
@@ -184,6 +184,22 @@ class ThemeManager:
         return theme
 
     @staticmethod
+    def save_module_setting(module_name, setting_key, value):
+        """Save a module-specific setting."""
+        from qgis.core import QgsSettings
+        settings = QgsSettings()
+        key = f"wild_code/modules/{module_name}/{setting_key}"
+        settings.setValue(key, value)
+
+    @staticmethod
+    def load_module_setting(module_name, setting_key, default_value=None):
+        """Load a module-specific setting."""
+        from qgis.core import QgsSettings
+        settings = QgsSettings()
+        key = f"wild_code/modules/{module_name}/{setting_key}"
+        return settings.value(key, default_value)
+
+    @staticmethod
     def set_initial_theme(widget, switch_button, theme_base_dir, qss_files=None):
         """
         Loads the theme from QGIS settings and applies it, updating the switch button icon.
@@ -192,7 +208,7 @@ class ThemeManager:
         from PyQt5.QtGui import QIcon
         # Support for logout icon
         header_widget = getattr(widget, 'header_widget', None)
-        theme = ThemeManager.load_theme_setting()
+        theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
         if theme == "dark":
             ThemeManager.apply_dark_theme(widget, theme_base_dir, qss_files)
             icon_path = ResourcePaths.LIGHTNESS_ICON

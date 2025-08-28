@@ -32,6 +32,8 @@ class ModuleCard(BaseCard):
         self._orig_archive_id = ""
         self._pend_element_id = ""
         self._pend_archive_id = ""
+        self._orig_show_numbers = True
+        self._pend_show_numbers = True
         self._build_ui()
 
     # --- UI ---
@@ -85,6 +87,22 @@ class ModuleCard(BaseCard):
 
         cl.addWidget(archive_group)
 
+        # Display options group
+        display_group = QGroupBox(self.lang_manager.translate("Display Options"), cw)
+        display_group.setObjectName("DisplayOptionsGroup")
+        display_layout = QVBoxLayout(display_group)
+        display_layout.setContentsMargins(8, 8, 8, 8)
+        display_layout.setSpacing(8)
+
+        # Show numbers checkbox
+        from PyQt5.QtWidgets import QCheckBox
+        self._show_numbers_checkbox = QCheckBox(self.lang_manager.translate("Show project numbers"), display_group)
+        self._show_numbers_checkbox.setToolTip(self.lang_manager.translate("Display project/contract numbers in item cards"))
+        self._show_numbers_checkbox.stateChanged.connect(self._on_show_numbers_changed)
+        display_layout.addWidget(self._show_numbers_checkbox)
+
+        cl.addWidget(display_group)
+
         # Add stretch to push content up (no footer building here - use base class)
         cl.addStretch(1)
 
@@ -98,15 +116,9 @@ class ModuleCard(BaseCard):
         self._archive_picker.on_settings_activate(snapshot=self._snapshot)
         # Load originals (if any) without marking pending
         self._orig_element_id = self._read_saved_layer_id(kind="element")
-        self._orig_archive_id = self._read_saved_layer_id(kind="archive")
-        self._pend_element_id = ""
-        self._pend_archive_id = ""
-        if self._orig_element_id:
-            self._element_picker.setSelectedLayerId(self._orig_element_id)
-        if self._orig_archive_id:
-            self._archive_picker.setSelectedLayerId(self._orig_archive_id)
-        self._sync_selected_names()
-        self.pendingChanged.emit(self.has_pending_changes())
+        self._orig_show_numbers = self._read_show_numbers_setting()
+        self._pend_show_numbers = self._orig_show_numbers
+        self._show_numbers_checkbox.setChecked(self._orig_show_numbers)
 
         # Initialize footer display
         self._update_stored_values_display()
@@ -148,7 +160,8 @@ class ModuleCard(BaseCard):
     def has_pending_changes(self) -> bool:
         el_dirty = bool(self._pend_element_id and self._pend_element_id != self._orig_element_id)
         ar_dirty = bool(self._pend_archive_id and self._pend_archive_id != self._orig_archive_id)
-        return el_dirty or ar_dirty
+        num_dirty = self._pend_show_numbers != self._orig_show_numbers
+        return el_dirty or ar_dirty or num_dirty
 
     def apply(self):
         changed = False
@@ -162,6 +175,19 @@ class ModuleCard(BaseCard):
             self._orig_archive_id = self._pend_archive_id
             self._archive_picker.setSelectedLayerId(self._orig_archive_id)
             changed = True
+
+        # Save show numbers setting
+        if self._pend_show_numbers != self._orig_show_numbers:
+            self._write_show_numbers_setting(self._pend_show_numbers)
+            self._orig_show_numbers = self._pend_show_numbers
+            # Also save to ThemeManager for immediate access
+            try:
+                from ....widgets.theme_manager import ThemeManager
+                ThemeManager.save_module_setting(self.module_name, "show_numbers", self._pend_show_numbers)
+            except Exception:
+                pass
+            changed = True
+
         self._pend_element_id = ""
         self._pend_archive_id = ""
         self._sync_selected_names()
@@ -173,6 +199,11 @@ class ModuleCard(BaseCard):
         self._archive_picker.setSelectedLayerId(self._orig_archive_id)
         self._pend_element_id = ""
         self._pend_archive_id = ""
+
+        # Revert show numbers setting
+        self._pend_show_numbers = self._orig_show_numbers
+        self._show_numbers_checkbox.setChecked(self._orig_show_numbers)
+
         self._sync_selected_names()
         self.pendingChanged.emit(False)
 
@@ -204,6 +235,33 @@ class ModuleCard(BaseCard):
             self.set_status_text(f"Active layers: {values_text}")
         else:
             self.set_status_text("No layers configured")
+
+    # --- Show Numbers Setting ---
+    def _show_numbers_settings_key(self) -> str:
+        return f"wild_code/modules/{self.module_name}/show_numbers"
+
+    def _read_show_numbers_setting(self) -> bool:
+        if not QgsSettings:
+            return True
+        try:
+            s = QgsSettings()
+            return bool(s.value(self._show_numbers_settings_key(), True))
+        except Exception:
+            return True
+
+    def _write_show_numbers_setting(self, show_numbers: bool):
+        if not QgsSettings:
+            return
+        try:
+            s = QgsSettings()
+            key = self._show_numbers_settings_key()
+            s.setValue(key, show_numbers)
+        except Exception:
+            pass
+
+    def _on_show_numbers_changed(self, state):
+        self._pend_show_numbers = bool(state)
+        self.pendingChanged.emit(self.has_pending_changes())
 
     # --- Handlers ---
     def _on_element_selected(self, layer_id: str):
