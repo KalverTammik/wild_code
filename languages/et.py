@@ -33,7 +33,7 @@ TRANSLATIONS = {
     "Select a module from the left or open Settings to set your preferred module.": "Vali vasakult moodul või ava Seaded, et määrata eelistatud moodul.",
     "Open Settings": "Ava Seaded",
     # Lisatud: ModuleCard/kihi valija sildid
-    "Modules main layer": "Mooduli põhi kiht",
+    "Modules main layer": "Mooduli põhikiht",
     "Archive layer": "Arhiivikihi",
     "Select layer": "Vali kiht",
     "Choose layers used by this module (element and archive).": "Vali selle mooduli kasutatavad kihid (elemendi ja arhiivi)."

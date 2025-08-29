@@ -49,8 +49,24 @@ class SettingsLogic:
         for r in roles:
             name = r.get('displayName') or r.get('name') or str(r.get('id') or '')
             if name:
-                names.append(name)
+                # Translate role names
+                translated_name = self._translate_role_name(name)
+                names.append(translated_name)
         return names
+
+    def _translate_role_name(self, role_name: str) -> str:
+        """Translate role names to Estonian."""
+        role_translations = {
+            "Admins": "Admin",
+            "Administrators": "Administraatorid",
+            "Project Managers": "Projektijuhid",
+            "Users": "Kasutajad",
+            "Managers": "Juhid",
+            "Editors": "Toimetajad",
+            "Viewers": "Vaatajad",
+            "Guests": "Külalised"
+        }
+        return role_translations.get(role_name, role_name)
 
     def abilities_to_subjects(self, abilities_raw) -> Set[str]:
         import json
