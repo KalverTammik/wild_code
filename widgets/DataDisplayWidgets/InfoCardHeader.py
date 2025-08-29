@@ -26,6 +26,8 @@ class ElidedLabel(QLabel):
         self.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.setToolTip(self._full)
         self.setObjectName("ElidedLabel")
+        # Ensure minimum height for proper text display
+        self.setMinimumHeight(16)
 
     def setText(self, text):
         self._full = text or ""

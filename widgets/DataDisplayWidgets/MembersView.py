@@ -58,17 +58,22 @@ class AvatarUtils:
 
 
 class AvatarBubble(QLabel):
-    def __init__(self, fullname: str, size: int = 28, overlap_px: int = 8, first=False, salt: str = "", icon: str = "", parent=None):
+    def __init__(self, fullname: str, size: int = 28, overlap_px: int = 8, first=False, salt: str = "", icon: str = "", popup_members=None, parent=None):
         super().__init__(parent)
         self.fullname = (fullname or "-").strip()
         self.base_size = size
         self.icon_type = icon
+        # Optional list of member nodes to display on hover (for responsible avatars)
+        self._popup_members = popup_members or []
+        self._members_popup = None
 
         self.setText(AvatarUtils.initials(self.fullname))
         self.setAlignment(Qt.AlignCenter)
         f = QFont(); f.setBold(True); f.setPointSize(9 if size >= 28 else 8)
         self.setFont(f)
-        self.setToolTip(self.fullname)
+        # Only set tooltip for non-assignee avatars to avoid duplicate info
+        if not popup_members:
+            self.setToolTip(self.fullname)
         self.setFixedSize(size, size)
 
         bg = AvatarUtils.color_for_name(self.fullname, salt=salt)
@@ -84,60 +89,115 @@ class AvatarBubble(QLabel):
             f" margin:0px;"  # No margins, overlap handled by layout
             f" background-color: {AvatarUtils.rgb_css(bg)};"
             f" color: {fg_hex};"
-            f" border: 1.5px solid {AvatarUtils.rgb_css(border)};"
+            f" border: 1px solid {AvatarUtils.rgb_css(border)};"
             f" border-radius: {size//2}px;"
             f" font-weight: 700;"  # Bolder font weight
             f" letter-spacing: -0.3px;"  # Slightly less tight spacing
             f" padding: 3px;"  # Increased padding for better letter spacing
             "} "
             "QLabel:hover {"
-            f" border-width: 2px;"
+            f" border-width: 1px;"
             f" border-color: {AvatarUtils.rgb_css(border)};"
-            f" z-index: 999;"  # Bring to front on hover
-            f" position: relative;"  # Enable z-index
-            f" transform: scale(1.08);"  # Enhanced scale effect for card stacking
+            f" opacity: 0.9;"  # Subtle opacity change instead of scale
             "}"
         )
 
-        # Add icon overlay if specified
+        # Add icon overlay if specified (responsible avatars won't pass icon anymore)
         if icon:
             self._add_icon_overlay(icon, size, bg)
 
-        # Enhanced shadow effect for card stacking depth
-        sh = QGraphicsDropShadowEffect(self)
-        sh.setBlurRadius(16); sh.setXOffset(0); sh.setYOffset(4)
+        # Remove shadow effect for minimalist look
+        # sh = QGraphicsDropShadowEffect(self)
+        # sh.setBlurRadius(16); sh.setXOffset(0); sh.setYOffset(4)
         # Set theme-appropriate shadow color with more depth
-        try:
-            from ..theme_manager import ThemeManager
-            theme = ThemeManager.load_theme_setting()
-            shadow_color = QColor(255, 255, 255, 70) if theme == 'dark' else QColor(0, 0, 0, 90)
-        except Exception:
-            shadow_color = QColor(0, 0, 0, 90)  # default to dark shadow
-        sh.setColor(shadow_color)
-        self.setGraphicsEffect(sh)
+        # try:
+        #     from ..theme_manager import ThemeManager
+        #     theme = ThemeManager.load_theme_setting()
+        #     shadow_color = QColor(255, 255, 255, 70) if theme == 'dark' else QColor(0, 0, 0, 90)
+        # except Exception:
+        #     shadow_color = QColor(0, 0, 0, 90)  # default to dark shadow
+        # sh.setColor(shadow_color)
+        # self.setGraphicsEffect(sh)
 
     def enterEvent(self, e):
-        # Bring to front with enhanced shadow effect for stacked cards
-        self.raise_()
-        eff = self.graphicsEffect()
-        if isinstance(eff, QGraphicsDropShadowEffect):
-            eff.setBlurRadius(20); eff.setYOffset(6)
-        # Add subtle scale animation through stylesheet for card effect
-        current_style = self.styleSheet()
-        if "transform: scale(1.08)" not in current_style:
-            self.setStyleSheet(current_style.replace("}", " transform: scale(1.08); }"))
+        # Simple hover behavior - just show popup for members
         super().enterEvent(e)
+        # Show members popup if present (responsible avatar hover behavior)
+        try:
+            if getattr(self, '_popup_members', None):
+                self._show_members_popup()
+        except Exception:
+            pass
 
     def leaveEvent(self, e):
-        # Return to normal shadow and remove scale effect
-        eff = self.graphicsEffect()
-        if isinstance(eff, QGraphicsDropShadowEffect):
-            eff.setBlurRadius(16); eff.setYOffset(4)
-        # Remove scale effect
-        current_style = self.styleSheet()
-        if "transform: scale(1.08);" in current_style:
-            self.setStyleSheet(current_style.replace(" transform: scale(1.08);", ""))
+        # Simple leave behavior - just hide popup
         super().leaveEvent(e)
+        # Hide popup when leaving avatar
+        try:
+            if getattr(self, '_members_popup', None):
+                self._hide_members_popup()
+        except Exception:
+            pass
+
+    def _show_members_popup(self):
+        """Create and show a tooltip-like popup with member names in a vertical list."""
+        try:
+            if not self._popup_members:
+                return
+            # If popup already exists, keep it shown
+            if getattr(self, '_members_popup', None) and self._members_popup.isVisible():
+                return
+            from PyQt5.QtWidgets import QFrame, QVBoxLayout, QLabel
+            from PyQt5.QtCore import Qt
+
+            popup = QFrame(None, Qt.ToolTip)
+            popup.setObjectName('MembersPopup')
+            popup.setWindowFlags(Qt.ToolTip)
+            layout = QVBoxLayout(popup)
+            layout.setContentsMargins(8, 8, 8, 8)
+            layout.setSpacing(4)
+
+            # Style the popup frame with light background and border
+            popup.setStyleSheet("""
+                QFrame#MembersPopup {
+                    background-color: #f8f8f8;
+                    border: 1px solid #cccccc;
+                    border-radius: 4px;
+                }
+            """)
+
+            # Create labels for each member name
+            # First, add the responsible person (bold and distinguished)
+            responsible_label = QLabel(f"★ {self.fullname}", popup)
+            responsible_label.setStyleSheet("color: #000000; font-size: 11px; font-weight: bold; padding: 2px 0px;")
+            layout.addWidget(responsible_label)
+
+            # Then add participant members
+            for node in self._popup_members[:11]:  # Limit to 11 since responsible takes one spot
+                full = (node.get('displayName') or "-").strip() if isinstance(node, dict) else str(node)
+                label = QLabel(f"  {full}", popup)  # Indent with spaces for visual hierarchy
+                label.setStyleSheet("color: #000000; font-size: 11px; padding: 2px 0px;")
+                layout.addWidget(label)
+
+            # Position popup near this avatar (below)
+            gp = self.mapToGlobal(self.rect().bottomLeft())
+            popup.move(gp.x(), gp.y() + 6)
+            popup.show()
+            self._members_popup = popup
+        except Exception:
+            pass
+
+    def _hide_members_popup(self):
+        try:
+            if getattr(self, '_members_popup', None):
+                try:
+                    self._members_popup.hide()
+                    self._members_popup.deleteLater()
+                except Exception:
+                    pass
+                self._members_popup = None
+        except Exception:
+            pass
 
     def _add_icon_overlay(self, icon_type: str, size: int, bg_color: QColor):
         """Add an icon overlay to the avatar bubble."""
@@ -187,6 +247,12 @@ class MembersView(QWidget):
         layout.setSpacing(2 if compact else 4)
 
         members = (item_data.get('members', {}) or {}).get('edges', []) or []
+        # Participants extracted for potential popup display
+        participant_nodes = [
+            (m or {}).get('node', {}) or {}
+            for m in members
+            if not m.get('isResponsible') and ((m.get('node') or {}).get('active', True))
+        ]
 
         # Responsible members as avatar bubbles (centered at top)
         responsible_nodes = [
@@ -202,66 +268,24 @@ class MembersView(QWidget):
             resp_layout.setSpacing(4)  # Small spacing between responsible avatars
             resp_layout.addStretch()  # Left stretch for centering
 
-            resp_size = 32 if not compact else 28  # Match participant avatar size
+            resp_size = 28 if not compact else 24  # Smaller, more subdued size
 
             for node in responsible_nodes[:3]:  # Limit to 3 responsible members
                 full = (node.get('displayName') or "-").strip()
-                bubble = AvatarBubble(full, size=resp_size, overlap_px=0, first=True, salt="responsible-v1", icon="star")
-
+                # Attach participant nodes as popup members when hovering this responsible avatar
+                bubble = AvatarBubble(full, size=resp_size, overlap_px=0, first=True, salt="responsible-v1", icon="", popup_members=participant_nodes)
+                # Do not add icon overlay badge for responsible
                 resp_layout.addWidget(bubble)
 
             resp_layout.addStretch()  # Right stretch for centering
             layout.addLayout(resp_layout)
 
-        # Participants as overlapping avatar bubbles with card stacked effect
-        participant_nodes = [
-            (m or {}).get('node', {}) or {}
-            for m in members
-            if not m.get('isResponsible') and ((m.get('node') or {}).get('active', True))
-        ]
-        row = QHBoxLayout(); row.setContentsMargins(0, 0, 0, 0); row.setSpacing(0)  # No spacing for tight stacking
-
-        first = True
-        orig_size = 32 if not compact else 28  # Slightly larger base size
-        size = int(orig_size * 0.75)  # Better proportion
-        # Calculate overlap for card stacking effect - increased for better coverage
-        overlap_px = int(size * 0.8)  # 80% overlap for more pronounced stacking
-        text_point_size = 8 if size < 22 else 9
-
-        for node in participant_nodes:
-            full = (node.get('displayName') or "-").strip()
-            bubble = AvatarBubble(full, size=size, overlap_px=overlap_px, first=first, salt="my-plugin-v1")
-            font = bubble.font(); font.setPointSize(text_point_size); bubble.setFont(font)
-
-            # Ensure no extra margins from layout
-            if not first:
-                # For non-first bubbles, set negative left margin for overlap
-                bubble.setContentsMargins(-overlap_px, 0, 0, 0)
-
-            first = False
-            row.addWidget(bubble, 0, Qt.AlignVCenter)
-
-        if not participant_nodes:
-            row.addWidget(QLabel("-"), 0, Qt.AlignVCenter)
-
-        layout.addLayout(row)
+    # Participants are now shown only on hover of responsible avatars (popup_members passed above).
 
     def retheme(self):
-        """Update shadow colors and text colors based on current theme."""
-        try:
-            from ..theme_manager import ThemeManager
-            theme = ThemeManager.load_theme_setting()
-        except Exception:
-            theme = 'light'
-
-        # Update shadow colors for all avatar bubbles (both responsible and participants)
-        shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
-
-        for bubble in self.findChildren(AvatarBubble):
-            if bubble.graphicsEffect():
-                bubble.graphicsEffect().setColor(shadow_color)
-
-        # Note: No need to update HTML text colors since responsible members now use AvatarBubble widgets
+        """Update colors based on current theme - no shadows in minimalist design."""
+        # No shadow updates needed since we removed shadows for minimalist look
+        pass
 
     # Optional API for later updates
     def set_item(self, item_data: dict, *, compact: Optional[bool] = None):

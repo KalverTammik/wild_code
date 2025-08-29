@@ -1,7 +1,7 @@
 from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QFrame,
+    QVBoxLayout, QHBoxLayout, QFrame, QPushButton,
     QGraphicsDropShadowEffect
 )
 from .StatusWidget import StatusWidget
@@ -50,12 +50,31 @@ class ModuleFeedBuilder:
         cl.setSpacing(6)
 
         header_row = QHBoxLayout()
-        header_row.setContentsMargins(0, 0, 0, 0)
-        header_row.setSpacing(0)
+        header_row.setContentsMargins(0, 2, 0, 2)  # Add vertical margins for text
+        header_row.setSpacing(6)  # Increase spacing between elements
 
         # Header takes available space, members view stays compact on right
         header_frame = InfocardHeaderFrame(item, module_name=module_name)
         header_row.addWidget(header_frame, 1)  # Header expands
+
+        # Add three smaller buttons between header and members view
+        button1 = QPushButton("")
+        button1.setObjectName("ActionButton1")
+        button1.setFixedSize(20, 18)
+        button1.setToolTip("Action Button 1")
+        header_row.addWidget(button1, 0, Qt.AlignCenter)
+
+        button2 = QPushButton("")
+        button2.setObjectName("ActionButton2")
+        button2.setFixedSize(20, 18)
+        button2.setToolTip("Action Button 2")
+        header_row.addWidget(button2, 0, Qt.AlignCenter)
+
+        button3 = QPushButton("")
+        button3.setObjectName("ActionButton3")
+        button3.setFixedSize(20, 18)
+        button3.setToolTip("Action Button 3")
+        header_row.addWidget(button3, 0, Qt.AlignCenter)
 
         # Members view with optimized width for responsible avatars + card stacking
         members_view = MembersView(item)
