@@ -359,6 +359,7 @@ class InfocardHeaderFrame(QFrame):
         if show_numbers and number and number != '-':
             numberBadge = QLabel(str(number)); numberBadge.setObjectName("ProjectNumberBadge")
             numberBadge.setAlignment(Qt.AlignCenter); numberBadge.setMinimumWidth(24 if not compact else 20)
+            numberBadge.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
 
         nameLabel = ElidedLabel(name); nameLabel.setObjectName("ProjectNameLabel"); nameLabel.setToolTip(name)

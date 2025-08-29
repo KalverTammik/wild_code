@@ -180,25 +180,29 @@ QLabel#ProjectNameLabel {
 
 /* Number badge — DARK (compact pill design) */
 QLabel#ProjectNumberBadge {
-    padding: 1px 6px;
-    border-radius: 8px;
-    font-size: 9px;
-    font-weight: 600;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 10px;
+    font-weight: 700;
     color: #e8f6f6;
-    background: rgba(9,144,143,0.20);
-    border: 1px solid rgba(9,144,143,0.45);
+    background: rgba(9,144,143,0.25);
+    border: 1px solid rgba(9,144,143,0.50);
     min-width: 24px;
-    max-width: 32px;
+    max-width: 80px;
+    text-align: center;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    overflow: hidden;
 }
 QLabel#ProjectNumberBadge:hover {
-    background: rgba(9,144,143,0.25);
-    border-color: rgba(9,144,143,0.55);
+    background: rgba(9,144,143,0.30);
+    border-color: rgba(9,144,143,0.60);
 }
 
 /* Compact tweak - even more compact */
 QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectNumberBadge {
-    font-size: 8px;
-    padding: 1px 4px;
+    font-size: 9px;
+    padding: 1px 3px;
     min-width: 20px;
-    max-width: 28px;
+    max-width: 70px;
 }
