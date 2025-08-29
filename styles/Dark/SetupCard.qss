@@ -39,14 +39,15 @@
 }
 
 #SetupCard QGroupBox::title {
-    color: #e0e0e6;
+    color: #4ade80;
     padding: 8px 12px;
     left: 8px;
     top: -8px;
     background: #1f262d;
     border-radius: 4px;
-    font-weight: 600;
-    font-size: 12px;
+    font-weight: 700;
+    font-size: 13px;
+    border: 1px solid rgba(74,222,128,0.3);
 }
 
 /* Group explanation text */
@@ -58,9 +59,15 @@
 }
 
 /* Titles */
-#SetupCardTitle                           { font-weight: 600; font-size: 13px; }
+#SetupCardTitle                           { font-weight: 600; font-size: 14px; }
 #SetupCardDescription                     { color: #aab; }
-#SetupCard QLabel#SetupCardSectionTitle   { color: #e0e0e6; font-weight: 600; }
+#SetupCard QLabel#SetupCardSectionTitle   { 
+    color: #4ade80; 
+    font-weight: 700; 
+    font-size: 13px;
+    padding: 4px 0px 2px 0px;
+    margin-bottom: 4px;
+}
 
 /* -----------------------------------------
    Roles (read-only pills)

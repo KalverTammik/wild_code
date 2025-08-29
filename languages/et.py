@@ -34,7 +34,7 @@ TRANSLATIONS = {
     "Open Settings": "Ava Seaded",
     # Lisatud: ModuleCard/kihi valija sildid
     "Modules main layer": "Mooduli põhikiht",
-    "Archive layer": "Arhiivikihi",
+    "Archive layer": "Arhiivikiht",
     "Select layer": "Vali kiht",
     "Choose layers used by this module (element and archive).": "Vali selle mooduli kasutatavad kihid (elemendi ja arhiivi)."
     ,"logout_button_tooltip": "Logi välja"
