@@ -41,7 +41,7 @@ class ModuleCard(BaseCard):
         cw = self.content_widget()
         cl = QVBoxLayout(cw)
         cl.setContentsMargins(0, 0, 0, 0)
-        cl.setSpacing(12)  # Increased spacing between groups
+        cl.setSpacing(16)  # Increased spacing between groups for better separation
 
         # Main layer group
         main_group = QGroupBox(self.lang_manager.translate("Modules main layer"), cw)
@@ -91,7 +91,7 @@ class ModuleCard(BaseCard):
         display_group = QGroupBox(self.lang_manager.translate("Display Options"), cw)
         display_group.setObjectName("DisplayOptionsGroup")
         display_layout = QVBoxLayout(display_group)
-        display_layout.setContentsMargins(8, 8, 8, 8)
+        display_layout.setContentsMargins(8, 16, 8, 8)  # Increased top margin to avoid overlap
         display_layout.setSpacing(8)
 
         # Show numbers checkbox
