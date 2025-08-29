@@ -56,7 +56,7 @@ class ModuleCard(BaseCard):
         main_layout.addWidget(self._element_picker, 2)  # Give more space to dropdown
 
         # Right side - Explanation text
-        explanation1 = QLabel("This is the primary layer for your module. Choose the layer that contains the main data you want to work with. This setting determines which layer will be used as the foundation for all module operations.", main_group)
+        explanation1 = QLabel("See on teie mooduli põhikiht. Valige kiht, mis sisaldab peamisi andmeid, millega soovite töötada. See säte määrab, millist kihti kasutatakse alusena kõigi mooduli toimingute jaoks.", main_group)
         explanation1.setObjectName("GroupExplanation")
         explanation1.setWordWrap(True)
         explanation1.setStyleSheet("color: #888; font-size: 11px; padding: 4px 0px;")
@@ -78,7 +78,7 @@ class ModuleCard(BaseCard):
         archive_layout.addWidget(self._archive_picker, 2)
 
         # Right side - Explanation text
-        explanation2 = QLabel("This optional archive layer stores historical or backup data. Use this when you need to maintain a separate record of changes or historical versions of your data.", archive_group)
+        explanation2 = QLabel("See valikuline arhiivikiht salvestab ajaloolisi või varukoopia andmeid. Kasutage seda, kui vajate muudatuste või andmete ajalooliste versioonide eraldi kirjet.", archive_group)
         explanation2.setObjectName("GroupExplanation")
         explanation2.setWordWrap(True)
         explanation2.setStyleSheet("color: #888; font-size: 11px; padding: 4px 0px;")
