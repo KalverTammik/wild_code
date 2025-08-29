@@ -27,16 +27,21 @@ QFrame#CardContent { background: transparent; }
 
 QLabel#ProjectNameLabel {
     color: #111416;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.1px;
 }
 
 QLabel#ProjectClientLabel,
 QLabel#ProjectResponsibleLabel,
 QLabel#ProjectParticipantsLabel {
     color: #24292e;
-    font-size: 12px;
+    font-size: 11px;
+}
+
+QLabel#ClientIcon {
+    color: rgba(36,41,46,0.85);
+    font-size: 10px;
 }
 
 QLabel#ProjectPrivateIcon {
@@ -123,19 +128,49 @@ QFrame#InfocardHeaderFrame {
 
 
 QLabel#ProjectNumberBadge {
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 9px;
     font-weight: 600;
     color: #0b3d91;
     background: rgba(0,120,212,0.12);
     border: 1px solid rgba(0,120,212,0.45);
-    min-width: 32px;
+    min-width: 24px;
+    max-width: 32px;
 }
 
 QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectNumberBadge {
-    font-size: 9px;
-    padding: 1px 6px;
-    min-width: 28px;
+    font-size: 8px;
+    padding: 1px 4px;
+    min-width: 20px;
+    max-width: 28px;
+}
+
+/* Compact mode - ultra compact for Light theme */
+QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectNameLabel {
+    font-size: 12px;
+}
+QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectClientLabel {
+    font-size: 10px;
+}
+
+/* Overall header frame compact styling */
+QFrame#InfocardHeaderFrame {
+    min-height: 32px;
+}
+QFrame#InfocardHeaderFrame[compact="true"] {
+    min-height: 28px;
+}
+
+/* Avatar bubble improvements for better appearance */
+QLabel {
+    /* Ensure smooth transitions for avatar bubbles */
+    transition: all 0.15s ease;
+}
+
+/* Improve avatar bubble container spacing */
+QHBoxLayout {
+    /* Ensure proper spacing between avatar bubbles */
+    margin-left: -2px;  /* Compensate for overlap margins */
 }
 

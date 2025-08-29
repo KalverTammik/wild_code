@@ -7,6 +7,153 @@ from typing import Dict
 from ..theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
 
+class CompactTagsWidget(QWidget):
+    """Compact tag display showing limited tags with overflow indicator."""
+
+    def __init__(self, item_data: Dict, parent=None, max_visible=3):
+        super().__init__(parent)
+        self.setObjectName("CompactTagsWidget")
+        self.item_data = item_data
+        self.max_visible = max_visible
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(4)  # tighter spacing for compact design
+
+        tags_edges = ((item_data or {}).get('tags') or {}).get('edges') or []
+        names = [((e or {}).get('node') or {}).get('name') for e in tags_edges]
+        names = [n.strip() for n in names if isinstance(n, str) and n.strip()]
+
+        if not names:
+            self.setVisible(False)
+            return
+
+        # Determine current theme for shadow color selection
+        try:
+            _theme = ThemeManager.load_theme_setting()
+        except Exception:
+            _theme = 'light'
+        is_dark = (_theme == 'dark')
+
+        # Show limited number of tags
+        visible_tags = names[:max_visible]
+        overflow_count = len(names) - max_visible
+
+        for n in visible_tags:
+            pill = self._create_tag_pill(n, is_dark)
+            row.addWidget(pill, 0, Qt.AlignVCenter)
+
+        # Add overflow indicator if needed
+        if overflow_count > 0:
+            overflow_pill = self._create_overflow_pill(f"+{overflow_count}", is_dark)
+            row.addWidget(overflow_pill, 0, Qt.AlignVCenter)
+
+        # Apply styling
+        ThemeManager.apply_module_style(self, [QssPaths.PILLS])
+        self.setVisible(True)
+
+    def _create_tag_pill(self, tag_name: str, is_dark: bool):
+        """Create a compact tag pill."""
+        # Outer holder for shadow
+        holder = QFrame(self)
+        holder.setObjectName("CompactTagHolder")
+        holder.setFrameShape(QFrame.NoFrame)
+        holder.setAttribute(Qt.WA_StyledBackground, False)
+        holder.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        hL = QHBoxLayout(holder)
+        hL.setContentsMargins(2, 2, 2, 2)  # smaller margins for compact design
+        hL.setSpacing(0)
+
+        # Inner colored pill
+        pill = QFrame(holder)
+        pill.setObjectName("CompactTagPill")
+        pill.setProperty("role", "compact_tag")
+        pill.setFrameShape(QFrame.NoFrame)
+        pill.setAttribute(Qt.WA_StyledBackground, True)
+        pill.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        pl = QHBoxLayout(pill)
+        pl.setContentsMargins(4, 1, 4, 1)  # smaller padding
+        pl.setSpacing(0)
+
+        lbl = QLabel(tag_name, pill)
+        lbl.setObjectName("CompactTagLabel")
+        lbl.setTextInteractionFlags(Qt.NoTextInteraction)
+        pl.addWidget(lbl, 0, Qt.AlignVCenter)
+
+        hL.addWidget(pill, 0, Qt.AlignVCenter)
+
+        # Shadow effect
+        eff = QGraphicsDropShadowEffect(holder)
+        eff.setBlurRadius(8)  # smaller blur for compact design
+        eff.setOffset(0, 1)
+        eff.setColor(QColor(255,255,255,50) if is_dark else QColor(0,0,0,50))
+        holder.setGraphicsEffect(eff)
+
+        return holder
+
+    def _create_overflow_pill(self, overflow_text: str, is_dark: bool):
+        """Create overflow indicator pill."""
+        holder = QFrame(self)
+        holder.setObjectName("OverflowTagHolder")
+        holder.setFrameShape(QFrame.NoFrame)
+        holder.setAttribute(Qt.WA_StyledBackground, False)
+        holder.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        hL = QHBoxLayout(holder)
+        hL.setContentsMargins(2, 2, 2, 2)
+        hL.setSpacing(0)
+
+        pill = QFrame(holder)
+        pill.setObjectName("OverflowTagPill")
+        pill.setProperty("role", "overflow_tag")
+        pill.setFrameShape(QFrame.NoFrame)
+        pill.setAttribute(Qt.WA_StyledBackground, True)
+        pill.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        pl = QHBoxLayout(pill)
+        pl.setContentsMargins(3, 1, 3, 1)
+        pl.setSpacing(0)
+
+        lbl = QLabel(overflow_text, pill)
+        lbl.setObjectName("OverflowTagLabel")
+        lbl.setTextInteractionFlags(Qt.NoTextInteraction)
+        pl.addWidget(lbl, 0, Qt.AlignVCenter)
+
+        hL.addWidget(pill, 0, Qt.AlignVCenter)
+
+        # Shadow effect
+        eff = QGraphicsDropShadowEffect(holder)
+        eff.setBlurRadius(6)
+        eff.setOffset(0, 1)
+        eff.setColor(QColor(255,255,255,40) if is_dark else QColor(0,0,0,40))
+        holder.setGraphicsEffect(eff)
+
+        return holder
+
+    def retheme(self):
+        """Re-apply QSS and update shadow colors according to current theme."""
+        ThemeManager.apply_module_style(self, [QssPaths.PILLS])
+        try:
+            theme = ThemeManager.load_theme_setting()
+        except Exception:
+            theme = 'light'
+        is_dark = (theme == 'dark')
+        new_color = QColor(255,255,255,50) if is_dark else QColor(0,0,0,50)
+        overflow_color = QColor(255,255,255,40) if is_dark else QColor(0,0,0,40)
+
+        for holder in self.findChildren(QFrame, "CompactTagHolder"):
+            eff = holder.graphicsEffect()
+            if isinstance(eff, QGraphicsDropShadowEffect):
+                eff.setColor(new_color)
+
+        for holder in self.findChildren(QFrame, "OverflowTagHolder"):
+            eff = holder.graphicsEffect()
+            if isinstance(eff, QGraphicsDropShadowEffect):
+                eff.setColor(overflow_color)
+
+
 class TagsWidget(QWidget):
     def __init__(self, item_data: Dict, parent=None):
         super().__init__(parent)

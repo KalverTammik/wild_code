@@ -22,42 +22,20 @@ class FeedCounterWidget(QWidget):
         self._update_display()
 
     def _update_display(self):
-        """Update the display with current theme colors."""
+        """Update the display with neutral colors."""
         loaded = self._loaded
         total = self._total
 
-        # Get theme-appropriate colors
-        try:
-            from ..widgets.theme_manager import ThemeManager
-            theme = ThemeManager.load_theme_setting()
-        except Exception:
-            theme = 'light'
-
-        if theme == 'dark':
-            loaded_color = '#09908f'  # teal accent
-            total_color = '#e8e9ef'   # light text
-        else:
-            loaded_color = '#0078d7'  # blue
-            total_color = '#d70078'   # magenta
-
-        # Use HTML for independent styling
+        # Use plain text without colors
         if total is None or total == "" or total == -1:
             # Unknown total – show only loaded portion
-            self._label.setText(
-                f'<span>Loaded </span>'
-                f'<span style="color:{loaded_color};font-weight:bold;">{loaded}</span>'
-            )
+            self._label.setText(f'Loaded {loaded}')
         else:
-            self._label.setText(
-                f'<span>Loaded </span>'
-                f'<span style="color:{loaded_color};font-weight:bold;">{loaded}</span>'
-                f'<span> of </span>'
-                f'<span style="color:{total_color};font-weight:bold;">{total}</span>'
-            )
+            self._label.setText(f'Loaded {loaded} of {total}')
 
     def retheme(self):
-        """Update colors based on current theme."""
-        self._update_display()
+        """No theme-specific colors needed anymore."""
+        pass
 
     def loaded(self):
         return self._loaded

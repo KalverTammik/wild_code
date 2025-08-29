@@ -58,14 +58,15 @@ class AvatarUtils:
 
 
 class AvatarBubble(QLabel):
-    def __init__(self, fullname: str, size: int = 28, overlap_px: int = 8, first=False, salt: str = "", parent=None):
+    def __init__(self, fullname: str, size: int = 28, overlap_px: int = 8, first=False, salt: str = "", icon: str = "", parent=None):
         super().__init__(parent)
         self.fullname = (fullname or "-").strip()
         self.base_size = size
+        self.icon_type = icon
 
         self.setText(AvatarUtils.initials(self.fullname))
         self.setAlignment(Qt.AlignCenter)
-        f = QFont(); f.setBold(True); f.setPointSize(10 if size >= 28 else 9)
+        f = QFont(); f.setBold(True); f.setPointSize(9 if size >= 28 else 8)
         self.setFont(f)
         self.setToolTip(self.fullname)
         self.setFixedSize(size, size)
@@ -74,44 +75,102 @@ class AvatarBubble(QLabel):
         fg_hex = AvatarUtils.fg_for_bg(bg)
         border = AvatarUtils.border_for_bg(bg)
 
-        ml = 0 if first else -overlap_px
+        # Use the provided overlap_px parameter for precise card stacking
+        # Note: overlap is now handled by QWidget contents margins in the layout
+        overlap_margin = 0  # No CSS margin needed when using QWidget margins
+
         self.setStyleSheet(
             "QLabel {"
-            f" margin-left:{ml}px;"
+            f" margin:0px;"  # No margins, overlap handled by layout
             f" background-color: {AvatarUtils.rgb_css(bg)};"
             f" color: {fg_hex};"
-            f" border: 1px solid {AvatarUtils.rgb_css(border)};"
+            f" border: 1.5px solid {AvatarUtils.rgb_css(border)};"
             f" border-radius: {size//2}px;"
+            f" font-weight: 700;"  # Bolder font weight
+            f" letter-spacing: -0.3px;"  # Slightly less tight spacing
+            f" padding: 3px;"  # Increased padding for better letter spacing
+            "} "
+            "QLabel:hover {"
+            f" border-width: 2px;"
+            f" border-color: {AvatarUtils.rgb_css(border)};"
+            f" z-index: 999;"  # Bring to front on hover
+            f" position: relative;"  # Enable z-index
+            f" transform: scale(1.08);"  # Enhanced scale effect for card stacking
             "}"
-            "QLabel:hover { border-width: 2px; }"
         )
 
+        # Add icon overlay if specified
+        if icon:
+            self._add_icon_overlay(icon, size, bg)
+
+        # Enhanced shadow effect for card stacking depth
         sh = QGraphicsDropShadowEffect(self)
-        sh.setBlurRadius(14); sh.setXOffset(0); sh.setYOffset(2)
-        # Set theme-appropriate shadow color
+        sh.setBlurRadius(16); sh.setXOffset(0); sh.setYOffset(4)
+        # Set theme-appropriate shadow color with more depth
         try:
             from ..theme_manager import ThemeManager
             theme = ThemeManager.load_theme_setting()
-            shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
+            shadow_color = QColor(255, 255, 255, 70) if theme == 'dark' else QColor(0, 0, 0, 90)
         except Exception:
-            shadow_color = QColor(0, 0, 0, 120)  # default to dark shadow
+            shadow_color = QColor(0, 0, 0, 90)  # default to dark shadow
         sh.setColor(shadow_color)
         self.setGraphicsEffect(sh)
 
     def enterEvent(self, e):
-        self.setFixedSize(self.base_size + 6, self.base_size + 6)
+        # Bring to front with enhanced shadow effect for stacked cards
         self.raise_()
         eff = self.graphicsEffect()
         if isinstance(eff, QGraphicsDropShadowEffect):
-            eff.setBlurRadius(18); eff.setYOffset(3)
+            eff.setBlurRadius(20); eff.setYOffset(6)
+        # Add subtle scale animation through stylesheet for card effect
+        current_style = self.styleSheet()
+        if "transform: scale(1.08)" not in current_style:
+            self.setStyleSheet(current_style.replace("}", " transform: scale(1.08); }"))
         super().enterEvent(e)
 
     def leaveEvent(self, e):
-        self.setFixedSize(self.base_size, self.base_size)
+        # Return to normal shadow and remove scale effect
         eff = self.graphicsEffect()
         if isinstance(eff, QGraphicsDropShadowEffect):
-            eff.setBlurRadius(14); eff.setYOffset(2)
+            eff.setBlurRadius(16); eff.setYOffset(4)
+        # Remove scale effect
+        current_style = self.styleSheet()
+        if "transform: scale(1.08);" in current_style:
+            self.setStyleSheet(current_style.replace(" transform: scale(1.08);", ""))
         super().leaveEvent(e)
+
+    def _add_icon_overlay(self, icon_type: str, size: int, bg_color: QColor):
+        """Add an icon overlay to the avatar bubble."""
+        from PyQt5.QtWidgets import QLabel
+        from PyQt5.QtGui import QFont
+
+        # Create icon label
+        icon_label = QLabel("★", self)  # Star icon placeholder
+        icon_label.setAlignment(Qt.AlignCenter)
+
+        # Calculate icon size (about 40% of avatar size)
+        icon_size = max(10, int(size * 0.4))
+        icon_label.setFixedSize(icon_size, icon_size)
+
+        # Position at bottom right corner
+        icon_x = size - icon_size - 2  # 2px padding from edge
+        icon_y = size - icon_size - 2
+        icon_label.move(icon_x, icon_y)
+
+        # Style the icon
+        fg_color = AvatarUtils.fg_for_bg(bg_color)
+        icon_label.setStyleSheet(
+            f"QLabel {{"
+            f" color: {fg_color};"
+            f" font-size: {icon_size-2}px;"
+            f" font-weight: bold;"
+            f" background: transparent;"
+            f" text-shadow: 1px 1px 2px rgba(0,0,0,0.5);"
+            f"}}"
+        )
+
+        # Store reference to prevent garbage collection
+        self.icon_overlay = icon_label
 
 
 class MembersView(QWidget):
@@ -129,57 +188,56 @@ class MembersView(QWidget):
 
         members = (item_data.get('members', {}) or {}).get('edges', []) or []
 
-        # Responsible (bold; strike if deleted)
-        responsible_html = []
-        plain_tooltip_names = []
-        for m in members:
-            node = (m or {}).get('node', {}) or {}
-            if m.get('isResponsible'):
-                name = html.escape((node.get('displayName') or "-").strip()).replace(" ", "\u00A0")
-                plain_tooltip_names.append(name)
-                if node.get('deletedAt'):
-                    responsible_html.append(f"<span style='text-decoration:line-through;color:#9aa0a6;'>{name}</span>")
-                else:
-                    responsible_html.append(f"<span style='font-weight:600;'>{name}</span>")
+        # Responsible members as avatar bubbles (centered at top)
+        responsible_nodes = [
+            (m or {}).get('node', {}) or {}
+            for m in members
+            if m.get('isResponsible') and ((m.get('node') or {}).get('active', True))
+        ]
 
-        def collapse(html_list):
-            if not html_list:
-                return "-", None
-            if len(html_list) <= self.MAX_NAMES_VISIBLE:
-                return ", ".join(html_list), ", ".join(plain_tooltip_names)
-            shown = ", ".join(html_list[: self.MAX_NAMES_VISIBLE])
-            more = len(html_list) - self.MAX_NAMES_VISIBLE
-            return f"{shown} <span style='opacity:.8'>(+{more} veel)</span>", ", ".join(plain_tooltip_names)
+        if responsible_nodes:
+            # Create horizontal layout for responsible avatars
+            resp_layout = QHBoxLayout()
+            resp_layout.setContentsMargins(0, 0, 0, 0)
+            resp_layout.setSpacing(4)  # Small spacing between responsible avatars
+            resp_layout.addStretch()  # Left stretch for centering
 
-        resp_short, resp_tip = collapse(responsible_html)
-        resp = QLabel(f"{resp_short}")
-        resp.setTextFormat(Qt.RichText)
-        resp.setObjectName("ProjectResponsibleLabel")
-        resp.setWordWrap(False)
-        resp.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        if resp_tip:
-            resp.setToolTip(resp_tip)
-        layout.addWidget(resp)
+            resp_size = 32 if not compact else 28  # Match participant avatar size
 
-        # Participants as overlapping avatar bubbles
+            for node in responsible_nodes[:3]:  # Limit to 3 responsible members
+                full = (node.get('displayName') or "-").strip()
+                bubble = AvatarBubble(full, size=resp_size, overlap_px=0, first=True, salt="responsible-v1", icon="star")
+
+                resp_layout.addWidget(bubble)
+
+            resp_layout.addStretch()  # Right stretch for centering
+            layout.addLayout(resp_layout)
+
+        # Participants as overlapping avatar bubbles with card stacked effect
         participant_nodes = [
             (m or {}).get('node', {}) or {}
             for m in members
             if not m.get('isResponsible') and ((m.get('node') or {}).get('active', True))
         ]
-        row = QHBoxLayout(); row.setContentsMargins(0, 0, 0, 0); row.setSpacing(0)
+        row = QHBoxLayout(); row.setContentsMargins(0, 0, 0, 0); row.setSpacing(0)  # No spacing for tight stacking
 
         first = True
-        orig_size = 28 if not compact else 24
-        size = int(orig_size * 0.7)
-        orig_overlap = 10 if not compact else 8
-        overlap = int(orig_overlap * 1.2)
-        text_point_size = 8 if size < 20 else 9
+        orig_size = 32 if not compact else 28  # Slightly larger base size
+        size = int(orig_size * 0.75)  # Better proportion
+        # Calculate overlap for card stacking effect - increased for better coverage
+        overlap_px = int(size * 0.8)  # 80% overlap for more pronounced stacking
+        text_point_size = 8 if size < 22 else 9
 
         for node in participant_nodes:
             full = (node.get('displayName') or "-").strip()
-            bubble = AvatarBubble(full, size=size, overlap_px=overlap, first=first, salt="my-plugin-v1")
+            bubble = AvatarBubble(full, size=size, overlap_px=overlap_px, first=first, salt="my-plugin-v1")
             font = bubble.font(); font.setPointSize(text_point_size); bubble.setFont(font)
+
+            # Ensure no extra margins from layout
+            if not first:
+                # For non-first bubbles, set negative left margin for overlap
+                bubble.setContentsMargins(-overlap_px, 0, 0, 0)
+
             first = False
             row.addWidget(bubble, 0, Qt.AlignVCenter)
 
@@ -196,23 +254,14 @@ class MembersView(QWidget):
         except Exception:
             theme = 'light'
 
-        # Update shadow colors for all avatar bubbles
+        # Update shadow colors for all avatar bubbles (both responsible and participants)
         shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
 
         for bubble in self.findChildren(AvatarBubble):
             if bubble.graphicsEffect():
                 bubble.graphicsEffect().setColor(shadow_color)
 
-        # Update deleted member text color
-        deleted_color = "#B0B0B0" if theme == 'dark' else "#9aa0a6"
-        for label in self.findChildren(QLabel, "ProjectResponsibleLabel"):
-            # Re-apply the HTML with updated color
-            current_text = label.text()
-            if "<span style='text-decoration:line-through;" in current_text:
-                # Replace the old color with new color
-                import re
-                updated_text = re.sub(r'color:#[0-9a-fA-F]{6}', f'color:{deleted_color}', current_text)
-                label.setText(updated_text)
+        # Note: No need to update HTML text colors since responsible members now use AvatarBubble widgets
 
     # Optional API for later updates
     def set_item(self, item_data: dict, *, compact: Optional[bool] = None):
@@ -220,7 +269,7 @@ class MembersView(QWidget):
             self.setProperty("compact", compact)
         # rebuild
         for i in reversed(range(self.layout().count())):
-            w = self.layout().itemAt(i).widget()
+            w = self.layout.itemAt(i).widget()
             if w:
                 w.setParent(None)
         self._build(item_data, bool(self.property("compact")))

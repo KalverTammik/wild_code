@@ -1,5 +1,6 @@
 /* TagsWidget container nudge */
 #TagsWidget { margin-left: 8px; }
+#CompactTagsWidget { margin-left: 4px; }
 
 /* Base tag pill */
 #TagPill[role="tag"] {
@@ -10,10 +11,40 @@
   transition: 120ms ease;
 }
 
+/* Compact tag pill - smaller and more subtle */
+#CompactTagPill[role="compact_tag"] {
+  border-radius: 3px;
+  background: rgba(9, 144, 144, 0.20);
+  color: #24292e;
+  border: 1px solid rgba(9,144,143,0.25);
+  transition: 100ms ease;
+  min-height: 16px;
+}
+
+/* Overflow tag pill - even more subtle */
+#OverflowTagPill[role="overflow_tag"] {
+  border-radius: 3px;
+  background: rgba(0,0,0,0.06);
+  color: rgba(36,41,46,0.70);
+  border: 1px solid rgba(0,0,0,0.12);
+  transition: 100ms ease;
+  min-height: 16px;
+}
+
 /* Hover / active feedback */
 #TagPill[role="tag"]:hover {
   border-color: rgba(9,144,143,0.55);
   background: rgba(9,144,143,0.14);
+}
+
+#CompactTagPill[role="compact_tag"]:hover {
+  border-color: rgba(9,144,143,0.45);
+  background: rgba(9, 144, 144, 0.25);
+}
+
+#OverflowTagPill[role="overflow_tag"]:hover {
+  border-color: rgba(0,0,0,0.20);
+  background: rgba(0,0,0,0.08);
 }
 
 /* Optional muted variant (if you set pill.setProperty("inactive", True)) */
@@ -31,6 +62,63 @@
   margin: 0;
   font-size: 9px;                               /* tidy, compact */
   color: inherit;
+}
+
+/* Compact tag label - smaller font */
+#CompactTagPill[role="compact_tag"] QLabel#CompactTagLabel {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 8px;
+  font-weight: 500;
+  color: #24292e;
+}
+
+/* Overflow tag label - smallest and most subtle */
+#OverflowTagPill[role="overflow_tag"] QLabel#OverflowTagLabel {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 7px;
+  font-weight: 600;
+  color: rgba(36,41,46,0.70);
+}
+
+/* Improved TagsHoverButton styling */
+QToolButton#TagsHoverButton {
+  border: none;
+  background: transparent;
+  color: rgba(36,41,46,0.7);
+  border-radius: 2px;
+  padding: 1px;
+}
+
+QToolButton#TagsHoverButton:hover {
+  background: rgba(9,144,143,0.1);
+  color: rgba(9,144,143,0.9);
+}
+
+/* Tags popup header */
+QLabel#TagsPopupHeader {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(36,41,46,0.8);
+  margin-bottom: 4px;
+}
+
+/* Enhanced TagsPopup styling */
+QWidget#TagsPopup {
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(9, 144, 143, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15), 0 2px 8px rgba(9, 144, 143, 0.1);
+}
+
+/* Compact density (if you ever set pill.setProperty("compact", True)) */
+#TagPill[role="tag"][compact="true"] {
+  border-radius: 5px;
 }
 
 /* Compact density (if you ever set pill.setProperty("compact", True)) */

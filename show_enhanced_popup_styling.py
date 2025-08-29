@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""
+Demonstration of the enhanced tag popup styling with shadow and light blue frame
+"""
+
+def demonstrate_enhanced_tag_popup_styling():
+    print("🎨 ENHANCED TAG POPUP STYLING")
+    print("=" * 40)
+
+    print("\n✨ NEW STYLING FEATURES:")
+    print("-" * 25)
+    print("✅ Small shadow for depth")
+    print("✅ Light blue frame border")
+    print("✅ Rounded corners (8px)")
+    print("✅ Layered shadow effects")
+    print("✅ Semi-transparent background")
+    print("✅ Theme-aware colors")
+
+    print("\n🎨 VISUAL DESIGN:")
+    print("-" * 15)
+
+    print("DARK THEME:")
+    print("  Background: rgba(33, 37, 43, 0.95)")
+    print("  Border: 2px solid rgba(9, 144, 143, 0.4)")
+    print("  Border-radius: 8px")
+    print("  Box-shadow: 0 4px 16px rgba(0,0,0,0.3),")
+    print("             0 2px 8px rgba(9, 144, 143, 0.15)")
+
+    print("\nLIGHT THEME:")
+    print("  Background: rgba(255, 255, 255, 0.95)")
+    print("  Border: 2px solid rgba(9, 144, 143, 0.3)")
+    print("  Border-radius: 8px")
+    print("  Box-shadow: 0 4px 16px rgba(0,0,0,0.15),")
+    print("             0 2px 8px rgba(9, 144, 143, 0.1)")
+
+    print("\n📋 COMPLETE POPUP EXAMPLE:")
+    print("-" * 30)
+    print("┌─────────────────────────────────────┐")
+    print("│  🏷️  Tags (5)                      │")
+    print("│                                     │")
+    print("│  ┌─────────────┐  ┌─────────────┐   │")
+    print("│  │Priority:High│  │Department:IT│   │")
+    print("│  └─────────────┘  └─────────────┘   │")
+    print("│                                     │")
+    print("│  ┌─────────────┐  ┌─────────────┐   │")
+    print("│  │Status:Active│  │Client:ABC   │   │")
+    print("│  └─────────────┘  │Corp        │   │")
+    print("│                   └─────────────┘   │")
+    print("│                                     │")
+    print("│  ┌─────────────┐                    │")
+    print("│  │Phase:Dev.   │                    │")
+    print("│  └─────────────┘                    │")
+    print("└─────────────────────────────────────┘")
+    print("          ▲ Light blue frame")
+    print("          ▲ Rounded corners")
+    print("          ▲ Subtle shadow")
+
+    print("\n🎯 DESIGN BENEFITS:")
+    print("-" * 20)
+    print("• Professional appearance")
+    print("• Clear visual separation")
+    print("• Matches overall app style")
+    print("• Enhanced readability")
+    print("• Modern UI aesthetics")
+    print("• Consistent with QGIS design")
+
+    print("\n🔧 TECHNICAL FEATURES:")
+    print("-" * 23)
+    print("• Layered shadow effects")
+    print("• Semi-transparent backgrounds")
+    print("• Theme-responsive colors")
+    print("• Smooth border radius")
+    print("• Proper contrast ratios")
+    print("• Accessibility compliant")
+
+    print("\n📱 USER EXPERIENCE:")
+    print("-" * 20)
+    print("• Clear popup boundaries")
+    print("• Easy to read content")
+    print("• Professional feel")
+    print("• Consistent with app design")
+    print("• Enhanced visual hierarchy")
+
+if __name__ == "__main__":
+    demonstrate_enhanced_tag_popup_styling()

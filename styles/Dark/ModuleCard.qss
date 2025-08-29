@@ -29,18 +29,18 @@ QFrame#ModuleInfoCard[compact="true"] {
 /* content area (optional if you want a divider feel) */
 QFrame#CardContent { background: transparent; }
 
-/* header labels */
+/* header labels - more compact */
 QLabel#ProjectNameLabel {
     color: #e8e9ef;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.1px;
 }
 QLabel#ProjectClientLabel,
 QLabel#ProjectResponsibleLabel,
 QLabel#ProjectParticipantsLabel {
     color: #c5c5d2;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 /* private icon */
@@ -138,11 +138,36 @@ QLabel#ProjectClientLabel {
 }
 QLabel#ClientIcon {
     color: rgba(197,197,210,0.85);
+    font-size: 10px;
 }
 
-/* Compact */
-QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectNameLabel { font-size: 14px; }
-QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectClientLabel { font-size: 11px; }
+/* Compact mode - ultra compact */
+QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectNameLabel {
+    font-size: 12px;
+}
+QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectClientLabel {
+    font-size: 10px;
+}
+
+/* Overall header frame compact styling */
+QFrame#InfocardHeaderFrame {
+    min-height: 32px;
+}
+QFrame#InfocardHeaderFrame[compact="true"] {
+    min-height: 28px;
+}
+
+/* Avatar bubble improvements for better appearance */
+QLabel {
+    /* Ensure smooth transitions for avatar bubbles */
+    transition: all 0.15s ease;
+}
+
+/* Improve avatar bubble container spacing */
+QHBoxLayout {
+    /* Ensure proper spacing between avatar bubbles */
+    margin-left: -2px;  /* Compensate for overlap margins */
+}
 
 
 /* Name line (kept for completeness) */
@@ -153,24 +178,27 @@ QLabel#ProjectNameLabel {
     letter-spacing: 0.2px;
 }
 
-/* Number badge — DARK (pill, smaller, polite) */
+/* Number badge — DARK (compact pill design) */
 QLabel#ProjectNumberBadge {
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 9px;
     font-weight: 600;
     color: #e8f6f6;
     background: rgba(9,144,143,0.20);
     border: 1px solid rgba(9,144,143,0.45);
+    min-width: 24px;
+    max-width: 32px;
 }
 QLabel#ProjectNumberBadge:hover {
     background: rgba(9,144,143,0.25);
     border-color: rgba(9,144,143,0.55);
 }
 
-/* Compact tweak */
+/* Compact tweak - even more compact */
 QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectNumberBadge {
-    font-size: 9px;
-    padding: 1px 6px;
-    min-width: 28px;
+    font-size: 8px;
+    padding: 1px 4px;
+    min-width: 20px;
+    max-width: 28px;
 }

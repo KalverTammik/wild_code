@@ -18,6 +18,10 @@ Näide uue idee lisamiseks:
 - ⚪ Määramata
 
 # 🟩 **UUED IDEED**
+🟢 TEHA 2025-08-29: Tagide stiilide täiustamine ja probleemide lahendamine
+	- Vastutaja: Anneli
+	- Uurida ja lahendada tagide kuvamise stiiliprobleeme, sealhulgas TagsPopup stiilide rakendamine, värvide ühtlustamine ja visuaalse järjepidevuse tagamine. Kontrollida CSS konflikte, teemadevahelist ühilduvust ja kasutajaliidese järjepidevust.
+
 # 🟢 TEHA 2025-08-19: Kontrolli OverdueCounterWidgeti
 	- Vastutaja: Anneli
 	- Kontrolli, kas OverdueCounterWidget töötab ootuspäraselt ja kas loendamine ning kuvamine on korrektne.

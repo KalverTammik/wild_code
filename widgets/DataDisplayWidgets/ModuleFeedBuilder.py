@@ -57,9 +57,9 @@ class ModuleFeedBuilder:
         header_frame = InfocardHeaderFrame(item, module_name=module_name)
         header_row.addWidget(header_frame, 1)  # Header expands
 
-        # Members view with fixed width to prevent layout shifts
+        # Members view with optimized width for responsible avatars + card stacking
         members_view = MembersView(item)
-        members_view.setFixedWidth(120)  # Fixed width for consistent alignment
+        members_view.setFixedWidth(140)  # Increased width for responsible avatars
         header_row.addWidget(members_view, 0, Qt.AlignRight | Qt.AlignTop)
 
         cl.addLayout(header_row)

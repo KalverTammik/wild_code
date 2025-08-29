@@ -47,24 +47,66 @@ class TagPopup(QWidget):
     def __init__(self, item_data: dict, parent=None):
         super().__init__(parent, flags=Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setObjectName("TagsPopup")
-        self.setAttribute(Qt.WA_TranslucentBackground, False)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)
         self.setFocusPolicy(Qt.NoFocus)
         self.setMouseTracking(True)
 
-        lay = QHBoxLayout(self)
-        lay.setContentsMargins(8, 8, 8, 8)
-        lay.setSpacing(6)
+        # Apply theme-aware enhanced styling
+        theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
+
+        if theme == 'dark':
+            self.setStyleSheet("""
+                QWidget#TagsPopup {
+                    background-color: rgba(33, 37, 43, 0.95) !important;
+                    border: 2px solid rgba(9, 144, 143, 0.4) !important;
+                    border-radius: 8px !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.3), 0 2px 8px rgba(9, 144, 143, 0.15) !important;
+                }
+                QLabel#TagsPopupHeader {
+                    font-size: 11px !important;
+                    font-weight: 600 !important;
+                    color: rgba(197,197,210,0.8) !important;
+                    margin-bottom: 4px !important;
+                    background: transparent !important;
+                }
+            """)
+        else:  # light theme
+            self.setStyleSheet("""
+                QWidget#TagsPopup {
+                    background-color: rgba(255, 255, 255, 0.95) !important;
+                    border: 2px solid rgba(9, 144, 143, 0.3) !important;
+                    border-radius: 8px !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.15), 0 2px 8px rgba(9, 144, 143, 0.1) !important;
+                }
+                QLabel#TagsPopupHeader {
+                    font-size: 11px !important;
+                    font-weight: 600 !important;
+                    color: rgba(36,41,46,0.8) !important;
+                    margin-bottom: 4px !important;
+                    background: transparent !important;
+                }
+            """)
+
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(12, 12, 12, 12)
+        lay.setSpacing(8)
 
         try:
             names = _extract_tag_names(item_data)
             if not names:
                 QTimer.singleShot(0, self.close)
             else:
-                from .TagsWidget import TagsWidget  # local import to avoid cycles
-                self._tags = TagsWidget(item_data, self)
+                # Use CompactTagsWidget for better display
+                from .TagsWidget import CompactTagsWidget
+                self._tags = CompactTagsWidget(item_data, max_visible=10)  # Show more in popup
                 lay.addWidget(self._tags)
+
+                # Add a subtle header
+                header = QLabel(f"Tags ({len(names)})")
+                header.setObjectName("TagsPopupHeader")
+                lay.insertWidget(0, header)
         except Exception:
             QTimer.singleShot(0, self.close)
 
@@ -94,7 +136,45 @@ class TagPopup(QWidget):
 
     def showEvent(self, event):
         try:
+            # Reapply theme-aware styling to ensure it takes precedence
+            theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
+
+            if theme == 'dark':
+                self.setStyleSheet("""
+                    QWidget#TagsPopup {
+                        background-color: rgba(33, 37, 43, 0.95) !important;
+                        border: 2px solid rgba(9, 144, 143, 0.4) !important;
+                        border-radius: 8px !important;
+                        box-shadow: 0 4px 16px rgba(0,0,0,0.3), 0 2px 8px rgba(9, 144, 143, 0.15) !important;
+                    }
+                    QLabel#TagsPopupHeader {
+                        font-size: 11px !important;
+                        font-weight: 600 !important;
+                        color: rgba(197,197,210,0.8) !important;
+                        margin-bottom: 4px !important;
+                        background: transparent !important;
+                    }
+                """)
+            else:  # light theme
+                self.setStyleSheet("""
+                    QWidget#TagsPopup {
+                        background-color: rgba(255, 255, 255, 0.95) !important;
+                        border: 2px solid rgba(9, 144, 143, 0.3) !important;
+                        border-radius: 8px !important;
+                        box-shadow: 0 4px 16px rgba(0,0,0,0.15), 0 2px 8px rgba(9, 144, 143, 0.1) !important;
+                    }
+                    QLabel#TagsPopupHeader {
+                        font-size: 11px !important;
+                        font-weight: 600 !important;
+                        color: rgba(36,41,46,0.8) !important;
+                        margin-bottom: 4px !important;
+                        background: transparent !important;
+                    }
+                """)
+
+            # Apply CSS theme as well
             ThemeManager.apply_module_style(self, [QssPaths.PILLS])
+
             if hasattr(self, "_tags") and self._tags is not None:
                 try:
                     self._tags.retheme()
@@ -127,19 +207,43 @@ class TagsHoverButton(QToolButton):
         self._hide_timer.timeout.connect(self._maybe_hide_popup)
         self._hide_delay_ms = 600
 
+        # Get tag count for better icon indication
+        tags_edges = ((item_data or {}).get('tags') or {}).get('edges') or []
+        tag_count = len([e for e in tags_edges if ((e or {}).get('node') or {}).get('name')])
+
+        # Use a more intuitive icon - tags/label icon
         try:
+            # Try to get a tags icon, fallback to info if not available
             icon = ThemeManager.get_qicon(ThemeManager.ICON_INFO)
             self.setIcon(icon)
             from PyQt5.QtCore import QSize
-            self.setIconSize(QSize(14, 14))
+            self.setIconSize(QSize(12, 12))  # Smaller, more subtle
         except Exception:
-            pass
-        self.setToolTip("Tags")
+            self.setText("🏷️")  # Fallback emoji
+
+        # Set tooltip with tag count
+        self.setToolTip(f"Tags ({tag_count}) - hover to view")
         self.setAutoRaise(True)
         self.setCursor(Qt.PointingHandCursor)
-        self.setFixedSize(20, 20)
+        self.setFixedSize(18, 18)  # Smaller button
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.NoFocus)
+
+        # Style the button to be more subtle
+        self.setStyleSheet("""
+            QToolButton#TagsHoverButton {
+                border: none;
+                background: transparent;
+                color: rgba(197,197,210,0.7);
+                border-radius: 2px;
+                padding: 1px;
+            }
+            QToolButton#TagsHoverButton:hover {
+                background: rgba(9,144,143,0.1);
+                color: rgba(9,144,143,0.9);
+            }
+        """)
+
         try:
             self.clicked.connect(self._on_clicked)
         except Exception:
@@ -219,11 +323,11 @@ class InfocardHeaderFrame(QFrame):
         self.setProperty("compact", compact)
         self.module_name = module_name or "default"
 
-        root = QHBoxLayout(self); root.setContentsMargins(0, 0, 0, 0); root.setSpacing(8 if not compact else 6)
+        root = QHBoxLayout(self); root.setContentsMargins(0, 0, 0, 0); root.setSpacing(6 if not compact else 4)
 
         # Left column
         left = QFrame(self); left.setObjectName("HeaderLeft")
-        leftL = QVBoxLayout(left); leftL.setContentsMargins(0, 0, 0, 0); leftL.setSpacing(2 if not compact else 1)
+        leftL = QVBoxLayout(left); leftL.setContentsMargins(0, 0, 0, 0); leftL.setSpacing(1 if not compact else 0)
 
         name = item_data.get('name', 'No Name') or 'No Name'
         number = item_data.get('number', '-')
@@ -233,7 +337,7 @@ class InfocardHeaderFrame(QFrame):
         show_numbers = self._should_show_numbers()
 
         # Name row: conditional layout based on number display setting
-        nameRow = QHBoxLayout(); nameRow.setContentsMargins(0,0,0,0); nameRow.setSpacing(8 if not compact else 6)
+        nameRow = QHBoxLayout(); nameRow.setContentsMargins(0,0,0,0); nameRow.setSpacing(6 if not compact else 4)
 
         if not item_data.get('isPublic'):
             privateIcon = QLabel(); privateIcon.setObjectName("ProjectPrivateIcon")
@@ -241,18 +345,18 @@ class InfocardHeaderFrame(QFrame):
             try:
                 pm = QPixmap(MiscIcons.ICON_IS_PRIVATE)
                 if not pm.isNull():
-                    privateIcon.setPixmap(pm.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                    privateIcon.setPixmap(pm.scaled(14, 14, Qt.KeepAspectRatio, Qt.SmoothTransformation))
                 else:
                     privateIcon.setText("P")
             except Exception:
                 privateIcon.setText("P")
-            privateIcon.setFixedSize(16, 16)
+            privateIcon.setFixedSize(14, 14)
             nameRow.addWidget(privateIcon, 0, Qt.AlignVCenter)
 
         # If showing numbers, display them before the name
         if show_numbers and number and number != '-':
             numberBadge = QLabel(str(number)); numberBadge.setObjectName("ProjectNumberBadge")
-            numberBadge.setAlignment(Qt.AlignCenter); numberBadge.setMinimumWidth(36)
+            numberBadge.setAlignment(Qt.AlignCenter); numberBadge.setMinimumWidth(24 if not compact else 20)
             nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
 
         nameLabel = ElidedLabel(name); nameLabel.setObjectName("ProjectNameLabel"); nameLabel.setToolTip(name)
@@ -260,7 +364,7 @@ class InfocardHeaderFrame(QFrame):
 
         # When not showing numbers, don't display them at all (no stretch needed)
 
-        # Tags hover (only if tags exist)
+        # Tags hover (only if tags exist) - back to icon approach for space efficiency
         try:
             if _extract_tag_names(item_data):
                 nameRow.addWidget(TagsHoverButton(item_data), 0, Qt.AlignVCenter)
@@ -271,8 +375,8 @@ class InfocardHeaderFrame(QFrame):
 
         # Client row (optional)
         if client:
-            clientRow = QHBoxLayout(); clientRow.setContentsMargins(0,0,0,0); clientRow.setSpacing(6)
-            clientIcon = QLabel("👤"); clientIcon.setObjectName("ClientIcon"); clientIcon.setFixedWidth(14)
+            clientRow = QHBoxLayout(); clientRow.setContentsMargins(0,0,0,0); clientRow.setSpacing(4)
+            clientIcon = QLabel("👤"); clientIcon.setObjectName("ClientIcon"); clientIcon.setFixedWidth(12)
             clientRow.addWidget(clientIcon, 0, Qt.AlignVCenter)
 
             clientLabel = ElidedLabel(client); clientLabel.setObjectName("ProjectClientLabel"); clientLabel.setToolTip(client)
