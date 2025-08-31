@@ -53,6 +53,7 @@ class ModuleCard(BaseCard):
         # Left side - Element picker
         self._element_picker = LayerTreePicker(main_group, placeholder=self.lang_manager.translate("Select layer"))
         self._element_picker.layerIdChanged.connect(self._on_element_selected)
+        self._element_picker.retheme()  # Apply styling immediately after creation
         main_layout.addWidget(self._element_picker, 2)  # Give more space to dropdown
 
         # Right side - Explanation text
@@ -75,6 +76,7 @@ class ModuleCard(BaseCard):
         # Left side - Archive picker
         self._archive_picker = LayerTreePicker(archive_group, placeholder=self.lang_manager.translate("Select layer"))
         self._archive_picker.layerIdChanged.connect(self._on_archive_selected)
+        self._archive_picker.retheme()  # Apply styling immediately after creation
         archive_layout.addWidget(self._archive_picker, 2)
 
         # Right side - Explanation text
@@ -114,6 +116,9 @@ class ModuleCard(BaseCard):
             self._archive_picker.setSnapshot(snapshot)
         self._element_picker.on_settings_activate(snapshot=self._snapshot)
         self._archive_picker.on_settings_activate(snapshot=self._snapshot)
+        # Ensure styling is applied when settings are activated
+        self._element_picker.retheme()
+        self._archive_picker.retheme()
         # Load originals (if any) without marking pending
         self._orig_element_id = self._read_saved_layer_id(kind="element")
         self._orig_archive_id = self._read_saved_layer_id(kind="archive")

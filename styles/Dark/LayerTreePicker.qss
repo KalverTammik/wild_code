@@ -14,7 +14,7 @@
    DROPDOWN BUTTON — COMBOBOX STYLE
    ========================================= */
 QToolButton {
-    background: #303a42;
+    background: transparent;
     color: #c5c5d2;
     border: 1px solid #4d4d4d;
     border-radius: 6px;
@@ -50,15 +50,18 @@ QToolButton::menu-indicator {
     height: 0px;
 }
 
-/* ---------------------- Popup container ---------------------- */
+/* Style the dropdown arrow text */
+QToolButton {
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
 
 /* ---------------------- Popup container ---------------------- */
 QFrame#LayerTreePopup {
     background: #2e2f38;
     color: #c5c5d2;
     border: 1px solid #1f5d5c;
-    border-radius: 6px;
-    padding: 0;
+    border-radius: 3px;
+    padding: 1px;
 }
 
 /* ---------------------- Tree widget ---------------------- */
@@ -66,8 +69,8 @@ QFrame#LayerTreePopup QTreeWidget {
     background: #2e2f38;
     color: #c5c5d2;
     border: none;
-    border-radius: 0;
-    padding: 1px;              /* tight gutter to match ComboBox */
+    border-radius: 3px;
+    padding: 1px;
     outline: none;
     font-size: 12px;
 }

@@ -7,6 +7,13 @@
   background: rgba(255,255,255,0.85);
   border-radius: 12px;
   border: 1px solid rgba(0,0,0,0.08);
+  transition: all 200ms ease;
+}
+
+#SetupCard:hover {
+  border-color: #0f766e;
+  box-shadow: 0 8px 25px rgba(15, 118, 110, 0.15);
+  transform: translateY(-2px);
 }
 
 /* Header with separator gradient */
@@ -36,6 +43,12 @@
     margin: 0;
     font-weight: 600;
     font-size: 12px;
+    transition: all 150ms ease;
+}
+
+#SetupCard QGroupBox:hover {
+    border-color: rgba(15, 118, 110, 0.3);
+    background: rgba(15, 118, 110, 0.02);
 }
 
 #SetupCard QGroupBox::title {
