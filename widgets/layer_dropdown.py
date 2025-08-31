@@ -1,5 +1,5 @@
 from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QToolButton, QMenu, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QLabel
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QToolButton, QMenu, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QLabel, QSizePolicy
 
 try:
     from qgis.core import QgsProject, QgsMapLayer
@@ -87,7 +87,7 @@ class LayerTreePicker(QWidget):
 
         # Popup container with a tree
         from PyQt5.QtWidgets import QFrame
-        self._popup = QFrame(self, Qt.Popup | Qt.FramelessWindowHint)
+        self._popup = QFrame(None, Qt.Popup | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)  # No parent for top-level popup
         self._popup.setObjectName("LayerTreePopup")
         pl = QVBoxLayout(self._popup)
         pl.setContentsMargins(4, 4, 4, 4)
@@ -97,6 +97,11 @@ class LayerTreePicker(QWidget):
         self._tree.setHeaderHidden(True)
         self._tree.setAnimated(True)
         self._tree.setUniformRowHeights(True)
+        self._tree.setSelectionMode(QTreeWidget.SingleSelection)
+        self._tree.setSelectionBehavior(QTreeWidget.SelectRows)
+        self._tree.setFocusPolicy(Qt.StrongFocus)
+        self._tree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._tree.setRootIsDecorated(False)
         self._tree.itemSelectionChanged.connect(self._on_selection_changed)
         pl.addWidget(self._tree)
         self._popup.hide()
@@ -227,16 +232,18 @@ class LayerTreePicker(QWidget):
             btn_rect = self._button.rect()
             global_pos = self._button.mapToGlobal(btn_rect.bottomLeft())
             width = max(self._button.width(), 300)
-            height = 280
+            height = min(400, max(200, self._tree.topLevelItemCount() * 20 + 40))  # Dynamic height based on item count
 
             # Ensure popup is properly sized and positioned
             self._popup.resize(width, height)
             self._popup.move(global_pos)
 
             print(f"[LayerTreePicker] Showing popup at {global_pos}, size {width}x{height}")
+            self._popup.setWindowModality(Qt.NonModal)
             self._popup.show()
             self._popup.raise_()
             self._popup.activateWindow()
+            self._tree.setFocus()
         except Exception as e:
             print(f"[LayerTreePicker] Popup positioning failed: {e}")
 

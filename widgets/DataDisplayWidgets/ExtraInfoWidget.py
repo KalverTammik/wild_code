@@ -2,6 +2,37 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame, QHBoxLayout, QListWidget, QListWidgetItem, QPushButton, QDialog, QTextEdit, QScrollArea
 from PyQt5.QtGui import QFont, QIcon, QPixmap
 
+# Import ModuleConfig - handle both relative and absolute imports
+try:
+    from .ModuleConfig import ModuleConfigFactory
+except ImportError:
+    # Fallback for direct execution
+    import sys
+    import os
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    module_config_path = os.path.join(current_dir, 'ModuleConfig.py')
+    if os.path.exists(module_config_path):
+        spec = __import__('importlib.util').util.spec_from_file_location("ModuleConfig", module_config_path)
+        module_config = __import__('importlib.util').util.module_from_spec(spec)
+        spec.loader.exec_module(module_config)
+        ModuleConfigFactory = module_config.ModuleConfigFactory
+    else:
+        # Create a simple fallback factory
+        class ModuleConfigFactory:
+            @staticmethod
+            def create_config(module_type, item_data=None):
+                # Simple fallback configuration
+                class Config:
+                    def __init__(self):
+                        self.title = "Tegevuste ülevaade"
+                        self.columns = [
+                            {'title': 'Tehtud', 'color': '#4CAF50', 'activities': [('Ülesanne 1', '✓'), ('Ülesanne 2', '✓')]},
+                            {'title': 'Töös', 'color': '#FF9800', 'activities': [('Ülesanne 3', '⟳')]},
+                            {'title': 'Tegemata', 'color': '#F44336', 'activities': [('Ülesanne 4', '○')]}
+                        ]
+                        self.detailed_content = "<h3>Ülevaade</h3><p>Detailne informatsioon puudub.</p>"
+                return Config()
+
 
 class ExtraInfoFrame(QFrame):
     def __init__(self, item_data, parent=None):
@@ -9,22 +40,79 @@ class ExtraInfoFrame(QFrame):
         self.setFrameShape(QFrame.NoFrame)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(ExtraInfoWidget(item_data))
 
-
-class ExtraInfoFrame(QFrame):
-    def __init__(self, item_data, parent=None):
-        super().__init__(parent)
-        self.setFrameShape(QFrame.NoFrame)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(ExtraInfoWidget(item_data))
+        # Determine module type from item_data
+        module_type = item_data.get('module_type', 'project') if item_data else 'project'
+        layout.addWidget(ExtraInfoWidget(item_data, module_type))
 
 
 class ExtraInfoWidget(QWidget):
-    def __init__(self, item_data, parent=None):
+    def __init__(self, item_data, module_type="project", parent=None):
         super().__init__(parent)
+        self.item_data = item_data
+        self.module_type = module_type
+        self.config = ModuleConfigFactory.create_config(module_type, item_data)
         self._build_ui()
+
+    def _build_ui(self):
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(8)
+
+        # Title with expand button
+        title_layout = QHBoxLayout()
+        title_layout.setContentsMargins(0, 0, 0, 0)
+
+        title = QLabel(self.config.title)
+        title.setStyleSheet("font-weight: bold; font-size: 12px; color: #333;")
+        title_layout.addWidget(title)
+
+        # Add expand button
+        expand_btn = QPushButton()
+        expand_btn.setFixedSize(20, 20)
+        expand_btn.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #4CAF50;
+                background: #4CAF50;
+                padding: 2px;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background: #45a049;
+                border: 1px solid #45a049;
+            }
+        """)
+
+        # Load icon from resources
+        icon_path = "resources/icons/icons8-rocket-48.png"
+        if hasattr(self, '_get_resource_path'):
+            icon_path = self._get_resource_path(icon_path)
+        try:
+            expand_btn.setIcon(QIcon(icon_path))
+            expand_btn.setIconSize(expand_btn.size() * 0.8)
+        except:
+            expand_btn.setText("↗")  # Fallback if icon not found
+
+        expand_btn.clicked.connect(self._show_detailed_overview)
+        title_layout.addStretch()
+        title_layout.addWidget(expand_btn)
+
+        main_layout.addLayout(title_layout)
+
+        # Dynamic column layout based on configuration
+        if self.config.columns:
+            columns_layout = QHBoxLayout()
+            columns_layout.setSpacing(12)
+
+            for column_config in self.config.columns:
+                column = self._create_status_column(
+                    column_config['title'],
+                    column_config['color'],
+                    column_config['activities']
+                )
+                columns_layout.addWidget(column)
+
+            main_layout.addLayout(columns_layout)
 
     def _build_ui(self):
         main_layout = QVBoxLayout(self)
@@ -165,18 +253,18 @@ class ExtraInfoWidget(QWidget):
     def _show_detailed_overview(self):
         """Show detailed activity overview in a dialog window."""
         dialog = QDialog(self)
-        dialog.setWindowTitle("Tegevuste detailne ülevaade")
+        dialog.setWindowTitle(f"{self.config.title} - Detailne ülevaade")
         dialog.setModal(True)
         dialog.resize(600, 400)
 
         layout = QVBoxLayout(dialog)
 
         # Title
-        title = QLabel("Tegevuste detailne ülevaade")
+        title = QLabel(self.config.title)
         title.setStyleSheet("font-weight: bold; font-size: 14px; color: #333; margin-bottom: 10px;")
         layout.addWidget(title)
 
-        # Scrollable text area with Latin sample text
+        # Scrollable text area with module-specific content
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("""
@@ -190,35 +278,14 @@ class ExtraInfoWidget(QWidget):
         text_widget = QWidget()
         text_layout = QVBoxLayout(text_widget)
 
-        # Sample Latin text content
-        latin_content = """
-        <h3>Activitas Recens</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
-
-        <h4>Status Progressionis</h4>
-        <ul>
-        <li><b>Tehtud:</b> Planeerimine, Koostamine, Ülevaatamine, Kinnitamine</li>
-        <li><b>Töös:</b> Testimine, Dokumenteerimine, Optimeerimine</li>
-        <li><b>Tegemata:</b> Avaldamine, Jälgimine, Arhiveerimine, Raporteerimine</li>
-        </ul>
-
-        <h4>Detalii Addicionales</h4>
-        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-
-        <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
-
-        <h4>Proxima Passus</h4>
-        <ol>
-        <li>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit</li>
-        <li>Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet</li>
-        <li>Consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt</li>
-        <li>Ut labore et dolore magnam aliquam quaerat voluptatem</li>
-        </ol>
-
-        <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
+        # Use module-specific content
+        content = self.config.detailed_content or """
+        <h3>Üldine Tegevuste Ülevaade</h3>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
         """
 
-        text_label = QLabel(latin_content)
+        text_label = QLabel(content)
         text_label.setWordWrap(True)
         text_label.setStyleSheet("""
             QLabel {

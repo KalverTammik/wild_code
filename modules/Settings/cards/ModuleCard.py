@@ -116,11 +116,40 @@ class ModuleCard(BaseCard):
         self._archive_picker.on_settings_activate(snapshot=self._snapshot)
         # Load originals (if any) without marking pending
         self._orig_element_id = self._read_saved_layer_id(kind="element")
+        self._orig_archive_id = self._read_saved_layer_id(kind="archive")
         self._orig_show_numbers = self._read_show_numbers_setting()
         self._pend_show_numbers = self._orig_show_numbers
         self._show_numbers_checkbox.setChecked(self._orig_show_numbers)
+        
+        # Apply stored selections to pickers so they display the saved layer names
+        # Only set if the layer actually exists
+        if self._orig_element_id:
+            try:
+                # Try to set the selection and see if it works
+                self._element_picker.setSelectedLayerId(self._orig_element_id)
+                # Refresh to ensure the selection is applied
+                self._element_picker.refresh()
+                # Check if the selection actually took effect
+                if not self._element_picker.selectedLayer():
+                    # Layer doesn't exist or selection failed, clear the stored value
+                    self._orig_element_id = ""
+            except Exception:
+                self._orig_element_id = ""
+                
+        if self._orig_archive_id:
+            try:
+                # Try to set the selection and see if it works
+                self._archive_picker.setSelectedLayerId(self._orig_archive_id)
+                # Refresh to ensure the selection is applied
+                self._archive_picker.refresh()
+                # Check if the selection actually took effect
+                if not self._archive_picker.selectedLayer():
+                    # Layer doesn't exist or selection failed, clear the stored value
+                    self._orig_archive_id = ""
+            except Exception:
+                self._orig_archive_id = ""
 
-        # Initialize footer display
+        # Update footer display after setting layer selections
         self._update_stored_values_display()
 
     def on_settings_deactivate(self):
@@ -132,7 +161,7 @@ class ModuleCard(BaseCard):
     # --- Persistence ---
     def _settings_key(self, kind: str) -> str:
         # kind in {"element", "archive"}
-        return f"wild_code/settings/modules/{self.module_name}/{kind}_layer_id"
+        return f"wild_code/modules/{self.module_name}/{kind}_layer_id"
 
     def _read_saved_layer_id(self, kind: str) -> str:
         if not QgsSettings:
@@ -213,28 +242,34 @@ class ModuleCard(BaseCard):
 
     def _update_stored_values_display(self):
         """Update footer with flowing text summary of stored values."""
-        # Get layer names directly from pickers instead of removed labels
-        def name_for(picker):
-            lyr = picker.selectedLayer() if picker else None
-            try:
-                return lyr.name() if lyr else ""
-            except Exception:
-                return ""
+        try:
+            # Get layer names directly from pickers instead of removed labels
+            def name_for(picker):
+                if not picker:
+                    return ""
+                lyr = picker.selectedLayer()
+                try:
+                    return lyr.name() if lyr else ""
+                except Exception:
+                    return ""
 
-        element_name = name_for(self._element_picker)
-        archive_name = name_for(self._archive_picker)
+            element_name = name_for(self._element_picker)
+            archive_name = name_for(self._archive_picker)
 
-        parts = []
-        if element_name:
-            parts.append(f"📄 Main: {element_name}")
-        if archive_name:
-            parts.append(f"📁 Archive: {archive_name}")
+            parts = []
+            if element_name:
+                parts.append(f"📄 Main: {element_name}")
+            if archive_name:
+                parts.append(f"📁 Archive: {archive_name}")
 
-        if parts:
-            values_text = " | ".join(parts)
-            self.set_status_text(f"Active layers: {values_text}")
-        else:
-            self.set_status_text("No layers configured")
+            if parts:
+                values_text = " | ".join(parts)
+                self.set_status_text(f"Active layers: {values_text}")
+            else:
+                self.set_status_text("No layers configured")
+        except Exception as e:
+            # If there's an error, show a generic message
+            self.set_status_text("Settings loaded")
 
     # --- Show Numbers Setting ---
     def _show_numbers_settings_key(self) -> str:
