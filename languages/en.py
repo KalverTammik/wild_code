@@ -40,5 +40,26 @@ TRANSLATIONS = {
     ,"theme_switch_tooltip": "Switch between dark and light theme"
     ,"dev_dbg_tooltip": "Toggle developer logs (print) on/off"
     ,"dev_frames_tooltip": "Show/Hide FRAME labels on the home page"
-    ,"session_expired": "Your session has expired. Please sign in again."
+    ,"session_expired": "Your session has expired. Please sign in again.",
+    # Settings enhancements
+    "Main layer not found": "Main layer not found",
+    "Archive layer not found": "Archive layer not found", 
+    "Main and archive layers are the same": "Main and archive layers are the same",
+    "Validation error": "Validation error",
+    "Reset to Defaults": "Reset to Defaults",
+    "Settings reset to defaults": "Settings reset to defaults",
+    "Reset failed": "Reset failed",
+    "Reset All Settings": "Reset All Settings",
+    "Confirm Reset": "Confirm Reset",
+    "Are you sure you want to reset all settings to defaults? This action cannot be undone.": "Are you sure you want to reset all settings to defaults? This action cannot be undone.",
+    "Reset Complete": "Reset Complete",
+    "All settings have been reset to defaults.": "All settings have been reset to defaults.",
+    "Reset Failed": "Reset Failed",
+    "Failed to reset settings": "Failed to reset settings",
+    "Settings Summary": "Settings Summary",
+    "Preferred module": "Preferred module",
+    "Welcome page": "Welcome page",
+    "Configured modules": "Configured modules",
+    "Using default settings": "Using default settings",
+    "Summary unavailable": "Summary unavailable",
 }

@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QScrollArea, QLabel, QFrame
 from PyQt5.QtCore import QCoreApplication
 from ...languages.language_manager import LanguageManager
 from ...widgets.theme_manager import ThemeManager
@@ -52,7 +52,43 @@ class SettingsUI(QWidget):
         self.cards_layout = QVBoxLayout(self.cards_container)
         self.cards_layout.setContentsMargins(6, 6, 6, 6)
         self.cards_layout.setSpacing(6)
-        self.cards_layout.addStretch(1)
+        # Add settings summary and global reset at the bottom
+        bottom_layout = QVBoxLayout()
+        bottom_layout.setContentsMargins(0, 20, 0, 0)
+        bottom_layout.setSpacing(10)
+        
+        # Settings summary
+        summary_group = QFrame(self)
+        summary_group.setObjectName("SettingsSummary")
+        summary_layout = QVBoxLayout(summary_group)
+        summary_layout.setContentsMargins(10, 10, 10, 10)
+        
+        summary_title = QLabel(self.lang_manager.translate("Settings Summary"))
+        summary_title.setObjectName("SummaryTitle")
+        summary_layout.addWidget(summary_title)
+        
+        self._summary_text = QLabel("")
+        self._summary_text.setObjectName("SummaryText")
+        self._summary_text.setWordWrap(True)
+        summary_layout.addWidget(self._summary_text)
+        
+        bottom_layout.addWidget(summary_group)
+        
+        # Global reset button
+        reset_layout = QHBoxLayout()
+        reset_btn = QPushButton(self.lang_manager.translate("Reset All Settings"))
+        reset_btn.setObjectName("GlobalResetButton")
+        reset_btn.setToolTip(self.lang_manager.translate("Reset all settings to default values"))
+        reset_btn.clicked.connect(self._on_global_reset)
+        reset_layout.addStretch(1)
+        reset_layout.addWidget(reset_btn)
+        reset_layout.addStretch(1)
+        
+        bottom_layout.addLayout(reset_layout)
+        self.cards_layout.addLayout(bottom_layout)
+        
+        # Update summary initially
+        self._update_settings_summary()
         self.scroll_area.setWidget(self.cards_container)
         root.addWidget(self.scroll_area)
 
@@ -262,6 +298,8 @@ class SettingsUI(QWidget):
         # Combine user-card dirty with module cards dirty
         dirty = self.logic.has_unsaved_changes() or self._any_module_dirty()
         self._set_dirty(dirty)
+        # Update summary when state changes
+        self._update_settings_summary()
 
     def _set_dirty(self, dirty: bool):
         self._pending_changes = bool(dirty)
@@ -289,3 +327,85 @@ class SettingsUI(QWidget):
         except Exception:
             # Ignore; default None is acceptable
             pass
+
+    def _on_global_reset(self):
+        """Reset all settings to defaults."""
+        try:
+            # Confirm with user
+            from PyQt5.QtWidgets import QMessageBox
+            reply = QMessageBox.question(
+                self,
+                self.lang_manager.translate("Confirm Reset"),
+                self.lang_manager.translate("Are you sure you want to reset all settings to defaults? This action cannot be undone."),
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                # Reset user preferences
+                self.logic.set_pending_preferred(None)
+                self._user_card.set_preferred(None)
+                
+                # Reset all module settings
+                for card in getattr(self, '_module_cards', {}).values():
+                    try:
+                        if hasattr(card, '_on_reset_settings'):
+                            card._on_reset_settings()
+                    except Exception:
+                        pass
+                
+                # Apply all changes
+                self.apply_pending_changes()
+                
+                # Show success message
+                QMessageBox.information(
+                    self,
+                    self.lang_manager.translate("Reset Complete"),
+                    self.lang_manager.translate("All settings have been reset to defaults."),
+                    QMessageBox.Ok
+                )
+                
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                self.lang_manager.translate("Reset Failed"),
+                f"{self.lang_manager.translate('Failed to reset settings')}: {str(e)}",
+                QMessageBox.Ok
+            )
+
+    def _update_settings_summary(self):
+        """Update the settings summary display."""
+        try:
+            summary_parts = []
+            
+            # User preferences
+            preferred = self.logic.get_pending_preferred() or self.logic.get_original_preferred()
+            if preferred:
+                summary_parts.append(f"🏠 {self.lang_manager.translate('Preferred module')}: {self.lang_manager.sidebar_button(preferred)}")
+            else:
+                summary_parts.append(f"🏠 {self.lang_manager.translate('Preferred module')}: {self.lang_manager.translate('Welcome page')}")
+            
+            # Module settings
+            configured_modules = []
+            for module_name, card in getattr(self, '_module_cards', {}).items():
+                try:
+                    element_id = getattr(card, '_pend_element_id', '') or getattr(card, '_orig_element_id', '')
+                    archive_id = getattr(card, '_pend_archive_id', '') or getattr(card, '_orig_archive_id', '')
+                    show_numbers = getattr(card, '_pend_show_numbers', getattr(card, '_orig_show_numbers', True))
+                    
+                    if element_id or archive_id or not show_numbers:
+                        module_display = self.lang_manager.sidebar_button(module_name)
+                        configured_modules.append(module_display)
+                except Exception:
+                    pass
+            
+            if configured_modules:
+                summary_parts.append(f"⚙️ {self.lang_manager.translate('Configured modules')}: {', '.join(configured_modules)}")
+            
+            if not summary_parts:
+                summary_parts.append(self.lang_manager.translate("Using default settings"))
+            
+            self._summary_text.setText("\n".join(summary_parts))
+            
+        except Exception as e:
+            self._summary_text.setText(f"⚠️ {self.lang_manager.translate('Summary unavailable')}: {str(e)}")

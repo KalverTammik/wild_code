@@ -103,6 +103,14 @@ class ModuleCard(BaseCard):
         self._show_numbers_checkbox.stateChanged.connect(self._on_show_numbers_changed)
         display_layout.addWidget(self._show_numbers_checkbox)
 
+        # Reset settings button
+        from PyQt5.QtWidgets import QPushButton
+        reset_btn = QPushButton(self.lang_manager.translate("Reset to Defaults"), display_group)
+        reset_btn.setObjectName("ResetButton")
+        reset_btn.setToolTip(self.lang_manager.translate("Reset all settings for this module to default values"))
+        reset_btn.clicked.connect(self._on_reset_settings)
+        display_layout.addWidget(reset_btn)
+
         cl.addWidget(display_group)
 
         # Add stretch to push content up (no footer building here - use base class)
@@ -307,9 +315,72 @@ class ModuleCard(BaseCard):
     def _on_element_selected(self, layer_id: str):
         self._pend_element_id = layer_id or ""
         self._sync_selected_names()
+        self._validate_layer_selections()
         self.pendingChanged.emit(self.has_pending_changes())
 
     def _on_archive_selected(self, layer_id: str):
         self._pend_archive_id = layer_id or ""
         self._sync_selected_names()
+        self._validate_layer_selections()
         self.pendingChanged.emit(self.has_pending_changes())
+
+    def _validate_layer_selections(self):
+        """Validate layer selections and provide user feedback."""
+        try:
+            element_layer = self._element_picker.selectedLayer() if self._element_picker else None
+            archive_layer = self._archive_picker.selectedLayer() if self._archive_picker else None
+
+            warnings = []
+            errors = []
+
+            # Check if layers exist
+            if self._pend_element_id and not element_layer:
+                errors.append(self.lang_manager.translate("Main layer not found"))
+            if self._pend_archive_id and not archive_layer:
+                warnings.append(self.lang_manager.translate("Archive layer not found"))
+
+            # Check if layers are the same
+            if (self._pend_element_id and self._pend_archive_id and
+                self._pend_element_id == self._pend_archive_id):
+                warnings.append(self.lang_manager.translate("Main and archive layers are the same"))
+
+            # Update status display
+            if errors:
+                self.set_status_text("❌ " + "; ".join(errors), True)
+            elif warnings:
+                self.set_status_text("⚠️ " + "; ".join(warnings), True)
+            else:
+                self.clear_status()
+
+        except Exception as e:
+            # Don't crash on validation errors
+            self.set_status_text(f"⚠️ {self.lang_manager.translate('Validation error')}: {str(e)}", True)
+
+    def _on_reset_settings(self):
+        """Reset all settings for this module to defaults."""
+        try:
+            # Reset layer selections
+            self._element_picker.setSelectedLayerId("")
+            self._archive_picker.setSelectedLayerId("")
+            self._pend_element_id = ""
+            self._pend_archive_id = ""
+
+            # Reset show numbers to default (True)
+            self._pend_show_numbers = True
+            self._show_numbers_checkbox.setChecked(True)
+
+            # Clear any stored settings
+            self._write_saved_layer_id("element", "")
+            self._write_saved_layer_id("archive", "")
+            self._write_show_numbers_setting(True)
+
+            # Update UI
+            self._sync_selected_names()
+            self._validate_layer_selections()
+            self.set_status_text(f"✅ {self.lang_manager.translate('Settings reset to defaults')}", True)
+
+            # Mark as having changes to allow saving
+            self.pendingChanged.emit(self.has_pending_changes())
+
+        except Exception as e:
+            self.set_status_text(f"❌ {self.lang_manager.translate('Reset failed')}: {str(e)}", True)
