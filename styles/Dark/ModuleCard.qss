@@ -2,7 +2,8 @@
 
 QFrame#ModuleInfoCard {
     background: #1f262d;
-    border: 1px solid #2c343d;
+    border: none !important;
+    border-width: 0 !important;
     border-radius: 12px;
     padding: 0;
     /* subtle inner highlight at top, darker shadow at bottom */
@@ -17,7 +18,7 @@ QFrame#ModuleInfoCard {
     transition: 120ms ease;
 }
 QFrame#ModuleInfoCard:hover {
-    border-color: rgba(9,144,143,0.55);
+    border: 1px solid rgba(9,144,143,0.55) !important;
     background-color: #232b33;
 }
 
@@ -39,8 +40,11 @@ QLabel#ProjectNameLabel {
 QLabel#ProjectClientLabel,
 QLabel#ProjectResponsibleLabel,
 QLabel#ProjectParticipantsLabel {
-    color: #c5c5d2;
-    font-size: 11px;
+    color: #4ade80;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 0px 2px 0px;
+    margin-bottom: 4px;
 }
 
 /* private icon */
@@ -151,10 +155,10 @@ QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectClientLabel {
 
 /* Overall header frame compact styling */
 QFrame#InfocardHeaderFrame {
-    min-height: 32px;
+    min-height: 56px;
 }
 QFrame#InfocardHeaderFrame[compact="true"] {
-    min-height: 28px;
+    min-height: 50px;
 }
 
 /* Avatar bubble improvements for better appearance */

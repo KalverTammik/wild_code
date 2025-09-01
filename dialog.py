@@ -20,6 +20,8 @@ from .module_manager import ModuleManager, SETTINGS_MODULE
 from .widgets.sidebar import Sidebar
 from .utils.SessionManager import SessionManager
 from .widgets.WelcomePage import WelcomePage
+from .constants.help_urls import HELP_URLS, DEFAULT_HELP_URL
+import webbrowser
 
 # Shared managers for all modules
 lang_manager = LanguageManager()
@@ -104,6 +106,7 @@ class PluginDialog(QDialog):
             switch_callback=self.toggle_theme,
             logout_callback=self.logout
         )
+        self.header_widget.helpRequested.connect(self._on_help_requested)
     # Avalehe nupp päises eemaldatud – kasutame külgriba Avaleht nuppu
         self.header_widget.open_home_callback = self._show_welcome
         # Wire header dev callbacks
@@ -560,6 +563,42 @@ class PluginDialog(QDialog):
         except Exception as e:
             QgsMessageLog.logMessage(f"Close prompt failed: {e}", "Wild Code", level=Qgis.Warning)
         super().closeEvent(event)
+
+    def _on_help_requested(self):
+        """Handle help button click by opening contextual help URL based on active module or page."""
+        try:
+            # First check if WelcomePage is currently active
+            current_widget = self.moduleStack.currentWidget()
+            if current_widget == self.welcomePage:
+                # Welcome page is active - open general QGIS plugin help
+                help_url = "https://help.kavitro.com/et/collections/10606065-kavitro-qgis-plugin"
+                webbrowser.open(help_url)
+                if getattr(self, "_debug", False):
+                    log_debug(f"[PluginDialog] WelcomePage active, opened help URL: {help_url}")
+                return
+
+            # Check for active module
+            active_module = self.moduleManager.getActiveModule()
+            if active_module:
+                module_name = active_module.get("name")
+                # Get the help URL for the active module, fallback to default if not found
+                help_url = HELP_URLS.get(module_name, DEFAULT_HELP_URL)
+                webbrowser.open(help_url)
+                if getattr(self, "_debug", False):
+                    log_debug(f"[PluginDialog] Opened help URL for {module_name}: {help_url}")
+            else:
+                # No active module and not on welcome page, open main help page
+                webbrowser.open(DEFAULT_HELP_URL)
+                if getattr(self, "_debug", False):
+                    log_debug(f"[PluginDialog] No active module, opened default help URL: {DEFAULT_HELP_URL}")
+        except Exception as e:
+            # Log error but don't crash
+            log_debug(f"[PluginDialog] Error opening help URL: {e}")
+            # Fallback to main help page
+            try:
+                webbrowser.open(DEFAULT_HELP_URL)
+            except Exception:
+                pass
 
     def handleSessionExpiration(self):
         self.close()

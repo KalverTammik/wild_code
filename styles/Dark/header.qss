@@ -84,3 +84,36 @@ QPushButton#logoutButton:focus {
     outline: none;
     border-color: #1f5d5c;
 }
+
+/* Help Button */
+QPushButton#headerHelpButton {
+    background: #37474f;
+    color: #c5c5d2;
+    border: 1px solid #565869;
+    border-radius: 6px;
+    padding: 4px 4px;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 45px;
+    min-height: 24px;
+    max-width: 45px;
+    max-height: 24px;
+    text-align: left;
+}
+
+QPushButton#headerHelpButton:hover {
+    background: #455a64;
+    border-color: #1f5d5c;
+    color: #ffffff;
+}
+
+QPushButton#headerHelpButton:pressed {
+    background: #263238;
+    border-color: #0d4a47;
+}
+
+QPushButton#headerHelpButton:focus {
+    outline: none;
+    border-color: #1f5d5c;
+    box-shadow: 0px 0px 3px rgba(31,93,92,0.3);
+}

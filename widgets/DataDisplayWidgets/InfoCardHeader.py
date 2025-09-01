@@ -329,7 +329,7 @@ class InfocardHeaderFrame(QFrame):
 
         # Left column
         left = QFrame(self); left.setObjectName("HeaderLeft")
-        leftL = QVBoxLayout(left); leftL.setContentsMargins(0, 0, 0, 0); leftL.setSpacing(1 if not compact else 0)
+        leftL = QVBoxLayout(left); leftL.setContentsMargins(0, 0, 0, 0); leftL.setSpacing(4 if not compact else 3)
 
         name = item_data.get('name', 'No Name') or 'No Name'
         number = item_data.get('number', '-')
@@ -378,8 +378,8 @@ class InfocardHeaderFrame(QFrame):
 
         # Client row (optional)
         if client:
-            clientRow = QHBoxLayout(); clientRow.setContentsMargins(0,0,0,0); clientRow.setSpacing(4)
-            clientIcon = QLabel("👤"); clientIcon.setObjectName("ClientIcon"); clientIcon.setFixedWidth(12)
+            clientRow = QHBoxLayout(); clientRow.setContentsMargins(0,0,0,0); clientRow.setSpacing(6 if not compact else 4)  # Increased spacing
+            clientIcon = QLabel("👤"); clientIcon.setObjectName("ClientIcon"); clientIcon.setFixedWidth(16 if not compact else 14)  # Increased width
             clientRow.addWidget(clientIcon, 0, Qt.AlignVCenter)
 
             clientLabel = ElidedLabel(client); clientLabel.setObjectName("ProjectClientLabel"); clientLabel.setToolTip(client)

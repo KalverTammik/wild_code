@@ -1,14 +1,16 @@
 import os
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QIcon
 
 class HeaderWidget(QWidget):
     """
     This widget supports dynamic theme switching via ThemeManager.apply_module_style.
     Call retheme_header() to re-apply QSS after a theme change.
     """
+    helpRequested = pyqtSignal()
+    
     def __init__(self, title, switch_callback, logout_callback, parent=None, compact=False):
         super().__init__(parent)
 
@@ -31,8 +33,38 @@ class HeaderWidget(QWidget):
         self.titleFrame.setObjectName("headerTitleFrame")
         frame_layout = QHBoxLayout(self.titleFrame)
         frame_layout.setContentsMargins(8, 2, 8, 2)
-        frame_layout.setSpacing(0)
+        frame_layout.setSpacing(5)
         frame_layout.addWidget(self.titleLabel)
+        
+        # Help button next to title
+        self.helpButton = QPushButton()
+        self.helpButton.setObjectName("headerHelpButton")
+        self.helpButton.setFixedSize(45, 24)
+        # Add help icon and text
+        try:
+            from ..constants.module_icons import ModuleIconPaths, ICON_HELP
+            help_icon_path = ModuleIconPaths.themed(ICON_HELP)
+            if help_icon_path:
+                self.helpButton.setIcon(QIcon(help_icon_path))
+                self.helpButton.setIconSize(QSize(18, 18))
+                self.helpButton.setText("Abi")
+            else:
+                self.helpButton.setText("Abi")
+        except Exception:
+            self.helpButton.setText("Abi")
+        
+        # Add tooltip
+        try:
+            from wild_code.languages.language_manager import LanguageManager
+            lang_manager = LanguageManager()
+            tooltip = lang_manager.translations.get("help_button_tooltip", "")
+            if tooltip:
+                self.helpButton.setToolTip(tooltip)
+        except Exception:
+            pass
+        
+        self.helpButton.clicked.connect(self._emit_help)
+        frame_layout.addWidget(self.helpButton)
         layout.addWidget(self.titleFrame, 0, Qt.AlignLeft | Qt.AlignVCenter)
 
         # Search (center)
@@ -166,3 +198,7 @@ class HeaderWidget(QWidget):
             self.devControls.set_states(bool(debug_enabled), bool(frames_enabled))
         except Exception:
             pass
+
+    def _emit_help(self):
+        """Emit help requested signal."""
+        self.helpRequested.emit()
