@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QWidget, QHBoxLayout, QLabel, QFrame, QSizePolicy, QGraphicsDropShadowEffect
+    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QSizePolicy, QGraphicsDropShadowEffect
 )
 from PyQt5.QtGui import QColor
 from typing import Dict
@@ -16,9 +16,10 @@ class CompactTagsWidget(QWidget):
         self.item_data = item_data
         self.max_visible = max_visible
 
-        row = QHBoxLayout(self)
+        row = QVBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(4)  # tighter spacing for compact design
+        row.setSpacing(0)  # no spacing between tags
+        row.setMargin(0)  # no margin
 
         tags_edges = ((item_data or {}).get('tags') or {}).get('edges') or []
         names = [((e or {}).get('node') or {}).get('name') for e in tags_edges]
@@ -41,12 +42,12 @@ class CompactTagsWidget(QWidget):
 
         for n in visible_tags:
             pill = self._create_tag_pill(n, is_dark)
-            row.addWidget(pill, 0, Qt.AlignVCenter)
+            row.addWidget(pill, 0, Qt.AlignVCenter | Qt.AlignTop)
 
         # Add overflow indicator if needed
         if overflow_count > 0:
             overflow_pill = self._create_overflow_pill(f"+{overflow_count}", is_dark)
-            row.addWidget(overflow_pill, 0, Qt.AlignVCenter)
+            row.addWidget(overflow_pill, 0, Qt.AlignVCenter | Qt.AlignTop)
 
         # Apply styling
         ThemeManager.apply_module_style(self, [QssPaths.PILLS])
@@ -60,10 +61,12 @@ class CompactTagsWidget(QWidget):
         holder.setFrameShape(QFrame.NoFrame)
         holder.setAttribute(Qt.WA_StyledBackground, False)
         holder.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        holder.setContentsMargins(0, 0, 0, 0)
 
         hL = QHBoxLayout(holder)
-        hL.setContentsMargins(2, 2, 2, 2)  # smaller margins for compact design
+        hL.setContentsMargins(0, 0, 0, 0)  # no margins
         hL.setSpacing(0)
+        hL.setMargin(0)
 
         # Inner colored pill
         pill = QFrame(holder)
@@ -72,21 +75,24 @@ class CompactTagsWidget(QWidget):
         pill.setFrameShape(QFrame.NoFrame)
         pill.setAttribute(Qt.WA_StyledBackground, True)
         pill.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        pill.setContentsMargins(0, 0, 0, 0)
 
         pl = QHBoxLayout(pill)
-        pl.setContentsMargins(4, 1, 4, 1)  # smaller padding
+        pl.setContentsMargins(2, 1, 2, 1)  # minimal padding
         pl.setSpacing(0)
+        pl.setMargin(0)
 
         lbl = QLabel(tag_name, pill)
         lbl.setObjectName("CompactTagLabel")
         lbl.setTextInteractionFlags(Qt.NoTextInteraction)
-        pl.addWidget(lbl, 0, Qt.AlignVCenter)
+        lbl.setContentsMargins(0, 0, 0, 0)
+        pl.addWidget(lbl, 0, Qt.AlignVCenter | Qt.AlignLeft)
 
-        hL.addWidget(pill, 0, Qt.AlignVCenter)
+        hL.addWidget(pill, 0, Qt.AlignVCenter | Qt.AlignLeft)
 
         # Shadow effect
         eff = QGraphicsDropShadowEffect(holder)
-        eff.setBlurRadius(8)  # smaller blur for compact design
+        eff.setBlurRadius(4)  # minimal blur
         eff.setOffset(0, 1)
         eff.setColor(QColor(255,255,255,50) if is_dark else QColor(0,0,0,50))
         holder.setGraphicsEffect(eff)
@@ -100,10 +106,12 @@ class CompactTagsWidget(QWidget):
         holder.setFrameShape(QFrame.NoFrame)
         holder.setAttribute(Qt.WA_StyledBackground, False)
         holder.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        holder.setContentsMargins(0, 0, 0, 0)
 
         hL = QHBoxLayout(holder)
-        hL.setContentsMargins(2, 2, 2, 2)
+        hL.setContentsMargins(0, 0, 0, 0)
         hL.setSpacing(0)
+        hL.setMargin(0)
 
         pill = QFrame(holder)
         pill.setObjectName("OverflowTagPill")
@@ -111,21 +119,24 @@ class CompactTagsWidget(QWidget):
         pill.setFrameShape(QFrame.NoFrame)
         pill.setAttribute(Qt.WA_StyledBackground, True)
         pill.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        pill.setContentsMargins(0, 0, 0, 0)
 
         pl = QHBoxLayout(pill)
-        pl.setContentsMargins(3, 1, 3, 1)
+        pl.setContentsMargins(1, 1, 1, 1)
         pl.setSpacing(0)
+        pl.setMargin(0)
 
         lbl = QLabel(overflow_text, pill)
         lbl.setObjectName("OverflowTagLabel")
         lbl.setTextInteractionFlags(Qt.NoTextInteraction)
-        pl.addWidget(lbl, 0, Qt.AlignVCenter)
+        lbl.setContentsMargins(0, 0, 0, 0)
+        pl.addWidget(lbl, 0, Qt.AlignVCenter | Qt.AlignLeft)
 
-        hL.addWidget(pill, 0, Qt.AlignVCenter)
+        hL.addWidget(pill, 0, Qt.AlignVCenter | Qt.AlignLeft)
 
         # Shadow effect
         eff = QGraphicsDropShadowEffect(holder)
-        eff.setBlurRadius(6)
+        eff.setBlurRadius(2)
         eff.setOffset(0, 1)
         eff.setColor(QColor(255,255,255,40) if is_dark else QColor(0,0,0,40))
         holder.setGraphicsEffect(eff)
@@ -159,9 +170,10 @@ class TagsWidget(QWidget):
         super().__init__(parent)
         self.setObjectName("TagsWidget")
 
-        row = QHBoxLayout(self)
+        row = QVBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(6)                     # room between pills
+        row.setSpacing(0)  # no spacing between tags
+        row.setMargin(0)  # no margin
 
         tags_edges = ((item_data or {}).get('tags') or {}).get('edges') or []
         names = [((e or {}).get('node') or {}).get('name') for e in tags_edges]
@@ -185,11 +197,13 @@ class TagsWidget(QWidget):
             holder.setFrameShape(QFrame.NoFrame)
             holder.setAttribute(Qt.WA_StyledBackground, False)  # keep transparent
             holder.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+            holder.setContentsMargins(0, 0, 0, 0)
             hL = QHBoxLayout(holder)
             # Margins create space INSIDE holder where blur can appear
-            shadow_pad = 4
+            shadow_pad = 0  # no margins
             hL.setContentsMargins(shadow_pad, shadow_pad, shadow_pad, shadow_pad)
             hL.setSpacing(0)
+            hL.setMargin(0)
 
             # Inner colored pill (styled via QSS)
             pill = QFrame(holder)
@@ -198,27 +212,30 @@ class TagsWidget(QWidget):
             pill.setFrameShape(QFrame.NoFrame)
             pill.setAttribute(Qt.WA_StyledBackground, True)
             pill.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+            pill.setContentsMargins(0, 0, 0, 0)
 
             pl = QHBoxLayout(pill)
-            pl.setContentsMargins(6, 2, 6, 2)               # inner padding of the capsule
+            pl.setContentsMargins(2, 1, 2, 1)               # minimal inner padding
             pl.setSpacing(0)
+            pl.setMargin(0)
 
             lbl = QLabel(n, pill)
             lbl.setObjectName("TagPillLabel")
             lbl.setTextInteractionFlags(Qt.NoTextInteraction)
+            lbl.setContentsMargins(0, 0, 0, 0)
             # rely on QSS for visuals (no inline stylesheet)
-            pl.addWidget(lbl, 0, Qt.AlignVCenter)
+            pl.addWidget(lbl, 0, Qt.AlignVCenter | Qt.AlignLeft)
 
-            hL.addWidget(pill, 0, Qt.AlignVCenter)
+            hL.addWidget(pill, 0, Qt.AlignVCenter | Qt.AlignLeft)
 
             # Shadow/glow on the holder, so it can render around the pill
             eff = QGraphicsDropShadowEffect(holder)
-            eff.setBlurRadius(14)
-            eff.setOffset(0, 2)
+            eff.setBlurRadius(6)
+            eff.setOffset(0, 1)
             eff.setColor(QColor(255,255,255,70) if is_dark else QColor(0,0,0,70))
             holder.setGraphicsEffect(eff)
 
-            row.addWidget(holder, 0, Qt.AlignVCenter)
+            row.addWidget(holder, 0, Qt.AlignVCenter | Qt.AlignTop)
 
         # Apply Light/Dark pills QSS via ThemeManager (affects TagPill + label)
         ThemeManager.apply_module_style(self, [QssPaths.PILLS])
