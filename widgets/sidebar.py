@@ -21,7 +21,6 @@ class Sidebar(QWidget):
 
     # Click signal with module identifier
     itemClicked = pyqtSignal(str)
-    helpRequested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -100,26 +99,6 @@ class Sidebar(QWidget):
         fl.setContentsMargins(6, 6, 6, 6)
         fl.setSpacing(6)
         cm.addWidget(self.footerBar)
-
-        # Help button (meta)
-        try:
-            help_label = lang_manager.translations.get("help_button_label", "Abi")
-        except Exception:
-            help_label = "Abi"
-        self.helpButton = QPushButton(help_label, self.footerBar)
-        self.helpButton.setObjectName("SidebarHelpButton")
-        # Set help icon (scaled) if available
-        try:
-            from ..constants.module_icons import ICON_HELP
-            help_icon_path = ModuleIconPaths.themed(ICON_HELP)
-            if help_icon_path:
-                self.helpButton.setIcon(QIcon(help_icon_path))
-                self.helpButton.setIconSize(QSize(25, 25))
-        except Exception:
-            pass
-        self.helpButton.clicked.connect(self._emit_help)
-        fl.addWidget(self.helpButton, 0, Qt.AlignLeft)
-        self.buttonTexts[self.helpButton] = help_label
 
         # Settings button inside footer bar
         settings_name = lang_manager.sidebar_button(SETTINGS_MODULE)
@@ -232,9 +211,6 @@ class Sidebar(QWidget):
 
     def emitItemClicked(self, itemName):
         self.itemClicked.emit(itemName)
-
-    def _emit_help(self):
-        self.helpRequested.emit()
 
     def showSettingsModule(self):
         # Switch to the registered Settings module in the main stack
