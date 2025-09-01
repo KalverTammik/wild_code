@@ -39,7 +39,7 @@ class HeaderWidget(QWidget):
         # Help button next to title
         self.helpButton = QPushButton()
         self.helpButton.setObjectName("headerHelpButton")
-        self.helpButton.setFixedSize(50, 24)
+        self.helpButton.setFixedSize(45, 24)
         # Add help icon and text
         try:
             from ..constants.module_icons import ModuleIconPaths, ICON_HELP
@@ -47,7 +47,7 @@ class HeaderWidget(QWidget):
             if help_icon_path:
                 self.helpButton.setIcon(QIcon(help_icon_path))
                 self.helpButton.setIconSize(QSize(18, 18))
-                self.helpButton.setText(" Abi")
+                self.helpButton.setText("Abi")
             else:
                 self.helpButton.setText("Abi")
         except Exception:

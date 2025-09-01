@@ -83,12 +83,12 @@ QPushButton#headerHelpButton {
     color: #24292e;
     border: 1px solid #d0d7de;
     border-radius: 6px;
-    padding: 4px 6px;
+    padding: 4px 4px;
     font-size: 12px;
     font-weight: 500;
-    min-width: 50px;
+    min-width: 45px;
     min-height: 24px;
-    max-width: 50px;
+    max-width: 45px;
     max-height: 24px;
     text-align: left;
 }
