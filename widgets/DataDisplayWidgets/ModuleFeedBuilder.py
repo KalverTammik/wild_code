@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 from .StatusWidget import StatusWidget
 from .MembersView import MembersView
 from .ExtraInfoWidget import ExtraInfoFrame
+from .SimpleExtraInfoWidget import SimpleExtraInfoFrame
 from .InfoCardHeader import InfocardHeaderFrame
 """ModuleFeedBuilder
 
@@ -83,7 +84,11 @@ class ModuleFeedBuilder:
 
         cl.addLayout(header_row)
 
-        cl.addWidget(ExtraInfoFrame(item))
+        # Add appropriate ExtraInfo widget based on module type
+        if module_name and module_name.lower() == 'projectsmodule':
+            cl.addWidget(ExtraInfoFrame(item))
+        else:
+            cl.addWidget(SimpleExtraInfoFrame(item))
         main.addWidget(content, 1)
 
         # Right status column
