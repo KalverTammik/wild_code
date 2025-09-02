@@ -100,9 +100,9 @@ class TagPopup(QWidget):
             if not names:
                 QTimer.singleShot(0, self.close)
             else:
-                # Use CompactTagsWidget for better display
-                from .TagsWidget import CompactTagsWidget
-                self._tags = CompactTagsWidget(item_data, max_visible=10)  # Show more in popup
+                # Use TagsWidget for display
+                from .TagsWidget import TagsWidget
+                self._tags = TagsWidget(item_data)  # Use default settings
                 lay.addWidget(self._tags)
 
                 # Add a subtle header

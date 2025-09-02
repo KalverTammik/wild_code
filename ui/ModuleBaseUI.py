@@ -111,8 +111,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             except Exception:
                 self.overdue_pills = None
             if self.overdue_pills:
-                self.toolbar_area.add_right(self.overdue_pills)
-            self.toolbar_area.add_right(self._refresh_button)
+                self.toolbar_area.add_right(self._refresh_button)
+            self.toolbar_area.add_right(self.overdue_pills)
         except Exception:
             pass
 

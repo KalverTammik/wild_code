@@ -53,7 +53,7 @@ class ToolbarArea(QWidget):
         # Main horizontal layout
         self._layout = QHBoxLayout(self)
         self._layout.setContentsMargins(8, 4, 8, 4)
-        self._layout.setSpacing(6)
+        self._layout.setSpacing(3)
 
         self._left = QWidget(self)
         self._left.setObjectName("ToolbarLeft")
@@ -61,7 +61,7 @@ class ToolbarArea(QWidget):
         self._left_layout = QHBoxLayout(self._left)
         self._left_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._left_layout.setSpacing(6)
+        self._left_layout.setSpacing(1)
 
         # Center title label (expands; centered text)
         self._title = QLabel("Toolbar Area (add widgets here)", self)

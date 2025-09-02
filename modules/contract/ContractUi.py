@@ -66,33 +66,11 @@ class ContractUi(ModuleBaseUI):
 
         # --- Toolbar & filtrid (ühtne muster) ---
         title = self.lang_manager.translate(self.TITLE_KEY) if self.lang_manager else self.TITLE_KEY
-        self.toolbar_area.set_title(title)
+        self.toolbar_area.set_title("")
 
         try:
             self.status_filter = StatusFilterWidget(self.MODULE_ENUM, self.lang_manager, self.toolbar_area, debug=is_global_debug())
             self.toolbar_area.register_filter_widget("status", self.status_filter)
-
-            # Move the global refresh button next to the status filter for consistent UX
-            try:
-                tb = getattr(self, 'toolbar_area', None)
-                refresh_btn = getattr(self, '_refresh_button', None)
-                if tb and refresh_btn and hasattr(tb, '_left_layout') and hasattr(tb, '_right_layout'):
-                    try:
-                        tb._right_layout.removeWidget(refresh_btn)
-                    except Exception:
-                        pass
-                    insert_idx = None
-                    for i in range(tb._left_layout.count()):
-                        w = tb._left_layout.itemAt(i).widget()
-                        if w is self.status_filter:
-                            insert_idx = i
-                            break
-                    if insert_idx is None:
-                        tb._left_layout.addWidget(refresh_btn)
-                    else:
-                        tb._left_layout.insertWidget(insert_idx + 1, refresh_btn)
-            except Exception:
-                pass
 
             self.type_filter = None
             if self.USE_TYPE_FILTER:
@@ -100,6 +78,21 @@ class ContractUi(ModuleBaseUI):
                 self.toolbar_area.register_filter_widget("type", self.type_filter)
 
             self.toolbar_area.filtersChanged.connect(self._on_filters_changed)
+
+            # Move the refresh button to left, after filters
+            try:
+                tb = getattr(self, 'toolbar_area', None)
+                refresh_btn = getattr(self, '_refresh_button', None)
+                if tb and refresh_btn and hasattr(tb, '_right_layout') and hasattr(tb, '_left_layout'):
+                    # remove from right layout if present
+                    try:
+                        tb._right_layout.removeWidget(refresh_btn)
+                    except Exception:
+                        pass
+                    # add to left layout after filters
+                    tb._left_layout.addWidget(refresh_btn)
+            except Exception:
+                pass
         except Exception as e:
             log_debug(f"[ContractUi] Toolbar init failed: {e}")
 
