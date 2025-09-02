@@ -34,7 +34,12 @@ class TypeFilterWidget(BaseFilterWidget):
 
     def __init__(self, module_name: Union[str, object], lang_manager=None, parent=None, debug: Optional[bool] = None):
         super().__init__(parent)
-        self._module = (getattr(module_name, "value", module_name) or "CONTRACT").upper()
+        # Extract base module name from full module name (e.g., "ContractModule" -> "CONTRACT")
+        raw_module = getattr(module_name, "value", module_name) or "CONTRACT"
+        if "CONTRACT" in str(raw_module).upper():
+            self._module = "CONTRACT"
+        else:
+            self._module = str(raw_module).upper()
         self._lang = lang_manager
         self._api = APIClient(self._lang)
         self._loader = GraphQLQueryLoader(self._lang)

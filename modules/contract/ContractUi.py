@@ -62,6 +62,7 @@ class ContractUi(ModuleBaseUI):
         self.feed_logic = None
         self._current_where = None
         self._status_preferences_loaded = False
+        self._type_preferences_loaded = False
 
         # --- Toolbar & filtrid (ühtne muster) ---
         title = self.lang_manager.translate(self.TITLE_KEY) if self.lang_manager else self.TITLE_KEY

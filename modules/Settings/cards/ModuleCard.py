@@ -8,6 +8,11 @@ try:
 except Exception:
     QgsSettings = None  # type: ignore
 
+try:
+    from ....widgets.TypeFilterWidget import TypeFilterWidget
+except Exception:
+    TypeFilterWidget = None  # type: ignore
+
 
 class ModuleCard(BaseCard):
     pendingChanged = pyqtSignal(bool)
@@ -43,6 +48,8 @@ class ModuleCard(BaseCard):
         self._pend_show_numbers = True
         self._orig_status_preferences = set()
         self._pend_status_preferences = set()
+        self._orig_type_preferences = set()
+        self._pend_type_preferences = set()
         self._build_ui()
 
     # --- UI ---
@@ -107,15 +114,22 @@ class ModuleCard(BaseCard):
 
         cl.addWidget(layers_container)
 
-        # Options container - arrange display and status preferences side by side
+        # Options container - arrange preferences in rows
         options_container = QFrame(cw)
         options_container.setObjectName("OptionsContainer")
-        options_layout = QHBoxLayout(options_container)
+        options_layout = QVBoxLayout(options_container)
         options_layout.setContentsMargins(0, 0, 0, 0)
-        options_layout.setSpacing(8)  # Spacing between display and status groups
+        options_layout.setSpacing(8)  # Spacing between rows
+
+        # First row: Display options and Status preferences side by side
+        first_row_container = QFrame(options_container)
+        first_row_container.setObjectName("FirstRowContainer")
+        first_row_layout = QHBoxLayout(first_row_container)
+        first_row_layout.setContentsMargins(0, 0, 0, 0)
+        first_row_layout.setSpacing(8)  # Spacing between display and status groups
 
         # Display options group
-        display_group = QGroupBox(self.lang_manager.translate("Display Options"), options_container)
+        display_group = QGroupBox(self.lang_manager.translate("Display Options"), first_row_container)
         display_group.setObjectName("DisplayOptionsGroup")
         display_layout = QHBoxLayout(display_group)  # Changed to horizontal layout
         display_layout.setContentsMargins(4, 4, 4, 4)
@@ -139,10 +153,10 @@ class ModuleCard(BaseCard):
         display_explanation.setMinimumWidth(200)  # Ensure minimum width for readability
         display_layout.addWidget(display_explanation, 1)  # Equal space for explanation
 
-        options_layout.addWidget(display_group)
+        first_row_layout.addWidget(display_group)
 
         # Status preferences group
-        status_group = QGroupBox(self.lang_manager.translate("Status Preferences"), options_container)
+        status_group = QGroupBox(self.lang_manager.translate("Status Preferences"), first_row_container)
         status_group.setObjectName("StatusPreferencesGroup")
         status_layout = QHBoxLayout(status_group)  # Changed to horizontal layout
         status_layout.setContentsMargins(4, 4, 4, 4)
@@ -181,7 +195,58 @@ class ModuleCard(BaseCard):
         status_explanation.setMinimumWidth(200)  # Ensure minimum width for readability
         status_layout.addWidget(status_explanation, 1)  # Equal space for explanation
 
-        options_layout.addWidget(status_group)
+        first_row_layout.addWidget(status_group)
+
+        options_layout.addWidget(first_row_container)
+
+        # Second row: Type preferences (only for modules that support types)
+        self._supports_types = self._module_supports_types()
+        if self._supports_types:
+            # Type preferences group
+            type_group = QGroupBox(self.lang_manager.translate("Type Preferences"), options_container)
+            type_group.setObjectName("TypePreferencesGroup")
+            type_layout = QHBoxLayout(type_group)  # Changed to horizontal layout
+            type_layout.setContentsMargins(4, 4, 4, 4)
+            type_layout.setSpacing(6)
+
+            # Left side - Type filter widget
+            type_container = QFrame(type_group)
+            type_container.setObjectName("TypeContainer")
+            type_inner_layout = QVBoxLayout(type_container)
+            type_inner_layout.setContentsMargins(0, 0, 0, 0)
+            type_inner_layout.setSpacing(4)
+
+            # Add the existing TypeFilterWidget
+            try:
+                # Extract base module name for TypeFilterWidget
+                base_module_name = "CONTRACT" if "CONTRACT" in str(self.module_name).upper() else str(self.module_name).upper()
+                if TypeFilterWidget is not None:
+                    self._type_filter_widget = TypeFilterWidget(base_module_name, self.lang_manager, type_container, debug=True)
+                    self._type_filter_widget.selectionChanged.connect(self._on_type_selection_changed)
+                    type_inner_layout.addWidget(self._type_filter_widget)
+                    # Don't load immediately - wait for settings activation
+                    self._type_filter_widget._loaded = False
+                else:
+                    raise Exception("TypeFilterWidget not available")
+            except Exception as e:
+                # If TypeFilterWidget fails to load, create a simple placeholder
+                print(f"Failed to create TypeFilterWidget: {e}")
+                self._type_filter_widget = None
+                error_label = QLabel(self.lang_manager.translate("Type preferences unavailable"))
+                error_label.setStyleSheet("color: #999; font-style: italic;")
+                type_inner_layout.addWidget(error_label)
+
+            type_layout.addWidget(type_container, 2)  # Give more space to type filter
+
+            # Right side - Explanation text
+            type_explanation = QLabel(self.lang_manager.translate("Select types you want to prioritize for this module. These will be highlighted in the interface."), type_group)
+            type_explanation.setObjectName("GroupExplanation")
+            type_explanation.setWordWrap(True)
+            type_explanation.setStyleSheet("color: #888; font-size: 11px; padding: 4px 0px;")
+            type_explanation.setMinimumWidth(200)  # Ensure minimum width for readability
+            type_layout.addWidget(type_explanation, 1)  # Equal space for explanation
+
+            options_layout.addWidget(type_group)
 
         cl.addWidget(options_container)
 
@@ -210,6 +275,14 @@ class ModuleCard(BaseCard):
         self._orig_status_preferences = self._load_status_preferences_from_settings()
         self._pend_status_preferences = self._orig_status_preferences.copy()
         
+        # Load original type preferences (only if module supports types)
+        if self._supports_types:
+            self._orig_type_preferences = self._load_type_preferences_from_settings()
+            self._pend_type_preferences = self._orig_type_preferences.copy()
+        else:
+            self._orig_type_preferences = set()
+            self._pend_type_preferences = set()
+        
         # Initialize status filter widget with saved preferences
         if hasattr(self, '_status_filter_widget') and self._status_filter_widget is not None:
             # Ensure the widget is loaded
@@ -224,6 +297,21 @@ class ModuleCard(BaseCard):
                 if hasattr(self._status_filter_widget, 'combo'):
                     self._status_filter_widget.combo.clear()
                     self._status_filter_widget.combo.addItem("Failed to load statuses")
+        
+        # Initialize type filter widget with saved preferences (only if module supports types)
+        if self._supports_types and hasattr(self, '_type_filter_widget') and self._type_filter_widget is not None:
+            # Ensure the widget is loaded
+            try:
+                self._type_filter_widget.ensure_loaded()
+                self._type_filter_widget.set_selected_ids(list(self._orig_type_preferences))
+            except Exception as e:
+                # If loading fails, disable the widget
+                print(f"Failed to load type filter widget: {e}")
+                self._type_filter_widget.setEnabled(False)
+                # Create an error label to show in the widget
+                if hasattr(self._type_filter_widget, 'type_combo'):
+                    self._type_filter_widget.type_combo.clear()
+                    self._type_filter_widget.type_combo.addItem("Failed to load types")
         
         # Apply stored selections to pickers so they display the saved layer names
         # Only set if the layer actually exists
@@ -295,7 +383,8 @@ class ModuleCard(BaseCard):
         ar_dirty = bool(self._pend_archive_id and self._pend_archive_id != self._orig_archive_id)
         num_dirty = self._pend_show_numbers != self._orig_show_numbers
         status_dirty = self._pend_status_preferences != self._orig_status_preferences
-        return el_dirty or ar_dirty or num_dirty or status_dirty
+        type_dirty = self._supports_types and self._pend_type_preferences != self._orig_type_preferences
+        return el_dirty or ar_dirty or num_dirty or status_dirty or type_dirty
 
     def apply(self):
         changed = False
@@ -328,6 +417,12 @@ class ModuleCard(BaseCard):
             self._orig_status_preferences = self._pend_status_preferences.copy()
             changed = True
 
+        # Save type preferences (only if module supports types)
+        if self._supports_types and self._pend_type_preferences != self._orig_type_preferences:
+            self._save_type_preferences()
+            self._orig_type_preferences = self._pend_type_preferences.copy()
+            changed = True
+
         self._pend_element_id = ""
         self._pend_archive_id = ""
         self._sync_selected_names()
@@ -347,6 +442,11 @@ class ModuleCard(BaseCard):
         # Revert status preferences
         self._pend_status_preferences = self._orig_status_preferences.copy()
         self._restore_status_preferences_ui()
+
+        # Revert type preferences (only if module supports types)
+        if self._supports_types:
+            self._pend_type_preferences = self._orig_type_preferences.copy()
+            self._restore_type_preferences_ui()
 
         self._sync_selected_names()
         self.pendingChanged.emit(False)
@@ -424,6 +524,19 @@ class ModuleCard(BaseCard):
         except Exception as e:
             print(f"Error handling status selection change: {e}")
 
+    def _on_type_selection_changed(self):
+        """Handle type selection changes from the TypeFilterWidget."""
+        if not self._supports_types:
+            return
+        if not self._type_filter_widget or not self._type_filter_widget.isEnabled():
+            return
+        try:
+            selected_ids = self._type_filter_widget.selected_ids()
+            self._pend_type_preferences = set(selected_ids) if selected_ids else set()
+            self.pendingChanged.emit(self.has_pending_changes())
+        except Exception as e:
+            print(f"Error handling type selection change: {e}")
+
     def _on_reset_settings(self):
         """Reset all settings for this module to defaults."""
         try:
@@ -446,6 +559,15 @@ class ModuleCard(BaseCard):
                 self._orig_status_preferences = set()
                 self._pend_status_preferences = set()
 
+            # Reset type preferences (only if module supports types)
+            if self._supports_types and hasattr(self, '_type_filter_widget') and self._type_filter_widget is not None and self._type_filter_widget.isEnabled():
+                try:
+                    self._type_filter_widget.set_selected_ids([])
+                except Exception as e:
+                    print(f"Error resetting type preferences: {e}")
+                self._orig_type_preferences = set()
+                self._pend_type_preferences = set()
+
             # Clear any stored settings
             self._write_saved_layer_id("element", "")
             self._write_saved_layer_id("archive", "")
@@ -459,6 +581,16 @@ class ModuleCard(BaseCard):
                 s.remove(key)
             except Exception:
                 pass
+
+            # Clear type preferences (only if module supports types)
+            if self._supports_types:
+                try:
+                    from qgis.core import QgsSettings
+                    s = QgsSettings()
+                    key = f"wild_code/modules/{self.module_name}/preferred_types"
+                    s.remove(key)
+                except Exception:
+                    pass
 
             # Update UI
             self._sync_selected_names()
@@ -507,6 +639,42 @@ class ModuleCard(BaseCard):
                 self._status_filter_widget.set_selected_ids(list(self._orig_status_preferences))
             except Exception as e:
                 print(f"Error restoring status preferences UI: {e}")
+
+    def _load_type_preferences_from_settings(self) -> set:
+        """Load type preferences directly from QGIS settings."""
+        try:
+            from qgis.core import QgsSettings
+            s = QgsSettings()
+            key = f"wild_code/modules/{self.module_name}/preferred_types"
+            preferred_types = s.value(key, "") or ""
+
+            if preferred_types:
+                return set(preferred_types.split(","))
+            return set()
+        except Exception:
+            return set()
+
+    def _save_type_preferences(self):
+        """Save type preferences for this module."""
+        try:
+            from qgis.core import QgsSettings
+            s = QgsSettings()
+
+            key = f"wild_code/modules/{self.module_name}/preferred_types"
+            if self._pend_type_preferences:
+                s.setValue(key, ",".join(self._pend_type_preferences))
+            else:
+                s.remove(key)
+
+        except Exception:
+            pass
+
+    def _module_supports_types(self) -> bool:
+        """Determine if this module supports type preferences."""
+        # Convert module_name to uppercase for comparison
+        module_upper = str(self.module_name).upper()
+        # CONTRACT modules support types, PROJECT modules do not
+        return "CONTRACT" in module_upper
 
     # --- Handlers ---
     def _on_element_selected(self, layer_id: str):
