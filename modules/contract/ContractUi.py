@@ -61,6 +61,7 @@ class ContractUi(ModuleBaseUI):
 
         self.feed_logic = None
         self._current_where = None
+        self._status_preferences_loaded = False
 
         # --- Toolbar & filtrid (ühtne muster) ---
         title = self.lang_manager.translate(self.TITLE_KEY) if self.lang_manager else self.TITLE_KEY
@@ -101,7 +102,6 @@ class ContractUi(ModuleBaseUI):
         except Exception as e:
             log_debug(f"[ContractUi] Toolbar init failed: {e}")
 
-        # --- Feed container & layout (ühine muster) ---
         self.feed_content = QWidget()
         self.feed_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.feed_layout = QVBoxLayout(self.feed_content)
@@ -136,8 +136,6 @@ class ContractUi(ModuleBaseUI):
 
     # --- Aktivatsioon / deaktiveerimine (ühine muster) ---
     def activate(self) -> None:
-        super().activate()
-
         if self.feed_logic is None:
             kwargs = {}
             if self.BATCH_SIZE is not None:
@@ -146,14 +144,14 @@ class ContractUi(ModuleBaseUI):
 
         # (valikuline) eellae filtrite sisud
         try:
-            if self.status_filter:
-                self.status_filter.ensure_loaded()
             if self.type_filter:
                 self.type_filter.ensure_loaded()
         except Exception:
             pass
 
         self.feed_load_engine.schedule_load()
+        
+        super().activate()
 
     def deactivate(self) -> None:
         super().deactivate()

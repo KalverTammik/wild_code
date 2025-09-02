@@ -56,6 +56,7 @@ class ProjectsModule(ModuleBaseUI):
         # FeedLogic laisk initsialiseerimine
         self.feed_logic = None
         self._current_where = None
+        self._status_preferences_loaded = False
 
         # --- Toolbar & filtrid (ühtne muster) ---
         title = self.lang_manager.translate(self.TITLE_KEY) if self.lang_manager else self.TITLE_KEY
@@ -99,7 +100,8 @@ class ProjectsModule(ModuleBaseUI):
         except Exception as e:
             log_debug(f"[ProjectsModule] Toolbar init failed: {e}")
 
-        # --- Feed container & layout (ühine muster) ---
+        # Load and apply saved status preferences
+        self._load_and_apply_status_preferences()
         self.feed_content = QWidget()
         self.feed_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.feed_layout = QVBoxLayout(self.feed_content)
@@ -152,15 +154,6 @@ class ProjectsModule(ModuleBaseUI):
                 kwargs["batch_size"] = self.BATCH_SIZE
             self.feed_logic = self.FEED_LOGIC_CLS(self.BACKEND_ENTITY, self.QUERY_FILE, self.lang_manager, **kwargs)
 
-        # (valikuline) eellae filtrite sisud
-        try:
-            if self.status_filter:
-                self.status_filter.ensure_loaded()
-            if self.type_filter:
-                self.type_filter.ensure_loaded()
-        except Exception:
-            pass
-
         self.feed_load_engine.schedule_load()
         # Kick off overdue/due soon counts (defensive: attribute may not exist)
         try:
@@ -169,6 +162,24 @@ class ProjectsModule(ModuleBaseUI):
                 pills.refresh_counts_for_projects(self.lang_manager)
         except Exception:
             pass
+
+    def activate(self) -> None:
+        if self.feed_logic is None:
+            kwargs = {}
+            if self.BATCH_SIZE is not None:
+                kwargs["batch_size"] = self.BATCH_SIZE
+            self.feed_logic = self.FEED_LOGIC_CLS(self.BACKEND_ENTITY, self.QUERY_FILE, self.lang_manager, **kwargs)
+
+        # (valikuline) eellae filtrite sisud
+        try:
+            if self.type_filter:
+                self.type_filter.ensure_loaded()
+        except Exception:
+            pass
+
+        self.feed_load_engine.schedule_load()
+        
+        super().activate()
 
     def deactivate(self) -> None:
         super().deactivate()

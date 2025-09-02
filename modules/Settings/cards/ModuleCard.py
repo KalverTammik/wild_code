@@ -34,6 +34,8 @@ class ModuleCard(BaseCard):
         self._pend_archive_id = ""
         self._orig_show_numbers = True
         self._pend_show_numbers = True
+        self._orig_status_preferences = set()
+        self._pend_status_preferences = set()
         self._build_ui()
 
     # --- UI ---
@@ -113,6 +115,37 @@ class ModuleCard(BaseCard):
 
         cl.addWidget(display_group)
 
+        # Status preferences group
+        status_group = QGroupBox(self.lang_manager.translate("Status Preferences"), cw)
+        status_group.setObjectName("StatusPreferencesGroup")
+        status_layout = QVBoxLayout(status_group)
+        status_layout.setContentsMargins(8, 16, 8, 8)
+        status_layout.setSpacing(8)
+
+        # Header with explanation
+        status_explanation = QLabel(self.lang_manager.translate("Select statuses you want to prioritize for this module. These will be highlighted in the interface."))
+        status_explanation.setWordWrap(True)
+        status_explanation.setStyleSheet("color: #666; font-size: 11px; margin-bottom: 8px;")
+        status_layout.addWidget(status_explanation)
+
+        # Add the existing StatusFilterWidget
+        try:
+            from ....widgets.StatusFilterWidget import StatusFilterWidget
+            self._status_filter_widget = StatusFilterWidget(self.module_name, self.lang_manager, status_group, debug=True)
+            self._status_filter_widget.selectionChanged.connect(self._on_status_selection_changed)
+            status_layout.addWidget(self._status_filter_widget)
+            # Don't load immediately - wait for settings activation
+            self._status_filter_widget._loaded = False
+        except Exception as e:
+            # If StatusFilterWidget fails to load, create a simple placeholder
+            print(f"Failed to create StatusFilterWidget: {e}")
+            self._status_filter_widget = None
+            error_label = QLabel(self.lang_manager.translate("Status preferences unavailable"))
+            error_label.setStyleSheet("color: #999; font-style: italic;")
+            status_layout.addWidget(error_label)
+
+        cl.addWidget(status_group)
+
         # Add stretch to push content up (no footer building here - use base class)
         cl.addStretch(1)
 
@@ -133,6 +166,25 @@ class ModuleCard(BaseCard):
         self._orig_show_numbers = self._read_show_numbers_setting()
         self._pend_show_numbers = self._orig_show_numbers
         self._show_numbers_checkbox.setChecked(self._orig_show_numbers)
+        
+        # Load original status preferences
+        self._orig_status_preferences = self._load_status_preferences_from_settings()
+        self._pend_status_preferences = self._orig_status_preferences.copy()
+        
+        # Initialize status filter widget with saved preferences
+        if hasattr(self, '_status_filter_widget') and self._status_filter_widget is not None:
+            # Ensure the widget is loaded
+            try:
+                self._status_filter_widget.ensure_loaded()
+                self._status_filter_widget.set_selected_ids(list(self._orig_status_preferences))
+            except Exception as e:
+                # If loading fails, disable the widget
+                print(f"Failed to load status filter widget: {e}")
+                self._status_filter_widget.setEnabled(False)
+                # Create an error label to show in the widget
+                if hasattr(self._status_filter_widget, 'combo'):
+                    self._status_filter_widget.combo.clear()
+                    self._status_filter_widget.combo.addItem("Failed to load statuses")
         
         # Apply stored selections to pickers so they display the saved layer names
         # Only set if the layer actually exists
@@ -203,7 +255,8 @@ class ModuleCard(BaseCard):
         el_dirty = bool(self._pend_element_id and self._pend_element_id != self._orig_element_id)
         ar_dirty = bool(self._pend_archive_id and self._pend_archive_id != self._orig_archive_id)
         num_dirty = self._pend_show_numbers != self._orig_show_numbers
-        return el_dirty or ar_dirty or num_dirty
+        status_dirty = self._pend_status_preferences != self._orig_status_preferences
+        return el_dirty or ar_dirty or num_dirty or status_dirty
 
     def apply(self):
         changed = False
@@ -230,6 +283,12 @@ class ModuleCard(BaseCard):
                 pass
             changed = True
 
+        # Save status preferences
+        if self._pend_status_preferences != self._orig_status_preferences:
+            self._save_status_preferences()
+            self._orig_status_preferences = self._pend_status_preferences.copy()
+            changed = True
+
         self._pend_element_id = ""
         self._pend_archive_id = ""
         self._sync_selected_names()
@@ -245,6 +304,10 @@ class ModuleCard(BaseCard):
         # Revert show numbers setting
         self._pend_show_numbers = self._orig_show_numbers
         self._show_numbers_checkbox.setChecked(self._orig_show_numbers)
+
+        # Revert status preferences
+        self._pend_status_preferences = self._orig_status_preferences.copy()
+        self._restore_status_preferences_ui()
 
         self._sync_selected_names()
         self.pendingChanged.emit(False)
@@ -311,50 +374,16 @@ class ModuleCard(BaseCard):
         self._pend_show_numbers = bool(state)
         self.pendingChanged.emit(self.has_pending_changes())
 
-    # --- Handlers ---
-    def _on_element_selected(self, layer_id: str):
-        self._pend_element_id = layer_id or ""
-        self._sync_selected_names()
-        self._validate_layer_selections()
-        self.pendingChanged.emit(self.has_pending_changes())
-
-    def _on_archive_selected(self, layer_id: str):
-        self._pend_archive_id = layer_id or ""
-        self._sync_selected_names()
-        self._validate_layer_selections()
-        self.pendingChanged.emit(self.has_pending_changes())
-
-    def _validate_layer_selections(self):
-        """Validate layer selections and provide user feedback."""
+    def _on_status_selection_changed(self):
+        """Handle status selection changes from the StatusFilterWidget."""
+        if not self._status_filter_widget or not self._status_filter_widget.isEnabled():
+            return
         try:
-            element_layer = self._element_picker.selectedLayer() if self._element_picker else None
-            archive_layer = self._archive_picker.selectedLayer() if self._archive_picker else None
-
-            warnings = []
-            errors = []
-
-            # Check if layers exist
-            if self._pend_element_id and not element_layer:
-                errors.append(self.lang_manager.translate("Main layer not found"))
-            if self._pend_archive_id and not archive_layer:
-                warnings.append(self.lang_manager.translate("Archive layer not found"))
-
-            # Check if layers are the same
-            if (self._pend_element_id and self._pend_archive_id and
-                self._pend_element_id == self._pend_archive_id):
-                warnings.append(self.lang_manager.translate("Main and archive layers are the same"))
-
-            # Update status display
-            if errors:
-                self.set_status_text("❌ " + "; ".join(errors), True)
-            elif warnings:
-                self.set_status_text("⚠️ " + "; ".join(warnings), True)
-            else:
-                self.clear_status()
-
+            selected_ids = self._status_filter_widget.selected_ids()
+            self._pend_status_preferences = set(selected_ids) if selected_ids else set()
+            self.pendingChanged.emit(self.has_pending_changes())
         except Exception as e:
-            # Don't crash on validation errors
-            self.set_status_text(f"⚠️ {self.lang_manager.translate('Validation error')}: {str(e)}", True)
+            print(f"Error handling status selection change: {e}")
 
     def _on_reset_settings(self):
         """Reset all settings for this module to defaults."""
@@ -369,10 +398,28 @@ class ModuleCard(BaseCard):
             self._pend_show_numbers = True
             self._show_numbers_checkbox.setChecked(True)
 
+            # Reset status preferences
+            if hasattr(self, '_status_filter_widget') and self._status_filter_widget is not None and self._status_filter_widget.isEnabled():
+                try:
+                    self._status_filter_widget.set_selected_ids([])
+                except Exception as e:
+                    print(f"Error resetting status preferences: {e}")
+                self._orig_status_preferences = set()
+                self._pend_status_preferences = set()
+
             # Clear any stored settings
             self._write_saved_layer_id("element", "")
             self._write_saved_layer_id("archive", "")
             self._write_show_numbers_setting(True)
+
+            # Clear status preferences
+            try:
+                from qgis.core import QgsSettings
+                s = QgsSettings()
+                key = f"wild_code/modules/{self.module_name}/preferred_statuses"
+                s.remove(key)
+            except Exception:
+                pass
 
             # Update UI
             self._sync_selected_names()
@@ -384,3 +431,51 @@ class ModuleCard(BaseCard):
 
         except Exception as e:
             self.set_status_text(f"❌ {self.lang_manager.translate('Reset failed')}: {str(e)}", True)
+
+    def _load_status_preferences_from_settings(self) -> set:
+        """Load status preferences directly from QGIS settings."""
+        try:
+            from qgis.core import QgsSettings
+            s = QgsSettings()
+            key = f"wild_code/modules/{self.module_name}/preferred_statuses"
+            preferred_statuses = s.value(key, "") or ""
+
+            if preferred_statuses:
+                return set(preferred_statuses.split(","))
+            return set()
+        except Exception:
+            return set()
+
+    def _save_status_preferences(self):
+        """Save status preferences for this module."""
+        try:
+            from qgis.core import QgsSettings
+            s = QgsSettings()
+
+            key = f"wild_code/modules/{self.module_name}/preferred_statuses"
+            if self._pend_status_preferences:
+                s.setValue(key, ",".join(self._pend_status_preferences))
+            else:
+                s.remove(key)
+
+        except Exception:
+            pass
+
+    def _restore_status_preferences_ui(self):
+        """Restore the UI state of status preferences."""
+        if hasattr(self, '_status_filter_widget') and self._status_filter_widget is not None and self._status_filter_widget.isEnabled():
+            try:
+                self._status_filter_widget.set_selected_ids(list(self._orig_status_preferences))
+            except Exception as e:
+                print(f"Error restoring status preferences UI: {e}")
+
+    # --- Handlers ---
+    def _on_element_selected(self, layer_id: str):
+        self._pend_element_id = layer_id or ""
+        self._sync_selected_names()
+        self.pendingChanged.emit(self.has_pending_changes())
+
+    def _on_archive_selected(self, layer_id: str):
+        self._pend_archive_id = layer_id or ""
+        self._sync_selected_names()
+        self.pendingChanged.emit(self.has_pending_changes())
