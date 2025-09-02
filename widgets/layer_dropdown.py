@@ -1,5 +1,5 @@
 from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QToolButton, QMenu, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QLabel, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QToolButton, QMenu, QVBoxLayout, QTreeWidget, QTreeWidgetItem, QLabel, QSizePolicy, QFrame
 
 try:
     from qgis.core import QgsProject, QgsMapLayer
@@ -74,19 +74,62 @@ class LayerTreePicker(QWidget):
         self._item_by_id = {}
         self._placeholder = placeholder
 
-        main = QVBoxLayout(self)
-        main.setContentsMargins(0, 0, 0, 0)
+        # Create fixed-size container frame
+        self._container = QFrame(self)
+        self._container.setObjectName("LayerTreePickerContainer")
+        self._container.setFixedSize(180, 20)  # 50% wider: 120px * 1.5 = 180px
+        
+        # Set up the horizontal layout inside the container
+        main = QHBoxLayout(self._container)
+        main.setContentsMargins(0, 0, 0, 0)  # No margins inside container
         main.setSpacing(0)
+        
+        # Add shadow effect to container
+        try:
+            from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+            from PyQt5.QtGui import QColor
+            shadow = QGraphicsDropShadowEffect(self._container)
+            shadow.setBlurRadius(14)
+            shadow.setXOffset(0)
+            shadow.setYOffset(1)
+            shadow.setColor(QColor(9, 144, 143, 60))
+            self._container.setGraphicsEffect(shadow)
+        except Exception:
+            pass
 
-        # Toggle button (collapsed state) with dropdown arrow
-        self._button = QToolButton(self)
+        # Main button (text area)
+        self._button = QToolButton(self._container)
         self._button.setText(self._placeholder)
         self._button.setToolButtonStyle(Qt.ToolButtonTextOnly)
         self._button.clicked.connect(self._toggle_popup)
         main.addWidget(self._button)
 
+        # Dropdown frame with arrow
+        self._dropdown_frame = QFrame(self._container)
+        self._dropdown_frame.setObjectName("DropdownFrame")
+        self._dropdown_frame.setFixedWidth(20)
+        
+        frame_layout = QVBoxLayout(self._dropdown_frame)
+        frame_layout.setContentsMargins(0, 0, 0, 0)
+        frame_layout.setSpacing(0)
+        
+        # Arrow label inside frame
+        self._arrow_label = QLabel("▼", self._dropdown_frame)
+        self._arrow_label.setAlignment(Qt.AlignCenter)
+        frame_layout.addWidget(self._arrow_label)
+        
+        main.addWidget(self._dropdown_frame)
+        
+        # Connect dropdown frame click
+        self._dropdown_frame.mousePressEvent = lambda event: self._toggle_popup()
+
+        # Set up main widget layout
+        widget_layout = QVBoxLayout(self)
+        widget_layout.setContentsMargins(4, 2, 4, 2)  # Margins for shadow visibility
+        widget_layout.setSpacing(0)
+        widget_layout.addWidget(self._container)
+
         # Popup container with a tree
-        from PyQt5.QtWidgets import QFrame
         self._popup = QFrame(None, Qt.Popup | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)  # No parent for top-level popup
         self._popup.setObjectName("LayerTreePopup")
         pl = QVBoxLayout(self._popup)
@@ -155,7 +198,7 @@ class LayerTreePicker(QWidget):
 
     def _update_button_label(self):
         name = self._resolve_layer_name(self._selected_layer_id)
-        display_text = f"{name or self._placeholder} ▼"
+        display_text = name or self._placeholder
         self._button.setText(display_text)
 
     def retheme(self):
@@ -246,6 +289,10 @@ class LayerTreePicker(QWidget):
             self._tree.setFocus()
         except Exception as e:
             print(f"[LayerTreePicker] Popup positioning failed: {e}")
+
+    def _on_dropdown_frame_clicked(self, event):
+        """Handle mouse press on dropdown frame."""
+        self._toggle_popup()
 
     # Internal builders ------------------------------------------------
     def _build_tree_from_snapshot(self, items, parent_item: QTreeWidgetItem):
