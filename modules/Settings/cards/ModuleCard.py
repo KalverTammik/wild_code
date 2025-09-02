@@ -52,8 +52,15 @@ class ModuleCard(BaseCard):
         cl.setContentsMargins(1, 1, 1, 1)
         cl.setSpacing(6)  # Increased spacing between groups for better separation
 
+        # Layer configurations container - arrange main and archive side by side
+        layers_container = QFrame(cw)
+        layers_container.setObjectName("LayersContainer")
+        layers_layout = QHBoxLayout(layers_container)
+        layers_layout.setContentsMargins(0, 0, 0, 0)
+        layers_layout.setSpacing(8)  # Spacing between main and archive groups
+
         # Main layer group
-        main_group = QGroupBox(self.lang_manager.translate("Modules main layer"), cw)
+        main_group = QGroupBox(self.lang_manager.translate("Modules main layer"), layers_container)
         main_group.setObjectName("MainLayerGroup")
         main_layout = QHBoxLayout(main_group)  # Changed to horizontal layout
         main_layout.setContentsMargins(4, 4, 4, 4)
@@ -73,10 +80,10 @@ class ModuleCard(BaseCard):
         explanation1.setMinimumWidth(200)  # Ensure minimum width for readability
         main_layout.addWidget(explanation1, 1)  # Equal space for explanation
 
-        cl.addWidget(main_group)
+        layers_layout.addWidget(main_group)
 
         # Archive layer group
-        archive_group = QGroupBox(self.lang_manager.translate("Archive layer"), cw)
+        archive_group = QGroupBox(self.lang_manager.translate("Archive layer"), layers_container)
         archive_group.setObjectName("ArchiveLayerGroup")
         archive_layout = QHBoxLayout(archive_group)  # Changed to horizontal layout
         archive_layout.setContentsMargins(4, 4, 4, 4)
@@ -96,10 +103,19 @@ class ModuleCard(BaseCard):
         explanation2.setMinimumWidth(200)
         archive_layout.addWidget(explanation2, 1)
 
-        cl.addWidget(archive_group)
+        layers_layout.addWidget(archive_group)
+
+        cl.addWidget(layers_container)
+
+        # Options container - arrange display and status preferences side by side
+        options_container = QFrame(cw)
+        options_container.setObjectName("OptionsContainer")
+        options_layout = QHBoxLayout(options_container)
+        options_layout.setContentsMargins(0, 0, 0, 0)
+        options_layout.setSpacing(8)  # Spacing between display and status groups
 
         # Display options group
-        display_group = QGroupBox(self.lang_manager.translate("Display Options"), cw)
+        display_group = QGroupBox(self.lang_manager.translate("Display Options"), options_container)
         display_group.setObjectName("DisplayOptionsGroup")
         display_layout = QHBoxLayout(display_group)  # Changed to horizontal layout
         display_layout.setContentsMargins(4, 4, 4, 4)
@@ -129,10 +145,10 @@ class ModuleCard(BaseCard):
         display_explanation.setMinimumWidth(200)  # Ensure minimum width for readability
         display_layout.addWidget(display_explanation, 1)  # Equal space for explanation
 
-        cl.addWidget(display_group)
+        options_layout.addWidget(display_group)
 
         # Status preferences group
-        status_group = QGroupBox(self.lang_manager.translate("Status Preferences"), cw)
+        status_group = QGroupBox(self.lang_manager.translate("Status Preferences"), options_container)
         status_group.setObjectName("StatusPreferencesGroup")
         status_layout = QHBoxLayout(status_group)  # Changed to horizontal layout
         status_layout.setContentsMargins(4, 4, 4, 4)
@@ -171,7 +187,9 @@ class ModuleCard(BaseCard):
         status_explanation.setMinimumWidth(200)  # Ensure minimum width for readability
         status_layout.addWidget(status_explanation, 1)  # Equal space for explanation
 
-        cl.addWidget(status_group)
+        options_layout.addWidget(status_group)
+
+        cl.addWidget(options_container)
 
         # Add stretch to push content up (no footer building here - use base class)
         cl.addStretch(1)
