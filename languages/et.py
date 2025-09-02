@@ -28,7 +28,7 @@ TRANSLATIONS = {
     "Name": "Nimi",
     "Email": "E-post",
     "Module settings placeholder": "Mooduli seadete kohatäide",
-    # Lisatud: Tere tulemast lehe ja kihi valiku tekstid
+    # Lisatud: Tere tulemast lehe ja kihi valiku tekstidmida soovid selles moodulis eelistada. 
     "Welcome": "Tere tulemast",
     "Select a module from the left or open Settings to set your preferred module.": "Vali vasakult moodul või ava Seaded, et määrata eelistatud moodul.",
     "Open Settings": "Ava Seaded",
@@ -46,4 +46,6 @@ TRANSLATIONS = {
     ,"dev_dbg_tooltip": "Lülita arenduslogid (print) sisse/välja"
     ,"dev_frames_tooltip": "Näita/peida FRAME sildid avalehel"
     ,"session_expired": "Teie seanss on aegunud. Palun logige uuesti sisse."
+    ,"Status Preferences": "Eelistatud staatused"
+    ,"Select statuses you want to prioritize for this module. These will be highlighted in the interface.": "Vali staatused, mida soovid selles moodulis eelistada. Need tõstetakse esile"
 }
