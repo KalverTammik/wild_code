@@ -154,22 +154,6 @@ class ProjectsModule(ModuleBaseUI):
                 kwargs["batch_size"] = self.BATCH_SIZE
             self.feed_logic = self.FEED_LOGIC_CLS(self.BACKEND_ENTITY, self.QUERY_FILE, self.lang_manager, **kwargs)
 
-        self.feed_load_engine.schedule_load()
-        # Kick off overdue/due soon counts (defensive: attribute may not exist)
-        try:
-            pills = getattr(self, 'overdue_pills', None)
-            if pills and hasattr(pills, 'refresh_counts_for_projects'):
-                pills.refresh_counts_for_projects(self.lang_manager)
-        except Exception:
-            pass
-
-    def activate(self) -> None:
-        if self.feed_logic is None:
-            kwargs = {}
-            if self.BATCH_SIZE is not None:
-                kwargs["batch_size"] = self.BATCH_SIZE
-            self.feed_logic = self.FEED_LOGIC_CLS(self.BACKEND_ENTITY, self.QUERY_FILE, self.lang_manager, **kwargs)
-
         # (valikuline) eellae filtrite sisud
         try:
             if self.type_filter:
@@ -179,7 +163,13 @@ class ProjectsModule(ModuleBaseUI):
 
         self.feed_load_engine.schedule_load()
         
-        super().activate()
+        # Kick off overdue/due soon counts (defensive: attribute may not exist)
+        try:
+            pills = getattr(self, 'overdue_pills', None)
+            if pills and hasattr(pills, 'refresh_counts_for_projects'):
+                pills.refresh_counts_for_projects(self.lang_manager)
+        except Exception:
+            pass
 
     def deactivate(self) -> None:
         super().deactivate()

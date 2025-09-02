@@ -72,12 +72,27 @@ class BaseCard(QFrame):
 
         ftr.addWidget(self._footer_left, 1)  # Expands to fill space
 
-        # Right side - confirm button
+        # Right side - buttons
+        buttons_frame = QFrame(self)
+        buttons_frame.setObjectName("SetupCardFooterRight")
+        buttons_layout = QHBoxLayout(buttons_frame)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
+        buttons_layout.setSpacing(6)
+
+        # Reset button (can be shown/hidden by subclasses)
+        self._reset_btn = QPushButton(self.lang_manager.translate("Reset"))
+        self._reset_btn.setObjectName("ResetButton")
+        self._reset_btn.setVisible(False)  # Hidden by default
+        buttons_layout.addWidget(self._reset_btn)
+
+        # Confirm button
         self._confirm_btn = QPushButton(self.lang_manager.translate("Confirm"))
         self._confirm_btn.setEnabled(False)
         self._confirm_btn.setVisible(False)
         self._confirm_btn.setObjectName("ConfirmButton")  # For QSS styling
-        ftr.addWidget(self._confirm_btn, 0)  # No expansion
+        buttons_layout.addWidget(self._confirm_btn)
+
+        ftr.addWidget(buttons_frame, 0)  # No expansion
 
         parent_layout.addLayout(ftr)
 
@@ -86,6 +101,9 @@ class BaseCard(QFrame):
 
     def confirm_button(self) -> QPushButton:
         return self._confirm_btn
+
+    def reset_button(self) -> QPushButton:
+        return self._reset_btn
 
     def set_status_text(self, text: str, visible: bool = True):
         """Set status text in footer area."""

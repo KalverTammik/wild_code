@@ -24,6 +24,13 @@ class ModuleCard(BaseCard):
         super().__init__(lang_manager, translated_name, icon_path)
         self.module_name = module_name
         self._snapshot = None
+        
+        # Setup reset button in footer
+        reset_btn = self.reset_button()
+        reset_btn.setToolTip(self.lang_manager.translate("Reset all settings for this module to default values"))
+        reset_btn.setVisible(True)
+        reset_btn.clicked.connect(self._on_reset_settings)
+        
         # Both pickers use the popup tree UX
         self._element_picker = None
         self._archive_picker = None
@@ -42,15 +49,15 @@ class ModuleCard(BaseCard):
     def _build_ui(self):
         cw = self.content_widget()
         cl = QVBoxLayout(cw)
-        cl.setContentsMargins(0, 0, 0, 0)
-        cl.setSpacing(16)  # Increased spacing between groups for better separation
+        cl.setContentsMargins(1, 1, 1, 1)
+        cl.setSpacing(6)  # Increased spacing between groups for better separation
 
         # Main layer group
         main_group = QGroupBox(self.lang_manager.translate("Modules main layer"), cw)
         main_group.setObjectName("MainLayerGroup")
         main_layout = QHBoxLayout(main_group)  # Changed to horizontal layout
-        main_layout.setContentsMargins(8, 8, 8, 8)
-        main_layout.setSpacing(12)  # Spacing between dropdown and explanation
+        main_layout.setContentsMargins(4, 4, 4, 4)
+        main_layout.setSpacing(6)  # Spacing between dropdown and explanation
 
         # Left side - Element picker
         self._element_picker = LayerTreePicker(main_group, placeholder=self.lang_manager.translate("Select layer"))
@@ -72,8 +79,8 @@ class ModuleCard(BaseCard):
         archive_group = QGroupBox(self.lang_manager.translate("Archive layer"), cw)
         archive_group.setObjectName("ArchiveLayerGroup")
         archive_layout = QHBoxLayout(archive_group)  # Changed to horizontal layout
-        archive_layout.setContentsMargins(8, 8, 8, 8)
-        archive_layout.setSpacing(12)
+        archive_layout.setContentsMargins(4, 4, 4, 4)
+        archive_layout.setSpacing(6)
 
         # Left side - Archive picker
         self._archive_picker = LayerTreePicker(archive_group, placeholder=self.lang_manager.translate("Select layer"))
@@ -94,46 +101,56 @@ class ModuleCard(BaseCard):
         # Display options group
         display_group = QGroupBox(self.lang_manager.translate("Display Options"), cw)
         display_group.setObjectName("DisplayOptionsGroup")
-        display_layout = QVBoxLayout(display_group)
-        display_layout.setContentsMargins(8, 16, 8, 8)  # Increased top margin to avoid overlap
-        display_layout.setSpacing(8)
+        display_layout = QHBoxLayout(display_group)  # Changed to horizontal layout
+        display_layout.setContentsMargins(4, 4, 4, 4)
+        display_layout.setSpacing(6)
 
-        # Show numbers checkbox
+        # Left side - Settings container
+        settings_container = QFrame(display_group)
+        settings_container.setObjectName("SettingsContainer")
+        settings_layout = QVBoxLayout(settings_container)
+        settings_layout.setContentsMargins(0, 0, 0, 0)
+        settings_layout.setSpacing(4)
+
+        # Checkbox
         from PyQt5.QtWidgets import QCheckBox
-        self._show_numbers_checkbox = QCheckBox(self.lang_manager.translate("Show project numbers"), display_group)
+        self._show_numbers_checkbox = QCheckBox(self.lang_manager.translate("Show project numbers"), settings_container)
         self._show_numbers_checkbox.setToolTip(self.lang_manager.translate("Display project/contract numbers in item cards"))
         self._show_numbers_checkbox.stateChanged.connect(self._on_show_numbers_changed)
-        display_layout.addWidget(self._show_numbers_checkbox)
+        settings_layout.addWidget(self._show_numbers_checkbox)
 
-        # Reset settings button
-        from PyQt5.QtWidgets import QPushButton
-        reset_btn = QPushButton(self.lang_manager.translate("Reset to Defaults"), display_group)
-        reset_btn.setObjectName("ResetButton")
-        reset_btn.setToolTip(self.lang_manager.translate("Reset all settings for this module to default values"))
-        reset_btn.clicked.connect(self._on_reset_settings)
-        display_layout.addWidget(reset_btn)
+        display_layout.addWidget(settings_container, 2)  # Give more space to settings
+
+        # Right side - Explanation text
+        display_explanation = QLabel(self.lang_manager.translate("When enabled, project/contract numbers will be displayed in item cards for easy identification."), display_group)
+        display_explanation.setObjectName("GroupExplanation")
+        display_explanation.setWordWrap(True)
+        display_explanation.setStyleSheet("color: #888; font-size: 11px; padding: 4px 0px;")
+        display_explanation.setMinimumWidth(200)  # Ensure minimum width for readability
+        display_layout.addWidget(display_explanation, 1)  # Equal space for explanation
 
         cl.addWidget(display_group)
 
         # Status preferences group
         status_group = QGroupBox(self.lang_manager.translate("Status Preferences"), cw)
         status_group.setObjectName("StatusPreferencesGroup")
-        status_layout = QVBoxLayout(status_group)
-        status_layout.setContentsMargins(8, 16, 8, 8)
-        status_layout.setSpacing(8)
+        status_layout = QHBoxLayout(status_group)  # Changed to horizontal layout
+        status_layout.setContentsMargins(4, 4, 4, 4)
+        status_layout.setSpacing(6)
 
-        # Header with explanation
-        status_explanation = QLabel(self.lang_manager.translate("Select statuses you want to prioritize for this module. These will be highlighted in the interface."))
-        status_explanation.setWordWrap(True)
-        status_explanation.setStyleSheet("color: #666; font-size: 11px; margin-bottom: 8px;")
-        status_layout.addWidget(status_explanation)
+        # Left side - Status filter widget
+        status_container = QFrame(status_group)
+        status_container.setObjectName("StatusContainer")
+        status_inner_layout = QVBoxLayout(status_container)
+        status_inner_layout.setContentsMargins(0, 0, 0, 0)
+        status_inner_layout.setSpacing(4)
 
         # Add the existing StatusFilterWidget
         try:
             from ....widgets.StatusFilterWidget import StatusFilterWidget
-            self._status_filter_widget = StatusFilterWidget(self.module_name, self.lang_manager, status_group, debug=True)
+            self._status_filter_widget = StatusFilterWidget(self.module_name, self.lang_manager, status_container, debug=True)
             self._status_filter_widget.selectionChanged.connect(self._on_status_selection_changed)
-            status_layout.addWidget(self._status_filter_widget)
+            status_inner_layout.addWidget(self._status_filter_widget)
             # Don't load immediately - wait for settings activation
             self._status_filter_widget._loaded = False
         except Exception as e:
@@ -142,7 +159,17 @@ class ModuleCard(BaseCard):
             self._status_filter_widget = None
             error_label = QLabel(self.lang_manager.translate("Status preferences unavailable"))
             error_label.setStyleSheet("color: #999; font-style: italic;")
-            status_layout.addWidget(error_label)
+            status_inner_layout.addWidget(error_label)
+
+        status_layout.addWidget(status_container, 2)  # Give more space to status filter
+
+        # Right side - Explanation text
+        status_explanation = QLabel(self.lang_manager.translate("Select statuses you want to prioritize for this module. These will be highlighted in the interface."), status_group)
+        status_explanation.setObjectName("GroupExplanation")
+        status_explanation.setWordWrap(True)
+        status_explanation.setStyleSheet("color: #888; font-size: 11px; padding: 4px 0px;")
+        status_explanation.setMinimumWidth(200)  # Ensure minimum width for readability
+        status_layout.addWidget(status_explanation, 1)  # Equal space for explanation
 
         cl.addWidget(status_group)
 

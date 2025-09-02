@@ -39,22 +39,21 @@
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 8px;
-    padding: 0;
-    margin: 0;
+    padding: 8px 0 0 0;
+    margin: 0 0 8px 0;
     font-weight: 600;
     font-size: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 #SetupCard QGroupBox::title {
     color: #4ade80;
-    padding: 8px 12px;
-    left: 8px;
-    top: -8px;
-    background: #1f262d;
-    border-radius: 4px;
+    text-align: center;
     font-weight: 700;
     font-size: 13px;
-    border: 1px solid rgba(74,222,128,0.3);
+    margin-top: -6px;
+    left: 20px;
+    padding: 2px 4px;
 }
 
 #SetupCard QGroupBox:hover {
@@ -64,17 +63,27 @@
     transition: all 200ms ease;
 }
 
-#SetupCard QGroupBox::title:hover {
-    border-color: rgba(15, 118, 110, 0.6);
-    box-shadow: 0 2px 8px rgba(15, 118, 110, 0.2);
-}
-
 /* Group explanation text */
 #SetupCard QLabel#GroupExplanation {
     color: #888;
     font-size: 11px;
     padding: 4px 0px;
     line-height: 1.4;
+}
+
+/* Settings frames for cleaner organization */
+#SetupCard QFrame#SettingsFrame,
+#SetupCard QFrame#StatusFrame {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    transition: all 150ms ease;
+}
+
+#SetupCard QFrame#SettingsFrame:hover,
+#SetupCard QFrame#StatusFrame:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(15, 118, 110, 0.3);
 }
 
 /* Titles */
@@ -170,10 +179,10 @@
   color: #ffffff;
   border: none;
   border-radius: 6px;
-  padding: 8px 16px;
+  padding: 8px 12px;
   font-weight: 600;
   font-size: 12px;
-  min-width: 80px;
+  min-width: 70px;
   transition: all 150ms ease;
 }
 
@@ -190,6 +199,40 @@
 }
 
 #SetupCard QPushButton#ConfirmButton:disabled {
+  background: #475569;  /* slate-600 */
+  color: #94a3b8;       /* slate-400 */
+  transform: none;
+  box-shadow: none;
+}
+
+/* =========================================
+   RESET BUTTON — ORANGE WARNING STYLING
+   ========================================= */
+#SetupCard QPushButton#ResetButton {
+  background: #ea580c;  /* orange-600 */
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 12px;
+  min-width: 70px;
+  transition: all 150ms ease;
+}
+
+#SetupCard QPushButton#ResetButton:hover {
+  background: #c2410c;  /* orange-700 */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+}
+
+#SetupCard QPushButton#ResetButton:pressed {
+  background: #9a3412;  /* orange-800 */
+  transform: translateY(0px);
+  box-shadow: 0 2px 4px rgba(234, 88, 12, 0.2);
+}
+
+#SetupCard QPushButton#ResetButton:disabled {
   background: #475569;  /* slate-600 */
   color: #94a3b8;       /* slate-400 */
   transform: none;
