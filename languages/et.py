@@ -23,7 +23,7 @@ TRANSLATIONS = {
     "save_setting": "Salvesta säte",
     "User": "Kasutaja",
     "Roles": "Rollid",
-    "Module access": "Moodulite ligipääs",
+    "Module access": "Eelistatud moodul",
     "Confirm": "Kinnita",
     "Name": "Nimi",
     "Email": "E-post",

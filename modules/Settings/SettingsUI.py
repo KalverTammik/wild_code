@@ -157,7 +157,8 @@ class SettingsUI(QWidget):
                 self._user_card.set_preferred(self.logic.get_original_preferred())
                 self._user_loaded = True
             except Exception as e:
-                self._user_card.lbl_id.setText(str(e))
+                # IMPROVED: Since we no longer display user ID, show error in status instead
+                self._user_card.set_status_text(f"Error loading user: {str(e)}", visible=True)
         else:
             # Ensure UI shows the current original preferred
             self._user_card.set_preferred(self.logic.get_original_preferred())

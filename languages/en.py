@@ -18,7 +18,7 @@ TRANSLATIONS = {
     "save_setting": "Save setting",
     "User": "User",
     "Roles": "Roles",
-    "Module access": "Module access",
+    "Module access": "Preferred module",
     "Confirm": "Confirm",
     "Name": "Name",
     "Email": "Email",

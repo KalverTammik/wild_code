@@ -101,9 +101,9 @@
    Roles (read-only pills)
    ----------------------------------------- */
 #SetupCard #RolesPills QFrame#AccessPill {
-  font-size: 10px;
+  font-size: 11px;  /* Slightly larger for better readability */
   border-radius: 999px;
-  padding: 2px 8px;
+  padding: 4px 12px;  /* Increased padding for better appearance */
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.05);
 }
@@ -116,9 +116,9 @@
    Module access pills (with radios)
    ----------------------------------------- */
 #SetupCard #AccessPills QFrame#AccessPill {
-  font-size: 11px;
+  font-size: 11px;  /* Consistent with roles pills */
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 4px 12px;  /* Consistent padding */
   border: 1px solid rgba(255,255,255,0.08);
   background: rgba(255,255,255,0.03);
   transition: 120ms ease;
@@ -172,8 +172,36 @@
 }
 
 /* =========================================
-   CONFIRM BUTTON — TEAL GREEN STYLING
+   User Info Card — IMPROVED TWO-COLUMN LAYOUT
    ========================================= */
+#SetupCard QFrame#UserInfoCard {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  margin: 4px 0px;
+}
+
+#SetupCard QLabel#UserName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e0e0e6;
+}
+
+#SetupCard QLabel#UserEmail {
+  font-size: 12px;
+  color: #888;
+}
+
+#SetupCard QLabel#UserRolesLabel {
+  font-size: 12px;
+  color: #4ade80;
+  font-weight: 500;
+}
+
+#SetupCard QLabel#UserRoles {
+  font-size: 12px;
+  color: #888;
+}
 #SetupCard QPushButton#ConfirmButton {
   background: #0f766e;  /* teal-700 */
   color: #ffffff;

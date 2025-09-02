@@ -26,36 +26,54 @@ class UserCard(BaseCard):
         cw = self.content_widget()
         cl = QVBoxLayout(cw)
         cl.setContentsMargins(0, 0, 0, 0)
-        cl.setSpacing(6)
+        cl.setSpacing(8)  # Slightly increased spacing for better visual separation
 
-        # ---------- Info ----------
-        self.lbl_id = QLabel("ID: —", cw)
-        self.lbl_name = QLabel(self.lang_manager.translate("Name") + ": —", cw)
-        self.lbl_email = QLabel(self.lang_manager.translate("Email") + ": —", cw)
+        # ---------- User Info Card (IMPROVED: Two-column layout with roles) ----------
+        user_info_card = QFrame(cw)
+        user_info_card.setObjectName("UserInfoCard")
 
-        info = QVBoxLayout()
-        info.setContentsMargins(0, 0, 0, 0)
-        info.setSpacing(2)
-        info.addWidget(self.lbl_id)
-        info.addWidget(self.lbl_name)
-        cl.addLayout(info)
+        # Two-column layout for user info
+        user_info_main_layout = QHBoxLayout(user_info_card)
+        user_info_main_layout.setContentsMargins(10, 8, 10, 8)
+        user_info_main_layout.setSpacing(20)  # Space between columns
 
-        # ---------- Roles (read-only pills) ----------
-        roles_title = QLabel(self.lang_manager.translate("Roles"), cw)
-        roles_title.setObjectName("SetupCardSectionTitle")
-        cl.addWidget(roles_title)
+        # Left column: Basic user info
+        left_column = QVBoxLayout()
+        left_column.setSpacing(4)
 
-        self.roles_container = QFrame(cw)
-        self.roles_container.setObjectName("RolesPills")
-        self.roles_layout = QHBoxLayout(self.roles_container)
-        self.roles_layout.setContentsMargins(0, 0, 0, 0)
-        self.roles_layout.setSpacing(6)
-        cl.addWidget(self.roles_container)
+        # Name prominently displayed
+        self.lbl_name = QLabel(self.lang_manager.translate("Name") + ": —", user_info_card)
+        self.lbl_name.setObjectName("UserName")
+        left_column.addWidget(self.lbl_name)
 
-        # Email under roles (matches your screenshot)
-        cl.addWidget(self.lbl_email)
+        # Email below name
+        self.lbl_email = QLabel(self.lang_manager.translate("Email") + ": —", user_info_card)
+        self.lbl_email.setObjectName("UserEmail")
+        left_column.addWidget(self.lbl_email)
 
-        # ---------- Module access (pills + checkboxes) ----------
+        left_column.addStretch(1)  # Push content to top
+        user_info_main_layout.addLayout(left_column)
+
+        # Right column: Roles
+        right_column = QVBoxLayout()
+        right_column.setSpacing(4)
+
+        # Roles label
+        roles_label = QLabel(self.lang_manager.translate("Roles"), user_info_card)
+        roles_label.setObjectName("UserRolesLabel")
+        right_column.addWidget(roles_label)
+
+        # Roles value (separate line)
+        self.lbl_roles = QLabel("—", user_info_card)
+        self.lbl_roles.setObjectName("UserRoles")
+        right_column.addWidget(self.lbl_roles)
+
+        right_column.addStretch(1)  # Push content to top
+        user_info_main_layout.addLayout(right_column)
+
+        cl.addWidget(user_info_card)
+
+        # ---------- Module access (pills with checkboxes) ----------
         pills_title = QLabel(self.lang_manager.translate("Module access"), cw)
         pills_title.setObjectName("SetupCardSectionTitle")
         cl.addWidget(pills_title)
@@ -64,7 +82,7 @@ class UserCard(BaseCard):
         self.access_container.setObjectName("AccessPills")
         self.access_layout = QHBoxLayout(self.access_container)
         self.access_layout.setContentsMargins(0, 0, 0, 0)
-        self.access_layout.setSpacing(6)
+        self.access_layout.setSpacing(8)  # Increased spacing for better visual separation
         cl.addWidget(self.access_container)
 
         # Internal state
@@ -73,32 +91,20 @@ class UserCard(BaseCard):
 
     # ---------- Public API (SettingsUI uses these) ----------
     def set_user(self, user: dict):
-        uid = user.get("id", "—")
+        # IMPROVED: No longer showing user ID as it doesn't make sense to users
         full_name = f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() or "—"
         email = user.get("email", "—")
 
-        self.lbl_id.setText(f"ID: {uid}")
-        self.lbl_name.setText(self.lang_manager.translate("Name") + f": {full_name}")
-        self.lbl_email.setText(self.lang_manager.translate("Email") + f": {email}")
+        self.lbl_name.setText(f"{full_name}")
+        self.lbl_email.setText(f"{email}")
 
     def set_roles(self, roles):
-        self._clear_layout(self.roles_layout)
-        for name in roles or []:
-            pill = QFrame(self.roles_container)
-            pill.setObjectName("AccessPill")
-            pill.setProperty("active", True)
-            pill.setProperty("inactive", False)
-            pill.style().unpolish(pill); pill.style().polish(pill)
-
-            hl = QHBoxLayout(pill)
-            hl.setContentsMargins(6, 0, 6, 0)
-            hl.setSpacing(4)
-
-            lbl = QLabel(name, pill)
-            hl.addWidget(lbl)
-            self.roles_layout.addWidget(pill)
-
-        self.roles_layout.addStretch(1)
+        # IMPROVED: Display roles on separate line below label
+        if roles:
+            roles_text = ", ".join(roles)
+            self.lbl_roles.setText(roles_text)
+        else:
+            self.lbl_roles.setText("—")
 
     def set_access_map(self, access_map: dict, label_resolver=None):
         # Clear previous pills and checks
@@ -115,7 +121,7 @@ class UserCard(BaseCard):
             pill.setFocusPolicy(Qt.StrongFocus)  # allows focus ring via :focus-within
 
             hl = QHBoxLayout(pill)
-            hl.setContentsMargins(6, 0, 6, 0)
+            hl.setContentsMargins(8, 2, 8, 2)  # Consistent padding with roles pills
             hl.setSpacing(6)
 
             chk = QCheckBox(pill)
@@ -176,7 +182,6 @@ class UserCard(BaseCard):
         super().retheme()
         # Repolish dynamic widgets so [active]/[inactive] QSS is reapplied
         self._repolish_pills(self.access_layout)
-        self._repolish_pills(self.roles_layout)
 
     # ---------- Callbacks ----------
     def _on_pref_toggled(self, btn, checked):
