@@ -27,10 +27,12 @@ class APIClient:
         except Exception:
             raise RuntimeError(self.lang.translate("config_error"))
 
-    def send_query(self, query: str, variables: dict = None, require_auth: bool = True, timeout: int = 10):
+    def send_query(self, query: str, variables: dict = None, operation_name: str = None, require_auth: bool = True, timeout: int = 10):
         payload = {"query": query}
         if variables:
             payload["variables"] = variables
+        if operation_name:
+            payload["operationName"] = operation_name
         headers = {
             "Content-Type": "application/json",
             "User-Agent": f"QGIS/{platform.system()} {platform.release()}"
@@ -39,12 +41,23 @@ class APIClient:
             token = self.session_manager.get_token() if hasattr(self.session_manager, 'get_token') else None
             if token:
                 headers["Authorization"] = f"Bearer {token}"
+            else:
+                print("[DEBUG] No auth token available!")
         try:
+            # print(f"[DEBUG] Sending GraphQL request to: {self.api_url}")
+            # print(f"[DEBUG] Request payload: {json.dumps(payload, indent=2)}")
+            # print(f"[DEBUG] Request headers: {headers}")
+
             response = requests.post(self.api_url, json=payload, headers=headers, timeout=timeout)
+            print(f"[DEBUG] HTTP Response status: {response.status_code}")
+            # print(f"[DEBUG] HTTP Response headers: {dict(response.headers)}")
 
             if response.status_code == 200:
                 data = response.json()
+                # print(f"[DEBUG] GraphQL Response: {json.dumps(data, indent=2)}")
+
                 if "errors" in data:
+                    print(f"[DEBUG] GraphQL Errors found: {data['errors']}")
                     # Raise the first GraphQL error message if present
                     try:
                         first_msg = data["errors"][0].get("message") or str(data["errors"][0])

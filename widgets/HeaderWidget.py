@@ -1,8 +1,10 @@
 import os
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit
-from PyQt5.QtCore import Qt, pyqtSignal, QSize
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit, QVBoxLayout, QListWidget, QListWidgetItem
+from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer, QEvent
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-from PyQt5.QtGui import QColor, QIcon
+from PyQt5.QtGui import QColor, QIcon, QFont
+
+from .SearchResultsWidget import SearchResultsWidget
 
 class HeaderWidget(QWidget):
     """
@@ -10,6 +12,7 @@ class HeaderWidget(QWidget):
     Call retheme_header() to re-apply QSS after a theme change.
     """
     helpRequested = pyqtSignal()
+    searchResultClicked = pyqtSignal(str, str, str)  # module, id, title
     
     def __init__(self, title, switch_callback, logout_callback, parent=None, compact=False):
         super().__init__(parent)
@@ -42,7 +45,7 @@ class HeaderWidget(QWidget):
         self.helpButton.setFixedSize(45, 24)
         # Add help icon and text
         try:
-            from ..constants.module_icons import ModuleIconPaths, ICON_HELP
+            from wild_code.constants.module_icons import ModuleIconPaths, ICON_HELP
             help_icon_path = ModuleIconPaths.themed(ICON_HELP)
             if help_icon_path:
                 self.helpButton.setIcon(QIcon(help_icon_path))
@@ -92,6 +95,22 @@ class HeaderWidget(QWidget):
             self.searchEdit.setToolTip(tooltip)
         except Exception:
             self.searchEdit.setToolTip("search_tooltip")
+        
+        # Initialize search functionality
+        self._search_timer = QTimer(self)
+        self._search_timer.setSingleShot(True)
+        self._search_timer.timeout.connect(self._perform_search)
+        self.searchEdit.textChanged.connect(self._on_search_text_changed)
+        self.searchEdit.returnPressed.connect(self._perform_search)
+        
+        # print("[DEBUG] HeaderWidget search setup complete")
+        
+        # Create search results widget
+        self._search_results = SearchResultsWidget(self)
+        self._search_results.setVisible(False)
+        self._search_results.resultClicked.connect(self._on_search_result_clicked)
+        self._search_results.refreshRequested.connect(self._on_refresh_requested)
+        
         layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
         
         # Right: Dev controls + theme switch + logout
@@ -141,7 +160,7 @@ class HeaderWidget(QWidget):
 
         # Apply theme (main + header)
         from .theme_manager import ThemeManager
-        from ..constants.file_paths import QssPaths
+        from wild_code.constants.file_paths import QssPaths
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
         # Ensure DevControls' own QSS is applied last so its specific rules override header's generic QPushButton
         try:
@@ -176,7 +195,7 @@ class HeaderWidget(QWidget):
 
     def retheme_header(self):
         from .theme_manager import ThemeManager
-        from ..constants.file_paths import QssPaths
+        from wild_code.constants.file_paths import QssPaths
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
         try:
             self.devControls.retheme()
@@ -202,3 +221,124 @@ class HeaderWidget(QWidget):
     def _emit_help(self):
         """Emit help requested signal."""
         self.helpRequested.emit()
+
+    def _on_search_text_changed(self, text):
+        """Handle search text changes with debouncing."""
+        # print(f"[DEBUG] Search text changed: '{text}' (length: {len(text)})")
+        # Hide results if text is too short
+        if len(text.strip()) < 3:
+            # print("[DEBUG] Search text too short, hiding results and stopping timer")
+            self._search_results.hide_results()
+            self._search_timer.stop()
+            return
+            
+        # Restart timer for debounced search
+        # print("[DEBUG] Starting search timer (1.5s delay)")
+        self._search_timer.start(1500)  # 1.5 second delay
+    
+    def _perform_search(self):
+        """Execute the search query."""
+        query = self.searchEdit.text().strip()
+        # print(f"[DEBUG] Performing search for query: '{query}'")
+        if len(query) < 3:
+            # print("[DEBUG] Query too short, aborting search")
+            return
+            
+        try:
+            # print("[DEBUG] Importing required modules for search")
+            # Import required modules
+            from ..utils.api_client import APIClient
+            from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
+            from ..languages.language_manager import LanguageManager
+            
+            # Create language manager for GraphQL loader
+            lang_manager = LanguageManager()
+            query_loader = GraphQLQueryLoader(lang_manager)
+            # print("[DEBUG] Loading search query from GraphQL loader")
+            search_query = query_loader.load_query("user", "search.graphql")
+            
+            if not search_query:
+                # print("Warning: Could not load search query")
+                return
+                
+            # Execute search
+            api_client = APIClient(lang_manager)
+            # Use the working term or original query
+            variables = {
+                "input": {
+                    "term": query,
+                    "types": [
+                        "PROPERTIES", "PROJECTS", "TASKS",
+                        "SUBMISSIONS", "EASEMENTS",
+                        "COORDINATIONS", "SPECIFICATIONS", "ORDINANCES",
+                        "CONTRACTS"
+                    ],
+
+                    ##### ALL POSSIBLE SEARCH TYPES ######
+                    #"types": [
+                    #    "PROPERTIES", "CONTACTS", "TASKS", "PROJECTS",
+                    #    "METERS", "LETTERS", "SUBMISSIONS", "EASEMENTS",
+                    #    "COORDINATIONS", "SPECIFICATIONS", "ORDINANCES",
+                    #    "CONTRACTS", "PRODUCTS", "INVOICES", "EXPENSES", "QUOTES"
+                    #],
+
+                    "limit": 5
+                }
+            }
+            # print(f"[DEBUG] Sending GraphQL query with variables: {variables}")
+            
+            result = api_client.send_query(search_query, variables, operation_name=None)
+            print(f"[DEBUG] Raw API response: {result}")
+            # print(f"[DEBUG] Response type: {type(result)}")
+            
+            if result and "data" in result and "search" in result["data"]:
+                search_data = result["data"]["search"]
+                # print(f"[DEBUG] Processing unified search results: {len(search_data)} module types")
+
+                # Let SearchResultsWidget process the results
+                processed_results = self._search_results.process_unified_search_results(search_data)
+                # print(f"[DEBUG] Processed {len(processed_results)} total search results")
+
+                # Show results
+                if processed_results:
+                    # print("[DEBUG] Showing search results")
+                    self._search_results.show_results(processed_results, self.searchEdit)
+                else:
+                    # print(f"[DEBUG] No results found for '{query}', showing no results message")
+                    self._search_results.show_no_results(query, self.searchEdit)
+
+            elif result and "search" in result:
+                # Handle direct search response (no data wrapper)
+                search_data = result["search"]
+                # print(f"[DEBUG] Processing direct search results: {len(search_data)} module types")
+
+                # Let SearchResultsWidget process the results with raw data
+                processed_results = self._search_results.process_unified_search_results(search_data)
+                # print(f"[DEBUG] Processed {len(processed_results)} total search results")
+
+                # Show results with raw search data for grouping
+                if any(module.get("total", 0) > 0 for module in search_data):
+                    # print("[DEBUG] Showing search results")
+                    self._search_results.show_results(search_data, self.searchEdit)
+                else:
+                    # print(f"[DEBUG] No results found for '{query}', showing no results message")
+                    self._search_results.show_no_results(query, self.searchEdit)
+
+        except Exception as e:
+            # print(f"Search error: {e}")
+            # import traceback
+            # traceback.print_exc()
+            self._search_results.hide_results()
+    
+    def _on_search_result_clicked(self, module, item_id, title):
+        """Handle search result selection."""
+        # Emit signal for parent to handle navigation
+        self.searchResultClicked.emit(module, item_id, title)
+
+    def _on_refresh_requested(self):
+        """Handle refresh request from search results widget."""
+        # Re-show the current search results with updated expansion state
+        query = self.searchEdit.text().strip()
+        if len(query) >= 3:
+            # print(f"[DEBUG] Refreshing search results for '{query}'")
+            self._perform_search()

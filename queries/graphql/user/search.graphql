@@ -1,0 +1,11 @@
+query Search($input: SearchInput!) {
+  search(input: $input) {
+    type
+    total
+    hits {
+      id
+      title
+    }
+  }
+}
+
