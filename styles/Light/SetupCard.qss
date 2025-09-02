@@ -85,6 +85,34 @@
     border-color: rgba(15, 118, 110, 0.2);
 }
 
+/* Settings Container for Display Options */
+#SetupCard QGroupBox#DisplayOptionsGroup QCheckBox#DisplayCheckbox {
+    background: rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 2px 0px;
+    color: #212529;
+    font-size: 12px;
+}
+
+#SetupCard QGroupBox#DisplayOptionsGroup QCheckBox#DisplayCheckbox::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid rgba(0,0,0,0.3);
+    border-radius: 3px;
+    background: rgba(255,255,255,0.8);
+}
+
+#SetupCard QGroupBox#DisplayOptionsGroup QCheckBox#DisplayCheckbox::indicator:checked {
+    background: rgba(15, 118, 110, 0.8);
+    border-color: #0f766e;
+}
+
+#SetupCard QGroupBox#DisplayOptionsGroup QCheckBox#DisplayCheckbox::indicator:hover {
+    border-color: rgba(15, 118, 110, 0.6);
+}
+
 /* Titles */
 #SetupCardTitle            { font-weight: 600; font-size: 14px; }
 #SetupCardDescription      { color: #444; }

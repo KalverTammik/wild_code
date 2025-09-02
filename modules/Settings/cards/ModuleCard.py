@@ -121,21 +121,15 @@ class ModuleCard(BaseCard):
         display_layout.setContentsMargins(4, 4, 4, 4)
         display_layout.setSpacing(6)
 
-        # Left side - Settings container
-        settings_container = QFrame(display_group)
-        settings_container.setObjectName("SettingsContainer")
-        settings_layout = QVBoxLayout(settings_container)
-        settings_layout.setContentsMargins(0, 0, 0, 0)
-        settings_layout.setSpacing(4)
-
+        # Left side - Direct checkbox with proper spacing
         # Checkbox
         from PyQt5.QtWidgets import QCheckBox
-        self._show_numbers_checkbox = QCheckBox(self.lang_manager.translate("Show project numbers"), settings_container)
+        self._show_numbers_checkbox = QCheckBox(self.lang_manager.translate("Show project numbers"), display_group)
+        self._show_numbers_checkbox.setObjectName("DisplayCheckbox")
         self._show_numbers_checkbox.setToolTip(self.lang_manager.translate("Display project/contract numbers in item cards"))
         self._show_numbers_checkbox.stateChanged.connect(self._on_show_numbers_changed)
-        settings_layout.addWidget(self._show_numbers_checkbox)
 
-        display_layout.addWidget(settings_container, 2)  # Give more space to settings
+        display_layout.addWidget(self._show_numbers_checkbox, 2)  # Give more space to settings
 
         # Right side - Explanation text
         display_explanation = QLabel(self.lang_manager.translate("When enabled, project/contract numbers will be displayed in item cards for easy identification."), display_group)
