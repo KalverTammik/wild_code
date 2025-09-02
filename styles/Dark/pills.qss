@@ -4,119 +4,377 @@
 
 /* Base tag pill */
 #TagPill[role="tag"] {
-  border-radius: 5px;
-  background: rgba(9,144,143,0.18);
-  color: #eaeef2;
-  border: 1px solid rgba(9,144,143,0.35);
+  bo/* "+N veel" overflow pill (if you add role="more") */
+#TagPill[role="more"] {
+  background: rgba(255,255,255,0.06);
+  color: rgba(230,235,240,0.9);
+  border: 1px dashed rgba(230,235,240,0.25);
+  outline: none;
+}
+
+/* Remove spacing from all tag holders */
+QFrame#TagPillHolder, QFrame#CompactTagHolder, QFrame#OverflowTagHolder {
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+}
+
+/* Remove spacing from all QLabel elements in tags */
+QLabel#TagPillLabel, QLabel#CompactTagLabel, QLabel#OverflowTagLabel {
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  spacing: 0;
+}
+
+/* Remove spacing from all layouts in tags */
+QVBoxLayout, QHBoxLayout {
+  margin: 0;
+  padding: 0;
+  spacing: 0;
+}
+
+/* Remove spacing from all widgets in tags */
+QWidget#CompactTagsWidget, QWidget#TagsWidget, QFrame#CompactTagHolder, QFrame#OverflowTagHolder, QFrame#TagPillHolder {
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+}
+
+/* Force no spacing between all tag elements */
+* {
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  spacing: 0;
+}
+
+/* Specific spacing removal for tag containers */
+QWidget#CompactTagsWidget QVBoxLayout,
+QWidget#TagsWidget QVBoxLayout,
+QFrame#CompactTagHolder QHBoxLayout,
+QFrame#OverflowTagHolder QHBoxLayout,
+QFrame#TagPillHolder QHBoxLayout {
+  margin: 0;
+  padding: 0;
+  spacing: 0;
+}
+
+/* Remove all possible spacing from pill frames */
+QFrame#CompactTagPill, QFrame#OverflowTagPill, QFrame#TagPill {
+  margin: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+}
+
+/* Remove spacing from inner layouts */
+QFrame#CompactTagPill QHBoxLayout,
+QFrame#OverflowTagPill QHBoxLayout,
+QFrame#TagPill QHBoxLayout {
+  margin: 0;
+  padding: 0;
+  spacing: 0;
+}
+
+/* Ultimate spacing removal - override everything */
+QWidget#CompactTagsWidget *,
+QWidget#TagsWidget *,
+QFrame#CompactTagHolder *,
+QFrame#OverflowTagHolder *,
+QFrame#TagPillHolder * {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  spacing: 0 !important;
+}
+
+/* Force compact layout for all tag elements */
+QWidget#CompactTagsWidget,
+QWidget#TagsWidget {
+  layout-spacing: 0;
+  layout-margin: 0;
+}
+
+/* Remove any remaining visual gaps */
+QFrame {
+  border-width: 0;
+  border-style: none;
+}
+
+/* Final spacing removal for all elements */
+* {
+  -qt-spacing: 0;
+  -qt-margin: 0;
+}
+
+/* Absolute positioning to eliminate any gaps */
+QWidget#CompactTagsWidget,
+QWidget#TagsWidget {
+  position: relative;
+}
+
+/* Force inline display for tags */
+QFrame#CompactTagHolder,
+QFrame#OverflowTagHolder,
+QFrame#TagPillHolder {
+  display: inline-block;
+  float: left;
+}
+
+/* Eliminate any remaining whitespace */
+QWidget#CompactTagsWidget::item,
+QWidget#TagsWidget::item {
+  margin: 0;
+  padding: 0;
+  spacing: 0;
+}
+
+/* Final attempt to remove all spacing */
+QVBoxLayout {
+  qproperty-spacing: 0;
+  qproperty-margin: 0;
+}
+
+QHBoxLayout {
+  qproperty-spacing: 0;
+  qproperty-margin: 0;
+}
+
+/* Ultimate spacing elimination */
+QWidget#CompactTagsWidget > *,
+QWidget#TagsWidget > * {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Force zero spacing on all child elements */
+QWidget#CompactTagsWidget QFrame,
+QWidget#TagsWidget QFrame {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Complete elimination of any visual separation */
+QWidget#CompactTagsWidget,
+QWidget#TagsWidget {
+  font-size: 0; /* Collapse whitespace */
+}
+
+QWidget#CompactTagsWidget *,
+QWidget#TagsWidget * {
+  font-size: inherit; /* Restore font size for content */
+}
+
+/* Final comprehensive spacing removal */
+QWidget#CompactTagsWidget,
+QWidget#TagsWidget,
+QFrame#CompactTagHolder,
+QFrame#OverflowTagHolder,
+QFrame#TagPillHolder,
+QFrame#CompactTagPill,
+QFrame#OverflowTagPill,
+QFrame#TagPill {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  spacing: 0 !important;
+  -qt-spacing: 0 !important;
+  -qt-margin: 0 !important;
+}
+
+/* Absolute zero spacing for all QLabel elements */
+QLabel#TagPillLabel,
+QLabel#CompactTagLabel,
+QLabel#OverflowTagLabel {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  spacing: 0 !important;
+  line-height: 1 !important;
+  font-size: inherit !important;
+  letter-spacing: 0 !important;
+  word-spacing: 0 !important;
+  text-indent: 0 !important;
+}
+
+/* Force no spacing on all layouts */
+QHBoxLayout,
+QVBoxLayout {
+  spacing: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  -qt-spacing: 0 !important;
+  -qt-margin: 0 !important;
+}
+
+/* Ultimate spacing elimination for all tag-related elements */
+QWidget#CompactTagsWidget *,
+QWidget#TagsWidget *,
+QFrame#CompactTagHolder *,
+QFrame#OverflowTagHolder *,
+QFrame#TagPillHolder *,
+QFrame#CompactTagPill *,
+QFrame#OverflowTagPill *,
+QFrame#TagPill * {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  spacing: 0 !important;
+}
+
+/* Force all elements to have no spacing */
+* {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  spacing: 0 !important;
+  -qt-spacing: 0 !important;
+  -qt-margin: 0 !important;
+  -qt-padding: 0 !important;
+}adius: 5px;
+  background: #1f262d;
+  color: #90a4ae;
+  border: none;
+  outline: none;
+  margin: 0;
+  padding: 0;
+  spacing: 0;
   transition: 120ms ease;
 }
 
-/* Compact tag pill - smaller and more subtle */
+/* Compact tag pill - blend with background */
 #CompactTagPill[role="compact_tag"] {
   border-radius: 3px;
-  background: rgba(9,144,143,0.12);
-  color: #c5c5d2;
-  border: 1px solid rgba(9,144,143,0.25);
+  background: #232b33;
+  color: #90a4ae;
+  border: none;
+  outline: none;
+  margin: 0;
+  padding: 0;
+  spacing: 0;
   transition: 100ms ease;
   min-height: 16px;
 }
 
-/* Overflow tag pill - even more subtle */
+/* Overflow tag pill - blend with background */
 #OverflowTagPill[role="overflow_tag"] {
   border-radius: 3px;
-  background: rgba(255,255,255,0.08);
-  color: rgba(197,197,210,0.80);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: #2e2f38;
+  color: #546e7a;
+  border: none;
+  outline: none;
+  margin: 0;
+  padding: 0;
+  spacing: 0;
   transition: 100ms ease;
   min-height: 16px;
 }
 
 /* Hover + active feedback */
 #TagPill[role="tag"]:hover {
-  border-color: rgba(9,144,143,0.55);
-  background: rgba(9,144,143,0.22);
+  background: rgba(255,255,255,0.1);
+  color: #e8f4fd;
 }
 #TagPill[role="tag"][active="true"] {
-  background: rgba(9,144,143,0.24);
-  border-color: rgba(9,144,143,0.60);
+  background: rgba(255,255,255,0.15);
+  color: #e8f4fd;
 }
 
 #CompactTagPill[role="compact_tag"]:hover {
-  border-color: rgba(9,144,143,0.45);
-  background: rgba(9,144,143,0.18);
+  background: rgba(255,255,255,0.1);
+  color: #e8f4fd;
 }
 
 #OverflowTagPill[role="overflow_tag"]:hover {
-  border-color: rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: #78909c;
 }
 
 /* Optional muted/inactive variant (if you set pill.setProperty("inactive", True)) */
 #TagPill[role="tag"][inactive="true"] {
-  background: rgba(255,255,255,0.05);
-  color: rgba(197,197,210,0.70);
-  border-color: rgba(255,255,255,0.10);
+  background: #303a42;
+  color: #546e7a;
+  border: none;
+  outline: none;
 }
 
 /* Keyboard focus ring (a11y) if a child gains focus */
 #TagPill[role="tag"]:focus-within {
-  box-shadow: 0 0 0 2px rgba(9,144,143,0.28);
-  border-color: rgba(9,144,143,0.65);
+  outline: none;
 }
 
 #CompactTagPill[role="compact_tag"]:focus-within {
-  box-shadow: 0 0 0 1px rgba(9,144,143,0.35);
-  border-color: rgba(9,144,143,0.50);
+  outline: none;
 }
 
 /* Label inside pill */
 #TagPill[role="tag"] QLabel#TagPillLabel {
-  background: transparent;
+  background: #1f262d;
   border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  font-size: 12px;
+  color: #999999; /* dark gray text */
+}
+
+/* Compact tag label - white text on solid background */
+#CompactTagPill[role="compact_tag"] QLabel#CompactTagLabel {
+  background: #232b33;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #999999;
+}
+
+/* Overflow tag label - white text on solid background */
+#OverflowTagPill[role="overflow_tag"] QLabel#OverflowTagLabel {
+  background: #2e2f38;
+  border: none;
+  outline: none;
   padding: 0;
   margin: 0;
   font-size: 10px;
-  color: #eaeef2; /* explicit light text in dark theme */
-  /* optional:
   font-weight: 600;
-  letter-spacing: 0.2px;
-  */
-}
-
-/* Compact tag label - smaller font */
-#CompactTagPill[role="compact_tag"] QLabel#CompactTagLabel {
-  background: transparent;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font-size: 9px;
-  font-weight: 500;
-  color: #c5c5d2;
-}
-
-/* Overflow tag label - smallest and most subtle */
-#OverflowTagPill[role="overflow_tag"] QLabel#OverflowTagLabel {
-  background: transparent;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font-size: 8px;
-  font-weight: 600;
-  color: rgba(197,197,210,0.80);
+  color: #999999;
 }
 
 /* Improved TagsHoverButton styling */
 QToolButton#TagsHoverButton {
-  border: none;
-  background: transparent;
-  color: rgba(197,197,210,0.7);
-  border-radius: 2px;
-  padding: 1px;
+  border: 1px solid #4a9eff;
+  background: rgba(74, 158, 255, 0.1);
+  color: #4a9eff;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 QToolButton#TagsHoverButton:hover {
-  background: rgba(9,144,143,0.1);
-  color: rgba(9,144,143,0.9);
+  background: rgba(74, 158, 255, 0.2);
+  border-color: #1e7eff;
+  color: #1e7eff;
 }
 
 /* Tags popup header */

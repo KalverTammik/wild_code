@@ -106,9 +106,9 @@ class TagPopup(QWidget):
                 lay.addWidget(self._tags)
 
                 # Add a subtle header
-                header = QLabel(f"Tags ({len(names)})")
-                header.setObjectName("TagsPopupHeader")
-                lay.insertWidget(0, header)
+                # header = QLabel(f"Tags ({len(names)})")
+                # header.setObjectName("TagsPopupHeader")
+                # lay.insertWidget(0, header)
         except Exception:
             QTimer.singleShot(0, self.close)
 
@@ -215,34 +215,38 @@ class TagsHoverButton(QToolButton):
 
         # Use a more intuitive icon - tags/label icon
         try:
-            # Try to get a tags icon, fallback to info if not available
-            icon = ThemeManager.get_qicon(ThemeManager.ICON_INFO)
+            # Try to get a tags icon, fallback to list if not available
+            icon = ThemeManager.get_qicon(ThemeManager.ICON_LIST)
             self.setIcon(icon)
             from PyQt5.QtCore import QSize
             self.setIconSize(QSize(12, 12))  # Smaller, more subtle
+            self.setText("Tags")  # Add text for clarity
         except Exception:
             self.setText("🏷️")  # Fallback emoji
 
         # Set tooltip with tag count
-        self.setToolTip(f"Tags ({tag_count}) - hover to view")
+        self.setToolTip("")  # No tooltip needed
         self.setAutoRaise(True)
         self.setCursor(Qt.PointingHandCursor)
-        self.setFixedSize(18, 18)  # Smaller button
+        self.setFixedSize(50, 18)  # Wider for text
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.NoFocus)
 
-        # Style the button to be more subtle
+        # Style the button like a help button
         self.setStyleSheet("""
             QToolButton#TagsHoverButton {
-                border: none;
-                background: transparent;
-                color: rgba(197,197,210,0.7);
-                border-radius: 2px;
-                padding: 1px;
+                border: 1px solid #0078d4;
+                background: #e6f3ff;
+                color: #0078d4;
+                border-radius: 3px;
+                padding: 2px 4px;
+                font-size: 10px;
+                font-weight: 500;
             }
             QToolButton#TagsHoverButton:hover {
-                background: rgba(9,144,143,0.1);
-                color: rgba(9,144,143,0.9);
+                background: #c7e4f7;
+                border-color: #005a9f;
+                color: #005a9f;
             }
         """)
 
