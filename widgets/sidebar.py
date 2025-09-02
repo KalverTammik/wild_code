@@ -277,6 +277,13 @@ class Sidebar(QWidget):
             if btn.property('active'):
                 btn.setProperty('pulse', self._pulse_on)
                 btn.style().unpolish(btn); btn.style().polish(btn)
+        # also pulse home and settings if active
+        if hasattr(self, 'homeButton') and self.homeButton.property('active'):
+            self.homeButton.setProperty('pulse', self._pulse_on)
+            self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
+        if hasattr(self, 'settingsButton') and self.settingsButton.property('active'):
+            self.settingsButton.setProperty('pulse', self._pulse_on)
+            self.settingsButton.style().unpolish(self.settingsButton); self.settingsButton.style().polish(self.settingsButton)
 
     def _store_expanded_width(self):
         self._expanded_width = max(self._expanded_width, self.container.width())
@@ -335,6 +342,14 @@ class Sidebar(QWidget):
         # refresh style for [compact="true"]
         self.style().unpolish(self); self.style().polish(self)
         QTimer.singleShot(0, self._position_toggle)
+
+        # ensure all buttons update their styles
+        for btn in self.moduleButtons.values():
+            btn.style().unpolish(btn); btn.style().polish(btn)
+        if hasattr(self, 'homeButton'):
+            self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
+        if hasattr(self, 'settingsButton'):
+            self.settingsButton.style().unpolish(self.settingsButton); self.settingsButton.style().polish(self.settingsButton)
 
     # keep the handle centered when the widget resizes
     def resizeEvent(self, e):

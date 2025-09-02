@@ -25,11 +25,9 @@ QFrame#SidebarNavFrame { /* main navigation card */
 
 /* Docked footer meta bar */
 QFrame#SidebarFooterBar {
-    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-        stop:0 rgba(42,50,58,0.96),
-        stop:1 rgba(29,37,43,0.96));
+    background: #2a323a;
     border: 1px solid #3a444d;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 6px 8px 6px 8px;
 }
 
@@ -64,22 +62,26 @@ QPushButton#SidebarHomeButton[active="true"] {
 
 /* Settings button */
 QFrame#SidebarFooterBar > QPushButton {
-    background: #2d3139;
+    background: transparent;
     color: #c5c5d2;
-    border: 1px solid #49545e;
-    border-radius: 9px;
-    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    text-align: left;
 }
 QFrame#SidebarFooterBar > QPushButton:hover {
-    background: #00796b;
-    border-color: #00908f;
+    background: rgba(9,144,143,0.12);
     color: #ffffff;
 }
 QFrame#SidebarFooterBar > QPushButton[active="true"] {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
-        stop:0 rgba(9,144,143,0.55),
-        stop:1 rgba(9,144,143,0.28));
-    border: 1px solid rgba(9,144,143,0.70);
+        stop:0 rgba(9,144,143,0.38),
+        stop:0.04 rgba(9,144,143,0.32),
+        stop:1 rgba(9,144,143,0.18));
+    color: #ffffff;
+    border: 1px solid rgba(9,144,143,0.55);
+    border-left: 4px solid #09b2b1;
+    padding-left: 6px;
     font-weight: 600;
 }
 
@@ -105,4 +107,16 @@ QWidget#SidebarRoot[compact="true"] QPushButton#SidebarNavButton {
 QWidget#SidebarRoot[compact="true"] QFrame#SidebarNavFrame,
 QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar {
     padding: 2px;
+}
+QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar > QPushButton {
+    padding: 6px 6px;
+}
+QWidget#SidebarRoot[compact="true"] QPushButton#SidebarNavButton,
+QWidget#SidebarRoot[compact="true"] QPushButton#SidebarHomeButton,
+QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar > QPushButton {
+    text-align: center;
+}
+QWidget#SidebarRoot[compact="true"] QPushButton[active="true"],
+QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar > QPushButton[active="true"] {
+    border-left: none;
 }
