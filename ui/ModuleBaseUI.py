@@ -154,6 +154,14 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
                     self._load_and_apply_type_preferences()
         except Exception:
             pass
+        try:
+            if hasattr(self, 'tags_filter') and self.tags_filter:
+                self.tags_filter.ensure_loaded()
+                # Load and apply saved tags preferences if the method exists
+                if hasattr(self, '_load_and_apply_tags_preferences'):
+                    self._load_and_apply_tags_preferences()
+        except Exception:
+            pass
         self._connect_scroll_signals()
 
     def deactivate(self) -> None:
@@ -187,6 +195,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         # Reset preferences loaded flags so they can be reloaded
         self._status_preferences_loaded = False
         self._type_preferences_loaded = False
+        self._tags_preferences_loaded = False
         try:
             self.reset_feed_session()
         except Exception:
@@ -641,4 +650,99 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             return set()
         except Exception as e:
             log_debug(f"[{self.__class__.__name__}] Error loading type preferences from settings: {e}")
+            return set()
+
+    # ------------------------------------------------------------------
+    # Tags Preferences Management
+    # ------------------------------------------------------------------
+    def _load_and_apply_tags_preferences(self):
+        """Load saved tags preferences and apply them to the tags filter.
+        
+        This is a generic implementation that works for any module with a tags_filter.
+        Subclasses can override this method if they need custom behavior.
+        """
+        log_debug(f"[{self.__class__.__name__}] _load_and_apply_tags_preferences called")
+        
+        if not hasattr(self, 'tags_filter') or not self.tags_filter:
+            log_debug(f"[{self.__class__.__name__}] No tags_filter found")
+            return
+        
+        # Check if tags filter is loaded
+        if not getattr(self.tags_filter, '_loaded', False):
+            log_debug(f"[{self.__class__.__name__}] Tags filter not loaded yet, deferring preferences loading")
+            # Connect to selectionChanged signal to load preferences when filter is ready
+            # Only connect if not already connected
+            if not getattr(self, '_tags_filter_signal_connected', False):
+                try:
+                    self.tags_filter.selectionChanged.connect(self._on_tags_filter_loaded)
+                    self._tags_filter_signal_connected = True
+                    log_debug(f"[{self.__class__.__name__}] Connected to tags filter selectionChanged signal")
+                except Exception as e:
+                    log_debug(f"[{self.__class__.__name__}] Failed to connect to selectionChanged: {e}")
+            return
+        
+        # Prevent loading multiple times
+        if getattr(self, '_tags_preferences_loaded', False):
+            log_debug(f"[{self.__class__.__name__}] Tags preferences already loaded, skipping")
+            return
+            
+        try:
+            # TagsFilterWidget should already be loaded when filters are first used
+            # Load saved tags preferences for this module
+            preferred_tags = self._load_tags_preferences_from_settings()
+            log_debug(f"[{self.__class__.__name__}] Loaded tags preferences from settings: {preferred_tags}")
+            
+            if preferred_tags:
+                log_debug(f"[{self.__class__.__name__}] Applying saved tags preferences: {preferred_tags}")
+                # Set the selected IDs on the tags filter
+                self.tags_filter.set_selected_ids(list(preferred_tags))
+                # The selectionChanged signal will be emitted automatically, triggering filter updates
+            else:
+                log_debug(f"[{self.__class__.__name__}] No saved tags preferences found")
+                
+        except Exception as e:
+            log_debug(f"[{self.__class__.__name__}] Error loading tags preferences: {e}")
+            import traceback
+            log_debug(f"[{self.__class__.__name__}] Traceback: {traceback.format_exc()}")
+        
+        # Mark as loaded to prevent multiple calls
+        self._tags_preferences_loaded = True
+        log_debug(f"[{self.__class__.__name__}] Tags preferences loading complete")
+
+    def _on_tags_filter_loaded(self):
+        """Called when the tags filter finishes loading for the first time."""
+        log_debug(f"[{self.__class__.__name__}] Tags filter loaded, applying preferences")
+        
+        # Disconnect the signal to avoid multiple calls
+        try:
+            self.tags_filter.selectionChanged.disconnect(self._on_tags_filter_loaded)
+            self._tags_filter_signal_connected = False
+        except Exception:
+            pass
+        
+        # Now load and apply the preferences
+        self._load_and_apply_tags_preferences()
+
+    def _load_tags_preferences_from_settings(self) -> set:
+        """Load tags preferences directly from QGIS settings.
+        
+        This is a generic implementation that uses the module's NAME attribute
+        to create a unique settings key.
+        """
+        try:
+            from qgis.core import QgsSettings
+            s = QgsSettings()
+            key = f"wild_code/modules/{self.NAME}/preferred_tags"
+            log_debug(f"[{self.__class__.__name__}] Loading tags settings from key: {key}")
+            preferred_tags = s.value(key, "") or ""
+            log_debug(f"[{self.__class__.__name__}] Raw tags settings value: '{preferred_tags}'")
+
+            if preferred_tags:
+                result = set(preferred_tags.split(","))
+                log_debug(f"[{self.__class__.__name__}] Parsed tag IDs: {result}")
+                return result
+            log_debug(f"[{self.__class__.__name__}] No tags preferences found in settings")
+            return set()
+        except Exception as e:
+            log_debug(f"[{self.__class__.__name__}] Error loading tags preferences from settings: {e}")
             return set()
