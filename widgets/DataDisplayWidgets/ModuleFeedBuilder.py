@@ -61,18 +61,27 @@ class ModuleFeedBuilder:
         # Add three smaller buttons between header and members view
         button1 = QPushButton("")
         button1.setObjectName("ActionButton1")
+        # Prevent button from being triggered by Return key
+        button1.setAutoDefault(False)
+        button1.setDefault(False)
         button1.setFixedSize(20, 18)
         button1.setToolTip("Action Button 1")
         header_row.addWidget(button1, 0, Qt.AlignCenter)
 
         button2 = QPushButton("")
         button2.setObjectName("ActionButton2")
+        # Prevent button from being triggered by Return key
+        button2.setAutoDefault(False)
+        button2.setDefault(False)
         button2.setFixedSize(20, 18)
         button2.setToolTip("Action Button 2")
         header_row.addWidget(button2, 0, Qt.AlignCenter)
 
         button3 = QPushButton("")
         button3.setObjectName("ActionButton3")
+        # Prevent button from being triggered by Return key
+        button3.setAutoDefault(False)
+        button3.setDefault(False)
         button3.setFixedSize(20, 18)
         button3.setToolTip("Action Button 3")
         header_row.addWidget(button3, 0, Qt.AlignCenter)

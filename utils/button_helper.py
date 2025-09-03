@@ -13,6 +13,9 @@ class ButtonHelper:
         :return: A styled QPushButton instance.
         """
         button = QPushButton(text, parent)
+        # Prevent button from being triggered by Return key
+        button.setAutoDefault(False)
+        button.setDefault(False)
         if tooltip:
             button.setToolTip(tooltip)
         if on_click:

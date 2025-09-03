@@ -4,8 +4,6 @@ from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer, QEvent
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from PyQt5.QtGui import QColor, QIcon, QFont
 
-from .SearchResultsWidget import SearchResultsWidget
-
 class HeaderWidget(QWidget):
     """
     This widget supports dynamic theme switching via ThemeManager.apply_module_style.
@@ -43,6 +41,9 @@ class HeaderWidget(QWidget):
         self.helpButton = QPushButton()
         self.helpButton.setObjectName("headerHelpButton")
         self.helpButton.setFixedSize(45, 24)
+        # Prevent help button from being the default button that triggers on Return key
+        self.helpButton.setAutoDefault(False)
+        self.helpButton.setDefault(False)
         # Add help icon and text
         try:
             from wild_code.constants.module_icons import ModuleIconPaths, ICON_HELP
@@ -103,13 +104,13 @@ class HeaderWidget(QWidget):
         self.searchEdit.textChanged.connect(self._on_search_text_changed)
         self.searchEdit.returnPressed.connect(self._perform_search)
         
+        # Ensure search field maintains focus and handles Return key properly
+        self.searchEdit.setFocusPolicy(Qt.StrongFocus)
+        
         # print("[DEBUG] HeaderWidget search setup complete")
         
-        # Create search results widget
-        self._search_results = SearchResultsWidget(self)
-        self._search_results.setVisible(False)
-        self._search_results.resultClicked.connect(self._on_search_result_clicked)
-        self._search_results.refreshRequested.connect(self._on_refresh_requested)
+        # Lazy initialization - SearchResultsWidget will be created only when first needed
+        self._search_results = None
         
         layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
         
@@ -128,6 +129,9 @@ class HeaderWidget(QWidget):
         # Right: theme switch + logout
         self.switchButton = QPushButton()
         self.switchButton.setObjectName("themeSwitchButton")
+        # Prevent button from being triggered by Return key
+        self.switchButton.setAutoDefault(False)
+        self.switchButton.setDefault(False)
         self.switchButton.clicked.connect(switch_callback)
         # Rakenda tooltip keelefailist
         try:
@@ -141,6 +145,9 @@ class HeaderWidget(QWidget):
 
         self.logoutButton = QPushButton("Logout")
         self.logoutButton.setObjectName("logoutButton")
+        # Prevent button from being triggered by Return key
+        self.logoutButton.setAutoDefault(False)
+        self.logoutButton.setDefault(False)
         self.logoutButton.clicked.connect(logout_callback)
         # Rakenda tooltip keelefailist
         try:
@@ -167,6 +174,19 @@ class HeaderWidget(QWidget):
             self.devControls.retheme()
         except Exception:
             pass
+
+    @property
+    def search_results_widget(self):
+        """Lazy getter for SearchResultsWidget - creates it only when first accessed."""
+        if self._search_results is None:
+            print("[DEBUG] Lazy loading SearchResultsWidget...")
+            from .SearchResultsWidget import SearchResultsWidget
+            self._search_results = SearchResultsWidget(self)
+            self._search_results.setVisible(False)
+            self._search_results.resultClicked.connect(self._on_search_result_clicked)
+            self._search_results.refreshRequested.connect(self._on_refresh_requested)
+            print("[DEBUG] SearchResultsWidget created and connected")
+        return self._search_results
 
 
     def _emit_debug_toggle(self, enabled: bool):
@@ -228,7 +248,7 @@ class HeaderWidget(QWidget):
         # Hide results if text is too short
         if len(text.strip()) < 3:
             # print("[DEBUG] Search text too short, hiding results and stopping timer")
-            self._search_results.hide_results()
+            self.search_results_widget.hide_results()
             self._search_timer.stop()
             return
             
@@ -296,16 +316,16 @@ class HeaderWidget(QWidget):
                 # print(f"[DEBUG] Processing unified search results: {len(search_data)} module types")
 
                 # Let SearchResultsWidget process the results
-                processed_results = self._search_results.process_unified_search_results(search_data)
+                processed_results = self.search_results_widget.process_unified_search_results(search_data)
                 # print(f"[DEBUG] Processed {len(processed_results)} total search results")
 
                 # Show results
                 if processed_results:
                     # print("[DEBUG] Showing search results")
-                    self._search_results.show_results(processed_results, self.searchEdit)
+                    self.search_results_widget.show_results(processed_results, self.searchEdit)
                 else:
                     # print(f"[DEBUG] No results found for '{query}', showing no results message")
-                    self._search_results.show_no_results(query, self.searchEdit)
+                    self.search_results_widget.show_no_results(query, self.searchEdit)
 
             elif result and "search" in result:
                 # Handle direct search response (no data wrapper)
@@ -313,22 +333,22 @@ class HeaderWidget(QWidget):
                 # print(f"[DEBUG] Processing direct search results: {len(search_data)} module types")
 
                 # Let SearchResultsWidget process the results with raw data
-                processed_results = self._search_results.process_unified_search_results(search_data)
+                processed_results = self.search_results_widget.process_unified_search_results(search_data)
                 # print(f"[DEBUG] Processed {len(processed_results)} total search results")
 
                 # Show results with raw search data for grouping
                 if any(module.get("total", 0) > 0 for module in search_data):
                     # print("[DEBUG] Showing search results")
-                    self._search_results.show_results(search_data, self.searchEdit)
+                    self.search_results_widget.show_results(search_data, self.searchEdit)
                 else:
                     # print(f"[DEBUG] No results found for '{query}', showing no results message")
-                    self._search_results.show_no_results(query, self.searchEdit)
+                    self.search_results_widget.show_no_results(query, self.searchEdit)
 
         except Exception as e:
             # print(f"Search error: {e}")
             # import traceback
             # traceback.print_exc()
-            self._search_results.hide_results()
+            self.search_results_widget.hide_results()
     
     def _on_search_result_clicked(self, module, item_id, title):
         """Handle search result selection."""

@@ -70,6 +70,9 @@ class ExtraInfoWidget(QWidget):
         # Add expand button
         expand_btn = QPushButton()
         expand_btn.setFixedSize(20, 20)
+        # Prevent button from being triggered by Return key
+        expand_btn.setAutoDefault(False)
+        expand_btn.setDefault(False)
         expand_btn.setStyleSheet("""
             QPushButton {
                 border: 1px solid #4CAF50;
@@ -130,6 +133,9 @@ class ExtraInfoWidget(QWidget):
         # Add expand button
         expand_btn = QPushButton()
         expand_btn.setFixedSize(20, 20)
+        # Prevent button from being triggered by Return key
+        expand_btn.setAutoDefault(False)
+        expand_btn.setDefault(False)
         expand_btn.setStyleSheet("""
             QPushButton {
                 border: none;
@@ -322,6 +328,9 @@ class ExtraInfoWidget(QWidget):
 
         # Close button
         close_btn = QPushButton("Sulge")
+        # Prevent button from being triggered by Return key
+        close_btn.setAutoDefault(False)
+        close_btn.setDefault(False)
         close_btn.clicked.connect(dialog.accept)
         close_btn.setStyleSheet("""
             QPushButton {

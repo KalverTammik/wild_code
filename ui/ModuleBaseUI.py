@@ -82,6 +82,9 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             # Use a cross symbol to indicate cancel/clear action visually
             self._refresh_button = QPushButton("✖")
             self._refresh_button.setObjectName("FeedRefreshButton")
+            # Prevent button from being triggered by Return key
+            self._refresh_button.setAutoDefault(False)
+            self._refresh_button.setDefault(False)
             # Make the cross less visually dominant and the button circular.
             # Use a fixed square size and a border-radius = half size to get a round button.
             try:

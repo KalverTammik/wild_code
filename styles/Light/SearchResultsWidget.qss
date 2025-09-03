@@ -1,0 +1,60 @@
+/* ===== SearchResultsWidget (Light) ===== */
+
+QWidget#searchResultsWidget {
+    background: rgba(249, 250, 251, 0.95);
+    border: 2px solid #0984e3;
+    border-radius: 4px;
+    padding: 8px;
+    margin: 4px;
+}
+
+QListWidget#searchResultsList {
+    background: rgba(249, 250, 251, 1.0);
+    border: 1px solid #74b9ff;
+    border-radius: 4px;
+    padding: 8px;
+    outline: none;
+}
+
+QListWidget#searchResultsList::item {
+    border: none;
+    margin: 1px;
+    padding: 2px;
+}
+
+QListWidget#searchResultsList::item[data-type="header"] {
+    border-left: 4px solid #00b894;
+    background: #f0f8f7;
+    font-weight: bold;
+    color: #00b894;
+}
+
+QListWidget#searchResultsList::item[font-style="italic"] {
+    border: none;
+    background: transparent;
+    color: #666666;
+}
+
+QListWidget#searchResultsList::item[data-type="result"] {
+    border: none;
+}
+
+QPushButton#searchResultsCloseButton {
+    background: transparent;
+    border: none;
+    color: #666666;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 2px;
+}
+
+QPushButton#searchResultsCloseButton:hover {
+    background: rgba(255, 0, 0, 0.1);
+    color: #cc0000;
+    border-radius: 3px;
+}
+
+QPushButton#searchResultsCloseButton:pressed {
+    background: rgba(255, 0, 0, 0.2);
+    color: #aa0000;
+}

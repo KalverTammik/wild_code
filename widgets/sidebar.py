@@ -70,6 +70,9 @@ class Sidebar(QWidget):
             home_label = "Avaleht"
         self.homeButton = QPushButton(home_label, self.SidebarNavFrame)
         self.homeButton.setObjectName("SidebarHomeButton")
+        # Prevent button from being triggered by Return key
+        self.homeButton.setAutoDefault(False)
+        self.homeButton.setDefault(False)
         # Assign themed icon if available
         try:
             home_icon_path = ModuleIconPaths.get_module_icon("__HOME__")
@@ -105,6 +108,9 @@ class Sidebar(QWidget):
         settings_icon_path = ModuleIconPaths.get_module_icon(SETTINGS_MODULE)
         self.settingsButton = QPushButton(settings_name, self.footerBar)
         self.settingsButton.setObjectName("SidebarSettingsButton")
+        # Prevent button from being triggered by Return key
+        self.settingsButton.setAutoDefault(False)
+        self.settingsButton.setDefault(False)
         if settings_icon_path:
             self.settingsButton.setIcon(QIcon(settings_icon_path))
         try:
@@ -124,6 +130,7 @@ class Sidebar(QWidget):
         # --- floating toggle handle (not part of layout) ---
         self.toggleButton = QToolButton(self)
         self.toggleButton.setObjectName("SidebarToggleButton")
+        # Prevent button from being triggered by Return key
         self.toggleButton.setAutoRaise(True)
         self.toggleButton.setFixedSize(22, 44)        # slim, tall target
         try:
@@ -164,6 +171,9 @@ class Sidebar(QWidget):
         print(f"[Sidebar] Adding button: {displayName} ({uniqueIdentifier})", file=sys.stderr)
         btn = QPushButton(displayName, self.SidebarNavFrame)
         btn.setObjectName("SidebarNavButton")
+        # Prevent button from being triggered by Return key
+        btn.setAutoDefault(False)
+        btn.setDefault(False)
         if iconPath:
             btn.setIcon(QIcon(iconPath))
         # Projekte nupp ikooni ühtlustatud suurus 25x25

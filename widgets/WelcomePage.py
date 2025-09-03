@@ -225,10 +225,16 @@ class WelcomePage(QWidget):
         self.open_btn = QPushButton()
         self.open_btn.clicked.connect(self.openSettingsRequested.emit)
         self.open_btn.setObjectName("WelcomeOpenSettingsButton")
+        # Prevent button from being triggered by Return key
+        self.open_btn.setAutoDefault(False)
+        self.open_btn.setDefault(False)
 
         # Debug toggle button
         self.debug_btn = QPushButton()
         self.debug_btn.setObjectName("WelcomeToggleDebugButton")
+        # Prevent button from being triggered by Return key
+        self.debug_btn.setAutoDefault(False)
+        self.debug_btn.setDefault(False)
         self.debug_btn.setCheckable(True)
         self.debug_btn.setChecked(True)  # initial state matches LetterSection(debug=True)
         # Apply an existing icon (non-themed quick pick). For themed icons, use ThemeManager.get_qicon(...)

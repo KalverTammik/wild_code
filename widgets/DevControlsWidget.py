@@ -57,6 +57,9 @@ class DevControlsWidget(QWidget):
         self.debugBtn = QPushButton("DBG", self)
         self.debugBtn.setObjectName("headerDevToggleButton")
         self.debugBtn.setCheckable(True)
+        # Prevent button from being triggered by Return key
+        self.debugBtn.setAutoDefault(False)
+        self.debugBtn.setDefault(False)
         if LanguageManager is not None:
             try:
                 _lm = LanguageManager()
@@ -80,6 +83,9 @@ class DevControlsWidget(QWidget):
         self.framesBtn = QPushButton(self)
         self.framesBtn.setObjectName("headerFrameLabelsButton")
         self.framesBtn.setCheckable(True)
+        # Prevent button from being triggered by Return key
+        self.framesBtn.setAutoDefault(False)
+        self.framesBtn.setDefault(False)
         if not eye_icon.isNull():
             self.framesBtn.setIcon(eye_icon)
         if LanguageManager is not None:

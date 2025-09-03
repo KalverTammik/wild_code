@@ -58,15 +58,15 @@ QLineEdit#headerSearchEdit {
 /* Search Results Widget */
 QWidget#searchResultsWidget {
     background: #2e2f38;
-    border: 1px solid #4d4d4d;
-    border-radius: 6px;
-    padding: 0px;
+    border: 1px solid #1f5d5c;
+    border-radius: 3px;
+    padding: 1px;
 }
 
 QListWidget#searchResultsList {
     background: #2e2f38;
     border: none;
-    border-radius: 6px;
+    border-radius: 3px;
     padding: 4px;
     outline: none;
     min-width: 400px;
@@ -75,7 +75,7 @@ QListWidget#searchResultsList {
 
 QListWidget#searchResultsList::item {
     padding: 6px 12px;
-    border-radius: 4px;
+    border-radius: 3px;
     margin: 1px 0px;
     color: #c5c5d2;
 }
@@ -85,8 +85,25 @@ QListWidget#searchResultsList::item:hover {
 }
 
 QListWidget#searchResultsList::item:selected {
-    background: #4d4d4d;
+    background: rgb(9,144,143);
     color: #ffffff;
+}
+
+/* Search Results - Header styling (applied via Python) */
+QListWidget#searchResultsList::item {
+    border-left: none; /* Default - will be overridden by Python styling */
+}
+
+/* Search Results - Show more styling */
+QListWidget#searchResultsList::item[font-style="italic"] {
+    background: transparent;
+    color: #888888;
+    border: none;
+}
+
+QListWidget#searchResultsList::item[font-style="italic"]:hover {
+    background: #3a3b4a;
+    color: #1f5d5c;
 }
 
 /* Buttons */

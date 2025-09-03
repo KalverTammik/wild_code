@@ -50,11 +50,17 @@ class OverdueDueSoonPillsWidget(QWidget):
 
         self.overdue_btn = QPushButton("0", self.group)
         self.overdue_btn.setObjectName("PillOverdue")
+        # Prevent button from being triggered by Return key
+        self.overdue_btn.setAutoDefault(False)
+        self.overdue_btn.setDefault(False)
         self.overdue_btn.setCursor(Qt.PointingHandCursor)
         self.overdue_btn.clicked.connect(self.overdueClicked.emit)  # type: ignore
 
         self.due_soon_btn = QPushButton("0", self.group)
         self.due_soon_btn.setObjectName("PillDueSoon")
+        # Prevent button from being triggered by Return key
+        self.due_soon_btn.setAutoDefault(False)
+        self.due_soon_btn.setDefault(False)
         self.due_soon_btn.setCursor(Qt.PointingHandCursor)
         self.due_soon_btn.clicked.connect(self.dueSoonClicked.emit)  # type: ignore
 
