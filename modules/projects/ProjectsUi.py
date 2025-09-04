@@ -42,7 +42,7 @@ class ProjectsModule(ModuleBaseUI):
         qss_files: Optional[List[str]] = None,    # <-- lisatud
         **kwargs: Any                              # <-- lisatud (neelab tulevased lisad)
     ) -> None:
-        super().__init__(parent)
+        super().__init__(parent, lang_manager)
 
         # hoia ühilduvuse mõttes alles
         self.name = name

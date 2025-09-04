@@ -45,11 +45,13 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
 
     PREFETCH_PX: int = 300  # default; ProgressiveLoadMixin also uses this
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None, lang_manager=None) -> None:
         QWidget.__init__(self, parent)
         DedupeMixin.__init__(self)
         FeedCounterMixin.__init__(self)
         ProgressiveLoadMixin.__init__(self)
+
+        self.lang_manager = lang_manager
 
         self.feed_load_engine = None  # set via init_feed_engine
 
@@ -110,7 +112,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             self._refresh_button.clicked.connect(self._on_refresh_clicked)  # type: ignore[attr-defined]
             # Create pills widget owned by toolbar for visual proximity (placed just left of refresh)
             try:
-                self.overdue_pills = OverdueDueSoonPillsWidget(self.toolbar_area)
+                self.overdue_pills = OverdueDueSoonPillsWidget(self.toolbar_area, self.lang_manager)
             except Exception:
                 self.overdue_pills = None
             if self.overdue_pills:

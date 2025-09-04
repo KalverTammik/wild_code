@@ -24,14 +24,14 @@ class ElidedLabel(QLabel):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setWordWrap(False)
         self.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.setToolTip(self._full)
+        # self.setToolTip(self._full)  # Eemaldatud tooltip
         self.setObjectName("ElidedLabel")
         # Ensure minimum height for proper text display
         self.setMinimumHeight(16)
 
     def setText(self, text):
         self._full = text or ""
-        self.setToolTip(self._full)
+        # self.setToolTip(self._full)  # Eemaldatud tooltip
         super().setText(self._full)
         self._elide()
 
@@ -366,7 +366,7 @@ class InfocardHeaderFrame(QFrame):
             numberBadge.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
 
-        nameLabel = ElidedLabel(name); nameLabel.setObjectName("ProjectNameLabel"); nameLabel.setToolTip(name)
+        nameLabel = ElidedLabel(name); nameLabel.setObjectName("ProjectNameLabel")  # Eemaldatud tooltip
         nameRow.addWidget(nameLabel, 1, Qt.AlignVCenter)
 
         # When not showing numbers, don't display them at all (no stretch needed)
@@ -386,7 +386,7 @@ class InfocardHeaderFrame(QFrame):
             clientIcon = QLabel("👤"); clientIcon.setObjectName("ClientIcon"); clientIcon.setFixedWidth(16 if not compact else 14)  # Increased width
             clientRow.addWidget(clientIcon, 0, Qt.AlignVCenter)
 
-            clientLabel = ElidedLabel(client); clientLabel.setObjectName("ProjectClientLabel"); clientLabel.setToolTip(client)
+            clientLabel = ElidedLabel(client); clientLabel.setObjectName("ProjectClientLabel")  # Eemaldatud tooltip
             clientRow.addWidget(clientLabel, 1, Qt.AlignVCenter)
 
             leftL.addLayout(clientRow)

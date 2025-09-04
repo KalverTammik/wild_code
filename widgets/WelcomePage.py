@@ -2,6 +2,7 @@ from PyQt5.QtCore import pyqtSignal, Qt, QSize
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QComboBox
 from PyQt5.QtGui import QIcon
 from ..constants.file_paths import ResourcePaths
+from ..languages.language_manager import LanguageManager
 
 
 class LetterIconFrame(QWidget):
@@ -68,6 +69,7 @@ class LetterSection(QWidget):
 
     def __init__(self, parent=None, debug: bool = True):
         super().__init__(parent)
+        self._lang = LanguageManager()
         self.setObjectName("LetterSection")
 
         root = QVBoxLayout(self)
@@ -120,7 +122,7 @@ class LetterSection(QWidget):
         header_layout.addWidget(self.letter_selector_frame)
 
         # --- Pealkiri ---
-        self.header_title = QLabel("A Tähe õppimine")
+        self.header_title = QLabel(self._lang.translate("A Tähe õppimine"))
         self.header_title.setObjectName("WelcomeHeaderTitle")
         self.header_title_frame = QWidget()
         self.header_title_frame.setObjectName("WelcomeHeaderTitleFrame")
@@ -140,7 +142,7 @@ class LetterSection(QWidget):
 
         # --- Teksti hoidja ---
         self.text_holder = QLabel(
-            "A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole."
+            self._lang.translate("A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole.")
         )
         self.text_holder.setObjectName("WelcomeHeaderTextHolder")
         self.header_title.setWordWrap(True)
@@ -172,19 +174,19 @@ class LetterSection(QWidget):
         except Exception:
             pass
         if letter == "A":
-            self.header_title.setText("A Tähe õppimine")
+            self.header_title.setText(self._lang.translate("A Tähe õppimine"))
             self.text_holder.setText(
-                "A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole."
+                self._lang.translate("A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole.")
             )
         elif letter == "B":
-            self.header_title.setText("B Tähe õppimine")
+            self.header_title.setText(self._lang.translate("B Tähe õppimine"))
             self.text_holder.setText(
-                "B täht on eesti tähestikus teine täht. Seda kasutatakse paljudes sõnades, näiteks 'banaan' ja 'buss'. B tähe õppimine aitab laiendada sõnavara ja parandada hääldust."
+                self._lang.translate("B täht on eesti tähestikus teine täht. Seda kasutatakse paljudes sõnades, näiteks 'banaan' ja 'buss'. B tähe õppimine aitab laiendada sõnavara ja parandada hääldust.")
             )
         elif letter == "C":
-            self.header_title.setText("C Tähe õppimine")
+            self.header_title.setText(self._lang.translate("C Tähe õppimine"))
             self.text_holder.setText(
-                "C täht esineb eesti keeles peamiselt võõrsõnades, näiteks 'cirkus' või 'cello'. C tähe tundmine aitab mõista ja lugeda rahvusvahelisi sõnu."
+                self._lang.translate("C täht esineb eesti keeles peamiselt võõrsõnades, näiteks 'cirkus' või 'cello'. C tähe tundmine aitab mõista ja lugeda rahvusvahelisi sõnu.")
             )
 
     def set_debug(self, enabled: bool):

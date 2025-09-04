@@ -43,6 +43,14 @@ class StatusFilterWidget(BaseFilterWidget):
         except Exception:
             pass
 
+        # Add tooltip for clarity
+        if self._lang:
+            tooltip = self._lang.translate("Status Filter")
+            if tooltip:
+                self.combo.setToolTip(tooltip)
+        else:
+            self.combo.setToolTip("Status Filter")
+
         # QGIS: kohe emit iga muutusega
         if self._uses_qgis and hasattr(self.combo, 'checkedItemsChanged'):
             self.combo.checkedItemsChanged.connect(lambda: self.selectionChanged.emit(self.selected_ids()))

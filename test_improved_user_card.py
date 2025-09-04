@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QCheckBox, QPushButton
 )
 from PyQt5.QtCore import Qt, pyqtSignal
+from languages.language_manager import LanguageManager
 
 class ImprovedUserCard(QFrame):
     """Improved UserCard with better layout - no user ID, better organization"""
@@ -16,6 +17,7 @@ class ImprovedUserCard(QFrame):
 
     def __init__(self):
         super().__init__()
+        self._lang = LanguageManager()
         self.setObjectName("SetupCard")
         self.setFrameShape(QFrame.NoFrame)
         self.setStyleSheet("""
@@ -73,7 +75,7 @@ class ImprovedUserCard(QFrame):
         layout.setSpacing(8)
 
         # Header
-        title = QLabel("User Profile")
+        title = QLabel(self._lang.translate("User Profile"))
         title.setObjectName("SetupCardTitle")
         layout.addWidget(title)
 
@@ -98,7 +100,7 @@ class ImprovedUserCard(QFrame):
         layout.addWidget(user_info_card)
 
         # Roles section - better spacing
-        roles_title = QLabel("Roles & Permissions")
+        roles_title = QLabel(self._lang.translate("Roles & Permissions"))
         roles_title.setObjectName("SetupCardSectionTitle")
         layout.addWidget(roles_title)
 
@@ -107,7 +109,7 @@ class ImprovedUserCard(QFrame):
         roles_layout.setContentsMargins(0, 0, 0, 0)
         roles_layout.setSpacing(8)
 
-        for role in ["Administrator", "Editor", "Viewer"]:
+        for role in [self._lang.translate("Administrator"), self._lang.translate("Editor"), self._lang.translate("Viewer")]:
             pill = QFrame(roles_container)
             pill.setObjectName("AccessPill")
             pill.setProperty("active", True)
@@ -124,7 +126,7 @@ class ImprovedUserCard(QFrame):
         layout.addWidget(roles_container)
 
         # Module access - better organized
-        access_title = QLabel("Module Access")
+        access_title = QLabel(self._lang.translate("Module Access"))
         access_title.setObjectName("SetupCardSectionTitle")
         layout.addWidget(access_title)
 
@@ -133,7 +135,7 @@ class ImprovedUserCard(QFrame):
         access_layout.setContentsMargins(0, 0, 0, 0)
         access_layout.setSpacing(8)
 
-        modules = [("Dashboard", True), ("Reports", True), ("Settings", False), ("Admin", True)]
+        modules = [(self._lang.translate("Dashboard"), True), (self._lang.translate("Reports"), True), (self._lang.translate("Settings"), False), (self._lang.translate("Admin"), True)]
         for module_name, has_access in modules:
             pill = QFrame(access_container)
             pill.setObjectName("AccessPill")
@@ -166,7 +168,7 @@ class ImprovedUserCard(QFrame):
         footer_layout = QHBoxLayout()
         footer_layout.addStretch(1)
 
-        confirm_btn = QPushButton("Confirm")
+        confirm_btn = QPushButton(self._lang.translate("Confirm"))
         confirm_btn.setEnabled(False)
         footer_layout.addWidget(confirm_btn)
 
