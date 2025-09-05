@@ -290,16 +290,14 @@ class SettingsUI(QWidget):
     def _on_add_shp_clicked(self):
         """Signal handler for Add SHP file button."""
         print("DEBUG: Add SHP file button clicked")
-        # Emit signal for parent to handle
-        self.addShpClicked.emit()
-        # TODO: Implement SHP file addition logic
-        from PyQt5.QtWidgets import QMessageBox
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setWindowTitle("Add SHP File")
-        msg.setText("Add SHP file functionality will be implemented here.")
-        msg.setStandardButtons(QMessageBox.Ok)
-        msg.exec_()
+        # Use the clean SHPLayerLoader pattern
+        from ...utils.SHPLayerLoader import SHPLayerLoader
+
+        loader = SHPLayerLoader(self)
+        success = loader.load_shp_layer()
+
+        if success:
+            print("SHP imported as memory layer in 'Uued kinnistud', ready for your workflows.")
 
     def _on_add_property_clicked(self):
         """Signal handler for Add property button."""

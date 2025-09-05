@@ -643,7 +643,7 @@ class PluginDialog(QDialog):
             # Create memory layer from SHP
             result = engine.copy_virtual_layer_for_properties(
                 f"{layer_name}_memory",
-                MailablGroupFolders.IMPORT,
+                MailablGroupFolders.NEW_PROPERTIES,  # Changed to NEW_PROPERTIES
                 shp_layer
             )
 
@@ -651,7 +651,7 @@ class PluginDialog(QDialog):
                 QMessageBox.information(
                     self,
                     lang_manager.translate("shp_loaded") or "SHP fail laaditud",
-                    lang_manager.translate("shp_loaded_message") or f"SHP fail '{layer_name}' on edukalt laaditud grupis '{MailablGroupFolders.IMPORT}'"
+                    lang_manager.translate("shp_loaded_message") or f"SHP fail '{layer_name}' on edukalt laaditud grupis 'Uued kinnistud'"
                 )
             else:
                 QMessageBox.warning(

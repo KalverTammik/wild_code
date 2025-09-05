@@ -24,9 +24,13 @@ class GraphQLQueryLoader:
             ValueError: If the module is unknown.
         """
         #print(f"[method load_query] Loading query for module: {module}, filename: {query_filename}")
-        if not hasattr(QueryPaths, module.upper()):
+        # Legacy alias handling for properties
+        attr = module.upper()
+        if attr == 'PROPERTIES' and not hasattr(QueryPaths, 'PROPERTIES') and hasattr(QueryPaths, 'PROPERTIE'):
+            attr = 'PROPERTIE'
+        if not hasattr(QueryPaths, attr):
             raise ValueError(self.lang.translate("unknown_module").format(module=module))
-        folder = getattr(QueryPaths, module.upper())
+        folder = getattr(QueryPaths, attr)
         #print(f"[method load_query] Query folder found: {folder}")
         query_path = os.path.join(folder, query_filename)
         #print(f"[method load_query] Loading GraphQL query from: {query_path}")  # Debug log

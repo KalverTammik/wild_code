@@ -36,8 +36,8 @@ class PropertySettingsUI(QWidget):
         # Apply theming
         ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
 
-        # Load initial data
-        self.load_property_data()
+        # Load initial data - DISABLED as per user request
+        # self.load_property_data()
 
     def setup_ui(self):
         """Setup the property settings interface with CRUD operations."""
@@ -207,22 +207,24 @@ class PropertySettingsUI(QWidget):
 
     def load_property_data(self):
         """Load property data from the API."""
-        try:
-            # Load GraphQL query for properties
-            query = self.query_loader.load_query("properties", "ListProperties.graphql")
-
-            # Make API call
-            data = self.api_client.send_query(query) or {}
-
-            # Parse response and populate table
-            self.populate_property_table(data)
-
-        except Exception as e:
-            QMessageBox.warning(
-                self,
-                self.lang_manager.translate("Error"),
-                self.lang_manager.translate("Failed to load property data:") + f" {str(e)}"
-            )
+        # DISABLED: Property data loading has been disabled as per user request
+        # try:
+        #     # Load GraphQL query for properties
+        #     query = self.query_loader.load_query("properties", "ListProperties.graphql")
+        #
+        #     # Make API call
+        #     data = self.api_client.send_query(query) or {}
+        #
+        #     # Parse response and populate table
+        #     self.populate_property_table(data)
+        #
+        # except Exception as e:
+        #     QMessageBox.warning(
+        #         self,
+        #         self.lang_manager.translate("Error"),
+        #         self.lang_manager.translate("Failed to load property data:") + f" {str(e)}"
+        #     )
+        pass
 
     def populate_property_table(self, data):
         """Populate the property table with data from API."""
@@ -314,31 +316,37 @@ class PropertySettingsUI(QWidget):
 
     def delete_property(self, property_id):
         """Delete property via API."""
-        try:
-            # Load delete mutation
-            mutation = self.query_loader.load_query("properties", "DeleteProperty.graphql")
-
-            # Make API call
-            variables = {"id": property_id}
-            result = self.api_client.send_query(mutation, variables=variables)
-
-            if result and result.get("deleteProperty", {}).get("success"):
-                QMessageBox.information(
-                    self,
-                    self.lang_manager.translate("Success"),
-                    self.lang_manager.translate("Property deleted successfully.")
-                )
-                self.load_property_data()  # Refresh table
-                self.propertyDataChanged.emit()
-            else:
-                raise Exception("Delete operation failed")
-
-        except Exception as e:
-            QMessageBox.warning(
-                self,
-                self.lang_manager.translate("Error"),
-                self.lang_manager.translate("Failed to delete property:") + f" {str(e)}"
-            )
+        # DISABLED: Property data operations have been disabled as per user request
+        QMessageBox.information(
+            self,
+            self.lang_manager.translate("Info"),
+            self.lang_manager.translate("Property operations are currently disabled.")
+        )
+        # try:
+        #     # Load delete mutation
+        #     mutation = self.query_loader.load_query("properties", "DeleteProperty.graphql")
+        #
+        #     # Make API call
+        #     variables = {"id": property_id}
+        #     result = self.api_client.send_query(mutation, variables=variables)
+        #
+        #     if result and result.get("deleteProperty", {}).get("success"):
+        #         QMessageBox.information(
+        #             self,
+        #             self.lang_manager.translate("Success"),
+        #             self.lang_manager.translate("Property deleted successfully.")
+        #         )
+        #         self.load_property_data()  # Refresh table
+        #         self.propertyDataChanged.emit()
+        #     else:
+        #         raise Exception("Delete operation failed")
+        #
+        # except Exception as e:
+        #     QMessageBox.warning(
+        #         self,
+        #         self.lang_manager.translate("Error"),
+        #         self.lang_manager.translate("Failed to delete property:") + f" {str(e)}"
+        #     )
 
     def save_property(self):
         """Save property data (add or update)."""
@@ -368,59 +376,71 @@ class PropertySettingsUI(QWidget):
 
     def create_property(self, property_data):
         """Create new property via API."""
-        try:
-            # Load create mutation
-            mutation = self.query_loader.load_query("properties", "CreateProperty.graphql")
-
-            # Make API call
-            result = self.api_client.send_query(mutation, variables={"input": property_data})
-
-            if result and result.get("createProperty", {}).get("property"):
-                QMessageBox.information(
-                    self,
-                    self.lang_manager.translate("Success"),
-                    self.lang_manager.translate("Property created successfully.")
-                )
-                self.load_property_data()  # Refresh table
-                self.clear_form()
-                self.propertyDataChanged.emit()
-            else:
-                raise Exception("Create operation failed")
-
-        except Exception as e:
-            QMessageBox.warning(
-                self,
-                self.lang_manager.translate("Error"),
-                self.lang_manager.translate("Failed to create property:") + f" {str(e)}"
-            )
+        # DISABLED: Property data operations have been disabled as per user request
+        QMessageBox.information(
+            self,
+            self.lang_manager.translate("Info"),
+            self.lang_manager.translate("Property operations are currently disabled.")
+        )
+        # try:
+        #     # Load create mutation
+        #     mutation = self.query_loader.load_query("properties", "CreateProperty.graphql")
+        #
+        #     # Make API call
+        #     result = self.api_client.send_query(mutation, variables={"input": property_data})
+        #
+        #     if result and result.get("createProperty", {}).get("property"):
+        #         QMessageBox.information(
+        #             self,
+        #             self.lang_manager.translate("Success"),
+        #             self.lang_manager.translate("Property created successfully.")
+        #         )
+        #         self.load_property_data()  # Refresh table
+        #         self.clear_form()
+        #         self.propertyDataChanged.emit()
+        #     else:
+        #         raise Exception("Create operation failed")
+        #
+        # except Exception as e:
+        #     QMessageBox.warning(
+        #         self,
+        #         self.lang_manager.translate("Error"),
+        #         self.lang_manager.translate("Failed to create property:") + f" {str(e)}"
+        #     )
 
     def update_property(self, property_data):
         """Update existing property via API."""
-        try:
-            # Load update mutation
-            mutation = self.query_loader.load_query("properties", "UpdateProperty.graphql")
-
-            # Make API call
-            result = self.api_client.send_query(mutation, variables={"input": property_data})
-
-            if result and result.get("updateProperty", {}).get("property"):
-                QMessageBox.information(
-                    self,
-                    self.lang_manager.translate("Success"),
-                    self.lang_manager.translate("Property updated successfully.")
-                )
-                self.load_property_data()  # Refresh table
-                self.clear_form()
-                self.propertyDataChanged.emit()
-            else:
-                raise Exception("Update operation failed")
-
-        except Exception as e:
-            QMessageBox.warning(
-                self,
-                self.lang_manager.translate("Error"),
-                self.lang_manager.translate("Failed to update property:") + f" {str(e)}"
-            )
+        # DISABLED: Property data operations have been disabled as per user request
+        QMessageBox.information(
+            self,
+            self.lang_manager.translate("Info"),
+            self.lang_manager.translate("Property operations are currently disabled.")
+        )
+        # try:
+        #     # Load update mutation
+        #     mutation = self.query_loader.load_query("properties", "UpdateProperty.graphql")
+        #
+        #     # Make API call
+        #     result = self.api_client.send_query(mutation, variables={"input": property_data})
+        #
+        #     if result and result.get("updateProperty", {}).get("property"):
+        #         QMessageBox.information(
+        #             self,
+        #             self.lang_manager.translate("Success"),
+        #             self.lang_manager.translate("Property updated successfully.")
+        #         )
+        #         self.load_property_data()  # Refresh table
+        #         self.clear_form()
+        #         self.propertyDataChanged.emit()
+        #     else:
+        #         raise Exception("Update operation failed")
+        #
+        # except Exception as e:
+        #     QMessageBox.warning(
+        #         self,
+        #         self.lang_manager.translate("Error"),
+        #         self.lang_manager.translate("Failed to update property:") + f" {str(e)}"
+        #     )
 
     def cancel_edit(self):
         """Cancel current edit operation."""
@@ -447,7 +467,9 @@ class PropertySettingsUI(QWidget):
 
     def activate(self):
         """Called when module becomes active."""
-        self.load_property_data()
+        # DISABLED: Property data loading has been disabled as per user request
+        # self.load_property_data()
+        pass
 
     def deactivate(self):
         """Called when module becomes inactive."""

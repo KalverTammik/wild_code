@@ -312,6 +312,7 @@ class WelcomePage(QWidget):
             self.title_lbl.setText("Welcome")
             self.subtitle_lbl.setText("Select a module from the left or open Settings to set your preferred module.")
             self.open_btn.setText("Open Settings")
+        # Shapefile button removed - functionality moved to dedicated module
 
     # Eraldi _update_letter_info pole enam vaja; loogika on LetterSection klassis
 
@@ -487,3 +488,5 @@ class WelcomePage(QWidget):
                 "Viga",
                 f"Kihi eemaldamisel tekkis viga: {str(e)}"
             )
+
+    # Shapefile functionality removed from welcome page - now handled by dedicated module

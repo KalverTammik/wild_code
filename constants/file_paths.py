@@ -24,11 +24,15 @@ class QueryPaths:
     SPECIFICATION = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, SPECIFICATION_QUERIES)
     ASBUILT = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, TASK_QUERIES)
     PROPERTIE = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, PROPERTIES_QUERIES)
+    PROPERTIES = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, PROPERTIES_QUERIES)
 
 
 
 
-# Data paths (for module data files)
+# Configuration file paths
+class ConfigPaths:
+    CONFIG = os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json")
+    METADATA = os.path.join(PLUGIN_ROOT, "metadata.txt")
 
 
 # GptAssistant module paths (optional; defined only if module name exists)
@@ -75,11 +79,41 @@ class StylePaths:
     DARK = os.path.join(PLUGIN_ROOT, STYLES, "Dark")
     LIGHT = os.path.join(PLUGIN_ROOT, STYLES, "Light")
 
-# Config, metadata, manuals, etc.
-class ConfigPaths:
-    CONFIG = os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json")
-    METADATA = os.path.join(PLUGIN_ROOT, "metadata.txt")
-    USER_MANUAL = os.path.join(PLUGIN_ROOT, MODULES, "PizzaOrderModuleUserManual.html")
+# QML style file paths (for layer symbology)
+class QmlPaths:
+    PROPERTIES_BACKGROUND_NEW = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Properties_background_new.qml")
+    PROPERTIES_BACKGROUND = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Properties_backgrund.qml")
+    MAAMET_IMPORT = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Maa_amet_temp_layer.qml")
+    EASETMENT_DRAINAGE = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Drainage.qml")
+    EASEMENT_PROPERTIES = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Properties.qml")
+
+
+def get_style(style_name: str) -> str:
+    """
+    Get QML style file path by name.
+
+    Args:
+        style_name: Name of the style (e.g., 'properties_background_new', 'maa_met_import')
+
+    Returns:
+        str: Full path to the QML style file
+
+    Raises:
+        ValueError: If style name is not recognized
+    """
+    style_map = {
+        'properties_background_new': QmlPaths.PROPERTIES_BACKGROUND_NEW,
+        'properties_background': QmlPaths.PROPERTIES_BACKGROUND,
+        'maa_amet_import': QmlPaths.MAAMET_IMPORT,
+        'easement_drainage': QmlPaths.EASETMENT_DRAINAGE,
+        'easement_properties': QmlPaths.EASEMENT_PROPERTIES,
+    }
+
+    if style_name not in style_map:
+        available_styles = list(style_map.keys())
+        raise ValueError(f"Unknown style name '{style_name}'. Available styles: {available_styles}")
+
+    return style_map[style_name]
 
 
 

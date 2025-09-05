@@ -22,6 +22,8 @@ from qgis.core import (
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox
 from qgis.PyQt.QtCore import QTimer
 
+# Global layer engine instance
+_layer_engine_instance = None
 
 class MailablGroupFolders:
     """Standard group folder names for Mailabl plugin."""
@@ -30,7 +32,7 @@ class MailablGroupFolders:
     NEW_PROPERTIES = "Uued kinnistud"
     SANDBOXING = "Ajutised kihid"
     ARCHIVE = "Arhiiv"
-    IMPORT = "Import"
+    IMPORT = "Imporditavad kinnistud"  # Updated to Estonian name
     EXPORT = "Eksport"
     SYNC = "Sünkroonimine"
 
@@ -197,13 +199,16 @@ class LayerCreationEngine:
 
             # Create URI for memory layer
             if template_layer:
-                # Copy from template
-                uri = template_layer.dataProvider().dataSourceUri()
+                # Create memory layer with proper URI, not template's file URI
+                geometry_type = self._get_geometry_type_string(template_layer.geometryType())
+                uri = f"{geometry_type}?crs={template_layer.crs().authid()}"
                 new_layer = QgsVectorLayer(uri, layer_name, 'memory')
 
-                # Copy fields and CRS from template
+                # Copy fields from template
                 if template_layer.fields():
-                    new_layer.setFields(template_layer.fields())
+                    # Use data provider to set fields for memory layer
+                    new_layer.dataProvider().addAttributes(template_layer.fields())
+                    new_layer.updateFields()
                 if template_layer.crs():
                     new_layer.setCrs(template_layer.crs())
 
@@ -213,7 +218,8 @@ class LayerCreationEngine:
                 new_layer = QgsVectorLayer(uri, layer_name, 'memory')
 
                 if fields:
-                    new_layer.setFields(fields)
+                    new_layer.dataProvider().addAttributes(fields)
+                    new_layer.updateFields()
 
             if not new_layer.isValid():
                 print(f"[LayerEngine] Failed to create valid memory layer: {layer_name}")
@@ -227,6 +233,24 @@ class LayerCreationEngine:
         except Exception as e:
             print(f"[LayerEngine] Error creating memory layer: {e}")
             return None
+
+    def _get_geometry_type_string(self, geometry_type: Qgis.GeometryType) -> str:
+        """
+        Convert QGIS geometry type to string for memory layer URI.
+
+        Args:
+            geometry_type: QGIS geometry type enum
+
+        Returns:
+            str: Geometry type string for URI
+        """
+        type_map = {
+            Qgis.GeometryType.Point: "Point",
+            Qgis.GeometryType.Line: "LineString",
+            Qgis.GeometryType.Polygon: "Polygon",
+            Qgis.GeometryType.Null: "Point",  # Default fallback
+        }
+        return type_map.get(geometry_type, "Point")
 
     def copy_virtual_layer_for_properties(
         self,
@@ -284,6 +308,9 @@ class LayerCreationEngine:
             # Add to group
             group.addLayer(memory_layer)
             print(f"[LayerEngine] Added layer '{new_layer_name}' to group '{group_name}'")
+
+            # Apply default QML style for property layers
+            self.apply_qml_style(memory_layer, "properties_background_new")
 
             return new_layer_name
 
@@ -547,9 +574,61 @@ class LayerCreationEngine:
             print(f"[LayerEngine] Error removing group '{group_name}': {e}")
             return False
 
+    def apply_qml_style(self, layer: QgsVectorLayer, style_name: str = "properties_background_new") -> bool:
+        """
+        Apply QML style to a layer using the plugin's standard approach.
 
-# Global instance for easy access
-_layer_engine_instance = None
+        Args:
+            layer: The layer to apply style to
+            style_name: Name of the style to apply (default: properties_background_new)
+
+        Returns:
+            bool: True if style was applied successfully, False otherwise
+        """
+        try:
+            # Import here to avoid circular imports
+            from ..constants.file_paths import get_style
+
+            # Get the QML style file path
+            qml_path = get_style(style_name)
+            print(f"[LayerEngine] Applying style '{style_name}' from: {qml_path}")
+
+            if not os.path.exists(qml_path):
+                print(f"[LayerEngine] Style file not found: {qml_path}")
+                return False
+
+            # Ensure layer is not in editing mode
+            if layer.isEditable():
+                layer.commitChanges()
+
+            # Apply the QML style
+            result = layer.loadNamedStyle(qml_path)
+            print(f"[LayerEngine] loadNamedStyle result: {result}")
+
+            if not result[0]:
+                print(f"[LayerEngine] loadNamedStyle failed, trying importNamedStyle")
+                result = layer.importNamedStyle(qml_path)
+                print(f"[LayerEngine] importNamedStyle result: {result}")
+
+            if result[0]:
+                print(f"[LayerEngine] Successfully applied QML style '{style_name}' to layer: {layer.name()}")
+
+                # Refresh the layer and map canvas
+                layer.triggerRepaint()
+
+                from qgis.utils import iface
+                if iface and iface.mapCanvas():
+                    iface.mapCanvas().refresh()
+                    print("[LayerEngine] Map canvas refreshed")
+
+                return True
+            else:
+                print(f"[LayerEngine] Failed to apply QML style '{style_name}': {result[1]}")
+                return False
+
+        except Exception as e:
+            print(f"[LayerEngine] Error applying QML style '{style_name}': {e}")
+            return False
 
 def get_layer_engine() -> LayerCreationEngine:
     """Get global layer engine instance."""

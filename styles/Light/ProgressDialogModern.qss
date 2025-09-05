@@ -1,0 +1,145 @@
+/* =========================================================
+   PROGRESS DIALOG — Light Theme
+   Follows the established light theme palette
+   ========================================================= */
+
+ProgressDialogModern {
+    background: #f6f7f8;
+    color: #24292e;
+    border: 1px solid #e1e4e8;
+    border-radius: 8px;
+}
+
+#ProgressTitleFrame {
+    background: #ffffff;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 2px;
+}
+
+#ProgressTitle {
+    color: #111416;
+    font-weight: bold;
+    border: none;
+    padding: 8px;
+}
+
+#ProgressFrame {
+    background: #f9fafb;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 2px;
+}
+
+#ProgressBar {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #ffffff;
+    text-align: center;
+    padding: 2px;
+    min-height: 20px;
+}
+
+#ProgressBar::chunk {
+    background: #0078d4;  /* Blue accent */
+    border-radius: 3px;
+}
+
+#ProgressPercentage {
+    color: #0078d4;
+    font-weight: bold;
+    font-size: 14px;
+    margin: 8px 0;
+}
+
+#StatusFrame {
+    background: #f9fafb;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 2px;
+}
+
+#StatusLabel1 {
+    color: #111416;
+    font-weight: bold;
+    font-size: 13px;
+    padding: 4px 0;
+}
+
+#StatusLabel2 {
+    color: #24292e;
+    font-size: 12px;
+    padding: 2px 0;
+}
+
+#DetailsFrame {
+    background: #f9fafb;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 2px;
+}
+
+#DetailsText {
+    border: none;
+    background: #ffffff;
+    color: #24292e;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 11px;
+    padding: 8px;
+}
+
+#CancelButton {
+    background: #0078d4;
+    color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-weight: bold;
+    font-size: 12px;
+    min-width: 100px;
+    min-height: 16px;
+}
+
+#CancelButton:hover {
+    background: #2188ff;
+    border: 1px solid #005a9e;
+    box-shadow: 0px 0px 8px rgba(0,120,212, 0.3);
+}
+
+#CancelButton:pressed {
+    background: #005a9e;
+    border: 1px solid #005a9e;
+}
+
+#CancelButton:disabled {
+    background: #f0f2f4;
+    color: rgba(36,41,46,0.5);
+    border: 1px dashed rgba(209,215,222,0.8);
+}
+
+/* Collapsible details toggle */
+#DetailsToggle {
+    background: transparent;
+    color: #24292e;
+    border: none;
+    text-align: left;
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+#DetailsToggle:hover {
+    color: #0078d4;
+}
+
+#DetailsToggle::indicator {
+    width: 12px;
+    height: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 2px;
+    background: #ffffff;
+}
+
+#DetailsToggle::indicator:checked {
+    background: #0078d4;
+    border: 1px solid #0078d4;
+}
