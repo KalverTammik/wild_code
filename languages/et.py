@@ -58,6 +58,7 @@ TRANSLATIONS = {
     ,"Confirm": "Kinnita"
     ,"Reset all settings for this module to default values": "Lähtesta kõik selle mooduli seaded vaikimisi väärtustele"
     ,"Settings reset to defaults": "Seaded lähtestati vaikimisi väärtustele"
+    ,"When enabled, project/contract numbers will be displayed in item cards for easy identification.": "Sisselülitamisel kuvatakse kannetel numbrid, et neid oleks lihtsam tuvastada."
     ,"User Profile": "Kasutaja profiil"
     ,"Roles & Permissions": "Rollid ja õigused"
     ,"Module Access": "Mooduli juurdepääs"
@@ -101,4 +102,5 @@ TRANSLATIONS = {
     ,"feature imported": "objekt imporditud"
     ,"Initializing...": "Initsialiseerimine..."
     ,"Cancel": "Katkesta"
+    ,"Show project numbers": "Näita kannete numbrit"
 }

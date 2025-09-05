@@ -9,12 +9,14 @@ from PyQt5.QtWidgets import (
     QGroupBox, QCheckBox
 )
 from PyQt5.QtCore import Qt
+from languages.language_manager import LanguageManager
 
 class ModuleCardLayoutDemo(QWidget):
     """Demo showing the ModuleCard layout structure"""
 
     def __init__(self):
         super().__init__()
+        self._lang = LanguageManager()
         self.setWindowTitle("ModuleCard Layout Structure - Display Options")
         self.setGeometry(100, 100, 900, 700)
 
@@ -103,7 +105,7 @@ class ModuleCardLayoutDemo(QWidget):
         settings_layout.setSpacing(4)
 
         # THE CHECKBOX - This is what the user is asking about
-        show_numbers_checkbox = QCheckBox("Show project numbers")
+        show_numbers_checkbox = QCheckBox(self._lang.translate("Show project numbers"))
         show_numbers_checkbox.setChecked(True)
         show_numbers_checkbox.setStyleSheet("font-weight: bold; color: #6f42c1;")
         settings_layout.addWidget(show_numbers_checkbox)
@@ -111,7 +113,7 @@ class ModuleCardLayoutDemo(QWidget):
         display_layout.addWidget(settings_container, 2)
 
         # Explanation text
-        display_explanation = QLabel("When enabled, project/contract numbers will be displayed in item cards for easy identification.")
+        display_explanation = QLabel(self._lang.translate("When enabled, project/contract numbers will be displayed in item cards for easy identification."))
         display_explanation.setWordWrap(True)
         display_explanation.setStyleSheet("color: #666; font-size: 10px;")
         display_layout.addWidget(display_explanation, 1)

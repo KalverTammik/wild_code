@@ -51,6 +51,7 @@ TRANSLATIONS = {
     ,"Confirm": "Confirm"
     ,"Reset all settings for this module to default values": "Reset all settings for this module to default values"
     ,"Settings reset to defaults": "Settings reset to defaults"
+    ,"When enabled, project/contract numbers will be displayed in item cards for easy identification.": "When enabled, item numbers will be displayed in cards for easy identification."
     ,"User Profile": "User Profile"
     ,"Roles & Permissions": "Roles & Permissions"
     ,"Module Access": "Module Access"
@@ -94,4 +95,5 @@ TRANSLATIONS = {
     ,"feature imported": "feature imported"
     ,"Initializing...": "Initializing..."
     ,"Cancel": "Cancel"
+    ,"Show project numbers": "Show item numbers"
 }

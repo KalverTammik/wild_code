@@ -7,6 +7,6 @@ TRANSLATIONS = {
     "setting_error_title": "Viga sätte salvestamisel",
     "setting_error_message": "Palun sisesta kehtiv sätte võti.",
     "Display Options": "Kuvamisvalikud",
-    "Show project numbers": "Näita projekti numbreid",
-    "Display project/contract numbers in item cards": "Kuva projekti/lepingu numbrid kaardi elementides"
+    "Show project numbers": "Näita kannete numbrit",
+    "Display project/contract numbers in item cards": "Kuva kannetel numbrid, et neid oleks lihtsam tuvastada"
 }

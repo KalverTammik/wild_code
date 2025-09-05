@@ -61,7 +61,7 @@ class CheckboxStylingDemo(QWidget):
         before_settings_layout.setContentsMargins(0, 0, 0, 0)  # No padding!
         before_settings_layout.setSpacing(0)
 
-        before_checkbox = QCheckBox("Show project numbers")
+        before_checkbox = QCheckBox("Show item numbers")
         before_checkbox.setChecked(True)
         # No specific styling - uses defaults
         before_settings_layout.addWidget(before_checkbox)
@@ -126,7 +126,7 @@ class CheckboxStylingDemo(QWidget):
         after_settings_layout.setContentsMargins(6, 6, 6, 6)  # Proper padding!
         after_settings_layout.setSpacing(4)
 
-        after_checkbox = QCheckBox("Show project numbers")
+        after_checkbox = QCheckBox("Show item numbers")
         after_checkbox.setChecked(True)
         after_settings_layout.addWidget(after_checkbox)
 

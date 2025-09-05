@@ -7,6 +7,6 @@ TRANSLATIONS = {
     "setting_error_title": "Error saving setting",
     "setting_error_message": "Please enter a valid setting key.",
     "Display Options": "Display Options",
-    "Show project numbers": "Show project numbers",
-    "Display project/contract numbers in item cards": "Display project/contract numbers in item cards"
+    "Show project numbers": "Show item numbers",
+    "Display project/contract numbers in item cards": "Display item numbers in cards for easy identification"
 }
