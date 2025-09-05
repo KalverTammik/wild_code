@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QCoreApplication, pyqtSignal
 from ...languages.language_manager import LanguageManager
 from ...widgets.theme_manager import ThemeManager
 from .SettingsLogic import SettingsLogic
@@ -12,6 +12,10 @@ class SettingsUI(QWidget):
     This module supports dynamic theme switching via ThemeManager.apply_module_style.
     Call retheme_settings() to re-apply QSS after a theme change.
     """
+    # Signals for user action buttons
+    addShpClicked = pyqtSignal()
+    addPropertyClicked = pyqtSignal()
+    removePropertyClicked = pyqtSignal()
     def __init__(self, lang_manager=None, theme_manager=None, theme_dir=None, qss_files=None):
         super().__init__()
         from ...module_manager import SETTINGS_MODULE
@@ -76,6 +80,12 @@ class SettingsUI(QWidget):
         card.confirm_button().clicked.connect(self._on_confirm_clicked)
         # When user selects a preferred module, update logic + dirty state
         card.preferredChanged.connect(self._on_user_preferred_changed)
+        # When user clicks module settings button
+        card.moduleSettingsClicked.connect(self._on_module_settings_clicked)
+        # Connect action buttons
+        card.addShpClicked.connect(self._on_add_shp_clicked)
+        card.addPropertyClicked.connect(self._on_add_property_clicked)
+        card.removePropertyClicked.connect(self._on_remove_property_clicked)
         # Track only the user confirm here
         self._user_confirm_btn = card.confirm_button()
         self._confirm_btns = [self._user_confirm_btn]
@@ -151,7 +161,9 @@ class SettingsUI(QWidget):
                 role_names = self.logic.parse_roles(user.get("roles"))
                 self._user_card.set_roles(role_names)
                 access_map = self.logic.get_module_access_from_abilities(user.get("abilities"))
+                update_permissions = self.logic.get_module_update_permissions(user.get("abilities"))
                 self._user_card.set_access_map(access_map, label_resolver=self.lang_manager.sidebar_button)
+                self._user_card.set_update_permissions(update_permissions)
                 self._load_original_settings()
                 # Reflect original preferred; None -> no checkbox selected
                 self._user_card.set_preferred(self.logic.get_original_preferred())
@@ -247,6 +259,22 @@ class SettingsUI(QWidget):
         self.logic.set_pending_preferred(module_name)
         self._update_dirty_state()
 
+    def _on_module_settings_clicked(self, module_name):
+        """Signal handler from UserCard when module settings button is clicked."""
+        print(f"DEBUG: Opening settings for module: {module_name}")
+        
+        # For Property module, show a welcome message
+        if module_name == "PropertyModule":
+            from PyQt5.QtWidgets import QMessageBox
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setWindowTitle("Property Settings")
+            msg.setText("Welcome to Property Settings!\n\nHere you can configure property-related settings.")
+            msg.setStandardButtons(QMessageBox.Ok)
+            msg.exec_()
+        else:
+            print(f"Settings for {module_name} not implemented yet")
+
     def _on_confirm_clicked(self):
         self.apply_pending_changes()
 
@@ -258,6 +286,48 @@ class SettingsUI(QWidget):
             pass
         # also update global dirty state to guard navigation
         self._update_dirty_state()
+
+    def _on_add_shp_clicked(self):
+        """Signal handler for Add SHP file button."""
+        print("DEBUG: Add SHP file button clicked")
+        # Emit signal for parent to handle
+        self.addShpClicked.emit()
+        # TODO: Implement SHP file addition logic
+        from PyQt5.QtWidgets import QMessageBox
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Add SHP File")
+        msg.setText("Add SHP file functionality will be implemented here.")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
+    def _on_add_property_clicked(self):
+        """Signal handler for Add property button."""
+        print("DEBUG: Add property button clicked")
+        # Emit signal for parent to handle
+        self.addPropertyClicked.emit()
+        # TODO: Implement property addition logic
+        from PyQt5.QtWidgets import QMessageBox
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Add Property")
+        msg.setText("Add property functionality will be implemented here.")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
+    def _on_remove_property_clicked(self):
+        """Signal handler for Remove property button."""
+        print("DEBUG: Remove property button clicked")
+        # Emit signal for parent to handle
+        self.removePropertyClicked.emit()
+        # TODO: Implement property removal logic
+        from PyQt5.QtWidgets import QMessageBox
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle("Remove Property")
+        msg.setText("Remove property functionality will be implemented here.")
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
 
     def _update_dirty_state(self):
         # Combine user-card dirty with module cards dirty

@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional, Set
 
-from ...constants.module_names import PROJECTS_MODULE, CONTRACT_MODULE
+from ...constants.module_names import PROJECTS_MODULE, CONTRACT_MODULE, PROPERTY_MODULE
 from ...utils.GraphQLQueryLoader import GraphQLQueryLoader
 from ...utils.api_client import APIClient
 from ...constants.file_paths import ConfigPaths
@@ -34,7 +34,21 @@ class SettingsLogic:
         api = APIClient(lang_manager, SessionManager(), ConfigPaths.CONFIG)
         query = ql.load_query("USER", "me.graphql")
         data = api.send_query(query)
-        return data.get("me", {}) or {}
+        user_data = data.get("me", {}) or {}
+        print("=== USER ABILITIES FROM 'me' QUERY ===")
+        print(user_data)
+        
+        # Debug: Show abilities parsing
+        abilities_raw = user_data.get("abilities", [])
+        if abilities_raw:
+            subjects = self.abilities_to_subjects(abilities_raw)
+            print(f"DEBUG: User has {len(subjects)} subjects: {sorted(subjects)}")
+            if "Property" in subjects:
+                print("✅ User has Property access!")
+            else:
+                print("❌ User does NOT have Property access")
+        
+        return user_data
 
     # --- Parsing helpers ---
     def parse_roles(self, roles_raw) -> List[str]:
@@ -77,6 +91,7 @@ class SettingsLogic:
             except Exception:
                 abilities = []
         subjects = set()
+        print(f"DEBUG: Parsed abilities: {abilities}")
         for ab in abilities:
             subj = ab.get('subject')
             if isinstance(subj, list) and subj:
@@ -90,14 +105,60 @@ class SettingsLogic:
         subject_to_module = {
             'Project': PROJECTS_MODULE,
             'Contract': CONTRACT_MODULE,
+            'Property': PROPERTY_MODULE,
         }
-        # Only return access for modules that are available (in sidebar)
+        # Return access for all modules, including Property for UserCard preferred selection
         access: Dict[str, bool] = {}
+        #print(f"DEBUG: Available modules: {self._available_modules}")
+        #print(f"DEBUG: Subjects from abilities: {subjects}")
         for subj, mod in subject_to_module.items():
-            if self._available_modules and mod not in self._available_modules:
+            # Include Property even if not in available modules (for UserCard preferred selection)
+            if mod == PROPERTY_MODULE:
+                access[mod] = subj in subjects
+            elif self._available_modules and mod not in self._available_modules:
                 continue
-            access[mod] = subj in subjects
+            else:
+                access[mod] = subj in subjects
+            #print(f"DEBUG: {mod} access: {access[mod]} (subject '{subj}' in subjects: {subj in subjects})")
+        #print(f"DEBUG: Final access map: {access}")
         return access
+
+    def get_module_update_permissions(self, abilities_raw) -> Dict[str, bool]:
+        """Check if user has update permissions for specific modules"""
+        import json
+        abilities = abilities_raw or []
+        if isinstance(abilities, str):
+            try:
+                abilities = json.loads(abilities)
+            except Exception:
+                abilities = []
+        
+        update_permissions = {}
+        
+        for ab in abilities:
+            action = ab.get('action')
+            subj = ab.get('subject')
+            
+            # Handle both string and array subjects
+            if isinstance(subj, list) and subj:
+                subject_name = str(subj[0])
+            elif isinstance(subj, str):
+                subject_name = subj
+            else:
+                continue
+                
+            # Check for update actions
+            if action in ['update', 'manage'] and subject_name in ['Property', 'Project', 'Contract']:
+                subject_to_module = {
+                    'Project': PROJECTS_MODULE,
+                    'Contract': CONTRACT_MODULE,
+                    'Property': PROPERTY_MODULE,
+                }
+                module_name = subject_to_module.get(subject_name)
+                if module_name:
+                    update_permissions[module_name] = True
+        
+        return update_permissions
 
     # --- Preferred module settings ---
     def load_original_settings(self):

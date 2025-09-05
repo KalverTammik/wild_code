@@ -1,7 +1,8 @@
 from PyQt5.QtCore import pyqtSignal, Qt, QSize
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QComboBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QComboBox, QMessageBox
 from PyQt5.QtGui import QIcon
 from ..constants.file_paths import ResourcePaths
+from ..engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
 
 
 class LetterIconFrame(QWidget):
@@ -244,6 +245,31 @@ class WelcomePage(QWidget):
         except Exception:
             pass
 
+        # Layer Creation Engine buttons
+        self.create_layer_btn = QPushButton("Loo Mailabl grupp kiht")
+        self.create_layer_btn.setObjectName("WelcomeCreateLayerButton")
+        self.create_layer_btn.setToolTip("Loo uus kiht Mailabl grupis testimiseks")
+        # Prevent button from being triggered by Return key
+        self.create_layer_btn.setAutoDefault(False)
+        self.create_layer_btn.setDefault(False)
+        self.create_layer_btn.clicked.connect(self._on_create_layer_clicked)
+
+        self.create_all_subgroups_btn = QPushButton("Loo kõik alagrupid")
+        self.create_all_subgroups_btn.setObjectName("WelcomeCreateAllSubgroupsButton")
+        self.create_all_subgroups_btn.setToolTip("Loo test kihid kõigis Mailabl alagruppides")
+        # Prevent button from being triggered by Return key
+        self.create_all_subgroups_btn.setAutoDefault(False)
+        self.create_all_subgroups_btn.setDefault(False)
+        self.create_all_subgroups_btn.clicked.connect(self._on_create_all_subgroups_clicked)
+
+        self.remove_layer_btn = QPushButton("Eemalda grupp kiht")
+        self.remove_layer_btn.setObjectName("WelcomeRemoveLayerButton")
+        self.remove_layer_btn.setToolTip("Eemalda Mailabl grupp ja selle kihid")
+        # Prevent button from being triggered by Return key
+        self.remove_layer_btn.setAutoDefault(False)
+        self.remove_layer_btn.setDefault(False)
+        self.remove_layer_btn.clicked.connect(self._on_remove_layer_clicked)
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(12)
@@ -253,6 +279,9 @@ class WelcomePage(QWidget):
         hl = QHBoxLayout()
         hl.addWidget(self.open_btn)
         hl.addWidget(self.debug_btn)
+        hl.addWidget(self.create_layer_btn)
+        hl.addWidget(self.create_all_subgroups_btn)
+        hl.addWidget(self.remove_layer_btn)
         hl.addStretch(1)
         layout.addLayout(hl)
         layout.addStretch(2)
@@ -309,3 +338,150 @@ class WelcomePage(QWidget):
             self.debug_btn.setText("Peida FRAME sildid" if checked else "Näita FRAME silte")
         except Exception:
             pass
+
+    def _on_create_layer_clicked(self):
+        """Handle create layer button click."""
+        try:
+            # Get the layer creation engine
+            engine = get_layer_engine()
+
+            # Create a test layer in the SANDBOXING subgroup
+            layer_name = f"TestLayer_{len(engine.get_layers_in_group(MailablGroupFolders.SANDBOXING)) + 1}"
+            result = engine.copy_virtual_layer_for_properties(
+                layer_name,
+                MailablGroupFolders.SANDBOXING
+            )
+
+            if result:
+                QMessageBox.information(
+                    self,
+                    "Kiht loodud",
+                    f"Kiht '{result}' on edukalt loodud grupis '{MailablGroupFolders.SANDBOXING}'"
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Viga",
+                    "Kihi loomine ebaõnnestus"
+                )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Viga",
+                f"Kihi loomisel tekkis viga: {str(e)}"
+            )
+
+    def _on_create_all_subgroups_clicked(self):
+        """Handle create all subgroups button click."""
+        try:
+            # Get the layer creation engine
+            engine = get_layer_engine()
+
+            # Create test layers in all subgroups
+            created_layers = engine.create_test_layers_in_all_subgroups()
+
+            if created_layers:
+                layer_list = "\n".join(f"• {group}: {layer}" for group, layer in created_layers.items())
+                QMessageBox.information(
+                    self,
+                    "Alagrupid loodud",
+                    f"Edukalt loodi test kihid järgmistes alagruppides:\n\n{layer_list}"
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Viga",
+                    "Ühegi alagrupi loomine ebaõnnestus"
+                )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Viga",
+                f"Alagruppide loomisel tekkis viga: {str(e)}"
+            )
+
+    def _on_remove_layer_clicked(self):
+        """Handle remove layer button click."""
+        try:
+            # Get the layer creation engine
+            engine = get_layer_engine()
+
+            # Get layers from all Mailabl subgroups
+            layers = engine.get_all_layers_in_mailabl_groups()
+
+            if not layers:
+                QMessageBox.information(
+                    self,
+                    "Teave",
+                    f"Mailabl gruppides ei ole ühtegi kihti"
+                )
+                return
+
+            # Show confirmation dialog
+            layer_names = [layer.name() for layer in layers]
+            reply = QMessageBox.question(
+                self,
+                "Kinnita kustutamine",
+                f"Kas olete kindel, et soovite kustutada järgmised kihid kõigist Mailabl gruppides?\n\n" +
+                "\n".join(f"• {name}" for name in layer_names),
+                QMessageBox.Yes | QMessageBox.No
+            )
+
+            if reply == QMessageBox.Yes:
+                # Remove all layers from all subgroups
+                removed_count = 0
+                for layer in layers:
+                    try:
+                        engine.project.removeMapLayer(layer.id())
+                        removed_count += 1
+                    except Exception as e:
+                        print(f"Error removing layer {layer.name()}: {e}")
+
+                # Check if any subgroups are now empty and remove them
+                main_group = engine.layer_tree_root.findGroup(MailablGroupFolders.MAILABL_MAIN)
+                if main_group:
+                    subgroups_to_check = [
+                        MailablGroupFolders.NEW_PROPERTIES,
+                        MailablGroupFolders.SANDBOXING,
+                        MailablGroupFolders.IMPORT,
+                        MailablGroupFolders.SYNC,
+                        MailablGroupFolders.ARCHIVE
+                    ]
+
+                    for subgroup_name in subgroups_to_check:
+                        subgroup = main_group.findGroup(subgroup_name)
+                        if subgroup and not subgroup.children():
+                            main_group.removeChildNode(subgroup)
+                            print(f"[LayerEngine] Removed empty subgroup: {subgroup_name}")
+
+                # Check if main group is now empty and remove it
+                remaining_layers = engine.get_all_layers_in_mailabl_groups()
+                if not remaining_layers:
+                    group_removed = engine.remove_group_if_empty(MailablGroupFolders.MAILABL_MAIN)
+                    if group_removed:
+                        QMessageBox.information(
+                            self,
+                            "Kihid ja grupp eemaldatud",
+                            f"Edukalt eemaldati {removed_count} kihti ja Mailabl grupp"
+                        )
+                    else:
+                        QMessageBox.information(
+                            self,
+                            "Kihid eemaldatud",
+                            f"Edukalt eemaldati {removed_count} kihti"
+                        )
+                else:
+                    QMessageBox.information(
+                        self,
+                        "Kihid eemaldatud",
+                        f"Edukalt eemaldati {removed_count} kihti"
+                    )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Viga",
+                f"Kihi eemaldamisel tekkis viga: {str(e)}"
+            )

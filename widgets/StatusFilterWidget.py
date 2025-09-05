@@ -25,9 +25,6 @@ class StatusFilterWidget(BaseFilterWidget):
         self._loader = GraphQLQueryLoader(self._lang)
         self.set_debug(bool(debug))
         
-        if self._debug:
-            print(f"[StatusFilterWidget] Initialized with module: {self._module}")
-
         # UI
         layout = QHBoxLayout(self)
         # Add margins so shadow effect around combo is visible
@@ -74,8 +71,6 @@ class StatusFilterWidget(BaseFilterWidget):
             
             # 2) Muutuja: plural
             module_plural = str(self._module).upper()
-            if self._debug:
-                print(f"[StatusFilterWidget] Converting module '{self._module}' to uppercase: '{module_plural}'")
             
             if module_plural == "PROJECT":
                 module_plural = "PROJECTS"
@@ -86,28 +81,18 @@ class StatusFilterWidget(BaseFilterWidget):
             elif module_plural == "CONTRACTMODULE":
                 module_plural = "CONTRACTS"
                 
-            if self._debug:
-                print(f"[StatusFilterWidget] Final module_plural: '{module_plural}'")
-
             variables = {
                 "first": 50,
                 "after": None,
                 "where": {"column": "MODULE", "value": module_plural},
             }
-            if self._debug:
-                print(f"[StatusFilterWidget] Sending query with variables: {variables}")
             
             data = self._api.send_query(query, variables=variables) or {}
             
-            if self._debug:
-                print(f"[StatusFilterWidget] API response: {data}")
-
             # 3) Nopi staatused
             statuses: List[dict] = []
             edges = ((data or {}).get("statuses") or {}).get("edges") or []
             
-            if self._debug:
-                print(f"[StatusFilterWidget] Found {len(edges)} status edges")
             
             for e in edges:
                 n = (e or {}).get("node") or {}
@@ -115,12 +100,6 @@ class StatusFilterWidget(BaseFilterWidget):
                 name = n.get("name")
                 if sid and name:
                     statuses.append({"id": sid, "name": name})
-                    if self._debug:
-                        print(f"[StatusFilterWidget] Added status: {name} (id: {sid})")
-
-            if self._debug:
-                print(f"[StatusFilterWidget] Total statuses loaded: {len(statuses)}")
-
             # 4) Täida combo
             self.combo.clear()
             for s in statuses:
@@ -136,10 +115,6 @@ class StatusFilterWidget(BaseFilterWidget):
             self._auto_adjust_combo_popup(self.combo)
             
         except Exception as e:
-            if self._debug:
-                print(f"[StatusFilterWidget] Error loading statuses: {e}")
-                import traceback
-                print(f"[StatusFilterWidget] Traceback: {traceback.format_exc()}")
             # Clear combo and add error message
             self.combo.clear()
             self.combo.addItem(f"Error: {str(e)[:50]}...")

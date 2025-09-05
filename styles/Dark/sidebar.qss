@@ -31,6 +31,11 @@ QFrame#SidebarFooterBar {
     padding: 6px 8px 6px 8px;
 }
 
+/* Footer container for submenu positioning */
+QFrame#SidebarFooterContainer {
+    background: transparent;
+}
+
 /* Nav & Home buttons */
 QPushButton#SidebarNavButton,
 QPushButton#SidebarHomeButton {
@@ -60,8 +65,8 @@ QPushButton#SidebarHomeButton[active="true"] {
     font-weight: 600;
 }
 
-/* Settings button */
-QFrame#SidebarFooterBar > QPushButton {
+/* Settings button - now uses same styling as nav buttons */
+QPushButton#SidebarSettingsButton {
     background: transparent;
     color: #c5c5d2;
     border: none;
@@ -69,11 +74,12 @@ QFrame#SidebarFooterBar > QPushButton {
     padding: 6px 10px;
     text-align: left;
 }
-QFrame#SidebarFooterBar > QPushButton:hover {
+QPushButton#SidebarSettingsButton:hover {
     background: rgba(9,144,143,0.12);
     color: #ffffff;
 }
-QFrame#SidebarFooterBar > QPushButton[active="true"] {
+/* Active: same as nav buttons */
+QPushButton#SidebarSettingsButton[active="true"] {
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
         stop:0 rgba(9,144,143,0.38),
         stop:0.04 rgba(9,144,143,0.32),
@@ -108,15 +114,64 @@ QWidget#SidebarRoot[compact="true"] QFrame#SidebarNavFrame,
 QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar {
     padding: 2px;
 }
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar > QPushButton {
+QWidget#SidebarRoot[compact="true"] QPushButton#SidebarSettingsButton {
     padding: 6px 6px;
 }
 QWidget#SidebarRoot[compact="true"] QPushButton#SidebarNavButton,
 QWidget#SidebarRoot[compact="true"] QPushButton#SidebarHomeButton,
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar > QPushButton {
+QWidget#SidebarRoot[compact="true"] QPushButton#SidebarSettingsButton {
     text-align: center;
 }
-QWidget#SidebarRoot[compact="true"] QPushButton[active="true"],
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar > QPushButton[active="true"] {
-    border-left: none;
+QWidget#SidebarRoot[compact="true"] QPushButton#SidebarPropertiesButton {
+    padding: 6px 6px;
+    text-align: center;
+    font-size: 11px;
+}
+
+/* ===== Settings Submenu ===== */
+QFrame#SidebarSettingsSubmenu {
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 #2a323a,
+        stop:1 #252d35);
+    border: 1px solid #3a444d;
+    border-radius: 12px;
+    margin-top: 6px;
+    padding: 6px;
+}
+
+QPushButton#SidebarPropertiesButton {
+    background: transparent;
+    color: #c5c5d2;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 16px;
+}
+
+QPushButton#SidebarPropertiesButton:hover {
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 rgba(9,144,143,0.25),
+        stop:1 rgba(9,144,143,0.15));
+    color: #ffffff;
+    border: 1px solid rgba(9,144,143,0.4);
+}
+
+QPushButton#SidebarPropertiesButton:pressed {
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 rgba(9,144,143,0.35),
+        stop:1 rgba(9,144,143,0.25));
+}
+
+/* Settings button with submenu indicator */
+QPushButton#SidebarSettingsButton[submenu_open="true"] {
+    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+        stop:0 rgba(9,144,143,0.25),
+        stop:1 rgba(9,144,143,0.15));
+    border: 1px solid rgba(9,144,143,0.6);
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 600;
 }

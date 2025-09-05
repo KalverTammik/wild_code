@@ -49,7 +49,7 @@ class APIClient:
             # print(f"[DEBUG] Request headers: {headers}")
 
             response = requests.post(self.api_url, json=payload, headers=headers, timeout=timeout)
-            print(f"[DEBUG] HTTP Response status: {response.status_code}")
+            #print(f"[DEBUG] HTTP Response status: {response.status_code}")
             # print(f"[DEBUG] HTTP Response headers: {dict(response.headers)}")
 
             if response.status_code == 200:

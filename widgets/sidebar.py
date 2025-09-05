@@ -96,12 +96,20 @@ class Sidebar(QWidget):
         cm.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
         # Footer (docked meta bar) – replaces previous settingsFrame
-        self.footerBar = QFrame(self.SidebarMainFrame)
+        self.footerContainer = QFrame(self.SidebarMainFrame)
+        self.footerContainer.setObjectName("SidebarFooterContainer")
+        footer_layout = QVBoxLayout(self.footerContainer)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout.setSpacing(0)
+        cm.addWidget(self.footerContainer)
+
+        # Footer bar with settings button
+        self.footerBar = QFrame(self.footerContainer)
         self.footerBar.setObjectName("SidebarFooterBar")
         fl = QHBoxLayout(self.footerBar)
         fl.setContentsMargins(6, 6, 6, 6)
         fl.setSpacing(6)
-        cm.addWidget(self.footerBar)
+        footer_layout.addWidget(self.footerBar)
 
         # Settings button inside footer bar
         settings_name = lang_manager.sidebar_button(SETTINGS_MODULE)
@@ -117,9 +125,11 @@ class Sidebar(QWidget):
             self.settingsButton.setIconSize(QSize(25, 25))  # Ühtlustatud ikooni suurus
         except Exception:
             pass
+        # Connect settings button to directly show settings module
         self.settingsButton.clicked.connect(self.showSettingsModule)
         fl.addWidget(self.settingsButton, 0, Qt.AlignLeft)
-        # remember original label for compact mode toggle
+        # Track for compact toggle & active styling (same as nav buttons)
+        self.moduleButtons[SETTINGS_MODULE] = self.settingsButton
         self.buttonTexts[self.settingsButton] = settings_name
 
         # Mount main frame into container
@@ -199,20 +209,12 @@ class Sidebar(QWidget):
             btn.setEnabled(True)
             btn.setProperty('active', active)
             btn.style().unpolish(btn); btn.style().polish(btn)
-        # also reflect active state on the bottom Settings button
-        if hasattr(self, 'settingsButton'):
-            is_settings = (module_name == SETTINGS_MODULE)
-            self.settingsButton.setProperty('active', is_settings)
-            self.settingsButton.style().unpolish(self.settingsButton); self.settingsButton.style().polish(self.settingsButton)
 
     def clearActive(self):
         """Clear active state on all sidebar buttons (used when showing Welcome page)."""
         for btn in self.moduleButtons.values():
             btn.setProperty('active', False)
             btn.style().unpolish(btn); btn.style().polish(btn)
-        if hasattr(self, 'settingsButton'):
-            self.settingsButton.setProperty('active', False)
-            self.settingsButton.style().unpolish(self.settingsButton); self.settingsButton.style().polish(self.settingsButton)
 
     def setHomeActive(self):
         if hasattr(self, 'homeButton'):
@@ -287,13 +289,10 @@ class Sidebar(QWidget):
             if btn.property('active'):
                 btn.setProperty('pulse', self._pulse_on)
                 btn.style().unpolish(btn); btn.style().polish(btn)
-        # also pulse home and settings if active
+        # also pulse home if active
         if hasattr(self, 'homeButton') and self.homeButton.property('active'):
             self.homeButton.setProperty('pulse', self._pulse_on)
             self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
-        if hasattr(self, 'settingsButton') and self.settingsButton.property('active'):
-            self.settingsButton.setProperty('pulse', self._pulse_on)
-            self.settingsButton.style().unpolish(self.settingsButton); self.settingsButton.style().polish(self.settingsButton)
 
     def _store_expanded_width(self):
         self._expanded_width = max(self._expanded_width, self.container.width())

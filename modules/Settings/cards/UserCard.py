@@ -2,7 +2,7 @@
 from PyQt5.QtCore import pyqtSignal, Qt, QEvent
 from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-    QCheckBox
+    QCheckBox, QPushButton
 )
 
 from .BaseCard import BaseCard  # assumes BaseCard provides: content_widget(), retheme(), etc.
@@ -17,8 +17,16 @@ class UserCard(BaseCard):
 
     Signals:
       preferredChanged(object)  -> emits selected module name or None
+      moduleSettingsClicked(str) -> emits module name when settings button clicked
+      addShpClicked() -> emits when Add SHP file button is clicked
+      addPropertyClicked() -> emits when Add property button is clicked
+      removePropertyClicked() -> emits when Remove property button is clicked
     """
     preferredChanged = pyqtSignal(object)
+    moduleSettingsClicked = pyqtSignal(str)
+    addShpClicked = pyqtSignal()
+    addPropertyClicked = pyqtSignal()
+    removePropertyClicked = pyqtSignal()
 
     def __init__(self, lang_manager):
         super().__init__(lang_manager, lang_manager.translate("User"), None)
@@ -85,9 +93,19 @@ class UserCard(BaseCard):
         self.access_layout.setSpacing(8)  # Increased spacing for better visual separation
         cl.addWidget(self.access_container)
 
+        # ---------- Property Management Widget ----------
+        from .PropertyManagement import PropertyManagement
+        self.property_management = PropertyManagement(self.lang_manager)
+        # Connect signals from property management widget
+        self.property_management.addShpClicked.connect(self._on_add_shp_clicked)
+        self.property_management.addPropertyClicked.connect(self._on_add_property_clicked)
+        self.property_management.removePropertyClicked.connect(self._on_remove_property_clicked)
+        cl.addWidget(self.property_management)
+
         # Internal state
         self._check_by_module = {}
         self._pill_click_targets = {}
+        self._update_permissions = {}
 
     # ---------- Public API (SettingsUI uses these) ----------
     def set_user(self, user: dict):
@@ -105,6 +123,11 @@ class UserCard(BaseCard):
             self.lbl_roles.setText(roles_text)
         else:
             self.lbl_roles.setText("—")
+
+    def set_update_permissions(self, update_permissions: dict):
+        """Set which modules the user can update/modify"""
+        self._update_permissions = update_permissions or {}
+        print(f"DEBUG: Update permissions set: {self._update_permissions}")
 
     def set_access_map(self, access_map: dict, label_resolver=None):
         # Clear previous pills and checks
@@ -145,7 +168,18 @@ class UserCard(BaseCard):
 
             hl.addWidget(chk, 0)
             hl.addWidget(txt, 0)
-            hl.addStretch(1)
+            
+            # Add settings button if user has update permissions for this module
+            if has_access and self._update_permissions.get(module_name, False):
+                from PyQt5.QtWidgets import QPushButton
+                settings_btn = QPushButton("⚙️", pill)
+                settings_btn.setObjectName("ModuleSettingsButton")
+                settings_btn.setFixedSize(20, 20)
+                settings_btn.setToolTip(f"Open {label_text} settings")
+                settings_btn.clicked.connect(lambda checked, mod=module_name: self._on_module_settings_clicked(mod))
+                hl.addWidget(settings_btn, 0)
+            else:
+                hl.addStretch(1)
 
             # Make pill and its label clickable to select
             if has_access:
@@ -177,6 +211,11 @@ class UserCard(BaseCard):
     def revert(self, preferred_module_name):
         """Reset UI selection to original preferred module."""
         self.set_preferred(preferred_module_name)
+
+    def _on_module_settings_clicked(self, module_name):
+        """Handle module settings button click"""
+        print(f"DEBUG: Module settings clicked for: {module_name}")
+        self.moduleSettingsClicked.emit(module_name)
 
     def retheme(self):
         super().retheme()
@@ -225,6 +264,19 @@ class UserCard(BaseCard):
                 cb.setChecked(not cb.isChecked())
             return True
         return super().eventFilter(obj, event)
+
+    # ---------- Button Handlers ----------
+    def _on_add_shp_clicked(self):
+        """Handle Add SHP file button click"""
+        self.addShpClicked.emit()
+
+    def _on_add_property_clicked(self):
+        """Handle Add property button click"""
+        self.addPropertyClicked.emit()
+
+    def _on_remove_property_clicked(self):
+        """Handle Remove property button click"""
+        self.removePropertyClicked.emit()
 
     # ---------- Helpers ----------
     @staticmethod

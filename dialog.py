@@ -10,13 +10,14 @@ from qgis.core import QgsMessageLog, Qgis
 from .modules.projects.ProjectsUi import ProjectsModule
 from .modules.contract.ContractUi import ContractUi
 from .modules.Settings.SettingsUI import SettingsUI
+from .modules.Property.PropertyUI import PropertyUI
 
 
 from .login_dialog import LoginDialog
 from .widgets.theme_manager import ThemeManager
 from .utils.logger import set_debug as set_global_debug, debug as log_debug, info as log_info
 from .languages.language_manager import LanguageManager
-from .module_manager import ModuleManager, SETTINGS_MODULE
+from .module_manager import ModuleManager, SETTINGS_MODULE, PROPERTY_MODULE
 from .widgets.sidebar import Sidebar
 from .utils.SessionManager import SessionManager
 from .widgets.WelcomePage import WelcomePage
@@ -268,15 +269,18 @@ class PluginDialog(QDialog):
         self.settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         self.projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
         self.contractUI = ContractUi(lang_manager=lang_manager, theme_manager=theme_manager)
+        self.propertyModule = PropertyUI(lang_manager=lang_manager, theme_manager=theme_manager)
 
         self.moduleManager.registerModule(self.settingsModule)
         self.moduleManager.registerModule(self.projectsModule)
         self.moduleManager.registerModule(self.contractUI)
+        self.moduleManager.registerModule(self.propertyModule)
 
         if getattr(self, "_debug", False):
             log_debug("[PluginDialog] Registered modules:")
             for moduleName in self.moduleManager.modules:
                 log_debug(f"  - {moduleName}")
+        print(f"DEBUG: All registered modules: {list(self.moduleManager.modules.keys())}")
 
         for moduleName, moduleInfo in self.moduleManager.modules.items():
             iconPath = moduleInfo["icon"]
@@ -292,15 +296,18 @@ class PluginDialog(QDialog):
                 if moduleName != SETTINGS_MODULE:
                     self.sidebar.addItem(displayName, moduleName, iconPath)
                     # Track modules visible in sidebar for settings module cards
-                    try:
-                        self._sidebar_modules.append(moduleName)
-                    except AttributeError:
-                        self._sidebar_modules = [moduleName]
+                    # Exclude Property from settings cards but keep in sidebar
+                    if moduleName != PROPERTY_MODULE:
+                        try:
+                            self._sidebar_modules.append(moduleName)
+                        except AttributeError:
+                            self._sidebar_modules = [moduleName]
                 self.moduleStack.addWidget(widget)
 
         # Inform Settings module which module cards to show (only those visible in sidebar)
         try:
             visible = getattr(self, '_sidebar_modules', [])
+            print(f"DEBUG: Sidebar modules: {visible}")
             if hasattr(self, 'settingsModule') and hasattr(self.settingsModule, 'set_available_modules'):
                 self.settingsModule.set_available_modules(visible)
                 if getattr(self, "_debug", False):
@@ -599,6 +606,66 @@ class PluginDialog(QDialog):
                 webbrowser.open(DEFAULT_HELP_URL)
             except Exception:
                 pass
+
+    def _handle_properties_shp_loading(self):
+        """Handle SHP file loading for properties (Maa-Amet data)."""
+        try:
+            from PyQt5.QtWidgets import QFileDialog, QMessageBox
+            from ..engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
+
+            # Show file dialog for SHP files
+            file_path, _ = QFileDialog.getOpenFileName(
+                self,
+                lang_manager.translate("select_shp_file") or "Vali SHP fail",
+                "",
+                "SHP files (*.shp);;All files (*.*)"
+            )
+
+            if not file_path:
+                return  # User cancelled
+
+            # Get the layer creation engine
+            engine = get_layer_engine()
+
+            # Load SHP file as memory layer
+            from qgis.core import QgsVectorLayer
+            layer_name = file_path.split('/')[-1].replace('.shp', '')
+            shp_layer = QgsVectorLayer(file_path, layer_name, 'ogr')
+
+            if not shp_layer.isValid():
+                QMessageBox.warning(
+                    self,
+                    lang_manager.translate("invalid_shp") or "Vigane SHP fail",
+                    lang_manager.translate("invalid_shp_message") or "Valitud SHP fail ei ole kehtiv."
+                )
+                return
+
+            # Create memory layer from SHP
+            result = engine.copy_virtual_layer_for_properties(
+                f"{layer_name}_memory",
+                MailablGroupFolders.IMPORT,
+                shp_layer
+            )
+
+            if result:
+                QMessageBox.information(
+                    self,
+                    lang_manager.translate("shp_loaded") or "SHP fail laaditud",
+                    lang_manager.translate("shp_loaded_message") or f"SHP fail '{layer_name}' on edukalt laaditud grupis '{MailablGroupFolders.IMPORT}'"
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    lang_manager.translate("shp_load_failed") or "SHP laadimine ebaõnnestus",
+                    lang_manager.translate("shp_load_failed_message") or "SHP faili laadimine ebaõnnestus."
+                )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                lang_manager.translate("error") or "Viga",
+                lang_manager.translate("shp_loading_error") or f"SHP faili laadimisel tekkis viga: {str(e)}"
+            )
 
     def handleSessionExpiration(self):
         self.close()
