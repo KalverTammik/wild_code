@@ -47,7 +47,7 @@ class ContractUi(ModuleBaseUI):
         qss_files: Optional[List[str]] = None,     # <-- lisatud
         **kwargs: Any                              # <-- lisatud
     ) -> None:
-        super().__init__(parent)
+        super().__init__(parent, lang_manager)
 
         self.name = name
         self.setObjectName(name)

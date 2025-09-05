@@ -11,9 +11,9 @@ from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
 from ..utils.api_client import APIClient
 
 
-class StatusFilterWidget(BaseFilterWidget):
+class TagsFilterWidget(BaseFilterWidget):
     """
-    Moodulipõhised staatused (PROJECTS/CONTRACTS). Pärib BaseFilterWidget:
+    Moodulipõhised tunnused (tags). Pärib BaseFilterWidget:
     - lazy load, selection API, QGIS/fallback tugi.
     """
 
@@ -24,7 +24,10 @@ class StatusFilterWidget(BaseFilterWidget):
         self._api = APIClient(self._lang)
         self._loader = GraphQLQueryLoader(self._lang)
         self.set_debug(bool(debug))
-        
+
+        if self._debug:
+            print(f"[TagsFilterWidget] Initialized with module: {self._module}")
+
         # UI
         layout = QHBoxLayout(self)
         # Add margins so shadow effect around combo is visible
@@ -32,7 +35,7 @@ class StatusFilterWidget(BaseFilterWidget):
         layout.setSpacing(2)
 
         # Allow override via class attr MAX_VISIBLE_ITEMS; use base default otherwise
-        self.combo, self._uses_qgis = self._init_checkable_combo("StatusFilterCombo")
+        self.combo, self._uses_qgis = self._init_checkable_combo("TagsFilterCombo")
         layout.addWidget(self.combo)
         # Accent shadow
         try:
@@ -42,11 +45,11 @@ class StatusFilterWidget(BaseFilterWidget):
 
         # Add tooltip for clarity
         if self._lang:
-            tooltip = self._lang.translate("Status Filter")
+            tooltip = self._lang.translate("Tags Filter")
             if tooltip:
                 self.combo.setToolTip(tooltip)
         else:
-            self.combo.setToolTip("Status Filter")
+            self.combo.setToolTip("Tags Filter")
 
         # QGIS: kohe emit iga muutusega
         if self._uses_qgis and hasattr(self.combo, 'checkedItemsChanged'):
@@ -71,15 +74,15 @@ class StatusFilterWidget(BaseFilterWidget):
 
     # --- laadimine ---
     def _populate(self) -> None:
-    # ...existing code...
         try:
             # 1) Lae päring
-            query = self._loader.load_query("statuses", "ListModuleStatuses.graphql")
+            query = self._loader.load_query("tags", "ListModuleTags.graphql")
 
-            
-            # 2) Muutuja: plural
+            # 2) Muutuja: module plural (for filtering tags by module if needed)
             module_plural = str(self._module).upper()
-            
+            if self._debug:
+                print(f"[TagsFilterWidget] Converting module '{self._module}' to uppercase: '{module_plural}'")
+
             if module_plural == "PROJECT":
                 module_plural = "PROJECTS"
             elif module_plural == "CONTRACT":
@@ -88,30 +91,47 @@ class StatusFilterWidget(BaseFilterWidget):
                 module_plural = "PROJECTS"
             elif module_plural == "CONTRACTMODULE":
                 module_plural = "CONTRACTS"
-                
+
+            if self._debug:
+                print(f"[TagsFilterWidget] Final module_plural: '{module_plural}'")
+
+            # For now, load all tags. Later we can filter by module if the API supports it
             variables = {
                 "first": 50,
                 "after": None,
                 "where": {"column": "MODULE", "value": module_plural},
             }
-            
+            if self._debug:
+                print(f"[TagsFilterWidget] Sending query with variables: {variables}")
+
             data = self._api.send_query(query, variables=variables) or {}
-            
-            # 3) Nopi staatused
-            statuses: List[dict] = []
-            edges = ((data or {}).get("statuses") or {}).get("edges") or []
-            
-            
+
+            if self._debug:
+                print(f"[TagsFilterWidget] API response: {data}")
+
+            # 3) Nopi tunnused
+            tags: List[dict] = []
+            edges = ((data or {}).get("tags") or {}).get("edges") or []
+
+            if self._debug:
+                print(f"[TagsFilterWidget] Found {len(edges)} tag edges")
+
             for e in edges:
                 n = (e or {}).get("node") or {}
                 sid = n.get("id")
                 name = n.get("name")
                 if sid and name:
-                    statuses.append({"id": sid, "name": name})
+                    tags.append({"id": sid, "name": name})
+                    if self._debug:
+                        print(f"[TagsFilterWidget] Added tag: {name} (id: {sid})")
+
+            if self._debug:
+                print(f"[TagsFilterWidget] Total tags loaded: {len(tags)}")
+
             # 4) Täida combo
             self.combo.clear()
-            for s in statuses:
-                self.combo.addItem(s["name"], s["id"])
+            for t in tags:
+                self.combo.addItem(t["name"], t["id"])
                 # algseis unchecked (QGIS või fallback)
                 try:
                     self.combo.setItemCheckState(self.combo.count() - 1, Qt.Unchecked)  # type: ignore[attr-defined]
@@ -119,13 +139,16 @@ class StatusFilterWidget(BaseFilterWidget):
                     m = self.combo.model()
                     idx = m.index(self.combo.count() - 1, 0)
                     m.setData(idx, Qt.Unchecked, Qt.CheckStateRole)
-            # Adjust popup to show all statuses if few
+            # Adjust popup to show all tags if few
             self._auto_adjust_combo_popup(self.combo)
-            
+
         except Exception as e:
+            if self._debug:
+                print(f"[TagsFilterWidget] Error loading tags: {e}")
+                import traceback
+                print(f"[TagsFilterWidget] Traceback: {traceback.format_exc()}")
             # Clear combo and add error message
             self.combo.clear()
             self.combo.addItem(f"Error: {str(e)[:50]}...")
             # Disable the widget
             self.combo.setEnabled(False)
-

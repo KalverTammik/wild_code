@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 
 from ..utils.api_client import APIClient
+from ..languages.language_manager import LanguageManager
 
 
 class OverdueDueSoonPillsWidget(QWidget):
@@ -19,7 +20,7 @@ class OverdueDueSoonPillsWidget(QWidget):
     overdueClicked = pyqtSignal()
     dueSoonClicked = pyqtSignal()
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None, lang_manager=None) -> None:
         super().__init__(parent)
         self.setObjectName("OverdueDueSoonPillsWidget")
         self._is_loading = False
@@ -27,14 +28,15 @@ class OverdueDueSoonPillsWidget(QWidget):
         self._days_due_soon: int = 3
         self._overdue_active = False
         self._due_soon_active = False
+        self._lang = lang_manager or LanguageManager()
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(1, 1, 1, 1)
         outer.setSpacing(2)
 
-        self.group = QGroupBox("Urgent!", self)
+        self.group = QGroupBox(self._lang.translate("urgent_group_title"), self)
         self.group.setObjectName("UrgentGroupBox")
-        self.group.setToolTip("What needs fast attention")
+        self.group.setToolTip(self._lang.translate("urgent_tooltip"))
 
         shadow = QGraphicsDropShadowEffect(self.group)
         shadow.setBlurRadius(16)
@@ -152,13 +154,15 @@ class OverdueDueSoonPillsWidget(QWidget):
             return
         self._is_loading = True
         self._days_due_soon = days_due_soon
+        if lang_manager:
+            self._lang = lang_manager
         try:
             self.overdue_btn.setText("…")
             self.due_soon_btn.setText("…")
         except Exception:
             pass
         try:
-            api = APIClient(lang_manager)
+            api = APIClient(self._lang)
         except Exception:
             self._is_loading = False
             return

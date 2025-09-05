@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QSizePolicy, QLab
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...languages.language_manager import LanguageManager
 from ...widgets.StatusFilterWidget import StatusFilterWidget
+from ...widgets.TagsFilterWidget import TagsFilterWidget
 from ...widgets.TypeFilterWidget import TypeFilterWidget  # (impordime ühtluse mõttes; ei kasuta)
 from ...utils.url_manager import Module
 from ...widgets.theme_manager import ThemeManager
@@ -41,7 +42,7 @@ class ProjectsModule(ModuleBaseUI):
         qss_files: Optional[List[str]] = None,    # <-- lisatud
         **kwargs: Any                              # <-- lisatud (neelab tulevased lisad)
     ) -> None:
-        super().__init__(parent)
+        super().__init__(parent, lang_manager)
 
         # hoia ühilduvuse mõttes alles
         self.name = name
@@ -57,6 +58,7 @@ class ProjectsModule(ModuleBaseUI):
         self.feed_logic = None
         self._current_where = None
         self._status_preferences_loaded = False
+        self._tags_preferences_loaded = False
 
         # --- Toolbar & filtrid (ühtne muster) ---
         title = self.lang_manager.translate(self.TITLE_KEY) if self.lang_manager else self.TITLE_KEY
@@ -65,6 +67,10 @@ class ProjectsModule(ModuleBaseUI):
         try:
             self.status_filter = StatusFilterWidget(self.MODULE_ENUM, self.lang_manager, self.toolbar_area, debug=is_global_debug())
             self.toolbar_area.register_filter_widget("status", self.status_filter)
+
+            # Add tags filter for projects
+            self.tags_filter = TagsFilterWidget(self.MODULE_ENUM, self.lang_manager, self.toolbar_area, debug=is_global_debug())
+            self.toolbar_area.register_filter_widget("tags", self.tags_filter)
 
             # TYPE filter on selles moodulis välja lülitatud, kuid kood jääb ühtlaseks
             self.type_filter = None
@@ -93,6 +99,8 @@ class ProjectsModule(ModuleBaseUI):
 
         # Load and apply saved status preferences
         self._load_and_apply_status_preferences()
+        # Load and apply saved tags preferences
+        self._load_and_apply_tags_preferences()
         self.feed_content = QWidget()
         self.feed_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.feed_layout = QVBoxLayout(self.feed_content)
@@ -149,6 +157,8 @@ class ProjectsModule(ModuleBaseUI):
         try:
             if self.type_filter:
                 self.type_filter.ensure_loaded()
+            if hasattr(self, 'tags_filter') and self.tags_filter:
+                self.tags_filter.ensure_loaded()
         except Exception:
             pass
 
@@ -177,14 +187,18 @@ class ProjectsModule(ModuleBaseUI):
         where = {"AND": []}
         status_ids = filters.get("status") or []
         type_ids = filters.get("type") or []
+        tags_ids = filters.get("tags") or []
 
         print(f"[ProjectsUi] Filter status_ids: {status_ids}")
         print(f"[ProjectsUi] Filter type_ids: {type_ids}")
+        print(f"[ProjectsUi] Filter tags_ids: {tags_ids}")
 
         if status_ids:
             where["AND"].append({"column": "STATUS", "operator": "IN", "value": status_ids})
         if self.USE_TYPE_FILTER and type_ids:
             where["AND"].append({"column": "TYPE", "operator": "IN", "value": type_ids})
+        if tags_ids:
+            where["AND"].append({"column": "TAGS", "operator": "IN", "value": tags_ids})
         if not where["AND"]:
             where = None
 
@@ -227,8 +241,11 @@ class ProjectsModule(ModuleBaseUI):
         and_list: List[dict] = []
         try:
             status_ids = self.status_filter.selected_ids() if self.status_filter else []
+            tags_ids = self.tags_filter.selected_ids() if hasattr(self, 'tags_filter') and self.tags_filter else []
             if status_ids:
                 and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
+            if tags_ids:
+                and_list.append({"column": "TAGS", "operator": "IN", "value": tags_ids})
             if self.USE_TYPE_FILTER and self.type_filter:
                 type_ids = self.type_filter.selected_ids()
                 if type_ids:

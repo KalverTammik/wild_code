@@ -74,6 +74,18 @@ class TypeFilterWidget(BaseFilterWidget):
         except Exception:
             pass
 
+        # Add tooltips for clarity
+        if self._lang:
+            group_tooltip = self._lang.translate("Type Group Filter")
+            type_tooltip = self._lang.translate("Type Filter")
+            if group_tooltip:
+                self.group_combo.setToolTip(group_tooltip)
+            if type_tooltip:
+                self.type_combo.setToolTip(type_tooltip)
+        else:
+            self.group_combo.setToolTip("Filter by Type Group")
+            self.type_combo.setToolTip("Filter by Type")
+
         # Fallback: tee type_combo popup checkable (toggle handler)
         if not self._uses_qgis_types:
             self.type_combo.setView(QListView(self.type_combo))
