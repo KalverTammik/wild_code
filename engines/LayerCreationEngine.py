@@ -438,41 +438,6 @@ class LayerCreationEngine:
 
         return self.copy_virtual_layer_for_properties(layer_name, group_name, base_layer)
 
-    def create_test_layers_in_all_subgroups(self) -> Dict[str, str]:
-        """
-        Create test layers in all Mailabl subgroups for verification.
-
-        Returns:
-            Dict[str, str]: Dictionary mapping subgroup names to created layer names
-        """
-        try:
-            # Ensure the structure exists
-            self.ensure_mailabl_structure_exists()
-
-            created_layers = {}
-            subgroups = [
-                MailablGroupFolders.NEW_PROPERTIES,
-                MailablGroupFolders.SANDBOXING,
-                MailablGroupFolders.IMPORT,
-                MailablGroupFolders.SYNC,
-                MailablGroupFolders.ARCHIVE
-            ]
-
-            for subgroup_name in subgroups:
-                layer_name = f"Test_{subgroup_name.replace(' ', '_')}"
-                result = self.copy_virtual_layer_for_properties(layer_name, subgroup_name)
-                if result:
-                    created_layers[subgroup_name] = result
-                    print(f"[LayerEngine] Created test layer '{result}' in subgroup '{subgroup_name}'")
-                else:
-                    print(f"[LayerEngine] Failed to create test layer in subgroup '{subgroup_name}'")
-
-            return created_layers
-
-        except Exception as e:
-            print(f"[LayerEngine] Error creating test layers: {e}")
-            return {}
-
     def get_available_groups(self) -> List[str]:
         """
         Get list of available layer groups.

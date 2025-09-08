@@ -69,6 +69,7 @@ class QssPaths:
     TOOLTIP = "tooltip.qss"
     LAYER_TREE_PICKER = "LayerTreePicker.qss"
     SEARCH_RESULTS_WIDGET = "SearchResultsWidget.qss"
+    UNIVERSAL_STATUS_BAR = "UniversalStatusBar.qss"
     LIGHT_THEME = os.path.join(PLUGIN_ROOT, STYLES, "LightTheme.qss")
     DARK_THEME = os.path.join(PLUGIN_ROOT, STYLES, "DarkTheme.qss")
     SIDEBAR_THEME = os.path.join(PLUGIN_ROOT, STYLES, "Sidebar.qss")

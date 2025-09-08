@@ -1,0 +1,62 @@
+/* =========================================================
+   DARK THEME — UniversalStatusBar
+   Frosted glass status bar with teal accent header
+   ========================================================= */
+
+#UniversalStatusBar {
+    background-color: transparent;
+}
+
+#titleFrame {
+    background-color: rgba(29, 37, 43, 0.9);
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+}
+
+#titleLabel {
+    /*color: #e8e9ef;*/
+    color: #f55d05;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+#closeButton {
+    background-color: transparent;
+    color: #e8e9ef;
+    border: none;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+#closeButton:hover {
+    background-color: rgba(255,255,255,0.1);
+    border-radius: 3px;
+}
+
+#mainLabel {
+    color: #c5c5d2;
+    font-size: 11px;
+}
+
+#progressBar {
+    background-color: rgba(48,58,66,0.6);
+    border: 1px solid rgba(77,77,77,0.6);
+    border-radius: 3px;
+    text-align: center;
+    font-size: 10px;
+    color: #e8e9ef;
+}
+
+#progressBar::chunk {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 rgba(9,144,143,200),
+        stop: 1 rgba(46,47,56,180)
+    );
+    border-radius: 2px;
+}
+
+#text1Label, #text2Label {
+    color: #b0b0b0;
+    font-size: 10px;
+}

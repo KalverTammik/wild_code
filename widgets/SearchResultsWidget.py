@@ -240,31 +240,6 @@ class SearchResultsWidget(QDialog):
         self.raise_()
 
         print(f"[DEBUG] SearchResultsWidget shown at position: {self.pos()}, visible: {self.isVisible()}")
-        self.test_styling()
-
-    def test_styling(self):
-        """Test method to verify styling is applied correctly."""
-        print(f"[DEBUG] Widget stylesheet: {self.styleSheet()[:300]}...")
-        print(f"[DEBUG] Widget has graphics effect: {self.graphicsEffect() is not None}")
-        if self.graphicsEffect():
-            effect = self.graphicsEffect()
-            print(f"[DEBUG] Graphics effect type: {type(effect)}")
-            if hasattr(effect, 'color'):
-                color = effect.color()
-                print(f"[DEBUG] Shadow color RGB: {color.getRgb()} alpha: {color.alpha()}")
-                if color.alpha() == 128:
-                    print("[DEBUG] ✅ Shadow has correct 50% transparency")
-                else:
-                    print(f"[DEBUG] ❌ Shadow alpha is {color.alpha()}, expected 128")
-
-        # Check if QSS styling is applied correctly
-        stylesheet = self.styleSheet()
-        if stylesheet.strip() == "" or 'solid #0984e3' in stylesheet:
-            print("[DEBUG] ✅ ThemeManager styling applied correctly (QDialog with translucent background)")
-            print("[DEBUG] ✅ QDialog popup behavior with frameless window")
-            print("[DEBUG] ✅ Blue shadow effect applied for cohesive appearance")
-        else:
-            print(f"[DEBUG] ❌ Unexpected stylesheet content: {stylesheet[:100]}...")
 
     def hide_results(self):
         """Hide the search results widget."""
@@ -346,7 +321,6 @@ class SearchResultsWidget(QDialog):
         self.raise_()
 
         print(f"[DEBUG] SearchResultsWidget (no results) shown at position: {self.pos()}, visible: {self.isVisible()}")
-        self.test_styling()
 
     def keyPressEvent(self, event):
         """Handle key press events, specifically ESC to close."""

@@ -256,14 +256,6 @@ class WelcomePage(QWidget):
         self.create_layer_btn.setDefault(False)
         self.create_layer_btn.clicked.connect(self._on_create_layer_clicked)
 
-        self.create_all_subgroups_btn = QPushButton("Loo kõik alagrupid")
-        self.create_all_subgroups_btn.setObjectName("WelcomeCreateAllSubgroupsButton")
-        self.create_all_subgroups_btn.setToolTip("Loo test kihid kõigis Mailabl alagruppides")
-        # Prevent button from being triggered by Return key
-        self.create_all_subgroups_btn.setAutoDefault(False)
-        self.create_all_subgroups_btn.setDefault(False)
-        self.create_all_subgroups_btn.clicked.connect(self._on_create_all_subgroups_clicked)
-
         self.remove_layer_btn = QPushButton("Eemalda grupp kiht")
         self.remove_layer_btn.setObjectName("WelcomeRemoveLayerButton")
         self.remove_layer_btn.setToolTip("Eemalda Mailabl grupp ja selle kihid")
@@ -282,7 +274,6 @@ class WelcomePage(QWidget):
         hl.addWidget(self.open_btn)
         hl.addWidget(self.debug_btn)
         hl.addWidget(self.create_layer_btn)
-        hl.addWidget(self.create_all_subgroups_btn)
         hl.addWidget(self.remove_layer_btn)
         hl.addStretch(1)
         layout.addLayout(hl)
@@ -373,36 +364,6 @@ class WelcomePage(QWidget):
                 self,
                 "Viga",
                 f"Kihi loomisel tekkis viga: {str(e)}"
-            )
-
-    def _on_create_all_subgroups_clicked(self):
-        """Handle create all subgroups button click."""
-        try:
-            # Get the layer creation engine
-            engine = get_layer_engine()
-
-            # Create test layers in all subgroups
-            created_layers = engine.create_test_layers_in_all_subgroups()
-
-            if created_layers:
-                layer_list = "\n".join(f"• {group}: {layer}" for group, layer in created_layers.items())
-                QMessageBox.information(
-                    self,
-                    "Alagrupid loodud",
-                    f"Edukalt loodi test kihid järgmistes alagruppides:\n\n{layer_list}"
-                )
-            else:
-                QMessageBox.warning(
-                    self,
-                    "Viga",
-                    "Ühegi alagrupi loomine ebaõnnestus"
-                )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Viga",
-                f"Alagruppide loomisel tekkis viga: {str(e)}"
             )
 
     def _on_remove_layer_clicked(self):

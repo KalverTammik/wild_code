@@ -5,6 +5,8 @@ from PyQt5.QtWidgets import (
 )
 
 from .BaseCard import BaseCard
+from ....utils.UniversalStatusBar import UniversalStatusBar
+from ....widgets.theme_manager import ThemeManager
 
 
 class PropertyManagement(BaseCard):
@@ -26,6 +28,11 @@ class PropertyManagement(BaseCard):
     def __init__(self, lang_manager):
         super().__init__(lang_manager, lang_manager.translate("Property Management"), None)
 
+        # Create the UI content
+        self._create_content()
+
+    def _create_content(self):
+        """Create the widget content with buttons"""
         cw = self.content_widget()
         cl = QVBoxLayout(cw)
         cl.setContentsMargins(0, 0, 0, 0)
@@ -59,6 +66,10 @@ class PropertyManagement(BaseCard):
 
         buttons_layout.addStretch(1)  # Push buttons to the left
         cl.addWidget(buttons_container)
+
+    def hideEvent(self, event):
+        """Clean up when widget is hidden"""
+        super().hideEvent(event)
 
     # ---------- Button Handlers ----------
     def _on_add_shp_clicked(self):
