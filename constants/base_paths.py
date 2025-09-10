@@ -1,9 +1,11 @@
-
 import os
 
 # Base directory of the plugin
 BASE_DIR = os.path.dirname(__file__)
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(__file__))
+
+# Configuration path
+CONFIG_PATH = os.path.join(PLUGIN_ROOT, "config")
 
 CONFIG_DIR = "config"
 RESOURCE = "resources"

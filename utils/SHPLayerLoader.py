@@ -18,11 +18,13 @@ from qgis.PyQt.QtCore import QSettings
 try:
     from ..engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
     from ..languages.language_manager import LanguageManager
+    from ..constants import PROPERTY_TAG, PROPERTIES_BACKGROUND_STYLE, MEMORY_LAYER_SUFFIX
 except ImportError:
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
     from languages.language_manager import LanguageManager
+    from constants import PROPERTY_TAG, PROPERTIES_BACKGROUND_STYLE, MEMORY_LAYER_SUFFIX
 
 
 class SHPLayerLoader:
@@ -68,7 +70,7 @@ class SHPLayerLoader:
             shp_layer = self._load_shp_layer(file_path, layer_name)
 
             if not shp_layer:
-                return False
+                 return False
 
             # Create memory layer and import data
             result = self._create_memory_layer(shp_layer, layer_name)
@@ -84,6 +86,10 @@ class SHPLayerLoader:
                         break
 
                 if memory_layer:
+                    # Set the property tag on the newly created layer
+                    memory_layer.setCustomProperty(PROPERTY_TAG, "true")
+                    print(f"[SHPLoader] Set property tag on layer: {memory_layer.name()}")
+                    
                     # Ensure layer is not in editing mode before applying style
                     if memory_layer.isEditable():
                         memory_layer.commitChanges()
@@ -92,7 +98,7 @@ class SHPLayerLoader:
                     
                     # Apply QML style using the engine's centralized method
                     print("[SHPLoader] About to apply QML style via LayerCreationEngine...")
-                    style_result = self.engine.apply_qml_style(memory_layer, "properties_background_new")
+                    style_result = self.engine.apply_qml_style(memory_layer, PROPERTIES_BACKGROUND_STYLE)
                     print(f"[SHPLoader] Style application result: {style_result}")
 
                 feature_count = memory_layer.featureCount() if memory_layer else 0
@@ -168,7 +174,7 @@ class SHPLayerLoader:
             Optional[str]: Name of created layer or None if failed
         """
         try:
-            memory_layer_name = f"{layer_name}_memory"
+            memory_layer_name = f"{layer_name}{MEMORY_LAYER_SUFFIX}"
 
             # Create memory layer with correct structure
             result = self.engine.copy_virtual_layer_for_properties(
@@ -506,3 +512,25 @@ class SHPLayerLoader:
             message: Error message
         """
         QMessageBox.warning(self.parent, title, message)
+
+    def _save_settings(self, layer_name: str, file_path: str):
+        """
+        Save settings related to the loaded layer.
+
+        Args:
+            layer_name: Name of the loaded layer
+            file_path: Path to the source file
+        """
+        try:
+            # Save the last loaded file path for future reference
+            settings_key = f"wild_code/last_shp_file_{self.target_group}"
+            QSettings().setValue(settings_key, file_path)
+            
+            # Save layer name mapping
+            layer_key = f"wild_code/layer_name_{layer_name}"
+            QSettings().setValue(layer_key, file_path)
+            
+            print(f"[SHPLoader] Saved settings for layer: {layer_name}")
+            
+        except Exception as e:
+            print(f"[SHPLoader] Error saving settings: {e}")

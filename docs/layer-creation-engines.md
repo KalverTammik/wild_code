@@ -35,7 +35,7 @@ Handles the UI interaction and orchestration of the import process.
   - Removes any existing layer with the same name from the group.
   - Calls `ShapefileImporter.import_shp_file_as_memory_layer()` to perform the import.
   - Shows a confirmation dialog with import details.
-  - Saves the layer name to settings via `SettingsDataSaveAndLoad._save_SHP_layer_setting()`.
+  - Saves the layer name to QGIS settings using `QgsSettings` with key `wild_code/target_cadastral_layer`.
   - Updates the UI to hide import controls and show property flow options.
 
 #### `ShapefileImporter` Class (`processes/ImportProcesses/Import_shp_file.py`)
@@ -52,9 +52,10 @@ Performs the actual import into a memory layer.
   - Adds the memory layer to the QGIS project and inserts it into the specified group.
   - Closes progress dialog and cleans up resources with `gc.collect()`.
 
-#### Settings Persistence (`config/settings.py`)
-- **`_save_SHP_layer_setting(label, layer)`**: Saves the layer name to `QgsSettings` under `/Mailabl/Setting/labels/SHP_import`.
-- **`load_SHP_inputLayer_name()`**: Retrieves the saved layer name for use in other parts of the plugin.
+#### Settings Persistence (Central QGIS Settings)
+- **Target Cadastral Layer**: Saved to QGIS settings using `QgsSettings` with key `wild_code/target_cadastral_layer`.
+- **Retrieval**: Layer name is retrieved using the central settings system in `RemapPropertiesLayer._get_target_cadastral_name()`.
+- **Benefits**: Uses QGIS's native settings system for better integration and persistence across sessions.
 
 ### Usage Example
 ```python

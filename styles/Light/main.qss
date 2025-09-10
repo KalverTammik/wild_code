@@ -191,3 +191,60 @@ QLabel a {
 }
 QLabel a:hover { color: #000000; text-decoration: underline; }
 QLabel a:active { color: #0078d4; }
+
+/* =========================================================
+   ADD PROPERTY DIALOG STYLES
+   ========================================================= */
+
+#DialogTitle {
+    font-size: 18px;
+    font-weight: bold;
+    color: #111416;
+    margin-bottom: 10px;
+}
+
+#InstructionsLabel {
+    font-size: 14px;
+    color: #24292e;
+    margin-bottom: 10px;
+}
+
+#PropertyTemplatesList {
+    background: #ffffff;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 5px;
+}
+
+#PropertyTemplatesList::item {
+    padding: 10px;
+    border-bottom: 1px solid #e1e4e8;
+    color: #24292e;
+}
+
+#PropertyTemplatesList::item:hover {
+    background: #f0f2f4;
+}
+
+#PropertyTemplatesList::item:selected {
+    background: #2188ff;
+    color: #ffffff;
+}
+
+#CancelButton {
+    background: #f6f7f8;
+    color: #24292e;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 13px;
+    min-width: 80px;
+}
+
+#CancelButton:hover {
+    background: #e1e4e8;
+}
+
+#CancelButton:pressed {
+    background: #d1d5db;
+}

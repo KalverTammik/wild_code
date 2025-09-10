@@ -202,26 +202,61 @@ class PropertiesUI(QWidget):
 
     def view_properties(self):
         """Handle viewing existing properties."""
-        QMessageBox.information(
-            self,
-            "Funktsioon arendamisel",
-            "Kinnistute vaatamise funktsioon on veel arendamisel."
-        )
+        # TODO: Implement property viewing functionality
+        # For now, show available property layers
+        try:
+            from qgis.core import QgsProject
+            from PyQt5.QtWidgets import QMessageBox
+
+            project = QgsProject.instance()
+            layers = project.mapLayers().values()
+
+            property_layers = []
+            for layer in layers:
+                if layer.customProperty("property_layer") or "kinnistu" in layer.name().lower():
+                    property_layers.append(layer.name())
+
+            if property_layers:
+                layer_list = "\n".join(f"• {name}" for name in property_layers)
+                QMessageBox.information(
+                    self,
+                    self.lang_manager.translate("Available Property Layers") or "Saadaolevad kinnistute kihid",
+                    self.lang_manager.translate("Found the following property layers:") or
+                    f"Leiti järgmised kinnistute kihid:\n\n{layer_list}"
+                )
+            else:
+                QMessageBox.information(
+                    self,
+                    self.lang_manager.translate("No Property Layers") or "Kinnistute kihte pole",
+                    self.lang_manager.translate("No property layers found. Please load a property layer first.") or
+                    "Kinnistute kihte ei leitud. Palun laadi esmalt kinnistute kiht."
+                )
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                self.lang_manager.translate("Error") or "Viga",
+                self.lang_manager.translate("Failed to check for property layers.") or
+                f"Kinnistute kihtide kontrollimine ebaõnnestus: {str(e)}"
+            )
 
     def import_from_database(self):
         """Handle importing properties from database."""
+        # TODO: Implement database import functionality
         QMessageBox.information(
             self,
-            "Funktsioon arendamisel",
-            "Andmebaasist importimise funktsioon on veel arendamisel."
+            self.lang_manager.translate("Database Import") or "Andmebaasi import",
+            self.lang_manager.translate("Database import functionality will be available in a future update.") or
+            "Andmebaasi importimise funktsionaalsus on tulevases versioonis saadaval."
         )
 
     def export_properties(self):
         """Handle exporting properties."""
+        # TODO: Implement property export functionality
         QMessageBox.information(
             self,
-            "Funktsioon arendamisel",
-            "Kinnistute eksportimise funktsioon on veel arendamisel."
+            self.lang_manager.translate("Export Properties") or "Ekspordi kinnistuid",
+            self.lang_manager.translate("Property export functionality will be available in a future update.") or
+            "Kinnistute eksportimise funktsionaalsus on tulevases versioonis saadaval."
         )
 
     def open_user_settings(self):

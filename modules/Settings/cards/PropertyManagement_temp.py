@@ -181,8 +181,7 @@ class PropertyManagement(BaseCard):
                 # Property tag is already set by SHPLayerLoader
                 # Success message is already shown by SHPLayerLoader
                 pass
-            else:
-                QMessageBox.warning(
+                            QMessageBox.warning(
                     self,
                     self.lang_manager.translate("Import Failed") or "Import ebaõnnestus",
                     self.lang_manager.translate("Failed to import property file.") or
@@ -214,11 +213,11 @@ class PropertyManagement(BaseCard):
             # Add buttons
             open_web_button = msg_box.addButton(
                 self.lang_manager.translate("Open Webpage") or "Ava veebileht",
-                QMessageBox.ActionRole
+                            QMessageBox.ActionRole
             )
             cancel_button = msg_box.addButton(
                 self.lang_manager.translate("Cancel") or "Tühista",
-                QMessageBox.RejectRole
+                            QMessageBox.RejectRole
             )
 
             msg_box.exec_()
@@ -226,7 +225,7 @@ class PropertyManagement(BaseCard):
             if msg_box.clickedButton() == open_web_button:
                 # TODO: Implement actual webpage opening
                 # For now, show a placeholder message
-                QMessageBox.information(
+                            QMessageBox.information(
                     self,
                     self.lang_manager.translate("Webpage Opening") or "Veebilehe avamine",
                     self.lang_manager.translate("Webpage opening functionality will be implemented here.") or

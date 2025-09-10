@@ -14,6 +14,9 @@ class SettingsLogic:
         # Change tracking
         self._original_preferred: Optional[str] = None
         self._pending_preferred: Optional[str] = None
+        # Property layer tracking
+        self._original_property_layer_id: Optional[str] = None
+        self._pending_property_layer_id: Optional[str] = None
 
     # --- Available modules management ---
     def set_available_modules(self, module_names: List[str]):
@@ -172,6 +175,15 @@ class SettingsLogic:
         # Reset pending to original when loading
         self._pending_preferred = pref
 
+        # Load property layer
+        try:
+            layer_id = s.value("wild_code/main_property_layer_id", "") or None
+        except Exception:
+            layer_id = None
+        self._original_property_layer_id = layer_id
+        # Reset pending to original when loading
+        self._pending_property_layer_id = layer_id
+
     def get_original_preferred(self) -> Optional[str]:
         return self._original_preferred
 
@@ -184,7 +196,9 @@ class SettingsLogic:
 
     def has_unsaved_changes(self) -> bool:
         # Track change even if moving to None (welcome)
-        return (self._pending_preferred or None) != (self._original_preferred or None)
+        preferred_changed = (self._pending_preferred or None) != (self._original_preferred or None)
+        layer_changed = (self._pending_property_layer_id or None) != (self._original_property_layer_id or None)
+        return preferred_changed or layer_changed
 
     def apply_pending_changes(self):
         try:
@@ -196,6 +210,15 @@ class SettingsLogic:
                 # None -> remove setting to show Welcome
                 s.remove("wild_code/preferred_module")
             self._original_preferred = self._pending_preferred
+
+            # Apply property layer changes
+            if self._pending_property_layer_id:
+                s.setValue("wild_code/main_property_layer_id", self._pending_property_layer_id)
+            else:
+                # None -> remove setting
+                s.remove("wild_code/main_property_layer_id")
+            self._original_property_layer_id = self._pending_property_layer_id
+
         except Exception:
             # leave dirty state so user can retry
             pass
@@ -203,3 +226,15 @@ class SettingsLogic:
     def revert_pending_changes(self):
         # Reset pending selection back to the original
         self._pending_preferred = self._original_preferred
+        self._pending_property_layer_id = self._original_property_layer_id
+
+    # --- Property layer settings ---
+    def get_original_property_layer_id(self) -> Optional[str]:
+        return self._original_property_layer_id
+
+    def get_pending_property_layer_id(self) -> Optional[str]:
+        return self._pending_property_layer_id
+
+    def set_pending_property_layer_id(self, layer_id: Optional[str]):
+        # None means no layer selected
+        self._pending_property_layer_id = layer_id or None

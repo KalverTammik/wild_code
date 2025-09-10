@@ -43,6 +43,8 @@ class SettingsUI(QWidget):
         # Modules available for module-specific cards
         self._available_modules = []
         self._module_cards = {}
+        # Selected property layer for operations
+        self._selected_property_layer = None
         self.setup_ui()
         # Centralized theming
         ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
@@ -86,11 +88,18 @@ class SettingsUI(QWidget):
         card.addShpClicked.connect(self._on_add_shp_clicked)
         card.addPropertyClicked.connect(self._on_add_property_clicked)
         card.removePropertyClicked.connect(self._on_remove_property_clicked)
+        # Connect layer selection
+        card.layerSelected.connect(self._on_layer_selected)
         # Track only the user confirm here
         self._user_confirm_btn = card.confirm_button()
         self._confirm_btns = [self._user_confirm_btn]
         # Keep references needed for labels and later use
         self._user_card = card
+
+        # Load original settings and set initial layer selection
+        self._load_original_settings()
+        self._apply_original_layer_selection()
+
         return card
 
     def _build_module_cards(self):
@@ -191,7 +200,6 @@ class SettingsUI(QWidget):
                     card.on_settings_deactivate()
             except Exception:
                 pass
-        # ...existing code...
 
     def reset(self):
         pass
@@ -275,6 +283,24 @@ class SettingsUI(QWidget):
         else:
             print(f"Settings for {module_name} not implemented yet")
 
+    def _on_layer_selected(self, layer):
+        """Signal handler for layer selection in UserCard."""
+        if layer:
+            print(f"DEBUG: Layer selected in UserCard: {layer.name()}")
+            # Store the selected layer for use in property operations
+            self._selected_property_layer = layer
+            # Set pending layer selection (will be saved on confirm)
+            self.logic.set_pending_property_layer_id(layer.id())
+            # Update dirty state
+            self._update_dirty_state()
+        else:
+            print("DEBUG: No layer selected in UserCard")
+            self._selected_property_layer = None
+            # Set pending layer selection to None
+            self.logic.set_pending_property_layer_id(None)
+            # Update dirty state
+            self._update_dirty_state()
+
     def _on_confirm_clicked(self):
         self.apply_pending_changes()
 
@@ -298,34 +324,39 @@ class SettingsUI(QWidget):
 
         if success:
             print("SHP imported as memory layer in 'Uued kinnistud', ready for your workflows.")
+            # After successful SHP loading, open the Add Property dialog
+            self._open_add_property_dialog()
+
+    def _open_add_property_dialog(self):
+        """Open the Add Property dialog after SHP loading"""
+        try:
+            from ...widgets.AddPropertyDialog import AddPropertyDialog
+
+            dialog = AddPropertyDialog(self)
+            dialog.propertyAdded.connect(self._on_property_from_dialog_added)
+            dialog.exec_()
+
+        except Exception as e:
+            print(f"Error opening add property dialog: {e}")
+
+    def _on_property_from_dialog_added(self, property_data):
+        """Handle property added from dialog after SHP loading"""
+        print(f"Property added after SHP loading: {property_data}")
+        # Here you can add logic to associate the property with the loaded SHP layer
 
     def _on_add_property_clicked(self):
         """Signal handler for Add property button."""
         print("DEBUG: Add property button clicked")
         # Emit signal for parent to handle
         self.addPropertyClicked.emit()
-        # TODO: Implement property addition logic
-        from PyQt5.QtWidgets import QMessageBox
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setWindowTitle("Add Property")
-        msg.setText("Add property functionality will be implemented here.")
-        msg.setStandardButtons(QMessageBox.Ok)
-        msg.exec_()
+        # Property addition logic is now handled by PropertyManagement widget
 
     def _on_remove_property_clicked(self):
         """Signal handler for Remove property button."""
         print("DEBUG: Remove property button clicked")
         # Emit signal for parent to handle
         self.removePropertyClicked.emit()
-        # TODO: Implement property removal logic
-        from PyQt5.QtWidgets import QMessageBox
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setWindowTitle("Remove Property")
-        msg.setText("Remove property functionality will be implemented here.")
-        msg.setStandardButtons(QMessageBox.Ok)
-        msg.exec_()
+        # Property removal logic is now handled by PropertyManagement widget
 
     def _update_dirty_state(self):
         # Combine user-card dirty with module cards dirty
@@ -350,6 +381,28 @@ class SettingsUI(QWidget):
         except Exception:
             return self.logic.has_unsaved_changes()
 
+    def get_selected_property_layer(self):
+        """Get the currently selected property layer from UserCard."""
+        if self._user_card:
+            return self._user_card.get_selected_layer()
+        return None
+
+    def get_main_property_layer(self):
+        """Get the main property layer (same as selected property layer)."""
+        return self.get_selected_property_layer()
+
+    def set_main_property_layer(self, layer):
+        """Set the main property layer."""
+        if self._user_card and layer:
+            self._user_card.layer_selector.setSelectedLayerId(layer.id())
+        elif self._user_card:
+            self._user_card.layer_selector.clearSelection()
+
+    def clear_main_property_layer(self):
+        """Clear the main property layer selection."""
+        if self._user_card:
+            self._user_card.clear_main_property_layer()
+
     # --- Helpers ---
     def _load_original_settings(self):
         """Load original settings (preferred module) into logic."""
@@ -358,3 +411,13 @@ class SettingsUI(QWidget):
         except Exception:
             # Ignore; default None is acceptable
             pass
+
+    def _apply_original_layer_selection(self):
+        """Apply the original property layer selection to the UserCard."""
+        try:
+            original_layer_id = self.logic.get_original_property_layer_id()
+            if original_layer_id and self._user_card:
+                self._user_card.layer_selector.setSelectedLayerId(original_layer_id)
+                print(f"Applied original property layer ID: {original_layer_id}")
+        except Exception as e:
+            print(f"Error applying original layer selection: {e}")

@@ -1,9 +1,8 @@
 from qgis.utils import iface
-from qgis.core import QgsVectorLayer, QgsProject, QgsField
+from qgis.core import QgsVectorLayer, QgsProject, QgsField, QgsSettings
 from PyQt5.QtCore import QVariant, QCoreApplication
 
 
-from ..config.settings import SettingsDataSaveAndLoad
 from ..utils.messagesHelper import ModernMessageDialog
 from ..KeelelisedMuutujad.messages import Headings, HoiatusTexts, EdukuseTexts
 from ..utils.UniversalStatusBar import UniversalStatusBar
@@ -123,9 +122,26 @@ class RemapPropertiesLayer:
 
     def __init__(self):
         """Initialize the remapper with the active cadastral layer."""
-        self.active_layer_name = SettingsDataSaveAndLoad().load_target_cadastral_name()
+        self.active_layer_name = self._get_target_cadastral_name()
         self.layer = self.get_layer_by_name(self.active_layer_name)
         self.field_mapping = KatasterMappings.field_mapping
+
+    def _get_target_cadastral_name(self) -> str:
+        """Get the target cadastral layer name from QGIS settings."""
+        try:
+            settings = QgsSettings()
+            layer_name = settings.value("wild_code/target_cadastral_layer", "katastriyksus")
+            return layer_name or "katastriyksus"
+        except Exception:
+            return "katastriyksus"
+
+    def _save_target_cadastral_name(self, layer_name: str):
+        """Save the target cadastral layer name to QGIS settings."""
+        try:
+            settings = QgsSettings()
+            settings.setValue("wild_code/target_cadastral_layer", layer_name)
+        except Exception:
+            pass
 
     def get_layer_by_name(self, layer_name):
         """Retrieve a layer by name from the current QGIS project."""

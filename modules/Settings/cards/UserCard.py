@@ -27,6 +27,7 @@ class UserCard(BaseCard):
     addShpClicked = pyqtSignal()
     addPropertyClicked = pyqtSignal()
     removePropertyClicked = pyqtSignal()
+    layerSelected = pyqtSignal(object)  # Emits selected layer or None
 
     def __init__(self, lang_manager):
         super().__init__(lang_manager, lang_manager.translate("User"), None)
@@ -101,6 +102,47 @@ class UserCard(BaseCard):
         self.property_management.addPropertyClicked.connect(self._on_add_property_clicked)
         self.property_management.removePropertyClicked.connect(self._on_remove_property_clicked)
         cl.addWidget(self.property_management)
+
+        # ---------- Layer Selector ----------
+        layer_selector_title = QLabel(self.lang_manager.translate("Layer Selection"), cw)
+        layer_selector_title.setObjectName("SetupCardSectionTitle")
+        cl.addWidget(layer_selector_title)
+
+        # Layer selector container
+        layer_selector_container = QFrame(cw)
+        layer_selector_container.setObjectName("LayerSelector")
+        layer_selector_layout = QVBoxLayout(layer_selector_container)
+        layer_selector_layout.setContentsMargins(0, 0, 0, 0)
+        layer_selector_layout.setSpacing(5)
+
+        # Explanation label
+        explanation_label = QLabel(
+            self.lang_manager.translate("Select a property layer for data operations and management"),
+            layer_selector_container
+        )
+        explanation_label.setObjectName("LayerSelectorExplanation")
+        explanation_label.setWordWrap(True)
+        explanation_label.setStyleSheet("font-size: 11px; color: #666;")
+        layer_selector_layout.addWidget(explanation_label)
+
+        # Use the existing LayerTreePicker widget
+        from ....widgets.layer_dropdown import LayerTreePicker
+        self.layer_selector = LayerTreePicker(
+            layer_selector_container,
+            placeholder=self.lang_manager.translate("Select a property layer...")
+        )
+        self.layer_selector.setObjectName("PropertyLayerSelector")
+        self.layer_selector.layerChanged.connect(self._on_layer_selection_changed)
+        layer_selector_layout.addWidget(self.layer_selector)
+
+        cl.addWidget(layer_selector_container)
+
+        # Populate layer selector and load saved selection
+        self._populate_layer_selector()
+        # Note: Initial layer selection is now handled by SettingsUI
+
+        # Connect to project layer changes
+        self._connect_to_project_signals()
 
         # Internal state
         self._check_by_module = {}
@@ -277,6 +319,88 @@ class UserCard(BaseCard):
     def _on_remove_property_clicked(self):
         """Handle Remove property button click"""
         self.removePropertyClicked.emit()
+
+    # ---------- Layer Selector Methods ----------
+    def _populate_layer_selector(self):
+        """Populate the layer selector with available property layers"""
+        try:
+            # The LayerTreePicker handles its own population from the QGIS project
+            # We just need to refresh it
+            self.layer_selector.refresh()
+        except Exception as e:
+            print(f"Error refreshing layer selector: {e}")
+
+    def _connect_to_project_signals(self):
+        """Connect to QGIS project signals to respond to layer changes"""
+        try:
+            from qgis.core import QgsProject
+            project = QgsProject.instance()
+            if project:
+                # Connect to layer addition/removal signals
+                project.layersAdded.connect(self._on_project_layers_changed)
+                project.layersRemoved.connect(self._on_project_layers_changed)
+                project.layersWillBeRemoved.connect(self._on_project_layers_will_be_removed)
+                print("Connected to project layer change signals")
+        except Exception as e:
+            print(f"Error connecting to project signals: {e}")
+
+    def _on_layer_selection_changed(self, layer):
+        """Handle layer selection change"""
+        if layer:
+            layer_id = layer.id()
+            self._selected_layer = layer
+            print(f"Selected property layer: {layer.name()} (ID: {layer_id})")
+            # Note: Saving is now handled by SettingsUI through the pending pattern
+        else:
+            self._selected_layer = None
+            print("No layer selected")
+
+        # Emit signal with selected layer
+        self.layerSelected.emit(layer)
+
+    def _on_project_layers_changed(self, layers):
+        """Handle when layers are added or removed from the project"""
+        print(f"Project layers changed, refreshing layer selector")
+        self._populate_layer_selector()
+        # Try to restore the previously selected layer if it still exists
+        self._restore_saved_selection_if_available()
+
+    def _on_project_layers_will_be_removed(self, layer_ids):
+        """Handle when layers are about to be removed"""
+        current_selected_id = self.layer_selector.selectedLayerId()
+        if current_selected_id and current_selected_id in layer_ids:
+            print(f"Selected layer {current_selected_id} is being removed, clearing selection")
+            self.layer_selector.clearSelection()
+            self._selected_layer = None
+            self.layerSelected.emit(None)
+
+    def _restore_saved_selection_if_available(self):
+        """Try to restore the saved layer selection if the layer still exists"""
+        # Note: This is now handled by SettingsUI through the pending pattern
+        pass
+
+    def get_selected_layer(self):
+        """Get the currently selected layer"""
+        return getattr(self, '_selected_layer', None)
+
+    def get_main_property_layer(self):
+        """Get the main property layer (same as selected layer)."""
+        return self.get_selected_layer()
+
+    def clear_main_property_layer(self):
+        """Clear the main property layer selection."""
+        self.layer_selector.clearSelection()
+        self._selected_layer = None
+        self.layerSelected.emit(None)
+
+    def refresh_layer_selector(self):
+        """Refresh the layer selector with current layers"""
+        self._populate_layer_selector()
+
+    def showEvent(self, event):
+        """Called when the widget is shown - refresh layer selector"""
+        super().showEvent(event)
+        self.refresh_layer_selector()
 
     # ---------- Helpers ----------
     @staticmethod
