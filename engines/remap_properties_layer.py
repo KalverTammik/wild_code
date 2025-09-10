@@ -1,11 +1,9 @@
 from qgis.utils import iface
 from qgis.core import QgsVectorLayer, QgsProject, QgsField, QgsSettings
-from PyQt5.QtCore import QVariant, QCoreApplication
+from PyQt5.QtCore import QCoreApplication
 
-
-from ..utils.messagesHelper import ModernMessageDialog
-from ..KeelelisedMuutujad.messages import Headings, HoiatusTexts, EdukuseTexts
 from ..utils.UniversalStatusBar import UniversalStatusBar
+
 
 class Katastriyksus:
     #fid = "fid"               # Baasis olev id
@@ -194,16 +192,13 @@ class RemapPropertiesLayer:
             if self.layer.commitChanges():
                 pass
             else:
-                heading = Headings().warningSimple
-                message = "Veeru nimede uuendamisel tekkis viga."
-                ModernMessageDialog.Info_messages_modern_REPLACE_WITH_DECISIONMAKER(heading, message)
+                self.layer.rollBack()
+                print("Warning: Failed to commit field name changes")
                 progress.close()
                 return
         except Exception as e:
             self.layer.rollBack()
-            heading = Headings().warningSimple
-            message = f"Viga muudatuste salvestamisel: {str(e)}"
-            ModernMessageDialog.Info_messages_modern_REPLACE_WITH_DECISIONMAKER(heading, message)
+            print(f"Error saving changes: {str(e)}")
             progress.close()
             return
         
@@ -253,6 +248,4 @@ class RemapPropertiesLayer:
                 self.layer.rollBack()
         except Exception as e:
             self.layer.rollBack()
-            heading = Headings().warningSimple
-            message = f"Viga ajutiste nimede eemaldamisel: {str(e)}"
-            ModernMessageDialog.Info_messages_modern_REPLACE_WITH_DECISIONMAKER(heading, message)
+            print(f"Error removing temporary field names: {str(e)}")
