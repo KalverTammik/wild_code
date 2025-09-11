@@ -6,6 +6,7 @@ from .SettingsLogic import SettingsLogic
 from ...constants.file_paths import QssPaths
 from .cards.UserCard import UserCard
 from .cards.ModuleCard import ModuleCard
+from ...constants.module_names import PROPERTY_MODULE
 
 class SettingsUI(QWidget):
     """
@@ -272,7 +273,7 @@ class SettingsUI(QWidget):
         print(f"DEBUG: Opening settings for module: {module_name}")
         
         # For Property module, show a welcome message
-        if module_name == "PropertyModule":
+        if module_name == PROPERTY_MODULE:
             from PyQt5.QtWidgets import QMessageBox
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)

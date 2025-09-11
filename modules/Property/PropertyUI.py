@@ -9,6 +9,7 @@ from PyQt5.QtGui import QFont, QIcon, QPixmap
 from ...languages.language_manager import LanguageManager
 from ...widgets.theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
+from ...constants.module_names import PROPERTY_MODULE
 
 class PropertyUI(QWidget):
     """
@@ -17,7 +18,7 @@ class PropertyUI(QWidget):
     """
     def __init__(self, lang_manager=None, theme_manager=None):
         super().__init__()
-        self.name = "PropertyModule"
+        self.name = PROPERTY_MODULE
 
         # Language manager
         self.lang_manager = lang_manager or LanguageManager()
