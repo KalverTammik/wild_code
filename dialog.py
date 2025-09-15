@@ -282,6 +282,19 @@ class PluginDialog(QDialog):
                 log_debug(f"  - {moduleName}")
         print(f"DEBUG: All registered modules: {list(self.moduleManager.modules.keys())}")
 
+        # Add Property module after Home
+        if PROPERTY_MODULE in self.moduleManager.modules:
+            moduleInfo = self.moduleManager.modules[PROPERTY_MODULE]
+            iconPath = moduleInfo["icon"]
+            displayName = moduleInfo["display_name"]
+            widget = moduleInfo["module"].get_widget() if hasattr(moduleInfo["module"], "get_widget") else moduleInfo["module"]
+            if isinstance(widget, type):
+                widget = widget()
+            if widget is not None:
+                self.sidebar.addItem(displayName, PROPERTY_MODULE, iconPath)
+                # Track modules visible in sidebar for settings module cards
+                # Exclude Property from settings cards but keep in sidebar
+
         for moduleName, moduleInfo in self.moduleManager.modules.items():
             iconPath = moduleInfo["icon"]
             displayName = moduleInfo["display_name"]
@@ -293,15 +306,14 @@ class PluginDialog(QDialog):
                 log_debug(f"[PluginDialog] Adding sidebar item: displayName={displayName}, moduleName={moduleName}, iconPath={iconPath}")
             if widget is not None:
                 # Do not add Settings to the top module list; it's accessible via header/button
-                if moduleName != SETTINGS_MODULE:
+                if moduleName != SETTINGS_MODULE and moduleName != PROPERTY_MODULE:
                     self.sidebar.addItem(displayName, moduleName, iconPath)
                     # Track modules visible in sidebar for settings module cards
                     # Exclude Property from settings cards but keep in sidebar
-                    if moduleName != PROPERTY_MODULE:
-                        try:
-                            self._sidebar_modules.append(moduleName)
-                        except AttributeError:
-                            self._sidebar_modules = [moduleName]
+                    try:
+                        self._sidebar_modules.append(moduleName)
+                    except AttributeError:
+                        self._sidebar_modules = [moduleName]
                 self.moduleStack.addWidget(widget)
 
         # Inform Settings module which module cards to show (only those visible in sidebar)

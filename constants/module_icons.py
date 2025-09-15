@@ -54,11 +54,11 @@ class MiscIcons:
 class ModuleIconPaths:
     MODULE_ICONS = {
         # Core (keep existing module icon mappings; do not change yet)
-        SETTINGS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK,ICON_SETTINGS_GEAR),
-        PROJECTS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'icons8-microsoft-powerpoint-30.png'),
-        CONTRACT_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'icons8-policy-document-100.png'),
-        PROPERTY_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'icons8-country-100.png'),
-        "__HOME__": os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ICON_FOLDER_DARK, ICON_HOME),  # Avaleht nupp
+        SETTINGS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'repairing-service.png'),
+        PROJECTS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'team-management2.png'),
+        CONTRACT_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'handshake.png'),
+        "__HOME__": os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'home-icon-silhouette.png'),  # Avaleht nupp
+        PROPERTY_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'Menu.png'),
     }
 
     @staticmethod
