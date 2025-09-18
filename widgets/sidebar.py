@@ -80,9 +80,9 @@ class Sidebar(QWidget):
                 self.homeButton.setIcon(QIcon(home_icon_path))
         except Exception:
             pass
-        # Ainult Avalehe nupu ikooni mõõt (50x50)
+        # Ainult Avalehe nupu ikooni mõõt (22x22)
         try:
-            self.homeButton.setIconSize(QSize(25, 25))
+            self.homeButton.setIconSize(QSize(22, 22))
         except Exception:
             pass
         self.homeButton.clicked.connect(lambda: self.emitItemClicked("__HOME__"))
@@ -99,15 +99,16 @@ class Sidebar(QWidget):
         self.footerContainer = QFrame(self.SidebarMainFrame)
         self.footerContainer.setObjectName("SidebarFooterContainer")
         footer_layout = QVBoxLayout(self.footerContainer)
-        footer_layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout.setContentsMargins(0, 6, 6, 6)  # Ühtlustatud nav raamiga
         footer_layout.setSpacing(0)
         cm.addWidget(self.footerContainer)
 
         # Footer bar with settings button
         self.footerBar = QFrame(self.footerContainer)
         self.footerBar.setObjectName("SidebarFooterBar")
+        self.footerBar.setContentsMargins(0, 0, 0, 0)  # Eemalda vaikimisi veerised
         fl = QHBoxLayout(self.footerBar)
-        fl.setContentsMargins(6, 6, 6, 6)
+        fl.setContentsMargins(0, 6, 6, 6)  # Ühtlustatud vasak serv moodulitega
         fl.setSpacing(6)
         footer_layout.addWidget(self.footerBar)
 
@@ -122,7 +123,7 @@ class Sidebar(QWidget):
         if settings_icon_path:
             self.settingsButton.setIcon(QIcon(settings_icon_path))
         try:
-            self.settingsButton.setIconSize(QSize(25, 25))  # Ühtlustatud ikooni suurus
+            self.settingsButton.setIconSize(QSize(22, 22))  # Ühtlustatud ikooni suurus
         except Exception:
             pass
         # Connect settings button to directly show settings module
@@ -186,10 +187,10 @@ class Sidebar(QWidget):
         btn.setDefault(False)
         if iconPath:
             btn.setIcon(QIcon(iconPath))
-        # Projekte nupp ikooni ühtlustatud suurus 25x25
-        if uniqueIdentifier in ('ProjectsModule', 'ContractModule'):
+        # Projekte nupp ikooni ühtlustatud suurus 22x22
+        if uniqueIdentifier in ('ProjectsModule', 'ContractModule', 'PropertyModule'):
             try:
-                btn.setIconSize(QSize(25, 25))  # Ühtlustatud ikooni suurus
+                btn.setIconSize(QSize(22, 22))  # Ühtlustatud ikooni suurus
             except Exception:
                 pass
 
@@ -251,15 +252,15 @@ class Sidebar(QWidget):
             themed_icon = ModuleIconPaths.get_module_icon(uniqueIdentifier)
             if themed_icon:
                 btn.setIcon(QIcon(themed_icon))
-            if uniqueIdentifier in ('ProjectsModule', 'ContractModule', '__HOME__'):
+            if uniqueIdentifier in ('ProjectsModule', 'ContractModule', '__HOME__', 'PropertyModule', 'SettingsModule'):
                 try:
-                    btn.setIconSize(QSize(25, 25))  # Tagame ühtluse ka teema vahetusel
+                    btn.setIconSize(QSize(22, 22))  # Tagame ühtluse ka teema vahetusel
                 except Exception:
                     pass
         # Settings ikooni värskendus ja suurus
         if hasattr(self, 'settingsButton'):
             try:
-                self.settingsButton.setIconSize(QSize(25, 25))
+                self.settingsButton.setIconSize(QSize(22, 22))
             except Exception:
                 pass
 
