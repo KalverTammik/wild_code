@@ -222,61 +222,12 @@ class WelcomePage(QWidget):
         # Build UI widgets and keep references for retranslation
         self.title_lbl = QLabel()
         self.title_lbl.setObjectName("WelcomeTitle")
-        self.subtitle_lbl = QLabel()
-        self.subtitle_lbl.setObjectName("WelcomeSubtitle")
-        self.subtitle_lbl.setWordWrap(True)
-        self.open_btn = QPushButton()
-        self.open_btn.clicked.connect(self.openSettingsRequested.emit)
-        self.open_btn.setObjectName("WelcomeOpenSettingsButton")
-        # Prevent button from being triggered by Return key
-        self.open_btn.setAutoDefault(False)
-        self.open_btn.setDefault(False)
-
-        # Debug toggle button
-        self.debug_btn = QPushButton()
-        self.debug_btn.setObjectName("WelcomeToggleDebugButton")
-        # Prevent button from being triggered by Return key
-        self.debug_btn.setAutoDefault(False)
-        self.debug_btn.setDefault(False)
-        self.debug_btn.setCheckable(True)
-        self.debug_btn.setChecked(True)  # initial state matches LetterSection(debug=True)
-        # Apply an existing icon (non-themed quick pick). For themed icons, use ThemeManager.get_qicon(...)
-        try:
-            self.debug_btn.setIcon(QIcon(ResourcePaths.EYE_ICON))
-            self.debug_btn.setIconSize(QSize(16, 16))
-        except Exception:
-            pass
-
-        # Layer Creation Engine buttons
-        self.create_layer_btn = QPushButton("Loo Mailabl grupp kiht")
-        self.create_layer_btn.setObjectName("WelcomeCreateLayerButton")
-        self.create_layer_btn.setToolTip("Loo uus kiht Mailabl grupis testimiseks")
-        # Prevent button from being triggered by Return key
-        self.create_layer_btn.setAutoDefault(False)
-        self.create_layer_btn.setDefault(False)
-        self.create_layer_btn.clicked.connect(self._on_create_layer_clicked)
-
-        self.remove_layer_btn = QPushButton("Eemalda grupp kiht")
-        self.remove_layer_btn.setObjectName("WelcomeRemoveLayerButton")
-        self.remove_layer_btn.setToolTip("Eemalda Mailabl grupp ja selle kihid")
-        # Prevent button from being triggered by Return key
-        self.remove_layer_btn.setAutoDefault(False)
-        self.remove_layer_btn.setDefault(False)
-        self.remove_layer_btn.clicked.connect(self._on_remove_layer_clicked)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(12)
         layout.addStretch(1)
         layout.addWidget(self.title_lbl)
-        layout.addWidget(self.subtitle_lbl)
-        hl = QHBoxLayout()
-        hl.addWidget(self.open_btn)
-        hl.addWidget(self.debug_btn)
-        hl.addWidget(self.create_layer_btn)
-        hl.addWidget(self.remove_layer_btn)
-        hl.addStretch(1)
-        layout.addLayout(hl)
         layout.addStretch(2)
 
         # --- TÄHE SEKTOR eraldi komponendina ---
@@ -287,22 +238,14 @@ class WelcomePage(QWidget):
         self.retranslate(self.lang_manager)
         # Theme can be applied by parent/theme_manager if needed
 
-        # Wire debug toggle after section exists
-        self.debug_btn.toggled.connect(self._on_debug_toggled)
-        self._update_debug_button_text(self.debug_btn.isChecked())
-
     def retranslate(self, lang_manager=None):
         if lang_manager is not None:
             self.lang_manager = lang_manager
         lm = self.lang_manager
         if lm:
             self.title_lbl.setText(lm.translate("Welcome"))
-            self.subtitle_lbl.setText(lm.translate("Select a module from the left or open Settings to set your preferred module."))
-            self.open_btn.setText(lm.translate("Open Settings"))
         else:
             self.title_lbl.setText("Welcome")
-            self.subtitle_lbl.setText("Select a module from the left or open Settings to set your preferred module.")
-            self.open_btn.setText("Open Settings")
         # Shapefile button removed - functionality moved to dedicated module
 
     # Eraldi _update_letter_info pole enam vaja; loogika on LetterSection klassis
@@ -313,23 +256,10 @@ class WelcomePage(QWidget):
             self.letter_section.set_debug(enabled)
         except Exception:
             pass
-        try:
-            self.debug_btn.setChecked(bool(enabled))
-            self._update_debug_button_text(bool(enabled))
-        except Exception:
-            pass
 
     def _on_debug_toggled(self, checked: bool):
         try:
             self.letter_section.set_debug(checked)
-        except Exception:
-            pass
-        self._update_debug_button_text(checked)
-
-    def _update_debug_button_text(self, checked: bool):
-        # Toggle button label in Estonian (dev env, no i18n wiring per requirement)
-        try:
-            self.debug_btn.setText("Peida FRAME sildid" if checked else "Näita FRAME silte")
         except Exception:
             pass
 
