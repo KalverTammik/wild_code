@@ -636,10 +636,7 @@ class PluginDialog(QDialog):
             if not file_path:
                 return  # User cancelled
 
-            # Get the layer creation engine
-            engine = get_layer_engine()
-
-            # Load SHP file as memory layer
+            # Load and validate SHP file
             from qgis.core import QgsVectorLayer
             layer_name = file_path.split('/')[-1].replace('.shp', '')
             shp_layer = QgsVectorLayer(file_path, layer_name, 'ogr')
@@ -652,18 +649,29 @@ class PluginDialog(QDialog):
                 )
                 return
 
-            # Create memory layer from SHP
-            result = engine.copy_virtual_layer_for_properties(
-                f"{layer_name}_memory",
-                MailablGroupFolders.NEW_PROPERTIES,  # Changed to NEW_PROPERTIES
-                shp_layer
+            # Use centralized Shapefile import with all optimizations
+            engine = get_layer_engine()
+            result = engine.import_shapefile_to_memory_layer(
+                shp_layer=shp_layer,
+                layer_name=layer_name,
+                group_name=MailablGroupFolders.NEW_PROPERTIES,
+                parent_widget=self
             )
 
             if result:
+                # Get feature count for success message
+                memory_layer = None
+                for layer in engine.project.mapLayers().values():
+                    if layer.name() == result:
+                        memory_layer = layer
+                        break
+
+                feature_count = memory_layer.featureCount() if memory_layer else 0
                 QMessageBox.information(
                     self,
                     lang_manager.translate("shp_loaded") or "SHP fail laaditud",
-                    lang_manager.translate("shp_loaded_message") or f"SHP fail '{layer_name}' on edukalt laaditud grupis 'Uued kinnistud'"
+                    (lang_manager.translate("shp_loaded_with_data_message") or
+                     f"SHP fail '{layer_name}' on edukalt laaditud grupis 'Uued kinnistud' ({feature_count} objekti imporditud)")
                 )
             else:
                 QMessageBox.warning(

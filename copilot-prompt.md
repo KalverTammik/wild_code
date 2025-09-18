@@ -324,6 +324,9 @@ Test checklist
 - All logic in helper classes; avoid business logic in UI classes.
 - Use `@staticmethod` or `@classmethod` when instance state is not required.
 - File names follow CamelCase.py convention.
+- Regularly review and remove unnecessary method abstractions; inline simple operations to reduce method call overhead.
+- Use QMessageBox directly for user notifications instead of creating wrapper methods.
+- Remove unused parameters and empty callback methods that are leftover from development iterations.
 
 ---
 
@@ -343,6 +346,8 @@ Test checklist
 - Keep comments concise and useful.
 - Prefer explicit type checks and early returns.
 - Never block the UI thread with long-running operations.
+- Document code cleanup decisions in commit messages when removing unnecessary abstractions.
+- Use `# CLEANUP:` comments for temporary notes about methods pending removal.
 
 ---
 
@@ -423,6 +428,9 @@ from .BaseModule import BaseModule
 class ExampleModule(BaseModule):
     def __init__(self, name, display_name, icon, lang_manager, theme_manager):
         super().__init__(name, display_name, icon, lang_manager, theme_manager)
+        self.name = name
+        self.display_name = display_name
+        self.icon = icon
         # ... module-specific initialization ...
     def activate(self):
         pass
@@ -498,7 +506,79 @@ Notes
 
 ---
 
-## 13. Layer Selection Widget: LayerTreePicker (layer_dropdown.py)
+## 13. Centralized Settings Management
+
+All settings in the wild_code plugin follow a hierarchical, centralized architecture with consistent key naming and management patterns.
+
+### Settings Categories & Managers
+
+1. **Theme Settings** → `ThemeManager`
+   - Key: `"wild_code/theme"`
+   - Methods: `save_theme_setting()`, `load_theme_setting()`
+
+2. **Preferred Module Settings** → `SettingsLogic`
+   - Key: `"wild_code/preferred_module"`
+   - Methods: `apply_pending_changes()`, `load_original_settings()`
+
+3. **Module-Specific Settings** → `ThemeManager`
+   - Key Pattern: `"wild_code/modules/{module_name}/{setting_key}"`
+   - Methods: `save_module_setting()`, `load_module_setting()`
+
+4. **Utility Settings** → `SettingsManager`
+   - Key Pattern: `"wild_code/{utility_specific_key}"`
+   - Methods: `save_setting()`, `load_setting()`, `remove_setting()`
+
+### Settings Key Constants
+
+All settings keys are centralized in `constants/settings_keys.py`:
+- **Direct constants**: `THEME`, `PREFERRED_MODULE`, `MAIN_PROPERTY_LAYER_ID`
+- **Utility class**: `UtilitySettings` with methods for dynamic keys
+- **Consistent prefix**: All keys start with `"wild_code/"`
+
+### SettingsManager API
+
+The `SettingsManager` provides centralized access to utility settings:
+
+```python
+from ..utils.SettingsManager import SettingsManager
+
+# Generic settings methods
+SettingsManager.save_setting("wild_code/custom_key", value)
+value = SettingsManager.load_setting("wild_code/custom_key", default)
+SettingsManager.remove_setting("wild_code/custom_key")
+
+# Utility-specific convenience methods
+SettingsManager.save_shp_file_path(target_group, file_path)
+SettingsManager.save_shp_layer_mapping(layer_name, file_path)
+```
+
+### Rules for Settings Management
+
+1. **Always use "wild_code/" prefix** for all settings keys
+2. **Use appropriate manager** based on settings category:
+   - Theme → `ThemeManager`
+   - Preferred module → `SettingsLogic`
+   - Module-specific → `ThemeManager.save_module_setting()`
+   - Utility/other → `SettingsManager`
+3. **Never use direct QSettings()** in modules or utilities
+4. **Define keys in constants** when possible, use dynamic generation otherwise
+5. **Handle errors gracefully** - settings failures shouldn't break functionality
+
+### Examples
+
+```python
+# ✅ CORRECT - Using appropriate managers
+ThemeManager.save_theme_setting("dark")
+SettingsManager.save_shp_file_path("NEW_PROPERTIES", "/path/to/file.shp")
+
+# ❌ WRONG - Direct QSettings usage
+settings = QSettings()
+settings.setValue("wild_code/some_key", value)
+```
+
+This architecture ensures consistent settings management, easier testing, and maintainable code across the entire plugin.
+
+## 14. Layer Selection Widget: LayerTreePicker (layer_dropdown.py)
 
 Purpose
 - Provide a memory-friendly, reusable, hierarchical layer picker with a familiar dropdown UX.
@@ -564,7 +644,7 @@ Deprecated
 
 ---
 
-## 14. Icons & Themed Assets (REQUIRED)
+## 15. Icons & Themed Assets (REQUIRED)
 
 - All UI icons must be theme-aware and resolved centrally. Do not hardcode absolute file paths in widgets or modules.
 - Storage layout:
@@ -655,11 +735,38 @@ Example:
         # module-specific activation logic
 ```
 
+## Code Cleanup Patterns
+
+Recent code quality improvements have established these patterns for maintaining clean, performant code:
+
+### Direct API Usage Pattern
+- Use QMessageBox directly instead of wrapper methods (`QMessageBox.information()`, `QMessageBox.warning()`, `QMessageBox.critical()`)
+- Inline simple operations instead of creating unnecessary wrapper methods
+- Remove empty callback methods and unused parameters from method signatures
+
+### Streamlined Method Signatures
+- Remove progress_callback parameters when not needed
+- Simplify method signatures to only include essential parameters
+- Update all method calls and documentation when signatures change
+
+### Development Artifact Removal
+- Regularly review and remove methods leftover from development iterations
+- Document cleanup decisions in commit messages
+- Use `# CLEANUP:` comments for temporary notes about pending removals
+
+### Performance Optimization
+- Profile method call frequency and consider inlining frequently called simple methods
+- Remove method call overhead for basic operations like path manipulation
+- Maintain functionality while improving code efficiency
+
+---
+
 ## UI Responsiveness Optimization
 
 We use `QCoreApplication.processEvents()` in all major batch UI update loops (feed item insertion, filter widget updates, card updates, widget removals) across modules and widgets. This ensures the UI remains responsive and elements update smoothly during long-running operations or batch loads. It is especially useful for:
 - Preventing UI freezing during large data loads
 - Keeping scrollbars, buttons, and widgets interactive
 - Allowing progressive rendering of feed items and cards
+- Profile method call frequency; consider inlining frequently called simple methods to improve performance
 
 Use with care: excessive calls in tight loops may impact performance or cause re-entrancy issues. Tune or remove as needed for your deployment.
