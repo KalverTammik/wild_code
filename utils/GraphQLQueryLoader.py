@@ -2,6 +2,8 @@ import os
 from typing import Optional
 from ..constants.file_paths import QueryPaths  # This should be defined in file_paths.py for all query folders
 from ..languages.language_manager import LanguageManager
+from ..utils.url_manager import Module
+
 
 class GraphQLQueryLoader:
     """
@@ -26,12 +28,10 @@ class GraphQLQueryLoader:
         #print(f"[method load_query] Loading query for module: {module}, filename: {query_filename}")
         # Legacy alias handling for properties
         attr = module.upper()
-        if attr == 'PROPERTIES' and not hasattr(QueryPaths, 'PROPERTIES') and hasattr(QueryPaths, 'PROPERTIE'):
-            attr = 'PROPERTIE'
         if not hasattr(QueryPaths, attr):
             raise ValueError(self.lang.translate("unknown_module").format(module=module))
         folder = getattr(QueryPaths, attr)
-        #print(f"[method load_query] Query folder found: {folder}")
+        print(f"[method load_query] Query folder found: {folder}")
         query_path = os.path.join(folder, query_filename)
         #print(f"[method load_query] Loading GraphQL query from: {query_path}")  # Debug log
         #print(f"[method load_query] Query file exists: {os.path.exists(query_path)}")
@@ -40,12 +40,4 @@ class GraphQLQueryLoader:
         with open(query_path, 'r', encoding='utf-8') as f:
             return f.read()
 
-# Example QueryPaths (to be defined in constants/file_paths.py):
-# class QueryPaths:
-#     USER = 'queries/graphql/user'
-#     PROJECT = 'queries/graphql/projects'
-#     ...
 
-# Translation keys to add:
-# "unknown_module": "Unknown module: {module}"
-# "query_file_not_found": "Query file not found: {file}"

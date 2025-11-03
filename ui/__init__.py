@@ -1,1 +1,1 @@
-# ui module initializer
+# UI package

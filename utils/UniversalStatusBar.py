@@ -12,8 +12,21 @@ import sys
 import os
 
 # Handle imports for both standalone and plugin usage
-from ..widgets.theme_manager import ThemeManager
-from ..constants.file_paths import QssPaths
+import sys
+import os
+
+# Add the plugin root to the path
+plugin_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if plugin_root not in sys.path:
+    sys.path.insert(0, plugin_root)
+
+try:
+    from widgets.theme_manager import ThemeManager
+    from constants.file_paths import QssPaths
+except ImportError as e:
+    print(f"Import error in UniversalStatusBar: {e}")
+    # Re-raise to make the error visible
+    raise
 
 
 
@@ -102,14 +115,15 @@ class UniversalStatusBar:
                  maximum: int = 100,
                  stay_on_top: bool = True,
                  width: int = 400,
-                 height: int = 150,
+                 height: int = 130,
                  theme: str = None):
         self.title = title
         self.maximum = maximum
         self.stay_on_top = stay_on_top
         self.width = width
         self.height = height
-        self.current_theme = theme
+        self.current_theme = theme if theme is not None else 'light'
+        self.canceled = False  # Add cancellation flag
         
         self.widget = self._build_ui()
         self.progress_bar = self.widget.findChild(QProgressBar, "progressBar")
@@ -126,9 +140,9 @@ class UniversalStatusBar:
         self.text1_label.hide()
         self.text2_label.hide()
 
-        self.drag_pos = QPoint()
-        self.title_label.mousePressEvent = self._start_drag
-        self.title_label.mouseMoveEvent = self._do_drag
+        self.drag_pos = None
+        # Simple drag functionality - just set cursor
+        self.title_frame.setCursor(Qt.OpenHandCursor)
 
         flags = Qt.FramelessWindowHint | Qt.Tool
         if stay_on_top:
@@ -137,6 +151,9 @@ class UniversalStatusBar:
 
         self.widget.setAttribute(Qt.WA_TranslucentBackground)
         self.widget.setAttribute(Qt.WA_DeleteOnClose)
+
+        # Enable mouse tracking for drag functionality
+        self.widget.setMouseTracking(True)
 
         UniversalStatusBar.active_instances.add(self)
         self.widget.show()
@@ -154,11 +171,10 @@ class UniversalStatusBar:
     def _apply_theme_styling(self, widget: QWidget, theme: str = None):
         """Apply theme-aware styling using the centralized ThemeManager."""
         try:
-            print(f"Theme is {theme}")
             from ..constants.file_paths import StylePaths
             theme_dir = StylePaths.DARK if theme == 'dark' else StylePaths.LIGHT
             ThemeManager.apply_theme(widget, theme_dir, [QssPaths.UNIVERSAL_STATUS_BAR])
-        except Exception:
+        except Exception as e:
             # Fallback if theming system is not available
             pass
 
@@ -180,8 +196,9 @@ class UniversalStatusBar:
         title_frame = QFrame()
         title_frame.setObjectName("titleFrame")
         title_frame.setFrameStyle(QFrame.NoFrame)
+        title_frame.setFixedHeight(30)  # Reduce title bar height
         title_layout = QHBoxLayout(title_frame)
-        title_layout.setContentsMargins(10, 5, 10, 5)
+        title_layout.setContentsMargins(5, 1, 5, 1)
 
         title_label = QLabel(self.title)
         title_label.setObjectName("titleLabel")
@@ -195,6 +212,9 @@ class UniversalStatusBar:
         title_layout.addWidget(close_button)
 
         layout.addWidget(title_frame)
+
+        # Store reference to title_frame for drag functionality
+        self.title_frame = title_frame
 
         # Frosted content area with theme-appropriate tint
         if self.current_theme == 'dark':
@@ -230,7 +250,7 @@ class UniversalStatusBar:
 
         progress_bar = QProgressBar()
         progress_bar.setObjectName("progressBar")
-        progress_bar.setFixedHeight(20)
+        progress_bar.setFixedHeight(15)
         content_layout.addWidget(progress_bar)
 
         text1_label = QLabel("")
@@ -278,6 +298,7 @@ class UniversalStatusBar:
         QCoreApplication.processEvents()
 
     def close(self):
+        self.canceled = True  # Set cancellation flag when closed
         if self.widget:
             self.widget.hide()
             UniversalStatusBar.active_instances.discard(self)
@@ -286,17 +307,29 @@ class UniversalStatusBar:
             self.widget = None
         QCoreApplication.processEvents()
 
-    def _start_drag(self, event):
-        if event.button() == Qt.LeftButton:
+    def wasCanceled(self):
+        """Check if the progress dialog was canceled/closed by user (Qt-style naming)"""
+        return self.canceled
+
+    def mousePressEvent(self, event):
+        """Simple drag start"""
+        if self.title_frame and self.title_frame.geometry().contains(event.pos()) and event.button() == Qt.LeftButton:
             self.drag_pos = event.globalPos() - self.widget.frameGeometry().topLeft()
-            event.accept()
+            self.title_frame.setCursor(Qt.ClosedHandCursor)
+        super().mousePressEvent(event)
 
-    def _do_drag(self, event):
-        if event.buttons() & Qt.LeftButton:
+    def mouseMoveEvent(self, event):
+        """Simple drag move"""
+        if self.drag_pos is not None and event.buttons() & Qt.LeftButton:
             self.widget.move(event.globalPos() - self.drag_pos)
-            event.accept()
+        super().mouseMoveEvent(event)
 
-
+    def mouseReleaseEvent(self, event):
+        """Simple drag end"""
+        if event.button() == Qt.LeftButton and self.drag_pos is not None:
+            self.drag_pos = None
+            self.title_frame.setCursor(Qt.OpenHandCursor)
+        super().mouseReleaseEvent(event)
 
     def get_current_theme(self) -> str:
         return self.current_theme

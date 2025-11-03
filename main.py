@@ -41,20 +41,20 @@ class WildCodePlugin:
         session = SessionManager()
         session.load()
 
-        print(f"[DEBUG] Session loaded - isLoggedIn: {session.isLoggedIn()}, apiToken: {session.get_token() is not None}")
+        #print(f"[DEBUG] Session loaded - isLoggedIn: {session.isLoggedIn()}, apiToken: {session.get_token() is not None}")
 
         if not session.revalidateSession():
             print("[DEBUG] Session validation failed - showing login dialog")
             self._show_login_dialog()
             # Check if login was successful after dialog closes
             if self.login_successful:
-                print("[DEBUG] Login was successful - showing main dialog")
+                #print("[DEBUG] Login was successful - showing main dialog")
                 self._show_main_dialog()
                 self.login_successful = False  # Reset flag
             return
 
         if session.isLoggedIn():
-            print("[DEBUG] User is logged in - opening main dialog")
+            #print("[DEBUG] User is logged in - opening main dialog")
             self._show_main_dialog()
         else:
             print("[DEBUG] User not logged in - showing login dialog")
@@ -76,7 +76,7 @@ class WildCodePlugin:
 
     def _show_main_dialog(self):
         """Unified method to show main dialog."""
-        print("[DEBUG] Showing main dialog")
+        #print("[DEBUG] Showing main dialog")
         dlg = PluginDialog._instance
         if dlg is None or not dlg.isVisible():
             self.pluginDialog = PluginDialog()

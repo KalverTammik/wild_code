@@ -9,6 +9,9 @@ from .MembersView import MembersView
 from .ExtraInfoWidget import ExtraInfoFrame
 from .SimpleExtraInfoWidget import SimpleExtraInfoFrame
 from .InfoCardHeader import InfocardHeaderFrame
+from ..theme_manager import ThemeManager
+
+
 """ModuleFeedBuilder
 
 Responsibility: build card widgets only.
@@ -38,6 +41,20 @@ class ModuleFeedBuilder:
         card = QFrame()
         card.setObjectName("ModuleInfoCard")
         card.setProperty("compact", False)
+
+        # Real drop shadow (subtle)
+        shadow = QGraphicsDropShadowEffect(card)
+        shadow.setBlurRadius(20)
+        shadow.setOffset(0, 4)
+        # Set theme-appropriate shadow color
+        try:
+            theme = ThemeManager.load_theme_setting()
+            shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
+        except Exception:
+            shadow_color = QColor(0, 0, 0, 120)  # default to dark shadow
+        shadow.setColor(shadow_color)
+        card.setGraphicsEffect(shadow)
+
 
         main = QHBoxLayout(card)
         main.setContentsMargins(10, 10, 10, 10)
@@ -114,22 +131,8 @@ class ModuleFeedBuilder:
 
         main.addLayout(status_col)
 
-        # Real drop shadow (subtle)
-        shadow = QGraphicsDropShadowEffect(card)
-        shadow.setBlurRadius(20)
-        shadow.setOffset(0, 4)
-        # Set theme-appropriate shadow color
-        try:
-            from ..theme_manager import ThemeManager
-            theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
-            shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
-        except Exception:
-            shadow_color = QColor(0, 0, 0, 120)  # default to dark shadow
-        shadow.setColor(shadow_color)
-        card.setGraphicsEffect(shadow)
+
 
         return card
-
-    # Legacy add_items_to_feed shim removed (use progressive insertion at UI level)
 
 

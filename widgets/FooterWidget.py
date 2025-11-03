@@ -11,19 +11,9 @@ import datetime
 
 
 class FooterWidget(QWidget):
-    def retheme_footer(self):
-        """
-        Re-applies the correct theme and QSS to the footer, forcing a style refresh.
-        """
-        from ..widgets.theme_manager import ThemeManager
-        from ..constants.file_paths import QssPaths
-        ThemeManager.apply_module_style(self.findChild(QFrame, "footerWidgetFrame"), [QssPaths.FOOTER])
-        frame = self.findChild(QFrame, "footerWidgetFrame")
-        if frame:
-            frame.setStyleSheet(frame.styleSheet())
-            frame.style().unpolish(frame)
-            frame.style().polish(frame)
-            frame.update()
+
+
+
     def __init__(self, parent=None, show_left=True, show_right=True, compact=False):
         super().__init__(parent)
 
@@ -77,8 +67,13 @@ class FooterWidget(QWidget):
 
         # Apply QSS (your ThemeManager call)
 
-        ThemeManager.apply_module_style(frame, [QssPaths.FOOTER])
+        ThemeManager.apply_module_style(self, [QssPaths.FOOTER])
         
+    def retheme_footer(self):
+        """
+        Re-applies the correct theme and QSS to the footer, forcing a style refresh.
+        """
+        ThemeManager.apply_module_style(self, [QssPaths.FOOTER])
 
 
 class FooterLinksLabel(QLabel):

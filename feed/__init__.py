@@ -1,1 +1,1 @@
-# feed module initializer
+# Feed package

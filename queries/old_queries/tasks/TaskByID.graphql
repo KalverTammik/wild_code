@@ -1,7 +1,0 @@
-query task($id: ID!) {
-  task(id: $id) {
-    __typename
-    id
-    description
-        }
-      }

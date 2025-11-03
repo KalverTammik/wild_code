@@ -1,20 +1,27 @@
 # -*- coding: utf-8 -*-
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence
 from PyQt5.QtWidgets import QWidget, QComboBox, QListView, QSizePolicy, QHBoxLayout
+from qgis.gui import QgsCheckableComboBox  
 from PyQt5.QtCore import Qt, QCoreApplication, pyqtSignal
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+from PyQt5.QtGui import QColor
+
 import os
 from ..widgets.theme_manager import ThemeManager
-from ..constants.file_paths import QssPaths, StylePaths
+from ..constants.file_paths import QssPaths
+from PyQt5.QtWidgets import QWidget, QComboBox, QListView, QSizePolicy, QHBoxLayout
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+from PyQt5.QtWidgets import QPushButton  # NEW
+
+
+
+# --- helpers: combo inits ---
+DEFAULT_MAX_VISIBLE_ITEMS = 12
 
 class BaseFilterWidget(QWidget):
-    """
-    Ühine baasklass kõigile filter-widgetidele (Status, Type, Tags ...).
-
-    Ühtlustab:
-    - lazy load: ensure_loaded() → reload() → _populate()
-    - selection API: selected_ids(), set_selected_ids(ids)
-    - QGIS QgsCheckableComboBox tugi + fallback QComboBox checkable mudel.
-    - kompaktsed pillid (Maximum x Preferred) ja AdjustToContents fallback-combodele.
+    """Baasklass moodulipõhiste filter-widget'ite jaoks.
+    - Pakub lazy load, selection API, QGIS/fallback tugi.
+    - Alamklassid täidavad combod _populate() meetodis.
     """
     selectionChanged = pyqtSignal(list)
 
@@ -24,12 +31,13 @@ class BaseFilterWidget(QWidget):
         self._loaded = False
         self._debug = False
         self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
-        # Apply initial theme (MAIN + COMBOBOX) so subclasses do not need
-        # to duplicate ThemeManager calls in their __init__.
-        try:
-            self.retheme()
-        except Exception:
-            pass
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.COMBOBOX])
+
+
+    def retheme(self) -> None:
+
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.COMBOBOX])
+
 
     # --- lazy load ---
     def ensure_loaded(self) -> None:
@@ -47,52 +55,19 @@ class BaseFilterWidget(QWidget):
     def set_debug(self, enabled: bool) -> None:
         self._debug = bool(enabled)
 
-    # --- helpers: combo inits ---
-    DEFAULT_MAX_VISIBLE_ITEMS = 12
-
     def _init_checkable_combo(self, object_name: str = "", max_visible: int = None):
-        """
-    Eelistab QGIS QgsCheckableComboBox'i; fallback on tavaline QComboBox, mille popup on checkable.
-    Stiil rakendub läbi `ThemeManager` ja `main.qss`; vältime otse QSS-failide lugemist siin.
-    Tagastab (combo, uses_qgis: bool).
-        """
-    # Styling is applied via ThemeManager.apply_module_style and the
-    # widget's retheme() method; do not read QSS files here.
-        try:
-            from qgis.gui import QgsCheckableComboBox  # type: ignore
-            combo = QgsCheckableComboBox(self)
-            if object_name:
-                combo.setObjectName(object_name)
-            mv = max_visible if max_visible is not None else getattr(self, 'MAX_VISIBLE_ITEMS', self.DEFAULT_MAX_VISIBLE_ITEMS)
-            try:
-                combo.setMaxVisibleItems(int(mv))
-            except Exception:
-                pass
-            combo.view().setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-            # Styling is applied globally via ThemeManager.apply_module_style and
-            # the widget's retheme() method; avoid per-combo stylesheet overrides here.
-            return combo, True
-        except Exception:
-            combo = QComboBox(self)
-            if object_name:
-                combo.setObjectName(object_name)
-            combo.setView(QListView(combo))
-            combo.view().setAlternatingRowColors(True)
-            combo.setInsertPolicy(QComboBox.NoInsert)
-            combo.setEditable(False)
-            try:
-                combo.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-            except Exception:
-                pass
-            mv = max_visible if max_visible is not None else getattr(self, 'MAX_VISIBLE_ITEMS', self.DEFAULT_MAX_VISIBLE_ITEMS)
-            try:
-                combo.setMaxVisibleItems(int(mv))
-            except Exception:
-                pass
-            combo.view().setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-            # Styling is applied globally via ThemeManager.apply_module_style and
-            # the widget's retheme() method; avoid per-combo stylesheet overrides here.
-            return combo, False
+
+        """Loo ja tagasta checkable combo, eelistatult QgsCheckableComboBox.
+        - Määrab objectName ja maxVisibleItems (kui antud)."""
+
+        combo = QgsCheckableComboBox(self)
+        if object_name:
+            combo.setObjectName(object_name)
+        mv = max_visible if max_visible is not None else DEFAULT_MAX_VISIBLE_ITEMS
+        combo.setMaxVisibleItems(int(mv))
+        combo.view().setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        return combo
 
     def _set_row_checkstate(self, combo: QComboBox, row: int, state: int) -> None:
         try:
@@ -112,54 +87,7 @@ class BaseFilterWidget(QWidget):
             return Qt.Unchecked if st is None else int(st)
         except Exception:
             return Qt.Unchecked
-
-    # --- popup sizing helper ---
-    def _auto_adjust_combo_popup(self, combo: QComboBox) -> None:
-        """Ensure small combos show all items without an unnecessary scrollbar.
-        - If total items <= DEFAULT_MAX_VISIBLE_ITEMS: expand view height, disable scrollbar.
-        - Else: restore normal policy.
-        Safe no-op on errors.
-        """
-        try:
-            count = combo.count()
-            default_cap = getattr(self, 'DEFAULT_MAX_VISIBLE_ITEMS', 12)
-            view = combo.view()
-            if count and count <= default_cap:
-                try:
-                    combo.setMaxVisibleItems(count)
-                except Exception:
-                    pass
-                # Compute row height (fallback 24)
-                try:
-                    row_h = view.sizeHintForRow(0)
-                    if row_h <= 0:
-                        row_h = 24
-                except Exception:
-                    row_h = 24
-                extra = 8
-                try:
-                    margins = view.contentsMargins()
-                    extra += margins.top() + margins.bottom()
-                except Exception:
-                    pass
-                view.setMinimumHeight(row_h * count + extra)
-                try:
-                    view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-                except Exception:
-                    pass
-            else:
-                # Restore defaults for larger lists
-                try:
-                    combo.setMaxVisibleItems(default_cap)
-                except Exception:
-                    pass
-                try:
-                    view.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
+    
     # --- selection api (universaalne) ---
     def selected_ids(self) -> List[str]:
         """
@@ -212,61 +140,114 @@ class BaseFilterWidget(QWidget):
 
         self.selectionChanged.emit(list(ids_set))
 
-    def retheme(self) -> None:
-        """
-        Re-apply the module main QSS and refresh any combo widgets so they pick up
-        the new theme at runtime. This method is called by PluginDialog's
-        `_retheme_dynamic_children()` sweep when the user toggles theme.
-        """
-        try:
-            # Reapply both main (for general style) and centralized combobox styling
-            ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.COMBOBOX])
-        except Exception:
-            pass
-        # Re-apply accent glow to existing combos
-        try:
-            self._apply_combo_shadows()
-        except Exception:
-            pass
-        # Ensure padding so shadow isn't clipped
-        try:
-            self._ensure_shadow_padding()
-        except Exception:
-            pass
-
-    # --- visual enhancement: accent shadow (matches HeaderWidget search field) ---
     def _apply_combo_shadow(self, combo: QComboBox) -> None:
+        shadow = QGraphicsDropShadowEffect(combo)
+        combo.setGraphicsEffect(shadow)
+        shadow.setBlurRadius(14)
+        shadow.setXOffset(0)
+        shadow.setYOffset(1)
+        shadow.setColor(QColor(9, 144, 143, 60))
+
+    def _auto_adjust_combo_popup(self, combo: QComboBox) -> None:
+        """Adjust combo popup height to fit all items if within DEFAULT_MAX_VISIBLE_ITEMS,
+        otherwise limit to DEFAULT_MAX_VISIBLE_ITEMS with scrollbar."""
+
+        count = combo.count() 
+        view = combo.view()
+        if count and count <= DEFAULT_MAX_VISIBLE_ITEMS:
+            combo.setMaxVisibleItems(count)
+            row_h = view.sizeHintForRow(0)
+            if row_h <= 0:
+                row_h = 24
+            extra = 8
+            margins = view.contentsMargins()
+            extra += margins.top() + margins.bottom()
+            view.setMinimumHeight(row_h * count + extra)
+            view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        else:
+            combo.setMaxVisibleItems(DEFAULT_MAX_VISIBLE_ITEMS)
+            row_h = view.sizeHintForRow(0)
+            if row_h <= 0:
+                row_h = 24
+            extra = 8
+            margins = view.contentsMargins()
+            extra += margins.top() + margins.bottom()
+            view.setMinimumHeight(row_h * DEFAULT_MAX_VISIBLE_ITEMS + extra)
+            view.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+
+
+class FilterRefreshHelper:
+    """
+    Shared helper that creates a refresh button widget and handles its click.
+    Pass the module (owner) so we can clear filters and trigger reload.
+    """
+    def __init__(self, owner: QWidget):
+        self._owner = owner  # expected to have toolbar_area, reset_feed_session, feed_load_engine/process_next_batch
+
+    def make_filter_refresh_button(self, parent: Optional[QWidget] = None) -> QWidget:
+        """
+        Returns a QWidget container holding a styled round refresh QPushButton.
+        Safe to add into layouts that accept only widgets.
+        """
+        container = QWidget(parent)
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(0)
+
+        btn = QPushButton("✖", container)
+        btn.setObjectName("FeedRefreshButton")
+        btn.setAutoDefault(False)
+        btn.setDefault(False)
+        size_px = 28
+        btn.setFixedSize(size_px, size_px)
+        btn.setStyleSheet(
+            "color: #b0b0b0; font-size: 14px; background: transparent; border: 0px;"
+            f"border-radius: {int(size_px/2)}px; padding: 0px;"
+        )
+        btn.clicked.connect(self._on_refresh_clicked)  # type: ignore[attr-defined]
+        
+        layout.addWidget(btn)
+        return container
+
+    def _on_refresh_clicked(self):
+        """Hard refresh: reset session, clear filters, and trigger a fresh load."""
+        owner = self._owner
+        # Clear filters first
         try:
-            from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-            from PyQt5.QtGui import QColor
-            # Avoid stacking multiple effects: reuse if already shadow
-            eff = combo.graphicsEffect()
-            if eff and hasattr(eff, 'setBlurRadius') and isinstance(eff, QGraphicsDropShadowEffect):
-                shadow = eff  # reuse
+            toolbar = getattr(owner, 'toolbar_area', None)
+            if toolbar and hasattr(toolbar, 'filter_widgets'):
+                for _name, widget in list(toolbar.filter_widgets.items()):
+                    try:
+                        if hasattr(widget, 'set_selected_ids'):
+                            widget.set_selected_ids([])  # type: ignore[attr-defined]
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        # Reset preference flags if present
+        for flag in ('_status_preferences_loaded', '_type_preferences_loaded', '_tags_preferences_loaded'):
+            if hasattr(owner, flag):
+                try:
+                    setattr(owner, flag, False)
+                except Exception:
+                    pass
+
+        # Reset feed session
+        try:
+            if hasattr(owner, 'reset_feed_session') and callable(owner.reset_feed_session):
+                owner.reset_feed_session()
+        except Exception:
+            pass
+
+        # Trigger engine schedule or fallback batch
+        try:
+            eng = getattr(owner, 'feed_load_engine', None)
+            if eng and hasattr(eng, 'schedule_load'):
+                eng.schedule_load()
             else:
-                shadow = QGraphicsDropShadowEffect(combo)
-                combo.setGraphicsEffect(shadow)
-            # Unified accent color (teal) with subtle alpha; same as HeaderWidget searchEdit
-            shadow.setBlurRadius(14)
-            shadow.setXOffset(0)
-            shadow.setYOffset(1)
-            shadow.setColor(QColor(9, 144, 143, 60))
+                if hasattr(owner, 'process_next_batch') and callable(owner.process_next_batch):
+                    owner.process_next_batch()
         except Exception:
             pass
-
-    def _apply_combo_shadows(self) -> None:
-        try:
-            for combo in self.findChildren(QComboBox):
-                self._apply_combo_shadow(combo)
-        except Exception:
-            pass
-
-    def _ensure_shadow_padding(self) -> None:
-        """Guarantee minimal margins so drop shadows are visible (not tightly clipped)."""
-        lay = self.layout()
-        if isinstance(lay, QHBoxLayout):
-            l, t, r, b = lay.getContentsMargins()
-            # Desired minimal shadow margins
-            min_l, min_t, min_r, min_b = 4, 2, 4, 2
-            if l < min_l or t < min_t or r < min_r or b < min_b:
-                lay.setContentsMargins(max(l, min_l), max(t, min_t), max(r, min_r), max(b, min_b))

@@ -40,7 +40,7 @@ class TestUserDataDialog(QDialog):
         self.setWindowTitle(self.lang.translate("test_user_data_title"))
         self.setMinimumSize(400, 300)
         self.query_loader = GraphQLQueryLoader(self.lang)
-        self.api_client = APIClient(self.lang, SessionManager(), ConfigPaths.CONFIG)
+        self.api_client = APIClient( SessionManager(), ConfigPaths.CONFIG)
         self.layout = QVBoxLayout()
         self.result_label = QLabel(self.lang.translate("press_button_to_load"))
         self.layout.addWidget(self.result_label)

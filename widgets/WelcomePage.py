@@ -213,7 +213,7 @@ class LetterSection(QWidget):
 class WelcomePage(QWidget):
     openSettingsRequested = pyqtSignal()
 
-    def __init__(self, lang_manager=None, theme_manager=None, parent=None):
+    def __init__(self, lang_manager=None, parent=None):
         super().__init__(parent)
         self.setObjectName("WelcomePage")
         self.lang_manager = lang_manager
@@ -236,7 +236,7 @@ class WelcomePage(QWidget):
 
         # Initial text setup
         self.retranslate(self.lang_manager)
-        # Theme can be applied by parent/theme_manager if needed
+      
 
     def retranslate(self, lang_manager=None):
         if lang_manager is not None:

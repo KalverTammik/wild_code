@@ -1,7 +1,0 @@
-mutation updatePropertyIntendedUses($input: PropertyIntendedUsesInput!) {
-  updatePropertyIntendedUses(
-    input: $input
-  ) {
-    id
-  }
-}

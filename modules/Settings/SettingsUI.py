@@ -6,7 +6,7 @@ from .SettingsLogic import SettingsLogic
 from ...constants.file_paths import QssPaths
 from .cards.UserCard import UserCard
 from .cards.ModuleCard import ModuleCard
-from ...constants.module_names import PROPERTY_MODULE
+from ...constants.layer_constants import PROPERTY_TAG
 
 class SettingsUI(QWidget):
     """
@@ -17,19 +17,13 @@ class SettingsUI(QWidget):
     addShpClicked = pyqtSignal()
     addPropertyClicked = pyqtSignal()
     removePropertyClicked = pyqtSignal()
-    def __init__(self, lang_manager=None, theme_manager=None, theme_dir=None, qss_files=None):
+    def __init__(self, qss_files=None):
         super().__init__()
         from ...module_manager import SETTINGS_MODULE
         self.name = SETTINGS_MODULE
         # Ensure we always use LanguageManager
-        if lang_manager is None:
-            self.lang_manager = LanguageManager()
-        elif not hasattr(lang_manager, 'sidebar_button'):
-            language = getattr(lang_manager, 'language', None)
-            self.lang_manager = LanguageManager(language=language) if language else LanguageManager()
-        else:
-            self.lang_manager = lang_manager
-        self.theme_manager = theme_manager
+        
+        self.lang_manager = LanguageManager()
         # Logic layer
         self.logic = SettingsLogic()
         self._cards = []
@@ -68,14 +62,18 @@ class SettingsUI(QWidget):
         self._cards.append(user_card)
         self.cards_layout.insertWidget(0, user_card)
         # Apply card-specific theming if available
-        try:
-            ThemeManager.apply_module_style(user_card, [QssPaths.SETUP_CARD])
-        except Exception:
-            pass
+
+        ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
 
         # Build module-specific cards if already known
         if self._available_modules:
             self._build_module_cards()
+
+    def retheme_settings(self):
+ 
+        # Apply main module styling
+        ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
+
 
     def _build_user_setup_card(self) -> QWidget:
         card = UserCard(self.lang_manager)
@@ -211,24 +209,7 @@ class SettingsUI(QWidget):
     def get_widget(self):
         return self
 
-    def retheme_settings(self):
-        """
-        Re-applies the correct theme and QSS to the settings UI and setup cards.
-        """
-        if self.theme_manager:
-            try:
-                # Apply main module styling
-                ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
 
-            except Exception:
-                pass
-
-        # Each card manages its own SetupCard styling
-        for card in list(getattr(self, '_cards', [])) + list(getattr(self, '_module_cards', {}).values()):
-            try:
-                card.retheme()
-            except Exception:
-                ThemeManager.apply_module_style(card, [QssPaths.SETUP_CARD])
 
     def apply_pending_changes(self):
         self.logic.apply_pending_changes()
@@ -286,10 +267,22 @@ class SettingsUI(QWidget):
 
     def _on_layer_selected(self, layer):
         """Signal handler for layer selection in UserCard."""
+        # Remove tag from previously selected layer if it exists
+        if self._selected_property_layer and self._selected_property_layer != layer:
+            try:
+                self._selected_property_layer.setCustomProperty(PROPERTY_TAG, None)
+            except Exception as e:
+                print(f"Warning: Could not remove property tag from previous layer: {e}")
+
         if layer:
-            print(f"DEBUG: Layer selected in UserCard: {layer.name()}")
+            #print(f"DEBUG: Layer selected in UserCard: {layer.name()}")
             # Store the selected layer for use in property operations
             self._selected_property_layer = layer
+            # Set the property tag on the selected layer
+            try:
+                layer.setCustomProperty(PROPERTY_TAG, "true")
+            except Exception as e:
+                print(f"Warning: Could not set property tag on layer: {e}")
             # Set pending layer selection (will be saved on confirm)
             self.logic.set_pending_property_layer_id(layer.id())
             # Update dirty state
@@ -316,7 +309,7 @@ class SettingsUI(QWidget):
 
     def _on_add_shp_clicked(self):
         """Signal handler for Add SHP file button."""
-        print("DEBUG: Add SHP file button clicked")
+        #print("DEBUG: Add SHP file button clicked")
         # Use the clean SHPLayerLoader pattern
         from ...utils.SHPLayerLoader import SHPLayerLoader
 
@@ -331,7 +324,7 @@ class SettingsUI(QWidget):
     def _open_add_property_dialog(self):
         """Open the Add Property dialog after SHP loading"""
         try:
-            from ...widgets.AddPropertyDialog import AddPropertyDialog
+            from ...widgets.AddUpdatePropertyDialog import AddPropertyDialog
 
             dialog = AddPropertyDialog(self)
             dialog.propertyAdded.connect(self._on_property_from_dialog_added)
@@ -382,15 +375,6 @@ class SettingsUI(QWidget):
         except Exception:
             return self.logic.has_unsaved_changes()
 
-    def get_selected_property_layer(self):
-        """Get the currently selected property layer from UserCard."""
-        if self._user_card:
-            return self._user_card.get_selected_layer()
-        return None
-
-    def get_main_property_layer(self):
-        """Get the main property layer (same as selected property layer)."""
-        return self.get_selected_property_layer()
 
     def set_main_property_layer(self, layer):
         """Set the main property layer."""
@@ -419,6 +403,6 @@ class SettingsUI(QWidget):
             original_layer_id = self.logic.get_original_property_layer_id()
             if original_layer_id and self._user_card:
                 self._user_card.layer_selector.setSelectedLayerId(original_layer_id)
-                print(f"Applied original property layer ID: {original_layer_id}")
+                #print(f"Applied original property layer ID: {original_layer_id}")
         except Exception as e:
             print(f"Error applying original layer selection: {e}")

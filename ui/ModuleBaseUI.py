@@ -12,12 +12,11 @@ Põhimõtted:
 from typing import Optional, Callable
 
 from PyQt5.QtCore import Qt, QTimer, QCoreApplication, QEvent
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 
 from ..widgets.DataDisplayWidgets.ModuleFeedBuilder import ModuleFeedBuilder
-from ..ui.ToolbarArea import ToolbarArea
+from ..ui.ToolbarArea import ModuleToolbarArea
 from ..widgets.FeedCounterWidget import FeedCounterWidget
-from ..widgets.OverdueDueSoonPillsWidget import OverdueDueSoonPillsWidget
 from .mixins.dedupe_mixin import DedupeMixin
 from .mixins.feed_counter_mixin import FeedCounterMixin
 from .mixins.progressive_load_mixin import ProgressiveLoadMixin
@@ -25,8 +24,8 @@ from ..feed.feed_load_engine import FeedLoadEngine
 from ..widgets.theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
 from ..utils.logger import debug as log_debug
-import traceback
 
+OVERDUE_PILLS_FRAME = None
 
 class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget):
     """Unified base UI for module feeds.
@@ -45,6 +44,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
 
     PREFETCH_PX: int = 300  # default; ProgressiveLoadMixin also uses this
 
+
     def __init__(self, parent: Optional[QWidget] = None, lang_manager=None) -> None:
         QWidget.__init__(self, parent)
         DedupeMixin.__init__(self)
@@ -57,10 +57,18 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
 
         # Layout scaffold
         self.layout = QVBoxLayout(self)
-        self.toolbar_area = ToolbarArea(self)
+        # Use a real toolbar container with left/right slots
+        self.toolbar_area = ModuleToolbarArea(self)
         self.display_area = QWidget(self)
         self.footer_area = QWidget(self)
         self.layout.addWidget(self.toolbar_area)
+
+        # Optional: toolbar internal spacing
+        toolbar_layout = QHBoxLayout()
+        toolbar_layout.setContentsMargins(4, 2, 4, 2)
+        toolbar_layout.setSpacing(6)
+        self.toolbar_area.setLayout(toolbar_layout)
+
         self.layout.addWidget(self.display_area, 1)
         self.layout.addWidget(self.footer_area)
         self.display_area.setLayout(QVBoxLayout())
@@ -69,57 +77,14 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         footer_layout.setContentsMargins(4, 2, 4, 2)
         footer_layout.setSpacing(6)
         self.footer_area.setLayout(footer_layout)
+        # Place feed counter in footer
         self.feed_counter = FeedCounterWidget(self.footer_area)
         self.footer_area.layout().addWidget(self.feed_counter)
-        # Overdue / due soon pills now migrate to toolbar (right side) next to refresh
-        self.overdue_pills = None
 
-        # Verbose flag: when True, short debug prints go to stdout
+                # Verbose flag: when True, short debug prints go to stdout
         self.verbose = False
 
         self._activated = False
-
-        # Add refresh button & pills (right side)
-        try:
-            # Use a cross symbol to indicate cancel/clear action visually
-            self._refresh_button = QPushButton("✖")
-            self._refresh_button.setObjectName("FeedRefreshButton")
-            # Prevent button from being triggered by Return key
-            self._refresh_button.setAutoDefault(False)
-            self._refresh_button.setDefault(False)
-            # Make the cross less visually dominant and the button circular.
-            # Use a fixed square size and a border-radius = half size to get a round button.
-            try:
-                size_px = 28
-                self._refresh_button.setFixedSize(size_px, size_px)
-                # lighter glyph, small font, transparent background and round shape
-                self._refresh_button.setStyleSheet(
-                    "color: #b0b0b0; font-size: 14px; background: transparent; border: 0px;"
-                    f"border-radius: {int(size_px/2)}px; padding: 0px;"
-                )
-                self._refresh_button.setFlat(True)
-                # Store original style for hover revert and enable hover behavior
-                try:
-                    self._refresh_button._orig_fixed_size = (size_px, size_px)
-                    self._refresh_button._orig_style = self._refresh_button.styleSheet()
-                    self._refresh_button._orig_text = self._refresh_button.text()
-                    # Install event filter so we can emulate themeSwitchButton hover behavior
-                    self._refresh_button.installEventFilter(self)
-                except Exception:
-                    pass
-            except Exception:
-                pass
-            self._refresh_button.clicked.connect(self._on_refresh_clicked)  # type: ignore[attr-defined]
-            # Create pills widget owned by toolbar for visual proximity (placed just left of refresh)
-            try:
-                self.overdue_pills = OverdueDueSoonPillsWidget(self.toolbar_area, self.lang_manager)
-            except Exception:
-                self.overdue_pills = None
-            if self.overdue_pills:
-                self.toolbar_area.add_right(self._refresh_button)
-            self.toolbar_area.add_right(self.overdue_pills)
-        except Exception:
-            pass
 
     def set_verbose(self, enabled: bool) -> None:
         self.verbose = bool(enabled)
@@ -132,39 +97,12 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         if self._activated:
             return
         self._activated = True
-        # Start with a fresh feed session (dedupe, buffer, pagination) before first fetch
-        try:
-            self.reset_feed_session()
-        except Exception:
-            try:
-                print("[FeedSession] reset_feed_session failed during activate")
-            except Exception:
-                pass
-        try:
-            if hasattr(self, 'status_filter') and self.status_filter:
-                self.status_filter.ensure_loaded()
-                # Load and apply saved status preferences if the method exists
-                if hasattr(self, '_load_and_apply_status_preferences'):
-                    self._load_and_apply_status_preferences()
-        except Exception:
-            pass
-        try:
-            if hasattr(self, 'type_filter') and self.type_filter:
-                self.type_filter.ensure_loaded()
-                # Load and apply saved type preferences if the method exists
-                if hasattr(self, '_load_and_apply_type_preferences'):
-                    self._load_and_apply_type_preferences()
-        except Exception:
-            pass
-        try:
-            if hasattr(self, 'tags_filter') and self.tags_filter:
-                self.tags_filter.ensure_loaded()
-                # Load and apply saved tags preferences if the method exists
-                if hasattr(self, '_load_and_apply_tags_preferences'):
-                    self._load_and_apply_tags_preferences()
-        except Exception:
-            pass
+
+        # Reset feed session before first fetch
+        self.reset_feed_session()
+
         self._connect_scroll_signals()
+        # self.setup_overdue_pills()  # Removed setup_overdue_pills call
 
     def deactivate(self) -> None:
         """Deactivate and optionally cancel engine work."""
@@ -395,14 +333,10 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         try:
             layout = getattr(self, 'feed_layout', None)
             loaded_now = (layout.count() - 2) if layout and layout.count() > 2 else 0
-            print(f"[BatchSummary] batch_items={len(items)} buffered={len(filtered)} loaded_now={loaded_now} duplicates_skipped={getattr(self,'_duplicate_skip_count',0)} seen={len(getattr(self,'_seen_item_ids',[]))} token={id(getattr(self,'_dedupe_session_token',None))}")
+            #print(f"[BatchSummary] batch_items={len(items)} buffered={len(filtered)} loaded_now={loaded_now} duplicates_skipped={getattr(self,'_duplicate_skip_count',0)} seen={len(getattr(self,'_seen_item_ids',[]))} token={id(getattr(self,'_dedupe_session_token',None))}")
         except Exception:
             pass
         return filtered
-
-    # Scroll handlers -> inherited from ProgressiveLoadMixin
-
-    # Counter helpers -> inherited from FeedCounterMixin
 
     def clear_feed(self, feed_layout, empty_state: Optional[QWidget] = None) -> None:
         if getattr(self, '_clearing_feed', False):
@@ -424,8 +358,6 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             self._update_feed_counter_live()
         except Exception:
             pass
-
-    # Progressive load helpers -> inherited from ProgressiveLoadMixin
 
     def reset_feed_session(self):
         """Hard reset before (re)opening a feed: clears UI cards, dedupe, engine buffer, and pagination."""
@@ -460,7 +392,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             except Exception:
                 pass
         try:
-            print(f"[FeedSession] reset complete; seen={len(getattr(self,'_seen_item_ids', []))}")
+            #print(f"[FeedSession] reset complete; seen={len(getattr(self,'_seen_item_ids', []))}")
+            pass
         except Exception:
             pass
 
@@ -544,7 +477,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         try:
             from qgis.core import QgsSettings
             s = QgsSettings()
-            key = f"wild_code/modules/{self.NAME}/preferred_statuses"
+            module_key = getattr(self, 'name', self.__class__.__name__)
+            key = f"wild_code/modules/{module_key}/preferred_statuses"
             log_debug(f"[{self.__class__.__name__}] Loading settings from key: {key}")
             preferred_statuses = s.value(key, "") or ""
             log_debug(f"[{self.__class__.__name__}] Raw settings value: '{preferred_statuses}'")
@@ -563,58 +497,17 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
     # Type Preferences Management
     # ------------------------------------------------------------------
     def _load_and_apply_type_preferences(self):
-        """Load saved type preferences and apply them to the type filter.
-        
-        This is a generic implementation that works for any module with a type_filter.
-        Subclasses can override this method if they need custom behavior.
-        """
-        log_debug(f"[{self.__class__.__name__}] _load_and_apply_type_preferences called")
-        
+        """Load and apply type preferences."""
         if not hasattr(self, 'type_filter') or not self.type_filter:
-            log_debug(f"[{self.__class__.__name__}] No type_filter found")
             return
-        
-        # Check if type filter is loaded
+
         if not getattr(self.type_filter, '_loaded', False):
-            log_debug(f"[{self.__class__.__name__}] Type filter not loaded yet, deferring preferences loading")
-            # Connect to selectionChanged signal to load preferences when filter is ready
-            # Only connect if not already connected
-            if not getattr(self, '_type_filter_signal_connected', False):
-                try:
-                    self.type_filter.selectionChanged.connect(self._on_type_filter_loaded)
-                    self._type_filter_signal_connected = True
-                    log_debug(f"[{self.__class__.__name__}] Connected to type filter selectionChanged signal")
-                except Exception as e:
-                    log_debug(f"[{self.__class__.__name__}] Failed to connect to selectionChanged: {e}")
-            return
-        
-        # Prevent loading multiple times
-        if getattr(self, '_type_preferences_loaded', False):
-            log_debug(f"[{self.__class__.__name__}] Type preferences already loaded, skipping")
-            return
-            
-        try:
-            # TypeFilterWidget should already be loaded when filters are first used
-            # Load saved type preferences for this module
-            preferred_types = self._load_type_preferences_from_settings()
-            log_debug(f"[{self.__class__.__name__}] Loaded type preferences from settings: {preferred_types}")
-            
-            if preferred_types:
-                log_debug(f"[{self.__class__.__name__}] Applying saved type preferences: {preferred_types}")
-                # Set the selected IDs on the type filter
-                self.type_filter.set_selected_ids(list(preferred_types))
-                # The selectionChanged signal will be emitted automatically, triggering filter updates
-            else:
-                log_debug(f"[{self.__class__.__name__}] No saved type preferences found")
-                
-        except Exception as e:
-            log_debug(f"[{self.__class__.__name__}] Error loading type preferences: {e}")
-            import traceback
-            log_debug(f"[{self.__class__.__name__}] Traceback: {traceback.format_exc()}")
-        
-        # Mark as loaded to prevent multiple calls
-        self._type_preferences_loaded = True
-        log_debug(f"[{self.__class__.__name__}] Type preferences loading complete")
+            self.type_filter.ensure_loaded()
+
+        # Load preferences from settings
+        preferences = self._load_type_preferences_from_settings()
+        if preferences:
+            self.type_filter.set_selected_ids(preferences)
 
     def _on_type_filter_loaded(self):
         """Called when the type filter finishes loading for the first time."""
@@ -639,7 +532,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         try:
             from qgis.core import QgsSettings
             s = QgsSettings()
-            key = f"wild_code/modules/{self.NAME}/preferred_types"
+            module_key = getattr(self, 'name', self.__class__.__name__)
+            key = f"wild_code/modules/{module_key}/preferred_types"
             log_debug(f"[{self.__class__.__name__}] Loading type settings from key: {key}")
             preferred_types = s.value(key, "") or ""
             log_debug(f"[{self.__class__.__name__}] Raw type settings value: '{preferred_types}'")
@@ -734,7 +628,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         try:
             from qgis.core import QgsSettings
             s = QgsSettings()
-            key = f"wild_code/modules/{self.NAME}/preferred_tags"
+            module_key = getattr(self, 'name', self.__class__.__name__)
+            key = f"wild_code/modules/{module_key}/preferred_tags"
             log_debug(f"[{self.__class__.__name__}] Loading tags settings from key: {key}")
             preferred_tags = s.value(key, "") or ""
             log_debug(f"[{self.__class__.__name__}] Raw tags settings value: '{preferred_tags}'")

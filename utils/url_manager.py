@@ -7,21 +7,44 @@ import webbrowser
 class Module(Enum):
     PROJECT = "project"
     CONTRACT = "contract"
-    USER = "user"
-    # lisa siia uued moodulid
+    COORDINATION = "coordination"
+    LETTER = "letter"
+    SPECIFICATION = "specification"
+    EASEMENT = "easement"
+    ORDINANCE = "ordinance"
+    SUBMISSION = "submission"    
+    TAGS = "tags"
+    STATUSES = "statuses"
 
-    # valikuline ebaregulaarne mitmus – vaikimisi lisame "s"
-    _PLURALS = {
-        # "property": "properties",  # kui tekib ebaregulaarne
-    }
+    # user related
+    USER = "user"
+
+    # task related modules
+    ASBUILT = "task"
+    WORKS = "works"
+    TASK = "task"
+
+    # Properties related
+    PROPERTIE = "propertie"
+    PROPERTY = "property"
+
+    SETTINSGS = "setting"
+
+    HOME = "home"
+
 
     def singular(self, upper: bool = False) -> str:
         s = self.value
         return s.upper() if upper else s
 
     def plural(self, upper: bool = False) -> str:
-        base = self.value
-        plural = self._PLURALS.get(base, base + "s")
+        # Special cases for irregular plurals
+        plurals = {
+            Module.PROPERTY: "properties",
+            Module.CONTRACT: "contracts", 
+            Module.PROJECT: "projects",
+        }
+        plural = plurals.get(self.value, self.value + "s")
         return plural.upper() if upper else plural
 
     # mugav lühike API:
@@ -40,14 +63,16 @@ class WebModules:
     PROJECTS = '/projects/'
     CONTRACTS = '/contracts/'
     USERS = '/users/'
+    PROPERTIES = '/properties/'
     _module_paths = {
         Module.PROJECT: PROJECTS,
         Module.CONTRACT: CONTRACTS,
         Module.USER: USERS,
+        Module.PROPERTY: PROPERTIES,
     }
 
     @classmethod
-    def get_module_path(cls, module: Module) -> str:
+    def get_modules_webpath(cls, module: Module) -> str:
         """Get the URL path for a given module."""
         if module not in cls._module_paths:
             raise ValueError(f"Invalid module name: {module}")
@@ -63,11 +88,11 @@ class OpenLink:
 
     def web_link_by_module(self, module: Module) -> str:
         """Return the full web link for a module."""
-        return f"{self.web_base.rstrip('/')}" + WebModules.get_module_path(module)
+        return f"{self.web_base.rstrip('/')}" + WebModules.get_modules_webpath(module)
 
     def api_link_by_module(self, module: Module) -> str:
         """Return the full API link for a module."""
-        return f"{self.api_base.rstrip('/')}" + WebModules.get_module_path(module)
+        return f"{self.api_base.rstrip('/')}" + WebModules.get_modules_webpath(module)
 
 
 class WebLinks:

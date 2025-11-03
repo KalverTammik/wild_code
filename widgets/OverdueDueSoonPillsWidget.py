@@ -13,22 +13,29 @@ from typing import Optional, Dict, Any, List
 
 from ..utils.api_client import APIClient
 from ..languages.language_manager import LanguageManager
+from datetime import datetime, timedelta
+from ..widgets.theme_manager import ThemeManager
 
+# Legacy module-level state (kept for compatibility; instance methods use self.*)
+OVERDUE_BTN = None
+DUE_SOON_BTN = None
+IS_LOADING = False
+OVERDUE_ACTIVE = False
+DUE_SOON_ACTIVE = False
 
 class OverdueDueSoonPillsWidget(QWidget):
     # Emitted when user clicks pills (container will handle applying filters)
     overdueClicked = pyqtSignal()
     dueSoonClicked = pyqtSignal()
 
-    def __init__(self, parent: Optional[QWidget] = None, lang_manager=None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setObjectName("OverdueDueSoonPillsWidget")
         self._is_loading = False
-        self._resolved_due_column: Optional[str] = None  # column variant that worked for counts
         self._days_due_soon: int = 3
         self._overdue_active = False
         self._due_soon_active = False
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()  # Ensure _lang is initialized
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(1, 1, 1, 1)
@@ -50,7 +57,7 @@ class OverdueDueSoonPillsWidget(QWidget):
         self.group.setLayout(pills_layout)
         outer.addWidget(self.group)
 
-        self.overdue_btn = QPushButton("0", self.group)
+        self.overdue_btn = QPushButton(self.group)
         self.overdue_btn.setObjectName("PillOverdue")
         # Prevent button from being triggered by Return key
         self.overdue_btn.setAutoDefault(False)
@@ -58,7 +65,7 @@ class OverdueDueSoonPillsWidget(QWidget):
         self.overdue_btn.setCursor(Qt.PointingHandCursor)
         self.overdue_btn.clicked.connect(self.overdueClicked.emit)  # type: ignore
 
-        self.due_soon_btn = QPushButton("0", self.group)
+        self.due_soon_btn = QPushButton(self.group)
         self.due_soon_btn.setObjectName("PillDueSoon")
         # Prevent button from being triggered by Return key
         self.due_soon_btn.setAutoDefault(False)
@@ -69,9 +76,11 @@ class OverdueDueSoonPillsWidget(QWidget):
         pills_layout.addWidget(self.overdue_btn)
         pills_layout.addWidget(self.due_soon_btn)
 
+        self.overdue_btn.setText("…")
+        self.due_soon_btn.setText("…")
+
         # Apply initial styles based on current theme
         try:
-            from ..widgets.theme_manager import ThemeManager
             initial_theme = ThemeManager.load_theme_setting()
         except Exception:
             initial_theme = "light"
@@ -136,142 +145,47 @@ class OverdueDueSoonPillsWidget(QWidget):
         except Exception:
             pass
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+    def load_first_overdue_by_module(self, module) -> None:
+        if IS_LOADING:
+            return
+
+        print(f"[OverdueDueSoonPillsWidget] Refreshing counts for module: {module.value.capitalize() + 's'}")
+
+        IS_LOADING = True
+
+        def apply(overdue_total, due_soon_total):
+            self.set_counts(overdue_total, due_soon_total)
+            IS_LOADING = False
+
+        overdue_total, due_soon_total = OverdueDueSoonPillsUtils.refresh_counts_for_module(module)
+        
+        QTimer.singleShot(0, lambda: apply(overdue_total, due_soon_total))
+
     def set_counts(self, overdue: int, due_soon: int) -> None:
-        try:
-            self.overdue_btn.setText(str(overdue))
-            self.due_soon_btn.setText(str(due_soon))
-        except Exception:
-            pass
+        """Update this widget's pill labels with counts."""
+        self.overdue_btn.setText(str(overdue))
+        self.due_soon_btn.setText(str(due_soon))
 
-    # ------------------------------------------------------------------
-    # Data refresh
-    # ------------------------------------------------------------------
-    def refresh_counts_for_projects(self, lang_manager=None, days_due_soon: int = 3) -> None:
-        if self._is_loading:
-            return
-        self._is_loading = True
-        self._days_due_soon = days_due_soon
-        if lang_manager:
-            self._lang = lang_manager
-        try:
-            self.overdue_btn.setText("…")
-            self.due_soon_btn.setText("…")
-        except Exception:
-            pass
-        try:
-            api = APIClient(self._lang)
-        except Exception:
-            self._is_loading = False
-            return
-
-        today = datetime.utcnow().date()
-        soon = today + timedelta(days=days_due_soon)
-        today_s = today.isoformat()
-        soon_s = soon.isoformat()
-
-        query = (
-            "query ProjectsCount($first:Int,$where: QueryProjectsWhereWhereConditions){"
-            " projects(first:$first, where:$where){ pageInfo{ total } edges{ node { id } } } }"
-        )
-
-        def try_fetch(where_obj: Dict[str, Any]) -> Optional[int]:
-            try:
-                data = api.send_query(query, {"first": 1, "where": where_obj}) or {}
-                root = data.get("projects") or {}
-                page = root.get("pageInfo") or {}
-                total = page.get("total")
-                if isinstance(total, int):
-                    return total
-            except Exception:
-                pass
-            return None
-
-        column_candidates: List[str] = ["DUE_AT", "dueAt", "DUEAT"]
-        lt_ops = ["LT", "lt"]
-        gte_ops = ["GTE", "gte"]
-        lte_ops = ["LTE", "lte"]
-
-        overdue_total: Optional[int] = None
-        due_soon_total: Optional[int] = None
-
-        for col in column_candidates:
-            if overdue_total is not None:
-                break
-            for op in lt_ops:
-                where = {"AND": [{"column": col, "operator": op, "value": today_s}]}
-                overdue_total = try_fetch(where)
-                if overdue_total is not None:
-                    self._resolved_due_column = col
-                    break
-
-        for col in column_candidates:
-            if due_soon_total is not None:
-                break
-            for gte in gte_ops:
-                if due_soon_total is not None:
-                    break
-                for lte in lte_ops:
-                    where = {"AND": [
-                        {"column": col, "operator": gte, "value": today_s},
-                        {"column": col, "operator": lte, "value": soon_s},
-                    ]}
-                    due_soon_total = try_fetch(where)
-                    if due_soon_total is not None:
-                        if not self._resolved_due_column:
-                            self._resolved_due_column = col
-                        break
-
-        if overdue_total is None:
-            overdue_total = 0
-        if due_soon_total is None:
-            due_soon_total = 0
-
-        def apply():
-            self.set_counts(overdue_total or 0, due_soon_total or 0)
-            self._is_loading = False
-
-        QTimer.singleShot(0, apply)
-
-    # Helpers consumed by module UIs
-    def resolved_due_column(self) -> Optional[str]:
-        return self._resolved_due_column
-
-    def build_overdue_where(self, base_and: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
-        col = self._resolved_due_column or "DUE_AT"
-        today = datetime.utcnow().date().isoformat()
-        and_list: List[Dict[str, Any]] = list(base_and) if base_and else []
-        and_list.append({"column": col, "operator": "LT", "value": today})
-        return {"AND": and_list}
-
-    def build_due_soon_where(self, base_and: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
-        col = self._resolved_due_column or "DUE_AT"
-        today = datetime.utcnow().date()
-        soon = today + timedelta(days=self._days_due_soon)
-        and_list: List[Dict[str, Any]] = list(base_and) if base_and else []
-        and_list.extend([
-            {"column": col, "operator": "GTE", "value": today.isoformat()},
-            {"column": col, "operator": "LTE", "value": soon.isoformat()},
-        ])
-        return {"AND": and_list}
 
     # --- Active state management ---
     def set_overdue_active(self, active: bool) -> None:
-        self._overdue_active = active
+
+        OVERDUE_ACTIVE = active
         self._update_button_style(self.overdue_btn, active, is_overdue=True)
 
     def set_due_soon_active(self, active: bool) -> None:
-        self._due_soon_active = active
+        DUE_SOON_ACTIVE = active
         self._update_button_style(self.due_soon_btn, active, is_overdue=False)
 
     def _update_button_style(self, btn: QPushButton, active: bool, is_overdue: bool) -> None:
-        try:
-            from ..widgets.theme_manager import ThemeManager
-            theme = ThemeManager.load_theme_setting()
-        except Exception:
+        
+        theme = ThemeManager.load_theme_setting()
+
+        if not theme:
             theme = "light"
+
+        if btn is None:
+            return
 
         if theme == "dark":
             base_color = "#b71c1c" if is_overdue else "#f57f17"
@@ -304,4 +218,138 @@ class OverdueDueSoonPillsWidget(QWidget):
                 background: {hover_color};
             }}
         """)
+
+
+class UIControllers:
+
+    @staticmethod
+    def build_query(module) -> str:
+        base_name = module.value
+        capitalized_name = base_name.capitalize() + "s"
+        plural_name = base_name + "s"
+        q = f"query {capitalized_name}Count($first:Int,$where: Query{capitalized_name}WhereWhereConditions)"
+        query = (
+            f"{q+"{"}"
+            f" {plural_name}(first:$first, where:$where){{ pageInfo{{ total }} edges{{ node {{ id }} }} }} }}"
+        )
+        return query
+
+
+    @staticmethod
+    def try_fetch(module, where_obj: Dict[str, Any]) -> Optional[int]:
+        try:
+            api = APIClient()
+        except Exception:
+            OverdueDueSoonPillsWidget._is_loading = False
+            return
+
+        plural_name = module.value + "s"
+        try:
+            query = UIControllers.build_query(module)
+            data = api.send_query(query, {"first": 1, "where": where_obj}) or {}
+            root = data.get(plural_name) or {}
+            page = root.get("pageInfo") or {}
+            total = page.get("total")
+            if isinstance(total, int):
+                return total
+        except Exception:
+            pass
+        return None
+
+
+
+class OverdueDueSoonPillsLogic:
+    """
+    Handles the logic and state management for the OverdueDueSoonPillsWidget.
+    """
+    @staticmethod
+    def set_counts(overdue_values, btn1, btn2):
+        btn1.setText(str(overdue_values[0]))
+        btn2.setText(str(overdue_values[1]))
+
+
+class OverdueDueSoonPillsUtils:
+    """
+    Contains shared utility functions for the OverdueDueSoonPillsWidget.
+    """
+
+    _due_at_column = "DUE_AT"
+    _days_due_soon = 3
+
+    @staticmethod
+    def _normalize_and_list(base_query):
+        """Return a well-formed AND list from optional base_query.
+        Accepts list[dict], dict, or None. Any other type returns empty list.
+        This avoids accidental list(str) behavior producing per-character entries.
+        """
+        if base_query is None:
+            return []
+        if isinstance(base_query, list):
+            # Copy to avoid mutating caller's list
+            return [x for x in base_query if isinstance(x, dict)]
+        if isinstance(base_query, dict):
+            return [base_query]
+        # Unknown type; ignore to keep schema valid
+        return []
+
+    @staticmethod
+    def build_overdue_where(base_query=None):
+        today = datetime.now().date().isoformat()
+        and_list = OverdueDueSoonPillsUtils._normalize_and_list(base_query)
+        and_list.append({"column": OverdueDueSoonPillsUtils._due_at_column, "operator": "LT", "value": today})
+        return {"AND": and_list}
+
+    @staticmethod
+    def build_due_soon_where(base_query=None, days=None):
+        # Keep backward compatibility: if callers pass ("DUE_AT", 3) we'll ignore the string
+        # and use provided days to override the default window.
+        today = datetime.now().date().isoformat()
+        days_window = days if isinstance(days, int) and days > 0 else OverdueDueSoonPillsUtils._days_due_soon
+        soon = (datetime.now().date() + timedelta(days=days_window)).isoformat()
+        and_list = OverdueDueSoonPillsUtils._normalize_and_list(base_query)
+        and_list.extend([
+            {"column": OverdueDueSoonPillsUtils._due_at_column, "operator": "GTE", "value": today},
+            {"column": OverdueDueSoonPillsUtils._due_at_column, "operator": "LTE", "value": soon},
+        ])
+        return {"AND": and_list}
+
+    @staticmethod
+    def refresh_counts_for_module(module):
+        api_client = APIClient()
+        today = datetime.now().date()
+        soon = today + timedelta(days=OverdueDueSoonPillsUtils._days_due_soon)
+        today_s = today.isoformat()
+        soon_s = soon.isoformat()
+
+        base_name = module.value
+        capitalized_name = base_name.capitalize() + "s"
+        plural_name = base_name + "s"
+        q = f"query {capitalized_name}Count($first:Int,$where: Query{capitalized_name}WhereWhereConditions)"
+        query = (
+            f"{q+"{"}"
+            f" {plural_name}(first:$first, where:$where){{ pageInfo{{ total }} edges{{ node {{ id }} }} }} }}"
+        )
+
+        def try_fetch(where_obj):
+            try:
+                data = api_client.send_query(query, {"first": 1, "where": where_obj}) or {}
+                root = data.get(plural_name) or {}
+                page = root.get("pageInfo") or {}
+                total = page.get("total")
+                if isinstance(total, int):
+                    return total
+            except Exception:
+                pass
+            return None
+
+        overdue_total = try_fetch({"AND": [{"column": OverdueDueSoonPillsUtils._due_at_column, "operator": "LT", "value": today_s}]})
+        due_soon_total = try_fetch({"AND": [
+            {"column": OverdueDueSoonPillsUtils._due_at_column, "operator": "GTE", "value": today_s},
+            {"column": OverdueDueSoonPillsUtils._due_at_column, "operator": "LTE", "value": soon_s}
+        ]})
+
+        overdue_total = overdue_total or 0
+        due_soon_total = due_soon_total or 0
+
+        return (overdue_total, due_soon_total)
 

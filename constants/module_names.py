@@ -2,13 +2,3 @@ PROJECTS_MODULE = "ProjectsModule"
 CONTRACT_MODULE = "ContractModule"
 SETTINGS_MODULE = "SettingsModule"
 PROPERTY_MODULE = "PropertyModule"
-
-JOKE_GENERATOR_MODULE = "JokeGeneratorModule"
-WEATHER_UPDATE_MODULE = "WeatherUpdateModule"
-IMAGE_OF_THE_DAY_MODULE = "ImageOfTheDayModule"
-BOOK_QUOTE_MODULE = "BookQuoteModule"
-WORKFLOW_DESIGNER_MODULE = "WorkflowDesignerModule"
-GPT_ASSISTANT_MODULE = "GptAssistant"
-
-# Legacy/utility module constants (may not be registered, but used for sidebar labels)
-DIALOG_SIZE_WATCHER_MODULE = "DialogSizeWatcherModule"

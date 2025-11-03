@@ -2,7 +2,8 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QListWidget, QListWidgetItem, 
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QEvent
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from PyQt5.QtGui import QColor, QFont, QIcon
-
+from ..widgets.theme_manager import ThemeManager
+from ..constants.file_paths import QssPaths
 
 class SearchResultsWidget(QDialog):
     """
@@ -85,7 +86,7 @@ class SearchResultsWidget(QDialog):
         self.hide()
 
         # Apply ThemeManager styling for consistent appearance
-        self._apply_theme_styles()
+        ThemeManager.apply_module_style(self, [QssPaths.SEARCH_RESULTS_WIDGET])
 
     def _setup_application_connections(self):
         """Safely setup QApplication event filter and focus connections."""
@@ -114,39 +115,11 @@ class SearchResultsWidget(QDialog):
             # Continue without connections rather than crashing
 
 
-    def _apply_inline_styling(self):
-        """Apply QSS styling using ThemeManager (following plugin standards)."""
-        try:
-            from ..widgets.theme_manager import ThemeManager
-            from ..constants.file_paths import QssPaths
-            ThemeManager.apply_module_style(self, [QssPaths.SEARCH_RESULTS_WIDGET])
-        except ImportError:
-            pass
-
-    def _apply_theme_styles(self):
-        """Apply theme styles to the search results widget."""
-        try:
-            from ..widgets.theme_manager import ThemeManager
-            from ..constants.file_paths import QssPaths
-            ThemeManager.apply_module_style(self, [QssPaths.SEARCH_RESULTS_WIDGET])
-        except Exception:
-            # Fallback if theme manager is not available
-            pass
 
     def retheme_search_results(self):
         """Re-apply QSS styling for dynamic theme switching (following plugin standards)."""
-        try:
-            from ..widgets.theme_manager import ThemeManager
-            from ..constants.file_paths import QssPaths
-            ThemeManager.apply_module_style(self, [QssPaths.SEARCH_RESULTS_WIDGET])
+        ThemeManager.apply_module_style(self, [QssPaths.SEARCH_RESULTS_WIDGET])
 
-            # Refresh style properties
-            self.style().unpolish(self)
-            self.style().polish(self)
-
-            print("[DEBUG] Re-applied SearchResultsWidget QSS styling for theme switch")
-        except ImportError:
-            pass
 
     def show_results(self, results, search_field):
         """

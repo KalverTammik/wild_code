@@ -4,9 +4,6 @@ import os
 BASE_DIR = os.path.dirname(__file__)
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(__file__))
 
-# Configuration path
-CONFIG_PATH = os.path.join(PLUGIN_ROOT, "config")
-
 CONFIG_DIR = "config"
 RESOURCE = "resources"
 STYLES = "styles"
@@ -25,3 +22,9 @@ COORDINATION_QUERIES = 'coordinations'
 SUBMISSION_QUERIES = 'submissions'
 SPECIFICATION_QUERIES = 'specifications'
 PROPERTIES_QUERIES = 'properties'
+TYPE_QUERIES = 'types'
+
+ICON_FOLDER = "icons"
+
+# Configuration path
+CONFIG_PATH = os.path.join(PLUGIN_ROOT, CONFIG_DIR)

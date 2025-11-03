@@ -9,14 +9,14 @@ from qgis.core import QgsVectorLayer
 try:
     from ..engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
     from ..languages.language_manager import LanguageManager
-    from ..constants import PROPERTY_TAG, PROPERTIES_BACKGROUND_STYLE
+    from ..constants.layer_constants import PROPERTIES_BACKGROUND_STYLE, IMPORT_PROPERTY_TAG
     from ..utils.SettingsManager import SettingsManager
 except ImportError:
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
     from languages.language_manager import LanguageManager
-    from constants import PROPERTY_TAG, PROPERTIES_BACKGROUND_STYLE
+    from constants.layer_constants import IMPORT_PROPERTY_TAG, PROPERTIES_BACKGROUND_STYLE
     from utils.SettingsManager import SettingsManager
 
 
@@ -84,14 +84,14 @@ class SHPLayerLoader:
 
                 if memory_layer:
                     # Set the property tag on the newly created layer
-                    memory_layer.setCustomProperty(PROPERTY_TAG, "true")
+                    memory_layer.setCustomProperty(IMPORT_PROPERTY_TAG, "true")
 
                     # Ensure layer is not in editing mode before applying style
                     if memory_layer.isEditable():
                         memory_layer.commitChanges()
 
                     # Apply QML style using the engine's centralized method
-                    style_result = self.engine.apply_qml_style(memory_layer, PROPERTIES_BACKGROUND_STYLE)
+                    self.engine.apply_qml_style(memory_layer, PROPERTIES_BACKGROUND_STYLE)
 
                 feature_count = memory_layer.featureCount() if memory_layer else 0
                 message = (self.lang_manager.translate("Shapefile loaded with data message") or "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud' ({count} objekti imporditud)")

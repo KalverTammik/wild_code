@@ -4,11 +4,8 @@ from .BaseCard import BaseCard
 from ....constants.module_names import (
     PROJECTS_MODULE, CONTRACT_MODULE, SETTINGS_MODULE, PROPERTY_MODULE
 )
-
-try:
-    from qgis.core import QgsSettings
-except Exception:
-    QgsSettings = None  # type: ignore
+from ....utils.url_manager import Module
+from qgis.core import QgsSettings
 
 
 class PreferredModuleCard(BaseCard):
@@ -43,7 +40,7 @@ class PreferredModuleCard(BaseCard):
         selection_layout.addWidget(QLabel("Eelistatud moodul:"))
 
         self.module_combo = QComboBox()
-        self.module_combo.addItem("Avaleht", "__HOME__")
+        self.module_combo.addItem("Avaleht", Module.HOME)
         self.module_combo.addItem("Projektid", PROJECTS_MODULE)
         self.module_combo.addItem("Lepingud", CONTRACT_MODULE)
         self.module_combo.addItem("Seaded", SETTINGS_MODULE)
@@ -66,7 +63,7 @@ class PreferredModuleCard(BaseCard):
         try:
             if QgsSettings:
                 settings = QgsSettings()
-                preferred_module = settings.value("wild_code/preferred_module", "__HOME__", str)
+                preferred_module = settings.value("wild_code/preferred_module", Module.HOME, str)
                 self._original_preferred = preferred_module
                 self._pending_preferred = preferred_module
 
@@ -80,8 +77,8 @@ class PreferredModuleCard(BaseCard):
         except Exception as e:
             print(f"Error loading preferred module setting: {e}")
             # Default to home
-            self._original_preferred = "__HOME__"
-            self._pending_preferred = "__HOME__"
+            self._original_preferred = Module.HOME
+            self._pending_preferred = Module.HOME
 
     def _on_module_changed(self):
         """Handle module selection change."""
@@ -94,7 +91,7 @@ class PreferredModuleCard(BaseCard):
     def _update_current_label(self):
         """Update the current selection display label."""
         module_names = {
-            "__HOME__": "Avaleht",
+            Module.HOME: "Avaleht",
             PROJECTS_MODULE: "Projektid",
             CONTRACT_MODULE: "Lepingud",
             SETTINGS_MODULE: "Seaded",

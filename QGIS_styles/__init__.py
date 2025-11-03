@@ -1,0 +1,1 @@
+# QGIS styles package

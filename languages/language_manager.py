@@ -5,6 +5,9 @@ import os
 import json
 import importlib.util
 
+# Centralized translation keys for consistency
+from .translation_keys import TranslationKeys
+
 class LanguageManager:
     def __init__(self, language=DEFAULT_LANGUAGE):
         self.language = language
@@ -17,10 +20,25 @@ class LanguageManager:
         self.sidebar_buttons = {}
         lang_py = os.path.join(os.path.dirname(__file__), f"{self.language}.py")
         if os.path.exists(lang_py):
-            spec = importlib.util.spec_from_file_location(f"lang_{self.language}", lang_py)
-            lang_mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(lang_mod)
-            self.translations.update(getattr(lang_mod, "TRANSLATIONS", {}))
+            # Read the file content and inject TranslationKeys
+            with open(lang_py, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Replace the import with direct assignment
+            content = content.replace(
+                'from language_manager import TranslationKeys',
+                '# TranslationKeys injected by LanguageManager'
+            )
+            
+            # Execute the modified content
+            try:
+                # Create a namespace with TranslationKeys available
+                namespace = {'TranslationKeys': TranslationKeys}
+                exec(content, namespace)
+                self.translations.update(namespace.get("TRANSLATIONS", {}))
+            except Exception as e:
+                print(f"Error loading language file {lang_py}: {e}")
+                # Fallback to empty translations
         else:
             # Language file not found - use print instead of logger to avoid import issues
             print(f"Python language file {lang_py} not found. Defaulting to empty translations.")
@@ -54,6 +72,7 @@ class LanguageManager:
     def translate(self, key):
         return self.translations.get(key, key)
 
+
     def sidebar_button(self, key):
         return self.sidebar_buttons.get(key, key)
 
@@ -61,9 +80,6 @@ class LanguageManager:
         self.language = language
         self.load_language()
 
-    def set_language(self, language):
-        self.language = language
-        self.load_language()
 
     def save_language_preference(self):
         """Save the user's preferred language to a settings file."""

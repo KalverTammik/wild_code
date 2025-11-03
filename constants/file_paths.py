@@ -1,11 +1,5 @@
 import os
-from .base_paths import PLUGIN_ROOT, CONFIG_DIR, RESOURCE, STYLES, MODULES
-try:
-    from .module_names import GPT_ASSISTANT_MODULE
-except Exception:
-    GPT_ASSISTANT_MODULE = None
-
-# GraphQL query folder paths for each module (standards-compliant)
+from .base_paths import PLUGIN_ROOT, CONFIG_DIR, RESOURCE, STYLES, MODULES, TYPE_QUERIES
 from .base_paths import QUERIES, GRAPHQL, USER_QUERIES, PROJECT_QUERIES, CONTRACT_QUERIES, EASEMENT_QUERIES, TAGS_QUERIES, STATUS_QUERIES, TASK_QUERIES, COORDINATION_QUERIES, SUBMISSION_QUERIES, SPECIFICATION_QUERIES, PROPERTIES_QUERIES
 
 # GraphQL query folder paths for each module (standards-compliant)
@@ -23,23 +17,13 @@ class QueryPaths:
     SUBMISSION = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, SUBMISSION_QUERIES)
     SPECIFICATION = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, SPECIFICATION_QUERIES)
     ASBUILT = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, TASK_QUERIES)
-    PROPERTIE = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, PROPERTIES_QUERIES)
-    PROPERTIES = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, PROPERTIES_QUERIES)
-
-
-
+    PROPERTY = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, PROPERTIES_QUERIES)
+    TYPE = os.path.join(PLUGIN_ROOT, QUERIES, GRAPHQL, TYPE_QUERIES)
 
 # Configuration file paths
 class ConfigPaths:
     CONFIG = os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json")
     METADATA = os.path.join(PLUGIN_ROOT, "metadata.txt")
-
-
-# GptAssistant module paths (optional; defined only if module name exists)
-if GPT_ASSISTANT_MODULE:
-    class GptAssistantPaths:
-        ENV = os.path.join(PLUGIN_ROOT, MODULES, GPT_ASSISTANT_MODULE, '.env')
-        README = os.path.join(PLUGIN_ROOT, MODULES, GPT_ASSISTANT_MODULE, 'README_QGIS_OPENAI.txt')
 
 
 
@@ -70,6 +54,8 @@ class QssPaths:
     LAYER_TREE_PICKER = "LayerTreePicker.qss"
     SEARCH_RESULTS_WIDGET = "SearchResultsWidget.qss"
     UNIVERSAL_STATUS_BAR = "UniversalStatusBar.qss"
+    PROGRESS_DIALOG = "ProgressDialogModern.qss"
+    PROPERTIES_UI = "PropertysUIMain.qss"
     LIGHT_THEME = os.path.join(PLUGIN_ROOT, STYLES, "LightTheme.qss")
     DARK_THEME = os.path.join(PLUGIN_ROOT, STYLES, "DarkTheme.qss")
     SIDEBAR_THEME = os.path.join(PLUGIN_ROOT, STYLES, "Sidebar.qss")
@@ -89,32 +75,32 @@ class QmlPaths:
     EASEMENT_PROPERTIES = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Properties.qml")
 
 
-def get_style(style_name: str) -> str:
-    """
-    Get QML style file path by name.
+    def get_style(style_name: str) -> str:
+        """
+        Get QML style file path by name.
 
-    Args:
-        style_name: Name of the style (e.g., 'properties_background_new', 'maa_met_import')
+        Args:
+            style_name: Name of the style (e.g., 'properties_background_new', 'maa_met_import')
 
-    Returns:
-        str: Full path to the QML style file
+        Returns:
+            str: Full path to the QML style file
 
-    Raises:
-        ValueError: If style name is not recognized
-    """
-    style_map = {
-        'properties_background_new': QmlPaths.PROPERTIES_BACKGROUND_NEW,
-        'properties_background': QmlPaths.PROPERTIES_BACKGROUND,
-        'maa_amet_import': QmlPaths.MAAMET_IMPORT,
-        'easement_drainage': QmlPaths.EASETMENT_DRAINAGE,
-        'easement_properties': QmlPaths.EASEMENT_PROPERTIES,
-    }
+        Raises:
+            ValueError: If style name is not recognized
+        """
+        style_map = {
+            'properties_background_new': QmlPaths.PROPERTIES_BACKGROUND_NEW,
+            'properties_background': QmlPaths.PROPERTIES_BACKGROUND,
+            'maa_amet_import': QmlPaths.MAAMET_IMPORT,
+            'easement_drainage': QmlPaths.EASETMENT_DRAINAGE,
+            'easement_properties': QmlPaths.EASEMENT_PROPERTIES,
+        }
 
-    if style_name not in style_map:
-        available_styles = list(style_map.keys())
-        raise ValueError(f"Unknown style name '{style_name}'. Available styles: {available_styles}")
+        if style_name not in style_map:
+            available_styles = list(style_map.keys())
+            raise ValueError(f"Unknown style name '{style_name}'. Available styles: {available_styles}")
 
-    return style_map[style_name]
+        return style_map[style_name]
 
 
 

@@ -9,16 +9,17 @@ API:
 
 # --- ToolbarArea class ---
 from PyQt5.QtWidgets import (
-    QLabel,
     QHBoxLayout,
     QWidget,
     QSizePolicy,
+    QPushButton,
+    QSpacerItem,
 )
 from ..widgets.theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
 from PyQt5.QtCore import Qt, QCoreApplication
-
-class ToolbarArea(QWidget):
+from PyQt5.QtCore import pyqtSignal
+class ModuleToolbarArea(QWidget):
     # --- Filter widget management ---
     def register_filter_widget(self, name, widget):
         """
@@ -44,7 +45,7 @@ class ToolbarArea(QWidget):
         QCoreApplication.processEvents()
 
     # Add a signal for filtersChanged (Qt signal)
-    from PyQt5.QtCore import pyqtSignal
+    
     filtersChanged = pyqtSignal(dict)
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -52,44 +53,76 @@ class ToolbarArea(QWidget):
 
         # Main horizontal layout
         self._layout = QHBoxLayout(self)
-        self._layout.setContentsMargins(8, 4, 8, 4)
+        self._layout.setContentsMargins(2, 2, 2, 2)
         self._layout.setSpacing(3)
 
         self._left = QWidget(self)
         self._left.setObjectName("ToolbarLeft")
-        self._left.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+
+        # Start with an empty left layout. We'll add a single stretch after the first
+        # widget is inserted so subsequent widgets remain left-aligned.
         self._left_layout = QHBoxLayout(self._left)
         self._left_layout.setContentsMargins(0, 0, 0, 0)
-
-        self._left_layout.setSpacing(1)
-
-        # Center title label (expands; centered text)
-        self._title = QLabel("Toolbar Area (add widgets here)", self)
-        self._title.setObjectName("SpecialToolbarLabel")
-        self._title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self._title.setAlignment(Qt.AlignCenter)  # type: ignore[name-defined]
+        self._left_layout.setSpacing(2)
+        self._left_has_spacer = False
 
         # Right slot container
         self._right = QWidget(self)
         self._right.setObjectName("ToolbarRight")
         self._right_layout = QHBoxLayout(self._right)
-        self._right_layout.setContentsMargins(2, 4, 2, 4)
+        self._right_layout.setContentsMargins(0, 0, 0, 0)
         self._right_layout.setSpacing(2)
 
         # Compose
         self._layout.addWidget(self._left, 0)
-        self._layout.addWidget(self._title, 1)
         self._layout.addWidget(self._right, 0)
 
         # Apply toolbar + centralized combo styling (includes ComboBox.qss)
-        ThemeManager.apply_module_style(self, QssPaths.MAIN)
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN])
+
 
     # --- Public API ---
-    def set_title(self, text: str) -> None:
-        self._title.setText(text or "")
+    def add_refresh_button(self):
+        """
+        Generate and return a QWidget containing the refresh button.
+        This ensures compatibility with layouts that only accept widgets.
+        """
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        refresh_button = QPushButton("✖")
+        refresh_button.setObjectName("FeedRefreshButton")
+        
+        size_px = 28
+        refresh_button.setFixedSize(size_px, size_px)
+        
+        refresh_button.clicked.connect(self._on_refresh_clicked)  # type: ignore[attr-defined]
+
+        layout.addWidget(refresh_button)
+        return container
 
     def add_left(self, widget: QWidget) -> None:
-        if widget is not None:
+        if widget is None:
+            return
+
+        # If no spacer/stretch has been added yet, add the widget then append a stretch
+        # so that remaining free space is absorbed to the right and widgets stay left-aligned.
+        if not getattr(self, '_left_has_spacer', False):
+            self._left_layout.addWidget(widget)
+            self._left_layout.addStretch(1)
+            self._left_has_spacer = True
+            return
+
+        # Insert the new widget before the trailing stretch so widgets keep left-to-right order
+        try:
+            count = self._left_layout.count()
+            # trailing stretch is expected to be the last item
+            insert_index = max(0, count - 1)
+            self._left_layout.insertWidget(insert_index, widget)
+        except Exception:
+            # Fallback: append to end
             self._left_layout.addWidget(widget)
 
     def add_right(self, widget: QWidget) -> None:
@@ -97,10 +130,10 @@ class ToolbarArea(QWidget):
             self._right_layout.addWidget(widget)
 
     def clear_left(self) -> None:
-        self._clear_layout(self._left_layout)
+        ModuleToolbarArea._clear_layout(self._left_layout)
 
     def clear_right(self) -> None:
-        self._clear_layout(self._right_layout)
+        ModuleToolbarArea._clear_layout(self._right_layout)
 
     def retheme(self) -> None:
         """Re-apply toolbar QSS and propagate to registered filter widgets.
@@ -126,9 +159,9 @@ class ToolbarArea(QWidget):
                     child.retheme()
                 except Exception:
                     pass
-   
-    # --- Helpers ---
-    def _clear_layout(self, layout: QHBoxLayout) -> None:
+    
+    @staticmethod
+    def _clear_layout(layout: QHBoxLayout) -> None:
         try:
             while layout.count():
                 item = layout.takeAt(0)

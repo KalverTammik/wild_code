@@ -3,13 +3,22 @@ from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QListWidget, QListWidgetItem,
     QPushButton, QHBoxLayout, QMessageBox, QComboBox, QFrame,
-    QTableWidget, QTableWidgetItem, QHeaderView, QSplitter
+    QTableWidget, QHeaderView, QSplitter
 )
+from qgis.gui import QgsCheckableComboBox
 
+from ..utils.mapandproperties.PropertyUpdateFlowCoordinator import PropertyUpdateFlowCoordinator
+
+from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager
+
+from ..utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from .theme_manager import ThemeManager
+
 from ..constants.file_paths import QssPaths
 from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
 from ..constants.cadastral_fields import Katastriyksus
+
 
 class AddPropertyDialog(QDialog):
     """
@@ -22,14 +31,16 @@ class AddPropertyDialog(QDialog):
 
         # Initialize managers
         self.lang_manager = LanguageManager()
-
-        # Get the selected property layer from parent (SettingsUI)
-        self.property_layer = None
-        if hasattr(parent, 'get_selected_property_layer'):
-            self.property_layer = parent.get_selected_property_layer()
+        
+        # Initialize helper classes
+        self.data_loader = PropertyDataLoader(self.lang_manager)
+        self.table_manager = PropertyTableManager(None, self.lang_manager)  # Will be set after UI creation
+        self.selection_handler = PropertyUpdateFlowCoordinator(
+            self.data_loader, self.table_manager, None, None, None, self.lang_manager
+        )  # Combos will be set after UI creation
 
         # Set up dialog properties
-        self.setWindowTitle(self.lang_manager.translate("Add New Property") or "Lisa uus kinnistu")
+        self.setWindowTitle(self.lang_manager.translate(TranslationKeys.ADD_NEW_PROPERTY))
         self.setModal(True)
         self.setFixedSize(800, 600)  # Made larger for the new UI
 
@@ -40,6 +51,16 @@ class AddPropertyDialog(QDialog):
         self._setup_connections()
         self._load_layer_data()
 
+        # Set up helper classes with UI references (only if UI was fully created)
+        if hasattr(self, 'properties_table') and self.properties_table:
+            self.table_manager.properties_table = self.properties_table
+        if hasattr(self, 'county_combo') and self.county_combo:
+            self.selection_handler.county_combo = self.county_combo
+        if hasattr(self, 'municipality_combo') and self.municipality_combo:
+            self.selection_handler.municipality_combo = self.municipality_combo
+        if hasattr(self, 'city_combo') and self.city_combo:
+            self.selection_handler.city_combo = self.city_combo
+
     def _apply_theme(self):
         """Apply theme to the dialog"""
         try:
@@ -47,7 +68,6 @@ class AddPropertyDialog(QDialog):
             ThemeManager.set_initial_theme(
                 self,
                 None,  # No theme switch button for popup dialogs
-                theme_base_dir,
                 qss_files=[QssPaths.MAIN, QssPaths.SETUP_CARD]
             )
         except Exception as e:
@@ -60,15 +80,15 @@ class AddPropertyDialog(QDialog):
         layout.setSpacing(15)
 
         # Title
-        title_label = QLabel(self.lang_manager.translate("Select Properties") or "Vali kinnistud")
+        title_label = QLabel(self.lang_manager.translate(TranslationKeys.SELECT_PROPERTIES))
         title_label.setObjectName("DialogTitle")
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
 
         # Check if we have a property layer
+        self.property_layer = self.data_loader.property_layer
         if not self.property_layer:
-            error_label = QLabel(self.lang_manager.translate("No property layer selected. Please select a property layer first.") or
-                               "Kinnistute kihti pole valitud. Palun valige esmalt kinnistute kiht.")
+            error_label = QLabel(self.lang_manager.translate(TranslationKeys.NO_PROPERTY_LAYER_SELECTED))
             error_label.setObjectName("ErrorLabel")
             error_label.setWordWrap(True)
             layout.addWidget(error_label)
@@ -76,7 +96,7 @@ class AddPropertyDialog(QDialog):
             # Add close button
             buttons_layout = QHBoxLayout()
             buttons_layout.addStretch()
-            close_button = QPushButton(self.lang_manager.translate("Close") or "Sulge")
+            close_button = QPushButton(self.lang_manager.translate(TranslationKeys.CLOSE))
             close_button.clicked.connect(self.reject)
             buttons_layout.addWidget(close_button)
             layout.addLayout(buttons_layout)
@@ -91,6 +111,12 @@ class AddPropertyDialog(QDialog):
         # Selection info and buttons
         self._create_selection_controls(layout)
 
+        # Set up helper classes with UI references
+        self.table_manager.properties_table = self.properties_table
+        self.selection_handler.county_combo = self.county_combo
+        self.selection_handler.municipality_combo = self.municipality_combo
+        self.selection_handler.city_combo = self.city_combo
+
     def _create_hierarchical_selection(self, parent_layout):
         """Create county and municipality dropdowns"""
         # Filter section frame
@@ -99,43 +125,57 @@ class AddPropertyDialog(QDialog):
         filter_frame.setFrameStyle(QFrame.StyledPanel)
         filter_layout = QVBoxLayout(filter_frame)
         filter_layout.setContentsMargins(10, 10, 10, 10)
-        filter_layout.setSpacing(10)
+        filter_layout.setSpacing(6)
 
         # Filter title
-        filter_title = QLabel(self.lang_manager.translate("Filter by Location") or "Filtreeri asukoha järgi")
+        filter_title = QLabel(self.lang_manager.translate(TranslationKeys.FILTER_BY_LOCATION))
         filter_title.setObjectName("FilterTitle")
         filter_layout.addWidget(filter_title)
 
         # County and Municipality row
         location_layout = QHBoxLayout()
-        location_layout.setSpacing(15)
+        location_layout.setSpacing(6)
 
         # County dropdown
         county_layout = QVBoxLayout()
-        county_label = QLabel(self.lang_manager.translate("County") or "Maakond")
+        county_label = QLabel(f"{self.lang_manager.translate(TranslationKeys.COUNTY)}:")
         county_label.setObjectName("CountyLabel")
         county_layout.addWidget(county_label)
 
         self.county_combo = QComboBox()
         self.county_combo.setObjectName("CountyCombo")
-        self.county_combo.addItem(self.lang_manager.translate("Select County") or "Vali maakond", "")
+        self.county_combo.addItem(self.lang_manager.translate(TranslationKeys.SELECT_COUNTY), "")
         county_layout.addWidget(self.county_combo)
 
         location_layout.addLayout(county_layout)
 
         # Municipality dropdown
         municipality_layout = QVBoxLayout()
-        municipality_label = QLabel(self.lang_manager.translate("Municipality") or "Omavalitsus")
+        municipality_label = QLabel(f"{self.lang_manager.translate(TranslationKeys.MUNICIPALITY)}:")
         municipality_label.setObjectName("MunicipalityLabel")
         municipality_layout.addWidget(municipality_label)
 
         self.municipality_combo = QComboBox()
         self.municipality_combo.setObjectName("MunicipalityCombo")
-        self.municipality_combo.addItem(self.lang_manager.translate("Select Municipality") or "Vali omavalitsus", "")
+        self.municipality_combo.addItem(self.lang_manager.translate(TranslationKeys.SELECT_MUNICIPALITY), "")
         self.municipality_combo.setEnabled(False)  # Disabled until county is selected
         municipality_layout.addWidget(self.municipality_combo)
 
         location_layout.addLayout(municipality_layout)
+
+        city_layout = QVBoxLayout()
+        city_label = QLabel(f"{self.lang_manager.translate(TranslationKeys.SETTLEMENT)}:")
+        city_label.setObjectName("CityLabel")
+        city_layout.addWidget(city_label)
+
+        self.city_combo = QgsCheckableComboBox()
+        self.city_combo.setObjectName("CityCombo")
+        self.city_combo.setPlaceholderText(self.lang_manager.translate(TranslationKeys.SELECT_SETTLEMENTS))
+        self.city_combo.setEnabled(False)  # Disabled until municipality is selected
+        city_layout.addWidget(self.city_combo)
+
+        location_layout.addLayout(city_layout)
+
         location_layout.addStretch()
 
         filter_layout.addLayout(location_layout)
@@ -150,9 +190,10 @@ class AddPropertyDialog(QDialog):
         table_layout = QVBoxLayout(table_frame)
         table_layout.setContentsMargins(10, 10, 10, 10)
         table_layout.setSpacing(10)
+        
 
         # Table title
-        table_title = QLabel(self.lang_manager.translate("Properties") or "Kinnistud")
+        table_title = QLabel(self.lang_manager.translate(TranslationKeys.PROPERTIES))
         table_title.setObjectName("TableTitle")
         table_layout.addWidget(table_title)
 
@@ -165,10 +206,10 @@ class AddPropertyDialog(QDialog):
 
         # Set up table headers
         headers = [
-            self.lang_manager.translate("Cadastral ID") or "Katastritunnus",
-            self.lang_manager.translate("Address") or "Aadress",
-            self.lang_manager.translate("Area (m²)") or "Pindala (m²)",
-            self.lang_manager.translate("Settlement") or "Asustusüksus"
+            self.lang_manager.translate(TranslationKeys.CADASTRAL_ID),
+            self.lang_manager.translate(TranslationKeys.ADDRESS),
+            self.lang_manager.translate(TranslationKeys.AREA),
+            self.lang_manager.translate(TranslationKeys.SETTLEMENT)
         ]
         self.properties_table.setColumnCount(len(headers))
         self.properties_table.setHorizontalHeaderLabels(headers)
@@ -184,7 +225,7 @@ class AddPropertyDialog(QDialog):
     def _create_selection_controls(self, parent_layout):
         """Create selection info and control buttons"""
         # Selection info
-        self.selection_info = QLabel(self.lang_manager.translate("Selected: 0 properties") or "Valitud: 0 kinnistut")
+        self.selection_info = QLabel(self.lang_manager.translate(TranslationKeys.SELECTED_PROPERTIES_COUNT))
         self.selection_info.setObjectName("SelectionInfo")
         parent_layout.addWidget(self.selection_info)
 
@@ -193,22 +234,22 @@ class AddPropertyDialog(QDialog):
         buttons_layout.setSpacing(10)
 
         # Selection buttons
-        self.select_all_btn = QPushButton(self.lang_manager.translate("Select All") or "Vali kõik")
+        self.select_all_btn = QPushButton(self.lang_manager.translate(TranslationKeys.SELECT_ALL))
         self.select_all_btn.setObjectName("SelectAllButton")
         buttons_layout.addWidget(self.select_all_btn)
 
-        self.clear_selection_btn = QPushButton(self.lang_manager.translate("Clear Selection") or "Tühjenda valik")
+        self.clear_selection_btn = QPushButton(self.lang_manager.translate(TranslationKeys.CLEAR_SELECTION))
         self.clear_selection_btn.setObjectName("ClearSelectionButton")
         buttons_layout.addWidget(self.clear_selection_btn)
 
         buttons_layout.addStretch()
 
         # Action buttons
-        self.cancel_button = QPushButton(self.lang_manager.translate("Cancel") or "Tühista")
+        self.cancel_button = QPushButton(self.lang_manager.translate(TranslationKeys.CANCEL))
         self.cancel_button.setObjectName("CancelButton")
         buttons_layout.addWidget(self.cancel_button)
 
-        self.add_button = QPushButton(self.lang_manager.translate("Add Selected") or "Lisa valitud")
+        self.add_button = QPushButton(self.lang_manager.translate(TranslationKeys.ADD_SELECTED))
         self.add_button.setObjectName("AddButton")
         self.add_button.setEnabled(False)  # Disabled until properties are selected
         buttons_layout.addWidget(self.add_button)
@@ -217,274 +258,112 @@ class AddPropertyDialog(QDialog):
 
     def _setup_connections(self):
         """Set up signal connections"""
-        # Dropdown connections
-        self.county_combo.currentTextChanged.connect(self._on_county_changed)
-        self.municipality_combo.currentTextChanged.connect(self._on_municipality_changed)
+        # Only set up connections if UI was fully created
+        if not hasattr(self, 'county_combo') or not self.county_combo:
+            return
+            
+        # Dropdown connections - use selection handler
+        self.county_combo.currentTextChanged.connect(self.selection_handler.on_county_changed)
+        self.municipality_combo.currentTextChanged.connect(self.selection_handler.on_municipality_changed)
+        if hasattr(self, 'city_combo') and self.city_combo is not None:
+            self.city_combo.checkedItemsChanged.connect(self.selection_handler.on_city_changed)
 
-        # Table connections
-        self.properties_table.itemSelectionChanged.connect(self._on_table_selection_changed)
+        # Table connections - use table manager
+        self.properties_table.itemSelectionChanged.connect(self.table_manager.on_table_selection_changed)
+        self.table_manager.set_selection_changed_callback(self._on_selection_count_changed)
 
         # Button connections
-        self.select_all_btn.clicked.connect(self._on_select_all_clicked)
-        self.clear_selection_btn.clicked.connect(self._on_clear_selection_clicked)
+        self.select_all_btn.clicked.connect(self.table_manager.select_all)
+        self.clear_selection_btn.clicked.connect(self.table_manager.clear_selection)
         self.cancel_button.clicked.connect(self.reject)
-        self.add_button.clicked.connect(self._on_add_selected_clicked)
+        self.add_button.clicked.connect(self._start_adding_properties)
+
+    def _on_selection_count_changed(self, selected_count):
+        """Handle selection count changes from table manager"""
+        self.selection_info.setText(
+            self.lang_manager.translate(TranslationKeys.SELECTED_COUNT_TEMPLATE).format(count=selected_count)
+        )
+        # Enable/disable add button based on selection
+        self.add_button.setEnabled(selected_count > 0)
+        
+        # Update map to show selected features
+        self._update_map_for_selected_rows()
+
+    def _update_map_for_selected_rows(self):
+        """Update map display based on currently selected table rows"""
+        selected_features = self.selection_handler.collect_active_selections_from_table()
+        
+        if not selected_features:
+            # No selection - clear any existing filter and selection
+            from ..constants.layer_constants import IMPORT_PROPERTY_TAG
+            layer = self.data_loader._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+            if layer:
+                from ..utils.MapTools.MapHelpers import MapHelpers
+                MapHelpers.clear_layer_filter(layer)
+                layer.removeSelection()
+            return
+        
+        # Update map with selected features
+        from ..constants.layer_constants import IMPORT_PROPERTY_TAG
+        from ..utils.MapTools.MapHelpers import MapHelpers
+        layer = self.data_loader._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        
+        if layer and selected_features:
+            # Select features on map and zoom to them, filter layer to show only selected
+            MapHelpers._zoom_to_features_in_layer(selected_features, layer, select=True, filter_layer=True)
 
     def _load_layer_data(self):
         """Load data from the property layer"""
-        if not self.property_layer:
+        if not self.property_layer or not hasattr(self, 'county_combo') or not self.county_combo:
             return
 
         try:
-            # Load counties
-            self._load_counties()
-
-        except Exception as e:
-            print(f"Error loading layer data: {e}")
-            QMessageBox.warning(
-                self,
-                self.lang_manager.translate("Data Loading Error") or "Andmete laadimise viga",
-                self.lang_manager.translate("Failed to load property data from layer.") or
-                f"Andmete laadimine kihist ebaõnnestus: {str(e)}"
-            )
-
-    def _load_counties(self):
-        """Load unique counties from the property layer"""
-        if not self.property_layer:
-            return
-
-        try:
-            counties = set()
-
-            # Get the field index for county name
-            county_field = None
-            for field in self.property_layer.fields():
-                if field.name() in Katastriyksus.mk_nimi:
-                    county_field = field.name()
-                    break
-
-            if not county_field:
-                QMessageBox.warning(
-                    self,
-                    self.lang_manager.translate("Field Not Found") or "Välja ei leitud",
-                    self.lang_manager.translate("County field (mk_nimi) not found in layer.") or
-                    f"Maakonna väli ({Katastriyksus.mk_nimi}) kihist ei leitud."
-                )
-                return
-
-            # Extract unique county values
-            for feature in self.property_layer.getFeatures():
-                county_value = feature[county_field]
-                if county_value and str(county_value).strip():
-                    counties.add(str(county_value).strip())
+            # Load counties using data loader
+            counties = self.data_loader.load_counties()
 
             # Populate county dropdown
             self.county_combo.clear()
             self.county_combo.addItem(self.lang_manager.translate("Select County") or "Vali maakond", "")
 
-            for county in sorted(counties):
+            for county in counties:
                 self.county_combo.addItem(county, county)
 
-            print(f"Loaded {len(counties)} counties from layer")
-
         except Exception as e:
-            print(f"Error loading counties: {e}")
+            print(f"Error loading layer data: {e}")
+            QMessageBox.warning(
+                self,
+                self.lang_manager.translate(TranslationKeys.DATA_LOADING_ERROR),
+                self.lang_manager.translate(TranslationKeys.FAILED_TO_LOAD_PROPERTY_DATA) + f" {str(e)}"
+            )
 
-    def _on_county_changed(self, county_name):
-        """Handle county selection change"""
-        if not county_name or county_name == (self.lang_manager.translate("Select County") or "Vali maakond"):
-            # Clear municipality dropdown
-            self.municipality_combo.clear()
-            self.municipality_combo.addItem(self.lang_manager.translate("Select Municipality") or "Vali omavalitsus", "")
-            self.municipality_combo.setEnabled(False)
-            # Clear properties table
-            self.properties_table.setRowCount(0)
-            return
 
-        # Load municipalities for selected county
-        self._load_municipalities_for_county(county_name)
-        self.municipality_combo.setEnabled(True)
-
-    def _load_municipalities_for_county(self, county_name):
-        """Load municipalities for the selected county"""
-        if not self.property_layer:
-            return
-
-        try:
-            municipalities = set()
-
-            # Get field indices
-            county_field = None
-            municipality_field = None
-
-            for field in self.property_layer.fields():
-                field_name = field.name().lower()
-                if field_name in [Katastriyksus.mk_nimi.lower(), 'maakond', 'county']:
-                    county_field = field.name()
-                elif field_name in [Katastriyksus.ov_nimi.lower(), 'omavalitsus', 'municipality']:
-                    municipality_field = field.name()
-
-            if not county_field or not municipality_field:
-                print("Required fields not found")
-                return
-
-            # Extract municipalities for selected county
-            for feature in self.property_layer.getFeatures():
-                if str(feature[county_field]).strip() == county_name:
-                    municipality_value = feature[municipality_field]
-                    if municipality_value and str(municipality_value).strip():
-                        municipalities.add(str(municipality_value).strip())
-
-            # Populate municipality dropdown
-            self.municipality_combo.clear()
-            self.municipality_combo.addItem(self.lang_manager.translate("Select Municipality") or "Vali omavalitsus", "")
-
-            for municipality in sorted(municipalities):
-                self.municipality_combo.addItem(municipality, municipality)
-
-            print(f"Loaded {len(municipalities)} municipalities for county: {county_name}")
-
-        except Exception as e:
-            print(f"Error loading municipalities: {e}")
-
-    def _on_municipality_changed(self, municipality_name):
-        """Handle municipality selection change"""
-        if not municipality_name or municipality_name == (self.lang_manager.translate("Select Municipality") or "Vali omavalitsus"):
-            # Clear properties table
-            self.properties_table.setRowCount(0)
-            return
-
-        # Load properties for selected municipality
-        county_name = self.county_combo.currentData()
-        self._load_properties_for_municipality(county_name, municipality_name)
-
-    def _load_properties_for_municipality(self, county_name, municipality_name):
-        """Load properties for the selected municipality"""
-        if not self.property_layer:
-            return
-
-        try:
-            properties = []
-
-            # Get field indices
-            county_field = None
-            municipality_field = None
-            cadastral_field = None
-            address_field = None
-            area_field = None
-            settlement_field = None
-
-            for field in self.property_layer.fields():
-                field_name = field.name().lower()
-                if field_name in [Katastriyksus.mk_nimi.lower(), 'maakond', 'county']:
-                    county_field = field.name()
-                elif field_name in [Katastriyksus.ov_nimi.lower(), 'omavalitsus', 'municipality']:
-                    municipality_field = field.name()
-                elif field_name in [Katastriyksus.tunnus.lower(), 'katastritunnus', 'cadastral_id']:
-                    cadastral_field = field.name()
-                elif field_name in [Katastriyksus.l_aadress.lower(), 'address']:
-                    address_field = field.name()
-                elif field_name in [Katastriyksus.pindala.lower(), 'area']:
-                    area_field = field.name()
-                elif field_name in [Katastriyksus.ay_nimi.lower(), 'asustusuksus', 'settlement']:
-                    settlement_field = field.name()
-
-            # Extract properties for selected municipality
-            for feature in self.property_layer.getFeatures():
-                if (str(feature[county_field]).strip() == county_name and
-                    str(feature[municipality_field]).strip() == municipality_name):
-
-                    property_data = {
-                        'cadastral_id': feature[cadastral_field] if cadastral_field else '',
-                        'address': feature[address_field] if address_field else '',
-                        'area': feature[area_field] if area_field else '',
-                        'settlement': feature[settlement_field] if settlement_field else '',
-                        'feature': feature
-                    }
-                    properties.append(property_data)
-
-            # Populate properties table
-            self._populate_properties_table(properties)
-            print(f"Loaded {len(properties)} properties for municipality: {municipality_name}")
-
-        except Exception as e:
-            print(f"Error loading properties: {e}")
-
-    def _populate_properties_table(self, properties):
-        """Populate the properties table with data"""
-        self.properties_table.setRowCount(len(properties))
-
-        for row, property_data in enumerate(properties):
-            # Cadastral ID
-            cadastral_item = QTableWidgetItem(str(property_data['cadastral_id']))
-            self.properties_table.setItem(row, 0, cadastral_item)
-
-            # Address
-            address_item = QTableWidgetItem(str(property_data['address']))
-            self.properties_table.setItem(row, 1, address_item)
-
-            # Area
-            area_item = QTableWidgetItem(str(property_data['area']))
-            self.properties_table.setItem(row, 2, area_item)
-
-            # Settlement
-            settlement_item = QTableWidgetItem(str(property_data['settlement']))
-            self.properties_table.setItem(row, 3, settlement_item)
-
-            # Store feature data in the row
-            cadastral_item.setData(Qt.UserRole, property_data['feature'])
-
-    def _on_table_selection_changed(self):
-        """Handle table selection changes"""
-        selected_rows = set()
-        for item in self.properties_table.selectedItems():
-            selected_rows.add(item.row())
-
-        selected_count = len(selected_rows)
-        self.selection_info.setText(
-            self.lang_manager.translate("Selected: {count} properties").format(count=selected_count) or
-            f"Valitud: {selected_count} kinnistut"
-        )
-
-        # Enable/disable add button based on selection
-        self.add_button.setEnabled(selected_count > 0)
-
-    def _on_select_all_clicked(self):
-        """Select all properties in the table"""
-        self.properties_table.selectAll()
-
-    def _on_clear_selection_clicked(self):
-        """Clear all selections in the table"""
-        self.properties_table.clearSelection()
-
-    def _on_add_selected_clicked(self):
+    def _start_adding_properties(self):
         """Handle adding selected properties"""
-        selected_items = self.properties_table.selectedItems()
-        if not selected_items:
-            return
-
-        # Get unique selected features
-        selected_features = set()
-        for item in selected_items:
-            feature = item.data(Qt.UserRole)
-            if feature:
-                selected_features.add(feature)
+        selected_features = self.selection_handler.collect_active_selections_from_table()
 
         if selected_features:
-            # Emit signal with selected properties
-            selected_data = {
-                'selected_features': list(selected_features),
-                'county': self.county_combo.currentData(),
-                'municipality': self.municipality_combo.currentData(),
-                'count': len(selected_features)
-            }
+            print(f"Emitting {len(selected_features)} selected features")
+            for feature in selected_features:
+                print(f" - Feature ID: {feature.id()}")
+            
+            self.accept()  # Close the dialog
+            
+            # Clear the layer filter to show all features again
+            from ..constants.layer_constants import IMPORT_PROPERTY_TAG
+            from ..utils.MapTools.MapHelpers import MapHelpers
+            layer = self.data_loader._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+            if layer:
+                MapHelpers.clear_layer_filter(layer)
+                #layer.removeSelection()
 
-            self.propertyAdded.emit(selected_data)
-            self.accept()
+            QMessageBox.information(
+                self,
+                self.lang_manager.translate(TranslationKeys.PROPERTIES_ADDED),
+                self.lang_manager.translate(TranslationKeys.SELECTED_PROPERTIES_ADDED)
+            )
         else:
             QMessageBox.warning(
                 self,
-                self.lang_manager.translate("No Selection") or "Valikut pole",
-                self.lang_manager.translate("Please select at least one property.") or
-                "Palun valige vähemalt üks kinnistu."
+                self.lang_manager.translate(TranslationKeys.NO_SELECTION),
+                self.lang_manager.translate(TranslationKeys.PLEASE_SELECT_AT_LEAST_ONE_PROPERTY)
             )

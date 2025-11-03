@@ -28,7 +28,7 @@ class SessionManager:
         settings = SessionManager._instance.settings
         SessionManager._instance.apiToken = settings.value("session/token", None)
         SessionManager._instance.loggedInUser = settings.value("session/active_user", None)
-        print(f"[DEBUG] Session loaded: token={bool(SessionManager._instance.apiToken)}")
+        #print(f"[DEBUG] Session loaded: token={bool(SessionManager._instance.apiToken)}")
 
 
     @staticmethod
@@ -149,7 +149,7 @@ class SessionManager:
         """Set the session data and reset expired dialog flag."""
         if not SessionManager._instance:  # Ensure the instance is initialized
             SessionManager()
-        print(f"[DEBUG] Setting session with token: {apiToken[:10] if apiToken else None}...")
+        #print(f"[DEBUG] Setting session with token: {apiToken[:10] if apiToken else None}...")
         SessionManager._instance.apiToken = apiToken
         SessionManager._instance.loggedInUser = user
         SessionManager._instance._session_expired_shown = False

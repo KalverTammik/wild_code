@@ -34,18 +34,18 @@ class SettingsLogic:
     # --- Data loading ---
     def load_user(self, lang_manager) -> Dict:
         ql = GraphQLQueryLoader(lang_manager)
-        api = APIClient(lang_manager, SessionManager(), ConfigPaths.CONFIG)
+        api = APIClient(SessionManager(), ConfigPaths.CONFIG)
         query = ql.load_query("USER", "me.graphql")
         data = api.send_query(query)
         user_data = data.get("me", {}) or {}
-        print("=== USER ABILITIES FROM 'me' QUERY ===")
-        print(user_data)
+        #print("=== USER ABILITIES FROM 'me' QUERY ===")
+        #print(user_data)
         
         # Debug: Show abilities parsing
         abilities_raw = user_data.get("abilities", [])
         if abilities_raw:
             subjects = self.abilities_to_subjects(abilities_raw)
-            print(f"DEBUG: User has {len(subjects)} subjects: {sorted(subjects)}")
+            #print(f"DEBUG: User has {len(subjects)} subjects: {sorted(subjects)}")
             if "Property" in subjects:
                 print("✅ User has Property access!")
             else:
@@ -94,7 +94,7 @@ class SettingsLogic:
             except Exception:
                 abilities = []
         subjects = set()
-        print(f"DEBUG: Parsed abilities: {abilities}")
+        #print(f"DEBUG: Parsed abilities: {abilities}")
         for ab in abilities:
             subj = ab.get('subject')
             if isinstance(subj, list) and subj:

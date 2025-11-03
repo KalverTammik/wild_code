@@ -2,30 +2,21 @@ from PyQt5.QtWidgets import QVBoxLayout, QLabel, QFrame, QHBoxLayout, QGroupBox
 from PyQt5.QtCore import pyqtSignal
 from .BaseCard import BaseCard
 from ....widgets.layer_dropdown import LayerTreePicker
+from ....widgets.StatusFilterWidget import StatusFilterWidget
 
-try:
-    from qgis.core import QgsSettings
-except Exception:
-    QgsSettings = None  # type: ignore
-
-try:
-    from ....widgets.TypeFilterWidget import TypeFilterWidget
-except Exception:
-    TypeFilterWidget = None  # type: ignore
-
+from qgis.core import QgsSettings
+from ....widgets.TypeFilterWidget import TypeFilterWidget
+from ....constants.module_icons import ModuleIconPaths
+            
 
 class ModuleCard(BaseCard):
     pendingChanged = pyqtSignal(bool)
 
     def __init__(self, lang_manager, module_name: str, translated_name: str):
         # Get module icon for the header
-        icon_path = None
-        try:
-            from ....constants.module_icons import ModuleIconPaths
-            icon_path = ModuleIconPaths.get_module_icon(module_name)
-        except Exception:
-            pass
-
+        
+        icon_path = ModuleIconPaths.get_module_icon(module_name)
+        
         super().__init__(lang_manager, translated_name, icon_path)
         self.module_name = module_name
         self._snapshot = None
@@ -171,8 +162,7 @@ class ModuleCard(BaseCard):
 
         # Add the existing StatusFilterWidget
         try:
-            from ....widgets.StatusFilterWidget import StatusFilterWidget
-            self._status_filter_widget = StatusFilterWidget(self.module_name, self.lang_manager, status_container, debug=True)
+            self._status_filter_widget = StatusFilterWidget(self.module_name, status_container, debug=True)
             self._status_filter_widget.selectionChanged.connect(self._on_status_selection_changed)
             status_inner_layout.addWidget(self._status_filter_widget)
             # Don't load immediately - wait for settings activation

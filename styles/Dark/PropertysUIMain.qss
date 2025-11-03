@@ -1,0 +1,39 @@
+/* ModulesMain.qss - Dark Theme */
+QFrame #PropertyDetailsFrame {
+    background: #2d2d30;
+    border: none !important;
+    border-width: 0 !important;
+    border-radius: 12px;
+    padding: 0;
+    margin: 4px;
+    background-image: qlineargradient(
+        x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(255,255,255,0.06),
+        stop:0.05 rgba(255,255,255,0.03),
+        stop:0.92 rgba(255,255,255,0.08),
+        stop:1 rgba(255,255,255,0.12)
+    );
+    transition: 120ms ease;
+}
+
+QFrame #PropertyDetailsFrame:hover {
+    border: 1px solid rgba(0,120,212,0.65) !important;
+    background-color: #333337;
+}
+
+
+QFrame#PropertyDetailsFrame[compact="true"] { border-radius: 10px; }
+
+/* Informative field labels (bold) */
+QLabel#InfoLabel {
+    font-weight: bold;
+    font-size: 12px;
+    color: #e6e6e6;
+}
+
+/* Details title (already bold from code) */
+QLabel#DetailsTitle {
+    font-weight: bold;
+    font-size: 11px;
+    color: #e6e6e6;
+}

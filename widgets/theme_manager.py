@@ -12,14 +12,26 @@ Key Features:
 - Designed for modular use in plugin UIs
 
 Usage:
-    ThemeManager.set_initial_theme(widget, switch_button, theme_base_dir, qss_files)
-    ThemeManager.toggle_theme(widget, current_theme, switch_button, theme_base_dir, qss_files)
+    ThemeManager.set_initial_theme(widget, switch_button, qss_files)
+    ThemeManager.toggle_theme(widget, current_theme, switch_button, qss_files)
     ThemeManager.apply_theme(widget, theme_dir, qss_files)
 """
 from PyQt5.QtCore import QFile, QDir
 from PyQt5.QtWidgets import QApplication
 import os
-from ..constants.file_paths import ResourcePaths
+
+# Handle imports for both standalone and plugin usage
+import sys
+plugin_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if plugin_root not in sys.path:
+    sys.path.insert(0, plugin_root)
+
+try:
+    from constants.file_paths import ResourcePaths
+except ImportError as e:
+    print(f"Import error in theme_manager: {e}")
+    # Re-raise to make the error visible
+    raise
 
 import glob
 
@@ -149,10 +161,14 @@ class ThemeManager:
 
     @staticmethod
     def load_theme_setting():
-        from qgis.core import QgsSettings
-        settings = QgsSettings()
-        theme = settings.value("wild_code/theme", "light")
-        return theme
+        try:
+            from qgis.core import QgsSettings
+            settings = QgsSettings()
+            theme = settings.value("wild_code/theme", "light")
+            return theme
+        except ImportError:
+            # Fallback when QGIS is not available (for testing)
+            return "light"
 
     @staticmethod
     def save_module_setting(module_name, setting_key, value):
@@ -171,7 +187,7 @@ class ThemeManager:
         return settings.value(key, default_value)
 
     @staticmethod
-    def set_initial_theme(widget, switch_button, theme_base_dir, qss_files=None):
+    def set_initial_theme(widget, switch_button, qss_files=None):
         """
         Loads the theme from QGIS settings and applies it, updating the switch button icon.
         Returns the theme name ("light" or "dark").
@@ -181,7 +197,7 @@ class ThemeManager:
         header_widget = getattr(widget, 'header_widget', None)
         theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
         if theme == "dark":
-            ThemeManager.apply_dark_theme(widget, theme_base_dir, qss_files)
+            ThemeManager.apply_dark_theme(widget, qss_files)
             icon_path = ResourcePaths.LIGHTNESS_ICON
             if switch_button is not None:
                 switch_button.setIcon(QIcon(icon_path))
@@ -191,7 +207,7 @@ class ThemeManager:
                 if logout_icon_path:
                     header_widget.set_logout_icon(QIcon(logout_icon_path))
         else:
-            ThemeManager.apply_light_theme(widget, theme_base_dir, qss_files)
+            ThemeManager.apply_light_theme(widget, qss_files)
             icon_path = ResourcePaths.DARKNESS_ICON
             if switch_button is not None:
                 switch_button.setIcon(QIcon(icon_path))
@@ -211,12 +227,18 @@ class ThemeManager:
         :param qss_files: List of QSS filenames to load (e.g., [QssPaths.MAIN, QssPaths.SIDEBAR]). If None, loads all .qss files in the directory.
         """
         try:
+            # Gracefully handle None targets (avoid crashes on dynamic switches)
+            if widget is None:
+                return
             theme = ""
             if qss_files is None:
                 # Load all .qss files in the directory, sorted alphabetically
                 from ..constants.file_paths import QssPaths
                 # Default QSS core set now explicitly includes ComboBox central styling
                 qss_files = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
+            # Normalize a single string into a list for consistent iteration
+            if isinstance(qss_files, str):
+                qss_files = [qss_files]
             for qss_file in qss_files:
                 qss_path = os.path.join(theme_dir, qss_file)
                 if os.path.exists(qss_path):
@@ -228,7 +250,7 @@ class ThemeManager:
             pass
 
     @staticmethod
-    def toggle_theme(widget, current_theme, switch_button, theme_base_dir, qss_files=None):
+    def toggle_theme(widget, current_theme, switch_button, qss_files=None):
         """
         Toggle between light and dark themes for the specified widget, updating the switch button icon only.
         Saves the new theme to QGIS settings.
@@ -236,7 +258,7 @@ class ThemeManager:
         from PyQt5.QtGui import QIcon
         header_widget = getattr(widget, 'header_widget', None)
         if current_theme == "light":
-            ThemeManager.apply_dark_theme(widget, theme_base_dir, qss_files)
+            ThemeManager.apply_dark_theme(widget, qss_files)
             icon_path = ResourcePaths.LIGHTNESS_ICON
             switch_button.setIcon(QIcon(icon_path))
             switch_button.setText("")
@@ -247,7 +269,7 @@ class ThemeManager:
             ThemeManager.save_theme_setting("dark")
             return "dark"
         else:
-            ThemeManager.apply_light_theme(widget, theme_base_dir, qss_files)
+            ThemeManager.apply_light_theme(widget, qss_files)
             icon_path = ResourcePaths.DARKNESS_ICON
             switch_button.setIcon(QIcon(icon_path))
             switch_button.setText("")
@@ -259,7 +281,7 @@ class ThemeManager:
             return "light"
 
     @staticmethod
-    def apply_dark_theme(widget, theme_base_dir, qss_files=None):
+    def apply_dark_theme(widget, qss_files=None):
         """
         Apply the dark theme to the specified widget.
         :param theme_base_dir: The base styles directory (e.g., styles/).
@@ -270,7 +292,7 @@ class ThemeManager:
         ThemeManager.apply_theme(widget, dark_theme_dir, qss_files)
 
     @staticmethod
-    def apply_light_theme(widget, theme_base_dir, qss_files=None):
+    def apply_light_theme(widget, qss_files=None):
         """
         Apply the light theme to the specified widget.
         :param theme_base_dir: The base styles directory (e.g., styles/).

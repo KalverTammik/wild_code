@@ -3,6 +3,9 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePoli
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer, QEvent
 from PyQt5.QtWidgets import QGraphicsDropShadowEffect
 from PyQt5.QtGui import QColor, QIcon, QFont
+from .theme_manager import ThemeManager
+from ..constants.file_paths import QssPaths
+
 
 class HeaderWidget(QWidget):
     """
@@ -165,11 +168,9 @@ class HeaderWidget(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(frame)
 
-        # Apply theme (main + header)
-        from .theme_manager import ThemeManager
-        from wild_code.constants.file_paths import QssPaths
+
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
-        # Ensure DevControls' own QSS is applied last so its specific rules override header's generic QPushButton
+
         try:
             self.devControls.retheme()
         except Exception:
@@ -188,6 +189,8 @@ class HeaderWidget(QWidget):
             print("[DEBUG] SearchResultsWidget created and connected")
         return self._search_results
 
+    def retheme_header(self):
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
 
     def _emit_debug_toggle(self, enabled: bool):
         cb = getattr(self, 'on_toggle_debug', None)
@@ -213,14 +216,7 @@ class HeaderWidget(QWidget):
         self.logoutButton.setIcon(icon)
         self.logoutButton.setText("")
 
-    def retheme_header(self):
-        from .theme_manager import ThemeManager
-        from wild_code.constants.file_paths import QssPaths
-        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
-        try:
-            self.devControls.retheme()
-        except Exception:
-            pass
+
 
     def set_title(self, text):
         self.titleLabel.setText(text)
@@ -282,7 +278,7 @@ class HeaderWidget(QWidget):
                 return
                 
             # Execute search
-            api_client = APIClient(lang_manager)
+            api_client = APIClient()
             # Use the working term or original query
             variables = {
                 "input": {

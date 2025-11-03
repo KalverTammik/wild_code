@@ -1,4 +1,6 @@
 import os
+
+from .constants.module_icons import VALISEE_V_ICON_NAME
 from .constants.file_paths import StylePaths, QssPaths
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QStackedWidget, QWidget
 from PyQt5.QtGui import QMouseEvent
@@ -8,7 +10,7 @@ from .widgets.HeaderWidget import HeaderWidget
 from qgis.core import QgsMessageLog, Qgis
 
 from .modules.projects.ProjectsUi import ProjectsModule
-from .modules.contract.ContractUi import ContractUi
+from .modules.contract.ContractUi import ContractsModule
 from .modules.Settings.SettingsUI import SettingsUI
 from .modules.Property.PropertyUI import PropertyUI
 
@@ -16,6 +18,7 @@ from .modules.Property.PropertyUI import PropertyUI
 from .login_dialog import LoginDialog
 from .widgets.theme_manager import ThemeManager
 from .utils.logger import set_debug as set_global_debug, debug as log_debug, info as log_info
+from .utils.WindowManagerMinMax import WindowManagerMinMax
 from .languages.language_manager import LanguageManager
 from .module_manager import ModuleManager, SETTINGS_MODULE, PROPERTY_MODULE
 from .widgets.sidebar import Sidebar
@@ -48,6 +51,8 @@ class PluginDialog(QDialog):
         if hasattr(self, '_initialized') and self._initialized:
             return
             
+        self.window_manager_minmax = WindowManagerMinMax(self)
+
         self._initialized = True
 
         self._geometry_restored = False
@@ -72,6 +77,11 @@ class PluginDialog(QDialog):
         except Exception:
             pass
         self.setWindowTitle(lang_manager.translate("wild_code_plugin_title"))
+        # set plugin icon
+        icon = theme_manager.get_icon_path(VALISEE_V_ICON_NAME)
+        print(f"Plugin icon path: {icon}")
+        from PyQt5.QtGui import QIcon
+        self.setWindowIcon(QIcon(icon))
         from PyQt5.QtWidgets import QSizePolicy
         self.moduleManager = ModuleManager()
         self.moduleStack = QStackedWidget()
@@ -80,7 +90,7 @@ class PluginDialog(QDialog):
         self.sidebar.itemClicked.connect(self.switchModule)
 
         # Create welcome page (default view)
-        self.welcomePage = WelcomePage(lang_manager=lang_manager, theme_manager=theme_manager)
+        self.welcomePage = WelcomePage(lang_manager=lang_manager)
         self.welcomePage.openSettingsRequested.connect(lambda: self.switchModule(SETTINGS_MODULE))
         # Hide internal debug toggle on WelcomePage; we control via header
         try:
@@ -142,13 +152,10 @@ class PluginDialog(QDialog):
         if self._debug:
             log_debug("[PluginDialog] UI skeleton built (header/sidebar/stack/footer)")
         
-
-        self.theme_base_dir = StylePaths.DARK  # Default to dark theme dir; switch as needed
         # Load and apply the theme from QGIS settings (persistent)
         self.current_theme = ThemeManager.set_initial_theme(
             self,
             self.header_widget.switchButton,
-            self.theme_base_dir,
             qss_files=[QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR, QssPaths.HEADER, QssPaths.FOOTER]
         )
         if self._debug:
@@ -259,28 +266,34 @@ class PluginDialog(QDialog):
     def _on_header_frames_toggle(self, enabled: bool):
         self._apply_frame_labels(enabled)
 
-
     def loadModules(self):
         if getattr(self, "_debug", False):
             log_debug("[PluginDialog] loadModules called")
 
     
         qss_modular = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
-        self.settingsModule = SettingsUI(lang_manager, theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        self.projectsModule = ProjectsModule(lang_manager=lang_manager, theme_manager=theme_manager, theme_dir=self.theme_base_dir, qss_files=qss_modular)
-        self.contractUI = ContractUi(lang_manager=lang_manager, theme_manager=theme_manager)
-        self.propertyModule = PropertyUI(lang_manager=lang_manager, theme_manager=theme_manager)
+        self.settingsModule = SettingsUI(qss_files=qss_modular)
+        self.projectsModule = ProjectsModule(qss_files=qss_modular)
+        self.contractUI = ContractsModule(qss_files=qss_modular)
+        self.propertyModule = PropertyUI()
 
         self.moduleManager.registerModule(self.settingsModule)
         self.moduleManager.registerModule(self.projectsModule)
         self.moduleManager.registerModule(self.contractUI)
         self.moduleManager.registerModule(self.propertyModule)
 
+        # Set up window manager for minimize/maximize functionality
+        self.window_manager = WindowManagerMinMax(self)
+        
+        # Connect property selection signal to window minimize/restore
+        self.propertyModule.property_selected_from_map.connect(self._on_property_selected_from_map)
+        self.propertyModule.property_selection_completed.connect(self._on_property_selection_completed)
+
         if getattr(self, "_debug", False):
             log_debug("[PluginDialog] Registered modules:")
             for moduleName in self.moduleManager.modules:
                 log_debug(f"  - {moduleName}")
-        print(f"DEBUG: All registered modules: {list(self.moduleManager.modules.keys())}")
+        #print(f"DEBUG: All registered modules: {list(self.moduleManager.modules.keys())}")
 
         # Add Property module after Home
         if PROPERTY_MODULE in self.moduleManager.modules:
@@ -308,8 +321,6 @@ class PluginDialog(QDialog):
                 # Do not add Settings to the top module list; it's accessible via header/button
                 if moduleName != SETTINGS_MODULE and moduleName != PROPERTY_MODULE:
                     self.sidebar.addItem(displayName, moduleName, iconPath)
-                    # Track modules visible in sidebar for settings module cards
-                    # Exclude Property from settings cards but keep in sidebar
                     try:
                         self._sidebar_modules.append(moduleName)
                     except AttributeError:
@@ -319,7 +330,7 @@ class PluginDialog(QDialog):
         # Inform Settings module which module cards to show (only those visible in sidebar)
         try:
             visible = getattr(self, '_sidebar_modules', [])
-            print(f"DEBUG: Sidebar modules: {visible}")
+            #print(f"DEBUG: Sidebar modules: {visible}")
             if hasattr(self, 'settingsModule') and hasattr(self.settingsModule, 'set_available_modules'):
                 self.settingsModule.set_available_modules(visible)
                 if getattr(self, "_debug", False):
@@ -379,13 +390,14 @@ class PluginDialog(QDialog):
 
     def switchModule(self, moduleName):
         import sys
-        print(f"[PluginDialog] switchModule called with: {moduleName}", file=sys.stderr)
+        #print(f"[PluginDialog] switchModule called with: {moduleName}", file=sys.stderr)
         # Intercept navigation for unsaved Settings changes
         if not self._confirm_unsaved_settings_if_needed(moduleName):
             print(f"[PluginDialog] switchModule: navigation blocked by unsaved settings", file=sys.stderr)
             return
         # Home shortcut
-        if moduleName == "__HOME__":
+        from .utils.url_manager import Module
+        if moduleName == Module.HOME.value:
             print(f"[PluginDialog] switchModule: showing welcome page", file=sys.stderr)
             self._show_welcome()
             if hasattr(self, 'sidebar'):
@@ -397,7 +409,7 @@ class PluginDialog(QDialog):
         if getattr(self, "_debug", False):
             log_debug(f"[PluginDialog] switchModule requested: {moduleName}")
         try:
-            print(f"[PluginDialog] activating module: {moduleName}", file=sys.stderr)
+            #print(f"[PluginDialog] activating module: {moduleName}", file=sys.stderr)
             self.moduleManager.activateModule(moduleName)
             activeModule = self.moduleManager.getActiveModule()
             # print(f"[PluginDialog] activeModule after activation: {activeModule}", file=sys.stderr)
@@ -438,6 +450,7 @@ class PluginDialog(QDialog):
         except Exception:
             pass
 
+
     def toggle_theme(self):
         # Use ThemeManager to toggle theme and update icon
         qss_files = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR, QssPaths.HEADER]
@@ -447,39 +460,44 @@ class PluginDialog(QDialog):
             self,
             self.current_theme,
             self.header_widget.switchButton,
-            self.theme_base_dir,
             qss_files=qss_files
         )
         self.current_theme = new_theme
         if getattr(self, "_debug", False):
             log_debug(f"[PluginDialog] theme now={self.current_theme}; retheming widgets…")
-        # Restyle header after theme toggle
-        if hasattr(self, 'header_widget'):
-            self.header_widget.retheme_header()
-        # Restyle sidebar after theme toggle
-        if hasattr(self, 'sidebar'):
-            self.sidebar.retheme_sidebar()
-        # Restyle project cards after theme toggle
-        if hasattr(self, 'projectsModule'):
-            self.projectsModule.retheme_projects()
-        # Restyle contract module after theme toggle
-        if hasattr(self, 'contractUI') and hasattr(self.contractUI, 'retheme_contract'):
-            self.contractUI.retheme_contract()
-        # Restyle settings module after theme toggle
-        if hasattr(self, 'settingsModule'):
-            self.settingsModule.retheme_settings()
+
+        retheme_targets = (
+            ("header_widget", "retheme_header"),
+            ("sidebar", "retheme_sidebar"),
+            ("projectsModule", "retheme_projects"),
+            ("contractsModule", "retheme_contract"),
+            ("propertyModule", "retheme"),
+            ("settingsModule", "retheme_settings"),
+            ("footer_widget", "retheme_footer"),
+        )
+        for attr_name, method_name in retheme_targets:
+            self._call_child_retheme(attr_name, method_name)
+
         # Update welcome page texts using current language
         try:
             if hasattr(self, 'welcomePage'):
                 self.welcomePage.retranslate(lang_manager)
         except Exception:
             pass
-        # Restyle footer after theme toggle
-        if hasattr(self, 'footer_widget'):
-            self.footer_widget.retheme_footer()
-        # Generic retheme pass: call retheme() on any child that provides it
-        self._retheme_dynamic_children()
 
+        # Generic retheme pass: call retheme() on any child that provides it
+        #self._retheme_dynamic_children()
+
+    def _call_child_retheme(self, attr_name: str, method_name: str) -> None:
+        """Call a child retheme method if it exists."""
+        try:
+            child = getattr(self, attr_name, None)
+            if child:
+                method = getattr(child, method_name, None)
+                if callable(method):
+                    method()
+        except Exception:
+            pass
 
     def _retheme_dynamic_children(self):
         """Find any child widgets that expose retheme() and call it.
@@ -619,74 +637,15 @@ class PluginDialog(QDialog):
             except Exception:
                 pass
 
-    def _handle_properties_shp_loading(self):
-        """Handle SHP file loading for properties (Maa-Amet data)."""
-        try:
-            from PyQt5.QtWidgets import QFileDialog, QMessageBox
-            from ..engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
+    def _on_property_selected_from_map(self):
+        """Handle property selection from map - minimize dialog."""
+        # Minimize window
+        self.window_manager._minimize_window()
 
-            # Show file dialog for SHP files
-            file_path, _ = QFileDialog.getOpenFileName(
-                self,
-                lang_manager.translate("select_shp_file") or "Vali SHP fail",
-                "",
-                "SHP files (*.shp);;All files (*.*)"
-            )
+    def _on_property_selection_completed(self):
+        """Handle completion of property selection process - restore dialog."""
+        self.window_manager._restore_window()
 
-            if not file_path:
-                return  # User cancelled
-
-            # Load and validate SHP file
-            from qgis.core import QgsVectorLayer
-            layer_name = file_path.split('/')[-1].replace('.shp', '')
-            shp_layer = QgsVectorLayer(file_path, layer_name, 'ogr')
-
-            if not shp_layer.isValid():
-                QMessageBox.warning(
-                    self,
-                    lang_manager.translate("invalid_shp") or "Vigane SHP fail",
-                    lang_manager.translate("invalid_shp_message") or "Valitud SHP fail ei ole kehtiv."
-                )
-                return
-
-            # Use centralized Shapefile import with all optimizations
-            engine = get_layer_engine()
-            result = engine.import_shapefile_to_memory_layer(
-                shp_layer=shp_layer,
-                layer_name=layer_name,
-                group_name=MailablGroupFolders.NEW_PROPERTIES,
-                parent_widget=self
-            )
-
-            if result:
-                # Get feature count for success message
-                memory_layer = None
-                for layer in engine.project.mapLayers().values():
-                    if layer.name() == result:
-                        memory_layer = layer
-                        break
-
-                feature_count = memory_layer.featureCount() if memory_layer else 0
-                QMessageBox.information(
-                    self,
-                    lang_manager.translate("shp_loaded") or "SHP fail laaditud",
-                    (lang_manager.translate("shp_loaded_with_data_message") or
-                     f"SHP fail '{layer_name}' on edukalt laaditud grupis 'Uued kinnistud' ({feature_count} objekti imporditud)")
-                )
-            else:
-                QMessageBox.warning(
-                    self,
-                    lang_manager.translate("shp_load_failed") or "SHP laadimine ebaõnnestus",
-                    lang_manager.translate("shp_load_failed_message") or "SHP faili laadimine ebaõnnestus."
-                )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                lang_manager.translate("error") or "Viga",
-                lang_manager.translate("shp_loading_error") or f"SHP faili laadimisel tekkis viga: {str(e)}"
-            )
-
-    def handleSessionExpiration(self):
+    def _on_help_requested(self):
         self.close()
         loginDialog = LoginDialog()

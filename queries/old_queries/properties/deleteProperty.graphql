@@ -1,5 +1,0 @@
-mutation deleteProperty($id: ID!){
-    deleteProperty(id: $id) {
-        id
-    }
-}

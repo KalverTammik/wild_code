@@ -46,7 +46,7 @@ class LoginDialog(QDialog):
         ThemeManager.set_initial_theme(
             self,
             None,  # No switch button
-            theme_base_dir,
+            
             qss_files=[QssPaths.LOGIN]
         )
 
@@ -152,7 +152,7 @@ class LoginDialog(QDialog):
             }}
         '''
 
-        api = APIClient(lang)
+        api = APIClient()
         try:
             # Use shared client for consistent headers and error handling; no auth required for login
             data = api.send_query(graphql, variables=None, require_auth=False, timeout=10)

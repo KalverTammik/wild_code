@@ -5,10 +5,11 @@ import requests
 
 from .SessionManager import SessionManager
 from ..constants.file_paths import ConfigPaths
+from ..languages.language_manager import LanguageManager
 
 class APIClient:
-    def __init__(self, lang, session_manager=None, config_path=None):
-        self.lang = lang
+    def __init__(self, session_manager=None, config_path=None):
+        self.lang = LanguageManager()
         self.session_manager = session_manager or SessionManager()
         self.config_path = config_path or ConfigPaths.CONFIG
         self.api_url = self._load_api_url()

@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import (
     QGraphicsDropShadowEffect
 )
 
+from ..theme_manager import ThemeManager
+
 
 class AvatarUtils:
     """Helper functions for deterministic colors and text for avatars."""
@@ -80,10 +82,6 @@ class AvatarBubble(QLabel):
         fg_hex = AvatarUtils.fg_for_bg(bg)
         border = AvatarUtils.border_for_bg(bg)
 
-        # Use the provided overlap_px parameter for precise card stacking
-        # Note: overlap is now handled by QWidget contents margins in the layout
-        overlap_margin = 0  # No CSS margin needed when using QWidget margins
-
         self.setStyleSheet(
             "QLabel {"
             f" margin:0px;"  # No margins, overlap handled by layout
@@ -106,18 +104,6 @@ class AvatarBubble(QLabel):
         if icon:
             self._add_icon_overlay(icon, size, bg)
 
-        # Remove shadow effect for minimalist look
-        # sh = QGraphicsDropShadowEffect(self)
-        # sh.setBlurRadius(16); sh.setXOffset(0); sh.setYOffset(4)
-        # Set theme-appropriate shadow color with more depth
-        # try:
-        #     from ..theme_manager import ThemeManager
-        #     theme = ThemeManager.load_theme_setting()
-        #     shadow_color = QColor(255, 255, 255, 70) if theme == 'dark' else QColor(0, 0, 0, 90)
-        # except Exception:
-        #     shadow_color = QColor(0, 0, 0, 90)  # default to dark shadow
-        # sh.setColor(shadow_color)
-        # self.setGraphicsEffect(sh)
 
     def enterEvent(self, e):
         # Simple hover behavior - just show popup for members
@@ -232,7 +218,6 @@ class AvatarBubble(QLabel):
         # Store reference to prevent garbage collection
         self.icon_overlay = icon_label
 
-
 class MembersView(QWidget):
     """Public widget to display responsible and participant members with avatar bubbles."""
     MAX_NAMES_VISIBLE = 6
@@ -284,8 +269,7 @@ class MembersView(QWidget):
 
     def retheme(self):
         """Update colors based on current theme - no shadows in minimalist design."""
-        # No shadow updates needed since we removed shadows for minimalist look
-        pass
+        ThemeManager.apply_module_style(self)
 
     # Optional API for later updates
     def set_item(self, item_data: dict, *, compact: Optional[bool] = None):

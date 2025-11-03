@@ -1,7 +1,8 @@
 
 from .constants.module_icons import ModuleIconPaths
 from .languages.language_manager import LanguageManager
-from .constants.module_names import SETTINGS_MODULE, GPT_ASSISTANT_MODULE, PROJECTS_MODULE, CONTRACT_MODULE, PROPERTY_MODULE
+from .constants.module_names import SETTINGS_MODULE,  PROJECTS_MODULE, CONTRACT_MODULE, PROPERTY_MODULE
+from .utils.url_manager import Module
 
 
 
@@ -10,9 +11,9 @@ from .constants.module_names import SETTINGS_MODULE, GPT_ASSISTANT_MODULE, PROJE
 MODULE_NAMES = {
     SETTINGS_MODULE: "SettingsModule",
     PROPERTY_MODULE: "PropertyModule",
-    GPT_ASSISTANT_MODULE: "GptAssistant",
     PROJECTS_MODULE: "ProjectsModule",
-    CONTRACT_MODULE: "ContractModule",
+    CONTRACT_MODULE: "ContractsModule",
+    Module.HOME: "HomeModule",
 }
 
 
@@ -23,6 +24,7 @@ class ModuleManager:
         self.lang_manager = lang_manager or LanguageManager()
 
     def registerModule(self, module):
+        print(f"[ModuleManager] Registering module: {module.name}")
         """Register a new module with its icon, human-readable name, and internal name."""
         self.modules[module.name] = {
             "module": module,

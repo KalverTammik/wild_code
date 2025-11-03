@@ -1,7 +1,0 @@
-mutation CreateTag($input: CreateTagInput!) {
-    createTag(input: $input) {
-        __typename
-        id
-        name
-    }
-}

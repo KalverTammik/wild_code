@@ -340,7 +340,7 @@ class UserCard(BaseCard):
                 project.layersAdded.connect(self._on_project_layers_changed)
                 project.layersRemoved.connect(self._on_project_layers_changed)
                 project.layersWillBeRemoved.connect(self._on_project_layers_will_be_removed)
-                print("Connected to project layer change signals")
+                #print("Connected to project layer change signals")
         except Exception as e:
             print(f"Error connecting to project signals: {e}")
 
@@ -349,7 +349,7 @@ class UserCard(BaseCard):
         if layer:
             layer_id = layer.id()
             self._selected_layer = layer
-            print(f"Selected property layer: {layer.name()} (ID: {layer_id})")
+            #print(f"Selected property layer: {layer.name()} (ID: {layer_id})")
             # Note: Saving is now handled by SettingsUI through the pending pattern
         else:
             self._selected_layer = None
@@ -383,9 +383,7 @@ class UserCard(BaseCard):
         """Get the currently selected layer"""
         return getattr(self, '_selected_layer', None)
 
-    def get_main_property_layer(self):
-        """Get the main property layer (same as selected layer)."""
-        return self.get_selected_layer()
+
 
     def clear_main_property_layer(self):
         """Clear the main property layer selection."""

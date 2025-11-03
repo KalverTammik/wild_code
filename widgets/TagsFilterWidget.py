@@ -21,7 +21,7 @@ class TagsFilterWidget(BaseFilterWidget):
         super().__init__(parent)
         self._module = getattr(module_name, "value", module_name)
         self._lang = lang_manager
-        self._api = APIClient(self._lang)
+        self._api = APIClient()
         self._loader = GraphQLQueryLoader(self._lang)
         self.set_debug(bool(debug))
 
@@ -35,7 +35,7 @@ class TagsFilterWidget(BaseFilterWidget):
         layout.setSpacing(2)
 
         # Allow override via class attr MAX_VISIBLE_ITEMS; use base default otherwise
-        self.combo, self._uses_qgis = self._init_checkable_combo("TagsFilterCombo")
+        self.combo = self._init_checkable_combo("TagsFilterCombo")
         layout.addWidget(self.combo)
         # Accent shadow
         try:
@@ -52,12 +52,7 @@ class TagsFilterWidget(BaseFilterWidget):
             self.combo.setToolTip("Tags Filter")
 
         # QGIS: kohe emit iga muutusega
-        if self._uses_qgis and hasattr(self.combo, 'checkedItemsChanged'):
-            self.combo.checkedItemsChanged.connect(lambda: self.selectionChanged.emit(self.selected_ids()))
-        else:
-            # Fallback: popupi list on checkable – ühendame pressi peale
-            self.combo.setView(QListView(self.combo))
-            self.combo.view().pressed.connect(self._on_item_pressed)
+        self.combo.checkedItemsChanged.connect(lambda: self.selectionChanged.emit(self.selected_ids()))
 
         # Initial theming now handled centrally by BaseFilterWidget.__init__ via retheme().
         self._loaded = False

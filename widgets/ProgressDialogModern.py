@@ -1,20 +1,12 @@
 #!/usr/bin/env python3
-"""
-ProgressDialogModern - Modern Progress Dialog for QGIS
 
-A modern, responsive progress dialog with cancellation support
-for long-running operations in QGIS plugins.
-
-Author: Wild Code Plugin Team
-Date: September 5, 2025
-"""
 
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QProgressBar,
-    QPushButton, QWidget, QFrame
+    QPushButton, QFrame
 )
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QFont, QPalette, QColor, QKeySequence
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QFont, QKeySequence
 
 try:
     from ..languages.language_manager import LanguageManager
@@ -156,86 +148,6 @@ class ProgressDialogModern(QDialog):
         # Connect progress bar value changed
         self.progress_bar.valueChanged.connect(self._update_percentage)
 
-    def _apply_styling(self):
-        """Apply modern QSS styling."""
-        self.setStyleSheet("""
-            ProgressDialogModern {
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-            }
-
-            #ProgressTitleFrame {
-                background-color: #e3f2fd;
-                border: 1px solid #bbdefb;
-                border-radius: 6px;
-                padding: 5px;
-            }
-
-            #ProgressTitle {
-                color: #1976d2;
-                border: none;
-            }
-
-            #ProgressFrame {
-                background-color: #ffffff;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-            }
-
-            #ProgressBar {
-                border: 1px solid #ccc;
-                border-radius: 3px;
-                text-align: center;
-                background-color: #f0f0f0;
-            }
-
-            #ProgressBar::chunk {
-                background-color: #4caf50;
-                border-radius: 2px;
-            }
-
-            #ProgressPercentage {
-                color: #2e7d32;
-                font-weight: bold;
-                margin-top: 5px;
-            }
-
-            #StatusFrame {
-                background-color: #ffffff;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-            }
-
-            #StatusLabel1 {
-                color: #424242;
-                font-weight: bold;
-            }
-
-            #StatusLabel2 {
-                color: #666666;
-                font-size: 11px;
-            }
-
-            #CancelButton {
-                background-color: #f44336;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                padding: 8px 16px;
-                font-weight: bold;
-                min-width: 80px;
-            }
-
-            #CancelButton:hover {
-                background-color: #d32f2f;
-            }
-
-            #CancelButton:pressed {
-                background-color: #b71c1c;
-            }
-        """)
-
     def update(self, value=None, text1=None, text2=None):
         """
         Update progress dialog.
@@ -323,72 +235,17 @@ class ProgressDialogModern(QDialog):
         """Apply theme using ThemeManager."""
         try:
             from .theme_manager import ThemeManager
-            from ..constants.file_paths import StylePaths, QssPaths
+            from ..constants.file_paths import QssPaths
 
-            # Get current theme
-            theme = ThemeManager.load_theme_setting()
-            theme_dir = StylePaths.DARK if theme == "dark" else StylePaths.LIGHT
-
-            # Apply theme with our custom QSS file
-            qss_files = [QssPaths.MAIN, "ProgressDialogModern.qss"]
-            ThemeManager.apply_theme(self, theme_dir, qss_files)
+            # Apply theme using centralized QSS files
+            ThemeManager.apply_module_style(self, [QssPaths.PROGRESS_DIALOG])
         except Exception as e:
-            # Fallback to basic styling if theme loading fails
-            self._apply_fallback_styling()
+            # Theme loading failed - widget will use default Qt styling
+            pass
 
-    def _apply_fallback_styling(self):
-        """Fallback styling if theme loading fails."""
-        self.setStyleSheet("""
-            ProgressDialogModern {
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-            }
-            QLabel {
-                color: #212529;
-            }
-            QProgressBar {
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                text-align: center;
-            }
-            QProgressBar::chunk {
-                background-color: #007bff;
-                border-radius: 3px;
-            }
-            QPushButton {
-                background-color: #6c757d;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-            QPushButton:pressed {
-                background-color: #545b62;
-            }
-            QTextEdit {
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                background-color: white;
-            }
-            QCheckBox {
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 16px;
-                height: 16px;
-                border: 1px solid #dee2e6;
-                border-radius: 3px;
-                background-color: white;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #007bff;
-                border-color: #007bff;
-            }
-        """)
+    def retheme(self):
+        """Re-apply theme styling for dynamic theme switching."""
+        self._apply_theme()
 
     def keyPressEvent(self, event):
         """Handle key press events."""

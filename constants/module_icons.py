@@ -1,26 +1,18 @@
 import os
-from .base_paths import PLUGIN_ROOT, RESOURCE
+from .base_paths import PLUGIN_ROOT, RESOURCE, ICON_FOLDER
 from .module_names import (
     SETTINGS_MODULE,
     PROJECTS_MODULE,
     CONTRACT_MODULE,
     PROPERTY_MODULE,
 )
-
-
-ICON_FOLDER = "icons"
-ICON_FOLDER_DARK = "Dark"
-
+from ..widgets.theme_manager import ThemeManager
+from ..utils.url_manager import Module
+from ..utils.logger import debug as log_debug, is_debug as is_global_debug
 
 RANDOM_ICON_NAME = "Valisee_s.png"
+VALISEE_V_ICON_NAME = "Valisee_v.png"
 
-# Semantic UI icon names (basenames). ThemeManager will resolve full path.
-ICON_SETTINGS_GEAR = "icons8-gear-100.png"
-ICON_LIST = "icons8-list-50.png"
-ICON_SEARCH = "icons8-search-location-50.png"
-ICON_SAVE = "icons8-save-50.png"
-ICON_TREE = "icons8-tree-structure-50.png"
-ICON_USER = "icons8-username-50.png"
 ICON_LOGIN = "icons8-login-50.png"
 ICON_LOGOUT = "icons8-logout-rounded-left-50.png"
 ICON_HELP = "icons8-help-50.png"
@@ -38,9 +30,14 @@ ICON_ADD = "icons8-add-50.png"
 ICON_REMOVE = "icons8-remove-50.png"
 ICON_WAIT = "icons8-wait-50.png"
 ICON_BUFFERING = "icons8-buffering-50.png"
-ICON_HOME = "icons8-home-110.png"
-ICON_CONTRACT = "icons8-handshake-25.png"
 
+#Module icons 
+class ModuleIcons:
+    ICON_CONTRACT = "handshake.png"
+    ICON_HOME = "home-icon-silhouette.png"
+    ICON_SETTINGS = "repairing-service.png"
+    ICON_PROJECTS = "team-management2.png"
+    ICON_PROPERTY = "menu.png"
 
 class DateIcons:
     ICON_DATE_OVERDUE = "icons8-schedule-overdue.png"
@@ -54,22 +51,25 @@ class MiscIcons:
 class ModuleIconPaths:
     MODULE_ICONS = {
         # Core (keep existing module icon mappings; do not change yet)
-        SETTINGS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'repairing-service.png'),
-        PROJECTS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'team-management2.png'),
-        CONTRACT_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'handshake.png'),
-        "__HOME__": os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'home-icon-silhouette.png'),  # Avaleht nupp
-        PROPERTY_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', 'Menu.png'),
+        SETTINGS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ModuleIcons.ICON_SETTINGS),
+        PROJECTS_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ModuleIcons.ICON_PROJECTS),
+        CONTRACT_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ModuleIcons.ICON_CONTRACT),
+        Module.HOME: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ModuleIcons.ICON_HOME),
+        PROPERTY_MODULE: os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, ModuleIcons.ICON_PROPERTY),
     }
+
+    # Simple in-memory cache to avoid repeated filesystem checks during startup
+    _ICON_CACHE = {}
 
     @staticmethod
     def themed(icon_basename: str) -> str:
         """Resolve a themed icon absolute path from a basename using ThemeManager."""
         try:
-            from ..widgets.theme_manager import ThemeManager
+
             return ThemeManager.get_icon_path(icon_basename)
         except Exception:
             # Fallback to base icons folder
-            return os.path.join(PLUGIN_ROOT, RESOURCE, 'icons', icon_basename)
+            return os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER, icon_basename)
 
     @staticmethod
     def _resolve_themed_icon(path: str) -> str:
@@ -86,7 +86,7 @@ class ModuleIconPaths:
         except Exception:
             theme = 'light'
 
-        base_icons_dir = os.path.join(PLUGIN_ROOT, RESOURCE, 'icons')
+        base_icons_dir = os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER)
         base_name = os.path.basename(path)
         stem, ext = os.path.splitext(base_name)
 
@@ -124,5 +124,17 @@ class ModuleIconPaths:
 
     @staticmethod
     def get_module_icon(module_name):
+        # Avoid noisy prints; use debug logger if enabled
+        if is_global_debug():
+            log_debug(f"Resolving icon for module: {module_name}")
+
+        # Try cache first
+        cached = ModuleIconPaths._ICON_CACHE.get(module_name, None)
+        if cached is not None:
+            return cached
+
         path = ModuleIconPaths.MODULE_ICONS.get(module_name, None)
-        return ModuleIconPaths._resolve_themed_icon(path)
+        resolved = ModuleIconPaths._resolve_themed_icon(path)
+        # Cache even None results to avoid repeated lookups for unknown keys
+        ModuleIconPaths._ICON_CACHE[module_name] = resolved
+        return resolved

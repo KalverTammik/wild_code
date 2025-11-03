@@ -1,1 +1,1 @@
-# contract module initializer
+# Contract module

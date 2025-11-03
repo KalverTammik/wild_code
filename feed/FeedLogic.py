@@ -21,7 +21,7 @@ class UnifiedFeedLogic:
         root_field: Optional[str] = None,
         map_node: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
     ) -> None:
-        self.api_client = APIClient(lang_manager)
+        self.api_client = APIClient()
         self.query_loader = GraphQLQueryLoader(lang_manager)
         self.query: str = self.query_loader.load_query(module_name, query_name)
 
@@ -89,7 +89,7 @@ class UnifiedFeedLogic:
             edges: List[Dict[str, Any]] = root.get("edges") or []
 
             page_info: Dict[str, Any] = root.get("pageInfo") or {}
-            print(f"[FeedLogic] GraphQL pageInfo: {page_info}")
+            #print(f"[FeedLogic] GraphQL pageInfo: {page_info}")
             # Prefer item totalCount on root if available; some APIs put page count in pageInfo.total
             root_total = root.get("totalCount") if isinstance(root, dict) else None
             page_total = page_info.get("total") if isinstance(page_info, dict) else None

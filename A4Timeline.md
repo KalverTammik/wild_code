@@ -66,7 +66,7 @@ Jätka logi iga muudatuse kohta, et hiljem oleks lihtne jälgida tehtud tööd j
 ### 2025-08-13
 **Teema:** Sidebar Avalehe nupu viimine külgpaneelile ja headeri puhastamine
 **Tegevused:**
-- Eemaldatud headerist varasem homeButton; lisatud vasakule külgpaneelile ülaossa Avaleht nupp pseudomooduliga `"__HOME__"`.
+
 - Lisatud aktiivse oleku QSS (gradient, vasak värviriba, bold font).
 - Tõlked lisatud `sidebar_button_names_en/et.py` – võti `HOME`.
 - Lisatud ikoonimajandus: korduvalt testitud erineva suurusega `icons8-home-*` failid; lõpuks standardiseeritud iconSize 25x25.

@@ -1,91 +1,93 @@
+#from .translation_keys import TranslationKeys
+
 TRANSLATIONS = {
-    "projects_module_loaded": "Projektide moodul laaditud!",
-    "api_endpoint_not_configured": "API lõpp-punkti pole seadistatud.",
-    "config_error": "Seadistuse viga: {error}",
-    "login_failed": "Sisselogimine ebaõnnestus: {error}",
-    "no_api_token_received": "API võtit ei saadud.",
-    "login_failed_response": "Sisselogimine ebaõnnestus: {error}",
-    "network_error": "Võrgu viga: {error}",
-    "login_title": "Logi sisse",
-    "language_label": "Keel:",
-    "username_label": "Kasutajanimi:",
-    "password_label": "Parool:",
-    "login_button": "Logi sisse",
-    "wild_code_plugin_title": "Wild Code Plugin",
-    "home_page": "Tere tulemast avalehele!",
-    "settings_page": "Seadete leht",
-    "about_page": "Teave leht",
-    "mailabl_listener": "Mailabl Listener",
-    "switch_to_dark_mode": "Lülita tumedale režiimile",
-    "switch_to_light_mode": "Lülita heledale režiimile",
-    "unknown_module": "Tundmatu moodul: {module}",
-    "query_file_not_found": "Päringu faili ei leitud: {file}",
-    "save_setting": "Salvesta säte",
-    "User": "Kasutaja",
-    "Roles": "Rollid",
-    "Module access": "Eelistatud moodul",
-    "Confirm": "Kinnita",
-    "Name": "Nimi",
-    "Email": "E-post",
-    "Module settings placeholder": "Mooduli seadete kohatäide",
-    # Lisatud: Tere tulemast lehe ja kihi valiku tekstidmida soovid selles moodulis eelistada. 
-    "Welcome": "Tere tulemast",
-    "Select a module from the left or open Settings to set your preferred module.": "Vali vasakult moodul või ava Seaded, et määrata eelistatud moodul.",
-    "Open Settings": "Ava Seaded",
+    TranslationKeys.PROJECTS_MODULE_LOADED: "Projektide moodul laaditud!",
+    TranslationKeys.API_ENDPOINT_NOT_CONFIGURED: "API lõpp-punkti pole seadistatud.",
+    TranslationKeys.CONFIG_ERROR: "Seadistuse viga: {error}",
+    TranslationKeys.LOGIN_FAILED: "Sisselogimine ebaõnnestus: {error}",
+    TranslationKeys.NO_API_TOKEN_RECEIVED: "API võtit ei saadud.",
+    TranslationKeys.LOGIN_FAILED_RESPONSE: "Sisselogimine ebaõnnestus: {error}",
+    TranslationKeys.NETWORK_ERROR: "Võrgu viga: {error}",
+    TranslationKeys.LOGIN_TITLE: "Logi sisse",
+    TranslationKeys.LANGUAGE_LABEL: "Keel:",
+    TranslationKeys.USERNAME_LABEL: "Kasutajanimi:",
+    TranslationKeys.PASSWORD_LABEL: "Parool:",
+    TranslationKeys.LOGIN_BUTTON: "Logi sisse",
+    TranslationKeys.WILD_CODE_PLUGIN_TITLE: "Kavitro",
+    TranslationKeys.HOME_PAGE: "Tere tulemast avalehele!",
+    TranslationKeys.SETTINGS_PAGE: "Seadete leht",
+    TranslationKeys.ABOUT_PAGE: "Teave leht",
+    TranslationKeys.MAILABL_LISTENER: "Mailabl Listener",
+    TranslationKeys.SWITCH_TO_DARK_MODE: "Lülita tumedale režiimile",
+    TranslationKeys.SWITCH_TO_LIGHT_MODE: "Lülita heledale režiimile",
+    TranslationKeys.UNKNOWN_MODULE: "Tundmatu moodul: {module}",
+    TranslationKeys.QUERY_FILE_NOT_FOUND: "Päringu faili ei leitud: {file}",
+    TranslationKeys.SAVE_SETTING: "Salvesta säte",
+    TranslationKeys.USER: "Kasutaja",
+    TranslationKeys.ROLES: "Rollid",
+    TranslationKeys.MODULE_ACCESS: "Eelistatud moodul",
+    TranslationKeys.CONFIRM: "Kinnita",
+    TranslationKeys.NAME: "Nimi",
+    TranslationKeys.EMAIL: "E-post",
+    TranslationKeys.MODULE_SETTINGS_PLACEHOLDER: "Mooduli seadete kohatäide",
+    # Lisatud: Tere tulemast lehe ja kihi valiku tekstidmida soovid selles moodulis eelistada.
+    TranslationKeys.WELCOME: "Tere tulemast",
+    TranslationKeys.SELECT_MODULE: "Vali vasakult moodul või ava Seaded, et määrata eelistatud moodul.",
+    TranslationKeys.OPEN_SETTINGS: "Ava Seaded",
     # Lisatud: ModuleCard/kihi valija sildid
-    "Modules main layer": "Mooduli põhikiht",
-    "Archive layer": "Arhiivikiht",
-    "Select layer": "Vali kiht",
-    "Choose layers used by this module (element and archive).": "Vali selle mooduli kasutatavad kihid (elemendi ja arhiivi)."
-    ,"logout_button_tooltip": "Logi välja"
-    ,"search_tooltip": "Funktsioon veel ei tööta"
-    ,"search_placeholder": "Otsi..."
-    ,"sidebar_collapse_tooltip": "Ahenda külgriba"
-    ,"sidebar_expand_tooltip": "Laienda külgriba"
-    ,"theme_switch_tooltip": "Tume/Hele režiim"
-    ,"dev_dbg_tooltip": "Lülita arenduslogid (print) sisse/välja"
-    ,"dev_frames_tooltip": "Näita/peida FRAME sildid avalehel"
-    ,"session_expired": "Teie seanss on aegunud. Palun logige uuesti sisse."
-    ,"Status Preferences": "Eelistatud staatused"
-    ,"Select statuses you want to prioritize for this module. These will be highlighted in the interface.": "Vali staatused, mida soovid selles moodulis eelistada. Need tõstetakse esile"
-    ,"urgent_group_title": "Kiire!"
-    ,"urgent_tooltip": "Vajab kiiret tähelepanu"
-    ,"Status Filter": "Staatuste järgi filtreerimine"
-    ,"Tags Filter": "Tunnuste järgi filtreerimine"
-    ,"Type Filter": "Liigi järgi filtreerimine"
-    ,"Type Group Filter": "Liigi grupi järgi filtreerimine"
-    ,"Reset": "Lähtesta"
-    ,"Confirm": "Kinnita"
-    ,"Reset all settings for this module to default values": "Lähtesta kõik selle mooduli seaded vaikimisi väärtustele"
-    ,"Settings reset to defaults": "Seaded lähtestati vaikimisi väärtustele"
-    ,"When enabled, project/contract numbers will be displayed in item cards for easy identification.": "Sisselülitamisel kuvatakse kannetel numbrid, et neid oleks lihtsam tuvastada."
-    ,"User Profile": "Kasutaja profiil"
-    ,"Roles & Permissions": "Rollid ja õigused"
-    ,"Module Access": "Mooduli juurdepääs"
-    ,"Administrator": "Administraator"
-    ,"Editor": "Toimetaja"
-    ,"Viewer": "Vaataja"
-    ,"Dashboard": "Töölaud"
-    ,"Reports": "Aruanded"
-    ,"Settings": "Seaded"
-    ,"Admin": "Admin"
-    ,"User": "Kasutaja"
-    ,"User Information": "Kasutaja info"
-    ,"Roles": "Rollid"
-    ,"Preferred module": "Eelistatud moodul"
-    ,"A Tähe õppimine": "A Tähe õppimine"
-    ,"B Tähe õppimine": "B Tähe õppimine"
-    ,"C Tähe õppimine": "C Tähe õppimine"
-    ,"A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole.": "A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole."
-    ,"B täht on eesti tähestikus teine täht. Seda kasutatakse paljudes sõnades, näiteks 'banaan' ja 'buss'. B tähe õppimine aitab laiendada sõnavara ja parandada hääldust.": "B täht on eesti tähestikus teine täht. Seda kasutatakse paljudes sõnades, näiteks 'banaan' ja 'buss'. B tähe õppimine aitab laiendada sõnavara ja parandada hääldust."
-    ,"C täht esineb eesti keeles peamiselt võõrsõnades, näiteks 'cirkus' või 'cello'. C tähe tundmine aitab mõista ja lugeda rahvusvahelisi sõnu.": "C täht esineb eesti keeles peamiselt võõrsõnades, näiteks 'cirkus' või 'cello'. C tähe tundmine aitab mõista ja lugeda rahvusvahelisi sõnu."
-    ,"Property Management": "Kinnistute haldus"
-    ,"Quick Actions": "Kiired toimingud"
-    ,"Add Shp file": "Lisa SHP fail"
-    ,"Add property": "Lisa kinnistuid"
-    ,"Remove property": "Eemalda kinnistu"
-    ,"Load Shapefile": "Laadi Shapefile"
-    ,"Select Shapefile": "Vali Shapefile fail"
+    TranslationKeys.MODULES_MAIN_LAYER: "Mooduli põhikiht",
+    TranslationKeys.ARCHIVE_LAYER: "Arhiivikiht",
+    TranslationKeys.SELECT_LAYER: "Vali kiht",
+    TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Vali selle mooduli kasutatavad kihid (elemendi ja arhiivi).",
+    TranslationKeys.LOGOUT_BUTTON_TOOLTIP: "Logi välja",
+    TranslationKeys.SEARCH_TOOLTIP: "Funktsioon veel ei tööta",
+    TranslationKeys.SEARCH_PLACEHOLDER: "Otsi...",
+    TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP: "Ahenda külgriba",
+    TranslationKeys.SIDEBAR_EXPAND_TOOLTIP: "Laienda külgriba",
+    TranslationKeys.THEME_SWITCH_TOOLTIP: "Tume/Hele režiim",
+    TranslationKeys.DEV_DBG_TOOLTIP: "Lülita arenduslogid (print) sisse/välja",
+    TranslationKeys.DEV_FRAMES_TOOLTIP: "Näita/peida FRAME sildid avalehel",
+    TranslationKeys.SESSION_EXPIRED: "Teie seanss on aegunud. Palun logige uuesti sisse.",
+    TranslationKeys.STATUS_PREFERENCES: "Eelistatud staatused",
+    TranslationKeys.SELECT_STATUSES_DESCRIPTION: "Vali staatused, mida soovid selles moodulis eelistada. Need tõstetakse esile",
+    "urgent_group_title": "Kiire!",
+    TranslationKeys.URGENT_TOOLTIP: "Vajab kiiret tähelepanu",
+    TranslationKeys.STATUS_FILTER: "Staatuste järgi filtreerimine",
+    TranslationKeys.TAGS_FILTER: "Tunnuste järgi filtreerimine",
+    TranslationKeys.TYPE_FILTER: "Liigi järgi filtreerimine",
+    TranslationKeys.TYPE_GROUP_FILTER: "Liigi grupi järgi filtreerimine",
+    TranslationKeys.RESET: "Lähtesta",
+    TranslationKeys.CONFIRM: "Kinnita",
+    TranslationKeys.RESET_ALL_SETTINGS: "Lähtesta kõik selle mooduli seaded vaikimisi väärtustele",
+    TranslationKeys.SETTINGS_RESET_TO_DEFAULTS: "Seaded lähtestati vaikimisi väärtustele",
+    TranslationKeys.SHOW_PROJECT_NUMBERS_DESCRIPTION: "Sisselülitamisel kuvatakse kannetel numbrid, et neid oleks lihtsam tuvastada.",
+    TranslationKeys.USER_PROFILE: "Kasutaja profiil",
+    TranslationKeys.ROLES_PERMISSIONS: "Rollid ja õigused",
+    TranslationKeys.MODULE_ACCESS: "Mooduli juurdepääs",
+    TranslationKeys.ADMINISTRATOR: "Administraator",
+    TranslationKeys.EDITOR: "Toimetaja",
+    TranslationKeys.VIEWER: "Vaataja",
+    TranslationKeys.DASHBOARD: "Töölaud",
+    TranslationKeys.REPORTS: "Aruanded",
+    TranslationKeys.SETTINGS: "Seaded",
+    TranslationKeys.ADMIN: "Admin",
+    TranslationKeys.USER: "Kasutaja",
+    TranslationKeys.USER_INFORMATION: "Kasutaja info",
+    TranslationKeys.ROLES: "Rollid",
+    TranslationKeys.PREFERRED_MODULE: "Eelistatud moodul",
+    TranslationKeys.LEARNING_A_TITLE: "A Tähe õppimine",
+    TranslationKeys.LEARNING_B_TITLE: "B Tähe õppimine",
+    TranslationKeys.LEARNING_C_TITLE: "C Tähe õppimine",
+    TranslationKeys.LEARNING_A_DESCRIPTION: "A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole.",
+    TranslationKeys.LEARNING_B_DESCRIPTION: "B täht on eesti tähestikus teine täht. Seda kasutatakse paljudes sõnades, näiteks 'banaan' ja 'buss'. B tähe õppimine aitab laiendada sõnavara ja parandada hääldust.",
+    TranslationKeys.LEARNING_C_DESCRIPTION: "C täht esineb eesti keeles peamiselt võõrsõnades, näiteks 'cirkus' või 'cello'. C tähe tundmine aitab mõista ja lugeda rahvusvahelisi sõnu.",
+    TranslationKeys.PROPERTY_MANAGEMENT: "Kinnistute haldus",
+    TranslationKeys.QUICK_ACTIONS: "Kiired toimingud",
+    TranslationKeys.ADD_SHP_FILE: "Lisa SHP fail",
+    TranslationKeys.ADD_PROPERTY: "Lisa kinnistuid",
+    TranslationKeys.REMOVE_PROPERTY: "Eemalda kinnistu",
+    TranslationKeys.LOAD_SHAPEFILE: "Laadi Shapefile",
+    TranslationKeys.SELECT_SHAPEFILE: "Vali Shapefile fail"
     ,"Shapefile loaded successfully": "Shapefile edukalt laaditud"
     ,"Shapefile loaded message": "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud'"
     ,"Shapefile loaded with data message": "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud' ({count} objekti imporditud)"
@@ -122,7 +124,6 @@ TRANSLATIONS = {
     ,"Property Type:": "Kinnistu tüüp:"
     ,"Area (m²):": "Pindala (m²):"
     ,"Value (€):": "Väärtus (€):"
-    ,"Address:": "Aadress:"
     ,"Residential": "Elamu"
     ,"Commercial": "Äri"
     ,"Industrial": "Tööstus"
@@ -138,4 +139,64 @@ TRANSLATIONS = {
     ,"Area must be greater than 0.": "Pindala peab olema suurem kui 0."
     ,"Value must be greater than 0.": "Väärtus peab olema suurem kui 0."
     ,"Validation Error": "Valideerimise viga"
+    ,"Cadastral ID": "Katastritunnus"
+    ,"Address": "Aadress"
+    ,"Area (m²)": "Pindala (m²)"
+    ,TranslationKeys.SETTLEMENT: "Linn/Asustusüksus"
+    ,"Property Name": "Kinnistu nimi"
+    ,"Property Type": "Kinnistu tüüp"
+    ,"Value (€)": "Väärtus (€)"
+    ,"Add Property": "Lisa kinnistu"
+    ,"Cancel": "Katkesta"
+    ,"Save": "Salvesta"
+    ,"Delete": "Kustuta"
+    ,"Edit": "Muuda"
+    ,"Select": "Vali"
+    ,"Search": "Otsi"
+    ,"Confirm": "Kinnita"
+    ,TranslationKeys.YES: "Jah"
+    ,TranslationKeys.NO: "Ei"
+    ,TranslationKeys.OK: "OK"
+    ,TranslationKeys.LOADING: "Laadimine"
+    ,TranslationKeys.SAVING: "Salvestan"
+    ,TranslationKeys.DELETING: "Kustutamine"
+    ,TranslationKeys.SUCCESS: "Edu"
+    ,TranslationKeys.ERROR: "Viga"
+    ,"Warning": "Hoiatus"
+    ,"This field is required": "See väli on kohustuslik"
+    ,"Invalid value": "Vigane väärtus"
+    ,"Value must be greater than {min}": "Väärtus peab olema suurem kui {min}"
+    ,"Value must be less than {max}": "Väärtus peab olema väiksem kui {max}"
+    ,TranslationKeys.PROPERTIES: "Kinnistud"
+    ,TranslationKeys.CONTRACTS: "Lepingud"
+    ,TranslationKeys.PROJECTS: "Projektid"
+    ,TranslationKeys.SELECT_SETTLEMENTS: "Vali asustusüksused"
+    ,TranslationKeys.ADD_NEW_PROPERTY: "Kinnistute haldamine"
+    ,TranslationKeys.SELECT_PROPERTIES: "Vali kinnistud"
+    ,TranslationKeys.CLOSE: "Sulge"
+    ,TranslationKeys.SELECT_ALL: "Vali kõik"
+    ,TranslationKeys.CLEAR_SELECTION: "Tühjenda valik"
+    ,TranslationKeys.ADD_SELECTED: "Lisa valitud"
+    ,TranslationKeys.SELECT_COUNTY: "Vali maakond"
+    ,TranslationKeys.SELECT_MUNICIPALITY: "Vali omavalitsus"
+    ,TranslationKeys.FILTER_BY_LOCATION: "Filtreeri asukoha järgi"
+    ,TranslationKeys.SELECTED_PROPERTIES_COUNT: "Valitud: 0 kinnistut"
+    ,TranslationKeys.SELECTED_COUNT_TEMPLATE: "Valitud: {count} kinnistut"
+    ,TranslationKeys.NO_SELECTION: "Valikut pole"
+    ,TranslationKeys.PLEASE_SELECT_AT_LEAST_ONE_PROPERTY: "Palun valige vähemalt üks kinnistu."
+    ,TranslationKeys.NO_PROPERTY_LAYER_SELECTED: "Kinnistute kihti pole valitud. Palun valige esmalt kinnistute kiht."
+    ,TranslationKeys.DATA_LOADING_ERROR: "Andmete laadimise viga"
+    ,TranslationKeys.FAILED_TO_LOAD_PROPERTY_DATA: "Andmete laadimine kihist ebaõnnestus."
+    ,TranslationKeys.PROPERTIES_ADDED: "Kinnistud lisatud"
+    ,TranslationKeys.SELECTED_PROPERTIES_ADDED: "Valitud kinnistud on lisatud."
+    , TranslationKeys.COUNTY: "Maakond"
+    ,TranslationKeys.MUNICIPALITY: "Omavalitsus"
+    ,TranslationKeys.CHOOSE_FROM_MAP: "Vali kaardilt"
+    ,TranslationKeys.NO_SELECTION: "Valikut pole"
+    ,TranslationKeys.SELECT_PROPERTY_FIRST: "Palun valige esmalt kaardilt kinnisvara objekt."
+    ,TranslationKeys.ERROR: "Viga"
+    ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Viga kinnisvara valimisel"
+    ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Vali üks kinnisvara"
+    ,TranslationKeys.SELECT_SINGLE_PROPERTY_MESSAGE: "Palun valige kaardilt ainult üks kinnisvara objekt."
+    ,"Status Filter": "Staatuste järgi filtreerimine"
 }

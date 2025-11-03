@@ -1,1 +1,1 @@
-# projects module initializer
+# Projects module

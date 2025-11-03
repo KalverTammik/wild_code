@@ -4,36 +4,54 @@ from PyQt5.QtWidgets import (
     QGroupBox, QScrollArea, QTableWidget, QTableWidgetItem,
     QHeaderView, QLineEdit, QComboBox
 )
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QFont, QIcon, QPixmap
+
+from .PropertyUITools import PropertyUITools
 from ...languages.language_manager import LanguageManager
 from ...widgets.theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
 from ...constants.module_names import PROPERTY_MODULE
+from ...languages.translation_keys import TranslationKeys
+from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+from PyQt5.QtGui import QColor
 
 class PropertyUI(QWidget):
     """
     Property module - focused on displaying and managing data for a single property item.
     Features a header area with info/tools and a tree view for property-related data.
     """
-    def __init__(self, lang_manager=None, theme_manager=None):
+    
+    # Signal emitted when a property is selected from map
+    property_selected_from_map = pyqtSignal()
+    # Signal emitted when property selection process is completed
+    property_selection_completed = pyqtSignal()
+    def __init__(self):
         super().__init__()
         self.name = PROPERTY_MODULE
 
         # Language manager
-        self.lang_manager = lang_manager or LanguageManager()
+        self.lang_manager = LanguageManager()
+
+        # Initialize tools first
+        self.tools = PropertyUITools(self)
+
+        self.horizontal_label_spacing = 3
+        self.margin_layout = 6
+        self.vertical_label_spacing = 6
 
         # Setup UI
         self.setup_ui()
 
         # Apply theming
-        ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
+        ThemeManager.apply_module_style(self, [QssPaths.PROPERTIES_UI])
 
     def setup_ui(self):
         """Setup the property module interface with header and tree view."""
+
         root = QVBoxLayout(self)
-        root.setContentsMargins(10, 10, 10, 10)
-        root.setSpacing(10)
+        root.setContentsMargins(self.margin_layout, self.margin_layout, self.margin_layout, self.margin_layout)
+        root.setSpacing(self.vertical_label_spacing)
 
         # Create splitter for resizable sections
         splitter = QSplitter(Qt.Vertical)
@@ -48,96 +66,222 @@ class PropertyUI(QWidget):
         # Set initial splitter proportions (header: 30%, tree: 70%)
         splitter.setSizes([200, 500])
 
+    def apply_shadow_effect(self, widget: QWidget):
+        """Apply theme-appropriate shadow effect to a widget."""
+        try:
+            theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
+            shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
+        except Exception:
+            shadow_color = QColor(0, 0, 0, 120)  # default to dark shadow
+
+        # Create new shadow effect
+        shadow = QGraphicsDropShadowEffect(widget)
+        shadow.setBlurRadius(10)
+        shadow.setOffset(0, 2)
+        shadow.setColor(shadow_color)
+
+        # Apply the shadow effect (this will replace any existing graphics effect)
+        widget.setGraphicsEffect(shadow)
+        
+
     def create_header_section(self, splitter):
         """Create the header area with property info and tools."""
         header_frame = QFrame()
         header_frame.setObjectName("PropertyHeader")
         header_frame.setFrameStyle(QFrame.StyledPanel)
         header_layout = QVBoxLayout(header_frame)
-        header_layout.setContentsMargins(15, 15, 15, 15)
-        header_layout.setSpacing(10)
+        header_layout.setContentsMargins(self.margin_layout, self.margin_layout, self.margin_layout, self.margin_layout)
+        header_layout.setSpacing(self.vertical_label_spacing)
 
         # Property title and status
         title_layout = QHBoxLayout()
 
         # Property ID/Name
-        self.property_label = QLabel("Kinnistu: [Vali kinnistu]")
-        self.property_label.setObjectName("PropertyTitle")
+        self.pbdisplayPropertyInfo = QPushButton(f"{self.lang_manager.translate(TranslationKeys.CHOOSE_FROM_MAP)}:")
+        self.pbdisplayPropertyInfo.setObjectName("ChooseFromMapButton")
         title_font = QFont()
         title_font.setBold(True)
         title_font.setPointSize(14)
-        self.property_label.setFont(title_font)
-        title_layout.addWidget(self.property_label)
+        self.pbdisplayPropertyInfo.setFont(title_font)
+        self.pbdisplayPropertyInfo.clicked.connect(self.tools.select_property_from_map)
+        title_layout.addWidget(self.pbdisplayPropertyInfo)
 
         # Status indicator
-        self.status_label = QLabel("Staatus: Aktiivne")
+        self.status_label = QLabel("Staatus: ...")
         self.status_label.setObjectName("PropertyStatus")
         title_layout.addStretch()
         title_layout.addWidget(self.status_label)
 
         header_layout.addLayout(title_layout)
 
-        # Property details in a grid-like layout
-        details_group = QGroupBox("Kinnistu andmed")
-        details_layout = QVBoxLayout(details_group)
+        # Property details in horizontal layout: General data (green) | Additional data
+        details_frame = QFrame()
+        details_frame.setObjectName("PropertyDetailsFrame")
+        details_frame.setFrameStyle(QFrame.StyledPanel)
+        details_layout = QVBoxLayout(details_frame)
+        details_layout.setContentsMargins(self.margin_layout, self.margin_layout, self.margin_layout, self.margin_layout)
+        details_layout.setSpacing(self.vertical_label_spacing)
 
-        # Row 1: Basic info
-        basic_layout = QHBoxLayout()
+        # Store reference to details frame for theme updates
+        self.details_frame = details_frame
 
-        # Katastritunnus
-        kat_layout = QVBoxLayout()
-        kat_layout.addWidget(QLabel("Katastritunnus:"))
-        self.katastritunnus_edit = QLineEdit()
-        self.katastritunnus_edit.setPlaceholderText("Sisesta katastritunnus...")
-        kat_layout.addWidget(self.katastritunnus_edit)
-        basic_layout.addLayout(kat_layout)
+        # Details title
+        details_title = QLabel("Kinnistu andmed")
+        details_title.setObjectName("DetailsTitle")
+        title_font = QFont()
+        title_font.setBold(True)
+        title_font.setPointSize(11)
+        details_title.setFont(title_font)
+        details_layout.addWidget(details_title)
 
-        # Omanik
-        omanik_layout = QVBoxLayout()
-        omanik_layout.addWidget(QLabel("Omanik:"))
-        self.omanik_edit = QLineEdit()
-        self.omanik_edit.setPlaceholderText("Omaniku nimi...")
-        omanik_layout.addWidget(self.omanik_edit)
-        basic_layout.addLayout(omanik_layout)
+        # Property data layout
+        data_layout = QHBoxLayout()
+        data_layout.setSpacing(self.margin_layout * 3)  # 18px spacing between left/right sections
 
-        # Pindala
-        pindala_layout = QVBoxLayout()
-        pindala_layout.addWidget(QLabel("Pindala (m²):"))
-        self.pindala_edit = QLineEdit()
-        self.pindala_edit.setPlaceholderText("0.00")
-        pindala_layout.addWidget(self.pindala_edit)
-        basic_layout.addLayout(pindala_layout)
+        # Left side: General data (cadastral number and address) in green frame
+        basic_frame = QFrame()
+        basic_frame.setObjectName("BasicInfoFrame")
+        basic_frame.setFrameStyle(QFrame.Box)
+        basic_frame.setLineWidth(2)
 
-        details_layout.addLayout(basic_layout)
+        basic_layout = QVBoxLayout(basic_frame)
+        basic_layout.setContentsMargins(self.horizontal_label_spacing, self.horizontal_label_spacing, self.horizontal_label_spacing, self.horizontal_label_spacing)
+        basic_layout.setSpacing(self.vertical_label_spacing)
 
-        # Row 2: Additional info
-        additional_layout = QHBoxLayout()
+        # Katastritunnus - horizontal layout (label + value)
+        tunnus_layout = QHBoxLayout()
+        tunnus_label = QLabel("Katastritunnus:")
+        tunnus_label.setObjectName("InfoLabel")
+        tunnus_layout.addWidget(tunnus_label)
+        self.lbl_katastritunnus_value = QLabel()
+        self.lbl_katastritunnus_value.setText("katastritunnus...")
+        tunnus_layout.addWidget(self.lbl_katastritunnus_value)
+        tunnus_layout.addStretch()
+        basic_layout.addLayout(tunnus_layout)
 
-        # Hind
-        hind_layout = QVBoxLayout()
-        hind_layout.addWidget(QLabel("Hind (€):"))
-        self.hind_edit = QLineEdit()
-        self.hind_edit.setPlaceholderText("0.00")
-        hind_layout.addWidget(self.hind_edit)
-        additional_layout.addLayout(hind_layout)
+        # Kinnistu registry number - horizontal layout (label + value) underneath katastritunnus
+        kinnistu_layout = QHBoxLayout()
+        kinnistu_label = QLabel("(reg.nr:)")
+        kinnistu_label.setObjectName("InfoLabel")
+        kinnistu_layout.addWidget(kinnistu_label)
+        self.lbl_kinnistu_value = QLabel()
+        self.lbl_kinnistu_value.setText("...")
+        kinnistu_layout.addWidget(self.lbl_kinnistu_value)
+        kinnistu_layout.addStretch()
+        basic_layout.addLayout(kinnistu_layout)
 
-        # Staatus
-        staatus_layout = QVBoxLayout()
-        staatus_layout.addWidget(QLabel("Staatus:"))
-        self.staatus_combo = QComboBox()
-        self.staatus_combo.addItems(["Aktiivne", "Müügis", "Müüdud", "Arendamisel"])
-        additional_layout.addLayout(staatus_layout)
+        # Address - horizontal layout (label + value)
+        address_layout = QHBoxLayout()
+        address_label = QLabel("Aadress:")
+        address_label.setObjectName("InfoLabel")
+        address_layout.addWidget(address_label)
+        self.lbl_address_value = QLabel()
+        self.lbl_address_value.setText("...")
+        address_layout.addWidget(self.lbl_address_value)
+        address_layout.addStretch()
+        basic_layout.addLayout(address_layout)
 
-        # Tüüp
-        tyyp_layout = QVBoxLayout()
-        tyyp_layout.addWidget(QLabel("Tüüp:"))
-        self.tyyp_combo = QComboBox()
-        self.tyyp_combo.addItems(["Elamumaa", "Ärimaa", "Põllumaa", "Metsamaa"])
-        additional_layout.addLayout(tyyp_layout)
+        data_layout.addWidget(basic_frame)
 
-        details_layout.addLayout(additional_layout)
+        # Right side: Additional data (area and sihtotstarve)
+        additional_frame = QFrame()
+        additional_frame.setObjectName("AdditionalInfoFrame")
+        additional_layout = QVBoxLayout(additional_frame)
+        additional_layout.setContentsMargins(self.margin_layout, self.margin_layout, self.margin_layout, self.margin_layout)
+        additional_layout.setSpacing(self.horizontal_label_spacing)
 
-        header_layout.addWidget(details_group)
+        # Area - horizontal layout (label + value)
+        pindala_layout = QHBoxLayout()
+        pindala_label = QLabel("Pindala (m²):")
+        pindala_label.setObjectName("InfoLabel")
+        pindala_layout.addWidget(pindala_label)
+        self.lbl_area_value = QLabel()
+        self.lbl_area_value.setText("0.00")
+        pindala_layout.addWidget(self.lbl_area_value)
+        pindala_layout.addStretch()
+        additional_layout.addLayout(pindala_layout)
+
+        # Sihtotstarve - three separate labels (hide if NULL)
+        sihtotstarve_layout = QVBoxLayout()
+        sihtotstarve_layout.setSpacing(self.vertical_label_spacing)
+
+        # Siht 1
+        siht1_layout = QHBoxLayout()
+        self.lbl_siht1_label = QLabel("Siht 1:")
+        self.lbl_siht1_label.setObjectName("InfoLabel")
+        siht1_layout.addWidget(self.lbl_siht1_label)
+        self.lbl_siht1_value = QLabel()
+        self.lbl_siht1_value.setText("...")
+        siht1_layout.addWidget(self.lbl_siht1_value)
+        siht1_layout.addStretch()
+        sihtotstarve_layout.addLayout(siht1_layout)
+
+        # Siht 2
+        siht2_layout = QHBoxLayout()
+        self.lbl_siht2_label = QLabel("Siht 2:")
+        self.lbl_siht2_label.setObjectName("InfoLabel")
+        siht2_layout.addWidget(self.lbl_siht2_label)
+        self.lbl_siht2_value = QLabel()
+        self.lbl_siht2_value.setText("...")
+        siht2_layout.addWidget(self.lbl_siht2_value)
+        siht2_layout.addStretch()
+        sihtotstarve_layout.addLayout(siht2_layout)
+
+        # Siht 3
+        siht3_layout = QHBoxLayout()
+        self.lbl_siht3_label = QLabel("Siht 3:")
+        self.lbl_siht3_label.setObjectName("InfoLabel")
+        siht3_layout.addWidget(self.lbl_siht3_label)
+        self.lbl_siht3_value = QLabel()
+        self.lbl_siht3_value.setText("...")
+        siht3_layout.addWidget(self.lbl_siht3_value)
+        siht3_layout.addStretch()
+        sihtotstarve_layout.addLayout(siht3_layout)
+
+        additional_layout.addLayout(sihtotstarve_layout)
+
+        # Registr - registration date
+        registr_layout = QHBoxLayout()
+        registr_label = QLabel("Moodustatud:")
+        registr_label.setObjectName("InfoLabel")
+        registr_layout.addWidget(registr_label)
+        self.lbl_registr_value = QLabel()
+        self.lbl_registr_value.setText("...")
+        registr_layout.addWidget(self.lbl_registr_value)
+        registr_layout.addStretch()
+        additional_layout.addLayout(registr_layout)
+
+        # Muudet - modification date
+        muudet_layout = QHBoxLayout()
+        muudet_label = QLabel("Viimati muudetud:")
+        muudet_label.setObjectName("InfoLabel")
+        muudet_layout.addWidget(muudet_label)
+        self.lbl_muudet_value = QLabel()
+        self.lbl_muudet_value.setText("...")
+        muudet_layout.addWidget(self.lbl_muudet_value)
+        muudet_layout.addStretch()
+        additional_layout.addLayout(muudet_layout)
+
+        data_layout.addWidget(additional_frame)
+
+        details_layout.addLayout(data_layout)
+
+        header_layout.addWidget(details_frame)
+
+        # Apply shadow effect to details frame
+        self.apply_shadow_effect(details_frame)
+
+        # CRITICAL: Clear graphics effects on ALL QLabel widgets in the module
+        # This prevents any stray shadows from appearing on labels
+        for label in self.findChildren(QLabel):
+            if label.graphicsEffect():
+                label.setGraphicsEffect(None)
+
+        # CRITICAL: Clear graphics effects on ALL child widgets recursively
+        # This prevents shadows from propagating to labels and other child elements
+        for child in details_frame.findChildren(QWidget):
+            if child != details_frame and child.graphicsEffect():
+                child.setGraphicsEffect(None)
 
         splitter.addWidget(header_frame)
 
@@ -147,8 +291,8 @@ class PropertyUI(QWidget):
         tree_frame.setObjectName("PropertyTree")
         tree_frame.setFrameStyle(QFrame.StyledPanel)
         tree_layout = QVBoxLayout(tree_frame)
-        tree_layout.setContentsMargins(15, 15, 15, 15)
-        tree_layout.setSpacing(10)
+        tree_layout.setContentsMargins(self.horizontal_label_spacing, self.horizontal_label_spacing, self.horizontal_label_spacing, self.horizontal_label_spacing)
+        tree_layout.setSpacing(self.vertical_label_spacing)
 
         # Tree view title
         tree_title = QLabel("Kinnistuga seotud andmed")
@@ -243,9 +387,54 @@ class PropertyUI(QWidget):
         """Refresh the tree data."""
         self.populate_tree_data()
 
+    def retheme(self):
+        """Reapply theme styles when theme is toggled - following successful shadow patterns."""
+        # Apply main module styling
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN])
+
+        # CRITICAL: Clear ALL existing graphics effects on QLabel widgets first
+        # This prevents any stray shadows from appearing on labels
+        for label in self.findChildren(QLabel):
+            if label.graphicsEffect():
+                label.setGraphicsEffect(None)
+
+        # Update shadow effect for details frame (primary shadow) - ensure it's applied correctly
+        if hasattr(self, 'details_frame') and self.details_frame:
+            # Clear any existing graphics effect first
+            if self.details_frame.graphicsEffect():
+                self.details_frame.setGraphicsEffect(None)
+            # Then apply the new shadow effect
+            self.apply_shadow_effect(self.details_frame)
+
+            # CRITICAL: Clear graphics effects on ALL child widgets recursively
+            # This prevents shadows from propagating to labels and other child elements
+            for child in self.details_frame.findChildren(QWidget):
+                if child != self.details_frame and child.graphicsEffect():
+                    child.setGraphicsEffect(None)
+
     def activate(self):
         """Called when the module becomes active."""
-        pass
+        try:
+            from qgis.core import QgsProject
+            from qgis.utils import iface
+            from ...constants.layer_constants import PROPERTY_TAG
+
+            # Find the property layer
+            project = QgsProject.instance()
+            for layer in project.mapLayers().values():
+                if layer.customProperty(PROPERTY_TAG):
+                    active_layer = layer
+                    break
+            else:
+                return  # No property layer found
+
+            # Check if there's a selected feature and display it
+            selected_features = active_layer.selectedFeatures()
+            if selected_features:
+                self.tools.update_property_display(active_layer)
+
+        except Exception as e:
+            print(f"Error in activate: {e}")
 
     def deactivate(self):
         """Called when the module becomes inactive."""
@@ -254,3 +443,4 @@ class PropertyUI(QWidget):
     def get_widget(self):
         """Return the module's main QWidget."""
         return self
+

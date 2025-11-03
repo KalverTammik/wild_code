@@ -32,7 +32,7 @@ class Sidebar(QWidget):
         self._is_compact = False
         self.moduleButtons = {}
         self.buttonTexts = {}
-        self._shadows_applied = False
+
 
         self.setObjectName("SidebarRoot")
 
@@ -74,8 +74,10 @@ class Sidebar(QWidget):
         self.homeButton.setAutoDefault(False)
         self.homeButton.setDefault(False)
         # Assign themed icon if available
+        
+        from ..utils.url_manager import Module
         try:
-            home_icon_path = ModuleIconPaths.get_module_icon("__HOME__")
+            home_icon_path = ModuleIconPaths.get_module_icon(Module.HOME)
             if home_icon_path:
                 self.homeButton.setIcon(QIcon(home_icon_path))
         except Exception:
@@ -85,10 +87,10 @@ class Sidebar(QWidget):
             self.homeButton.setIconSize(QSize(22, 22))
         except Exception:
             pass
-        self.homeButton.clicked.connect(lambda: self.emitItemClicked("__HOME__"))
+        self.homeButton.clicked.connect(lambda: self.emitItemClicked(Module.HOME))
         nav_layout.addWidget(self.homeButton)
         # Track for compact toggle & active styling
-        self.moduleButtons["__HOME__"] = self.homeButton
+        self.moduleButtons[Module.HOME] = self.homeButton
         self.buttonTexts[self.homeButton] = home_label
         cm.addWidget(self.SidebarNavFrame)
 
@@ -114,18 +116,18 @@ class Sidebar(QWidget):
 
         # Settings button inside footer bar
         settings_name = lang_manager.sidebar_button(SETTINGS_MODULE)
-        settings_icon_path = ModuleIconPaths.get_module_icon(SETTINGS_MODULE)
+        self.settings_icon_path = ModuleIconPaths.get_module_icon(SETTINGS_MODULE)
         self.settingsButton = QPushButton(settings_name, self.footerBar)
         self.settingsButton.setObjectName("SidebarSettingsButton")
-        # Prevent button from being triggered by Return key
         self.settingsButton.setAutoDefault(False)
         self.settingsButton.setDefault(False)
-        if settings_icon_path:
-            self.settingsButton.setIcon(QIcon(settings_icon_path))
-        try:
-            self.settingsButton.setIconSize(QSize(22, 22))  # Ühtlustatud ikooni suurus
-        except Exception:
-            pass
+        self.settingsButton.setIcon(QIcon(self.settings_icon_path))
+        self.settingsButton.setIconSize(QSize(22, 22))  # Ühtlustatud ikooni suurus
+      
+        
+        
+        
+        
         # Connect settings button to directly show settings module
         self.settingsButton.clicked.connect(self.showSettingsModule)
         fl.addWidget(self.settingsButton, 0, Qt.AlignLeft)
@@ -179,7 +181,7 @@ class Sidebar(QWidget):
     # ---------- external API ----------
     def addItem(self, displayName, uniqueIdentifier, iconPath=None):
         import sys
-        print(f"[Sidebar] Adding button: {displayName} ({uniqueIdentifier})", file=sys.stderr)
+        #print(f"[Sidebar] Adding button: {displayName} ({uniqueIdentifier})", file=sys.stderr)
         btn = QPushButton(displayName, self.SidebarNavFrame)
         btn.setObjectName("SidebarNavButton")
         # Prevent button from being triggered by Return key
@@ -196,7 +198,7 @@ class Sidebar(QWidget):
 
         def handler():
             if btn.isEnabled():
-                print(f"[Sidebar] Button clicked: {uniqueIdentifier}", file=sys.stderr)
+                #print(f"[Sidebar] Button clicked: {uniqueIdentifier}", file=sys.stderr)
                 self.emitItemClicked(uniqueIdentifier)
 
         btn.clicked.connect(handler)
@@ -223,7 +225,11 @@ class Sidebar(QWidget):
             self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
 
     def emitItemClicked(self, itemName):
-        self.itemClicked.emit(itemName)
+        # Handle both Module enum and string inputs
+        if hasattr(itemName, 'value'):
+            self.itemClicked.emit(itemName.value)
+        else:
+            self.itemClicked.emit(itemName)
 
     def showSettingsModule(self):
         # Switch to the registered Settings module in the main stack
@@ -232,49 +238,18 @@ class Sidebar(QWidget):
     def retheme_sidebar(self):
         ThemeManager.apply_module_style(self, [QssPaths.SIDEBAR])
 
-        if not self._shadows_applied:
-            self._apply_section_shadows()
-            self._shadows_applied = True
-
-        # refresh [compact="true"] rules
-        self.setProperty("compact", self._is_compact)
-        self.style().unpolish(self); self.style().polish(self)
-        self._position_toggle()
-
-        # refresh settings icon for current theme
-        if hasattr(self, 'settingsButton'):
-            icon_path = ModuleIconPaths.get_module_icon(SETTINGS_MODULE)
-            if icon_path:
-                self.settingsButton.setIcon(QIcon(icon_path))
+        self.settingsButton.setIcon(QIcon(self.settings_icon_path))
 
         # refresh module nav icons for current theme
         for uniqueIdentifier, btn in self.moduleButtons.items():
             themed_icon = ModuleIconPaths.get_module_icon(uniqueIdentifier)
             if themed_icon:
                 btn.setIcon(QIcon(themed_icon))
-            if uniqueIdentifier in ('ProjectsModule', 'ContractModule', '__HOME__', 'PropertyModule', 'SettingsModule'):
-                try:
-                    btn.setIconSize(QSize(22, 22))  # Tagame ühtluse ka teema vahetusel
-                except Exception:
-                    pass
-        # Settings ikooni värskendus ja suurus
-        if hasattr(self, 'settingsButton'):
-            try:
-                self.settingsButton.setIconSize(QSize(22, 22))
-            except Exception:
-                pass
+                btn.setIconSize(QSize(22, 22))
 
-    # ---------- internals ----------
-    def _apply_section_shadows(self):
-        # soft inner shadows for nav + settings
-        for frame in (self.SidebarNavFrame, getattr(self, 'footerBar', None)):
-            if frame is None:
-                continue
-            sh = QGraphicsDropShadowEffect(self)
-            sh.setBlurRadius(18)
-            sh.setOffset(0, 4)
-            sh.setColor(QColor(0, 0, 0, 40))  # subtle; fine for both themes
-            frame.setGraphicsEffect(sh)
+        # Settings ikooni värskendus ja suurus
+        self.settingsButton.setIconSize(QSize(22, 22))
+        
 
     def _apply_toggle_shadow(self):
         sh = QGraphicsDropShadowEffect(self.toggleButton)

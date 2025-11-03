@@ -1,6 +1,6 @@
 /* =========================================================
    DARK THEME — UniversalStatusBar
-   Frosted glass status bar with teal accent header
+   Frosted glass status bar with consistent dark theme colors
    ========================================================= */
 
 #UniversalStatusBar {
@@ -8,55 +8,54 @@
 }
 
 #titleFrame {
-    background-color: rgba(29, 37, 43, 0.9);
+    background-color: rgba(9,144,143,0.15);  /* Subtle teal tint */
+    border: 1px solid rgba(9,144,143,0.35);
     border-top-left-radius: 7px;
     border-top-right-radius: 7px;
+    border-bottom: none;
 }
 
 #titleLabel {
-    /*color: #e8e9ef;*/
-    color: #f55d05;
+    color: #e8e9ef;  /* Consistent title color */
     font-weight: bold;
     font-size: 12px;
 }
 
 #closeButton {
     background-color: transparent;
-    color: #e8e9ef;
+    color: #c5c5d2;  /* Consistent text color */
     border: none;
     font-weight: bold;
     font-size: 14px;
 }
 
 #closeButton:hover {
-    background-color: rgba(255,255,255,0.1);
+    background-color: rgba(9,144,143,0.1);
     border-radius: 3px;
 }
 
 #mainLabel {
-    color: #c5c5d2;
+    color: #e8e9ef;  /* Title color for main text */
     font-size: 11px;
+    font-weight: 500;
 }
 
 #progressBar {
-    background-color: rgba(48,58,66,0.6);
-    border: 1px solid rgba(77,77,77,0.6);
-    border-radius: 3px;
+    background-color: rgba(48,58,66,0.8);
+    border: 1px solid #4d4d4d;  /* Consistent border */
+    border-radius: 4px;
     text-align: center;
     font-size: 10px;
-    color: #e8e9ef;
+    color: #c5c5d2;  /* Consistent text color */
+    font-weight: bold;
 }
 
 #progressBar::chunk {
-    background-color: qlineargradient(
-        x1: 0, y1: 0, x2: 1, y2: 0,
-        stop: 0 rgba(9,144,143,200),
-        stop: 1 rgba(46,47,56,180)
-    );
-    border-radius: 2px;
+    background: rgb(9,144,143);  /* Consistent teal accent */
+    border-radius: 3px;
 }
 
 #text1Label, #text2Label {
-    color: #b0b0b0;
+    color: #c5c5d2;  /* Consistent body text color */
     font-size: 10px;
 }

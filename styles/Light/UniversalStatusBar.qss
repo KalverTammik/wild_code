@@ -1,6 +1,6 @@
 /* =========================================================
    LIGHT THEME — UniversalStatusBar
-   Frosted glass status bar with blue accent header
+   Frosted glass status bar with consistent light theme colors
    ========================================================= */
 
 #UniversalStatusBar {
@@ -8,56 +8,54 @@
 }
 
 #titleFrame {
-    background-color: rgba(0,120,212,0.9);
+    background-color: rgba(0,120,212,0.15);  /* Subtle blue tint matching header */
+    border: 1px solid rgba(0,120,212,0.35);
     border-top-left-radius: 7px;
     border-top-right-radius: 7px;
+    border-bottom: none;
 }
 
 #titleLabel {
-    /*color: #111416;*/
-    color: #3ff806;
+    color: #111416;  /* Consistent title color */
     font-weight: bold;
     font-size: 12px;
 }
 
 #closeButton {
     background-color: transparent;
-    color: #111416;
+    color: #24292e;  /* Consistent text color */
     border: none;
     font-weight: bold;
     font-size: 14px;
 }
 
 #closeButton:hover {
-    background-color: rgba(0,0,0,0.1);
+    background-color: rgba(0,120,212,0.1);
     border-radius: 3px;
 }
 
 #mainLabel {
-    color: #1a1d1f;
+    color: #111416;  /* Title color for main text */
     font-size: 11px;
+    font-weight: 500;
 }
 
 #progressBar {
-    background-color: rgba(255,255,255,0.55);
-    border: 1px solid rgba(210,213,218,0.9);
-    border-radius: 3px;
+    background-color: rgba(255,255,255,0.8);
+    border: 1px solid #e1e4e8;  /* Consistent border */
+    border-radius: 4px;
     text-align: center;
     font-size: 10px;
-    color: #ffffff;
+    color: #24292e;  /* Consistent text color */
     font-weight: bold;
 }
 
 #progressBar::chunk {
-    background-color: qlineargradient(
-        x1: 0, y1: 0, x2: 1, y2: 0,
-        stop: 0 rgba(0,120,212,230),
-        stop: 1 rgba(30,98,170,210)
-    );
-    border-radius: 2px;
+    background: #0078d4;  /* Consistent blue accent */
+    border-radius: 3px;
 }
 
 #text1Label, #text2Label {
-    color: #2b2f33;
+    color: #24292e;  /* Consistent body text color */
     font-size: 10px;
 }

@@ -1,8 +1,0 @@
-mutation CreateProperty($input: CreatePropertyInput!) {
-  createProperty(
-    input: $input
-  )   
-  {
-    id
-}
-}

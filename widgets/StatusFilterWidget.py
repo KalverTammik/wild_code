@@ -1,62 +1,47 @@
 # -*- coding: utf-8 -*-
 from typing import Optional, Union, List
 
-from PyQt5.QtWidgets import QHBoxLayout, QListView
+from PyQt5.QtWidgets import QHBoxLayout
 from PyQt5.QtCore import Qt, QCoreApplication
 
 from .BaseFilterWidget import BaseFilterWidget
-from .theme_manager import ThemeManager
-from ..constants.file_paths import QssPaths
+from ..constants.file_paths import STATUS_QUERIES
 from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
 from ..utils.api_client import APIClient
+from ..languages.language_manager import LanguageManager
+from ..utils.url_manager import Module
+
 
 
 class StatusFilterWidget(BaseFilterWidget):
-    """
-    Moodulipõhised staatused (PROJECTS/CONTRACTS). Pärib BaseFilterWidget:
-    - lazy load, selection API, QGIS/fallback tugi.
-    """
 
-    def __init__(self, module_name: Union[str, object], lang_manager=None, parent=None, debug: Optional[bool] = None):
+    def __init__(self, module_name: Union[str, object],  parent=None, debug: Optional[bool] = None):
         super().__init__(parent)
-        self._module = getattr(module_name, "value", module_name)
-        self._lang = lang_manager
-        self._api = APIClient(self._lang)
+        self._lang = LanguageManager()
+        self._api = APIClient()
         self._loader = GraphQLQueryLoader(self._lang)
         self.set_debug(bool(debug))
+        self.query_file = "ListModuleStatuses.graphql"
+        self._module = module_name
+        self.filter_module = "statuses"
         
-        # UI
         layout = QHBoxLayout(self)
-        # Add margins so shadow effect around combo is visible
         layout.setContentsMargins(4, 2, 4, 2)
-        layout.setSpacing(2)
+        layout.setSpacing(1)
 
-        # Allow override via class attr MAX_VISIBLE_ITEMS; use base default otherwise
-        self.combo, self._uses_qgis = self._init_checkable_combo("StatusFilterCombo")
+        self.combo = self._init_checkable_combo("StatusFilterCombo")
+
         layout.addWidget(self.combo)
         # Accent shadow
-        try:
-            self._apply_combo_shadow(self.combo)
-        except Exception:
-            pass
+        self._apply_combo_shadow(self.combo)
 
         # Add tooltip for clarity
-        if self._lang:
-            tooltip = self._lang.translate("Status Filter")
-            if tooltip:
-                self.combo.setToolTip(tooltip)
-        else:
-            self.combo.setToolTip("Status Filter")
+        tooltip = LanguageManager().translate("Status Filter")
+        self.combo.setToolTip(tooltip)
 
         # QGIS: kohe emit iga muutusega
-        if self._uses_qgis and hasattr(self.combo, 'checkedItemsChanged'):
-            self.combo.checkedItemsChanged.connect(lambda: self.selectionChanged.emit(self.selected_ids()))
-        else:
-            # Fallback: popupi list on checkable – ühendame pressi peale
-            self.combo.setView(QListView(self.combo))
-            self.combo.view().pressed.connect(self._on_item_pressed)
+        self.combo.checkedItemsChanged.connect(lambda: self.selectionChanged.emit(self.selected_ids()))
 
-        # Initial theming now handled centrally by BaseFilterWidget.__init__ via retheme().
         self._loaded = False
 
     # --- fallback klikk ---
@@ -69,26 +54,18 @@ class StatusFilterWidget(BaseFilterWidget):
         QCoreApplication.processEvents()
         self.selectionChanged.emit(self.selected_ids())
 
-    # --- laadimine ---
     def _populate(self) -> None:
-    # ...existing code...
+        # Use QueryPaths key name, not raw folder constant
+        status_module = Module.STATUSES.value
+        print(f"[StatusFilterWidget _populate] Loading query for module: {status_module}")
+        key_raw = status_module[:-2] if len(status_module) > 2 else status_module
+        status_query_key = key_raw.upper()     # "STATUS"
+        print(f"[StatusFilterWidget _populate] status_query_key: {status_query_key}")
         try:
-            # 1) Lae päring
-            query = self._loader.load_query("statuses", "ListModuleStatuses.graphql")
-
+            query = self._loader.load_query(status_query_key, self.query_file)
             
-            # 2) Muutuja: plural
-            module_plural = str(self._module).upper()
-            
-            if module_plural == "PROJECT":
-                module_plural = "PROJECTS"
-            elif module_plural == "CONTRACT":
-                module_plural = "CONTRACTS"
-            elif module_plural == "PROJECTSMODULE":
-                module_plural = "PROJECTS"
-            elif module_plural == "CONTRACTMODULE":
-                module_plural = "CONTRACTS"
-                
+            module_plural = self._module.plural(upper=True)
+        
             variables = {
                 "first": 50,
                 "after": None,
@@ -96,23 +73,21 @@ class StatusFilterWidget(BaseFilterWidget):
             }
             
             data = self._api.send_query(query, variables=variables) or {}
-            
-            # 3) Nopi staatused
+    
             statuses: List[dict] = []
-            edges = ((data or {}).get("statuses") or {}).get("edges") or []
-            
-            
+
+            edges = ((data or {}).get(self.filter_module) or {}).get("edges") or []
+                    
             for e in edges:
                 n = (e or {}).get("node") or {}
                 sid = n.get("id")
                 name = n.get("name")
                 if sid and name:
                     statuses.append({"id": sid, "name": name})
-            # 4) Täida combo
+            
             self.combo.clear()
             for s in statuses:
                 self.combo.addItem(s["name"], s["id"])
-                # algseis unchecked (QGIS või fallback)
                 try:
                     self.combo.setItemCheckState(self.combo.count() - 1, Qt.Unchecked)  # type: ignore[attr-defined]
                 except Exception:
@@ -128,4 +103,3 @@ class StatusFilterWidget(BaseFilterWidget):
             self.combo.addItem(f"Error: {str(e)[:50]}...")
             # Disable the widget
             self.combo.setEnabled(False)
-

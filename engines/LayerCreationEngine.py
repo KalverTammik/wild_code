@@ -13,14 +13,23 @@ Date: September 3, 2025
 """
 
 import os
-from typing import Optional, Dict, Any, List
+from typing import Optional, List
 from qgis.core import (
     QgsProject, QgsVectorLayer, QgsLayerTreeGroup,
     QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsFields,
-    QgsFeature, QgsGeometry, Qgis
+    Qgis
 )
 from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox, QWidget
-from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtCore import QTimer, QCoreApplication
+from qgis.PyQt.QtXml import QDomDocument
+
+# Local imports
+from ..constants.file_paths import QmlPaths
+
+from ..constants.layer_constants import DEFAULT_CRS, GEOPACKAGE_EXTENSION, GEOPACKAGE_DRIVER
+# Prefer module-level imports for clarity. Kept here to avoid accidental circular imports when possible.
+from ..utils.UniversalStatusBar import UniversalStatusBar
+from ..widgets.theme_manager import ThemeManager
 
 # Global layer engine instance
 _layer_engine_instance = None
@@ -50,8 +59,20 @@ class LayerCreationEngine:
     """
 
     def __init__(self):
+        """
+        Initialize the LayerCreationEngine.
+
+        Sets up project and layer tree references, and initializes language manager for translations.
+        """
         self.project = QgsProject.instance()
         self.layer_tree_root = self.project.layerTreeRoot()
+        # Initialize language manager for translations
+        # Inline import used because LanguageManager is optional functionality that may not be available
+        try:
+            from ..languages.language_manager import LanguageManager
+            self.lang_manager = LanguageManager()
+        except ImportError:
+            self.lang_manager = None
 
     def get_or_create_group(self, group_name: str) -> QgsLayerTreeGroup:
         """
@@ -70,7 +91,6 @@ class LayerCreationEngine:
 
         # Create new group
         new_group = self.layer_tree_root.addGroup(group_name)
-        print(f"[LayerEngine] Created new group: {group_name}")
 
         # If this is the MailablMain group, initialize its structure
         if group_name == MailablGroupFolders.MAILABL_MAIN:
@@ -96,7 +116,6 @@ class LayerCreationEngine:
 
         # Create new subgroup
         new_subgroup = parent_group.addGroup(subgroup_name)
-        print(f"[LayerEngine] Created subgroup '{subgroup_name}' in '{parent_group.name()}'")
         return new_subgroup
 
     def initialize_mailabl_main_structure(self) -> bool:
@@ -106,29 +125,23 @@ class LayerCreationEngine:
         Returns:
             bool: True if successful
         """
-        try:
-            # Get or create main group
-            main_group = self.get_or_create_group(MailablGroupFolders.MAILABL_MAIN)
+        # Get or create main group
+        main_group = self.get_or_create_group(MailablGroupFolders.MAILABL_MAIN)
 
-            # Define all required subgroups
-            subgroups = [
-                MailablGroupFolders.NEW_PROPERTIES,
-                MailablGroupFolders.SANDBOXING,
-                MailablGroupFolders.IMPORT,
-                MailablGroupFolders.SYNC,
-                MailablGroupFolders.ARCHIVE
-            ]
+        # Define all required subgroups
+        subgroups = [
+            MailablGroupFolders.NEW_PROPERTIES,
+            MailablGroupFolders.SANDBOXING,
+            MailablGroupFolders.IMPORT,
+            MailablGroupFolders.SYNC,
+            MailablGroupFolders.ARCHIVE
+        ]
 
-            # Create all subgroups
-            for subgroup_name in subgroups:
-                self.get_or_create_subgroup(main_group, subgroup_name)
+        # Create all subgroups
+        for subgroup_name in subgroups:
+            self.get_or_create_subgroup(main_group, subgroup_name)
 
-            print(f"[LayerEngine] Initialized MailablMain structure with {len(subgroups)} subgroups")
-            return True
-
-        except Exception as e:
-            print(f"[LayerEngine] Error initializing MailablMain structure: {e}")
-            return False
+        return True
 
     def ensure_mailabl_structure_exists(self) -> bool:
         """
@@ -137,37 +150,29 @@ class LayerCreationEngine:
         Returns:
             bool: True if structure exists or was created successfully
         """
-        try:
-            main_group = self.layer_tree_root.findGroup(MailablGroupFolders.MAILABL_MAIN)
-            if not main_group:
-                return self.initialize_mailabl_main_structure()
+        main_group = self.layer_tree_root.findGroup(MailablGroupFolders.MAILABL_MAIN)
+        if not main_group:
+            return self.initialize_mailabl_main_structure()
 
-            # Check if all required subgroups exist
-            required_subgroups = [
-                MailablGroupFolders.NEW_PROPERTIES,
-                MailablGroupFolders.SANDBOXING,
-                MailablGroupFolders.IMPORT,
-                MailablGroupFolders.SYNC,
-                MailablGroupFolders.ARCHIVE
-            ]
+        # Check if all required subgroups exist
+        required_subgroups = [
+            MailablGroupFolders.NEW_PROPERTIES,
+            MailablGroupFolders.SANDBOXING,
+            MailablGroupFolders.IMPORT,
+            MailablGroupFolders.SYNC,
+            MailablGroupFolders.ARCHIVE
+        ]
 
-            missing_subgroups = []
-            for subgroup_name in required_subgroups:
-                if not main_group.findGroup(subgroup_name):
-                    missing_subgroups.append(subgroup_name)
+        missing_subgroups = []
+        for subgroup_name in required_subgroups:
+            if not main_group.findGroup(subgroup_name):
+                missing_subgroups.append(subgroup_name)
 
-            # Create any missing subgroups
-            for subgroup_name in missing_subgroups:
-                self.get_or_create_subgroup(main_group, subgroup_name)
+        # Create any missing subgroups
+        for subgroup_name in missing_subgroups:
+            self.get_or_create_subgroup(main_group, subgroup_name)
 
-            if missing_subgroups:
-                print(f"[LayerEngine] Created missing subgroups: {missing_subgroups}")
-
-            return True
-
-        except Exception as e:
-            print(f"[LayerEngine] Error ensuring Mailabl structure: {e}")
-            return False
+        return True
 
     def create_memory_layer_from_template(
         self,
@@ -190,50 +195,42 @@ class LayerCreationEngine:
         Returns:
             Optional[QgsVectorLayer]: Created memory layer or None if failed
         """
-        try:
-            # Remove existing layer with same name if it exists
-            existing_layer = self.project.mapLayersByName(layer_name)
-            for layer in existing_layer:
-                if layer.providerType() == 'memory':
-                    self.project.removeMapLayer(layer.id())
-                    print(f"[LayerEngine] Removed existing memory layer: {layer_name}")
+        # Remove existing layer with same name if it exists
+        existing_layer = self.project.mapLayersByName(layer_name)
+        for layer in existing_layer:
+            if layer.providerType() == 'memory':
+                self.project.removeMapLayer(layer.id())
 
-            # Create URI for memory layer
-            if template_layer:
-                # Create memory layer with proper URI, not template's file URI
-                geometry_type = self._get_geometry_type_string(template_layer.geometryType())
-                uri = f"{geometry_type}?crs={template_layer.crs().authid()}"
-                new_layer = QgsVectorLayer(uri, layer_name, 'memory')
+        # Create URI for memory layer
+        if template_layer:
+            # Create memory layer with proper URI, not template's file URI
+            geometry_type = self._get_geometry_type_string(template_layer.geometryType())
+            uri = f"{geometry_type}?crs={template_layer.crs().authid()}"
+            new_layer = QgsVectorLayer(uri, layer_name, 'memory')
 
-                # Copy fields from template
-                if template_layer.fields():
-                    # Use data provider to set fields for memory layer
-                    new_layer.dataProvider().addAttributes(template_layer.fields())
-                    new_layer.updateFields()
-                if template_layer.crs():
-                    new_layer.setCrs(template_layer.crs())
+            # Copy fields from template
+            if template_layer.fields():
+                # Use data provider to set fields for memory layer
+                new_layer.dataProvider().addAttributes(template_layer.fields())
+                new_layer.updateFields()
+            if template_layer.crs():
+                new_layer.setCrs(template_layer.crs())
 
-            else:
-                # Create from specifications
-                uri = f"{geometry_type}?crs={crs.authid() if crs else 'EPSG:3301'}"
-                new_layer = QgsVectorLayer(uri, layer_name, 'memory')
+        else:
+            # Create from specifications
+            uri = f"{geometry_type}?crs={crs.authid() if crs else DEFAULT_CRS}"
+            new_layer = QgsVectorLayer(uri, layer_name, 'memory')
 
-                if fields:
-                    new_layer.dataProvider().addAttributes(fields)
-                    new_layer.updateFields()
+            if fields:
+                new_layer.dataProvider().addAttributes(fields)
+                new_layer.updateFields()
 
-            if not new_layer.isValid():
-                print(f"[LayerEngine] Failed to create valid memory layer: {layer_name}")
-                return None
-
-            # Add to project
-            self.project.addMapLayer(new_layer, False)  # Don't add to legend yet
-            print(f"[LayerEngine] Created memory layer: {layer_name}")
-            return new_layer
-
-        except Exception as e:
-            print(f"[LayerEngine] Error creating memory layer: {e}")
+        if not new_layer.isValid():
             return None
+
+        # Add to project
+        self.project.addMapLayer(new_layer, False)  # Don't add to legend yet
+        return new_layer
 
     def _get_geometry_type_string(self, geometry_type: Qgis.GeometryType) -> str:
         """
@@ -270,54 +267,48 @@ class LayerCreationEngine:
         Returns:
             Optional[str]: Name of created layer or None if failed
         """
-        try:
-            # Check if the requested group is one of the Mailabl subgroups
-            mailabl_subgroups = [
-                MailablGroupFolders.NEW_PROPERTIES,
-                MailablGroupFolders.SANDBOXING,
-                MailablGroupFolders.IMPORT,
-                MailablGroupFolders.SYNC,
-                MailablGroupFolders.ARCHIVE
-            ]
+        # Check if the requested group is one of the Mailabl subgroups
+        mailabl_subgroups = [
+            MailablGroupFolders.NEW_PROPERTIES,
+            MailablGroupFolders.SANDBOXING,
+            MailablGroupFolders.IMPORT,
+            MailablGroupFolders.SYNC,
+            MailablGroupFolders.ARCHIVE
+        ]
 
-            if group_name in mailabl_subgroups:
-                # This is a Mailabl subgroup - ensure the main structure exists
-                self.ensure_mailabl_structure_exists()
-                main_group = self.layer_tree_root.findGroup(MailablGroupFolders.MAILABL_MAIN)
-                subgroup = main_group.findGroup(group_name)
-                if subgroup:
-                    group = subgroup
-                else:
-                    # This shouldn't happen if ensure_mailabl_structure_exists worked
-                    group = self.get_or_create_subgroup(main_group, group_name)
+        if group_name in mailabl_subgroups:
+            # This is a Mailabl subgroup - ensure the main structure exists
+            self.ensure_mailabl_structure_exists()
+            main_group = self.layer_tree_root.findGroup(MailablGroupFolders.MAILABL_MAIN)
+            subgroup = main_group.findGroup(group_name)
+            if subgroup:
+                group = subgroup
             else:
-                # Check if this is the main group itself
-                if group_name == MailablGroupFolders.MAILABL_MAIN:
-                    group = self.get_or_create_group(group_name)
-                else:
-                    # Create as a top-level group
-                    group = self.get_or_create_group(group_name)
+                # This shouldn't happen if ensure_mailabl_structure_exists worked
+                group = self.get_or_create_subgroup(main_group, group_name)
+        else:
+            # Check if this is the main group itself
+            if group_name == MailablGroupFolders.MAILABL_MAIN:
+                group = self.get_or_create_group(group_name)
+            else:
+                # Create as a top-level group
+                group = self.get_or_create_group(group_name)
 
-            # Create memory layer
-            memory_layer = self.create_memory_layer_from_template(
-                new_layer_name, template_layer
-            )
+        # Create memory layer
+        memory_layer = self.create_memory_layer_from_template(
+            new_layer_name, template_layer
+        )
 
-            if not memory_layer:
-                return None
-
-            # Add to group
-            group.addLayer(memory_layer)
-            print(f"[LayerEngine] Added layer '{new_layer_name}' to group '{group_name}'")
-
-            # Apply default QML style for property layers
-            self.apply_qml_style(memory_layer, "properties_background_new")
-
-            return new_layer_name
-
-        except Exception as e:
-            print(f"[LayerEngine] Error copying virtual layer: {e}")
+        if not memory_layer:
             return None
+
+        # Add to group
+        group.addLayer(memory_layer)
+
+        # Apply default QML style for property layers
+        self.apply_qml_style(memory_layer, "properties_background_new")
+
+        return new_layer_name
 
     def save_memory_layer_to_geopackage(
         self,
@@ -338,75 +329,64 @@ class LayerCreationEngine:
         Returns:
             bool: True if successful
         """
-        try:
-            # Find memory layer
-            memory_layer = None
-            for layer in self.project.mapLayers().values():
-                if layer.name() == memory_layer_name and layer.providerType() == 'memory':
-                    memory_layer = layer
-                    break
+        # Find memory layer
+        memory_layer = None
+        for layer in self.project.mapLayers().values():
+            if layer.name() == memory_layer_name and layer.providerType() == 'memory':
+                memory_layer = layer
+                break
 
-            if not memory_layer:
-                print(f"[LayerEngine] Memory layer not found: {memory_layer_name}")
-                return False
+        if not memory_layer:
+            return False
 
-            # Get save directory
-            if not save_directory:
-                save_directory = QFileDialog.getExistingDirectory(
-                    None, "Vali salvestuskataloog", os.path.expanduser("~")
-                )
-                if not save_directory:
-                    return False
-
-            # Create file path
-            file_path = os.path.join(save_directory, f"{new_layer_name}.gpkg")
-
-            # Handle existing file
-            if os.path.exists(file_path):
-                reply = QMessageBox.question(
-                    None, "Fail on olemas",
-                    f"Fail '{file_path}' on juba olemas. Kas kirjutada üle?",
-                    QMessageBox.Yes | QMessageBox.No
-                )
-                if reply == QMessageBox.No:
-                    return False
-                os.remove(file_path)
-
-            # Save to GeoPackage
-            options = QgsVectorFileWriter.SaveVectorOptions()
-            options.driverName = "GPKG"
-            options.layerName = new_layer_name
-
-            error = QgsVectorFileWriter.writeAsVectorFormatV3(
-                memory_layer, file_path, self.project.transformContext(), options
+        # Get save directory
+        if not save_directory:
+            save_directory = QFileDialog.getExistingDirectory(
+                None, "Vali salvestuskataloog", os.path.expanduser("~")
             )
-
-            if error[0] != Qgis.NoError:
-                print(f"[LayerEngine] Error saving to GeoPackage: {error[1]}")
+            if not save_directory:
                 return False
 
-            print(f"[LayerEngine] Saved layer to: {file_path}")
+        # Create file path
+        file_path = os.path.join(save_directory, f"{new_layer_name}{GEOPACKAGE_EXTENSION}")
 
-            # Reload the saved layer
-            saved_layer = QgsVectorLayer(file_path, new_layer_name, "ogr")
-            if saved_layer.isValid():
-                self.project.addMapLayer(saved_layer, False)
-
-                # Add to group
-                group = self.get_or_create_group(group_name)
-                group.addLayer(saved_layer)
-
-                # Remove memory layer
-                self.project.removeMapLayer(memory_layer.id())
-
-                print(f"[LayerEngine] Reloaded layer '{new_layer_name}' into group '{group_name}'")
-                return True
-            else:
-                print(f"[LayerEngine] Failed to reload saved layer: {file_path}")
+        # Handle existing file
+        if os.path.exists(file_path):
+            reply = QMessageBox.question(
+                None, "Fail on olemas",
+                f"Fail '{file_path}' on juba olemas. Kas kirjutada üle?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.No:
                 return False
+            os.remove(file_path)
 
-        except Exception as e:
-            print(f"[LayerEngine] Error saving memory layer: {e}")
+        # Save to GeoPackage
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = GEOPACKAGE_DRIVER
+        options.layerName = new_layer_name
+
+        error = QgsVectorFileWriter.writeAsVectorFormatV3(
+            memory_layer, file_path, self.project.transformContext(), options
+        )
+
+        if error[0] != Qgis.NoError:
+            return False
+
+        # Reload the saved layer
+        saved_layer = QgsVectorLayer(file_path, new_layer_name, "ogr")
+        if saved_layer.isValid():
+            self.project.addMapLayer(saved_layer, False)
+
+            # Add to group
+            group = self.get_or_create_group(group_name)
+            group.addLayer(saved_layer)
+
+            # Remove memory layer
+            self.project.removeMapLayer(memory_layer.id())
+
+            return True
+        else:
             return False
 
     def create_property_sync_layer(self, base_layer: Optional[QgsVectorLayer] = None) -> Optional[str]:
@@ -515,29 +495,20 @@ class LayerCreationEngine:
         Returns:
             bool: True if group was removed, False otherwise
         """
-        try:
-            group = self.layer_tree_root.findGroup(group_name)
-            if not group:
-                print(f"[LayerEngine] Group '{group_name}' not found")
-                return False
+        group = self.layer_tree_root.findGroup(group_name)
+        if not group:
+            return False
 
-            # Check if group has any children (layers or subgroups)
-            if group.children():
-                print(f"[LayerEngine] Group '{group_name}' is not empty, cannot remove")
-                return False
+        # Check if group has any children (layers or subgroups)
+        if group.children():
+            return False
 
-            # Remove the empty group
-            parent = group.parent()
-            if parent:
-                parent.removeChildNode(group)
-                print(f"[LayerEngine] Removed empty group: {group_name}")
-                return True
-            else:
-                print(f"[LayerEngine] Cannot remove group '{group_name}' - no parent found")
-                return False
-
-        except Exception as e:
-            print(f"[LayerEngine] Error removing group '{group_name}': {e}")
+        # Remove the empty group
+        parent = group.parent()
+        if parent:
+            parent.removeChildNode(group)
+            return True
+        else:
             return False
 
     def apply_qml_style(self, layer: QgsVectorLayer, style_name: str = "properties_background_new") -> bool:
@@ -551,49 +522,43 @@ class LayerCreationEngine:
         Returns:
             bool: True if style was applied successfully, False otherwise
         """
-        try:
-            # Import here to avoid circular imports
-            from ..constants.file_paths import get_style
+        # Get the QML style file path
+        qml_path = QmlPaths.get_style(style_name)
 
-            # Get the QML style file path
-            qml_path = get_style(style_name)
-            print(f"[LayerEngine] Applying style '{style_name}' from: {qml_path}")
+        if not os.path.exists(qml_path):
+            return False
 
-            if not os.path.exists(qml_path):
-                print(f"[LayerEngine] Style file not found: {qml_path}")
-                return False
+        # Ensure layer is not in editing mode
+        if layer.isEditable():
+            layer.commitChanges()
 
-            # Ensure layer is not in editing mode
-            if layer.isEditable():
-                layer.commitChanges()
+        # Apply the QML style
+        result = layer.loadNamedStyle(qml_path)
 
-            # Apply the QML style
-            result = layer.loadNamedStyle(qml_path)
-            print(f"[LayerEngine] loadNamedStyle result: {result}")
+        if not result:
+            # If loadNamedStyle failed, try importNamedStyle with QDomDocument
+            try:
+                with open(qml_path, 'r', encoding='utf-8') as f:
+                    qml_content = f.read()
+                doc = QDomDocument()
+                if doc.setContent(qml_content):
+                    result = layer.importNamedStyle(doc)
+                else:
+                    result = False
+            except (IOError, OSError):
+                result = False
 
-            if not result[0]:
-                print(f"[LayerEngine] loadNamedStyle failed, trying importNamedStyle")
-                result = layer.importNamedStyle(qml_path)
-                print(f"[LayerEngine] importNamedStyle result: {result}")
+        if result:
+            # Refresh the layer and map canvas
+            layer.triggerRepaint()
 
-            if result[0]:
-                print(f"[LayerEngine] Successfully applied QML style '{style_name}' to layer: {layer.name()}")
+            # Inline import used because iface is only available when QGIS GUI is running
+            from qgis.utils import iface
+            if iface and iface.mapCanvas():
+                iface.mapCanvas().refresh()
 
-                # Refresh the layer and map canvas
-                layer.triggerRepaint()
-
-                from qgis.utils import iface
-                if iface and iface.mapCanvas():
-                    iface.mapCanvas().refresh()
-                    print("[LayerEngine] Map canvas refreshed")
-
-                return True
-            else:
-                print(f"[LayerEngine] Failed to apply QML style '{style_name}': {result[1]}")
-                return False
-
-        except Exception as e:
-            print(f"[LayerEngine] Error applying QML style '{style_name}': {e}")
+            return True
+        else:
             return False
 
     def import_shapefile_to_memory_layer(
@@ -601,16 +566,12 @@ class LayerCreationEngine:
         shp_layer: QgsVectorLayer,
         layer_name: str,
         group_name: str,
-        parent_widget: Optional['QWidget'] = None
+        parent_widget: Optional['QWidget'] = None,
+        batch_size: Optional[int] = None,
+        progress_update_interval: Optional[int] = None,
     ) -> Optional[str]:
         """
         Import Shapefile data to a new memory layer with optimized batch processing.
-
-        This method centralizes the complex Shapefile import functionality including:
-        - Memory layer creation with proper field structure
-        - Field mapping and normalization for SHP limitations
-        - Batch processing with performance optimizations
-        - Progress tracking and error handling
 
         Args:
             shp_layer: Source Shapefile layer
@@ -621,322 +582,234 @@ class LayerCreationEngine:
         Returns:
             Optional[str]: Name of created layer or None if failed
         """
-        try:
-            memory_layer_name = f"{layer_name}_memory"
+        memory_layer_name = f"{layer_name}_memory"
 
-            # Create memory layer with correct structure using existing method
-            result = self.copy_virtual_layer_for_properties(
-                memory_layer_name,
-                group_name,
-                shp_layer
-            )
+        # Create memory layer with correct structure using existing method
+        result = self.copy_virtual_layer_for_properties(
+            memory_layer_name,
+            group_name,
+            shp_layer
+        )
 
-            if not result:
-                return None
+        if not result:
+            return None
 
-            # Get the created memory layer
-            memory_layer = None
-            for layer in self.project.mapLayers().values():
-                if layer.name() == memory_layer_name:
-                    memory_layer = layer
-                    break
+        # Get the created memory layer
+        memory_layer = None
+        for layer in self.project.mapLayers().values():
+            if layer.name() == memory_layer_name:
+                memory_layer = layer
+                break
 
-            if not memory_layer:
-                return None
+        if not memory_layer:
+            return None
 
-            # Validate it's a memory layer
-            prov_type = getattr(memory_layer, "providerType", lambda: "")()
-            if prov_type != "memory":
-                print(f"[LayerEngine] Created layer is not memory type: {prov_type}")
-                return None
+        # Validate it's a memory layer
+        if memory_layer.providerType() != "memory":
+            return None
 
-            # Start editing mode
-            if not memory_layer.isEditable():
-                memory_layer.startEditing()
+        # Get total feature count
+        total_features = shp_layer.featureCount()
 
-            # Build robust field index mapping for SHP field name normalization
-            dest_fields = memory_layer.fields()
-            src_fields = shp_layer.fields()
+        if total_features == 0:
+            # No features to import, just finalize
+            memory_layer.updateExtents()
+            return memory_layer_name
 
-            # Helper for SHP field name normalization (UPPER, 10-char truncation)
-            def shp_norm(name: str) -> str:
-                return (name or "").upper()[:10]
-
-            # Create mapping dictionaries for different normalization strategies
-            src_by_exact = {f.name(): i for i, f in enumerate(src_fields)}
-            src_by_lower = {f.name().lower(): i for i, f in enumerate(src_fields)}
-            src_by_shp = {shp_norm(f.name()): i for i, f in enumerate(src_fields)}
-
-            # Build index mapping from destination to source fields
-            index_map = []
-            for d in dest_fields:
-                dn = d.name()
-                si = -1
-                # Try exact match first
-                if dn in src_by_exact:
-                    si = src_by_exact[dn]
-                # Try case-insensitive match
-                elif dn.lower() in src_by_lower:
-                    si = src_by_lower[dn.lower()]
-                # Try SHP-normalized match (UPPER/10 chars)
-                elif shp_norm(dn) in src_by_shp:
-                    si = src_by_shp[shp_norm(dn)]
-                index_map.append(si)
-
-            # Get total feature count
-            total_features = shp_layer.featureCount()
-
-            if total_features == 0:
-                # No features to import, just return success
-                memory_layer.updateExtents()
-                memory_layer.commitChanges()
-                return memory_layer_name
-
-            # Create progress dialog to prevent UI freezing
-            progress = None
-            if parent_widget:
-                try:
-                    from ..widgets.ProgressDialogModern import ProgressDialogModern
-                    progress = ProgressDialogModern(
-                        title="Importing Shapefile" if not hasattr(self, '_get_lang_manager') else
-                              (self._get_lang_manager().translate("Importing Shapefile") or "Importing Shapefile"),
-                        maximum=total_features,
-                        parent=parent_widget
-                    )
-                    progress.show()
-                except ImportError:
-                    # Fallback if ProgressDialogModern is not available
-                    pass
-
-            # Performance optimizations for batch processing
-            data_provider = memory_layer.dataProvider()
-            if not data_provider:
-                return None
-
-            # Safely disable undo stack for bulk operations
-            original_undo_stack = None
-            undo_stack_disabled = False
+        # Create progress dialog
+        progress = None
+        if parent_widget:
             try:
-                original_undo_stack = memory_layer.undoStack()
-                if original_undo_stack:
-                    memory_layer.setUndoStack(None)
-                    undo_stack_disabled = True
+                progress_title = "Importing Shapefile" if not self.lang_manager else \
+                    (self.lang_manager.translate("Importing Shapefile") or "Importing Shapefile")
+                progress = UniversalStatusBar(
+                    title=progress_title,
+                    maximum=total_features,
+                    theme=ThemeManager.load_theme_setting()
+                )
+                print(f"Progress dialog created successfully")
             except Exception as e:
-                undo_stack_disabled = False
+                print(f"Warning: Failed to create progress dialog: {e}")
+                progress = None
 
-            # Dynamic batch sizing based on dataset size
-            if total_features <= 1000:
-                batch_size = 100
-                progress_update_freq = 50
-            elif total_features <= 10000:
-                batch_size = 500
-                progress_update_freq = 200
-            else:
-                batch_size = 1000
-                progress_update_freq = 500
+        # Get data provider for batch operations
+        provider = memory_layer.dataProvider()
+        if not provider:
+            return None
 
-            # Batch processing function
-            from qgis.core import QgsFeature
-            batch_features = []
-            features_copied = 0
+        # Disable undo stack for bulk operations (still useful for memory management)
+        original_undo_stack = memory_layer.undoStack()
+        if original_undo_stack:
+            memory_layer.setUndoStack(None)
 
-            def flush_batch():
-                nonlocal batch_features, features_copied
-                if not batch_features:
-                    return True
-                try:
-                    # Try bulk add via data provider first
-                    add_res = data_provider.addFeatures(batch_features)
-                    if isinstance(add_res, tuple):
-                        ok = bool(add_res[0])
+        # For memory layers, we don't need edit mode since we use provider.addFeatures() directly
+
+        # Batch processing setup - configurable for different environments
+        batch_size = batch_size if batch_size and batch_size > 0 else 5000
+        features_added = 0
+        progress_update_interval = progress_update_interval if progress_update_interval and progress_update_interval > 0 else 2000
+
+        # Disable signals during bulk operations for maximum performance
+        memory_layer.blockSignals(True)
+        try:
+            features_batch = []
+
+            for i, feature in enumerate(shp_layer.getFeatures()):
+                features_batch.append(feature)
+
+                # Process batch when it reaches the limit
+                if len(features_batch) >= batch_size:
+                    success = provider.addFeatures(features_batch)
+                    if success:
+                        features_added += len(features_batch)
+                        features_batch.clear()  # More efficient than reassigning []
                     else:
-                        ok = bool(add_res)
-                    if ok:
-                        features_copied += len(batch_features)
-                        batch_features = []
-                        return True
-                    else:
-                        # Fallback to individual feature adds
-                        ok_all = True
-                        for f in batch_features:
-                            if not memory_layer.addFeature(f):
-                                ok_all = False
-                        if ok_all:
-                            features_copied += len(batch_features)
-                        batch_features = []
-                        return ok_all
-                except Exception as e:
-                    # Last resort fallback
-                    ok_all = True
-                    for f in batch_features:
-                        try:
-                            if memory_layer.addFeature(f):
-                                features_copied += 1
-                            else:
-                                ok_all = False
-                        except Exception as fe:
-                            ok_all = False
-                    batch_features = []
-                    return ok_all
-
-            # Main import loop
-            for i, src_feat in enumerate(shp_layer.getFeatures()):
-                # Create destination feature
-                dst_feat = QgsFeature(dest_fields)
-                dst_feat.setGeometry(src_feat.geometry())
-
-                # Map attributes using the field index mapping
-                attrs = []
-                for si, d_field in zip(index_map, dest_fields):
-                    if si >= 0:
-                        val = src_feat.attribute(si)
-                    else:
-                        val = None  # Missing field -> NULL
-                    attrs.append(val)
-                dst_feat.setAttributes(attrs)
-
-                batch_features.append(dst_feat)
-
-                # Flush batch when it reaches the size limit
-                if len(batch_features) >= batch_size:
-                    if not flush_batch():
-                        memory_layer.rollBack()
-                        # Restore undo stack
-                        if undo_stack_disabled and original_undo_stack:
-                            try:
-                                memory_layer.setUndoStack(original_undo_stack)
-                            except:
-                                pass
+                        print(f"Error: Failed to add features batch of size {len(features_batch)}")
+                        memory_layer.blockSignals(False)  # Re-enable signals on error
                         return None
 
-                # Progress updates at optimized frequency
-                if i % progress_update_freq == 0 or i == total_features - 1:
-                    progress_pct = int((i + 1) / total_features * 100)
-
-                    # Update progress dialog if available
+                # Update progress very infrequently to minimize overhead
+                if i % progress_update_interval == 0 or i == total_features - 1:
                     if progress:
-                        try:
-                            lang_manager = getattr(self, '_get_lang_manager', lambda: None)()
-                            progress_text1 = (lang_manager.translate("Processing features") or "Processing features") if lang_manager else "Processing features"
-                            progress_text2 = (lang_manager.translate("Features copied") or "Features copied") if lang_manager else "Features copied"
-
-                            progress.update(
-                                value=i + 1,
-                                text1=f"{progress_text1}: {i + 1}/{total_features} ({progress_pct}%)",
-                                text2=f"{progress_text2}: {features_copied}"
-                            )
-
-                            # Process UI events to keep interface responsive
-                            from qgis.PyQt.QtWidgets import QApplication
-                            QApplication.processEvents()
-
-                            # Check if user cancelled
-                            if progress.wasCanceled():
-                                memory_layer.rollBack()
-                                progress.close()
-                                # Restore undo stack
-                                if undo_stack_disabled and original_undo_stack:
-                                    try:
-                                        memory_layer.setUndoStack(original_undo_stack)
-                                    except:
-                                        pass
-                                return None
-                        except Exception as e:
-                            # Progress dialog error shouldn't break import
-                            pass
+                        progress_pct = int((i + 1) / total_features * 100)
+                        progress.update(
+                            value=i + 1,
+                            text1=f"Processing features: {i + 1}/{total_features} ({progress_pct}%)",
+                            text2=f"Features copied: {features_added}"
+                        )
+                        QCoreApplication.processEvents()
 
             # Flush remaining features
-            if not flush_batch():
-                memory_layer.rollBack()
-                if undo_stack_disabled and original_undo_stack:
-                    try:
-                        memory_layer.setUndoStack(original_undo_stack)
-                    except:
-                        pass
-                return None
+            if features_batch:
+                success = provider.addFeatures(features_batch)
+                if not success:
+                    print(f"Error: Failed to flush final features batch of size {len(features_batch)}")
+                    memory_layer.blockSignals(False)  # Re-enable signals on error
+                    return None
+                features_added += len(features_batch)
+
+            # Update progress to indicate finalization (reuse progress UI instead of a separate dialog)
+            if progress:
+                try:
+                    final_touches_text = "Adding final touches..." if not self.lang_manager else \
+                        (self.lang_manager.translate("Adding final touches...") or "Adding final touches...")
+                    progress.update(
+                        value=total_features,
+                        text1=final_touches_text,
+                        text2=f"Features copied: {features_added}"
+                    )
+                    QCoreApplication.processEvents()
+                except Exception:
+                    # If progress widget fails, continue finalization without blocking
+                    pass
 
             # Finalize the layer
-            memory_layer.updateExtents()
+            try:
+                memory_layer.updateExtents()
+                # Skip print for performance
+            except Exception as e:
+                # Skip warning print for performance
+                pass  # Extents update is optional
 
-            if memory_layer.commitChanges():
-                # Update final progress
+            try:
+                provider.createSpatialIndex()
+                # Skip print for performance
+            except Exception as e:
+                # Skip warning print for performance
+                pass  # Spatial index creation is optional
+
+            # For memory layers with direct provider operations, no commit needed
+            # Apply style (skip for performance if not critical)
+            try:
+                style_path = get_style("maa_amet_import")
+                if os.path.exists(style_path):
+                    memory_layer.loadNamedStyle(style_path)
+                    # Skip print for performance
+                # Skip else print for performance
+            except Exception as e:
+                # Skip style loading errors for performance
+                pass
+
+            # Show completion on the reused progress dialog and then show a single success dialog
+            try:
                 if progress:
                     try:
-                        lang_manager = getattr(self, '_get_lang_manager', lambda: None)()
-                        complete_text = lang_manager.translate("Import complete") or "Import complete" if lang_manager else "Import complete"
-                        features_text = (lang_manager.translate("features imported") or "features imported") if lang_manager else "features imported"
-
+                        complete_text = "Import complete!" if not self.lang_manager else \
+                            (self.lang_manager.translate("Import complete!") or "Import complete!")
                         progress.update(
                             value=total_features,
                             text1=complete_text,
-                            text2=f"{features_copied} {features_text}"
+                            text2=f"{features_added} features imported"
                         )
+                        # Close progress after a short delay to let user see the final state
+                        QTimer.singleShot(1200, lambda: progress.close())
+                    except Exception:
+                        try:
+                            progress.close()
+                        except Exception:
+                            pass
 
-                        # Close progress dialog after a short delay
-                        from qgis.PyQt.QtCore import QTimer
-                        QTimer.singleShot(1000, progress.close)
-                    except Exception as e:
-                        # Progress dialog error shouldn't break completion
-                        if progress:
-                            try:
-                                progress.close()
-                            except:
-                                pass
+                # Do not show a modal success dialog here. The caller is responsible for
+                # informing the user (so we don't display duplicate notifications).
+                # Keep the progress widget showing the final state and close it shortly.
+                try:
+                    if progress:
+                        # Progress was already updated above; ensure it will be closed.
+                        QTimer.singleShot(1200, lambda: progress.close())
+                except Exception as e:
+                    print(f"Warning: Could not finalize progress dialog: {e}")
+                    print(f"Import completed: {features_added} features imported to {memory_layer_name}")
+            except Exception as e:
+                # Outer completion/finalization step failed; log and continue cleanup
+                print(f"Warning: Could not finalize import completion: {e}")
+                print(f"Import completed: {features_added} features imported to {memory_layer_name}")
 
-                # Restore undo stack safely
-                if undo_stack_disabled and original_undo_stack:
-                    try:
-                        memory_layer.setUndoStack(original_undo_stack)
-                    except Exception as e:
-                        pass
+            # Restore undo stack
+            if original_undo_stack:
+                try:
+                    memory_layer.setUndoStack(original_undo_stack)
+                    print("Undo stack restored successfully")
+                except Exception as e:
+                    print(f"Warning: Failed to restore undo stack: {e}")
 
-                print(f"[LayerEngine] Successfully imported {features_copied} features to {memory_layer_name}")
-                return memory_layer_name
-            else:
-                # Close progress dialog on failure
-                if progress:
-                    try:
-                        progress.close()
-                    except:
-                        pass
-
-                memory_layer.rollBack()
-                if undo_stack_disabled and original_undo_stack:
-                    try:
-                        memory_layer.setUndoStack(original_undo_stack)
-                    except:
-                        pass
-                return None
+            return memory_layer_name
 
         except Exception as e:
-            # Close progress dialog on exception
-            if 'progress' in locals() and progress:
-                try:
-                    progress.close()
-                except:
-                    pass
-
-            # Restore undo stack safely in case of exception
+            print(f"Unexpected error during Shapefile import: {e}")
+            import traceback
+            traceback.print_exc()
+            # Close any open progress dialog on unexpected error
             try:
-                if undo_stack_disabled and original_undo_stack:
+                if progress:
+                    progress.close()
+            except:
+                pass
+            return None
+        finally:
+            # Always restore signals and undo stack
+            try:
+                memory_layer.blockSignals(False)
+            except:
+                pass  # Ignore errors if layer is invalid
+            if original_undo_stack:
+                try:
                     memory_layer.setUndoStack(original_undo_stack)
+                except Exception as e:
+                    print(f"Warning: Failed to restore undo stack in finally: {e}")
+            try:
+                if progress:
+                    progress.close()
             except:
                 pass
 
-            print(f"[LayerEngine] Error importing Shapefile to memory layer: {e}")
-            return None
-
-    def _get_lang_manager(self):
-        """Get language manager for translations."""
-        try:
-            from ..languages.language_manager import LanguageManager
-            return LanguageManager()
-        except ImportError:
-            return None
-
 
 def get_layer_engine() -> LayerCreationEngine:
-    """Get global layer engine instance."""
+    """
+    Get the global singleton instance of LayerCreationEngine.
+
+    Returns:
+        LayerCreationEngine: The global layer engine instance
+    """
     global _layer_engine_instance
     if _layer_engine_instance is None:
         _layer_engine_instance = LayerCreationEngine()
