@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QVBoxLayout, QLabel, QComboBox, QHBoxLayout, QPushButton
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QTimer
 from .BaseCard import BaseCard
 from ....constants.module_names import (
     PROJECTS_MODULE, CONTRACT_MODULE, SETTINGS_MODULE, PROPERTY_MODULE
@@ -21,8 +21,29 @@ class PreferredModuleCard(BaseCard):
         # Setup the card content
         self._setup_content()
 
+        # Apply theme after content is set up
+        self.retheme()
+
         # Load current settings
         self._load_current_settings()
+
+    def retheme(self):
+        """Apply theme and set label colors for dark mode."""
+        super().retheme()  # Apply QSS first
+        # Delay setting label colors to ensure QSS is applied
+        QTimer.singleShot(0, self._apply_label_colors)
+
+    def _apply_label_colors(self):
+        """Apply label colors after QSS is processed."""
+        if ThemeManager.load_theme_setting() == 'dark':
+            self.desc_label.setStyleSheet("color: #ffffff !important;")
+            self.label.setStyleSheet("color: #ffffff !important;")
+            self.current_label.setStyleSheet("color: #ffffff !important;")
+        else:
+            # Reset to default for light mode (black text)
+            self.desc_label.setStyleSheet("color: #000000;")
+            self.label.setStyleSheet("color: #000000;")
+            self.current_label.setStyleSheet("color: #000000;")
 
     def _setup_content(self):
         """Setup the card content with module selection."""
@@ -31,13 +52,14 @@ class PreferredModuleCard(BaseCard):
         layout.setSpacing(10)
 
         # Description
-        desc_label = QLabel("Vali moodul, mis avaneb vaikimisi rakenduse käivitamisel:")
-        desc_label.setWordWrap(True)
-        layout.addWidget(desc_label)
+        self.desc_label = QLabel("Vali moodul, mis avaneb vaikimisi rakenduse käivitamisel:")
+        self.desc_label.setWordWrap(True)
+        layout.addWidget(self.desc_label)
 
         # Module selection
         selection_layout = QHBoxLayout()
-        selection_layout.addWidget(QLabel("Eelistatud moodul:"))
+        self.label = QLabel("Eelistatud moodul:")
+        selection_layout.addWidget(self.label)
 
         self.module_combo = QComboBox()
         self.module_combo.addItem("Avaleht", Module.HOME)
