@@ -3,18 +3,17 @@ from PyQt5.QtCore import Qt, QSize, QEasingCurve, QTimer, pyqtSignal, QPoint, QP
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFrame, QPushButton, QToolButton,
-    QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect, QLabel
+    QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect,
 )
 
 from ..constants.file_paths import QssPaths
-from ..widgets.theme_manager import ThemeManager
-from ..module_manager import ModuleManager, SETTINGS_MODULE
+from ..widgets.theme_manager import ThemeManager, Theme, is_dark
 from ..languages.language_manager import LanguageManager
 from ..constants.module_icons import ModuleIconPaths
-
+from ..utils.url_manager import Module  
+from ..languages.translation_keys import TranslationKeys
 lang_manager = LanguageManager()
 theme_manager = ThemeManager()
-
 
 class Sidebar(QWidget):
     """A modular sidebar with compact/expanded modes, floating toggle handle, and theme-aware styling."""
@@ -22,16 +21,18 @@ class Sidebar(QWidget):
     # Click signal with module identifier
     itemClicked = pyqtSignal(str)
 
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
         # --- state ---
         self._pulse_on = False
-        self._expanded_width = 220
+        self._expanded_width = 130
         self._compact_width = 50
         self._is_compact = False
         self.moduleButtons = {}
         self.buttonTexts = {}
+        self._disabled_button = None
 
 
         self.setObjectName("SidebarRoot")
@@ -41,15 +42,12 @@ class Sidebar(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # --- left container we animate ---
-        self.container = QFrame(self)
-        self.container.setObjectName("SidebarContainer")
-        self.container.setFixedWidth(self._expanded_width)
-        main_layout.addWidget(self.container)
-
-        # Inside container: main frame (nav + spacer + settings)
-        self.SidebarMainFrame = QFrame(self.container)
+        # --- main frame (animated and contains nav + spacer + settings) ---
+        self.SidebarMainFrame = QFrame(self)
         self.SidebarMainFrame.setObjectName("SidebarMainFrame")
+        self.SidebarMainFrame.setFixedWidth(self._expanded_width)
+        main_layout.addWidget(self.SidebarMainFrame)
+        
         cm = QVBoxLayout(self.SidebarMainFrame)
         cm.setContentsMargins(0, 0, 0, 0)
         cm.setSpacing(6)
@@ -58,40 +56,9 @@ class Sidebar(QWidget):
         self.SidebarNavFrame = QFrame(self.SidebarMainFrame)
         self.SidebarNavFrame.setObjectName("SidebarNavFrame")
         nav_layout = QVBoxLayout(self.SidebarNavFrame)
-        nav_layout.setContentsMargins(0, 6, 6, 6)
-        nav_layout.setSpacing(4)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        nav_layout.setSpacing(0)
 
-        # Home (Avaleht) button at very top
-        try:
-            home_label = lang_manager.sidebar_button("HOME")
-        except Exception:
-            home_label = "Avaleht"
-        if not home_label:
-            home_label = "Avaleht"
-        self.homeButton = QPushButton(home_label, self.SidebarNavFrame)
-        self.homeButton.setObjectName("SidebarHomeButton")
-        # Prevent button from being triggered by Return key
-        self.homeButton.setAutoDefault(False)
-        self.homeButton.setDefault(False)
-        # Assign themed icon if available
-        
-        from ..utils.url_manager import Module
-        try:
-            home_icon_path = ModuleIconPaths.get_module_icon(Module.HOME)
-            if home_icon_path:
-                self.homeButton.setIcon(QIcon(home_icon_path))
-        except Exception:
-            pass
-        # Ainult Avalehe nupu ikooni mõõt (22x22)
-        try:
-            self.homeButton.setIconSize(QSize(22, 22))
-        except Exception:
-            pass
-        self.homeButton.clicked.connect(lambda: self.emitItemClicked(Module.HOME))
-        nav_layout.addWidget(self.homeButton)
-        # Track for compact toggle & active styling
-        self.moduleButtons[Module.HOME] = self.homeButton
-        self.buttonTexts[self.homeButton] = home_label
         cm.addWidget(self.SidebarNavFrame)
 
         # Spacer pushes settings down
@@ -99,72 +66,52 @@ class Sidebar(QWidget):
 
         # Footer (docked meta bar) – replaces previous settingsFrame
         self.footerContainer = QFrame(self.SidebarMainFrame)
-        self.footerContainer.setObjectName("SidebarFooterContainer")
-        footer_layout = QVBoxLayout(self.footerContainer)
-        footer_layout.setContentsMargins(0, 6, 6, 6)  # Ühtlustatud nav raamiga
+        self.footerContainer.setObjectName("SidebarFooterBar")  # Changed to SidebarFooterBar
+        footer_layout = QHBoxLayout(self.footerContainer)
+        footer_layout.setContentsMargins(0, 6, 6, 0)  # Moved margins here
         footer_layout.setSpacing(0)
         cm.addWidget(self.footerContainer)
 
-        # Footer bar with settings button
-        self.footerBar = QFrame(self.footerContainer)
-        self.footerBar.setObjectName("SidebarFooterBar")
-        self.footerBar.setContentsMargins(0, 0, 0, 0)  # Eemalda vaikimisi veerised
-        fl = QHBoxLayout(self.footerBar)
-        fl.setContentsMargins(0, 6, 6, 6)  # Ühtlustatud vasak serv moodulitega
-        fl.setSpacing(6)
-        footer_layout.addWidget(self.footerBar)
+        # Settings button directly in footer container
+        translate_settings_name = lang_manager.translate(Module.SETTINGS.value.capitalize())
 
-        # Settings button inside footer bar
-        settings_name = lang_manager.sidebar_button(SETTINGS_MODULE)
-        self.settings_icon_path = ModuleIconPaths.get_module_icon(SETTINGS_MODULE)
-        self.settingsButton = QPushButton(settings_name, self.footerBar)
+        self.settingsButton = QPushButton(translate_settings_name, self.footerContainer)
         self.settingsButton.setObjectName("SidebarSettingsButton")
         self.settingsButton.setAutoDefault(False)
         self.settingsButton.setDefault(False)
-        self.settingsButton.setIcon(QIcon(self.settings_icon_path))
-        self.settingsButton.setIconSize(QSize(22, 22))  # Ühtlustatud ikooni suurus
-      
-        
-        
-        
-        
-        # Connect settings button to directly show settings module
-        self.settingsButton.clicked.connect(self.showSettingsModule)
-        fl.addWidget(self.settingsButton, 0, Qt.AlignLeft)
-        # Track for compact toggle & active styling (same as nav buttons)
-        self.moduleButtons[SETTINGS_MODULE] = self.settingsButton
-        self.buttonTexts[self.settingsButton] = settings_name
+        self.settingsButton.setIcon(ThemeManager.get_qicon(ModuleIconPaths.get_module_icon(Module.SETTINGS.name)))
+        self.settingsButton.clicked.connect(
+            lambda checked=False: self._on_button_clicked(Module.SETTINGS.value, self.settingsButton)
+        )
 
-        # Mount main frame into container
-        container_layout = QVBoxLayout(self.container)
-        container_layout.setContentsMargins(0, 0, 0, 0)
-        container_layout.addWidget(self.SidebarMainFrame)
+        footer_layout.addWidget(self.settingsButton, 0, Qt.AlignLeft)
+        # Track for compact toggle & active styling (same as nav buttons)
+        self.moduleButtons[Module.SETTINGS.value] = self.settingsButton
+        self.buttonTexts[self.settingsButton] = Module.SETTINGS.value
 
         # --- floating toggle handle (not part of layout) ---
         self.toggleButton = QToolButton(self)
         self.toggleButton.setObjectName("SidebarToggleButton")
         # Prevent button from being triggered by Return key
         self.toggleButton.setAutoRaise(True)
-        self.toggleButton.setFixedSize(22, 44)        # slim, tall target
-        try:
-            tooltip = lang_manager.translations.get("sidebar_collapse_tooltip", "sidebar_collapse_tooltip")
-            self.toggleButton.setToolTip(tooltip)
-        except Exception:
-            self.toggleButton.setToolTip("sidebar_collapse_tooltip")
+        self.toggleButton.setFixedSize(22, 40)        # slim, tall target
+
+        tooltip = lang_manager.translate(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP)
+        self.toggleButton.setToolTip(tooltip)
         self.toggleButton.setText("«")                # expanded → show collapse glyph
         self.toggleButton.clicked.connect(self.toggleSidebar)
         self._apply_toggle_shadow()
         self.toggleButton.raise_()
 
-        # --- width animation (animate container min width for reliability) ---
-        self.animation = QPropertyAnimation(self.container, b"minimumWidth")
-        self.animation.setDuration(280)
+        # --- width animation (animate main frame min width for reliability) ---
+        self.animation = QPropertyAnimation(self.SidebarMainFrame, b"minimumWidth")
+        self.animation.setDuration(600)
         self.animation.setEasingCurve(QEasingCurve.OutCubic)
         self.animation.finished.connect(self._position_toggle)
 
         # keep min/max equal so layout respects width during animation
-        self.container.setMinimumWidth(self._expanded_width)
-        self.container.setMaximumWidth(self._expanded_width)
+        self.SidebarMainFrame.setMinimumWidth(self._expanded_width)
+        self.SidebarMainFrame.setMaximumWidth(self._expanded_width)
 
         # store expanded width after first layout
         QTimer.singleShot(0, self._store_expanded_width)
@@ -178,78 +125,83 @@ class Sidebar(QWidget):
         # theme
         self.retheme_sidebar()
 
-    # ---------- external API ----------
-    def addItem(self, displayName, uniqueIdentifier, iconPath=None):
-        import sys
-        #print(f"[Sidebar] Adding button: {displayName} ({uniqueIdentifier})", file=sys.stderr)
+# In Sidebar.py (new method)
+    def populate_from_modules(self, module_manager):
+        for module_name, module_info in module_manager.modules.items():
+            if not module_info.get("sidebar_main_item", True):
+                continue
+            icon_path = module_info["icon"]
+            display_name = module_info["display_name"]
+            # Assuming Sidebar handles widget stacking separately or via callback
+            self.addItem(display_name, module_name, icon_path)
+
+    def addItem(self, displayName, uniqueIdentifier, iconPath):
+
         btn = QPushButton(displayName, self.SidebarNavFrame)
         btn.setObjectName("SidebarNavButton")
         # Prevent button from being triggered by Return key
         btn.setAutoDefault(False)
         btn.setDefault(False)
-        if iconPath:
-            btn.setIcon(QIcon(iconPath))
-        # Projekte nupp ikooni ühtlustatud suurus 22x22
-        if uniqueIdentifier in ('ProjectsModule', 'ContractModule', 'PropertyModule'):
-            try:
-                btn.setIconSize(QSize(22, 22))  # Ühtlustatud ikooni suurus
-            except Exception:
-                pass
+        btn.setIcon(ThemeManager.get_qicon(iconPath))
+        btn.setIconSize(QSize(16, 16))  # Ühtlustatud ikooni suurus
 
-        def handler():
-            if btn.isEnabled():
-                #print(f"[Sidebar] Button clicked: {uniqueIdentifier}", file=sys.stderr)
-                self.emitItemClicked(uniqueIdentifier)
-
-        btn.clicked.connect(handler)
+        btn.clicked.connect(
+            lambda checked=False, name=uniqueIdentifier, button=btn: self._on_button_clicked(name, button)
+        )
         self.SidebarNavFrame.layout().addWidget(btn)
         self.moduleButtons[uniqueIdentifier] = btn
         self.buttonTexts[btn] = displayName
 
-    def setActiveModule(self, module_name):
+    def _on_button_clicked(self, module_name, btn):
+        if not btn.isEnabled():
+            return
+        self.emitItemClicked(module_name)
+
+    def _set_disabled_button(self, btn):
+        # Re-enable the previously disabled button before locking the new one
+        if self._disabled_button and self._disabled_button is not btn:
+            self._disabled_button.setEnabled(True)
+        btn.setEnabled(False)
+        self._disabled_button = btn
+
+    def setActiveModuleOnSidebarButton(self, module_name):
+        module_key = module_name.lower()
+        target_found = False
         for name, btn in self.moduleButtons.items():
-            active = (name == module_name)
-            btn.setEnabled(True)
+            active = (name == module_key)
+            if active:
+                target_found = True
+                self._set_disabled_button(btn)
+            elif btn is not self._disabled_button:
+                btn.setEnabled(True)
             btn.setProperty('active', active)
             btn.style().unpolish(btn); btn.style().polish(btn)
+        if not target_found and self._disabled_button:
+            self._disabled_button.setEnabled(True)
+            self._disabled_button = None
 
     def clearActive(self):
         """Clear active state on all sidebar buttons (used when showing Welcome page)."""
         for btn in self.moduleButtons.values():
             btn.setProperty('active', False)
+            btn.setEnabled(True)
             btn.style().unpolish(btn); btn.style().polish(btn)
+        self._disabled_button = None
 
     def setHomeActive(self):
-        if hasattr(self, 'homeButton'):
-            self.homeButton.setProperty('active', True)
-            self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
+        self.homeButton.setProperty('active', True)
+        self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
 
     def emitItemClicked(self, itemName):
         # Handle both Module enum and string inputs
+
         if hasattr(itemName, 'value'):
             self.itemClicked.emit(itemName.value)
         else:
             self.itemClicked.emit(itemName)
 
-    def showSettingsModule(self):
-        # Switch to the registered Settings module in the main stack
-        self.emitItemClicked(SETTINGS_MODULE)
-
     def retheme_sidebar(self):
         ThemeManager.apply_module_style(self, [QssPaths.SIDEBAR])
-
-        self.settingsButton.setIcon(QIcon(self.settings_icon_path))
-
-        # refresh module nav icons for current theme
-        for uniqueIdentifier, btn in self.moduleButtons.items():
-            themed_icon = ModuleIconPaths.get_module_icon(uniqueIdentifier)
-            if themed_icon:
-                btn.setIcon(QIcon(themed_icon))
-                btn.setIconSize(QSize(22, 22))
-
-        # Settings ikooni värskendus ja suurus
-        self.settingsButton.setIconSize(QSize(22, 22))
-        
 
     def _apply_toggle_shadow(self):
         sh = QGraphicsDropShadowEffect(self.toggleButton)
@@ -271,14 +223,14 @@ class Sidebar(QWidget):
             self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
 
     def _store_expanded_width(self):
-        self._expanded_width = max(self._expanded_width, self.container.width())
-        self.container.setMinimumWidth(self._expanded_width)
-        self.container.setMaximumWidth(self._expanded_width)
+        self._expanded_width = max(self._expanded_width, self.SidebarMainFrame.width())
+        self.SidebarMainFrame.setMinimumWidth(self._expanded_width)
+        self.SidebarMainFrame.setMaximumWidth(self._expanded_width)
         self._position_toggle()
 
     def _position_toggle(self):
         """Float the handle at the vertical center of the sidebar’s right edge."""
-        cont = self.container.geometry()
+        cont = self.SidebarMainFrame.geometry()
         x = cont.right() - self.toggleButton.width() // 2
         y = self.height() // 2 - self.toggleButton.height() // 2
         self.toggleButton.move(QPoint(max(0, x), max(0, y)))
@@ -294,47 +246,30 @@ class Sidebar(QWidget):
 
         # settings button
         if self._is_compact:
-            self.settingsButton.setText("")
             self.toggleButton.setText("»")
-            try:
-                tooltip = lang_manager.translations.get("sidebar_expand_tooltip", "sidebar_expand_tooltip")
-                self.toggleButton.setToolTip(tooltip)
-            except Exception:
-                self.toggleButton.setToolTip("sidebar_expand_tooltip")
+            self.toggleButton.setToolTip(TranslationKeys.SIDEBAR_EXPAND_TOOLTIP)
         else:
-            self.settingsButton.setText(self.buttonTexts.get(self.settingsButton, self.settingsButton.text()))
             self.toggleButton.setText("«")
-            try:
-                tooltip = lang_manager.translations.get("sidebar_collapse_tooltip", "sidebar_collapse_tooltip")
-                self.toggleButton.setToolTip(tooltip)
-            except Exception:
-                self.toggleButton.setToolTip("sidebar_collapse_tooltip")
+            self.toggleButton.setToolTip(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP)
 
-        start_w = self.container.width()
+        start_w = self.SidebarMainFrame.width()
         end_w = self._compact_width if self._is_compact else self._expanded_width
 
         # animate min width; clamp max so layout cooperates
         self.animation.stop()
-        self.container.setMaximumWidth(end_w)
+        self.SidebarMainFrame.setMaximumWidth(end_w)
         self.animation.setStartValue(start_w)
         self.animation.setEndValue(end_w)
         self.animation.start()
 
         # also set fixed widths immediately so mouse hit-tests feel right
-        self.container.setMinimumWidth(end_w)
-        self.container.setMaximumWidth(end_w)
+        self.SidebarMainFrame.setMinimumWidth(end_w)
+        self.SidebarMainFrame.setMaximumWidth(end_w)
 
         # refresh style for [compact="true"]
         self.style().unpolish(self); self.style().polish(self)
         QTimer.singleShot(0, self._position_toggle)
 
-        # ensure all buttons update their styles
-        for btn in self.moduleButtons.values():
-            btn.style().unpolish(btn); btn.style().polish(btn)
-        if hasattr(self, 'homeButton'):
-            self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
-        if hasattr(self, 'settingsButton'):
-            self.settingsButton.style().unpolish(self.settingsButton); self.settingsButton.style().polish(self.settingsButton)
 
     # keep the handle centered when the widget resizes
     def resizeEvent(self, e):

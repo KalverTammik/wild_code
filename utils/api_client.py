@@ -34,61 +34,92 @@ class APIClient:
             payload["variables"] = variables
         if operation_name:
             payload["operationName"] = operation_name
-        headers = {
-            "Content-Type": "application/json",
-            "User-Agent": f"QGIS/{platform.system()} {platform.release()}"
-        }
-        if require_auth:
-            token = self.session_manager.get_token() if hasattr(self.session_manager, 'get_token') else None
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
-            else:
-                print("[DEBUG] No auth token available!")
-        try:
-            # print(f"[DEBUG] Sending GraphQL request to: {self.api_url}")
-            # print(f"[DEBUG] Request payload: {json.dumps(payload, indent=2)}")
-            # print(f"[DEBUG] Request headers: {headers}")
 
-            response = requests.post(self.api_url, json=payload, headers=headers, timeout=timeout)
-            #print(f"[DEBUG] HTTP Response status: {response.status_code}")
-            # print(f"[DEBUG] HTTP Response headers: {dict(response.headers)}")
+        attempts = 2 if require_auth else 1
+        last_error = None
 
-            if response.status_code == 200:
-                data = response.json()
-                # print(f"[DEBUG] GraphQL Response: {json.dumps(data, indent=2)}")
+        for attempt in range(1, attempts + 1):
+            headers = {
+                "Content-Type": "application/json",
+                "User-Agent": f"QGIS/{platform.system()} {platform.release()}"
+            }
 
-                if "errors" in data:
-                    print(f"[DEBUG] GraphQL Errors found: {data['errors']}")
-                    # Raise the first GraphQL error message if present
-                    try:
-                        first_msg = data["errors"][0].get("message") or str(data["errors"][0])
-                    except Exception:
-                        first_msg = str(data.get("errors"))
-                    if first_msg and "Unauthenticated" in first_msg:
-                        from .SessionManager import SessionManager
-                        result = SessionManager.show_session_expired_dialog(lang_manager=self.lang)
-                        if result == "login":
-                            self.open_login_dialog()
-                        first_msg = self.lang.translate("session_expired")
-                    raise Exception(first_msg)
-                return data.get("data", {})
-            else:
-                # Prefer server-provided body to aid diagnostics
+            if require_auth:
+                token = self.session_manager.get_token() if hasattr(self.session_manager, 'get_token') else None
+                if token:
+                    headers["Authorization"] = f"Bearer {token}"
+                else:
+                    print("[DEBUG] No auth token available!")
+
+            try:
+                response = requests.post(self.api_url, json=payload, headers=headers, timeout=timeout)
+
+                if response.status_code == 200:
+                    data = response.json()
+
+                    errors = data.get("errors")
+                    if errors:
+                        print(f"[DEBUG] GraphQL Errors found: {errors}")
+                        first_msg = self._extract_error_message(errors)
+                        if require_auth and self._errors_include_unauthenticated(errors):
+                            if attempt < attempts and self._handle_unauthenticated():
+                                continue
+                            first_msg = self.lang.translate("session_expired")
+                        raise Exception(first_msg)
+
+                    return data.get("data", {})
+
+                # Non-200 HTTP response
                 try:
                     body = response.text
                 except Exception:
                     body = f"HTTP {response.status_code}"
                 raise Exception(self.lang.translate("login_failed_response").format(error=body))
-        except Exception as e:
-            # Surface the exception message (could be server message or network issue)
-            msg = str(e)
+
+            except Exception as exc:
+                msg = str(exc)
+                last_error = msg
+                if require_auth and msg and "Unauthenticated" in msg:
+                    if attempt < attempts and self._handle_unauthenticated():
+                        continue
+                    msg = self.lang.translate("session_expired")
+                raise Exception(msg or self.lang.translate("network_error").format(error=""))
+
+        raise Exception(last_error or self.lang.translate("network_error").format(error=""))
+
+    def _extract_error_message(self, errors):
+        try:
+            first = errors[0]
+            if isinstance(first, dict):
+                return first.get("message") or str(first)
+            return str(first)
+        except Exception:
+            try:
+                return json.dumps(errors)
+            except Exception:
+                return self.lang.translate("network_error").format(error="")
+
+    @staticmethod
+    def _errors_include_unauthenticated(errors) -> bool:
+        for err in errors or []:
+            if isinstance(err, dict):
+                msg = err.get("message") or ""
+            else:
+                msg = str(err)
             if msg and "Unauthenticated" in msg:
-                from .SessionManager import SessionManager
-                result = SessionManager.show_session_expired_dialog(lang_manager=self.lang)
-                if result == "login":
-                    self.open_login_dialog()
-                msg = self.lang.translate("session_expired")
-            raise Exception(msg or self.lang.translate("network_error").format(error=""))
+                return True
+        return False
+
+    def _handle_unauthenticated(self) -> bool:
+        """Prompt the user to log in again and return True if a retry should be attempted."""
+        from .SessionManager import SessionManager
+
+        result = SessionManager.show_session_expired_dialog(lang_manager=self.lang)
+        if result == "login":
+            self.open_login_dialog()
+            token = self.session_manager.get_token() if hasattr(self.session_manager, 'get_token') else None
+            return bool(token)
+        return False
 
     def open_login_dialog(self):
         """Open the LoginDialog so the user can re-authenticate after session expiry.

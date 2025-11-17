@@ -1,64 +1,100 @@
 
-from .constants.module_icons import ModuleIconPaths
-from .languages.language_manager import LanguageManager
-from .constants.module_names import SETTINGS_MODULE,  PROJECTS_MODULE, CONTRACT_MODULE, PROPERTY_MODULE
 from .utils.url_manager import Module
 
+from .constants.module_icons import ModuleIconPaths
 
-
-
-# Use class names as translation keys for all modules
-MODULE_NAMES = {
-    SETTINGS_MODULE: "SettingsModule",
-    PROPERTY_MODULE: "PropertyModule",
-    PROJECTS_MODULE: "ProjectsModule",
-    CONTRACT_MODULE: "ContractsModule",
-    Module.HOME: "HomeModule",
-}
-
+MODULES_LIST_BY_NAME = []
 
 class ModuleManager:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self, lang_manager=None):
-        self.modules = {}  # Dictionary to store modules by name
-        self.activeModule = None  # Reference to the currently active module
-        self.lang_manager = lang_manager or LanguageManager()
+        if not hasattr(self, 'modules'):
+            self.modules = {}  # Dictionary to store modules by name
+            self.activeModule = None  # Reference to the currently active module
+            self.lang_manager = lang_manager
+        
 
-    def registerModule(self, module):
-        print(f"[ModuleManager] Registering module: {module.name}")
-        """Register a new module with its icon, human-readable name, and internal name."""
-        self.modules[module.name] = {
-            "module": module,
-            "name": module.name,  # Store the internal name for reference
-            "icon": ModuleIconPaths.get_module_icon(module.name),
-            "display_name": self.get_module_name(module.name),  # Human-readable name (for language handling)
+    def registerModule(self, module_class, module_name, sidebar_main_item=True, supports_types=False, supports_statuses=False, **init_params):
+        """
+        Register a module with its class and init parameters.
+        The instance will be created lazily on first activation.
+        """
+        #print(f"[ModuleManager.registerModule] Registering module: {module_name}")
+        self.modules[module_name.lower()] = {
+            "module_class": module_class,  # Factory: the class to instantiate
+            "init_params": init_params,    # Params for __init__ (e.g., qss_files, lang_manager)
+            "instance": None,              # Lazy: created on-demand
+            "name": module_name.lower(),
+            "icon": ModuleIconPaths.get_module_icon(module_name),
+            "display_name": self.lang_manager.translate(module_name.capitalize()),
+            "sidebar_main_item": sidebar_main_item,
+            "supports_types": supports_types,
+            "supports_statuses": supports_statuses
         }
-    def getModuleIcon(self, moduleName):
-        """Retrieve the icon for a registered module."""
-        module_info = self.modules.get(moduleName, None)
-        if module_info:
-            return module_info.get("icon", None)
-        return None
 
+        if module_name.capitalize() == Module.SETTINGS.value.capitalize() or \
+           module_name.capitalize() == Module.HOME.value.capitalize():
+            return
+        MODULES_LIST_BY_NAME.append(module_name.capitalize())
+        #print(f"[ModuleManager.registerModule] Registered module names in MODULES_LIST_BY_NAME: {MODULES_LIST_BY_NAME}")
 
-    def get_module_name(self, module_name):
-        """Retrieve the human-readable name for a given module, using the injected language manager (must be LanguageManager_NEW)."""
-        if not self.lang_manager or not hasattr(self.lang_manager, 'sidebar_button'):
-            raise RuntimeError("lang_manager must be LanguageManager_NEW with sidebar_button method.")
-        return self.lang_manager.sidebar_button(module_name)
     def activateModule(self, moduleName):
-        # Debug print removed
-        if moduleName in self.modules:
-            # Debug print removed
-            if self.activeModule:
-                # Debug print removed
-                self.activeModule["module"].deactivate()  # Deactivate the current module
-            self.activeModule = self.modules[moduleName]
-            # Debug print removed
-            self.activeModule["module"].activate()  # Activate the new module
-        else:
-            # Debug print removed
+        """Activate a module by its name, always instantiating a new instance."""
+        if moduleName.lower() not in self.modules:
             raise ValueError(f"Module '{moduleName}' not found.")
+
+        module_data = self.modules[moduleName.lower()]
+        
+        # Deactivate current module if different
+        if self.activeModule and self.activeModule != module_data:
+            if self.activeModule.get("instance"):
+                try:
+                    self.activeModule["instance"].deactivate()
+                except Exception as e:
+                    pass
+            # Clear the instance to free memory
+            self.activeModule["instance"] = None
+        
+        # Always create a new instance
+        cls = module_data["module_class"]
+        params = module_data["init_params"]
+        try:
+            module_data["instance"] = cls(**params)  # Create new instance
+        except Exception as e:
+            raise
+        
+        # Activate the new module
+        try:
+            self.activeModule = module_data
+            module_data["instance"].activate()
+        except Exception as e:
+            raise
+
+    def getActiveModuleInstance(self, moduleName):
+        """Return the instance of the specified active module, or None if not instantiated."""
+        if self.activeModule and self.activeModule.get("name") == moduleName.lower():
+            return self.activeModule.get("instance")
+        return None
 
     def getActiveModule(self):
         """Return the currently active module."""
         return self.activeModule
+
+    def getModuleSupports(self, moduleName, Status =False, Types =False) -> bool:
+        """Return whether the specified module supports types."""
+        module_data = self.modules.get(moduleName.lower())
+        if module_data:
+            if Types:
+                types_boolean = module_data.get("supports_types", False)
+                 
+            if Status:
+                status_boolean = module_data.get("supports_statuses", False)
+            return [types_boolean, status_boolean]
+        return None
+ 

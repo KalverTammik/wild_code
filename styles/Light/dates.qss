@@ -1,0 +1,56 @@
+/* DatesWidget Light Theme */
+
+/* Reset general QFrame styles from main.qss */
+QFrame {
+  border: none;
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* Due date container */
+QFrame#DueDateContainer {
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 2px;
+  margin: 0;
+  padding: 0;
+}
+
+/* Date label (e.g., "Tähtaeg:") */
+QLabel#DateLabel {
+  color: #495057;
+  font-size: 10px;
+  font-weight: 500;
+  margin: 0;
+  padding: 0;
+}
+
+/* Normal date value */
+QLabel#DateValue {
+  color: #495057;
+  font-size: 10px;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+}
+
+/* Overdue date value */
+QLabel#DateValue[overdue="true"] {
+  color: #dc3545;
+  font-size: 11px;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+}
+
+/* Due soon date value */
+QLabel#DateValue[due_soon="true"] {
+  color: #fd7e14;
+  font-size: 11px;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+}
+

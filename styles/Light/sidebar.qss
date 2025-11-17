@@ -1,42 +1,22 @@
 /* ===== Sidebar (Light) ===== */
 
 QWidget#SidebarRoot { background: transparent; }
-
-QFrame#SidebaQWidget#SidebarRoot[compact="true"] QPushButton#SidebarNavButton { padding: 6px 6px; }
 QWidget#SidebarRoot[compact="true"] QFrame#SidebarNavFrame,
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar { padding: 2px; }
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarSettingsButton { padding: 6px 6px; }
+QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar,
 QWidget#SidebarRoot[compact="true"] QPushButton#SidebarNavButton,
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarHomeButton,
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarSettingsButton { text-align: center; }
 QWidget#SidebarRoot[compact="true"] QPushButton[active="true"],
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarSettingsButton[active="true"] { border-left: none; }
 
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarPropertiesButton {
-    padding: 6px 6px;
-    text-align: center;
-    font-size: 11px;
-}r {
-    background: #f6f7f8;
-    border-right: 1px solid rgba(0,120,212,0.65);
-    background: qlineargradient(x1:1, y1:0, x2:0.94, y2:0,
-        stop:0 rgba(0,120,212,0.15),
-        stop:1 rgba(0,120,212,0.00)
-    ), #f6f7f8;
-}
 
 QFrame#SidebarNavFrame {
     background: #ffffff;
     border: 1px solid #e1e4e8;
     border-radius: 10px;
-    padding: 4px;
 }
 
 QFrame#SidebarFooterBar {
     background: #ffffff;
     border: 1px solid #e1e4e8;
     border-radius: 10px;
-    padding: 6px 8px 6px 8px;
 }
 
 /* Footer container for submenu positioning */
@@ -44,22 +24,17 @@ QFrame#SidebarFooterContainer {
     background: transparent;
 }
 
-QPushButton#SidebarNavButton,
-QPushButton#SidebarHomeButton {
+QPushButton {
     background: transparent;
     color: #24292e;
     border: none;
-    border-radius: 8px;
-    padding: 6px 10px;
     text-align: left;
 }
-QPushButton#SidebarNavButton:hover,
-QPushButton#SidebarHomeButton:hover {
+QPushButton:hover {
     background: rgba(0,120,212,0.10);
     color: #000;
 }
-QPushButton#SidebarNavButton[active="true"],
-QPushButton#SidebarHomeButton[active="true"] {
+QPushButton[active="true"]{
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
         stop:0 rgba(0,120,212,0.33),
         stop:0.05 rgba(0,120,212,0.22),
@@ -71,33 +46,8 @@ QPushButton#SidebarHomeButton[active="true"] {
     font-weight: 600;
 }
 
-/* Settings button - now uses same styling as nav buttons */
-QPushButton#SidebarSettingsButton {
-    background: transparent;
-    color: #24292e;
-    border: none;
-    border-radius: 8px;
-    padding: 6px 10px;
-    text-align: left;
-}
-QPushButton#SidebarSettingsButton:hover {
-    background: rgba(0,120,212,0.10);
-    color: #000;
-}
-/* Active: same as nav buttons */
-QPushButton#SidebarSettingsButton[active="true"] {
-    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
-        stop:0 rgba(0,120,212,0.33),
-        stop:0.05 rgba(0,120,212,0.22),
-        stop:1 rgba(0,120,212,0.16));
-    color: #000;
-    border: 1px solid rgba(0,120,212,0.55);
-    border-left: 4px solid #0078d4;
-    padding-left: 6px;
-    font-weight: 600;
-}
 
-QFrame#SidebarRightFrame { background: transparent; }
+
 /* Floating edge handle */
 QToolButton#SidebarToggleButton {
     background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
@@ -112,63 +62,3 @@ QToolButton#SidebarToggleButton {
 QToolButton#SidebarToggleButton:hover {
     border-color: rgba(9,144,143,0.55);
 }
-
-
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarNavButton { padding: 6px 6px; }
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarNavFrame,
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar { padding: 2px; }
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar > QPushButton { padding: 6px 6px; }
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarNavButton,
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarHomeButton,
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar > QPushButton { text-align: center; }
-QWidget#SidebarRoot[compact="true"] QPushButton[active="true"],
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar > QPushButton[active="true"] { border-left: none; }
-
-/* ===== Settings Submenu ===== */
-QFrame#SidebarSettingsSubmenu {
-    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-        stop:0 #ffffff,
-        stop:1 #f8f9fa);
-    border: 1px solid #e1e4e8;
-    border-radius: 12px;
-    margin-top: 6px;
-    padding: 6px;
-}
-
-QPushButton#SidebarPropertiesButton {
-    background: transparent;
-    color: #24292e;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 12px;
-    text-align: left;
-    font-size: 13px;
-    font-weight: 500;
-    min-height: 16px;
-}
-
-QPushButton#SidebarPropertiesButton:hover {
-    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-        stop:0 rgba(0,120,212,0.15),
-        stop:1 rgba(0,120,212,0.08));
-    color: #000;
-    border: 1px solid rgba(0,120,212,0.4);
-}
-
-QPushButton#SidebarPropertiesButton:pressed {
-    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-        stop:0 rgba(0,120,212,0.25),
-        stop:1 rgba(0,120,212,0.15));
-}
-
-/* Settings button with submenu indicator */
-QPushButton#SidebarSettingsButton[submenu_open="true"] {
-    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-        stop:0 rgba(0,120,212,0.20),
-        stop:1 rgba(0,120,212,0.12));
-    border: 1px solid rgba(0,120,212,0.6);
-    border-radius: 8px;
-    color: #000;
-    font-weight: 600;
-}
-

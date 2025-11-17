@@ -38,30 +38,25 @@ class DedupeMixin:
     def _mark_or_skip_duplicate(self, item: Any) -> bool:
         if not self._dedupe_enabled:
             return False
-        try:
-            stable_id = self._extract_item_id(item)
-            if stable_id is None:
-                return False
-            if stable_id in self._seen_item_ids:
-                self._duplicate_skip_count += 1
-                if self._duplicate_skip_count > 30:
-                    self._dedupe_enabled = False
-                # Let caller optionally refresh counters if desired
-                try:
-                    if hasattr(self, "_update_feed_counter_live"):
-                        self._update_feed_counter_live()  # type: ignore[attr-defined]
-                except Exception:
-                    pass
-                return True
-            self._seen_item_ids.add(stable_id)
+        stable_id = self._extract_item_id(item)
+        if stable_id is None:
             return False
-        except Exception:
-            return False
+        if stable_id in self._seen_item_ids:
+            self._duplicate_skip_count += 1
+            if self._duplicate_skip_count > 30:
+                self._dedupe_enabled = False
+            self._on_duplicate_skipped()
+            return True
+        self._seen_item_ids.add(stable_id)
+        return False
 
     def _reset_dedupe(self):
-        try:
-            self._seen_item_ids.clear()
-        except Exception:
-            pass
+        self._seen_item_ids.clear()
         self._duplicate_skip_count = 0
         self._dedupe_session_token = object()
+
+    def _on_duplicate_skipped(self) -> None:
+        try:
+            self._update_feed_counter_live()  # type: ignore[attr-defined]
+        except AttributeError:
+            pass

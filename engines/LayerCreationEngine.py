@@ -8,8 +8,6 @@ This engine provides comprehensive layer management services including:
 - Layer group organization
 - Virtual layer copying for properties
 
-Author: Wild Code Plugin Team
-Date: September 3, 2025
 """
 
 import os

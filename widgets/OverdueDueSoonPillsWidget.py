@@ -5,7 +5,7 @@ using two minimal GraphQL queries (first:1) that rely only on pageInfo.total.
 """
 
 from PyQt5.QtWidgets import (
-    QWidget, QHBoxLayout, QPushButton, QGroupBox, QVBoxLayout, QGraphicsDropShadowEffect
+    QWidget, QHBoxLayout, QPushButton, QGroupBox, QVBoxLayout
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from datetime import datetime, timedelta
@@ -14,7 +14,8 @@ from typing import Optional, Dict, Any, List
 from ..utils.api_client import APIClient
 from ..languages.language_manager import LanguageManager
 from datetime import datetime, timedelta
-from ..widgets.theme_manager import ThemeManager
+from ..widgets.theme_manager import ThemeManager, Theme, is_dark, IntensityLevels, styleExtras, ThemeShadowColors
+# from ..utils.logger import debug as log_debug
 
 # Legacy module-level state (kept for compatibility; instance methods use self.*)
 OVERDUE_BTN = None
@@ -37,25 +38,29 @@ class OverdueDueSoonPillsWidget(QWidget):
         self._due_soon_active = False
         self._lang = LanguageManager()  # Ensure _lang is initialized
 
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(1, 1, 1, 1)
-        outer.setSpacing(2)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(2)
 
         self.group = QGroupBox(self._lang.translate("urgent_group_title"), self)
         self.group.setObjectName("UrgentGroupBox")
         self.group.setToolTip(self._lang.translate("urgent_tooltip"))
 
-        shadow = QGraphicsDropShadowEffect(self.group)
-        shadow.setBlurRadius(16)
-        shadow.setOffset(0, 2)
-        shadow.setColor(Qt.gray)
-        self.group.setGraphicsEffect(shadow)
+        shadow_color = ThemeShadowColors.BLUE
+        styleExtras.apply_chip_shadow(
+            element=self.group, 
+            color=shadow_color, 
+            blur_radius=16, 
+            x_offset=2, 
+            y_offset=2, 
+            alpha_level=IntensityLevels.MEDIUM
+            )
 
         pills_layout = QHBoxLayout()
         pills_layout.setContentsMargins(2, 1, 2, 1)
         pills_layout.setSpacing(2)
         self.group.setLayout(pills_layout)
-        outer.addWidget(self.group)
+        layout.addWidget(self.group)
 
         self.overdue_btn = QPushButton(self.group)
         self.overdue_btn.setObjectName("PillOverdue")
@@ -105,7 +110,7 @@ class OverdueDueSoonPillsWidget(QWidget):
     # ------------------------------------------------------------------
     def _apply_mock_styles(self, theme: str = "light") -> None:
         try:
-            if theme == "dark":
+            if is_dark(ThemeManager.effective_theme()):
                 group_border = "rgba(255,255,255,20)"
                 group_bg = "rgba(50,50,50,0.95)"
                 title_color = "#ff6b6b"
@@ -149,7 +154,7 @@ class OverdueDueSoonPillsWidget(QWidget):
         if IS_LOADING:
             return
 
-        print(f"[OverdueDueSoonPillsWidget] Refreshing counts for module: {module.value.capitalize() + 's'}")
+        # log_debug(f"[OverdueDueSoonPillsWidget] Refreshing counts for module: {module.value.capitalize() + 's'}")
 
         IS_LOADING = True
 
@@ -181,13 +186,10 @@ class OverdueDueSoonPillsWidget(QWidget):
         
         theme = ThemeManager.load_theme_setting()
 
-        if not theme:
-            theme = "light"
-
         if btn is None:
             return
 
-        if theme == "dark":
+        if is_dark(ThemeManager.effective_theme()):
             base_color = "#b71c1c" if is_overdue else "#f57f17"
             active_color = "#ff5722" if is_overdue else "#ff9800"
             hover_color = "#d32f2f" if is_overdue else "#fb8c00"
@@ -227,10 +229,10 @@ class UIControllers:
         base_name = module.value
         capitalized_name = base_name.capitalize() + "s"
         plural_name = base_name + "s"
-        q = f"query {capitalized_name}Count($first:Int,$where: Query{capitalized_name}WhereWhereConditions)"
+        # avoid f-strings with literal braces - build with .format / concatenation
+        q = "query {}Count($first:Int,$where: Query{}WhereWhereConditions)".format(capitalized_name, capitalized_name)
         query = (
-            f"{q+"{"}"
-            f" {plural_name}(first:$first, where:$where){{ pageInfo{{ total }} edges{{ node {{ id }} }} }} }}"
+            q + " { " + plural_name + "(first:$first, where:$where){ pageInfo{ total } edges{ node { id } } } }"
         )
         return query
 
@@ -326,8 +328,7 @@ class OverdueDueSoonPillsUtils:
         plural_name = base_name + "s"
         q = f"query {capitalized_name}Count($first:Int,$where: Query{capitalized_name}WhereWhereConditions)"
         query = (
-            f"{q+"{"}"
-            f" {plural_name}(first:$first, where:$where){{ pageInfo{{ total }} edges{{ node {{ id }} }} }} }}"
+            q + " { " + plural_name + "(first:$first, where:$where){ pageInfo{ total } edges{ node { id } } } }"
         )
 
         def try_fetch(where_obj):

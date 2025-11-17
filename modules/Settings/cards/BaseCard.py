@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButto
 from ....languages.language_manager import LanguageManager
 from ....widgets.theme_manager import ThemeManager
 from ....constants.file_paths import QssPaths
+from PyQt5.QtGui import  QPixmap
+from ....languages.translation_keys import TranslationKeys
 
 class BaseCard(QFrame):
     """Reusable SetupCard base with header, content area and confirm footer."""
@@ -31,7 +33,6 @@ class BaseCard(QFrame):
         
         if icon_path:
             try:
-                from PyQt5.QtGui import QIcon, QPixmap
                 icon_label = QLabel()
                 icon_label.setPixmap(QPixmap(icon_path).scaled(18, 18))  # Smaller icons
                 header_layout.addWidget(icon_label, 0)
@@ -80,13 +81,13 @@ class BaseCard(QFrame):
         buttons_layout.setSpacing(6)
 
         # Reset button (can be shown/hidden by subclasses)
-        self._reset_btn = QPushButton(self.lang_manager.translate("Reset"))
+        self._reset_btn = QPushButton(self.lang_manager.translate(TranslationKeys.RESET))
         self._reset_btn.setObjectName("ResetButton")
         self._reset_btn.setVisible(False)  # Hidden by default
         buttons_layout.addWidget(self._reset_btn)
 
         # Confirm button
-        self._confirm_btn = QPushButton(self.lang_manager.translate("Confirm"))
+        self._confirm_btn = QPushButton(self.lang_manager.translate(TranslationKeys.CONFIRM))
         self._confirm_btn.setEnabled(False)
         self._confirm_btn.setVisible(False)
         self._confirm_btn.setObjectName("ConfirmButton")  # For QSS styling

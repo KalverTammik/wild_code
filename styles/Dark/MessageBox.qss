@@ -1,0 +1,103 @@
+/* =========================================================
+   DARK THEME — MessageBox Styling
+   Modern, clean message dialogs with dark theme
+   ========================================================= */
+
+QDialog#ModernMessageDialog {
+    background: #1e293b;  /* slate-800 */
+    color: #e2e8f0;
+    border: 1px solid #334155;  /* slate-700 */
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Dialog title bar */
+QDialog#ModernMessageDialog QLabel#titleLabel {
+    color: #f1f5f9;  /* slate-100 */
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    padding: 0;
+}
+
+/* Dialog content labels */
+QDialog#ModernMessageDialog QLabel {
+    color: #e2e8f0;  /* slate-200 */
+    font-size: 12px;
+    margin: 0;
+    padding: 0;
+}
+
+/* Icon label (emoji) */
+QDialog#ModernMessageDialog QLabel#iconLabel {
+    font-size: 24px;
+    margin: 0;
+    padding: 0;
+}
+
+/* OK Button - Primary action button */
+QDialog#ModernMessageDialog QPushButton {
+    background: #0ea5e9;  /* sky-500 */
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: 12px;
+    min-width: 80px;
+    transition: all 150ms ease;
+}
+
+QDialog#ModernMessageDialog QPushButton:hover {
+    background: #0284c7;  /* sky-600 */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+QDialog#ModernMessageDialog QPushButton:pressed {
+    background: #0369a1;  /* sky-700 */
+    transform: translateY(0px);
+    box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
+}
+
+QDialog#ModernMessageDialog QPushButton:focus {
+    outline: none;
+    border: 2px solid rgba(14, 165, 233, 0.5);
+    border-radius: 6px;
+}
+
+/* Warning message box variant */
+QDialog#ModernMessageDialog[messageType="warning"] {
+    border-color: rgba(249, 115, 22, 0.4);  /* orange-500 */
+}
+
+QDialog#ModernMessageDialog[messageType="warning"] QLabel#titleLabel {
+    color: #f97316;  /* orange-500 */
+}
+
+/* Error message box variant */
+QDialog#ModernMessageDialog[messageType="error"] {
+    border-color: rgba(239, 68, 68, 0.4);  /* red-500 */
+}
+
+QDialog#ModernMessageDialog[messageType="error"] QLabel#titleLabel {
+    color: #ef4444;  /* red-500 */
+}
+
+/* Info message box variant */
+QDialog#ModernMessageDialog[messageType="info"] {
+    border-color: rgba(14, 165, 233, 0.4);  /* sky-500 */
+}
+
+QDialog#ModernMessageDialog[messageType="info"] QLabel#titleLabel {
+    color: #0ea5e9;  /* sky-500 */
+}
+
+/* Message (general) message box variant */
+QDialog#ModernMessageDialog[messageType="message"] {
+    border-color: rgba(156, 163, 175, 0.4);  /* gray-400 */
+}
+
+QDialog#ModernMessageDialog[messageType="message"] QLabel#titleLabel {
+    color: #9ca3af;  /* gray-400 */
+}

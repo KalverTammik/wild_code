@@ -4,6 +4,7 @@ Each module type can define its own status columns and activities.
 """
 
 from typing import List, Tuple, Dict, Any
+from ...utils.url_manager import Module
 
 
 class ModuleConfig:
@@ -36,23 +37,18 @@ class ModuleConfigFactory:
     """Factory for creating module-specific configurations."""
 
     @staticmethod
-    def create_config(module_type: str, item_data: Dict[str, Any] = None) -> ModuleConfig:
+    def create_config(module_type: str, item_id: Dict[str, Any] = None) -> ModuleConfig:
         """Create configuration based on module type."""
-
-        if module_type == "project":
-            return ModuleConfigFactory._create_project_config()
-        elif module_type == "contract":
-            return ModuleConfigFactory._create_contract_config()
-        elif module_type == "document":
-            return ModuleConfigFactory._create_document_config()
-        else:
-            # Default to project config
-            return ModuleConfigFactory._create_project_config()
+        if module_type == Module.PROJECT.value:
+            return ModuleConfigFactory._create_project_config(item_id)
+        elif module_type == Module.CONTRACT.value:
+            return ModuleConfigFactory._create_contract_config(item_id)
 
     @staticmethod
-    def _create_project_config() -> ModuleConfig:
+    def _create_project_config(item_id: Dict[str, Any]) -> ModuleConfig:
         """Create configuration for project modules."""
-        config = ModuleConfig("project")
+        config = ModuleConfig(Module.PROJECT.value)
+        #print(f"[ModuleConfigFactory] Creating project config for item: {item_id}")
         config.set_title("Projekti tegevuste ülevaade")
 
         # Tehtud column
@@ -98,9 +94,9 @@ class ModuleConfigFactory:
         return config
 
     @staticmethod
-    def _create_contract_config() -> ModuleConfig:
+    def _create_contract_config(item_id: Dict[str, Any]) -> ModuleConfig:
         """Create configuration for contract modules."""
-        config = ModuleConfig("contract")
+        config = ModuleConfig(Module.CONTRACT.value)
         config.set_title("Lepingu tegevuste ülevaade")
 
         # Lepingu staatused
@@ -134,39 +130,3 @@ class ModuleConfigFactory:
 
         return config
 
-    @staticmethod
-    def _create_document_config() -> ModuleConfig:
-        """Create configuration for document modules."""
-        config = ModuleConfig("document")
-        config.set_title("Dokumendi tegevuste ülevaade")
-
-        # Dokumendi staatused
-        config.add_column("Lõpetatud", "#4CAF50", [
-            ("Kirjutamine", "✓"),
-            ("Toimetamine", "✓"),
-            ("Kinnitamine", "✓")
-        ])
-
-        config.add_column("Töös", "#FF9800", [
-            ("Ülevaatus", "⟳"),
-            ("Korrektuur", "⟳")
-        ])
-
-        config.add_column("Ootel", "#F44336", [
-            ("Avaldamine", "○"),
-            ("Arhiveerimine", "○")
-        ])
-
-        config.set_detailed_content("""
-        <h3>Dokumendi Detailne Ülevaade</h3>
-        <p>Document creation and management workflow.</p>
-
-        <h4>Dokumendi Faasid</h4>
-        <ul>
-        <li><b>Lõpetatud:</b> Finalized documents</li>
-        <li><b>Töös:</b> Under review and editing</li>
-        <li><b>Ootel:</b> Pending publication or archiving</li>
-        </ul>
-        """)
-
-        return config

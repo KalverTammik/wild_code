@@ -1,149 +1,113 @@
 # -*- coding: utf-8 -*-
-from typing import Optional, Union, List
+from __future__ import annotations
 
-from PyQt5.QtWidgets import QHBoxLayout, QListView
-from PyQt5.QtCore import Qt, QCoreApplication
+from typing import List, Optional, Sequence, Union
 
-from .BaseFilterWidget import BaseFilterWidget
-from .theme_manager import ThemeManager
-from ..constants.file_paths import QssPaths
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QHBoxLayout, QWidget
+from qgis.gui import QgsCheckableComboBox
+
+from ..languages.language_manager import LanguageManager
 from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
 from ..utils.api_client import APIClient
+from ..utils.url_manager import Module
 
 
-class TagsFilterWidget(BaseFilterWidget):
-    """
-    Moodulipõhised tunnused (tags). Pärib BaseFilterWidget:
-    - lazy load, selection API, QGIS/fallback tugi.
-    """
+class TagsFilterWidget(QWidget):
+    """Simplified tags filter with direct signal forwarding."""
 
-    def __init__(self, module_name: Union[str, object], lang_manager=None, parent=None, debug: Optional[bool] = None):
+    selectionChanged = pyqtSignal(list, list)
+
+    def __init__(
+        self,
+        module_name: Union[str, object],
+        lang_manager: Optional[LanguageManager] = None,
+        parent: Optional[QWidget] = None,
+    ) -> None:
         super().__init__(parent)
         self._module = getattr(module_name, "value", module_name)
-        self._lang = lang_manager
-        self._api = APIClient()
+        self._lang = lang_manager or LanguageManager()
         self._loader = GraphQLQueryLoader(self._lang)
-        self.set_debug(bool(debug))
-
-        if self._debug:
-            print(f"[TagsFilterWidget] Initialized with module: {self._module}")
-
-        # UI
-        layout = QHBoxLayout(self)
-        # Add margins so shadow effect around combo is visible
-        layout.setContentsMargins(4, 2, 4, 2)
-        layout.setSpacing(2)
-
-        # Allow override via class attr MAX_VISIBLE_ITEMS; use base default otherwise
-        self.combo = self._init_checkable_combo("TagsFilterCombo")
-        layout.addWidget(self.combo)
-        # Accent shadow
-        try:
-            self._apply_combo_shadow(self.combo)
-        except Exception:
-            pass
-
-        # Add tooltip for clarity
-        if self._lang:
-            tooltip = self._lang.translate("Tags Filter")
-            if tooltip:
-                self.combo.setToolTip(tooltip)
-        else:
-            self.combo.setToolTip("Tags Filter")
-
-        # QGIS: kohe emit iga muutusega
-        self.combo.checkedItemsChanged.connect(lambda: self.selectionChanged.emit(self.selected_ids()))
-
-        # Initial theming now handled centrally by BaseFilterWidget.__init__ via retheme().
+        self._api = APIClient()
+        self._suppress_emit = False
         self._loaded = False
 
-    # --- fallback klikk ---
-    def _on_item_pressed(self, index):
-        # Toggle CheckStateRole
-        m = self.combo.model()
-        cur = m.data(index, Qt.CheckStateRole)
-        nxt = Qt.Checked if cur in (None, Qt.Unchecked) else Qt.Unchecked
-        m.setData(index, nxt, Qt.CheckStateRole)
-        QCoreApplication.processEvents()
-        self.selectionChanged.emit(self.selected_ids())
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(1)
 
-    # --- laadimine ---
-    def _populate(self) -> None:
+        self.combo = QgsCheckableComboBox(self)
+        self.combo.setObjectName("TagsFilterCombo")
+        layout.addWidget(self.combo)
+        self.combo.setToolTip(self._lang.translate("Tags Filter"))
+
+        self.combo.checkedItemsChanged.connect(self._emit_selection_change)  # type: ignore[attr-defined]
+        self.reload()
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+    def reload(self) -> None:
+        self._loaded = False
         try:
-            # 1) Lae päring
-            query = self._loader.load_query("tags", "ListModuleTags.graphql")
-
-            # 2) Muutuja: module plural (for filtering tags by module if needed)
-            module_plural = str(self._module).upper()
-            if self._debug:
-                print(f"[TagsFilterWidget] Converting module '{self._module}' to uppercase: '{module_plural}'")
-
-            if module_plural == "PROJECT":
-                module_plural = "PROJECTS"
-            elif module_plural == "CONTRACT":
-                module_plural = "CONTRACTS"
-            elif module_plural == "PROJECTSMODULE":
-                module_plural = "PROJECTS"
-            elif module_plural == "CONTRACTMODULE":
-                module_plural = "CONTRACTS"
-
-            if self._debug:
-                print(f"[TagsFilterWidget] Final module_plural: '{module_plural}'")
-
-            # For now, load all tags. Later we can filter by module if the API supports it
-            variables = {
-                "first": 50,
-                "after": None,
-                "where": {"column": "MODULE", "value": module_plural},
-            }
-            if self._debug:
-                print(f"[TagsFilterWidget] Sending query with variables: {variables}")
-
-            data = self._api.send_query(query, variables=variables) or {}
-
-            if self._debug:
-                print(f"[TagsFilterWidget] API response: {data}")
-
-            # 3) Nopi tunnused
-            tags: List[dict] = []
-            edges = ((data or {}).get("tags") or {}).get("edges") or []
-
-            if self._debug:
-                print(f"[TagsFilterWidget] Found {len(edges)} tag edges")
-
-            for e in edges:
-                n = (e or {}).get("node") or {}
-                sid = n.get("id")
-                name = n.get("name")
-                if sid and name:
-                    tags.append({"id": sid, "name": name})
-                    if self._debug:
-                        print(f"[TagsFilterWidget] Added tag: {name} (id: {sid})")
-
-            if self._debug:
-                print(f"[TagsFilterWidget] Total tags loaded: {len(tags)}")
-
-            # 4) Täida combo
+            self._load_tags()
+            self._loaded = True
+        except Exception as exc:
             self.combo.clear()
-            for t in tags:
-                self.combo.addItem(t["name"], t["id"])
-                # algseis unchecked (QGIS või fallback)
-                try:
-                    self.combo.setItemCheckState(self.combo.count() - 1, Qt.Unchecked)  # type: ignore[attr-defined]
-                except Exception:
-                    m = self.combo.model()
-                    idx = m.index(self.combo.count() - 1, 0)
-                    m.setData(idx, Qt.Unchecked, Qt.CheckStateRole)
-            # Adjust popup to show all tags if few
-            self._auto_adjust_combo_popup(self.combo)
-
-        except Exception as e:
-            if self._debug:
-                print(f"[TagsFilterWidget] Error loading tags: {e}")
-                import traceback
-                print(f"[TagsFilterWidget] Traceback: {traceback.format_exc()}")
-            # Clear combo and add error message
-            self.combo.clear()
-            self.combo.addItem(f"Error: {str(e)[:50]}...")
-            # Disable the widget
+            self.combo.addItem(f"Error: {str(exc)[:60]}…")
             self.combo.setEnabled(False)
+            self._loaded = False
+
+    def ensure_loaded(self) -> None:
+        if not self._loaded:
+            self.reload()
+
+    def selected_ids(self) -> List[str]:
+        return list(self.combo.checkedItemsData() or [])  # type: ignore[attr-defined]
+
+    def selected_texts(self) -> List[str]:
+        return list(self.combo.checkedItems() or [])  # type: ignore[attr-defined]
+
+    def set_selected_ids(self, ids: Sequence[str], emit: bool = True) -> None:
+        targets = {str(v) for v in ids or []}
+        self._suppress_emit = True
+        try:
+            for row in range(self.combo.count()):
+                val = self.combo.itemData(row)
+                state = Qt.Checked if str(val) in targets else Qt.Unchecked
+                self.combo.setItemCheckState(row, state)
+        finally:
+            self._suppress_emit = False
+
+        if emit:
+            self._emit_selection_change()
+
+    # ------------------------------------------------------------------
+    # Internals
+    # ------------------------------------------------------------------
+    def _load_tags(self) -> None:
+        tags_module = Module.TAGS.value
+        query = self._loader.load_query(tags_module, "ListModuleTags.graphql")
+        variables = {
+            "first": 50,
+            "after": None,
+            "where": {"column": "MODULE", "value": f"{str(self._module).upper()}S"},
+        }
+        data = self._api.send_query(query, variables=variables) or {}
+        edges = ((data or {}).get("tags") or {}).get("edges") or []
+
+        self.combo.clear()
+        for edge in edges:
+            node = (edge or {}).get("node") or {}
+            tag_id = node.get("id")
+            label = node.get("name")
+            if tag_id and label:
+                self.combo.addItem(label, tag_id)
+
+    def _emit_selection_change(self) -> None:
+        if self._suppress_emit:
+            return
+        texts = self.selected_texts()
+        ids = self.selected_ids()
+        self.selectionChanged.emit(texts, ids)
+    

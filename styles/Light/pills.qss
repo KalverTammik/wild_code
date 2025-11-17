@@ -1,17 +1,17 @@
-/* TagsWidget container nudge */
+﻿/* TagsWidget container nudge */
 #TagsWidget { margin-left: 8px; }
 #CompactTagsWidget { margin-left: 4px; }
 
 /* Base tag pill */
 #TagPill[role="tag"] {
-  border-radius: 5px;                          /* pill shape */
-  background: #fafbfc;                         /* solid light gray background */
-  color: #24292e;                              /* dark text for contrast */
-  border: none;                                /* no border */
-  outline: none;                               /* no outline */
-  margin: 0;                                   /* no margin */
-  padding: 0;                                  /* no padding */
-  spacing: 0;                                  /* no spacing */
+  border-radius: 9px;
+  background: qproperty(bg_color);
+  color: qproperty(fg_color);
+  border: 1px solid qproperty(border_color);
+  outline: none;
+  margin: 0;
+  padding: 0;
+  spacing: 0;
   transition: 120ms ease;
 }
 
@@ -31,14 +31,13 @@
 
 /* Overflow tag pill - blend with background */
 #OverflowTagPill[role="overflow_tag"] {
-  border-radius: 3px;
-  background: #f6f7f8;
-  color: #586069;
-  border: none;
+  border-radius: 8px;
+  background: qproperty(bg_color);
+  color: qproperty(fg_color);
+  border: 1px solid qproperty(border_color);
   outline: none;
   margin: 0;
   padding: 0;
-  spacing: 0;
   transition: 100ms ease;
   min-height: 16px;
 }

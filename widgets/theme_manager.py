@@ -1,44 +1,29 @@
-"""
-ThemeManager module for wild_code plugin.
-
-This module provides theme management utilities for PyQt5/QGIS plugins, supporting both light and dark modes.
-It handles loading, saving, toggling, and applying QSS-based themes to widgets, and manages theme-related icons and settings.
-
-Key Features:
-- Save and load theme preference using QGIS settings
-- Apply light or dark theme stylesheets to widgets
-- Toggle theme with UI feedback (icon, logout icon)
-- Integrate with QSS files and resource paths
-- Designed for modular use in plugin UIs
-
-Usage:
-    ThemeManager.set_initial_theme(widget, switch_button, qss_files)
-    ThemeManager.toggle_theme(widget, current_theme, switch_button, qss_files)
-    ThemeManager.apply_theme(widget, theme_dir, qss_files)
-"""
-from PyQt5.QtCore import QFile, QDir
-from PyQt5.QtWidgets import QApplication
+# ==== BEGIN ThemeManager v2 ====
+from functools import lru_cache
+from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtGui import QIcon
+from qgis.core import QgsSettings
 import os
+from PyQt5.QtGui import QColor
+from enum import Enum
+from ..constants.file_paths import ResourcePaths, StylePaths, QssPaths
+from ..constants.base_paths import PLUGIN_ROOT, RESOURCE, ICON_FOLDER
 
-# Handle imports for both standalone and plugin usage
-import sys
-plugin_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if plugin_root not in sys.path:
-    sys.path.insert(0, plugin_root)
+settings = QgsSettings()
 
-try:
-    from constants.file_paths import ResourcePaths
-except ImportError as e:
-    print(f"Import error in theme_manager: {e}")
-    # Re-raise to make the error visible
-    raise
+class Theme(str):
+    LIGHT = "light"
+    DARK = "dark"
+    SYSTEM = "standard"  # optional
 
-import glob
+def is_dark(value: str) -> bool:
+    return value == Theme.DARK
 
-class ThemeManager:
-    _debug = False
+class ThemeManager(QObject):
+    # Emits Theme.LIGHT or Theme.DARK (effective mode)
+    themeChanged = pyqtSignal(str)
 
-    # Semantic icon names (basenames). Theme variants live under resources/icons/Light|Dark
+    # Semantic icon basenames (keep yours; truncated here for brevity)
     ICON_SETTINGS_GEAR = "icons8-gear-100.png"
     ICON_LIST = "icons8-list-50.png"
     ICON_SEARCH = "icons8-search-location-50.png"
@@ -64,240 +49,252 @@ class ThemeManager:
     ICON_BUFFERING = "icons8-buffering-50.png"
 
     @staticmethod
-    def set_debug(enabled: bool):
-        ThemeManager._debug = bool(enabled)
+    def save_theme_setting(theme_name: str):
+        settings.setValue("wild_code/theme", theme_name)
 
     @staticmethod
+    def load_theme_setting() -> str:
+        return settings.value("wild_code/theme", Theme.LIGHT)
+
+    @staticmethod
+    def effective_theme() -> str:
+        theme = ThemeManager.load_theme_setting()
+        if theme == Theme.SYSTEM:
+            from PyQt5.QtWidgets import QApplication
+            pal = QApplication.instance().palette()
+            return Theme.DARK if pal.base().color().value() < 128 else Theme.LIGHT
+        return theme
+
+    @staticmethod
+    @lru_cache(maxsize=256)
     def resolve_icon_path(icon_name_or_path: str) -> str:
-        """Resolve an icon path honoring the current theme.
-        If a themed variant exists under resources/icons/Dark or Light, return that path.
-        Accepts either a basename (e.g., 'settings.svg'/'settings.png') or an absolute path to a default icon.
-        """
         if not icon_name_or_path:
             return None
-        try:
-            theme = ThemeManager.load_theme_setting()
-        except Exception:
-            theme = 'light'
-        from ..constants.base_paths import PLUGIN_ROOT, RESOURCE
-        base_icons_dir = os.path.join(PLUGIN_ROOT, RESOURCE, 'icons')
+        theme = ThemeManager.effective_theme()
+        base_icons_dir = os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER)
 
-        # Determine basename and default fallback
         if os.path.isabs(icon_name_or_path):
             basename = os.path.basename(icon_name_or_path)
             fallback = icon_name_or_path
         else:
             basename = icon_name_or_path
-            # default (non-themed) fallback under resources/icons
             fallback = os.path.join(base_icons_dir, basename)
 
-        # Support both .png and .svg variants
         stem, ext = os.path.splitext(basename)
-        exts = []
-        if ext:
-            exts.append(ext)
-        if '.png' not in exts:
-            exts.append('.png')
-        if '.svg' not in exts:
-            exts.append('.svg')
+        exts = [ext] if ext else []
+        if '.png' not in exts: exts.append('.png')
+        if '.svg' not in exts: exts.append('.svg')
 
-        themed_dirs = []
-        if theme == 'dark':
-            themed_dirs += [os.path.join(base_icons_dir, 'Dark'), os.path.join(base_icons_dir, 'dark')]
-        else:
-            themed_dirs += [os.path.join(base_icons_dir, 'Light'), os.path.join(base_icons_dir, 'light')]
-
-        for d in themed_dirs:
-            for e in exts:
-                themed_path = os.path.join(d, f"{stem}{e}")
-                if os.path.exists(themed_path):
-                    return themed_path
-
-        # Fallback to base icons folder versions
+        themed_dir = os.path.join(base_icons_dir, StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT)
         for e in exts:
-            candidate = os.path.join(base_icons_dir, f"{stem}{e}")
-            if os.path.exists(candidate):
-                return candidate
+            p = os.path.join(themed_dir, f"{stem}{e}")
+            if os.path.exists(p):
+                return p
 
+        for e in exts:
+            p = os.path.join(base_icons_dir, f"{stem}{e}")
+            if os.path.exists(p):
+                return p
         return fallback
 
     @staticmethod
-    def get_icon_path(icon_name_or_path: str) -> str:
-        return ThemeManager.resolve_icon_path(icon_name_or_path)
-
-    @staticmethod
-    def get_qicon(icon_name_or_path: str):
-        from PyQt5.QtGui import QIcon
+    def get_qicon(icon_name_or_path: str) -> QIcon:
         p = ThemeManager.resolve_icon_path(icon_name_or_path)
         return QIcon(p) if p else QIcon()
 
     @staticmethod
-    def apply_module_style(widget, qss_files):
-        """
-        Centralized method to apply the correct theme (light/dark) and QSS file(s) to a widget.
-        Usage: ThemeManager.apply_module_style(widget, [QssPaths.MODULE_CARD])
-        """
-        if ThemeManager._debug:
-            try:
-                from ..utils.logger import debug as log_debug
-                log_debug(f"[ThemeManager] Applying module style to {widget.objectName()} with QSS files: {qss_files}")
-            except Exception:
-                pass
-        theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
-        from ..constants.file_paths import StylePaths
-        theme_dir = StylePaths.DARK if theme == 'dark' else StylePaths.LIGHT
-        if ThemeManager._debug:
-            try:
-                from ..utils.logger import debug as log_debug
-                log_debug(f"[ThemeManager] Applying theme: {theme} from {theme_dir} qss_files: {qss_files}")
-            except Exception:
-                pass
-        ThemeManager.apply_theme(widget, theme_dir, qss_files)
-    @staticmethod
-    def save_theme_setting(theme_name):
-        from qgis.core import QgsSettings
-        settings = QgsSettings()
-        settings.setValue("wild_code/theme", theme_name)
-
-    @staticmethod
-    def load_theme_setting():
-        try:
-            from qgis.core import QgsSettings
-            settings = QgsSettings()
-            theme = settings.value("wild_code/theme", "light")
-            return theme
-        except ImportError:
-            # Fallback when QGIS is not available (for testing)
-            return "light"
-
-    @staticmethod
-    def save_module_setting(module_name, setting_key, value):
-        """Save a module-specific setting."""
-        from qgis.core import QgsSettings
-        settings = QgsSettings()
-        key = f"wild_code/modules/{module_name}/{setting_key}"
-        settings.setValue(key, value)
-
-    @staticmethod
-    def load_module_setting(module_name, setting_key, default_value=None):
-        """Load a module-specific setting."""
-        from qgis.core import QgsSettings
-        settings = QgsSettings()
-        key = f"wild_code/modules/{module_name}/{setting_key}"
-        return settings.value(key, default_value)
-
-    @staticmethod
-    def set_initial_theme(widget, switch_button, qss_files=None):
-        """
-        Loads the theme from QGIS settings and applies it, updating the switch button icon.
-        Returns the theme name ("light" or "dark").
-        """
-        from PyQt5.QtGui import QIcon
-        # Support for logout icon
-        header_widget = getattr(widget, 'header_widget', None)
-        theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
-        if theme == "dark":
-            ThemeManager.apply_dark_theme(widget, qss_files)
-            icon_path = ResourcePaths.LIGHTNESS_ICON
-            if switch_button is not None:
-                switch_button.setIcon(QIcon(icon_path))
-                switch_button.setText("")
-            if header_widget:
-                logout_icon_path = ResourcePaths.LOGOUT_BRIGHT
-                if logout_icon_path:
-                    header_widget.set_logout_icon(QIcon(logout_icon_path))
-        else:
-            ThemeManager.apply_light_theme(widget, qss_files)
-            icon_path = ResourcePaths.DARKNESS_ICON
-            if switch_button is not None:
-                switch_button.setIcon(QIcon(icon_path))
-                switch_button.setText("")
-            if header_widget:
-                logout_icon_path = ResourcePaths.LOGOUT_DARK
-                if logout_icon_path:
-                    header_widget.set_logout_icon(QIcon(logout_icon_path))
+    def set_initial_theme(widget, switch_button, qss_files=None) -> str:
+        theme = ThemeManager.effective_theme()
+        ThemeManager._apply_theme_for(widget, theme, qss_files)
+        ThemeManager._update_header_icons(widget, theme, switch_button)
         return theme
+
+    @staticmethod
+    def toggle_theme(widget, current_theme, switch_button, qss_files=None) -> str:
+        theme_now = current_theme or ThemeManager.effective_theme()
+        new_theme = Theme.DARK if theme_now == Theme.LIGHT else Theme.LIGHT
+        ThemeManager._apply_theme_for(widget, new_theme, qss_files)
+        ThemeManager._update_header_icons(widget, new_theme, switch_button)
+        ThemeManager.save_theme_setting(new_theme)
+        # Emit change for listeners
+        try:
+            # if a shared instance exists in your app, emit on that; otherwise this is a static utility
+            # you can wire a shared instance in your app bootstrap and pass it around
+            pass
+        finally:
+            return new_theme
+
+    @staticmethod
+    def _apply_theme_for(widget, theme: str, qss_files=None):
+        theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
+        ThemeManager.apply_theme(widget, theme_dir, qss_files)
+
+    @staticmethod
+    def _update_header_icons(widget, theme: str, switch_button):
+        if switch_button is not None:
+            switch_button.setIcon(ThemeManager.get_qicon(
+                ResourcePaths.LIGHTNESS_ICON if is_dark(theme) else ResourcePaths.DARKNESS_ICON
+            ))
+            switch_button.setText("")
+        header = getattr(widget, 'header_widget', None)
+        if header:
+            header.set_logout_icon(ThemeManager.get_qicon(
+                ResourcePaths.LOGOUT_BRIGHT if is_dark(theme) else ResourcePaths.LOGOUT_DARK
+            ))
+
+    @staticmethod
+    @lru_cache(maxsize=64)
+    def _read_qss(theme_dir: str, qss_files_tuple: tuple) -> str:
+        css = ""
+        for qss_file in qss_files_tuple:
+            qss_path = os.path.join(theme_dir, qss_file)
+            if os.path.exists(qss_path):
+                with open(qss_path, "r", encoding="utf-8") as fh:
+                    css += fh.read() + "\n"
+        return css
+
     @staticmethod
     def apply_theme(widget, theme_dir, qss_files=None):
-        """
-        Apply the QSS theme(s) from the specified theme directory to the widget.
-
-        :param widget: The widget to apply the theme to.
-        :param theme_dir: Path to the theme directory (e.g., styles/Dark/ or styles/Light/).
-        :param qss_files: List of QSS filenames to load (e.g., [QssPaths.MAIN, QssPaths.SIDEBAR]). If None, loads all .qss files in the directory.
-        """
+        if widget is None:
+            return
+        if not qss_files:
+            qss_files = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
+        qss_tuple = tuple(qss_files)
         try:
-            # Gracefully handle None targets (avoid crashes on dynamic switches)
-            if widget is None:
-                return
-            theme = ""
-            if qss_files is None:
-                # Load all .qss files in the directory, sorted alphabetically
-                from ..constants.file_paths import QssPaths
-                # Default QSS core set now explicitly includes ComboBox central styling
-                qss_files = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
-            # Normalize a single string into a list for consistent iteration
-            if isinstance(qss_files, str):
-                qss_files = [qss_files]
-            for qss_file in qss_files:
-                qss_path = os.path.join(theme_dir, qss_file)
-                if os.path.exists(qss_path):
-                    with open(qss_path, "r", encoding="utf-8") as file:
-                        theme += file.read() + "\n"
-            widget.setStyleSheet(theme)
-
-        except Exception as e:
+            css = ThemeManager._read_qss(theme_dir, qss_tuple)
+            widget.setStyleSheet(css)
+        except Exception:
             pass
 
     @staticmethod
-    def toggle_theme(widget, current_theme, switch_button, qss_files=None):
-        """
-        Toggle between light and dark themes for the specified widget, updating the switch button icon only.
-        Saves the new theme to QGIS settings.
-        """
-        from PyQt5.QtGui import QIcon
-        header_widget = getattr(widget, 'header_widget', None)
-        if current_theme == "light":
-            ThemeManager.apply_dark_theme(widget, qss_files)
-            icon_path = ResourcePaths.LIGHTNESS_ICON
-            switch_button.setIcon(QIcon(icon_path))
-            switch_button.setText("")
-            if header_widget:
-                logout_icon_path = ResourcePaths.LOGOUT_BRIGHT
-                if logout_icon_path:
-                    header_widget.set_logout_icon(QIcon(logout_icon_path))
-            ThemeManager.save_theme_setting("dark")
-            return "dark"
-        else:
-            ThemeManager.apply_light_theme(widget, qss_files)
-            icon_path = ResourcePaths.DARKNESS_ICON
-            switch_button.setIcon(QIcon(icon_path))
-            switch_button.setText("")
-            if header_widget:
-                logout_icon_path = ResourcePaths.LOGOUT_DARK
-                if logout_icon_path:
-                    header_widget.set_logout_icon(QIcon(logout_icon_path))
-            ThemeManager.save_theme_setting("light")
-            return "light"
+    def apply_module_style(widget, qss_files):
+        theme = ThemeManager.effective_theme()
+        theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
+        ThemeManager.apply_theme(widget, theme_dir, qss_files)
+# ==== END ThemeManager v2 ====
+
+# ==== BEGIN styleExtras fix ====
+# ==== styleExtras (color variables, theme-aware) ====
+class styleExtras:
 
     @staticmethod
-    def apply_dark_theme(widget, qss_files=None):
-        """
-        Apply the dark theme to the specified widget.
-        :param theme_base_dir: The base styles directory (e.g., styles/).
-        :param qss_files: List of QSS files to load (optional).
-        """
-        from ..constants.file_paths import StylePaths
-        dark_theme_dir = StylePaths.DARK
-        ThemeManager.apply_theme(widget, dark_theme_dir, qss_files)
+    def apply_chip_shadow(element, *, color='standard', blur_radius=20, x_offset=0, y_offset=2, alpha_level='medium'):
+        """Apply a theme-aware shadow/glow to any QWidget with standardized alpha levels.
 
+        Args:
+            element: The QWidget to apply shadow to
+            color: Shadow color theme - 'standard', 'red', 'green', 'gray', 'blue', 'accent' (default: 'standard')
+            blur_radius: Shadow blur radius (default: 20)
+            x_offset: Horizontal shadow offset (default: 0)
+            y_offset: Vertical shadow offset (default: 2)
+            alpha_level: Shadow intensity - 'low', 'medium', 'high', 'extra_high' (default: 'medium')
+        """
+        from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+
+        # Get standardized alpha value
+        alpha_values = {
+            IntensityLevels.LOW: AlphaLevel.LOW,
+            IntensityLevels.MEDIUM: AlphaLevel.MEDIUM,
+            IntensityLevels.HIGH: AlphaLevel.HIGH,
+            IntensityLevels.EXTRA_HIGH: AlphaLevel.EXTRA_HIGH
+        }
+        alpha = alpha_values.get(alpha_level, AlphaLevel.MEDIUM)
+
+        col = ShadowIntensityEngine._resolve_shadow_color(color=color, alpha=alpha)
+        eff = QGraphicsDropShadowEffect(element)
+        eff.setBlurRadius(blur_radius)
+        eff.setXOffset(x_offset)
+        eff.setYOffset(y_offset)
+        eff.setColor(col)
+        element.setGraphicsEffect(eff)
+
+
+
+
+
+class ThemeShadowColors(str, Enum):
+    RED = "red"
+    GREEN = "green"
+    BLUE = "blue"
+    STANDARD = "standard"
+    GRAY = "gray"
+    ACCENT = "accent"
+
+class AlphaLevel(int, Enum):
+    LOW        = 60
+    MEDIUM     = 90
+    HIGH       = 128
+    EXTRA_HIGH = 150
+
+
+
+class IntensityLevels(str, Enum):
+    LOW = 'low'
+    MEDIUM = 'medium'
+    HIGH = 'high'
+    EXTRA_HIGH = 'extra_high'
+
+class ShadowIntensityEngine:
     @staticmethod
-    def apply_light_theme(widget, qss_files=None):
+    def _resolve_shadow_color(color=ThemeShadowColors.STANDARD, alpha: int = None):
+        """Return a QColor for the requested color variable, adjusted for current theme.
+        - color: str name ('standard','red','green','gray','blue','accent', '#RRGGBB') or QColor
+        - alpha: optional 0..255 override
         """
-        Apply the light theme to the specified widget.
-        :param theme_base_dir: The base styles directory (e.g., styles/).
-        :param qss_files: List of QSS files to load (optional).
-        """
-        from ..constants.file_paths import StylePaths
-        light_theme_dir = StylePaths.LIGHT
-        ThemeManager.apply_theme(widget, light_theme_dir, qss_files)
+
+        theme = ThemeManager.effective_theme()
+        mode = Theme.DARK if is_dark(theme) else Theme.LIGHT
+
+        # If already a QColor, optionally override alpha and return
+        if isinstance(color, QColor):
+            if alpha is not None:
+                c = QColor(color)
+                c.setAlpha(alpha)
+                return c
+            return color
+
+        # If a hex color string, parse directly
+        if isinstance(color, str) and color.strip().startswith('#'):
+            c = QColor(color.strip())
+            if alpha is not None:
+                c.setAlpha(alpha)
+            return c
+
+        # Theme-aware named palette (consistent with main.qss color scheme)
+        palette = {
+            ThemeShadowColors.STANDARD: {
+                Theme.DARK:  QColor(255, 255, 255,  alpha),  # light glow on dark
+                Theme.LIGHT: QColor(9, 144, 143,  alpha),  # dark shadow on light
+            },
+            ThemeShadowColors.RED: {
+                Theme.DARK:  QColor(255, 100, 100, alpha),
+                Theme.LIGHT: QColor(139,   0,   0, alpha),
+            },
+            ThemeShadowColors.GREEN: {
+                Theme.DARK:  QColor(100, 255, 100, alpha),
+                Theme.LIGHT: QColor(  0, 100,   0, alpha),
+            },
+            ThemeShadowColors.GRAY: {
+                Theme.DARK:  QColor(150, 150, 150, alpha),
+                Theme.LIGHT: QColor(80, 80, 80, alpha),
+            },
+
+            ThemeShadowColors.BLUE: {
+                Theme.DARK:  QColor(100, 100, 255, alpha),
+                Theme.LIGHT: QColor(  9, 132, 227, alpha),
+            },
+
+            ThemeShadowColors.ACCENT: {
+                Theme.DARK:  QColor(  0, 120, 212, alpha),  
+                Theme.LIGHT: QColor(  0, 120, 212, alpha),
+            },
+        }
+
+
+
+        base = palette.get(color, palette[ThemeShadowColors.STANDARD])[mode]
+        if alpha is not None:
+            c = QColor(base)
+            c.setAlpha(alpha)
+            return c
+        return base

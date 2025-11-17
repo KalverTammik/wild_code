@@ -42,3 +42,436 @@ QLabel {
     font-size: 12px;
     color: #222;
 }
+
+/* Property Dialog Styles */
+#DialogTitle {
+    font-size: 14px;
+    font-weight: bold;
+    color: #222;
+    padding: 8px 12px;
+    background: transparent;
+}
+
+#PropertyTemplatesList {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 4px;
+    selection-background-color: #e3f2fd;
+    selection-color: #1976d2;
+    alternate-background-color: #f9f9f9;
+}
+
+#PropertyTemplatesList::item {
+    padding: 6px 8px;
+    border-bottom: 1px solid #e0e0e0;
+    color: #333;
+}
+
+#PropertyTemplatesList::item:selected {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+#PropertyTemplatesList::item:hover {
+    background: #f5f5f5;
+}
+
+#PropertyTemplatesList::item:alternate {
+    background: #fafafa;
+}
+
+#PropertyTemplatesList QScrollBar:vertical {
+    width: 12px;
+    background: #f0f0f0;
+    border-radius: 6px;
+}
+
+#PropertyTemplatesList QScrollBar::handle:vertical {
+    background: #c0c0c0;
+    border-radius: 6px;
+    min-height: 20px;
+}
+
+#PropertyTemplatesList QScrollBar::handle:vertical:hover {
+    background: #a0a0a0;
+}
+
+#PropertyTemplatesList QScrollBar::add-line:vertical,
+#PropertyTemplatesList QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+}
+
+#PropertyTemplatesList QScrollBar::up-arrow:vertical,
+#PropertyTemplatesList QScrollBar::down-arrow:vertical {
+    border: none;
+    background: none;
+}
+
+#PropertyTemplatesList QScrollBar::add-page:vertical,
+#PropertyTemplatesList QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+#PropertyDetailsScrollArea {
+    background: transparent;
+    border: none;
+}
+
+#PropertyDetailsScrollArea QScrollBar:vertical {
+    width: 12px;
+    background: #f0f0f0;
+    border-radius: 6px;
+}
+
+#PropertyDetailsScrollArea QScrollBar::handle:vertical {
+    background: #c0c0c0;
+    border-radius: 6px;
+    min-height: 20px;
+}
+
+#PropertyDetailsScrollArea QScrollBar::handle:vertical:hover {
+    background: #a0a0a0;
+}
+
+#PropertyDetailsScrollArea QScrollBar::add-line:vertical,
+#PropertyDetailsScrollArea QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+}
+
+#PropertyDetailsScrollArea QScrollBar::up-arrow:vertical,
+#PropertyDetailsScrollArea QScrollBar::down-arrow:vertical {
+    border: none;
+    background: none;
+}
+
+#PropertyDetailsScrollArea QScrollBar::add-page:vertical,
+#PropertyDetailsScrollArea QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+#PropertyDetailsWidget {
+    background: transparent;
+    padding: 8px;
+}
+
+#PropertyDetailsWidget QLabel {
+    font-size: 12px;
+    color: #222;
+}
+
+#PropertyDetailsWidget QLineEdit,
+#PropertyDetailsWidget QTextEdit,
+#PropertyDetailsWidget QComboBox,
+#PropertyDetailsWidget QSpinBox,
+#PropertyDetailsWidget QDoubleSpinBox,
+#PropertyDetailsWidget QDateEdit,
+#PropertyDetailsWidget QTimeEdit,
+#PropertyDetailsWidget QDateTimeEdit {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: #222;
+}
+
+#PropertyDetailsWidget QLineEdit:focus,
+#PropertyDetailsWidget QTextEdit:focus,
+#PropertyDetailsWidget QComboBox:focus,
+#PropertyDetailsWidget QSpinBox:focus,
+#PropertyDetailsWidget QDoubleSpinBox:focus,
+#PropertyDetailsWidget QDateEdit:focus,
+#PropertyDetailsWidget QTimeEdit:focus,
+#PropertyDetailsWidget QDateTimeEdit:focus {
+    border-color: #1976d2;
+    outline: none;
+}
+
+#PropertyDetailsWidget QComboBox::drop-down {
+    border: none;
+    background: transparent;
+}
+
+#PropertyDetailsWidget QComboBox::down-arrow {
+    image: url(down_arrow.png);
+    width: 12px;
+    height: 12px;
+}
+
+#PropertyDetailsWidget QComboBox QAbstractItemView {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    selection-background-color: #e3f2fd;
+    selection-color: #1976d2;
+}
+
+#PropertyDetailsWidget QPushButton {
+    background: #1976d2;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#PropertyDetailsWidget QPushButton:hover {
+    background: #1565c0;
+}
+
+#PropertyDetailsWidget QPushButton:pressed {
+    background: #0d47a1;
+}
+
+#PropertyDetailsWidget QPushButton:disabled {
+    background: #cccccc;
+    color: #666666;
+}
+
+#PropertyDetailsWidget QCheckBox {
+    font-size: 12px;
+    color: #222;
+}
+
+#PropertyDetailsWidget QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 3px;
+    background: #ffffff;
+}
+
+#PropertyDetailsWidget QCheckBox::indicator:checked {
+    background: #1976d2;
+    border-color: #1976d2;
+}
+
+#PropertyDetailsWidget QCheckBox::indicator:unchecked {
+    background: #ffffff;
+}
+
+#PropertyDetailsWidget QRadioButton {
+    font-size: 12px;
+    color: #222;
+}
+
+#PropertyDetailsWidget QRadioButton::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+#PropertyDetailsWidget QRadioButton::indicator:checked {
+    background: #1976d2;
+    border-color: #1976d2;
+}
+
+#PropertyDetailsWidget QRadioButton::indicator:unchecked {
+    background: #ffffff;
+}
+
+#PropertyDetailsWidget QGroupBox {
+    font-weight: bold;
+    font-size: 12px;
+    color: #222;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
+#PropertyDetailsWidget QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 12px;
+    padding: 0 8px 0 8px;
+    background: #ffffff;
+    color: #222;
+}
+
+#PropertyDetailsWidget QTabWidget::pane {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+#PropertyDetailsWidget QTabBar::tab {
+    background: #f0f0f0;
+    border: 1px solid #d1d5db;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    padding: 6px 12px;
+    margin-right: 2px;
+    font-size: 12px;
+    color: #222;
+}
+
+#PropertyDetailsWidget QTabBar::tab:selected {
+    background: #ffffff;
+    border-bottom: 1px solid #ffffff;
+}
+
+#PropertyDetailsWidget QTabBar::tab:hover {
+    background: #e0e0e0;
+}
+
+#PropertyDetailsWidget QTableWidget {
+    gridline-color: #d1d5db;
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+
+#PropertyDetailsWidget QTableWidget::item {
+    padding: 4px;
+    border-bottom: 1px solid #e0e0e0;
+    color: #222;
+}
+
+#PropertyDetailsWidget QTableWidget::item:selected {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+#PropertyDetailsWidget QTableWidget::item:hover {
+    background: #f5f5f5;
+}
+
+#PropertyDetailsWidget QTableWidget QHeaderView::section {
+    background: #f0f0f0;
+    border: none;
+    border-right: 1px solid #d1d5db;
+    border-bottom: 1px solid #d1d5db;
+    padding: 6px;
+    font-weight: bold;
+    font-size: 12px;
+    color: #222;
+}
+
+#PropertyDetailsWidget QTableWidget QScrollBar:vertical {
+    width: 12px;
+    background: #f0f0f0;
+    border-radius: 6px;
+}
+
+#PropertyDetailsWidget QTableWidget QScrollBar::handle:vertical {
+    background: #c0c0c0;
+    border-radius: 6px;
+    min-height: 20px;
+}
+
+#PropertyDetailsWidget QTableWidget QScrollBar::handle:vertical:hover {
+    background: #a0a0a0;
+}
+
+#PropertyDetailsWidget QTableWidget QScrollBar::add-line:vertical,
+#PropertyDetailsWidget QTableWidget QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+}
+
+#PropertyDetailsWidget QTableWidget QScrollBar::up-arrow:vertical,
+#PropertyDetailsWidget QTableWidget QScrollBar::down-arrow:vertical {
+    border: none;
+    background: none;
+}
+
+#PropertyDetailsWidget QTableWidget QScrollBar::add-page:vertical,
+#PropertyDetailsWidget QTableWidget QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+#PropertyDetailsWidget QTreeWidget {
+    background: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+
+#PropertyDetailsWidget QTreeWidget::item {
+    padding: 4px;
+    border-bottom: 1px solid #e0e0e0;
+    color: #222;
+}
+
+#PropertyDetailsWidget QTreeWidget::item:selected {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+#PropertyDetailsWidget QTreeWidget::item:hover {
+    background: #f5f5f5;
+}
+
+#PropertyDetailsWidget QTreeWidget QHeaderView::section {
+    background: #f0f0f0;
+    border: none;
+    border-right: 1px solid #d1d5db;
+    border-bottom: 1px solid #d1d5db;
+    padding: 6px;
+    font-weight: bold;
+    font-size: 12px;
+    color: #222;
+}
+
+#PropertyDetailsWidget QTreeWidget QScrollBar:vertical {
+    width: 12px;
+    background: #f0f0f0;
+    border-radius: 6px;
+}
+
+#PropertyDetailsWidget QTreeWidget QScrollBar::handle:vertical {
+    background: #c0c0c0;
+    border-radius: 6px;
+    min-height: 20px;
+}
+
+#PropertyDetailsWidget QTreeWidget QScrollBar::handle:vertical:hover {
+    background: #a0a0a0;
+}
+
+#PropertyDetailsWidget QTreeWidget QScrollBar::add-line:vertical,
+#PropertyDetailsWidget QTreeWidget QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+}
+
+#PropertyDetailsWidget QTreeWidget QScrollBar::up-arrow:vertical,
+#PropertyDetailsWidget QTreeWidget QScrollBar::down-arrow:vertical {
+    border: none;
+    background: none;
+}
+
+#PropertyDetailsWidget QTreeWidget QScrollBar::add-page:vertical,
+#PropertyDetailsWidget QTreeWidget QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+#PropertyDetailsWidget QProgressBar {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    text-align: center;
+    background: #ffffff;
+}
+
+#PropertyDetailsWidget QProgressBar::chunk {
+    background: #1976d2;
+    border-radius: 2px;
+}
+
+#PropertyDetailsWidget QSplitter::handle {
+    background: #d1d5db;
+}
+
+#PropertyDetailsWidget QSplitter::handle:hover {
+    background: #1976d2;
+}
+
+#PropertyDetailsWidget QSplitter::handle:pressed {
+    background: #0d47a1;
+}

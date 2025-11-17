@@ -1,39 +1,43 @@
+from typing import Any, List, Optional
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QTreeWidget, QTreeWidgetItem, QSplitter, QTextEdit,
-    QGroupBox, QScrollArea, QTableWidget, QTableWidgetItem,
-    QHeaderView, QLineEdit, QComboBox
+    QFrame, QTreeWidget, QTreeWidgetItem, QSplitter,
 )
-from PyQt5.QtCore import Qt, QSize, pyqtSignal
-from PyQt5.QtGui import QFont, QIcon, QPixmap
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QFont
 
 from .PropertyUITools import PropertyUITools
-from ...languages.language_manager import LanguageManager
-from ...widgets.theme_manager import ThemeManager
+from ...widgets.theme_manager import ThemeManager, Theme, is_dark, styleExtras
 from ...constants.file_paths import QssPaths
-from ...constants.module_names import PROPERTY_MODULE
 from ...languages.translation_keys import TranslationKeys
-from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-from PyQt5.QtGui import QColor
+from ...utils.url_manager import Module
 
-class PropertyUI(QWidget):
+class PropertyModule(QWidget):
     """
     Property module - focused on displaying and managing data for a single property item.
     Features a header area with info/tools and a tree view for property-related data.
     """
     
+    QUERY_FILE = "ListFilteredProperties.graphql" #Not active yet
+    USE_TYPE_FILTER = False
+    BATCH_SIZE = 0
+
+
     # Signal emitted when a property is selected from map
     property_selected_from_map = pyqtSignal()
     # Signal emitted when property selection process is completed
     property_selection_completed = pyqtSignal()
-    def __init__(self):
+    def __init__(
+        self,
+        lang_manager: Optional[object] = None,
+        parent: Optional[QWidget] = None,
+        qss_files: Optional[List[str]] = None,
+        **kwargs: Any
+    ) -> None:
+
         super().__init__()
-        self.name = PROPERTY_MODULE
-
-        # Language manager
-        self.lang_manager = LanguageManager()
-
-        # Initialize tools first
+        self.name = Module.PROPERTY.value
+        self.lang_manager = lang_manager
         self.tools = PropertyUITools(self)
 
         self.horizontal_label_spacing = 3
@@ -66,24 +70,6 @@ class PropertyUI(QWidget):
         # Set initial splitter proportions (header: 30%, tree: 70%)
         splitter.setSizes([200, 500])
 
-    def apply_shadow_effect(self, widget: QWidget):
-        """Apply theme-appropriate shadow effect to a widget."""
-        try:
-            theme = ThemeManager.load_theme_setting() if hasattr(ThemeManager, 'load_theme_setting') else 'light'
-            shadow_color = QColor(255, 255, 255, 90) if theme == 'dark' else QColor(0, 0, 0, 120)
-        except Exception:
-            shadow_color = QColor(0, 0, 0, 120)  # default to dark shadow
-
-        # Create new shadow effect
-        shadow = QGraphicsDropShadowEffect(widget)
-        shadow.setBlurRadius(10)
-        shadow.setOffset(0, 2)
-        shadow.setColor(shadow_color)
-
-        # Apply the shadow effect (this will replace any existing graphics effect)
-        widget.setGraphicsEffect(shadow)
-        
-
     def create_header_section(self, splitter):
         """Create the header area with property info and tools."""
         header_frame = QFrame()
@@ -96,8 +82,9 @@ class PropertyUI(QWidget):
         # Property title and status
         title_layout = QHBoxLayout()
 
+        
         # Property ID/Name
-        self.pbdisplayPropertyInfo = QPushButton(f"{self.lang_manager.translate(TranslationKeys.CHOOSE_FROM_MAP)}:")
+        self.pbdisplayPropertyInfo = QPushButton(self.lang_manager.translate(TranslationKeys.CHOOSE_FROM_MAP))
         self.pbdisplayPropertyInfo.setObjectName("ChooseFromMapButton")
         title_font = QFont()
         title_font.setBold(True)
@@ -268,20 +255,8 @@ class PropertyUI(QWidget):
 
         header_layout.addWidget(details_frame)
 
-        # Apply shadow effect to details frame
-        self.apply_shadow_effect(details_frame)
+        styleExtras.apply_chip_shadow(details_frame)
 
-        # CRITICAL: Clear graphics effects on ALL QLabel widgets in the module
-        # This prevents any stray shadows from appearing on labels
-        for label in self.findChildren(QLabel):
-            if label.graphicsEffect():
-                label.setGraphicsEffect(None)
-
-        # CRITICAL: Clear graphics effects on ALL child widgets recursively
-        # This prevents shadows from propagating to labels and other child elements
-        for child in details_frame.findChildren(QWidget):
-            if child != details_frame and child.graphicsEffect():
-                child.setGraphicsEffect(None)
 
         splitter.addWidget(header_frame)
 
@@ -388,29 +363,8 @@ class PropertyUI(QWidget):
         self.populate_tree_data()
 
     def retheme(self):
-        """Reapply theme styles when theme is toggled - following successful shadow patterns."""
         # Apply main module styling
         ThemeManager.apply_module_style(self, [QssPaths.MAIN])
-
-        # CRITICAL: Clear ALL existing graphics effects on QLabel widgets first
-        # This prevents any stray shadows from appearing on labels
-        for label in self.findChildren(QLabel):
-            if label.graphicsEffect():
-                label.setGraphicsEffect(None)
-
-        # Update shadow effect for details frame (primary shadow) - ensure it's applied correctly
-        if hasattr(self, 'details_frame') and self.details_frame:
-            # Clear any existing graphics effect first
-            if self.details_frame.graphicsEffect():
-                self.details_frame.setGraphicsEffect(None)
-            # Then apply the new shadow effect
-            self.apply_shadow_effect(self.details_frame)
-
-            # CRITICAL: Clear graphics effects on ALL child widgets recursively
-            # This prevents shadows from propagating to labels and other child elements
-            for child in self.details_frame.findChildren(QWidget):
-                if child != self.details_frame and child.graphicsEffect():
-                    child.setGraphicsEffect(None)
 
     def activate(self):
         """Called when the module becomes active."""

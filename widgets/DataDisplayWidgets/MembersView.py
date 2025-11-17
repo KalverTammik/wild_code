@@ -1,16 +1,14 @@
-import html
 import hashlib
 from functools import lru_cache
-from typing import Optional
-
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QFont
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QHBoxLayout,
-    QGraphicsDropShadowEffect
+    QWidget, QLabel, QVBoxLayout, QHBoxLayout
 )
-
-from ..theme_manager import ThemeManager
+from PyQt5.QtWidgets import QFrame, QVBoxLayout, QLabel
+from PyQt5.QtCore import Qt
+from ..theme_manager import ThemeManager, IntensityLevels, styleExtras, ThemeShadowColors
+from ...constants.file_paths import QssPaths
 
 
 class AvatarUtils:
@@ -60,10 +58,10 @@ class AvatarUtils:
 
 
 class AvatarBubble(QLabel):
-    def __init__(self, fullname: str, size: int = 28, overlap_px: int = 8, first=False, salt: str = "", icon: str = "", popup_members=None, parent=None):
+    def __init__(self, fullname: str,  overlap_px: int = 8, first=False, salt: str = "", icon: str = "", popup_members=None, parent=None):
         super().__init__(parent)
         self.fullname = (fullname or "-").strip()
-        self.base_size = size
+        self.base_size = 26
         self.icon_type = icon
         # Optional list of member nodes to display on hover (for responsible avatars)
         self._popup_members = popup_members or []
@@ -71,12 +69,11 @@ class AvatarBubble(QLabel):
 
         self.setText(AvatarUtils.initials(self.fullname))
         self.setAlignment(Qt.AlignCenter)
-        f = QFont(); f.setBold(True); f.setPointSize(9 if size >= 28 else 8)
-        self.setFont(f)
+        
         # Only set tooltip for non-assignee avatars to avoid duplicate info
         if not popup_members:
             self.setToolTip(self.fullname)
-        self.setFixedSize(size, size)
+        self.setFixedSize(self.base_size, self.base_size)
 
         bg = AvatarUtils.color_for_name(self.fullname, salt=salt)
         fg_hex = AvatarUtils.fg_for_bg(bg)
@@ -85,24 +82,33 @@ class AvatarBubble(QLabel):
         self.setStyleSheet(
             "QLabel {"
             f" margin:0px;"  # No margins, overlap handled by layout
-            f" background-color: {AvatarUtils.rgb_css(bg)};"
+            f" background-color: {AvatarUtils.rgb_css(bg, alpha=0.6)};"  # Semi-transparent background
             f" color: {fg_hex};"
-            f" border: 1px solid {AvatarUtils.rgb_css(border)};"
-            f" border-radius: {size//2}px;"
+            f" border: 1px solid {AvatarUtils.rgb_css(border,alpha=0.8)};"
+            f" border-radius: {self.base_size//2}px;"
+            f" font-size: 10px;"  # Override theme font-size
             f" font-weight: 700;"  # Bolder font weight
             f" letter-spacing: -0.3px;"  # Slightly less tight spacing
-            f" padding: 3px;"  # Increased padding for better letter spacing
+            f" padding: 3px;"  # Responsive padding (increased slightly)
             "} "
             "QLabel:hover {"
-            f" border-width: 1px;"
-            f" border-color: {AvatarUtils.rgb_css(border)};"
-            f" opacity: 0.9;"  # Subtle opacity change instead of scale
+            f" opacity: 0.1;"  # Subtle opacity change instead of scale
             "}"
+        )
+
+        # Add subtle drop shadow effect
+        styleExtras.apply_chip_shadow(
+            element=self,
+            color=ThemeShadowColors.GRAY,
+            blur_radius=self.base_size//2,
+            x_offset=1,
+            y_offset=2,
+            alpha_level=IntensityLevels.EXTRA_HIGH
         )
 
         # Add icon overlay if specified (responsible avatars won't pass icon anymore)
         if icon:
-            self._add_icon_overlay(icon, size, bg)
+            self._add_icon_overlay(icon, self.base_size, bg)
 
 
     def enterEvent(self, e):
@@ -110,7 +116,7 @@ class AvatarBubble(QLabel):
         super().enterEvent(e)
         # Show members popup if present (responsible avatar hover behavior)
         try:
-            if getattr(self, '_popup_members', None):
+            if self._popup_members:
                 self._show_members_popup()
         except Exception:
             pass
@@ -120,7 +126,7 @@ class AvatarBubble(QLabel):
         super().leaveEvent(e)
         # Hide popup when leaving avatar
         try:
-            if getattr(self, '_members_popup', None):
+            if self._members_popup:
                 self._hide_members_popup()
         except Exception:
             pass
@@ -131,38 +137,31 @@ class AvatarBubble(QLabel):
             if not self._popup_members:
                 return
             # If popup already exists, keep it shown
-            if getattr(self, '_members_popup', None) and self._members_popup.isVisible():
+            if self._members_popup and self._members_popup.isVisible():
                 return
-            from PyQt5.QtWidgets import QFrame, QVBoxLayout, QLabel
-            from PyQt5.QtCore import Qt
+
 
             popup = QFrame(None, Qt.ToolTip)
-            popup.setObjectName('MembersPopup')
+            popup.setObjectName('PopupFrame')
             popup.setWindowFlags(Qt.ToolTip)
             layout = QVBoxLayout(popup)
             layout.setContentsMargins(8, 8, 8, 8)
             layout.setSpacing(4)
 
-            # Style the popup frame with light background and border
-            popup.setStyleSheet("""
-                QFrame#MembersPopup {
-                    background-color: #f8f8f8;
-                    border: 1px solid #cccccc;
-                    border-radius: 4px;
-                }
-            """)
+            # Apply theme-based styling to the popup
+            ThemeManager.apply_module_style(popup, [QssPaths.POPUP])
 
             # Create labels for each member name
             # First, add the responsible person (bold and distinguished)
             responsible_label = QLabel(f"★ {self.fullname}", popup)
-            responsible_label.setStyleSheet("color: #000000; font-size: 11px; font-weight: bold; padding: 2px 0px;")
+            responsible_label.setStyleSheet(" font-size: 11px; font-weight: bold; padding: 2px 0px;")
             layout.addWidget(responsible_label)
 
             # Then add participant members
             for node in self._popup_members[:11]:  # Limit to 11 since responsible takes one spot
                 full = (node.get('displayName') or "-").strip() if isinstance(node, dict) else str(node)
                 label = QLabel(f"  {full}", popup)  # Indent with spaces for visual hierarchy
-                label.setStyleSheet("color: #000000; font-size: 11px; padding: 2px 0px;")
+                label.setStyleSheet("font-size: 11px; padding: 2px 0px;")
                 layout.addWidget(label)
 
             # Position popup near this avatar (below)
@@ -175,7 +174,7 @@ class AvatarBubble(QLabel):
 
     def _hide_members_popup(self):
         try:
-            if getattr(self, '_members_popup', None):
+            if self._members_popup:
                 try:
                     self._members_popup.hide()
                     self._members_popup.deleteLater()
@@ -208,10 +207,9 @@ class AvatarBubble(QLabel):
         icon_label.setStyleSheet(
             f"QLabel {{"
             f" color: {fg_color};"
-            f" font-size: {icon_size-2}px;"
+            f" font-size: {icon_size-6}px;"
             f" font-weight: bold;"
             f" background: transparent;"
-            f" text-shadow: 1px 1px 2px rgba(0,0,0,0.5);"
             f"}}"
         )
 
@@ -222,14 +220,14 @@ class MembersView(QWidget):
     """Public widget to display responsible and participant members with avatar bubbles."""
     MAX_NAMES_VISIBLE = 6
 
-    def __init__(self, item_data: dict, parent=None, compact: bool = False):
+    def __init__(self, item_data: dict, parent=None):
         super().__init__(parent)
-        self.setProperty("compact", compact)
-        self._build(item_data, compact)
+        self.avatar_size = 26
+        self._build(item_data)
 
-    def _build(self, item_data: dict, compact: bool):
+    def _build(self, item_data: dict):
         layout = QVBoxLayout(self); layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2 if compact else 4)
+        layout.setSpacing(4)
 
         members = (item_data.get('members', {}) or {}).get('edges', []) or []
         # Participants extracted for potential popup display
@@ -250,15 +248,13 @@ class MembersView(QWidget):
             # Create horizontal layout for responsible avatars
             resp_layout = QHBoxLayout()
             resp_layout.setContentsMargins(0, 0, 0, 0)
-            resp_layout.setSpacing(4)  # Small spacing between responsible avatars
             resp_layout.addStretch()  # Left stretch for centering
 
-            resp_size = 28 if not compact else 24  # Smaller, more subdued size
 
             for node in responsible_nodes[:3]:  # Limit to 3 responsible members
                 full = (node.get('displayName') or "-").strip()
                 # Attach participant nodes as popup members when hovering this responsible avatar
-                bubble = AvatarBubble(full, size=resp_size, overlap_px=0, first=True, salt="responsible-v1", icon="", popup_members=participant_nodes)
+                bubble = AvatarBubble(full,  overlap_px=0, first=True, salt="responsible-v1", icon="", popup_members=participant_nodes)
                 # Do not add icon overlay badge for responsible
                 resp_layout.addWidget(bubble)
 
@@ -270,14 +266,3 @@ class MembersView(QWidget):
     def retheme(self):
         """Update colors based on current theme - no shadows in minimalist design."""
         ThemeManager.apply_module_style(self)
-
-    # Optional API for later updates
-    def set_item(self, item_data: dict, *, compact: Optional[bool] = None):
-        if compact is not None:
-            self.setProperty("compact", compact)
-        # rebuild
-        for i in reversed(range(self.layout().count())):
-            w = self.layout.itemAt(i).widget()
-            if w:
-                w.setParent(None)
-        self._build(item_data, bool(self.property("compact")))

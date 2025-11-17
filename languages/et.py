@@ -1,4 +1,4 @@
-#from .translation_keys import TranslationKeys
+from .translation_keys import TranslationKeys, RoleTranslationKeys
 
 TRANSLATIONS = {
     TranslationKeys.PROJECTS_MODULE_LOADED: "Projektide moodul laaditud!",
@@ -13,6 +13,7 @@ TRANSLATIONS = {
     TranslationKeys.USERNAME_LABEL: "Kasutajanimi:",
     TranslationKeys.PASSWORD_LABEL: "Parool:",
     TranslationKeys.LOGIN_BUTTON: "Logi sisse",
+    TranslationKeys.CANCEL_BUTTON: "Tühista",
     TranslationKeys.WILD_CODE_PLUGIN_TITLE: "Kavitro",
     TranslationKeys.HOME_PAGE: "Tere tulemast avalehele!",
     TranslationKeys.SETTINGS_PAGE: "Seadete leht",
@@ -30,11 +31,11 @@ TRANSLATIONS = {
     TranslationKeys.NAME: "Nimi",
     TranslationKeys.EMAIL: "E-post",
     TranslationKeys.MODULE_SETTINGS_PLACEHOLDER: "Mooduli seadete kohatäide",
-    # Lisatud: Tere tulemast lehe ja kihi valiku tekstidmida soovid selles moodulis eelistada.
     TranslationKeys.WELCOME: "Tere tulemast",
     TranslationKeys.SELECT_MODULE: "Vali vasakult moodul või ava Seaded, et määrata eelistatud moodul.",
+    TranslationKeys.NO_PROJECT_LOADED_TITLE: "Ühtegi projekti pole avatud",
+    TranslationKeys.NO_PROJECT_LOADED_MESSAGE: "Kavitro plugnin nõuab QGIS projektifaili, et töötada. Palun ava või loo uus projekt.",
     TranslationKeys.OPEN_SETTINGS: "Ava Seaded",
-    # Lisatud: ModuleCard/kihi valija sildid
     TranslationKeys.MODULES_MAIN_LAYER: "Mooduli põhikiht",
     TranslationKeys.ARCHIVE_LAYER: "Arhiivikiht",
     TranslationKeys.SELECT_LAYER: "Vali kiht",
@@ -48,6 +49,7 @@ TRANSLATIONS = {
     TranslationKeys.DEV_DBG_TOOLTIP: "Lülita arenduslogid (print) sisse/välja",
     TranslationKeys.DEV_FRAMES_TOOLTIP: "Näita/peida FRAME sildid avalehel",
     TranslationKeys.SESSION_EXPIRED: "Teie seanss on aegunud. Palun logige uuesti sisse.",
+    TranslationKeys.SESSION_EXPIRED_TITLE: "Seanss aegunud",
     TranslationKeys.STATUS_PREFERENCES: "Eelistatud staatused",
     TranslationKeys.SELECT_STATUSES_DESCRIPTION: "Vali staatused, mida soovid selles moodulis eelistada. Need tõstetakse esile",
     "urgent_group_title": "Kiire!",
@@ -69,7 +71,7 @@ TRANSLATIONS = {
     TranslationKeys.VIEWER: "Vaataja",
     TranslationKeys.DASHBOARD: "Töölaud",
     TranslationKeys.REPORTS: "Aruanded",
-    TranslationKeys.SETTINGS: "Seaded",
+    "settings": "Seaded",
     TranslationKeys.ADMIN: "Admin",
     TranslationKeys.USER: "Kasutaja",
     TranslationKeys.USER_INFORMATION: "Kasutaja info",
@@ -87,13 +89,15 @@ TRANSLATIONS = {
     TranslationKeys.ADD_PROPERTY: "Lisa kinnistuid",
     TranslationKeys.REMOVE_PROPERTY: "Eemalda kinnistu",
     TranslationKeys.LOAD_SHAPEFILE: "Laadi Shapefile",
-    TranslationKeys.SELECT_SHAPEFILE: "Vali Shapefile fail"
-    ,"Shapefile loaded successfully": "Shapefile edukalt laaditud"
-    ,"Shapefile loaded message": "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud'"
-    ,"Shapefile loaded with data message": "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud' ({count} objekti imporditud)"
-    ,"Invalid Shapefile": "Vigane Shapefile"
-    ,"Invalid Shapefile message": "Valitud Shapefile fail ei ole kehtiv."
-    ,"Shapefile load failed": "Shapefile laadimine ebaõnnestus"
+    TranslationKeys.SELECT_SHAPEFILE: "Vali Shapefile fail",
+    TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE: "Vali kinnistu kiht.",
+    TranslationKeys.SELECT_A_PROPERTY_LAYER: "Vali kinnistute kiht...",
+    TranslationKeys.SHAPEFILE_LOADED_SUCCESSFULLY: "Shapefile edukalt laaditud",
+    TranslationKeys.SHAPEFILE_LOADED_MESSAGE: "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud'",
+    TranslationKeys.SHAPEFILE_LOADED_WITH_DATA_MESSAGE: "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud' ({count} objekti imporditud)",
+    TranslationKeys.INVALID_SHAPEFILE: "Vigane Shapefile",
+    TranslationKeys.INVALID_SHAPEFILE_MESSAGE: "Valitud Shapefile fail ei ole kehtiv.",
+    TranslationKeys.SHAPEFILE_LOAD_FAILED: "Shapefile laadimine ebaõnnestus"
     ,"Shapefile load failed message": "Shapefile faili laadimine ebaõnnestus."
     ,"Shapefile loading error": "Shapefile laadimise viga"
     ,"Importing Shapefile": "Shapefile importimine"
@@ -104,7 +108,7 @@ TRANSLATIONS = {
     ,"feature imported": "objekt imporditud"
     ,"Initializing...": "Initsialiseerimine..."
     ,"Cancel": "Katkesta"
-    ,"Show project numbers": "Näita kannete numbrit"
+
     ,"Add New Property": "Lisa uus kinnistu"
     ,"Select a property template to add:": "Vali lisatav kinnistu mall:"
     ,"Residential Property": "Elamukinnistu"
@@ -169,6 +173,7 @@ TRANSLATIONS = {
     ,"Value must be less than {max}": "Väärtus peab olema väiksem kui {max}"
     ,TranslationKeys.PROPERTIES: "Kinnistud"
     ,TranslationKeys.CONTRACTS: "Lepingud"
+    ,"Contracts": "Lepingud"
     ,TranslationKeys.PROJECTS: "Projektid"
     ,TranslationKeys.SELECT_SETTLEMENTS: "Vali asustusüksused"
     ,TranslationKeys.ADD_NEW_PROPERTY: "Kinnistute haldamine"
@@ -199,4 +204,23 @@ TRANSLATIONS = {
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Vali üks kinnisvara"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_MESSAGE: "Palun valige kaardilt ainult üks kinnisvara objekt."
     ,"Status Filter": "Staatuste järgi filtreerimine"
+    ,"Tag Filter": "Siltide järgi filtreerimine"
+    ,"Type Filter": "Tüübi järgi filtreerimine"
+    ,"Home": "Avaleht"
+    ,"Property": "Kinnistud"
+    ,"Contract": "Lepingud"
+    ,"Project": "Projektid"
+    ,"Settings": "Seaded"
+    ,RoleTranslationKeys.ADMINS: "Admin"
+    ,RoleTranslationKeys.ADMINISTRATORS: "Administraatorid"
+    ,RoleTranslationKeys.PROJECT_MANAGERS: "Projektijuht"
+    ,RoleTranslationKeys.USERS: "Kasuta"
+    ,RoleTranslationKeys.MANAGERS: "Vastutaja"
+    ,RoleTranslationKeys.EDITORS: "Muutja"
+    ,RoleTranslationKeys.VIEWERS: "Vaataja"
+    ,RoleTranslationKeys.GUESTS: "Külaline"
+    ,TranslationKeys.START: "Algus"
+    ,TranslationKeys.CREATED: "Loodud"
+    ,TranslationKeys.UPDATED: "Muudetud"
+    ,"Signaltest": "Signaalitester"
 }

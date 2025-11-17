@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, List, Dict, Any, Callable
 from ..utils.api_client import APIClient
 from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
-from ..utils.logger import debug as log_debug
+# from ..utils.logger import debug as log_debug
 
 class UnifiedFeedLogic:
     """
@@ -83,7 +83,7 @@ class UnifiedFeedLogic:
             errors = data.get("errors")
             if isinstance(errors, list) and errors:
                 self.last_error = Exception(str(errors[-1]))
-                log_debug(f"[UnifiedFeedLogic] GraphQL errors: {errors}")
+                # log_debug(f"[UnifiedFeedLogic] GraphQL errors: {errors}")
 
             root: Dict[str, Any] = data.get(self.root_field) or {}
             edges: List[Dict[str, Any]] = root.get("edges") or []
@@ -133,7 +133,7 @@ class UnifiedFeedLogic:
 
         except Exception as e:
             self.last_error = e
-            log_debug(f"[UnifiedFeedLogic] Exception during fetch: {e}")
+            # log_debug(f"[UnifiedFeedLogic] Exception during fetch: {e}")
             return []
         finally:
             self.is_loading = False

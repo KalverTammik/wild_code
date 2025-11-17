@@ -9,11 +9,15 @@ class DialogGeometryWatcher:
         self.dialog = dialog
         self.on_update = on_update  # Callback: on_update(x, y, w, h)
         self.settings_key = settings_key
+        # Track last known geometry (x,y,w,h) to avoid duplicate callbacks
         self._last_geom = None
         self._timer = QTimer(dialog)
         self._timer.timeout.connect(self._poll_geometry)
         self._timer.start(poll_interval)
         self._wrap_events()
+        # Restore geometry from settings (if present). After restore we record
+        # the restored geometry into _last_geom so subsequent move/resize
+        # events and the polling timer do not emit duplicate notifications.
         self.restore_geometry()
 
     def _wrap_events(self):
@@ -51,9 +55,13 @@ class DialogGeometryWatcher:
     def _update_size(self):
         geo = self.dialog.geometry()
         x, y, w, h = geo.x(), geo.y(), geo.width(), geo.height()
-        if self.on_update:
-            self.on_update(x, y, w, h)
-        self.save_geometry(x, y, w, h)
+        new_geom = (x, y, w, h)
+        # Only notify/save when geometry actually changed since last recorded
+        if new_geom != self._last_geom:
+            self._last_geom = new_geom
+            if self.on_update:
+                self.on_update(x, y, w, h)
+            self.save_geometry(x, y, w, h)
 
     def save_geometry(self, x, y, w, h):
         try:
@@ -68,7 +76,14 @@ class DialogGeometryWatcher:
             value = settings.value(self.settings_key, None)
             if value and len(value) == 4:
                 x, y, w, h = map(int, value)
+                # Apply saved geometry and mark it as last known geometry so
+                # the watcher does not emit duplicate callbacks for the same
+                # size/position coming from events or the poll timer.
                 self.dialog.setGeometry(x, y, w, h)
+                try:
+                    self._last_geom = (int(x), int(y), int(w), int(h))
+                except Exception:
+                    self._last_geom = None
         except Exception:
             pass
 

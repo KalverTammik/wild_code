@@ -6,18 +6,10 @@ from typing import Optional
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from qgis.core import QgsVectorLayer
 
-try:
-    from ..engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
-    from ..languages.language_manager import LanguageManager
-    from ..constants.layer_constants import PROPERTIES_BACKGROUND_STYLE, IMPORT_PROPERTY_TAG
-    from ..utils.SettingsManager import SettingsManager
-except ImportError:
-    import sys
-    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-    from engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
-    from languages.language_manager import LanguageManager
-    from constants.layer_constants import IMPORT_PROPERTY_TAG, PROPERTIES_BACKGROUND_STYLE
-    from utils.SettingsManager import SettingsManager
+from ..engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
+from ..languages.language_manager import LanguageManager
+from ..constants.layer_constants import PROPERTIES_BACKGROUND_STYLE, IMPORT_PROPERTY_TAG
+from ..utils.SettingsManager import SettingsManager
 
 
 class SHPLayerLoader:

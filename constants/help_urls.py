@@ -3,7 +3,7 @@
 
 HELP_URLS = {
     "ProjectsModule": "https://help.kavitro.com/et/articles/10690178-projektid-qgis-pluginas",
-    "ContractModule": "https://help.kavitro.com/et/articles/10965497-lepingud-qgis-pluginas",
+    "ContractsModule": "https://help.kavitro.com/et/articles/10965497-lepingud-qgis-pluginas",
     "SettingsModule": "https://help.kavitro.com/et/collections/10606065-kavitro-qgis-plugin",  # General QGIS plugin help
     "GptAssistant": "https://help.kavitro.com/et/articles/10690178-gpt-assistent-qgis-pluginas",  # Placeholder - replace with actual GPT assistant help URL
 }

@@ -1,10 +1,16 @@
-from constants.cadastral_fields import Katastriyksus
-from languages.translation_keys import TranslationKeys
+
+from ...constants.cadastral_fields import Katastriyksus
+from ...languages.translation_keys import TranslationKeys
+
+
 
 
 class PropertyUITools:
+
     def __init__(self, property_ui):
         self.property_ui = property_ui
+
+
 
     def select_property_from_map(self):
         """Activate map selection tool for property selection."""

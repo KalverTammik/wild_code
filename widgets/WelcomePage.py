@@ -1,9 +1,8 @@
-from PyQt5.QtCore import pyqtSignal, Qt, QSize
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QComboBox, QMessageBox
-from PyQt5.QtGui import QIcon
-from ..constants.file_paths import ResourcePaths
+from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel,  QHBoxLayout, QComboBox
 from ..languages.language_manager import LanguageManager
-from ..engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
+#import translation keys
+from ..languages.translation_keys import TranslationKeys
 
 
 class LetterIconFrame(QWidget):
@@ -211,7 +210,6 @@ class LetterSection(QWidget):
 
 
 class WelcomePage(QWidget):
-    openSettingsRequested = pyqtSignal()
 
     def __init__(self, lang_manager=None, parent=None):
         super().__init__(parent)
@@ -222,6 +220,7 @@ class WelcomePage(QWidget):
         # Build UI widgets and keep references for retranslation
         self.title_lbl = QLabel()
         self.title_lbl.setObjectName("WelcomeTitle")
+        self.title_lbl.setText(self.lang_manager.translate(TranslationKeys.WELCOME))
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
@@ -234,22 +233,7 @@ class WelcomePage(QWidget):
         self.letter_section = LetterSection(self, debug=True)
         layout.addWidget(self.letter_section)
 
-        # Initial text setup
-        self.retranslate(self.lang_manager)
-      
-
-    def retranslate(self, lang_manager=None):
-        if lang_manager is not None:
-            self.lang_manager = lang_manager
-        lm = self.lang_manager
-        if lm:
-            self.title_lbl.setText(lm.translate("Welcome"))
-        else:
-            self.title_lbl.setText("Welcome")
-        # Shapefile button removed - functionality moved to dedicated module
-
-    # Eraldi _update_letter_info pole enam vaja; loogika on LetterSection klassis
-
+    
     # Public helper to toggle debug labels from parent controller
     def set_debug(self, enabled: bool):
         try:
@@ -263,121 +247,14 @@ class WelcomePage(QWidget):
         except Exception:
             pass
 
-    def _on_create_layer_clicked(self):
-        """Handle create layer button click."""
-        try:
-            # Get the layer creation engine
-            engine = get_layer_engine()
+    def activate(self):
+        """Activate the welcome page - no special logic needed."""
+        pass
 
-            # Create a test layer in the SANDBOXING subgroup
-            layer_name = f"TestLayer_{len(engine.get_layers_in_group(MailablGroupFolders.SANDBOXING)) + 1}"
-            result = engine.copy_virtual_layer_for_properties(
-                layer_name,
-                MailablGroupFolders.SANDBOXING
-            )
+    def deactivate(self):
+        """Deactivate the welcome page - no special logic needed."""
+        pass
 
-            if result:
-                QMessageBox.information(
-                    self,
-                    "Kiht loodud",
-                    f"Kiht '{result}' on edukalt loodud grupis '{MailablGroupFolders.SANDBOXING}'"
-                )
-            else:
-                QMessageBox.warning(
-                    self,
-                    "Viga",
-                    "Kihi loomine ebaõnnestus"
-                )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Viga",
-                f"Kihi loomisel tekkis viga: {str(e)}"
-            )
-
-    def _on_remove_layer_clicked(self):
-        """Handle remove layer button click."""
-        try:
-            # Get the layer creation engine
-            engine = get_layer_engine()
-
-            # Get layers from all Mailabl subgroups
-            layers = engine.get_all_layers_in_mailabl_groups()
-
-            if not layers:
-                QMessageBox.information(
-                    self,
-                    "Teave",
-                    f"Mailabl gruppides ei ole ühtegi kihti"
-                )
-                return
-
-            # Show confirmation dialog
-            layer_names = [layer.name() for layer in layers]
-            reply = QMessageBox.question(
-                self,
-                "Kinnita kustutamine",
-                f"Kas olete kindel, et soovite kustutada järgmised kihid kõigist Mailabl gruppides?\n\n" +
-                "\n".join(f"• {name}" for name in layer_names),
-                QMessageBox.Yes | QMessageBox.No
-            )
-
-            if reply == QMessageBox.Yes:
-                # Remove all layers from all subgroups
-                removed_count = 0
-                for layer in layers:
-                    try:
-                        engine.project.removeMapLayer(layer.id())
-                        removed_count += 1
-                    except Exception as e:
-                        print(f"Error removing layer {layer.name()}: {e}")
-
-                # Check if any subgroups are now empty and remove them
-                main_group = engine.layer_tree_root.findGroup(MailablGroupFolders.MAILABL_MAIN)
-                if main_group:
-                    subgroups_to_check = [
-                        MailablGroupFolders.NEW_PROPERTIES,
-                        MailablGroupFolders.SANDBOXING,
-                        MailablGroupFolders.IMPORT,
-                        MailablGroupFolders.SYNC,
-                        MailablGroupFolders.ARCHIVE
-                    ]
-
-                    for subgroup_name in subgroups_to_check:
-                        subgroup = main_group.findGroup(subgroup_name)
-                        if subgroup and not subgroup.children():
-                            main_group.removeChildNode(subgroup)
-                            print(f"[LayerEngine] Removed empty subgroup: {subgroup_name}")
-
-                # Check if main group is now empty and remove it
-                remaining_layers = engine.get_all_layers_in_mailabl_groups()
-                if not remaining_layers:
-                    group_removed = engine.remove_group_if_empty(MailablGroupFolders.MAILABL_MAIN)
-                    if group_removed:
-                        QMessageBox.information(
-                            self,
-                            "Kihid ja grupp eemaldatud",
-                            f"Edukalt eemaldati {removed_count} kihti ja Mailabl grupp"
-                        )
-                    else:
-                        QMessageBox.information(
-                            self,
-                            "Kihid eemaldatud",
-                            f"Edukalt eemaldati {removed_count} kihti"
-                        )
-                else:
-                    QMessageBox.information(
-                        self,
-                        "Kihid eemaldatud",
-                        f"Edukalt eemaldati {removed_count} kihti"
-                    )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Viga",
-                f"Kihi eemaldamisel tekkis viga: {str(e)}"
-            )
-
-    # Shapefile functionality removed from welcome page - now handled by dedicated module
+    def get_widget(self):
+        """Return self as the widget for module system compatibility."""
+        return self

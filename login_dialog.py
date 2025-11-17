@@ -1,8 +1,6 @@
 
 import os
-import platform
-import json
-import requests
+
 
 from PyQt5.QtCore import pyqtSignal, Qt
 from .widgets.FooterWidget import FooterWidget
@@ -10,14 +8,14 @@ from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QComboBox
 )
 from qgis.PyQt.QtGui import QIcon
-from qgis.core import Qgis
 
-from .widgets.theme_manager import ThemeManager
-from .constants.file_paths import ResourcePaths, QssPaths, ConfigPaths
+from .widgets.theme_manager import ThemeManager, Theme, is_dark
+from .constants.file_paths import ResourcePaths, QssPaths
 from .languages.language_manager import LanguageManager
-from .constants.DialogLabels import DialogLabels
 from .utils.SessionManager import SessionManager
-from .config.setup import Version
+#import tranlation keys
+from .languages.translation_keys import TranslationKeys, DialogLabels
+from .utils.api_client import APIClient
 
 lang = LanguageManager(language="et")
 
@@ -26,10 +24,10 @@ class LoginDialog(QDialog):
 
     def __init__(
         self,
-        title=DialogLabels.LOGIN_TITLE,
-        username_label=DialogLabels.USERNAME_LABEL,
-        password_label=DialogLabels.PASSWORD_LABEL,
-        button_text=DialogLabels.LOGIN_BUTTON,
+        title=LanguageManager().translate(DialogLabels.LOGIN_TITLE),
+        username_label=LanguageManager().translate(DialogLabels.USERNAME_LABEL),
+        password_label=LanguageManager().translate(DialogLabels.PASSWORD_LABEL),
+        button_text=LanguageManager().translate(DialogLabels.LOGIN_BUTTON),
         theme_path=None,
         parent=None
     ):
@@ -40,14 +38,11 @@ class LoginDialog(QDialog):
         self.setFixedSize(300, 400)
 
 
-        # Apply the last stored theme (persistent, no switch button)
-        theme_base_dir = os.path.join(os.path.dirname(__file__), 'styles')
-        # Use login.qss if available, otherwise fallback to all qss
         ThemeManager.set_initial_theme(
             self,
             None,  # No switch button
-            
-            qss_files=[QssPaths.LOGIN]
+
+            qss_files=[QssPaths.MAIN, QssPaths.LOGIN]
         )
 
         layout = QVBoxLayout()
@@ -61,14 +56,14 @@ class LoginDialog(QDialog):
         layout.addWidget(self.language_switch)
 
         self.username_label = QLabel(username_label)
-        self.username_label.setObjectName("usernameLabel")
+        self.username_label.setObjectName(DialogLabels.USERNAME_LABEL)
         layout.addWidget(self.username_label)
         self.username_input = QLineEdit()
         self.username_input.setObjectName("usernameInput")
         layout.addWidget(self.username_input)
 
         self.password_label = QLabel(password_label)
-        self.password_label.setObjectName("passwordLabel")
+        self.password_label.setObjectName(DialogLabels.PASSWORD_LABEL)
         layout.addWidget(self.password_label)
         password_row = QHBoxLayout()
         self.password_input = QLineEdit()
@@ -77,7 +72,7 @@ class LoginDialog(QDialog):
         password_row.addWidget(self.password_input)
         self.toggle_password_button = QPushButton()
         self.toggle_password_button.setObjectName("togglePasswordButton")
-        self.toggle_password_button.setIcon(QIcon(ResourcePaths.EYE_ICON))
+        self.toggle_password_button.setIcon(ThemeManager.get_qicon(ResourcePaths.EYE_ICON))
         self.toggle_password_button.setCheckable(True)
         self.toggle_password_button.setText("")
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
@@ -85,7 +80,7 @@ class LoginDialog(QDialog):
         layout.addLayout(password_row)
 
         self.errorLabel = QLabel("")
-        self.errorLabel.setObjectName("errorLabel")
+        self.errorLabel.setObjectName(TranslationKeys.ERROR)
         self.errorLabel.hide()
         layout.addWidget(self.errorLabel)
 
@@ -107,21 +102,21 @@ class LoginDialog(QDialog):
 
         self.setLayout(layout)
 
-        self.setWindowTitle(DialogLabels.LOGIN_TITLE)
-        self.language_label.setText(DialogLabels.LANGUAGE_LABEL)
-        self.username_label.setText(DialogLabels.USERNAME_LABEL)
-        self.password_label.setText(DialogLabels.PASSWORD_LABEL)
-        self.login_button.setText(DialogLabels.LOGIN_BUTTON)
+        self.setWindowTitle(title)
+        self.language_label.setText(lang.translate(DialogLabels.LANGUAGE_LABEL))
+        self.username_label.setText(username_label)
+        self.password_label.setText(password_label)
+        self.login_button.setText(button_text)
 
 
     def change_language(self, language):
         lang.set_language(language)
         lang.save_language_preference()
-        self.setWindowTitle(DialogLabels.LOGIN_TITLE)
-        self.language_label.setText(DialogLabels.LANGUAGE_LABEL)
-        self.username_label.setText(DialogLabels.USERNAME_LABEL)
-        self.password_label.setText(DialogLabels.PASSWORD_LABEL)
-        self.login_button.setText(DialogLabels.LOGIN_BUTTON)
+        self.setWindowTitle(LanguageManager().translate(DialogLabels.LOGIN_TITLE))
+        self.language_label.setText(LanguageManager().translate(DialogLabels.LANGUAGE_LABEL))
+        self.username_label.setText(LanguageManager().translate(DialogLabels.USERNAME_LABEL))
+        self.password_label.setText(LanguageManager().translate(DialogLabels.PASSWORD_LABEL))
+        self.login_button.setText(LanguageManager().translate(DialogLabels.LOGIN_BUTTON))
 
     def toggle_password_visibility(self):
         if self.toggle_password_button.isChecked():
@@ -131,7 +126,6 @@ class LoginDialog(QDialog):
 
     def authenticate_user(self):
         """Authenticate the user using the shared APIClient and show a concise server message on failure."""
-        from .utils.api_client import APIClient
 
         # Always clear any existing session before attempting new login
         # This ensures clean state regardless of previous login status
@@ -161,17 +155,17 @@ class LoginDialog(QDialog):
             if api_token:
                 self.api_token = api_token
                 self.user = {"name": username, "email": username}
-                print(f"[DEBUG] Login successful - setting session with token: {api_token[:10]}...")
+                #print(f"[DEBUG] Login successful - setting session with token: {api_token[:10]}...")
                 SessionManager().setSession(self.api_token, self.user)
                 SessionManager().save_credentials(username, password, api_token)
-                print("[DEBUG] About to emit loginSuccessful signal")
+                #print("[DEBUG] About to emit loginSuccessful signal")
                 self.loginSuccessful.emit(self.api_token, self.user)
-                print("[DEBUG] loginSuccessful signal emitted")
+                #print("[DEBUG] loginSuccessful signal emitted")
                 self.close()  # Close the dialog
-                print("[DEBUG] Dialog closed")
+                #print("[DEBUG] Dialog closed")
             else:
                 # One-shot diagnostic: show server-side response issue
-                self.errorLabel.setText(lang.translate("no_api_token_received"))
+                self.errorLabel.setText(lang.translate(TranslationKeys.NO_API_TOKEN_RECEIVED))
                 self.errorLabel.show()
         except Exception as e:
             # Clear session on any login failure to allow retry
@@ -179,7 +173,7 @@ class LoginDialog(QDialog):
             # One-shot diagnostic: surface the server's message body without logging secrets
             msg = str(e)
             if not msg:
-                msg = lang.translate("login_failed")
+                msg = lang.translate(TranslationKeys.LOGIN_FAILED)
             self.errorLabel.setText(msg)
             self.errorLabel.show()
 

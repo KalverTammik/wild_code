@@ -1,10 +1,16 @@
 import os
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit, QVBoxLayout, QListWidget, QListWidgetItem
-from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer, QEvent
-from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-from PyQt5.QtGui import QColor, QIcon, QFont
-from .theme_manager import ThemeManager
+from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
+from PyQt5.QtGui import QColor
+from .theme_manager import IntensityLevels, ThemeManager, is_dark, styleExtras, ThemeShadowColors
 from ..constants.file_paths import QssPaths
+# from ..utils.logger import debug as log_debug
+from ..constants.module_icons import ICON_HELP
+from ..languages.language_manager import LanguageManager
+from ..utils.api_client import APIClient
+from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
+from ..constants.file_paths import ResourcePaths
+
 
 
 class HeaderWidget(QWidget):
@@ -17,8 +23,6 @@ class HeaderWidget(QWidget):
     
     def __init__(self, title, switch_callback, logout_callback, parent=None, compact=False):
         super().__init__(parent)
-
-
 
         # Outer frame (lets us draw the bottom glow/separator via QSS)
         frame = QFrame(self)
@@ -37,7 +41,7 @@ class HeaderWidget(QWidget):
         self.titleFrame.setObjectName("headerTitleFrame")
         frame_layout = QHBoxLayout(self.titleFrame)
         frame_layout.setContentsMargins(8, 2, 8, 2)
-        frame_layout.setSpacing(5)
+        frame_layout.setSpacing(6)
         frame_layout.addWidget(self.titleLabel)
         
         # Help button next to title
@@ -47,28 +51,17 @@ class HeaderWidget(QWidget):
         # Prevent help button from being the default button that triggers on Return key
         self.helpButton.setAutoDefault(False)
         self.helpButton.setDefault(False)
-        # Add help icon and text
-        try:
-            from wild_code.constants.module_icons import ModuleIconPaths, ICON_HELP
-            help_icon_path = ModuleIconPaths.themed(ICON_HELP)
-            if help_icon_path:
-                self.helpButton.setIcon(QIcon(help_icon_path))
-                self.helpButton.setIconSize(QSize(18, 18))
-                self.helpButton.setText("Abi")
-            else:
-                self.helpButton.setText("Abi")
-        except Exception:
-            self.helpButton.setText("Abi")
         
+        # Add help icon and text
+        help_icon_path = ThemeManager.get_qicon(ICON_HELP)        
+        self.helpButton.setIcon(help_icon_path)
+        self.helpButton.setIconSize(QSize(18, 18))
+        self.helpButton.setText("Abi")
+                    
         # Add tooltip
-        try:
-            from wild_code.languages.language_manager import LanguageManager
-            lang_manager = LanguageManager()
-            tooltip = lang_manager.translations.get("help_button_tooltip", "")
-            if tooltip:
-                self.helpButton.setToolTip(tooltip)
-        except Exception:
-            pass
+        tooltip = LanguageManager().translate("help_button_tooltip")
+        if tooltip:
+            self.helpButton.setToolTip(tooltip)
         
         self.helpButton.clicked.connect(self._emit_help)
         frame_layout.addWidget(self.helpButton)
@@ -76,29 +69,23 @@ class HeaderWidget(QWidget):
 
         # Search (center)
         self.searchEdit = QLineEdit()
-        try:
-            from wild_code.languages.language_manager import LanguageManager
-            lang_manager = LanguageManager()
-            placeholder = lang_manager.translations.get("search_placeholder", "search_placeholder")
-            self.searchEdit.setPlaceholderText(placeholder)
-        except Exception:
-            self.searchEdit.setPlaceholderText("search_placeholder")
+
+        placeholder = LanguageManager().translate("search_placeholder")
+        self.searchEdit.setPlaceholderText(placeholder)
         self.searchEdit.setObjectName("headerSearchEdit")
         self.searchEdit.setFixedWidth(220)
-        shadow = QGraphicsDropShadowEffect(self.searchEdit)
-        shadow.setBlurRadius(14)                  # softer spread
-        shadow.setXOffset(0)
-        shadow.setYOffset(1)
-        shadow.setColor(QColor(9, 144, 143, 60))   # teal accent glow (rgb, alpha)
-        self.searchEdit.setGraphicsEffect(shadow)
+        
+        styleExtras.apply_chip_shadow(
+            element=self.searchEdit, 
+            color=ThemeShadowColors.GRAY,
+            blur_radius=14, 
+            x_offset=0, 
+            y_offset=1, 
+            alpha_level=IntensityLevels.MEDIUM
+            )
         # Rakenda tooltip keelefailist
-        try:
-            from wild_code.languages.language_manager import LanguageManager
-            lang_manager = LanguageManager()
-            tooltip = lang_manager.translations.get("search_tooltip", "search_tooltip")
-            self.searchEdit.setToolTip(tooltip)
-        except Exception:
-            self.searchEdit.setToolTip("search_tooltip")
+        tooltip = LanguageManager().translate("search_tooltip")
+        self.searchEdit.setToolTip(tooltip)
         
         # Initialize search functionality
         self._search_timer = QTimer(self)
@@ -117,18 +104,6 @@ class HeaderWidget(QWidget):
         
         layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
         
-        # Right: Dev controls + theme switch + logout
-        # Optional callbacks set by parent controller
-        self.on_toggle_debug = None
-        self.on_toggle_frame_labels = None
-
-        # Dev controls extracted into dedicated widget
-        from .DevControlsWidget import DevControlsWidget
-        self.devControls = DevControlsWidget()
-        self.devControls.toggleDebugRequested.connect(self._emit_debug_toggle)
-        self.devControls.toggleFrameLabelsRequested.connect(self._emit_frame_labels_toggle)
-        layout.addWidget(self.devControls, 0, Qt.AlignRight | Qt.AlignVCenter)
-
         # Right: theme switch + logout
         self.switchButton = QPushButton()
         self.switchButton.setObjectName("themeSwitchButton")
@@ -137,13 +112,8 @@ class HeaderWidget(QWidget):
         self.switchButton.setDefault(False)
         self.switchButton.clicked.connect(switch_callback)
         # Rakenda tooltip keelefailist
-        try:
-            from wild_code.languages.language_manager import LanguageManager
-            lang_manager = LanguageManager()
-            tooltip = lang_manager.translations.get("theme_switch_tooltip", "theme_switch_tooltip")
-            self.switchButton.setToolTip(tooltip)
-        except Exception:
-            self.switchButton.setToolTip("theme_switch_tooltip")
+        tooltip = LanguageManager().translate("theme_switch_tooltip")
+        self.switchButton.setToolTip(tooltip)
         layout.addWidget(self.switchButton, 0, Qt.AlignRight | Qt.AlignVCenter)
 
         self.logoutButton = QPushButton("Logout")
@@ -152,61 +122,45 @@ class HeaderWidget(QWidget):
         self.logoutButton.setAutoDefault(False)
         self.logoutButton.setDefault(False)
         self.logoutButton.clicked.connect(logout_callback)
+
         # Rakenda tooltip keelefailist
-        try:
-            from wild_code.languages.language_manager import LanguageManager
-            lang_manager = LanguageManager()
-            tooltip = lang_manager.translations.get("logout_button_tooltip", "logout_button_tooltip")
-            self.logoutButton.setToolTip(tooltip)
-        except Exception:
-            self.logoutButton.setToolTip("logout_button_tooltip")
+        tooltip = LanguageManager().translate("logout_button_tooltip")
+        self.logoutButton.setToolTip(tooltip)
         layout.addWidget(self.logoutButton, 0, Qt.AlignRight | Qt.AlignVCenter)
 
         # Outer zero-margin wrapper (consistent with footer structure)
         outer = QHBoxLayout(self)
-
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(frame)
 
-
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
 
-        try:
-            self.devControls.retheme()
-        except Exception:
-            pass
 
     @property
     def search_results_widget(self):
         """Lazy getter for SearchResultsWidget - creates it only when first accessed."""
         if self._search_results is None:
-            print("[DEBUG] Lazy loading SearchResultsWidget...")
+            # log_debug("[DEBUG] Lazy loading SearchResultsWidget...")
             from .SearchResultsWidget import SearchResultsWidget
             self._search_results = SearchResultsWidget(self)
             self._search_results.setVisible(False)
             self._search_results.resultClicked.connect(self._on_search_result_clicked)
             self._search_results.refreshRequested.connect(self._on_refresh_requested)
-            print("[DEBUG] SearchResultsWidget created and connected")
+            # log_debug("[DEBUG] SearchResultsWidget created and connected")
         return self._search_results
 
     def retheme_header(self):
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
+        theme = ThemeManager.effective_theme()
+        if is_dark(theme):
+            self.switch_button.setIcon(ThemeManager.get_qicon(ResourcePaths.LIGHTNESS_ICON))
+            self.switch_button.setText("")
+            self.header_widget.set_logout_icon(ThemeManager.get_qicon(ResourcePaths.LOGOUT_BRIGHT))
+        else:
+            self.switch_button.setIcon(ThemeManager.get_qicon(ResourcePaths.DARKNESS_ICON))
+            self.switch_button.setText("")
+            self.header_widget.set_logout_icon(ThemeManager.get_qicon(ResourcePaths.LOGOUT_DARK))
 
-    def _emit_debug_toggle(self, enabled: bool):
-        cb = getattr(self, 'on_toggle_debug', None)
-        if callable(cb):
-            try:
-                cb(bool(enabled))
-            except Exception:
-                pass
-
-    def _emit_frame_labels_toggle(self, enabled: bool):
-        cb = getattr(self, 'on_toggle_frame_labels', None)
-        if callable(cb):
-            try:
-                cb(bool(enabled))
-            except Exception:
-                pass
 
     def set_switch_icon(self, icon):
         self.switchButton.setIcon(icon)
@@ -220,19 +174,6 @@ class HeaderWidget(QWidget):
 
     def set_title(self, text):
         self.titleLabel.setText(text)
-
-    def _open_home(self):
-        pass  # home nupp eemaldatud (kasuta külgriba Avaleht nuppu)
-        # Emit a custom signal or call a callback to open the welcome page
-        if hasattr(self, 'open_home_callback') and callable(self.open_home_callback):
-            self.open_home_callback()
-
-    def set_dev_states(self, debug_enabled: bool, frames_enabled: bool):
-        """Initialize or update the dev controls' checked states."""
-        try:
-            self.devControls.set_states(bool(debug_enabled), bool(frames_enabled))
-        except Exception:
-            pass
 
     def _emit_help(self):
         """Emit help requested signal."""
@@ -261,12 +202,7 @@ class HeaderWidget(QWidget):
             return
             
         try:
-            # print("[DEBUG] Importing required modules for search")
-            # Import required modules
-            from ..utils.api_client import APIClient
-            from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
-            from ..languages.language_manager import LanguageManager
-            
+
             # Create language manager for GraphQL loader
             lang_manager = LanguageManager()
             query_loader = GraphQLQueryLoader(lang_manager)
@@ -304,7 +240,7 @@ class HeaderWidget(QWidget):
             # print(f"[DEBUG] Sending GraphQL query with variables: {variables}")
             
             result = api_client.send_query(search_query, variables, operation_name=None)
-            print(f"[DEBUG] Raw API response: {result}")
+            # log_debug(f"[DEBUG] Raw API response: {result}")
             # print(f"[DEBUG] Response type: {type(result)}")
             
             if result and "data" in result and "search" in result["data"]:

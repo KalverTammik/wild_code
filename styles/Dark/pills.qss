@@ -1,19 +1,21 @@
-/* Container nudge */
-#TagsWidget { margin-left: 8px; }
+﻿/* Container nudge */
+
 #CompactTagsWidget { margin-left: 4px; }
 
 /* Base tag pill */
 #TagPill[role="tag"] {
-  bo/* "+N veel" overflow pill (if you add role="more") */
-#TagPill[role="more"] {
-  background: rgba(255,255,255,0.06);
-  color: rgba(230,235,240,0.9);
-  border: 1px dashed rgba(230,235,240,0.25);
+  border-radius: 9px;
+  background: qproperty(bg_color);
+  color: qproperty(fg_color);
+  border: 1px solid qproperty(border_color);
   outline: none;
+  margin: 0;
+  padding: 0;
+  transition: 120ms ease;
 }
 
 /* Remove spacing from all tag holders */
-QFrame#TagPillHolder, QFrame#CompactTagHolder, QFrame#OverflowTagHolder {
+QFrame#TagPillHolder{
   margin: 0;
   padding: 0;
   border: none;
@@ -21,56 +23,19 @@ QFrame#TagPillHolder, QFrame#CompactTagHolder, QFrame#OverflowTagHolder {
 }
 
 /* Remove spacing from all QLabel elements in tags */
-QLabel#TagPillLabel, QLabel#CompactTagLabel, QLabel#OverflowTagLabel {
+QLabel#TagPillLabel {
   margin: 0;
   padding: 0;
   border: none;
   outline: none;
-  spacing: 0;
 }
 
 /* Remove spacing from all layouts in tags */
 QVBoxLayout, QHBoxLayout {
   margin: 0;
   padding: 0;
-  spacing: 0;
 }
 
-/* Remove spacing from all widgets in tags */
-QWidget#CompactTagsWidget, QWidget#TagsWidget, QFrame#CompactTagHolder, QFrame#OverflowTagHolder, QFrame#TagPillHolder {
-  margin: 0;
-  padding: 0;
-  border: none;
-  outline: none;
-}
-
-/* Force no spacing between all tag elements */
-* {
-  margin: 0;
-  padding: 0;
-  border: none;
-  outline: none;
-  spacing: 0;
-}
-
-/* Specific spacing removal for tag containers */
-QWidget#CompactTagsWidget QVBoxLayout,
-QWidget#TagsWidget QVBoxLayout,
-QFrame#CompactTagHolder QHBoxLayout,
-QFrame#OverflowTagHolder QHBoxLayout,
-QFrame#TagPillHolder QHBoxLayout {
-  margin: 0;
-  padding: 0;
-  spacing: 0;
-}
-
-/* Remove all possible spacing from pill frames */
-QFrame#CompactTagPill, QFrame#OverflowTagPill, QFrame#TagPill {
-  margin: 0;
-  padding: 0;
-  border: none;
-  outline: none;
-}
 
 /* Remove spacing from inner layouts */
 QFrame#CompactTagPill QHBoxLayout,
@@ -249,19 +214,22 @@ QFrame#TagPill * {
   -qt-spacing: 0 !important;
   -qt-margin: 0 !important;
   -qt-padding: 0 !important;
-}adius: 5px;
+}
+
+/* Compact tag pill - blend with background */
+#CompactTagPill[role="compact_tag"] {
+  border-radius: 3px;
   background: #1f262d;
   color: #90a4ae;
   border: none;
   outline: none;
   margin: 0;
   padding: 0;
-  spacing: 0;
   transition: 120ms ease;
 }
 
-/* Compact tag pill - blend with background */
-#CompactTagPill[role="compact_tag"] {
+/* Overflow tag pill - blend with background */
+#OverflowTagPill[role="overflow_tag"] {
   border-radius: 3px;
   background: #232b33;
   color: #90a4ae;
@@ -269,21 +237,6 @@ QFrame#TagPill * {
   outline: none;
   margin: 0;
   padding: 0;
-  spacing: 0;
-  transition: 100ms ease;
-  min-height: 16px;
-}
-
-/* Overflow tag pill - blend with background */
-#OverflowTagPill[role="overflow_tag"] {
-  border-radius: 3px;
-  background: #2e2f38;
-  color: #546e7a;
-  border: none;
-  outline: none;
-  margin: 0;
-  padding: 0;
-  spacing: 0;
   transition: 100ms ease;
   min-height: 16px;
 }

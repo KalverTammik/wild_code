@@ -95,7 +95,7 @@ Jätka logi iga muudatuse kohta, et hiljem oleks lihtne jälgida tehtud tööd j
 **Tegevused:**
 - Ühtlustatud Avaleht, Projektid, Lepingud, Seaded ikoonide suurus 25x25 (koodis eksplitsiitselt `setIconSize`).
 - Projekti ikoon vahetatud `icons8-microsoft-powerpoint-30.png` (suurus piiratud 25x25) ühetaolisuse nimel.
-- Lepingute (ContractModule) ikoon uuendatud `icons8-policy-document-25.png`.
+- Lepingute (ContractsModule) ikoon uuendatud `icons8-policy-document-25.png`.
 - Seadete ikoon vahetatud `icons8-settings-25.png` (varasema gear 50px asemel).
 - Lisatud dokitud alumine footer (`SidebarFooterBar`) meta-nuppudele ja migreeritud Seaded sinna.
 - Lisatud Abi (Help) nupp footerisse koos signaaliga `helpRequested` ja ikooniga (50px baaspilt, skaleeritud 25px peale).

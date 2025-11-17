@@ -1,4 +1,7 @@
+from collections import deque
+
 from PyQt5.QtCore import QTimer, QCoreApplication
+
 
 class FeedLoadEngine:
     """
@@ -21,7 +24,7 @@ class FeedLoadEngine:
         self._is_loading = False
 
         # Buffer
-        self.buffer = []
+        self.buffer = deque()
         self.buffer_size = buffer_size
 
         # Hook for UI insertion callback; may be set later via attach()
@@ -44,6 +47,22 @@ class FeedLoadEngine:
         if progressive_insert_func is not None:
             self.progressive_insert_func = progressive_insert_func
         return self
+
+    def _upstream_feed_logic(self):
+        return self.parent_ui.feed_logic if self.parent_ui else None
+
+    def _upstream_has_more(self) -> bool:
+        feed_logic = self._upstream_feed_logic()
+        return bool(feed_logic and feed_logic.has_more)
+
+    def _should_prefetch(self) -> bool:
+        if len(self.buffer) >= max(2, self.buffer_size // 4):
+            return False
+        return self._upstream_has_more()
+
+    def _request_next_batch_on_drain(self):
+        if self._upstream_has_more() and not self._is_loading:
+            self.schedule_load()
 
     # -------------------- Scheduling --------------------
     def schedule_load(self):
@@ -82,11 +101,10 @@ class FeedLoadEngine:
 
     def feed_until_filled_plus_one(self, max_cards: int = 50):
         """Ask UI whether the viewport is filled+1 and stop when it is (or buffer ends)."""
-        ui = getattr(self, "parent_ui", None)
         for _ in range(max_cards):
             if not self.buffer:
                 break
-            if ui and hasattr(ui, "_is_filled_plus_one") and ui._is_filled_plus_one():
+            if self.parent_ui and self.parent_ui._is_filled_plus_one():
                 break
             self._progressive_insert_next()
 
@@ -116,35 +134,27 @@ class FeedLoadEngine:
 
         Stops when buffer empty or UI reports filled+1 (via parent_ui._is_filled_plus_one()).
         """
-        try:
-            if not self.buffer:
-                # Buffer drained: allow another fetch if upstream has more
-                self._auto_drip_running = False
-                try:
-                    fl = getattr(getattr(self, 'parent_ui', None), 'feed_logic', None)
-                    if fl and getattr(fl, 'has_more', False) and not self._is_loading:
-                        self.schedule_load()
-                except Exception:
-                    pass
-                return
-            ui = getattr(self, 'parent_ui', None)
-            # If UI says viewport is filled+1, stop auto-dripping for now
-            if ui and hasattr(ui, '_is_filled_plus_one') and ui._is_filled_plus_one():
-                self._auto_drip_running = False
-                return
-            count = 0
-            while count < self._auto_drip_batch and self.buffer:
-                # Each progressive insert will also check duplicates defensively
-                self._progressive_insert_next()
-                count += 1
-            if self.buffer:
-                # Schedule next tick
-                QTimer.singleShot(self._auto_drip_ms, self._auto_drip_tick)
-            else:
-                self._auto_drip_running = False
-        except Exception:
-            # On unexpected error, stop auto-drip to avoid busy loop
+        if not self.buffer:
+            # Buffer drained: allow another fetch if upstream has more
             self._auto_drip_running = False
+            self._request_next_batch_on_drain()
+            return
+        ui = self.parent_ui
+        # If UI says viewport is filled+1, stop auto-dripping for now
+        if ui and ui._is_filled_plus_one():
+            self._auto_drip_running = False
+            return
+        count = 0
+        while count < self._auto_drip_batch and self.buffer:
+            # Each progressive insert will also check duplicates defensively
+            self._progressive_insert_next()
+            count += 1
+        if self.buffer:
+            # Schedule next tick
+            QTimer.singleShot(self._auto_drip_ms, self._auto_drip_tick)
+        else:
+            self._auto_drip_running = False
+            self._request_next_batch_on_drain()
 
     def _progressive_insert_next(self):
     # Debug print removed
@@ -154,37 +164,24 @@ class FeedLoadEngine:
         if not callable(self.progressive_insert_func):
             # Debug print removed
             return
-        item = self.buffer.pop(0)
+        item = self.buffer.popleft()
     # Debug print removed
     # (Dedupe removed here; handled solely in ModuleBaseUI during actual insertion
     # to prevent double-marking and early duplicate skips.)
         # Guard scroll handler re-entry while inserting programmatically
-        ui_for_flag = getattr(self, 'parent_ui', None)
-        if ui_for_flag:
-            try:
-                ui_for_flag._ignore_scroll_event = True
-            except Exception:
-                pass
+        ui = self.parent_ui
+        if ui:
+            ui._ignore_scroll_event = True
         try:
             self.progressive_insert_func(item)
         finally:
-            if ui_for_flag:
-                try:
-                    ui_for_flag._ignore_scroll_event = False
-                except Exception:
-                    pass
+            if ui:
+                ui._ignore_scroll_event = False
         QCoreApplication.processEvents()
 
         # If buffer is low, we may prefetch; UI still governs when to render them
-        if len(self.buffer) < max(2, self.buffer_size // 4):
-            # Only prefetch if upstream still reports more pages
-            try:
-                fl = getattr(getattr(self, 'parent_ui', None), 'feed_logic', None)
-                has_more = getattr(fl, 'has_more', False) if fl else False
-            except Exception:
-                has_more = False
-            if has_more:
-                self.schedule_load()
+        if self._should_prefetch():
+            self.schedule_load()
 
     # -------------------- Reset --------------------
     def reset(self):
@@ -195,7 +192,3 @@ class FeedLoadEngine:
         self._auto_drip_running = False
         # First-batch acceleration re-armed
         self._first_batch_fast = True
-
-    def cancel(self):
-        """Alias for reset for external clarity."""
-        self.reset()

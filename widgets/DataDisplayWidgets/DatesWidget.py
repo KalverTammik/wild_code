@@ -1,16 +1,78 @@
-from PyQt5.QtCore import QDateTime, QLocale, Qt, QPoint, QEvent, QTimer
-from PyQt5.QtWidgets import QLabel, QWidget, QGridLayout, QSizePolicy, QVBoxLayout, QHBoxLayout, QFrame
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import QDateTime, QLocale, Qt, QPoint, QEvent
+from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QFrame
 import datetime
 from typing import Optional
 from ..DateHelpers import DateHelpers
-from ...constants.module_icons import ModuleIconPaths, DateIcons
+from ..theme_manager import ThemeManager
+from ...constants.file_paths import QssPaths
+
+
+class DatesPopupWidget(QWidget):
+    """Custom popup widget for displaying additional dates with proper theming."""
+
+    def __init__(self, dates_list, parent=None):
+        super().__init__(parent)
+        self.dates_list = dates_list
+
+        # Set popup properties
+        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self.setFocusPolicy(Qt.NoFocus)
+        self.setMouseTracking(True)
+
+        # Create a frame for the content with theming
+        self.frame = QFrame(self)
+        self.frame.setObjectName("PopupFrame")
+        ThemeManager.apply_module_style(self.frame, [QssPaths.POPUP])
+
+        # Main layout on the frame
+        layout = QVBoxLayout(self.frame)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(4)
+
+        # Add all dates
+        locale = QLocale.system()
+        for label_text, dt in self.dates_list:
+            row_layout = QHBoxLayout()
+            row_layout.setSpacing(8)
+
+            label = QLabel(label_text)
+            label.setObjectName("Label")
+            label.setFixedWidth(60)
+            row_layout.addWidget(label)
+
+            date_value = QLabel(self._short_date(dt, locale))
+            date_value.setObjectName("Value")
+            date_value.setToolTip(DateHelpers.build_label(label_text.replace(":", ""), dt, locale))
+            row_layout.addWidget(date_value)
+
+            layout.addLayout(row_layout)
+
+        # Set the frame as the central widget
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(self.frame)
+
+    def _short_date(self, dt: Optional[datetime.datetime], locale) -> str:
+        if not dt:
+            return "–"
+        qdt = QDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        return locale.toString(qdt.date(), QLocale.ShortFormat)
+
+    def retheme(self):
+        """Reapply theme styles when theme changes."""
+        ThemeManager.apply_module_style(self.frame, [QssPaths.DATES])
+        # Force style refresh
+        self.frame.style().unpolish(self.frame)
+        self.frame.style().polish(self.frame)
 
 class DatesWidget(QWidget):
-    def __init__(self, item_data, parent=None, compact=False):
+    def __init__(self, item_data, parent=None, compact=False, lang_manager=None):
         super().__init__(parent)
         self.setProperty("compact", compact)
         self.item_data = item_data
+        self.lang_manager = lang_manager
 
         # Main layout - vertical to stack under status
         main_layout = QVBoxLayout(self)
@@ -48,20 +110,18 @@ class DatesWidget(QWidget):
             # Due date label
             due_label = QLabel("Tähtaeg:")
             due_label.setObjectName("DateLabel")
-            due_label.setStyleSheet("font-size: 10px; color: #666; font-weight: 500;")
             due_layout.addWidget(due_label)
 
             # Due date value
             due_value = QLabel(short_date(due_dt))
             due_value.setObjectName("DateValue")
-            due_value.setStyleSheet("font-size: 11px; font-weight: 600;")
             due_value.setToolTip(full_tooltip("Tähtaeg", due_dt))
 
-            # Apply state-based styling
+            # Apply state-based properties for theming
             if state == 'overdue':
-                due_value.setStyleSheet("font-size: 11px; font-weight: 600; color: #d32f2f;")
+                due_value.setProperty("overdue", "true")
             elif state == 'soon':
-                due_value.setStyleSheet("font-size: 11px; font-weight: 600; color: #f57c00;")
+                due_value.setProperty("due_soon", "true")
 
             due_layout.addWidget(due_value)
             due_layout.addStretch()
@@ -72,16 +132,20 @@ class DatesWidget(QWidget):
 
             main_layout.addWidget(due_container)
 
+
         # Store other dates for hover popup
+        from ...languages.translation_keys import TranslationKeys
         self.other_dates = []
         if start_dt:
-            self.other_dates.append(("Algus:", start_dt))
+            self.other_dates.append((self.lang_manager.translate(TranslationKeys.START) + ":", start_dt))
         if created_dt:
-            self.other_dates.append(("Loodud:", created_dt))
+            self.other_dates.append((self.lang_manager.translate(TranslationKeys.CREATED) + ":", created_dt))
         if updated_dt:
-            self.other_dates.append(("Muudetud:", updated_dt))
+            self.other_dates.append((self.lang_manager.translate(TranslationKeys.UPDATED) + ":", updated_dt))
 
         self.hover_popup = None
+        ThemeManager.apply_module_style(self, [QssPaths.DATES])
+
 
     def eventFilter(self, obj, event):
         if obj.objectName() == "DueDateContainer":
@@ -98,35 +162,8 @@ class DatesWidget(QWidget):
         if self.hover_popup:
             self.hide_dates_popup()
 
-        # Create popup widget
-        self.hover_popup = QWidget(self.window(), Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.hover_popup.setObjectName("DatesPopup")
-        self.hover_popup.setAttribute(Qt.WA_DeleteOnClose, True)
-        self.hover_popup.setAttribute(Qt.WA_ShowWithoutActivating, True)
-        self.hover_popup.setFocusPolicy(Qt.NoFocus)
-        self.hover_popup.setMouseTracking(True)
-
-        layout = QVBoxLayout(self.hover_popup)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(4)
-
-        # Add all other dates
-        locale = QLocale.system()
-        for label_text, dt in self.other_dates:
-            row_layout = QHBoxLayout()
-            row_layout.setSpacing(8)
-
-            label = QLabel(label_text)
-            label.setStyleSheet("font-size: 10px; color: #666; font-weight: 500;")
-            label.setFixedWidth(60)
-            row_layout.addWidget(label)
-
-            date_value = QLabel(self.short_date(dt, locale))
-            date_value.setStyleSheet("font-size: 11px; font-weight: 500;")
-            date_value.setToolTip(DateHelpers.build_label(label_text.replace(":", ""), dt, locale))
-            row_layout.addWidget(date_value)
-
-            layout.addLayout(row_layout)
+        # Create custom popup widget with proper theming
+        self.hover_popup = DatesPopupWidget(self.other_dates, self.window())
 
         # Position popup near the anchor widget
         self.hover_popup.adjustSize()
@@ -140,8 +177,13 @@ class DatesWidget(QWidget):
             self.hover_popup.close()
             self.hover_popup = None
 
-    def short_date(self, dt: Optional[datetime.datetime], locale) -> str:
-        if not dt:
-            return "–"
-        qdt = QDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-        return locale.toString(qdt.date(), QLocale.ShortFormat)
+    def retheme(self):
+        """Reapply theme styles when theme changes."""
+        ThemeManager.apply_module_style(self, [QssPaths.DATES])
+        # Force style refresh for dynamic properties
+        self.style().unpolish(self)
+        self.style().polish(self)
+
+        # Also retheme the popup if it's currently shown
+        if self.hover_popup and hasattr(self.hover_popup, 'retheme'):
+            self.hover_popup.retheme()

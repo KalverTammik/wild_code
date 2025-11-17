@@ -1,4 +1,4 @@
-#from .translation_keys import TranslationKeys
+from .translation_keys import TranslationKeys, RoleTranslationKeys
 
 TRANSLATIONS = {
     TranslationKeys.PROJECTS_MODULE_LOADED: "Projects module loaded!",
@@ -8,10 +8,11 @@ TRANSLATIONS = {
     TranslationKeys.NO_API_TOKEN_RECEIVED: "No API token received.",
     TranslationKeys.LOGIN_FAILED_RESPONSE: "Login failed: {error}",
     TranslationKeys.NETWORK_ERROR: "Network error: {error}",
-    TranslationKeys.LOGIN_TITLE: "Login",
+    TranslationKeys.WILD_CODE_PLUGIN_TITLE: "Wild Code Plugin",
     TranslationKeys.USERNAME_LABEL: "Username:",
     TranslationKeys.PASSWORD_LABEL: "Password:",
     TranslationKeys.LOGIN_BUTTON: "Login",
+    TranslationKeys.CANCEL_BUTTON: "Cancel",
     TranslationKeys.TOGGLE_PASSWORD: "Show Password",
     TranslationKeys.LANGUAGE_LABEL: "Language:",
     TranslationKeys.MAILABL_LISTENER: "Mailabl Listener",
@@ -28,22 +29,27 @@ TRANSLATIONS = {
     # Added: Welcome page and layer picker texts
     TranslationKeys.WELCOME: "Welcome",
     TranslationKeys.SELECT_MODULE: "Select a module from the left or open Settings to set your preferred module.",
+    TranslationKeys.NO_PROJECT_LOADED_TITLE: "No Project Loaded",
+    TranslationKeys.NO_PROJECT_LOADED_MESSAGE: "Please load a QGIS project before using this plugin.",
     TranslationKeys.OPEN_SETTINGS: "Open Settings",
     # Added: ModuleCard/layer picker labels
     TranslationKeys.MODULES_MAIN_LAYER: "Modules main layer",
     TranslationKeys.ARCHIVE_LAYER: "Archive layer",
     TranslationKeys.SELECT_LAYER: "Select layer",
-    TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Choose layers used by this module (element and archive)."
-    ,"logout_button_tooltip": "Log out from your account"
-    ,"search_tooltip": "This feature is not yet available"
-    ,"search_placeholder": "Search..."
-    ,"sidebar_collapse_tooltip": "Collapse Sidebar"
-    ,"sidebar_expand_tooltip": "Expand Sidebar"
-    ,"theme_switch_tooltip": "Switch between dark and light theme"
-    ,"dev_dbg_tooltip": "Toggle developer logs (print) on/off"
-    ,"dev_frames_tooltip": "Show/Hide FRAME labels on the home page"
-    ,"session_expired": "Your session has expired. Please sign in again."
-    ,"urgent_group_title": "Urgent!"
+    TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Choose layers used by this module (element and archive).",
+    TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE: "Select a property layer for data operations and management.",
+    TranslationKeys.SELECT_A_PROPERTY_LAYER: "Select a property layer...",
+    TranslationKeys.LOGOUT_BUTTON_TOOLTIP: "Log out from your account",
+    TranslationKeys.SEARCH_TOOLTIP: "This feature is not yet available",
+    TranslationKeys.SEARCH_PLACEHOLDER: "Search...",
+    TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP: "Collapse Sidebar",
+    TranslationKeys.SIDEBAR_EXPAND_TOOLTIP: "Expand Sidebar",
+    TranslationKeys.THEME_SWITCH_TOOLTIP: "Switch between dark and light theme",
+    TranslationKeys.DEV_DBG_TOOLTIP: "Toggle developer logs (print) on/off",
+    TranslationKeys.DEV_FRAMES_TOOLTIP: "Show/Hide FRAME labels on the home page",
+    TranslationKeys.SESSION_EXPIRED: "Your session has expired. Please sign in again.",
+    TranslationKeys.SESSION_EXPIRED_TITLE: "Session Expired",
+    TranslationKeys.URGENT_GROUP_TITLE: "Urgent!"
     ,"urgent_tooltip": "What needs fast attention"
     ,"Status Filter": "Filter by Status"
     ,"Tags Filter": "Filter by Tags"
@@ -62,7 +68,7 @@ TRANSLATIONS = {
     ,"Viewer": "Viewer"
     ,"Dashboard": "Dashboard"
     ,"Reports": "Reports"
-    ,"Settings": "Settings"
+    ,"settings": "Settings"
     ,"Admin": "Admin"
     ,"User": "User"
     ,"User Information": "User Information"
@@ -97,7 +103,7 @@ TRANSLATIONS = {
     ,"feature imported": "feature imported"
     ,"Initializing...": "Initializing..."
     ,"Cancel": "Cancel"
-    ,"Show project numbers": "Show item numbers"
+
     ,"Add New Property": "Add New Property"
     ,"Select a property template to add:": "Select a property template to add:"
     ,"Residential Property": "Residential Property"
@@ -160,9 +166,10 @@ TRANSLATIONS = {
     ,"Invalid value": "Invalid value"
     ,"Value must be greater than {min}": "Value must be greater than {min}"
     ,"Value must be less than {max}": "Value must be less than {max}"
-    ,"Properties": "Properties"
-    ,"Contracts": "Contracts"
-    ,"Projects": "Projects"
+    ,"property": "Properties"
+    ,"contract": "Contracts"
+    ,"project": "Projects"
+    ,"home": "Home"
     ,TranslationKeys.ADD_NEW_PROPERTY: "Property Management"
     ,TranslationKeys.SELECT_PROPERTIES: "Select Properties"
     ,TranslationKeys.CLOSE: "Close"
@@ -188,4 +195,16 @@ TRANSLATIONS = {
     ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Error selecting property"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Select Single Property"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_MESSAGE: "Please select only one property feature on the map."
+    ,RoleTranslationKeys.ADMINS: "Admins"
+    ,RoleTranslationKeys.ADMINISTRATORS: "Administrators"
+    ,RoleTranslationKeys.PROJECT_MANAGERS: "Project Managers"
+    ,RoleTranslationKeys.USERS: "Users"
+    ,RoleTranslationKeys.MANAGERS: "Managers"
+    ,RoleTranslationKeys.EDITORS: "Editors"
+    ,RoleTranslationKeys.VIEWERS: "Viewers"
+    ,RoleTranslationKeys.GUESTS: "Guests"
+    ,TranslationKeys.START: "Start"
+    ,TranslationKeys.CREATED: "Created"
+    ,TranslationKeys.UPDATED: "Updated"
+    ,"Signaltest": "Signal Test Lab"
 }

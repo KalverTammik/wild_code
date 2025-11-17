@@ -1,3 +1,4 @@
+
 class TranslationKeys:
     """Centralized translation keys to avoid duplication and maintain consistency"""
 
@@ -15,7 +16,8 @@ class TranslationKeys:
     LANGUAGE_LABEL = "Language:"
     USERNAME_LABEL = "Username:"
     PASSWORD_LABEL = "Password:"
-    LOGIN_BUTTON = "Login"
+    LOGIN_BUTTON = "login_button"
+    CANCEL_BUTTON = "cancel_button"
     TOGGLE_PASSWORD = "Show Password"
 
     # Plugin UI
@@ -32,6 +34,8 @@ class TranslationKeys:
     CONFIRM = "confirm"
     MODULE_SETTINGS_PLACEHOLDER = "Module settings placeholder"
     SELECT_MODULE = "Select a module from the left or open Settings to set your preferred module."
+    NO_PROJECT_LOADED_TITLE = "No Project Loaded"
+    NO_PROJECT_LOADED_MESSAGE = "Please load a QGIS project before using this plugin."
 
     # UI tooltips
     LOGOUT_BUTTON_TOOLTIP = "logout_button_tooltip"
@@ -43,6 +47,7 @@ class TranslationKeys:
     DEV_DBG_TOOLTIP = "dev_dbg_tooltip"
     DEV_FRAMES_TOOLTIP = "dev_frames_tooltip"
     SESSION_EXPIRED = "session_expired"
+    SESSION_EXPIRED_TITLE = "session_expired_title"
     URGENT_GROUP_TITLE = "urgent_group_title"
     URGENT_TOOLTIP = "urgent_tooltip"
 
@@ -69,7 +74,6 @@ class TranslationKeys:
     VIEWER = "Viewer"
     DASHBOARD = "Dashboard"
     REPORTS = "Reports"
-    SETTINGS = "Settings"
     ADMIN = "Admin"
     USER = "User"
     USER_INFORMATION = "User Information"
@@ -108,7 +112,7 @@ class TranslationKeys:
     FEATURE_IMPORTED = "feature imported"
     INITIALIZING = "Initializing..."
     CANCEL = "Cancel"
-    SHOW_PROJECT_NUMBERS = "Show project numbers"
+
     ADD_NEW_PROPERTY = "Add New Property"
     SELECT_PROPERTY_TEMPLATE = "Select a property template to add:"
     RESIDENTIAL_PROPERTY = "Residential Property"
@@ -173,17 +177,18 @@ class TranslationKeys:
     ARCHIVE_LAYER = "Archive layer"
     SELECT_LAYER = "Select layer"
     CHOOSE_LAYERS_USED_BY_THIS_MODULE = "Choose layers used by this module (element and archive)."
+    CHOOSE_PROPERTY_LAYER_FOR_MODULE = "Select a property layer for data operations and management."
 
     # UI tooltips
     LOGOUT_BUTTON_TOOLTIP = "Log out from your account"
     SEARCH_TOOLTIP = "This feature is not yet available"
     SEARCH_PLACEHOLDER = "Search..."
-    SIDEBAR_COLLAPSE_TOOLTIP = "Collapse Sidebar"
     SIDEBAR_EXPAND_TOOLTIP = "Expand Sidebar"
     THEME_SWITCH_TOOLTIP = "Switch between dark and light theme"
     DEV_DBG_TOOLTIP = "Toggle developer logs (print) on/off"
     DEV_FRAMES_TOOLTIP = "Show/Hide FRAME labels on the home page"
     SESSION_EXPIRED = "Your session has expired. Please sign in again."
+    SESSION_EXPIRED_TITLE = "Session Expired"
 
     # Status preferences
     STATUS_PREFERENCES = "Status Preferences"
@@ -197,9 +202,10 @@ class TranslationKeys:
     RESET = "Reset"
     RESET_ALL_SETTINGS = "Reset all settings for this module to default values"
     SETTINGS_RESET_TO_DEFAULTS = "Settings reset to defaults"
+    SELECT_A_PROPERTY_LAYER = "Select a property layer..."
 
     # Project numbers
-    SHOW_PROJECT_NUMBERS = "Show project numbers"
+
     WHEN_ENABLED_PROJECT_CONTRACT_NUMBERS = "When enabled, project/contract numbers will be displayed in item cards for easy identification."
 
     # User profile
@@ -244,7 +250,7 @@ class TranslationKeys:
     FEATURE_IMPORTED = "feature imported"
     INITIALIZING = "Initializing..."
     CANCEL = "Cancel"
-    SHOW_PROJECT_NUMBERS = "Show project numbers"
+
 
     # Property dialog
     ADD_NEW_PROPERTY = "Add New Property"
@@ -337,14 +343,13 @@ class TranslationKeys:
     NO = "No"
     OK = "OK"
 
-    # Module names
-    PROPERTIES_MODULE = "Properties"
-    CONTRACTS_MODULE = "Contracts"
-    PROJECTS_MODULE = "Projects"
-    SETTINGS_MODULE = "Settings"
-
     # Common field labels (base keys - use translate_with_suffix for labels with colons)
-    PROPERTIES = "Properties"
+  
+    # Date labels
+    START = "Start"
+    CREATED = "Created"
+    UPDATED = "Updated"
+    
     CHOOSE_FROM_MAP = "Choose from map"
     NO_SELECTION = "No Selection"
     SELECT_PROPERTY_FIRST = "Please select a property feature on the map first."
@@ -358,3 +363,29 @@ class TranslationKeys:
     # Property selection messages
     SELECT_SINGLE_PROPERTY_TITLE = "Select Single Property"
     SELECT_SINGLE_PROPERTY_MESSAGE = "Please select only one property feature on the map."
+
+class DialogLabels:
+
+    LOGIN_TITLE = "Login"
+    SETTINGS_TITLE = "Settings"
+    LOGIN_SECTION = "User Authentication"
+    SETTINGS_SECTION = "Application Preferences"
+
+    # Login dialog labels
+    LANGUAGE_LABEL = "Language:"
+    USERNAME_LABEL = "Username:"
+    PASSWORD_LABEL = "Password:"
+    LOGIN_BUTTON = "Login"
+    SESSION_ACTIVE_ERROR = "A session is already active. Please log out first."
+    SESSION_EXPIRED_ERROR = "Session expired. Please log in again."
+    INVALID_CREDENTIALS_ERROR = "Invalid email or password."
+
+class RoleTranslationKeys:
+    ADMINS = "Admins"
+    ADMINISTRATORS = "Administraatorid"
+    PROJECT_MANAGERS = "Projektijuhid"
+    USERS = "Kasutajad"
+    MANAGERS = "Juhid"
+    EDITORS = "Toimetajad"
+    VIEWERS = "Vaatajad"
+    GUESTS = "Külalised"

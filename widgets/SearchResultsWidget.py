@@ -1,16 +1,8 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QListWidget, QListWidgetItem, QLabel, QPushButton, QHBoxLayout, QApplication
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QListWidget, QListWidgetItem, QPushButton, QHBoxLayout, QApplication
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QEvent
-from PyQt5.QtWidgets import QGraphicsDropShadowEffect
-from PyQt5.QtGui import QColor, QFont, QIcon
+from PyQt5.QtGui import QColor, QFont
 from ..widgets.theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
-
-class SearchResultsWidget(QDialog):
-    """
-    Dialog for displaying search results in a dropdown list below the search field.
-    Groups results by module type with expandable sections.
-    Uses QDialog for better popup control and positioning.
-    """
 
 
 class SearchResultsWidget(QDialog):
@@ -27,12 +19,9 @@ class SearchResultsWidget(QDialog):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.ToolTip)  # No frame, tooltip behavior
         self.setAttribute(Qt.WA_TranslucentBackground)  # Enable translucent background
         self.setModal(False)  # Non-modal dialog
-
         self.setObjectName("searchResultsWidget")
-        # Remove direct stylesheet - will use ThemeManager for consistent styling
-
         # Track expanded state for each module type
-        self.expanded_types = set()
+        self.expanded_modules = set()
 
         # Main layout
         layout = QVBoxLayout(self)
@@ -67,17 +56,6 @@ class SearchResultsWidget(QDialog):
         self.resultsList.itemClicked.connect(self._on_item_clicked)
 
         layout.addWidget(self.resultsList)
-
-        # Enhanced shadow effect to match search field styling
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(16)                  # balanced blur for subtle effect
-        shadow.setXOffset(0)
-        shadow.setYOffset(4)                      # subtle drop distance
-        shadow.setColor(QColor(9, 132, 227, 128))  # RGB blue with 50% transparency
-        self.setGraphicsEffect(shadow)
-        #print(f"[DEBUG] Applied blue shadow effect with RGB color: {shadow.color().getRgb()} alpha: {shadow.color().alpha()}")
-
-        # Defer QApplication access until widget is actually shown
         # This prevents crashes during early initialization
         self._event_filter_installed = False
         self._focus_connection_made = False
@@ -97,24 +75,19 @@ class SearchResultsWidget(QDialog):
             from PyQt5.QtWidgets import QApplication
             app = QApplication.instance()
             if app is None:
-                print("[DEBUG] QApplication not available yet, deferring connections")
                 return
 
             if not self._event_filter_installed:
                 app.installEventFilter(self)
                 self._event_filter_installed = True
-                print("[DEBUG] Event filter installed safely")
 
             if not self._focus_connection_made:
                 app.focusChanged.connect(self._on_application_focus_changed)
                 self._focus_connection_made = True
-                print("[DEBUG] Focus change connection made safely")
 
         except Exception as e:
-            print(f"[DEBUG] Failed to setup application connections: {e}")
             # Continue without connections rather than crashing
-
-
+            pass
 
     def retheme_search_results(self):
         """Re-apply QSS styling for dynamic theme switching (following plugin standards)."""
@@ -173,7 +146,7 @@ class SearchResultsWidget(QDialog):
             self.resultsList.addItem(header_item)
 
             # Add results (limited to 5 initially, or all if expanded)
-            is_expanded = module_type in self.expanded_types
+            is_expanded = module_type in self.expanded_modules
             display_hits = hits if is_expanded else hits[:5]
 
             for hit in display_hits:
@@ -212,17 +185,17 @@ class SearchResultsWidget(QDialog):
         self.show()
         self.raise_()
 
-        print(f"[DEBUG] SearchResultsWidget shown at position: {self.pos()}, visible: {self.isVisible()}")
+        # log_debug(f"[DEBUG] SearchResultsWidget shown at position: {self.pos()}, visible: {self.isVisible()}")
 
     def hide_results(self):
         """Hide the search results widget."""
-        print(f"[DEBUG] Hiding SearchResultsWidget, was visible: {self.isVisible()}")
+        # log_debug(f"[DEBUG] Hiding SearchResultsWidget, was visible: {self.isVisible()}")
         self.hide()
 
     def ensure_visible(self):
         """Ensure the widget is visible, useful for search functionality."""
         if not self.isVisible():
-            print(f"[DEBUG] Forcing SearchResultsWidget to show")
+            # log_debug(f"[DEBUG] Forcing SearchResultsWidget to show")
             self.show()
             self.raise_()
 
@@ -293,8 +266,7 @@ class SearchResultsWidget(QDialog):
         self.show()
         self.raise_()
 
-        print(f"[DEBUG] SearchResultsWidget (no results) shown at position: {self.pos()}, visible: {self.isVisible()}")
-
+    
     def keyPressEvent(self, event):
         """Handle key press events, specifically ESC to close."""
         if event.key() == Qt.Key_Escape:
@@ -315,7 +287,7 @@ class SearchResultsWidget(QDialog):
                 # Check if click is on a child widget of this dialog
                 widget_at_pos = QApplication.widgetAt(event.globalPos())
                 if widget_at_pos is None or not self.isAncestorOf(widget_at_pos):
-                    print(f"[DEBUG] Click outside SearchResultsWidget detected, hiding")
+                    # log_debug(f"[DEBUG] Click outside SearchResultsWidget detected, hiding")
                     self.hide_results()
                     return True
         return False
@@ -350,17 +322,17 @@ class SearchResultsWidget(QDialog):
         elif item_type == "show_more":
             # Show more item - expand this module type
             module = data.get("module", "")
-            self.expanded_types.add(module)
+            self.expanded_modules.add(module)
             # print(f"[DEBUG] Expanding module: {module}")
             self.refreshRequested.emit()
 
         elif item_type == "header":
             # Header clicked - toggle expansion
             module = data.get("module", "")
-            if module in self.expanded_types:
-                self.expanded_types.remove(module)
+            if module in self.expanded_modules:
+                self.expanded_modules.remove(module)
                 # print(f"[DEBUG] Collapsing module: {module}")
             else:
-                self.expanded_types.add(module)
+                self.expanded_modules.add(module)
                 # print(f"[DEBUG] Expanding module: {module}")
             self.refreshRequested.emit()

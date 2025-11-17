@@ -1,62 +1,60 @@
 # user_card.py
+import sys
+from typing import List, Dict, Set
 from PyQt5.QtCore import pyqtSignal, Qt, QEvent
 from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-    QCheckBox, QPushButton
+    QCheckBox
 )
-
+from ....utils.url_manager import Module
+from ....constants.file_paths import ConfigPaths
+from ....utils.GraphQLQueryLoader import GraphQLQueryLoader
+from ....utils.SessionManager import SessionManager
+from ....utils.api_client import APIClient
+from ....languages.translation_keys import TranslationKeys
+from PyQt5.QtWidgets import QPushButton
+from .PropertyManagement import PropertyManagement
 from .BaseCard import BaseCard  # assumes BaseCard provides: content_widget(), retheme(), etc.
+from ....widgets.LayerDropdownWidget import LayerTreePicker
 
 
 class UserCard(BaseCard):
     """
-    Product-level user card:
-      - Info (ID, Name, Email)
-      - Roles (read-only pills, reuse AccessPill visuals)
-      - Module access (pills with checkbox-like preferred selector, single-selection)
-
-    Signals:
-      preferredChanged(object)  -> emits selected module name or None
-      moduleSettingsClicked(str) -> emits module name when settings button clicked
-      addShpClicked() -> emits when Add SHP file button is clicked
-      addPropertyClicked() -> emits when Add property button is clicked
-      removePropertyClicked() -> emits when Remove property button is clicked
+    Product-level user card displaying user info, module access,
     """
     preferredChanged = pyqtSignal(object)
-    moduleSettingsClicked = pyqtSignal(str)
     addShpClicked = pyqtSignal()
     addPropertyClicked = pyqtSignal()
     removePropertyClicked = pyqtSignal()
     layerSelected = pyqtSignal(object)  # Emits selected layer or None
 
     def __init__(self, lang_manager):
-        super().__init__(lang_manager, lang_manager.translate("User"), None)
+        super().__init__(lang_manager, lang_manager.translate(TranslationKeys.USER), None)
 
         cw = self.content_widget()
         cl = QVBoxLayout(cw)
         cl.setContentsMargins(0, 0, 0, 0)
         cl.setSpacing(8)  # Slightly increased spacing for better visual separation
 
-        # ---------- User Info Card (IMPROVED: Two-column layout with roles) ----------
         user_info_card = QFrame(cw)
-        user_info_card.setObjectName("UserInfoCard")
+        user_info_card.setObjectName("SettingsMainInfoCard")
 
         # Two-column layout for user info
         user_info_main_layout = QHBoxLayout(user_info_card)
-        user_info_main_layout.setContentsMargins(10, 8, 10, 8)
-        user_info_main_layout.setSpacing(20)  # Space between columns
+        user_info_main_layout.setContentsMargins(6, 6, 6, 6)
+        user_info_main_layout.setSpacing(10)  # Space between columns
 
         # Left column: Basic user info
         left_column = QVBoxLayout()
         left_column.setSpacing(4)
 
         # Name prominently displayed
-        self.lbl_name = QLabel(self.lang_manager.translate("Name") + ": —", user_info_card)
+        self.lbl_name = QLabel(self.lang_manager.translate(TranslationKeys.NAME) + ": —", user_info_card)
         self.lbl_name.setObjectName("UserName")
         left_column.addWidget(self.lbl_name)
 
         # Email below name
-        self.lbl_email = QLabel(self.lang_manager.translate("Email") + ": —", user_info_card)
+        self.lbl_email = QLabel(self.lang_manager.translate(TranslationKeys.EMAIL) + ": —", user_info_card)
         self.lbl_email.setObjectName("UserEmail")
         left_column.addWidget(self.lbl_email)
 
@@ -68,7 +66,7 @@ class UserCard(BaseCard):
         right_column.setSpacing(4)
 
         # Roles label
-        roles_label = QLabel(self.lang_manager.translate("Roles"), user_info_card)
+        roles_label = QLabel(self.lang_manager.translate(TranslationKeys.ROLES), user_info_card)
         roles_label.setObjectName("UserRolesLabel")
         right_column.addWidget(roles_label)
 
@@ -83,28 +81,37 @@ class UserCard(BaseCard):
         cl.addWidget(user_info_card)
 
         # ---------- Module access (pills with checkboxes) ----------
-        pills_title = QLabel(self.lang_manager.translate("Module access"), cw)
-        pills_title.setObjectName("SetupCardSectionTitle")
-        cl.addWidget(pills_title)
+        module_access_frame = QFrame(cw)
+        module_access_frame.setObjectName("SettingsMainInfoCard")
+        module_access_layout = QVBoxLayout(module_access_frame)
+        module_access_layout.setContentsMargins(0, 0, 0, 0)
+        module_access_layout.setSpacing(2)
 
-        self.access_container = QFrame(cw)
+        pills_title = QLabel(self.lang_manager.translate(TranslationKeys.MODULE_ACCESS), module_access_frame)
+        pills_title.setObjectName("SetupCardSectionTitle")
+        module_access_layout.addWidget(pills_title)
+
+        self.access_container = QFrame(module_access_frame)
         self.access_container.setObjectName("AccessPills")
+
         self.access_layout = QHBoxLayout(self.access_container)
         self.access_layout.setContentsMargins(0, 0, 0, 0)
         self.access_layout.setSpacing(8)  # Increased spacing for better visual separation
-        cl.addWidget(self.access_container)
+        module_access_layout.addWidget(self.access_container)
+
+        cl.addWidget(module_access_frame)
 
         # ---------- Property Management Widget ----------
-        from .PropertyManagement import PropertyManagement
+
         self.property_management = PropertyManagement(self.lang_manager)
         # Connect signals from property management widget
-        self.property_management.addShpClicked.connect(self._on_add_shp_clicked)
-        self.property_management.addPropertyClicked.connect(self._on_add_property_clicked)
-        self.property_management.removePropertyClicked.connect(self._on_remove_property_clicked)
+        self.property_management.addShpClicked.connect(self.addShpClicked)
+        self.property_management.addPropertyClicked.connect(self.addPropertyClicked)
+        self.property_management.removePropertyClicked.connect(self.removePropertyClicked)
         cl.addWidget(self.property_management)
 
         # ---------- Layer Selector ----------
-        layer_selector_title = QLabel(self.lang_manager.translate("Layer Selection"), cw)
+        layer_selector_title = QLabel(self.lang_manager.translate(TranslationKeys.SELECT_LAYER), cw)
         layer_selector_title.setObjectName("SetupCardSectionTitle")
         cl.addWidget(layer_selector_title)
 
@@ -117,19 +124,17 @@ class UserCard(BaseCard):
 
         # Explanation label
         explanation_label = QLabel(
-            self.lang_manager.translate("Select a property layer for data operations and management"),
+            self.lang_manager.translate(TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE),
             layer_selector_container
         )
         explanation_label.setObjectName("LayerSelectorExplanation")
         explanation_label.setWordWrap(True)
-        explanation_label.setStyleSheet("font-size: 11px; color: #666;")
         layer_selector_layout.addWidget(explanation_label)
 
         # Use the existing LayerTreePicker widget
-        from ....widgets.layer_dropdown import LayerTreePicker
         self.layer_selector = LayerTreePicker(
             layer_selector_container,
-            placeholder=self.lang_manager.translate("Select a property layer...")
+            placeholder=self.lang_manager.translate(TranslationKeys.SELECT_A_PROPERTY_LAYER)
         )
         self.layer_selector.setObjectName("PropertyLayerSelector")
         self.layer_selector.layerChanged.connect(self._on_layer_selection_changed)
@@ -139,7 +144,6 @@ class UserCard(BaseCard):
 
         # Populate layer selector and load saved selection
         self._populate_layer_selector()
-        # Note: Initial layer selection is now handled by SettingsUI
 
         # Connect to project layer changes
         self._connect_to_project_signals()
@@ -150,26 +154,11 @@ class UserCard(BaseCard):
         self._update_permissions = {}
 
     # ---------- Public API (SettingsUI uses these) ----------
-    def set_user(self, user: dict):
-        # IMPROVED: No longer showing user ID as it doesn't make sense to users
-        full_name = f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() or "—"
-        email = user.get("email", "—")
-
-        self.lbl_name.setText(f"{full_name}")
-        self.lbl_email.setText(f"{email}")
-
-    def set_roles(self, roles):
-        # IMPROVED: Display roles on separate line below label
-        if roles:
-            roles_text = ", ".join(roles)
-            self.lbl_roles.setText(roles_text)
-        else:
-            self.lbl_roles.setText("—")
 
     def set_update_permissions(self, update_permissions: dict):
         """Set which modules the user can update/modify"""
         self._update_permissions = update_permissions or {}
-        print(f"DEBUG: Update permissions set: {self._update_permissions}")
+        #print(f"DEBUG: Update permissions set: {self._update_permissions}")
 
     def set_access_map(self, access_map: dict, label_resolver=None):
         # Clear previous pills and checks
@@ -184,6 +173,7 @@ class UserCard(BaseCard):
             pill = QFrame(self.access_container)
             pill.setObjectName("AccessPill")
             pill.setFocusPolicy(Qt.StrongFocus)  # allows focus ring via :focus-within
+            pill.setStyleSheet("QFrame { border: 2px dotted red; }")  # DEBUG: Ugly border to see pill boundaries
 
             hl = QHBoxLayout(pill)
             hl.setContentsMargins(8, 2, 8, 2)  # Consistent padding with roles pills
@@ -191,7 +181,7 @@ class UserCard(BaseCard):
 
             chk = QCheckBox(pill)
             # Keep old objectName so existing QSS (written for radios) continues to apply
-            chk.setObjectName("PreferredModuleRadio")
+            chk.setObjectName("PreferredModulecb")
             chk.setEnabled(bool(has_access))
             chk.setProperty("moduleName", module_name)
             chk.toggled.connect(lambda checked, btn=chk: self._on_pref_toggled(btn, checked))
@@ -211,17 +201,8 @@ class UserCard(BaseCard):
             hl.addWidget(chk, 0)
             hl.addWidget(txt, 0)
             
-            # Add settings button if user has update permissions for this module
-            if has_access and self._update_permissions.get(module_name, False):
-                from PyQt5.QtWidgets import QPushButton
-                settings_btn = QPushButton("⚙️", pill)
-                settings_btn.setObjectName("ModuleSettingsButton")
-                settings_btn.setFixedSize(20, 20)
-                settings_btn.setToolTip(f"Open {label_text} settings")
-                settings_btn.clicked.connect(lambda checked, mod=module_name: self._on_module_settings_clicked(mod))
-                hl.addWidget(settings_btn, 0)
-            else:
-                hl.addStretch(1)
+            # Module access is now handled through ModuleCard - no settings button needed
+            hl.addStretch(1)
 
             # Make pill and its label clickable to select
             if has_access:
@@ -236,28 +217,14 @@ class UserCard(BaseCard):
     def set_preferred(self, module_name):
         # Programmatic single-selection with checkboxes
         for m, cb in self._check_by_module.items():
+
             cb.blockSignals(True)
             cb.setChecked(m == module_name)
             cb.blockSignals(False)
 
-    def get_selected_preferred(self):
-        for m, cb in self._check_by_module.items():
-            if cb.isChecked():
-                return m
-        return None
-
-    def apply(self):
-        """Hook called after settings are applied (if needed later)."""
-        pass
-
     def revert(self, preferred_module_name):
         """Reset UI selection to original preferred module."""
         self.set_preferred(preferred_module_name)
-
-    def _on_module_settings_clicked(self, module_name):
-        """Handle module settings button click"""
-        print(f"DEBUG: Module settings clicked for: {module_name}")
-        self.moduleSettingsClicked.emit(module_name)
 
     def retheme(self):
         super().retheme()
@@ -308,17 +275,6 @@ class UserCard(BaseCard):
         return super().eventFilter(obj, event)
 
     # ---------- Button Handlers ----------
-    def _on_add_shp_clicked(self):
-        """Handle Add SHP file button click"""
-        self.addShpClicked.emit()
-
-    def _on_add_property_clicked(self):
-        """Handle Add property button click"""
-        self.addPropertyClicked.emit()
-
-    def _on_remove_property_clicked(self):
-        """Handle Remove property button click"""
-        self.removePropertyClicked.emit()
 
     # ---------- Layer Selector Methods ----------
     def _populate_layer_selector(self):
@@ -383,8 +339,6 @@ class UserCard(BaseCard):
         """Get the currently selected layer"""
         return getattr(self, '_selected_layer', None)
 
-
-
     def clear_main_property_layer(self):
         """Clear the main property layer selection."""
         self.layer_selector.clearSelection()
@@ -416,3 +370,74 @@ class UserCard(BaseCard):
             w = item.widget()
             if isinstance(w, QFrame) and w.objectName() == "AccessPill":
                 w.style().unpolish(w); w.style().polish(w); w.update()
+
+
+class userUtils:
+    @staticmethod
+    def load_user(lbl_name: QLabel, lbl_email: QLabel, lbl_roles: QLabel, lang_manager) -> Dict:
+        
+        name = Module.USER.value
+        query_file = "me.graphql"
+
+        ql = GraphQLQueryLoader(lang_manager)
+        api = APIClient(SessionManager(), ConfigPaths.CONFIG)
+        query = ql.load_query(name, query_file)
+        data = api.send_query(query)
+        user_data = data.get("me", {}) or {}
+        userUtils.extract_and_set_user_labels(lbl_name, lbl_email, user_data)
+
+        roles = userUtils.get_roles_list(user_data.get("roles"))
+        userUtils.set_roles(lbl_roles, roles)
+        abilities = user_data.get("abilities", [])
+        return abilities
+
+    @staticmethod
+    def abilities_to_subjects(abilities) -> Set[str]:
+
+        import json
+        abilities = abilities or []
+        if isinstance(abilities, str):
+            try:
+                abilities = json.loads(abilities)
+            except Exception:
+                abilities = []
+        subjects = set()
+        #print(f"DEBUG: Parsed abilities: {abilities}")
+        for ab in abilities:
+            subj = ab.get('subject')
+            if isinstance(subj, list) and subj:
+                subjects.add(str(subj[0]))
+            elif isinstance(subj, str):
+                subjects.add(subj)
+        return subjects
+
+    @staticmethod
+    def extract_and_set_user_labels(lbl_name: QLabel, lbl_email: QLabel, user: dict):
+
+        full_name = f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() or "—"
+        #print(f"[userUtils] Full name extracted: {full_name}")
+        email = user.get("email", "—")
+
+        lbl_name.setText(f"{full_name}")
+        lbl_email.setText(f"{email}")
+
+    @staticmethod
+    def get_roles_list(roles_data) -> List[str]:
+        roles = roles_data or []
+        if isinstance(roles, str):
+            roles = []
+        names: List[str] = []
+        for r in roles:
+            name = r.get('displayName') or r.get('name') or str(r.get('id') or '')
+            if name:
+                names.append(name)
+        return names
+
+    @staticmethod
+    def set_roles(lbl_roles: QLabel, roles: list):
+        # IMPROVED: Display roles on separate line below label
+        if roles:
+            roles_text = ", ".join(roles)
+            lbl_roles.setText(roles_text)
+        else:
+            lbl_roles.setText("—")

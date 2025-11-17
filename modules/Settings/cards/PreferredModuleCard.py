@@ -1,13 +1,11 @@
-from PyQt5.QtWidgets import QVBoxLayout, QLabel, QComboBox, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QVBoxLayout, QLabel, QComboBox, QHBoxLayout
 from PyQt5.QtCore import pyqtSignal, QTimer
 from .BaseCard import BaseCard
-from ....constants.module_names import (
-    PROJECTS_MODULE, CONTRACT_MODULE, SETTINGS_MODULE, PROPERTY_MODULE
-)
 from ....utils.url_manager import Module
 from qgis.core import QgsSettings
 
-
+from ....languages.translation_keys import TranslationKeys
+from ....widgets.theme_manager import ThemeManager, Theme, is_dark
 class PreferredModuleCard(BaseCard):
     """Card for setting the user's preferred module that opens by default."""
 
@@ -35,7 +33,7 @@ class PreferredModuleCard(BaseCard):
 
     def _apply_label_colors(self):
         """Apply label colors after QSS is processed."""
-        if ThemeManager.load_theme_setting() == 'dark':
+        if is_dark(ThemeManager.effective_theme()):
             self.desc_label.setStyleSheet("color: #ffffff !important;")
             self.label.setStyleSheet("color: #ffffff !important;")
             self.current_label.setStyleSheet("color: #ffffff !important;")
@@ -63,10 +61,10 @@ class PreferredModuleCard(BaseCard):
 
         self.module_combo = QComboBox()
         self.module_combo.addItem("Avaleht", Module.HOME)
-        self.module_combo.addItem("Projektid", PROJECTS_MODULE)
-        self.module_combo.addItem("Lepingud", CONTRACT_MODULE)
-        self.module_combo.addItem("Seaded", SETTINGS_MODULE)
-        self.module_combo.addItem("Kinnistu", PROPERTY_MODULE)
+        self.module_combo.addItem("Projektid", Module.PROJECT)
+        self.module_combo.addItem("Lepingud", Module.CONTRACT)
+        self.module_combo.addItem("Seaded", Module.SETTINGS)
+        self.module_combo.addItem("Kinnistu", Module.PROPERTY)
 
         self.module_combo.currentTextChanged.connect(self._on_module_changed)
         selection_layout.addWidget(self.module_combo)
@@ -85,13 +83,13 @@ class PreferredModuleCard(BaseCard):
         try:
             if QgsSettings:
                 settings = QgsSettings()
-                preferred_module = settings.value("wild_code/preferred_module", Module.HOME, str)
+                preferred_module = settings.value("wild_code/preferred_module", Module.HOME.name, str)
                 self._original_preferred = preferred_module
                 self._pending_preferred = preferred_module
 
                 # Set the combo box to the current value
                 for i in range(self.module_combo.count()):
-                    if self.module_combo.itemData(i) == preferred_module:
+                    if self.module_combo.itemData(i).name == preferred_module:
                         self.module_combo.setCurrentIndex(i)
                         break
 
@@ -99,25 +97,26 @@ class PreferredModuleCard(BaseCard):
         except Exception as e:
             print(f"Error loading preferred module setting: {e}")
             # Default to home
-            self._original_preferred = Module.HOME
-            self._pending_preferred = Module.HOME
+            self._original_preferred = Module.HOME.name
+            self._pending_preferred = Module.HOME.name
 
     def _on_module_changed(self):
         """Handle module selection change."""
         current_data = self.module_combo.currentData()
-        if current_data != self._pending_preferred:
-            self._pending_preferred = current_data
+        current_name = current_data.name if hasattr(current_data, 'name') else str(current_data)
+        if current_name != self._pending_preferred:
+            self._pending_preferred = current_name
             self.pendingChanged.emit(self._has_pending_changes())
             self._update_current_label()
 
     def _update_current_label(self):
         """Update the current selection display label."""
         module_names = {
-            Module.HOME: "Avaleht",
-            PROJECTS_MODULE: "Projektid",
-            CONTRACT_MODULE: "Lepingud",
-            SETTINGS_MODULE: "Seaded",
-            PROPERTY_MODULE: "Kinnistu"
+            Module.HOME.name: "Avaleht",
+            Module.PROJECT.name: "Projektid",
+            Module.CONTRACT.name: "Lepingud",
+            Module.SETTINGS.name: "Seaded",
+            Module.PROPERTY.name: "Kinnistu"
         }
 
         current_name = module_names.get(self._pending_preferred, "Avaleht")
@@ -145,7 +144,7 @@ class PreferredModuleCard(BaseCard):
         self._pending_preferred = self._original_preferred
         # Reset combo box to original value
         for i in range(self.module_combo.count()):
-            if self.module_combo.itemData(i) == self._original_preferred:
+            if self.module_combo.itemData(i).name == self._original_preferred:
                 self.module_combo.setCurrentIndex(i)
                 break
         self._update_current_label()

@@ -1,6 +1,7 @@
 from qgis.PyQt.QtCore import QSettings
 from qgis.core import QgsApplication, QgsAuthMethodConfig
 from qgis.PyQt.QtWidgets import QMessageBox
+from ..languages.translation_keys import TranslationKeys
 
 class SessionManager:
 
@@ -65,11 +66,7 @@ class SessionManager:
         if self.auth_manager.storeAuthenticationConfig(config):
             self.settings.setValue("myplugin/auth_id", config.id())
             self.settings.setValue("myplugin/username", username)
-            try:
-                from .logger import debug as log_debug
-                log_debug("Credentials securely stored.")
-            except Exception:
-                pass
+            # Credentials securely stored.
         else:
             try:
                 from .logger import error as log_error
@@ -82,11 +79,7 @@ class SessionManager:
         self.username = self.settings.value("myplugin/username", "")
 
         if not auth_id:
-            try:
-                from .logger import debug as log_debug
-                log_debug("No stored auth ID found.")
-            except Exception:
-                pass
+            # No stored auth ID found.
             return False
 
         config = QgsAuthMethodConfig()
@@ -106,11 +99,7 @@ class SessionManager:
         self.username = None
         self.password = None
         self.api_key = None
-        try:
-            from .logger import debug as log_debug
-            log_debug("Session data cleared.")
-        except Exception:
-            pass
+        # Session data cleared.
 
     @staticmethod
     def isLoggedIn():
@@ -129,17 +118,17 @@ class SessionManager:
         from qgis.PyQt.QtWidgets import QMessageBox
         msg = QMessageBox(parent)
         msg.setIcon(QMessageBox.Information)
-        msg.setWindowTitle("Session Expired")
-        text = lang_manager.translate("session_expired") if lang_manager else "Your session has expired. Please sign in again."
+        msg.setWindowTitle(lang_manager.translate(TranslationKeys.SESSION_EXPIRED_TITLE) if lang_manager else "Session Expired")
+        text = lang_manager.translate(TranslationKeys.SESSION_EXPIRED)
         msg.setText(text)
-        login_btn = msg.addButton(lang_manager.translate("login_button") if lang_manager else "Log in", QMessageBox.AcceptRole)
-        cancel_btn = msg.addButton(lang_manager.translate("cancel_button") if lang_manager else "Cancel", QMessageBox.RejectRole)
+        login_btn = msg.addButton(lang_manager.translate(TranslationKeys.LOGIN_BUTTON) if lang_manager else "Log in", QMessageBox.AcceptRole)
+        cancel_btn = msg.addButton(lang_manager.translate(TranslationKeys.CANCEL_BUTTON) if lang_manager else "Cancel", QMessageBox.RejectRole)
         msg.exec_()
         if msg.clickedButton() == login_btn:
-            print("[SessionManager] Log in button clicked")
+            #print("[SessionManager] Log in button clicked")
             return "login"
         else:
-            print("[SessionManager] Cancel button clicked")
+            #print("[SessionManager] Cancel button clicked")
             SessionManager.clear()
             SessionManager._instance.settings.setValue("session/needs_login", True)
             return "cancel"

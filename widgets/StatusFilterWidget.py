@@ -1,105 +1,121 @@
 # -*- coding: utf-8 -*-
-from typing import Optional, Union, List
+from __future__ import annotations
 
-from PyQt5.QtWidgets import QHBoxLayout
-from PyQt5.QtCore import Qt, QCoreApplication
+from typing import List, Optional, Sequence, Union
 
-from .BaseFilterWidget import BaseFilterWidget
-from ..constants.file_paths import STATUS_QUERIES
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QHBoxLayout, QWidget
+from qgis.core import QgsSettings
+from qgis.gui import QgsCheckableComboBox
+
+from ..languages.language_manager import LanguageManager
 from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
 from ..utils.api_client import APIClient
-from ..languages.language_manager import LanguageManager
 from ..utils.url_manager import Module
 
 
+class StatusFilterWidget(QWidget):
+    """Standalone status filter backed by a QgsCheckableComboBox."""
 
-class StatusFilterWidget(BaseFilterWidget):
+    selectionChanged = pyqtSignal(list, list)
 
-    def __init__(self, module_name: Union[str, object],  parent=None, debug: Optional[bool] = None):
+    def __init__(self, module_name: Union[str, object], parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
+        self._module = getattr(module_name, "value", module_name)
         self._lang = LanguageManager()
         self._api = APIClient()
         self._loader = GraphQLQueryLoader(self._lang)
-        self.set_debug(bool(debug))
-        self.query_file = "ListModuleStatuses.graphql"
-        self._module = module_name
-        self.filter_module = "statuses"
-        
+        self._suppress_emit = False
+        self._loaded = False
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(4, 2, 4, 2)
         layout.setSpacing(1)
 
-        self.combo = self._init_checkable_combo("StatusFilterCombo")
-
+        self.combo = QgsCheckableComboBox(self)
+        self.combo.setObjectName("StatusFilterCombo")
+        self.combo.setMaxVisibleItems(12)
         layout.addWidget(self.combo)
-        # Accent shadow
-        self._apply_combo_shadow(self.combo)
 
-        # Add tooltip for clarity
-        tooltip = LanguageManager().translate("Status Filter")
+        tooltip = self._lang.translate("Status Filter") if self._lang else "Status Filter"
         self.combo.setToolTip(tooltip)
 
-        # QGIS: kohe emit iga muutusega
-        self.combo.checkedItemsChanged.connect(lambda: self.selectionChanged.emit(self.selected_ids()))
+        self.combo.checkedItemsChanged.connect(self._emit_selection_change)  # type: ignore[attr-defined]
+        self.reload()
+        self._apply_saved_preferences()
 
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+    def reload(self) -> None:
         self._loaded = False
-
-    # --- fallback klikk ---
-    def _on_item_pressed(self, index):
-        # Toggle CheckStateRole
-        m = self.combo.model()
-        cur = m.data(index, Qt.CheckStateRole)
-        nxt = Qt.Checked if cur in (None, Qt.Unchecked) else Qt.Unchecked
-        m.setData(index, nxt, Qt.CheckStateRole)
-        QCoreApplication.processEvents()
-        self.selectionChanged.emit(self.selected_ids())
-
-    def _populate(self) -> None:
-        # Use QueryPaths key name, not raw folder constant
-        status_module = Module.STATUSES.value
-        print(f"[StatusFilterWidget _populate] Loading query for module: {status_module}")
-        key_raw = status_module[:-2] if len(status_module) > 2 else status_module
-        status_query_key = key_raw.upper()     # "STATUS"
-        print(f"[StatusFilterWidget _populate] status_query_key: {status_query_key}")
         try:
-            query = self._loader.load_query(status_query_key, self.query_file)
-            
-            module_plural = self._module.plural(upper=True)
-        
-            variables = {
-                "first": 50,
-                "after": None,
-                "where": {"column": "MODULE", "value": module_plural},
-            }
-            
-            data = self._api.send_query(query, variables=variables) or {}
-    
-            statuses: List[dict] = []
-
-            edges = ((data or {}).get(self.filter_module) or {}).get("edges") or []
-                    
-            for e in edges:
-                n = (e or {}).get("node") or {}
-                sid = n.get("id")
-                name = n.get("name")
-                if sid and name:
-                    statuses.append({"id": sid, "name": name})
-            
+            self._load_statuses()
+            self._loaded = True
+        except Exception as exc:  # pragma: no cover - logged for diagnostics
             self.combo.clear()
-            for s in statuses:
-                self.combo.addItem(s["name"], s["id"])
-                try:
-                    self.combo.setItemCheckState(self.combo.count() - 1, Qt.Unchecked)  # type: ignore[attr-defined]
-                except Exception:
-                    m = self.combo.model()
-                    idx = m.index(self.combo.count() - 1, 0)
-                    m.setData(idx, Qt.Unchecked, Qt.CheckStateRole)
-            # Adjust popup to show all statuses if few
-            self._auto_adjust_combo_popup(self.combo)
-            
-        except Exception as e:
-            # Clear combo and add error message
-            self.combo.clear()
-            self.combo.addItem(f"Error: {str(e)[:50]}...")
-            # Disable the widget
+            self.combo.addItem(f"Error: {str(exc)[:60]}…")
             self.combo.setEnabled(False)
+            self._loaded = False
+
+    def ensure_loaded(self) -> None:
+        if not self._loaded:
+            self.reload()
+
+    def selected_ids(self) -> List[str]:
+        return list(self.combo.checkedItemsData() or [])  # type: ignore[attr-defined]
+
+    def selected_texts(self) -> List[str]:
+        return list(self.combo.checkedItems() or [])  # type: ignore[attr-defined]
+
+    def set_selected_ids(self, ids: Sequence[str], emit: bool = True) -> None:
+        ids_set = {str(v) for v in ids or []}
+        self._suppress_emit = True
+        try:
+            for row in range(self.combo.count()):
+                val = self.combo.itemData(row)
+                state = Qt.Checked if str(val) in ids_set else Qt.Unchecked
+                self.combo.setItemCheckState(row, state)
+        finally:
+            self._suppress_emit = False
+
+        if emit:
+            self._emit_selection_change()
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+    def _load_statuses(self) -> None:
+        key_raw = Module.STATUSES.value
+        key = key_raw[:-2].upper() if len(key_raw) > 2 else key_raw.upper()
+        query = self._loader.load_query(key, "ListModuleStatuses.graphql")
+        module_plural = f"{str(self._module).upper()}S"
+        variables = {
+            "first": 50,
+            "after": None,
+            "where": {"column": "MODULE", "value": module_plural},
+        }
+        data = self._api.send_query(query, variables=variables) or {}
+        edges = ((data or {}).get("statuses") or {}).get("edges") or []
+
+        self.combo.clear()
+        for edge in edges:
+            node = (edge or {}).get("node") or {}
+            sid = node.get("id")
+            label = node.get("name")
+            if sid and label:
+                self.combo.addItem(label, sid)
+
+    def _apply_saved_preferences(self) -> None:
+        key = f"wild_code/modules/{self._module}/preferred_statuses"
+        raw = QgsSettings().value(key, "") or ""
+        ids = [token.strip() for token in str(raw).split(",") if token.strip()]
+        if ids:
+            self.set_selected_ids(ids, emit=False)
+
+    def _emit_selection_change(self) -> None:
+        if self._suppress_emit:
+            return
+        texts = self.selected_texts()
+        ids = self.selected_ids()
+        self.selectionChanged.emit(texts, ids)

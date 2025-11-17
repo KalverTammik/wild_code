@@ -170,26 +170,21 @@
   text-decoration: line-through;
 }
 
-/* Radio/Checkbox (preferred) — indicator + spacing */
-#SetupCard #AccessPills QFrame#AccessPill > QRadioButton#PreferredModuleRadio,
-#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModuleRadio {
-  margin-right: 6px;
+/* Shared: spacing and transparent button bg */
+#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModulecb {
+  margin-right: 2px;     /* space before label */
   background: transparent;
 }
-#SetupCard #AccessPills QFrame#AccessPill > QRadioButton#PreferredModuleRadio::indicator,
-#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModuleRadio::indicator {
-  width: 14px; height: 14px; border-radius: 7px;
-  border: 1px solid rgba(255,255,255,0.35);
-  background: #26313a;
+
+/* Shared: indicator box */
+#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModulecb::indicator {
+  width: 12px;
+  height: 12px;
+  border: none
 }
-#SetupCard #AccessPills QFrame#AccessPill > QRadioButton#PreferredModuleRadio::indicator:checked,
-#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModuleRadio::indicator:checked {
-  border-color: rgb(9,144,143);
-  background: radial-gradient(circle at 50% 50%, rgba(9,144,143,1) 40%, transparent 42%);
-}
-#SetupCard #AccessPills QFrame#AccessPill > QRadioButton#PreferredModuleRadio::indicator:disabled,
-#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModuleRadio::indicator:disabled {
-  background: #2a333b; border: 1px dashed rgba(255,255,255,0.25);
+
+#SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModulecb::indicator:disabled {
+  background: transparent;
 }
 
 /* Keyboard focus ring on the pill when its radio is focused */
@@ -202,7 +197,7 @@
 /* =========================================
    User Info Card — IMPROVED TWO-COLUMN LAYOUT
    ========================================= */
-#SetupCard QFrame#UserInfoCard {
+#SetupCard QFrame#SettingsMainInfoCard {
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 6px;

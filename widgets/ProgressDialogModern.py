@@ -8,13 +8,9 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QKeySequence
 
-try:
-    from ..languages.language_manager import LanguageManager
-except ImportError:
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-    from languages.language_manager import LanguageManager
+
+from ..languages.language_manager import LanguageManager
+
 
 
 class ProgressDialogModern(QDialog):

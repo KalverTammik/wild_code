@@ -1,7 +1,7 @@
 from PyQt5.QtCore import Qt, QCoreApplication, QPoint
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QProgressBar, QVBoxLayout, QHBoxLayout,
-    QFrame, QPushButton, QSizePolicy, QGraphicsDropShadowEffect,
+    QFrame, QPushButton, QSizePolicy,
     QGraphicsScene, QGraphicsPixmapItem, QGraphicsBlurEffect
 )
 from PyQt5.QtGui import (
@@ -21,7 +21,7 @@ if plugin_root not in sys.path:
     sys.path.insert(0, plugin_root)
 
 try:
-    from widgets.theme_manager import ThemeManager
+    from ..widgets.theme_manager import ThemeManager, Theme, is_dark, styleExtras
     from constants.file_paths import QssPaths
 except ImportError as e:
     print(f"Import error in UniversalStatusBar: {e}")
@@ -122,7 +122,7 @@ class UniversalStatusBar:
         self.stay_on_top = stay_on_top
         self.width = width
         self.height = height
-        self.current_theme = theme if theme is not None else 'light'
+        self.current_theme = ThemeManager.load_theme_setting()
         self.canceled = False  # Add cancellation flag
         
         self.widget = self._build_ui()
@@ -158,35 +158,13 @@ class UniversalStatusBar:
         UniversalStatusBar.active_instances.add(self)
         self.widget.show()
 
-    # ---------- helpers ----------
-    @staticmethod
-    def _add_text_shadow(label: QLabel, color=QColor(255, 255, 255, 200), blur=6):
-        """Lisa kerge hele vari (kasulik light-teemas)."""
-        sh = QGraphicsDropShadowEffect()
-        sh.setBlurRadius(blur)
-        sh.setOffset(0, 0)
-        sh.setColor(color)
-        label.setGraphicsEffect(sh)
-
-    def _apply_theme_styling(self, widget: QWidget, theme: str = None):
-        """Apply theme-aware styling using the centralized ThemeManager."""
-        try:
-            from ..constants.file_paths import StylePaths
-            theme_dir = StylePaths.DARK if theme == 'dark' else StylePaths.LIGHT
-            ThemeManager.apply_theme(widget, theme_dir, [QssPaths.UNIVERSAL_STATUS_BAR])
-        except Exception as e:
-            # Fallback if theming system is not available
-            pass
-
-
     # ---------- build ----------
     def _build_ui(self) -> QWidget:
         widget = QWidget()
         widget.setFixedSize(self.width, self.height)
         widget.setObjectName("UniversalStatusBar")
 
-        # Apply current theme styling
-        self._apply_theme_styling(widget, self.current_theme)
+        ThemeManager.apply_module_style(self, [QssPaths.UNIVERSAL_STATUS_BAR])
 
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(10, 10, 10, 10)
@@ -217,7 +195,7 @@ class UniversalStatusBar:
         self.title_frame = title_frame
 
         # Frosted content area with theme-appropriate tint
-        if self.current_theme == 'dark':
+        if is_dark(self.current_theme):
             tint = QColor(20, 22, 26, 120)      # Dark tint
             border = QColor(77, 77, 77, 160)
         else:
@@ -235,12 +213,7 @@ class UniversalStatusBar:
         content_layout.setContentsMargins(15, 10, 15, 10)
         content_layout.setSpacing(8)
 
-        # Shadow effect
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(24)
-        shadow.setOffset(0, 6)
-        shadow.setColor(QColor(0,0,0,140) if self.current_theme=='dark' else QColor(0,0,0,90))
-        content_frame.setGraphicsEffect(shadow)
+        styleExtras.apply_chip_shadow(content_frame, blur_radius=24, x_offset=0, y_offset=6)
 
         # Labels
         main_label = QLabel("")
@@ -264,12 +237,6 @@ class UniversalStatusBar:
         content_layout.addWidget(text2_label)
 
         layout.addWidget(content_frame)
-
-        # Add text shadows for light theme readability
-        if self.current_theme == 'light':
-            self._add_text_shadow(main_label, QColor(255,255,255,220), blur=8)
-            self._add_text_shadow(text1_label, QColor(255,255,255,200), blur=6)
-            self._add_text_shadow(text2_label, QColor(255,255,255,200), blur=6)
 
         return widget
 
@@ -331,13 +298,6 @@ class UniversalStatusBar:
             self.title_frame.setCursor(Qt.OpenHandCursor)
         super().mouseReleaseEvent(event)
 
-    def get_current_theme(self) -> str:
-        return self.current_theme
-
-    @staticmethod
-    def get_available_themes() -> list:
-        return ['dark', 'light']
-
     @staticmethod
     def close_all():
         for instance in list(UniversalStatusBar.active_instances):
@@ -350,5 +310,6 @@ class UniversalStatusBar:
     @classmethod
     def create_with_message(cls, title: str, message: str, maximum: int = 100, theme: str = 'dark') -> 'UniversalStatusBar':
         instance = cls(title=title, maximum=maximum, theme=theme)
+        instance.progress_bar.setVisible(False)
         instance.update(purpose=message)
         return instance

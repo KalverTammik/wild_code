@@ -49,6 +49,7 @@ class QssPaths:
     MODULE_CARD = "ModuleCard.qss"
     SETUP_CARD = "SetupCard.qss"
     PILLS = "pills.qss"
+    POPUP = "popup.qss"
     MODULES_MAIN = "ModulesMain.qss"
     TOOLTIP = "tooltip.qss"
     LAYER_TREE_PICKER = "LayerTreePicker.qss"
@@ -56,12 +57,47 @@ class QssPaths:
     UNIVERSAL_STATUS_BAR = "UniversalStatusBar.qss"
     PROGRESS_DIALOG = "ProgressDialogModern.qss"
     PROPERTIES_UI = "PropertysUIMain.qss"
-    LIGHT_THEME = os.path.join(PLUGIN_ROOT, STYLES, "LightTheme.qss")
-    DARK_THEME = os.path.join(PLUGIN_ROOT, STYLES, "DarkTheme.qss")
-    SIDEBAR_THEME = os.path.join(PLUGIN_ROOT, STYLES, "Sidebar.qss")
+    DATES = "dates.qss"
+    MODULE_INFO = "ModuleInfo.qss"
+    MESSAGE_BOX = "MessageBox.qss"
+
     LOGIN_THEME = os.path.join(PLUGIN_ROOT, STYLES, "LoginTheme.qss")
 
 # Theme directory paths (for modular theme loading)
+
+    def return_plugin_main_files() -> list:
+        """Return list of main QSS files for the plugin."""
+        qss_files = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
+
+        return [
+            QssPaths.MAIN,
+            QssPaths.COMBOBOX,
+            QssPaths.SIDEBAR,
+        ]
+    
+
+    def return_module_main_files() -> list:
+        """Return list of main QSS files for modules."""
+        return [
+            QssPaths.MAIN,
+            QssPaths.SIDEBAR,
+            QssPaths.HEADER,
+            QssPaths.FOOTER,
+            QssPaths.MODULE_TOOLBAR,
+            QssPaths.MODULE_CARD,
+            QssPaths.SETUP_CARD,
+            QssPaths.PILLS,
+            QssPaths.POPUP,
+            QssPaths.TOOLTIP,
+            QssPaths.LAYER_TREE_PICKER,
+            QssPaths.SEARCH_RESULTS_WIDGET,
+            QssPaths.PROGRESS_DIALOG,
+            QssPaths.PROPERTIES_UI,
+            QssPaths.DATES,
+            QssPaths.MODULE_INFO
+
+        ]
+
 class StylePaths:
     DARK = os.path.join(PLUGIN_ROOT, STYLES, "Dark")
     LIGHT = os.path.join(PLUGIN_ROOT, STYLES, "Light")

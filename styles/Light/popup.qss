@@ -1,0 +1,28 @@
+/* Members popup styling for light theme */
+QFrame#PopupFrame {
+    border: 1px solid rgba(0,120,212,0.45) !important;
+    background-color: #fafbfc;
+    color: #1a1a1a;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin: 0;
+    padding: 0;
+}
+
+/* Popup date labels */
+QFrame#PopupFrame QLabel#Label {
+  color: #6c757d;
+  font-size: 11px;
+  font-weight: 500;
+  margin: 0;
+  padding: 0;
+}
+
+/* Popup date values */
+QFrame#PopupFrame QLabel#Value {
+  color: #495057;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0;
+  padding: 0;
+}

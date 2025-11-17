@@ -1,34 +1,17 @@
 /* ===== Sidebar (Dark) ===== */
 
-QWidget#SidebarRoot {
-    background: transparent;
-}
+QWidget#SidebarRoot { background: transparent; }
 
-/* Container with right-edge glow (separator toward content) */
-QFrame#SidebarContainer {
-    background: #1d252b;
-    border-right: 1px solid rgba(9,144,143,0.65);
-    /* inner-right glow using gradient overlay trick */
-    background: qlineargradient(x1:1, y1:0, x2:0.94, y2:0,
-        stop:0   rgba(9,144,143,0.16),
-        stop:1   rgba(9,144,143,0.00)
-    ), #1d252b;
-}
-
-/* Nav and settings cards */
-QFrame#SidebarNavFrame { /* main navigation card */
+QFrame#SidebarNavFrame {
     background: #2a323a;
     border: 1px solid #3a444d;
     border-radius: 10px;
-    padding: 4px;
 }
 
-/* Docked footer meta bar */
 QFrame#SidebarFooterBar {
     background: #2a323a;
     border: 1px solid #3a444d;
     border-radius: 10px;
-    padding: 6px 8px 6px 8px;
 }
 
 /* Footer container for submenu positioning */
@@ -36,53 +19,20 @@ QFrame#SidebarFooterContainer {
     background: transparent;
 }
 
-/* Nav & Home buttons */
-QPushButton#SidebarNavButton,
-QPushButton#SidebarHomeButton {
+QPushButton {
     background: transparent;
     color: #c5c5d2;
     border: none;
-    border-radius: 8px;
-    padding: 6px 10px;
     text-align: left;
 }
-QPushButton#SidebarNavButton:hover,
-QPushButton#SidebarHomeButton:hover {
+QPushButton:hover {
     background: rgba(9,144,143,0.12);
     color: #ffffff;
 }
-/* Active: tugev eristus vasaku värviriba ja kergelt heledama taustaga */
-QPushButton#SidebarNavButton[active="true"],
-QPushButton#SidebarHomeButton[active="true"] {
+QPushButton[active="true"]{
     background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
         stop:0 rgba(9,144,143,0.38),
-        stop:0.04 rgba(9,144,143,0.32),
-        stop:1 rgba(9,144,143,0.18));
-    color: #ffffff;
-    border: 1px solid rgba(9,144,143,0.55);
-    border-left: 4px solid #09b2b1;
-    padding-left: 6px; /* kompenseeri vasak riba */
-    font-weight: 600;
-}
-
-/* Settings button - now uses same styling as nav buttons */
-QPushButton#SidebarSettingsButton {
-    background: transparent;
-    color: #c5c5d2;
-    border: none;
-    border-radius: 8px;
-    padding: 6px 10px;
-    text-align: left;
-}
-QPushButton#SidebarSettingsButton:hover {
-    background: rgba(9,144,143,0.12);
-    color: #ffffff;
-}
-/* Active: same as nav buttons */
-QPushButton#SidebarSettingsButton[active="true"] {
-    background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
-        stop:0 rgba(9,144,143,0.38),
-        stop:0.04 rgba(9,144,143,0.32),
+        stop:0.05 rgba(9,144,143,0.32),
         stop:1 rgba(9,144,143,0.18));
     color: #ffffff;
     border: 1px solid rgba(9,144,143,0.55);
@@ -91,41 +41,19 @@ QPushButton#SidebarSettingsButton[active="true"] {
     font-weight: 600;
 }
 
-/* Toggle button column */
-QFrame#SidebarRightFrame {
-    background: transparent;
-}
-/* Dark-theme override (duplicate in your dark qss) */
-QWidget#SidebarRoot QToolButton#SidebarToggleButton[palette="dark"],
-QWidget#SidebarRoot[theme="dark"] QToolButton#SidebarToggleButton {
+/* Floating edge handle */
+QToolButton#SidebarToggleButton {
     background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
         stop:0 rgba(255,255,255,0.06),
         stop:1 rgba(255,255,255,0.12)
     );
     color: #e0e0e6;
     border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 8px;
+    padding: 0;
 }
-
-/* Compact mode tweaks */
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarNavButton {
-    padding: 6px 6px;
-}
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarNavFrame,
-QWidget#SidebarRoot[compact="true"] QFrame#SidebarFooterBar {
-    padding: 2px;
-}
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarSettingsButton {
-    padding: 6px 6px;
-}
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarNavButton,
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarHomeButton,
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarSettingsButton {
-    text-align: center;
-}
-QWidget#SidebarRoot[compact="true"] QPushButton#SidebarPropertiesButton {
-    padding: 6px 6px;
-    text-align: center;
-    font-size: 11px;
+QToolButton#SidebarToggleButton:hover {
+    border-color: rgba(9,144,143,0.55);
 }
 
 /* ===== Settings Submenu ===== */

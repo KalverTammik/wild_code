@@ -1,0 +1,29 @@
+QPushButton#ExpandButton {
+    background: none;
+    color: none;
+    border: 1px solid #e1e4e8;
+    border-radius: 2px;
+    padding: 2px 2px;
+}
+QPushButton#ExpandButton:hover {
+    background: #eaeef2;
+    border-color: #d0d7de;
+    color: #111416;
+}
+QPushButton#ExpandButton:pressed {
+    background: #dce1e6;
+    border-color: #b6bec9;
+    color: #111416;
+}
+QPushButton#ExpandButton:disabled {
+    background: #f3f4f6;
+    border: 1px dashed rgba(209,215,222,0.8);
+    color: rgba(36,41,46,0.45);
+}
+
+
+QFrame#ExpandButtonFrame  {
+    background:transparent;
+    border: transparent;
+    border-radius: transparent;
+}

@@ -1,4 +1,5 @@
 # === DEV NOTES: PYTHON PATCHING & INDENTATION RULES ===
+**CODEBASE STATUS: PRODUCTION-READY** - All development artifacts removed, lazy loading working, consolidated architecture.
 - Always use 4 spaces for indentation (never tabs)
 - All method bodies must be fully indented inside their class
 - Never leave stray code outside class or function scope
@@ -17,73 +18,7 @@
 - For Qt animations (e.g., `QPropertyAnimation`), always parent the animation and keep a reference on `self` to prevent garbage collection.
 - After multi-line edits, re-check the file for syntax/indentation errors before finishing changes.
 
-### WelcomePage & Learning Section (Debug Frames) Pattern
 
-- Welcome page behavior
-  - `widgets/WelcomePage.py` is shown when no preferred module is set.
-  - Exposes `openSettingsRequested` signal and `retranslate(lang_manager)` method.
-- Debug labels toggle
-  - Provide a checkable button in WelcomePage to toggle colorful “FRAME:” debug labels used for learning boundaries.
-  - Button text in Estonian: ON → “Peida FRAME sildid”, OFF → “Näita FRAME silte”.
-  - Default state in dev builds may be ON; in production it may be OFF based on preference.
-  - Wire `QPushButton.toggled(bool)` to a private handler that calls `set_debug(bool)`.
-- LetterSection contract
-  - `LetterSection(QWidget)` must implement `set_debug(enabled: bool)` that shows/hides its internal “FRAME:” labels and forwards the flag to child components (e.g., `LetterIconFrame`).
-  - `LetterSection` keeps its own header area (icon, selector, title) and a text holder; labels should use `setWordWrap(True)` for responsiveness.
-  - The selector signal should pass only the letter symbol downstream (e.g., `currentTextChanged.connect(lambda text: update_letter(text.split()[0]))`).
-- LetterIconFrame contract
-  - Must parent `QPropertyAnimation` and keep a reference on `self` to prevent GC while animating.
-  - May render the selected letter with color; any temporary inline styles must stay local to the widget and be migrated to QSS before release.
-- Responsiveness
-  - Use `QComboBox.setSizeAdjustPolicy(QComboBox.AdjustToContents)` for compact selectors.
-  - Prefer layout spacing over absolute sizes; avoid fixed widths except for small icons.
-- Theming
-  - Do not apply global stylesheets. Use `ThemeManager.apply_module_style(...)` to apply QSS to WelcomePage/children where needed.
-  - If temporary inline styling is used during development, scope it to the specific widget and add a `# TODO:` to move rules into QSS.
-## Theme and QSS Requirements for All Modules
-
-### HOIATUS: Ära kasuta globaalset stiililehte (QApplication.setStyleSheet)
-- KEELATUD: `QApplication.instance().setStyleSheet(...)` või `qApp.setStyleSheet(...)` – see lekib plugina teema kogu QGIS-i UI-sse (toolbarid, paneelid) ja rikub kasutaja teema.
-- Kasuta ainult lokaalset lähenemist:
-  - `ThemeManager.apply_module_style(widget, [...])` konkreetsele `QWidget`-ile.
-  - Tooltip’i puhul piirdume paleti seadistamisega (vt `ThemeManager.apply_tooltip_style()`), mitte QSS globaalse rakendamisega.
-- Antimuster (vältida): globaalne `setStyleSheet` rakendustasandil.
-- Õige muster: kutsu `setStyleSheet` ainult siht-`widget`il (või kasuta `ThemeManager.apply_module_style`).
-- Sümptomid rikkumisel: pärast plugina käivitamist muutuvad QGIS-i tööriistaribad/küljepaneelid tumedaks või stiil muutub segaseks. Kui näed seda, eemalda globaalne `setStyleSheet`.
-
-
-1. **Centralized Theme Management**
-   - All theme logic (theme detection, toggling, QSS application) must use the shared `ThemeManager`.
-   - All modules and widgets must use `ThemeManager.apply_module_style(widget, [QssPaths.VARIABLE])` for theming.
-   - Never hardcode theme logic or QSS paths in individual modules/widgets. Never use direct `theme_dir` or `qss_files` logic.
-
-2. **QSS File Structure**
-   - All theme-specific QSS files must be placed in `styles/Light/` and `styles/Dark/` folders.
-   - Each module/widget with custom styling must have its own QSS file (e.g., `NewModule.qss`).
-   - Reusable chip/pill styling must live in `pills.qss` and be applied via `ThemeManager.apply_module_style(widget, [QssPaths.PILLS])`.
-
-3. **Widget Styling**
-   - Assign a unique `objectName` to any widget that needs custom QSS (e.g., `"NewModule"`).
-   - Apply QSS using `ThemeManager.apply_module_style(widget, [QssPaths.VARIABLE])` for all such widgets. If the QSS variable does not exist, create a new QSS file and add it to `QssPaths`.
-
-4. **Dynamic Restyling**
-  - Any module that creates dynamic content (e.g., cards, list items) must implement a method to re-apply QSS to all such widgets (e.g., `rethem_[some logical name here]()`), and it should re-apply QSS via `ThemeManager.apply_module_style` to the module root and its cards.
-  - After toggling the theme, the main dialog calls module retheme methods (e.g., `rethem_project()`, `retheme_settings()`, etc.).
-  - Generic sweep: the dialog also calls `retheme()` on any child widget that exposes that method (found via `findChildren(QWidget)`), allowing widgets like `TagsWidget` to self-update without dialog-level imports. Widgets opt-in by implementing `retheme()`.
-
-5. **Theme Toggle Integration**
-   - The main dialog’s `toggle_theme` method must:
-     - Call `ThemeManager.toggle_theme(...)` to update the global theme and header toggle icon.
-     - Re-apply styles to top-level UI (header, sidebar, footer) via their dedicated `retheme_*` methods.
-     - Call each active module’s retheme method (e.g., `rethem_project()`, `retheme_settings()`), which re-applies module/card QSS.
-     - Finally, perform a generic sweep to invoke `retheme()` on any child widget that provides it (no class imports in dialog).
-
-6. **No Direct QSS File Reading**
-   - Do not read QSS files directly in modules. Always use `ThemeManager.apply_module_style`.
-
-7. **Documentation**
-   - All new modules/widgets must document how they support theme switching and QSS application. Add a docstring such as:
-     - "This module supports dynamic theme switching via ThemeManager.apply_module_style."
 # QGIS Plugin Coding Guidelines
 
 ## Table of Contents
@@ -93,11 +28,16 @@
 4. API, Data, and Query Standards
 5. Centralized Path and Resource Management
 6. UI/UX & Theming Guidelines
-7. Translation & Localization
-8. Coding Conventions & Best Practices
-9. QGIS-Specific Rules
-10. Documentation, Comments, and Safety
-11. Appendix: Examples & Troubleshooting
+7. Help System
+8. Translation & Localization
+9. Coding Conventions & Best Practices
+10. QGIS-Specific Rules
+11. Documentation, Comments, and Safety
+12. Appendix: Examples & Troubleshooting
+13. Settings Architecture & Behavior
+14. Centralized Settings Management
+15. Layer Selection Widget: LayerTreePicker (layer_dropdown.py)
+16. Icons & Themed Assets (REQUIRED)
 
 ---
 
@@ -125,7 +65,7 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
 ## 3. Directory & File Structure
 
 - Each module must be in its own subdirectory under `modules/`.
-- Required files: `__init__.py`, `[NewModuleName]Ui.py`, `[NewModuleName]logic.py`, `translations/`
+- Required files: `__init__.py`, `[NewModuleName]Ui.py`, `[NewModuleName]logic.py`
 - Example:
   ```
   modules/
@@ -133,9 +73,6 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
           __init__.py
           ui.py
           logic.py
-          translations/
-              joke_generator_en.py
-              joke_generator_et.py
   ```
 - Do not place new modules as single files in `modules/`.
 
@@ -232,48 +169,6 @@ This ensures correct and consistent theme application across the plugin.
 - If the module creates dynamic widgets (cards, lists), ensure those widgets implement `retheme()` when they have theme-dependent visuals (e.g., shadows) and/or call a helper to re-apply styles to children.
 - The main dialog will call the module’s `rethem_*()` and also run a generic child `retheme()` sweep.
 
-### Tags hover/popup handling (pills)
-
-Purpose
-- Show a small info icon in each card header; hovering reveals a lightweight popup with the item’s tags (styled as pills).
-
-Key files
-- `widgets/DataDisplayWidgets/ModuleFeedBuilder.py` — integrates the icon and popup in cards.
-- `widgets/DataDisplayWidgets/TagsWidget.py` — renders tags as pills and exposes `retheme()`.
-- `styles/Light/pills.qss`, `styles/Dark/pills.qss` — pill styling, referenced via `QssPaths.PILLS`.
-
-Detection & integration
-- Tags are extracted with `ModuleFeedBuilder._extract_tag_names(item)` from `item['tags']['edges'][i]['node']['name']`.
-- `_item_has_tags(item)` guards whether to add the hover icon.
-- In each card header: if the item has tags, add `TagsHoverButton(item)` next to the title.
-
-Behavior
-- Hover over the icon shows `TagPopup` directly below the icon; leaving the icon starts a short hide timer.
-- The popup installs an event filter so it stays open while the cursor is over the popup or its children; leaving both areas hides it after a delay.
-- `TagPopup` is a non-activating tool window: `Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint` and is reparented to the card’s top-level window for correct z-order in QGIS.
-- The popup applies `ThemeManager.apply_module_style(self, [QssPaths.PILLS])` and calls `TagsWidget.retheme()` in `showEvent` to reflect theme changes.
-- If an item has no tags, the popup closes immediately and no icon is added.
-
-Tunables
-- Hide delay when leaving the icon: `TagsHoverButton._hide_delay_ms` (default ~600 ms).
-- Additional hide delay after leaving the popup (shorter, e.g. 350 ms) to tolerate small cursor gaps.
-- Button size (20×20) and icon size (14×14) can be adjusted in `TagsHoverButton`.
-- Popup anchoring offset (below the icon) can be tweaked in `TagPopup.show_near()` if visual alignment needs tuning.
-
-Theming
-- Do not inline styles; rely on `pills.qss` via `QssPaths.PILLS`.
-- Ensure `TagsWidget` implements `retheme()` so pills update on theme toggle.
-
-Edge cases
-- Popup hidden behind the dialog: verify the popup is reparented to the top-level window and call `raise_()` after `show()`.
-- Fast pointer movement causing flicker: increase the hide delays slightly.
-- Items without tags: no hover icon is added.
-
-Test checklist
-- Hover over the icon → popup appears; move into popup → stays visible; leave both → hides after delay.
-- Toggle theme while popup is open → pills restyle immediately.
-- Scroll the feed with an open popup → behavior remains stable; reopen aligns to the icon.
-- Same experience across Projects and Contracts cards.
 ### General Design
 - Use dark theme as default; support seamless switching to light theme.
 - All dialogs/widgets must have rounded corners and soft shadow borders.
@@ -296,9 +191,31 @@ Test checklist
 - Each theme must have both `DarkTheme.qss` and `LightTheme.qss`.
 - Use objectName selectors for component overrides.
 
+### Help System
+
+**All help functionality must use the centralized ShowHelp utility class.**
+
+```python
+from ..utils.help.ShowHelp import ShowHelp
+ShowHelp.show_help_for_module(active_module)
+```
+
+**Key Guidelines:**
+- Never implement help logic directly in UI components
+- Always delegate to `ShowHelp.show_help_for_module(active_module)`
+- The active module is obtained via `ModuleManager().getActiveModule()`
+- Help URLs are determined based on the current module and opened in the system browser
+- Dialog connects header help button: `self.header_widget.helpRequested.connect(self._on_help_requested)`
+
+**ShowHelp Class:**
+- Located in `utils/help/ShowHelp.py`
+- Provides `show_help_for_module(module_info)` static method
+- Handles URL determination and browser opening
+- Uses `ModuleManager` to get current module context
+
 ---
 
-## 7. Translation & Localization
+## 8. Translation & Localization
 
 - All modules must use `LanguageManager` from `language_manager.py` for translations.
 - Translation files must be Python files (`.py`), not JSON or JS.
@@ -314,7 +231,7 @@ Test checklist
 
 ---
 
-## 8. Coding Conventions & Best Practices
+## 9. Coding Conventions & Best Practices
 
 - Use Python 3.9+ syntax and PEP8 style.
 - Use camelCase for variables/functions, PascalCase for classes.
@@ -325,12 +242,16 @@ Test checklist
 - Use `@staticmethod` or `@classmethod` when instance state is not required.
 - File names follow CamelCase.py convention.
 - Regularly review and remove unnecessary method abstractions; inline simple operations to reduce method call overhead.
-- Use QMessageBox directly for user notifications instead of creating wrapper methods.
+- Use ModernMessageDialog methods for user notifications instead of QMessageBox directly:
+  - `ModernMessageDialog.Info_messages_modern(title, message)` - Information messages with ℹ️ icon
+  - `ModernMessageDialog.Warning_messages_modern(title, message)` - Warning messages with ⚠️ icon  
+  - `ModernMessageDialog.Error_messages_modern(title, message)` - Error messages with ❌ icon
+  - `ModernMessageDialog.Message_messages_modern(title, message)` - General messages with 💬 icon
 - Remove unused parameters and empty callback methods that are leftover from development iterations.
 
 ---
 
-## 9. QGIS-Specific Rules
+## 10. QGIS-Specific Rules
 
 - Supported QGIS version from 3.4.
 - Use `iface` safely; check for layer/context availability.
@@ -339,7 +260,7 @@ Test checklist
 
 ---
 
-## 10. Documentation, Comments, and Safety
+## 11. Documentation, Comments, and Safety
 
 - Every public method must have a docstring.
 - Use `# TODO:` for future improvements.
@@ -351,104 +272,13 @@ Test checklist
 
 ---
 
-## 11. Appendix: Examples & Troubleshooting
+## 12. Appendix: Examples & Troubleshooting
 
 - Place code snippets, file structure examples, and troubleshooting tips here.
 
 ---
 
-## Example: Setting Up Translations in a Module
-
-When setting up translations for a new module, follow these steps:
-
-1. Import the `LanguageManager`:
-    ```python
-    from languages.language_manager import LanguageManager
-    ```
-
-2. Initialize the language manager with the desired language (e.g., Estonian):
-    ```python
-    lang = LanguageManager(language="et")
-    ```
-
-3. Set the text of your labels or other translatable strings using the `translate` or `sidebar_button` method:
-    ```python
-    label.setText(lang.translate("project_description_placeholder"))
-    label.setText(lang.sidebar_button("ProjectsModule"))
-    ```
-
-4. Ensure that your translation files are named correctly and placed in the module's lang directory:
-    - `modules/ProjectCard/lang/en.py` for English translations for ProjectCard module.
-    - `modules/ProjectCard/lang/et.py` for Estonian translations for ProjectCard module.
-    - `languages/sidebar_button_names_et.py` for the Estonian sidebar button names.
-
-5. In your module's UI code, make sure to use the `LanguageManager` for any translatable text or labels.
-
-By following these steps, your module will support translations seamlessly, and the sidebar buttons will be correctly labeled in the selected language.
-
-## Module Creation & Registration Guidelines
-
-
-When adding a new module, follow these unified steps to ensure consistency and avoid registration errors:
-
-1. **Module Structure**
-    - Each module must be in its own subdirectory under `modules/` with the required files: `__init__.py`, `ui.py`, `logic.py`, and a `lang/` directory for translations.
-    - Do not place new modules as single files in `modules/`.
-
-
-2. **Class Definition**
-    - Inherit from `BaseModule`.
-    - The module must define a unique `name` as a class attribute (e.g., `name = "MyModuleName"`).
-    - The constructor should accept any needed managers (e.g., `lang_manager`, `theme_manager`) and other dependencies.
-    - Implement all required methods: `activate`, `deactivate`, `run`, `reset`, `get_widget`.
-    - Use `lang_manager.translate()` for all user-facing strings, including `display_name` if needed.
-
-3. **Translations**
-    - Use `LanguageManager` for all translations.
-    - Translation files must be Python files (`.py`) and placed in the module's `lang/` directory (e.g., `modules/ProjectCard/lang/en.py`).
-    - Sidebar button names must be defined in `languages/sidebar_button_names_<lang>.py` using string keys matching module class names.
-
-
-4. **Registration & Integration**
-    - **You must import, instantiate, and register the new module in the `loadModules` method of your main dialog (e.g., `dialog.py`).**
-    - Register the module using only the module instance: `registerModule(moduleInstance)`.
-    - Do **not** pass keyword arguments like `name`, `display_name`, or `icon` to `registerModule()` unless the method signature in `module_manager.py` explicitly supports them.
-    - Each module must provide a `get_widget()` method that returns the QWidget to display.
-    - The `registerModule` method will automatically handle the icon and display name for the sidebar using the module's `name` class attribute and the language manager. You do not need to set `display_name` or `icon` in your module unless you want to override the defaults.
-    - Before registering a module, always check the current signature of `registerModule()` in `module_manager.py`.
-    - If you need to support extra metadata, update the method and all usages accordingly.
-    - If you see `TypeError: registerModule() got an unexpected keyword argument`, remove all extra arguments and follow these rules.
-
-**Important:** If you do not add your new module to the `loadModules` method, it will not be registered, will not appear in the sidebar, and will not be usable in the plugin. Always update `loadModules` when adding a new module.
-
-**Example module skeleton:**
-```python
-from .BaseModule import BaseModule
-
-class ExampleModule(BaseModule):
-    def __init__(self, name, display_name, icon, lang_manager, theme_manager):
-        super().__init__(name, display_name, icon, lang_manager, theme_manager)
-        self.name = name
-        self.display_name = display_name
-        self.icon = icon
-        # ... module-specific initialization ...
-    def activate(self):
-        pass
-    def deactivate(self):
-        pass
-    def run(self):
-        pass
-    def reset(self):
-        pass
-    def get_widget(self):
-        return self.widget
-```
-
-These rules ensure all modules are created, structured, and registered consistently in the wild_code plugin.
-
----
-
-## 12. Settings Architecture & Behavior
+## 13. Settings Architecture & Behavior
 
 This plugin uses a structured, card-based Settings system with clear separation of concerns and centralized theming and translations.
 
@@ -457,9 +287,9 @@ Components
   - Owns the layout (scrollable list of SetupCards), theming reapplication, and dirty-state aggregation.
   - Creates one `UserCard` and 0..N `ModuleCard`s (one per visible module in sidebar).
   - Lifecycle:
-    - `set_available_modules(module_names)` is called by the dialog to inform which module cards to build.
     - `activate()` loads the user via `SettingsLogic`, builds access pills, loads original settings, reflects preferred selection, and activates module cards.
     - `deactivate()` asks module cards to release memory.
+  - Module card building: Uses global `MODULES_LIST_BY_NAME` to iterate over available modules, filtering out HOME module.
   - Dirty-state and confirms:
     - User-card (preferred module change) shows a single confirm on that card.
     - Each ModuleCard manages its own confirm visibility via a `pendingChanged` signal.
@@ -471,7 +301,7 @@ Components
   - Parses roles and maps abilities to module access with `get_module_access_from_abilities()`.
   - Preferred module persistence via `QgsSettings` key `wild_code/preferred_module`.
   - Tracks original vs pending preferred and provides `apply_pending_changes()` / `revert_pending_changes()`.
-  - Respects `set_available_modules()` when computing the access map so pills align with sidebar visibility.
+  - Uses global `MODULES_LIST_BY_NAME` for module access filtering instead of local available modules list.
 
 - `modules/Settings/cards/UserCard.py` (user info, roles, access, preferred)
   - Shows ID, Name, Email, Roles (read-only pills) and Module access pills.
@@ -486,27 +316,27 @@ Components
 
 - `widgets/WelcomePage.py` (welcome when no preferred)
   - Displayed when there is no preferred module set.
-  - Provides `openSettingsRequested` to jump into Settings.
   - Uses `LanguageManager` centrally; call `welcomePage.retranslate(lang_manager)` when language changes.
 
 Flow
-1. Dialog builds modules and sidebar, then passes visible modules to Settings via `set_available_modules`.
+1. Dialog builds modules and sidebar, then passes visible module metadata to Settings.
 2. Entering Settings triggers `SettingsUI.activate()`:
-   - Load user, set roles, compute access map, build access pills.
+   - Load user, set roles, compute access map using global `MODULES_LIST_BY_NAME`, build access pills.
    - Load original preferred via logic, then call `UserCard.set_preferred(original)` to reflect it.
-   - Build a shared layer-tree snapshot for all ModuleCards and call `on_settings_activate(snapshot)` on each.
+   - Build module cards by iterating over `MODULES_LIST_BY_NAME` (excluding HOME), and call `on_settings_activate(snapshot)` on each.
 3. Changing preferred or module settings marks dirty and shows per-card confirm(s).
 4. Confirm applies and persists changes using logic and per-card apply handlers.
 5. Leaving Settings or closing dialog prompts to save/discard when `has_unsaved_changes()` is true.
 
 Notes
 - Preferred key: `wild_code/preferred_module` (string module name). Removing the key means Welcome page on startup.
-- Access mapping is extendable; ensure subjects map to module constants and are filtered by `available_modules`.
+- Access mapping is extendable; ensure subjects map to module constants and are filtered by global `MODULES_LIST_BY_NAME`.
+- Module cards are built dynamically using `MODULES_LIST_BY_NAME`, excluding the HOME module.
 - When programmatically updating preferred, block signals on the checkboxes to avoid spurious dirty state.
 
 ---
 
-## 13. Centralized Settings Management
+## 14. Centralized Settings Management
 
 All settings in the wild_code plugin follow a hierarchical, centralized architecture with consistent key naming and management patterns.
 
@@ -578,7 +408,9 @@ settings.setValue("wild_code/some_key", value)
 
 This architecture ensures consistent settings management, easier testing, and maintainable code across the entire plugin.
 
-## 14. Layer Selection Widget: LayerTreePicker (layer_dropdown.py)
+---
+
+## 15. Layer Selection Widget: LayerTreePicker (layer_dropdown.py)
 
 Purpose
 - Provide a memory-friendly, reusable, hierarchical layer picker with a familiar dropdown UX.
@@ -644,7 +476,7 @@ Deprecated
 
 ---
 
-## 15. Icons & Themed Assets (REQUIRED)
+## 16. Icons & Themed Assets (REQUIRED)
 
 - All UI icons must be theme-aware and resolved centrally. Do not hardcode absolute file paths in widgets or modules.
 - Storage layout:
@@ -655,10 +487,9 @@ Deprecated
 
 ### 14.1 Semantic basenames via ThemeManager
 - Use semantic basenames exposed by `ThemeManager` (e.g., `ThemeManager.ICON_INFO`).
-- Get a themed path or QIcon:
-  - `ThemeManager.get_icon_path(ThemeManager.ICON_INFO)`
+- Get a QIcon:
   - `ThemeManager.get_qicon(ThemeManager.ICON_INFO)`
-- ThemeManager automatically picks a Light/Dark variant if present; otherwise falls back to the base in `resources/icons/`.
+
 
 Example:
 ```python
@@ -739,8 +570,13 @@ Example:
 
 Recent code quality improvements have established these patterns for maintaining clean, performant code:
 
-### Direct API Usage Pattern
-- Use QMessageBox directly instead of wrapper methods (`QMessageBox.information()`, `QMessageBox.warning()`, `QMessageBox.critical()`)
+### Modern Message Dialog Pattern
+- Use ModernMessageDialog methods for all user notifications instead of QMessageBox directly:
+  - `ModernMessageDialog.Info_messages_modern(title, message)` - Information messages with ℹ️ icon
+  - `ModernMessageDialog.Warning_messages_modern(title, message)` - Warning messages with ⚠️ icon  
+  - `ModernMessageDialog.Error_messages_modern(title, message)` - Error messages with ❌ icon
+  - `ModernMessageDialog.Message_messages_modern(title, message)` - General messages with 💬 icon
+- These methods provide theme-aware styling, proper icon scaling, and consistent UI across the plugin
 - Inline simple operations instead of creating unnecessary wrapper methods
 - Remove empty callback methods and unused parameters from method signatures
 

@@ -1,95 +1,44 @@
-
+# ...existing code...
 DEFAULT_LANGUAGE = "et"  # Set Estonian as the default language
 
 import os
 import json
-import importlib.util
-
-# Centralized translation keys for consistency
-from .translation_keys import TranslationKeys
+from .et import TRANSLATIONS as ET_TRANSLATIONS
+from .en import TRANSLATIONS as EN_TRANSLATIONS
 
 class LanguageManager:
     def __init__(self, language=DEFAULT_LANGUAGE):
         self.language = language
-        self.translations = {}
-        self.sidebar_buttons = {}
-        self.load_language()
-
-    def load_language(self):
-        self.translations = {}
-        self.sidebar_buttons = {}
-        lang_py = os.path.join(os.path.dirname(__file__), f"{self.language}.py")
-        if os.path.exists(lang_py):
-            # Read the file content and inject TranslationKeys
-            with open(lang_py, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            # Replace the import with direct assignment
-            content = content.replace(
-                'from language_manager import TranslationKeys',
-                '# TranslationKeys injected by LanguageManager'
-            )
-            
-            # Execute the modified content
-            try:
-                # Create a namespace with TranslationKeys available
-                namespace = {'TranslationKeys': TranslationKeys}
-                exec(content, namespace)
-                self.translations.update(namespace.get("TRANSLATIONS", {}))
-            except Exception as e:
-                print(f"Error loading language file {lang_py}: {e}")
-                # Fallback to empty translations
-        else:
-            # Language file not found - use print instead of logger to avoid import issues
-            print(f"Python language file {lang_py} not found. Defaulting to empty translations.")
-
-        # Load and merge module translations from each module's lang/<lang>.py
-        plugin_root = os.path.dirname(os.path.dirname(__file__))
-        for root, dirs, files in os.walk(os.path.join(plugin_root, "modules")):
-            if os.path.basename(root) == "lang":
-                lang_file = os.path.join(root, f"{self.language}.py")
-                if os.path.exists(lang_file):
-                    try:
-                        spec = importlib.util.spec_from_file_location(f"module_lang_{os.path.basename(os.path.dirname(root))}_{self.language}", lang_file)
-                        lang_mod = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(lang_mod)
-                        self.translations.update(getattr(lang_mod, "TRANSLATIONS", {}))
-                    except Exception as e:
-                        # Failed to load module translation - use print instead of logger
-                        print(f"Failed to load module translation {lang_file}: {e}")
-
-        # Load sidebar button names from class-based file
-        sidebar_py = os.path.join(os.path.dirname(__file__), f"sidebar_button_names_{self.language}.py")
-        if os.path.exists(sidebar_py):
-            spec = importlib.util.spec_from_file_location(f"sidebar_{self.language}", sidebar_py)
-            sidebar_mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(sidebar_mod)
-            self.sidebar_buttons = getattr(sidebar_mod.SideBarButtonNames, "BUTTONS", {})
-        else:
-            # Sidebar button names file not found - use print instead of logger
-            print(f"Sidebar button names file {sidebar_py} not found. Defaulting to empty sidebar buttons.")
 
     def translate(self, key):
-        return self.translations.get(key, key)
+        """Lookup key in main language module first, then in module language modules.
+           Uses the modules' own TRANSLATIONS dicts without copying them."""
+        # main file
+        if self.language == "et":
+            translations = ET_TRANSLATIONS
+        elif self.language == "en":
+            translations = EN_TRANSLATIONS
+        else:
+            translations = ET_TRANSLATIONS
+        return translations.get(key)
 
+    @staticmethod
+    def translate_static(key):
+        """Static method for global translation using default language."""
+        manager = LanguageManager()
+        return manager.translate(key)
 
-    def sidebar_button(self, key):
-        return self.sidebar_buttons.get(key, key)
 
     def set_language(self, language):
         self.language = language
-        self.load_language()
-
 
     def save_language_preference(self):
-        """Save the user's preferred language to a settings file."""
         settings_file = os.path.join(os.path.dirname(__file__), "user_settings.json")
         with open(settings_file, "w", encoding="utf-8") as file:
             json.dump({"preferred_language": self.language}, file)
 
     @staticmethod
     def load_language_preference():
-        """Load the user's preferred language from the settings file."""
         settings_file = os.path.join(os.path.dirname(__file__), "user_settings.json")
         if os.path.exists(settings_file):
             with open(settings_file, "r", encoding="utf-8") as file:

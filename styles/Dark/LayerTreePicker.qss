@@ -25,36 +25,46 @@ LayerTreePicker QFrame#LayerTreePickerContainer {
 }
 
 LayerTreePicker QFrame#LayerTreePickerContainer:hover {
+    border: 1px solid;
     border-color: #1f5d5c;
 }
 
 LayerTreePicker QFrame#LayerTreePickerContainer:focus {
+    border: 1px solid;
     border-color: #1f5d5c;
 }
 
 /* =========================================
-   MAIN BUTTON — Text area
+   MAIN BUTTON AREA — Text frame (replaces QToolButton)
    ========================================= */
-LayerTreePicker QFrame#LayerTreePickerContainer QToolButton {
+LayerTreePicker QFrame#LayerTreePickerContainer QFrame#ComboAreaTextFrame {
     background: transparent;
     color: #c5c5d2;
     border: none;
     border-radius: 0;
-    padding: 2px 8px;          /* comfy text insets */
-    padding-right: 28px;       /* reserve space for arrow */
+    padding: 0;          /* No padding since layout handles margins */
+    padding-right: 22px;       /* reserve space for 22px arrow frame */
     min-height: 20px;
-    min-width: 140px;          /* 180px container - 20px dropdown - 20px total padding = 140px */
+    min-width: 140px;          /* Layout handles sizing with stretch factors */
     font-size: 12px;
     margin: 0;
     outline: none;
 }
 
-LayerTreePicker QFrame#LayerTreePickerContainer:hover QToolButton {
+LayerTreePicker QFrame#LayerTreePickerContainer:hover QFrame#ComboAreaTextFrame {
     background: transparent;
 }
 
-LayerTreePicker QFrame#LayerTreePickerContainer:focus QToolButton {
+LayerTreePicker QFrame#LayerTreePickerContainer:focus QFrame#ComboAreaTextFrame {
     background: transparent;
+}
+
+/* Label inside the text frame */
+LayerTreePicker QFrame#LayerTreePickerContainer QFrame#ComboAreaTextFrame ComboBoxTextFrame {
+    color: #c5c5d2;
+    font-size: 12px;
+    padding: 0;
+    margin: 0;
 }
 
 /* =========================================
@@ -66,8 +76,8 @@ LayerTreePicker QFrame#LayerTreePickerContainer QFrame#DropdownFrame {
     border-left: 1px solid #4d4d4d;
     border-top-right-radius: 6px;
     border-bottom-right-radius: 6px;
-    min-width: 20px;
-    max-width: 20px;
+    min-width: 22px;
+    max-width: 22px;
 }
 
 LayerTreePicker QFrame#LayerTreePickerContainer:hover QFrame#DropdownFrame {
@@ -81,15 +91,18 @@ LayerTreePicker QFrame#LayerTreePickerContainer:focus QFrame#DropdownFrame {
 }
 
 /* =========================================
-   DROPDOWN ARROW — Inside frame
+   DROPDOWN ARROW — QToolButton (like QComboBox)
    ========================================= */
-LayerTreePicker QFrame#LayerTreePickerContainer QFrame#DropdownFrame QLabel {
+LayerTreePicker QFrame#LayerTreePickerContainer QFrame#DropdownFrame QToolButton {
     color: #999;
-    font-size: 12px;
-    font-weight: bold;
-    text-align: center;
+    border: none;
+    background: transparent;
     padding: 0;
     margin: 0;
+    min-width: 16px;
+    min-height: 16px;
+    max-width: 16px;
+    max-height: 16px;
 }
 
 /* ---------------------- Popup container ---------------------- */
@@ -178,4 +191,3 @@ QToolBar QToolButton {
 
 /* ---------------------- Nice-to-haves ---------------------- */
 /* prevent native focus rect artifacts on some platforms */
-QToolButton::indicator { width: 0; height: 0; }

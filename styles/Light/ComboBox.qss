@@ -45,9 +45,9 @@ QComboBox:disabled {
 /* -------------------- Drop-down subcontrol -------------------- */
 QComboBox::drop-down {
     width: 20px;
-    border-left: 1px solid #e1e4e8;
     background: #ffffff;                 /* ensure no dark bleed-through */
     margin: 0;
+    border-left-color: #2188ff;
     border-top-right-radius: 6px;        /* match outer radius */
     border-bottom-right-radius: 6px;
 }

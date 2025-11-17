@@ -25,12 +25,13 @@ class Module(Enum):
     TASK = "task"
 
     # Properties related
-    PROPERTIE = "propertie"
     PROPERTY = "property"
 
-    SETTINSGS = "setting"
+    SETTINGS = "settings"
 
     HOME = "home"
+
+    SIGNALTEST = "signaltest"
 
 
     def singular(self, upper: bool = False) -> str:
@@ -112,11 +113,8 @@ class loadWebpage:
             response = requests.get(web_link, verify=False, timeout=10)
             webbrowser.open(response.url)
         except requests.exceptions.Timeout:
-            try:
-                from .logger import debug as log_debug
-                log_debug("Request timed out")
-            except Exception:
-                pass
+            # Request timed out
+            pass
         except Exception as e:
             try:
                 from .logger import error as log_error
