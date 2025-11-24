@@ -11,6 +11,7 @@ from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
 from ..utils.api_client import APIClient
+from ..utils.filter_helpers import group_key
 
 
 class TypeFilterWidget(QWidget):
@@ -108,6 +109,8 @@ class TypeFilterWidget(QWidget):
             type_id = node.get("id")
             label = node.get("name")
             group_name = (node.get("group") or {}).get("name") if isinstance(node.get("group"), dict) else None
+            if not group_name:
+                group_name = group_key(label)
             if type_id and label:
                 self.type_combo.addItem(label, type_id)
                 if group_name:

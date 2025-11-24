@@ -1,8 +1,14 @@
-query contracts($first: Int, $after: String, $where: QueryContractsWhereWhereConditions) {
+query contracts(
+  $first: Int
+  $after: String
+  $where: QueryContractsWhereWhereConditions
+  $hasTags: QueryContractsHasTagsWhereHasConditions
+) {
   contracts(
     first: $first
     after: $after
     where: $where
+    hasTags: $hasTags
   ) {
     pageInfo {
       currentPage
@@ -43,6 +49,15 @@ query contracts($first: Int, $after: String, $where: QueryContractsWhereWhereCon
           name
         }
         description
+        tags(first: 10) {
+          edges {
+            node {
+              id
+              name
+              module
+            }
+          }
+        }
       }
     }
   }

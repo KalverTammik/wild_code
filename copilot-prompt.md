@@ -119,6 +119,7 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
 - All queries must be loaded via `GraphQLQueryLoader`.
 - Never hardcode URLs, tokens, or file paths—use constants and managers.
 - Follow the error and translation patterns established in `APIClient`.
+- When filtering feed data by tags, always define/extend the query to accept a `hasTags` variable (type `QueryProjectsHasTagsWhereHasConditions`), build its payload via `ModuleBaseUI._build_has_tags_condition()` (supports `ANY`/`ALL`), and pass it through `FeedLogic.set_extra_arguments(hasTags=payload)` so pagination honors the same filter.
 
 This ensures all API interactions are secure, maintainable, and consistent across the project.
 

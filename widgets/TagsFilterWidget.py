@@ -5,6 +5,7 @@ from typing import List, Optional, Sequence, Union
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QWidget
+from qgis.core import QgsSettings
 from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
@@ -52,6 +53,7 @@ class TagsFilterWidget(QWidget):
         try:
             self._load_tags()
             self._loaded = True
+            self._apply_saved_preferences()
         except Exception as exc:
             self.combo.clear()
             self.combo.addItem(f"Error: {str(exc)[:60]}…")
@@ -103,6 +105,19 @@ class TagsFilterWidget(QWidget):
             label = node.get("name")
             if tag_id and label:
                 self.combo.addItem(label, tag_id)
+
+    def _apply_saved_preferences(self) -> None:
+        if not self._loaded:
+            return
+        try:
+            module_key = str(self._module).strip().lower()
+            key = f"wild_code/modules/{module_key}/preferred_tags"
+            raw = QgsSettings().value(key, "") or ""
+            ids = [token.strip() for token in str(raw).split(",") if token.strip()]
+            if ids:
+                self.set_selected_ids(ids, emit=False)
+        except Exception:
+            pass
 
     def _emit_selection_change(self) -> None:
         if self._suppress_emit:

@@ -1,7 +1,17 @@
 from qgis.PyQt.QtCore import QSettings
 from qgis.core import QgsApplication, QgsAuthMethodConfig
-from qgis.PyQt.QtWidgets import QMessageBox
 from ..languages.translation_keys import TranslationKeys
+
+
+SESSION_TOKEN = "session/token"
+SESSION_ACTIVE_USER = "session/active_user"
+SESSION_NEEDS_LOGIN = "session/needs_login"
+
+
+# Authentication
+AUTH_ID = "myplugin/auth_id"
+AUTH_USERNAME = "myplugin/username"
+
 
 class SessionManager:
 
@@ -27,10 +37,9 @@ class SessionManager:
         if not SessionManager._instance:
             SessionManager()
         settings = SessionManager._instance.settings
-        SessionManager._instance.apiToken = settings.value("session/token", None)
-        SessionManager._instance.loggedInUser = settings.value("session/active_user", None)
-        #print(f"[DEBUG] Session loaded: token={bool(SessionManager._instance.apiToken)}")
-
+        SessionManager._instance.apiToken = settings.value(SESSION_TOKEN, None)
+        SessionManager._instance.loggedInUser = settings.value(SESSION_ACTIVE_USER, None)
+        
 
     @staticmethod
     def save_session():
@@ -38,8 +47,8 @@ class SessionManager:
         if not SessionManager._instance:
             SessionManager()
         settings = SessionManager._instance.settings
-        settings.setValue("session/token", SessionManager._instance.apiToken)
-        settings.setValue("session/active_user", SessionManager._instance.loggedInUser)
+        settings.setValue(SESSION_TOKEN, SessionManager._instance.apiToken)
+        settings.setValue(SESSION_ACTIVE_USER, SessionManager._instance.loggedInUser)
         settings.sync()  # Ensure settings are written immediately
 
 
@@ -49,8 +58,8 @@ class SessionManager:
         if not SessionManager._instance:
             SessionManager()
         settings = SessionManager._instance.settings
-        settings.remove("session/token")
-        settings.remove("session/active_user")
+        settings.remove(SESSION_TOKEN)
+        settings.remove(SESSION_ACTIVE_USER)
         SessionManager._instance.apiToken = None
         SessionManager._instance.loggedInUser = None
         SessionManager._session_expired_shown = False
@@ -64,8 +73,8 @@ class SessionManager:
         config.setConfig("apikey", api_key)
 
         if self.auth_manager.storeAuthenticationConfig(config):
-            self.settings.setValue("myplugin/auth_id", config.id())
-            self.settings.setValue("myplugin/username", username)
+            self.settings.setValue(AUTH_ID, config.id())
+            self.settings.setValue(AUTH_USERNAME, username)
             # Credentials securely stored.
         else:
             try:
@@ -75,8 +84,8 @@ class SessionManager:
                 pass
 
     def load_credentials(self):
-        auth_id = self.settings.value("myplugin/auth_id", "")
-        self.username = self.settings.value("myplugin/username", "")
+        auth_id = self.settings.value(AUTH_ID, "")
+        self.username = self.settings.value(AUTH_USERNAME, "")
 
         if not auth_id:
             # No stored auth ID found.
@@ -118,11 +127,11 @@ class SessionManager:
         from qgis.PyQt.QtWidgets import QMessageBox
         msg = QMessageBox(parent)
         msg.setIcon(QMessageBox.Information)
-        msg.setWindowTitle(lang_manager.translate(TranslationKeys.SESSION_EXPIRED_TITLE) if lang_manager else "Session Expired")
+        msg.setWindowTitle(lang_manager.translate(TranslationKeys.SESSION_EXPIRED_TITLE))
         text = lang_manager.translate(TranslationKeys.SESSION_EXPIRED)
         msg.setText(text)
-        login_btn = msg.addButton(lang_manager.translate(TranslationKeys.LOGIN_BUTTON) if lang_manager else "Log in", QMessageBox.AcceptRole)
-        cancel_btn = msg.addButton(lang_manager.translate(TranslationKeys.CANCEL_BUTTON) if lang_manager else "Cancel", QMessageBox.RejectRole)
+        login_btn = msg.addButton(lang_manager.translate(TranslationKeys.LOGIN_BUTTON), QMessageBox.AcceptRole)
+        cancel_btn = msg.addButton(lang_manager.translate(TranslationKeys.CANCEL_BUTTON), QMessageBox.RejectRole)
         msg.exec_()
         if msg.clickedButton() == login_btn:
             #print("[SessionManager] Log in button clicked")
@@ -130,7 +139,7 @@ class SessionManager:
         else:
             #print("[SessionManager] Cancel button clicked")
             SessionManager.clear()
-            SessionManager._instance.settings.setValue("session/needs_login", True)
+            SessionManager._instance.settings.setValue(SESSION_NEEDS_LOGIN, True)
             return "cancel"
 
     @staticmethod
@@ -167,5 +176,5 @@ class SessionManager:
         if hasattr(self, 'apiToken') and self.apiToken:
             return self.apiToken
         # Fallback: try to get from QSettings if not present in memory
-        token = self.settings.value("session/token", None)
+        token = self.settings.value(SESSION_TOKEN, None)
         return token

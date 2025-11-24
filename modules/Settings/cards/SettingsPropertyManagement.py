@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import Qt
 
-from .BaseCard import BaseCard
+from .SettingsBaseCard import SettingsBaseCard
 from ....utils.SHPLayerLoader import SHPLayerLoader
 from ....widgets.theme_manager import ThemeManager
 from ....widgets.AddUpdatePropertyDialog import AddPropertyDialog
@@ -14,7 +14,7 @@ from ....constants.layer_constants import PROPERTY_TAG, IMPORT_PROPERTY_TAG
 from ....constants.file_paths import QssPaths
 
 
-class PropertyManagement(BaseCard):
+class PropertyManagement(SettingsBaseCard):
     """
     Property Management widget for quick actions:
       - Add SHP file
@@ -270,12 +270,6 @@ class PropertyManagement(BaseCard):
             ThemeManager.apply_module_style(critical_msg, [QssPaths.MAIN])
             critical_msg.exec_()
 
-
-
-        except Exception as e:
-            print(f"Error getting selected property layer: {e}")
-            return None
-
 class LayerChecker:
     """
     Modular class to check layer state for multiple buttons based on different condition types.
@@ -312,11 +306,12 @@ class LayerChecker:
             
             for button, condition_type, params in self.button_configs:
                 condition_met = self._check_condition(condition_type, params, layers)
-                button.setEnabled(not condition_met)
-                if condition_met:
-                    button.setToolTip(self._get_tooltip_for_condition(condition_type))
-                else:
-                    button.setToolTip("")
+                should_enable = not condition_met
+                if button.isEnabled() != should_enable:
+                    button.setEnabled(should_enable)
+                tooltip = self._get_tooltip_for_condition(condition_type) if condition_met else ""
+                if button.toolTip() != tooltip:
+                    button.setToolTip(tooltip)
         except Exception as e:
             print(f"Warning: Could not update button states: {e}")
 

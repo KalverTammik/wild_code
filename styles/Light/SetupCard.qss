@@ -227,11 +227,10 @@
   color: #ffffff;
   border: none;
   border-radius: 6px;
-  padding: 8px 12px;
+  padding: 6px;
   font-weight: 600;
   font-size: 12px;
   min-width: 70px;
-  transition: all 150ms ease;
 }
 
 #SetupCard QPushButton#ConfirmButton:hover {

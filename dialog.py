@@ -2,6 +2,7 @@ import os
 
 from .constants.module_icons import VALISEE_V_ICON_NAME
 from .constants.file_paths import QssPaths
+from .constants.settings_keys import SettingsService
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget
 from PyQt5.QtGui import QMouseEvent
 from .widgets.FooterWidget import FooterWidget
@@ -182,7 +183,8 @@ class PluginDialog(QDialog):
             Module.PROJECT.name, 
             qss_files=qss_modular, 
             language=self.lang_manager,
-            supports_statuses=True
+            supports_statuses=True,
+            supports_tags=True,
         )
         self.moduleManager.registerModule(
             ContractsModule, 
@@ -190,7 +192,8 @@ class PluginDialog(QDialog):
             qss_files=qss_modular, 
             lang_manager=self.lang_manager,
             supports_types=True,
-            supports_statuses=True
+            supports_statuses=True,
+            supports_tags=True,
         )
         self.moduleManager.registerModule(
             SignalTestModule,
@@ -343,9 +346,9 @@ class PluginDialog(QDialog):
             return
         super().showEvent(event)
         QgsSettings().setValue("session/needs_login", False)
-        pref = QgsSettings().value("wild_code/preferred_module", "").lower()
-        if pref and pref in self.moduleManager.modules:
-            self.switchModule(pref)
+        pref_key = SettingsService().preferred_module().lower() or ""
+        if pref_key and pref_key in self.moduleManager.modules:
+            self.switchModule(pref_key)
         else:
             self._show_welcome()
 
@@ -366,4 +369,3 @@ class PluginDialog(QDialog):
     def _on_help_requested(self):
         active_module = self.moduleManager.getActiveModule()
         ShowHelp.show_help_for_module(active_module)
-

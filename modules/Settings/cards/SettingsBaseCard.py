@@ -5,7 +5,7 @@ from ....constants.file_paths import QssPaths
 from PyQt5.QtGui import  QPixmap
 from ....languages.translation_keys import TranslationKeys
 
-class BaseCard(QFrame):
+class SettingsBaseCard(QFrame):
     """Reusable SetupCard base with header, content area and confirm footer."""
     def __init__(self, lang_manager: LanguageManager, title_text: str, icon_path: str = None):
         super().__init__()
@@ -21,9 +21,9 @@ class BaseCard(QFrame):
             pass
 
     def _build(self, title_text: str, icon_path: str = None):
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(10, 10, 10, 10)  # Slightly tighter margins
-        lay.setSpacing(6)  # Reduced spacing
+        self.lay = QVBoxLayout(self)
+        self.lay.setContentsMargins(10, 10, 10, 10)  # Slightly tighter margins
+        self.lay.setSpacing(6)  # Reduced spacing
         
         # Header with separator frame
         header_frame = QFrame(self)
@@ -32,27 +32,30 @@ class BaseCard(QFrame):
         header_layout.setContentsMargins(1, 1, 1, 1)
         
         if icon_path:
-            try:
-                icon_label = QLabel()
-                icon_label.setPixmap(QPixmap(icon_path).scaled(18, 18))  # Smaller icons
-                header_layout.addWidget(icon_label, 0)
-                header_layout.addSpacing(6)
-            except Exception:
-                pass
+            icon_label = QLabel()
+            icon_label.setPixmap(QPixmap(icon_path).scaled(18, 18))  # Smaller icons
+            header_layout.addWidget(icon_label, 0)
+            header_layout.addSpacing(6)
+
         title = QLabel(title_text)
         title.setObjectName("SetupCardTitle")
         header_layout.addWidget(title, 0)
         header_layout.addStretch(1)
-        lay.addWidget(header_frame)
+        self.lay.addWidget(header_frame)
         
         # Content
         self._content = QFrame(self)
         self._content.setObjectName("SetupCardContent")
-        lay.addWidget(self._content)
+        self.lay.addWidget(self._content)
         # Footer with improved layout
-        self._build_footer(lay)
+        footer = self._build_footer()
+        self.lay.addLayout(footer)
 
-    def _build_footer(self, parent_layout):
+    def retheme(self):
+        ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
+
+
+    def _build_footer(self):
         """Build flexible footer area for confirm button and status display."""
         ftr = QHBoxLayout()
         ftr.setContentsMargins(0, 6, 0, 0)
@@ -79,6 +82,7 @@ class BaseCard(QFrame):
         buttons_layout = QHBoxLayout(buttons_frame)
         buttons_layout.setContentsMargins(0, 0, 0, 0)
         buttons_layout.setSpacing(6)
+        buttons_layout.addStretch(1)
 
         # Reset button (can be shown/hidden by subclasses)
         self._reset_btn = QPushButton(self.lang_manager.translate(TranslationKeys.RESET))
@@ -88,14 +92,12 @@ class BaseCard(QFrame):
 
         # Confirm button
         self._confirm_btn = QPushButton(self.lang_manager.translate(TranslationKeys.CONFIRM))
-        self._confirm_btn.setEnabled(False)
         self._confirm_btn.setVisible(False)
         self._confirm_btn.setObjectName("ConfirmButton")  # For QSS styling
         buttons_layout.addWidget(self._confirm_btn)
 
         ftr.addWidget(buttons_frame, 0)  # No expansion
-
-        parent_layout.addLayout(ftr)
+        return ftr
 
     def content_widget(self) -> QFrame:
         return self._content
@@ -116,8 +118,3 @@ class BaseCard(QFrame):
         self._status_label.setText("")
         self._footer_left.setVisible(False)
 
-    def retheme(self):
-        try:
-            ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
-        except Exception:
-            pass

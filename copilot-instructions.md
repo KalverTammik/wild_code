@@ -32,6 +32,7 @@
 - Use ModuleManager for lazy loading
 - Implement proper activate/deactivate lifecycle
 - Separate UI and logic classes
+- When adding tag support to a module, reuse the base pattern: wire `TagsFilterWidget` into the toolbar, let `ModuleBaseUI` manage preference syncing, build the `hasTags` payload via `_build_has_tags_condition()`, and pass it to `FeedLogic.set_extra_arguments(hasTags=payload)` instead of hand-crafting GraphQL arguments.
 
 ### UI/UX Standards
 - Use ThemeManager for all styling
@@ -70,3 +71,8 @@
 - For QGIS-specific issues: Check QGIS Python API documentation
 - For PyQt5 issues: Refer to Qt documentation
 - For plugin architecture: See `copilot-prompt.md` guidelines
+
+## Settings & Tag Filters
+- Tag selections are stored via `SettingsService.module_preferred_tags`; rely on `TagsFilterWidget`’s built-in load/save logic rather than duplicating storage code.
+- `ModuleBaseUI` now exposes `_build_has_tags_condition()` to translate selected IDs into the documented Kavitro `QueryProjectsHasTagsWhereHasConditions` input (supports `ANY`/`ALL`). Use it whenever you need to filter GraphQL feeds by tags.
+- `FeedLogic` accepts arbitrary GraphQL arguments through `set_extra_arguments(**kwargs)`; modules should call this (e.g., `set_extra_arguments(hasTags=payload)`) so pagination stays consistent without monkey-patching the API client.

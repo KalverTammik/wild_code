@@ -1,11 +1,9 @@
 
-from qgis.core import QgsSettings
 from typing import Dict, Optional
-import json
 
-from ...utils.url_manager import Module
-from ...modules.Settings.cards.UserCard import userUtils
-from ...module_manager import MODULES_LIST_BY_NAME
+from ....utils.url_manager import Module
+from ....module_manager import MODULES_LIST_BY_NAME
+from ....constants.settings_keys import SettingsService
 
 
 SUBJECT_TO_MODULE = {
@@ -17,16 +15,12 @@ SUBJECT_TO_MODULE = {
 class SettingsLogic:
     def __init__(self):
         # Change tracking
+        self._service = SettingsService()
         self._original_preferred: Optional[str] = None
-        self._pending_preferred: Optional[str] = None
+        self._pending_preferred_module: Optional[str] = None
         
         self._original_property_layer_id: Optional[str] = None
         self._pending_property_layer_id: Optional[str] = None
-        self._has_property_rights: bool = False
-        self._has_pending_status: bool = False
-        self._pending_statuses: Dict[str, list] = {}
-        self._pending_types: Dict[str, list] = {}
-
 
 
     def get_module_access_from_abilities(self, subjects) -> Dict[str, bool]:
@@ -59,56 +53,46 @@ class SettingsLogic:
 
     def load_original_settings(self):
         #Load preferred module
-        try:
-            pref = QgsSettings().value("wild_code/preferred_module", "") or None
-        except Exception:
-            pref = None
+        pref = self._service.preferred_module() or None
         self._original_preferred = pref
-        # Reset pending to original when loading
-        self._pending_preferred = pref
-        layer_id = QgsSettings().value("wild_code/main_property_layer_id", "") or None
-        layer_id = None
+        self._pending_preferred_module = pref
+
+        layer_id = self._service.main_property_layer_id() or None
         self._original_property_layer_id = layer_id
         self._pending_property_layer_id = layer_id
 
     def get_original_preferred(self) -> Optional[str]:
         return self._original_preferred
 
-    def set_pending_preferred(self, module_name: Optional[str]):
+    def set_user_preferred_module(self, module_name: Optional[str]):
         # None means user prefers Welcome page
-        self._pending_preferred = module_name or None
+        self._pending_preferred_module = module_name or None
 
     def get_pending_preferred(self) -> Optional[str]:
-        return self._pending_preferred
+        return self._pending_preferred_module
 
     def has_unsaved_changes(self) -> bool:
         # Track change even if moving to None (welcome)
-        preferred_changed = (self._pending_preferred or None) != (self._original_preferred or None)
-        layer_changed = (self._pending_property_layer_id or None) != (self._original_property_layer_id or None)
-        statuses_changed = bool(self._pending_statuses)
-        types_changed = bool(self._pending_types)
-        return preferred_changed or layer_changed or statuses_changed or types_changed
+        has_preferred_module_changes = (self._pending_preferred_module or None) != (self._original_preferred or None)
+        has_layer_changes = (self._pending_property_layer_id or None) != (self._original_property_layer_id or None)
+        return has_preferred_module_changes or has_layer_changes
 
     def apply_pending_changes(self):
         try:
-            s = QgsSettings()
-            if self._pending_preferred:
-                s.setValue("wild_code/preferred_module", self._pending_preferred)
+            if self._pending_preferred_module:
+                self._service.preferred_module(value=self._pending_preferred_module)
             else:
                 # None -> remove setting to show Welcome
-                s.remove("wild_code/preferred_module")
-            self._original_preferred = self._pending_preferred
+                self._service.preferred_module(clear=True)
+            self._original_preferred = self._pending_preferred_module
 
             # Apply property layer changes
             if self._pending_property_layer_id:
-                s.setValue("wild_code/main_property_layer_id", self._pending_property_layer_id)
+                self._service.main_property_layer_id(value=self._pending_property_layer_id)
             else:
                 # None -> remove setting
-                s.remove("wild_code/main_property_layer_id")
+                self._service.main_property_layer_id(clear=True)
             self._original_property_layer_id = self._pending_property_layer_id
-
-            self.apply_pending_statuses()
-            self.apply_pending_types()  
 
         except Exception:
             # leave dirty state so user can retry
@@ -116,10 +100,8 @@ class SettingsLogic:
 
     def revert_pending_changes(self):
         # Reset pending selection back to the original
-        self._pending_preferred = self._original_preferred
+        self._pending_preferred_module = self._original_preferred
         self._pending_property_layer_id = self._original_property_layer_id
-        self._pending_statuses.clear()
-        self._pending_types.clear()
 
     # --- Property layer settings ---
     def get_original_property_layer_id(self) -> Optional[str]:
@@ -132,36 +114,3 @@ class SettingsLogic:
         # None means no layer selected
         self._pending_property_layer_id = layer_id
 
-    def set_pending_statuses(self, module_name, status_ids):
-        self._pending_statuses[module_name] = status_ids
-
-    def get_pending_statuses(self, module_name):
-        return self._pending_statuses.get(module_name, [])
-
-    def apply_pending_statuses(self):
-        for module, statuses in self._pending_statuses.items():
-            key = f"wild_code/modules/{module}/preferred_statuses"
-            from qgis.core import QgsSettings
-            s = QgsSettings()
-            s.setValue(key, ",".join(statuses))
-        self._pending_statuses.clear()
-
-    def revert_pending_statuses(self):
-        self._pending_statuses.clear() or None
-
-    def set_pending_types(self, module_name, type_ids):
-        self._pending_types[module_name] = type_ids
-
-    def get_pending_types(self, module_name):
-        return self._pending_types.get(module_name, [])
-
-    def apply_pending_types(self):
-        for module, types in self._pending_types.items():
-            key = f"wild_code/modules/{module}/preferred_types"
-            from qgis.core import QgsSettings
-            s = QgsSettings()
-            s.setValue(key, ",".join(types))
-        self._pending_types.clear()
-
-    def revert_pending_types(self):
-        self._pending_types.clear()

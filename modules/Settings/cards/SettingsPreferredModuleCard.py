@@ -1,12 +1,11 @@
 from PyQt5.QtWidgets import QVBoxLayout, QLabel, QComboBox, QHBoxLayout
 from PyQt5.QtCore import pyqtSignal, QTimer
-from .BaseCard import BaseCard
+from .SettingsBaseCard import SettingsBaseCard
 from ....utils.url_manager import Module
-from qgis.core import QgsSettings
-
+from ....constants.settings_keys import SettingsService
 from ....languages.translation_keys import TranslationKeys
 from ....widgets.theme_manager import ThemeManager, Theme, is_dark
-class PreferredModuleCard(BaseCard):
+class PreferredModuleCard(SettingsBaseCard):
     """Card for setting the user's preferred module that opens by default."""
 
     pendingChanged = pyqtSignal(bool)
@@ -15,6 +14,7 @@ class PreferredModuleCard(BaseCard):
         super().__init__(lang_manager, "Eelistatud moodul")
         self._original_preferred = ""
         self._pending_preferred = ""
+        self._settings = SettingsService()
 
         # Setup the card content
         self._setup_content()
@@ -81,19 +81,17 @@ class PreferredModuleCard(BaseCard):
     def _load_current_settings(self):
         """Load the current preferred module setting."""
         try:
-            if QgsSettings:
-                settings = QgsSettings()
-                preferred_module = settings.value("wild_code/preferred_module", Module.HOME.name, str)
-                self._original_preferred = preferred_module
-                self._pending_preferred = preferred_module
+            preferred_module = self._settings.preferred_module(default=Module.HOME.name) or Module.HOME.name
+            self._original_preferred = preferred_module
+            self._pending_preferred = preferred_module
 
-                # Set the combo box to the current value
-                for i in range(self.module_combo.count()):
-                    if self.module_combo.itemData(i).name == preferred_module:
-                        self.module_combo.setCurrentIndex(i)
-                        break
+            # Set the combo box to the current value
+            for i in range(self.module_combo.count()):
+                if self.module_combo.itemData(i).name == preferred_module:
+                    self.module_combo.setCurrentIndex(i)
+                    break
 
-                self._update_current_label()
+            self._update_current_label()
         except Exception as e:
             print(f"Error loading preferred module setting: {e}")
             # Default to home
@@ -129,9 +127,8 @@ class PreferredModuleCard(BaseCard):
     def apply_changes(self):
         """Apply the pending changes."""
         try:
-            if QgsSettings and self._has_pending_changes():
-                settings = QgsSettings()
-                settings.setValue("wild_code/preferred_module", self._pending_preferred)
+            if self._has_pending_changes():
+                self._settings.preferred_module(value=self._pending_preferred)
                 self._original_preferred = self._pending_preferred
                 self.pendingChanged.emit(False)
                 return True

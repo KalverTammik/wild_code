@@ -51,7 +51,6 @@ class ProjectsModule(ModuleBaseUI):
         # Feed/filters state
         self.feed_logic = None
         self._current_where = None
-        self._current_tags_ids = None
         self._status_preferences_loaded = False
         self._tags_preferences_loaded = False
         self._suppress_filter_events = False
@@ -151,27 +150,7 @@ class ProjectsModule(ModuleBaseUI):
 
     # --- Andmete laadimine ---
     def load_next_batch(self):
-        # Prepare variables for tag filtering
-        tags_ids = getattr(self, "_current_tags_ids", None)
-
-        def inject_has_tags(batch_loader):
-            # Patch API kliendi päringu, et injekteerida hasTags
-            orig_send_query = self.feed_logic.api_client.send_query
-
-            def send_query_with_tags(query, variables=None, *args, **kwargs):
-                if variables is None:
-                    variables = {}
-                if tags_ids:
-                    variables["hasTags"] = {"column": "ID", "operator": "IN", "value": tags_ids}
-                return orig_send_query(query, variables, *args, **kwargs)
-
-            self.feed_logic.api_client.send_query = send_query_with_tags
-            try:
-                return batch_loader()
-            finally:
-                self.feed_logic.api_client.send_query = orig_send_query
-
-        return inject_has_tags(lambda: self.process_next_batch(retheme_func=self.retheme_projects))
+        return self.process_next_batch(retheme_func=self.retheme_projects)
 
     # --- Filtrid ---
     def _on_status_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
@@ -203,13 +182,17 @@ class ProjectsModule(ModuleBaseUI):
             and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
         where = {"AND": and_list} if and_list else None
 
+        has_tags_filter = self._build_has_tags_condition(tags_ids or [])
+
         # Hoia hetke seisu
         self._current_where = where
-        self._current_tags_ids = tags_ids
 
         # Init vajadusel
         if self.feed_logic is None:
             self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
+
+        if self.feed_logic:
+            self.feed_logic.set_extra_arguments(hasTags=has_tags_filter)
 
         # Rakenda WHERE
         try:
@@ -239,11 +222,8 @@ class ProjectsModule(ModuleBaseUI):
         and_list: List[dict] = []
         try:
             status_ids = self.status_filter.selected_ids() if self.status_filter else []
-            tags_ids = self.tags_filter.selected_ids() if self.tags_filter else []
             if status_ids:
                 and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
-            if tags_ids:
-                and_list.append({"column": "TAGS", "operator": "IN", "value": tags_ids})
         except Exception:
             pass
         return and_list

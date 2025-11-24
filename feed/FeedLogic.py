@@ -43,6 +43,7 @@ class UnifiedFeedLogic:
         self.has_more: bool = True
         self.is_loading: bool = False
         self.where: Optional[Dict[str, Any]] = None
+        self._extra_args: Dict[str, Any] = {}
         self.last_response: Optional[Dict[str, Any]] = None
         self.last_error: Optional[Exception] = None
         self.total_count: Optional[int] = None
@@ -58,6 +59,14 @@ class UnifiedFeedLogic:
         self.where = where
         self.reset()
 
+    def set_extra_arguments(self, **kwargs: Any) -> None:
+        """Store additional GraphQL arguments (e.g., hasTags) passed alongside where."""
+        cleaned = {k: v for k, v in kwargs.items() if v is not None}
+        if cleaned == self._extra_args:
+            return
+        self._extra_args = cleaned
+        self.reset()
+
     def fetch_next_batch(self) -> List[Dict[str, Any]]:
         if self.is_loading or not self.has_more:
             return []
@@ -71,6 +80,8 @@ class UnifiedFeedLogic:
         }
         if self.where:
             variables["where"] = self.where
+        if self._extra_args:
+            variables.update(self._extra_args)
 
         try:
             #print(f"[FeedLogic] GraphQL query variables: {variables}")

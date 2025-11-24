@@ -1,32 +1,22 @@
 # user_card.py
-import sys
-from typing import List, Dict, Set
 from PyQt5.QtCore import pyqtSignal, Qt, QEvent
 from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-    QCheckBox
+    QCheckBox, QButtonGroup
 )
-from ....utils.url_manager import Module
-from ....constants.file_paths import ConfigPaths
-from ....utils.GraphQLQueryLoader import GraphQLQueryLoader
-from ....utils.SessionManager import SessionManager
-from ....utils.api_client import APIClient
 from ....languages.translation_keys import TranslationKeys
-from PyQt5.QtWidgets import QPushButton
-from .PropertyManagement import PropertyManagement
-from .BaseCard import BaseCard  # assumes BaseCard provides: content_widget(), retheme(), etc.
-from ....widgets.LayerDropdownWidget import LayerTreePicker
+from .SettingsPropertyManagement import PropertyManagement
+from .SettingsBaseCard import SettingsBaseCard  # assumes BaseCard provides: content_widget(), retheme(), etc.
 
 
-class UserCard(BaseCard):
+class UserSettingsCard(SettingsBaseCard):
     """
     Product-level user card displaying user info, module access,
     """
-    preferredChanged = pyqtSignal(object)
+    preferredModuleChanged = pyqtSignal(object)
     addShpClicked = pyqtSignal()
     addPropertyClicked = pyqtSignal()
     removePropertyClicked = pyqtSignal()
-    layerSelected = pyqtSignal(object)  # Emits selected layer or None
 
     def __init__(self, lang_manager):
         super().__init__(lang_manager, lang_manager.translate(TranslationKeys.USER), None)
@@ -101,6 +91,9 @@ class UserCard(BaseCard):
 
         cl.addWidget(module_access_frame)
 
+        self._preferred_group = QButtonGroup(self)
+        self._preferred_group.setExclusive(True)
+
         # ---------- Property Management Widget ----------
 
         self.property_management = PropertyManagement(self.lang_manager)
@@ -109,44 +102,6 @@ class UserCard(BaseCard):
         self.property_management.addPropertyClicked.connect(self.addPropertyClicked)
         self.property_management.removePropertyClicked.connect(self.removePropertyClicked)
         cl.addWidget(self.property_management)
-
-        # ---------- Layer Selector ----------
-        layer_selector_title = QLabel(self.lang_manager.translate(TranslationKeys.SELECT_LAYER), cw)
-        layer_selector_title.setObjectName("SetupCardSectionTitle")
-        cl.addWidget(layer_selector_title)
-
-        # Layer selector container
-        layer_selector_container = QFrame(cw)
-        layer_selector_container.setObjectName("LayerSelector")
-        layer_selector_layout = QVBoxLayout(layer_selector_container)
-        layer_selector_layout.setContentsMargins(0, 0, 0, 0)
-        layer_selector_layout.setSpacing(5)
-
-        # Explanation label
-        explanation_label = QLabel(
-            self.lang_manager.translate(TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE),
-            layer_selector_container
-        )
-        explanation_label.setObjectName("LayerSelectorExplanation")
-        explanation_label.setWordWrap(True)
-        layer_selector_layout.addWidget(explanation_label)
-
-        # Use the existing LayerTreePicker widget
-        self.layer_selector = LayerTreePicker(
-            layer_selector_container,
-            placeholder=self.lang_manager.translate(TranslationKeys.SELECT_A_PROPERTY_LAYER)
-        )
-        self.layer_selector.setObjectName("PropertyLayerSelector")
-        self.layer_selector.layerChanged.connect(self._on_layer_selection_changed)
-        layer_selector_layout.addWidget(self.layer_selector)
-
-        cl.addWidget(layer_selector_container)
-
-        # Populate layer selector and load saved selection
-        self._populate_layer_selector()
-
-        # Connect to project layer changes
-        self._connect_to_project_signals()
 
         # Internal state
         self._check_by_module = {}
@@ -163,6 +118,8 @@ class UserCard(BaseCard):
     def set_access_map(self, access_map: dict, label_resolver=None):
         # Clear previous pills and checks
         self._clear_layout(self.access_layout)
+        for btn in list(self._preferred_group.buttons()):
+            self._preferred_group.removeButton(btn)
         self._check_by_module.clear()
         self._reset_click_targets()
 
@@ -173,8 +130,6 @@ class UserCard(BaseCard):
             pill = QFrame(self.access_container)
             pill.setObjectName("AccessPill")
             pill.setFocusPolicy(Qt.StrongFocus)  # allows focus ring via :focus-within
-            pill.setStyleSheet("QFrame { border: 2px dotted red; }")  # DEBUG: Ugly border to see pill boundaries
-
             hl = QHBoxLayout(pill)
             hl.setContentsMargins(8, 2, 8, 2)  # Consistent padding with roles pills
             hl.setSpacing(6)
@@ -185,6 +140,7 @@ class UserCard(BaseCard):
             chk.setEnabled(bool(has_access))
             chk.setProperty("moduleName", module_name)
             chk.toggled.connect(lambda checked, btn=chk: self._on_pref_toggled(btn, checked))
+            self._preferred_group.addButton(chk)
 
             txt = QLabel(label_text, pill)
 
@@ -243,12 +199,12 @@ class UserCard(BaseCard):
                     cb.blockSignals(True)
                     cb.setChecked(False)
                     cb.blockSignals(False)
-            self.preferredChanged.emit(module_name)
+            self.preferredModuleChanged.emit(module_name)
             return
         # Unchecked: if no other is checked, emit None to prefer welcome page
         any_other = any(cb.isChecked() for cb in self._check_by_module.values() if cb is not btn)
         if not any_other:
-            self.preferredChanged.emit(None)
+            self.preferredModuleChanged.emit(None)
 
     # Clickable pill helpers -----------------------------------------
     def _register_click_target(self, widget, checkbox):
@@ -270,89 +226,9 @@ class UserCard(BaseCard):
         if obj in getattr(self, '_pill_click_targets', {}) and event.type() == QEvent.MouseButtonRelease:
             cb = self._pill_click_targets.get(obj)
             if cb and cb.isEnabled():
-                cb.setChecked(not cb.isChecked())
+                self._toggle_checkbox_from_target(cb)
             return True
         return super().eventFilter(obj, event)
-
-    # ---------- Button Handlers ----------
-
-    # ---------- Layer Selector Methods ----------
-    def _populate_layer_selector(self):
-        """Populate the layer selector with available property layers"""
-        try:
-            # The LayerTreePicker handles its own population from the QGIS project
-            # We just need to refresh it
-            self.layer_selector.refresh()
-        except Exception as e:
-            print(f"Error refreshing layer selector: {e}")
-
-    def _connect_to_project_signals(self):
-        """Connect to QGIS project signals to respond to layer changes"""
-        try:
-            from qgis.core import QgsProject
-            project = QgsProject.instance()
-            if project:
-                # Connect to layer addition/removal signals
-                project.layersAdded.connect(self._on_project_layers_changed)
-                project.layersRemoved.connect(self._on_project_layers_changed)
-                project.layersWillBeRemoved.connect(self._on_project_layers_will_be_removed)
-                #print("Connected to project layer change signals")
-        except Exception as e:
-            print(f"Error connecting to project signals: {e}")
-
-    def _on_layer_selection_changed(self, layer):
-        """Handle layer selection change"""
-        if layer:
-            layer_id = layer.id()
-            self._selected_layer = layer
-            #print(f"Selected property layer: {layer.name()} (ID: {layer_id})")
-            # Note: Saving is now handled by SettingsUI through the pending pattern
-        else:
-            self._selected_layer = None
-            print("No layer selected")
-
-        # Emit signal with selected layer
-        self.layerSelected.emit(layer)
-
-    def _on_project_layers_changed(self, layers):
-        """Handle when layers are added or removed from the project"""
-        print(f"Project layers changed, refreshing layer selector")
-        self._populate_layer_selector()
-        # Try to restore the previously selected layer if it still exists
-        self._restore_saved_selection_if_available()
-
-    def _on_project_layers_will_be_removed(self, layer_ids):
-        """Handle when layers are about to be removed"""
-        current_selected_id = self.layer_selector.selectedLayerId()
-        if current_selected_id and current_selected_id in layer_ids:
-            print(f"Selected layer {current_selected_id} is being removed, clearing selection")
-            self.layer_selector.clearSelection()
-            self._selected_layer = None
-            self.layerSelected.emit(None)
-
-    def _restore_saved_selection_if_available(self):
-        """Try to restore the saved layer selection if the layer still exists"""
-        # Note: This is now handled by SettingsUI through the pending pattern
-        pass
-
-    def get_selected_layer(self):
-        """Get the currently selected layer"""
-        return getattr(self, '_selected_layer', None)
-
-    def clear_main_property_layer(self):
-        """Clear the main property layer selection."""
-        self.layer_selector.clearSelection()
-        self._selected_layer = None
-        self.layerSelected.emit(None)
-
-    def refresh_layer_selector(self):
-        """Refresh the layer selector with current layers"""
-        self._populate_layer_selector()
-
-    def showEvent(self, event):
-        """Called when the widget is shown - refresh layer selector"""
-        super().showEvent(event)
-        self.refresh_layer_selector()
 
     # ---------- Helpers ----------
     @staticmethod
@@ -371,73 +247,14 @@ class UserCard(BaseCard):
             if isinstance(w, QFrame) and w.objectName() == "AccessPill":
                 w.style().unpolish(w); w.style().polish(w); w.update()
 
-
-class userUtils:
-    @staticmethod
-    def load_user(lbl_name: QLabel, lbl_email: QLabel, lbl_roles: QLabel, lang_manager) -> Dict:
-        
-        name = Module.USER.value
-        query_file = "me.graphql"
-
-        ql = GraphQLQueryLoader(lang_manager)
-        api = APIClient(SessionManager(), ConfigPaths.CONFIG)
-        query = ql.load_query(name, query_file)
-        data = api.send_query(query)
-        user_data = data.get("me", {}) or {}
-        userUtils.extract_and_set_user_labels(lbl_name, lbl_email, user_data)
-
-        roles = userUtils.get_roles_list(user_data.get("roles"))
-        userUtils.set_roles(lbl_roles, roles)
-        abilities = user_data.get("abilities", [])
-        return abilities
-
-    @staticmethod
-    def abilities_to_subjects(abilities) -> Set[str]:
-
-        import json
-        abilities = abilities or []
-        if isinstance(abilities, str):
-            try:
-                abilities = json.loads(abilities)
-            except Exception:
-                abilities = []
-        subjects = set()
-        #print(f"DEBUG: Parsed abilities: {abilities}")
-        for ab in abilities:
-            subj = ab.get('subject')
-            if isinstance(subj, list) and subj:
-                subjects.add(str(subj[0]))
-            elif isinstance(subj, str):
-                subjects.add(subj)
-        return subjects
-
-    @staticmethod
-    def extract_and_set_user_labels(lbl_name: QLabel, lbl_email: QLabel, user: dict):
-
-        full_name = f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() or "—"
-        #print(f"[userUtils] Full name extracted: {full_name}")
-        email = user.get("email", "—")
-
-        lbl_name.setText(f"{full_name}")
-        lbl_email.setText(f"{email}")
-
-    @staticmethod
-    def get_roles_list(roles_data) -> List[str]:
-        roles = roles_data or []
-        if isinstance(roles, str):
-            roles = []
-        names: List[str] = []
-        for r in roles:
-            name = r.get('displayName') or r.get('name') or str(r.get('id') or '')
-            if name:
-                names.append(name)
-        return names
-
-    @staticmethod
-    def set_roles(lbl_roles: QLabel, roles: list):
-        # IMPROVED: Display roles on separate line below label
-        if roles:
-            roles_text = ", ".join(roles)
-            lbl_roles.setText(roles_text)
+    def _toggle_checkbox_from_target(self, checkbox):
+        if not checkbox:
+            return
+        if checkbox.isChecked():
+            self._preferred_group.setExclusive(False)
+            checkbox.setChecked(False)
+            self._preferred_group.setExclusive(True)
         else:
-            lbl_roles.setText("—")
+            checkbox.click()
+
+

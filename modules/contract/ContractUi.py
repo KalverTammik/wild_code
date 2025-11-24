@@ -4,7 +4,7 @@ Contracts module UI – residentne muster ModuleBaseUI peal.
 Erinevus teiste moodulitega: FEED_LOGIC klass, pealkiri, ning TYPE filter ON lubatud.
 """
 
-from typing import Optional, Type, List, Any
+from typing import Optional, Type, List
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel, QFrame
@@ -12,10 +12,10 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel, QFrame
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...widgets.StatusFilterWidget import StatusFilterWidget
 from ...widgets.TypeFilterWidget import TypeFilterWidget
+from ...widgets.TagsFilterWidget import TagsFilterWidget
 from ...utils.url_manager import Module
 from ...widgets.theme_manager import ThemeManager, styleExtras
 from ...constants.file_paths import QssPaths
-from ...utils.logger import is_debug as is_global_debug
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
 from ...widgets.OverdueDueSoonPillsWidget import (
     OverdueDueSoonPillsLogic,
@@ -82,7 +82,11 @@ class ContractsModule(ModuleBaseUI):
             self.toolbar_area.add_left(self.type_filter)
             self.type_filter.selectionChanged.connect(self._on_type_filter_selection)
 
-        self._filter_widgets = [w for w in (self.status_filter, self.type_filter) if w is not None]
+        self.tags_filter = TagsFilterWidget(self.module_key, self.lang_manager, self.toolbar_area)
+        self.toolbar_area.add_left(self.tags_filter)
+        self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
+
+        self._filter_widgets = [w for w in (self.status_filter, self.type_filter, self.tags_filter) if w is not None]
 
         self.toolbar_area.add_right(self.overdue_pills)
 
@@ -109,7 +113,6 @@ class ContractsModule(ModuleBaseUI):
 
         self.theme_manager.apply_module_style(self, [QssPaths.MODULES_MAIN])
 
-    # --- Aktivatsioon / deaktiveerimine (ühine muster) ---
     def activate(self) -> None:
         super().activate()
 
@@ -126,6 +129,10 @@ class ContractsModule(ModuleBaseUI):
         if self.type_filter:
             self.type_filter.ensure_loaded()
             self._load_and_apply_type_preferences()
+
+        if self.tags_filter:
+            self.tags_filter.ensure_loaded()
+            self._load_and_apply_tags_preferences()
 
         # Drive an initial load using current selections
         self._suppress_filter_events = False
@@ -162,11 +169,15 @@ class ContractsModule(ModuleBaseUI):
     def _on_type_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
         self._refresh_filters(type_ids=ids)
 
+    def _on_tags_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
+        self._refresh_filters(tags_ids=ids)
+
     def _refresh_filters(
         self,
         *,
         status_ids: Optional[List[str]] = None,
         type_ids: Optional[List[str]] = None,
+        tags_ids: Optional[List[str]] = None,
     ) -> None:
         if self._suppress_filter_events:
             return
@@ -181,6 +192,8 @@ class ContractsModule(ModuleBaseUI):
             status_ids = self.status_filter.selected_ids()
         if type_ids is None and self.type_filter:
             type_ids = self.type_filter.selected_ids()
+        if tags_ids is None and self.tags_filter:
+            tags_ids = self.tags_filter.selected_ids()
 
         # Build base AND list
         and_list = []
@@ -189,12 +202,17 @@ class ContractsModule(ModuleBaseUI):
         if self.USE_TYPE_FILTER and type_ids:
             and_list.append({"column": "TYPE", "operator": "IN", "value": type_ids})
 
+        has_tags_filter = self._build_has_tags_condition(tags_ids or [])
         where = {"AND": and_list} if and_list else None
         if self.feed_logic is None:
             self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
 
         try:
             self.feed_logic.set_where(where)
+        except Exception:
+            pass
+        try:
+            self.feed_logic.set_extra_arguments(hasTags=has_tags_filter)
         except Exception:
             pass
 
@@ -264,6 +282,14 @@ class ContractsModule(ModuleBaseUI):
         if self.feed_logic is None:
             self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
 
+        tags_ids = []
+        try:
+            if self.tags_filter:
+                tags_ids = self.tags_filter.selected_ids()
+        except Exception:
+            tags_ids = []
+        has_tags_filter = self._build_has_tags_condition(tags_ids or [])
+
         # Puhasta enne uue WHERE rakendamist
         try:
             if self.feed_load_engine:
@@ -274,6 +300,10 @@ class ContractsModule(ModuleBaseUI):
         # Rakenda WHERE (tühi AND -> None)
         try:
             self.feed_logic.set_where(where if where and where.get("AND") else None)
+        except Exception:
+            pass
+        try:
+            self.feed_logic.set_extra_arguments(hasTags=has_tags_filter)
         except Exception:
             pass
 

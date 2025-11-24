@@ -1,8 +1,14 @@
-query Projects($first: Int, $after: String, $where: QueryProjectsWhereWhereConditions) {
+query Projects(
+  $first: Int
+  $after: String
+  $where: QueryProjectsWhereWhereConditions
+  $hasTags: QueryProjectsHasTagsWhereHasConditions
+) {
   projects(
     first: $first
     after: $after
     where: $where
+    hasTags: $hasTags
   ) {
     pageInfo {
       currentPage
@@ -41,7 +47,7 @@ query Projects($first: Int, $after: String, $where: QueryProjectsWhereWhereCondi
           displayName
         }
         tags(first: 10) {
-          edges { node { id name } }
+          edges { node { id name module } }
         }
       }
     }

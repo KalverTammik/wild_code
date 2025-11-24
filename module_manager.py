@@ -20,7 +20,16 @@ class ModuleManager:
             self.lang_manager = lang_manager
         
 
-    def registerModule(self, module_class, module_name, sidebar_main_item=True, supports_types=False, supports_statuses=False, **init_params):
+    def registerModule(
+        self,
+        module_class,
+        module_name,
+        sidebar_main_item=True,
+        supports_types=False,
+        supports_statuses=False,
+        supports_tags=False,
+        **init_params,
+    ):
         """
         Register a module with its class and init parameters.
         The instance will be created lazily on first activation.
@@ -35,7 +44,8 @@ class ModuleManager:
             "display_name": self.lang_manager.translate(module_name.capitalize()),
             "sidebar_main_item": sidebar_main_item,
             "supports_types": supports_types,
-            "supports_statuses": supports_statuses
+            "supports_statuses": supports_statuses,
+            "supports_tags": supports_tags,
         }
 
         if module_name.capitalize() == Module.SETTINGS.value.capitalize() or \
@@ -86,15 +96,14 @@ class ModuleManager:
         """Return the currently active module."""
         return self.activeModule
 
-    def getModuleSupports(self, moduleName, Status =False, Types =False) -> bool:
-        """Return whether the specified module supports types."""
+    def getModuleSupports(self, moduleName):
+        """Return support flags for the specified module."""
         module_data = self.modules.get(moduleName.lower())
-        if module_data:
-            if Types:
-                types_boolean = module_data.get("supports_types", False)
-                 
-            if Status:
-                status_boolean = module_data.get("supports_statuses", False)
-            return [types_boolean, status_boolean]
-        return None
+        if not module_data:
+            return None
+        return {
+            "types": module_data.get("supports_types", False),
+            "statuses": module_data.get("supports_statuses", False),
+            "tags": module_data.get("supports_tags", False),
+        }
  

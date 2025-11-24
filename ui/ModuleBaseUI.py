@@ -8,7 +8,7 @@ Põhimõtted:
 - Scrolli sündmused on idempotentselt ühendatud.
 - Kaarti lisades ei käivita scroll-handlerit (_ignore_scroll_event).
 """
-from typing import Optional, Callable
+from typing import Optional, Callable, Sequence
 from qgis.core import QgsSettings
 from PyQt5.QtCore import Qt, QTimer, QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea
@@ -48,6 +48,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         self.status_filter = None
         self.type_filter = None
         self.tags_filter = None
+        self.tags_match_mode = "ANY"
 
         # Preference loading guards
         self._status_filter_signal_connected = False
@@ -369,12 +370,13 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         """
         try:
 
-            module_key = getattr(self, 'name', self.__class__.__name__)
+            s = QgsSettings()
+            module_key = self._module_settings_key()
             key = f"wild_code/modules/{module_key}/preferred_statuses"
-            preferred_statuses = QgsSettings.value(key, "") or ""
+            preferred_statuses = s.value(key, "") or ""
 
             if preferred_statuses:
-                result = set(preferred_statuses.split(","))
+                result = {token.strip() for token in str(preferred_statuses).split(",") if token.strip()}
                 return result
             return set()
         except Exception as e:
@@ -433,12 +435,12 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         try:
 
             s = QgsSettings()
-            module_key = getattr(self, 'name', self.__class__.__name__)
+            module_key = self._module_settings_key()
             key = f"wild_code/modules/{module_key}/preferred_types"
             preferred_types = s.value(key, "") or ""
 
             if preferred_types:
-                result = set(preferred_types.split(","))
+                result = {token.strip() for token in str(preferred_types).split(",") if token.strip()}
                 return result
             return set()
         except Exception as e:
@@ -498,12 +500,12 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         """
         try:
             s = QgsSettings()
-            module_key = getattr(self, 'name', self.__class__.__name__)
+            module_key = self._module_settings_key()
             key = f"wild_code/modules/{module_key}/preferred_tags"
             preferred_tags = s.value(key, "") or ""
 
             if preferred_tags:
-                result = set(preferred_tags.split(","))
+                result = {token.strip() for token in str(preferred_tags).split(",") if token.strip()}
                 return result
             return set()
         except Exception as e:
@@ -516,6 +518,10 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+    def _module_settings_key(self) -> str:
+        raw = getattr(self, 'module_key', None) or getattr(self, 'name', self.__class__.__name__)
+        return str(raw).strip().lower()
+
     def _safe_extract_item_id(self, item) -> Optional[str]:
         try:
             return self._extract_item_id(item)
@@ -527,3 +533,28 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
                 except Exception:
                     pass
             return None
+
+    def _build_has_tags_condition(
+        self,
+        tag_ids: Sequence[str],
+        *,
+        match_mode: Optional[str] = None,
+    ) -> Optional[dict]:
+        """Map tag selections to Kavitro QueryProjectsHasTagsWhereHasConditions.
+
+        Reference: Kavitro docs › GraphQL › Inputs › QueryProjectsHasTagsWhereHasConditions.
+        """
+        ids = [str(tag_id).strip() for tag_id in tag_ids if tag_id]
+        if not ids:
+            return None
+
+        mode = (match_mode or self.tags_match_mode or "ANY").upper()
+        if mode == "ALL":
+            return {
+                "AND": [
+                    {"column": "ID", "operator": "EQ", "value": tag_id}
+                    for tag_id in ids
+                ]
+            }
+
+        return {"column": "ID", "operator": "IN", "value": ids}
