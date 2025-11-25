@@ -3,8 +3,8 @@ from qgis.PyQt.QtCore import Qt, QUrl
 from PyQt5.QtGui import QDesktopServices
 from qgis.core import Qgis
 
-from ..config.setup import Version, config
-from ..utils.url_manager import WebLinks
+from ..config.setup import Version
+from ..utils.url_manager import OpenLink
 from ..widgets.theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
 import datetime
@@ -28,11 +28,11 @@ class FooterWidget(QWidget):
         # Left: one rich-text label with programmatic links (no visible hrefs)
         if show_left:
             current_year = datetime.datetime.now().year
-            wl = WebLinks(config)
+            wl = OpenLink()
 
             left_label = FooterLinksLabel(
                 [f"© {current_year} Valisee", "Koduleht", "Privaatsus", "Kasutustingimused"],
-                [None, wl.home, wl.privacy, wl.terms],
+                [None, wl.main, wl.privacy, wl.terms],
             )
             left_label.setObjectName("footerLeftLabel")
             left_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)

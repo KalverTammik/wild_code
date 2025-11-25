@@ -3,6 +3,8 @@ query contracts(
   $after: String
   $where: QueryContractsWhereWhereConditions
   $hasTags: QueryContractsHasTagsWhereHasConditions
+  $propertiesFirst: Int = 1
+  $propertiesAfter: String
 ) {
   contracts(
     first: $first
@@ -29,6 +31,8 @@ query contracts(
         signedAt
         completedAt
         warrantyDueAt
+        filesPath
+        isSubcontract
         members {
           edges {
             node {
@@ -58,6 +62,27 @@ query contracts(
             }
           }
         }
+        properties(first: $propertiesFirst, after: $propertiesAfter) {
+          pageInfo {
+            count
+            currentPage
+            startCursor
+            endCursor
+            hasNextPage
+            hasPreviousPage
+            lastPage
+            total
+          }
+          edges {
+            node {
+              id
+              immovableNumber
+              displayAddress
+              cadastralUnitNumber
+            }
+          }
+        }
+
       }
     }
   }

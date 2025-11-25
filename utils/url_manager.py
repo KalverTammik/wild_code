@@ -1,8 +1,11 @@
 
 from enum import Enum
+
 from typing import Dict, Any
 import requests
 import webbrowser
+from ..config.setup import config
+
 
 class Module(Enum):
     PROJECT = "project"
@@ -57,53 +60,6 @@ class Module(Enum):
         """Sageli vajame API-s mitmust ÜLAKIRJAS (nt statuses where: MODULE=PROJECTS)."""
         return self.plural(upper=True)
 
-class WebModules:
-    """
-    Provides URL paths for each module.
-    """
-    PROJECTS = '/projects/'
-    CONTRACTS = '/contracts/'
-    USERS = '/users/'
-    PROPERTIES = '/properties/'
-    _module_paths = {
-        Module.PROJECT: PROJECTS,
-        Module.CONTRACT: CONTRACTS,
-        Module.USER: USERS,
-        Module.PROPERTY: PROPERTIES,
-    }
-
-    @classmethod
-    def get_modules_webpath(cls, module: Module) -> str:
-        """Get the URL path for a given module."""
-        if module not in cls._module_paths:
-            raise ValueError(f"Invalid module name: {module}")
-        return cls._module_paths[module]
-
-class OpenLink:
-    """
-    Builds full web and API links for modules using config.
-    """
-    def __init__(self, config: Dict[str, Any]):
-        self.web_base = config.get('weblink', '')
-        self.api_base = config.get('api_base', '')
-
-    def web_link_by_module(self, module: Module) -> str:
-        """Return the full web link for a module."""
-        return f"{self.web_base.rstrip('/')}" + WebModules.get_modules_webpath(module)
-
-    def api_link_by_module(self, module: Module) -> str:
-        """Return the full API link for a module."""
-        return f"{self.api_base.rstrip('/')}" + WebModules.get_modules_webpath(module)
-
-
-class WebLinks:
-    """
-    Holds static links from config (home, privacy, terms).
-    """
-    def __init__(self, config: Dict[str, Any]):
-        self.home = config.get('weblink', '')
-        self.privacy = config.get('privacy', '')
-        self.terms = config.get('terms', '')
 
 class loadWebpage:
     @staticmethod
@@ -122,3 +78,17 @@ class loadWebpage:
             except Exception:
                 pass
         
+class OpenLink:
+    def __init__(self):
+        self.main = config.get('weblink', '')
+        self.privacy = config.get('privacy', '')
+        self.terms = config.get('terms', '')
+
+    @staticmethod
+    def weblink_by_module(module_path: str) -> str:
+        """
+        Build a full link like: https://example.com/projects/
+        Usage:
+
+        """
+        return f"{OpenLink().main}/{module_path}"

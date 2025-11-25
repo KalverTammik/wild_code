@@ -21,6 +21,7 @@ from ...widgets.OverdueDueSoonPillsWidget import (
     OverdueDueSoonPillsUtils,
     OverdueDueSoonPillsWidget,
 )
+from ...widgets.filter_refresh_helper import FilterRefreshHelper
 
 
 class ProjectsModule(ModuleBaseUI):
@@ -91,6 +92,12 @@ class ProjectsModule(ModuleBaseUI):
 
         self._filter_widgets = [w for w in (self.status_filter, self.tags_filter) if w is not None]
 
+
+        self._refresh_helper = FilterRefreshHelper(self)
+        refresh_widget = self._refresh_helper.make_filter_refresh_button(self.toolbar_area)
+        self.toolbar_area.set_refresh_widget(refresh_widget)
+
+
         # Feed area
         self.feed_content = QWidget()
         self.feed_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -104,10 +111,8 @@ class ProjectsModule(ModuleBaseUI):
         self.feed_layout.addWidget(self._empty_state)
         self.feed_layout.addStretch(1)
 
-
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.feed_content)
-
         # Teema
         ThemeManager.apply_module_style(self._empty_state, [QssPaths.MODULE_CARD])
 

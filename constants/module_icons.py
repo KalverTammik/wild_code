@@ -1,6 +1,6 @@
 import os
 from .base_paths import PLUGIN_ROOT, RESOURCE, ICON_FOLDER
-from ..widgets.theme_manager import ThemeManager, Theme, is_dark
+from ..widgets.theme_manager import is_dark
 from ..utils.url_manager import Module
 
 

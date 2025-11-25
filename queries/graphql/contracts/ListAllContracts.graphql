@@ -19,6 +19,8 @@ query contracts($first: Int, $after: String, $search: String, $where: QueryContr
         id
         number
         name
+        filesPath
+        isSubcontract
         sum {
           amount
           currencyCode
@@ -46,6 +48,7 @@ query contracts($first: Int, $after: String, $search: String, $where: QueryContr
           name
         }
         description
+
       }
     }
   }

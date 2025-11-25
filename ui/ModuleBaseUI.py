@@ -120,35 +120,6 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         engine = self.feed_load_engine
         engine.reset()
 
-    # ------------------------------------------------------------------
-    # Refresh button handler
-    # ------------------------------------------------------------------
-    def _on_refresh_clicked(self):
-        """Hard refresh: reset session then trigger a fresh scheduled load."""
-        try:
-            if self._filter_widgets:
-                for widget in list(self._filter_widgets):
-                    try:
-                        widget.set_selected_ids([])  # type: ignore[attr-defined]
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-        
-        self._status_preferences_loaded = False
-        self._type_preferences_loaded = False
-        self._tags_preferences_loaded = False
-        try:
-            self.reset_feed_session()
-        except Exception:
-            pass
-        try:
-            if self.feed_load_engine:
-                self.feed_load_engine.schedule_load()
-            else:
-                self.process_next_batch()
-        except Exception:
-            pass
 
 
 

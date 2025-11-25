@@ -15,3 +15,9 @@ QLabel#FilterTitleLabel {
 	padding-left: 2px;
 	padding-right: 2px;
 }
+
+QPushButton#FeedRefreshButton {
+    background: transparent;
+    border-radius: 6px;
+    padding: 4px;
+}

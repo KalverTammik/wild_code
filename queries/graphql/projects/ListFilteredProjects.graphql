@@ -3,6 +3,8 @@ query Projects(
   $after: String
   $where: QueryProjectsWhereWhereConditions
   $hasTags: QueryProjectsHasTagsWhereHasConditions
+  $propertiesFirst: Int = 1
+  $propertiesAfter: String
 ) {
   projects(
     first: $first
@@ -32,6 +34,7 @@ query Projects(
         createdAt
         updatedAt
         isPublic
+        filesPath
         members {
           edges {
             node {
@@ -47,7 +50,31 @@ query Projects(
           displayName
         }
         tags(first: 10) {
-          edges { node { id name module } }
+          edges {
+            node {
+              id
+              name
+              module
+            }
+          }
+        }
+        properties(first: $propertiesFirst, after: $propertiesAfter) {
+          pageInfo {
+            count
+            currentPage
+            startCursor
+            endCursor
+            hasNextPage
+            hasPreviousPage
+            lastPage
+            total
+          }
+          edges {
+            node {
+              id
+              cadastralUnitNumber
+            }
+          }
         }
       }
     }

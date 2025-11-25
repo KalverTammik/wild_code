@@ -43,10 +43,12 @@ class ThemeManager(QObject):
     ICON_ERROR = "icons8-error-50.png"
     ICON_WARNING = "icons8-notification-50.png"
     ICON_CLEAR = "icons8-clear-search-50.png"
+    ICON_FOLDER = "icons8-folder-50.png"
     ICON_ADD = "icons8-add-50.png"
     ICON_REMOVE = "icons8-remove-50.png"
     ICON_WAIT = "icons8-wait-50.png"
     ICON_BUFFERING = "icons8-buffering-50.png"
+    VALISEE_V_ICON_NAME = "Valisee_v.png"
 
     @staticmethod
     def save_theme_setting(theme_name: str):
@@ -85,7 +87,8 @@ class ThemeManager(QObject):
         if '.png' not in exts: exts.append('.png')
         if '.svg' not in exts: exts.append('.svg')
 
-        themed_dir = os.path.join(base_icons_dir, StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT)
+        theme_dir_name = os.path.basename(StylePaths.DARK) if is_dark(theme) else os.path.basename(StylePaths.LIGHT)
+        themed_dir = os.path.join(base_icons_dir, theme_dir_name)
         for e in exts:
             p = os.path.join(themed_dir, f"{stem}{e}")
             if os.path.exists(p):

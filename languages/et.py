@@ -1,4 +1,4 @@
-from .translation_keys import TranslationKeys, RoleTranslationKeys
+from .translation_keys import TranslationKeys, RoleTranslationKeys, ToolbarTranslationKeys
 
 TRANSLATIONS = {
     TranslationKeys.PROJECTS_MODULE_LOADED: "Projektide moodul laaditud!",
@@ -188,6 +188,9 @@ TRANSLATIONS = {
     ,TranslationKeys.SELECTED_PROPERTIES_COUNT: "Valitud: 0 kinnistut"
     ,TranslationKeys.SELECTED_COUNT_TEMPLATE: "Valitud: {count} kinnistut"
     ,TranslationKeys.NO_SELECTION: "Valikut pole"
+    ,ToolbarTranslationKeys.OPEN_FOLDER: "Ava kaust"
+    ,ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER: "Ava kirje brauseris"
+    ,ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP: "Näita kirjeid kaardil"
     ,TranslationKeys.PLEASE_SELECT_AT_LEAST_ONE_PROPERTY: "Palun valige vähemalt üks kinnistu."
     ,TranslationKeys.NO_PROPERTY_LAYER_SELECTED: "Kinnistute kihti pole valitud. Palun valige esmalt kinnistute kiht."
     ,TranslationKeys.DATA_LOADING_ERROR: "Andmete laadimise viga"

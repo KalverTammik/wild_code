@@ -1,4 +1,4 @@
-from .translation_keys import TranslationKeys, RoleTranslationKeys
+from .translation_keys import TranslationKeys, RoleTranslationKeys, ToolbarTranslationKeys
 
 TRANSLATIONS = {
     TranslationKeys.PROJECTS_MODULE_LOADED: "Projects module loaded!",
@@ -195,6 +195,9 @@ TRANSLATIONS = {
     ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Error selecting property"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Select Single Property"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_MESSAGE: "Please select only one property feature on the map."
+    ,ToolbarTranslationKeys.OPEN_FOLDER: "Open folder"
+    ,ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER: "Open item in browser"
+    ,ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP: "Show items on map"
     ,RoleTranslationKeys.ADMINS: "Admins"
     ,RoleTranslationKeys.ADMINISTRATORS: "Administrators"
     ,RoleTranslationKeys.PROJECT_MANAGERS: "Project Managers"

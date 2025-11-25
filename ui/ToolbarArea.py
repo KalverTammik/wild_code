@@ -48,12 +48,12 @@ class ModuleToolbarArea(QFrame):
         # Add a designated area for the refresh button next to the left grid.
         self._refresh_slot = QWidget(self)
         self._refresh_slot.setObjectName("ToolbarRefreshSlot")
-        self._refresh_slot.setFixedWidth(38)
+        self._refresh_slot.setFixedWidth(34)
 
         self._refresh_layout = QVBoxLayout(self._refresh_slot)
-        self._refresh_layout.setContentsMargins(0, 0, 0, 0)
+        self._refresh_layout.setContentsMargins(2, 2, 2, 2)
         self._refresh_layout.setSpacing(0)
-        self._refresh_layout.addStretch(1)
+
 
 
         # Right slot container

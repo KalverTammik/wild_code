@@ -389,3 +389,8 @@ class RoleTranslationKeys:
     EDITORS = "Toimetajad"
     VIEWERS = "Vaatajad"
     GUESTS = "Külalised"
+
+class ToolbarTranslationKeys:
+    OPEN_FOLDER = "Open Folder"
+    OPEN_ITEM_IN_BROWSER = "Open Item in Browser"
+    SHOW_ITEMS_ON_MAP = "Show Items on Map"

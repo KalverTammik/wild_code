@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Optional
 
+from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton
+
+from .theme_manager import ThemeManager
 
 
 class FilterRefreshHelper:
@@ -17,16 +20,14 @@ class FilterRefreshHelper:
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(0)
 
-        btn = QPushButton("✖", container)
+        btn = QPushButton("", container)
         btn.setObjectName("FeedRefreshButton")
         btn.setAutoDefault(False)
         btn.setDefault(False)
         size_px = 28
         btn.setFixedSize(size_px, size_px)
-        btn.setStyleSheet(
-            "color: #b0b0b0; font-size: 14px; background: transparent; border: 0px;"
-            f"border-radius: {int(size_px/2)}px; padding: 0px;"
-        )
+        btn.setIcon(ThemeManager.get_qicon(ThemeManager.ICON_BUFFERING))
+        btn.setIconSize(QSize(18, 18))
         btn.clicked.connect(self._on_refresh_clicked)  # type: ignore[attr-defined]
 
         layout.addWidget(btn)

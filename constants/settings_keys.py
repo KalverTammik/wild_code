@@ -89,7 +89,6 @@ class SettingsService:
         return self.plugin_setting("main_property_layer_id", value=value, clear=clear, default=default)
 
     def module_preferred_statuses(self, module_name: str, value=_UNSET, *, clear: bool = False):
-        print(f"module_preferred_statuses called with module_name: {module_name}")
         return self.module_setting(
             module_name,
             MODULE_SETTING_PREFERRED_STATUSES,
@@ -99,7 +98,6 @@ class SettingsService:
         )
 
     def module_preferred_types(self, module_name: str, value=_UNSET, *, clear: bool = False):
-        print(f"module_preferred_types called with module_name: {module_name}")
         return self.module_setting(
             module_name,
             MODULE_SETTING_PREFERRED_TYPES,
@@ -109,7 +107,6 @@ class SettingsService:
         )
 
     def module_preferred_tags(self, module_name: str, value=_UNSET, *, clear: bool = False):
-        print(f"module_preferred_tags called with module_name: {module_name}")
         return self.module_setting(
             module_name,
             MODULE_SETTING_PREFERRED_TAGS,

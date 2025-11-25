@@ -66,7 +66,7 @@ class GraphQLTemplateLoader:
         """
         Load a query file and resolve imports and placeholder replacement.
         - module: logical module key (e.g., 'PROJECT', 'PROPERTIES', 'USER' or lowercase variants)
-        - filename: e.g., 'ListAllProjects.template.graphql'
+        - filename: e.g., 'ListAllProjects.graphql'
         - edge_fragment: fragment name to inject for the {{EDGE_FRAGMENT}} placeholder
         Returns the final query string ready for APIClient.
         """

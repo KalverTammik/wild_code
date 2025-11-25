@@ -8,7 +8,7 @@ from qgis.gui import QgsCheckableComboBox
 from PyQt5.QtCore import Qt, QCoreApplication, QSignalBlocker, pyqtSignal
 from ..widgets.theme_manager import ThemeManager, styleExtras, ThemeShadowColors
 from ..constants.file_paths import QssPaths
-from PyQt5.QtWidgets import QWidget, QComboBox, QListView, QSizePolicy, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QComboBox, QSizePolicy
 
 
 # --- helpers: combo inits ---
@@ -317,79 +317,3 @@ class BaseFilterWidget(QWidget):
             return
         self._loaded = True
         self.reload()
-
-
-class FilterRefreshHelper:
-    """
-    Shared helper that creates a refresh button widget and handles its click.
-    Pass the module (owner) so we can clear filters and trigger reload.
-    """
-    def __init__(self, owner: QWidget):
-        self._owner = owner  # expected to have toolbar_area, reset_feed_session, feed_load_engine/process_next_batch
-
-    def make_filter_refresh_button(self, parent: Optional[QWidget] = None) -> QWidget:
-        """
-        Returns a QWidget container holding a styled round refresh QPushButton.
-        Safe to add into layouts that accept only widgets.
-        """
-        container = QWidget(parent)
-        layout = QHBoxLayout(container)
-        layout.setContentsMargins(2, 2, 2, 2)
-        layout.setSpacing(0)
-
-        btn = QPushButton("✖", container)
-        btn.setObjectName("FeedRefreshButton")
-        btn.setAutoDefault(False)
-        btn.setDefault(False)
-        size_px = 28
-        btn.setFixedSize(size_px, size_px)
-        btn.setStyleSheet(
-            "color: #b0b0b0; font-size: 14px; background: transparent; border: 0px;"
-            f"border-radius: {int(size_px/2)}px; padding: 0px;"
-        )
-        btn.clicked.connect(self._on_refresh_clicked)  # type: ignore[attr-defined]
-        
-        layout.addWidget(btn)
-        return container
-
-    def _on_refresh_clicked(self):
-        """Hard refresh: reset session, clear filters, and trigger a fresh load."""
-        owner = self._owner
-        # Clear filters first
-        try:
-            toolbar = getattr(owner, 'toolbar_area', None)
-            if toolbar and hasattr(toolbar, 'filter_widgets'):
-                for _name, widget in list(toolbar.filter_widgets.items()):
-                    try:
-                        if hasattr(widget, 'set_selected_ids'):
-                            widget.set_selected_ids([])  # type: ignore[attr-defined]
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-
-        # Reset preference flags if present
-        for flag in ('_status_preferences_loaded', '_type_preferences_loaded', '_tags_preferences_loaded'):
-            if hasattr(owner, flag):
-                try:
-                    setattr(owner, flag, False)
-                except Exception:
-                    pass
-
-        # Reset feed session
-        try:
-            if hasattr(owner, 'reset_feed_session') and callable(owner.reset_feed_session):
-                owner.reset_feed_session()
-        except Exception:
-            pass
-
-        # Trigger engine schedule or fallback batch
-        try:
-            eng = getattr(owner, 'feed_load_engine', None)
-            if eng and hasattr(eng, 'schedule_load'):
-                eng.schedule_load()
-            else:
-                if hasattr(owner, 'process_next_batch') and callable(owner.process_next_batch):
-                    owner.process_next_batch()
-        except Exception:
-            pass
