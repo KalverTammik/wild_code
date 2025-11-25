@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Sequence
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QWidget
+from ..constants.settings_keys import SettingsService
 from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
@@ -31,8 +32,11 @@ class TypeFilterWidget(QWidget):
         self._suppress_type_emit = False
         self._loaded = False
 
+
+        self.filter_title = self._lang.translate(TranslationKeys.TYPE_FILTER)
+        
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(2)
 
         self.group_combo = QgsCheckableComboBox(self)
@@ -57,6 +61,7 @@ class TypeFilterWidget(QWidget):
         try:
             self._load_types()
             self._loaded = True
+            self._apply_preferred_types()
         except Exception as exc:
             self.group_combo.clear()
             self.type_combo.clear()
@@ -150,6 +155,18 @@ class TypeFilterWidget(QWidget):
         if emit:
             self._emit_selection_change()
 
+
+    def _apply_preferred_types(self) -> None:
+        if not self._loaded:
+            return
+        preferred_types = SettingsService().module_preferred_types(self._module) or ""
+        ids = [token.strip() for token in str(preferred_types).split(",") if token.strip()]
+        if ids:
+            self.set_selected_ids(ids, emit=False)
+
+
+
+
     def _sync_groups_to_types(self) -> None:
         selected_type_ids = set(self.selected_ids())
         self._suppress_group_emit = True
@@ -170,6 +187,7 @@ class TypeFilterWidget(QWidget):
                 self.group_combo.setItemCheckState(row, state)
         finally:
             self._suppress_group_emit = False
+
 
     def _emit_selection_change(self) -> None:
         texts = self.selected_texts()

@@ -7,24 +7,41 @@ QFrame#ModuleInfoCard {
     border-radius: 12px;
     padding: 0;
     margin: 4px;
-    background-image: qlineargradient(
-        x1:0, y1:0, x2:0, y2:1,
-        stop:0 rgba(0,0,0,0.04),
-        stop:0.05 rgba(0,0,0,0.02),
-        stop:0.92 rgba(0,0,0,0.12),
-        stop:1 rgba(0,0,0,0.18)
-    );
-    transition: 120ms ease;
 }
 QFrame#ModuleInfoCard:hover {
     border: 1px solid rgba(0,120,212,0.45) !important;
     background-color: #fafbfc;
 }
 
+QFrame#CardContent {background: transparent; }
 
-QFrame#ModuleInfoCard[compact="true"] { border-radius: 10px; }
 
-QFrame#CardContent { background: transparent; }
+QPushButton {
+    background: #e6f7f7;
+    border-radius: 6px;
+    border: 1px solid #b2e0e0;
+    padding: 4px 12px;
+    color: #09908f;
+}
+
+QPushButton:hover {
+    background: #d1f0f0;
+    border: 1px solid #7bc7c6;
+    color: #067c7b;
+}
+
+QPushButton:pressed {
+    background: #c0e7e7;
+    border: 1px solid #5fb6b4;
+    color: #056968;
+}
+
+QPushButton:disabled {
+    background: #f5f8f9;
+    border: 1px solid #d7e3e7;
+    color: rgba(12,60,60,0.35);
+}
+
 
 QLabel#ProjectNameLabel {
     color: #111416;
@@ -40,12 +57,10 @@ QLabel#ProjectParticipantsLabel {
     font-size: 13px;
     font-weight: 500;
     padding: 4px 0px 2px 0px;
-    margin-bottom: 4px;
 }
 
 QLabel#ClientIcon {
     color: rgba(36,41,46,0.85);
-    font-size: 10px;
 }
 
 QLabel#ProjectPrivateIcon {
@@ -53,73 +68,7 @@ QLabel#ProjectPrivateIcon {
     color: transparent;
 }
 
-QLabel#DateLine { color:#24292e; font-size:12px; }
-QLabel#DateMeta { color:rgba(36,41,46,0.75); font-size:11px; }
-
-QLabel#DateDueLine { color:#24292e; font-size:12px; }
-QLabel#DateDueLine[dueState="soon"] {
-    color:#ff8f00;
-    font-weight:600;
-}
-QLabel#DateDueLine[dueState="overdue"] {
-    color:#d32f2f;
-    font-weight:700;
-}
-QLabel#DateDueLine[dueState="none"] {
-    color:rgba(36,41,46,0.70);
-    font-weight:400;
-}
-
-/* New improved date widget styles */
-QFrame#DueDateContainer {
-    background-color: rgba(36,41,46,0.05);
-    border: 1px solid rgba(36,41,46,0.15);
-    border-radius: 6px;
-    margin-top: 2px;
-}
-
-QFrame#DueDateContainer:hover {
-    background-color: rgba(36,41,46,0.08);
-    border-color: rgba(36,41,46,0.25);
-}
-
-QLabel#DateLabel {
-    color: rgba(36,41,46,0.70);
-    font-size: 10px;
-    font-weight: 500;
-}
-
-QLabel#DateValue {
-    color: #24292e;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-QLabel#DateValue[dueState="soon"] {
-    color: #ff8f00;
-    font-weight: 600;
-}
-
-QLabel#DateValue[dueState="overdue"] {
-    color: #d32f2f;
-    font-weight: 700;
-}
-
-QWidget#DatesPopup {
-    background-color: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(36,41,46,0.20);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-
 QFrame#InfocardHeaderFrame { 
-    background: qlineargradient(x1:0, y1:1, x2:0, y2:0,
-        stop:0    rgba(0,120,212,0.08),   /* softer blue glow at bottom */
-        stop:0.04 rgba(0,120,212,0.04),
-        stop:0.06 transparent,           /* smoother transition */
-        stop:1    transparent
-    );
     border-bottom: 1px solid rgba(0,120,212,0.25);
     border-left: none;
     border-right: none;
@@ -127,7 +76,6 @@ QFrame#InfocardHeaderFrame {
     padding: 0;
     margin: 0;
     border-radius: 0;
-    min-height: 24px;  /* Ensure consistent header height */
 }
 
 
@@ -147,38 +95,4 @@ QLabel#ProjectNumberBadge {
     overflow: hidden;
 }
 
-QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectNumberBadge {
-    font-size: 9px;
-    padding: 1px 3px;
-    min-width: 20px;
-    max-width: 70px;
-}
-
-/* Compact mode - ultra compact for Light theme */
-QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectNameLabel {
-    font-size: 12px;
-}
-QFrame#InfocardHeaderFrame[compact="true"] QLabel#ProjectClientLabel {
-    font-size: 10px;
-}
-
-/* Overall header frame compact styling */
-QFrame#InfocardHeaderFrame {
-    min-height: 56px;
-}
-QFrame#InfocardHeaderFrame[compact="true"] {
-    min-height: 50px;
-}
-
-/* Avatar bubble improvements for better appearance */
-QLabel {
-    /* Ensure smooth transitions for avatar bubbles */
-    transition: all 0.15s ease;
-}
-
-/* Improve avatar bubble container spacing */
-QHBoxLayout {
-    /* Ensure proper spacing between avatar bubbles */
-    margin-left: -2px;  /* Compensate for overlap margins */
-}
 

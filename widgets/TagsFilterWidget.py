@@ -5,10 +5,11 @@ from typing import List, Optional, Sequence, Union
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QWidget
-from qgis.core import QgsSettings
+from ..constants.settings_keys import SettingsService
 from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
 from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
 from ..utils.api_client import APIClient
 from ..utils.url_manager import Module
@@ -40,7 +41,9 @@ class TagsFilterWidget(QWidget):
         self.combo = QgsCheckableComboBox(self)
         self.combo.setObjectName("TagsFilterCombo")
         layout.addWidget(self.combo)
-        self.combo.setToolTip(self._lang.translate("Tags Filter"))
+        title = self._lang.translate(TranslationKeys.TAGS_FILTER)
+        self.filter_title = title
+        self.combo.setToolTip(title)
 
         self.combo.checkedItemsChanged.connect(self._emit_selection_change)  # type: ignore[attr-defined]
         self.reload()
@@ -53,7 +56,7 @@ class TagsFilterWidget(QWidget):
         try:
             self._load_tags()
             self._loaded = True
-            self._apply_saved_preferences()
+            self._apply_preffered_tags()
         except Exception as exc:
             self.combo.clear()
             self.combo.addItem(f"Error: {str(exc)[:60]}…")
@@ -106,18 +109,13 @@ class TagsFilterWidget(QWidget):
             if tag_id and label:
                 self.combo.addItem(label, tag_id)
 
-    def _apply_saved_preferences(self) -> None:
+    def _apply_preffered_tags(self) -> None:
         if not self._loaded:
             return
-        try:
-            module_key = str(self._module).strip().lower()
-            key = f"wild_code/modules/{module_key}/preferred_tags"
-            raw = QgsSettings().value(key, "") or ""
-            ids = [token.strip() for token in str(raw).split(",") if token.strip()]
-            if ids:
-                self.set_selected_ids(ids, emit=False)
-        except Exception:
-            pass
+        preferred_tags = SettingsService().module_preferred_tags(self._module) or ""
+        ids = [token.strip() for token in str(preferred_tags).split(",") if token.strip()]
+        if ids:
+            self.set_selected_ids(ids, emit=False)
 
     def _emit_selection_change(self) -> None:
         if self._suppress_emit:

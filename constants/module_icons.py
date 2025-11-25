@@ -42,7 +42,8 @@ class DateIcons:
     ICON_DATE_LAST_MODIFIED = "icons8-last_update-.png"
 
 class MiscIcons:
-    ICON_IS_PRIVATE = os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER,  "icons8-key-isprivate.png")
+    ICON_IS_PRIVATE = os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER,  "icons8-key-security-50.png")
+    ICON_IS_CLIENT = os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER,  "icons8-client-50.png")
 
 class ModuleIconPaths:
 

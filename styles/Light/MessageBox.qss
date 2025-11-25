@@ -45,7 +45,6 @@ QDialog#ModernMessageDialog QPushButton {
     font-weight: 600;
     font-size: 12px;
     min-width: 80px;
-    transition: all 150ms ease;
 }
 
 QDialog#ModernMessageDialog QPushButton:hover {

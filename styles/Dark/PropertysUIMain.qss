@@ -13,7 +13,6 @@ QFrame #PropertyDetailsFrame {
         stop:0.92 rgba(255,255,255,0.08),
         stop:1 rgba(255,255,255,0.12)
     );
-    transition: 120ms ease;
 }
 
 QFrame #PropertyDetailsFrame:hover {

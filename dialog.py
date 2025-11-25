@@ -124,6 +124,7 @@ class PluginDialog(QDialog):
         self.current_theme = ThemeManager.set_initial_theme(
             self,
             self.header_widget.switchButton,
+            self.header_widget.logoutButton,
             qss_files=[QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR, QssPaths.HEADER, QssPaths.FOOTER]
         )
 
@@ -279,6 +280,7 @@ class PluginDialog(QDialog):
             self,
             self.current_theme,
             self.header_widget.switchButton,
+            self.header_widget.logoutButton,
             qss_files=qss_files
         )
         self.current_theme = new_theme

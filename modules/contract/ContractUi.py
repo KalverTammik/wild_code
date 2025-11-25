@@ -14,6 +14,7 @@ from ...widgets.StatusFilterWidget import StatusFilterWidget
 from ...widgets.TypeFilterWidget import TypeFilterWidget
 from ...widgets.TagsFilterWidget import TagsFilterWidget
 from ...utils.url_manager import Module
+from ...module_manager import ModuleManager
 from ...widgets.theme_manager import ThemeManager, styleExtras
 from ...constants.file_paths import QssPaths
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
@@ -29,7 +30,6 @@ class ContractsModule(ModuleBaseUI):
 
     FEED_LOGIC_CLS: Type[FeedLogic] = FeedLogic
     QUERY_FILE = "ListFilteredContracts.graphql"
-    USE_TYPE_FILTER = True
 
     def __init__(
         self,
@@ -42,6 +42,8 @@ class ContractsModule(ModuleBaseUI):
         super().__init__(parent)
 
         # Kasuta kanonilist module_key'd (lowercase) kõikjal
+    
+
         self.module_key = Module.CONTRACT.name.lower()  # "contract"
         self.name = self.module_key
         self.setObjectName(self.name)
@@ -49,9 +51,13 @@ class ContractsModule(ModuleBaseUI):
         self.lang_manager = lang_manager
         self.theme_manager = ThemeManager()
 
+        supports = ModuleManager().getModuleSupports(Module.CONTRACT.name) or {}
+        self.supports_status_filter = bool(supports.get("statuses", True))
+        self.supports_type_filter = bool(supports.get("types", True))
+        self.supports_tags_filter = bool(supports.get("tags", True))
+
         # lisatud, et dialog.py saaks edasi anda:
         self.qss_files = qss_files
-
         self.feed_logic = None
         self._status_preferences_loaded = False
         self._type_preferences_loaded = False
@@ -72,19 +78,22 @@ class ContractsModule(ModuleBaseUI):
             pass
 
         # Register filters (status + optional type)
-        self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area)
-        self.toolbar_area.add_left(self.status_filter)
-        self.status_filter.selectionChanged.connect(self._on_status_filter_selection)
+        if self.supports_status_filter:
+            self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area)
+            self.toolbar_area.add_left(self.status_filter)
+            self.status_filter.selectionChanged.connect(self._on_status_filter_selection)
 
         self.type_filter = None
-        if self.USE_TYPE_FILTER:
+        if self.supports_type_filter:
             self.type_filter = TypeFilterWidget(self.module_key, self.toolbar_area)
-            self.toolbar_area.add_left(self.type_filter)
+            title = self.type_filter.filter_title
+            self.toolbar_area.add_left(self.type_filter, title=title)
             self.type_filter.selectionChanged.connect(self._on_type_filter_selection)
 
-        self.tags_filter = TagsFilterWidget(self.module_key, self.lang_manager, self.toolbar_area)
-        self.toolbar_area.add_left(self.tags_filter)
-        self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
+        if self.supports_tags_filter:
+            self.tags_filter = TagsFilterWidget(self.module_key, self.lang_manager, self.toolbar_area)
+            self.toolbar_area.add_left(self.tags_filter)
+            self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
 
         self._filter_widgets = [w for w in (self.status_filter, self.type_filter, self.tags_filter) if w is not None]
 
@@ -93,7 +102,7 @@ class ContractsModule(ModuleBaseUI):
         # Add a compact refresh button on the left (after filters)
         self._refresh_helper = FilterRefreshHelper(self)
         refresh_widget = self._refresh_helper.make_filter_refresh_button(self.toolbar_area)
-        self.toolbar_area.add_left(refresh_widget)
+        self.toolbar_area.set_refresh_widget(refresh_widget)
 
         self.feed_content = QWidget()
         self.feed_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -111,7 +120,7 @@ class ContractsModule(ModuleBaseUI):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.feed_content)
 
-        self.theme_manager.apply_module_style(self, [QssPaths.MODULES_MAIN])
+        ThemeManager.apply_module_style(self, [QssPaths.MODULE_CARD])
 
     def activate(self) -> None:
         super().activate()
@@ -120,22 +129,7 @@ class ContractsModule(ModuleBaseUI):
         if self.feed_logic is None:
             self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
 
-        # Lazy-load filters
-        self._suppress_filter_events = True
-        if self.status_filter:
-            self.status_filter.ensure_loaded()
-        self._load_and_apply_status_preferences()
-
-        if self.type_filter:
-            self.type_filter.ensure_loaded()
-            self._load_and_apply_type_preferences()
-
-        if self.tags_filter:
-            self.tags_filter.ensure_loaded()
-            self._load_and_apply_tags_preferences()
-
-        # Drive an initial load using current selections
-        self._suppress_filter_events = False
+        # Rakenda eelistused filtri valikutele
         self._refresh_filters()
 
         # Load overdue/due-soon counts for the module and apply to buttons
@@ -199,7 +193,7 @@ class ContractsModule(ModuleBaseUI):
         and_list = []
         if status_ids:
             and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
-        if self.USE_TYPE_FILTER and type_ids:
+        if self.supports_type_filter and type_ids:
             and_list.append({"column": "TYPE", "operator": "IN", "value": type_ids})
 
         has_tags_filter = self._build_has_tags_condition(tags_ids or [])
@@ -228,8 +222,9 @@ class ContractsModule(ModuleBaseUI):
 
     # --- Teema ---
     def retheme_contract(self) -> None:
-        ThemeManager.apply_module_style(self, [QssPaths.MODULES_MAIN])
+        #print("Retheming contract module UI")
         for card in self.scroll_area.findChildren(QFrame, "ModuleInfoCard"):
+            #print("Retheming contract card:", card)
             ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
             styleExtras.apply_chip_shadow(card)
 
@@ -266,7 +261,7 @@ class ContractsModule(ModuleBaseUI):
             type_ids = self.type_filter.selected_ids() if self.type_filter else []
             if status_ids:
                 and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
-            if self.USE_TYPE_FILTER and type_ids:
+            if self.supports_type_filter and type_ids:
                 and_list.append({"column": "TYPE", "operator": "IN", "value": type_ids})
         except Exception:
             pass

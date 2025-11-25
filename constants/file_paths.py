@@ -50,7 +50,6 @@ class QssPaths:
     SETUP_CARD = "SetupCard.qss"
     PILLS = "pills.qss"
     POPUP = "popup.qss"
-    MODULES_MAIN = "ModulesMain.qss"
     TOOLTIP = "tooltip.qss"
     LAYER_TREE_PICKER = "LayerTreePicker.qss"
     SEARCH_RESULTS_WIDGET = "SearchResultsWidget.qss"

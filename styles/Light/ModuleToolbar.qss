@@ -1,0 +1,16 @@
+QWidget#ToolbarLeft {
+    border: 1px solid #0984E3;
+    border-radius: 8px;  /* Rounded corners */   
+}
+
+QWidget#FilterWidgetContainer {
+    background: transparent;
+}
+
+QLabel#FilterTitleLabel {
+    color: #5f6a7d;
+    font-size: 10px;
+    font-weight: 600;
+    padding-left: 2px;
+    padding-right: 2px;
+}

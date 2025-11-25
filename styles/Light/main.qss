@@ -8,8 +8,6 @@
    ========================================================= */
 
 
-
-
 QDialog {
 background: #f6f7f8;  /* Match QWidget base */
 border: 1px solid #e1e4e8;  /* Optional subtle border */

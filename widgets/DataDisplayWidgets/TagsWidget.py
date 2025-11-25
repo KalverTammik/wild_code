@@ -2,12 +2,8 @@ from PyQt5.QtCore import Qt, QPoint, QEvent
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
 )
-from typing import Dict
 from ..theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
-
-
-
 
 
 class TagsWidget(QWidget):
@@ -29,8 +25,7 @@ class TagsWidget(QWidget):
             tags_container.setObjectName("TagsContainer")
             tags_layout = QHBoxLayout(tags_container)
             tags_layout.setContentsMargins(4, 2, 4, 2)
-            tags_layout.setSpacing(4)
-
+            
             # Tags icon
             icon = ThemeManager.get_qicon(ThemeManager.ICON_LIST)
             icon_label = QLabel()

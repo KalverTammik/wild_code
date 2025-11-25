@@ -5,7 +5,7 @@ from typing import List, Optional, Sequence, Union
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QWidget
-from qgis.core import QgsSettings
+from ..constants.settings_keys import SettingsService
 from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
@@ -38,11 +38,11 @@ class StatusFilterWidget(QWidget):
         layout.addWidget(self.combo)
 
         tooltip = self._lang.translate("Status Filter") if self._lang else "Status Filter"
+        self.filter_title = tooltip
         self.combo.setToolTip(tooltip)
 
         self.combo.checkedItemsChanged.connect(self._emit_selection_change)  # type: ignore[attr-defined]
         self.reload()
-        self._apply_saved_preferences()
 
     # ------------------------------------------------------------------
     # Public API
@@ -52,6 +52,7 @@ class StatusFilterWidget(QWidget):
         try:
             self._load_statuses()
             self._loaded = True
+            self._apply_prefered_statuses()
         except Exception as exc:  # pragma: no cover - logged for diagnostics
             self.combo.clear()
             self.combo.addItem(f"Error: {str(exc)[:60]}…")
@@ -106,10 +107,11 @@ class StatusFilterWidget(QWidget):
             if sid and label:
                 self.combo.addItem(label, sid)
 
-    def _apply_saved_preferences(self) -> None:
-        key = f"wild_code/modules/{self._module}/preferred_statuses"
-        raw = QgsSettings().value(key, "") or ""
-        ids = [token.strip() for token in str(raw).split(",") if token.strip()]
+    def _apply_prefered_statuses(self) -> None:
+
+        preferred_statuses = SettingsService().module_preferred_statuses(self._module) or ""
+        ids = [token.strip() for token in str(preferred_statuses).split(",") if token.strip()]
+
         if ids:
             self.set_selected_ids(ids, emit=False)
 

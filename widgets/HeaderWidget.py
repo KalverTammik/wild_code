@@ -153,26 +153,22 @@ class HeaderWidget(QWidget):
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
         theme = ThemeManager.effective_theme()
         if is_dark(theme):
-            self.switch_button.setIcon(ThemeManager.get_qicon(ResourcePaths.LIGHTNESS_ICON))
-            self.switch_button.setText("")
-            self.header_widget.set_logout_icon(ThemeManager.get_qicon(ResourcePaths.LOGOUT_BRIGHT))
+            self.switchButton.setIcon(ThemeManager.get_qicon(ResourcePaths.LIGHTNESS_ICON))
+            self.switchButton.setText("")
+            self.logoutButton.setIcon(ThemeManager.get_qicon(ResourcePaths.LOGOUT_BRIGHT))
+            self.logoutButton.setText("")
         else:
-            self.switch_button.setIcon(ThemeManager.get_qicon(ResourcePaths.DARKNESS_ICON))
-            self.switch_button.setText("")
-            self.header_widget.set_logout_icon(ThemeManager.get_qicon(ResourcePaths.LOGOUT_DARK))
-
-
-    def set_switch_icon(self, icon):
-        self.switchButton.setIcon(icon)
-        self.switchButton.setText("")
-
-    def set_logout_icon(self, icon):
-        self.logoutButton.setIcon(icon)
-        self.logoutButton.setText("")
+            self.switchButton.setIcon(ThemeManager.get_qicon(ResourcePaths.DARKNESS_ICON))
+            self.switchButton.setText("")
+            self.logoutButton.setIcon(ThemeManager.get_qicon(ResourcePaths.LOGOUT_DARK))
+            self.logoutButton.setText("")
 
 
 
     def set_title(self, text):
+        '''
+        Set the header title text form dialog.
+        '''
         self.titleLabel.setText(text)
 
     def _emit_help(self):

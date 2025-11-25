@@ -7,7 +7,6 @@
   background: rgba(255,255,255,0.85);
   border-radius: 12px;
   border: 1px solid rgba(0,0,0,0.08);
-  transition: all 200ms ease;
 }
 
 #SetupCard:hover {
@@ -44,7 +43,6 @@
     font-weight: 600;
     font-size: 12px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: all 150ms ease;
 }
 
 #SetupCard QGroupBox::title {
@@ -76,7 +74,6 @@
     background: rgba(255,255,255,0.6);
     border: 1px solid rgba(0,0,0,0.08);
     border-radius: 6px;
-    transition: all 150ms ease;
 }
 
 #SetupCard QFrame#SettingsFrame:hover,
@@ -264,7 +261,6 @@
   font-weight: 600;
   font-size: 12px;
   min-width: 70px;
-  transition: all 150ms ease;
 }
 
 #SetupCard QPushButton#ResetButton:hover {

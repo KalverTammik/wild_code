@@ -22,6 +22,7 @@ from .mixins.progressive_load_mixin import ProgressiveLoadMixin
 from ..feed.feed_load_engine import FeedLoadEngine
 from ..widgets.theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
+from ..constants.settings_keys import SettingsService
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.messagesHelper import ModernMessageDialog
@@ -43,6 +44,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         ProgressiveLoadMixin.__init__(self)
 
         self.lang_manager = lang_manager
+        self._settings_service = SettingsService()
         self._filter_widgets = []
 
         self.status_filter = None
@@ -320,197 +322,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         if feed_logic and hasattr(feed_logic, 'reset_pagination'):
             feed_logic.reset_pagination()
 
-    # ------------------------------------------------------------------
-    # Status Preferences Management
-    # ------------------------------------------------------------------
-    def _load_and_apply_status_preferences(self):
-        """Load saved status preferences and apply them to the status filter."""
-        status_filter = self.status_filter
-        if not status_filter:
-            return
 
-        if not status_filter._loaded:  # type: ignore[attr-defined]
-            if not self._status_filter_signal_connected:
-                try:
-                    status_filter.selectionChanged.connect(self._on_status_filter_loaded)
-                    self._status_filter_signal_connected = True
-                except Exception:
-                    pass
-            return
-
-        if self._status_preferences_loaded:
-            return
-
-        try:
-            preferred_statuses = self._load_status_preferences_from_settings()
-            if preferred_statuses:
-                status_filter.set_selected_ids(list(preferred_statuses), emit=False)
-        except Exception:
-            pass
-
-        self._status_preferences_loaded = True
-
-    def _on_status_filter_loaded(self):
-        """Called when the status filter finishes loading for the first time."""
-        # Disconnect the signal to avoid multiple calls
-        try:
-            self.status_filter.selectionChanged.disconnect(self._on_status_filter_loaded)
-            self._status_filter_signal_connected = False
-        except Exception:
-            pass
-        
-        # Now load and apply the preferences
-        self._load_and_apply_status_preferences()
-    
-    def _load_status_preferences_from_settings(self) -> set:
-        """Load status preferences directly from QGIS settings.
-        
-        This is a generic implementation that uses the module's NAME attribute
-        to create a unique settings key.
-        """
-        try:
-
-            s = QgsSettings()
-            module_key = self._module_settings_key()
-            key = f"wild_code/modules/{module_key}/preferred_statuses"
-            preferred_statuses = s.value(key, "") or ""
-
-            if preferred_statuses:
-                result = {token.strip() for token in str(preferred_statuses).split(",") if token.strip()}
-                return result
-            return set()
-        except Exception as e:
-            return set()
-
-    # ------------------------------------------------------------------
-    # Type Preferences Management
-    # ------------------------------------------------------------------
-    def _load_and_apply_type_preferences(self):
-        """Load and apply type preferences."""
-        type_filter = self.type_filter
-        if not type_filter:
-            return
-
-        if not type_filter._loaded:  # type: ignore[attr-defined]
-            try:
-                type_filter.ensure_loaded()
-            except Exception:
-                pass
-            if not type_filter._loaded:  # type: ignore[attr-defined]
-                if not self._type_filter_signal_connected:
-                    try:
-                        type_filter.selectionChanged.connect(self._on_type_filter_loaded)
-                        self._type_filter_signal_connected = True
-                    except Exception:
-                        pass
-                return
-
-        if self._type_preferences_loaded:
-            return
-
-        preferences = self._load_type_preferences_from_settings()
-        if preferences:
-            type_filter.set_selected_ids(preferences, emit=False)
-
-        self._type_preferences_loaded = True
-
-    def _on_type_filter_loaded(self):
-        """Called when the type filter finishes loading for the first time."""
-        # Disconnect the signal to avoid multiple calls
-        try:
-            self.type_filter.selectionChanged.disconnect(self._on_type_filter_loaded)
-            self._type_filter_signal_connected = False
-        except Exception:
-            pass
-        
-        # Now load and apply the preferences
-        self._load_and_apply_type_preferences()
-
-    def _load_type_preferences_from_settings(self) -> set:
-        """Load type preferences directly from QGIS settings.
-        
-        This is a generic implementation that uses the module's NAME attribute
-        to create a unique settings key.
-        """
-        try:
-
-            s = QgsSettings()
-            module_key = self._module_settings_key()
-            key = f"wild_code/modules/{module_key}/preferred_types"
-            preferred_types = s.value(key, "") or ""
-
-            if preferred_types:
-                result = {token.strip() for token in str(preferred_types).split(",") if token.strip()}
-                return result
-            return set()
-        except Exception as e:
-            return set()
-
-    # ------------------------------------------------------------------
-    # Tags Preferences Management
-    # ------------------------------------------------------------------
-    def _load_and_apply_tags_preferences(self):
-        """Load saved tags preferences and apply them to the tags filter.
-        
-        This is a generic implementation that works for any module with a tags_filter.
-        Subclasses can override this method if they need custom behavior.
-        """
-        tags_filter = self.tags_filter
-        if not tags_filter:
-            return
-
-        if not tags_filter._loaded:  # type: ignore[attr-defined]
-            if not self._tags_filter_signal_connected:
-                try:
-                    tags_filter.selectionChanged.connect(self._on_tags_filter_loaded)
-                    self._tags_filter_signal_connected = True
-                except Exception:
-                    pass
-            return
-
-        if self._tags_preferences_loaded:
-            return
-
-        try:
-            preferred_tags = self._load_tags_preferences_from_settings()
-            if preferred_tags:
-                tags_filter.set_selected_ids(list(preferred_tags), emit=False)
-        except Exception:
-            pass
-
-        self._tags_preferences_loaded = True
-
-    def _on_tags_filter_loaded(self):
-        """Called when the tags filter finishes loading for the first time."""
-        # Disconnect the signal to avoid multiple calls
-        try:
-            self.tags_filter.selectionChanged.disconnect(self._on_tags_filter_loaded)
-            self._tags_filter_signal_connected = False
-        except Exception:
-            pass
-        
-        # Now load and apply the preferences
-        self._load_and_apply_tags_preferences()
-
-    def _load_tags_preferences_from_settings(self) -> set:
-        """Load tags preferences directly from QGIS settings.
-        
-        This is a generic implementation that uses the module's NAME attribute
-        to create a unique settings key.
-        """
-        try:
-            s = QgsSettings()
-            module_key = self._module_settings_key()
-            key = f"wild_code/modules/{module_key}/preferred_tags"
-            preferred_tags = s.value(key, "") or ""
-
-            if preferred_tags:
-                result = {token.strip() for token in str(preferred_tags).split(",") if token.strip()}
-                return result
-            return set()
-        except Exception as e:
-            return set()
-
+ 
     def get_widget(self):
         """Return self as the widget for module system compatibility."""
         return self
@@ -518,9 +331,6 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-    def _module_settings_key(self) -> str:
-        raw = getattr(self, 'module_key', None) or getattr(self, 'name', self.__class__.__name__)
-        return str(raw).strip().lower()
 
     def _safe_extract_item_id(self, item) -> Optional[str]:
         try:

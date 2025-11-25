@@ -12,6 +12,7 @@ from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...widgets.StatusFilterWidget import StatusFilterWidget
 from ...widgets.TagsFilterWidget import TagsFilterWidget
 from ...utils.url_manager import Module
+from ...module_manager import ModuleManager
 from ...widgets.theme_manager import ThemeManager, styleExtras
 from ...constants.file_paths import QssPaths
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
@@ -26,7 +27,6 @@ class ProjectsModule(ModuleBaseUI):
 
     FEED_LOGIC_CLS: Type[FeedLogic] = FeedLogic
     QUERY_FILE = "ListFilteredProjects.graphql"
-    USE_TYPE_FILTER = False
 
     def __init__(
         self,
@@ -44,6 +44,11 @@ class ProjectsModule(ModuleBaseUI):
 
         self.lang_manager = language
         self.theme_manager = ThemeManager()
+
+        # Determine which filters this module should expose based on module registration metadata
+        supports = ModuleManager().getModuleSupports(Module.PROJECT.name) or {}
+        self.supports_status_filter = bool(supports.get("statuses", True))
+        self.supports_tags_filter = bool(supports.get("tags", True))
 
         # edasiandmiseks
         self.qss_files = qss_files
@@ -73,16 +78,18 @@ class ProjectsModule(ModuleBaseUI):
         self.toolbar_area.add_right(self.overdue_pills)
 
         # Status filter (kasuta module_key)
-        self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area)
-        self.toolbar_area.add_left(self.status_filter)
-        self.status_filter.selectionChanged.connect(self._on_status_filter_selection)
+        if self.supports_status_filter:
+            self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area)
+            self.toolbar_area.add_left(self.status_filter)
+            self.status_filter.selectionChanged.connect(self._on_status_filter_selection)
 
         # Tags filter (see näib eeldavat Module enum'i; jätame nii)
-        self.tags_filter = TagsFilterWidget(Module.PROJECT, self.lang_manager, self.toolbar_area)
-        self.toolbar_area.add_left(self.tags_filter)
-        self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
+        if self.supports_tags_filter:
+            self.tags_filter = TagsFilterWidget(Module.PROJECT, self.lang_manager, self.toolbar_area)
+            self.toolbar_area.add_left(self.tags_filter)
+            self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
 
-        self._filter_widgets = [self.status_filter, self.tags_filter]
+        self._filter_widgets = [w for w in (self.status_filter, self.tags_filter) if w is not None]
 
         # Feed area
         self.feed_content = QWidget()
@@ -103,7 +110,6 @@ class ProjectsModule(ModuleBaseUI):
 
         # Teema
         ThemeManager.apply_module_style(self._empty_state, [QssPaths.MODULE_CARD])
-        ThemeManager.apply_module_style(self, [QssPaths.MODULES_MAIN])
 
     # --- Aktivatsioon / deaktiveerimine ---
     def activate(self) -> None:
@@ -113,23 +119,6 @@ class ProjectsModule(ModuleBaseUI):
         if self.feed_logic is None:
             self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
 
-        # Lazy-load filters
-        self._suppress_filter_events = True
-        try:
-            self.status_filter.ensure_loaded()
-        except Exception:
-            pass
-        try:
-            self.tags_filter.ensure_loaded()
-        except Exception:
-            pass
-
-        # Rakenda salvestatud eelistused (kui Widgets ei tee seda juba seest)
-        self._load_and_apply_status_preferences()
-        self._load_and_apply_tags_preferences()
-
-        # Esmane laadimine kehtiva filtri põhjal
-        self._suppress_filter_events = False
         self._refresh_filters()
 
         # Overdue/due soon count
@@ -293,7 +282,6 @@ class ProjectsModule(ModuleBaseUI):
 
     # --- Teema ---
     def retheme_projects(self) -> None:
-        ThemeManager.apply_module_style(self, [QssPaths.MODULES_MAIN])
 
         for card in self.scroll_area.findChildren(QFrame, "ModuleInfoCard"):
             ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])

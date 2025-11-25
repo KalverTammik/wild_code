@@ -1,0 +1,521 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ModuleInfoCard</class>
+ <widget class="QFrame" name="ModuleInfoCard">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>869</width>
+    <height>423</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Module Info Card</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">/* ===== Module Card (Light) ===== */
+
+QFrame#ModuleInfoCard {
+    background: #ffffff;
+    border: none !important;
+    border-width: 0 !important;
+    border-radius: 12px;
+    padding: 0;
+    margin: 4px;
+}
+QFrame#ModuleInfoCard:hover {
+    border: 1px solid rgba(0,120,212,0.45) !important;
+    background-color: #fafbfc;
+}
+
+QFrame#CardContent {background: transparent; }
+
+QLabel#ProjectNameLabel {
+    color: #111416;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+}
+
+QLabel#ProjectClientLabel,
+QLabel#ProjectResponsibleLabel,
+QLabel#ProjectParticipantsLabel {
+    color: #005a9e;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 4px 0px 2px 0px;
+}
+
+QLabel#ClientIcon {
+    color: rgba(36,41,46,0.85);
+}
+
+QLabel#ProjectPrivateIcon {
+    background: transparent;
+    color: transparent;
+}
+
+QFrame#InfocardHeaderFrame { 
+    border-bottom: 1px solid rgba(0,120,212,0.25);
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+}
+
+
+QLabel#ProjectNumberBadge {
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #0b3d91;
+    background: rgba(0,120,212,0.15);
+    border: 1px solid rgba(0,120,212,0.50);
+    min-width: 24px;
+    max-width: 80px;
+    text-align: center;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+
+</string>
+  </property>
+  <property name="frameShape">
+   <enum>QFrame::StyledPanel</enum>
+  </property>
+  <property name="frameShadow">
+   <enum>QFrame::Raised</enum>
+  </property>
+  <layout class="QHBoxLayout" name="mainLayout">
+   <property name="spacing">
+    <number>6</number>
+   </property>
+   <property name="leftMargin">
+    <number>10</number>
+   </property>
+   <property name="topMargin">
+    <number>10</number>
+   </property>
+   <property name="rightMargin">
+    <number>10</number>
+   </property>
+   <property name="bottomMargin">
+    <number>10</number>
+   </property>
+   <item>
+    <widget class="QFrame" name="CardContent">
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
+     <layout class="QVBoxLayout" name="contentLayout">
+      <property name="spacing">
+       <number>6</number>
+      </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+    <layout class="QHBoxLayout" name="headerRow">
+        <property name="spacing">
+         <number>6</number>
+        </property>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>2</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>2</number>
+        </property>
+        <item>
+         <widget class="QFrame" name="InfocardHeaderFrame">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+            <horstretch>1</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::NoFrame</enum>
+          </property>
+          <layout class="QVBoxLayout" name="headerLeftLayout">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <layout class="QHBoxLayout" name="nameRowLayout">
+             <property name="spacing">
+              <number>6</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="ProjectPrivateIcon">
+               <property name="minimumSize">
+            <size>
+             <width>16</width>
+             <height>16</height>
+            </size>
+               </property>
+               <property name="maximumSize">
+            <size>
+             <width>16</width>
+             <height>16</height>
+            </size>
+               </property>
+               <property name="toolTip">
+            <string>Privaatne (visible when item_data.isPublic is False)</string>
+               </property>
+               <property name="text">
+            <string>P</string>
+               </property>
+               <property name="alignment">
+            <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="ProjectNumberBadge">
+               <property name="minimumSize">
+            <size>
+             <width>24</width>
+             <height>16</height>
+            </size>
+               </property>
+               <property name="text">
+            <string>1234</string>
+               </property>
+               <property name="alignment">
+            <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="ProjectNameLabel">
+               <property name="text">
+            <string>Project name (ElidedLabel)</string>
+               </property>
+               <property name="alignment">
+            <set>Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QFrame" name="TagsWidgetPlaceholder">
+               <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="tagsPlaceholderLayout">
+            <property name="leftMargin">
+             <number>4</number>
+            </property>
+            <property name="topMargin">
+             <number>2</number>
+            </property>
+            <property name="rightMargin">
+             <number>4</number>
+            </property>
+            <property name="bottomMargin">
+             <number>2</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="tagsLabel">
+              <property name="text">
+               <string>TagsWidget() placeholder</string>
+              </property>
+             </widget>
+            </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="clientRowLayout">
+             <property name="spacing">
+              <number>6</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="ClientIcon">
+               <property name="minimumSize">
+            <size>
+             <width>12</width>
+             <height>12</height>
+            </size>
+               </property>
+               <property name="text">
+            <string>C</string>
+               </property>
+               <property name="alignment">
+            <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="ProjectClientLabel">
+               <property name="text">
+            <string>Client display name</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="ActionButton1">
+          <property name="minimumSize">
+           <size>
+            <width>20</width>
+            <height>18</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>20</width>
+            <height>18</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>Action Button 1</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="ActionButton2">
+          <property name="minimumSize">
+           <size>
+            <width>20</width>
+            <height>18</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>20</width>
+            <height>18</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>Action Button 2</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="ActionButton3">
+          <property name="minimumSize">
+           <size>
+            <width>20</width>
+            <height>18</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>20</width>
+            <height>18</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>Action Button 3</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QFrame" name="MembersViewPlaceholder">
+          <property name="minimumSize">
+           <size>
+            <width>100</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::StyledPanel</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Raised</enum>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <property name="leftMargin">
+            <number>6</number>
+           </property>
+           <property name="topMargin">
+            <number>6</number>
+           </property>
+           <property name="rightMargin">
+            <number>6</number>
+           </property>
+           <property name="bottomMargin">
+            <number>6</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="membersLabel">
+             <property name="text">
+              <string>MembersView placeholder</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QFrame" name="ExtraInfoPlaceholder">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="extraInfoLabel">
+           <property name="text">
+            <string>ExtraInfoFrame placeholder</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QFrame" name="StatusColumnPlaceholder">
+     <property name="minimumSize">
+      <size>
+       <width>160</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
+     <layout class="QVBoxLayout" name="statusColumnLayout">
+      <property name="spacing">
+       <number>8</number>
+      </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QFrame" name="StatusWidgetPlaceholder">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_4">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>6</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>6</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="statusLabel">
+           <property name="text">
+            <string>StatusWidget placeholder</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <spacer name="statusStretch">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
