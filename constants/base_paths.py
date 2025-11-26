@@ -10,6 +10,7 @@ STYLES = "styles"
 MODULES = "modules"
 DATA_DIR = "data"
 QUERIES = 'queries'
+PYTHON = 'python'
 GRAPHQL = 'graphql'
 USER_QUERIES = 'user'
 PROJECT_QUERIES = 'projects'

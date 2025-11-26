@@ -1,6 +1,6 @@
-from ..utils.api_client import APIClient
+from .api_client import APIClient
 from ..utils.url_manager import Module
-from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
+from .GraphQLQueryLoader import GraphQLQueryLoader
 from ..languages.language_manager import LanguageManager
 
 class APIModuleActions:
@@ -23,7 +23,7 @@ class APIModuleActions:
             return False
 
         # Load the GraphQL query
-        query = GraphQLQueryLoader.load_query(module, query_file)
+        query = GraphQLQueryLoader.load_query_by_module(module, query_file)
         variables = {"id": item_id}
 
         # Send the request
@@ -35,3 +35,22 @@ class APIModuleActions:
         except Exception as e:
             print(f"Failed to delete item {item_id} in module {module}: {e}")
             return False
+        
+    @staticmethod
+    def module_item_connected_properties(module: Module, item_id: str):
+        
+        query_file = f"W_{module}_id.graphql"
+
+        query = GraphQLQueryLoader.load_query_by_module(module, query_file)
+
+        end_cursor = None
+        total_fetched = 0
+        properties_items = []
+
+        while desired_total_items is None or total_fetched < desired_total_items:
+            variables = {
+                    "propertiesFirst": Constants.items_for_page_large,
+                    "propertiesAfter": end_cursor if end_cursor else None,
+                    "id": item_id
+                }
+            

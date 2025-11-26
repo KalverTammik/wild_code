@@ -1,7 +1,7 @@
 from ....constants.file_paths import ConfigPaths
-from ....utils.GraphQLQueryLoader import GraphQLQueryLoader
+from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from ....utils.SessionManager import SessionManager
-from ....utils.api_client import APIClient
+from ....python.api_client import APIClient
 from ....utils.url_manager import Module
 
 
@@ -21,7 +21,7 @@ class userUtils:
 
         ql = GraphQLQueryLoader(lang_manager)
         api = APIClient(SessionManager(), ConfigPaths.CONFIG)
-        query = ql.load_query(name, query_file)
+        query = ql.load_query_by_module(name, query_file)
         data = api.send_query(query)
         user_data = data.get("me", {}) or {}
         userUtils.extract_and_set_user_labels(lbl_name, lbl_email, user_data)

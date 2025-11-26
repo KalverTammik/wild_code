@@ -9,8 +9,8 @@ from ..constants.settings_keys import SettingsService
 from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
-from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
-from ..utils.api_client import APIClient
+from ..python.GraphQLQueryLoader import GraphQLQueryLoader
+from ..python.api_client import APIClient
 from ..utils.url_manager import Module
 
 
@@ -89,7 +89,7 @@ class StatusFilterWidget(QWidget):
     def _load_statuses(self) -> None:
         key_raw = Module.STATUSES.value
         key = key_raw[:-2].upper() if len(key_raw) > 2 else key_raw.upper()
-        query = self._loader.load_query(key, "ListModuleStatuses.graphql")
+        query = self._loader.load_query_by_module(key, "ListModuleStatuses.graphql")
         module_plural = f"{str(self._module).upper()}S"
         variables = {
             "first": 50,

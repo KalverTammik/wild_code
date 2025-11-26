@@ -15,7 +15,7 @@ from .languages.language_manager import LanguageManager
 from .utils.SessionManager import SessionManager
 #import tranlation keys
 from .languages.translation_keys import TranslationKeys, DialogLabels
-from .utils.api_client import APIClient
+from .python.api_client import APIClient
 
 lang = LanguageManager(language="et")
 

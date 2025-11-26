@@ -10,8 +10,8 @@ from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
-from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
-from ..utils.api_client import APIClient
+from ..python.GraphQLQueryLoader import GraphQLQueryLoader
+from ..python.api_client import APIClient
 from ..utils.url_manager import Module
 
 
@@ -92,7 +92,7 @@ class TagsFilterWidget(QWidget):
     # ------------------------------------------------------------------
     def _load_tags(self) -> None:
         tags_module = Module.TAGS.value
-        query = self._loader.load_query(tags_module, "ListModuleTags.graphql")
+        query = self._loader.load_query_by_module(tags_module, "ListModuleTags.graphql")
         variables = {
             "first": 50,
             "after": None,

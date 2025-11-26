@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 from typing import Optional, List, Dict, Any, Callable
-from ..utils.api_client import APIClient
-from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
+from ..python.api_client import APIClient
+from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 # from ..utils.logger import debug as log_debug
 
 class UnifiedFeedLogic:
@@ -23,7 +23,7 @@ class UnifiedFeedLogic:
     ) -> None:
         self.api_client = APIClient()
         self.query_loader = GraphQLQueryLoader(lang_manager)
-        self.query: str = self.query_loader.load_query(module_name, query_name)
+        self.query: str = self.query_loader.load_query_by_module(module_name, query_name)
 
         # root_field tuletus: "PROJECT" -> "projects", "CONTRACT" -> "contracts"
         default_root = (module_name or "").strip().lower()
@@ -89,12 +89,6 @@ class UnifiedFeedLogic:
             data: Dict[str, Any] = self.api_client.send_query(self.query, variables) or {}
             #print(f"[FeedLogic] API response: {data}")
             self.last_response = data
-
-            # GraphQL error pinda
-            errors = data.get("errors")
-            if isinstance(errors, list) and errors:
-                self.last_error = Exception(str(errors[-1]))
-                # log_debug(f"[UnifiedFeedLogic] GraphQL errors: {errors}")
 
             root: Dict[str, Any] = data.get(self.root_field) or {}
             edges: List[Dict[str, Any]] = root.get("edges") or []

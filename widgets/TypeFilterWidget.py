@@ -10,8 +10,8 @@ from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
-from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
-from ..utils.api_client import APIClient
+from ..python.GraphQLQueryLoader import GraphQLQueryLoader
+from ..python.api_client import APIClient
 from ..utils.filter_helpers import group_key
 
 
@@ -88,14 +88,14 @@ class TypeFilterWidget(QWidget):
     def _load_types(self) -> None:
         query_name = "TYPE"
         query_file = f"{self._module}_types.graphql"
-        query = self._loader.load_query(query_name, query_file)
+        query = self._loader.load_query_by_module(query_name, query_file)
 
         edges = []
         after: Optional[str] = None
         while True:
             variables = {"first": self._PAGE_SIZE, "after": after}
-            payload = self._api.send_query(query, variables=variables) or {}
-            connection = (payload or {}).get(f"{self._module}Types") or {}
+            data = self._api.send_query(query, variables=variables) or {}
+            connection = (data or {}).get(f"{self._module}Types") or {}
             page_edges = connection.get("edges") or []
             edges.extend(page_edges)
 

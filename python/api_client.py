@@ -2,38 +2,30 @@ import os
 import platform
 import json
 import requests
-
-from .SessionManager import SessionManager
-from ..constants.file_paths import ConfigPaths
+from qgis.core import Qgis
+from qgis.PyQt.QtCore import QVariant
+from ..utils.SessionManager import SessionManager
+from ..constants.file_paths import ConfigPaths, GraphQLSettings
 from ..languages.language_manager import LanguageManager
 
 class APIClient:
     def __init__(self, session_manager=None, config_path=None):
         self.lang = LanguageManager()
         self.session_manager = session_manager or SessionManager()
-        self.config_path = config_path or ConfigPaths.CONFIG
-        self.api_url = self._load_api_url()
+        self.config_path = ConfigPaths.CONFIG
+       
         # Guard to prevent opening multiple login dialogs simultaneously
         if not hasattr(APIClient, '_login_dialog_open'):
             APIClient._login_dialog_open = False
 
-    def _load_api_url(self):
-        try:
-            with open(self.config_path, "r", encoding="utf-8") as f:
-                config = json.load(f)
-            api_url = config.get("graphql_endpoint")
-            if not api_url:
-                raise ValueError(self.lang.translate("api_endpoint_not_configured"))
-            return api_url
-        except Exception:
-            raise RuntimeError(self.lang.translate("config_error"))
 
-    def send_query(self, query: str, variables: dict = None, operation_name: str = None, require_auth: bool = True, timeout: int = 10):
+    def send_query(self, query: str, variables: dict = None, require_auth: bool = True):
         payload = {"query": query}
+
         if variables:
-            payload["variables"] = variables
-        if operation_name:
-            payload["operationName"] = operation_name
+            sanitized_variables = requestBuilder.sanitize_for_json(variables)
+            payload["variables"] = sanitized_variables
+       
 
         attempts = 2 if require_auth else 1
         last_error = None
@@ -41,32 +33,22 @@ class APIClient:
         for attempt in range(1, attempts + 1):
             headers = {
                 "Content-Type": "application/json",
-                "User-Agent": f"QGIS/{platform.system()} {platform.release()}"
+                 "User-Agent": f"QGIS/{Qgis.QGIS_VERSION} ({platform.system()} {platform.release()})"
             }
 
             if require_auth:
-                token = self.session_manager.get_token() if hasattr(self.session_manager, 'get_token') else None
+                token = self.session_manager.get_token()
                 if token:
                     headers["Authorization"] = f"Bearer {token}"
                 else:
                     print("[DEBUG] No auth token available!")
 
             try:
-                response = requests.post(self.api_url, json=payload, headers=headers, timeout=timeout)
+                api_url = GraphQLSettings.graphql_endpoint()
+                response = requests.post(api_url, json=payload, headers=headers, timeout=30)
 
                 if response.status_code == 200:
                     data = response.json()
-
-                    errors = data.get("errors")
-                    if errors:
-                        print(f"[DEBUG] GraphQL Errors found: {errors}")
-                        first_msg = self._extract_error_message(errors)
-                        if require_auth and self._errors_include_unauthenticated(errors):
-                            if attempt < attempts and self._handle_unauthenticated():
-                                continue
-                            first_msg = self.lang.translate("session_expired")
-                        raise Exception(first_msg)
-
                     return data.get("data", {})
 
                 # Non-200 HTTP response
@@ -112,7 +94,7 @@ class APIClient:
 
     def _handle_unauthenticated(self) -> bool:
         """Prompt the user to log in again and return True if a retry should be attempted."""
-        from .SessionManager import SessionManager
+        from ..utils.SessionManager import SessionManager
 
         result = SessionManager.show_session_expired_dialog(lang_manager=self.lang)
         if result == "login":
@@ -138,9 +120,27 @@ class APIClient:
         except Exception as e:
             # Best-effort log without raising a secondary exception
             try:
-                from .logger import error as log_error
+                from ..utils.logger import error as log_error
                 log_error(f"Failed to open login dialog: {e}")
             except Exception:
                 pass
         finally:
             APIClient._login_dialog_open = False
+
+
+class requestBuilder:
+    @staticmethod
+    def sanitize_for_json(obj):
+        """
+        Recursively convert QVariant types to native Python types for JSON serialization.
+        """
+
+        if isinstance(obj, dict):
+            return {k: requestBuilder.sanitize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [requestBuilder.sanitize_for_json(v) for v in obj]
+        elif isinstance(obj, QVariant):
+            return None if obj.isNull() else obj.value() 
+        elif hasattr(obj, 'value'):
+            return obj.value()  # handles QVariant-like types
+        return obj

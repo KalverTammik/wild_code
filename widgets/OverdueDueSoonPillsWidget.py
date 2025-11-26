@@ -11,7 +11,7 @@ from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 
-from ..utils.api_client import APIClient
+from ..python.api_client import APIClient
 from ..languages.language_manager import LanguageManager
 from datetime import datetime, timedelta
 from ..widgets.theme_manager import ThemeManager, Theme, is_dark, IntensityLevels, styleExtras, ThemeShadowColors

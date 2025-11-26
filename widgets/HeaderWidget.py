@@ -7,8 +7,8 @@ from ..constants.file_paths import QssPaths
 # from ..utils.logger import debug as log_debug
 from ..constants.module_icons import ICON_HELP
 from ..languages.language_manager import LanguageManager
-from ..utils.api_client import APIClient
-from ..utils.GraphQLQueryLoader import GraphQLQueryLoader
+from ..python.api_client import APIClient
+from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..constants.file_paths import ResourcePaths
 
 
@@ -203,7 +203,7 @@ class HeaderWidget(QWidget):
             lang_manager = LanguageManager()
             query_loader = GraphQLQueryLoader(lang_manager)
             # print("[DEBUG] Loading search query from GraphQL loader")
-            search_query = query_loader.load_query("user", "search.graphql")
+            search_query = query_loader.load_query_by_module("user", "search.graphql")
             
             if not search_query:
                 # print("Warning: Could not load search query")
@@ -235,7 +235,7 @@ class HeaderWidget(QWidget):
             }
             # print(f"[DEBUG] Sending GraphQL query with variables: {variables}")
             
-            result = api_client.send_query(search_query, variables, operation_name=None)
+            result = api_client.send_query(search_query, variables=variables)
             # log_debug(f"[DEBUG] Raw API response: {result}")
             # print(f"[DEBUG] Response type: {type(result)}")
             
