@@ -9,7 +9,8 @@ from .InfoCardHeader import InfocardHeaderFrame
 from ..theme_manager import IntensityLevels, styleExtras, ThemeShadowColors, ThemeManager
 from ...languages.translation_keys import ToolbarTranslationKeys
 from ...utils.url_manager import OpenLink, loadWebpage
-
+from ...python.api_actions import APIModuleActions
+from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 
 """ModuleFeedBuilder
 
@@ -113,9 +114,9 @@ class ModuleFeedBuilder:
         button3.setFixedSize(20, 18)
         button3.setToolTip(lang_manager.translate(ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP))
         if properties_count:
-            button3.setIcon(ThemeManager.get_qicon(ThemeManager.ICON_WRENCH))
+            button3.setIcon(ThemeManager.get_qicon(ThemeManager.ICON_SHOW_ON_MAP))
             button3.setIconSize(QSize(14, 14))
-            button3.clicked.connect(lambda: print("Show on map clicked"))  # Placeholder action
+            button3.clicked.connect(lambda: ModuleFeedBuilder._activate_connected_properties_on_map(module_name, item_id))
         else:
             button3.setEnabled(False)
         header_row.addWidget(button3, 0, 3, Qt.AlignTop)
@@ -146,6 +147,7 @@ class ModuleFeedBuilder:
         main.addLayout(status_col)
         return card
 
+    @staticmethod
     def _open_item_folder(file_path):
 
         import subprocess
@@ -153,3 +155,8 @@ class ModuleFeedBuilder:
             subprocess.Popen(["start", "", file_path], shell=True)  # Open link in browser
         else:
             subprocess.Popen(['explorer', file_path.replace('/', '\\')], shell=True)
+    
+    @staticmethod
+    def _activate_connected_properties_on_map(module_name, item_id):
+        numbers = APIModuleActions.get_module_item_connected_properties(module_name, item_id)
+        PropertiesSelectors.show_connected_properties_on_map(numbers)

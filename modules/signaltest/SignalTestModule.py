@@ -1,26 +1,28 @@
-from typing import Callable, Optional, Sequence
+import json
+from typing import Optional, Sequence
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QAbstractItemView,
+    QComboBox,
     QHBoxLayout,
     QLabel,
-    QListWidget,
-    QListWidgetItem,
+    QLineEdit,
     QPlainTextEdit,
     QPushButton,
     QVBoxLayout,
     QWidget,
+    QFrame,
 )
-from qgis.core import QgsSettings
 
-from ...widgets.theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
+from ...python.api_actions import APIModuleActions
 from ...utils.url_manager import Module
-
+from ...constants.settings_keys import SettingsService
+from ...utils.MapTools.MapHelpers import MapHelpers
+from ...widgets.theme_manager import ThemeManager
+from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 
 class SignalTestModule(QWidget):
-    """Utility module that now focuses solely on viewing and pruning stored settings."""
+    """Interactive playground for testing property lookups via GraphQL."""
 
     def __init__(
         self,
@@ -34,9 +36,9 @@ class SignalTestModule(QWidget):
         self.name = self.module_key
         self.lang_manager = lang_manager
         self.display_name = "Signaltest"
-        self._display_label = None
-        if self.lang_manager:
-            self._display_label = self.lang_manager.translate(self.display_name)
+        self._settings = SettingsService()
+        self._module_options = self._build_module_options()
+        self._target_module = self._module_options[0] if self._module_options else Module.CONTRACT
 
         ThemeManager.apply_module_style(self, qss_files or [QssPaths.MAIN, QssPaths.COMBOBOX])
 
@@ -45,102 +47,139 @@ class SignalTestModule(QWidget):
         outer.setSpacing(12)
 
         intro = QLabel(
-            self._display_label
-            if self._display_label
-            else "Inspect and manage stored QgsSettings entries for the plugin."
+            "Contract-connected properties tester (calls module_item_connected_properties)."
         )
         intro.setWordWrap(True)
         outer.addWidget(intro)
 
-        self._settings_panel = self._build_settings_inspector()
-        outer.addWidget(self._settings_panel)
+        input_row = QHBoxLayout()
+        input_row.setSpacing(12)
 
-        self._populate_settings_list()
+        module_block = QVBoxLayout()
+        module_block.setSpacing(4)
+        module_label = QLabel("Module")
+        self.module_selector = QComboBox()
+        for module in self._module_options:
+            display = module.value.capitalize()
+            self.module_selector.addItem(display, module)
+        self.module_selector.currentIndexChanged.connect(self._on_module_changed)
+        module_block.addWidget(module_label)
+        module_block.addWidget(self.module_selector)
 
-    def _build_settings_inspector(self) -> QWidget:
-        container = QWidget(self)
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        id_block = QVBoxLayout()
+        id_block.setSpacing(4)
+        id_label = QLabel("Item ID")
+        self.id_input = QLineEdit()
+        self.id_input.setPlaceholderText("Enter module item ID")
+        self.id_input.setText("35")
+        id_block.addWidget(id_label)
+        id_block.addWidget(self.id_input)
 
-        header = QLabel("QgsSettings entries under wild_code/", container)
-        header.setObjectName("SettingsInspectorTitle")
-        layout.addWidget(header)
+        input_row.addLayout(module_block, 1)
+        input_row.addLayout(id_block, 1)
+        outer.addLayout(input_row)
 
-        self.settings_list = QListWidget(container)
-        self.settings_list.setObjectName("SettingsInspectorList")
-        self.settings_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.settings_list.itemSelectionChanged.connect(self._update_settings_preview)
-        layout.addWidget(self.settings_list, 2)
+        self.active_layer_label = QLabel()
+        self.active_layer_label.setObjectName("ActiveLayerLabel")
+        self.active_layer_label.setStyleSheet("color: #888;")
+        outer.addWidget(self.active_layer_label)
 
-        self.settings_preview = QPlainTextEdit(container)
-        self.settings_preview.setReadOnly(True)
-        self.settings_preview.setPlaceholderText("Selected settings will appear here")
-        layout.addWidget(self.settings_preview, 1)
+        self.fetch_button = QPushButton("Fetch connected properties")
+        self.fetch_button.setObjectName("SignalTestFetchButton")
+        self.fetch_button.setStyleSheet(
+            """
+            #SignalTestFetchButton {
+                background-color: #2962ff;
+                color: #ffffff;
+                border-radius: 4px;
+                padding: 6px 14px;
+                font-weight: 600;
+            }
+            #SignalTestFetchButton:disabled {
+                background-color: #9bb3ff;
+                color: #f0f0f0;
+            }
+            """
+        )
+        self.fetch_button.clicked.connect(self._handle_fetch)
+        actions_frame = QFrame()
+        actions_frame.setObjectName("SignalTestActions")
+        actions_layout = QHBoxLayout(actions_frame)
+        actions_layout.setContentsMargins(8, 8, 8, 8)
+        actions_layout.setSpacing(8)
+        actions_layout.addWidget(self.fetch_button)
+        actions_layout.addStretch(1)
+        outer.addWidget(actions_frame)
 
-        controls = QHBoxLayout()
-        controls.setSpacing(8)
-        refresh_btn = QPushButton("Refresh Settings", container)
-        refresh_btn.clicked.connect(self._refresh_settings_list)
-        delete_btn = QPushButton("Delete Selected", container)
-        delete_btn.clicked.connect(self._delete_selected_settings)
-        controls.addWidget(refresh_btn)
-        controls.addWidget(delete_btn)
-        controls.addStretch(1)
-        layout.addLayout(controls)
-        return container
+        self.output_area = QPlainTextEdit()
+        self.output_area.setReadOnly(True)
+        self.output_area.setPlaceholderText("Response payload will appear here")
+        outer.addWidget(self.output_area, 1)
 
-    def _populate_settings_list(self) -> None:
-        settings = QgsSettings()
-        keys = sorted(k for k in settings.allKeys() if k.startswith("wild_code/"))
-        self.settings_list.clear()
-        for key in keys:
-            value = settings.value(key)
-            display = f"{key} = {value}"
-            item = QListWidgetItem(display)
-            item.setData(Qt.UserRole, key)
-            item.setData(Qt.UserRole + 1, value)
-            self.settings_list.addItem(item)
-        self._update_settings_preview()
+        self._refresh_active_layer_label()
 
-    def _refresh_settings_list(self) -> None:
-        self._populate_settings_list()
+    def _build_module_options(self) -> Sequence[Module]:
+        """Return a stable list of modules that can be targeted by the playground."""
+        return [Module.CONTRACT, Module.PROJECT, Module.PROPERTY]
 
-    def _delete_selected_settings(self) -> None:
-        selected = self.settings_list.selectedItems()
-        if not selected:
+    def _on_module_changed(self, index: int) -> None:
+        module = self.module_selector.itemData(index)
+        if isinstance(module, Module):
+            self._target_module = module
+        self._refresh_active_layer_label()
+
+    def _refresh_active_layer_label(self) -> None:
+        if not hasattr(self, "active_layer_label"):
             return
-        settings = QgsSettings()
-        for item in selected:
-            key = item.data(Qt.UserRole)
-            if key:
-                settings.remove(key)
-        self._populate_settings_list()
+        module_key = self._target_module.value
+        stored_name = self._settings.module_main_layer_id(module_key) or ""
+        if stored_name:
+            layer_loaded = MapHelpers.resolve_layer(stored_name) is not None
+            suffix = "" if layer_loaded else " (layer not loaded in project)"
+            text = f"Active layer: {stored_name}{suffix}"
+        else:
+            text = "Active layer: — (no layer configured)"
+        self.active_layer_label.setText(text)
 
-    def _update_settings_preview(self) -> None:
-        selected = self.settings_list.selectedItems()
-        if not selected:
-            self.settings_preview.setPlainText("Select settings to inspect")
+    def _handle_fetch(self) -> None:
+        item_id = (self.id_input.text() or "").strip()
+        if not item_id:
+            self._render_result({"error": "Contract ID is required"})
             return
-        lines = []
-        for item in selected:
-            key = item.data(Qt.UserRole)
-            value = item.data(Qt.UserRole + 1)
-            lines.append(f"{key} = {value}")
-        self.settings_preview.setPlainText("\n".join(lines))
+
+        self.fetch_button.setEnabled(False)
+        try:
+            print(f"[SignalTestModule] Fetching connected properties for module {self._target_module.value}, item ID {item_id}")
+            numbers = APIModuleActions.get_module_item_connected_properties(
+                self._target_module.value,
+                item_id,
+            )
+            result = {
+                "module": self._target_module.value,
+                "itemId": item_id,
+                "cadastralCount": len(numbers),
+                "cadastralNumbers": numbers,
+            }
+            self._render_result(result)
+            PropertiesSelectors.show_connected_properties_on_map(numbers)
+        except Exception as exc:
+            self._render_result({"error": str(exc)})
+        finally:
+            self.fetch_button.setEnabled(True)
+
+    def _render_result(self, data) -> None:
+        try:
+            text = json.dumps(data, ensure_ascii=False, indent=2)
+        except Exception:
+            text = str(data)
+        self.output_area.setPlainText(text)
 
     def activate(self) -> None:
-        """Module lifecycle hook (no-op for the inspector)."""
+        """Module lifecycle hook (currently unused)."""
 
     def deactivate(self) -> None:
-        """Module lifecycle hook (no-op for the inspector)."""
+        """Module lifecycle hook (currently unused)."""
 
     def get_widget(self) -> QWidget:
         return self
-
-    def bind_selection_forwarders(self, target_slot: Callable[[str, list[str], list[object]], None]) -> Callable[[], None]:
-        def teardown() -> None:  # Maintains previous API contract.
-            return None
-
-        return teardown
 

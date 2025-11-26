@@ -12,6 +12,7 @@ from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.api_client import APIClient
+from ..python.responses import JsonResponseHandler
 from ..utils.url_manager import Module
 
 
@@ -98,8 +99,8 @@ class TagsFilterWidget(QWidget):
             "after": None,
             "where": {"column": "MODULE", "value": f"{str(self._module).upper()}S"},
         }
-        data = self._api.send_query(query, variables=variables) or {}
-        edges = ((data or {}).get("tags") or {}).get("edges") or []
+        data = self._api.send_query(query, variables=variables, return_raw=True) or {}
+        edges = JsonResponseHandler.get_edges_from_path(data, ["tags"])
 
         self.combo.clear()
         for edge in edges:

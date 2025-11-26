@@ -9,6 +9,7 @@ from ....constants.module_icons import ModuleIconPaths
 from ....utils.url_manager import Module
 from ....widgets.theme_manager import styleExtras, ThemeShadowColors
 from ....constants.settings_keys import SettingsService
+from ....utils.MapTools.MapHelpers import MapHelpers
 
 
 class SettingsModuleCard(SettingsBaseCard):
@@ -45,10 +46,10 @@ class SettingsModuleCard(SettingsBaseCard):
         self._archive_picker = None
 
         # Originaal vs pending
-        self._orig_element_id = ""
-        self._orig_archive_id = ""
-        self._pend_element_id = ""
-        self._pend_archive_id = ""
+        self._orig_element_name = ""
+        self._orig_archive_name = ""
+        self._pend_element_name = ""
+        self._pend_archive_name = ""
         self._orig_status_preferences = set()
         self._pend_status_preferences = set()
         self._orig_type_preferences = set()
@@ -315,11 +316,11 @@ class SettingsModuleCard(SettingsBaseCard):
         if self.supports_archive and self._archive_picker:
             self._archive_picker.retheme()
 
-        # Lae algsed layer-id-d
-        self._orig_element_id = self._read_saved_layer_id(kind="element")
-        self._orig_archive_id = self._read_saved_layer_id(kind="archive")
-        self._pend_element_id = self._orig_element_id
-        self._pend_archive_id = self._orig_archive_id
+        # Lae algsed layer-nimed
+        self._orig_element_name = self._read_saved_layer_value(kind="element")
+        self._orig_archive_name = self._read_saved_layer_value(kind="archive")
+        self._pend_element_name = self._orig_element_name
+        self._pend_archive_name = self._orig_archive_name
 
         # Lae status/type eelistused
         self._orig_status_preferences = self._load_status_preferences_from_settings()
@@ -365,25 +366,9 @@ class SettingsModuleCard(SettingsBaseCard):
                 self._tags_filter_widget.setEnabled(False)
 
         # Taasta layeri valikud (vaid kui kiht on olemas)
-        if self._orig_element_id:
-            try:
-                self._layer_selector.setSelectedLayerId(self._orig_element_id)
-                self._layer_selector.refresh()
-                if not self._layer_selector.selectedLayer():
-                    self._orig_element_id = ""
-            except Exception:
-                self._orig_element_id = ""
-        if self.supports_archive and self._orig_archive_id:
-            try:
-                if self._archive_picker:
-                    self._archive_picker.setSelectedLayerId(self._orig_archive_id)
-                    self._archive_picker.refresh()
-                    if not self._archive_picker.selectedLayer():
-                        self._orig_archive_id = ""
-                else:
-                    self._orig_archive_id = ""
-            except Exception:
-                self._orig_archive_id = ""
+        self._restore_layer_selection(self._layer_selector, self._orig_element_name)
+        if self.supports_archive and self._archive_picker:
+            self._restore_layer_selection(self._archive_picker, self._orig_archive_name)
 
         self._update_stored_values_display()
 
@@ -394,7 +379,7 @@ class SettingsModuleCard(SettingsBaseCard):
             self._archive_picker.on_settings_deactivate()
 
     # --- Persistence helpers -------------------------------------------------
-    def _read_saved_layer_id(self, kind: str) -> str:
+    def _read_saved_layer_value(self, kind: str) -> str:
         try:
             if kind == "element":
                 return self._settings.module_main_layer_id(self.module_key) or ""
@@ -406,18 +391,18 @@ class SettingsModuleCard(SettingsBaseCard):
             pass
         return ""
 
-    def _write_saved_layer_id(self, kind: str, layer_id: str):
+    def _write_saved_layer_value(self, kind: str, layer_name: str):
         try:
             if kind == "element":
-                if layer_id:
-                    self._settings.module_main_layer_id(self.module_key, value=layer_id)
+                if layer_name:
+                    self._settings.module_main_layer_id(self.module_key, value=layer_name)
                 else:
                     self._settings.module_main_layer_id(self.module_key, clear=True)
             else:
                 if not self.supports_archive:
                     return
-                if layer_id:
-                    self._settings.module_archive_layer_id(self.module_key, value=layer_id)
+                if layer_name:
+                    self._settings.module_archive_layer_id(self.module_key, value=layer_name)
                 else:
                     self._settings.module_archive_layer_id(self.module_key, clear=True)
         except Exception:
@@ -425,8 +410,8 @@ class SettingsModuleCard(SettingsBaseCard):
 
     # --- Apply/Revert/State ---
     def has_pending_changes(self) -> bool:
-        el_dirty = self._pend_element_id != self._orig_element_id
-        ar_dirty = self._pend_archive_id != self._orig_archive_id
+        el_dirty = self._pend_element_name != self._orig_element_name
+        ar_dirty = self._pend_archive_name != self._orig_archive_name
         status_dirty = self._pend_status_preferences != self._orig_status_preferences
         type_dirty = bool(self.supports_types) and self._pend_type_preferences != self._orig_type_preferences
         tag_dirty = bool(self.supports_tags) and self._pend_tag_preferences != self._orig_tag_preferences
@@ -435,23 +420,17 @@ class SettingsModuleCard(SettingsBaseCard):
     def apply(self):
         changed = False
 
-        if self._pend_element_id != self._orig_element_id:
-            self._write_saved_layer_id("element", self._pend_element_id)
-            self._orig_element_id = self._pend_element_id
-            if self._orig_element_id:
-                self._layer_selector.setSelectedLayerId(self._orig_element_id)
-            else:
-                self._layer_selector.clearSelection()
+        if self._pend_element_name != self._orig_element_name:
+            self._write_saved_layer_value("element", self._pend_element_name)
+            self._orig_element_name = self._pend_element_name
+            self._restore_layer_selection(self._layer_selector, self._orig_element_name)
             changed = True
 
-        if self.supports_archive and (self._pend_archive_id != self._orig_archive_id):
-            self._write_saved_layer_id("archive", self._pend_archive_id)
-            self._orig_archive_id = self._pend_archive_id
+        if self.supports_archive and (self._pend_archive_name != self._orig_archive_name):
+            self._write_saved_layer_value("archive", self._pend_archive_name)
+            self._orig_archive_name = self._pend_archive_name
             if self._archive_picker:
-                if self._orig_archive_id:
-                    self._archive_picker.setSelectedLayerId(self._orig_archive_id)
-                else:
-                    self._archive_picker.clearSelection()
+                self._restore_layer_selection(self._archive_picker, self._orig_archive_name)
             changed = True
 
         # Save status prefs
@@ -473,25 +452,19 @@ class SettingsModuleCard(SettingsBaseCard):
             changed = True
 
         # Reset pending layer ids
-        self._pend_element_id = self._orig_element_id
-        self._pend_archive_id = self._orig_archive_id
+        self._pend_element_name = self._orig_element_name
+        self._pend_archive_name = self._orig_archive_name
 
         self._sync_selected_names()
         self.pendingChanged.emit(False if changed else self.has_pending_changes())
 
     def revert(self):
         # Layers
-        if self._orig_element_id:
-            self._layer_selector.setSelectedLayerId(self._orig_element_id)
-        else:
-            self._layer_selector.clearSelection()
+        self._restore_layer_selection(self._layer_selector, self._orig_element_name)
         if self.supports_archive and self._archive_picker:
-            if self._orig_archive_id:
-                self._archive_picker.setSelectedLayerId(self._orig_archive_id)
-            else:
-                self._archive_picker.clearSelection()
-        self._pend_element_id = self._orig_element_id
-        self._pend_archive_id = self._orig_archive_id
+            self._restore_layer_selection(self._archive_picker, self._orig_archive_name)
+        self._pend_element_name = self._orig_element_name
+        self._pend_archive_name = self._orig_archive_name
 
         # Status prefs
         self._pend_status_preferences = set(self._orig_status_preferences)
@@ -516,7 +489,7 @@ class SettingsModuleCard(SettingsBaseCard):
     def _update_stored_values_display(self):
         """Footeris voolav kokkuvõte salvestatud väärtustest."""
         try:
-            def display_for(picker, fallback_id: str) -> str:
+            def display_for(picker, fallback_name: str) -> str:
                 try:
                     if picker:
                         lyr = picker.selectedLayer()
@@ -524,12 +497,12 @@ class SettingsModuleCard(SettingsBaseCard):
                             return lyr.name()
                 except Exception:
                     pass
-                return fallback_id or ""
+                return fallback_name or ""
 
-            element_name = display_for(self._layer_selector, self._pend_element_id or self._orig_element_id)
+            element_name = display_for(self._layer_selector, self._pend_element_name or self._orig_element_name)
             archive_name = ""
             if self.supports_archive:
-                archive_name = display_for(self._archive_picker, self._pend_archive_id or self._orig_archive_id)
+                archive_name = display_for(self._archive_picker, self._pend_archive_name or self._orig_archive_name)
 
             parts = []
             if element_name:
@@ -604,8 +577,8 @@ class SettingsModuleCard(SettingsBaseCard):
             self._layer_selector.clearSelection()
             if self.supports_archive and self._archive_picker:
                 self._archive_picker.clearSelection()
-            self._pend_element_id = ""
-            self._pend_archive_id = ""
+            self._pend_element_name = ""
+            self._pend_archive_name = ""
 
             # Status
             if self._status_filter_widget and self._status_filter_widget.isEnabled():
@@ -626,8 +599,8 @@ class SettingsModuleCard(SettingsBaseCard):
             self._pend_type_preferences = set()
 
             # Clear stored settings
-            self._write_saved_layer_id("element", "")
-            self._write_saved_layer_id("archive", "")
+            self._write_saved_layer_value("element", "")
+            self._write_saved_layer_value("archive", "")
 
             # Clear prefs in settings
             try:
@@ -725,16 +698,32 @@ class SettingsModuleCard(SettingsBaseCard):
             except Exception as e:
                 print(f"Error restoring type preferences UI: {e}")
 
+    def _restore_layer_selection(self, picker, stored_name: str):
+        """Resolve a stored layer name and update the picker selection."""
+        if not picker:
+            return
+        resolved_id = MapHelpers.resolve_layer_id(stored_name)
+        if not resolved_id:
+            picker.clearSelection()
+            return
+        try:
+            picker.setSelectedLayerId(resolved_id)
+            picker.refresh()
+            if not picker.selectedLayer():
+                picker.clearSelection()
+        except Exception:
+            picker.clearSelection()
+
     # --- Layer valiku handlerid ---
     def _on_element_selected(self, layer_id: str):
-        self._pend_element_id = layer_id or ""
+        self._pend_element_name = MapHelpers.layer_name_from_id(layer_id) if layer_id else ""
         self._sync_selected_names()
         self.pendingChanged.emit(self.has_pending_changes())
 
     def _on_archive_selected(self, layer_id: str):
         if not self.supports_archive:
             return
-        self._pend_archive_id = layer_id or ""
+        self._pend_archive_name = MapHelpers.layer_name_from_id(layer_id) if layer_id else ""
         self._sync_selected_names()
         self.pendingChanged.emit(self.has_pending_changes())
 

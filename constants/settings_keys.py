@@ -83,10 +83,10 @@ class SettingsService:
 
     # --- Named helpers --------------------------------------------------------
     def preferred_module(self, value=_UNSET, *, clear: bool = False, default: str = ""):
-        return self.plugin_setting("preferred_module", value=value, clear=clear, default=default)
+        return self.plugin_setting(PREFERRED_MODULE, value=value, clear=clear, default=default)
 
     def main_property_layer_id(self, value=_UNSET, *, clear: bool = False, default: str = ""):
-        return self.plugin_setting("main_property_layer_id", value=value, clear=clear, default=default)
+        return self.plugin_setting(MAIN_PROPERTY_LAYER_ID, value=value, clear=clear, default=default)
 
     def module_preferred_statuses(self, module_name: str, value=_UNSET, *, clear: bool = False):
         return self.module_setting(

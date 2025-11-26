@@ -12,6 +12,7 @@ from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.api_client import APIClient
+from ..python.responses import JsonResponseHandler
 from ..utils.filter_helpers import group_key
 
 
@@ -92,14 +93,14 @@ class TypeFilterWidget(QWidget):
 
         edges = []
         after: Optional[str] = None
+        path = [f"{self._module}Types"]
         while True:
             variables = {"first": self._PAGE_SIZE, "after": after}
-            data = self._api.send_query(query, variables=variables) or {}
-            connection = (data or {}).get(f"{self._module}Types") or {}
-            page_edges = connection.get("edges") or []
+            payload = self._api.send_query(query, variables=variables, return_raw=True) or {}
+            page_edges = JsonResponseHandler.get_edges_from_path(payload, path)
             edges.extend(page_edges)
 
-            page_info = connection.get("pageInfo") or {}
+            page_info = JsonResponseHandler.get_page_info_from_path(payload, path)
             has_next = bool(page_info.get("hasNextPage"))
             after = page_info.get("endCursor") if has_next else None
             if not has_next or not after:

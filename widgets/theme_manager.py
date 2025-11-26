@@ -49,6 +49,7 @@ class ThemeManager(QObject):
     ICON_WAIT = "icons8-wait-50.png"
     ICON_BUFFERING = "icons8-buffering-50.png"
     VALISEE_V_ICON_NAME = "Valisee_v.png"
+    ICON_SHOW_ON_MAP = "region-pin-alt.png"
 
     @staticmethod
     def save_theme_setting(theme_name: str):

@@ -19,7 +19,15 @@ class APIClient:
             APIClient._login_dialog_open = False
 
 
-    def send_query(self, query: str, variables: dict = None, require_auth: bool = True):
+    def send_query(
+        self,
+        query: str,
+        variables: dict = None,
+        *,
+        require_auth: bool = True,
+        timeout: int = 30,
+        return_raw: bool = False,
+    ):
         payload = {"query": query}
 
         if variables:
@@ -45,11 +53,17 @@ class APIClient:
 
             try:
                 api_url = GraphQLSettings.graphql_endpoint()
-                response = requests.post(api_url, json=payload, headers=headers, timeout=30)
+                response = requests.post(api_url, json=payload, headers=headers, timeout=timeout)
 
                 if response.status_code == 200:
                     data = response.json()
-                    return data.get("data", {})
+                    errors = data.get("errors")
+                    if errors:
+                        message = self._extract_error_message(errors)
+                        if self._errors_include_unauthenticated(errors):
+                            message = "Unauthenticated"
+                        raise Exception(message or self.lang.translate("network_error").format(error=""))
+                    return data if return_raw else data.get("data", {})
 
                 # Non-200 HTTP response
                 try:

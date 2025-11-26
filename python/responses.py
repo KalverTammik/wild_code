@@ -1,5 +1,5 @@
 import requests
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 class HandlePropertiesResponses:
     @staticmethod
@@ -76,8 +76,19 @@ class HandlePropertiesResponses:
 class JsonResponseHandler:
 
     @staticmethod
-    def get_raw_json(response: requests.Response) -> Dict[str, Any]:
-        return response.json()
+    def _coerce_to_json(payload: Union[requests.Response, Dict[str, Any], None]) -> Dict[str, Any]:
+        if isinstance(payload, dict):
+            return payload
+        if hasattr(payload, "json"):
+            try:
+                return payload.json()
+            except Exception:
+                return {}
+        return {}
+
+    @staticmethod
+    def get_raw_json(payload: Union[requests.Response, Dict[str, Any]]) -> Dict[str, Any]:
+        return JsonResponseHandler._coerce_to_json(payload)
 
     @staticmethod
     def walk_path(data: Dict[str, Any], path: List[str]) -> Any:
@@ -89,16 +100,16 @@ class JsonResponseHandler:
         return data
 
     @staticmethod
-    def get_edges_from_path(response: requests.Response, path: List[str]) -> List[Dict[str, Any]]:
-        data = JsonResponseHandler.get_raw_json(response)
+    def get_edges_from_path(payload: Union[requests.Response, Dict[str, Any]], path: List[str]) -> List[Dict[str, Any]]:
+        data = JsonResponseHandler.get_raw_json(payload)
         #print(f"data = {data}")
         module_data = JsonResponseHandler.walk_path(data.get("data", {}), path)
         return module_data.get("edges", [])
 
 
     @staticmethod
-    def get_page_info_from_path(response: requests.Response, path: List[str]) -> Dict[str, Any]:
-        data = JsonResponseHandler.get_raw_json(response)
+    def get_page_info_from_path(payload: Union[requests.Response, Dict[str, Any]], path: List[str]) -> Dict[str, Any]:
+        data = JsonResponseHandler.get_raw_json(payload)
         module_data = JsonResponseHandler.walk_path(data.get("data", {}), path)
         return module_data.get("pageInfo", {})
 
@@ -109,7 +120,7 @@ class JsonResponseHandler:
 
     @staticmethod
     def get_nested_field_from_path(
-        response: requests.Response,
+        response: Union[requests.Response, Dict[str, Any]],
         path: List[str],
         field_path: List[str]
     ) -> List[Any]:
@@ -127,18 +138,18 @@ class JsonResponseHandler:
         return results
 
     @staticmethod
-    def get_end_cursor_from_path(response: requests.Response, path: List[str]) -> Optional[str]:
-        page_info = JsonResponseHandler.get_page_info_from_path(response, path)
+    def get_end_cursor_from_path(payload: Union[requests.Response, Dict[str, Any]], path: List[str]) -> Optional[str]:
+        page_info = JsonResponseHandler.get_page_info_from_path(payload, path)
         return page_info.get("endCursor")
 
     @staticmethod
-    def is_last_page_from_path(response: requests.Response, path: List[str]) -> bool:
-        page_info = JsonResponseHandler.get_page_info_from_path(response, path)
+    def is_last_page_from_path(payload: Union[requests.Response, Dict[str, Any]], path: List[str]) -> bool:
+        page_info = JsonResponseHandler.get_page_info_from_path(payload, path)
         return page_info.get("lastPage", False)
 
     @staticmethod    
-    def get_page_detalils_from_path(response:requests.Response,path:list)->tuple:
-        page_info = JsonResponseHandler.get_page_info_from_path(response, path)
+    def get_page_detalils_from_path(payload:Union[requests.Response, Dict[str, Any]],path:list)->tuple:
+        page_info = JsonResponseHandler.get_page_info_from_path(payload, path)
         end_cursor = page_info.get("endCursor")
         has_next_page = page_info.get("hasNextPage", False)
         count = page_info.get("count", 0)

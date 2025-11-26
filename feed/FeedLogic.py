@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional, List, Dict, Any, Callable
 from ..python.api_client import APIClient
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
+from ..python.responses import JsonResponseHandler
 # from ..utils.logger import debug as log_debug
 
 class UnifiedFeedLogic:
@@ -84,16 +85,20 @@ class UnifiedFeedLogic:
             variables.update(self._extra_args)
 
         try:
-            #print(f"[FeedLogic] GraphQL query variables: {variables}")
-            #print(f"[FeedLogic] GraphQL query: {self.query}")
-            data: Dict[str, Any] = self.api_client.send_query(self.query, variables) or {}
-            #print(f"[FeedLogic] API response: {data}")
-            self.last_response = data
+            payload: Dict[str, Any] = self.api_client.send_query(
+                self.query,
+                variables,
+                return_raw=True,
+            ) or {}
+            self.last_response = payload
 
-            root: Dict[str, Any] = data.get(self.root_field) or {}
-            edges: List[Dict[str, Any]] = root.get("edges") or []
-
-            page_info: Dict[str, Any] = root.get("pageInfo") or {}
+            path = [self.root_field]
+            root: Dict[str, Any] = JsonResponseHandler.walk_path(
+                payload.get("data") or {},
+                path,
+            ) or {}
+            edges: List[Dict[str, Any]] = JsonResponseHandler.get_edges_from_path(payload, path)
+            page_info: Dict[str, Any] = JsonResponseHandler.get_page_info_from_path(payload, path)
             #print(f"[FeedLogic] GraphQL pageInfo: {page_info}")
             # Prefer item totalCount on root if available; some APIs put page count in pageInfo.total
             root_total = root.get("totalCount") if isinstance(root, dict) else None

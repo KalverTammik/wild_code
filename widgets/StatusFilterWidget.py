@@ -11,6 +11,7 @@ from qgis.gui import QgsCheckableComboBox
 from ..languages.language_manager import LanguageManager
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.api_client import APIClient
+from ..python.responses import JsonResponseHandler
 from ..utils.url_manager import Module
 
 
@@ -96,8 +97,8 @@ class StatusFilterWidget(QWidget):
             "after": None,
             "where": {"column": "MODULE", "value": module_plural},
         }
-        data = self._api.send_query(query, variables=variables) or {}
-        edges = ((data or {}).get("statuses") or {}).get("edges") or []
+        data = self._api.send_query(query, variables=variables, return_raw=True) or {}
+        edges = JsonResponseHandler.get_edges_from_path(data, ["statuses"])
 
         self.combo.clear()
         for edge in edges:

@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 
 from ..python.api_client import APIClient
+from ..python.responses import JsonResponseHandler
 from ..languages.language_manager import LanguageManager
 from datetime import datetime, timedelta
 from ..widgets.theme_manager import ThemeManager, Theme, is_dark, IntensityLevels, styleExtras, ThemeShadowColors
@@ -248,9 +249,8 @@ class UIControllers:
         plural_name = module.value + "s"
         try:
             query = UIControllers.build_query(module)
-            data = api.send_query(query, {"first": 1, "where": where_obj}) or {}
-            root = data.get(plural_name) or {}
-            page = root.get("pageInfo") or {}
+            data = api.send_query(query, {"first": 1, "where": where_obj}, return_raw=True) or {}
+            page = JsonResponseHandler.get_page_info_from_path(data, [plural_name])
             total = page.get("total")
             if isinstance(total, int):
                 return total
@@ -333,9 +333,8 @@ class OverdueDueSoonPillsUtils:
 
         def try_fetch(where_obj):
             try:
-                data = api_client.send_query(query, {"first": 1, "where": where_obj}) or {}
-                root = data.get(plural_name) or {}
-                page = root.get("pageInfo") or {}
+                data = api_client.send_query(query, {"first": 1, "where": where_obj}, return_raw=True) or {}
+                page = JsonResponseHandler.get_page_info_from_path(data, [plural_name])
                 total = page.get("total")
                 if isinstance(total, int):
                     return total
