@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QToolButton,
     QSizePolicy,
+    QGridLayout,
 )
 
 from ...constants.module_icons import ModuleIconPaths
@@ -22,6 +23,8 @@ from ...widgets.DataDisplayWidgets.module_action_buttons import (
     ShowOnMapActionButton,
     open_item_in_browser,
 )
+from ...widgets.DataDisplayWidgets.DatesWidget import DatesWidget
+from ...widgets.DataDisplayWidgets.MembersView import MembersView
 
 
 class PropertyTreeWidget(QFrame):
@@ -213,22 +216,21 @@ class ModuleConnectionSection(QFrame):
         lang_manager=None,
     ):
         super().__init__(parent)
-        self.setObjectName("PropertyModuleSection")
-        self.setFrameStyle(QFrame.StyledPanel)
-        self.setStyleSheet(
-            "#PropertyModuleSection {"
-            "  border: 1px solid rgba(100, 100, 100, 50);"
-            "  border-radius: 10px;"
-            "  background-color: palette(AlternateBase);"
-            "}"
-        )
+        self.setObjectName("ModuleInfoCard")
+        self.setFrameStyle(QFrame.NoFrame)
 
         module_name = module_key.capitalize()
         count = module_info.get("count", 0)
         items = module_info.get("items") or []
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(12, 10, 12, 10)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        content_frame = QFrame(self)
+        content_frame.setObjectName("CardContent")
+        root = QVBoxLayout(content_frame)
+        root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(8)
 
         header_row = QHBoxLayout()
@@ -278,6 +280,7 @@ class ModuleConnectionSection(QFrame):
                 body_layout.addWidget(row)
 
         root.addWidget(self.body)
+        outer.addWidget(content_frame)
 
     def _toggle_body(self, checked: bool):
         self.body.setVisible(checked)
@@ -308,64 +311,37 @@ class ModuleConnectionRow(QFrame):
         self.raw = self.summary.get("raw", {})
         self.setObjectName("ModuleConnectionRow")
         self.setFrameStyle(QFrame.NoFrame)
-        self.setStyleSheet(
-            "#ModuleConnectionRow {"
-            "  border: 1px solid rgba(255, 255, 255, 20);"
-            "  border-radius: 6px;"
-            "  background-color: palette(Base);"
-            "}"
-        )
         self.setCursor(Qt.PointingHandCursor)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(4)
-
-        header_row = QHBoxLayout()
-        header_row.setSpacing(8)
+        grid = QGridLayout(self)
+        grid.setContentsMargins(10, 8, 10, 8)
+        grid.setHorizontalSpacing(10)
+        grid.setVerticalSpacing(6)
+        grid.setColumnStretch(1, 1)
 
         number = QLabel(self.summary.get("number") or self.summary.get("id") or "–")
-        number.setStyleSheet("font-weight: 600; color: rgb(90, 90, 90);")
-        header_row.addWidget(number)
+        number.setObjectName("ModuleRowNumber")
+        grid.addWidget(number, 0, 0, Qt.AlignTop)
 
         title = QLabel(self.summary.get("title") or "Nimetus puudub")
-        title.setStyleSheet("font-weight: 600;")
+        title.setObjectName("ModuleRowTitle")
         title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        header_row.addWidget(title, 1)
+        grid.addWidget(title, 0, 1, Qt.AlignTop)
 
-        layout.addLayout(header_row)
-
-        meta_row = QHBoxLayout()
-        meta_row.setSpacing(6)
-
-        status = self.summary.get("status")
-        if status:
-            meta_row.addWidget(_build_pill_label(status))
-
-        type_name = self.summary.get("type")
-        if type_name:
-            meta_row.addWidget(_build_meta_label(type_name))
-
-        updated = self.summary.get("updatedAt") or self.summary.get("raw", {}).get("updatedAt")
-        formatted = _format_datetime(updated)
-        if formatted:
-            meta_row.addWidget(_build_meta_label(f"Uuendatud {formatted}"))
-
-        meta_row.addStretch(1)
-        layout.addLayout(meta_row)
-
-        actions_row = QHBoxLayout()
-        actions_row.setSpacing(4)
-        actions_row.addStretch(1)
+        actions_container = QWidget(self)
+        actions_layout = QHBoxLayout(actions_container)
+        actions_layout.setContentsMargins(0, 0, 0, 0)
+        actions_layout.setSpacing(4)
+        actions_layout.addStretch(1)
 
         file_path = self._extract_file_path()
         has_connections = self._has_property_connections()
 
         folder_btn = OpenFolderActionButton(file_path, lang_manager)
-        actions_row.addWidget(folder_btn)
+        actions_layout.addWidget(folder_btn)
 
         web_btn = OpenWebActionButton(self.module_key, self.item_id, lang_manager)
-        actions_row.addWidget(web_btn)
+        actions_layout.addWidget(web_btn)
 
         map_btn = ShowOnMapActionButton(
             self.module_key,
@@ -373,14 +349,68 @@ class ModuleConnectionRow(QFrame):
             lang_manager,
             has_connections=has_connections,
         )
-        actions_row.addWidget(map_btn)
+        actions_layout.addWidget(map_btn)
 
-        layout.addLayout(actions_row)
+        grid.addWidget(actions_container, 0, 2, Qt.AlignRight | Qt.AlignTop)
+
+        meta_widget = QWidget(self)
+        meta_layout = QHBoxLayout(meta_widget)
+        meta_layout.setContentsMargins(0, 0, 0, 0)
+        meta_layout.setSpacing(6)
+
+        status = self.summary.get("status")
+        if status:
+            meta_layout.addWidget(_build_pill_label(status))
+
+        type_name = self.summary.get("type")
+        if type_name:
+            meta_layout.addWidget(_build_meta_label(type_name))
+
+        updated = self.summary.get("updatedAt") or self.summary.get("raw", {}).get("updatedAt")
+        formatted = _format_datetime(updated)
+        if formatted:
+            meta_layout.addWidget(_build_meta_label(f"Uuendatud {formatted}"))
+
+        meta_layout.addStretch(1)
+        grid.addWidget(meta_widget, 1, 0, 1, 2)
+
+        dates_widget = self._build_dates_widget()
+        if dates_widget:
+            grid.addWidget(dates_widget, 1, 2, Qt.AlignRight | Qt.AlignTop)
+
+        members_view = self._build_members_view()
+        if members_view:
+            grid.addWidget(members_view, 2, 0, 1, 3)
 
     def mouseDoubleClickEvent(self, event):
         if self.module_key and self.item_id:
             open_item_in_browser(self.module_key, self.item_id)
         super().mouseDoubleClickEvent(event)
+
+    def _build_dates_widget(self):
+        raw = self.raw if isinstance(self.raw, dict) else {}
+        if not raw:
+            return None
+        has_dates = any(raw.get(key) for key in ("dueAt", "startAt", "createdAt", "updatedAt"))
+        if not has_dates:
+            return None
+        try:
+            widget = DatesWidget(raw, parent=self, compact=True, lang_manager=self.lang_manager)
+            return widget
+        except Exception:
+            return None
+
+    def _build_members_view(self):
+        raw = self.raw if isinstance(self.raw, dict) else {}
+        members = raw.get("members", {}) if isinstance(raw, dict) else {}
+        edges = (members or {}).get("edges") or []
+        if not edges:
+            return None
+        try:
+            view = MembersView(raw, parent=self)
+            return view
+        except Exception:
+            return None
 
     def _extract_file_path(self) -> Optional[str]:
         candidates = (
@@ -408,19 +438,13 @@ class ModuleConnectionRow(QFrame):
 
 def _build_pill_label(text: str) -> QLabel:
     label = QLabel(text)
-    label.setStyleSheet(
-        "padding: 2px 6px;"
-        "border-radius: 10px;"
-        "background-color: rgba(80, 140, 255, 40);"
-        "color: rgb(40, 90, 200);"
-        "font-weight: 600;"
-    )
+    label.setObjectName("ModuleRowPill")
     return label
 
 
 def _build_meta_label(text: str) -> QLabel:
     label = QLabel(text)
-    label.setStyleSheet("color: rgb(110, 110, 110);")
+    label.setObjectName("ModuleRowMeta")
     return label
 
 

@@ -21,6 +21,37 @@ QFrame#ModuleInfoCard:hover {
 QFrame#CardContent { background: transparent; }
 
 
+/* Property/Module connection rows */
+QFrame#ModuleConnectionRow {
+    background: #1b2127;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 6px 8px;
+}
+
+QLabel#ModuleRowNumber {
+    color: #8bc2ff;
+    font-weight: 600;
+}
+
+QLabel#ModuleRowTitle {
+    color: #f2f5f8;
+    font-weight: 600;
+}
+
+QLabel#ModuleRowPill {
+    padding: 2px 6px;
+    border-radius: 10px;
+    background-color: rgba(9,144,143,0.25);
+    color: #6fe2e0;
+    font-weight: 600;
+}
+
+QLabel#ModuleRowMeta {
+    color: #9aa7b8;
+}
+
+
 QPushButton {
     background: #1f5d5c;
     border-radius: 6px;
