@@ -1,10 +1,8 @@
 from .DatesWidget import DatesWidget
-from ...constants.module_icons import MiscIcons
 from ...utils.status_color_helper import StatusColorHelper
 from ...widgets.theme_manager import styleExtras, IntensityLevels, ThemeShadowColors
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 
@@ -18,22 +16,6 @@ class StatusWidget(QWidget):
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.addStretch(1)  # push everything right
-
-        if show_private_icon and not item_data.get('isPublic'):
-            pub = QLabel()
-            pub.setObjectName("ProjectPrivateIcon")
-            pub.setToolTip("Privaatne")
-            pub.setAlignment(Qt.AlignCenter)
-            # themed private icon (using ICON_ADD as requested)
-            icon_path = MiscIcons.ICON_IS_PRIVATE
-            pm = QPixmap(icon_path)
-            if not pm.isNull():
-                pub.setPixmap(pm.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-            else:
-                pub.setText("P")
-
-            pub.setFixedSize(16, 16)
-            row.addWidget(pub, 0, Qt.AlignRight | Qt.AlignVCenter)
 
         status = item_data.get('status', {}) or {}
         name = status.get('name', '-') or '-'

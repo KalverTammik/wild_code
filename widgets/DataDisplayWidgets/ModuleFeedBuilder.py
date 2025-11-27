@@ -6,11 +6,7 @@ from .StatusWidget import StatusWidget
 from .MembersView import MembersView
 from .ExtraInfoWidget import ExtraInfoFrame
 from .InfoCardHeader import InfocardHeaderFrame
-from .module_action_buttons import (
-    OpenFolderActionButton,
-    OpenWebActionButton,
-    ShowOnMapActionButton,
-)
+from .ModuleConnectionActions import ModuleConnectionActions
 from ..theme_manager import IntensityLevels, styleExtras, ThemeShadowColors
 
 """ModuleFeedBuilder
@@ -72,19 +68,14 @@ class ModuleFeedBuilder:
         page_info = properties_conn.get('pageInfo') or {}
         properties_count = page_info.get('count') or page_info.get('total', 0)
 
-        folder_button = OpenFolderActionButton(file_path, lang_manager)
-        header_row.addWidget(folder_button, 0, 1, Qt.AlignTop)
-
-        web_button = OpenWebActionButton(module_name, item_id, lang_manager)
-        header_row.addWidget(web_button, 0, 2, Qt.AlignTop)
-
-        map_button = ShowOnMapActionButton(
+        actions_widget = ModuleConnectionActions(
             module_name,
             item_id,
-            lang_manager,
-            has_connections=bool(properties_count),
+            file_path,
+            bool(properties_count),
+            lang_manager=lang_manager,
         )
-        header_row.addWidget(map_button, 0, 3, Qt.AlignTop)
+        header_row.addWidget(actions_widget, 0, 1, Qt.AlignTop)
 
         # Members view with optimized width for responsible avatars + card stacking
         members_view = MembersView(item)

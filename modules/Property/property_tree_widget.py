@@ -11,20 +11,16 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QHBoxLayout,
     QToolButton,
-    QSizePolicy,
     QGridLayout,
 )
 
 from ...constants.module_icons import ModuleIconPaths
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
-from ...widgets.DataDisplayWidgets.module_action_buttons import (
-    OpenFolderActionButton,
-    OpenWebActionButton,
-    ShowOnMapActionButton,
-    open_item_in_browser,
-)
-from ...widgets.DataDisplayWidgets.DatesWidget import DatesWidget
+from ...widgets.DataDisplayWidgets.module_action_buttons import open_item_in_browser
 from ...widgets.DataDisplayWidgets.MembersView import MembersView
+from ...widgets.DataDisplayWidgets.StatusWidget import StatusWidget
+from ...widgets.DataDisplayWidgets.InfoCardHeader import InfocardHeaderFrame
+from ...widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
 from ...languages.translation_keys import TranslationKeys
 
 
@@ -361,103 +357,103 @@ class ModuleConnectionRow(QFrame):
         self.setCursor(Qt.PointingHandCursor)
 
         grid = QGridLayout(self)
-        grid.setContentsMargins(10, 8, 10, 8)
-        grid.setHorizontalSpacing(10)
-        grid.setVerticalSpacing(6)
+        grid.setContentsMargins(2, 2, 2, 2)
+        grid.setHorizontalSpacing(2)
+        grid.setVerticalSpacing(2)
         grid.setColumnStretch(1, 1)
 
-        number = QLabel(self.summary.get("number") or self.summary.get("id") or "–")
-        number.setObjectName("ModuleRowNumber")
-        grid.addWidget(number, 0, 0, Qt.AlignTop)
+        header_payload = self._build_header_payload()
+        header_frame = InfocardHeaderFrame(header_payload, module_name=self.module_key)
+        grid.addWidget(header_frame, 0, 0, Qt.AlignCenter | Qt.AlignLeft)
 
-        fallback_title = "Nimetus puudub"
-        if self.lang_manager:
-            try:
-                fallback_title = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_ROW_NO_TITLE) or fallback_title
-            except Exception:
-                pass
-        title = QLabel(self.summary.get("title") or fallback_title)
-        title.setObjectName("ModuleRowTitle")
-        title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        grid.addWidget(title, 0, 1, Qt.AlignTop)
-
-        actions_container = QWidget(self)
-        actions_layout = QHBoxLayout(actions_container)
-        actions_layout.setContentsMargins(0, 0, 0, 0)
-        actions_layout.setSpacing(4)
-        actions_layout.addStretch(1)
 
         file_path = self._extract_file_path()
         has_connections = self._has_property_connections()
-
-        folder_btn = OpenFolderActionButton(file_path, lang_manager)
-        actions_layout.addWidget(folder_btn)
-
-        web_btn = OpenWebActionButton(self.module_key, self.item_id, lang_manager)
-        actions_layout.addWidget(web_btn)
-
-        map_btn = ShowOnMapActionButton(
+        actions_widget = ModuleConnectionActions(
             self.module_key,
             self.item_id,
-            lang_manager,
-            has_connections=has_connections,
+            file_path,
+            has_connections,
+            lang_manager=lang_manager,
+            parent=self,
         )
-        actions_layout.addWidget(map_btn)
 
-        grid.addWidget(actions_container, 0, 2, Qt.AlignRight | Qt.AlignTop)
-
-        meta_widget = QWidget(self)
-        meta_layout = QHBoxLayout(meta_widget)
-        meta_layout.setContentsMargins(0, 0, 0, 0)
-        meta_layout.setSpacing(6)
-
-        status = self.summary.get("status")
-        if status:
-            meta_layout.addWidget(_build_pill_label(status))
-
-        type_name = self.summary.get("type")
-        if type_name:
-            meta_layout.addWidget(_build_meta_label(type_name))
-
-        updated = self.summary.get("updatedAt") or self.summary.get("raw", {}).get("updatedAt")
-        formatted = _format_datetime(updated)
-        if formatted:
-            updated_template = "Uuendatud {date}"
-            if self.lang_manager:
-                try:
-                    updated_template = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_ROW_UPDATED_PREFIX) or updated_template
-                except Exception:
-                    pass
-            meta_layout.addWidget(_build_meta_label(updated_template.format(date=formatted)))
-
-        meta_layout.addStretch(1)
-        grid.addWidget(meta_widget, 1, 0, 1, 2)
-
-        dates_widget = self._build_dates_widget()
-        if dates_widget:
-            grid.addWidget(dates_widget, 1, 2, Qt.AlignRight | Qt.AlignTop)
+        grid.addWidget(actions_widget, 0, 1, Qt.AlignRight | Qt.AlignTop)
 
         members_view = self._build_members_view()
+        members_view.setFixedWidth(100)
         if members_view:
-            grid.addWidget(members_view, 2, 0, 1, 3)
+            grid.addWidget(members_view, 0 , 2, Qt.AlignTop | Qt.AlignRight)
+
+        status_widget = self._build_status_widget()
+        if status_widget:
+            grid.addWidget(status_widget, 0, 3, Qt.AlignRight | Qt.AlignTop)
+
+
 
     def mouseDoubleClickEvent(self, event):
         if self.module_key and self.item_id:
             open_item_in_browser(self.module_key, self.item_id)
         super().mouseDoubleClickEvent(event)
 
-    def _build_dates_widget(self):
-        raw = self.raw if isinstance(self.raw, dict) else {}
-        if not raw:
-            return None
-        has_dates = any(raw.get(key) for key in ("dueAt", "startAt", "createdAt", "updatedAt"))
-        if not has_dates:
+    def _build_status_widget(self):
+        context = {}
+        if isinstance(self.raw, dict):
+            context.update(self.raw)
+        summary_status = self.summary.get("status")
+        if summary_status:
+            if isinstance(summary_status, dict):
+                context.setdefault("status", summary_status)
+            else:
+                context.setdefault("status", {"name": str(summary_status)})
+        if "isPublic" not in context and isinstance(self.summary.get("isPublic"), bool):
+            context["isPublic"] = self.summary["isPublic"]
+        if not context:
             return None
         try:
-            widget = DatesWidget(raw, parent=self, compact=True, lang_manager=self.lang_manager)
-            return widget
+            return StatusWidget(
+                context,
+                parent=self,
+                lang_manager=self.lang_manager,
+            )
         except Exception:
+            fallback = self.summary.get("status")
+            if fallback:
+                return _build_pill_label(str(fallback))
             return None
+
+    def _build_header_payload(self) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {}
+        if isinstance(self.raw, dict):
+            payload.update(self.raw)
+
+        number_value = self.summary.get("number") or self.summary.get("id")
+        if number_value is not None:
+            payload.setdefault("number", number_value)
+
+        name_value = self.summary.get("title") or self.summary.get("name")
+        if not name_value:
+            fallback = "Nimetus puudub"
+            if self.lang_manager:
+                try:
+                    fallback = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_ROW_NO_TITLE) or fallback
+                except Exception:
+                    pass
+            name_value = fallback
+        payload.setdefault("name", name_value)
+
+        if "isPublic" not in payload and isinstance(self.summary.get("isPublic"), bool):
+            payload["isPublic"] = self.summary["isPublic"]
+
+        client = self.summary.get("client")
+        if client and isinstance(client, dict):
+            payload.setdefault("client", client)
+
+        tags = self.summary.get("tags")
+        if tags and isinstance(tags, dict):
+            payload.setdefault("tags", tags)
+
+        return payload or {"name": name_value}
 
     def _build_members_view(self):
         raw = self.raw if isinstance(self.raw, dict) else {}
@@ -499,13 +495,6 @@ def _build_pill_label(text: str) -> QLabel:
     label = QLabel(text)
     label.setObjectName("ModuleRowPill")
     return label
-
-
-def _build_meta_label(text: str) -> QLabel:
-    label = QLabel(text)
-    label.setObjectName("ModuleRowMeta")
-    return label
-
 
 def _format_datetime(raw_value: Optional[str]) -> Optional[str]:
     if not raw_value:
