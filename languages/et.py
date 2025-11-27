@@ -92,6 +92,14 @@ TRANSLATIONS = {
     TranslationKeys.SELECT_SHAPEFILE: "Vali Shapefile fail",
     TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE: "Vali kinnistu kiht.",
     TranslationKeys.SELECT_A_PROPERTY_LAYER: "Vali kinnistute kiht...",
+    TranslationKeys.PROPERTY_TREE_HEADER: "Kinnistuga seotud andmed",
+    TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE: "Vali kinnistu kaardilt",
+    TranslationKeys.PROPERTY_TREE_LOADING: "Laen seotud andmeid...",
+    TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS: "Seoseid ei leitud",
+    TranslationKeys.PROPERTY_TREE_NO_DATA: "Andmed puuduvad",
+    TranslationKeys.PROPERTY_TREE_MODULE_EMPTY: "Kirjeid ei ole",
+    TranslationKeys.PROPERTY_TREE_ROW_NO_TITLE: "Nimetus puudub",
+    TranslationKeys.PROPERTY_TREE_ROW_UPDATED_PREFIX: "Uuendatud {date}",
     TranslationKeys.SHAPEFILE_LOADED_SUCCESSFULLY: "Shapefile edukalt laaditud",
     TranslationKeys.SHAPEFILE_LOADED_MESSAGE: "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud'",
     TranslationKeys.SHAPEFILE_LOADED_WITH_DATA_MESSAGE: "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud' ({count} objekti imporditud)",
@@ -206,14 +214,25 @@ TRANSLATIONS = {
     ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Viga kinnisvara valimisel"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Vali üks kinnisvara"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_MESSAGE: "Palun valige kaardilt ainult üks kinnisvara objekt."
-    ,"Status Filter": "Staatuste järgi filtreerimine"
-    ,"Tag Filter": "Siltide järgi filtreerimine"
-    ,"Type Filter": "Tüübi järgi filtreerimine"
-    ,"Home": "Avaleht"
-    ,"Property": "Kinnistud"
-    ,"Contract": "Lepingud"
-    ,"Project": "Projektid"
-    ,"Settings": "Seaded"
+    ,TranslationKeys.STATUS_FILTER: "Staatuste järgi filtreerimine"
+    ,TranslationKeys.TAGS_FILTER: "Tunnuste järgi filtreerimine"
+    ,TranslationKeys.TYPE_FILTER: "Liigi järgi filtreerimine"
+    ,TranslationKeys.MODULE_HOME: "Avaleht"
+    ,TranslationKeys.MODULE_PROPERTY: "Kinnistud"
+    ,TranslationKeys.MODULE_CONTRACT: "Lepingud"
+    ,TranslationKeys.MODULE_PROJECT: "Projektid"
+    ,TranslationKeys.MODULE_SETTINGS: "Seaded"
+    ,TranslationKeys.MODULE_COORDINATION: "Kooskõlastused"
+    ,TranslationKeys.MODULE_LETTER: "Kirjad"
+    ,TranslationKeys.MODULE_SPECIFICATION: "Tingimused"
+    ,TranslationKeys.MODULE_EASEMENT: "Servituudid"
+    ,TranslationKeys.MODULE_ORDINANCE: "Käskkirjad"
+    ,TranslationKeys.MODULE_SUBMISSION: "Esitused"
+    ,TranslationKeys.MODULE_TASK: "Ülesanded"
+    ,TranslationKeys.MODULE_ASBUILT: "Teostusjoonised"
+    ,TranslationKeys.MODULE_WORKS: "Tööd"
+    ,TranslationKeys.MODULE_TAGS: "Tunnused"
+    ,TranslationKeys.MODULE_STATUSES: "Staatused"
     ,RoleTranslationKeys.ADMINS: "Admin"
     ,RoleTranslationKeys.ADMINISTRATORS: "Administraatorid"
     ,RoleTranslationKeys.PROJECT_MANAGERS: "Projektijuht"

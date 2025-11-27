@@ -39,6 +39,14 @@ TRANSLATIONS = {
     TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Choose layers used by this module (element and archive).",
     TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE: "Select a property layer for data operations and management.",
     TranslationKeys.SELECT_A_PROPERTY_LAYER: "Select a property layer...",
+    TranslationKeys.PROPERTY_TREE_HEADER: "Property-related data",
+    TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE: "Select a property on the map",
+    TranslationKeys.PROPERTY_TREE_LOADING: "Loading related data...",
+    TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS: "No connections found",
+    TranslationKeys.PROPERTY_TREE_NO_DATA: "No data available",
+    TranslationKeys.PROPERTY_TREE_MODULE_EMPTY: "No records",
+    TranslationKeys.PROPERTY_TREE_ROW_NO_TITLE: "Name missing",
+    TranslationKeys.PROPERTY_TREE_ROW_UPDATED_PREFIX: "Updated {date}",
     TranslationKeys.LOGOUT_BUTTON_TOOLTIP: "Log out from your account",
     TranslationKeys.SEARCH_TOOLTIP: "This feature is not yet available",
     TranslationKeys.SEARCH_PLACEHOLDER: "Search...",
@@ -50,24 +58,24 @@ TRANSLATIONS = {
     TranslationKeys.SESSION_EXPIRED: "Your session has expired. Please sign in again.",
     TranslationKeys.SESSION_EXPIRED_TITLE: "Session Expired",
     TranslationKeys.URGENT_GROUP_TITLE: "Urgent!"
-    ,"urgent_tooltip": "What needs fast attention"
-    ,"Status Filter": "Filter by Status"
-    ,"Tags Filter": "Filter by Tags"
-    ,"Type Filter": "Filter by Type"
-    ,"Type Group Filter": "Filter by Type Group"
-    ,"Reset": "Reset"
-    ,"Confirm": "Confirm"
-    ,"Reset all settings for this module to default values": "Reset all settings for this module to default values"
-    ,"Settings reset to defaults": "Settings reset to defaults"
-    ,"When enabled, project/contract numbers will be displayed in item cards for easy identification.": "When enabled, item numbers will be displayed in cards for easy identification."
-    ,"User Profile": "User Profile"
-    ,"Roles & Permissions": "Roles & Permissions"
-    ,"Module Access": "Module Access"
-    ,"Administrator": "Administrator"
-    ,"Editor": "Editor"
-    ,"Viewer": "Viewer"
-    ,"Dashboard": "Dashboard"
-    ,"Reports": "Reports"
+    ,TranslationKeys.URGENT_TOOLTIP: "What needs fast attention"
+    ,TranslationKeys.STATUS_FILTER: "Filter by Status"
+    ,TranslationKeys.TAGS_FILTER: "Filter by Tags"
+    ,TranslationKeys.TYPE_FILTER: "Filter by Type"
+    ,TranslationKeys.TYPE_GROUP_FILTER: "Filter by Type Group"
+    ,TranslationKeys.RESET: "Reset"
+    ,TranslationKeys.CONFIRM: "Confirm"
+    ,TranslationKeys.RESET_ALL_SETTINGS: "Reset all settings for this module to default values"
+    ,TranslationKeys.SETTINGS_RESET_TO_DEFAULTS: "Settings reset to defaults"
+    ,TranslationKeys.SHOW_PROJECT_NUMBERS_DESCRIPTION: "When enabled, item numbers will be displayed in cards for easy identification."
+    ,TranslationKeys.USER_PROFILE: "User Profile"
+    ,TranslationKeys.ROLES_PERMISSIONS: "Roles & Permissions"
+    ,TranslationKeys.MODULE_ACCESS: "Module Access"
+    ,TranslationKeys.ADMINISTRATOR: "Administrator"
+    ,TranslationKeys.EDITOR: "Editor"
+    ,TranslationKeys.VIEWER: "Viewer"
+    ,TranslationKeys.DASHBOARD: "Dashboard"
+    ,TranslationKeys.REPORTS: "Reports"
     ,"settings": "Settings"
     ,"Admin": "Admin"
     ,"User": "User"
@@ -166,10 +174,21 @@ TRANSLATIONS = {
     ,"Invalid value": "Invalid value"
     ,"Value must be greater than {min}": "Value must be greater than {min}"
     ,"Value must be less than {max}": "Value must be less than {max}"
-    ,"property": "Properties"
-    ,"contract": "Contracts"
-    ,"project": "Projects"
-    ,"home": "Home"
+    ,TranslationKeys.MODULE_PROPERTY: "Properties"
+    ,TranslationKeys.MODULE_CONTRACT: "Contracts"
+    ,TranslationKeys.MODULE_PROJECT: "Projects"
+    ,TranslationKeys.MODULE_HOME: "Home"
+    ,TranslationKeys.MODULE_COORDINATION: "Coordination"
+    ,TranslationKeys.MODULE_LETTER: "Letters"
+    ,TranslationKeys.MODULE_SPECIFICATION: "Specifications"
+    ,TranslationKeys.MODULE_EASEMENT: "Easements"
+    ,TranslationKeys.MODULE_ORDINANCE: "Ordinances"
+    ,TranslationKeys.MODULE_SUBMISSION: "Submissions"
+    ,TranslationKeys.MODULE_TASK: "Tasks"
+    ,TranslationKeys.MODULE_ASBUILT: "As-built"
+    ,TranslationKeys.MODULE_WORKS: "Works"
+    ,TranslationKeys.MODULE_TAGS: "Tags"
+    ,TranslationKeys.MODULE_STATUSES: "Statuses"
     ,TranslationKeys.ADD_NEW_PROPERTY: "Property Management"
     ,TranslationKeys.SELECT_PROPERTIES: "Select Properties"
     ,TranslationKeys.CLOSE: "Close"

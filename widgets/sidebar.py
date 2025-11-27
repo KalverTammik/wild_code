@@ -15,6 +15,8 @@ from ..languages.translation_keys import TranslationKeys
 lang_manager = LanguageManager()
 theme_manager = ThemeManager()
 
+
+
 class Sidebar(QWidget):
     """A modular sidebar with compact/expanded modes, floating toggle handle, and theme-aware styling."""
 
@@ -73,7 +75,7 @@ class Sidebar(QWidget):
         cm.addWidget(self.footerContainer)
 
         # Settings button directly in footer container
-        translate_settings_name = lang_manager.translate(Module.SETTINGS.value.capitalize())
+        translate_settings_name = lang_manager.translate(TranslationKeys.MODULE_SETTINGS)
 
         self.settingsButton = QPushButton(translate_settings_name, self.footerContainer)
         self.settingsButton.setObjectName("SidebarSettingsButton")
@@ -96,7 +98,7 @@ class Sidebar(QWidget):
         self.toggleButton.setAutoRaise(True)
         self.toggleButton.setFixedSize(22, 40)        # slim, tall target
 
-        tooltip = lang_manager.translate(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP)
+        tooltip = lang_manager.translate(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP) or "Collapse Sidebar"
         self.toggleButton.setToolTip(tooltip)
         self.toggleButton.setText("«")                # expanded → show collapse glyph
         self.toggleButton.clicked.connect(self.toggleSidebar)
@@ -247,10 +249,10 @@ class Sidebar(QWidget):
         # settings button
         if self._is_compact:
             self.toggleButton.setText("»")
-            self.toggleButton.setToolTip(TranslationKeys.SIDEBAR_EXPAND_TOOLTIP)
+            self.toggleButton.setToolTip(lang_manager.translate(TranslationKeys.SIDEBAR_EXPAND_TOOLTIP) or "Expand Sidebar")
         else:
             self.toggleButton.setText("«")
-            self.toggleButton.setToolTip(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP)
+            self.toggleButton.setToolTip(lang_manager.translate(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP) or "Collapse Sidebar")
 
         start_w = self.SidebarMainFrame.width()
         end_w = self._compact_width if self._is_compact else self._expanded_width

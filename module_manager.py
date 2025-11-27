@@ -41,7 +41,7 @@ class ModuleManager:
             "instance": None,              # Lazy: created on-demand
             "name": module_name.lower(),
             "icon": ModuleIconPaths.get_module_icon(module_name),
-            "display_name": self.lang_manager.translate(module_name.capitalize()),
+            "display_name": self.lang_manager.translate(module_name.lower()),
             "sidebar_main_item": sidebar_main_item,
             "supports_types": supports_types,
             "supports_statuses": supports_statuses,

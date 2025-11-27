@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (
 )
 
 from ...constants.module_icons import ModuleIconPaths
-from ...widgets.theme_manager import styleExtras
+from ...widgets.theme_manager import styleExtras, ThemeShadowColors
 from ...widgets.DataDisplayWidgets.module_action_buttons import (
     OpenFolderActionButton,
     OpenWebActionButton,
@@ -25,12 +25,11 @@ from ...widgets.DataDisplayWidgets.module_action_buttons import (
 )
 from ...widgets.DataDisplayWidgets.DatesWidget import DatesWidget
 from ...widgets.DataDisplayWidgets.MembersView import MembersView
+from ...languages.translation_keys import TranslationKeys
 
 
 class PropertyTreeWidget(QFrame):
     """Card-based replacement for the legacy property tree."""
-
-    DEFAULT_MESSAGE = "Vali kinnistu kaardilt"
 
     def __init__(self, parent: Optional[QWidget] = None, lang_manager=None):
         super().__init__(parent)
@@ -43,7 +42,13 @@ class PropertyTreeWidget(QFrame):
         layout.setContentsMargins(6, 6, 6, 6)
         layout.setSpacing(10)
 
-        title = QLabel("Kinnistuga seotud andmed")
+        title_text = "Kinnistuga seotud andmed"
+        if self.lang_manager:
+            try:
+                title_text = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_HEADER) or title_text
+            except Exception:
+                pass
+        title = QLabel(title_text)
         title_font = QFont()
         title_font.setBold(True)
         title_font.setPointSize(12)
@@ -61,7 +66,13 @@ class PropertyTreeWidget(QFrame):
         self.cards_layout.setSpacing(10)
         self.scroll_area.setWidget(self.cards_container)
 
-        self.show_message(self.DEFAULT_MESSAGE)
+        default_message = "Vali kinnistu kaardilt"
+        if self.lang_manager:
+            try:
+                default_message = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE) or default_message
+            except Exception:
+                pass
+        self.show_message(default_message)
 
     # --- Public API ------------------------------------------------------
 
@@ -71,10 +82,16 @@ class PropertyTreeWidget(QFrame):
         self.cards_layout.addWidget(MessageCard(message))
         self.cards_layout.addStretch(1)
 
-    def show_loading(self, message: str = "Laen seotud andmeid..."):
+    def show_loading(self, message: Optional[str] = None):
         self._current_entries = []
         self._reset_cards()
-        self.cards_layout.addWidget(MessageCard(message, is_loading=True))
+        resolved = message or "Laen seotud andmeid..."
+        if message is None and self.lang_manager:
+            try:
+                resolved = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_LOADING) or resolved
+            except Exception:
+                pass
+        self.cards_layout.addWidget(MessageCard(resolved, is_loading=True))
         self.cards_layout.addStretch(1)
 
     def load_connections(self, entries: List[Dict[str, Any]]):
@@ -82,19 +99,39 @@ class PropertyTreeWidget(QFrame):
         self._reset_cards()
 
         if not entries:
-            self.cards_layout.addWidget(MessageCard("Seoseid ei leitud"))
+            no_connections = "Seoseid ei leitud"
+            if self.lang_manager:
+                try:
+                    no_connections = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS) or no_connections
+                except Exception:
+                    pass
+            self.cards_layout.addWidget(MessageCard(no_connections))
             self.cards_layout.addStretch(1)
             return
 
         for entry in entries:
             card = PropertyConnectionCard(entry, self.lang_manager, self)
+            styleExtras.apply_chip_shadow(
+                card,
+                blur_radius=15,
+                x_offset=1,
+                y_offset=2,
+                color=ThemeShadowColors.ACCENT,
+                alpha_level="medium",
+            )
             self.cards_layout.addWidget(card)
 
         self.cards_layout.addStretch(1)
 
     def refresh_tree_data(self):
         if not self._current_entries:
-            self.show_message("Andmed puuduvad")
+            no_data = "Andmed puuduvad"
+            if self.lang_manager:
+                try:
+                    no_data = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_DATA) or no_data
+                except Exception:
+                    pass
+            self.show_message(no_data)
             return
         self.load_connections(self._current_entries)
 
@@ -115,7 +152,13 @@ class MessageCard(QFrame):
         super().__init__(parent)
         self.setObjectName("ModuleInfoCard")
         self.setFrameStyle(QFrame.NoFrame)
-        styleExtras.apply_chip_shadow(self, blur_radius=18, y_offset=2)
+        styleExtras.apply_chip_shadow(
+            self,
+            blur_radius=18,
+            y_offset=2,
+            color=ThemeShadowColors.ACCENT,
+            alpha_level="medium",
+        )
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -124,7 +167,7 @@ class MessageCard(QFrame):
         content_frame = QFrame(self)
         content_frame.setObjectName("CardContent")
         layout = QHBoxLayout(content_frame)
-        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setContentsMargins(8, 6, 8, 6)
 
         label = QLabel(message)
         font = QFont()
@@ -151,7 +194,13 @@ class PropertyConnectionCard(QFrame):
         self.lang_manager = lang_manager
         self.setObjectName("ModuleInfoCard")
         self.setFrameStyle(QFrame.NoFrame)
-        styleExtras.apply_chip_shadow(self, blur_radius=25, y_offset=3)
+        styleExtras.apply_chip_shadow(
+            self,
+            blur_radius=25,
+            y_offset=3,
+            color=ThemeShadowColors.ACCENT,
+            alpha_level="medium",
+        )
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -160,15 +209,18 @@ class PropertyConnectionCard(QFrame):
         content_frame = QFrame(self)
         content_frame.setObjectName("CardContent")
         content_layout = QVBoxLayout(content_frame)
-        content_layout.setContentsMargins(18, 16, 18, 16)
-        content_layout.setSpacing(16)
-
-        header = self._build_header()
-        content_layout.addLayout(header)
+        content_layout.setContentsMargins(8, 6, 8, 6)
+        content_layout.setSpacing(8)
 
         modules = self.entry.get("moduleConnections") or {}
         if not modules:
-            empty = QLabel("Seoseid ei leitud")
+            empty_text = "Seoseid ei leitud"
+            if self.lang_manager:
+                try:
+                    empty_text = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS) or empty_text
+                except Exception:
+                    pass
+            empty = QLabel(empty_text)
             empty.setStyleSheet("color: rgb(130, 130, 130);")
             content_layout.addWidget(empty)
             outer.addWidget(content_frame)
@@ -183,25 +235,6 @@ class PropertyConnectionCard(QFrame):
             content_layout.addWidget(section)
 
         outer.addWidget(content_frame)
-
-    def _build_header(self) -> QHBoxLayout:
-        cadastral = self.entry.get("cadastralNumber") or "–"
-        property_id = self.entry.get("propertyId") or "–"
-
-        title = QLabel(f"Katastritunnus {cadastral}")
-        title_font = QFont()
-        title_font.setBold(True)
-        title_font.setPointSize(11)
-        title.setFont(title_font)
-
-        info_label = QLabel(f"Property ID: {property_id}")
-        info_label.setStyleSheet("color: rgb(120, 120, 120);")
-
-        header = QVBoxLayout()
-        header.setContentsMargins(0, 0, 0, 0)
-        header.addWidget(title)
-        header.addWidget(info_label)
-        return header
 
 
 class ModuleConnectionSection(QFrame):
@@ -218,8 +251,16 @@ class ModuleConnectionSection(QFrame):
         super().__init__(parent)
         self.setObjectName("ModuleInfoCard")
         self.setFrameStyle(QFrame.NoFrame)
+        styleExtras.apply_chip_shadow(
+            self,
+            blur_radius=12,
+            x_offset=1,
+            y_offset=2,
+            color=ThemeShadowColors.ACCENT,
+            alpha_level="medium",
+        )
 
-        module_name = module_key.capitalize()
+        module_name = _translate_module_label(module_key, lang_manager)
         count = module_info.get("count", 0)
         items = module_info.get("items") or []
 
@@ -267,7 +308,13 @@ class ModuleConnectionSection(QFrame):
         body_layout.setSpacing(6)
 
         if not items:
-            empty = QLabel("Kirjeid ei ole")
+            empty_text = "Kirjeid ei ole"
+            if lang_manager:
+                try:
+                    empty_text = lang_manager.translate(TranslationKeys.PROPERTY_TREE_MODULE_EMPTY) or empty_text
+                except Exception:
+                    pass
+            empty = QLabel(empty_text)
             empty.setStyleSheet("color: rgb(120, 120, 120);")
             body_layout.addWidget(empty)
         else:
@@ -323,7 +370,13 @@ class ModuleConnectionRow(QFrame):
         number.setObjectName("ModuleRowNumber")
         grid.addWidget(number, 0, 0, Qt.AlignTop)
 
-        title = QLabel(self.summary.get("title") or "Nimetus puudub")
+        fallback_title = "Nimetus puudub"
+        if self.lang_manager:
+            try:
+                fallback_title = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_ROW_NO_TITLE) or fallback_title
+            except Exception:
+                pass
+        title = QLabel(self.summary.get("title") or fallback_title)
         title.setObjectName("ModuleRowTitle")
         title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         grid.addWidget(title, 0, 1, Qt.AlignTop)
@@ -369,7 +422,13 @@ class ModuleConnectionRow(QFrame):
         updated = self.summary.get("updatedAt") or self.summary.get("raw", {}).get("updatedAt")
         formatted = _format_datetime(updated)
         if formatted:
-            meta_layout.addWidget(_build_meta_label(f"Uuendatud {formatted}"))
+            updated_template = "Uuendatud {date}"
+            if self.lang_manager:
+                try:
+                    updated_template = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_ROW_UPDATED_PREFIX) or updated_template
+                except Exception:
+                    pass
+            meta_layout.addWidget(_build_meta_label(updated_template.format(date=formatted)))
 
         meta_layout.addStretch(1)
         grid.addWidget(meta_widget, 1, 0, 1, 2)
@@ -461,3 +520,25 @@ def _format_datetime(raw_value: Optional[str]) -> Optional[str]:
         return dt.strftime("%d.%m.%Y")
     except Exception:
         return raw_value
+
+
+def _translate_module_label(module_key: Optional[str], lang_manager=None) -> str:
+    """Resolve module titles via the shared language manager, fallback to title case."""
+    normalized = (module_key or "").strip()
+    if not normalized:
+        return "–"
+
+    if lang_manager:
+        variations = []
+        for candidate in (normalized, normalized.lower(), normalized.upper(), normalized.capitalize()):
+            if candidate and candidate not in variations:
+                variations.append(candidate)
+        for candidate in variations:
+            try:
+                translated = lang_manager.translate(candidate)
+            except Exception:
+                translated = None
+            if translated:
+                return translated
+
+    return normalized.capitalize()
