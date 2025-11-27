@@ -107,14 +107,14 @@ class ThemeManager(QObject):
         return QIcon(p) if p else QIcon()
 
     @staticmethod
-    def set_initial_theme(widget, switch_button, logout_button, qss_files=None) -> str:
+    def set_initial_theme(widget, switch_button=None, logout_button=None, qss_files=None) -> str:
         theme = ThemeManager.effective_theme()
         ThemeManager._apply_theme_for(widget, theme, qss_files)
         ThemeManager._update_header_icons(theme, switch_button, logout_button)
         return theme
 
     @staticmethod
-    def toggle_theme(widget, current_theme, switch_button, logout_button, qss_files=None) -> str:
+    def toggle_theme(widget, current_theme, switch_button=None, logout_button=None, qss_files=None) -> str:
         theme_now = current_theme or ThemeManager.effective_theme()
         new_theme = Theme.DARK if theme_now == Theme.LIGHT else Theme.LIGHT
         ThemeManager._apply_theme_for(widget, new_theme, qss_files)

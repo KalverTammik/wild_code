@@ -1,3 +1,5 @@
+from typing import Any, Callable, Optional
+
 from PyQt5.QtWidgets import QVBoxLayout, QLabel, QFrame, QHBoxLayout, QGroupBox
 from PyQt5.QtCore import pyqtSignal, Qt
 from .SettingsBaseCard import SettingsBaseCard
@@ -24,6 +26,8 @@ class SettingsModuleCard(SettingsBaseCard):
         supports_statuses: bool = False,
         supports_tags: bool = False,
         logic=None,
+        filter_loader: Optional[Callable[[str, str, Any], None]] = None,
+        filter_cancel: Optional[Callable[[Any], None]] = None,
     ):
         # Ikon pealkirjale
         icon_path = ModuleIconPaths.get_module_icon(module_name)
@@ -39,6 +43,8 @@ class SettingsModuleCard(SettingsBaseCard):
         self.logic = logic
         self._settings = SettingsService()
         self._snapshot = None
+        self._filter_loader = filter_loader
+        self._filter_cancel = filter_cancel
 
 
         # Layer pickers
@@ -61,6 +67,10 @@ class SettingsModuleCard(SettingsBaseCard):
         self._status_filter_widget: StatusFilterWidget | None = None
         self._type_filter_widget: TypeFilterWidget | None = None
         self._tags_filter_widget: TagsFilterWidget | None = None
+        self._status_loaded = False
+        self._type_loaded = False
+        self._tags_loaded = False
+        self._pending_reload = set()
 
         self._build_ui()
 
@@ -202,9 +212,10 @@ class SettingsModuleCard(SettingsBaseCard):
             self._status_filter_widget = StatusFilterWidget(
                 self.module_key,
                 status_container,
+                auto_load=False,
             )
-            self._status_filter_widget.ensure_loaded()
             self._status_filter_widget.selectionChanged.connect(self._on_status_selection_changed)
+            self._status_filter_widget.loadFinished.connect(self._on_status_loaded)
             status_inner_layout.addWidget(self._status_filter_widget)
 
             status_layout.addWidget(status_container, 2)
@@ -238,8 +249,10 @@ class SettingsModuleCard(SettingsBaseCard):
                 self.module_key,
                 self.lang_manager,
                 tags_container,
+                auto_load=False,
             )
             self._tags_filter_widget.selectionChanged.connect(self._on_tags_selection_changed)
+            self._tags_filter_widget.loadFinished.connect(self._on_tags_loaded)
             tags_inner_layout.addWidget(self._tags_filter_widget)
 
             tags_layout.addWidget(tags_container, 2)
@@ -273,9 +286,10 @@ class SettingsModuleCard(SettingsBaseCard):
             self._type_filter_widget = TypeFilterWidget(
                 self.module_key,
                 type_container,
+                auto_load=False,
             )
-            self._type_filter_widget.ensure_loaded()
             self._type_filter_widget.selectionChanged.connect(self._on_type_selection_changed)
+            self._type_filter_widget.loadFinished.connect(self._on_type_loaded)
             type_inner_layout.addWidget(self._type_filter_widget)
 
             type_layout.addWidget(type_container, 2)
@@ -343,7 +357,6 @@ class SettingsModuleCard(SettingsBaseCard):
         # Rakenda eelistused filtritesse
         if self.supports_statuses and self._status_filter_widget:
             try:
-                self._status_filter_widget.ensure_loaded()
                 self._set_filter_ids(self._status_filter_widget, list(self._orig_status_preferences))
             except Exception as e:
                 print(f"Failed to load status filter widget: {e}")
@@ -351,7 +364,6 @@ class SettingsModuleCard(SettingsBaseCard):
 
         if self.supports_types and self._type_filter_widget:
             try:
-                self._type_filter_widget.ensure_loaded()
                 self._set_filter_ids(self._type_filter_widget, list(self._orig_type_preferences))
             except Exception as e:
                 print(f"Failed to load type filter widget: {e}")
@@ -359,7 +371,6 @@ class SettingsModuleCard(SettingsBaseCard):
 
         if self.supports_tags and self._tags_filter_widget:
             try:
-                self._tags_filter_widget.ensure_loaded()
                 self._set_filter_ids(self._tags_filter_widget, list(self._orig_tag_preferences))
             except Exception as e:
                 print(f"Failed to load tags filter widget: {e}")
@@ -371,12 +382,88 @@ class SettingsModuleCard(SettingsBaseCard):
             self._restore_layer_selection(self._archive_picker, self._orig_archive_name)
 
         self._update_stored_values_display()
+        self._kickoff_filter_loads()
 
     def on_settings_deactivate(self):
         if self._layer_selector:
             self._layer_selector.on_settings_deactivate()
         if self.supports_archive and self._archive_picker:
             self._archive_picker.on_settings_deactivate()
+        self._cancel_filter_workers()
+
+    # ------------------------------------------------------------------
+    # Filter worker orchestration
+    # ------------------------------------------------------------------
+    def _kickoff_filter_loads(self):
+        self._maybe_start_status_load()
+        self._maybe_start_type_load()
+        self._maybe_start_tags_load()
+
+    def _trigger_filter_load(self, kind: str, widget):
+        if widget is None:
+            return
+        if self._filter_loader:
+            self._filter_loader(self.module_key, kind, widget)
+        else:
+            widget.reload()
+
+    def _maybe_start_status_load(self):
+        widget = self._status_filter_widget
+        if not widget or self._status_loaded:
+            return
+        if widget.is_loading() or "status" in self._pending_reload:
+            return
+        self._pending_reload.add("status")
+        self._trigger_filter_load("status", widget)
+
+    def _maybe_start_type_load(self):
+        if not self.supports_types:
+            return
+        widget = self._type_filter_widget
+        if not widget or self._type_loaded:
+            return
+        if widget.is_loading() or "type" in self._pending_reload:
+            return
+        self._pending_reload.add("type")
+        self._trigger_filter_load("type", widget)
+
+    def _maybe_start_tags_load(self):
+        if not self.supports_tags:
+            return
+        widget = self._tags_filter_widget
+        if not widget or self._tags_loaded:
+            return
+        if widget.is_loading() or "tags" in self._pending_reload:
+            return
+        self._pending_reload.add("tags")
+        self._trigger_filter_load("tags", widget)
+
+    def _on_status_loaded(self, ok: bool):
+        self._status_loaded = bool(ok)
+        self._pending_reload.discard("status")
+        if ok:
+            try:
+                self._set_filter_ids(self._status_filter_widget, list(self._orig_status_preferences))
+            except Exception:
+                pass
+
+    def _on_type_loaded(self, ok: bool):
+        self._type_loaded = bool(ok)
+        self._pending_reload.discard("type")
+        if ok:
+            try:
+                self._set_filter_ids(self._type_filter_widget, list(self._orig_type_preferences))
+            except Exception:
+                pass
+
+    def _on_tags_loaded(self, ok: bool):
+        self._tags_loaded = bool(ok)
+        self._pending_reload.discard("tags")
+        if ok:
+            try:
+                self._set_filter_ids(self._tags_filter_widget, list(self._orig_tag_preferences))
+            except Exception:
+                pass
 
     # --- Persistence helpers -------------------------------------------------
     def _read_saved_layer_value(self, kind: str) -> str:
@@ -534,90 +621,106 @@ class SettingsModuleCard(SettingsBaseCard):
         except Exception:
             pass
 
-    # --- Filtri handlerid ---
+    # --- Filter handlers & Reset ---
+    def _cancel_filter_workers(self):
+        for widget in (
+            self._status_filter_widget,
+            self._type_filter_widget,
+            self._tags_filter_widget,
+        ):
+            if widget is None:
+                continue
+            if self._filter_cancel:
+                try:
+                    self._filter_cancel(widget)
+                except Exception:
+                    pass
+            try:
+                widget.cancel_pending_load(invalidate_request=True)
+            except Exception:
+                pass
+        self._pending_reload.clear()
+
     def _on_type_selection_changed(self, texts=None, ids=None):
-        """TypeFilterWidget forwarder -> uuenda pendingut."""
         if not self.supports_types or not self._type_filter_widget or not self._type_filter_widget.isEnabled():
             return
         try:
-            selected_ids = ids
-            ids = selected_ids if selected_ids is not None else self._type_filter_widget.selected_ids()
-            self._pend_type_preferences = set(ids) if ids else set()
+            selected_ids = ids if ids is not None else self._type_filter_widget.selected_ids()
+            self._pend_type_preferences = set(selected_ids or [])
             self.pendingChanged.emit(self.has_pending_changes())
-        except Exception as e:
-            print(f"Error handling type selection change: {e}")
+        except Exception as exc:
+            print(f"Error handling type selection change: {exc}")
 
     def _on_status_selection_changed(self, texts=None, ids=None):
-        """StatusFilterWidget forwarder -> uuenda pendingut + anna logic'ule teada."""
         if not self._status_filter_widget or not self._status_filter_widget.isEnabled():
             return
         try:
-            selected_ids = ids
-            ids = selected_ids if selected_ids is not None else self._status_filter_widget.selected_ids()
-            self._pend_status_preferences = {str(v) for v in ids} if ids else set()
+            selected_ids = ids if ids is not None else self._status_filter_widget.selected_ids()
+            self._pend_status_preferences = {str(v) for v in (selected_ids or [])}
             self.pendingChanged.emit(self.has_pending_changes())
-        except Exception as e:
-            print(f"Error handling status selection change: {e}")
+        except Exception as exc:
+            print(f"Error handling status selection change: {exc}")
 
     def _on_tags_selection_changed(self, texts=None, ids=None):
         if not self.supports_tags or not self._tags_filter_widget or not self._tags_filter_widget.isEnabled():
             return
         try:
-            selected_ids = ids
-            ids = selected_ids if selected_ids is not None else self._tags_filter_widget.selected_ids()
-            self._pend_tag_preferences = {str(v) for v in ids} if ids else set()
+            selected_ids = ids if ids is not None else self._tags_filter_widget.selected_ids()
+            self._pend_tag_preferences = {str(v) for v in (selected_ids or [])}
             self.pendingChanged.emit(self.has_pending_changes())
-        except Exception as e:
-            print(f"Error handling tag selection change: {e}")
+        except Exception as exc:
+            print(f"Error handling tag selection change: {exc}")
 
     def _on_reset_settings(self):
-        """Reset all settings for this module to defaults."""
+        """Reset all stored values for this module card."""
         try:
-            # Layers
-            self._layer_selector.clearSelection()
+            # Reset layer selections
+            if self._layer_selector:
+                self._layer_selector.clearSelection()
             if self.supports_archive and self._archive_picker:
                 self._archive_picker.clearSelection()
             self._pend_element_name = ""
             self._pend_archive_name = ""
 
-            # Status
-            if self._status_filter_widget and self._status_filter_widget.isEnabled():
-                self._set_filter_ids(self._status_filter_widget, [])
+            # Reset filters
+            if self._status_filter_widget:
+                try:
+                    self._status_filter_widget.set_selected_ids([], emit=False)
+                except Exception:
+                    pass
+            if self.supports_types and self._type_filter_widget:
+                try:
+                    self._type_filter_widget.set_selected_ids([], emit=False)
+                except Exception:
+                    pass
+            if self.supports_tags and self._tags_filter_widget:
+                try:
+                    self._tags_filter_widget.set_selected_ids([], emit=False)
+                except Exception:
+                    pass
+
             self._orig_status_preferences = set()
-            self._pend_status_preferences = set()
-
-            # Tags
-            if self.supports_tags and self._tags_filter_widget and self._tags_filter_widget.isEnabled():
-                self._set_filter_ids(self._tags_filter_widget, [])
-            self._orig_tag_preferences = set()
-            self._pend_tag_preferences = set()
-
-            # Types
-            if self.supports_types and self._type_filter_widget and self._type_filter_widget.isEnabled():
-                self._set_filter_ids(self._type_filter_widget, [])
             self._orig_type_preferences = set()
+            self._orig_tag_preferences = set()
+            self._pend_status_preferences = set()
             self._pend_type_preferences = set()
+            self._pend_tag_preferences = set()
 
             # Clear stored settings
             self._write_saved_layer_value("element", "")
-            self._write_saved_layer_value("archive", "")
-
-            # Clear prefs in settings
-            try:
-                self._settings.module_preferred_statuses(self.module_key, clear=True)
-                if self.supports_tags:
-                    self._settings.module_preferred_tags(self.module_key, clear=True)
-                if self.supports_types:
-                    self._settings.module_preferred_types(self.module_key, clear=True)
-            except Exception:
-                pass
+            if self.supports_archive:
+                self._write_saved_layer_value("archive", "")
+            self._settings.module_preferred_statuses(self.module_key, clear=True)
+            if self.supports_tags:
+                self._settings.module_preferred_tags(self.module_key, clear=True)
+            if self.supports_types:
+                self._settings.module_preferred_types(self.module_key, clear=True)
 
             self._sync_selected_names()
-            self._validate_layer_selections()
             self.set_status_text(f"✅ {self.lang_manager.translate('Settings reset to defaults')}", True)
             self.pendingChanged.emit(self.has_pending_changes())
-        except Exception as e:
-            self.set_status_text(f"❌ {self.lang_manager.translate('Reset failed')}: {str(e)}", True)
+        except Exception as exc:
+            self.set_status_text(f"❌ {self.lang_manager.translate('Reset failed')}: {exc}", True)
 
     # --- Eelistused (settings) ---
     def _load_status_preferences_from_settings(self) -> set:

@@ -16,25 +16,31 @@ class Module(Enum):
     EASEMENT = "easement"
     ORDINANCE = "ordinance"
     SUBMISSION = "submission"    
-    TAGS = "tags"
-    STATUSES = "statuses"
-
-    # user related
-    USER = "user"
 
     # task related modules
     ASBUILT = "task"
     WORKS = "works"
     TASK = "task"
 
+    TAGS = "tags"
+    STATUSES = "statuses"
+
+    # user related
+    USER = "user"
+
+
     # Properties related
     PROPERTY = "property"
+
+
+
 
     SETTINGS = "settings"
 
     HOME = "home"
 
     SIGNALTEST = "signaltest"
+
 
 
     def singular(self, upper: bool = False) -> str:

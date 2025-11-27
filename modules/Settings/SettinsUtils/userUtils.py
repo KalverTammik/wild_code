@@ -16,6 +16,17 @@ class userUtils:
     @staticmethod
     def load_user(lbl_name: QLabel, lbl_email: QLabel, lbl_roles: QLabel, lang_manager) -> Dict:
 
+        user_data = userUtils.fetch_user_payload(lang_manager)
+        userUtils.extract_and_set_user_labels(lbl_name, lbl_email, user_data)
+
+        roles = userUtils.get_roles_list(user_data.get("roles"))
+        userUtils.set_roles(lbl_roles, roles)
+        abilities = user_data.get("abilities", [])
+        return abilities
+
+    @staticmethod
+    def fetch_user_payload(lang_manager) -> Dict:
+
         name = Module.USER.value
         query_file = "me.graphql"
 
@@ -23,13 +34,7 @@ class userUtils:
         api = APIClient(SessionManager(), ConfigPaths.CONFIG)
         query = ql.load_query_by_module(name, query_file)
         data = api.send_query(query)
-        user_data = data.get("me", {}) or {}
-        userUtils.extract_and_set_user_labels(lbl_name, lbl_email, user_data)
-
-        roles = userUtils.get_roles_list(user_data.get("roles"))
-        userUtils.set_roles(lbl_roles, roles)
-        abilities = user_data.get("abilities", [])
-        return abilities
+        return data.get("me", {}) or {}
 
     @staticmethod
     def abilities_to_subjects(abilities) -> Set[str]:

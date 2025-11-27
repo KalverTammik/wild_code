@@ -1,5 +1,8 @@
+from collections import deque
+from typing import Any, Callable, Deque, Optional, Tuple
+
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QLabel, QPushButton
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QTimer
 from qgis.core import QgsProject, QgsLayerTreeGroup, QgsLayerTreeLayer
 
 from .SettinsUtils.userUtils import userUtils
@@ -13,6 +16,7 @@ from ...utils.url_manager import Module
 from ...module_manager import ModuleManager, MODULES_LIST_BY_NAME
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
+from ...python.workers import FunctionWorker, start_worker
 
 
 class SettingsModule(QWidget):
@@ -49,6 +53,11 @@ class SettingsModule(QWidget):
         # Modules available for module-specific cards
         self._module_cards = {}
         self._module_metadata = {}  # Store module metadata including supports_types
+        self._user_fetch_thread = None
+        self._user_fetch_worker = None
+        self._user_fetch_request_id = 0
+        self._filter_load_queue: Deque[Tuple[str, str, Any]] = deque()
+        self._active_filter_entry: Optional[Tuple[str, str, Any, Optional[Callable[[bool], None]]]] = None
         self.setup_ui()
         # Centralized theming
         ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
@@ -147,6 +156,8 @@ class SettingsModule(QWidget):
             supports_statuses=supports.get("statuses", False),
             supports_tags=supports.get("tags", False),
             logic=self.logic,
+            filter_loader=self._request_filter_load,
+            filter_cancel=self._cancel_scheduled_filter_loads,
         )
  
         card.pendingChanged.connect(self._update_dirty_state)
@@ -160,6 +171,79 @@ class SettingsModule(QWidget):
                 card.on_settings_activate(snapshot=snapshot)
             except Exception as exc:
                 print(f"Failed to activate settings card for {getattr(card, 'module_key', 'unknown')}: {exc}")
+
+    # ------------------------------------------------------------------
+    # Filter load orchestration (limits concurrent network workers)
+    # ------------------------------------------------------------------
+    def _request_filter_load(self, module_key: str, kind: str, widget: Any) -> None:
+        if widget is None:
+            return
+        self._filter_load_queue.append((module_key, kind, widget))
+        if not self._active_filter_entry:
+            self._start_next_filter_load()
+
+    def _start_next_filter_load(self) -> None:
+        if self._active_filter_entry:
+            return
+        while self._filter_load_queue:
+            module_key, kind, widget = self._filter_load_queue.popleft()
+            if widget is None:
+                continue
+            if hasattr(widget, "is_loaded") and widget.is_loaded():
+                continue
+            handler = self._make_filter_load_handler(widget)
+            try:
+                widget.loadFinished.connect(handler)
+            except Exception:
+                handler = None
+            self._active_filter_entry = (module_key, kind, widget, handler)  # type: ignore[arg-type]
+            try:
+                widget.reload()
+            except Exception:
+                self._handle_filter_load_complete(widget)
+            return
+        self._active_filter_entry = None
+
+    def _make_filter_load_handler(self, widget: Any) -> Callable[[bool], None]:
+        def _handler(_success: bool) -> None:
+            self._handle_filter_load_complete(widget)
+
+        return _handler
+
+    def _handle_filter_load_complete(self, widget: Any) -> None:
+        entry = self._active_filter_entry
+        if not entry or entry[2] is not widget:
+            return
+        handler = entry[3]
+        if handler:
+            try:
+                widget.loadFinished.disconnect(handler)
+            except Exception:
+                pass
+        self._active_filter_entry = None
+        QTimer.singleShot(15, self._start_next_filter_load)
+
+    def _cancel_scheduled_filter_loads(self, widget: Any) -> None:
+        if widget is None:
+            return
+        remaining = [entry for entry in self._filter_load_queue if entry[2] is not widget]
+        self._filter_load_queue = deque(remaining)
+        entry = self._active_filter_entry
+        if entry and entry[2] is widget:
+            self._handle_filter_load_complete(widget)
+
+    def _clear_filter_load_queue(self) -> None:
+        self._filter_load_queue = deque()
+        entry = self._active_filter_entry
+        if entry:
+            widget = entry[2]
+            handler = entry[3]
+            if handler:
+                try:
+                    widget.loadFinished.disconnect(handler)
+                except Exception:
+                    pass
+        self._active_filter_entry = None
 
     def _build_layer_snapshot(self):
         try:
@@ -197,36 +281,112 @@ class SettingsModule(QWidget):
                     })
         return snapshot
 
-    def activate(self):        
-        # Load user data once when activated
-        abilities = userUtils.load_user(self._user_card.lbl_name,
-                                    self._user_card.lbl_email,
-                                    self._user_card.lbl_roles,
-                                    self.lang_manager)
+    def activate(self):
+        """Activates the Settings UI with fresh user data."""
+        self._refresh_user_info()
+
+    def _refresh_user_info(self):
+        if self._user_fetch_thread is not None:
+            self._cancel_user_fetch_worker()
+
+        self._user_fetch_request_id += 1
+        self._set_user_labels_loading()
+
+        worker = FunctionWorker(userUtils.fetch_user_payload, self.lang_manager)
+        worker.request_id = self._user_fetch_request_id
+        worker.finished.connect(self._handle_user_worker_success)
+        worker.error.connect(self._handle_user_worker_error)
+        self._user_fetch_worker = worker
+        self._user_fetch_thread = start_worker(worker, on_thread_finished=self._clear_user_worker_refs)
+
+    def _handle_user_worker_success(self, payload):
+        if not self._is_active_user_worker():
+            return
+        self._apply_user_payload(payload)
+
+    def _handle_user_worker_error(self, message):
+        if not self._is_active_user_worker():
+            return
+        print(f"[SettingsUI] Failed to load user info: {message}")
+        self._apply_user_payload({})
+
+    def _is_active_user_worker(self) -> bool:
+        worker = self._user_fetch_worker
+        if worker is None:
+            return False
+        request_id = getattr(worker, "request_id", None)
+        return request_id == self._user_fetch_request_id
+
+    def _apply_user_payload(self, payload):
+        user_data = payload or {}
+
+        userUtils.extract_and_set_user_labels(
+            self._user_card.lbl_name,
+            self._user_card.lbl_email,
+            user_data,
+        )
+        roles = userUtils.get_roles_list(user_data.get("roles"))
+        userUtils.set_roles(self._user_card.lbl_roles, roles)
+
+        abilities = user_data.get("abilities", [])
         subjects = userUtils.abilities_to_subjects(abilities)
-        #print(f"[SettingsUI] extracted subjects: {subjects}")
         if Module.PROPERTY.value.capitalize() in subjects:
             print("✅ User has Property access!")
             self._has_property_rights = True
         else:
             print("❌ User does NOT have Property access")
             self._has_property_rights = False
-                        
+
         access_map = self.logic.get_module_access_from_abilities(subjects)
         update_permissions = self.logic.get_module_update_permissions(subjects)
-        #print(f"[SettingsUI] Setting access_map: {access_map}")
         self._user_card.set_access_map(access_map)
         self._user_card.set_update_permissions(update_permissions)
+
         self.logic.load_original_settings()
-        # Reflect original preferred; None -> no checkbox selected
         self._user_card.set_preferred(self.logic.get_original_preferred())
         self._set_dirty(False)
+
         if not self._initialized:
             self._initialized = True
             self._build_module_cards()
         self._activate_module_cards()
+
+    def _set_user_labels_loading(self):
+        if not hasattr(self, "_user_card"):
+            return
+        loading_text = self.lang_manager.translate(TranslationKeys.LOADING) if self.lang_manager else "Loading"
+        placeholder = f"{loading_text}…"
+        self._user_card.lbl_name.setText(placeholder)
+        self._user_card.lbl_email.setText("—")
+        self._user_card.lbl_roles.setText("—")
+
+    def _clear_user_worker_refs(self):
+        self._user_fetch_thread = None
+        self._user_fetch_worker = None
+
+    def _cancel_user_fetch_worker(self, invalidate_request: bool = False):
+        if invalidate_request:
+            self._user_fetch_request_id += 1
+        worker = self._user_fetch_worker
+        thread = self._user_fetch_thread
+        if worker is not None:
+            try:
+                worker.finished.disconnect(self._handle_user_worker_success)
+            except Exception:
+                pass
+            try:
+                worker.error.disconnect(self._handle_user_worker_error)
+            except Exception:
+                pass
+        if thread is not None and thread.isRunning():
+            thread.quit()
+            thread.wait(200)
+        self._user_fetch_worker = None
+        self._user_fetch_thread = None
      
     def deactivate(self):
+        self._cancel_user_fetch_worker(invalidate_request=True)
+        self._clear_filter_load_queue()
         # Deactivate module cards to free memory
         for card in self._module_cards.values():
             try:

@@ -20,6 +20,12 @@ from ...constants.settings_keys import SettingsService
 from ...utils.MapTools.MapHelpers import MapHelpers
 from ...widgets.theme_manager import ThemeManager
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
+from ..Property.query_cordinator import (
+    PropertiesConnectedElementsQueries,
+    PropertyLookupService,
+    PropertyConnectionFormatter,
+)
+from ...python.workers import FunctionWorker, start_worker
 
 class SignalTestModule(QWidget):
     """Interactive playground for testing property lookups via GraphQL."""
@@ -39,6 +45,9 @@ class SignalTestModule(QWidget):
         self._settings = SettingsService()
         self._module_options = self._build_module_options()
         self._target_module = self._module_options[0] if self._module_options else Module.CONTRACT
+        self._fetch_request_id = 0
+        self._fetch_thread = None
+        self._fetch_worker = None
 
         ThemeManager.apply_module_style(self, qss_files or [QssPaths.MAIN, QssPaths.COMBOBOX])
 
@@ -146,26 +155,97 @@ class SignalTestModule(QWidget):
         if not item_id:
             self._render_result({"error": "Contract ID is required"})
             return
-
         self.fetch_button.setEnabled(False)
-        try:
-            print(f"[SignalTestModule] Fetching connected properties for module {self._target_module.value}, item ID {item_id}")
-            numbers = APIModuleActions.get_module_item_connected_properties(
-                self._target_module.value,
-                item_id,
-            )
-            result = {
-                "module": self._target_module.value,
-                "itemId": item_id,
-                "cadastralCount": len(numbers),
-                "cadastralNumbers": numbers,
-            }
-            self._render_result(result)
-            PropertiesSelectors.show_connected_properties_on_map(numbers)
-        except Exception as exc:
-            self._render_result({"error": str(exc)})
-        finally:
+        self.output_area.setPlainText("Fetching connected properties…")
+
+        self._fetch_request_id += 1
+        request_id = self._fetch_request_id
+
+        worker = FunctionWorker(self._build_signaltest_payload, self._target_module.value, item_id)
+
+        def handle_success(payload, rid=request_id):
+            if rid != self._fetch_request_id:
+                return
             self.fetch_button.setEnabled(True)
+            if isinstance(payload, dict):
+                self._render_result(payload)
+                numbers = payload.get("cadastralNumbers") or []
+                if numbers:
+                    PropertiesSelectors.show_connected_properties_on_map(numbers)
+            else:
+                self._render_result({"error": "Unexpected payload"})
+
+        def handle_error(message, rid=request_id):
+            if rid != self._fetch_request_id:
+                return
+            self.fetch_button.setEnabled(True)
+            self._render_result({"error": message})
+
+        worker.finished.connect(handle_success)
+        worker.error.connect(handle_error)
+
+        thread = start_worker(worker)
+        self._fetch_thread = thread
+        self._fetch_worker = worker
+
+        def cleanup():
+            if self._fetch_worker is worker:
+                self._fetch_worker = None
+            if self._fetch_thread is thread:
+                self._fetch_thread = None
+
+        thread.finished.connect(cleanup)
+
+    def _build_signaltest_payload(self, module_value: str, item_id: str):
+        numbers = APIModuleActions.get_module_item_connected_properties(module_value, item_id)
+        result = {
+            "module": module_value,
+            "itemId": item_id,
+            "cadastralCount": len(numbers),
+            "cadastralNumbers": numbers,
+        }
+
+        if not numbers:
+            return result
+
+        lookup = PropertyLookupService()
+        connections = PropertiesConnectedElementsQueries()
+        formatter = PropertyConnectionFormatter()
+        preview = []
+        for cadastral_number in numbers:
+            try:
+                property_id = lookup.property_id_by_cadastral(cadastral_number)
+            except Exception as lookup_error:
+                preview.append({
+                    "cadastralNumber": cadastral_number,
+                    "error": f"Lookup failed: {lookup_error}",
+                })
+                continue
+
+            if not property_id:
+                preview.append({
+                    "cadastralNumber": cadastral_number,
+                    "error": "Property not found",
+                })
+                continue
+
+            try:
+                module_connections = connections.fetch_all_module_data(property_id)
+            except Exception as fetch_error:
+                preview.append({
+                    "cadastralNumber": cadastral_number,
+                    "propertyId": property_id,
+                    "error": f"Module fetch failed: {fetch_error}",
+                })
+                continue
+
+            entry = formatter.build_entry(cadastral_number, property_id, module_connections)
+            preview.append(entry)
+
+        if preview:
+            result["propertyConnections"] = preview
+
+        return result
 
     def _render_result(self, data) -> None:
         try:

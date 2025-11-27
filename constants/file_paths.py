@@ -1,6 +1,6 @@
 import json
 import os
-from .base_paths import PLUGIN_ROOT, CONFIG_DIR, RESOURCE, STYLES, TYPE_QUERIES, PYTHON
+from .base_paths import PLUGIN_ROOT, CONFIG_DIR, RESOURCE, STYLES, TYPE_QUERIES, PYTHON, CONNECTED_DATA
 from .base_paths import QUERIES, GRAPHQL, USER_QUERIES, PROJECT_QUERIES, CONTRACT_QUERIES, EASEMENT_QUERIES, TAGS_QUERIES, STATUS_QUERIES, TASK_QUERIES, COORDINATION_QUERIES, SUBMISSION_QUERIES, SPECIFICATION_QUERIES, PROPERTIES_QUERIES
 
 # GraphQL query folder paths for each module (standards-compliant)
@@ -21,6 +21,19 @@ class QueryPaths:
     PROPERTY = os.path.join(PLUGIN_ROOT, PYTHON, QUERIES, GRAPHQL, PROPERTIES_QUERIES)
     TYPE = os.path.join(PLUGIN_ROOT, PYTHON, QUERIES, GRAPHQL, TYPE_QUERIES)
 # Configuration file paths
+    PROPERTIES_CONNECTIONFOLDER = os.path.join(PLUGIN_ROOT, PYTHON, QUERIES, GRAPHQL, CONNECTED_DATA)
+
+    def load_query_properties_connected_elements(self, query_file_name):
+        path = QueryPaths.PROPERTIES_CONNECTIONFOLDER
+        graphql_path = os.path.join(path, query_file_name)
+        #print(f"graphql path: {graphql_path}")
+        with open(graphql_path, 'r') as file:
+            return file.read()
+
+
+
+
+
 class ConfigPaths:
     CONFIG = os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json")
     METADATA = os.path.join(PLUGIN_ROOT, "metadata.txt")

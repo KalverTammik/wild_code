@@ -339,3 +339,33 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             }
 
         return {"column": "ID", "operator": "IN", "value": ids}
+
+    # ------------------------------------------------------------------
+    # Stored filter helpers
+    # ------------------------------------------------------------------
+    def _get_saved_status_ids(self) -> list[str]:
+        return self._get_saved_filter_ids("status")
+
+    def _get_saved_type_ids(self) -> list[str]:
+        return self._get_saved_filter_ids("type")
+
+    def _get_saved_tag_ids(self) -> list[str]:
+        return self._get_saved_filter_ids("tag")
+
+    def _get_saved_filter_ids(self, kind: str) -> list[str]:
+        service = getattr(self, "_settings_service", None)
+        module_key = getattr(self, "module_key", None)
+        if not service or not module_key:
+            return []
+
+        raw_value = ""
+        if kind == "status":
+            raw_value = service.module_preferred_statuses(module_key) or ""
+        elif kind == "type":
+            raw_value = service.module_preferred_types(module_key) or ""
+        elif kind == "tag":
+            raw_value = service.module_preferred_tags(module_key) or ""
+        else:
+            return []
+
+        return [token.strip() for token in str(raw_value).split(",") if token.strip()]

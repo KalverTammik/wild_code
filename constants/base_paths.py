@@ -24,6 +24,7 @@ SUBMISSION_QUERIES = 'submissions'
 SPECIFICATION_QUERIES = 'specifications'
 PROPERTIES_QUERIES = 'properties'
 TYPE_QUERIES = 'types'
+CONNECTED_DATA = "connectedData"
 
 ICON_FOLDER = "icons"
 

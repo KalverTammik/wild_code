@@ -184,10 +184,22 @@ class ContractsModule(ModuleBaseUI):
 
         if status_ids is None and self.status_filter:
             status_ids = self.status_filter.selected_ids()
+            if not status_ids:
+                saved = self._get_saved_status_ids()
+                if saved:
+                    status_ids = saved
         if type_ids is None and self.type_filter:
             type_ids = self.type_filter.selected_ids()
+            if not type_ids:
+                saved_types = self._get_saved_type_ids()
+                if saved_types:
+                    type_ids = saved_types
         if tags_ids is None and self.tags_filter:
             tags_ids = self.tags_filter.selected_ids()
+            if not tags_ids:
+                saved_tags = self._get_saved_tag_ids()
+                if saved_tags:
+                    tags_ids = saved_tags
 
         # Build base AND list
         and_list = []

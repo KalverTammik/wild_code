@@ -1,18 +1,22 @@
 /* ModulesMain.qss - Light Theme */
+
+QPushButton#ChooseFromMapButton {
+    background: #e6f7f7;
+    border-radius: 6px;
+    border: 1px solid #b2e0e0;
+    padding: 4px 8px;
+    color: #09908f;
+    font-size: 12px;
+}
+
+
 QFrame #PropertyDetailsFrame {
     background: #ffffff;
     border: none !important;
     border-width: 0 !important;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 0;
     margin: 4px;
-    background-image: qlineargradient(
-        x1:0, y1:0, x2:0, y2:1,
-        stop:0 rgba(0,0,0,0.04),
-        stop:0.05 rgba(0,0,0,0.02),
-        stop:0.92 rgba(0,0,0,0.12),
-        stop:1 rgba(0,0,0,0.18)
-    );
 }
 
 QFrame #PropertyDetailsFrame:hover {
@@ -20,8 +24,6 @@ QFrame #PropertyDetailsFrame:hover {
     background-color: #fafbfc;
 }
 
-
-QFrame#PropertyDetailsFrame[compact="true"] { border-radius: 10px; }
 
 /* Informative field labels (bold) */
 QLabel#InfoLabel {

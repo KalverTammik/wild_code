@@ -55,35 +55,43 @@ class ModuleManager:
         #print(f"[ModuleManager.registerModule] Registered module names in MODULES_LIST_BY_NAME: {MODULES_LIST_BY_NAME}")
 
     def activateModule(self, moduleName):
-        """Activate a module by its name, always instantiating a new instance."""
-        if moduleName.lower() not in self.modules:
+        """Activate a module by its name, reusing instances when available."""
+        key = moduleName.lower()
+        if key not in self.modules:
             raise ValueError(f"Module '{moduleName}' not found.")
 
-        module_data = self.modules[moduleName.lower()]
-        
-        # Deactivate current module if different
-        if self.activeModule and self.activeModule != module_data:
-            if self.activeModule.get("instance"):
+        module_data = self.modules[key]
+        target_instance = module_data.get("instance")
+
+        # Nothing to do if already active
+        if self.activeModule is module_data and target_instance:
+            try:
+                target_instance.activate()
+            except Exception:
+                pass
+            return
+
+        # Deactivate whatever is currently active
+        if self.activeModule and self.activeModule is not module_data:
+            current_instance = self.activeModule.get("instance")
+            if current_instance:
                 try:
-                    self.activeModule["instance"].deactivate()
-                except Exception as e:
+                    current_instance.deactivate()
+                except Exception:
                     pass
-            # Clear the instance to free memory
-            self.activeModule["instance"] = None
-        
-        # Always create a new instance
-        cls = module_data["module_class"]
-        params = module_data["init_params"]
+
+        # Lazily instantiate the target module (only once)
+        if target_instance is None:
+            cls = module_data["module_class"]
+            params = module_data["init_params"]
+            target_instance = cls(**params)
+            module_data["instance"] = target_instance
+
+        # Activate and mark as current
+        self.activeModule = module_data
         try:
-            module_data["instance"] = cls(**params)  # Create new instance
-        except Exception as e:
-            raise
-        
-        # Activate the new module
-        try:
-            self.activeModule = module_data
-            module_data["instance"].activate()
-        except Exception as e:
+            target_instance.activate()
+        except Exception as exc:
             raise
 
     def getActiveModuleInstance(self, moduleName):

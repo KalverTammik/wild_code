@@ -248,7 +248,6 @@ class PluginDialog(QDialog):
                 instance.property_selection_completed.connect(self.window_manager._restore_window)
             elif moduleName == Module.SETTINGS.name:
                 self.settingsModule = instance
-                instance.activate()
 
             widget = instance.get_widget()
             if self.moduleStack.indexOf(widget) == -1:

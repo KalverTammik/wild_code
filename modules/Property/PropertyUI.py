@@ -1,13 +1,14 @@
 from typing import Any, List, Optional
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QTreeWidget, QTreeWidgetItem, QSplitter,
+    QFrame, QSplitter,
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
 from .PropertyUITools import PropertyUITools
-from ...widgets.theme_manager import ThemeManager, Theme, is_dark, styleExtras
+from .property_tree_widget import PropertyTreeWidget
+from ...widgets.theme_manager import ThemeManager,styleExtras
 from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
 from ...utils.url_manager import Module
@@ -65,7 +66,8 @@ class PropertyModule(QWidget):
         self.create_header_section(splitter)
 
         # Tree view section (bottom part)
-        self.create_tree_section(splitter)
+        self.tree_section = PropertyTreeWidget()
+        splitter.addWidget(self.tree_section)
 
         # Set initial splitter proportions (header: 30%, tree: 70%)
         splitter.setSizes([200, 500])
@@ -260,111 +262,9 @@ class PropertyModule(QWidget):
 
         splitter.addWidget(header_frame)
 
-    def create_tree_section(self, splitter):
-        """Create the tree view area for property-related data."""
-        tree_frame = QFrame()
-        tree_frame.setObjectName("PropertyTree")
-        tree_frame.setFrameStyle(QFrame.StyledPanel)
-        tree_layout = QVBoxLayout(tree_frame)
-        tree_layout.setContentsMargins(self.horizontal_label_spacing, self.horizontal_label_spacing, self.horizontal_label_spacing, self.horizontal_label_spacing)
-        tree_layout.setSpacing(self.vertical_label_spacing)
-
-        # Tree view title
-        tree_title = QLabel("Kinnistuga seotud andmed")
-        tree_title.setObjectName("TreeTitle")
-        title_font = QFont()
-        title_font.setBold(True)
-        title_font.setPointSize(12)
-        tree_title.setFont(title_font)
-        tree_layout.addWidget(tree_title)
-
-        # Create tree widget
-        self.tree_widget = QTreeWidget()
-        self.tree_widget.setObjectName("PropertyTreeWidget")
-        self.tree_widget.setHeaderLabels(["Andmetüüp", "Väärtus", "Kuupäev", "Staatus"])
-
-        # Set column widths
-        self.tree_widget.setColumnWidth(0, 200)
-        self.tree_widget.setColumnWidth(1, 150)
-        self.tree_widget.setColumnWidth(2, 120)
-        self.tree_widget.setColumnWidth(3, 100)
-
-        # Enable alternating row colors
-        self.tree_widget.setAlternatingRowColors(True)
-
-        # Make it expandable
-        self.tree_widget.setRootIsDecorated(True)
-
-        tree_layout.addWidget(self.tree_widget)
-
-        # Initialize with sample data
-        self.populate_tree_data()
-
-        # Tree control buttons
-        controls_layout = QHBoxLayout()
-
-        self.expand_btn = QPushButton("Laienda kõik")
-        self.expand_btn.clicked.connect(self.tree_widget.expandAll)
-        controls_layout.addWidget(self.expand_btn)
-
-        self.collapse_btn = QPushButton("Ahenda kõik")
-        self.collapse_btn.clicked.connect(self.tree_widget.collapseAll)
-        controls_layout.addWidget(self.collapse_btn)
-
-        self.refresh_tree_btn = QPushButton("Värskenda puu")
-        self.refresh_tree_btn.clicked.connect(self.refresh_tree_data)
-        controls_layout.addWidget(self.refresh_tree_btn)
-
-        controls_layout.addStretch()
-
-        tree_layout.addLayout(controls_layout)
-
-        splitter.addWidget(tree_frame)
-
-    def populate_tree_data(self):
-        """Populate the tree with sample property-related data."""
-        # Clear existing data
-        self.tree_widget.clear()
-
-        # Create main categories
-        documents = QTreeWidgetItem(self.tree_widget, ["Dokumendid", "", "", ""])
-        transactions = QTreeWidgetItem(self.tree_widget, ["Tehingud", "", "", ""])
-        assessments = QTreeWidgetItem(self.tree_widget, ["Hindamised", "", "", ""])
-        permits = QTreeWidgetItem(self.tree_widget, ["Load", "", "", ""])
-        boundaries = QTreeWidgetItem(self.tree_widget, ["Piirid", "", "", ""])
-
-        # Add document items
-        doc1 = QTreeWidgetItem(documents, ["Omandiõigus", "Jaan Tamm", "2023-01-15", "Kehtiv"])
-        doc2 = QTreeWidgetItem(documents, ["Katastri plaan", "KLM123456", "2023-02-20", "Kehtiv"])
-        doc3 = QTreeWidgetItem(documents, ["Ehitusluba", "EL789012", "2023-03-10", "Kehtiv"])
-
-        # Add transaction items
-        trans1 = QTreeWidgetItem(transactions, ["Ost", "150000€", "2022-11-05", "Lõpetatud"])
-        trans2 = QTreeWidgetItem(transactions, ["Müük", "180000€", "2023-06-15", "Lõpetatud"])
-
-        # Add assessment items
-        assess1 = QTreeWidgetItem(assessments, ["Vallasasutus", "165000€", "2023-01-01", "Kehtiv"])
-        assess2 = QTreeWidgetItem(assessments, ["Pank", "160000€", "2023-04-01", "Kehtiv"])
-
-        # Add permit items
-        permit1 = QTreeWidgetItem(permits, ["Ehitusluba", "EL2023001", "2023-03-15", "Kehtiv"])
-        permit2 = QTreeWidgetItem(permits, ["Kasutusluba", "KL2023002", "2023-08-20", "Ootel"])
-
-        # Add boundary items
-        bound1 = QTreeWidgetItem(boundaries, ["Põhi piir", "Mõõdetud", "2023-01-10", "Kehtiv"])
-        bound2 = QTreeWidgetItem(boundaries, ["Külg piir", "Mõõdetud", "2023-01-12", "Kehtiv"])
-
-        # Expand main categories
-        documents.setExpanded(True)
-        transactions.setExpanded(True)
-
-    def refresh_tree_data(self):
-        """Refresh the tree data."""
-        self.populate_tree_data()
-
     def retheme(self):
         # Apply main module styling
-        ThemeManager.apply_module_style(self, [QssPaths.MAIN])
+        ThemeManager.apply_module_style(self, [QssPaths.PROPERTIES_UI])
 
     def activate(self):
         """Called when the module becomes active."""

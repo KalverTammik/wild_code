@@ -167,8 +167,16 @@ class ProjectsModule(ModuleBaseUI):
 
         if status_ids is None and self.status_filter:
             status_ids = self.status_filter.selected_ids()
+            if not status_ids:
+                saved_status = self._get_saved_status_ids()
+                if saved_status:
+                    status_ids = saved_status
         if tags_ids is None and self.tags_filter:
             tags_ids = self.tags_filter.selected_ids()
+            if not tags_ids:
+                saved_tags = self._get_saved_tag_ids()
+                if saved_tags:
+                    tags_ids = saved_tags
 
         # Ainult status läheb WHERE'i, sildid antakse hasTags kaudu
         and_list: List[dict] = []

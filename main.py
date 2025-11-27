@@ -1,5 +1,7 @@
 import gc
 import os
+import tempfile
+import faulthandler
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -15,6 +17,13 @@ from .utils.SessionManager import SessionManager  # Import the SessionManager
 from .languages.language_manager import LanguageManager
 from .languages.translation_keys import TranslationKeys
 from .widgets.theme_manager import ThemeManager
+
+CRASH_LOG_PATH = os.path.join(tempfile.gettempdir(), "wild_code_crash.log")
+try:
+    _CRASH_LOG_HANDLE = open(CRASH_LOG_PATH, "w", encoding="utf-8")
+    faulthandler.enable(_CRASH_LOG_HANDLE, all_threads=True)
+except Exception:
+    _CRASH_LOG_HANDLE = None
 
 class WildCodePlugin:
     def __init__(self, iface):

@@ -14,15 +14,23 @@ from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.api_client import APIClient
 from ..python.responses import JsonResponseHandler
 from ..utils.filter_helpers import group_key
+from ..python.workers import FunctionWorker, start_worker
 
 
 class TypeFilterWidget(QWidget):
     """Simple group/type multi-select without shared base class."""
 
     selectionChanged = pyqtSignal(list, list)
+    loadFinished = pyqtSignal(bool)
     _PAGE_SIZE = 50
 
-    def __init__(self, module_name: str, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self,
+        module_name: str,
+        parent: Optional[QWidget] = None,
+        *,
+        auto_load: bool = True,
+    ) -> None:
         super().__init__(parent)
         self._module = module_name
         self._lang = LanguageManager()
@@ -32,6 +40,11 @@ class TypeFilterWidget(QWidget):
         self._suppress_group_emit = False
         self._suppress_type_emit = False
         self._loaded = False
+        self._worker = None
+        self._worker_thread = None
+        self._load_request_id = 0
+        self._pending_type_ids: List[str] = []
+        self._auto_load = auto_load
 
 
         self.filter_title = self._lang.translate(TranslationKeys.TYPE_FILTER)
@@ -54,22 +67,18 @@ class TypeFilterWidget(QWidget):
         self.group_combo.checkedItemsChanged.connect(self._on_group_selection_changed)  # type: ignore[attr-defined]
         self.type_combo.checkedItemsChanged.connect(self._on_type_selection_changed)  # type: ignore[attr-defined]
 
-        self.reload()
+        if self._auto_load:
+            self.reload()
 
     # ------------------------------------------------------------------
     def reload(self) -> None:
         self._loaded = False
-        try:
-            self._load_types()
-            self._loaded = True
-            self._apply_preferred_types()
-        except Exception as exc:
-            self.group_combo.clear()
-            self.type_combo.clear()
-            self.group_combo.addItem(f"Error: {str(exc)[:40]}…")
-            self.group_combo.setEnabled(False)
-            self.type_combo.setEnabled(False)
-            self._loaded = False
+        self.group_combo.clear()
+        self.type_combo.clear()
+        self.group_combo.setEnabled(False)
+        self.type_combo.setEnabled(False)
+        self._show_loading_placeholder()
+        self._start_async_load()
 
     def ensure_loaded(self) -> None:
         if not self._loaded:
@@ -83,10 +92,13 @@ class TypeFilterWidget(QWidget):
 
     def set_selected_ids(self, ids: Sequence[str], emit: bool = True) -> None:
         targets = {str(v) for v in ids or []}
+        if not self._loaded:
+            self._pending_type_ids = list(targets)
+            return
         self._apply_type_selection(targets, emit)
 
     # ------------------------------------------------------------------
-    def _load_types(self) -> None:
+    def _load_types_payload(self) -> List[Dict[str, Optional[str]]]:
         query_name = "TYPE"
         query_file = f"{self._module}_types.graphql"
         query = self._loader.load_query_by_module(query_name, query_file)
@@ -105,11 +117,7 @@ class TypeFilterWidget(QWidget):
             after = page_info.get("endCursor") if has_next else None
             if not has_next or not after:
                 break
-
-        self.type_combo.clear()
-        self.group_combo.clear()
-        self._group_map.clear()
-
+        entries: List[Dict[str, Optional[str]]] = []
         for edge in edges:
             node = (edge or {}).get("node") or {}
             type_id = node.get("id")
@@ -118,12 +126,8 @@ class TypeFilterWidget(QWidget):
             if not group_name:
                 group_name = group_key(label)
             if type_id and label:
-                self.type_combo.addItem(label, type_id)
-                if group_name:
-                    self._group_map.setdefault(group_name, []).append(type_id)
-
-        for group_name in sorted(self._group_map.keys(), key=str.lower):
-            self.group_combo.addItem(group_name, group_name)
+                entries.append({"id": type_id, "label": label, "group": group_name})
+        return entries
 
     def _on_group_selection_changed(self) -> None:
         if self._suppress_group_emit:
@@ -194,3 +198,93 @@ class TypeFilterWidget(QWidget):
         texts = self.selected_texts()
         ids = self.selected_ids()
         self.selectionChanged.emit(texts, ids)
+
+    # Async helpers --------------------------------------------------
+    def _show_loading_placeholder(self) -> None:
+        loading_text = self._lang.translate(TranslationKeys.LOADING) if self._lang else "Loading"
+        placeholder = f"{loading_text}…"
+        self.group_combo.addItem(placeholder)
+        self.type_combo.addItem(placeholder)
+
+    def _start_async_load(self) -> None:
+        self.cancel_pending_load(invalidate_request=False)
+        self._load_request_id += 1
+        request_id = self._load_request_id
+
+        worker = FunctionWorker(self._load_types_payload)
+        worker.finished.connect(
+            lambda payload, rid=request_id: self._handle_types_loaded(rid, payload)
+        )
+        worker.error.connect(
+            lambda message, rid=request_id: self._handle_types_failed(rid, message)
+        )
+        self._worker = worker
+        self._worker_thread = start_worker(worker, on_thread_finished=self._cleanup_worker)
+
+    def _handle_types_loaded(self, request_id: int, payload: List[Dict[str, Optional[str]]]) -> None:
+        if request_id != self._load_request_id:
+            return
+        self.type_combo.clear()
+        self.group_combo.clear()
+        self._group_map.clear()
+
+        for entry in payload:
+            type_id = entry.get("id")
+            label = entry.get("label")
+            group_name = entry.get("group")
+            if type_id and label:
+                self.type_combo.addItem(label, type_id)
+                if group_name:
+                    self._group_map.setdefault(group_name, []).append(type_id)
+
+        for group_name in sorted(self._group_map.keys(), key=str.lower):
+            self.group_combo.addItem(group_name, group_name)
+
+        self.group_combo.setEnabled(True)
+        self.type_combo.setEnabled(True)
+        self._loaded = True
+        self._apply_preferred_types()
+        if self._pending_type_ids:
+            self.set_selected_ids(self._pending_type_ids, emit=False)
+            self._pending_type_ids = []
+        self.loadFinished.emit(True)
+
+    def _handle_types_failed(self, request_id: int, message: str) -> None:
+        if request_id != self._load_request_id:
+            return
+        self.group_combo.clear()
+        self.type_combo.clear()
+        self.group_combo.addItem(f"Error: {message[:40]}…")
+        self.group_combo.setEnabled(False)
+        self.type_combo.setEnabled(False)
+        self._loaded = False
+        self.loadFinished.emit(False)
+
+    def _cleanup_worker(self) -> None:
+        self._worker = None
+        self._worker_thread = None
+
+    # ------------------------------------------------------------------
+    # Queue/cleanup helpers
+    # ------------------------------------------------------------------
+    def is_loaded(self) -> bool:
+        return self._loaded
+
+    def is_loading(self) -> bool:
+        return self._worker_thread is not None
+
+    def cancel_pending_load(self, *, invalidate_request: bool = True) -> None:
+        if invalidate_request:
+            self._load_request_id += 1
+        thread = self._worker_thread
+        was_running = thread is not None and thread.isRunning()
+        self._worker = None
+        self._worker_thread = None
+        if thread is not None and thread.isRunning():
+            try:
+                thread.quit()
+                thread.wait(50)
+            except Exception:
+                pass
+        if was_running:
+            self.loadFinished.emit(False)

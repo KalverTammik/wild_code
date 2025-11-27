@@ -1,0 +1,36 @@
+query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyContractsOrderByOrderByClause!]) {
+  property(id: $id) {
+    __typename
+    id
+    contracts(first: $first, after: $after, orderBy: $orderBy) {
+      pageInfo {
+        hasNextPage
+        endCursor
+        total
+      }
+      edges {
+        node {
+          __typename
+          id
+          number
+          name
+          sum {
+            amount
+            currencyCode
+          }
+          dueAt
+          status {
+            id
+            name
+            color
+            type
+          }
+          type {
+            name
+          }
+          filesPath
+        }
+      }
+    }
+  }
+}
