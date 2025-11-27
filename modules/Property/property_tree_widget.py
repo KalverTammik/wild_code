@@ -16,6 +16,12 @@ from PyQt5.QtWidgets import (
 
 from ...constants.module_icons import ModuleIconPaths
 from ...widgets.theme_manager import styleExtras
+from ...widgets.DataDisplayWidgets.module_action_buttons import (
+    OpenFolderActionButton,
+    OpenWebActionButton,
+    ShowOnMapActionButton,
+    open_item_in_browser,
+)
 
 
 class PropertyTreeWidget(QFrame):
@@ -23,11 +29,12 @@ class PropertyTreeWidget(QFrame):
 
     DEFAULT_MESSAGE = "Vali kinnistu kaardilt"
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None, lang_manager=None):
         super().__init__(parent)
         self.setObjectName("PropertyTree")
         self.setFrameStyle(QFrame.NoFrame)
         self._current_entries: List[Dict[str, Any]] = []
+        self.lang_manager = lang_manager
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 6, 6, 6)
@@ -77,7 +84,7 @@ class PropertyTreeWidget(QFrame):
             return
 
         for entry in entries:
-            card = PropertyConnectionCard(entry, self)
+            card = PropertyConnectionCard(entry, self.lang_manager, self)
             self.cards_layout.addWidget(card)
 
         self.cards_layout.addStretch(1)
@@ -103,19 +110,17 @@ class MessageCard(QFrame):
 
     def __init__(self, message: str, is_loading: bool = False, parent: Optional[QWidget] = None):
         super().__init__(parent)
-        self.setObjectName("PropertyMessageCard")
-        self.setFrameStyle(QFrame.StyledPanel)
+        self.setObjectName("ModuleInfoCard")
+        self.setFrameStyle(QFrame.NoFrame)
         styleExtras.apply_chip_shadow(self, blur_radius=18, y_offset=2)
-        self.setStyleSheet(
-            "#PropertyMessageCard {"
-            "  border-radius: 10px;"
-            "  border: 1px solid rgba(120, 120, 120, 60);"
-            "  background-color: palette(Base);"
-            "  padding: 12px;"
-            "}"
-        )
 
-        layout = QHBoxLayout(self)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        content_frame = QFrame(self)
+        content_frame.setObjectName("CardContent")
+        layout = QHBoxLayout(content_frame)
         layout.setContentsMargins(16, 12, 16, 12)
 
         label = QLabel(message)
@@ -126,41 +131,55 @@ class MessageCard(QFrame):
         label.setWordWrap(True)
         layout.addWidget(label)
 
+        outer.addWidget(content_frame)
+
 
 class PropertyConnectionCard(QFrame):
     """Visualises a single property and all connected modules."""
 
-    def __init__(self, entry: Dict[str, Any], parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        entry: Dict[str, Any],
+        lang_manager=None,
+        parent: Optional[QWidget] = None,
+    ):
         super().__init__(parent)
         self.entry = entry or {}
-        self.setObjectName("PropertyConnectionCard")
-        self.setFrameStyle(QFrame.StyledPanel)
+        self.lang_manager = lang_manager
+        self.setObjectName("ModuleInfoCard")
+        self.setFrameStyle(QFrame.NoFrame)
         styleExtras.apply_chip_shadow(self, blur_radius=25, y_offset=3)
-        self.setStyleSheet(
-            "#PropertyConnectionCard {"
-            "  border-radius: 12px;"
-            "  border: 1px solid rgba(120, 120, 120, 70);"
-            "  background-color: palette(Base);"
-            "}"
-        )
 
-        root = QVBoxLayout(self)
-        root.setContentsMargins(18, 16, 18, 16)
-        root.setSpacing(16)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        content_frame = QFrame(self)
+        content_frame.setObjectName("CardContent")
+        content_layout = QVBoxLayout(content_frame)
+        content_layout.setContentsMargins(18, 16, 18, 16)
+        content_layout.setSpacing(16)
 
         header = self._build_header()
-        root.addLayout(header)
+        content_layout.addLayout(header)
 
         modules = self.entry.get("moduleConnections") or {}
         if not modules:
             empty = QLabel("Seoseid ei leitud")
             empty.setStyleSheet("color: rgb(130, 130, 130);")
-            root.addWidget(empty)
+            content_layout.addWidget(empty)
+            outer.addWidget(content_frame)
             return
 
         for module_key, module_info in modules.items():
-            section = ModuleConnectionSection(module_key, module_info)
-            root.addWidget(section)
+            section = ModuleConnectionSection(
+                module_key,
+                module_info,
+                lang_manager=self.lang_manager,
+            )
+            content_layout.addWidget(section)
+
+        outer.addWidget(content_frame)
 
     def _build_header(self) -> QHBoxLayout:
         cadastral = self.entry.get("cadastralNumber") or "–"
@@ -185,7 +204,14 @@ class PropertyConnectionCard(QFrame):
 class ModuleConnectionSection(QFrame):
     """Collapsible section hosting all connections for a module."""
 
-    def __init__(self, module_key: str, module_info: Dict[str, Any], parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        module_key: str,
+        module_info: Dict[str, Any],
+        parent: Optional[QWidget] = None,
+        *,
+        lang_manager=None,
+    ):
         super().__init__(parent)
         self.setObjectName("PropertyModuleSection")
         self.setFrameStyle(QFrame.StyledPanel)
@@ -244,7 +270,11 @@ class ModuleConnectionSection(QFrame):
             body_layout.addWidget(empty)
         else:
             for summary in items:
-                row = ModuleConnectionRow(summary)
+                row = ModuleConnectionRow(
+                    summary,
+                    module_key,
+                    lang_manager=lang_manager,
+                )
                 body_layout.addWidget(row)
 
         root.addWidget(self.body)
@@ -262,9 +292,20 @@ class ModuleConnectionSection(QFrame):
 class ModuleConnectionRow(QFrame):
     """Single row describing one connected item inside a module."""
 
-    def __init__(self, summary: Dict[str, Any], parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        summary: Dict[str, Any],
+        module_key: str,
+        parent: Optional[QWidget] = None,
+        *,
+        lang_manager=None,
+    ):
         super().__init__(parent)
         self.summary = summary or {}
+        self.module_key = module_key
+        self.lang_manager = lang_manager
+        self.item_id = self.summary.get("id")
+        self.raw = self.summary.get("raw", {})
         self.setObjectName("ModuleConnectionRow")
         self.setFrameStyle(QFrame.NoFrame)
         self.setStyleSheet(
@@ -274,6 +315,7 @@ class ModuleConnectionRow(QFrame):
             "  background-color: palette(Base);"
             "}"
         )
+        self.setCursor(Qt.PointingHandCursor)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 8, 10, 8)
@@ -311,6 +353,57 @@ class ModuleConnectionRow(QFrame):
 
         meta_row.addStretch(1)
         layout.addLayout(meta_row)
+
+        actions_row = QHBoxLayout()
+        actions_row.setSpacing(4)
+        actions_row.addStretch(1)
+
+        file_path = self._extract_file_path()
+        has_connections = self._has_property_connections()
+
+        folder_btn = OpenFolderActionButton(file_path, lang_manager)
+        actions_row.addWidget(folder_btn)
+
+        web_btn = OpenWebActionButton(self.module_key, self.item_id, lang_manager)
+        actions_row.addWidget(web_btn)
+
+        map_btn = ShowOnMapActionButton(
+            self.module_key,
+            self.item_id,
+            lang_manager,
+            has_connections=has_connections,
+        )
+        actions_row.addWidget(map_btn)
+
+        layout.addLayout(actions_row)
+
+    def mouseDoubleClickEvent(self, event):
+        if self.module_key and self.item_id:
+            open_item_in_browser(self.module_key, self.item_id)
+        super().mouseDoubleClickEvent(event)
+
+    def _extract_file_path(self) -> Optional[str]:
+        candidates = (
+            self.raw.get("filesPath"),
+            self.raw.get("files_path"),
+            self.raw.get("files"),
+        )
+        for candidate in candidates:
+            if candidate:
+                return candidate
+        return None
+
+    def _has_property_connections(self) -> Optional[bool]:
+        properties_block = self.raw.get("properties")
+        if not properties_block:
+            return None
+        page_info = properties_block.get("pageInfo") or {}
+        count = page_info.get("count")
+        if count is None:
+            count = page_info.get("total")
+        if count is None:
+            return None
+        return bool(count)
 
 
 def _build_pill_label(text: str) -> QLabel:

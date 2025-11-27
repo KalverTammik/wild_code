@@ -49,7 +49,7 @@ class PropertyModule(QWidget):
         self.setup_ui()
 
         # Apply theming
-        ThemeManager.apply_module_style(self, [QssPaths.PROPERTIES_UI])
+        ThemeManager.apply_module_style(self, [QssPaths.PROPERTIES_UI, QssPaths.MODULE_CARD])
 
     def setup_ui(self):
         """Setup the property module interface with header and tree view."""
@@ -66,7 +66,7 @@ class PropertyModule(QWidget):
         self.create_header_section(splitter)
 
         # Tree view section (bottom part)
-        self.tree_section = PropertyTreeWidget()
+        self.tree_section = PropertyTreeWidget(lang_manager=self.lang_manager)
         splitter.addWidget(self.tree_section)
 
         # Set initial splitter proportions (header: 30%, tree: 70%)
@@ -264,7 +264,7 @@ class PropertyModule(QWidget):
 
     def retheme(self):
         # Apply main module styling
-        ThemeManager.apply_module_style(self, [QssPaths.PROPERTIES_UI])
+        ThemeManager.apply_module_style(self, [QssPaths.PROPERTIES_UI, QssPaths.MODULE_CARD])
 
     def activate(self):
         """Called when the module becomes active."""

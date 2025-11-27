@@ -11,7 +11,7 @@ from .module_action_buttons import (
     OpenWebActionButton,
     ShowOnMapActionButton,
 )
-from ..theme_manager import IntensityLevels, styleExtras, ThemeShadowColors, ThemeManager
+from ..theme_manager import IntensityLevels, styleExtras, ThemeShadowColors
 
 """ModuleFeedBuilder
 
