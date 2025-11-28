@@ -22,7 +22,7 @@ QLabel#headerTitleLabel {
     border: 1px solid rgba(0,120,212,0.55);
     border-radius: 8px;
     padding: 4px 10px;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: 0.5px;
 }

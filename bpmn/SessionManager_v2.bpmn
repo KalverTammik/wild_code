@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="SessionManagerV2Definitions" targetNamespace="http://wild_code/SessionManagerV2">
+  <bpmn:process id="SessionManagerCoreOperations" name="SessionManager Core Operations" isExecutable="true">
+    <bpmn:startEvent id="Start_SessionManagerCore" name="SessionManager Operation Selected">
+      <bpmn:outgoing>Flow_Start_To_Gateway_SelectOperation</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gateway_SelectOperation" name="Select SessionManager Operation">
+      <bpmn:incoming>Flow_Start_To_Gateway_SelectOperation</bpmn:incoming>
+      <bpmn:outgoing>Flow_Select_To_LoadSession</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Select_To_SaveSession</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Select_To_ClearSession</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Select_To_IsLoggedIn</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Select_To_SetSession</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Select_To_IsSessionExpired</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Select_To_RevalidateSession</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:scriptTask id="Task_LoadSession" name="Load Session from QSettings">
+      <bpmn:documentation>Implementation: SessionManager.load(). Reads session/token and session/active_user from QSettings and populates the singleton's apiToken and loggedInUser fields. Does not handle credentials.</bpmn:documentation>
+      <bpmn:incoming>Flow_Select_To_LoadSession</bpmn:incoming>
+      <bpmn:outgoing>Flow_LoadSession_To_End_LoadSession</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_LoadSession" name="Session Loaded">
+      <bpmn:incoming>Flow_LoadSession_To_End_LoadSession</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:scriptTask id="Task_SaveSession" name="Save Session to QSettings">
+      <bpmn:documentation>Implementation: SessionManager.save_session(). Writes apiToken and loggedInUser to QSettings under session/token and session/active_user and syncs settings to disk.</bpmn:documentation>
+      <bpmn:incoming>Flow_Select_To_SaveSession</bpmn:incoming>
+      <bpmn:outgoing>Flow_SaveSession_To_End_SaveSession</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_SaveSession" name="Session Saved">
+      <bpmn:incoming>Flow_SaveSession_To_End_SaveSession</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:scriptTask id="Task_ClearSession" name="Clear Session from QSettings and Memory">
+      <bpmn:documentation>Implementation: SessionManager.clear(). Removes session/token and session/active_user from QSettings, resets apiToken and loggedInUser to None, resets the _session_expired_shown flag and persists cleared state via save_session(). Does not clear credentials from QgsAuthenticationManager.</bpmn:documentation>
+      <bpmn:incoming>Flow_Select_To_ClearSession</bpmn:incoming>
+      <bpmn:outgoing>Flow_ClearSession_To_End_ClearSession</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_ClearSession" name="Session Cleared">
+      <bpmn:incoming>Flow_ClearSession_To_End_ClearSession</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:scriptTask id="Task_IsLoggedIn" name="Check if User is Logged In">
+      <bpmn:documentation>Implementation: SessionManager.isLoggedIn(). Returns True if apiToken is not None, otherwise False.</bpmn:documentation>
+      <bpmn:incoming>Flow_Select_To_IsLoggedIn</bpmn:incoming>
+      <bpmn:outgoing>Flow_IsLoggedIn_To_End_IsLoggedIn</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_IsLoggedIn" name="Login Status Checked">
+      <bpmn:incoming>Flow_IsLoggedIn_To_End_IsLoggedIn</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:scriptTask id="Task_SetSession_SetFields" name="Set In-Memory Session Fields">
+      <bpmn:documentation>Part of SessionManager.setSession(apiToken, user). Sets apiToken and loggedInUser on the singleton instance and resets the _session_expired_shown flag.</bpmn:documentation>
+      <bpmn:incoming>Flow_Select_To_SetSession</bpmn:incoming>
+      <bpmn:outgoing>Flow_SetFields_To_SaveSessionForSet</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_SetSession_Save" name="Persist Session State to QSettings">
+      <bpmn:documentation>Calls SessionManager.save_session() after setting in-memory fields to persist the current apiToken and loggedInUser to QSettings.</bpmn:documentation>
+      <bpmn:incoming>Flow_SetFields_To_SaveSessionForSet</bpmn:incoming>
+      <bpmn:outgoing>Flow_SetSession_Save_To_End_SetSession</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_SetSession" name="Session Set">
+      <bpmn:incoming>Flow_SetSession_Save_To_End_SetSession</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:scriptTask id="Task_IsSessionExpired" name="Check if Session is Expired (Placeholder)">
+      <bpmn:documentation>Implementation: SessionManager.isSessionExpired(). Currently always returns False. This is a placeholder for real expiry logic (e.g., token timestamp comparison) which should be implemented in future.</bpmn:documentation>
+      <bpmn:incoming>Flow_Select_To_IsSessionExpired</bpmn:incoming>
+      <bpmn:outgoing>Flow_IsSessionExpired_To_End_IsSessionExpired</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_IsSessionExpired" name="Session Expiry Checked">
+      <bpmn:incoming>Flow_IsSessionExpired_To_End_IsSessionExpired</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:scriptTask id="Task_RevalidateSession_Check" name="Revalidate Session">
+      <bpmn:documentation>Implementation: SessionManager.revalidateSession(). Calls isSessionExpired(); if it returns True, clears the session and returns False, otherwise returns True.</bpmn:documentation>
+      <bpmn:incoming>Flow_Select_To_RevalidateSession</bpmn:incoming>
+      <bpmn:outgoing>Flow_RevalidateSession_To_Gateway_IsExpired</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:exclusiveGateway id="Gateway_IsSessionExpired" name="Session Expired?">
+      <bpmn:incoming>Flow_RevalidateSession_To_Gateway_IsExpired</bpmn:incoming>
+      <bpmn:outgoing>Flow_IsExpired_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_IsExpired_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:scriptTask id="Task_ClearOnExpired" name="Clear Session on Expiry">
+      <bpmn:documentation>Branch when session is considered expired. Calls SessionManager.clear() to remove session data from QSettings and memory, then returns False to the caller.</bpmn:documentation>
+      <bpmn:incoming>Flow_IsExpired_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_ClearOnExpired_To_End_Expired</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_RevalidateSession_Expired" name="Session Revalidated: Expired">
+      <bpmn:incoming>Flow_ClearOnExpired_To_End_Expired</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_RevalidateSession_Valid" name="Session Revalidated: Valid">
+      <bpmn:incoming>Flow_IsExpired_No</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_Gateway_SelectOperation" sourceRef="Start_SessionManagerCore" targetRef="Gateway_SelectOperation" />
+    <bpmn:sequenceFlow id="Flow_Select_To_LoadSession" name="load()" sourceRef="Gateway_SelectOperation" targetRef="Task_LoadSession" />
+    <bpmn:sequenceFlow id="Flow_LoadSession_To_End_LoadSession" sourceRef="Task_LoadSession" targetRef="End_LoadSession" />
+    <bpmn:sequenceFlow id="Flow_Select_To_SaveSession" name="save_session()" sourceRef="Gateway_SelectOperation" targetRef="Task_SaveSession" />
+    <bpmn:sequenceFlow id="Flow_SaveSession_To_End_SaveSession" sourceRef="Task_SaveSession" targetRef="End_SaveSession" />
+    <bpmn:sequenceFlow id="Flow_Select_To_ClearSession" name="clear()" sourceRef="Gateway_SelectOperation" targetRef="Task_ClearSession" />
+    <bpmn:sequenceFlow id="Flow_ClearSession_To_End_ClearSession" sourceRef="Task_ClearSession" targetRef="End_ClearSession" />
+    <bpmn:sequenceFlow id="Flow_Select_To_IsLoggedIn" name="isLoggedIn()" sourceRef="Gateway_SelectOperation" targetRef="Task_IsLoggedIn" />
+    <bpmn:sequenceFlow id="Flow_IsLoggedIn_To_End_IsLoggedIn" sourceRef="Task_IsLoggedIn" targetRef="End_IsLoggedIn" />
+    <bpmn:sequenceFlow id="Flow_Select_To_SetSession" name="setSession()" sourceRef="Gateway_SelectOperation" targetRef="Task_SetSession_SetFields" />
+    <bpmn:sequenceFlow id="Flow_SetFields_To_SaveSessionForSet" sourceRef="Task_SetSession_SetFields" targetRef="Task_SetSession_Save" />
+    <bpmn:sequenceFlow id="Flow_SetSession_Save_To_End_SetSession" sourceRef="Task_SetSession_Save" targetRef="End_SetSession" />
+    <bpmn:sequenceFlow id="Flow_Select_To_IsSessionExpired" name="isSessionExpired()" sourceRef="Gateway_SelectOperation" targetRef="Task_IsSessionExpired" />
+    <bpmn:sequenceFlow id="Flow_IsSessionExpired_To_End_IsSessionExpired" sourceRef="Task_IsSessionExpired" targetRef="End_IsSessionExpired" />
+    <bpmn:sequenceFlow id="Flow_Select_To_RevalidateSession" name="revalidateSession()" sourceRef="Gateway_SelectOperation" targetRef="Task_RevalidateSession_Check" />
+    <bpmn:sequenceFlow id="Flow_RevalidateSession_To_Gateway_IsExpired" sourceRef="Task_RevalidateSession_Check" targetRef="Gateway_IsSessionExpired" />
+    <bpmn:sequenceFlow id="Flow_IsExpired_Yes" name="Expired" sourceRef="Gateway_IsSessionExpired" targetRef="Task_ClearOnExpired" />
+    <bpmn:sequenceFlow id="Flow_ClearOnExpired_To_End_Expired" sourceRef="Task_ClearOnExpired" targetRef="End_RevalidateSession_Expired" />
+    <bpmn:sequenceFlow id="Flow_IsExpired_No" name="Valid" sourceRef="Gateway_IsSessionExpired" targetRef="End_RevalidateSession_Valid" />
+    <bpmn:textAnnotation id="Note_IsSessionExpired_Placeholder">
+      <bpmn:text>Current implementation of isSessionExpired() always returns False; the Yes-branch of the Session Expired? gateway is a future behavior placeholder.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Assoc_Note_IsSessionExpired" sourceRef="Task_IsSessionExpired" targetRef="Note_IsSessionExpired_Placeholder" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_SessionManagerCoreOperations">
+    <bpmndi:BPMNPlane id="Plane_SessionManagerCoreOperations" bpmnElement="SessionManagerCoreOperations">
+      <bpmndi:BPMNShape id="Shape_Gateway_SelectOperation" bpmnElement="Gateway_SelectOperation" isMarkerVisible="true">
+        <dc:Bounds x="135" y="25" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="70" y="-20" width="84" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_RevalidateSession_Check" bpmnElement="Task_RevalidateSession_Check">
+        <dc:Bounds x="320" y="20" width="220" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_RevalidateSession_Valid" bpmnElement="End_RevalidateSession_Valid">
+        <dc:Bounds x="902" y="32" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="876" y="-5.5" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_IsSessionExpired" bpmnElement="End_IsSessionExpired">
+        <dc:Bounds x="742" y="772" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="723" y="818" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_IsLoggedIn" bpmnElement="End_IsLoggedIn">
+        <dc:Bounds x="630" y="552" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="617" y="598" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_ClearSession" bpmnElement="End_ClearSession">
+        <dc:Bounds x="682" y="472" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="660" y="508" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_SetSession_Save" bpmnElement="Task_SetSession_Save">
+        <dc:Bounds x="620" y="350" width="240" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_SetSession" bpmnElement="End_SetSession">
+        <dc:Bounds x="922" y="362" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="910" y="398" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_SaveSession" bpmnElement="Task_SaveSession">
+        <dc:Bounds x="330" y="190" width="180" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_SaveSession" bpmnElement="End_SaveSession">
+        <dc:Bounds x="600" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="581" y="238" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_LoadSession" bpmnElement="End_LoadSession">
+        <dc:Bounds x="562" y="-108" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="541" y="-72" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_LoadSession" bpmnElement="Task_LoadSession">
+        <dc:Bounds x="340" y="-120" width="140" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_IsSessionExpired" bpmnElement="Gateway_IsSessionExpired" isMarkerVisible="true">
+        <dc:Bounds x="675" y="25" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="657" y="1" width="86" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ClearOnExpired" bpmnElement="Task_ClearOnExpired">
+        <dc:Bounds x="720" y="90" width="220" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_RevalidateSession_Expired" bpmnElement="End_RevalidateSession_Expired">
+        <dc:Bounds x="1022" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1009" y="52" width="62" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Start_SessionManagerCore" bpmnElement="Start_SessionManagerCore">
+        <dc:Bounds x="32" y="32" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="8" y="68" width="84" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_SetSession_SetFields" bpmnElement="Task_SetSession_SetFields">
+        <dc:Bounds x="330" y="350" width="220" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ClearSession" bpmnElement="Task_ClearSession">
+        <dc:Bounds x="330" y="460" width="220" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_IsLoggedIn" bpmnElement="Task_IsLoggedIn">
+        <dc:Bounds x="340" y="560" width="200" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_IsSessionExpired" bpmnElement="Task_IsSessionExpired">
+        <dc:Bounds x="340" y="760" width="260" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Assoc_Note_IsSessionExpired" bpmnElement="Assoc_Note_IsSessionExpired">
+        <di:waypoint x="470" y="747" />
+        <di:waypoint x="567" y="710" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Start_To_Gateway_SelectOperation" bpmnElement="Flow_Start_To_Gateway_SelectOperation">
+        <di:waypoint x="68" y="51" />
+        <di:waypoint x="136" y="51" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Select_To_LoadSession" bpmnElement="Flow_Select_To_LoadSession">
+        <di:waypoint x="160" y="25" />
+        <di:waypoint x="160" y="-90" />
+        <di:waypoint x="340" y="-90" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="222" y="-117" width="29" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_LoadSession_To_End_LoadSession" bpmnElement="Flow_LoadSession_To_End_LoadSession">
+        <di:waypoint x="480" y="-90" />
+        <di:waypoint x="562" y="-90" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Select_To_SaveSession" bpmnElement="Flow_Select_To_SaveSession">
+        <di:waypoint x="160" y="75" />
+        <di:waypoint x="160" y="220" />
+        <di:waypoint x="330" y="220" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="182" y="193" width="75" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_SaveSession_To_End_SaveSession" bpmnElement="Flow_SaveSession_To_End_SaveSession">
+        <di:waypoint x="510" y="220" />
+        <di:waypoint x="600" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Select_To_ClearSession" bpmnElement="Flow_Select_To_ClearSession">
+        <di:waypoint x="160" y="75" />
+        <di:waypoint x="160" y="490" />
+        <di:waypoint x="330" y="490" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="214" y="453" width="32" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ClearSession_To_End_ClearSession" bpmnElement="Flow_ClearSession_To_End_ClearSession">
+        <di:waypoint x="550" y="490" />
+        <di:waypoint x="682" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Select_To_IsLoggedIn" bpmnElement="Flow_Select_To_IsLoggedIn">
+        <di:waypoint x="160" y="75" />
+        <di:waypoint x="160" y="590" />
+        <di:waypoint x="340" y="590" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="206" y="553" width="62" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_IsLoggedIn_To_End_IsLoggedIn" bpmnElement="Flow_IsLoggedIn_To_End_IsLoggedIn">
+        <di:waypoint x="540" y="590" />
+        <di:waypoint x="585" y="590" />
+        <di:waypoint x="585" y="570" />
+        <di:waypoint x="630" y="570" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Select_To_SetSession" bpmnElement="Flow_Select_To_SetSession">
+        <di:waypoint x="160" y="75" />
+        <di:waypoint x="160" y="380" />
+        <di:waypoint x="330" y="380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="206" y="353" width="62" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_SetFields_To_SaveSessionForSet" bpmnElement="Flow_SetFields_To_SaveSessionForSet">
+        <di:waypoint x="550" y="380" />
+        <di:waypoint x="620" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_SetSession_Save_To_End_SetSession" bpmnElement="Flow_SetSession_Save_To_End_SetSession">
+        <di:waypoint x="860" y="380" />
+        <di:waypoint x="922" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Select_To_IsSessionExpired" bpmnElement="Flow_Select_To_IsSessionExpired">
+        <di:waypoint x="160" y="75" />
+        <di:waypoint x="160" y="790" />
+        <di:waypoint x="340" y="790" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="192" y="746" width="89" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_IsSessionExpired_To_End_IsSessionExpired" bpmnElement="Flow_IsSessionExpired_To_End_IsSessionExpired">
+        <di:waypoint x="600" y="790" />
+        <di:waypoint x="742" y="790" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Select_To_RevalidateSession" bpmnElement="Flow_Select_To_RevalidateSession">
+        <di:waypoint x="185" y="50" />
+        <di:waypoint x="320" y="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="193" y="4" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_RevalidateSession_To_Gateway_IsExpired" bpmnElement="Flow_RevalidateSession_To_Gateway_IsExpired">
+        <di:waypoint x="540" y="50" />
+        <di:waypoint x="675" y="50" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_IsExpired_Yes" bpmnElement="Flow_IsExpired_Yes">
+        <di:waypoint x="700" y="75" />
+        <di:waypoint x="700" y="120" />
+        <di:waypoint x="720" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="651" y="93" width="38" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ClearOnExpired_To_End_Expired" bpmnElement="Flow_ClearOnExpired_To_End_Expired">
+        <di:waypoint x="940" y="120" />
+        <di:waypoint x="1022" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_IsExpired_No" bpmnElement="Flow_IsExpired_No">
+        <di:waypoint x="725" y="50" />
+        <di:waypoint x="902" y="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="802" y="25" width="23" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Shape_Note_IsSessionExpired_Placeholder" bpmnElement="Note_IsSessionExpired_Placeholder">
+        <dc:Bounds x="455" y="660" width="260" height="50" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

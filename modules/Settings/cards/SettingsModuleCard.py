@@ -30,7 +30,9 @@ class SettingsModuleCard(SettingsBaseCard):
         filter_cancel: Optional[Callable[[Any], None]] = None,
     ):
         # Ikon pealkirjale
-        icon_path = ModuleIconPaths.get_module_icon(module_name)
+        print(f"module name {module_name.lower()}")
+        icon_path = ModuleIconPaths.get_module_icon(module_name.lower())
+        print(f"icon path: {icon_path}")
         super().__init__(lang_manager, translated_name, icon_path)
 
         # Kasuta kanonilist võtmekuju (lowercase) KÕIKJAL

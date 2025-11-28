@@ -133,7 +133,7 @@ class HeaderWidget(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(frame)
 
-        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
+        self.retheme_header()
 
 
     @property

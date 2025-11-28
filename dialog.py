@@ -255,7 +255,8 @@ class PluginDialog(QDialog):
             self.moduleStack.setCurrentWidget(widget)
 
             # Prefer a module display name or a translation map instead of .capitalize()
-            display_title = getattr(instance, "display_name", None) or moduleName.title()
+            display_title = moduleName.lower()
+            print(f"Setting header title to: {display_title}")
             self.header_widget.set_title(self.lang_manager.translate(display_title))
 
             self.sidebar.setActiveModuleOnSidebarButton(moduleName)
@@ -363,9 +364,14 @@ class PluginDialog(QDialog):
                     return
         except Exception as e:
             print(f"Close prompt failed: {e} - {self.lang_manager.translate_static(TranslationKeys.WILD_CODE_PLUGIN_TITLE)}")
+
         import gc
         gc.collect()
-        super().closeEvent(event)
+
+        # Treat close like a hide so the singleton instance and state
+        # are preserved; reopening via the toolbar will simply show it again.
+        self.hide()
+        event.ignore()
 
     def _on_help_requested(self):
         active_module = self.moduleManager.getActiveModule()

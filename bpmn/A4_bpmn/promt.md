@@ -33,11 +33,30 @@ Sulle antakse tekstiline kirjeldus **tehnilisest või ärilisest töövoost**. S
 
   * Lisa **kirjeldav `name`** (nt "Heaks kiidetud", "Tagasi lükatud", "Kasutaja sisend").
   * **Joonda vood loogiliselt** (nt vasak = ei, parem = jah) otsustuspunktidest.
-* 🖍️ Kasuta **värvihintsid või markereid**:
 
-  * Roheline = kriitiline tee.
-  * Punane = viga, tõrge või tagasilükkamine.
-  * Oranž = uuesti proovimine või kordus.
+* 🖍️ Kasuta **värvihintsid või markereid** üksikute sõlmede (events, tasks, gateways) jaoks, mitte radade (lane) jaoks. Lane elementidele värve ei rakendata.
+
+  * **Roheline (green)** – kriitiline või peamine edutee (happy path lõpp- ja põhitegevused).
+  * **Punane (red)** – viga, tõrge, katkestamine või tagasilükkamine (error/stop lõpp-sündmused, hoiatused).
+  * **Kollane (yellow/orange)** – uuesti proovimine, ajutine seisund, tähelepanu või otsustuspunkt (gateways, retry/login vood).
+  * **Sinine (blue)** – informatiivsed või neutraalsed süsteemsed tegevused (nt logimine, mitte-kriitiline kontroll).
+  * **Lilla (purple)** – erijuhud, haruldased või administraatori/ülitaseme tegevused.
+  * **Valge (white)** – vaikimisi värv, kui sõlm ei kuulu kindlasse ülaltoodud kategooriasse.
+
+* Kui kasutad värve bpmn.io stiilis, kasuta sõlme `BPMNShape` elemendis järgmisi atribuute (värvid vastavalt ülaltoodud tähendustele):
+
+  * `bioc:stroke="#RRGGBB"` ja `bioc:fill="#RRGGBB"`
+  * `color:border-color="#RRGGBB"` ja `color:background-color="#RRGGBB"`
+
+  Näiteks rohelise happy path ülesande jaoks:
+
+  ```xml
+  <bpmndi:BPMNShape
+      bioc:stroke="#2e7d32"
+      bioc:fill="#c8e6c9"
+      color:border-color="#2e7d32"
+      color:background-color="#c8e6c9">
+  ```
   
   „Palun kasuta BPMN‑i täpsemaid ülesannetüüpe, et iga tegevus oleks selgem.
 Näiteks:

@@ -228,5 +228,5 @@ TRANSLATIONS = {
     ,TranslationKeys.START: "Start"
     ,TranslationKeys.CREATED: "Created"
     ,TranslationKeys.UPDATED: "Updated"
-    ,"Signaltest": "Signal Test Lab"
+    ,"Signaltest": "Test Lab"
 }

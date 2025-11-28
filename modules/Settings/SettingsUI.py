@@ -145,7 +145,7 @@ class SettingsModule(QWidget):
 
     def _generate_module_card(self, module_name: str) -> QWidget:
  
-        translated = self.lang_manager.translate(module_name.capitalize())
+        translated = self.lang_manager.translate(module_name.lower())
 
         supports = ModuleManager().getModuleSupports(module_name) or {}
         card = SettingsModuleCard(

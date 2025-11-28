@@ -1,0 +1,66 @@
+query projectModuleDataById(
+  $id: ID!
+  $propertiesFirst: Int = 1
+  $propertiesAfter: String
+  $tagsFirst: Int = 10
+) {
+  project(id: $id) {
+    id
+    name
+    number
+    description
+    status {
+      id
+      name
+      color
+      type
+    }
+    startAt
+    dueAt
+    createdAt
+    updatedAt
+    isPublic
+    filesPath
+    members {
+      edges {
+        node {
+          id
+          displayName
+          deletedAt
+        }
+        isResponsible
+      }
+    }
+    client {
+      id
+      displayName
+    }
+    tags(first: $tagsFirst) {
+      edges {
+        node {
+          id
+          name
+          module
+        }
+      }
+    }
+    properties(first: $propertiesFirst, after: $propertiesAfter) {
+      pageInfo {
+        count
+        currentPage
+        startCursor
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        lastPage
+        total
+      }
+      edges {
+        node {
+          id
+          cadastralUnitNumber
+        }
+      }
+    }
+  }
+}

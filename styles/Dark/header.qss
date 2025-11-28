@@ -1,6 +1,5 @@
 /* ===== Header (Dark) — minimal, readable, with subtle bottom glow ===== */
 
-/* Outer frame with bottom glow + rule (mirror of footer’s top) */
 QFrame#headerWidgetFrame {
     background: qlineargradient(x1:0, y1:1, x2:0, y2:0,
         stop:0    rgba(9,144,143,0.16),   /* soft teal glow at bottom */
@@ -24,7 +23,7 @@ QLabel#headerTitleLabel {
     border: 1px solid rgba(9,144,143,0.65);
     border-radius: 8px;
     padding: 4px 10px;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
     letter-spacing: 0.5px;
 }
@@ -36,15 +35,6 @@ QLabel#headerTitleLabel:hover {
 
 
 /* Search */
-
-QLineEdit#headerSearchEdit::placeholder {
-    color: rgba(197,197,210,0.55);
-}
-QLineEdit#headerSearchEdit:focus {
-    border: 1px solid #1f5d5c;
-    background: #2e2f38;
-}
-
 QLineEdit#headerSearchEdit {
     background: #303a42;
     color: #c5c5d2;
@@ -54,6 +44,15 @@ QLineEdit#headerSearchEdit {
     border-radius: 6px;
     padding: 6px 10px;
 }
+QLineEdit#headerSearchEdit::placeholder {
+    color: rgba(197,197,210,0.55);
+}
+QLineEdit#headerSearchEdit:focus {
+    border: 1px solid #1f5d5c;
+    background: #2e2f38;
+}
+
+
 
 /* Search Results Widget */
 QWidget#searchResultsWidget {

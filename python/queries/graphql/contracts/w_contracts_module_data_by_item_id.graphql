@@ -1,0 +1,71 @@
+query contractModuleDataById(
+  $id: ID!
+  $propertiesFirst: Int = 1
+  $propertiesAfter: String
+  $tagsFirst: Int = 10
+) {
+  contract(id: $id) {
+    __typename
+    id
+    number
+    name
+    description
+    sum {
+      amount
+      currencyCode
+    }
+    signedAt
+    completedAt
+    warrantyDueAt
+    filesPath
+    isSubcontract
+    members {
+      edges {
+        node {
+          id
+          displayName
+          deletedAt
+        }
+        isResponsible
+      }
+    }
+    status {
+      id
+      name
+      color
+      type
+    }
+    type {
+      name
+    }
+    tags(first: $tagsFirst) {
+      edges {
+        node {
+          id
+          name
+          module
+        }
+      }
+    }
+    properties(first: $propertiesFirst, after: $propertiesAfter) {
+      pageInfo {
+        count
+        currentPage
+        startCursor
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        lastPage
+        total
+      }
+      edges {
+        node {
+          id
+          immovableNumber
+          displayAddress
+          cadastralUnitNumber
+        }
+      }
+    }
+  }
+}

@@ -87,7 +87,6 @@ class ProcessElementData:
                 nodes.append(node)
         return nodes
 
-
 class PropertyLookupService:
     """Utility helpers for resolving property identifiers from cadastral numbers."""
 
@@ -140,7 +139,6 @@ class PropertyLookupService:
             .get("edges", [])
         )
         return edges or []
-
 
 class PropertyConnectionFormatter:
     """Transforms raw module node data into UI-friendly payloads."""

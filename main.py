@@ -2,13 +2,10 @@ import gc
 import os
 import tempfile
 import faulthandler
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
 from qgis.PyQt.QtWidgets import QAction
 from qgis.PyQt.QtGui import QIcon
+from qgis.core import QgsProject
+
 from .dialog import PluginDialog
 import sip  # Add this import at the top
 from .login_dialog import LoginDialog  # Import the login dialog class
@@ -17,6 +14,9 @@ from .utils.SessionManager import SessionManager  # Import the SessionManager
 from .languages.language_manager import LanguageManager
 from .languages.translation_keys import TranslationKeys
 from .widgets.theme_manager import ThemeManager
+from .utils.messagesHelper import ModernMessageDialog
+
+
 
 CRASH_LOG_PATH = os.path.join(tempfile.gettempdir(), "wild_code_crash.log")
 try:
@@ -52,61 +52,51 @@ class WildCodePlugin:
         gc.collect()
 
     def run(self):
-        #import universalStatusbar for message display
-        from qgis.core import QgsProject
+        # import universalStatusbar for message display
         project = QgsProject.instance()
         if project.fileName() == '':
             heading = LanguageManager.translate_static(TranslationKeys.NO_PROJECT_LOADED_TITLE)
             text = LanguageManager.translate_static(TranslationKeys.NO_PROJECT_LOADED_MESSAGE)
-            from .utils.messagesHelper import ModernMessageDialog
             ModernMessageDialog.Warning_messages_modern(heading, text)
             return
-
 
         session = SessionManager()
         session.load()
 
-        #print(f"[DEBUG] Session loaded - isLoggedIn: {session.isLoggedIn()}, apiToken: {session.get_token() is not None}")
-
         if not session.revalidateSession():
-            #print("[DEBUG] Session validation failed - showing login dialog")
             self._show_login_dialog()
             # Check if login was successful after dialog closes
             if self.login_successful:
-                #print("[DEBUG] Login was successful - showing main dialog")
                 self._show_main_dialog()
                 self.login_successful = False  # Reset flag
             return
         if session.isLoggedIn():
-            #print("[DEBUG] User is logged in - opening main dialog")
             self._show_main_dialog()
         else:
-            #print("[DEBUG] User not logged in - showing login dialog")
             self._show_login_dialog()
             # Check if login was successful after dialog closes
             if self.login_successful:
-                #print("[DEBUG] Login was successful - showing main dialog")
                 self._show_main_dialog()
                 self.login_successful = False  # Reset flag
 
     def _show_login_dialog(self):
         """Unified method to show login dialog with consistent setup."""
-        #print("[DEBUG] Showing login dialog")
         self.loginDialog = LoginDialog()
         self.loginDialog.loginSuccessful.connect(self.handle_login_success)
         self.loginDialog.finished.connect(self.reset_login_dialog)
         self.loginDialog.exec_()
-        #print("[DEBUG] Login dialog closed")
 
     def _show_main_dialog(self):
         """Unified method to show main dialog."""
-        #print("[DEBUG] Showing main dialog")
-        dlg = PluginDialog._instance
-        if dlg is None or not dlg.isVisible():
-            self.pluginDialog = PluginDialog()
-            self.pluginDialog.finished.connect(self.reset_plugin_dialog)
-            self.pluginDialog.show()
+        dlg = PluginDialog.get_instance()
+        if dlg is None:
+            dlg = PluginDialog()
+            self.pluginDialog = dlg
+            dlg.finished.connect(self.reset_plugin_dialog)
+            dlg.show()
         else:
+            self.pluginDialog = dlg
+            dlg.show()
             dlg.raise_()
             dlg.activateWindow()
 
@@ -118,13 +108,8 @@ class WildCodePlugin:
 
     def handle_login_success(self, api_token, user):
         try:
-            #print("[DEBUG] handle_login_success called")
-            #print(f"[DEBUG] Received token: {api_token is not None}, user: {user}")
-            #print(f"[DEBUG] Token value: {api_token[:10] if api_token else 'None'}...")
-            
             # Just set the flag - the run method will handle showing the dialog
             self.login_successful = True
-            #print("[DEBUG] Login success flag set to True")
 
         except Exception as e:
             print(f"[WildCodePlugin] Error in handle_login_success: {e}")

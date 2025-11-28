@@ -112,9 +112,26 @@ class ModuleIconPaths:
         return path
 
     @staticmethod
-    def get_module_icon(module_name):
-        # Try cache first — avoid doing any work or logging when we already have a value
-        # Only log when we're actually performing resolution (not on every call)
-        path = ModuleIconPaths.MODULE_ICONS.get(module_name, None)
+    def _normalize_module_name(module_name) -> str:
+        #TODO improve normalization if needed
+        if not module_name:
+            return None
+        if isinstance(module_name, Module):
+            return module_name.name
+        candidate = str(module_name).strip()
+        if not candidate:
+            return None
+        upper_candidate = candidate.upper()
+        if upper_candidate in Module.__members__:
+            return upper_candidate
+        for member in Module:
+            if member.value.lower() == candidate.lower():
+                return member.name
+        return upper_candidate
+
+    @staticmethod
+    def get_module_icon(module_name) -> str:
+        normalized = ModuleIconPaths._normalize_module_name(module_name)
+        path = ModuleIconPaths.MODULE_ICONS.get(normalized)
         resolved = ModuleIconPaths._resolve_themed_icon(path)
         return resolved

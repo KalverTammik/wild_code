@@ -1,0 +1,695 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" id="PluginLoginFlowDefinitions" targetNamespace="http://wild_code/PluginLoginFlow">
+  <bpmn:process id="PluginLoginAndSessionFlow" name="WildCode Plugin Login and Session Flow" isExecutable="true">
+    <bpmn:laneSet id="LaneSet_PluginActors">
+      <bpmn:lane id="Lane_QGISUser" name="QGIS User">
+        <bpmn:flowNodeRef>Start_PluginTriggered</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>UserTask_PerformLogin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_LoginSuccessful</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_WildCodePlugin" name="WildCode Plugin (UI)">
+        <bpmn:flowNodeRef>Task_CheckProjectLoaded</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_ProjectLoaded</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ShowNoProjectWarning</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_NoProject</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_OpenLoginDialog</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_OpenMainDialog</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_MainDialogOpened</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_SessionManager" name="SessionManager">
+        <bpmn:flowNodeRef>Task_LoadSession</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_RevalidateSession</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_SessionRevalidated</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CheckIsLoggedIn</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_IsLoggedIn</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_LoginCancelled</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_SessionDetails" name="SessionManager – Session Detail Flow">
+        <bpmn:flowNodeRef>Start_SessionDetail</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_LoadSession_Detail</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Read_QSettings_Token</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Read_QSettings_User</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_Populate_InMemory_Fields</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_SessionDetail</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_MainDialogDetails" name="Main Plugin Dialog – Detail Flow">
+        <bpmn:flowNodeRef>Task_CheckExistingPluginDialogInstance</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Start_MainDialogDetail</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_DialogInstanceExists</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_CreatePluginDialogInstance</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ShowRaiseActivateDialog</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_MainDialogDetail</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_ConfigureAndTranslateDialog</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_WindowButtons" name="Main Dialog Window Buttons (Min / Max / Close)">
+        <bpmn:flowNodeRef>Start_WindowButtons</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Gateway_WhichWindowButton</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_HandleMinimize</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_HandleMaximizeRestore</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_HandleClose</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_EmitDialogClosedSignals</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Task_PersistStateOnClose</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_WindowButtons</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start_PluginTriggered" name="User Clicks WildCode Toolbar Button">
+      <bpmn:outgoing>Flow_Start_To_CheckProject</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:scriptTask id="Task_CheckProjectLoaded" name="Check if QGIS Project is Loaded">
+      <bpmn:documentation>Implementation: WildCodePlugin.run() checks QgsProject.instance().fileName(). If empty, no project is loaded.</bpmn:documentation>
+      <bpmn:incoming>Flow_Start_To_CheckProject</bpmn:incoming>
+      <bpmn:outgoing>Flow_CheckProject_To_Gateway_ProjectLoaded</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:exclusiveGateway id="Gateway_ProjectLoaded" name="Project Loaded?">
+      <bpmn:incoming>Flow_CheckProject_To_Gateway_ProjectLoaded</bpmn:incoming>
+      <bpmn:outgoing>Flow_ProjectLoaded_No</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ProjectLoaded_Yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:scriptTask id="Task_ShowNoProjectWarning" name="Show &#39;No Project Loaded&#39; Warning">
+      <bpmn:documentation>Implementation: WildCodePlugin.run() uses ModernMessageDialog.Warning_messages_modern with localized title and message when no project is loaded.</bpmn:documentation>
+      <bpmn:incoming>Flow_ProjectLoaded_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_NoProject_To_End</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_NoProject" name="Plugin Stops (No Project)">
+      <bpmn:incoming>Flow_NoProject_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:scriptTask id="Task_LoadSession" name="Load Session from QSettings">
+      <bpmn:documentation>Implementation: SessionManager.load(). Called from WildCodePlugin.run() after confirming a project is loaded; loads any persisted apiToken and loggedInUser into memory.</bpmn:documentation>
+      <bpmn:incoming>Flow_ProjectLoaded_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_LoadSession_To_RevalidateSession</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_RevalidateSession" name="Revalidate Session">
+      <bpmn:documentation>Implementation: SessionManager.revalidateSession(). Returns False if session considered expired (and clears it), otherwise True. In current code isSessionExpired() always returns False, so this typically returns True.</bpmn:documentation>
+      <bpmn:incoming>Flow_LoadSession_To_RevalidateSession</bpmn:incoming>
+      <bpmn:outgoing>Flow_RevalidateSession_To_Gateway_SessionRevalidated</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:exclusiveGateway id="Gateway_SessionRevalidated" name="Session Revalidated?">
+      <bpmn:incoming>Flow_RevalidateSession_To_Gateway_SessionRevalidated</bpmn:incoming>
+      <bpmn:outgoing>Flow_Revalidated_No</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Revalidated_Yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:scriptTask id="Task_OpenLoginDialog" name="Open Login Dialog">
+      <bpmn:documentation>Implementation: WildCodePlugin._show_login_dialog(). Creates LoginDialog, connects loginSuccessful signal to handle_login_success, then executes the dialog modally.</bpmn:documentation>
+      <bpmn:incoming>Flow_Revalidated_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_1g2ck4w</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:userTask id="UserTask_PerformLogin" name="User Enters Credentials and Confirms Login">
+      <bpmn:documentation>Actor: QGIS User. Interacts with LoginDialog UI to enter and submit credentials, which on success emits loginSuccessful(api_token, user).</bpmn:documentation>
+      <bpmn:incoming>Flow_1g2ck4w</bpmn:incoming>
+      <bpmn:outgoing>Flow_UserLogin_To_Gateway_LoginSuccessful</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_LoginSuccessful" name="Login Successful? (Flag Set)">
+      <bpmn:documentation>Implementation detail: handle_login_success() in WildCodePlugin sets login_successful flag to True when LoginDialog emits loginSuccessful. After dialog closes, run() checks this flag to decide if it should open the main dialog.</bpmn:documentation>
+      <bpmn:incoming>Flow_UserLogin_To_Gateway_LoginSuccessful</bpmn:incoming>
+      <bpmn:outgoing>Flow_LoginSuccessful_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_LoginSuccessful_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:scriptTask id="Task_CheckIsLoggedIn" name="Check if User is Logged In">
+      <bpmn:documentation>Implementation: SessionManager.isLoggedIn(). Called from WildCodePlugin.run() when revalidateSession() returned True to see if a token is present.</bpmn:documentation>
+      <bpmn:incoming>Flow_Revalidated_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_IsLoggedIn_To_Gateway_IsLoggedIn</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:exclusiveGateway id="Gateway_IsLoggedIn" name="Already Logged In?">
+      <bpmn:incoming>Flow_IsLoggedIn_To_Gateway_IsLoggedIn</bpmn:incoming>
+      <bpmn:outgoing>Flow_IsLoggedIn_Yes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_IsLoggedIn_No</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:scriptTask id="Task_OpenMainDialog" name="Open Main Plugin Dialog">
+      <bpmn:documentation>Implementation: WildCodePlugin._show_main_dialog(). Shows PluginDialog (singleton-like). Called either when a valid session is already present, or after a successful login.</bpmn:documentation>
+      <bpmn:incoming>Flow_IsLoggedIn_Yes</bpmn:incoming>
+      <bpmn:incoming>Flow_LoginSuccessful_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_OpenMainDialog_To_End</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_MainDialogOpened" name="Plugin Ready (Main Dialog Open)">
+      <bpmn:incoming>Flow_OpenMainDialog_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_LoginCancelled" name="Login Cancelled / Not Successful">
+      <bpmn:incoming>Flow_LoginSuccessful_No</bpmn:incoming>
+      <bpmn:incoming>Flow_IsLoggedIn_No</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:startEvent id="Start_SessionDetail" name="Inspect Stored Session in QSettings">
+      <bpmn:documentation>Entry point for understanding how SessionManager.load() reconstructs the in-memory session state from values stored in QSettings.</bpmn:documentation>
+      <bpmn:outgoing>Flow_SDetail_Start_To_Load</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:scriptTask id="Task_LoadSession_Detail" name="Call SessionManager.load() (Detail)">
+      <bpmn:documentation>Represents the high-level call to SessionManager.load(), which internally reads SESSION_TOKEN and SESSION_ACTIVE_USER from QSettings and assigns them to the singleton instance fields.</bpmn:documentation>
+      <bpmn:incoming>Flow_SDetail_Start_To_Load</bpmn:incoming>
+      <bpmn:outgoing>Flow_SDetail_Load_To_ReadToken</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_Read_QSettings_Token" name="Read SESSION_TOKEN from QSettings">
+      <bpmn:documentation>Reads the value stored under key session/token using QSettings.value(...). This is the persisted API token for the session.</bpmn:documentation>
+      <bpmn:incoming>Flow_SDetail_Load_To_ReadToken</bpmn:incoming>
+      <bpmn:outgoing>Flow_SDetail_ReadToken_To_ReadUser</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_Read_QSettings_User" name="Read SESSION_ACTIVE_USER from QSettings">
+      <bpmn:documentation>Reads the value stored under key session/active_user using QSettings.value(...). This is the persisted username or user identifier.</bpmn:documentation>
+      <bpmn:incoming>Flow_SDetail_ReadToken_To_ReadUser</bpmn:incoming>
+      <bpmn:outgoing>Flow_SDetail_ReadUser_To_Populate</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_Populate_InMemory_Fields" name="Populate apiToken and loggedInUser in Memory">
+      <bpmn:documentation>Assigns the values read from QSettings (SESSION_TOKEN, SESSION_ACTIVE_USER) to the singleton instance attributes apiToken and loggedInUser, making the session available in memory for subsequent checks and revalidation.</bpmn:documentation>
+      <bpmn:incoming>Flow_SDetail_ReadUser_To_Populate</bpmn:incoming>
+      <bpmn:outgoing>Flow_SDetail_Populate_To_End</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_SessionDetail" name="Session Loaded in Memory (Detail View)">
+      <bpmn:incoming>Flow_SDetail_Populate_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:startEvent id="Start_MainDialogDetail" name="Need to Open Main Plugin Dialog">
+      <bpmn:documentation>Entry point for understanding how WildCodePlugin._show_main_dialog() and PluginDialog behave when the plugin decides to open the main UI.</bpmn:documentation>
+      <bpmn:outgoing>Flow_MDetail_Start_To_CheckInstance</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:scriptTask id="Task_CheckExistingPluginDialogInstance" name="Check Existing PluginDialog Instance">
+      <bpmn:documentation>Implementation: WildCodePlugin._show_main_dialog() calls PluginDialog.get_instance() to see if a main dialog already exists. If this returns a dialog, that same singleton instance will always be reused.</bpmn:documentation>
+      <bpmn:incoming>Flow_MDetail_Start_To_CheckInstance</bpmn:incoming>
+      <bpmn:outgoing>Flow_MDetail_CheckInstance_To_Gateway_Exists</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:exclusiveGateway id="Gateway_DialogInstanceExists" name="PluginDialog Instance Exists?">
+      <bpmn:incoming>Flow_MDetail_CheckInstance_To_Gateway_Exists</bpmn:incoming>
+      <bpmn:outgoing>Flow_MDetail_Exists_No</bpmn:outgoing>
+      <bpmn:outgoing>Flow_MDetail_Exists_Yes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:scriptTask id="Task_CreatePluginDialogInstance" name="Create New PluginDialog Instance (Only If None)">
+      <bpmn:documentation>Implementation: If PluginDialog.get_instance() returns None, WildCodePlugin._show_main_dialog() creates a new PluginDialog. The singleton pattern in PluginDialog.__new__ sets PluginDialog._instance and __init__ runs only once to build the UI.</bpmn:documentation>
+      <bpmn:incoming>Flow_MDetail_Exists_No</bpmn:incoming>
+      <bpmn:outgoing>Flow_MDetail_Create_To_Configure</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_ConfigureAndTranslateDialog" name="Configure Theme and Translations">
+      <bpmn:documentation>Implementation (conceptual): When a new PluginDialog is created, it will typically apply the current theme and language settings (via ThemeManager, LanguageManager, etc.) so the main UI matches the user's environment.</bpmn:documentation>
+      <bpmn:incoming>Flow_MDetail_Create_To_Configure</bpmn:incoming>
+      <bpmn:outgoing>Flow_MDetail_Configure_To_Show</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_ShowRaiseActivateDialog" name="Show / Raise / Activate PluginDialog">
+      <bpmn:documentation>Implementation: WildCodePlugin._show_main_dialog() calls show(), raise_(), and activateWindow() on the existing PluginDialog singleton (and updates its own reference). This works both when the dialog was never shown before and when it was previously closed (hidden) via the window close button.</bpmn:documentation>
+      <bpmn:incoming>Flow_MDetail_Configure_To_Show</bpmn:incoming>
+      <bpmn:incoming>Flow_MDetail_Exists_Yes</bpmn:incoming>
+      <bpmn:outgoing>Flow_MDetail_Show_To_End</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_MainDialogDetail" name="Main Plugin Dialog Visible and Active (Detail View)">
+      <bpmn:incoming>Flow_MDetail_Show_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:startEvent id="Start_WindowButtons" name="User Clicks Min / Max / Close on Main Dialog">
+      <bpmn:documentation>Entry point for understanding how the main PluginDialog reacts when the user presses the minimize, maximize/restore, or close (X) window controls.</bpmn:documentation>
+      <bpmn:outgoing>Flow_WB_Start_To_WhichButton</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gateway_WhichWindowButton" name="Which Window Button?">
+      <bpmn:documentation>Conceptual gateway: in practice each button has its own Qt signal/slot, but here we model them together as a choice between Minimize (_), Maximize/Restore (□), and Close (X).</bpmn:documentation>
+      <bpmn:incoming>Flow_WB_Start_To_WhichButton</bpmn:incoming>
+      <bpmn:outgoing>Flow_WB_Minimize</bpmn:outgoing>
+      <bpmn:outgoing>Flow_WB_MaximizeRestore</bpmn:outgoing>
+      <bpmn:outgoing>Flow_WB_Close</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:scriptTask id="Task_HandleMinimize" name="Handle Minimize (_) Click">
+      <bpmn:documentation>Implementation (typical): PluginDialog calls showMinimized() or sets the window state to minimized. The plugin session remains active; only the window is hidden to the taskbar, and no session data is cleared.</bpmn:documentation>
+      <bpmn:incoming>Flow_WB_Minimize</bpmn:incoming>
+      <bpmn:outgoing>Flow_WB_Minimize_To_End</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_HandleMaximizeRestore" name="Handle Maximize / Restore (□) Click">
+      <bpmn:documentation>Implementation (typical): PluginDialog toggles between maximized and normal states using showMaximized() / showNormal(). Session and dialog state (widgets, filters, selections) stay in memory; only the window size/placement changes.</bpmn:documentation>
+      <bpmn:incoming>Flow_WB_MaximizeRestore</bpmn:incoming>
+      <bpmn:outgoing>Flow_WB_MaximizeRestore_To_End</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_HandleClose" name="Handle Close (X) Click">
+      <bpmn:documentation>Implementation (current): Clicking the window close button triggers PluginDialog.closeEvent(). The dialog checks for unsaved settings, then calls hide() and ignores the event so the singleton instance and its state stay in memory. A later toolbar click will simply show/raise this same instance again.</bpmn:documentation>
+      <bpmn:incoming>Flow_WB_Close</bpmn:incoming>
+      <bpmn:outgoing>Flow_WB_Close_To_EmitSignals</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_EmitDialogClosedSignals" name="Emit Dialog Closed / Finished Signals (If Actually Destroyed)">
+      <bpmn:documentation>Implementation (conceptual): In the current design close (X) hides the dialog instead of destroying it, so Qt's finished()/rejected() are not normally used to clear the singleton. These signals would only matter if the dialog were really closed and destroyed (for example via explicit code calling deleteLater()).</bpmn:documentation>
+      <bpmn:incoming>Flow_WB_Close_To_EmitSignals</bpmn:incoming>
+      <bpmn:outgoing>Flow_WB_EmitSignals_To_PersistState</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:scriptTask id="Task_PersistStateOnClose" name="Persist Any Needed UI / Session State">
+      <bpmn:documentation>Implementation (conceptual): On close, the plugin may persist last-used settings (filters, active module, geometry) via QSettings or other storage so that reopening the dialog restores a similar view. SessionManager itself does not clear the session on close; it keeps apiToken unless explicitly cleared.</bpmn:documentation>
+      <bpmn:incoming>Flow_WB_EmitSignals_To_PersistState</bpmn:incoming>
+      <bpmn:outgoing>Flow_WB_PersistState_To_End</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:endEvent id="End_WindowButtons" name="Window Button Action Completed (Detail View)">
+      <bpmn:incoming>Flow_WB_Minimize_To_End</bpmn:incoming>
+      <bpmn:incoming>Flow_WB_MaximizeRestore_To_End</bpmn:incoming>
+      <bpmn:incoming>Flow_WB_PersistState_To_End</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_Start_To_CheckProject" sourceRef="Start_PluginTriggered" targetRef="Task_CheckProjectLoaded" />
+    <bpmn:sequenceFlow id="Flow_CheckProject_To_Gateway_ProjectLoaded" sourceRef="Task_CheckProjectLoaded" targetRef="Gateway_ProjectLoaded" />
+    <bpmn:sequenceFlow id="Flow_ProjectLoaded_No" name="No Project" sourceRef="Gateway_ProjectLoaded" targetRef="Task_ShowNoProjectWarning" />
+    <bpmn:sequenceFlow id="Flow_ProjectLoaded_Yes" name="Project Loaded" sourceRef="Gateway_ProjectLoaded" targetRef="Task_LoadSession" />
+    <bpmn:sequenceFlow id="Flow_NoProject_To_End" sourceRef="Task_ShowNoProjectWarning" targetRef="End_NoProject" />
+    <bpmn:sequenceFlow id="Flow_LoadSession_To_RevalidateSession" sourceRef="Task_LoadSession" targetRef="Task_RevalidateSession" />
+    <bpmn:sequenceFlow id="Flow_RevalidateSession_To_Gateway_SessionRevalidated" sourceRef="Task_RevalidateSession" targetRef="Gateway_SessionRevalidated" />
+    <bpmn:sequenceFlow id="Flow_Revalidated_No" name="Session Invalid / Expired" sourceRef="Gateway_SessionRevalidated" targetRef="Task_OpenLoginDialog" />
+    <bpmn:sequenceFlow id="Flow_Revalidated_Yes" name="Session Valid" sourceRef="Gateway_SessionRevalidated" targetRef="Task_CheckIsLoggedIn" />
+    <bpmn:sequenceFlow id="Flow_UserLogin_To_Gateway_LoginSuccessful" sourceRef="UserTask_PerformLogin" targetRef="Gateway_LoginSuccessful" />
+    <bpmn:sequenceFlow id="Flow_LoginSuccessful_Yes" name="Flag True" sourceRef="Gateway_LoginSuccessful" targetRef="Task_OpenMainDialog" />
+    <bpmn:sequenceFlow id="Flow_LoginSuccessful_No" name="Flag False" sourceRef="Gateway_LoginSuccessful" targetRef="End_LoginCancelled" />
+    <bpmn:sequenceFlow id="Flow_IsLoggedIn_To_Gateway_IsLoggedIn" sourceRef="Task_CheckIsLoggedIn" targetRef="Gateway_IsLoggedIn" />
+    <bpmn:sequenceFlow id="Flow_IsLoggedIn_Yes" name="Token Present" sourceRef="Gateway_IsLoggedIn" targetRef="Task_OpenMainDialog" />
+    <bpmn:sequenceFlow id="Flow_IsLoggedIn_No" name="No Token" sourceRef="Gateway_IsLoggedIn" targetRef="End_LoginCancelled" />
+    <bpmn:sequenceFlow id="Flow_OpenMainDialog_To_End" sourceRef="Task_OpenMainDialog" targetRef="End_MainDialogOpened" />
+    <bpmn:sequenceFlow id="Flow_1g2ck4w" sourceRef="Task_OpenLoginDialog" targetRef="UserTask_PerformLogin" />
+    <bpmn:sequenceFlow id="Flow_SDetail_Start_To_Load" sourceRef="Start_SessionDetail" targetRef="Task_LoadSession_Detail" />
+    <bpmn:sequenceFlow id="Flow_SDetail_Load_To_ReadToken" sourceRef="Task_LoadSession_Detail" targetRef="Task_Read_QSettings_Token" />
+    <bpmn:sequenceFlow id="Flow_SDetail_ReadToken_To_ReadUser" sourceRef="Task_Read_QSettings_Token" targetRef="Task_Read_QSettings_User" />
+    <bpmn:sequenceFlow id="Flow_SDetail_ReadUser_To_Populate" sourceRef="Task_Read_QSettings_User" targetRef="Task_Populate_InMemory_Fields" />
+    <bpmn:sequenceFlow id="Flow_SDetail_Populate_To_End" sourceRef="Task_Populate_InMemory_Fields" targetRef="End_SessionDetail" />
+    <bpmn:sequenceFlow id="Flow_MDetail_Start_To_CheckInstance" sourceRef="Start_MainDialogDetail" targetRef="Task_CheckExistingPluginDialogInstance" />
+    <bpmn:sequenceFlow id="Flow_MDetail_CheckInstance_To_Gateway_Exists" sourceRef="Task_CheckExistingPluginDialogInstance" targetRef="Gateway_DialogInstanceExists" />
+    <bpmn:sequenceFlow id="Flow_MDetail_Exists_No" name="No Instance" sourceRef="Gateway_DialogInstanceExists" targetRef="Task_CreatePluginDialogInstance" />
+    <bpmn:sequenceFlow id="Flow_MDetail_Exists_Yes" name="Instance Present" sourceRef="Gateway_DialogInstanceExists" targetRef="Task_ShowRaiseActivateDialog" />
+    <bpmn:sequenceFlow id="Flow_MDetail_Create_To_Configure" sourceRef="Task_CreatePluginDialogInstance" targetRef="Task_ConfigureAndTranslateDialog" />
+    <bpmn:sequenceFlow id="Flow_MDetail_Configure_To_Show" sourceRef="Task_ConfigureAndTranslateDialog" targetRef="Task_ShowRaiseActivateDialog" />
+    <bpmn:sequenceFlow id="Flow_MDetail_Show_To_End" sourceRef="Task_ShowRaiseActivateDialog" targetRef="End_MainDialogDetail" />
+    <bpmn:sequenceFlow id="Flow_WB_Start_To_WhichButton" sourceRef="Start_WindowButtons" targetRef="Gateway_WhichWindowButton" />
+    <bpmn:sequenceFlow id="Flow_WB_Minimize" name="Minimize (_)" sourceRef="Gateway_WhichWindowButton" targetRef="Task_HandleMinimize" />
+    <bpmn:sequenceFlow id="Flow_WB_MaximizeRestore" name="Maximize / Restore (□)" sourceRef="Gateway_WhichWindowButton" targetRef="Task_HandleMaximizeRestore" />
+    <bpmn:sequenceFlow id="Flow_WB_Close" name="Close (X)" sourceRef="Gateway_WhichWindowButton" targetRef="Task_HandleClose" />
+    <bpmn:sequenceFlow id="Flow_WB_Minimize_To_End" sourceRef="Task_HandleMinimize" targetRef="End_WindowButtons" />
+    <bpmn:sequenceFlow id="Flow_WB_MaximizeRestore_To_End" sourceRef="Task_HandleMaximizeRestore" targetRef="End_WindowButtons" />
+    <bpmn:sequenceFlow id="Flow_WB_Close_To_EmitSignals" sourceRef="Task_HandleClose" targetRef="Task_EmitDialogClosedSignals" />
+    <bpmn:sequenceFlow id="Flow_WB_EmitSignals_To_PersistState" sourceRef="Task_EmitDialogClosedSignals" targetRef="Task_PersistStateOnClose" />
+    <bpmn:sequenceFlow id="Flow_WB_PersistState_To_End" sourceRef="Task_PersistStateOnClose" targetRef="End_WindowButtons" />
+    <bpmn:textAnnotation id="Annotation_SingletonReuse">
+      <bpmn:text>Singleton PluginDialog: created only once when no instance exists; all later toolbar clicks reuse this same instance (even after close).</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_SingletonReuse_To_ShowDialog" sourceRef="Annotation_SingletonReuse" targetRef="Task_ShowRaiseActivateDialog" />
+    <bpmn:textAnnotation id="Annotation_CloseHides">
+      <bpmn:text>Close (X) hides the dialog and keeps its state; the next open just shows/raises the same dialog again.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_CloseHides_To_HandleClose" sourceRef="Annotation_CloseHides" targetRef="Task_HandleClose" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_PluginLoginAndSessionFlow">
+    <bpmndi:BPMNPlane id="Plane_PluginLoginAndSessionFlow" bpmnElement="PluginLoginAndSessionFlow">
+      <bpmndi:BPMNShape id="Shape_Lane_WindowButtons" bpmnElement="Lane_WindowButtons" isHorizontal="true">
+        <dc:Bounds x="30" y="970" width="1600" height="510" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_MainDialogDetails" bpmnElement="Lane_MainDialogDetails" isHorizontal="true">
+        <dc:Bounds x="30" y="720" width="1600" height="250" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_SessionDetails" bpmnElement="Lane_SessionDetails" isHorizontal="true">
+        <dc:Bounds x="30" y="530" width="1600" height="190" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_SessionManager" bpmnElement="Lane_SessionManager" isHorizontal="true">
+        <dc:Bounds x="30" y="360" width="1600" height="170" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_WildCodePlugin" bpmnElement="Lane_WildCodePlugin" isHorizontal="true">
+        <dc:Bounds x="30" y="90" width="1600" height="270" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_QGISUser" bpmnElement="Lane_QGISUser" isHorizontal="true">
+        <dc:Bounds x="30" y="-110" width="1600" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Start_PluginTriggered" bpmnElement="Start_PluginTriggered" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="112" y="-8" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="86" y="-58" width="87" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CheckProjectLoaded" bpmnElement="Task_CheckProjectLoaded" bioc:stroke="#205022" bioc:fill="#e8f5e9" color:background-color="#e8f5e9" color:border-color="#205022">
+        <dc:Bounds x="60" y="240" width="200" height="60" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="60" y="305" width="200" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_ProjectLoaded" bpmnElement="Gateway_ProjectLoaded" isMarkerVisible="true" bioc:stroke="#ff9800" bioc:fill="#fff3e0" color:background-color="#fff3e0" color:border-color="#ff9800">
+        <dc:Bounds x="295" y="245" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="354.5" y="263" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ShowNoProjectWarning" bpmnElement="Task_ShowNoProjectWarning" bioc:stroke="#b71c1c" bioc:fill="#ffebee" color:background-color="#ffebee" color:border-color="#b71c1c">
+        <dc:Bounds x="190" y="110" width="260" height="60" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="190" y="175" width="260" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_NoProject" bpmnElement="End_NoProject" bioc:stroke="#b71c1c" bioc:fill="#ffebee" color:background-color="#ffebee" color:border-color="#b71c1c">
+        <dc:Bounds x="522" y="122" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="499" y="158" width="83" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_LoadSession" bpmnElement="Task_LoadSession" bioc:stroke="#205022" bioc:fill="#e8f5e9" color:background-color="#e8f5e9" color:border-color="#205022">
+        <dc:Bounds x="220" y="410" width="220" height="60" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="220" y="475" width="220" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_RevalidateSession" bpmnElement="Task_RevalidateSession" bioc:stroke="#ff9800" bioc:fill="#fff3e0" color:background-color="#fff3e0" color:border-color="#ff9800">
+        <dc:Bounds x="490" y="410" width="220" height="60" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="490" y="475" width="220" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_SessionRevalidated" bpmnElement="Gateway_SessionRevalidated" isMarkerVisible="true" bioc:stroke="#ff9800" bioc:fill="#fff3e0" color:background-color="#fff3e0" color:border-color="#ff9800">
+        <dc:Bounds x="765" y="415" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="757.5" y="474.5" width="65" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_OpenLoginDialog" bpmnElement="Task_OpenLoginDialog" bioc:stroke="#fb8c00" bioc:fill="#fff3e0" color:background-color="#fff3e0" color:border-color="#fb8c00">
+        <dc:Bounds x="660" y="180" width="260" height="60" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="660" y="245" width="260" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_UserTask_PerformLogin" bpmnElement="UserTask_PerformLogin" bioc:stroke="#fb8c00" bioc:fill="#fff3e0" color:background-color="#fff3e0" color:border-color="#fb8c00">
+        <dc:Bounds x="660" y="-20" width="260" height="60" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="660" y="45" width="260" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_LoginSuccessful" bpmnElement="Gateway_LoginSuccessful" isMarkerVisible="true" bioc:stroke="#ff9800" bioc:fill="#fff3e0" color:background-color="#fff3e0" color:border-color="#ff9800">
+        <dc:Bounds x="1165" y="-5" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1145" y="-42.5" width="90" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CheckIsLoggedIn" bpmnElement="Task_CheckIsLoggedIn" bioc:stroke="#205022" bioc:fill="#e8f5e9" color:background-color="#e8f5e9" color:border-color="#205022">
+        <dc:Bounds x="880" y="410" width="220" height="60" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="880" y="475" width="220" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_IsLoggedIn" bpmnElement="Gateway_IsLoggedIn" isMarkerVisible="true" bioc:stroke="#ff9800" bioc:fill="#fff3e0" color:background-color="#fff3e0" color:border-color="#ff9800">
+        <dc:Bounds x="1165" y="415" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1152" y="465" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_OpenMainDialog" bpmnElement="Task_OpenMainDialog" bioc:stroke="#2e7d32" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#2e7d32">
+        <dc:Bounds x="1030" y="180" width="260" height="60" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1030" y="245" width="260" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_MainDialogOpened" bpmnElement="End_MainDialogOpened" bioc:stroke="#2e7d32" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#2e7d32">
+        <dc:Bounds x="1363" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1348" y="228" width="66" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_LoginCancelled" bpmnElement="End_LoginCancelled" bioc:stroke="#b71c1c" bioc:fill="#ffebee" color:background-color="#ffebee" color:border-color="#b71c1c">
+        <dc:Bounds x="1452" y="422" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1427" y="458" width="86" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Start_SessionDetail" bpmnElement="Start_SessionDetail">
+        <dc:Bounds x="80" y="570" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="62" y="620" width="71" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_LoadSession_Detail" bpmnElement="Task_LoadSession_Detail">
+        <dc:Bounds x="160" y="558" width="260" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Read_QSettings_Token" bpmnElement="Task_Read_QSettings_Token">
+        <dc:Bounds x="460" y="558" width="260" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Read_QSettings_User" bpmnElement="Task_Read_QSettings_User">
+        <dc:Bounds x="760" y="558" width="260" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Populate_InMemory_Fields" bpmnElement="Task_Populate_InMemory_Fields">
+        <dc:Bounds x="1080" y="558" width="260" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_SessionDetail" bpmnElement="End_SessionDetail">
+        <dc:Bounds x="1402" y="570" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1377" y="606" width="87" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Start_MainDialogDetail" bpmnElement="Start_MainDialogDetail">
+        <dc:Bounds x="80" y="770" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="63" y="820" width="69" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CheckExistingPluginDialogInstance" bpmnElement="Task_CheckExistingPluginDialogInstance">
+        <dc:Bounds x="160" y="758" width="280" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_DialogInstanceExists" bpmnElement="Gateway_DialogInstanceExists" isMarkerVisible="true">
+        <dc:Bounds x="470" y="763" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="479" y="726" width="81" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Start_WindowButtons" bpmnElement="Start_WindowButtons">
+        <dc:Bounds x="122" y="1246" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="88" y="1303" width="84" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Gateway_WhichWindowButton" bpmnElement="Gateway_WhichWindowButton" isMarkerVisible="true">
+        <dc:Bounds x="210" y="1239" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="155" y="1199" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_HandleMinimize" bpmnElement="Task_HandleMinimize">
+        <dc:Bounds x="740" y="1350" width="260" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_HandleMaximizeRestore" bpmnElement="Task_HandleMaximizeRestore">
+        <dc:Bounds x="740" y="1234" width="260" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_HandleClose" bpmnElement="Task_HandleClose">
+        <dc:Bounds x="370" y="1133" width="260" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_EmitDialogClosedSignals" bpmnElement="Task_EmitDialogClosedSignals">
+        <dc:Bounds x="720" y="1133" width="280" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_PersistStateOnClose" bpmnElement="Task_PersistStateOnClose">
+        <dc:Bounds x="1080" y="1133" width="280" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_WindowButtons" bpmnElement="End_WindowButtons">
+        <dc:Bounds x="1202" y="1246" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1248" y="1244" width="86" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CreatePluginDialogInstance" bpmnElement="Task_CreatePluginDialogInstance">
+        <dc:Bounds x="540" y="758" width="280" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ShowRaiseActivateDialog" bpmnElement="Task_ShowRaiseActivateDialog">
+        <dc:Bounds x="870" y="860" width="280" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_MainDialogDetail" bpmnElement="End_MainDialogDetail">
+        <dc:Bounds x="1232" y="872" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1286" y="863" width="88" height="53" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ConfigureAndTranslateDialog" bpmnElement="Task_ConfigureAndTranslateDialog">
+        <dc:Bounds x="870" y="758" width="280" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Association_CloseHides_To_HandleClose" bpmnElement="Association_CloseHides_To_HandleClose">
+        <di:waypoint x="521" y="1100" />
+        <di:waypoint x="510" y="1133" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Association_SingletonReuse_To_ShowDialog" bpmnElement="Association_SingletonReuse_To_ShowDialog">
+        <di:waypoint x="1290" y="929" />
+        <di:waypoint x="1143" y="919" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Start_To_CheckProject" bpmnElement="Flow_Start_To_CheckProject">
+        <di:waypoint x="130" y="28" />
+        <di:waypoint x="130" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_CheckProject_To_Gateway_ProjectLoaded" bpmnElement="Flow_CheckProject_To_Gateway_ProjectLoaded">
+        <di:waypoint x="260" y="270" />
+        <di:waypoint x="295" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ProjectLoaded_No" bpmnElement="Flow_ProjectLoaded_No">
+        <di:waypoint x="320" y="245" />
+        <di:waypoint x="320" y="170" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="333" y="203" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_ProjectLoaded_Yes" bpmnElement="Flow_ProjectLoaded_Yes">
+        <di:waypoint x="320" y="295" />
+        <di:waypoint x="320" y="410" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="333" y="323" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_NoProject_To_End" bpmnElement="Flow_NoProject_To_End">
+        <di:waypoint x="450" y="140" />
+        <di:waypoint x="522" y="140" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_LoadSession_To_RevalidateSession" bpmnElement="Flow_LoadSession_To_RevalidateSession">
+        <di:waypoint x="440" y="440" />
+        <di:waypoint x="490" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_RevalidateSession_To_Gateway_SessionRevalidated" bpmnElement="Flow_RevalidateSession_To_Gateway_SessionRevalidated">
+        <di:waypoint x="710" y="440" />
+        <di:waypoint x="765" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Revalidated_No" bpmnElement="Flow_Revalidated_No">
+        <di:waypoint x="790" y="415" />
+        <di:waypoint x="790" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="799" y="303" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_Revalidated_Yes" bpmnElement="Flow_Revalidated_Yes">
+        <di:waypoint x="815" y="440" />
+        <di:waypoint x="880" y="440" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="807" y="393" width="66" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_UserLogin_To_Gateway_LoginSuccessful" bpmnElement="Flow_UserLogin_To_Gateway_LoginSuccessful">
+        <di:waypoint x="920" y="20" />
+        <di:waypoint x="1165" y="20" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_LoginSuccessful_Yes" bpmnElement="Flow_LoginSuccessful_Yes">
+        <di:waypoint x="1190" y="45" />
+        <di:waypoint x="1190" y="180" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1206" y="63" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_LoginSuccessful_No" bpmnElement="Flow_LoginSuccessful_No">
+        <di:waypoint x="1215" y="20" />
+        <di:waypoint x="1470" y="20" />
+        <di:waypoint x="1470" y="422" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1238" y="-7" width="52" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_IsLoggedIn_To_Gateway_IsLoggedIn" bpmnElement="Flow_IsLoggedIn_To_Gateway_IsLoggedIn">
+        <di:waypoint x="1100" y="440" />
+        <di:waypoint x="1165" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_IsLoggedIn_Yes" bpmnElement="Flow_IsLoggedIn_Yes">
+        <di:waypoint x="1190" y="415" />
+        <di:waypoint x="1190" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1204" y="310" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_IsLoggedIn_No" bpmnElement="Flow_IsLoggedIn_No">
+        <di:waypoint x="1215" y="440" />
+        <di:waypoint x="1452" y="440" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1323" y="421" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_OpenMainDialog_To_End" bpmnElement="Flow_OpenMainDialog_To_End">
+        <di:waypoint x="1290" y="210" />
+        <di:waypoint x="1363" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1g2ck4w_di" bpmnElement="Flow_1g2ck4w">
+        <di:waypoint x="790" y="180" />
+        <di:waypoint x="790" y="40" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_SDetail_Start_To_Load" bpmnElement="Flow_SDetail_Start_To_Load">
+        <di:waypoint x="116" y="588" />
+        <di:waypoint x="160" y="588" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_SDetail_Load_To_ReadToken" bpmnElement="Flow_SDetail_Load_To_ReadToken">
+        <di:waypoint x="420" y="588" />
+        <di:waypoint x="460" y="588" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_SDetail_ReadToken_To_ReadUser" bpmnElement="Flow_SDetail_ReadToken_To_ReadUser">
+        <di:waypoint x="720" y="588" />
+        <di:waypoint x="760" y="588" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_SDetail_ReadUser_To_Populate" bpmnElement="Flow_SDetail_ReadUser_To_Populate">
+        <di:waypoint x="1020" y="588" />
+        <di:waypoint x="1080" y="588" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_SDetail_Populate_To_End" bpmnElement="Flow_SDetail_Populate_To_End">
+        <di:waypoint x="1340" y="588" />
+        <di:waypoint x="1402" y="588" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_MDetail_Start_To_CheckInstance" bpmnElement="Flow_MDetail_Start_To_CheckInstance">
+        <di:waypoint x="116" y="788" />
+        <di:waypoint x="160" y="788" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_MDetail_CheckInstance_To_Gateway_Exists" bpmnElement="Flow_MDetail_CheckInstance_To_Gateway_Exists">
+        <di:waypoint x="440" y="788" />
+        <di:waypoint x="470" y="788" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_MDetail_Exists_No" bpmnElement="Flow_MDetail_Exists_No">
+        <di:waypoint x="520" y="788" />
+        <di:waypoint x="540" y="788" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="496" y="735" width="59" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_MDetail_Exists_Yes" bpmnElement="Flow_MDetail_Exists_Yes">
+        <di:waypoint x="495" y="813" />
+        <di:waypoint x="495" y="890" />
+        <di:waypoint x="870" y="890" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="615" y="875" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_MDetail_Create_To_Configure" bpmnElement="Flow_MDetail_Create_To_Configure">
+        <di:waypoint x="820" y="788" />
+        <di:waypoint x="870" y="788" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_MDetail_Configure_To_Show" bpmnElement="Flow_MDetail_Configure_To_Show">
+        <di:waypoint x="990" y="818" />
+        <di:waypoint x="990" y="860" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_MDetail_Show_To_End" bpmnElement="Flow_MDetail_Show_To_End">
+        <di:waypoint x="1150" y="890" />
+        <di:waypoint x="1232" y="890" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_WB_Start_To_WhichButton" bpmnElement="Flow_WB_Start_To_WhichButton">
+        <di:waypoint x="158" y="1265" />
+        <di:waypoint x="211" y="1265" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_WB_Minimize" bpmnElement="Flow_WB_Minimize">
+        <di:waypoint x="235" y="1289" />
+        <di:waypoint x="235" y="1380" />
+        <di:waypoint x="740" y="1380" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="289" y="1346" width="61" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_WB_MaximizeRestore" bpmnElement="Flow_WB_MaximizeRestore">
+        <di:waypoint x="260" y="1264" />
+        <di:waypoint x="740" y="1264" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="282" y="1229" width="56" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_WB_Close" bpmnElement="Flow_WB_Close">
+        <di:waypoint x="235" y="1239" />
+        <di:waypoint x="235" y="1163" />
+        <di:waypoint x="370" y="1163" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="276" y="1138" width="47" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_WB_Minimize_To_End" bpmnElement="Flow_WB_Minimize_To_End">
+        <di:waypoint x="1000" y="1387" />
+        <di:waypoint x="1220" y="1387" />
+        <di:waypoint x="1220" y="1282" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_WB_MaximizeRestore_To_End" bpmnElement="Flow_WB_MaximizeRestore_To_End">
+        <di:waypoint x="1000" y="1264" />
+        <di:waypoint x="1202" y="1264" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_WB_Close_To_EmitSignals" bpmnElement="Flow_WB_Close_To_EmitSignals">
+        <di:waypoint x="630" y="1163" />
+        <di:waypoint x="720" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_WB_EmitSignals_To_PersistState" bpmnElement="Flow_WB_EmitSignals_To_PersistState">
+        <di:waypoint x="1000" y="1163" />
+        <di:waypoint x="1080" y="1163" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_WB_PersistState_To_End" bpmnElement="Flow_WB_PersistState_To_End">
+        <di:waypoint x="1220" y="1193" />
+        <di:waypoint x="1220" y="1246" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Shape_Annotation_CloseHides" bpmnElement="Annotation_CloseHides">
+        <dc:Bounds x="370" y="1040" width="360" height="60" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Annotation_SingletonReuse" bpmnElement="Annotation_SingletonReuse">
+        <dc:Bounds x="1290" y="900" width="360" height="60" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
