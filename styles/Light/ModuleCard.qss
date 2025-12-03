@@ -118,8 +118,7 @@ QLabel#ProjectNumberBadge {
     color: #0b3d91;
     background: rgba(0,120,212,0.15);
     border: 1px solid rgba(0,120,212,0.50);
-    min-width: 24px;
-    max-width: 80px;
+    width: 100px;
     text-align: center;
     letter-spacing: 0.2px;
     white-space: nowrap;

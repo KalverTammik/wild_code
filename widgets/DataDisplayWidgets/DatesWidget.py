@@ -5,6 +5,7 @@ from typing import Optional
 from ..DateHelpers import DateHelpers
 from ..theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
+from ...languages.translation_keys import TranslationKeys
 
 
 class DatesPopupWidget(QWidget):
@@ -81,7 +82,7 @@ class DatesWidget(QWidget):
 
         locale = QLocale.system()
         today = datetime.datetime.now().date()
-
+        
         start_dt   = DateHelpers.parse_iso(item_data.get('startAt'))
         due_dt     = DateHelpers.parse_iso(item_data.get('dueAt'))
         created_dt = DateHelpers.parse_iso(item_data.get('createdAt'))
@@ -96,28 +97,45 @@ class DatesWidget(QWidget):
         def full_tooltip(prefix: str, dt: Optional[datetime.datetime]) -> str:
             return DateHelpers.build_label(prefix, dt, locale)
 
-        # Create the main due date display
-        if due_dt:
-            state = DateHelpers.due_state(due_dt.date(), today)
+        def translate_label(key, fallback):
+            if self.lang_manager:
+                try:
+                    translated = self.lang_manager.translate(key)
+                    if translated:
+                        return translated
+                except Exception:
+                    return fallback
+            return fallback
 
-            # Due date container
+        date_options = [
+            {"label": translate_label(TranslationKeys.DUE, "Tähtaeg"), "dt": due_dt, "type": "due"},
+            {"label": translate_label(TranslationKeys.START, "Algus"), "dt": start_dt, "type": "start"},
+            {"label": translate_label(TranslationKeys.CREATED, "Loodud"), "dt": created_dt, "type": "created"},
+            {"label": translate_label(TranslationKeys.UPDATED, "Uuendatud"), "dt": updated_dt, "type": "updated"},
+        ]
+
+        primary_option = next((opt for opt in date_options if opt["dt"]), None)
+
+        if primary_option:
+            primary_dt = primary_option["dt"]
+            state = None
+            if primary_option["type"] == "due" and primary_dt:
+                state = DateHelpers.due_state(primary_dt.date(), today)
+
             due_container = QFrame(self)
             due_container.setObjectName("DueDateContainer")
             due_layout = QHBoxLayout(due_container)
             due_layout.setContentsMargins(4, 2, 4, 2)
             due_layout.setSpacing(4)
 
-            # Due date label
-            due_label = QLabel("Tähtaeg:")
+            due_label = QLabel(f"{primary_option['label']}:")
             due_label.setObjectName("DateLabel")
             due_layout.addWidget(due_label)
 
-            # Due date value
-            due_value = QLabel(short_date(due_dt))
+            due_value = QLabel(short_date(primary_dt))
             due_value.setObjectName("DateValue")
-            due_value.setToolTip(full_tooltip("Tähtaeg", due_dt))
+            due_value.setToolTip(full_tooltip(primary_option['label'], primary_dt))
 
-            # Apply state-based properties for theming
             if state == 'overdue':
                 due_value.setProperty("overdue", "true")
             elif state == 'soon':
@@ -126,25 +144,26 @@ class DatesWidget(QWidget):
             due_layout.addWidget(due_value)
             due_layout.addStretch()
 
-            # Make the container hoverable for showing all dates
             due_container.setMouseTracking(True)
             due_container.installEventFilter(self)
 
             main_layout.addWidget(due_container)
+        else:
+            placeholder = QLabel("Kuupäevad puuduvad")
+            placeholder.setObjectName("DateLabel")
+            placeholder.setStyleSheet("color: rgb(130, 130, 130);")
+            main_layout.addWidget(placeholder)
 
 
         # Store other dates for hover popup
-        from ...languages.translation_keys import TranslationKeys
-        self.other_dates = []
-        if start_dt:
-            self.other_dates.append((self.lang_manager.translate(TranslationKeys.START) + ":", start_dt))
-        if created_dt:
-            self.other_dates.append((self.lang_manager.translate(TranslationKeys.CREATED) + ":", created_dt))
-        if updated_dt:
-            self.other_dates.append((self.lang_manager.translate(TranslationKeys.UPDATED) + ":", updated_dt))
+        self.other_dates = [
+            (f"{opt['label']}:", opt["dt"])
+            for opt in date_options
+            if opt["dt"] and opt is not primary_option
+        ]
 
         self.hover_popup = None
-        ThemeManager.apply_module_style(self, [QssPaths.DATES])
+        self.retheme()
 
 
     def eventFilter(self, obj, event):
@@ -183,7 +202,6 @@ class DatesWidget(QWidget):
         # Force style refresh for dynamic properties
         self.style().unpolish(self)
         self.style().polish(self)
-
         # Also retheme the popup if it's currently shown
-        if self.hover_popup and hasattr(self.hover_popup, 'retheme'):
+        if self.hover_popup and isinstance(self.hover_popup, DatesPopupWidget):
             self.hover_popup.retheme()

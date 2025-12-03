@@ -20,11 +20,14 @@ query property(
           id
           number
           name
+          startAt
           sum {
             amount
             currencyCode
           }
           dueAt
+          createdAt
+          updatedAt
           status {
             id
             name

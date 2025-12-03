@@ -90,6 +90,7 @@ __pypackages__/
 
 # VS Code
 .vscode/
+vs-code-bpmn-io/
 
 # QGIS plugin specific
 .qgis2/

@@ -202,7 +202,7 @@ class TranslationKeys:
     EDIT = "Edit"
     SELECT = "Select"
     SEARCH = "Search"
-    WARNING = "Warning"
+    SEARCHING = "Searching"
     FIELD_REQUIRED = "This field is required"
     INVALID_VALUE = "Invalid value"
     VALUE_MUST_BE_GREATER_THAN_MIN = "Value must be greater than {min}"
@@ -220,44 +220,13 @@ class TranslationKeys:
     CHOOSE_LAYERS_USED_BY_THIS_MODULE = "Choose layers used by this module (element and archive)."
     CHOOSE_PROPERTY_LAYER_FOR_MODULE = "Select a property layer for data operations and management."
 
-    # UI tooltips
-    LOGOUT_BUTTON_TOOLTIP = "Log out from your account"
-    SEARCH_TOOLTIP = "This feature is not yet available"
-    SEARCH_PLACEHOLDER = "Search..."
-    SIDEBAR_EXPAND_TOOLTIP = "Expand Sidebar"
-    THEME_SWITCH_TOOLTIP = "Switch between dark and light theme"
-    DEV_DBG_TOOLTIP = "Toggle developer logs (print) on/off"
-    DEV_FRAMES_TOOLTIP = "Show/Hide FRAME labels on the home page"
-    SESSION_EXPIRED = "Your session has expired. Please sign in again."
-    SESSION_EXPIRED_TITLE = "Session Expired"
-
-    # Status preferences
-    STATUS_PREFERENCES = "Status Preferences"
+    # Status preferences (extended copy)
     SELECT_STATUSES_YOU_WANT_TO_PRIORITIZE = "Select statuses you want to prioritize for this module. These will be highlighted in the interface."
-    URGENT_GROUP_TITLE = "Urgent!"
-    URGENT_TOOLTIP = "What needs fast attention"
-    STATUS_FILTER = "Filter by Status"
-    TAGS_FILTER = "Filter by Tags"
-    TYPE_FILTER = "Filter by Type"
-    TYPE_GROUP_FILTER = "Filter by Type Group"
-    RESET = "Reset"
-    RESET_ALL_SETTINGS = "Reset all settings for this module to default values"
-    SETTINGS_RESET_TO_DEFAULTS = "Settings reset to defaults"
     SELECT_A_PROPERTY_LAYER = "Select a property layer..."
 
     # Project numbers
 
     WHEN_ENABLED_PROJECT_CONTRACT_NUMBERS = "When enabled, project/contract numbers will be displayed in item cards for easy identification."
-
-    # User profile
-    USER_PROFILE = "User Profile"
-    ROLES_PERMISSIONS = "Roles & Permissions"
-    ADMINISTRATOR = "Administrator"
-    EDITOR = "Editor"
-    VIEWER = "Viewer"
-    DASHBOARD = "Dashboard"
-    REPORTS = "Reports"
-    ADMIN = "Admin"
 
     # Learning content (seems like test content)
     A_TAHE_OPPIMINE = "A tähe õppimine"
@@ -267,143 +236,74 @@ class TranslationKeys:
     B_TAHT_ON_EESTI_TAHESTIKUS_TEINE_TAHT = "B täht on eesti tähestikus teine täht. Seda kasutatakse paljudes sõnades, näiteks 'banaan' ja 'buss'. B tähe õppimine aitab laiendada sõnavara ja parandada hääldust."
     C_TAHT_ESINEB_EESTI_KEELes = "C täht esineb eesti keeles peamiselt võõrsõnades, näiteks 'cirkus' või 'cello'. C tähe tundmine aitab mõista ja lugeda rahvusvahelisi sõnu."
 
-    # Property management
-    PROPERTY_MANAGEMENT = "Property Management"
-    QUICK_ACTIONS = "Quick Actions"
-    ADD_SHP_FILE = "Add Shp file"
-    ADD_PROPERTY = "Add property"
-    REMOVE_PROPERTY = "Remove property"
-    LOAD_SHAPEFILE = "Load Shapefile"
-    SELECT_SHAPEFILE = "Select Shapefile"
-    SHAPEFILE_LOADED_SUCCESSFULLY = "Shapefile loaded successfully"
-    SHAPEFILE_LOADED_MESSAGE = "Shapefile '{name}' has been loaded in group 'New properties'"
-    SHAPEFILE_LOADED_WITH_DATA_MESSAGE = "Shapefile '{name}' has been loaded in group 'New properties' ({count} features imported)"
-    INVALID_SHAPEFILE = "Invalid Shapefile"
-    INVALID_SHAPEFILE_MESSAGE = "Selected Shapefile file is not valid."
-    SHAPEFILE_LOAD_FAILED = "Shapefile load failed"
-    SHAPEFILE_LOAD_FAILED_MESSAGE = "Shapefile file loading failed."
-    SHAPEFILE_LOADING_ERROR = "Shapefile loading error"
-    IMPORTING_SHAPEFILE = "Importing Shapefile"
-    PROCESSING_FEATURES = "Processing features"
-    FEATURES_COPIED = "Features copied"
-    IMPORT_COMPLETE = "Import complete"
-    FEATURES_IMPORTED = "features imported"
-    FEATURE_IMPORTED = "feature imported"
-    INITIALIZING = "Initializing..."
-    CANCEL = "Cancel"
-
-
-    # Property dialog
-    ADD_NEW_PROPERTY = "Add New Property"
+    # Property dialog extensions
     SELECT_PROPERTIES = "Select Properties"
     SELECT_A_PROPERTY_TEMPLATE_TO_ADD = "Select a property template to add:"
-    RESIDENTIAL_PROPERTY = "Residential Property"
-    COMMERCIAL_PROPERTY = "Commercial Property"
-    INDUSTRIAL_PROPERTY = "Industrial Property"
-    AGRICULTURAL_LAND = "Agricultural Land"
-    VACANT_LAND = "Vacant Land"
     STANDARD_RESIDENTIAL_PROPERTY_TEMPLATE = "Standard residential property template"
-    COMMERCIAL_BUILDING_TEMPLATE = "Commercial building template"
-    INDUSTRIAL_FACILITY_TEMPLATE = "Industrial facility template"
-    AGRICULTURAL_LAND_TEMPLATE = "Agricultural land template"
-    EMPTY_LAND_PARCEL_TEMPLATE = "Empty land parcel template"
-
-    # Property details
-    PROPERTY_DETAILS = "Property Details"
-    ADDITIONAL_INFORMATION = "Additional Information"
-    PROPERTY_NAME = "Property Name"
-    PROPERTY_TYPE = "Property Type"
-    AREA = "Area (m²)"
-    VALUE = "Value (€)"
-    RESIDENTIAL = "Residential"
-    COMMERCIAL = "Commercial"
-    INDUSTRIAL = "Industrial"
-    AGRICULTURAL = "Agricultural"
-    OTHER = "Other"
-    ENTER_PROPERTY_NAME = "Enter property name"
-    ENTER_AREA_IN_M2 = "Enter area in m²"
-    ENTER_PROPERTY_VALUE = "Enter property value"
-    ENTER_PROPERTY_ADDRESS = "Enter property address"
-    ENTER_ADDITIONAL_NOTES = "Enter additional notes or description"
-    ADD_PROPERTY = "Add Property"
-    PROPERTY_NAME_IS_REQUIRED = "Property name is required."
-    AREA_MUST_BE_GREATER_THAN_0 = "Area must be greater than 0."
-    VALUE_MUST_BE_GREATER_THAN_0 = "Value must be greater than 0."
-    VALIDATION_ERROR = "Validation Error"
-
-    # Property fields
-    CADASTRAL_ID = "Cadastral ID"
-    ADDRESS = "Address"
-    SETTLEMENT = "Settlement"
-
-    # UI elements
-    SAVE = "Save"
-    DELETE = "Delete"
-    EDIT = "Edit"
-    SELECT = "Select"
-    SEARCH = "Search"
-    CLOSE = "Close"
     SELECT_ALL = "Select All"
     CLEAR_SELECTION = "Clear Selection"
     ADD_SELECTED = "Add Selected"
+    CLOSE = "Close"
 
-    # Selection and filtering
+    # Property selection filters
     SELECT_COUNTY = "Select County"
     SELECT_MUNICIPALITY = "Select Municipality"
+    SELECT_SETTLEMENTS = "Select Settlements"
     FILTER_BY_LOCATION = "Filter by Location"
+
+    # Property state messaging
+    SELECTED_PROPERTIES_COUNT = "Selected: 0 properties"
+    SELECTED_COUNT_TEMPLATE = "Selected: {count} properties"
+    SELECTED_PROPERTIES_ADDED = "Selected properties have been added."
+    PROPERTIES_ADDED = "Properties Added"
+    NO_SELECTION = "No Selection"
+    SELECT_PROPERTY_FIRST = "Please select a property feature on the map first."
+    SELECT_SINGLE_PROPERTY_TITLE = "Select Single Property"
+    SELECT_SINGLE_PROPERTY_MESSAGE = "Please select only one property feature on the map."
+    CHOOSE_FROM_MAP = "Choose from map"
+
+    # Property form helpers
+    ENTER_AREA_IN_M2 = "Enter area in m²"
+    PROPERTY_NAME_IS_REQUIRED = "Property name is required."
+    AREA_MUST_BE_GREATER_THAN_0 = "Area must be greater than 0."
+    VALUE_MUST_BE_GREATER_THAN_0 = "Value must be greater than 0."
+    VALUE_TOO_SMALL = "Value must be greater than {min}"
+    VALUE_TOO_LARGE = "Value must be less than {max}"
+    REQUIRED_FIELD = "This field is required"
+    PLEASE_SELECT_AT_LEAST_ONE_PROPERTY = "Please select at least one property."
 
     # Status messages
     LOADING = "Loading"
     SAVING = "Saving"
     DELETING = "Deleting"
     SUCCESS = "Success"
-    ERROR = "Error"
     WARNING = "Warning"
-
-    # Selection messages
-    SELECTED_PROPERTIES_COUNT = "Selected: 0 properties"
-    SELECTED_COUNT_TEMPLATE = "Selected: {count} properties"
-    NO_SELECTION = "No Selection"
-    PLEASE_SELECT_AT_LEAST_ONE_PROPERTY = "Please select at least one property."
-
-    # Error messages
-    NO_PROPERTY_LAYER_SELECTED = "No property layer selected. Please select a property layer first."
-    DATA_LOADING_ERROR = "Data Loading Error"
-    FAILED_TO_LOAD_PROPERTY_DATA = "Failed to load property data from layer."
-    PROPERTIES_ADDED = "Properties Added"
-    SELECTED_PROPERTIES_ADDED = "Selected properties have been added."
-
-    # Validation messages
-    REQUIRED_FIELD = "This field is required"
-    INVALID_VALUE = "Invalid value"
-    VALUE_TOO_SMALL = "Value must be greater than {min}"
-    VALUE_TOO_LARGE = "Value must be less than {max}"
 
     # Common actions
     YES = "Yes"
     NO = "No"
     OK = "OK"
 
-    # Common field labels (base keys - use translate_with_suffix for labels with colons)
-  
-    # Date labels
-    START = "Start"
-    CREATED = "Created"
-    UPDATED = "Updated"
-    
-    CHOOSE_FROM_MAP = "Choose from map"
-    NO_SELECTION = "No Selection"
-    SELECT_PROPERTY_FIRST = "Please select a property feature on the map first."
+    # Error messaging
     ERROR = "Error"
     ERROR_SELECTING_PROPERTY = "Error selecting property"
+    NO_PROPERTY_LAYER_SELECTED = "No property layer selected. Please select a property layer first."
+    DATA_LOADING_ERROR = "Data Loading Error"
+    FAILED_TO_LOAD_PROPERTY_DATA = "Failed to load property data from layer."
+
+    # Geography fields
     COUNTY = "County"
     MUNICIPALITY = "Municipality"
 
-    SELECT_SETTLEMENTS = "Select Settlements"
+    # Parameters
+    CONNECTIONS = "Connections"
 
-    # Property selection messages
-    SELECT_SINGLE_PROPERTY_TITLE = "Select Single Property"
-    SELECT_SINGLE_PROPERTY_MESSAGE = "Please select only one property feature on the map."
+    # Date labels
+    DUE = "DueAt"
+    START = "Start"
+    CREATED = "Created"
+    UPDATED = "Updated"
+
 
 class DialogLabels:
 

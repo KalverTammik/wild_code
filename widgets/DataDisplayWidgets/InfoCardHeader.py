@@ -75,7 +75,6 @@ class InfocardHeaderFrame(QFrame):
             numberBadge.setObjectName("ProjectNumberBadge")
             numberBadge.setAlignment(Qt.AlignCenter)
             numberBadge.setMinimumWidth(24)
-            numberBadge.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
 
         name = item_data.get('name')

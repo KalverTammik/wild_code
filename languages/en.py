@@ -240,4 +240,5 @@ TRANSLATIONS = {
     ,TranslationKeys.CREATED: "Created"
     ,TranslationKeys.UPDATED: "Updated"
     ,"Signaltest": "Test Lab"
+    ,TranslationKeys.CONNECTIONS: "Connections"
 }

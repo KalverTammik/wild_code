@@ -23,6 +23,10 @@ query property(
             name
           }
           jobName
+          startAt
+          dueAt
+          createdAt
+          updatedAt
           members {
             edges {
               node {

@@ -21,7 +21,11 @@ query property(
           number
           name
           receivedAt
+          startAt: receivedAt
           processedAt
+          dueAt: processedAt
+          createdAt
+          updatedAt
           members {
             edges {
               node {

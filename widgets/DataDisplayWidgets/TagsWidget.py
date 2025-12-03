@@ -100,7 +100,6 @@ class TagsWidget(QWidget):
 
     @staticmethod
     def _extract_tag_names(item_data: dict):
-        print(f"Extracting tags from item_data: {item_data}")
         tags_edges = ((item_data or {}).get('tags') or {}).get('edges') or []
         names = [((e or {}).get('node') or {}).get('name') for e in tags_edges]
         names = [n.strip() for n in names if isinstance(n, str) and n.strip()]

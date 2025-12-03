@@ -6,6 +6,7 @@ from .StatusWidget import StatusWidget
 from .MembersView import MembersView
 from .ExtraInfoWidget import ExtraInfoFrame
 from .InfoCardHeader import InfocardHeaderFrame
+from .DatesWidget import DatesWidget
 from .ModuleConnectionActions import ModuleConnectionActions
 from ..theme_manager import IntensityLevels, styleExtras, ThemeShadowColors
 
@@ -49,19 +50,29 @@ class ModuleFeedBuilder:
 
         header_row = QGridLayout()
         header_row.setContentsMargins(0, 2, 0, 2)
-        header_row.setHorizontalSpacing(6)
-        header_row.setVerticalSpacing(2)
-
-        # Header takes available space, members view stays compact on right
-        header_frame = InfocardHeaderFrame(item, module_name=module_name)
-        header_row.addWidget(header_frame, 0, 0, 2, 1)
+        header_row.setHorizontalSpacing(2)
         header_row.setColumnStretch(0, 1)
-        header_row.setRowStretch(1, 1)
-
 
         item_id = item.get('id')
         if item_id is None:
             raise ValueError("Module feed items must include an 'id' field")
+        pos = 0
+
+        # Header takes available space, other widgets align to the right
+        header_frame = InfocardHeaderFrame(item, module_name=module_name)
+        header_row.addWidget(header_frame, 0, pos, Qt.AlignVCenter)
+
+        pos_next = pos + 1
+
+        dates_widget = DatesWidget(
+            item,
+            parent=card,
+            compact=False,
+            lang_manager=lang_manager,
+        )
+        header_row.addWidget(dates_widget, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
+
+        pos_next += 1
 
         file_path = item.get('filesPath', '')
         properties_conn = item.get('properties') or {}
@@ -75,30 +86,26 @@ class ModuleFeedBuilder:
             bool(properties_count),
             lang_manager=lang_manager,
         )
-        header_row.addWidget(actions_widget, 0, 1, Qt.AlignTop)
+        header_row.addWidget(actions_widget, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
 
-        # Members view with optimized width for responsible avatars + card stacking
+        pos_next += 1
+
         members_view = MembersView(item)
-        members_view.setFixedWidth(100)  # Increased width for responsible avatars
-        header_row.addWidget(members_view, 0, 4, 2, 1, Qt.AlignRight | Qt.AlignTop)
+        if members_view:
+            members_view.setFixedWidth(100)
+            header_row.addWidget(members_view, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
+
+        pos_next += 1
+
+        status_widget_header = StatusWidget(item)
+        if status_widget_header:
+            header_row.addWidget(status_widget_header, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
 
         cl.addLayout(header_row)
 
         cl.addWidget(ExtraInfoFrame(item_id, module_name))
         main.addWidget(content, 1)
 
-        # Right status column
-        status_col = QVBoxLayout()
-        status_col.setContentsMargins(0, 0, 0, 0)
-        status_col.setSpacing(8)  # Consistent spacing
-
-        # Status widget at top
-        status_widget = StatusWidget(item, show_private_icon=False, lang_manager=lang_manager)
-        status_col.addWidget(status_widget, 0, Qt.AlignTop | Qt.AlignRight)
-
-        # Add stretch to push status to top
-        status_col.addStretch(1)
-
-        main.addLayout(status_col)
+        # Right status column removed in favour of inline header placement
         return card
 

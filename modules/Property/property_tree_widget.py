@@ -20,8 +20,10 @@ from ...widgets.DataDisplayWidgets.MembersView import MembersView
 from ...widgets.DataDisplayWidgets.StatusWidget import StatusWidget
 from ...widgets.DataDisplayWidgets.InfoCardHeader import InfocardHeaderFrame
 from ...widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
-from ...widgets.DataDisplayWidgets.TagsWidget import TagsWidget
+from ...widgets.DataDisplayWidgets.DatesWidget import DatesWidget
 from ...languages.translation_keys import TranslationKeys
+from ...widgets.DelayHelpers.LoadingSpinner import GradientSpinner
+from ...languages.language_manager import LanguageManager
 
 
 class PropertyTreeWidget(QFrame):
@@ -32,18 +34,13 @@ class PropertyTreeWidget(QFrame):
         self.setObjectName("PropertyTree")
         self.setFrameStyle(QFrame.NoFrame)
         self._current_entries: List[Dict[str, Any]] = []
-        self.lang_manager = lang_manager
+        self.lang_manager = LanguageManager()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 6, 6, 6)
         layout.setSpacing(10)
 
-        title_text = "Kinnistuga seotud andmed"
-        if self.lang_manager:
-            try:
-                title_text = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_HEADER) or title_text
-            except Exception:
-                pass
+        title_text = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_HEADER)
         title = QLabel(title_text)
         title_font = QFont()
         title_font.setBold(True)
@@ -62,12 +59,8 @@ class PropertyTreeWidget(QFrame):
         self.cards_layout.setSpacing(10)
         self.scroll_area.setWidget(self.cards_container)
 
-        default_message = "Vali kinnistu kaardilt"
-        if self.lang_manager:
-            try:
-                default_message = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE) or default_message
-            except Exception:
-                pass
+        default_message = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE) or default_message
+  
         self.show_message(default_message)
 
     # --- Public API ------------------------------------------------------
@@ -78,16 +71,11 @@ class PropertyTreeWidget(QFrame):
         self.cards_layout.addWidget(MessageCard(message))
         self.cards_layout.addStretch(1)
 
-    def show_loading(self, message: Optional[str] = None):
+    def show_loading(self):
         self._current_entries = []
         self._reset_cards()
-        resolved = message or "Laen seotud andmeid..."
-        if message is None and self.lang_manager:
-            try:
-                resolved = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_LOADING) or resolved
-            except Exception:
-                pass
-        self.cards_layout.addWidget(MessageCard(resolved, is_loading=True))
+        message = self.lang_manager.translate(TranslationKeys.CONNECTIONS)
+        self.cards_layout.addWidget(MessageCard(message, is_loading=True))
         self.cards_layout.addStretch(1)
 
     def load_connections(self, entries: List[Dict[str, Any]]):
@@ -95,12 +83,7 @@ class PropertyTreeWidget(QFrame):
         self._reset_cards()
 
         if not entries:
-            no_connections = "Seoseid ei leitud"
-            if self.lang_manager:
-                try:
-                    no_connections = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS) or no_connections
-                except Exception:
-                    pass
+            no_connections = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS)
             self.cards_layout.addWidget(MessageCard(no_connections))
             self.cards_layout.addStretch(1)
             return
@@ -121,12 +104,7 @@ class PropertyTreeWidget(QFrame):
 
     def refresh_tree_data(self):
         if not self._current_entries:
-            no_data = "Andmed puuduvad"
-            if self.lang_manager:
-                try:
-                    no_data = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_DATA) or no_data
-                except Exception:
-                    pass
+            no_data = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_DATA)
             self.show_message(no_data)
             return
         self.load_connections(self._current_entries)
@@ -163,16 +141,23 @@ class MessageCard(QFrame):
 
         content_frame = QFrame(self)
         content_frame.setObjectName("CardContent")
-        layout = QHBoxLayout(content_frame)
-        layout.setContentsMargins(8, 6, 8, 6)
+        layout = QVBoxLayout(content_frame)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(10)
+        layout.setAlignment(Qt.AlignCenter)
 
-        label = QLabel(message)
-        font = QFont()
-        font.setPointSize(10)
-        font.setBold(is_loading)
-        label.setFont(font)
-        label.setWordWrap(True)
-        layout.addWidget(label)
+        if is_loading:
+            spinner = GradientSpinner(
+                content_frame,
+                diameter=80,
+                text=LanguageManager().translate(TranslationKeys.LOADING),
+                sub_text= message,
+                border_thickness=8,
+                dots_interval_ms=320,
+            )
+            spinner.setFixedSize(120, 120)
+            spinner.start()
+            layout.addWidget(spinner, alignment=Qt.AlignCenter)
 
         outer.addWidget(content_frame)
 
@@ -188,7 +173,6 @@ class PropertyConnectionCard(QFrame):
     ):
         super().__init__(parent)
         self.entry = entry or {}
-        self.lang_manager = lang_manager
         self.setObjectName("ModuleInfoCard")
         self.setFrameStyle(QFrame.NoFrame)
         styleExtras.apply_chip_shadow(
@@ -212,7 +196,7 @@ class PropertyConnectionCard(QFrame):
 
         modules = self.entry.get("moduleConnections") or {}
         if not modules:
-            empty_text = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS) or empty_text
+            empty_text = LanguageManager().translate(TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS)
             empty = QLabel(empty_text)
             empty.setStyleSheet("color: rgb(130, 130, 130);")
             content_layout.addWidget(empty)
@@ -223,7 +207,7 @@ class PropertyConnectionCard(QFrame):
             section = ModuleConnectionSection(
                 module_key,
                 module_info,
-                lang_manager=self.lang_manager,
+                lang_manager=LanguageManager(),
             )
             content_layout.addWidget(section)
 
@@ -302,12 +286,7 @@ class ModuleConnectionSection(QFrame):
         body_layout.setSpacing(4)
 
         if not items:
-            empty_text = "Kirjeid ei ole"
-            if lang_manager:
-                try:
-                    empty_text = lang_manager.translate(TranslationKeys.PROPERTY_TREE_MODULE_EMPTY) or empty_text
-                except Exception:
-                    pass
+            empty_text = lang_manager.translate(TranslationKeys.PROPERTY_TREE_MODULE_EMPTY)
             empty = QLabel(empty_text)
             empty.setStyleSheet("color: rgb(120, 120, 120);")
             body_layout.addWidget(empty)
@@ -353,17 +332,22 @@ class ModuleConnectionRow(QFrame):
         grid.setHorizontalSpacing(2)
         grid.setColumnStretch(1, 1)
 
+        pos = 0
+
         header_frame = InfocardHeaderFrame(self.raw, module_name=self.module_key)
-        grid.addWidget(header_frame, 0, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        grid.addWidget(header_frame, 0, pos, Qt.AlignVCenter)
 
+        pos_next = pos + 1
 
-        tags = TagsWidget._extract_tag_names(self.raw)
-        print (f"Extracted tags for PropertyConnectionRow:", tags)
-        tags_widget = TagsWidget(
-            tags,
+        date = DatesWidget(
+            self.raw,
             parent=self,
+            compact= False,
+            lang_manager=self.lang_manager,
         )
-        grid.addWidget(tags_widget, 0, 1, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(date, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
+
+        pos_next = pos_next + 1
 
         file_path = self._extract_file_path()
         has_connections = self._has_property_connections()
@@ -375,20 +359,23 @@ class ModuleConnectionRow(QFrame):
             lang_manager=lang_manager,
             parent=self,
         )
-        grid.addWidget(actions_widget, 0, 1, Qt.AlignRight | Qt.AlignVCenter)
+        grid.addWidget(actions_widget, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
+
+        pos_next = pos_next + 1
 
         members_view = MembersView(self.raw, parent=self)
         if members_view:
             members_view.setFixedWidth(100)
-            grid.addWidget(members_view, 0, 2, Qt.AlignRight | Qt.AlignVCenter)
+            grid.addWidget(members_view, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
 
+        pos_next = pos_next + 1
         status_widget = StatusWidget(
                 self.raw,
                 parent=self,
-                lang_manager=self.lang_manager,
             )
         if status_widget:
-            grid.addWidget(status_widget, 0, 3, Qt.AlignRight | Qt.AlignVCenter)
+            grid.addWidget(status_widget, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
+
 
     def _extract_file_path(self) -> Optional[str]:
         candidates = (

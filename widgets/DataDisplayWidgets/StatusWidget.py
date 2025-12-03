@@ -1,13 +1,11 @@
-from .DatesWidget import DatesWidget
-from ...utils.status_color_helper import StatusColorHelper
-from ...widgets.theme_manager import styleExtras, IntensityLevels, ThemeShadowColors
 
+from ...utils.status_color_helper import StatusColorHelper
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 
 class StatusWidget(QWidget):
-    def __init__(self, item_data, theme=None, parent=None, show_private_icon=True, lang_manager=None):
+    def __init__(self, item_data, parent=None):
         super().__init__(parent)
         # Main layout
         main_layout = QVBoxLayout(self)
@@ -22,6 +20,7 @@ class StatusWidget(QWidget):
         hex_color = status.get('color', 'cccccc')
 
         bg, fg, border = StatusColorHelper.upgrade_status_color(hex_color)
+        #print(f"[StatusWidget] status '{name}' colors: bg={bg}, fg={fg}, border={border}")
 
         self.status_label = QLabel(name)
         self.status_label.setObjectName("StatusLabel")
@@ -41,37 +40,8 @@ class StatusWidget(QWidget):
             f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, 1.0);"
             "}"
         )
-        styleExtras.apply_chip_shadow(
-            self.status_label,
-            color=ThemeShadowColors.BLUE,
-            blur_radius=15,
-            x_offset=1,
-            y_offset=1,
-            alpha_level=IntensityLevels.MEDIUM
-        )
-        
+
 
         row.addWidget(self.status_label, 0, Qt.AlignRight | Qt.AlignVCenter)
         main_layout.addLayout(row)
 
-        # Add DatesWidget underneath the status label
-        self.dates_widget = DatesWidget(item_data, lang_manager=lang_manager)
-        main_layout.addWidget(self.dates_widget, 0, Qt.AlignRight)
-
-    def retheme(self):
-        """Update status styling based on current theme."""
-        from ..theme_manager import ThemeManager
-        theme = ThemeManager.load_theme_setting()
-
-        styleExtras.apply_chip_shadow(
-            self.status_label,
-            color=ThemeShadowColors.BLUE,
-            blur_radius=15,
-            x_offset=1,
-            y_offset=1,
-            alpha_level=IntensityLevels.MEDIUM
-        )
-
-        # Update dates widget theme
-        if hasattr(self, 'dates_widget') and self.dates_widget:
-            self.dates_widget.retheme()

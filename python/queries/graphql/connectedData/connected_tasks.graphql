@@ -21,6 +21,8 @@ query property(
           title
           startAt
           dueAt
+          createdAt
+          updatedAt
           members {
             edges {
               node {

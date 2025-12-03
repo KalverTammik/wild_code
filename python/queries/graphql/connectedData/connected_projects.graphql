@@ -20,6 +20,10 @@ query property(
           id
           number
           name
+          startAt
+          dueAt
+          createdAt
+          updatedAt
           members {
             edges {
               node {

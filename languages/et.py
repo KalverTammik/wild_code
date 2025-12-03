@@ -253,4 +253,5 @@ TRANSLATIONS = {
     ,TranslationKeys.CREATED: "Loodud"
     ,TranslationKeys.UPDATED: "Muudetud"
     ,"Signaltest": "Signaalitester"
+    ,TranslationKeys.CONNECTIONS: "Otsin seoseid"
 }

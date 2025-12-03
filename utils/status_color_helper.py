@@ -65,12 +65,44 @@ class StatusColorHelper:
         return (L1 + 0.05) / (L2 + 0.05)
 
     @staticmethod
+    def _get_text_color_for_background(rgb):
+        """Return a soft light/dark/tinted tuple based on perceived brightness."""
+        r, g, b = rgb
+        brightness = (r * 299 + g * 587 + b * 114) / 1000
+
+        # Hue-based override: treat orange as needing light text
+        h, s, _ = StatusColorHelper.rgb_to_hsl(r, g, b)
+        # h is 0–1 → orange-ish ≈ 15–45 degrees
+        if 0.04 <= h <= 0.12 and brightness > 130:
+            return (242, 242, 252)  # soft off-white
+
+        if brightness < 130:
+            return (242, 242, 252)  # light on dark
+        if brightness < 210:
+            return (34, 36, 48)     # dark on mid
+        return StatusColorHelper._tinted_dark_for_bright(rgb)
+
+
+    @staticmethod
+    def _tinted_dark_for_bright(rgb):
+        h, s, _ = StatusColorHelper.rgb_to_hsl(*rgb)
+        s = StatusColorHelper.clamp(s, 0.40, 0.85)
+        l = 0.25
+        return StatusColorHelper.hsl_to_rgb(h, s * 0.8, l)
+
+    @staticmethod
     def upgrade_status_color(hex_color):
         """Take possibly pastel hex, return tuned (bg_rgb, fg_rgb, border_rgb)."""
         r, g, b = StatusColorHelper.hex_to_rgb(hex_color)
 
-        # 1) Normalize to a "chip-friendly" range (boost pastels, tame extremes)
         h, s, l = StatusColorHelper.rgb_to_hsl(r, g, b)
+
+        # Optional: special treatment for orange-ish hues
+        if 20 <= h <= 55:
+            s = StatusColorHelper.clamp(s, 0.55, 0.9)   # nicely saturated orange
+            l = StatusColorHelper.clamp(l, 0.45, 0.62)  # not too pale, not too dark
+
+        # General normalization to "chip-friendly" range
         s = max(s, 0.35)
         l = StatusColorHelper.clamp(l, 0.35, 0.65)
 
@@ -95,10 +127,13 @@ class StatusColorHelper:
             cr_white = StatusColorHelper.contrast_ratio(bg, white)
             cr_black = StatusColorHelper.contrast_ratio(bg, black)
 
-        fg = white if cr_white >= cr_black else black
+        fg = StatusColorHelper._get_text_color_for_background(bg)
 
         h, s, l = StatusColorHelper.rgb_to_hsl(*bg)
-        border_l = StatusColorHelper.clamp(l - 0.12, 0.15, 0.85) if l >= 0.5 else StatusColorHelper.clamp(l + 0.12, 0.15, 0.85)
+        if l >= 0.5:
+            border_l = StatusColorHelper.clamp(l - 0.12, 0.15, 0.85)
+        else:
+            border_l = StatusColorHelper.clamp(l + 0.12, 0.15, 0.85)
         border = StatusColorHelper.hsl_to_rgb(h, s, border_l)
 
         return bg, fg, border
