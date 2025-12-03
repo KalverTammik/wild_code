@@ -1,4 +1,10 @@
-query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyCoordinationsOrderByOrderByClause!]) {
+query property(
+  $id: ID!
+  $first: Int
+  $after: String
+  $orderBy: [PropertyCoordinationsOrderByOrderByClause!]
+  $tagsFirst: Int = 10
+) {
   property(id: $id) {
     __typename
     id
@@ -35,6 +41,15 @@ query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyCoordin
           }
           stage {
             name
+          }
+          tags(first: $tagsFirst) {
+            edges {
+              node {
+                id
+                name
+                module
+              }
+            }
           }
           terms
           jobNumber

@@ -29,7 +29,7 @@ class ModuleFeedBuilder:
         styleExtras.apply_chip_shadow(
             element=card, 
             color=shadow_color, 
-            blur_radius=10, 
+            blur_radius=15, 
             x_offset=1, 
             y_offset=2,
             alpha_level=IntensityLevels.EXTRA_HIGH

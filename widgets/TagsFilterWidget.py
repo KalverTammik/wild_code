@@ -34,7 +34,7 @@ class TagsFilterWidget(QWidget):
         super().__init__(parent)
         self._module = getattr(module_name, "value", module_name)
         self._lang = lang_manager or LanguageManager()
-        self._loader = GraphQLQueryLoader(self._lang)
+        self._loader = GraphQLQueryLoader()
         self._api = APIClient()
         self._suppress_emit = False
         self._loaded = False

@@ -1,0 +1,5 @@
+query Property($id: ID!) {
+                property(id: $id) {
+                    cadastralUnitNumber
+                }
+            }

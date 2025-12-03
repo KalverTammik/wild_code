@@ -5,7 +5,7 @@ This module contains field definitions for cadastral data processing.
 
 class Katastriyksus:
     """Field constants for cadastral property data (new format)."""
-    #fid = "fid"               # Baasis olev id
+    fid = "fid"               # Baasis olev id
     tunnus = "tunnus"          # Katastriüksuse tunnus
     hkood = "hkood"            # Asustusüksuse kood
     mk_nimi = "mk_nimi"        # Maakonna nimetus

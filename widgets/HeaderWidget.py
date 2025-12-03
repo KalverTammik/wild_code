@@ -9,8 +9,9 @@ from ..constants.module_icons import ICON_HELP
 from ..languages.language_manager import LanguageManager
 from ..python.api_client import APIClient
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
+from ..python.workers import FunctionWorker, start_worker
 from ..constants.file_paths import ResourcePaths
-
+from .SearchResultsWidget import SearchResultsWidget
 
 
 class HeaderWidget(QWidget):
@@ -78,8 +79,8 @@ class HeaderWidget(QWidget):
         styleExtras.apply_chip_shadow(
             element=self.searchEdit, 
             color=ThemeShadowColors.GRAY,
-            blur_radius=14, 
-            x_offset=0, 
+            blur_radius=15, 
+            x_offset=1, 
             y_offset=1, 
             alpha_level=IntensityLevels.MEDIUM
             )
@@ -97,10 +98,12 @@ class HeaderWidget(QWidget):
         # Ensure search field maintains focus and handles Return key properly
         self.searchEdit.setFocusPolicy(Qt.StrongFocus)
         
-        # print("[DEBUG] HeaderWidget search setup complete")
-        
         # Lazy initialization - SearchResultsWidget will be created only when first needed
         self._search_results = None
+        self._search_thread = None
+        self._search_worker = None
+        self._search_request_id = 0
+        self._active_search_term = ""
         
         layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
         
@@ -140,8 +143,7 @@ class HeaderWidget(QWidget):
     def search_results_widget(self):
         """Lazy getter for SearchResultsWidget - creates it only when first accessed."""
         if self._search_results is None:
-            # log_debug("[DEBUG] Lazy loading SearchResultsWidget...")
-            from .SearchResultsWidget import SearchResultsWidget
+
             self._search_results = SearchResultsWidget(self)
             self._search_results.setVisible(False)
             self._search_results.resultClicked.connect(self._on_search_result_clicked)
@@ -183,100 +185,37 @@ class HeaderWidget(QWidget):
             # print("[DEBUG] Search text too short, hiding results and stopping timer")
             self.search_results_widget.hide_results()
             self._search_timer.stop()
+            self._invalidate_search_request()
             return
             
         # Restart timer for debounced search
         # print("[DEBUG] Starting search timer (1.5s delay)")
-        self._search_timer.start(1500)  # 1.5 second delay
+        self._search_timer.start(500)  # 1.5 second delay
     
     def _perform_search(self):
-        """Execute the search query."""
+        """Execute the search query in a worker thread."""
         query = self.searchEdit.text().strip()
-        # print(f"[DEBUG] Performing search for query: '{query}'")
         if len(query) < 3:
-            # print("[DEBUG] Query too short, aborting search")
-            return
-            
-        try:
-
-            # Create language manager for GraphQL loader
-            lang_manager = LanguageManager()
-            query_loader = GraphQLQueryLoader(lang_manager)
-            # print("[DEBUG] Loading search query from GraphQL loader")
-            search_query = query_loader.load_query_by_module("user", "search.graphql")
-            
-            if not search_query:
-                # print("Warning: Could not load search query")
-                return
-                
-            # Execute search
-            api_client = APIClient()
-            # Use the working term or original query
-            variables = {
-                "input": {
-                    "term": query,
-                    "types": [
-                        "PROPERTIES", "PROJECTS", "TASKS",
-                        "SUBMISSIONS", "EASEMENTS",
-                        "COORDINATIONS", "SPECIFICATIONS", "ORDINANCES",
-                        "CONTRACTS"
-                    ],
-
-                    ##### ALL POSSIBLE SEARCH TYPES ######
-                    #"types": [
-                    #    "PROPERTIES", "CONTACTS", "TASKS", "PROJECTS",
-                    #    "METERS", "LETTERS", "SUBMISSIONS", "EASEMENTS",
-                    #    "COORDINATIONS", "SPECIFICATIONS", "ORDINANCES",
-                    #    "CONTRACTS", "PRODUCTS", "INVOICES", "EXPENSES", "QUOTES"
-                    #],
-
-                    "limit": 5
-                }
-            }
-            # print(f"[DEBUG] Sending GraphQL query with variables: {variables}")
-            
-            result = api_client.send_query(search_query, variables=variables)
-            # log_debug(f"[DEBUG] Raw API response: {result}")
-            # print(f"[DEBUG] Response type: {type(result)}")
-            
-            if result and "data" in result and "search" in result["data"]:
-                search_data = result["data"]["search"]
-                # print(f"[DEBUG] Processing unified search results: {len(search_data)} module types")
-
-                # Let SearchResultsWidget process the results
-                processed_results = self.search_results_widget.process_unified_search_results(search_data)
-                # print(f"[DEBUG] Processed {len(processed_results)} total search results")
-
-                # Show results
-                if processed_results:
-                    # print("[DEBUG] Showing search results")
-                    self.search_results_widget.show_results(processed_results, self.searchEdit)
-                else:
-                    # print(f"[DEBUG] No results found for '{query}', showing no results message")
-                    self.search_results_widget.show_no_results(query, self.searchEdit)
-
-            elif result and "search" in result:
-                # Handle direct search response (no data wrapper)
-                search_data = result["search"]
-                # print(f"[DEBUG] Processing direct search results: {len(search_data)} module types")
-
-                # Let SearchResultsWidget process the results with raw data
-                processed_results = self.search_results_widget.process_unified_search_results(search_data)
-                # print(f"[DEBUG] Processed {len(processed_results)} total search results")
-
-                # Show results with raw search data for grouping
-                if any(module.get("total", 0) > 0 for module in search_data):
-                    # print("[DEBUG] Showing search results")
-                    self.search_results_widget.show_results(search_data, self.searchEdit)
-                else:
-                    # print(f"[DEBUG] No results found for '{query}', showing no results message")
-                    self.search_results_widget.show_no_results(query, self.searchEdit)
-
-        except Exception as e:
-            # print(f"Search error: {e}")
-            # import traceback
-            # traceback.print_exc()
             self.search_results_widget.hide_results()
+            return
+
+        self._active_search_term = query
+        self._search_request_id += 1
+        request_id = self._search_request_id
+
+        status_message = f"Otsin \"{query}\"…"
+        self.search_results_widget.show_status_message(status_message, self.searchEdit)
+
+        worker = FunctionWorker(self._run_search_query, query)
+        worker.finished.connect(
+            lambda payload, rid=request_id, term=query: self._handle_search_success(term, payload, rid)
+        )
+        worker.error.connect(
+            lambda message, rid=request_id, term=query: self._handle_search_error(term, message, rid)
+        )
+
+        self._search_worker = worker
+        self._search_thread = start_worker(worker, on_thread_finished=self._clear_search_worker_refs)
     
     def _on_search_result_clicked(self, module, item_id, title):
         """Handle search result selection."""
@@ -290,3 +229,62 @@ class HeaderWidget(QWidget):
         if len(query) >= 3:
             # print(f"[DEBUG] Refreshing search results for '{query}'")
             self._perform_search()
+
+    def _invalidate_search_request(self):
+        """Bump the search request id so stale workers are ignored."""
+        self._search_request_id += 1
+
+    def _run_search_query(self, query: str):
+        """Blocking search call executed inside a worker thread."""
+        query_loader = GraphQLQueryLoader()
+        gql = query_loader.load_query_by_module("user", "search.graphql")
+        if not gql:
+            raise RuntimeError("Unified search query missing")
+
+        api_client = APIClient()
+        variables = {
+            "input": {
+                "term": query,
+                "types": [
+                    "PROPERTIES",
+                    "PROJECTS",
+                    "TASKS",
+                    "SUBMISSIONS",
+                    "EASEMENTS",
+                    "COORDINATIONS",
+                    "SPECIFICATIONS",
+                    "ORDINANCES",
+                    "CONTRACTS",
+                ],
+                "limit": 5,
+            }
+        }
+        return api_client.send_query(gql, variables=variables)
+
+    def _handle_search_success(self, query: str, payload, request_id: int):
+        if request_id != self._search_request_id:
+            return
+
+        search_data = None
+        if isinstance(payload, dict):
+            data_section = payload.get("data", {}) if payload else {}
+            search_data = data_section.get("search") or payload.get("search")
+
+        if isinstance(search_data, dict):
+            search_data = [search_data]
+
+        if search_data and any(module.get("total", 0) > 0 for module in search_data):
+            self.search_results_widget.show_results(search_data, self.searchEdit)
+        else:
+            self.search_results_widget.show_no_results(query, self.searchEdit)
+
+    def _handle_search_error(self, query: str, message: str, request_id: int):
+        if request_id != self._search_request_id:
+            return
+
+        friendly = message or "Otsing ebaõnnestus"
+        self.search_results_widget.show_status_message(f"{friendly}", self.searchEdit, is_error=True)
+
+    def _clear_search_worker_refs(self):
+        self._search_thread = None
+        self._search_worker = None

@@ -53,6 +53,7 @@ class PropertiesConnectedElementsQueries:
         variables = {
             "id": propertie_id,
             "first": 30,
+            "tagsFirst": 10,
             "orderBy": [
                 {
                     "column": "NUMBER",

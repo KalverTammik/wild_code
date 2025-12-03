@@ -16,8 +16,8 @@ class PropertiesSelectors:
         """Goal: select and zoom cadastral features; 
         values: List[str], layer_type: str; 
         Returns: None."""
-        settings = SettingsService()
-        active_layer_id = settings.module_main_layer_id(Module.PROPERTY.value)
+
+        active_layer_id = SettingsService().module_main_layer_id(Module.PROPERTY.value)
         MapHelpers.resolve_layer(active_layer_id)
         layer = PropertiesSelectors._layer_for_type(active_layer_id)
         if not layer:
@@ -39,7 +39,7 @@ class PropertiesSelectors:
         layer_type: str; 
         Returns: List[str]."""
         settings = SettingsService()
-        active_layer_id = settings.module_main_layer_id(Module.PROPERTY.value)
+        active_layer_id = settings.module_main_layer_name(Module.PROPERTY.value)
         MapHelpers.resolve_layer(active_layer_id)
         layer = PropertiesSelectors._layer_for_type(active_layer_id)
         if not layer:

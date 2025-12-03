@@ -16,11 +16,11 @@ from PyQt5.QtWidgets import (
 
 from ...constants.module_icons import ModuleIconPaths
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
-from ...widgets.DataDisplayWidgets.module_action_buttons import open_item_in_browser
 from ...widgets.DataDisplayWidgets.MembersView import MembersView
 from ...widgets.DataDisplayWidgets.StatusWidget import StatusWidget
 from ...widgets.DataDisplayWidgets.InfoCardHeader import InfocardHeaderFrame
 from ...widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
+from ...widgets.DataDisplayWidgets.TagsWidget import TagsWidget
 from ...languages.translation_keys import TranslationKeys
 
 
@@ -150,7 +150,8 @@ class MessageCard(QFrame):
         self.setFrameStyle(QFrame.NoFrame)
         styleExtras.apply_chip_shadow(
             self,
-            blur_radius=18,
+            blur_radius=15,
+            x_offset=1,
             y_offset=2,
             color=ThemeShadowColors.ACCENT,
             alpha_level="medium",
@@ -192,8 +193,9 @@ class PropertyConnectionCard(QFrame):
         self.setFrameStyle(QFrame.NoFrame)
         styleExtras.apply_chip_shadow(
             self,
-            blur_radius=25,
-            y_offset=3,
+            blur_radius=15,
+            x_offset=1,
+            y_offset=2,
             color=ThemeShadowColors.ACCENT,
             alpha_level="medium",
         )
@@ -205,17 +207,12 @@ class PropertyConnectionCard(QFrame):
         content_frame = QFrame(self)
         content_frame.setObjectName("CardContent")
         content_layout = QVBoxLayout(content_frame)
-        content_layout.setContentsMargins(8, 6, 8, 6)
-        content_layout.setSpacing(8)
+        content_layout.setContentsMargins(4, 3, 4, 3)
+        content_layout.setSpacing(4)
 
         modules = self.entry.get("moduleConnections") or {}
         if not modules:
-            empty_text = "Seoseid ei leitud"
-            if self.lang_manager:
-                try:
-                    empty_text = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS) or empty_text
-                except Exception:
-                    pass
+            empty_text = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS) or empty_text
             empty = QLabel(empty_text)
             empty.setStyleSheet("color: rgb(130, 130, 130);")
             content_layout.addWidget(empty)
@@ -249,14 +246,14 @@ class ModuleConnectionSection(QFrame):
         self.setFrameStyle(QFrame.NoFrame)
         styleExtras.apply_chip_shadow(
             self,
-            blur_radius=12,
+            blur_radius=15,
             x_offset=1,
             y_offset=2,
             color=ThemeShadowColors.ACCENT,
             alpha_level="medium",
         )
 
-        module_name = _translate_module_label(module_key, lang_manager)
+        module_name = lang_manager.translate(module_key)
         count = module_info.get("count", 0)
         items = module_info.get("items") or []
 
@@ -267,16 +264,17 @@ class ModuleConnectionSection(QFrame):
         content_frame = QFrame(self)
         content_frame.setObjectName("CardContent")
         root = QVBoxLayout(content_frame)
-        root.setContentsMargins(12, 12, 12, 12)
-        root.setSpacing(8)
+        root.setContentsMargins(4, 4, 4, 4)
+        root.setSpacing(4)
 
         header_row = QHBoxLayout()
         header_row.setContentsMargins(0, 0, 0, 0)
-        header_row.setSpacing(8)
+        header_row.setSpacing(4)
 
         icon_label = QLabel()
         icon_label.setFixedSize(24, 24)
-        icon = self._load_icon(module_key)
+
+        icon = ModuleIconPaths.get_module_icon(module_key.upper())
         if icon:
             pix = QPixmap(icon).scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             icon_label.setPixmap(pix)
@@ -301,7 +299,7 @@ class ModuleConnectionSection(QFrame):
         self.body = QWidget(self)
         body_layout = QVBoxLayout(self.body)
         body_layout.setContentsMargins(0, 0, 0, 0)
-        body_layout.setSpacing(6)
+        body_layout.setSpacing(4)
 
         if not items:
             empty_text = "Kirjeid ei ole"
@@ -329,11 +327,6 @@ class ModuleConnectionSection(QFrame):
         self.body.setVisible(checked)
         self.toggle_button.setArrowType(Qt.DownArrow if checked else Qt.RightArrow)
 
-    @staticmethod
-    def _load_icon(module_key: str) -> Optional[str]:
-        key = (module_key or "").upper()
-        return ModuleIconPaths.get_module_icon(key)
-
 
 class ModuleConnectionRow(QFrame):
     """Single row describing one connected item inside a module."""
@@ -354,18 +347,23 @@ class ModuleConnectionRow(QFrame):
         self.raw = self.summary.get("raw", {})
         self.setObjectName("ModuleConnectionRow")
         self.setFrameStyle(QFrame.NoFrame)
-        self.setCursor(Qt.PointingHandCursor)
 
         grid = QGridLayout(self)
-        grid.setContentsMargins(2, 2, 2, 2)
+        grid.setContentsMargins(2, 0, 2, 0)
         grid.setHorizontalSpacing(2)
-        grid.setVerticalSpacing(2)
         grid.setColumnStretch(1, 1)
 
-        header_payload = self._build_header_payload()
-        header_frame = InfocardHeaderFrame(header_payload, module_name=self.module_key)
-        grid.addWidget(header_frame, 0, 0, Qt.AlignCenter | Qt.AlignLeft)
+        header_frame = InfocardHeaderFrame(self.raw, module_name=self.module_key)
+        grid.addWidget(header_frame, 0, 0, Qt.AlignLeft | Qt.AlignVCenter)
 
+
+        tags = TagsWidget._extract_tag_names(self.raw)
+        print (f"Extracted tags for PropertyConnectionRow:", tags)
+        tags_widget = TagsWidget(
+            tags,
+            parent=self,
+        )
+        grid.addWidget(tags_widget, 0, 1, Qt.AlignRight | Qt.AlignVCenter)
 
         file_path = self._extract_file_path()
         has_connections = self._has_property_connections()
@@ -377,95 +375,20 @@ class ModuleConnectionRow(QFrame):
             lang_manager=lang_manager,
             parent=self,
         )
+        grid.addWidget(actions_widget, 0, 1, Qt.AlignRight | Qt.AlignVCenter)
 
-        grid.addWidget(actions_widget, 0, 1, Qt.AlignRight | Qt.AlignTop)
-
-        members_view = self._build_members_view()
-        members_view.setFixedWidth(100)
+        members_view = MembersView(self.raw, parent=self)
         if members_view:
-            grid.addWidget(members_view, 0 , 2, Qt.AlignTop | Qt.AlignRight)
+            members_view.setFixedWidth(100)
+            grid.addWidget(members_view, 0, 2, Qt.AlignRight | Qt.AlignVCenter)
 
-        status_widget = self._build_status_widget()
-        if status_widget:
-            grid.addWidget(status_widget, 0, 3, Qt.AlignRight | Qt.AlignTop)
-
-
-
-    def mouseDoubleClickEvent(self, event):
-        if self.module_key and self.item_id:
-            open_item_in_browser(self.module_key, self.item_id)
-        super().mouseDoubleClickEvent(event)
-
-    def _build_status_widget(self):
-        context = {}
-        if isinstance(self.raw, dict):
-            context.update(self.raw)
-        summary_status = self.summary.get("status")
-        if summary_status:
-            if isinstance(summary_status, dict):
-                context.setdefault("status", summary_status)
-            else:
-                context.setdefault("status", {"name": str(summary_status)})
-        if "isPublic" not in context and isinstance(self.summary.get("isPublic"), bool):
-            context["isPublic"] = self.summary["isPublic"]
-        if not context:
-            return None
-        try:
-            return StatusWidget(
-                context,
+        status_widget = StatusWidget(
+                self.raw,
                 parent=self,
                 lang_manager=self.lang_manager,
             )
-        except Exception:
-            fallback = self.summary.get("status")
-            if fallback:
-                return _build_pill_label(str(fallback))
-            return None
-
-    def _build_header_payload(self) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {}
-        if isinstance(self.raw, dict):
-            payload.update(self.raw)
-
-        number_value = self.summary.get("number") or self.summary.get("id")
-        if number_value is not None:
-            payload.setdefault("number", number_value)
-
-        name_value = self.summary.get("title") or self.summary.get("name")
-        if not name_value:
-            fallback = "Nimetus puudub"
-            if self.lang_manager:
-                try:
-                    fallback = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_ROW_NO_TITLE) or fallback
-                except Exception:
-                    pass
-            name_value = fallback
-        payload.setdefault("name", name_value)
-
-        if "isPublic" not in payload and isinstance(self.summary.get("isPublic"), bool):
-            payload["isPublic"] = self.summary["isPublic"]
-
-        client = self.summary.get("client")
-        if client and isinstance(client, dict):
-            payload.setdefault("client", client)
-
-        tags = self.summary.get("tags")
-        if tags and isinstance(tags, dict):
-            payload.setdefault("tags", tags)
-
-        return payload or {"name": name_value}
-
-    def _build_members_view(self):
-        raw = self.raw if isinstance(self.raw, dict) else {}
-        members = raw.get("members", {}) if isinstance(raw, dict) else {}
-        edges = (members or {}).get("edges") or []
-        if not edges:
-            return None
-        try:
-            view = MembersView(raw, parent=self)
-            return view
-        except Exception:
-            return None
+        if status_widget:
+            grid.addWidget(status_widget, 0, 3, Qt.AlignRight | Qt.AlignVCenter)
 
     def _extract_file_path(self) -> Optional[str]:
         candidates = (
@@ -485,49 +408,6 @@ class ModuleConnectionRow(QFrame):
         page_info = properties_block.get("pageInfo") or {}
         count = page_info.get("count")
         if count is None:
-            count = page_info.get("total")
-        if count is None:
             return None
         return bool(count)
 
-
-def _build_pill_label(text: str) -> QLabel:
-    label = QLabel(text)
-    label.setObjectName("ModuleRowPill")
-    return label
-
-def _format_datetime(raw_value: Optional[str]) -> Optional[str]:
-    if not raw_value:
-        return None
-    value = str(raw_value).strip()
-    if not value:
-        return None
-    try:
-        if value.endswith("Z"):
-            value = value.replace("Z", "+00:00")
-        dt = datetime.fromisoformat(value)
-        return dt.strftime("%d.%m.%Y")
-    except Exception:
-        return raw_value
-
-
-def _translate_module_label(module_key: Optional[str], lang_manager=None) -> str:
-    """Resolve module titles via the shared language manager, fallback to title case."""
-    normalized = (module_key or "").strip()
-    if not normalized:
-        return "–"
-
-    if lang_manager:
-        variations = []
-        for candidate in (normalized, normalized.lower(), normalized.upper(), normalized.capitalize()):
-            if candidate and candidate not in variations:
-                variations.append(candidate)
-        for candidate in variations:
-            try:
-                translated = lang_manager.translate(candidate)
-            except Exception:
-                translated = None
-            if translated:
-                return translated
-
-    return normalized.capitalize()

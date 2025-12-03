@@ -13,6 +13,7 @@ background: #f6f7f8;  /* Match QWidget base */
 border: 1px solid #e1e4e8;  /* Optional subtle border */
 border-radius: 8px;  /* Rounded corners if desired */
 }
+
    /* Root surfaces (avoid global * to prevent bleed) */
 QWidget {
     background: #f6f7f8;
@@ -21,11 +22,7 @@ QWidget {
     border: none;
 }
 
-QDialog {
-    background: #f6f7f8;  /* Match QWidget base */
-    border: 1px solid #e1e4e8;  /* Subtle light border */
-    border-radius: 8px;  /* Rounded corners */
-}
+
 
 QFrame { background: transparent; }
 

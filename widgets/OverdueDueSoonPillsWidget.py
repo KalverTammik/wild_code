@@ -51,9 +51,9 @@ class OverdueDueSoonPillsWidget(QWidget):
         styleExtras.apply_chip_shadow(
             element=self.group, 
             color=shadow_color, 
-            blur_radius=16, 
-            x_offset=2, 
-            y_offset=2, 
+            blur_radius=15, 
+            y_offset=1, 
+            x_offset=2,
             alpha_level=IntensityLevels.MEDIUM
             )
 

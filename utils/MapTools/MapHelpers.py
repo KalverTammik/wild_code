@@ -1,8 +1,12 @@
 
 from typing import List, Optional
+from ...languages.translation_keys import TranslationKeys
 from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer
 from qgis.utils import iface
-
+from ...utils.url_manager import Module
+from ...constants.settings_keys import SettingsService
+from ...languages.language_manager import LanguageManager
+from ...utils.messagesHelper import ModernMessageDialog
 
 class MapHelpers:
 
@@ -207,3 +211,17 @@ class MapHelpers:
         if not layer or not layer.isValid() or not features:
             return
         MapHelpers._zoom_to_features_in_layer(features, layer, select=True, filter_layer=filter_layer)
+
+class ActiveLayersHelper:
+
+    @staticmethod
+    def _get_active_property_layer():
+        layer_id = SettingsService().module_main_layer_id(Module.PROPERTY.value) or ""
+        active_layer = MapHelpers.resolve_layer(layer_id)
+        if not active_layer:
+            ModernMessageDialog.Warning_messages_modern(
+                "Property layer not configured or missing from project",
+                LanguageManager().translate(TranslationKeys.ERROR),
+            )
+            return None
+        return active_layer

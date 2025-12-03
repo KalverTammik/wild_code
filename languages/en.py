@@ -50,6 +50,7 @@ TRANSLATIONS = {
     TranslationKeys.LOGOUT_BUTTON_TOOLTIP: "Log out from your account",
     TranslationKeys.SEARCH_TOOLTIP: "This feature is not yet available",
     TranslationKeys.SEARCH_PLACEHOLDER: "Search...",
+    TranslationKeys.SEARCH_NO_RESULTS: "No results found for '{term}'",
     TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP: "Collapse Sidebar",
     TranslationKeys.SIDEBAR_EXPAND_TOOLTIP: "Expand Sidebar",
     TranslationKeys.THEME_SWITCH_TOOLTIP: "Switch between dark and light theme",
@@ -174,6 +175,16 @@ TRANSLATIONS = {
     ,"Invalid value": "Invalid value"
     ,"Value must be greater than {min}": "Value must be greater than {min}"
     ,"Value must be less than {max}": "Value must be less than {max}"
+    ,TranslationKeys.PROPERTIES: "Properties"
+    ,TranslationKeys.CONTRACTS: "Contracts"
+    ,TranslationKeys.PROJECTS: "Projects"
+    ,TranslationKeys.LETTERS: "Letters"
+    ,TranslationKeys.SPECIFICATIONS: "Specifications"
+    ,TranslationKeys.EASEMENTS: "Easements"
+    ,TranslationKeys.COORDINATIONS: "Coordinations"
+    ,TranslationKeys.TASKS: "Tasks"
+    ,TranslationKeys.SUBMISSIONS: "Submissions"
+    ,TranslationKeys.ORDINANCES: "Ordinances"
     ,TranslationKeys.MODULE_PROPERTY: "Properties"
     ,TranslationKeys.MODULE_CONTRACT: "Contracts"
     ,TranslationKeys.MODULE_PROJECT: "Projects"

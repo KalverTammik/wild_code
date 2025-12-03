@@ -1,4 +1,10 @@
-query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyTasksOrderByOrderByClause!]) {
+query property(
+  $id: ID!
+  $first: Int
+  $after: String
+  $orderBy: [PropertyTasksOrderByOrderByClause!]
+  $tagsFirst: Int = 10
+) {
   property(id: $id) {
     __typename
     id
@@ -35,6 +41,15 @@ query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyTasksOr
           description
           type {
             name
+          }
+          tags(first: $tagsFirst) {
+            edges {
+              node {
+                id
+                name
+                module
+              }
+            }
           }
         }
       }

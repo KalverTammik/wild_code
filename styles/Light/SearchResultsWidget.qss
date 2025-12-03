@@ -1,43 +1,31 @@
 /* ===== SearchResultsWidget (Light) ===== */
 
-QWidget#searchResultsWidget {
-    background: rgba(249, 250, 251, 0.95);
-    border: 2px solid #0984e3;
-    border-radius: 4px;
-    padding: 8px;
-    margin: 4px;
-}
+
 
 QListWidget#searchResultsList {
-    background: rgba(249, 250, 251, 1.0);
-    border: 1px solid #74b9ff;
+    background: #f9fafb;
+    border: 1px solid #2188ff;
     border-radius: 4px;
-    padding: 8px;
-    outline: none;
+    padding: 4px;
 }
 
 QListWidget#searchResultsList::item {
-    border: none;
-    margin: 1px;
-    padding: 2px;
+    padding: 6px 12px;
+    border-radius: 3px;
+    margin: 1px 0;
+    color: #24292e;
 }
 
-QListWidget#searchResultsList::item[data-type="header"] {
-    border-left: 4px solid #00b894;
-    background: #f0f8f7;
-    font-weight: bold;
-    color: #00b894;
+QListWidget#searchResultsList::item:hover {
+    background: #eaeef2;
 }
 
-QListWidget#searchResultsList::item[font-style="italic"] {
-    border: none;
-    background: transparent;
-    color: #666666;
+QListWidget#searchResultsList::item:selected {
+    background: #0078d4;
+    color: #ffffff;
 }
 
-QListWidget#searchResultsList::item[data-type="result"] {
-    border: none;
-}
+/* Header / show-more rows are styled dynamically in Python to avoid unsupported attribute selectors. */
 
 QPushButton#searchResultsCloseButton {
     background: transparent;

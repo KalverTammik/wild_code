@@ -122,12 +122,27 @@ class ContractsModule(ModuleBaseUI):
 
         ThemeManager.apply_module_style(self, [QssPaths.MODULE_CARD])
 
+        # Configure optional single-item query for opening a contract by id
+        try:
+            if self.feed_logic is None:
+                self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
+            self.feed_logic.configure_single_item_query("w_contracts_module_data_by_item_id.graphql")
+        except Exception:
+            pass
+
     def activate(self) -> None:
         super().activate()
+        # Normal activation path (sidebar click) should run full feed loader.
+        # When coming from search, PluginDialog will call open_item_from_search
+        # directly and we want to avoid triggering a full feed reload there.
 
         # Lazy init feed_logic 
         if self.feed_logic is None:
             self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
+            try:
+                self.feed_logic.configure_single_item_query("w_contracts_module_data_by_item_id.graphql")
+            except Exception:
+                pass
 
         # Rakenda eelistused filtri valikutele
         self._refresh_filters()
@@ -151,6 +166,46 @@ class ContractsModule(ModuleBaseUI):
             self.overdue_pills.set_due_soon_active(False)
         except Exception:
             pass
+
+    def open_item_from_search(self, search_module: str, item_id: str, title: str) -> None:
+        """Open a contract coming from unified search without kicking feed loader.
+
+        Switch UnifiedFeedLogic into single-item mode using the by-id GraphQL
+        query so the existing feed rendering pipeline can show a single card
+        for the given contract id.
+        """
+
+        # Stop any pending feed loads and clear existing cards
+        try:
+            if self.feed_load_engine:
+                self.feed_load_engine.cancel_pending()
+                if self.feed_load_engine.buffer:
+                    self.feed_load_engine.buffer.clear()
+        except Exception:
+            pass
+
+        try:
+            self.clear_feed(self.feed_layout, self._empty_state)
+        except Exception:
+            pass
+
+        # Switch feed logic to single-item mode using the by-id GraphQL query
+        try:
+            if self.feed_logic is None:
+                self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
+                self.feed_logic.configure_single_item_query("w_contracts_module_data_by_item_id.graphql")
+
+            self.feed_logic.set_single_item_mode(True, id=item_id)
+
+            if self.feed_load_engine:
+                self.feed_load_engine.schedule_load()
+        except Exception:
+            # If anything goes wrong, fall back to a simple debug empty state
+            try:
+                self._empty_state.setText(f"Search wiring error for contract {item_id}")
+                self._empty_state.setVisible(True)
+            except Exception:
+                pass
 
     # --- Andmete laadimine ---
     def load_next_batch(self):
@@ -212,6 +267,20 @@ class ContractsModule(ModuleBaseUI):
         where = {"AND": and_list} if and_list else None
         if self.feed_logic is None:
             self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
+            try:
+                self.feed_logic.configure_single_item_query("w_contracts_module_data_by_item_id.graphql")
+            except Exception:
+                pass
+
+        # Ensure we are back in list mode when filters are used
+        try:
+            self.feed_logic.set_single_item_mode(False)
+        except Exception:
+            pass
+            try:
+                self.feed_logic.configure_single_item_query("w_contracts_module_data_by_item_id.graphql")
+            except Exception:
+                pass
 
         try:
             self.feed_logic.set_where(where)

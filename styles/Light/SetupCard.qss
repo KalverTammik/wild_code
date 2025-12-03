@@ -10,7 +10,7 @@
 }
 
 #SetupCard:hover {
-  border-color: #0f766e;
+  border-color: #2188ff;
   box-shadow: 0 8px 25px rgba(15, 118, 110, 0.15);
   transform: translateY(-2px);
 }
@@ -56,7 +56,7 @@
 }
 
 #SetupCard QGroupBox:hover {
-    border-color: rgba(15, 118, 110, 0.3);
+  border-color: #2188ff;
     background: rgba(15, 118, 110, 0.02);
 }
 
@@ -79,7 +79,7 @@
 #SetupCard QFrame#SettingsFrame:hover,
 #SetupCard QFrame#StatusFrame:hover {
     background: rgba(255,255,255,0.8);
-    border-color: rgba(15, 118, 110, 0.2);
+  border-color: #2188ff;
 }
 
 /* Settings Container for Display Options */
@@ -107,7 +107,7 @@
 }
 
 #SetupCard QGroupBox#DisplayOptionsGroup QCheckBox#DisplayCheckbox::indicator:hover {
-    border-color: rgba(15, 118, 110, 0.6);
+  border-color: #2188ff;
 }
 
 /* Titles */
@@ -147,7 +147,7 @@
   border: 1px solid rgba(0,0,0,0.15);
 }
 #SetupCard #AccessPills QFrame#AccessPill:hover {
-  border-color: rgba(0,0,0,0.25);
+  border-color: #2188ff;
 }
 #SetupCard #AccessPills QFrame#AccessPill[active="true"] {
   background: rgba(0,120,212,0.10);

@@ -1,4 +1,10 @@
-query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyProjectsOrderByOrderByClause!]) {
+query property(
+  $id: ID!
+  $first: Int
+  $after: String
+  $orderBy: [PropertyProjectsOrderByOrderByClause!]
+  $tagsFirst: Int = 10
+) {
   property(id: $id) {
     __typename
     id
@@ -36,6 +42,15 @@ query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyProject
           }
           description
           isPublic
+          tags(first: $tagsFirst) {
+            edges {
+              node {
+                id
+                name
+                module
+              }
+            }
+          }
           filesPath
 
         }

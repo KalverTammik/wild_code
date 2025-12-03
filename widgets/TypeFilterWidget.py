@@ -34,7 +34,7 @@ class TypeFilterWidget(QWidget):
         super().__init__(parent)
         self._module = module_name
         self._lang = LanguageManager()
-        self._loader = GraphQLQueryLoader(self._lang)
+        self._loader = GraphQLQueryLoader()
         self._api = APIClient()
         self._group_map: Dict[str, List[str]] = {}
         self._suppress_group_emit = False

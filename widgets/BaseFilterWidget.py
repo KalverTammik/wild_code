@@ -23,19 +23,7 @@ def _configure_combo_visibility(combo, max_visible: int | None):
     combo.view().setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
 
-def _try_apply_shadow(widget: QWidget, *, color, alpha_level, blur_radius=5, x_offset=1, y_offset=1):
-    try:
-        styleExtras.apply_chip_shadow(
-            widget,
-            color=color,
-            alpha_level=alpha_level,
-            blur_radius=blur_radius,
-            x_offset=x_offset,
-            y_offset=y_offset,
-        )
-    except Exception:
-        # No-op if effect fails (e.g., headless testing)
-        pass
+
 
 class BaseFilterWidget(QWidget):
     """Baasklass moodulipõhiste filter-widget'ite jaoks.
@@ -80,7 +68,14 @@ class BaseFilterWidget(QWidget):
         _configure_combo_visibility(combo, max_visible)
 
         if with_shadow:
-            _try_apply_shadow(combo, color=color, alpha_level=alpha_level)
+            styleExtras.apply_chip_shadow(
+            combo,
+            color=color,
+            alpha_level=alpha_level,
+            blur_radius=5,
+            x_offset=1,
+            y_offset=1,
+            )
 
         self._register_checkable_combo(combo)
 

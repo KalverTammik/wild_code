@@ -39,6 +39,15 @@ from PyQt5.QtWidgets import QSizePolicy
 theme_manager = ThemeManager()
 
 
+# Mapping from unified search "type" values to our internal Module enum.
+# Extend this mapping as you add support for more module types.
+MODULE_SEARCH_TO_ENUM = {
+    "PROJECTS": Module.PROJECT,
+    "CONTRACTS": Module.CONTRACT,
+    "PROPERTIES": Module.PROPERTY,
+}
+
+
 class PluginDialog(QDialog):
     @staticmethod
     def get_instance():
@@ -98,6 +107,10 @@ class PluginDialog(QDialog):
             logout_callback=self.logout
         )
         self.header_widget.helpRequested.connect(self._on_help_requested)
+        # When a search result is clicked in the header search, route it either
+        # to the appropriate module (PROJECTS / CONTRACTS / PROPERTIES, ...)
+        # or to SignalTestModule if no handler exists yet.
+        self.header_widget.searchResultClicked.connect(self._on_search_result_clicked)
         dialog_layout.addWidget(self.header_widget)
 
         content_layout = QHBoxLayout()
@@ -135,6 +148,60 @@ class PluginDialog(QDialog):
 
         # Mark fully initialized only at the end
         self._initialized = True
+
+
+    def _on_search_result_clicked(self, module: str, item_id: str, title: str) -> None:
+        """Handle a search result click coming from HeaderWidget.
+
+        If we have a corresponding module UI, switch there and open the item
+        WITHOUT triggering the normal feed loader. Otherwise, fall back to
+        SignalTestModule to inspect the payload.
+        """
+        try:
+            target_enum = MODULE_SEARCH_TO_ENUM.get(module.upper())
+
+            if target_enum is not None:
+                target_name = target_enum.name
+
+                # Switch to mapped module (e.g. PROJECT, CONTRACT, PROPERTY)
+                self.switchModule(target_name)
+
+                instance = self.moduleManager.getActiveModuleInstance(target_name)
+                if instance is None:
+                    return
+
+                # Convention: modules expose open_item_from_search(module, id, title)
+                if hasattr(instance, "open_item_from_search"):
+                    instance.open_item_from_search(module, item_id, title)
+                else:
+                    # No special handler yet; show payload in signal tester
+                    self._show_in_signal_tester(module, item_id, title)
+            else:
+                # Unknown / unsupported module → show in signal tester
+                self._show_in_signal_tester(module, item_id, title)
+
+        except Exception:
+            # As a last resort, try to display in signal tester and otherwise ignore
+            try:
+                self._show_in_signal_tester(module, item_id, title)
+            except Exception:
+                pass
+
+
+    def _show_in_signal_tester(self, module: str, item_id: str, title: str) -> None:
+        """Switch to SignalTestModule and display the clicked search payload."""
+        try:
+            self.switchModule(Module.SIGNALTEST.name)
+            instance = self.moduleManager.getActiveModuleInstance(Module.SIGNALTEST.name)
+            if instance and hasattr(instance, "show_external_signal_payload"):
+                instance.show_external_signal_payload(
+                    source="header_search_result",
+                    module=module,
+                    item_id=item_id,
+                    title=title,
+                )
+        except Exception:
+            pass
 
 
     def _notify_geometry_update(self, x, y, w, h):

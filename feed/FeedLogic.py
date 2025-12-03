@@ -23,7 +23,12 @@ class UnifiedFeedLogic:
         map_node: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
     ) -> None:
         self.api_client = APIClient()
-        self.query_loader = GraphQLQueryLoader(lang_manager)
+        self.query_loader = GraphQLQueryLoader()
+        # Base configuration
+        self._module_name = module_name
+        self._base_query_name = query_name
+        self._single_item_query_name: Optional[str] = None
+        self._single_item_mode: bool = False
         self.query: str = self.query_loader.load_query_by_module(module_name, query_name)
 
         # root_field tuletus: "PROJECT" -> "projects", "CONTRACT" -> "contracts"
@@ -49,6 +54,37 @@ class UnifiedFeedLogic:
         self.last_error: Optional[Exception] = None
         self.total_count: Optional[int] = None
 
+    # --- Query mode management -------------------------------------------------
+    def configure_single_item_query(self, query_name: str) -> None:
+        """Configure an alternate GraphQL query used for single-item mode.
+
+        The ``query_name`` should be a file that can be resolved by
+        GraphQLQueryLoader.load_query_by_module for the same module.
+        This does not enable single-item mode by itself; call
+        ``set_single_item_mode(True, id=...)`` to activate.
+        """
+        self._single_item_query_name = query_name
+
+    def set_single_item_mode(self, enabled: bool, *, id: Optional[str] = None, **extra_vars: Any) -> None:
+        """Switch between normal list mode and single-item-by-id mode.
+
+        When enabled and a single-item query has been configured, the next
+        ``fetch_next_batch`` call will:
+        - Use the configured single-item query instead of the base list query
+        - Ignore pagination (``first``/``after``) and ``where``
+        - Send only the provided ``id`` and any ``extra_vars`` as variables
+        """
+        self._single_item_mode = bool(enabled)
+        self.reset()
+        # In single-item mode we must not leak list-mode extras (e.g. hasTags)
+        # into the by-id query variables. Always rebuild _extra_args from
+        # scratch when toggling the mode.
+        self._extra_args.clear()
+        # Store the id/extra vars into _extra_args so fetch_next_batch can see them
+        if id is not None:
+            self._extra_args["id"] = id
+        self._extra_args.update({k: v for k, v in extra_vars.items() if v is not None})
+
     def reset(self) -> None:
         """Reset pagination/loading flags without changing current 'where'."""
         self.end_cursor = None
@@ -69,20 +105,39 @@ class UnifiedFeedLogic:
         self.reset()
 
     def fetch_next_batch(self) -> List[Dict[str, Any]]:
-        if self.is_loading or not self.has_more:
+        if self.is_loading or (not self.has_more and not self._single_item_mode):
             return []
 
         self.is_loading = True
         self.last_error = None
 
-        variables: Dict[str, Any] = {
-            "first": self.batch_size,
-            "after": self.end_cursor,
-        }
-        if self.where:
-            variables["where"] = self.where
-        if self._extra_args:
-            variables.update(self._extra_args)
+        # Build variables and query depending on mode
+        if self._single_item_mode and self._single_item_query_name:
+            # Single-item: ignore pagination/where and use only id + extra vars
+            variables: Dict[str, Any] = {}
+            if self._extra_args:
+                variables.update(self._extra_args)
+
+            self.query = self.query_loader.load_query_by_module(
+                self._module_name,
+                self._single_item_query_name,
+            )
+
+        else:
+            variables = {
+                "first": self.batch_size,
+                "after": self.end_cursor,
+            }
+            if self.where:
+                variables["where"] = self.where
+            if self._extra_args:
+                variables.update(self._extra_args)
+
+            # Ensure list-mode query is loaded
+            self.query = self.query_loader.load_query_by_module(
+                self._module_name,
+                self._base_query_name,
+            )
 
         try:
             payload: Dict[str, Any] = self.api_client.send_query(
@@ -90,7 +145,35 @@ class UnifiedFeedLogic:
                 variables,
                 return_raw=True,
             ) or {}
+            # Debug logging for single-item mode removed after verification
             self.last_response = payload
+
+            # In single-item mode, many queries return a single object
+            # instead of an edges list. Handle that here and bypass the
+            # generic edges/pageInfo logic so modules receive a list with
+            # exactly one node (or an empty list if nothing was found).
+            if self._single_item_mode:
+                data = payload.get("data") or {}
+                single: Optional[Dict[str, Any]] = None
+
+                # Heuristic: look for common single-item roots by module
+                if "project" in data:
+                    single = data.get("project")
+                elif "contract" in data:
+                    single = data.get("contract")
+
+                if isinstance(single, dict):
+                    self.end_cursor = None
+                    self.has_more = False
+                    node = self.map_node(single) if self.map_node else single
+                    result = [node]
+                else:
+                    # No single object found; treat as empty result
+                    self.end_cursor = None
+                    self.has_more = False
+                    result = []
+
+                return result
 
             path = [self.root_field]
             root: Dict[str, Any] = JsonResponseHandler.walk_path(
@@ -120,8 +203,13 @@ class UnifiedFeedLogic:
             except Exception:
                 pass
 
-            self.end_cursor = page_info.get("endCursor") if isinstance(page_info, dict) else None
-            self.has_more = bool(page_info.get("hasNextPage", False)) if isinstance(page_info, dict) else False
+            # In single-item mode we expect only one page; mark as finished.
+            if self._single_item_mode:
+                self.end_cursor = None
+                self.has_more = False
+            else:
+                self.end_cursor = page_info.get("endCursor") if isinstance(page_info, dict) else None
+                self.has_more = bool(page_info.get("hasNextPage", False)) if isinstance(page_info, dict) else False
 
             result: List[Dict[str, Any]] = []
             for edge in edges:
@@ -138,7 +226,6 @@ class UnifiedFeedLogic:
                 setattr(self, '_loaded_items_debug', prev + len(result))
             except Exception:
                 pass
-
             return result
 
         except Exception as e:

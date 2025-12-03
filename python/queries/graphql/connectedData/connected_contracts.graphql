@@ -1,4 +1,10 @@
-query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyContractsOrderByOrderByClause!]) {
+query property(
+  $id: ID!
+  $first: Int
+  $after: String
+  $orderBy: [PropertyContractsOrderByOrderByClause!]
+  $tagsFirst: Int = 10
+) {
   property(id: $id) {
     __typename
     id
@@ -27,6 +33,26 @@ query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyContrac
           }
           type {
             name
+          }
+          tags(first: $tagsFirst) {
+            edges {
+              node {
+                id
+                name
+                module
+              }
+            }
+          }
+          
+          members {
+            edges {
+              node {
+                id
+                displayName
+                deletedAt
+              }
+              isResponsible
+            }
           }
           filesPath
         }

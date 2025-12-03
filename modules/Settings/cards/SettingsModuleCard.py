@@ -471,7 +471,7 @@ class SettingsModuleCard(SettingsBaseCard):
     def _read_saved_layer_value(self, kind: str) -> str:
         try:
             if kind == "element":
-                return self._settings.module_main_layer_id(self.module_key) or ""
+                return self._settings.module_main_layer_name(self.module_key) or ""
             if kind == "archive":
                 if not self.supports_archive:
                     return ""
@@ -484,9 +484,9 @@ class SettingsModuleCard(SettingsBaseCard):
         try:
             if kind == "element":
                 if layer_name:
-                    self._settings.module_main_layer_id(self.module_key, value=layer_name)
+                    self._settings.module_main_layer_name(self.module_key, value=layer_name)
                 else:
-                    self._settings.module_main_layer_id(self.module_key, clear=True)
+                    self._settings.module_main_layer_name(self.module_key, clear=True)
             else:
                 if not self.supports_archive:
                     return

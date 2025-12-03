@@ -44,7 +44,7 @@ class StatusWidget(QWidget):
         styleExtras.apply_chip_shadow(
             self.status_label,
             color=ThemeShadowColors.BLUE,
-            blur_radius=10,
+            blur_radius=15,
             x_offset=1,
             y_offset=1,
             alpha_level=IntensityLevels.MEDIUM
@@ -66,7 +66,7 @@ class StatusWidget(QWidget):
         styleExtras.apply_chip_shadow(
             self.status_label,
             color=ThemeShadowColors.BLUE,
-            blur_radius=10,
+            blur_radius=15,
             x_offset=1,
             y_offset=1,
             alpha_level=IntensityLevels.MEDIUM

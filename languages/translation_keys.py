@@ -47,14 +47,6 @@ class TranslationKeys:
     MODULE_LETTER = "letter"
     MODULE_SPECIFICATION = "specification"
     MODULE_EASEMENT = "easement"
-    PROPERTY_TREE_HEADER = "Property-related data"
-    PROPERTY_TREE_DEFAULT_MESSAGE = "Select a property on the map"
-    PROPERTY_TREE_LOADING = "Loading related data..."
-    PROPERTY_TREE_NO_CONNECTIONS = "No connections found"
-    PROPERTY_TREE_NO_DATA = "No data available"
-    PROPERTY_TREE_MODULE_EMPTY = "No records"
-    PROPERTY_TREE_ROW_NO_TITLE = "Name missing"
-    PROPERTY_TREE_ROW_UPDATED_PREFIX = "Updated {date}"
     MODULE_ORDINANCE = "ordinance"
     MODULE_SUBMISSION = "submission"
     MODULE_TASK = "task"
@@ -63,10 +55,36 @@ class TranslationKeys:
     MODULE_TAGS = "tags"
     MODULE_STATUSES = "statuses"
 
+
+
+    PROPERTIES = "Properties"
+    CONTRACTS = "Contracts"
+    PROJECTS = "Projects"
+    LETTERS = "Letters"
+    SPECIFICATIONS = "Specifications"
+    EASEMENTS = "Easements"
+    COORDINATIONS = "Coordinations"
+    TASKS = "Tasks"
+    SUBMISSIONS = "Submissions"
+    ORDINANCES = "Ordinances"
+
+
+
+
+    PROPERTY_TREE_HEADER = "Property-related data"
+    PROPERTY_TREE_DEFAULT_MESSAGE = "Select a property on the map"
+    PROPERTY_TREE_LOADING = "Loading related data..."
+    PROPERTY_TREE_NO_CONNECTIONS = "No connections found"
+    PROPERTY_TREE_NO_DATA = "No data available"
+    PROPERTY_TREE_MODULE_EMPTY = "No records"
+    PROPERTY_TREE_ROW_NO_TITLE = "Name missing"
+    PROPERTY_TREE_ROW_UPDATED_PREFIX = "Updated {date}"
+    
     # UI tooltips
     LOGOUT_BUTTON_TOOLTIP = "logout_button_tooltip"
     SEARCH_TOOLTIP = "search_tooltip"
     SEARCH_PLACEHOLDER = "search_placeholder"
+    SEARCH_NO_RESULTS = "No results found for '{term}'"
     SIDEBAR_COLLAPSE_TOOLTIP = "sidebar_collapse_tooltip"
     SIDEBAR_EXPAND_TOOLTIP = "sidebar_expand_tooltip"
     THEME_SWITCH_TOOLTIP = "theme_switch_tooltip"
@@ -189,9 +207,6 @@ class TranslationKeys:
     INVALID_VALUE = "Invalid value"
     VALUE_MUST_BE_GREATER_THAN_MIN = "Value must be greater than {min}"
     VALUE_MUST_BE_LESS_THAN_MAX = "Value must be less than {max}"
-    PROPERTIES = "Properties"
-    CONTRACTS = "Contracts"
-    PROJECTS = "Projects"
     NAME = "Name"
     EMAIL = "Email"
 

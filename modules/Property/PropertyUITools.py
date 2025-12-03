@@ -1,118 +1,95 @@
 from typing import Optional
 
 from PyQt5.QtCore import QThread
+try:
+    import sip
+except ImportError:  # PyQt6 fallback, though project currently uses PyQt5
+    sip = None
+from .property_service import PropertyDataService
 from ...constants.cadastral_fields import Katastriyksus
-from ...languages.translation_keys import TranslationKeys
 from ...constants.settings_keys import SettingsService
-from ...utils.url_manager import Module
-from ...utils.MapTools.MapHelpers import MapHelpers
+from ...python.api_client import APIClient
+from ...python.GraphQLQueryLoader import GraphQLQueryLoader
+from ...languages.language_manager import LanguageManager
+from ...languages.MaaAmetFieldFormater import format_field
+from ...utils.MapTools.MapHelpers import ActiveLayersHelper
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
-from .query_cordinator import (
-    PropertiesConnectedElementsQueries,
-    PropertyLookupService,
-    PropertyConnectionFormatter,
-)
+from ...utils.MapTools.map_selection_controller import MapSelectionController
+from ...utils.url_manager import Module
 from ...python.workers import FunctionWorker, start_worker
 
 
 class PropertyUITools:
 
-    def __init__(self, property_ui):
+    def __init__(self, property_ui, data_service: Optional[PropertyDataService] = None):
         self.property_ui = property_ui
         self._settings = SettingsService()
-        self._selection_layer = None
         self._connection_request_id = 0
         self._connection_thread: Optional[QThread] = None
         self._connection_worker: Optional[FunctionWorker] = None
+        self._data_service = data_service or PropertyDataService()
+        self.lang_manager = LanguageManager()
+        self._selection_controller = MapSelectionController()
+        self._lookup_request_id = 0
+        self._lookup_thread: Optional[QThread] = None
+        self._lookup_worker: Optional[FunctionWorker] = None
 
-    def _configured_property_layer(self):
-        layer_name = self._settings.module_main_layer_id(Module.PROPERTY.value) or ""
-        if not layer_name:
+    def _get_active_ui(self):
+        ui = getattr(self, "property_ui", None)
+        if not ui:
             return None
-        return MapHelpers.resolve_layer(layer_name)
+        if sip:
+            try:
+                if sip.isdeleted(ui):
+                    return None
+            except Exception:
+                return None
+        return ui
 
-    def _warn_no_property_layer(self, detail: Optional[str] = None):
-        from PyQt5.QtWidgets import QMessageBox
-        base = self.property_ui.lang_manager.translate(TranslationKeys.ERROR_SELECTING_PROPERTY)
-        message = f"{base}: {detail}" if detail else base
-        QMessageBox.warning(
-            self.property_ui,
-            self.property_ui.lang_manager.translate(TranslationKeys.ERROR),
-            message
-        )
+    def _emit_ui_signal(self, signal_name: str):
+        ui = self._get_active_ui()
+        if not ui:
+            return
+        signal = getattr(ui, signal_name, None)
+        if callable(getattr(signal, "emit", None)):
+            try:
+                signal.emit()
+            except RuntimeError:
+                pass
+
 
     def select_property_from_map(self):
         """Activate map selection tool for property selection."""
-        try:
-            from qgis.utils import iface
+        ui = self._get_active_ui()
+        if not ui:
+            return
+        active_layer = ActiveLayersHelper._get_active_property_layer()
+        if not active_layer:
+            return
 
-            active_layer = self._configured_property_layer()
-            if not active_layer:
-                self._warn_no_property_layer("Property layer not configured or missing from project")
-                return
+        started = self._selection_controller.start_single_selection(
+            active_layer,
+            on_selected=self._handle_property_layer_selection,
+        )
+        if started:
+            self._emit_ui_signal("property_selected_from_map")
 
-            iface.setActiveLayer(active_layer)
-            MapHelpers.ensure_layer_visible(active_layer)
-            active_layer.removeSelection()
 
-            # Ensure previous listeners are detached so we only react once per selection
-            self._disconnect_selection_listener()
-
-            # Connect selection changed signal
-            active_layer.selectionChanged.connect(self._on_selection_changed)
-            self._selection_layer = active_layer
-
-            # Activate selection tool
-            iface.actionSelectRectangle().trigger()
-
-            # Emit signal to minimize dialog
-            self.property_ui.property_selected_from_map.emit()
-
-        except Exception as e:
-            print(f"Error selecting property from map: {e}")
-            # Show error message
-            self._warn_no_property_layer(str(e))
-
-    def _on_selection_changed(self):
-        """Handle selection changes during map selection process."""
-        try:
-            from qgis.utils import iface
-
-            active_layer = self._selection_layer or iface.activeLayer()
-            if not active_layer:
-                return
-            selected_features = active_layer.selectedFeatures()
-
-            if len(selected_features) == 1:
-                # Single feature selected: update display
-                self.update_property_display(active_layer)
-
-                # Disconnect the signal
-                self._disconnect_selection_listener()
-
-                # Switch back to pan tool
-                iface.actionPan().trigger()
-
-                # Emit completion signal to maximize dialog
-                self.property_ui.property_selection_completed.emit()
-                PropertiesSelectors.bring_dialog_to_front(self.property_ui)
-
-        except Exception as e:
-            print(f"Error in selection changed: {e}")
-            self._disconnect_selection_listener()
-
-    def _disconnect_selection_listener(self):
-        if not self._selection_layer:
+    def _handle_property_layer_selection(self, active_layer, _features):
+        ui = self._get_active_ui()
+        if not ui:
             return
         try:
-            self._selection_layer.selectionChanged.disconnect(self._on_selection_changed)
-        except Exception:
-            pass
+            self.update_property_display(active_layer)
         finally:
-            self._selection_layer = None
+            self._emit_ui_signal("property_selection_completed")
+            PropertiesSelectors.bring_dialog_to_front(ui)
 
-    def update_property_display(self, active_layer):
+    def update_property_display(self, active_layer, *, trigger_connections: bool = True):
         """Update the UI labels with the selected property data."""
+        ui = self._get_active_ui()
+        if not ui:
+            return
 
         features = active_layer.selectedFeatures()
         if not features:
@@ -124,9 +101,9 @@ class PropertyUITools:
             katastritunnus = feature.attribute(Katastriyksus.tunnus)
             if self._is_not_null(katastritunnus):
                 cadastral_value = str(katastritunnus)
-                self.property_ui.lbl_katastritunnus_value.setText(cadastral_value)
-            else:
-                self.property_ui.lbl_katastritunnus_value.setText("...")
+            ui.lbl_katastritunnus_value.setText(
+                format_field(Katastriyksus.tunnus, katastritunnus)
+            )
 
             # Update address label
             l_address = feature.attribute(Katastriyksus.l_aadress)
@@ -137,11 +114,13 @@ class PropertyUITools:
             if self._is_not_null(ay_name): address_parts.append(str(ay_name))
             if self._is_not_null(mk_name): address_parts.append(str(mk_name))
             address = ", ".join(address_parts) if address_parts else "..."
-            self.property_ui.lbl_address_value.setText(address)
+            ui.lbl_address_value.setText(address)
 
             # Update area label
             area = feature.attribute(Katastriyksus.pindala)
-            self.property_ui.lbl_area_value.setText(str(area) if self._is_not_null(area) else "0.00")
+            ui.lbl_area_value.setText(
+                format_field(Katastriyksus.pindala, area)
+            )
 
             # Update sihtotstarve labels (3 separate labels, hide if NULL)
             siht1 = feature.attribute(Katastriyksus.siht1)
@@ -152,93 +131,58 @@ class PropertyUITools:
             so_prts3 = feature.attribute(Katastriyksus.so_prts3)
 
             # Siht 1
-            if self._is_not_null(siht1):
-                formatted_siht1 = str(siht1).lower().capitalize()
-                percentage1 = f" {so_prts1}%" if self._is_not_null(so_prts1) else ""
-                self.property_ui.lbl_siht1_value.setText(f"{formatted_siht1}{percentage1}")
-                self.property_ui.lbl_siht1_label.show()
-                self.property_ui.lbl_siht1_value.show()
-            else:
-                self.property_ui.lbl_siht1_label.hide()
-                self.property_ui.lbl_siht1_value.hide()
+            self._update_siht_label(
+                ui.lbl_siht1_label,
+                ui.lbl_siht1_value,
+                Katastriyksus.siht1,
+                siht1,
+                Katastriyksus.so_prts1,
+                so_prts1,
+            )
 
             # Siht 2
-            if self._is_not_null(siht2):
-                formatted_siht2 = str(siht2).lower().capitalize()
-                percentage2 = f" {so_prts2}%" if self._is_not_null(so_prts2) else ""
-                self.property_ui.lbl_siht2_value.setText(f"{formatted_siht2}{percentage2}")
-                self.property_ui.lbl_siht2_label.show()
-                self.property_ui.lbl_siht2_value.show()
-            else:
-                self.property_ui.lbl_siht2_label.hide()
-                self.property_ui.lbl_siht2_value.hide()
+            self._update_siht_label(
+                ui.lbl_siht2_label,
+                ui.lbl_siht2_value,
+                Katastriyksus.siht2,
+                siht2,
+                Katastriyksus.so_prts2,
+                so_prts2,
+            )
 
             # Siht 3
-            if self._is_not_null(siht3):
-                formatted_siht3 = str(siht3).lower().capitalize()
-                percentage3 = f" {so_prts3}%" if self._is_not_null(so_prts3) else ""
-                self.property_ui.lbl_siht3_value.setText(f"{formatted_siht3}{percentage3}")
-                self.property_ui.lbl_siht3_label.show()
-                self.property_ui.lbl_siht3_value.show()
-            else:
-                self.property_ui.lbl_siht3_label.hide()
-                self.property_ui.lbl_siht3_value.hide()
+            self._update_siht_label(
+                ui.lbl_siht3_label,
+                ui.lbl_siht3_value,
+                Katastriyksus.siht3,
+                siht3,
+                Katastriyksus.so_prts3,
+                so_prts3,
+            )
 
             # Update registr (registration date)
             registr = feature.attribute(Katastriyksus.registr)
-            if self._is_not_null(registr):
-                # Format date if it's a QDate or datetime object
-                if hasattr(registr, 'toString'):
-                    # QDate object
-                    formatted_date = registr.toString("dd.MM.yyyy")
-                else:
-                    # Try to parse as string/date
-                    try:
-                        from datetime import datetime
-                        if isinstance(registr, str):
-                            # Assume YYYY-MM-DD format and convert to DD.MM.YYYY
-                            date_obj = datetime.fromisoformat(str(registr).split('T')[0])
-                            formatted_date = date_obj.strftime("%d.%m.%Y")
-                        else:
-                            formatted_date = str(registr)
-                    except:
-                        formatted_date = str(registr)
-                self.property_ui.lbl_registr_value.setText(formatted_date)
-            else:
-                self.property_ui.lbl_registr_value.setText("...")
+            ui.lbl_registr_value.setText(
+                format_field(Katastriyksus.registr, registr)
+            )
 
             # Update muudet (modification date)
             muudet = feature.attribute(Katastriyksus.muudet)
-            if self._is_not_null(muudet):
-                # Format date if it's a QDate or datetime object
-                if hasattr(muudet, 'toString'):
-                    # QDate object
-                    formatted_date = muudet.toString("dd.MM.yyyy")
-                else:
-                    # Try to parse as string/date
-                    try:
-                        from datetime import datetime
-                        if isinstance(muudet, str):
-                            # Assume YYYY-MM-DD format and convert to DD.MM.YYYY
-                            date_obj = datetime.fromisoformat(str(muudet).split('T')[0])
-                            formatted_date = date_obj.strftime("%d.%m.%Y")
-                        else:
-                            formatted_date = str(muudet)
-                    except:
-                        formatted_date = str(muudet)
-                self.property_ui.lbl_muudet_value.setText(formatted_date)
-            else:
-                self.property_ui.lbl_muudet_value.setText("...")
+            ui.lbl_muudet_value.setText(
+                format_field(Katastriyksus.muudet, muudet)
+            )
 
             # Update kinnistu (property registry number)
             kinnistu = feature.attribute(Katastriyksus.kinnistu)
-            self.property_ui.lbl_kinnistu_value.setText(str(kinnistu) if self._is_not_null(kinnistu) else "...")
+            ui.lbl_kinnistu_value.setText(
+                format_field(Katastriyksus.kinnistu, kinnistu)
+            )
 
         except Exception as e:
             print(f"Error updating property display: {e}")
             return
-
-        self._load_property_connections(cadastral_value)
+        if trigger_connections:
+            self._load_property_connections(cadastral_value)
 
     @staticmethod
     def _is_not_null(value):
@@ -248,8 +192,25 @@ class PropertyUITools:
             and str(value).upper() != 'NULL'
         )
 
+    @staticmethod
+    def _update_siht_label(label_widget, value_widget, field_name, field_value, percentage_field, percentage_value):
+        formatted_value = format_field(field_name, field_value)
+        if formatted_value == '---':
+            label_widget.hide()
+            value_widget.hide()
+            return
+
+        percentage_text = format_field(percentage_field, percentage_value)
+        suffix = f" {percentage_text}" if percentage_text != '---' else ""
+        value_widget.setText(f"{formatted_value}{suffix}")
+        label_widget.show()
+        value_widget.show()
+
     def _load_property_connections(self, cadastral_number: Optional[str]):
-        tree_widget = getattr(self.property_ui, "tree_section", None)
+        ui = self._get_active_ui()
+        if not ui:
+            return
+        tree_widget = ui.tree_section
         if not tree_widget:
             return
 
@@ -261,49 +222,149 @@ class PropertyUITools:
         self._connection_request_id += 1
         request_id = self._connection_request_id
 
-        worker = FunctionWorker(self._build_connection_payload, cadastral_number)
-        def handle_success(payload, rid=request_id):
-            if rid != self._connection_request_id:
-                return
-            entries = payload.get("entries") or []
-            message = payload.get("message")
-            if message:
-                tree_widget.show_message(message)
-            elif entries:
-                tree_widget.load_connections(entries)
-            else:
-                tree_widget.show_message("Seoseid ei leitud")
+        worker = FunctionWorker(self._data_service.build_connections_for_cadastral, cadastral_number)
 
-        def handle_error(error_message, rid=request_id):
-            if rid != self._connection_request_id:
-                return
-            tree_widget.show_message(f"Viga: {error_message}")
+        # eeldus: FunctionWorker.finished emiteerib payload (nt dict)
+        worker.finished.connect(
+            lambda payload, rid=request_id: self.handle_success(payload, rid)
+        )
 
-        worker.finished.connect(handle_success)
-        worker.error.connect(handle_error)
+        # eeldus: FunctionWorker.error emiteerib error_message (str)
+        worker.error.connect(
+            lambda error_message, rid=request_id: self.handle_error(
+                error_message, rid
+            )
+        )
 
         thread = start_worker(worker)
         self._connection_thread = thread
         self._connection_worker = worker
 
-        def cleanup():
-            if self._connection_worker is worker:
-                self._connection_worker = None
-            if self._connection_thread is thread:
-                self._connection_thread = None
+        # kui see konkreetne thread lõpetab, siis puhastame viited
+        thread.finished.connect(lambda t=thread, w=worker: self.cleanup(t, w))
 
-        thread.finished.connect(cleanup)
+    def open_property_from_search(self, item_id: str):
+        ui = self._get_active_ui()
+        if ui and ui.tree_section:
+            ui.tree_section.show_loading()
 
-    def _build_connection_payload(self, cadastral_number: str):
-        lookup = PropertyLookupService()
-        connections = PropertiesConnectedElementsQueries()
-        formatter = PropertyConnectionFormatter()
+        self._lookup_request_id += 1
+        request_id = self._lookup_request_id
 
-        property_id = lookup.property_id_by_cadastral(cadastral_number)
-        if not property_id:
-            return {"entries": [], "message": "Kinnistut ei leitud"}
+        worker = FunctionWorker(self._fetch_property_payload, item_id)
+        worker.finished.connect(
+            lambda payload, rid=request_id: self._handle_property_lookup_success(payload, rid)
+        )
+        worker.error.connect(
+            lambda message, rid=request_id: self._handle_property_lookup_error(message, rid)
+        )
 
-        module_data = connections.fetch_all_module_data(property_id)
-        entry = formatter.build_entry(cadastral_number, property_id, module_data)
-        return {"entries": [entry]}
+        self._lookup_worker = worker
+        self._lookup_thread = start_worker(worker, on_thread_finished=self._clear_lookup_worker_refs)
 
+    def _fetch_property_payload(self, item_id: str):
+        query = GraphQLQueryLoader().load_query_by_module(
+            Module.PROPERTY.value,
+            "cadastralNumber_by_id.graphql",
+        )
+        variables = {"id": item_id}
+        response = APIClient().send_query(query, variables, return_raw=True) or {}
+        property_data = (
+            response.get("data", {}).get("property")
+            or response.get("property")
+            or {}
+        )
+        if not property_data:
+            raise RuntimeError("Kinnistu ei leitud")
+        return property_data
+
+    def _handle_property_lookup_success(self, payload: dict, request_id: int):
+        if request_id != self._lookup_request_id:
+            return
+
+        cadastral_number = payload.get("cadastralUnitNumber")
+        if not cadastral_number:
+            self._show_tree_message("Kinnistu ei leitud")
+            return
+
+        PropertiesSelectors.show_connected_properties_on_map([cadastral_number])
+
+        active_layer = self._resolve_property_layer()
+        if active_layer:
+            self.update_property_display(active_layer, trigger_connections=False)
+        else:
+            print("[PropertyUITools] Property layer missing while opening from search")
+
+        self._load_property_connections(cadastral_number)
+
+    def _handle_property_lookup_error(self, message: str, request_id: int):
+        if request_id != self._lookup_request_id:
+            return
+        friendly = message or "Kinnistu ei leitud"
+        self._show_tree_message(friendly)
+
+    def _resolve_property_layer(self):
+        layer = ActiveLayersHelper._get_active_property_layer()
+        if layer:
+            return layer
+        try:
+            layer_id = self._settings.module_main_layer_id(Module.PROPERTY.value)
+        except Exception:
+            layer_id = None
+        if layer_id:
+            try:
+                return PropertiesSelectors._layer_for_type(layer_id)
+            except Exception:
+                return None
+        return None
+
+    def _show_tree_message(self, message: str):
+        ui = self._get_active_ui()
+        tree_widget = ui.tree_section if ui else None
+        if tree_widget:
+            tree_widget.show_message(message)
+
+    def _clear_lookup_worker_refs(self):
+        self._lookup_worker = None
+        self._lookup_thread = None
+
+    def handle_success(self, payload: dict, rid: int):
+        """Käsitle õnnestunud ühenduse laadimise tulemust."""
+        if rid != self._connection_request_id:
+            # Vahepeal käivitati uus päring; ignoreeri vana vastust.
+            return
+
+        ui = self._get_active_ui()
+        tree_widget = ui.tree_section if ui else None
+        if not tree_widget:
+            return
+
+        entries = payload.get("entries") or []
+        message = payload.get("message")
+
+        if message:
+            tree_widget.show_message(message)
+        elif entries:
+            tree_widget.load_connections(entries)
+        else:
+            tree_widget.show_message("Seoseid ei leitud")
+
+    def handle_error(self, error_message: str, rid: int):
+        """Käsitle veaolukorda ühenduse laadimisel."""
+        if rid != self._connection_request_id:
+            # Vahepeal käivitati uus päring; ignoreeri vana viga.
+            return
+
+        ui = self._get_active_ui()
+        tree_widget = ui.tree_section if ui else None
+        if not tree_widget:
+            return
+
+        tree_widget.show_message(f"Viga: {error_message or 'Ühenduste laadimisel tekkis viga'}")
+
+    def cleanup(self, thread: QThread, worker: FunctionWorker):
+        """Puhasta viited aktiivsele workerile/threadile, kui just see eksemplar lõpetas."""
+        if self._connection_worker is worker:
+            self._connection_worker = None
+        if self._connection_thread is thread:
+            self._connection_thread = None

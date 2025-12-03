@@ -21,6 +21,7 @@ query properties($first: Int, $after: String, $search: String, $where: QueryProp
                 node {
                     id
                     displayAddress
+                    cadastralUnitNumber
                     cadastralUnit {
                         number
                         }

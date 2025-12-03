@@ -181,7 +181,7 @@ class ThemeManager(QObject):
 class styleExtras:
 
     @staticmethod
-    def apply_chip_shadow(element, *, color='standard', blur_radius=20, x_offset=0, y_offset=2, alpha_level='medium'):
+    def apply_chip_shadow(element, *, color='standard', blur_radius=15, x_offset=0, y_offset=2, alpha_level='medium'):
         """Apply a theme-aware shadow/glow to any QWidget with standardized alpha levels.
 
         Args:

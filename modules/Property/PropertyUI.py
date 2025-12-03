@@ -1,11 +1,13 @@
 from typing import Any, List, Optional
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QSplitter,
+    QFrame,
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from qgis.core import QgsProject
+from qgis.utils import iface
+from ...constants.layer_constants import PROPERTY_TAG
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QFont
-
 from .PropertyUITools import PropertyUITools
 from .property_tree_widget import PropertyTreeWidget
 from ...widgets.theme_manager import ThemeManager,styleExtras
@@ -47,9 +49,8 @@ class PropertyModule(QWidget):
 
         # Setup UI
         self.setup_ui()
-
         # Apply theming
-        ThemeManager.apply_module_style(self, [QssPaths.PROPERTIES_UI, QssPaths.MODULE_CARD])
+        self.retheme()
 
     def setup_ui(self):
         """Setup the property module interface with header and tree view."""
@@ -58,50 +59,30 @@ class PropertyModule(QWidget):
         root.setContentsMargins(self.margin_layout, self.margin_layout, self.margin_layout, self.margin_layout)
         root.setSpacing(self.vertical_label_spacing)
 
-        # Create splitter for resizable sections
-        splitter = QSplitter(Qt.Vertical)
-        root.addWidget(splitter)
+        # Header section
+        header_frame = self.create_header_section()
+        root.addWidget(header_frame)
 
-        # Header section (top part)
-        self.create_header_section(splitter)
-
-        # Tree view section (bottom part)
+        # Tree view section
         self.tree_section = PropertyTreeWidget(lang_manager=self.lang_manager)
-        splitter.addWidget(self.tree_section)
+        root.addWidget(self.tree_section, 1)
 
-        # Set initial splitter proportions (header: 30%, tree: 70%)
-        splitter.setSizes([200, 500])
-
-    def create_header_section(self, splitter):
+    def create_header_section(self):
         """Create the header area with property info and tools."""
         header_frame = QFrame()
         header_frame.setObjectName("PropertyHeader")
         header_frame.setFrameStyle(QFrame.StyledPanel)
+        header_frame.setMinimumHeight(150)
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(self.margin_layout, self.margin_layout, self.margin_layout, self.margin_layout)
         header_layout.setSpacing(self.vertical_label_spacing)
-
-        # Property title and status
-        title_layout = QHBoxLayout()
-
         
-        # Property ID/Name
+
         self.pbdisplayPropertyInfo = QPushButton(self.lang_manager.translate(TranslationKeys.CHOOSE_FROM_MAP))
         self.pbdisplayPropertyInfo.setObjectName("ChooseFromMapButton")
-        title_font = QFont()
-        title_font.setBold(True)
-        title_font.setPointSize(14)
-        self.pbdisplayPropertyInfo.setFont(title_font)
         self.pbdisplayPropertyInfo.clicked.connect(self.tools.select_property_from_map)
-        title_layout.addWidget(self.pbdisplayPropertyInfo)
+        header_layout.addWidget(self.pbdisplayPropertyInfo)
 
-        # Status indicator
-        self.status_label = QLabel("Staatus: ...")
-        self.status_label.setObjectName("PropertyStatus")
-        title_layout.addStretch()
-        title_layout.addWidget(self.status_label)
-
-        header_layout.addLayout(title_layout)
 
         # Property details in horizontal layout: General data (green) | Additional data
         details_frame = QFrame()
@@ -259,8 +240,7 @@ class PropertyModule(QWidget):
 
         styleExtras.apply_chip_shadow(details_frame)
 
-
-        splitter.addWidget(header_frame)
+        return header_frame
 
     def retheme(self):
         # Apply main module styling
@@ -269,9 +249,6 @@ class PropertyModule(QWidget):
     def activate(self):
         """Called when the module becomes active."""
         try:
-            from qgis.core import QgsProject
-            from qgis.utils import iface
-            from ...constants.layer_constants import PROPERTY_TAG
 
             # Find the property layer
             project = QgsProject.instance()
@@ -297,4 +274,15 @@ class PropertyModule(QWidget):
     def get_widget(self):
         """Return the module's main QWidget."""
         return self
+
+    def open_item_from_search(self, search_module: str, item_id: str, title: str) -> None:
+        """Open a property coming from unified search by property id.
+
+        The unified search already knows the internal property id, so we can
+        skip any map selection or cadastral->id lookup and directly ask the
+        PropertyUITools to load connections for this id, reusing the same
+        tree/entry pipeline used for map-based selection.
+        """
+        #print(f"[DEBUG open_item_from_search] Opening property from search: module={search_module}, item_id={item_id}, title={title}")
+        self.tools.open_property_from_search(item_id)
 

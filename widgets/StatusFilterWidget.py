@@ -34,7 +34,7 @@ class StatusFilterWidget(QWidget):
         self._module = getattr(module_name, "value", module_name)
         self._lang = LanguageManager()
         self._api = APIClient()
-        self._loader = GraphQLQueryLoader(self._lang)
+        self._loader = GraphQLQueryLoader()
         self._suppress_emit = False
         self._loaded = False
         self._worker = None

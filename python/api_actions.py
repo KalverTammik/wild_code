@@ -20,7 +20,7 @@ class APIModuleActions:
         query_file = f"D_DELETE_{module}.graphql"
 
         # Load the GraphQL query
-        loader = GraphQLQueryLoader(lang_manager)
+        loader = GraphQLQueryLoader()
 
         try:
             query = loader.load_query_by_module(module, query_file)

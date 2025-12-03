@@ -30,7 +30,7 @@ class userUtils:
         name = Module.USER.value
         query_file = "me.graphql"
 
-        ql = GraphQLQueryLoader(lang_manager)
+        ql = GraphQLQueryLoader()
         api = APIClient(SessionManager(), ConfigPaths.CONFIG)
         query = ql.load_query_by_module(name, query_file)
         data = api.send_query(query)

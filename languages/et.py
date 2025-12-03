@@ -43,6 +43,7 @@ TRANSLATIONS = {
     TranslationKeys.LOGOUT_BUTTON_TOOLTIP: "Logi välja",
     TranslationKeys.SEARCH_TOOLTIP: "Funktsioon veel ei tööta",
     TranslationKeys.SEARCH_PLACEHOLDER: "Otsi...",
+    TranslationKeys.SEARCH_NO_RESULTS: "Tulemusi ei leitud: '{term}'",
     TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP: "Ahenda külgriba",
     TranslationKeys.SIDEBAR_EXPAND_TOOLTIP: "Laienda külgriba",
     TranslationKeys.THEME_SWITCH_TOOLTIP: "Tume/Hele režiim",
@@ -183,6 +184,13 @@ TRANSLATIONS = {
     ,TranslationKeys.CONTRACTS: "Lepingud"
     ,"Contracts": "Lepingud"
     ,TranslationKeys.PROJECTS: "Projektid"
+    ,TranslationKeys.LETTERS: "Kirjad"
+    ,TranslationKeys.SPECIFICATIONS: "Tingimused"
+    ,TranslationKeys.EASEMENTS: "Servituudid"
+    ,TranslationKeys.COORDINATIONS: "Kooskõlastused"
+    ,TranslationKeys.TASKS: "Ülesanded"
+    ,TranslationKeys.SUBMISSIONS: "Esitused"
+    ,TranslationKeys.ORDINANCES: "Käskkirjad"
     ,TranslationKeys.SELECT_SETTLEMENTS: "Vali asustusüksused"
     ,TranslationKeys.ADD_NEW_PROPERTY: "Kinnistute haldamine"
     ,TranslationKeys.SELECT_PROPERTIES: "Vali kinnistud"
