@@ -5,7 +5,6 @@ from typing import List, Optional, Sequence, Union, Tuple
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QWidget
-from ..constants.settings_keys import SettingsService
 from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
@@ -15,6 +14,7 @@ from ..python.api_client import APIClient
 from ..utils.url_manager import  ModuleSupports
 from ..utils.FilterHelpers.FilterHelper import FilterHelper
 from ..python.workers import FunctionWorker, start_worker
+from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 
 
 class TagsFilterWidget(QWidget):
@@ -30,6 +30,7 @@ class TagsFilterWidget(QWidget):
         parent: Optional[QWidget] = None,
         *,
         auto_load: bool = True,
+        settings_logic: Optional[SettingsLogic] = None,
     ) -> None:
         super().__init__(parent)
         self._module = getattr(module_name, "value", module_name)
@@ -43,6 +44,7 @@ class TagsFilterWidget(QWidget):
         self._load_request_id = 0
         self._pending_selection_ids: List[str] = []
         self._auto_load = auto_load
+        self._settings_logic = settings_logic or SettingsLogic()
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(4, 2, 4, 2)
@@ -113,11 +115,12 @@ class TagsFilterWidget(QWidget):
             self.combo.addItem(label, value)
         self.combo.setEnabled(True)
         self._loaded = True
-        FilterHelper._apply_preferred_items(
-            key=ModuleSupports.TAGS.value,
-            widget=self,
-            module=self._module,
+        saved_ids = self._settings_logic.load_module_preference_ids(
+            self._module,
+            support_key=ModuleSupports.TAGS.value,
         )
+        if saved_ids:
+            FilterHelper.set_selected_ids(self, list(saved_ids), emit=False)
         self.loadFinished.emit(True)
 
     def _handle_tags_failed(self, request_id: int, message: str) -> None:

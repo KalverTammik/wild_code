@@ -2,7 +2,7 @@ from typing import Any, Optional
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import pyqtSignal
-from qgis.core import QgsProject, QgsLayerTreeGroup, QgsLayerTreeLayer
+from qgis.core import QgsProject
 
 from .SettinsUtils.userUtils import userUtils
 
@@ -45,11 +45,9 @@ class SettingsModule(QWidget):
         self._pending_changes = False
         # Global footer controls
         self._footer_frame = None
-        self._footer_status = None
         self._footer_confirm = None
         # Modules available for module-specific cards
         self._module_cards = {}
-        self._module_metadata = {}  # Store module metadata including supports_types
         self._user_fetch_thread = None
         self._user_fetch_worker = None
         self._user_fetch_request_id = 0
@@ -91,14 +89,6 @@ class SettingsModule(QWidget):
             alpha_level='medium'
         )
         ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
-
-
-        self._footer_status = QLabel("", self._footer_frame)
-        self._footer_status.setObjectName("SettingsFooterStatus")
-        self._footer_status.setWordWrap(True)
-        self._footer_status.setVisible(False)
-        footer_layout.addWidget(self._footer_status, 1)
-
         footer_layout.addStretch(1)
 
         self._footer_confirm = QPushButton(
@@ -158,48 +148,11 @@ class SettingsModule(QWidget):
         return card
 
     def _activate_module_cards(self):
-        snapshot = self._build_layer_snapshot()
         for card in self._module_cards.values():
             try:
-                card.on_settings_activate(snapshot=snapshot)
+                card.on_settings_activate()
             except Exception as exc:
                 print(f"Failed to activate settings card for {getattr(card, 'module_key', 'unknown')}: {exc}")
-
-    def _build_layer_snapshot(self):
-        try:
-            project = QgsProject.instance() if QgsProject else None
-            root = project.layerTreeRoot() if project else None
-            if not root:
-                return []
-            return self._snapshot_from_group(root)
-        except Exception:
-            return []
-
-    def _snapshot_from_group(self, group_node):
-        snapshot = []
-        try:
-            children = group_node.children()
-        except Exception:
-            children = []
-        for child in children:
-            if QgsLayerTreeGroup and isinstance(child, QgsLayerTreeGroup):
-                snapshot.append({
-                    "type": "group",
-                    "name": child.name(),
-                    "children": self._snapshot_from_group(child)
-                })
-            elif QgsLayerTreeLayer and isinstance(child, QgsLayerTreeLayer):
-                try:
-                    layer = child.layer()
-                except Exception:
-                    layer = None
-                if layer:
-                    snapshot.append({
-                        "type": "layer",
-                        "id": layer.id(),
-                        "name": layer.name()
-                    })
-        return snapshot
 
     def activate(self):
         """Activates the Settings UI with fresh user data."""

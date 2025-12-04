@@ -15,6 +15,7 @@ from ..python.api_client import APIClient
 from ..utils.url_manager import ModuleSupports
 from ..utils.FilterHelpers.FilterHelper import FilterHelper
 from ..python.workers import FunctionWorker, start_worker
+from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 
 
 class StatusFilterWidget(QWidget):
@@ -29,12 +30,14 @@ class StatusFilterWidget(QWidget):
         parent: Optional[QWidget] = None,
         *,
         auto_load: bool = True,
+        settings_logic: Optional[SettingsLogic] = None,
     ) -> None:
         super().__init__(parent)
         self._module = getattr(module_name, "value", module_name)
         self._lang = LanguageManager()
         self._api = APIClient()
         self._loader = GraphQLQueryLoader()
+        self._settings_logic = settings_logic or SettingsLogic()
         self._suppress_emit = False
         self._loaded = False
         self._worker = None
@@ -113,11 +116,12 @@ class StatusFilterWidget(QWidget):
             self.combo.addItem(label, value)
         self.combo.setEnabled(True)
         self._loaded = True
-        FilterHelper._apply_preferred_items(
-            key=ModuleSupports.STATUSES.value,
-            widget=self,
-            module=self._module,
+        saved_ids = self._settings_logic.load_module_preference_ids(
+            self._module,
+            support_key=ModuleSupports.STATUSES.value,
         )
+        if saved_ids:
+            FilterHelper.set_selected_ids(self, list(saved_ids), emit=False)
         self.loadFinished.emit(True)
 
     def _handle_load_error(self, request_id: int, message: str) -> None:

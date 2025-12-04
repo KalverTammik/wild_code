@@ -1,7 +1,7 @@
 
-from typing import Dict, Optional
+from typing import Dict, Iterable, Optional
 
-from ....utils.url_manager import Module
+from ....utils.url_manager import Module, ModuleSupports
 from ....module_manager import MODULES_LIST_BY_NAME
 from ....constants.settings_keys import SettingsService
 
@@ -64,12 +64,10 @@ class SettingsLogic:
 
 
     def has_unsaved_changes(self) -> bool:
-        # Track change even if moving to None (welcome)
         has_preferred_module_changes = (self._pending_preferred_module or None) != (self._original_preferred or None)
         return has_preferred_module_changes
 
     def apply_pending_changes(self):
-
         if self._pending_preferred_module:
             self._service.preferred_module(value=self._pending_preferred_module)
         else:
@@ -82,4 +80,49 @@ class SettingsLogic:
         # Reset pending selection back to the original
         self._pending_preferred_module = self._original_preferred
         # Property layer pending state managed by module cards
+
+    # --- Module-layer helpers -------------------------------------------------
+    def get_module_layer_ids(self, module_key: str, *, include_archive: bool = False) -> Dict[str, str]:
+        """Return the persisted layer identifiers for the given module."""
+        element = self._service.module_main_layer_id(module_key) or ""
+        archive = ""
+        if include_archive:
+            archive = self._service.module_archive_layer_id(module_key) or ""
+        return {"element": element, "archive": archive}
+
+    def set_module_layer_id(self, module_key: str, *, kind: str, layer_name: Optional[str]) -> None:
+        """Persist (or clear) a module's layer mapping via a single entry point."""
+        normalized = (layer_name or "").strip()
+        try:
+            if kind == "archive":
+                if normalized:
+                    self._service.module_archive_layer_id(module_key, value=normalized)
+                else:
+                    self._service.module_archive_layer_id(module_key, clear=True)
+            else:
+                if normalized:
+                    self._service.module_main_layer_id(module_key, value=normalized)
+                else:
+                    self._service.module_main_layer_id(module_key, clear=True)
+        except Exception:
+            pass
+
+    # --- Module preference helpers -------------------------------------------
+    def load_module_preference_ids(self, module_key: str, *, support_key: str) -> Iterable[str]:
+        """Fetch stored preference identifiers for the requested capability."""
+        values = SettingsService.load_preferred_ids_by_key(support_key, module_key) or []
+        return values
+
+    def save_module_preference_ids(self, module_key: str, *, support_key: str, ids: Iterable[str]) -> None:
+        """Persist tag/status/type selections for a module via the centralized service."""
+        SettingsService.save_preferred_ids_by_key(support_key, module_key, ids)
+
+    def clear_module_preference_ids(self, module_key: str, *, support_key: str) -> None:
+        """Ensure preference storage is cleared for the given capability."""
+        if support_key == ModuleSupports.TAGS.value:
+            self._service.module_preferred_tags(module_key, clear=True)
+        elif support_key == ModuleSupports.TYPES.value:
+            self._service.module_preferred_types(module_key, clear=True)
+        else:
+            self._service.module_preferred_statuses(module_key, clear=True)
 

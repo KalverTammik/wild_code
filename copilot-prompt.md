@@ -311,9 +311,9 @@ Components
   - API: `set_user()`, `set_roles()`, `set_access_map()`, `set_preferred()`, `revert()`, `retheme()`.
 
 - `modules/Settings/cards/ModuleCard.py` (per-module settings)
-  - Contains two layer selectors (Element/Archive) using the shared `LayerTreePicker` widget.
+  - Contains two layer selectors (Element/Archive) backed by `QgsMapLayerComboBox` widgets tied directly to the active project.
   - Signals `pendingChanged(bool)` to show/hide its own Confirm button.
-  - API: `on_settings_activate(snapshot)`, `on_settings_deactivate()`, `apply()`, `revert()`, `has_pending_changes()`.
+  - API: `on_settings_activate()`, `on_settings_deactivate()`, `apply()`, `revert()`, `has_pending_changes()`.
 
 - `widgets/WelcomePage.py` (welcome when no preferred)
   - Displayed when there is no preferred module set.
@@ -324,7 +324,7 @@ Flow
 2. Entering Settings triggers `SettingsUI.activate()`:
    - Load user, set roles, compute access map using global `MODULES_LIST_BY_NAME`, build access pills.
    - Load original preferred via logic, then call `UserCard.set_preferred(original)` to reflect it.
-   - Build module cards by iterating over `MODULES_LIST_BY_NAME` (excluding HOME), and call `on_settings_activate(snapshot)` on each.
+  - Build module cards by iterating over `MODULES_LIST_BY_NAME` (excluding HOME), and call `on_settings_activate()` on each.
 3. Changing preferred or module settings marks dirty and shows per-card confirm(s).
 4. Confirm applies and persists changes using logic and per-card apply handlers.
 5. Leaving Settings or closing dialog prompts to save/discard when `has_unsaved_changes()` is true.
@@ -454,12 +454,12 @@ Behavior
 - Supports lazy building: call `on_settings_activate(snapshot)` before display; call `on_settings_deactivate()` to release memory.
 
 Integration pattern
-- Build one snapshot per Settings activation and share:
+- Build one snapshot per dialog activation and share across any pickers that need it:
 ```python
 from ...widgets.layer_dropdown import build_snapshot_from_project
 shared_snapshot = build_snapshot_from_project()
-for card in module_cards:
-    card.on_settings_activate(snapshot=shared_snapshot)
+for picker in picker_widgets:
+  picker.on_settings_activate(snapshot=shared_snapshot)
 ```
 - In a card:
 ```python

@@ -9,7 +9,6 @@ Põhimõtted:
 - Kaarti lisades ei käivita scroll-handlerit (_ignore_scroll_event).
 """
 from typing import Optional, Callable, Sequence
-from qgis.core import QgsSettings
 from PyQt5.QtCore import Qt, QTimer, QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea
 
@@ -22,10 +21,11 @@ from .mixins.progressive_load_mixin import ProgressiveLoadMixin
 from ..feed.feed_load_engine import FeedLoadEngine
 from ..widgets.theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
-from ..constants.settings_keys import SettingsService
+from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.messagesHelper import ModernMessageDialog
+from ..utils.url_manager import ModuleSupports
 
 
 
@@ -44,7 +44,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         ProgressiveLoadMixin.__init__(self)
 
         self.lang_manager = lang_manager
-        self._settings_service = SettingsService()
+        self._settings_logic = SettingsLogic()
         self._filter_widgets = []
 
         self.status_filter = None
@@ -353,19 +353,18 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         return self._get_saved_filter_ids("tag")
 
     def _get_saved_filter_ids(self, kind: str) -> list[str]:
-        service = getattr(self, "_settings_service", None)
+        logic = getattr(self, "_settings_logic", None)
         module_key = getattr(self, "module_key", None)
-        if not service or not module_key:
+        if not logic or not module_key:
+            return []
+        support_map = {
+            "status": ModuleSupports.STATUSES.value,
+            "type": ModuleSupports.TYPES.value,
+            "tag": ModuleSupports.TAGS.value,
+        }
+        support_key = support_map.get(kind)
+        if not support_key:
             return []
 
-        raw_value = ""
-        if kind == "status":
-            raw_value = service.module_preferred_statuses(module_key) or ""
-        elif kind == "type":
-            raw_value = service.module_preferred_types(module_key) or ""
-        elif kind == "tag":
-            raw_value = service.module_preferred_tags(module_key) or ""
-        else:
-            return []
-
-        return [token.strip() for token in str(raw_value).split(",") if token.strip()]
+        values = logic.load_module_preference_ids(module_key, support_key=support_key) or []
+        return [str(token).strip() for token in values if str(token).strip()]

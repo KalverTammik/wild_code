@@ -5,7 +5,6 @@ from typing import Dict, List, Optional, Sequence
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QWidget
-from ..constants.settings_keys import SettingsService
 from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
@@ -15,6 +14,7 @@ from ..python.api_client import APIClient
 from ..python.workers import FunctionWorker, start_worker
 from ..utils.url_manager import  ModuleSupports
 from ..utils.FilterHelpers.FilterHelper import FilterHelper
+from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 class TypeFilterWidget(QWidget):
     """Simple group/type multi-select without shared base class."""
 
@@ -28,6 +28,7 @@ class TypeFilterWidget(QWidget):
         parent: Optional[QWidget] = None,
         *,
         auto_load: bool = True,
+        settings_logic: Optional[SettingsLogic] = None,
     ) -> None:
         super().__init__(parent)
         self._module = module_name
@@ -43,6 +44,7 @@ class TypeFilterWidget(QWidget):
         self._load_request_id = 0
         self._pending_type_ids: List[str] = []
         self._auto_load = auto_load
+        self._settings_logic = settings_logic or SettingsLogic()
 
 
         self.filter_title = self._lang.translate(TranslationKeys.TYPE_FILTER)
@@ -131,10 +133,12 @@ class TypeFilterWidget(QWidget):
     def _apply_preferred_types(self) -> None:
         if not self._loaded:
             return
-        preferred_types = SettingsService().module_preferred_types(self._module) or ""
-        ids = [token.strip() for token in str(preferred_types).split(",") if token.strip()]
+        ids = self._settings_logic.load_module_preference_ids(
+            self._module,
+            support_key=ModuleSupports.TYPES.value,
+        )
         if ids:
-            self.set_selected_ids(ids, emit=False)
+            self.set_selected_ids(list(ids), emit=False)
 
 
 

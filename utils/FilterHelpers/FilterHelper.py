@@ -1,6 +1,5 @@
 from typing import List, Dict, Optional, Sequence, Tuple
 from PyQt5.QtCore import Qt
-from ...constants.settings_keys import SettingsService
 
 from ...utils.url_manager import ModuleSupports
 
@@ -70,13 +69,6 @@ class FilterHelper:
                 if sid and label:
                     entries.append((label, sid))
             return entries
-
-    @staticmethod
-    def _apply_preferred_items(key, widget, module) -> None:
-        ids = SettingsService.load_preferred_ids_by_key(key, module)
-        if ids:
-            FilterHelper.set_selected_ids(widget=widget, ids=ids, emit=False)
-
 
     @staticmethod
     def set_selected_ids(widget, ids: Sequence[str], emit: bool = True) -> None:

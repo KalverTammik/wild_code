@@ -1,6 +1,6 @@
 
 
-from PyQt5.QtWidgets import QVBoxLayout,  QFrame, QHBoxLayout, QGroupBox, QWidget
+from PyQt5.QtWidgets import QVBoxLayout,  QFrame, QHBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal
 from .SettingsBaseCard import SettingsBaseCard
 from .UIUtils import SettingsModuleFeatureCard
@@ -9,11 +9,11 @@ from ....widgets.TypeFilterWidget import TypeFilterWidget
 from ....widgets.TagsFilterWidget import TagsFilterWidget
 from ....constants.module_icons import ModuleIconPaths
 from ....utils.url_manager import Module
-from ....constants.settings_keys import SettingsService
 from ....utils.MapTools.MapHelpers import MapHelpers
 from ....utils.FilterHelpers.FilterHelper import FilterHelper
 from ....utils.url_manager import ModuleSupports
 from ....languages.translation_keys import TranslationKeys
+from ..SettinsUtils.SettingsLogic import SettingsLogic
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayer, QgsProject, Qgis
 
@@ -43,8 +43,7 @@ class SettingsModuleCard(SettingsBaseCard):
         self.supports_types = supports_types
         self.supports_statuses = supports_statuses
         self.supports_tags = supports_tags
-        self.logic = logic
-        self._settings = SettingsService()
+        self.logic = logic or SettingsLogic()
 
 
         # Layer pickers
@@ -138,6 +137,7 @@ class SettingsModuleCard(SettingsBaseCard):
                 widget_factory=lambda container: StatusFilterWidget(
                     self.module_key,
                     container,
+                    settings_logic=self.logic,
                 ),
             )
             self._status_filter_widget = status_widget
@@ -156,6 +156,7 @@ class SettingsModuleCard(SettingsBaseCard):
                     self.module_key,
                     self.lang_manager,
                     container,
+                    settings_logic=self.logic,
                 ),
             )
             self._tags_filter_widget = tags_widget
@@ -173,6 +174,7 @@ class SettingsModuleCard(SettingsBaseCard):
                 widget_factory=lambda container: TypeFilterWidget(
                     self.module_key,
                     container,
+                    settings_logic=self.logic,
                 ),
             )
             self._type_filter_widget = type_widget
@@ -215,27 +217,43 @@ class SettingsModuleCard(SettingsBaseCard):
         
             
         # Lae algsed layer-nimed
-        self._orig_element_name = self._settings.module_main_layer_id(self.module_key) or ""
+        layer_state = self.logic.get_module_layer_ids(self.module_key, include_archive=self.supports_archive)
+        self._orig_element_name = layer_state.get("element", "")
         if not self.supports_archive:
             self._orig_archive_name = ""
         else:
-            self._orig_archive_name = self._settings.module_archive_layer_id(self.module_key) or ""
+            self._orig_archive_name = layer_state.get("archive", "")
         self._pend_element_name = self._orig_element_name
         self._pend_archive_name = self._orig_archive_name
 
         # Lae status/type eelistused
-        self._orig_status_preferences = SettingsService.load_preferred_ids_by_key(ModuleSupports.STATUSES.value, self.module_key)
+        self._orig_status_preferences = set(
+            self.logic.load_module_preference_ids(
+                self.module_key,
+                support_key=ModuleSupports.STATUSES.value,
+            )
+        )
         self._pend_status_preferences = set(self._orig_status_preferences)
 
         if self.supports_types:
-            self._orig_type_preferences = SettingsService.load_preferred_ids_by_key(ModuleSupports.TYPES.value, self.module_key)
+            self._orig_type_preferences = set(
+                self.logic.load_module_preference_ids(
+                    self.module_key,
+                    support_key=ModuleSupports.TYPES.value,
+                )
+            )
             self._pend_type_preferences = set(self._orig_type_preferences)
         else:
             self._orig_type_preferences = set()
             self._pend_type_preferences = set()
 
         if self.supports_tags:
-            self._orig_tag_preferences = SettingsService.load_preferred_ids_by_key(ModuleSupports.TAGS.value, self.module_key)
+            self._orig_tag_preferences = set(
+                self.logic.load_module_preference_ids(
+                    self.module_key,
+                    support_key=ModuleSupports.TAGS.value,
+                )
+            )
             self._pend_tag_preferences = set(self._orig_tag_preferences)
         else:
             self._orig_tag_preferences = set()
@@ -257,21 +275,13 @@ class SettingsModuleCard(SettingsBaseCard):
     # --- Persistence helpers -------------------------------------------------
 
     def _write_saved_layer_value(self, kind: str, layer_name: str):
-        try:
-            if kind == "element":
-                if layer_name:
-                    self._settings.module_main_layer_id(self.module_key, value=layer_name)
-                else:
-                    self._settings.module_main_layer_id(self.module_key, clear=True)
-            else:
-                if not self.supports_archive:
-                    return
-                if layer_name:
-                    self._settings.module_archive_layer_id(self.module_key, value=layer_name)
-                else:
-                    self._settings.module_archive_layer_id(self.module_key, clear=True)
-        except Exception:
-            pass
+        if kind == "archive" and not self.supports_archive:
+            return
+        self.logic.set_module_layer_id(
+            self.module_key,
+            kind="archive" if kind == "archive" else "element",
+            layer_name=layer_name,
+        )
 
     # --- Apply/Revert/State ---
     def has_pending_changes(self) -> bool:
@@ -300,30 +310,30 @@ class SettingsModuleCard(SettingsBaseCard):
 
         # Save status prefs
         if self._pend_status_preferences != self._orig_status_preferences:
-            SettingsService.save_preferred_ids_by_key(
-                ModuleSupports.STATUSES.value,
+            self.logic.save_module_preference_ids(
                 self.module_key,
-                self._pend_status_preferences,
+                support_key=ModuleSupports.STATUSES.value,
+                ids=self._pend_status_preferences,
             )
             self._orig_status_preferences = set(self._pend_status_preferences)
             changed = True
 
         # Save tag prefs
         if self.supports_tags and (self._pend_tag_preferences != self._orig_tag_preferences):
-            SettingsService.save_preferred_ids_by_key(
-                ModuleSupports.TAGS.value,
+            self.logic.save_module_preference_ids(
                 self.module_key,
-                self._pend_tag_preferences,
+                support_key=ModuleSupports.TAGS.value,
+                ids=self._pend_tag_preferences,
             )
             self._orig_tag_preferences = set(self._pend_tag_preferences)
             changed = True
 
         # Save type prefs
         if self.supports_types and (self._pend_type_preferences != self._orig_type_preferences):
-            SettingsService.save_preferred_ids_by_key(
-                ModuleSupports.TYPES.value,
+            self.logic.save_module_preference_ids(
                 self.module_key,
-                self._pend_type_preferences,
+                support_key=ModuleSupports.TYPES.value,
+                ids=self._pend_type_preferences,
             )
             self._orig_type_preferences = set(self._pend_type_preferences)
             changed = True
@@ -465,11 +475,20 @@ class SettingsModuleCard(SettingsBaseCard):
             self._write_saved_layer_value("element", "")
             if self.supports_archive:
                 self._write_saved_layer_value("archive", "")
-            self._settings.module_preferred_statuses(self.module_key, clear=True)
+            self.logic.clear_module_preference_ids(
+                self.module_key,
+                support_key=ModuleSupports.STATUSES.value,
+            )
             if self.supports_tags:
-                self._settings.module_preferred_tags(self.module_key, clear=True)
+                self.logic.clear_module_preference_ids(
+                    self.module_key,
+                    support_key=ModuleSupports.TAGS.value,
+                )
             if self.supports_types:
-                self._settings.module_preferred_types(self.module_key, clear=True)
+                self.logic.clear_module_preference_ids(
+                    self.module_key,
+                    support_key=ModuleSupports.TYPES.value,
+                )
 
             self._update_stored_values_display()
             self.set_status_text(f"✅ {self.lang_manager.translate('Settings reset to defaults')}", True)
