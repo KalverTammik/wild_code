@@ -1,8 +1,7 @@
-from collections import deque
-from typing import Any, Callable, Deque, Optional, Tuple
+from typing import Any, Optional
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QLabel, QPushButton
-from PyQt5.QtCore import pyqtSignal, QTimer
+from PyQt5.QtCore import pyqtSignal
 from qgis.core import QgsProject, QgsLayerTreeGroup, QgsLayerTreeLayer
 
 from .SettinsUtils.userUtils import userUtils
@@ -44,8 +43,6 @@ class SettingsModule(QWidget):
         self._cards = []
         self._initialized = False
         self._pending_changes = False
-        self._pending_settings = {}
-        self._original_settings = {}
         # Global footer controls
         self._footer_frame = None
         self._footer_status = None
@@ -56,8 +53,6 @@ class SettingsModule(QWidget):
         self._user_fetch_thread = None
         self._user_fetch_worker = None
         self._user_fetch_request_id = 0
-        self._filter_load_queue: Deque[Tuple[str, str, Any]] = deque()
-        self._active_filter_entry: Optional[Tuple[str, str, Any, Optional[Callable[[bool], None]]]] = None
         self.setup_ui()
         # Centralized theming
         ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
@@ -156,8 +151,6 @@ class SettingsModule(QWidget):
             supports_statuses=supports.get("statuses", False),
             supports_tags=supports.get("tags", False),
             logic=self.logic,
-            filter_loader=self._request_filter_load,
-            filter_cancel=self._cancel_scheduled_filter_loads,
         )
  
         card.pendingChanged.connect(self._update_dirty_state)
@@ -171,79 +164,6 @@ class SettingsModule(QWidget):
                 card.on_settings_activate(snapshot=snapshot)
             except Exception as exc:
                 print(f"Failed to activate settings card for {getattr(card, 'module_key', 'unknown')}: {exc}")
-
-    # ------------------------------------------------------------------
-    # Filter load orchestration (limits concurrent network workers)
-    # ------------------------------------------------------------------
-    def _request_filter_load(self, module_key: str, kind: str, widget: Any) -> None:
-        if widget is None:
-            return
-        self._filter_load_queue.append((module_key, kind, widget))
-        if not self._active_filter_entry:
-            self._start_next_filter_load()
-
-    def _start_next_filter_load(self) -> None:
-        if self._active_filter_entry:
-            return
-        while self._filter_load_queue:
-            module_key, kind, widget = self._filter_load_queue.popleft()
-            if widget is None:
-                continue
-            if hasattr(widget, "is_loaded") and widget.is_loaded():
-                continue
-            handler = self._make_filter_load_handler(widget)
-            try:
-                widget.loadFinished.connect(handler)
-            except Exception:
-                handler = None
-            self._active_filter_entry = (module_key, kind, widget, handler)  # type: ignore[arg-type]
-            try:
-                widget.reload()
-            except Exception:
-                self._handle_filter_load_complete(widget)
-            return
-        self._active_filter_entry = None
-
-    def _make_filter_load_handler(self, widget: Any) -> Callable[[bool], None]:
-        def _handler(_success: bool) -> None:
-            self._handle_filter_load_complete(widget)
-
-        return _handler
-
-    def _handle_filter_load_complete(self, widget: Any) -> None:
-        entry = self._active_filter_entry
-        if not entry or entry[2] is not widget:
-            return
-        handler = entry[3]
-        if handler:
-            try:
-                widget.loadFinished.disconnect(handler)
-            except Exception:
-                pass
-        self._active_filter_entry = None
-        QTimer.singleShot(15, self._start_next_filter_load)
-
-    def _cancel_scheduled_filter_loads(self, widget: Any) -> None:
-        if widget is None:
-            return
-        remaining = [entry for entry in self._filter_load_queue if entry[2] is not widget]
-        self._filter_load_queue = deque(remaining)
-        entry = self._active_filter_entry
-        if entry and entry[2] is widget:
-            self._handle_filter_load_complete(widget)
-
-    def _clear_filter_load_queue(self) -> None:
-        self._filter_load_queue = deque()
-        entry = self._active_filter_entry
-        if entry:
-            widget = entry[2]
-            handler = entry[3]
-            if handler:
-                try:
-                    widget.loadFinished.disconnect(handler)
-                except Exception:
-                    pass
-        self._active_filter_entry = None
 
     def _build_layer_snapshot(self):
         try:
@@ -386,7 +306,6 @@ class SettingsModule(QWidget):
      
     def deactivate(self):
         self._cancel_user_fetch_worker(invalidate_request=True)
-        self._clear_filter_load_queue()
         # Deactivate module cards to free memory
         for card in self._module_cards.values():
             try:
@@ -415,10 +334,7 @@ class SettingsModule(QWidget):
     # --- Handling unsaved changes ---
     def apply_pending_changes(self):
         for card in self._module_cards.values():
-            try:
-                card.apply()
-            except Exception as exc:
-                print(f"Failed to apply module card settings: {exc}")
+            card.apply()
         self.logic.apply_pending_changes()
 
         # Recompute dirty state using both logic + cards

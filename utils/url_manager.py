@@ -1,7 +1,6 @@
 
 from enum import Enum
 
-from typing import Dict, Any
 import requests
 import webbrowser
 from ..config.setup import config
@@ -22,49 +21,23 @@ class Module(Enum):
     WORKS = "works"
     TASK = "task"
 
-    TAGS = "tags"
-    STATUSES = "statuses"
 
     # user related
     USER = "user"
 
-
-    # Properties related
     PROPERTY = "property"
-
-
-
-
     SETTINGS = "settings"
-
     HOME = "home"
-
     SIGNALTEST = "signaltest"
 
 
+    STATUSES = "statuses"
+    TYPES = "type"
 
-    def singular(self, upper: bool = False) -> str:
-        s = self.value
-        return s.upper() if upper else s
-
-    def plural(self, upper: bool = False) -> str:
-        # Special cases for irregular plurals
-        plurals = {
-            Module.PROPERTY: "properties",
-            Module.CONTRACT: "contracts", 
-            Module.PROJECT: "projects",
-        }
-        plural = plurals.get(self.value, self.value + "s")
-        return plural.upper() if upper else plural
-
-    # mugav lühike API:
-    def api_key(self) -> str:
-        """Sageli vajame API-s ainsust ÜLAKIRJAS (nt BACKEND_ENTITY)."""
-        return self.singular(upper=True)
-
-    def api_collection(self) -> str:
-        """Sageli vajame API-s mitmust ÜLAKIRJAS (nt statuses where: MODULE=PROJECTS)."""
-        return self.plural(upper=True)
+class ModuleSupports(Enum):
+    TAGS = "tags"
+    STATUSES = "statuses"
+    TYPES = "type"
 
 
 class loadWebpage:

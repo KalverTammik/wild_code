@@ -11,6 +11,8 @@ from PyQt5.QtWidgets import (
 from ...constants.file_paths import QssPaths
 from ...utils.url_manager import Module
 from ...widgets.theme_manager import ThemeManager
+from qgis.gui import QgsMapLayerComboBox
+from qgis.core import Qgis, QgsMapLayer
 
 
 class SignalTestModule(QWidget):
@@ -51,12 +53,42 @@ class SignalTestModule(QWidget):
         self.output_area.setPlaceholderText("Signal payloads will appear here")
         outer.addWidget(self.output_area, 1)
 
+        # Live layer picker example powered by QgsMapLayerComboBox
+        layer_intro = QLabel(
+            "Layer picker below is backed by QgsMapLayerComboBox "
+            "(see https://qgis.org/pyqgis/master/gui/QgsMapLayerComboBox.html)."
+        )
+        layer_intro.setWordWrap(True)
+        outer.addWidget(layer_intro)
+
+        self.layer_combo = QgsMapLayerComboBox(self)
+        self.layer_combo.setAllowEmptyLayer(True, "No layer selected")
+        self.layer_combo.setShowCrs(True)
+        self.layer_combo.setFilters(Qgis.LayerFilter.HasGeometry)
+        self.layer_combo.layerChanged.connect(self._on_layer_combo_layer_changed)
+        outer.addWidget(self.layer_combo)
+
     def _render_result(self, data) -> None:
         try:
             text = json.dumps(data, ensure_ascii=False, indent=2)
         except Exception:
             text = str(data)
         self.output_area.setPlainText(text)
+
+    def _on_layer_combo_layer_changed(self, layer: Optional[QgsMapLayer]) -> None:
+        payload = {
+            "kind": "map-layer-selection",
+            "source": "QgsMapLayerComboBox.layerChanged",
+            "layer": None,
+        }
+        if layer is not None:
+            payload["layer"] = {
+                "id": layer.id(),
+                "name": layer.name(),
+                "provider": layer.providerType(),
+                "crs": layer.crs().authid() if layer.crs() else None,
+            }
+        self._render_result(payload)
 
     def show_external_signal_payload(self, source: str, module: str, item_id: str, title: str) -> None:
         """Display payload received from external signals (e.g. search widget).

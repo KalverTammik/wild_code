@@ -1,0 +1,16 @@
+query submissionTypes($first: Int, $after: String) {
+  submissionTypes(first: $first, after: $after) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      currentPage
+      total
+    }
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+}

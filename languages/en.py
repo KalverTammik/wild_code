@@ -36,6 +36,8 @@ TRANSLATIONS = {
     TranslationKeys.MODULES_MAIN_LAYER: "Modules main layer",
     TranslationKeys.ARCHIVE_LAYER: "Archive layer",
     TranslationKeys.SELECT_LAYER: "Select layer",
+    TranslationKeys.MAIN_LAYER_DESCRIPTION: "This is your module's primary layer. Choose the layer containing the core data you work with.",
+    TranslationKeys.ARCHIVE_LAYER_DESCRIPTION: "Use an optional archive layer to store historical or backup data versions.",
     TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Choose layers used by this module (element and archive).",
     TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE: "Select a property layer for data operations and management.",
     TranslationKeys.SELECT_A_PROPERTY_LAYER: "Select a property layer...",
@@ -82,7 +84,7 @@ TRANSLATIONS = {
     ,"User": "User"
     ,"User Information": "User Information"
     ,"Roles": "Roles"
-    ,"Preferred module": "Preferred module"
+
     ,"A Tähe õppimine": "Learning the Letter A"
     ,"B Tähe õppimine": "Learning the Letter B"
     ,"C Tähe õppimine": "Learning the Letter C"
@@ -241,4 +243,10 @@ TRANSLATIONS = {
     ,TranslationKeys.UPDATED: "Updated"
     ,"Signaltest": "Test Lab"
     ,TranslationKeys.CONNECTIONS: "Connections"
+    ,TranslationKeys.TAGS_PREFERENCES: "Tags preferences"
+    ,TranslationKeys.STATUS_PREFERENCES: "Status preferences"
+    ,TranslationKeys.TYPE_PREFERENCES: "Type preferences"
+    ,TranslationKeys.SELECT_TYPE_DESCRIPTION: "Select types you want to focus on for this module. These will be highlighted in the interface."
+    ,TranslationKeys.SELECT_STATUSES_DESCRIPTION: "Select statuses you want to prioritize for this module. These will be highlighted in the interface."
+    ,TranslationKeys.SELECT_TAGS_DESCRIPTION: "Select tags you want to focus on for this module. These will be highlighted in the interface."
 }

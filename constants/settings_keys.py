@@ -1,6 +1,7 @@
 from typing import Optional
 
 from qgis.core import QgsSettings
+from ..utils.url_manager import ModuleSupports
 
 
 PLUGIN = "wild_code"
@@ -133,14 +134,46 @@ class SettingsService:
             default="",
         )
 
-    def module_show_numbers(self, module_name: str, value=_UNSET, *, clear: bool = False):
-        return self.module_setting(
-            module_name,
-            MODULE_SETTING_SHOW_NUMBERS,
-            value=value,
-            clear=clear,
-            default=True,
-        )
+
+
+    @staticmethod
+    def load_preferred_ids_by_key(key, module) -> None:
+        loaders = {
+            ModuleSupports.TAGS.value: SettingsService().module_preferred_tags,
+            ModuleSupports.STATUSES.value: SettingsService().module_preferred_statuses,
+            ModuleSupports.TYPES.value: SettingsService().module_preferred_types,
+        }
+        loader = loaders.get(key)
+        if not loader:
+            return
+
+        preferred_raw = loader(module) or ""
+        ids = [token.strip() for token in str(preferred_raw).split(",") if token.strip()]
+        return ids
+
+    @staticmethod
+    def save_preferred_ids_by_key(key, module, ids) -> None:
+        service = SettingsService()
+        writers = {
+            ModuleSupports.TAGS.value: service.module_preferred_tags,
+            ModuleSupports.STATUSES.value: service.module_preferred_statuses,
+            ModuleSupports.TYPES.value: service.module_preferred_types,
+        }
+        writer = writers.get(key)
+        if not writer:
+            return
+
+        try:
+            cleaned = sorted({str(v).strip() for v in (ids or []) if str(v).strip()})
+            if cleaned:
+                writer(module, value=",".join(cleaned))
+            else:
+                writer(module, clear=True)
+        except Exception:
+            pass
+    
+
+    
 
 
 # Utility-specific settings ----------------------------------------------------

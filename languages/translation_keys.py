@@ -102,9 +102,15 @@ class TranslationKeys:
     TYPE_GROUP_FILTER = "Type Group Filter"
     RESET = "Reset"
 
+
+
     # Settings
     STATUS_PREFERENCES = "Status Preferences"
-    SELECT_STATUSES_DESCRIPTION = "Select statuses you want to prioritize for this module. These will be highlighted in the interface."
+    TAGS_PREFERENCES = "Tags Preferences"
+    TYPE_PREFERENCES = "Type Preferences"
+    SELECT_TYPE_DESCRIPTION = "Types description"
+    SELECT_STATUSES_DESCRIPTION = "Statuses description"
+    SELECT_TAGS_DESCRIPTION = "Tags description"
     RESET_ALL_SETTINGS = "Reset all settings for this module to default values"
     SETTINGS_RESET_TO_DEFAULTS = "Settings reset to defaults"
     SHOW_PROJECT_NUMBERS_DESCRIPTION = "When enabled, project/contract numbers will be displayed in item cards for easy identification."
@@ -217,6 +223,8 @@ class TranslationKeys:
     MODULES_MAIN_LAYER = "Modules main layer"
     ARCHIVE_LAYER = "Archive layer"
     SELECT_LAYER = "Select layer"
+    MAIN_LAYER_DESCRIPTION = "Main layer description"
+    ARCHIVE_LAYER_DESCRIPTION = "Archive layer description"
     CHOOSE_LAYERS_USED_BY_THIS_MODULE = "Choose layers used by this module (element and archive)."
     CHOOSE_PROPERTY_LAYER_FOR_MODULE = "Select a property layer for data operations and management."
 

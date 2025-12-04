@@ -39,6 +39,8 @@ TRANSLATIONS = {
     TranslationKeys.MODULES_MAIN_LAYER: "Mooduli põhikiht",
     TranslationKeys.ARCHIVE_LAYER: "Arhiivikiht",
     TranslationKeys.SELECT_LAYER: "Vali kiht",
+    TranslationKeys.MAIN_LAYER_DESCRIPTION: "See on mooduli põhikiht. Vali kiht, mis sisaldab põhiandmeid, millega töötad.",
+    TranslationKeys.ARCHIVE_LAYER_DESCRIPTION: "Kasuta valikulist arhiivikihti ajalooliste või varuandmete salvestamiseks.",
     TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Vali selle mooduli kasutatavad kihid (elemendi ja arhiivi).",
     TranslationKeys.LOGOUT_BUTTON_TOOLTIP: "Logi välja",
     TranslationKeys.SEARCH_TOOLTIP: "Funktsioon veel ei tööta",
@@ -52,7 +54,11 @@ TRANSLATIONS = {
     TranslationKeys.SESSION_EXPIRED: "Teie seanss on aegunud. Palun logige uuesti sisse.",
     TranslationKeys.SESSION_EXPIRED_TITLE: "Seanss aegunud",
     TranslationKeys.STATUS_PREFERENCES: "Eelistatud staatused",
+    TranslationKeys.TAGS_PREFERENCES: "Eelistatud tunnused",
+    TranslationKeys.TYPE_PREFERENCES: "Eelistatud liigid",
+    TranslationKeys.SELECT_TYPE_DESCRIPTION: "Vali liigid, mida soovid selles moodulis eelistada. Need tõstetakse esile",
     TranslationKeys.SELECT_STATUSES_DESCRIPTION: "Vali staatused, mida soovid selles moodulis eelistada. Need tõstetakse esile",
+    TranslationKeys.SELECT_TAGS_DESCRIPTION: "Vali tunnused, mida soovid selles moodulis eelistada. Need tõstetakse esile",
     "urgent_group_title": "Kiire!",
     TranslationKeys.URGENT_TOOLTIP: "Vajab kiiret tähelepanu",
     TranslationKeys.STATUS_FILTER: "Staatuste järgi filtreerimine",
@@ -218,7 +224,6 @@ TRANSLATIONS = {
     ,TranslationKeys.CHOOSE_FROM_MAP: "Vali kaardilt"
     ,TranslationKeys.NO_SELECTION: "Valikut pole"
     ,TranslationKeys.SELECT_PROPERTY_FIRST: "Palun valige esmalt kaardilt kinnisvara objekt."
-    ,TranslationKeys.ERROR: "Viga"
     ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Viga kinnisvara valimisel"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Vali üks kinnisvara"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_MESSAGE: "Palun valige kaardilt ainult üks kinnisvara objekt."

@@ -1,0 +1,16 @@
+query specificationTypes($first: Int, $after: String) {
+  specificationTypes(first: $first, after: $after) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      currentPage
+      total
+    }
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+}

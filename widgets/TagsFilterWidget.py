@@ -12,8 +12,8 @@ from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.api_client import APIClient
-from ..python.responses import JsonResponseHandler
-from ..utils.url_manager import Module
+from ..utils.url_manager import  ModuleSupports
+from ..utils.FilterHelpers.FilterHelper import FilterHelper
 from ..python.workers import FunctionWorker, start_worker
 
 
@@ -65,7 +65,6 @@ class TagsFilterWidget(QWidget):
     def reload(self) -> None:
         self._loaded = False
         self.combo.clear()
-        self.combo.setEnabled(False)
         self._show_loading_placeholder()
         self._start_async_load()
 
@@ -73,65 +72,16 @@ class TagsFilterWidget(QWidget):
         if not self._loaded:
             self.reload()
 
-    def selected_ids(self) -> List[str]:
-        return list(self.combo.checkedItemsData() or [])  # type: ignore[attr-defined]
-
-    def selected_texts(self) -> List[str]:
-        return list(self.combo.checkedItems() or [])  # type: ignore[attr-defined]
-
-    def set_selected_ids(self, ids: Sequence[str], emit: bool = True) -> None:
-        targets = {str(v) for v in ids or []}
-        if not self._loaded:
-            self._pending_selection_ids = list(targets)
-            return
-        self._suppress_emit = True
-        try:
-            for row in range(self.combo.count()):
-                val = self.combo.itemData(row)
-                state = Qt.Checked if str(val) in targets else Qt.Unchecked
-                self.combo.setItemCheckState(row, state)
-        finally:
-            self._suppress_emit = False
-
-        if emit:
-            self._emit_selection_change()
 
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
-    def _load_tags_payload(self) -> List[Tuple[str, str]]:
-        tags_module = Module.TAGS.value
-        query = self._loader.load_query_by_module(tags_module, "ListModuleTags.graphql")
-        variables = {
-            "first": 50,
-            "after": None,
-            "where": {"column": "MODULE", "value": f"{str(self._module).upper()}S"},
-        }
-        data = self._api.send_query(query, variables=variables, return_raw=True) or {}
-        edges = JsonResponseHandler.get_edges_from_path(data, ["tags"])
-
-        entries: List[Tuple[str, str]] = []
-        for edge in edges:
-            node = (edge or {}).get("node") or {}
-            tag_id = node.get("id")
-            label = node.get("name")
-            if tag_id and label:
-                entries.append((label, tag_id))
-        return entries
-
-    def _apply_preffered_tags(self) -> None:
-        if not self._loaded:
-            return
-        preferred_tags = SettingsService().module_preferred_tags(self._module) or ""
-        ids = [token.strip() for token in str(preferred_tags).split(",") if token.strip()]
-        if ids:
-            self.set_selected_ids(ids, emit=False)
 
     def _emit_selection_change(self) -> None:
         if self._suppress_emit:
             return
-        texts = self.selected_texts()
-        ids = self.selected_ids()
+        texts = FilterHelper.selected_texts(self)
+        ids = FilterHelper.selected_ids(self)
         self.selectionChanged.emit(texts, ids)
 
     # Async helpers --------------------------------------------------
@@ -140,11 +90,12 @@ class TagsFilterWidget(QWidget):
         self.combo.addItem(f"{loading_text}…")
 
     def _start_async_load(self) -> None:
-        self.cancel_pending_load(invalidate_request=False)
+        FilterHelper.cancel_pending_load(self, invalidate_request=False)
         self._load_request_id += 1
         request_id = self._load_request_id
 
-        worker = FunctionWorker(self._load_tags_payload)
+        key = ModuleSupports.TAGS.value
+        worker = FunctionWorker(lambda: FilterHelper.get_filter_edges_by_key_and_module(key, self._module))
         worker.finished.connect(
             lambda payload, rid=request_id: self._handle_tags_loaded(rid, payload)
         )
@@ -162,10 +113,11 @@ class TagsFilterWidget(QWidget):
             self.combo.addItem(label, value)
         self.combo.setEnabled(True)
         self._loaded = True
-        self._apply_preffered_tags()
-        if self._pending_selection_ids:
-            self.set_selected_ids(self._pending_selection_ids, emit=False)
-            self._pending_selection_ids = []
+        FilterHelper._apply_preferred_items(
+            key=ModuleSupports.TAGS.value,
+            widget=self,
+            module=self._module,
+        )
         self.loadFinished.emit(True)
 
     def _handle_tags_failed(self, request_id: int, message: str) -> None:
@@ -190,19 +142,5 @@ class TagsFilterWidget(QWidget):
     def is_loading(self) -> bool:
         return self._worker_thread is not None
 
-    def cancel_pending_load(self, *, invalidate_request: bool = True) -> None:
-        if invalidate_request:
-            self._load_request_id += 1
-        thread = self._worker_thread
-        was_running = thread is not None and thread.isRunning()
-        self._worker = None
-        self._worker_thread = None
-        if thread is not None and thread.isRunning():
-            try:
-                thread.quit()
-                thread.wait(50)
-            except Exception:
-                pass
-        if was_running:
-            self.loadFinished.emit(False)
+
     

@@ -1,47 +1,74 @@
-/* ModulesMain.qss - Light Theme */
 
+/* ===== PropertysUIMain (Light) ===== */
 QPushButton#ChooseFromMapButton {
-    background: #e6f7f7;
+    background: #0f766e;
+    color: #ffffff;
+    border: none;
     border-radius: 6px;
-    border: 1px solid #b2e0e0;
-    padding: 4px 8px;
-    color: #09908f;
+    padding: 6px 16px;
+    font-weight: 600;
     font-size: 12px;
+    min-width: 90px;
 }
 
+QPushButton#ChooseFromMapButton:hover {
+        background: #115e59; /* teal-800 */
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(15, 118, 110, 0.25);
+}
+
+QPushButton#ChooseFromMapButton:pressed {
+        background: #0b4b45; /* teal-900 */
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(15, 118, 110, 0.35);
+}
+
+QPushButton#ChooseFromMapButton:disabled {
+        background: #cbd5e1; /* slate-300 */
+        color: #64748b;      /* slate-500 */
+        transform: none;
+        box-shadow: none;
+}
 
 QFrame #PropertyDetailsFrame {
     background: #ffffff;
     border: none !important;
     border-width: 0 !important;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 0;
     margin: 4px;
+    background-image: qlineargradient(
+        x1:0, y1:0, x2:0, y2:1,
+        stop:0 rgba(255,255,255,0.85),
+        stop:0.3 rgba(255,255,255,0.6),
+        stop:0.85 rgba(255,255,255,0.9),
+        stop:1 rgba(246,248,250,0.95)
+    );
 }
 
 QFrame #PropertyDetailsFrame:hover {
-    border: 1px solid rgba(0,120,212,0.45) !important;
-    background-color: #fafbfc;
+    border: 1px solid rgba(0,120,212,0.35) !important;
+    background-color: rgba(255,255,255,0.95);
 }
 
 
 /* Informative field labels (bold) */
 QLabel#InfoLabel {
     font-weight: bold;
-    font-size: 11px;
-    color: #222;
+    font-size: 12px;
+    color: #1f2933;
 }
 
 /* Details title (already bold from code) */
 QLabel#DetailsTitle {
     font-weight: bold;
     font-size: 12px;
-    color: #222;
+    color: #1f2933;
 }
 
 QLabel {
     font-size: 12px;
-    color: #222;
+    color: #1f2933;
 }
 
 /* Property Dialog Styles */
@@ -211,7 +238,7 @@ QLabel {
 }
 
 #PropertyDetailsWidget QPushButton {
-    background: #1976d2;
+    background: #0f766e;
     color: #ffffff;
     border: none;
     border-radius: 4px;
@@ -221,16 +248,16 @@ QLabel {
 }
 
 #PropertyDetailsWidget QPushButton:hover {
-    background: #1565c0;
+    background: #115e59;
 }
 
 #PropertyDetailsWidget QPushButton:pressed {
-    background: #0d47a1;
+    background: #0b4b45;
 }
 
 #PropertyDetailsWidget QPushButton:disabled {
-    background: #cccccc;
-    color: #666666;
+    background: #cbd5e1;
+    color: #64748b;
 }
 
 #PropertyDetailsWidget QCheckBox {
@@ -247,8 +274,8 @@ QLabel {
 }
 
 #PropertyDetailsWidget QCheckBox::indicator:checked {
-    background: #1976d2;
-    border-color: #1976d2;
+    background: #0f766e;
+    border-color: #0f766e;
 }
 
 #PropertyDetailsWidget QCheckBox::indicator:unchecked {
@@ -269,8 +296,8 @@ QLabel {
 }
 
 #PropertyDetailsWidget QRadioButton::indicator:checked {
-    background: #1976d2;
-    border-color: #1976d2;
+    background: #0f766e;
+    border-color: #0f766e;
 }
 
 #PropertyDetailsWidget QRadioButton::indicator:unchecked {
@@ -461,7 +488,7 @@ QLabel {
 }
 
 #PropertyDetailsWidget QProgressBar::chunk {
-    background: #1976d2;
+    background: #0f766e;
     border-radius: 2px;
 }
 
@@ -470,9 +497,9 @@ QLabel {
 }
 
 #PropertyDetailsWidget QSplitter::handle:hover {
-    background: #1976d2;
+    background: #0f766e;
 }
 
 #PropertyDetailsWidget QSplitter::handle:pressed {
-    background: #0d47a1;
+    background: #0b4b45;
 }

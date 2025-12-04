@@ -1,5 +1,0 @@
-fragment PropertyFieldsMinimal on Property {
-  id
-  displayAddress
-  cadastralUnitNumber
-}

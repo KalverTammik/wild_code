@@ -31,9 +31,6 @@ class QueryPaths:
             return file.read()
 
 
-
-
-
 class ConfigPaths:
     CONFIG = os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json")
     METADATA = os.path.join(PLUGIN_ROOT, "metadata.txt")

@@ -24,7 +24,7 @@ from ...widgets.OverdueDueSoonPillsWidget import (
     OverdueDueSoonPillsWidget,
 )
 from ...widgets.filter_refresh_helper import FilterRefreshHelper
-
+from ...utils.FilterHelpers.FilterHelper import FilterHelper
 
 class ContractsModule(ModuleBaseUI):
 
@@ -238,7 +238,7 @@ class ContractsModule(ModuleBaseUI):
                 pass
 
         if status_ids is None and self.status_filter:
-            status_ids = self.status_filter.selected_ids()
+            status_ids = FilterHelper.selected_ids(self.status_filter)
             if not status_ids:
                 saved = self._get_saved_status_ids()
                 if saved:
@@ -250,7 +250,7 @@ class ContractsModule(ModuleBaseUI):
                 if saved_types:
                     type_ids = saved_types
         if tags_ids is None and self.tags_filter:
-            tags_ids = self.tags_filter.selected_ids()
+            tags_ids = FilterHelper.selected_ids(self.tags_filter)
             if not tags_ids:
                 saved_tags = self._get_saved_tag_ids()
                 if saved_tags:
@@ -338,7 +338,7 @@ class ContractsModule(ModuleBaseUI):
         """Return a list of AND conditions from current filter widgets (status/type)."""
         and_list = []
         try:
-            status_ids = self.status_filter.selected_ids() if self.status_filter else []
+            status_ids = FilterHelper.selected_ids(self.status_filter) if self.status_filter else []
             type_ids = self.type_filter.selected_ids() if self.type_filter else []
             if status_ids:
                 and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
@@ -361,7 +361,7 @@ class ContractsModule(ModuleBaseUI):
         tags_ids = []
         try:
             if self.tags_filter:
-                tags_ids = self.tags_filter.selected_ids()
+                tags_ids = FilterHelper.selected_ids(self.tags_filter)
         except Exception:
             tags_ids = []
         has_tags_filter = self._build_has_tags_condition(tags_ids or [])

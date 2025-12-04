@@ -1,0 +1,16 @@
+query ordinanceTypes($first: Int, $after: String) {
+  ordinanceTypes(first: $first, after: $after) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      currentPage
+      total
+    }
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+}

@@ -12,11 +12,9 @@ from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.api_client import APIClient
-from ..python.responses import JsonResponseHandler
-from ..utils.filter_helpers import group_key
 from ..python.workers import FunctionWorker, start_worker
-
-
+from ..utils.url_manager import  ModuleSupports
+from ..utils.FilterHelpers.FilterHelper import FilterHelper
 class TypeFilterWidget(QWidget):
     """Simple group/type multi-select without shared base class."""
 
@@ -97,37 +95,6 @@ class TypeFilterWidget(QWidget):
             return
         self._apply_type_selection(targets, emit)
 
-    # ------------------------------------------------------------------
-    def _load_types_payload(self) -> List[Dict[str, Optional[str]]]:
-        query_name = "TYPE"
-        query_file = f"{self._module}_types.graphql"
-        query = self._loader.load_query_by_module(query_name, query_file)
-
-        edges = []
-        after: Optional[str] = None
-        path = [f"{self._module}Types"]
-        while True:
-            variables = {"first": self._PAGE_SIZE, "after": after}
-            payload = self._api.send_query(query, variables=variables, return_raw=True) or {}
-            page_edges = JsonResponseHandler.get_edges_from_path(payload, path)
-            edges.extend(page_edges)
-
-            page_info = JsonResponseHandler.get_page_info_from_path(payload, path)
-            has_next = bool(page_info.get("hasNextPage"))
-            after = page_info.get("endCursor") if has_next else None
-            if not has_next or not after:
-                break
-        entries: List[Dict[str, Optional[str]]] = []
-        for edge in edges:
-            node = (edge or {}).get("node") or {}
-            type_id = node.get("id")
-            label = node.get("name")
-            group_name = (node.get("group") or {}).get("name") if isinstance(node.get("group"), dict) else None
-            if not group_name:
-                group_name = group_key(label)
-            if type_id and label:
-                entries.append({"id": type_id, "label": label, "group": group_name})
-        return entries
 
     def _on_group_selection_changed(self) -> None:
         if self._suppress_group_emit:
@@ -207,11 +174,12 @@ class TypeFilterWidget(QWidget):
         self.type_combo.addItem(placeholder)
 
     def _start_async_load(self) -> None:
-        self.cancel_pending_load(invalidate_request=False)
+        FilterHelper.cancel_pending_load(self, invalidate_request=False)
         self._load_request_id += 1
         request_id = self._load_request_id
 
-        worker = FunctionWorker(self._load_types_payload)
+        key = ModuleSupports.TYPES.value
+        worker = FunctionWorker(lambda: FilterHelper.get_filter_edges_by_key_and_module(key, self._module))
         worker.finished.connect(
             lambda payload, rid=request_id: self._handle_types_loaded(rid, payload)
         )
@@ -273,18 +241,3 @@ class TypeFilterWidget(QWidget):
     def is_loading(self) -> bool:
         return self._worker_thread is not None
 
-    def cancel_pending_load(self, *, invalidate_request: bool = True) -> None:
-        if invalidate_request:
-            self._load_request_id += 1
-        thread = self._worker_thread
-        was_running = thread is not None and thread.isRunning()
-        self._worker = None
-        self._worker_thread = None
-        if thread is not None and thread.isRunning():
-            try:
-                thread.quit()
-                thread.wait(50)
-            except Exception:
-                pass
-        if was_running:
-            self.loadFinished.emit(False)

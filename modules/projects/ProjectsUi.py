@@ -22,6 +22,7 @@ from ...widgets.OverdueDueSoonPillsWidget import (
     OverdueDueSoonPillsWidget,
 )
 from ...widgets.filter_refresh_helper import FilterRefreshHelper
+from ...utils.FilterHelpers.FilterHelper import FilterHelper
 
 
 class ProjectsModule(ModuleBaseUI):
@@ -220,13 +221,13 @@ class ProjectsModule(ModuleBaseUI):
                 pass
 
         if status_ids is None and self.status_filter:
-            status_ids = self.status_filter.selected_ids()
+            status_ids = FilterHelper.selected_ids(self.status_filter)
             if not status_ids:
                 saved_status = self._get_saved_status_ids()
                 if saved_status:
                     status_ids = saved_status
         if tags_ids is None and self.tags_filter:
-            tags_ids = self.tags_filter.selected_ids()
+            tags_ids = FilterHelper.selected_ids(self.tags_filter)
             if not tags_ids:
                 saved_tags = self._get_saved_tag_ids()
                 if saved_tags:
@@ -287,7 +288,7 @@ class ProjectsModule(ModuleBaseUI):
     def _base_filter_and_list(self) -> List[dict]:
         and_list: List[dict] = []
         try:
-            status_ids = self.status_filter.selected_ids() if self.status_filter else []
+            status_ids = FilterHelper.selected_ids(self.status_filter) if self.status_filter else []
             if status_ids:
                 and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
         except Exception:

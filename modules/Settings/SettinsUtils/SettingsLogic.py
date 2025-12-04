@@ -4,7 +4,6 @@ from typing import Dict, Optional
 from ....utils.url_manager import Module
 from ....module_manager import MODULES_LIST_BY_NAME
 from ....constants.settings_keys import SettingsService
-from ....utils.MapTools.MapHelpers import MapHelpers
 
 
 SUBJECT_TO_MODULE = {
@@ -20,8 +19,6 @@ class SettingsLogic:
         self._original_preferred: Optional[str] = None
         self._pending_preferred_module: Optional[str] = None
         
-        self._original_property_layer_name: Optional[str] = None
-        self._pending_property_layer_name: Optional[str] = None
 
 
     def get_module_access_from_abilities(self, subjects) -> Dict[str, bool]:
@@ -58,10 +55,6 @@ class SettingsLogic:
         self._original_preferred = pref
         self._pending_preferred_module = pref
 
-        layer_name = self._service.main_property_layer_id() or None
-        self._original_property_layer_name = layer_name
-        self._pending_property_layer_name = layer_name
-
     def get_original_preferred(self) -> Optional[str]:
         return self._original_preferred
 
@@ -69,54 +62,24 @@ class SettingsLogic:
         # None means user prefers Welcome page
         self._pending_preferred_module = module_name or None
 
-    def get_pending_preferred(self) -> Optional[str]:
-        return self._pending_preferred_module
 
     def has_unsaved_changes(self) -> bool:
         # Track change even if moving to None (welcome)
         has_preferred_module_changes = (self._pending_preferred_module or None) != (self._original_preferred or None)
-        has_layer_changes = (self._pending_property_layer_name or None) != (self._original_property_layer_name or None)
-        return has_preferred_module_changes or has_layer_changes
+        return has_preferred_module_changes
 
     def apply_pending_changes(self):
-        try:
-            if self._pending_preferred_module:
-                self._service.preferred_module(value=self._pending_preferred_module)
-            else:
-                # None -> remove setting to show Welcome
-                self._service.preferred_module(clear=True)
-            self._original_preferred = self._pending_preferred_module
 
-            # Apply property layer changes
-            if self._pending_property_layer_name:
-                self._service.main_property_layer_id(value=self._pending_property_layer_name)
-            else:
-                # None -> remove setting
-                self._service.main_property_layer_id(clear=True)
-            self._original_property_layer_name = self._pending_property_layer_name
+        if self._pending_preferred_module:
+            self._service.preferred_module(value=self._pending_preferred_module)
+        else:
+            self._service.preferred_module(clear=True)
+        self._original_preferred = self._pending_preferred_module
 
-        except Exception:
-            # leave dirty state so user can retry
-            pass
+        # Property layer persistence is handled via module cards
 
     def revert_pending_changes(self):
         # Reset pending selection back to the original
         self._pending_preferred_module = self._original_preferred
-        self._pending_property_layer_name = self._original_property_layer_name
-
-    # --- Property layer settings ---
-    def get_original_property_layer_id(self) -> Optional[str]:
-        return self._original_property_layer_name
-
-    def get_pending_property_layer_id(self) -> Optional[str]:
-        return self._pending_property_layer_name
-
-    def set_pending_property_layer_id(self, layer_id: Optional[str]):
-        # None means no layer selected
-        self._pending_property_layer_name = layer_id
-
-    def get_resolved_property_layer_id(self) -> Optional[str]:
-        """Resolve the active property layer name into the live layer id."""
-        active_value = self._pending_property_layer_name or self._original_property_layer_name
-        return MapHelpers.resolve_layer_id(active_value) if active_value else None
+        # Property layer pending state managed by module cards
 
