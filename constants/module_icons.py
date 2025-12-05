@@ -33,6 +33,7 @@ class ModuleIcons:
     ICON_PROJECTS = "team-management2.png"
     ICON_PROPERTY = "menu.png"
     ICON_SIGNAL_TEST = ICON_FLOW
+    ICON_COORDINATION = "icons8-list-50.png"
     
 
 class DateIcons:
@@ -57,6 +58,7 @@ class ModuleIconPaths:
         Module.CONTRACT.name: os.path.join(ROOT_ICONS, ModuleIcons.ICON_CONTRACT),
         Module.PROPERTY.name: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROPERTY),
         Module.SIGNALTEST.name: os.path.join(ROOT_ICONS, ModuleIcons.ICON_SIGNAL_TEST),
+        Module.COORDINATION.name: os.path.join(ROOT_ICONS, ModuleIcons.ICON_COORDINATION),
     }
 
 

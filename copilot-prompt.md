@@ -36,7 +36,7 @@
 12. Appendix: Examples & Troubleshooting
 13. Settings Architecture & Behavior
 14. Centralized Settings Management
-15. Layer Selection Widget: LayerTreePicker (layer_dropdown.py)
+15. Layer Selection in SettingsModuleCard
 16. Icons & Themed Assets (REQUIRED)
 
 ---
@@ -48,17 +48,36 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
 
 ## 2. Architecture & Module System
 
-**All new modules must inherit from `BaseModule`.**
-**Do not use class-level attributes for `name`, `display_name`, or `icon`. Always set these as instance attributes in the constructor.**
-**The constructor for every module must accept `name`, `display_name`, `icon`, `lang_manager`, and `theme_manager` as arguments, and assign them to `self.name`, `self.display_name`, and `self.icon`.**
-- Only one module is active at a time; modules are activated/deactivated via sidebar or menu.
-- Each module must implement:  
-  - `activate()`, `deactivate()`, `run()`, `reset()`, `get_widget()`
-- UI and logic must be separated (ui.py, logic.py).
-- Modules are lazy-loaded and registered via `ModuleManager`.
-- Each module must have a unique name constant in `constants/module_names.py`.
-- The plugin remembers last-used module and user settings using QSettings.
-- Before creating new modules, check for reusability or extension of existing modules.
+**Module contract:** A module is any QWidget-backed class that implements `activate()`, `deactivate()`, (optional) `run()`/`reset()`, and `get_widget()`; it does not need to inherit from `BaseModule` (that stub is legacy and currently unused). Always set `self.name`/`self.module_key` inside `__init__` so ModuleManager and analytics agree on identifiers.
+
+### 2.1 Registration & lifecycle
+- Register modules through `ModuleManager.registerModule(cls, Module.ENUM.name, **init_params)` as done in `dialog.py`. The manager stores metadata (`supports_statuses`, `supports_types`, `supports_tags`, icon paths) and lazily instantiates the class the first time it is activated.
+- The sidebar reads this metadata to build buttons. Provide accurate support flags so `ModuleBaseUI` can decide which filters to show and which saved preferences to load.
+- Only one module is active at a time. `activate()` is called when the sidebar selects a module; `deactivate()` runs on the previously active instance. Always call `super().activate()` / `super().deactivate()` if you subclass a shared base.
+- Return the live widget instance from `get_widget()` so `moduleStack.addWidget()` can embed it. Do not return classes or create a new widget per call.
+
+### 2.2 Feed modules built on `ModuleBaseUI`
+Most sidebar feeds (`ProjectsModule`, `ContractsModule`, `SignalTestModule`) subclass `ui/ModuleBaseUI.py`, which already mixes in:
+- Progressive feed loading (`FeedLoadEngine`), dedupe tracking, and viewport-aware auto-dripping
+- Toolbar scaffolding via `ModuleToolbarArea`, refresh button wiring through `FilterRefreshHelper`, and stored preferences through `SettingsLogic`
+- Helper hooks like `_build_has_tags_condition`, `_get_saved_*_ids()`, `_safe_extract_item_id()`
+
+Implementation checklist:
+1. Define `module_key = Module.<NAME>.name.lower()` and `self.name = self.module_key` inside `__init__`.
+2. Declare `FEED_LOGIC_CLS` (usually `UnifiedFeedLogic`) and a `QUERY_FILE`. Lazily instantiate `self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)` inside `activate()` or filter refresh paths, and call `configure_single_item_query(...)` if the module supports opening a single card from search.
+3. Build the toolbar in `__init__`: add whichever filter widgets the module supports, keep them in `self._filter_widgets`, and connect each `selectionChanged` signal to a `_refresh_filters()` helper.
+4. Implement `load_next_batch()` as `return self.process_next_batch(retheme_func=...)`. `ModuleBaseUI.activate()` ensures the shared `FeedLoadEngine` is initialized with `self.load_next_batch` and wires scroll handling.
+5. Inside `_refresh_filters`, read the widget selections (or fall back to `_get_saved_*_ids()`), translate them into a GraphQL `where` dict plus optional `hasTags` payload via `_build_has_tags_condition`, and pass both into `self.feed_logic.set_where(...)` / `set_extra_arguments(...)`. Always reset the feed UI via `self.clear_feed(...)` and schedule a load through `self.feed_load_engine.schedule_load()`.
+6. Store pills or secondary controls (overdue/due soon) on the toolbar’s right side, and reuse `_apply_where()` helpers to combine them with the current base filters.
+
+### 2.3 Non-feed / bespoke modules
+Some modules (e.g., `PropertyModule`) present a single detail view instead of a scrollable feed. These classes can inherit `QWidget` directly as long as they honor the same activation contract and return themselves from `get_widget()`. They may still use shared helpers (theme manager, settings logic), but they own their own layouts and data loading patterns.
+
+### 2.4 Feed logic responsibilities
+- `feed/FeedLogic.py` provides `UnifiedFeedLogic`, the standard GraphQL paginator. Modules should never send raw requests; instead configure `query_name`, `batch_size`, `set_where(...)`, and `set_extra_arguments(...)`. Toggle single-item mode via `set_single_item_mode(True, id=...)` when responding to search deep-links.
+- `feed/feed_load_engine.py` buffers items, debounces calls to `load_next_batch`, and coordinates with `ModuleBaseUI` to drip cards until the viewport is “filled + 1”. Let `ModuleBaseUI` create and own the engine—only call `self.feed_load_engine.schedule_load()` / `reset()` from modules.
+
+Before creating a new module, decide whether it should piggyback on `ModuleBaseUI` (for feeds) or be a bespoke QWidget (detail dashboards, settings-like UIs), and reuse existing helper patterns whenever possible.
 
 ---
 
@@ -344,20 +363,22 @@ All settings in the wild_code plugin follow a hierarchical, centralized architec
 ### Settings Categories & Managers
 
 1. **Theme Settings** → `ThemeManager`
-   - Key: `"wild_code/theme"`
-   - Methods: `save_theme_setting()`, `load_theme_setting()`
+  - Key: `"wild_code/theme"`
+  - Methods: `save_theme_setting()`, `load_theme_setting()`
 
 2. **Preferred Module Settings** → `SettingsLogic`
-   - Key: `"wild_code/preferred_module"`
-   - Methods: `apply_pending_changes()`, `load_original_settings()`
+  - Key: `"wild_code/preferred_module"`
+  - Methods: `load_original_settings()`, `set_user_preferred_module()`, `apply_pending_changes()`
 
-3. **Module-Specific Settings** → `ThemeManager`
-   - Key Pattern: `"wild_code/modules/{module_name}/{setting_key}"`
-   - Methods: `save_module_setting()`, `load_module_setting()`
+3. **Module-Specific Settings** → `SettingsLogic` + `SettingsService`
+  - Key Pattern: `"wild_code/modules/{module_name}/{setting_key}"`
+  - Methods: `get_module_layer_ids()`, `set_module_layer_id()`, `load_module_preference_ids()`, `save_module_preference_ids()`, `clear_module_preference_ids()`
 
 4. **Utility Settings** → `SettingsManager`
-   - Key Pattern: `"wild_code/{utility_specific_key}"`
-   - Methods: `save_setting()`, `load_setting()`, `remove_setting()`
+  - Key Pattern: `"wild_code/{utility_specific_key}"`
+  - Methods: `save_setting()`, `load_setting()`, `remove_setting()`
+
+`SettingsService` in `constants/settings_keys.py` is the low-level helper backing `SettingsLogic`. Access it directly only when you are adding a brand-new helper; otherwise call through the logic layer so change tracking stays consistent.
 
 ### Settings Key Constants
 
@@ -386,11 +407,10 @@ SettingsManager.save_shp_layer_mapping(layer_name, file_path)
 ### Rules for Settings Management
 
 1. **Always use "wild_code/" prefix** for all settings keys
-2. **Use appropriate manager** based on settings category:
-   - Theme → `ThemeManager`
-   - Preferred module → `SettingsLogic`
-   - Module-specific → `ThemeManager.save_module_setting()`
-   - Utility/other → `SettingsManager`
+2. **Use the matching manager** based on category:
+  - Theme → `ThemeManager`
+  - Preferred module + module-specific values → `SettingsLogic` (which delegates to `SettingsService`)
+  - Utility/other → `SettingsManager`
 3. **Never use direct QSettings()** in modules or utilities
 4. **Define keys in constants** when possible, use dynamic generation otherwise
 5. **Handle errors gracefully** - settings failures shouldn't break functionality
@@ -398,8 +418,16 @@ SettingsManager.save_shp_layer_mapping(layer_name, file_path)
 ### Examples
 
 ```python
+from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
+from ..widgets.theme_manager import ThemeManager
+from ..utils.SettingsManager import SettingsManager
+
+logic = SettingsLogic()
+
 # ✅ CORRECT - Using appropriate managers
 ThemeManager.save_theme_setting("dark")
+logic.set_module_layer_id("property", kind="element", layer_name="Properties")
+logic.save_module_preference_ids("property", support_key="statuses", ids=["ACTIVE", "NEW"])
 SettingsManager.save_shp_file_path("NEW_PROPERTIES", "/path/to/file.shp")
 
 # ❌ WRONG - Direct QSettings usage
@@ -411,69 +439,40 @@ This architecture ensures consistent settings management, easier testing, and ma
 
 ---
 
-## 15. Layer Selection Widget: LayerTreePicker (layer_dropdown.py)
+## 15. Layer Selection in SettingsModuleCard
 
-Purpose
-- Provide a memory-friendly, reusable, hierarchical layer picker with a familiar dropdown UX.
+The Settings module now uses the stock `QgsMapLayerComboBox` widgets directly inside `SettingsModuleCard` for both the main and archive layer selectors. No custom snapshot builders or popup trees are involved anymore.
 
-Files
-- `widgets/layer_dropdown.py`
-  - `build_snapshot_from_project(project=None)` produces a nested Python structure of the current QGIS layer tree.
-  - `LayerTreePicker` is the widget that shows a button; clicking opens a Qt.Popup with a scrollable `QTreeWidget`.
-  - `LayerDropdown` is a deprecated alias that inherits `LayerTreePicker` for backward compatibility.
+Key points
+- `SettingsModuleCard` instantiates two combos with `_create_layer_combobox()`.
+- `on_settings_activate()` assigns the active `QgsProject` instance to each combo (`setProject(project)`) so the built-in layer model stays live.
+- Stored layer values are persisted as **layer names** via `SettingsLogic.set_module_layer_id()` and resolved back to IDs on activation using `MapHelpers.resolve_layer_id()` / `layer_name_from_id()`.
+- Archive selector is optional and only shown for modules with archive support (Property module today).
 
-Snapshot helpers
-- `build_snapshot_from_project()` returns a nested list of dicts like:
-  - Group: `{ "type": "group", "name": str, "children": [...] }`
-  - Layer: `{ "type": "layer", "id": str, "name": str }`
-- Internal `_snapshot_from_group(group_node)` recursively walks the QGIS layer tree.
-- Pass the same snapshot to multiple pickers to avoid repeated tree traversal and reduce memory usage.
-
-LayerTreePicker API
-- ctor: `LayerTreePicker(parent=None, project=None, placeholder="Select layer")`
-- Snapshot:
-  - `setSnapshot(snapshot)` / `getSnapshot()`
-- Project:
-  - `project()` / `setProject(project)`
-- Selection:
-  - `selectedLayerId() -> str`
-  - `selectedLayer() -> QgsMapLayer | None`
-  - `setSelectedLayerId(layer_id: str)`
-  - `clearSelection()`
-- Lifecycle:
-  - `on_settings_activate(snapshot=None)`
-  - `on_settings_deactivate()`
-- Signals:
-  - `layerChanged(QgsMapLayer|None)`
-  - `layerIdChanged(str)`
-
-Behavior
-- Initially shows a button with placeholder text.
-- On click, opens a popup containing the hierarchical tree (groups and layers).
-- Selecting a layer updates the button text, emits signals, and closes the popup.
-- Supports lazy building: call `on_settings_activate(snapshot)` before display; call `on_settings_deactivate()` to release memory.
-
-Integration pattern
-- Build one snapshot per dialog activation and share across any pickers that need it:
+Usage pattern
 ```python
-from ...widgets.layer_dropdown import build_snapshot_from_project
-shared_snapshot = build_snapshot_from_project()
-for picker in picker_widgets:
-  picker.on_settings_activate(snapshot=shared_snapshot)
-```
-- In a card:
-```python
-self._element_picker = LayerTreePicker(self, placeholder=lang.translate("Select layer"))
-self._archive_picker = LayerTreePicker(self, placeholder=lang.translate("Select layer"))
-self._element_picker.layerIdChanged.connect(self._on_element_changed)
-self._archive_picker.layerIdChanged.connect(self._on_archive_changed)
+# Inside SettingsModuleCard._build_ui()
+self._layer_selector = self._create_layer_combobox(parent)
+self._layer_selector.layerChanged.connect(self._on_primary_layer_changed)
+
+if self.supports_archive:
+    self._archive_picker = self._create_layer_combobox(parent)
+    self._archive_picker.layerChanged.connect(self._on_archive_layer_changed)
+
+def on_settings_activate(self, snapshot=None):  # snapshot ignored
+    project = QgsProject.instance() if QgsProject else None
+    if self._layer_selector:
+        self._layer_selector.setProject(project)
+    if self.supports_archive and self._archive_picker:
+        self._archive_picker.setProject(project)
+    # load persisted names via SettingsLogic and call _restore_layer_selection(...)
 ```
 
-Styling
-- The popup frame has objectName `LayerTreePopup`. Add QSS rules in your theme if you want to style it specially.
+Restoring selections
+- `_restore_layer_selection(combo, stored_name)` pulls the previously saved layer name from `SettingsLogic`, resolves it to a current layer id, and calls `combo.setLayer(layer)` without emitting signals.
+- When combos change, `_on_element_selected()` / `_on_archive_selected()` convert the selected layer id back to a layer name via `MapHelpers.layer_name_from_id()` before marking pending state.
 
-Deprecated
-- `LayerDropdown` remains as an alias for compatibility but should not be used in new code. Prefer `LayerTreePicker`.
+The old `LayerTreePicker`/snapshot workflow is fully retired; do not reference it when building new Settings cards.
 
 ---
 
@@ -536,10 +535,11 @@ path = ModuleIconPaths.themed(ICON_SEARCH)
 
 ## Toolbar Filter Widget Pattern
 
-- All filter widgets (status, type, tags, etc.) must be registered with the module's ToolbarArea using `register_filter_widget(name, widget)`.
-- ToolbarArea connects each filter widget's `selectionChanged` signal to a centralized handler and emits a `filtersChanged` signal with all selected filter values as a dictionary.
-- Modules must listen for `filtersChanged` and update their feed logic accordingly.
-- This pattern ensures scalable, modular, and consistent filter management for all modules.
+- Filter widgets (status, type, tags, etc.) should be added to the toolbar via `ModuleToolbarArea.add_left(widget)` (or `add_right` for pills/buttons). The toolbar wraps them with labels automatically when they expose `filter_title`.
+- Each filter widget is responsible for emitting its own `selectionChanged(texts, ids)` signal. Modules wire those signals to their own handlers (see `ProjectsModule._on_status_filter_selection`).
+- To reset filters consistently, attach the shared refresh button from `FilterRefreshHelper.make_filter_refresh_button()` via `toolbar_area.set_refresh_widget(widget)`.
+- Store references to active filters (e.g., `self._filter_widgets = [...]`) so utilities can walk and reset them as needed.
+- This pattern keeps toolbar wiring consistent without requiring a `register_filter_widget` helper.
 
 ## Standardized Module Activation Pattern
 

@@ -10,6 +10,7 @@ SUBJECT_TO_MODULE = {
     Module.PROJECT.value.capitalize(): Module.PROJECT.value.capitalize(),
     Module.CONTRACT.value.capitalize(): Module.CONTRACT.value.capitalize(),
     Module.PROPERTY.value.capitalize(): Module.PROPERTY.value.capitalize(),
+    Module.COORDINATION.value.capitalize(): Module.COORDINATION.value.capitalize(),
 }
 
 class SettingsLogic:

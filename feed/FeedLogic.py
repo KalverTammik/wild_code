@@ -63,6 +63,7 @@ class UnifiedFeedLogic:
         This does not enable single-item mode by itself; call
         ``set_single_item_mode(True, id=...)`` to activate.
         """
+        print(f"[FeedLogic] Configuring single item query: {query_name}")
         self._single_item_query_name = query_name
 
     def set_single_item_mode(self, enabled: bool, *, id: Optional[str] = None, **extra_vars: Any) -> None:
@@ -145,6 +146,7 @@ class UnifiedFeedLogic:
                 variables,
                 return_raw=True,
             ) or {}
+            #print(f"[FeedLogic] Fetch payload: {payload}")
             # Debug logging for single-item mode removed after verification
             self.last_response = payload
 
@@ -154,6 +156,7 @@ class UnifiedFeedLogic:
             # exactly one node (or an empty list if nothing was found).
             if self._single_item_mode:
                 data = payload.get("data") or {}
+                #print(f"[FeedLogic] Single-item mode payload data: {data}")
                 single: Optional[Dict[str, Any]] = None
 
                 # Heuristic: look for common single-item roots by module
@@ -161,6 +164,8 @@ class UnifiedFeedLogic:
                     single = data.get("project")
                 elif "contract" in data:
                     single = data.get("contract")
+                elif "coordination" in data:
+                    single = data.get("coordination")
 
                 if isinstance(single, dict):
                     self.end_cursor = None
@@ -226,11 +231,15 @@ class UnifiedFeedLogic:
                 setattr(self, '_loaded_items_debug', prev + len(result))
             except Exception:
                 pass
+            print(f"[UnifiedFeedLogic] fetched {len(result)} items (has_more={self.has_more})")
             return result
 
         except Exception as e:
             self.last_error = e
-            # log_debug(f"[UnifiedFeedLogic] Exception during fetch: {e}")
+            try:
+                print(f"[UnifiedFeedLogic] fetch error for module '{self._module_name}': {e}")
+            except Exception:
+                pass
             return []
         finally:
             self.is_loading = False

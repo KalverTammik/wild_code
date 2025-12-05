@@ -202,7 +202,6 @@ class PropertyModule(QWidget):
     def activate(self):
         """Called when the module becomes active."""
         try:
-
             # Find the property layer
             project = QgsProject.instance()
             for layer in project.mapLayers().values():

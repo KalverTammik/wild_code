@@ -28,6 +28,7 @@ class ModuleManager:
         supports_types=False,
         supports_statuses=False,
         supports_tags=False,
+        supports_archive_layer=False,
         **init_params,
     ):
         """
@@ -46,6 +47,7 @@ class ModuleManager:
             "supports_types": supports_types,
             "supports_statuses": supports_statuses,
             "supports_tags": supports_tags,
+            "supports_archive_layer": supports_archive_layer,
         }
 
         if module_name.capitalize() == Module.SETTINGS.value.capitalize() or \
@@ -113,5 +115,6 @@ class ModuleManager:
             "types": module_data.get("supports_types", False),
             "statuses": module_data.get("supports_statuses", False),
             "tags": module_data.get("supports_tags", False),
+            "archive_layer": module_data.get("supports_archive_layer", False),
         }
  

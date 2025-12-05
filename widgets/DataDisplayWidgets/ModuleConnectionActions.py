@@ -15,8 +15,8 @@ class ModuleConnectionActions(QWidget):
         self,
         module_key: str,
         item_id: str,
-        file_path: Optional[str],
-        has_connections: Optional[bool],
+        item_data: Optional[dict],
+
         lang_manager=None,
         parent: Optional[QWidget] = None,
     ):
@@ -26,17 +26,24 @@ class ModuleConnectionActions(QWidget):
         layout.setSpacing(4)
         layout.addStretch(1)
 
+        file_path = item_data.get('filesPath', '')
+
         folder_btn = OpenFolderActionButton(file_path, lang_manager)
         layout.addWidget(folder_btn)
 
         web_btn = OpenWebActionButton(module_key, item_id, lang_manager)
         layout.addWidget(web_btn)
 
+
+        properties_conn = item_data.get('properties') or {}
+        page_info = properties_conn.get('pageInfo') or {}
+        has_connections = page_info.get('count') or page_info.get('total', 0)
+
         map_btn = ShowOnMapActionButton(
             module_key,
             item_id,
             lang_manager,
-            has_connections=has_connections,
+            has_connections=bool(has_connections),
         )
         layout.addWidget(map_btn)
 

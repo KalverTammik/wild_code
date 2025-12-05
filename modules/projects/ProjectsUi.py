@@ -128,17 +128,6 @@ class ProjectsModule(ModuleBaseUI):
     # --- Aktivatsioon / deaktiveerimine ---
     def activate(self) -> None:
         super().activate()
-        # Normal activation path (sidebar click) should run full feed loader.
-        # When coming from search, PluginDialog will call open_item_from_search
-        # directly and we want to avoid triggering a full feed reload there.
-
-        # Lazy init FeedLogic
-        if self.feed_logic is None:
-            self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
-            try:
-                self.feed_logic.configure_single_item_query("w_projects_module_data_by_item_id.graphql")
-            except Exception:
-                pass
 
         self._refresh_filters()
 
@@ -285,19 +274,6 @@ class ProjectsModule(ModuleBaseUI):
         except Exception:
             pass
 
-    def _base_filter_and_list(self) -> List[dict]:
-        and_list: List[dict] = []
-        try:
-            status_ids = FilterHelper.selected_ids(self.status_filter) if self.status_filter else []
-            if status_ids:
-                and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
-        except Exception:
-            pass
-        return and_list
-
-    def _get_base_where(self) -> dict:
-        and_list = self._base_filter_and_list()
-        return {"AND": and_list} if and_list else {}
 
     def _apply_where(self, where: dict) -> None:
         # Väldi sama WHERE korduvalt rakendamist

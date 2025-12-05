@@ -3,7 +3,8 @@
 from PyQt5.QtWidgets import QVBoxLayout,  QFrame, QHBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal
 from .SettingsBaseCard import SettingsBaseCard
-from .UIUtils import SettingsModuleFeatureCard
+from .SettingModuleFeatureCard import SettingsModuleFeatureCard
+from ..SettinsUtils.SettingsLogic import SettingsLogic
 from ....widgets.StatusFilterWidget import StatusFilterWidget
 from ....widgets.TypeFilterWidget import TypeFilterWidget
 from ....widgets.TagsFilterWidget import TagsFilterWidget
@@ -13,7 +14,7 @@ from ....utils.MapTools.MapHelpers import MapHelpers
 from ....utils.FilterHelpers.FilterHelper import FilterHelper
 from ....utils.url_manager import ModuleSupports
 from ....languages.translation_keys import TranslationKeys
-from ..SettinsUtils.SettingsLogic import SettingsLogic
+
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayer, QgsProject, Qgis
 
@@ -28,6 +29,7 @@ class SettingsModuleCard(SettingsBaseCard):
         supports_types: bool = False,
         supports_statuses: bool = False,
         supports_tags: bool = False,
+        supports_archive_layer: bool = False,
         logic=None,
     ):
         # Ikon pealkirjale
@@ -37,8 +39,8 @@ class SettingsModuleCard(SettingsBaseCard):
         super().__init__(lang_manager, translated_name, icon_path)
 
         # Kasuta kanonilist võtmekuju (lowercase) KÕIKJAL
-        self.module_key = (module_name).lower().strip()  # võtmekuju (nt "property")
-        self.supports_archive = self.module_key == Module.PROPERTY.value
+        self.module_key = (module_name).lower().strip()  # võtmekoju (nt "property")
+        self.supports_archive = bool(supports_archive_layer) or (self.module_key == Module.PROPERTY.value)
 
         self.supports_types = supports_types
         self.supports_statuses = supports_statuses
@@ -385,7 +387,7 @@ class SettingsModuleCard(SettingsBaseCard):
                 return fallback_name or ""
 
             element_name = display_for(self._layer_selector, self._pend_element_name or self._orig_element_name)
-            archive_name = ""
+            supports_archive_layer: bool = False,
             if self.supports_archive:
                 archive_name = display_for(self._archive_picker, self._pend_archive_name or self._orig_archive_name)
 
@@ -396,7 +398,7 @@ class SettingsModuleCard(SettingsBaseCard):
                 parts.append(f"📁 Archive: {archive_name}")
 
             if parts:
-                values_text = " | ".join(parts)
+                self.supports_archive = bool(supports_archive_layer) or (self.module_key == Module.PROPERTY.value)
                 self.set_status_text(f"Active layers: {values_text}")
             else:
                 self.set_status_text("No layers configured")

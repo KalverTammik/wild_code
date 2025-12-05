@@ -11,6 +11,7 @@ from .widgets.HeaderWidget import HeaderWidget
 
 from .modules.projects.ProjectsUi import ProjectsModule
 from .modules.contract.ContractUi import ContractsModule
+from .modules.coordination.CoordinationModule import CoordinationModule
 from .modules.Property.PropertyUI import PropertyModule
 from .modules.Settings.SettingsUI import SettingsModule
 from .modules.signaltest.SignalTestModule import SignalTestModule
@@ -45,6 +46,7 @@ MODULE_SEARCH_TO_ENUM = {
     "PROJECTS": Module.PROJECT,
     "CONTRACTS": Module.CONTRACT,
     "PROPERTIES": Module.PROPERTY,
+    "COORDINATIONS": Module.COORDINATION,
 }
 
 
@@ -245,6 +247,7 @@ class PluginDialog(QDialog):
             Module.PROPERTY.name, 
             qss_files=qss_modular, 
             lang_manager=self.lang_manager,
+            supports_archive_layer=True,
         )
         self.moduleManager.registerModule(
             ProjectsModule, 
@@ -262,6 +265,16 @@ class PluginDialog(QDialog):
             supports_types=True,
             supports_statuses=True,
             supports_tags=True,
+        )
+        self.moduleManager.registerModule(
+            CoordinationModule,
+            Module.COORDINATION.name,
+            qss_files=qss_modular,
+            language=self.lang_manager,
+            supports_types=True,
+            supports_statuses=True,
+            supports_tags=True,
+            supports_archive_layer=True,
         )
         self.moduleManager.registerModule(
             SignalTestModule,

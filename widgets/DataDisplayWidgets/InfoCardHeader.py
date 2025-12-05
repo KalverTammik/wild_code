@@ -77,7 +77,8 @@ class InfocardHeaderFrame(QFrame):
             numberBadge.setMinimumWidth(24)
             nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
 
-        name = item_data.get('name')
+        name = item_data.get('name') or item_data.get('jobName') 
+        #print("InfocardHeaderFrame name:", name)
         nameLabel = ElidedLabel(name); 
         nameLabel.setObjectName("ProjectNameLabel")  # Eemaldatud tooltip
         nameRow.addWidget(nameLabel, 1, Qt.AlignVCenter)
@@ -105,4 +106,3 @@ class InfocardHeaderFrame(QFrame):
             leftL.addLayout(clientRow)
 
         root.addWidget(left, 1, Qt.AlignVCenter)
-

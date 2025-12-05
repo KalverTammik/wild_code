@@ -25,7 +25,7 @@ class GraphQLQueryLoader:
         """
         module_attr = module.upper()
         if not hasattr(QueryPaths, module_attr):
-            message = self._lang.translate("unknown_module").format(module=module)
+            message = f"unknown_module: {module}"
             raise ValueError(message)
         folder = getattr(QueryPaths, module_attr)
         #print(f"[method load_query] Query folder found: {folder}")
@@ -33,7 +33,7 @@ class GraphQLQueryLoader:
         #print(f"[method load_query] Loading GraphQL query from: {query_path}")  # Debug log
         #print(f"[method load_query] Query file exists: {os.path.exists(query_path)}")
         if not os.path.exists(query_path):
-            message = self._lang.translate("query_file_not_found").format(file=query_path)
+            message = f"query_file_not_found: {query_path}"
             raise FileNotFoundError(message)
         with open(query_path, 'r', encoding='utf-8') as f:
             return f.read()

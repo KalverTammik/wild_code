@@ -11,7 +11,7 @@ from ...python.api_client import APIClient
 class FilterHelper:
     @staticmethod
     def get_filter_edges_by_key_and_module(key, module) -> List[str]:
-        print(f"Fetching filter edges for key: {key}, module: {module}")
+        #print(f"[FilterHelper] Fetching filter edges for key: {key}, module: {module}")
         key_map = {
             ModuleSupports.TAGS.value: "ListModuleTags.graphql",
             ModuleSupports.STATUSES.value: "ListModuleStatuses.graphql",
@@ -56,6 +56,7 @@ class FilterHelper:
                     group_name = group_key(label)
                 if type_id and label:
                     entries.append({"id": type_id, "label": label, "group": group_name})
+            #print(f"[FilterHelper] Fetched {entries} entries for types.")
             return entries
         
         else:

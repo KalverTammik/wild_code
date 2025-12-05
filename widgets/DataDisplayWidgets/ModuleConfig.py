@@ -43,6 +43,8 @@ class ModuleConfigFactory:
             return ModuleConfigFactory._create_project_config(item_id)
         elif module_type == Module.CONTRACT.value:
             return ModuleConfigFactory._create_contract_config(item_id)
+        else:
+            return ModuleConfigFactory._create_contract_config(item_id)
 
     @staticmethod
     def _create_project_config(item_id: Dict[str, Any]) -> ModuleConfig:

@@ -140,6 +140,7 @@ class SettingsModule(QWidget):
             supports_types=supports.get("types", False),
             supports_statuses=supports.get("statuses", False),
             supports_tags=supports.get("tags", False),
+            supports_archive_layer=supports.get("archive_layer", False),
             logic=self.logic,
         )
  

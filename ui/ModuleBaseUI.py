@@ -9,6 +9,7 @@ Põhimõtted:
 - Kaarti lisades ei käivita scroll-handlerit (_ignore_scroll_event).
 """
 from typing import Optional, Callable, Sequence
+import gc
 from PyQt5.QtCore import Qt, QTimer, QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea
 
@@ -105,10 +106,12 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             return
         self._activated = True
 
-        
+        print(f"[ModuleBaseUI] Activating module UI...")
         if self.feed_load_engine is None:
+            print(f"[ModuleBaseUI] feed_load_engine is None, initializing...")
             self.init_feed_engine(self.load_next_batch, debounce_ms=self.LOAD_DEBOUNCE_MS)
 
+        print(f"[ModuleBaseUI] Resetting feed session...")
         self.reset_feed_session()
 
         self._connect_scroll_signals()
@@ -118,7 +121,34 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         """Deactivate and optionally cancel engine work."""
         self._activated = False
         engine = self.feed_load_engine
-        engine.reset()
+        if engine:
+            try:
+                engine.reset()
+                engine.progressive_insert_func = None
+                engine.parent_ui = None
+            except Exception:
+                pass
+
+        # Aggressively drop UI widgets and dedupe state to free memory when module hides
+        try:
+            self.clear_feed(self.feed_layout, self._empty_state)
+        except Exception:
+            pass
+
+        # Release cached responses/extra args so objects can be collected
+        try:
+            if self.feed_logic:
+                self.feed_logic.set_single_item_mode(False)
+                self.feed_logic.set_extra_arguments()
+                self.feed_logic.last_response = None
+        except Exception:
+            pass
+
+        # Encourage Python to reclaim Qt object graphs sooner
+        try:
+            gc.collect()
+        except Exception:
+            pass
 
 
 
@@ -127,7 +157,6 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
     # Feed engine wiring
     # ------------------------------------------------------------------
     def init_feed_engine(self, batch_loader: Callable, debounce_ms: int = 80) -> None:
-        
         self.feed_load_engine = FeedLoadEngine(batch_loader, debounce_ms=debounce_ms)
         self.feed_load_engine.attach(parent_ui=self)
         # Ensure dedupe state is fresh when engine is initialized to avoid
@@ -145,7 +174,6 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
     # Card insertion
     # ------------------------------------------------------------------
     def _progressive_insert_card(self, item, insert_at_top: bool = False) -> None:
-
         layout = self.feed_layout
         if layout is None:
             return
@@ -163,8 +191,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         insert_index = 1 if insert_at_top else max(0, layout.count() - 1)
         self._ignore_scroll_event = True
         try:
-            # Pass module name to card creation for number display settings
             module_name = getattr(self, 'name', None) or getattr(self, 'module_name', 'default')
+            print(f"[ModuleBaseUI] Creating card for module: {module_name}")
             card = ModuleFeedBuilder.create_item_card(item, module_name=module_name, lang_manager=self.lang_manager)
             ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
             layout.insertWidget(insert_index, card)
@@ -193,6 +221,10 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         if items is None:
             return []
 
+        if not items:
+            self._show_empty_state()
+            return []
+
         engine = self.feed_load_engine
         if engine is None:
             return []
@@ -206,6 +238,21 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         self._schedule_post_batch_updates(retheme_func)
 
         return filtered
+
+    def _show_empty_state(self, message: str = "No values found!") -> None:
+        """Display a friendly empty-state card when no items are returned."""
+        try:
+            empty_state = getattr(self, "_empty_state", None)
+            feed_layout = getattr(self, "feed_layout", None)
+            if not empty_state or not feed_layout:
+                return
+
+            if hasattr(empty_state, "setText"):
+                empty_state.setText(message)
+            empty_state.setVisible(True)
+            empty_state.raise_()
+        except Exception:
+            pass
 
     # --- Batch helpers -------------------------------------------------
     def _fetch_next_batch_safe(self) -> Optional[list]:

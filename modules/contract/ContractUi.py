@@ -135,15 +135,6 @@ class ContractsModule(ModuleBaseUI):
         # Normal activation path (sidebar click) should run full feed loader.
         # When coming from search, PluginDialog will call open_item_from_search
         # directly and we want to avoid triggering a full feed reload there.
-
-        # Lazy init feed_logic 
-        if self.feed_logic is None:
-            self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
-            try:
-                self.feed_logic.configure_single_item_query("w_contracts_module_data_by_item_id.graphql")
-            except Exception:
-                pass
-
         # Rakenda eelistused filtri valikutele
         self._refresh_filters()
 
@@ -314,87 +305,35 @@ class ContractsModule(ModuleBaseUI):
         return self
 
     def _on_overdue_clicked(self):
-        # Set pill active states and apply overdue filter combined with current filters
-        try:
-            self.overdue_pills.set_overdue_active(True)
-            self.overdue_pills.set_due_soon_active(False)
-        except Exception:
-            pass
-        base_list = self._base_filter_and_list()
-        where = self.overdue_pills_utils.build_overdue_where(base_list)
-        self._apply_where(where)
+        # Set pill active states and apply overdue filter
+        self.overdue_pills.set_overdue_active(True)
+        self.overdue_pills.set_due_soon_active(False)
+        where = self.overdue_pills_utils.build_overdue_where()
+        OverdueDueUtils.apply_where(self, where)
 
     def _on_due_soon_clicked(self):
-        try:
-            self.overdue_pills.set_overdue_active(False)
-            self.overdue_pills.set_due_soon_active(True)
-        except Exception:
-            pass
-        base_list = self._base_filter_and_list()
-        where = self.overdue_pills_utils.build_due_soon_where(base_list)
-        self._apply_where(where)
+        # Set pill active states and apply due soon filter
+        self.overdue_pills.set_overdue_active(False)
+        self.overdue_pills.set_due_soon_active(True)
+        where = self.overdue_pills_utils.build_due_soon_where()
+        OverdueDueUtils.apply_where(self, where)
 
-    def _base_filter_and_list(self) -> list:
-        """Return a list of AND conditions from current filter widgets (status/type)."""
-        and_list = []
-        try:
-            status_ids = FilterHelper.selected_ids(self.status_filter) if self.status_filter else []
-            type_ids = self.type_filter.selected_ids() if self.type_filter else []
-            if status_ids:
-                and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
-            if self.supports_type_filter and type_ids:
-                and_list.append({"column": "TYPE", "operator": "IN", "value": type_ids})
-        except Exception:
-            pass
-        return and_list
+class OverdueDueUtils:
+    @staticmethod
+    def apply_where(module: "ContractsModule", where: dict) -> None:
+        if module.feed_logic is None:
+            module.feed_logic = module.FEED_LOGIC_CLS(module.module_key, module.QUERY_FILE, module.lang_manager)
 
-    def _get_base_where(self) -> dict:
-        al = self._base_filter_and_list()
-        return {"AND": al} if al else {}
+        tags_ids = FilterHelper.selected_ids(module.tags_filter) if getattr(module, "tags_filter", None) else []
+        has_tags_filter = module._build_has_tags_condition(tags_ids or [])
 
-    def _apply_where(self, where: dict) -> None:
-        # Väldi sama WHERE korduvalt rakendamist
-        # Init vajadusel
-        if self.feed_logic is None:
-            self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
+        if module.feed_load_engine:
+            module.feed_load_engine.buffer.clear()
 
-        tags_ids = []
-        try:
-            if self.tags_filter:
-                tags_ids = FilterHelper.selected_ids(self.tags_filter)
-        except Exception:
-            tags_ids = []
-        has_tags_filter = self._build_has_tags_condition(tags_ids or [])
+        module.feed_logic.set_where(where if where and where.get("AND") else None)
+        module.feed_logic.set_extra_arguments(hasTags=has_tags_filter)
 
-        # Puhasta enne uue WHERE rakendamist
-        try:
-            if self.feed_load_engine:
-                self.feed_load_engine.buffer.clear()
-        except Exception:
-            pass
-
-        # Rakenda WHERE (tühi AND -> None)
-        try:
-            self.feed_logic.set_where(where if where and where.get("AND") else None)
-        except Exception:
-            pass
-        try:
-            self.feed_logic.set_extra_arguments(hasTags=has_tags_filter)
-        except Exception:
-            pass
-
-        # UI reset & laadimine
-        try:
-            self.clear_feed(self.feed_layout, self._empty_state)
-        except Exception:
-            pass
-        try:
-            self.scroll_area.verticalScrollBar().setValue(0)
-        except Exception:
-            pass
-        try:
-            if self.feed_load_engine:
-                self.feed_load_engine.schedule_load()
-        except Exception:
-            pass
-
+        module.clear_feed(module.feed_layout, module._empty_state)
+        module.scroll_area.verticalScrollBar().setValue(0)
+        if module.feed_load_engine:
+            module.feed_load_engine.schedule_load()

@@ -1,0 +1,91 @@
+query coordinationModuleDataById(
+  $id: ID!
+  $propertiesFirst: Int = 1
+  $propertiesAfter: String
+  $tagsFirst: Int = 10
+  $contactsFirst: Int = 5
+  $contactsAfter: String
+  )
+  {
+  coordination(id: $id) {
+    __typename
+    id
+    number
+    jobName
+    jobNumber
+    externalCode
+    description
+    terms
+    startAt
+    dueAt
+    createdAt
+    updatedAt
+    filesPath
+    stage {
+      name
+    }
+    status {
+      id
+      name
+      color
+      type
+    }
+    type {
+      name
+    }
+    members {
+      edges {
+        node {
+          id
+          displayName
+          deletedAt
+        }
+        isResponsible
+      }
+    }
+    contacts(first: $contactsFirst, after: $contactsAfter) {
+      pageInfo {
+        total
+        count
+        hasNextPage
+        endCursor
+      }
+      edges {
+        node {
+          id
+          displayName
+          type
+        }
+      }
+    }
+    tags(first: $tagsFirst) {
+      edges {
+        node {
+          id
+          name
+          module
+        }
+      }
+    }
+    properties(first: $propertiesFirst, after: $propertiesAfter) {
+      pageInfo {
+        count
+        currentPage
+        startCursor
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        lastPage
+        total
+      }
+      edges {
+        node {
+          id
+          cadastralUnitNumber
+          immovableNumber
+          displayAddress
+        }
+      }
+    }
+  }
+}
