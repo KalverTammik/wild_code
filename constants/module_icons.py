@@ -8,7 +8,7 @@ class IconNames:
 
     ICON_LOGOUT = "Logout.png"
     ICON_HELP = "Otsing.png"
-    ICON_INFO = "Otsing.png"
+    ICON_INFO = "Abikeskus1.png"
     ICON_ADD = "Add.png"
     ICON_REFRESH = "Reset2.png"
     LIGHTNESS_ICON = "brightness.png"
@@ -18,6 +18,10 @@ class IconNames:
     ICON_EYE = "show.png"
     ICON_SETTINGS = "Seaded.png"
     ICON_FOLDERICON = "Folder.png"
+    ICON_CONTACTCT = "Kontaktid.png"
+    ICON_SHOW_ON_MAP = "Mine kaardile.png"
+    ICON_LIST = "down-arrow.png"
+
 
     def get_icon(icon_name):
         ROOT_ICONS = os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER)

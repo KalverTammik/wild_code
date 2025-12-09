@@ -43,7 +43,7 @@ class ThemeManager(QObject):
     @staticmethod
     def get_qicon(icon_name: str) -> QIcon:
         print(f"Requested icon name: {icon_name}")
-        i = ModuleIconPaths.get_icon(icon_name)
+        i = IconNames.get_icon(icon_name)
         print(f"[ThemeManager.get_qicon] resolved icon path: {i}")
         return QIcon(i)
 

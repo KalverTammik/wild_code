@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePoli
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
 from .theme_manager import IntensityLevels, ThemeManager, is_dark, styleExtras, ThemeShadowColors
 from ..constants.file_paths import QssPaths
-from ..constants.module_icons import IconNames, ResourcePaths
+from ..constants.module_icons import IconNames
 
 # from ..utils.logger import debug as log_debug
 from ..languages.language_manager import LanguageManager
@@ -150,10 +150,7 @@ class HeaderWidget(QWidget):
     def retheme_header(self):
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
         theme = ThemeManager.effective_theme()
-        ThemeManager._update_header_icons(
-            header_widget=self,
-            is_dark_theme=is_dark(theme)
-        )
+        ThemeManager._update_header_icons(theme, self.switchButton, self.logoutButton)
 
     def set_title(self, text):
         '''
