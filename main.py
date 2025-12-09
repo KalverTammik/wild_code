@@ -9,7 +9,7 @@ from qgis.core import QgsProject
 from .dialog import PluginDialog
 import sip  # Add this import at the top
 from .login_dialog import LoginDialog  # Import the login dialog class
-from .constants.file_paths import ResourcePaths
+from .constants.module_icons import IconNames
 from .utils.SessionManager import SessionManager  # Import the SessionManager
 from .languages.language_manager import LanguageManager
 from .languages.translation_keys import TranslationKeys
@@ -40,7 +40,7 @@ class WildCodePlugin:
     def initGui(self):
         # Force final garbage collection
         gc.collect()
-        icon_path = ResourcePaths.ICON
+        icon_path = IconNames.VALISEE_V_ICON_NAME
 
         self.action = QAction(ThemeManager.get_qicon(icon_path), LanguageManager.translate_static(TranslationKeys.WILD_CODE_PLUGIN_TITLE), self.iface.mainWindow())  # Set the icon for the action
         self.action.triggered.connect(self.run)

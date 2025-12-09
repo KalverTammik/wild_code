@@ -175,7 +175,7 @@ class ShowOnMapActionButton(CardActionButton):
     ) -> None:
         super().__init__(
             "ShowOnMapButton",
-            IconNames.ICON_,
+            IconNames.ICON_SHOW_ON_MAP,
             ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP,
             lang_manager,
         )

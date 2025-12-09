@@ -1,7 +1,8 @@
 import gc
 
-from .constants.module_icons import VALISEE_V_ICON_NAME
+
 from .constants.file_paths import QssPaths
+from .constants.module_icons import IconNames
 from .constants.settings_keys import SettingsService
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget
 from PyQt5.QtGui import QMouseEvent
@@ -79,7 +80,7 @@ class PluginDialog(QDialog):
 
         # Title + icon
         self.setWindowTitle(self.lang_manager.translate(TranslationKeys.WILD_CODE_PLUGIN_TITLE))
-        icon = theme_manager.get_qicon(VALISEE_V_ICON_NAME)
+        icon = theme_manager.get_qicon(IconNames.VALISEE_V_ICON_NAME)
         self.setWindowIcon(icon)
 
         # Core widgets

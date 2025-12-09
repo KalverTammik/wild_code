@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (
 )
 from ..theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
+from ...constants.module_icons import IconNames
 
 
 class TagsWidget(QWidget):
@@ -27,7 +28,7 @@ class TagsWidget(QWidget):
             tags_layout.setContentsMargins(4, 2, 4, 2)
             
             # Tags icon
-            icon = ThemeManager.get_qicon(ThemeManager.ICON_LIST)
+            icon = ThemeManager.get_qicon(IconNames.ICON_LIST)
             icon_label = QLabel()
             icon_label.setPixmap(icon.pixmap(12, 12))
             #icon_label.setToolTip("Sildid")
