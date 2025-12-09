@@ -30,7 +30,7 @@ class TagsWidget(QWidget):
             # Tags icon
             icon = ThemeManager.get_qicon(IconNames.ICON_LIST)
             icon_label = QLabel()
-            icon_label.setPixmap(icon.pixmap(12, 12))
+            icon_label.setPixmap(icon.pixmap(24, 24))
             #icon_label.setToolTip("Sildid")
             tags_layout.addWidget(icon_label)
 

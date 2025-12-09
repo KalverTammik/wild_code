@@ -5,7 +5,7 @@ query coordinations(
   $hasTags: QueryCoordinationsHasTagsWhereHasConditions
   $propertiesFirst: Int = 1
   $propertiesAfter: String
-  $contactsFirst: Int = 3
+  $contactsFirst: Int = 5
   $contactsAfter: String
   )
   {

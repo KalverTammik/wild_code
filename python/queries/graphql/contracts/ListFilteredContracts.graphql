@@ -5,6 +5,8 @@ query contracts(
   $hasTags: QueryContractsHasTagsWhereHasConditions
   $propertiesFirst: Int = 1
   $propertiesAfter: String
+  $contactsFirst: Int = 5
+  $contactsAfter: String
 ) {
   contracts(
     first: $first
@@ -79,6 +81,21 @@ query contracts(
               immovableNumber
               displayAddress
               cadastralUnitNumber
+            }
+          }
+        }
+        contacts(first: $contactsFirst, after: $contactsAfter) {
+          pageInfo {
+            total
+            count
+            hasNextPage
+            endCursor
+          }
+          edges {
+            node {
+              id
+              displayName
+              type
             }
           }
         }

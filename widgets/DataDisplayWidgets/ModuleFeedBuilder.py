@@ -103,7 +103,7 @@ class ModuleFeedBuilder:
 
         contacts_widget = ContactsWidget(item_data, parent=content)
         if contacts_widget:
-            cl.addWidget(contacts_widget)
+            cl.addWidget(contacts_widget, 0, Qt.AlignLeft)
 
         cl.addWidget(ExtraInfoFrame(item_id, module_name))
         main.addWidget(content, 1)

@@ -1,0 +1,18 @@
+QLabel#ContactChip {
+  background-color: #eef2f6;
+  color: #1f2937;
+  border: 1px solid #d7dde5;
+
+  border-radius: 8px;
+  padding: 1px 8px;
+
+  min-height: 18px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* optional little hover polish */
+QLabel#ContactChip:hover {
+  background-color: #e6edf5;
+  border-color: #c9d4e2;
+}

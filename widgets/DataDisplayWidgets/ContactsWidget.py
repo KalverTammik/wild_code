@@ -1,6 +1,10 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel
 
+from ...constants.file_paths import QssPaths
+from ...constants.module_icons import IconNames
+from ...widgets.theme_manager import ThemeManager
+
 
 class ContactsWidget(QFrame):
     """Inline chip list for coordination contacts."""
@@ -16,38 +20,35 @@ class ContactsWidget(QFrame):
         self.setFrameShape(QFrame.NoFrame)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setSpacing(4)
 
-        label = QLabel("Contacts:")
-        label.setStyleSheet("font-weight: 600; font-size: 11px; color: #2b3a5a;")
-        layout.addWidget(label, 0, Qt.AlignVCenter)
+        # Replace the text label with an icon-based label
+        icon_label = QLabel()
+        icon_label.setObjectName("ContactsIcon")
+        icon_label.setFixedSize(16, 16)
+        icon_label.setPixmap(ThemeManager.get_qicon(IconNames.ICON_CONTACTS).pixmap(16, 16))
+        icon_label.setStyleSheet("padding-left: 0px;")
+        layout.addWidget(icon_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        
 
-        max_show = 3
+        max_show = 5
         shown = 0
         for name in names[:max_show]:
             chip = QLabel(name)
             chip.setObjectName("ContactChip")
-            chip.setStyleSheet(
-                "padding: 2px 8px;"
-                "border-radius: 10px;"
-                "background-color: #eef2ff;"
-                "color: #1f3b73;"
-                "font-size: 11px;"
-            )
-            layout.addWidget(chip, 0, Qt.AlignVCenter)
+            chip_width = chip.fontMetrics().horizontalAdvance(name) + 6
+            chip.setFixedWidth(chip_width)
+            layout.addWidget(chip, 0, Qt.AlignLeft | Qt.AlignVCenter)
             shown += 1
 
         remaining = (total or len(names)) - shown
         if remaining > 0:
             more = QLabel(f"+{remaining}")
-            more.setStyleSheet(
-                "padding: 2px 6px;"
-                "border-radius: 10px;"
-                "background-color: #e8edf5;"
-                "color: #42516b;"
-                "font-size: 10px;"
-            )
-            layout.addWidget(more, 0, Qt.AlignVCenter)
+            more.setObjectName("ContactChip")
+            more_width = more.fontMetrics().horizontalAdvance(more.text()) + 6
+            more.setFixedWidth(more_width)
+            layout.addWidget(more, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        self.retheme()
     @staticmethod
     def extract_contacts (item_data):
         """Extract contact names from item data."""
@@ -61,3 +62,10 @@ class ContactsWidget(QFrame):
             if isinstance(edge, dict) and (edge.get('node') or {}).get('displayName')
         ]
         return contact_names
+    
+    def retheme(self):
+        """Reapply theme styles when theme changes."""
+        ThemeManager.apply_module_style(self, [QssPaths.CONTACTS])
+        # Force style refresh
+        self.style().unpolish(self)
+        self.style().polish(self)

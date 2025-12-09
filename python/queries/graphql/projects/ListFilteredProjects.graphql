@@ -5,6 +5,8 @@ query Projects(
   $hasTags: QueryProjectsHasTagsWhereHasConditions
   $propertiesFirst: Int = 1
   $propertiesAfter: String
+  $contactsFirst: Int = 5
+  $contactsAfter: String
 ) {
   projects(
     first: $first
@@ -76,6 +78,22 @@ query Projects(
             }
           }
         }
+        contacts(first: $contactsFirst, after: $contactsAfter) {
+          pageInfo {
+            total
+            count
+            hasNextPage
+            endCursor
+          }
+          edges {
+            node {
+              id
+              displayName
+              type
+            }
+          }
+        }
+
       }
     }
   }

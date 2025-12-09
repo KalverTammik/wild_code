@@ -16,7 +16,7 @@ class IconNames:
     ICON_EYE = "show.png"
     ICON_SETTINGS = "Seaded.png"
     ICON_FOLDERICON = "Folder.png"
-    ICON_CONTACTCT = "Kontaktid.png"
+    ICON_CONTACTS = "Kontaktid.png"
     ICON_SHOW_ON_MAP = "Mine kaardile.png"
     ICON_LIST = "down-arrow.png"
 
