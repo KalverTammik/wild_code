@@ -7,10 +7,10 @@ from .widgets.FooterWidget import FooterWidget
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QComboBox
 )
-from qgis.PyQt.QtGui import QIcon
 
-from .widgets.theme_manager import ThemeManager, Theme, is_dark
-from .constants.file_paths import ResourcePaths, QssPaths
+from .widgets.theme_manager import ThemeManager
+from .constants.file_paths import QssPaths
+from .constants.module_icons import IconNames
 from .languages.language_manager import LanguageManager
 from .utils.SessionManager import SessionManager
 #import tranlation keys
@@ -72,7 +72,7 @@ class LoginDialog(QDialog):
         password_row.addWidget(self.password_input)
         self.toggle_password_button = QPushButton()
         self.toggle_password_button.setObjectName("togglePasswordButton")
-        self.toggle_password_button.setIcon(ThemeManager.get_qicon(ResourcePaths.EYE_ICON))
+        self.toggle_password_button.setIcon(ThemeManager.get_qicon(icon_name=IconNames.ICON_EYE))
         self.toggle_password_button.setCheckable(True)
         self.toggle_password_button.setText("")
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)

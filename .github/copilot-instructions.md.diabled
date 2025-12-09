@@ -50,16 +50,7 @@ class NewModule(ModuleBaseUI):
 - Implement all required methods: `activate` (for lazy loading and initialization), `deactivate` (for cleanup), and `get_widget` (to return the QWidget instance). `run` and `reset` are optional and may be inherited from `ModuleBaseUI` if not overridden.
 - Use `lang_manager.translate()` for all user-facing strings. `display_name` and `icon` are typically handled by `ModuleManager` or `ModuleIconPaths` during registration—do not set them manually in the constructor unless overriding defaults.
 
-### Path & Resource Management
-```python
-# ✅ CORRECT: Never hardcode paths
-from .constants.file_paths import QssPaths, ResourcePaths
-icon_path = ResourcePaths.ICON
-ThemeManager.apply_module_style(widget, [QssPaths.MAIN])
 
-# ❌ WRONG: Direct path construction
-icon_path = os.path.join("resources", "icon.png")
-```
 
 ### Theming Requirements
 **HOIATUS: Ära kasuta globaalset stiililehte (QApplication.setStyleSheet)** - KEELATUD: `QApplication.instance().setStyleSheet(...)` või `qApp.setStyleSheet(...)` – see lekib plugina teema kogu QGIS-i UI-sse (toolbarid, paneelid) ja rikub kasutaja teema.

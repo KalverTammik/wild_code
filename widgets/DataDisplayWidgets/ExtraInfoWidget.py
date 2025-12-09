@@ -2,6 +2,7 @@ from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame, QHBoxLayout, QListWidget, QListWidgetItem, QPushButton, QDialog, QTextEdit, QScrollArea
 from PyQt5.QtGui import QFont
 from ...constants.file_paths import QssPaths
+from ...constants.module_icons import IconNames
 from ...widgets.theme_manager import ThemeManager
 from .ModuleConfig import ModuleConfigFactory
 
@@ -48,7 +49,7 @@ class ExtraInfoWidget(QWidget):
         expand_btn.setObjectName("ExpandButton")
         expand_btn.setToolTip("Ava detailne ülevaade")
         expand_btn.setFixedSize(22, 22)                    # a little tighter
-        expand_btn.setIcon(ThemeManager.get_qicon("eye_icon.png"))
+        expand_btn.setIcon(ThemeManager.get_qicon(IconNames.ICON_EYE))
         expand_btn.setIconSize(QSize(14, 14))              # icon fits inside 22x22 nicely
         expand_btn.setCursor(Qt.PointingHandCursor)
         expand_btn.setAutoDefault(False); expand_btn.setDefault(False)

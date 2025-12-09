@@ -42,14 +42,8 @@ class GraphQLSettings:
             config = json.load(json_content)
         return config.get('graphql_endpoint', '')
 
-# Resource paths (icons, images, etc.)
-class ResourcePaths:
-    ICON = os.path.join(PLUGIN_ROOT, RESOURCE, "Valisee_u.png")
-    EYE_ICON = os.path.join(PLUGIN_ROOT, RESOURCE, "eye_icon.png")
-    LIGHTNESS_ICON = os.path.join(PLUGIN_ROOT, RESOURCE, "brightness.png")
-    DARKNESS_ICON = os.path.join(PLUGIN_ROOT, RESOURCE, "darkness.png")
-    LOGOUT_BRIGHT = os.path.join(PLUGIN_ROOT, RESOURCE, "logout_bright.png")
-    LOGOUT_DARK = os.path.join(PLUGIN_ROOT, RESOURCE, "logout_dark.png")
+
+
 
 # QSS file names (for modular theme loading)
 class QssPaths:

@@ -1,13 +1,12 @@
 import os
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit, QVBoxLayout, QListWidget, QListWidgetItem
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
-from PyQt5.QtGui import QColor
 from .theme_manager import IntensityLevels, ThemeManager, is_dark, styleExtras, ThemeShadowColors
 from ..constants.file_paths import QssPaths
+from ..constants.module_icons import IconNames, ResourcePaths
+
 # from ..utils.logger import debug as log_debug
-from ..constants.module_icons import ICON_HELP
 from ..languages.language_manager import LanguageManager
-from ..constants.file_paths import ResourcePaths
 from .SearchResultsWidget import SearchResultsWidget
 from ..utils.search.UnifiedSearchController import UnifiedSearchController
 
@@ -52,8 +51,7 @@ class HeaderWidget(QWidget):
         self.helpButton.setDefault(False)
         
         # Add help icon and text
-        help_icon_path = ThemeManager.get_qicon(ICON_HELP)        
-        self.helpButton.setIcon(help_icon_path)
+        self.helpButton.setIcon(ThemeManager.get_qicon(IconNames.ICON_HELP))
         self.helpButton.setIconSize(QSize(18, 18))
         self.helpButton.setText("Abi")
                     
@@ -152,18 +150,10 @@ class HeaderWidget(QWidget):
     def retheme_header(self):
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
         theme = ThemeManager.effective_theme()
-        if is_dark(theme):
-            self.switchButton.setIcon(ThemeManager.get_qicon(ResourcePaths.LIGHTNESS_ICON))
-            self.switchButton.setText("")
-            self.logoutButton.setIcon(ThemeManager.get_qicon(ResourcePaths.LOGOUT_BRIGHT))
-            self.logoutButton.setText("")
-        else:
-            self.switchButton.setIcon(ThemeManager.get_qicon(ResourcePaths.DARKNESS_ICON))
-            self.switchButton.setText("")
-            self.logoutButton.setIcon(ThemeManager.get_qicon(ResourcePaths.LOGOUT_DARK))
-            self.logoutButton.setText("")
-
-
+        ThemeManager._update_header_icons(
+            header_widget=self,
+            is_dark_theme=is_dark(theme)
+        )
 
     def set_title(self, text):
         '''

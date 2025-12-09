@@ -1,7 +1,7 @@
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from ....widgets.theme_manager import ThemeManager
-from ....constants.module_icons import ModuleIcons
+from ....constants.module_icons import IconNames, ModuleIcons
 from ....utils.Folders.foldersHelpers import FolderHelpers
 from ....constants.file_paths import QssPaths
 
@@ -63,7 +63,7 @@ class ModuleLabelsWidget(QFrame):
 
             button = QPushButton("Muuda ...")
             button.setObjectName(f"{key}_button")
-            icon = ThemeManager().get_qicon(ModuleIcons.ICON_SETTINGS)
+            icon = ThemeManager().get_qicon(IconNames.ICON_SETTINGS)
             button.setIcon(icon)
 
             button.clicked.connect(lambda _, k=key, lbl=value_label: self._on_select_folder_clicked(k, lbl))

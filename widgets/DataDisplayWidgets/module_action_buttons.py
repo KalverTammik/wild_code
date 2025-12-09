@@ -14,6 +14,7 @@ from ..theme_manager import ThemeManager
 from ...utils.Folders.foldersHelpers import FolderHelpers
 from PyQt5.QtWidgets import QMessageBox
 from ...constants.settings_keys import SettingsService
+from ...constants.module_icons import IconNames
 from ...modules.Settings.setting_keys import SettingDialogPlaceholders
 from ...utils.moduleSwitchHelper import ModuleSwitchHelper
 def _resolve_tooltip(lang_manager, key: str) -> str:
@@ -88,7 +89,7 @@ class OpenFolderActionButton(CardActionButton):
     def __init__(self, file_path: Optional[str], lang_manager) -> None:
         super().__init__(
             "OpenFolderButton",
-            ThemeManager.ICON_FOLDER,
+            IconNames.ICON_FOLDERICON,
             ToolbarTranslationKeys.OPEN_FOLDER,
             lang_manager,
         )
@@ -102,7 +103,7 @@ class OpenWebActionButton(CardActionButton):
     def __init__(self, module_name: Optional[str], item_id: Optional[str], lang_manager) -> None:
         super().__init__(
             "OpenWebpageButton",
-            ThemeManager.VALISEE_V_ICON_NAME,
+            IconNames.VALISEE_V_ICON_NAME,
             ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER,
             lang_manager,
         )
@@ -118,7 +119,7 @@ class MoreActionsButton(CardActionButton):
     def __init__(self, lang_manager=None, item_data=None, module=None) -> None:
         super().__init__(
             "MoreActionsButton",
-            ThemeManager.ICON_ADD,
+            IconNames.ICON_ADD,
             ToolbarTranslationKeys.MORE_ACTIONS,
             lang_manager,
         )
@@ -174,7 +175,7 @@ class ShowOnMapActionButton(CardActionButton):
     ) -> None:
         super().__init__(
             "ShowOnMapButton",
-            ThemeManager.ICON_SHOW_ON_MAP,
+            IconNames.ICON_,
             ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP,
             lang_manager,
         )

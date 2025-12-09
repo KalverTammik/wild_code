@@ -81,7 +81,7 @@ class Sidebar(QWidget):
         self.settingsButton.setObjectName("SidebarSettingsButton")
         self.settingsButton.setAutoDefault(False)
         self.settingsButton.setDefault(False)
-        self.settingsButton.setIcon(ThemeManager.get_qicon(ModuleIconPaths.get_module_icon(Module.SETTINGS.name)))
+        self.settingsButton.setIcon(QIcon(ModuleIconPaths.get_module_icon(Module.SETTINGS.name)))
         self.settingsButton.clicked.connect(
             lambda checked=False: self._on_button_clicked(Module.SETTINGS.value, self.settingsButton)
         )

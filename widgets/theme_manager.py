@@ -6,8 +6,8 @@ from qgis.core import QgsSettings
 import os
 from PyQt5.QtGui import QColor
 from enum import Enum
-from ..constants.file_paths import ResourcePaths, StylePaths, QssPaths
-from ..constants.base_paths import PLUGIN_ROOT, RESOURCE, ICON_FOLDER
+from ..constants.file_paths import StylePaths, QssPaths
+from ..constants.module_icons import IconNames, ModuleIconPaths
 
 settings = QgsSettings()
 
@@ -22,34 +22,6 @@ def is_dark(value: str) -> bool:
 class ThemeManager(QObject):
     # Emits Theme.LIGHT or Theme.DARK (effective mode)
     themeChanged = pyqtSignal(str)
-
-    # Semantic icon basenames (keep yours; truncated here for brevity)
-    ICON_SETTINGS_GEAR = "icons8-gear-100.png"
-    ICON_LIST = "icons8-list-50.png"
-    ICON_SEARCH = "icons8-search-location-50.png"
-    ICON_SAVE = "icons8-save-50.png"
-    ICON_TREE = "icons8-tree-structure-50.png"
-    ICON_USER = "icons8-username-50.png"
-    ICON_LOGIN = "icons8-login-50.png"
-    ICON_LOGOUT = "icons8-logout-rounded-left-50.png"
-    ICON_HELP = "icons8-help-50.png"
-    ICON_INFO = "icons8-info-50.png"
-    ICON_FLOW = "icons8-flow-50.png"
-    ICON_HIERARCHY = "icons8-hierarchy-50.png"
-    ICON_WRENCH = "icons8-wrench-50.png"
-    ICON_TASKS = "icons8-tasks-50.png"
-    ICON_TABLE_GRAPH = "icons8-table-and-graph-50.png"
-    ICON_CHECK = "icons8-double-tick-50.png"
-    ICON_ERROR = "icons8-error-50.png"
-    ICON_WARNING = "icons8-notification-50.png"
-    ICON_CLEAR = "icons8-clear-search-50.png"
-    ICON_FOLDER = "icons8-folder-50.png"
-    ICON_ADD = "icons8-add-50.png"
-    ICON_REMOVE = "icons8-remove-50.png"
-    ICON_WAIT = "icons8-wait-50.png"
-    ICON_BUFFERING = "icons8-buffering-50.png"
-    VALISEE_V_ICON_NAME = "Valisee_v.png"
-    ICON_SHOW_ON_MAP = "region-pin-alt.png"
 
     @staticmethod
     def save_theme_setting(theme_name: str):
@@ -69,42 +41,11 @@ class ThemeManager(QObject):
         return theme
 
     @staticmethod
-    @lru_cache(maxsize=256)
-    def resolve_icon_path(icon_name_or_path: str) -> str:
-        if not icon_name_or_path:
-            return None
-        theme = ThemeManager.effective_theme()
-        base_icons_dir = os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER)
-
-        if os.path.isabs(icon_name_or_path):
-            basename = os.path.basename(icon_name_or_path)
-            fallback = icon_name_or_path
-        else:
-            basename = icon_name_or_path
-            fallback = os.path.join(base_icons_dir, basename)
-
-        stem, ext = os.path.splitext(basename)
-        exts = [ext] if ext else []
-        if '.png' not in exts: exts.append('.png')
-        if '.svg' not in exts: exts.append('.svg')
-
-        theme_dir_name = os.path.basename(StylePaths.DARK) if is_dark(theme) else os.path.basename(StylePaths.LIGHT)
-        themed_dir = os.path.join(base_icons_dir, theme_dir_name)
-        for e in exts:
-            p = os.path.join(themed_dir, f"{stem}{e}")
-            if os.path.exists(p):
-                return p
-
-        for e in exts:
-            p = os.path.join(base_icons_dir, f"{stem}{e}")
-            if os.path.exists(p):
-                return p
-        return fallback
-
-    @staticmethod
-    def get_qicon(icon_name_or_path: str) -> QIcon:
-        p = ThemeManager.resolve_icon_path(icon_name_or_path)
-        return QIcon(p) if p else QIcon()
+    def get_qicon(icon_name: str) -> QIcon:
+        print(f"Requested icon name: {icon_name}")
+        i = ModuleIconPaths.get_icon(icon_name)
+        print(f"[ThemeManager.get_qicon] resolved icon path: {i}")
+        return QIcon(i)
 
     @staticmethod
     def set_initial_theme(widget, switch_button=None, logout_button=None, qss_files=None) -> str:
@@ -137,12 +78,12 @@ class ThemeManager(QObject):
     def _update_header_icons(theme: str, switch_button, logout_button):
         if switch_button is not None:
             switch_button.setIcon(ThemeManager.get_qicon(
-                ResourcePaths.LIGHTNESS_ICON if is_dark(theme) else ResourcePaths.DARKNESS_ICON
+                IconNames.LIGHTNESS_ICON if is_dark(theme) else IconNames.DARKNESS_ICON
             ))
             switch_button.setText("")
         if logout_button is not None:
             logout_button.setIcon(ThemeManager.get_qicon(
-                ResourcePaths.LOGOUT_BRIGHT if is_dark(theme) else ResourcePaths.LOGOUT_DARK
+                IconNames.LOGOUT_BRIGHT if is_dark(theme) else IconNames.LOGOUT_DARK
             ))
 
     @staticmethod

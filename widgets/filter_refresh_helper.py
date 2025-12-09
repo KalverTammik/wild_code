@@ -4,7 +4,7 @@ from typing import Optional
 
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton
-
+from ..constants.module_icons import IconNames
 from .theme_manager import ThemeManager
 
 
@@ -26,7 +26,7 @@ class FilterRefreshHelper:
         btn.setDefault(False)
         size_px = 28
         btn.setFixedSize(size_px, size_px)
-        btn.setIcon(ThemeManager.get_qicon(ThemeManager.ICON_BUFFERING))
+        btn.setIcon(ThemeManager.get_qicon(IconNames.ICON_REFRESH))
         btn.setIconSize(QSize(18, 18))
         btn.clicked.connect(self._on_refresh_clicked)  # type: ignore[attr-defined]
 

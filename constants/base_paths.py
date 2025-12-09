@@ -28,5 +28,7 @@ CONNECTED_DATA = "connectedData"
 
 ICON_FOLDER = "icons"
 
+TO_BE_DELETED = "Kasutusel"
+
 # Configuration path
 CONFIG_PATH = os.path.join(PLUGIN_ROOT, CONFIG_DIR)
