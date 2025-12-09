@@ -82,8 +82,7 @@ class ThemeManager(QObject):
             ))
             switch_button.setText("")
         if logout_button is not None:
-            logout_button.setIcon(ThemeManager.get_qicon(
-                IconNames.LOGOUT_BRIGHT if is_dark(theme) else IconNames.LOGOUT_DARK
+            logout_button.setIcon(ThemeManager.get_qicon(IconNames.ICON_LOGOUT
             ))
 
     @staticmethod

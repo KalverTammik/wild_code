@@ -11,17 +11,14 @@ class IconNames:
     ICON_INFO = "Abikeskus1.png"
     ICON_ADD = "Add.png"
     ICON_REFRESH = "Reset2.png"
-    LIGHTNESS_ICON = "brightness.png"
-    DARKNESS_ICON = "darkness.png"
-    LOGOUT_BRIGHT = "logout_bright.png"
-    LOGOUT_DARK = "logout_dark.png"
+    LIGHTNESS_ICON = "Hele.png"
+    DARKNESS_ICON = "Tume.png"
     ICON_EYE = "show.png"
     ICON_SETTINGS = "Seaded.png"
     ICON_FOLDERICON = "Folder.png"
     ICON_CONTACTCT = "Kontaktid.png"
     ICON_SHOW_ON_MAP = "Mine kaardile.png"
     ICON_LIST = "down-arrow.png"
-
 
     def get_icon(icon_name):
         ROOT_ICONS = os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER)
