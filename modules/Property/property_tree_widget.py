@@ -350,12 +350,14 @@ class ModuleConnectionRow(QFrame):
         pos_next = pos_next + 1
 
         file_path = self._extract_file_path()
-        has_connections = self._has_property_connections()
+        actions_payload = {
+            "filesPath": file_path,
+            "properties": self.raw.get("properties"),
+        }
         actions_widget = ModuleConnectionActions(
             self.module_key,
             self.item_id,
-            file_path,
-            has_connections,
+            actions_payload,
             lang_manager=lang_manager,
             parent=self,
         )

@@ -63,6 +63,13 @@ class WildCodePlugin:
         session = SessionManager()
         session.load()
 
+        if session.needs_login() or not session.get_token():
+            self._show_login_dialog()
+            if self.login_successful:
+                self._show_main_dialog()
+                self.login_successful = False
+            return
+
         if not session.revalidateSession():
             self._show_login_dialog()
             # Check if login was successful after dialog closes

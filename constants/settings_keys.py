@@ -20,6 +20,7 @@ MODULE_SETTING_SHOW_NUMBERS = "show_numbers"
 MODULE_SETTING_PREFERRED_STATUSES = "preferred_statuses"
 MODULE_SETTING_PREFERRED_TYPES = "preferred_types"
 MODULE_SETTING_PREFERRED_TAGS = "preferred_tags"
+MODULE_SETTING_LABEL_PREFIX = "labels"
 
 
 def module_setting_key(module_name: str, suffix: str) -> str:
@@ -132,6 +133,25 @@ class SettingsService:
             value=value,
             clear=clear,
             default="",
+        )
+
+    @staticmethod
+    def _normalize_label_key(label_key: str) -> str:
+        raw = (label_key or "").strip().lower()
+        return "".join(ch if ch.isalnum() or ch in {"-", "_", "."} else "_" for ch in raw)
+
+    def module_label_value(self, module_name: str, label_key: str, value=_UNSET, *, clear: bool = False, default: str = ""):
+        """Instance helper for module label storage (mirrors other module_* helpers)."""
+        if not label_key:
+            return default
+        normalized_key = SettingsService._normalize_label_key(label_key)
+        suffix = f"{MODULE_SETTING_LABEL_PREFIX}/{normalized_key}"
+        return self.module_setting(
+            module_name,
+            suffix,
+            value=value,
+            clear=clear,
+            default=default,
         )
 
 

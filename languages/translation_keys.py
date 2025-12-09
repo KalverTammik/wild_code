@@ -329,6 +329,10 @@ class DialogLabels:
     SESSION_EXPIRED_ERROR = "Session expired. Please log in again."
     INVALID_CREDENTIALS_ERROR = "Invalid email or password."
 
+    #Setting dialog labels
+    PROJECTS_SOURCE_FOLDER = "Projects source folder"
+    PROJECTS_TARGET_FOLDER = "Projects target folder"
+
 class RoleTranslationKeys:
     ADMINS = "Admins"
     ADMINISTRATORS = "Administraatorid"
@@ -343,3 +347,4 @@ class ToolbarTranslationKeys:
     OPEN_FOLDER = "Open Folder"
     OPEN_ITEM_IN_BROWSER = "Open Item in Browser"
     SHOW_ITEMS_ON_MAP = "Show Items on Map"
+    MORE_ACTIONS = "More Actions"

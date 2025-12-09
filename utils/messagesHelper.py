@@ -25,9 +25,11 @@ class ModernMessageDialog:
         dialog.exec_()
 
     @staticmethod
-    def Warning_messages_modern(title: str, message: str):
+    def Warning_messages_modern(title: str, message: str, *, with_cancel: bool = False):
         """Show a warning message dialog with modern styling."""
-        dialog = ModernMessageDialog._create_dialog(title, message, QMessageBox.Warning)
+        dialog = ModernMessageDialog._create_dialog(
+            title, message, QMessageBox.Warning, with_cancel=with_cancel
+        )
         dialog.exec_()
 
     @staticmethod
@@ -43,7 +45,13 @@ class ModernMessageDialog:
         dialog.exec_()
 
     @staticmethod
-    def _create_dialog(title: str, message: str, icon_type: QMessageBox.Icon) -> QDialog:
+    def _create_dialog(
+        title: str,
+        message: str,
+        icon_type: QMessageBox.Icon,
+        *,
+        with_cancel: bool = False,
+    ) -> QDialog:
         """Create a custom styled dialog."""
         dialog = QDialog()
         dialog.setWindowTitle(title)
@@ -63,12 +71,8 @@ class ModernMessageDialog:
         # Set property for QSS styling variants
         dialog.setProperty("messageType", message_type)
 
-        # Apply theme styling if available
-        if ThemeManager and QssPaths:
-            try:
-                ThemeManager.apply_module_style(dialog, [QssPaths.MESSAGE_BOX])
-            except Exception:
-                pass  # Fallback to default styling
+
+        ThemeManager.apply_module_style(dialog, [QssPaths.MESSAGE_BOX])
 
         # Main layout
         layout = QVBoxLayout(dialog)
@@ -132,6 +136,13 @@ class ModernMessageDialog:
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
+        # Optional Cancel button
+        cancel_button = None
+        if with_cancel:
+            cancel_button = QPushButton("Cancel")
+            cancel_button.clicked.connect(dialog.reject)
+            button_layout.addWidget(cancel_button)
+
         # OK button
         ok_button = QPushButton("OK")
         ok_button.clicked.connect(dialog.accept)
@@ -141,4 +152,4 @@ class ModernMessageDialog:
 
         layout.addLayout(button_layout)
 
-        return dialog
+        return dialog, ok_button, cancel_button

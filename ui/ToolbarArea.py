@@ -86,10 +86,9 @@ class ModuleToolbarArea(QFrame):
             alpha_level=AlphaLevel.MEDIUM,
         )
 
-    def add_left(self, widget: QWidget, title: str="") -> None:
+    def add_left(self, widget: QWidget) -> None:
         if widget is None:
             return
-
         wrapped = self._wrap_filter_widget(widget)
         self._left_widgets.append(wrapped)
         self._reflow_left_widgets()

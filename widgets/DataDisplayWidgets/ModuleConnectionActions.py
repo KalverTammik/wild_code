@@ -5,6 +5,7 @@ from .module_action_buttons import (
     OpenFolderActionButton,
     OpenWebActionButton,
     ShowOnMapActionButton,
+    MoreActionsButton
 )
 
 
@@ -16,7 +17,6 @@ class ModuleConnectionActions(QWidget):
         module_key: str,
         item_id: str,
         item_data: Optional[dict],
-
         lang_manager=None,
         parent: Optional[QWidget] = None,
     ):
@@ -34,7 +34,6 @@ class ModuleConnectionActions(QWidget):
         web_btn = OpenWebActionButton(module_key, item_id, lang_manager)
         layout.addWidget(web_btn)
 
-
         properties_conn = item_data.get('properties') or {}
         page_info = properties_conn.get('pageInfo') or {}
         has_connections = page_info.get('count') or page_info.get('total', 0)
@@ -46,8 +45,12 @@ class ModuleConnectionActions(QWidget):
             has_connections=bool(has_connections),
         )
         layout.addWidget(map_btn)
+        
+        actions_btn = MoreActionsButton(lang_manager=lang_manager, item_data=item_data, module=module_key)
+        layout.addWidget(actions_btn)
 
-        self._buttons = (folder_btn, web_btn, map_btn)
+
+        self._buttons = (folder_btn, web_btn, map_btn, actions_btn)
 
     @property
     def buttons(self):

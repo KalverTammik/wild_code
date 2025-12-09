@@ -8,7 +8,7 @@ class ContactsWidget(QFrame):
     def __init__(self, item_data, total=None, parent=None):
         super().__init__(parent)
         names = [n for n in (self.extract_contacts(item_data) or []) if n]
-        print(f"[ContactsWidget] Extracted contact names: {names}")
+        #print(f"[ContactsWidget] Extracted contact names: {names}")
         if not names:
             self.setVisible(False)
             return

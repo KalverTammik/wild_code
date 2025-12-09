@@ -53,9 +53,7 @@ class TagsFilterWidget(QWidget):
         self.combo = QgsCheckableComboBox(self)
         self.combo.setObjectName("TagsFilterCombo")
         layout.addWidget(self.combo)
-        title = self._lang.translate(TranslationKeys.TAGS_FILTER)
-        self.filter_title = title
-        self.combo.setToolTip(title)
+        self.combo.setToolTip(self._lang.translate(TranslationKeys.TAGS_FILTER))
 
         self.combo.checkedItemsChanged.connect(self._emit_selection_change)  # type: ignore[attr-defined]
         if self._auto_load:

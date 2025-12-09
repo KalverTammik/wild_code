@@ -2,6 +2,7 @@
 from .utils.url_manager import Module
 
 from .constants.module_icons import ModuleIconPaths
+from .languages.language_manager import LanguageManager
 
 MODULES_LIST_BY_NAME = []
 
@@ -13,11 +14,11 @@ class ModuleManager:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, lang_manager=None):
+    def __init__(self):
         if not hasattr(self, 'modules'):
             self.modules = {}  # Dictionary to store modules by name
             self.activeModule = None  # Reference to the currently active module
-            self.lang_manager = lang_manager
+            self.lang_manager = LanguageManager()
         
 
     def registerModule(
@@ -29,6 +30,7 @@ class ModuleManager:
         supports_statuses=False,
         supports_tags=False,
         supports_archive_layer=False,
+        module_labels=None,
         **init_params,
     ):
         """
@@ -48,6 +50,7 @@ class ModuleManager:
             "supports_statuses": supports_statuses,
             "supports_tags": supports_tags,
             "supports_archive_layer": supports_archive_layer,
+            "module_labels": module_labels or [],
         }
 
         if module_name.capitalize() == Module.SETTINGS.value.capitalize() or \
@@ -106,15 +109,28 @@ class ModuleManager:
         """Return the currently active module."""
         return self.activeModule
 
+    def getActiveModuleName(self):  
+        """Return the name of the currently active module."""
+        if self.activeModule:
+            return self.activeModule.get("name")
+        return None
+
     def getModuleSupports(self, moduleName):
         """Return support flags for the specified module."""
         module_data = self.modules.get(moduleName.lower())
         if not module_data:
             return None
-        return {
-            "types": module_data.get("supports_types", False),
-            "statuses": module_data.get("supports_statuses", False),
-            "tags": module_data.get("supports_tags", False),
-            "archive_layer": module_data.get("supports_archive_layer", False),
-        }
+        
+        types = bool(module_data.get("supports_types", False))
+        statuses = bool(module_data.get("supports_statuses", False))
+        tags = bool(module_data.get("supports_tags", False))
+        archive_layer = bool(module_data.get("supports_archive_layer", False))
+
+        return types, statuses, tags, archive_layer
+
+    def getModuleLabels(self, moduleName):
+        module_data = self.modules.get(moduleName.lower())
+        if not module_data:
+            return []
+        return module_data.get("module_labels", [])
  

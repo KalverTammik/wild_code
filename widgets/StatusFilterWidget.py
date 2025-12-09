@@ -54,9 +54,8 @@ class StatusFilterWidget(QWidget):
         self.combo.setMaxVisibleItems(12)
         layout.addWidget(self.combo)
 
-        tooltip = LanguageManager().translate(TranslationKeys.STATUS_FILTER)
-        self.filter_title = tooltip
-        self.combo.setToolTip(tooltip)
+
+        self.combo.setToolTip(LanguageManager().translate(TranslationKeys.STATUS_FILTER))
 
         self.combo.checkedItemsChanged.connect(self._emit_selection_change)  # type: ignore[attr-defined]
         if self._auto_load:

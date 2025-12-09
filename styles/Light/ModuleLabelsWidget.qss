@@ -1,0 +1,31 @@
+/* ModuleLabelsWidget.qss - Light Theme */
+
+/* Title label styling */
+QLabel[modulelabeltitle="true"] {
+    font-weight: 600;
+    color: #222;
+    padding: 2px 0px;
+    font-size: 13px;
+}
+
+/* Value label styling (defined) */
+QLabel[modulelabelvalue="true"] {
+    color: #555;
+    padding: 2px 0px;
+    font-size: 12px;
+}
+
+/* Value label styling (undefined) */
+QLabel[modulelabelvalue="false"] {
+    color: #c00;
+    padding: 2px 0px;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* Button styling */
+QPushButton {
+    min-width: 80px;
+    padding: 2px 8px;
+    font-size: 12px;
+}

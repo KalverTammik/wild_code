@@ -1,11 +1,7 @@
-from typing import Any, Optional
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QLabel, QPushButton
-from PyQt5.QtCore import pyqtSignal
-from qgis.core import QgsProject
-
+from PyQt5.QtCore import pyqtSignal, QTimer
 from .SettinsUtils.userUtils import userUtils
-
 from ...widgets.theme_manager import ThemeManager
 from .SettinsUtils.SettingsLogic import SettingsLogic
 from ...constants.file_paths import QssPaths
@@ -16,6 +12,9 @@ from ...module_manager import ModuleManager, MODULES_LIST_BY_NAME
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
 from ...python.workers import FunctionWorker, start_worker
+from .scroll_helper import SettingsScrollHelper
+
+from ...languages.language_manager import LanguageManager
 
 
 class SettingsModule(QWidget):
@@ -30,14 +29,12 @@ class SettingsModule(QWidget):
 
     def __init__(
             self,
-            lang_manager=None,
-            qss_files=None
         ):
         super().__init__()
 
-        self.name = Module.SETTINGS.name        # Ensure we always use LanguageManager
+        self.name = Module.SETTINGS.name
         
-        self.lang_manager = lang_manager
+        self.lang_manager = LanguageManager()
         # Logic layer
         self.logic = SettingsLogic()
         self._cards = []
@@ -88,7 +85,6 @@ class SettingsModule(QWidget):
             color=ThemeShadowColors.RED,
             alpha_level='medium'
         )
-        ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
         footer_layout.addStretch(1)
 
         self._footer_confirm = QPushButton(
@@ -106,6 +102,8 @@ class SettingsModule(QWidget):
 
     def _build_user_setup_card(self) -> QWidget:
         card = UserSettingsCard(self.lang_manager)
+        card.setObjectName("SetupCard")
+        card.setProperty("cardTone", "user")
         card.preferredModuleChanged.connect(self._user_preferred_module_changed)
         # Keep references needed for labels and later use
         self._user_card = card
@@ -127,22 +125,29 @@ class SettingsModule(QWidget):
             self.cards_layout.insertWidget(insert_index, card)
             self._cards.append(card)
             insert_index += 1
+        return
 
     def _generate_module_card(self, module_name: str) -> QWidget:
  
         translated = self.lang_manager.translate(module_name.lower())
 
-        supports = ModuleManager().getModuleSupports(module_name) or {}
+        module_manager = ModuleManager()
+        supports_types, supports_statuses, supports_tags, supports_archive_layer = module_manager.getModuleSupports(module_name) or {}
+        module_labels = module_manager.getModuleLabels(module_name)
         card = SettingsModuleCard(
             self.lang_manager,
             module_name,
             translated,
-            supports_types=supports.get("types", False),
-            supports_statuses=supports.get("statuses", False),
-            supports_tags=supports.get("tags", False),
-            supports_archive_layer=supports.get("archive_layer", False),
+            supports_types,
+            supports_statuses,
+            supports_tags,
+            supports_archive_layer,
+            module_labels=module_labels,
             logic=self.logic,
         )
+
+        card.setObjectName("SetupCard")
+        card.setProperty("cardTone", module_name.lower())
  
         card.pendingChanged.connect(self._update_dirty_state)
  
@@ -154,6 +159,7 @@ class SettingsModule(QWidget):
                 card.on_settings_activate()
             except Exception as exc:
                 print(f"Failed to activate settings card for {getattr(card, 'module_key', 'unknown')}: {exc}")
+        return
 
     def activate(self):
         """Activates the Settings UI with fresh user data."""
@@ -222,7 +228,8 @@ class SettingsModule(QWidget):
 
         if not self._initialized:
             self._initialized = True
-            self._build_module_cards()
+            if not self._module_cards:
+                self._build_module_cards()
         self._activate_module_cards()
 
     def _set_user_labels_loading(self):
@@ -237,6 +244,7 @@ class SettingsModule(QWidget):
     def _clear_user_worker_refs(self):
         self._user_fetch_thread = None
         self._user_fetch_worker = None
+
 
     def _cancel_user_fetch_worker(self, invalidate_request: bool = False):
         if invalidate_request:

@@ -23,11 +23,11 @@ from ..feed.feed_load_engine import FeedLoadEngine
 from ..widgets.theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
 from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
+from ..utils.FilterHelpers.FilterHelper import FilterHelper
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.messagesHelper import ModernMessageDialog
 from ..utils.url_manager import ModuleSupports
-
 
 
 class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget):
@@ -106,12 +106,12 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             return
         self._activated = True
 
-        print(f"[ModuleBaseUI] Activating module UI...")
+        #print(f"[ModuleBaseUI] Activating module UI...")
         if self.feed_load_engine is None:
-            print(f"[ModuleBaseUI] feed_load_engine is None, initializing...")
+            #print(f"[ModuleBaseUI] feed_load_engine is None, initializing...")
             self.init_feed_engine(self.load_next_batch, debounce_ms=self.LOAD_DEBOUNCE_MS)
 
-        print(f"[ModuleBaseUI] Resetting feed session...")
+        #print(f"[ModuleBaseUI] Resetting feed session...")
         self.reset_feed_session()
 
         self._connect_scroll_signals()
@@ -191,8 +191,9 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         insert_index = 1 if insert_at_top else max(0, layout.count() - 1)
         self._ignore_scroll_event = True
         try:
-            module_name = getattr(self, 'name', None) or getattr(self, 'module_name', 'default')
-            print(f"[ModuleBaseUI] Creating card for module: {module_name}")
+            from ..module_manager import ModuleManager
+            moduleManager = ModuleManager()
+            module_name = moduleManager.getActiveModuleName()
             card = ModuleFeedBuilder.create_item_card(item, module_name=module_name, lang_manager=self.lang_manager)
             ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
             layout.insertWidget(insert_index, card)
@@ -263,7 +264,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             return feed_logic.fetch_next_batch() or []
         except Exception as exc:
             session_msg = LanguageManager.translate_static(TranslationKeys.SESSION_EXPIRED)
-            if session_msg and str(exc) == session_msg:
+            msg_text = str(exc)
+            if session_msg and (msg_text == session_msg or "Unauthenticated" in msg_text):
                 heading = LanguageManager.translate_static(TranslationKeys.SESSION_EXPIRED_TITLE)
                 ModernMessageDialog.Warning_messages_modern(heading, session_msg)
                 return None
@@ -362,56 +364,5 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
                     pass
             return None
 
-    def _build_has_tags_condition(
-        self,
-        tag_ids: Sequence[str],
-        *,
-        match_mode: Optional[str] = None,
-    ) -> Optional[dict]:
-        """Map tag selections to Kavitro QueryProjectsHasTagsWhereHasConditions.
 
-        Reference: Kavitro docs › GraphQL › Inputs › QueryProjectsHasTagsWhereHasConditions.
-        """
-        ids = [str(tag_id).strip() for tag_id in tag_ids if tag_id]
-        if not ids:
-            return None
 
-        mode = (match_mode or self.tags_match_mode or "ANY").upper()
-        if mode == "ALL":
-            return {
-                "AND": [
-                    {"column": "ID", "operator": "EQ", "value": tag_id}
-                    for tag_id in ids
-                ]
-            }
-
-        return {"column": "ID", "operator": "IN", "value": ids}
-
-    # ------------------------------------------------------------------
-    # Stored filter helpers
-    # ------------------------------------------------------------------
-    def _get_saved_status_ids(self) -> list[str]:
-        return self._get_saved_filter_ids("status")
-
-    def _get_saved_type_ids(self) -> list[str]:
-        return self._get_saved_filter_ids("type")
-
-    def _get_saved_tag_ids(self) -> list[str]:
-        return self._get_saved_filter_ids("tag")
-
-    def _get_saved_filter_ids(self, kind: str) -> list[str]:
-        logic = getattr(self, "_settings_logic", None)
-        module_key = getattr(self, "module_key", None)
-        if not logic or not module_key:
-            return []
-        support_map = {
-            "status": ModuleSupports.STATUSES.value,
-            "type": ModuleSupports.TYPES.value,
-            "tag": ModuleSupports.TAGS.value,
-        }
-        support_key = support_map.get(kind)
-        if not support_key:
-            return []
-
-        values = logic.load_module_preference_ids(module_key, support_key=support_key) or []
-        return [str(token).strip() for token in values if str(token).strip()]

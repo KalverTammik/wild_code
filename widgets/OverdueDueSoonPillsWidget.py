@@ -9,14 +9,13 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 from ..python.api_client import APIClient
 from ..python.responses import JsonResponseHandler
 from ..languages.language_manager import LanguageManager
-from datetime import datetime, timedelta
-from ..widgets.theme_manager import ThemeManager, Theme, is_dark, IntensityLevels, styleExtras, ThemeShadowColors
-# from ..utils.logger import debug as log_debug
+from ..utils.FilterHelpers.FilterHelper import FilterHelper
+from ..languages.translation_keys import TranslationKeys
 
 # Legacy module-level state (kept for compatibility; instance methods use self.*)
 OVERDUE_BTN = None
@@ -40,31 +39,24 @@ class OverdueDueSoonPillsWidget(QWidget):
         self._lang = LanguageManager()  # Ensure _lang is initialized
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(2)
 
-        self.group = QGroupBox(self._lang.translate("urgent_group_title"), self)
-        self.group.setObjectName("UrgentGroupBox")
-        self.group.setToolTip(self._lang.translate("urgent_tooltip"))
+        #import translation keys
 
-        shadow_color = ThemeShadowColors.BLUE
-        styleExtras.apply_chip_shadow(
-            element=self.group, 
-            color=shadow_color, 
-            blur_radius=15, 
-            y_offset=1, 
-            x_offset=2,
-            alpha_level=IntensityLevels.MEDIUM
-            )
-
+        title = self._lang.translate(TranslationKeys.URGENT_GROUP_TITLE)
+        self.group = QGroupBox(title or "GroupBoxTitle", self)
+        self.group.setObjectName("GroupBoxFrame")
+        self.group.setToolTip(self._lang.translate(TranslationKeys.URGENT_TOOLTIP))
         pills_layout = QHBoxLayout()
-        pills_layout.setContentsMargins(2, 1, 2, 1)
-        pills_layout.setSpacing(2)
+        pills_layout.setContentsMargins(6, 4, 6, 4)
+        pills_layout.setSpacing(4)
         self.group.setLayout(pills_layout)
         layout.addWidget(self.group)
 
         self.overdue_btn = QPushButton(self.group)
         self.overdue_btn.setObjectName("PillOverdue")
+        self.overdue_btn.setCheckable(True)
         # Prevent button from being triggered by Return key
         self.overdue_btn.setAutoDefault(False)
         self.overdue_btn.setDefault(False)
@@ -73,6 +65,7 @@ class OverdueDueSoonPillsWidget(QWidget):
 
         self.due_soon_btn = QPushButton(self.group)
         self.due_soon_btn.setObjectName("PillDueSoon")
+        self.due_soon_btn.setCheckable(True)
         # Prevent button from being triggered by Return key
         self.due_soon_btn.setAutoDefault(False)
         self.due_soon_btn.setDefault(False)
@@ -85,71 +78,10 @@ class OverdueDueSoonPillsWidget(QWidget):
         self.overdue_btn.setText("…")
         self.due_soon_btn.setText("…")
 
-        # Apply initial styles based on current theme
-        try:
-            initial_theme = ThemeManager.load_theme_setting()
-        except Exception:
-            initial_theme = "light"
-        self._apply_mock_styles(theme=initial_theme)
+        # Default look keeps native QGroupBox styling; no extra theme plumbing needed.
 
     def retheme(self) -> None:
-        """Reapply styles based on current theme. Called by dialog's theme toggle sweep."""
-        try:
-            from ..widgets.theme_manager import ThemeManager
-            theme = ThemeManager.load_theme_setting()
-            self._apply_mock_styles(theme=theme)
-            # Re-apply active styles if any
-            if self._overdue_active:
-                self._update_button_style(self.overdue_btn, True, True)
-            if self._due_soon_active:
-                self._update_button_style(self.due_soon_btn, True, False)
-        except Exception:
-            pass
-
-    # ------------------------------------------------------------------
-    # Styling
-    # ------------------------------------------------------------------
-    def _apply_mock_styles(self, theme: str = "light") -> None:
-        try:
-            if is_dark(ThemeManager.effective_theme()):
-                group_border = "rgba(255,255,255,20)"
-                group_bg = "rgba(50,50,50,0.95)"
-                title_color = "#ff6b6b"
-                overdue_bg = "#b71c1c"
-                overdue_hover = "#d32f2f"
-                due_soon_bg = "#f57f17"
-                due_soon_hover = "#fb8c00"
-                due_soon_color = "#fff"
-                hover_border = "#ffab40"
-                hover_bg = "rgba(80,80,80,0.98)"
-            else:
-                group_border = "rgba(255,255,255,80)"
-                group_bg = "rgba(255,255,255,0.95)"
-                title_color = "#c62828"
-                overdue_bg = "#c62828"
-                overdue_hover = "#e53935"
-                due_soon_bg = "#f9a825"
-                due_soon_hover = "#fbc02d"
-                due_soon_color = "#222"
-                hover_border = "#ff7043"
-                hover_bg = "rgba(255,235,205,0.98)"
-
-            base_group = (
-                f"QGroupBox#UrgentGroupBox {{ border: 1.5px solid {group_border}; border-radius:6px; margin-top:8px; padding-top:8px; background:{group_bg}; }}"
-                f"QGroupBox#UrgentGroupBox::title {{ subcontrol-origin: margin; left:2px; padding:0 8px; font-weight:600; font-size:8px; color:{title_color}; }}"
-            )
-            overdue_style = (
-                f"QPushButton#PillOverdue {{ background:{overdue_bg}; color:white; border:none; border-radius:6px; padding:2px 2px; font-weight:600; font-size:10px; min-width:20px;}}"
-                f"QPushButton#PillOverdue:hover {{ background:{overdue_hover}; }}"
-            )
-            due_soon_style = (
-                f"QPushButton#PillDueSoon {{ background:{due_soon_bg}; color:{due_soon_color}; border:none; border-radius:6px; padding:2px 2px; font-weight:600; font-size:10px; min-width:20px;}}"
-                f"QPushButton#PillDueSoon:hover {{ background:{due_soon_hover}; }}"
-            )
-            hover_wrap = f"QGroupBox#UrgentGroupBox:hover {{ border:1.5px solid {hover_border}; background:{hover_bg}; }}"
-            self.group.setStyleSheet(base_group + overdue_style + due_soon_style + hover_wrap)
-        except Exception:
-            pass
+        """No-op: native widgets already pick up theme automatically."""
 
     def load_first_overdue_by_module(self, module) -> None:
         if IS_LOADING:
@@ -175,52 +107,18 @@ class OverdueDueSoonPillsWidget(QWidget):
 
     # --- Active state management ---
     def set_overdue_active(self, active: bool) -> None:
-
+        global OVERDUE_ACTIVE
         OVERDUE_ACTIVE = active
-        self._update_button_style(self.overdue_btn, active, is_overdue=True)
+        self._overdue_active = active
+        if self.overdue_btn:
+            self.overdue_btn.setChecked(active)
 
     def set_due_soon_active(self, active: bool) -> None:
+        global DUE_SOON_ACTIVE
         DUE_SOON_ACTIVE = active
-        self._update_button_style(self.due_soon_btn, active, is_overdue=False)
-
-    def _update_button_style(self, btn: QPushButton, active: bool, is_overdue: bool) -> None:
-        
-        theme = ThemeManager.load_theme_setting()
-
-        if btn is None:
-            return
-
-        if is_dark(ThemeManager.effective_theme()):
-            base_color = "#b71c1c" if is_overdue else "#f57f17"
-            active_color = "#ff5722" if is_overdue else "#ff9800"
-            hover_color = "#d32f2f" if is_overdue else "#fb8c00"
-            text_color = "white" if is_overdue else "#fff"
-            border_color = "#fff"
-        else:
-            base_color = "#c62828" if is_overdue else "#f9a825"
-            active_color = "#ff5722" if is_overdue else "#ff9800"
-            hover_color = "#e53935" if is_overdue else "#fbc02d"
-            text_color = "white" if is_overdue else "#222"
-            border_color = "#fff"
-
-        color = active_color if active else base_color
-        border = f"border: 2px solid {border_color};" if active else ""
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {color};
-                color: {text_color};
-                border: none;
-                border-radius: 6px;
-                padding: 2px 2px;
-                font-weight: 600;
-                font-size: 10px;
-                min-width: 20px;
-                {border}
-            }}
-            QPushButton:hover {{
-                background: {hover_color};
-            }}
-        """)
+        self._due_soon_active = active
+        if self.due_soon_btn:
+            self.due_soon_btn.setChecked(active)
 
 
 class UIControllers:
@@ -352,4 +250,95 @@ class OverdueDueSoonPillsUtils:
         due_soon_total = due_soon_total or 0
 
         return (overdue_total, due_soon_total)
+
+
+class OverdueDueSoonPillsActionHelper:
+    """Shared actions for applying overdue/due-soon filters across modules."""
+
+    @staticmethod
+    def apply_due_filter(module, *, is_overdue: bool, base_query=None, days: Optional[int] = None) -> None:
+        feed_logic = getattr(module, "feed_logic", None)
+        if feed_logic is None:
+            feed_cls = getattr(module, "FEED_LOGIC_CLS", None)
+            module_key = getattr(module, "module_key", None)
+            query_file = getattr(module, "QUERY_FILE", None)
+            lang_manager = getattr(module, "lang_manager", None)
+            if feed_cls is None or module_key is None or query_file is None:
+                return
+            module.feed_logic = feed_cls(module_key, query_file, lang_manager)
+            feed_logic = module.feed_logic
+
+        where = (
+            OverdueDueSoonPillsUtils.build_overdue_where(base_query)
+            if is_overdue
+            else OverdueDueSoonPillsUtils.build_due_soon_where(base_query, days=days)
+        )
+
+        tags_filter = getattr(module, "tags_filter", None)
+        tags_ids = FilterHelper.selected_ids(tags_filter) if tags_filter else []
+        build_has_tags = getattr(module, "_build_has_tags_condition", None)
+        if callable(build_has_tags):
+            has_tags_filter = build_has_tags(tags_ids)
+        else:
+            default_mode = getattr(module, "tags_match_mode", None)
+            has_tags_filter = FilterHelper.build_has_tags_condition(
+                tags_ids, match_mode=default_mode
+            )
+
+        feed_load_engine = getattr(module, "feed_load_engine", None)
+        if feed_load_engine is not None and getattr(feed_load_engine, "buffer", None) is not None:
+            feed_load_engine.buffer.clear()
+
+        feed_logic.set_where(where if where and where.get("AND") else None)
+        if has_tags_filter is not None:
+            feed_logic.set_extra_arguments(hasTags=has_tags_filter)
+
+        feed_layout = getattr(module, "feed_layout", None)
+        empty_state = getattr(module, "_empty_state", None)
+        if hasattr(module, "clear_feed"):
+            module.clear_feed(feed_layout, empty_state)
+
+        scroll_area = getattr(module, "scroll_area", None)
+        if scroll_area is not None and scroll_area.verticalScrollBar() is not None:
+            scroll_area.verticalScrollBar().setValue(0)
+
+        if feed_load_engine is not None:
+            feed_load_engine.schedule_load()
+
+    @staticmethod
+    def set_active_pill_states(pills_widget, *, is_overdue: bool) -> None:
+        if pills_widget is None:
+            return
+        pills_widget.set_overdue_active(is_overdue)
+        pills_widget.set_due_soon_active(not is_overdue)
+
+    @staticmethod
+    def refresh_counts(pills_widget, module_enum) -> None:
+        if pills_widget is None or module_enum is None:
+            return
+        overdue_total, due_soon_total = OverdueDueSoonPillsUtils.refresh_counts_for_module(module_enum)
+        pills_widget.set_counts(overdue_total, due_soon_total)
+
+
+class OverduePillsMixin:
+    """Mixin to wire overdue/due-soon pills with unified handling."""
+
+    def wire_overdue_pills(self, parent_container=None) -> None:
+        self.overdue_pills = OverdueDueSoonPillsWidget()
+        self.overdue_pills.overdueClicked.connect(lambda: self._on_due_pill_clicked(True))
+        self.overdue_pills.dueSoonClicked.connect(lambda: self._on_due_pill_clicked(False))
+
+        target = parent_container or getattr(self, "toolbar_area", None)
+        if target is not None:
+            if hasattr(target, "add_right"):
+                target.add_right(self.overdue_pills)
+            elif hasattr(target, "addWidget"):
+                target.addWidget(self.overdue_pills)
+
+    def _on_due_pill_clicked(self, is_overdue: bool) -> None:
+        OverdueDueSoonPillsActionHelper.set_active_pill_states(self.overdue_pills, is_overdue=is_overdue)
+        OverdueDueSoonPillsActionHelper.apply_due_filter(self, is_overdue=is_overdue)
+
+    def refresh_overdue_counts(self, module_enum) -> None:
+        OverdueDueSoonPillsActionHelper.refresh_counts(getattr(self, "overdue_pills", None), module_enum)
 

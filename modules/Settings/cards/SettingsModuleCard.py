@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QVBoxLayout,  QFrame, QHBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal
 from .SettingsBaseCard import SettingsBaseCard
 from .SettingModuleFeatureCard import SettingsModuleFeatureCard
+from .ModuleLabelsWidget import ModuleLabelsWidget
 from ..SettinsUtils.SettingsLogic import SettingsLogic
 from ....widgets.StatusFilterWidget import StatusFilterWidget
 from ....widgets.TypeFilterWidget import TypeFilterWidget
@@ -30,6 +31,7 @@ class SettingsModuleCard(SettingsBaseCard):
         supports_statuses: bool = False,
         supports_tags: bool = False,
         supports_archive_layer: bool = False,
+        module_labels=None,
         logic=None,
     ):
         # Ikon pealkirjale
@@ -52,6 +54,10 @@ class SettingsModuleCard(SettingsBaseCard):
         self._layer_selector: QgsMapLayerComboBox | None = None
         self._archive_picker: QgsMapLayerComboBox | None = None
 
+        self._module_labels = module_labels or []
+        self._labels_widget: ModuleLabelsWidget | None = None
+        self._orig_label_values = {}
+        self._pend_label_values = {}
         # Originaal vs pending
         self._orig_element_name = ""
         self._orig_archive_name = ""
@@ -72,6 +78,11 @@ class SettingsModuleCard(SettingsBaseCard):
         self.placeholder_text = self.lang_manager.translate(TranslationKeys.SELECT_LAYER)
 
         self._build_ui()
+
+
+    def set_module_label_value(self, key: str, value: str):
+        if self._labels_widget:
+            self._labels_widget.set_label_value(key, value)
 
     # --- UI ---
     def _build_ui(self):
@@ -184,6 +195,30 @@ class SettingsModuleCard(SettingsBaseCard):
             options_layout.addWidget(type_group)
 
         cl.addWidget(options_container)
+
+        labels_widget = None
+        if self._module_labels:
+            prepared_labels = []
+            for label_def in self._module_labels:
+                key = label_def.get("key")
+                stored_value = self.logic.load_module_label_value(self.module_key, key) if key else ""
+                print(f"[SettingsModuleCard] Loaded label value for key '{key}': '{stored_value}'")
+                if key:
+                    label_def = dict(label_def)
+                    label_def["value"] = stored_value or ""
+                prepared_labels.append(label_def)
+
+            labels_widget = ModuleLabelsWidget(self.module_key, prepared_labels, self.lang_manager)
+            self._labels_widget = labels_widget
+            for label_def in prepared_labels:
+                key = label_def.get("key")
+                if key:
+                    val = label_def.get("value") or ""
+                    self._orig_label_values[key] = val
+                    self._pend_label_values[key] = val
+            labels_widget.labelChanged.connect(self._on_label_changed)
+            cl.addWidget(labels_widget)
+
         cl.addStretch(1)
 
         # Reset nupp jaluses
@@ -191,7 +226,6 @@ class SettingsModuleCard(SettingsBaseCard):
         reset_btn.setToolTip(self.lang_manager.translate(TranslationKeys.RESET_ALL_SETTINGS))
         reset_btn.setVisible(True)
         reset_btn.clicked.connect(self._on_reset_settings)
-
     def _create_layer_combobox(self, parent: QWidget) -> QgsMapLayerComboBox:
         combo = QgsMapLayerComboBox(parent)
         combo.setObjectName("ModuleLayerCombo")
@@ -236,6 +270,12 @@ class SettingsModuleCard(SettingsBaseCard):
             )
         )
         self._pend_status_preferences = set(self._orig_status_preferences)
+        # Load label values from settings and sync UI
+        self._orig_label_values = self._load_label_values()
+        self._pend_label_values = dict(self._orig_label_values)
+        if self._labels_widget:
+            for k, v in self._orig_label_values.items():
+                self._labels_widget.set_label_value(k, v)
 
         if self.supports_types:
             self._orig_type_preferences = set(
@@ -292,7 +332,11 @@ class SettingsModuleCard(SettingsBaseCard):
         status_dirty = self._pend_status_preferences != self._orig_status_preferences
         type_dirty = bool(self.supports_types) and self._pend_type_preferences != self._orig_type_preferences
         tag_dirty = bool(self.supports_tags) and self._pend_tag_preferences != self._orig_tag_preferences
-        return el_dirty or ar_dirty or status_dirty or type_dirty or tag_dirty
+        label_dirty = any(
+            self._pend_label_values.get(k, "") != self._orig_label_values.get(k, "")
+            for k in set(self._pend_label_values.keys()) | set(self._orig_label_values.keys())
+        )
+        return el_dirty or ar_dirty or status_dirty or type_dirty or tag_dirty or label_dirty
 
     def apply(self):
         changed = False
@@ -340,9 +384,23 @@ class SettingsModuleCard(SettingsBaseCard):
             self._orig_type_preferences = set(self._pend_type_preferences)
             changed = True
 
+        # Save label values
+        for key, value in self._pend_label_values.items():
+            if self._orig_label_values.get(key, "") != value:
+                self.logic.save_module_label_value(self.module_key, key, value)
+                changed = True
+        if changed:
+            self._orig_label_values = dict(self._pend_label_values)
+
         # Reset pending layer ids
         self._pend_element_name = self._orig_element_name
         self._pend_archive_name = self._orig_archive_name
+
+        # Labels
+        self._pend_label_values = dict(self._orig_label_values)
+        if self._labels_widget:
+            for k, v in self._orig_label_values.items():
+                self._labels_widget.set_label_value(k, v)
 
         self._update_stored_values_display()
         self.pendingChanged.emit(False if changed else self.has_pending_changes())
@@ -387,7 +445,8 @@ class SettingsModuleCard(SettingsBaseCard):
                 return fallback_name or ""
 
             element_name = display_for(self._layer_selector, self._pend_element_name or self._orig_element_name)
-            supports_archive_layer: bool = False,
+            supports_archive_layer: bool = False
+            archive_name = ""
             if self.supports_archive:
                 archive_name = display_for(self._archive_picker, self._pend_archive_name or self._orig_archive_name)
 
@@ -398,6 +457,7 @@ class SettingsModuleCard(SettingsBaseCard):
                 parts.append(f"📁 Archive: {archive_name}")
 
             if parts:
+                values_text = ", ".join(parts)
                 self.supports_archive = bool(supports_archive_layer) or (self.module_key == Module.PROPERTY.value)
                 self.set_status_text(f"Active layers: {values_text}")
             else:
@@ -492,6 +552,14 @@ class SettingsModuleCard(SettingsBaseCard):
                     support_key=ModuleSupports.TYPES.value,
                 )
 
+            # Clear label values
+            for key in list(self._orig_label_values.keys()):
+                self.logic.clear_module_label_value(self.module_key, key)
+                if self._labels_widget:
+                    self._labels_widget.set_label_value(key, "")
+            self._orig_label_values = {}
+            self._pend_label_values = {}
+
             self._update_stored_values_display()
             self.set_status_text(f"✅ {self.lang_manager.translate('Settings reset to defaults')}", True)
             self.pendingChanged.emit(self.has_pending_changes())
@@ -541,3 +609,19 @@ class SettingsModuleCard(SettingsBaseCard):
         self._pend_archive_name = MapHelpers.layer_name_from_id(layer_id) if layer_id else ""
         self._update_stored_values_display()
         self.pendingChanged.emit(self.has_pending_changes())
+
+    def _on_label_changed(self, key: str, value: str):
+        if not key:
+            return
+        self._pend_label_values[key] = value or ""
+        self.pendingChanged.emit(self.has_pending_changes())
+
+    def _load_label_values(self):
+        values = {}
+        for label_def in self._module_labels:
+            key = label_def.get("key")
+            if not key:
+                continue
+            stored = self.logic.load_module_label_value(self.module_key, key) or ""
+            values[key] = stored
+        return values

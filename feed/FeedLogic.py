@@ -63,7 +63,7 @@ class UnifiedFeedLogic:
         This does not enable single-item mode by itself; call
         ``set_single_item_mode(True, id=...)`` to activate.
         """
-        print(f"[FeedLogic] Configuring single item query: {query_name}")
+        #print(f"[FeedLogic] Configuring single item query: {query_name}")
         self._single_item_query_name = query_name
 
     def set_single_item_mode(self, enabled: bool, *, id: Optional[str] = None, **extra_vars: Any) -> None:
@@ -231,7 +231,7 @@ class UnifiedFeedLogic:
                 setattr(self, '_loaded_items_debug', prev + len(result))
             except Exception:
                 pass
-            print(f"[UnifiedFeedLogic] fetched {len(result)} items (has_more={self.has_more})")
+            #print(f"[UnifiedFeedLogic] fetched {len(result)} items (has_more={self.has_more})")
             return result
 
         except Exception as e:

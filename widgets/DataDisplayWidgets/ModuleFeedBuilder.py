@@ -24,7 +24,7 @@ class ModuleFeedBuilder:
 
     @staticmethod
     def create_item_card(item, module_name=None, lang_manager=None):
-        print(f"[ModuleFeedBuilder] Creating item card for module: {module_name}, item: {item}")
+        #print(f"[ModuleFeedBuilder] Creating item card for module: {module_name}, item: {item}")
         item_data = dict(item or {})
         card = QFrame()
         card.setObjectName("ModuleInfoCard")

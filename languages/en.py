@@ -1,4 +1,4 @@
-from .translation_keys import TranslationKeys, RoleTranslationKeys, ToolbarTranslationKeys
+from .translation_keys import TranslationKeys, RoleTranslationKeys, ToolbarTranslationKeys, DialogLabels, ToolbarTranslationKeys
 
 TRANSLATIONS = {
     TranslationKeys.PROJECTS_MODULE_LOADED: "Projects module loaded!",
@@ -249,4 +249,7 @@ TRANSLATIONS = {
     ,TranslationKeys.SELECT_TYPE_DESCRIPTION: "Select types you want to focus on for this module. These will be highlighted in the interface."
     ,TranslationKeys.SELECT_STATUSES_DESCRIPTION: "Select statuses you want to prioritize for this module. These will be highlighted in the interface."
     ,TranslationKeys.SELECT_TAGS_DESCRIPTION: "Select tags you want to focus on for this module. These will be highlighted in the interface."
+    ,DialogLabels.PROJECTS_SOURCE_FOLDER: "Projects source folder"
+    ,DialogLabels.PROJECTS_TARGET_FOLDER: "Projects target folder"
+    ,ToolbarTranslationKeys.MORE_ACTIONS: "More actions"
 }

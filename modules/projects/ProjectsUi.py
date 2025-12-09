@@ -16,19 +16,17 @@ from ...module_manager import ModuleManager
 from ...widgets.theme_manager import ThemeManager, styleExtras
 from ...constants.file_paths import QssPaths
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
-from ...widgets.OverdueDueSoonPillsWidget import (
-    OverdueDueSoonPillsLogic,
-    OverdueDueSoonPillsUtils,
-    OverdueDueSoonPillsWidget,
-)
+from ...widgets.OverdueDueSoonPillsWidget import  OverduePillsMixin
 from ...widgets.filter_refresh_helper import FilterRefreshHelper
-from ...utils.FilterHelpers.FilterHelper import FilterHelper
+from ...utils.FilterHelpers.FilterHelper import FilterHelper, FilterRefreshService
+from ...utils.search.SearchOpenItemMixin import SearchOpenItemMixin
 
 
-class ProjectsModule(ModuleBaseUI):
+class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
     FEED_LOGIC_CLS: Type[FeedLogic] = FeedLogic
     QUERY_FILE = "ListFilteredProjects.graphql"
+    SINGLE_ITEM_QUERY_FILE = "w_projects_module_data_by_item_id.graphql"
 
     def __init__(
         self,
@@ -47,10 +45,10 @@ class ProjectsModule(ModuleBaseUI):
         self.lang_manager = language
         self.theme_manager = ThemeManager()
 
-        # Determine which filters this module should expose based on module registration metadata
-        supports = ModuleManager().getModuleSupports(Module.PROJECT.name) or {}
-        self.supports_status_filter = bool(supports.get("statuses", True))
-        self.supports_tags_filter = bool(supports.get("tags", True))
+        supports_types, supports_statuses, supports_tags, supports_archive_layer = ModuleManager().getModuleSupports(Module.PROJECT.name) or {}
+        
+        
+
 
         # edasiandmiseks
         self.qss_files = qss_files
@@ -62,31 +60,16 @@ class ProjectsModule(ModuleBaseUI):
         self._tags_preferences_loaded = False
         self._suppress_filter_events = False
 
-        # Pills
-        self.overdue_pills = OverdueDueSoonPillsWidget()
-        self.overdue_pills_logic = OverdueDueSoonPillsLogic()
-        self.overdue_pills_utils = OverdueDueSoonPillsUtils()
-
-        # Wire pill clicks
-        try:
-            self.overdue_btn = self.overdue_pills.overdue_btn
-            self.due_soon_btn = self.overdue_pills.due_soon_btn
-            self.overdue_btn.clicked.connect(self._on_overdue_clicked)
-            self.due_soon_btn.clicked.connect(self._on_due_soon_clicked)
-        except Exception:
-            pass
-
-        # Toolbar: pills right
-        self.toolbar_area.add_right(self.overdue_pills)
+        self.wire_overdue_pills(self.toolbar_area)
 
         # Status filter (kasuta module_key)
-        if self.supports_status_filter:
+        if supports_statuses:
             self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area)
             self.toolbar_area.add_left(self.status_filter)
             self.status_filter.selectionChanged.connect(self._on_status_filter_selection)
 
         # Tags filter (see näib eeldavat Module enum'i; jätame nii)
-        if self.supports_tags_filter:
+        if supports_tags:
             self.tags_filter = TagsFilterWidget(Module.PROJECT, self.lang_manager, self.toolbar_area)
             self.toolbar_area.add_left(self.tags_filter)
             self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
@@ -117,26 +100,17 @@ class ProjectsModule(ModuleBaseUI):
         # Teema
         ThemeManager.apply_module_style(self._empty_state, [QssPaths.MODULE_CARD])
 
-        # Configure optional single-item query for opening a project by id
-        try:
-            if self.feed_logic is None:
-                self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
-            self.feed_logic.configure_single_item_query("w_projects_module_data_by_item_id.graphql")
-        except Exception:
-            pass
+        if self.feed_logic is None:
+            self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
+        self.feed_logic.configure_single_item_query(self.SINGLE_ITEM_QUERY_FILE)
 
     # --- Aktivatsioon / deaktiveerimine ---
     def activate(self) -> None:
         super().activate()
 
         self._refresh_filters()
+        self.refresh_overdue_counts(Module.PROJECT)
 
-        # Overdue/due soon count
-        try:
-            overdue_count = OverdueDueSoonPillsUtils.refresh_counts_for_module(Module.PROJECT)
-            OverdueDueSoonPillsLogic.set_counts(overdue_count, self.overdue_btn, self.due_soon_btn)
-        except Exception:
-            pass
 
     def deactivate(self) -> None:
         super().deactivate()
@@ -146,45 +120,6 @@ class ProjectsModule(ModuleBaseUI):
             self.overdue_pills.set_due_soon_active(False)
         except Exception:
             pass
-
-    def open_item_from_search(self, search_module: str, item_id: str, title: str) -> None:
-        """Open a project coming from unified search without kicking feed loader.
-
-        Switch UnifiedFeedLogic into single-item mode using the by-id GraphQL
-        query so the existing feed rendering pipeline can show a single card
-        for the given project id.
-        """
-        # Stop any pending feed loads and clear existing cards
-        try:
-            if self.feed_load_engine:
-                self.feed_load_engine.cancel_pending()
-                if self.feed_load_engine.buffer:
-                    self.feed_load_engine.buffer.clear()
-        except Exception:
-            pass
-
-        try:
-            self.clear_feed(self.feed_layout, self._empty_state)
-        except Exception:
-            pass
-
-        # Switch feed logic to single-item mode using the by-id GraphQL query
-        try:
-            if self.feed_logic is None:
-                self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
-                self.feed_logic.configure_single_item_query("w_projects_module_data_by_item_id.graphql")
-
-            self.feed_logic.set_single_item_mode(True, id=item_id)
-
-            if self.feed_load_engine:
-                self.feed_load_engine.schedule_load()
-        except Exception:
-            # If anything goes wrong, fall back to a simple debug empty state
-            try:
-                self._empty_state.setText(f"Search wiring error for project {item_id}")
-                self._empty_state.setVisible(True)
-            except Exception:
-                pass
 
     # --- Andmete laadimine ---
     def load_next_batch(self):
@@ -198,141 +133,16 @@ class ProjectsModule(ModuleBaseUI):
         self._refresh_filters(tags_ids=ids)
 
     def _refresh_filters(self, *, status_ids: Optional[List[str]] = None, tags_ids: Optional[List[str]] = None) -> None:
-        # Vaikne faas algse initsialiseerimise ajal
-        if self._suppress_filter_events:
-            return
-
-        # Puhasta buffer enne uue WHERE'i rakendamist
-        if self.feed_load_engine and self.feed_load_engine.buffer:
-            try:
-                self.feed_load_engine.buffer.clear()
-            except Exception:
-                pass
-
-        if status_ids is None and self.status_filter:
-            status_ids = FilterHelper.selected_ids(self.status_filter)
-            if not status_ids:
-                saved_status = self._get_saved_status_ids()
-                if saved_status:
-                    status_ids = saved_status
-        if tags_ids is None and self.tags_filter:
-            tags_ids = FilterHelper.selected_ids(self.tags_filter)
-            if not tags_ids:
-                saved_tags = self._get_saved_tag_ids()
-                if saved_tags:
-                    tags_ids = saved_tags
-
-        # Ainult status läheb WHERE'i, sildid antakse hasTags kaudu
-        and_list: List[dict] = []
-        if status_ids:
-            and_list.append({"column": "STATUS", "operator": "IN", "value": status_ids})
-        where = {"AND": and_list} if and_list else None
-
-        has_tags_filter = self._build_has_tags_condition(tags_ids or [])
-
-        # Hoia hetke seisu
-        self._current_where = where
-
-        # Init vajadusel
-        if self.feed_logic is None:
-            self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
-            try:
-                self.feed_logic.configure_single_item_query("w_projects_module_data_by_item_id.graphql")
-            except Exception:
-                pass
-
-        # Ensure we are back in list mode when filters are used
-        try:
-            self.feed_logic.set_single_item_mode(False)
-        except Exception:
-            pass
-
-        if self.feed_logic:
-            self.feed_logic.set_extra_arguments(hasTags=has_tags_filter)
-
-        # Rakenda WHERE
-        try:
-            self.feed_logic.set_where(where)
-        except Exception:
-            pass
-
-        # UI reset & laadimine
-        self.clear_feed(self.feed_layout, self._empty_state)
-        try:
-            self.scroll_area.verticalScrollBar().setValue(0)
-        except Exception:
-            pass
-        try:
-            self.feed_load_engine.schedule_load()
-        except Exception:
-            pass
-
-        # Reset pillid
-        try:
-            self.overdue_pills.set_overdue_active(False)
-            self.overdue_pills.set_due_soon_active(False)
-        except Exception:
-            pass
+        FilterRefreshService.refresh_filters(
+            self,
+            status_ids=status_ids,
+            tags_ids=tags_ids,
+            status_filter=self.status_filter,
+            tags_filter=self.tags_filter,
+            reset_overdue_pills=True,
+        )
 
 
-    def _apply_where(self, where: dict) -> None:
-        # Väldi sama WHERE korduvalt rakendamist
-        if where == self._current_where:
-            return
-
-        # Init vajadusel
-        if self.feed_logic is None:
-            self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
-
-        # Puhasta enne uue WHERE rakendamist
-        try:
-            if self.feed_load_engine:
-                self.feed_load_engine.buffer.clear()
-        except Exception:
-            pass
-
-        # Rakenda WHERE (tühi AND -> None)
-        try:
-            self.feed_logic.set_where(where if where and where.get("AND") else None)
-        except Exception:
-            pass
-
-        # UI reset & laadimine
-        try:
-            self.clear_feed(self.feed_layout, self._empty_state)
-        except Exception:
-            pass
-        try:
-            self.scroll_area.verticalScrollBar().setValue(0)
-        except Exception:
-            pass
-        try:
-            if self.feed_load_engine:
-                self.feed_load_engine.schedule_load()
-        except Exception:
-            pass
-
-        self._current_where = where
-
-    def _on_overdue_clicked(self):
-        # Set pill active states and apply overdue filter
-        try:
-            self.overdue_pills.set_overdue_active(True)
-            self.overdue_pills.set_due_soon_active(False)
-        except Exception:
-            pass
-        where = self.overdue_pills_utils.build_overdue_where()
-        self._apply_where(where)
-
-    def _on_due_soon_clicked(self):
-        # Set pill active states and apply due soon filter
-        try:
-            self.overdue_pills.set_overdue_active(False)
-            self.overdue_pills.set_due_soon_active(True)
-        except Exception:
-            pass
-        where = self.overdue_pills_utils.build_due_soon_where()
-        self._apply_where(where)
 
     # --- Teema ---
     def retheme_projects(self) -> None:

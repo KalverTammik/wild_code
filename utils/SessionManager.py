@@ -39,6 +39,7 @@ class SessionManager:
         settings = SessionManager._instance.settings
         SessionManager._instance.apiToken = settings.value(SESSION_TOKEN, None)
         SessionManager._instance.loggedInUser = settings.value(SESSION_ACTIVE_USER, None)
+        SessionManager._instance._needs_login = bool(settings.value(SESSION_NEEDS_LOGIN, False))
         
 
     @staticmethod
@@ -60,8 +61,10 @@ class SessionManager:
         settings = SessionManager._instance.settings
         settings.remove(SESSION_TOKEN)
         settings.remove(SESSION_ACTIVE_USER)
+        settings.setValue(SESSION_NEEDS_LOGIN, True)
         SessionManager._instance.apiToken = None
         SessionManager._instance.loggedInUser = None
+        SessionManager._instance._needs_login = True
         SessionManager._session_expired_shown = False
         SessionManager.save_session()  # Ensure persistent storage is updated
     # --- Secure Credential Handling (QgsAuthenticationManager) ---
@@ -115,8 +118,15 @@ class SessionManager:
         """Check if the user is logged in."""
         if not SessionManager._instance:  # Ensure the instance is initialized
             SessionManager()
-        logged_in = SessionManager._instance.apiToken is not None
+        needs_login = bool(SessionManager._instance.settings.value(SESSION_NEEDS_LOGIN, False))
+        logged_in = SessionManager._instance.apiToken is not None and not needs_login
         return logged_in
+
+    @staticmethod
+    def needs_login() -> bool:
+        if not SessionManager._instance:
+            SessionManager()
+        return bool(SessionManager._instance.settings.value(SESSION_NEEDS_LOGIN, False))
 
     @staticmethod
     def show_session_expired_dialog(parent=None, lang_manager=None):
@@ -139,7 +149,6 @@ class SessionManager:
         else:
             #print("[SessionManager] Cancel button clicked")
             SessionManager.clear()
-            SessionManager._instance.settings.setValue(SESSION_NEEDS_LOGIN, True)
             return "cancel"
 
     @staticmethod
@@ -151,14 +160,21 @@ class SessionManager:
         SessionManager._instance.apiToken = apiToken
         SessionManager._instance.loggedInUser = user
         SessionManager._instance._session_expired_shown = False
+        SessionManager._instance._needs_login = False
+        SessionManager._instance.settings.setValue(SESSION_NEEDS_LOGIN, False)
         SessionManager.save_session()  # Always save after setting
 
     @staticmethod
     def isSessionExpired():
         """Check if the session is expired."""
-        # TODO: Implement real session expiry logic
-        expired = False  # Replace with actual logic
-        return expired
+        if not SessionManager._instance:
+            SessionManager()
+
+        settings = SessionManager._instance.settings
+        needs_login = bool(settings.value(SESSION_NEEDS_LOGIN, False))
+        token_missing = not bool(SessionManager._instance.apiToken)
+
+        return needs_login or token_missing
 
     @staticmethod
     def revalidateSession():

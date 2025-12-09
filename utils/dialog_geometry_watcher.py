@@ -22,6 +22,7 @@ class DialogGeometryWatcher:
 
     def _wrap_events(self):
         # Save original handlers if not already saved
+        
         if not hasattr(self.dialog, '_original_resizeEvent'):
             self.dialog._original_resizeEvent = self.dialog.resizeEvent
         if not hasattr(self.dialog, '_original_moveEvent'):

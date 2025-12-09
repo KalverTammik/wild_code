@@ -1,4 +1,4 @@
-from .translation_keys import TranslationKeys, RoleTranslationKeys, ToolbarTranslationKeys
+from .translation_keys import TranslationKeys, RoleTranslationKeys, ToolbarTranslationKeys, DialogLabels, ToolbarTranslationKeys
 
 TRANSLATIONS = {
     TranslationKeys.PROJECTS_MODULE_LOADED: "Projektide moodul laaditud!",
@@ -259,4 +259,7 @@ TRANSLATIONS = {
     ,TranslationKeys.UPDATED: "Muudetud"
     ,"Signaltest": "Signaalitester"
     ,TranslationKeys.CONNECTIONS: "Otsin seoseid"
+    ,DialogLabels.PROJECTS_SOURCE_FOLDER: "Projektide lähtekaust"
+    ,DialogLabels.PROJECTS_TARGET_FOLDER: "Projektide sihtkaust"
+    ,ToolbarTranslationKeys.MORE_ACTIONS: "Rohkem toiminguid"
 }

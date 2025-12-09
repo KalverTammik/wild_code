@@ -21,7 +21,6 @@ class SettingsLogic:
         self._pending_preferred_module: Optional[str] = None
         
 
-
     def get_module_access_from_abilities(self, subjects) -> Dict[str, bool]:
         #print(f"[SettingsLogic.get_module_access_from_abilities] abilities_raw: {abilities_raw}")
         
@@ -127,3 +126,76 @@ class SettingsLogic:
         else:
             self._service.module_preferred_statuses(module_key, clear=True)
 
+    # --- Module label helpers ----------------------------------------------
+
+    def load_module_label_value(self, module_key: str, label_key) -> str:
+        # Ensure label_key is a string
+        key = getattr(label_key, 'value', label_key)
+        value = self._service.module_label_value(module_key, key) or ""
+
+        return value
+
+    def save_module_label_value(self, module_key: str, label_key, value: str) -> None:
+        try:
+            key = getattr(label_key, 'value', label_key)
+            self._service.module_label_value(module_key, key, value=value or "")
+        except Exception:
+            pass
+
+    def clear_module_label_value(self, module_key: str, label_key) -> None:
+        try:
+            key = getattr(label_key, 'value', label_key)
+            self._service.module_label_value(module_key, key, clear=True)
+        except Exception:
+            pass
+
+    def confirm_navigation_away(self) -> bool:
+        """Handle unsaved changes prompt when navigating away from Settings.
+        
+        Args:
+            parent_dialog: The parent dialog for QMessageBox
+            
+        Returns:
+            True if navigation may proceed, False to cancel
+        """
+        if not self.has_unsaved_changes():
+            return True
+            
+        try:
+            from PyQt5.QtWidgets import QMessageBox
+            
+            mbox = QMessageBox(self)
+            mbox.setIcon(QMessageBox.Warning)
+            mbox.setWindowTitle(self.tr("Unsaved changes"))
+            mbox.setText(self.tr("You have unsaved Settings changes."))
+            mbox.setInformativeText(self.tr("Do you want to save your changes or discard them?"))
+            save_btn = mbox.addButton(self.tr("Save"), QMessageBox.AcceptRole)
+            discard_btn = mbox.addButton(self.tr("Discard"), QMessageBox.DestructiveRole)
+            cancel_btn = mbox.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+            mbox.setDefaultButton(save_btn)
+            mbox.exec_()
+            
+            clicked = mbox.clickedButton()
+            if clicked == save_btn:
+                self.apply_pending_changes()
+                return True
+            elif clicked == discard_btn:
+                self.revert_pending_changes()
+                return True
+            else:
+                # Cancel
+                return False
+        except Exception as e:
+            print(f"Settings navigation prompt failed: {e}", "error")
+            return True
+
+class SettingsHelpers:
+    @staticmethod
+    def _confirm_unsaved_settings(active_name) -> bool:
+        """Check for unsaved changes in Settings and prompt the user.
+        Returns True if navigation may proceed, False to cancel.
+        """
+        if active_name == Module.SETTINGS.name:
+            return SettingsLogic.confirm_navigation_away()
+        
+        return True

@@ -46,8 +46,6 @@ class TypeFilterWidget(QWidget):
         self._auto_load = auto_load
         self._settings_logic = settings_logic or SettingsLogic()
 
-
-        self.filter_title = self._lang.translate(TranslationKeys.TYPE_FILTER)
         
         layout = QHBoxLayout(self)
         layout.setContentsMargins(2, 2, 2, 2)

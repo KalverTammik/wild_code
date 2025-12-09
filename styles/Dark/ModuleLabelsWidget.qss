@@ -1,0 +1,38 @@
+/* ModuleLabelsWidget.qss - Dark Theme */
+
+ModuleLabelsWidget {
+    background: transparent;
+}
+
+/* Title label styling */
+QLabel[modulelabeltitle="true"] {
+    font-weight: 600;
+    color: #eee;
+    padding: 2px 0px;
+    font-size: 13px;
+}
+
+/* Value label styling (defined) */
+QLabel[modulelabelvalue="true"] {
+    color: #bbb;
+    padding: 2px 0px;
+    font-size: 12px;
+}
+
+/* Value label styling (undefined) */
+QLabel[modulelabelvalue="false"] {
+    color: #ff4444;
+    padding: 2px 0px;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* Button styling */
+QPushButton[moduleLabelButton="true"] {
+    min-width: 80px;
+    padding: 2px 8px;
+    font-size: 12px;
+    background: #222;
+    color: #eee;
+    border: 1px solid #444;
+}

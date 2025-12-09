@@ -7,12 +7,15 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QPushButton
 
 from ...languages.translation_keys import ToolbarTranslationKeys
-from ...utils.url_manager import OpenLink, loadWebpage
+from ...utils.url_manager import OpenLink, loadWebpage, Module
 from ...python.api_actions import APIModuleActions
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 from ..theme_manager import ThemeManager
-
-
+from ...utils.Folders.foldersHelpers import FolderHelpers
+from PyQt5.QtWidgets import QMessageBox
+from ...constants.settings_keys import SettingsService
+from ...modules.Settings.setting_keys import SettingDialogPlaceholders
+from ...utils.moduleSwitchHelper import ModuleSwitchHelper
 def _resolve_tooltip(lang_manager, key: str) -> str:
     if lang_manager and hasattr(lang_manager, "translate"):
         try:
@@ -22,17 +25,18 @@ def _resolve_tooltip(lang_manager, key: str) -> str:
     return key
 
 
-def open_item_folder(file_path: Optional[str]) -> None:
-    if not file_path:
-        return
-    target = file_path.replace("/", "\\")
-    try:
-        if target.lower().startswith("http"):
-            subprocess.Popen(["start", "", target], shell=True)
-        else:
-            subprocess.Popen(["explorer", target], shell=True)
-    except Exception:
-        pass
+from PyQt5.QtWidgets import QPushButton, QMenu, QAction
+
+def more_actions(parent=None, lang_manager=None):
+    btn = QPushButton("More Actions", parent)
+    btn.setObjectName("MoreActionsButton")
+    menu = QMenu(btn)
+    action1 = QAction("Action 1", btn)
+    action2 = QAction("Action 2", btn)
+    menu.addAction(action1)
+    menu.addAction(action2)
+    btn.setMenu(menu)
+    return btn
 
 
 def open_item_in_browser(module_name: Optional[str], item_id: Optional[str]) -> None:
@@ -91,7 +95,7 @@ class OpenFolderActionButton(CardActionButton):
         enabled = bool(file_path)
         self.setEnabled(enabled)
         if enabled:
-            self.clicked.connect(lambda _, path=file_path: open_item_folder(path))
+            self.clicked.connect(lambda _, path=file_path: FolderHelpers.open_item_folder(path))
 
 
 class OpenWebActionButton(CardActionButton):
@@ -109,6 +113,55 @@ class OpenWebActionButton(CardActionButton):
                 lambda _, module=module_name, mid=item_id: open_item_in_browser(module, mid)
             )
 
+
+class MoreActionsButton(CardActionButton):
+    def __init__(self, lang_manager=None, item_data=None, module=None) -> None:
+        super().__init__(
+            "MoreActionsButton",
+            ThemeManager.ICON_ADD,
+            ToolbarTranslationKeys.MORE_ACTIONS,
+            lang_manager,
+        )
+        self._item_data = item_data
+        self.module = module  # Ensure module is passed correctly
+
+        menu = QMenu(self)
+
+        if module == Module.PROJECT.value:
+            action1 = QAction("Genereeri projecti kaust", self)
+            action1.triggered.connect(self._generate_project_folder(module, item_data))
+            menu.addAction(action1)
+
+        action2 = QAction("Action 2", self)
+        
+        menu.addAction(action2)
+        self.setMenu(menu)
+    @staticmethod
+    def _generate_project_folder(module, item_data):
+        def handler(checked=False):            
+            svc = SettingsService()
+            folder_to_copy = svc.module_label_value(module, SettingDialogPlaceholders.PROJECTS_SOURCE_FOLDER)
+            target_folder = svc.module_label_value(module, SettingDialogPlaceholders.PROJECTS_TARGET_FOLDER)
+            if not folder_to_copy or not target_folder:
+                QMessageBox.warning(
+                    None,
+                    "Action 1",
+                    "Project folders are not set for this module. Opening Settings…",
+                )
+
+                ModuleSwitchHelper.switch_module(
+                    Module.SETTINGS.name,
+                    focus_module=module,
+                )
+                return
+
+            item_id = item_data.get("id") if item_data else None
+            name = None
+            if item_data:
+                name = item_data.get("name") or item_data.get("jobName")
+            QMessageBox.information(None, "Action 1", f"You clicked Action 1!\nItem ID: {item_id}\nItem Name: {name}")
+
+        return handler
 
 class ShowOnMapActionButton(CardActionButton):
     def __init__(

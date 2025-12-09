@@ -7,11 +7,9 @@ from ..constants.file_paths import QssPaths
 # from ..utils.logger import debug as log_debug
 from ..constants.module_icons import ICON_HELP
 from ..languages.language_manager import LanguageManager
-from ..python.api_client import APIClient
-from ..python.GraphQLQueryLoader import GraphQLQueryLoader
-from ..python.workers import FunctionWorker, start_worker
 from ..constants.file_paths import ResourcePaths
 from .SearchResultsWidget import SearchResultsWidget
+from ..utils.search.UnifiedSearchController import UnifiedSearchController
 
 
 class HeaderWidget(QWidget):
@@ -100,10 +98,10 @@ class HeaderWidget(QWidget):
         
         # Lazy initialization - SearchResultsWidget will be created only when first needed
         self._search_results = None
-        self._search_thread = None
-        self._search_worker = None
-        self._search_request_id = 0
-        self._active_search_term = ""
+        self.search_controller = UnifiedSearchController(self)
+        self.search_controller.searchSucceeded.connect(self._on_search_success)
+        self.search_controller.searchFailed.connect(self._on_search_error)
+        self.search_controller.searchStatus.connect(self._on_search_status)
         
         layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
         
@@ -185,7 +183,7 @@ class HeaderWidget(QWidget):
             # print("[DEBUG] Search text too short, hiding results and stopping timer")
             self.search_results_widget.hide_results()
             self._search_timer.stop()
-            self._invalidate_search_request()
+            self.search_controller.invalidate()
             return
             
         # Restart timer for debounced search
@@ -199,23 +197,7 @@ class HeaderWidget(QWidget):
             self.search_results_widget.hide_results()
             return
 
-        self._active_search_term = query
-        self._search_request_id += 1
-        request_id = self._search_request_id
-
-        status_message = f"Otsin \"{query}\"…"
-        self.search_results_widget.show_status_message(status_message, self.searchEdit)
-
-        worker = FunctionWorker(self._run_search_query, query)
-        worker.finished.connect(
-            lambda payload, rid=request_id, term=query: self._handle_search_success(term, payload, rid)
-        )
-        worker.error.connect(
-            lambda message, rid=request_id, term=query: self._handle_search_error(term, message, rid)
-        )
-
-        self._search_worker = worker
-        self._search_thread = start_worker(worker, on_thread_finished=self._clear_search_worker_refs)
+        self.search_controller.search(query)
     
     def _on_search_result_clicked(self, module, item_id, title):
         """Handle search result selection."""
@@ -230,61 +212,16 @@ class HeaderWidget(QWidget):
             # print(f"[DEBUG] Refreshing search results for '{query}'")
             self._perform_search()
 
-    def _invalidate_search_request(self):
-        """Bump the search request id so stale workers are ignored."""
-        self._search_request_id += 1
+    def _on_search_status(self, message: str) -> None:
+        self.search_results_widget.show_status_message(message, self.searchEdit)
 
-    def _run_search_query(self, query: str):
-        """Blocking search call executed inside a worker thread."""
-        query_loader = GraphQLQueryLoader()
-        gql = query_loader.load_query_by_module("user", "search.graphql")
-        if not gql:
-            raise RuntimeError("Unified search query missing")
-
-        api_client = APIClient()
-        variables = {
-            "input": {
-                "term": query,
-                "types": [
-                    "PROPERTIES",
-                    "PROJECTS",
-                    "TASKS",
-                    "SUBMISSIONS",
-                    "EASEMENTS",
-                    "COORDINATIONS",
-                    "SPECIFICATIONS",
-                    "ORDINANCES",
-                    "CONTRACTS",
-                ],
-                "limit": 5,
-            }
-        }
-        return api_client.send_query(gql, variables=variables)
-
-    def _handle_search_success(self, query: str, payload, request_id: int):
-        if request_id != self._search_request_id:
-            return
-
-        search_data = None
-        if isinstance(payload, dict):
-            data_section = payload.get("data", {}) if payload else {}
-            search_data = data_section.get("search") or payload.get("search")
-
-        if isinstance(search_data, dict):
-            search_data = [search_data]
-
+    def _on_search_success(self, search_data) -> None:
         if search_data and any(module.get("total", 0) > 0 for module in search_data):
             self.search_results_widget.show_results(search_data, self.searchEdit)
         else:
+            query = self.searchEdit.text().strip()
             self.search_results_widget.show_no_results(query, self.searchEdit)
 
-    def _handle_search_error(self, query: str, message: str, request_id: int):
-        if request_id != self._search_request_id:
-            return
-
+    def _on_search_error(self, message: str) -> None:
         friendly = message or "Otsing ebaõnnestus"
-        self.search_results_widget.show_status_message(f"{friendly}", self.searchEdit, is_error=True)
-
-    def _clear_search_worker_refs(self):
-        self._search_thread = None
-        self._search_worker = None
+        self.search_results_widget.show_status_message(friendly, self.searchEdit, is_error=True)
