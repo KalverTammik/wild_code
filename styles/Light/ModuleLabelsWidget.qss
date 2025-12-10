@@ -25,7 +25,7 @@ QLabel[modulelabelvalue="false"] {
 
 /* Button styling */
 QPushButton {
-    min-width: 80px;
-    padding: 2px 8px;
+    min-width: 24px;
+    padding: 2px 2px;
     font-size: 12px;
 }

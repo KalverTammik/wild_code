@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton, QMessageBox
 )
 from qgis.core import QgsProject
-from qgis.PyQt.QtCore import Qt
 
 from .SettingsBaseCard import SettingsBaseCard
 from ....utils.SHPLayerLoader import SHPLayerLoader
@@ -12,6 +11,7 @@ from ....widgets.theme_manager import ThemeManager
 from ....widgets.AddUpdatePropertyDialog import AddPropertyDialog
 from ....constants.layer_constants import PROPERTY_TAG, IMPORT_PROPERTY_TAG
 from ....constants.file_paths import QssPaths
+from ....constants.module_icons import IconNames
 
 
 class PropertyManagement(SettingsBaseCard):
@@ -198,7 +198,7 @@ class PropertyManagement(SettingsBaseCard):
                 # Success message is already shown by SHPLayerLoader
                 pass
             else:
-                msg_box = QMessageBox(QMessageBox.Warning,
+                msg_box = QMessageBox(ThemeManager.get_qicon(IconNames.WARNING),
                                     self.lang_manager.translate("Import Failed") or "Import ebaõnnestus",
                                     self.lang_manager.translate("Failed to import property file.") or
                                     "Kinnistute faili import ebaõnnestus.",
@@ -208,7 +208,7 @@ class PropertyManagement(SettingsBaseCard):
                 msg_box.exec_()
 
         except Exception as e:
-            msg_box = QMessageBox(QMessageBox.Critical,
+            msg_box = QMessageBox(ThemeManager.get_qicon(IconNames.CRITICAL),
                                 self.lang_manager.translate("Error") or "Viga",
                                 self.lang_manager.translate("File import failed") or f"Faili import ebaõnnestus: {str(e)}",
                                 QMessageBox.Ok,
@@ -247,7 +247,7 @@ class PropertyManagement(SettingsBaseCard):
             if msg_box.clickedButton() == open_web_button:
                 # TODO: Implement actual webpage opening
                 # For now, show a placeholder message
-                info_msg = QMessageBox(QMessageBox.Information,
+                info_msg = QMessageBox(ThemeManager.get_qicon(IconNames.INFO),
                                      self.lang_manager.translate("Webpage Opening") or "Veebilehe avamine",
                                      self.lang_manager.translate("Webpage opening functionality will be implemented here.") or
                                      "Veebilehe avamise funktsionaalsus lisatakse siia.",
@@ -262,7 +262,7 @@ class PropertyManagement(SettingsBaseCard):
                 # - Handle downloaded file import
 
         except Exception as e:
-            critical_msg = QMessageBox(QMessageBox.Critical,
+            critical_msg = QMessageBox(ThemeManager.get_qicon(IconNames.CRITICAL),
                                      self.lang_manager.translate("Error") or "Viga",
                                      self.lang_manager.translate("Web loading failed") or f"Veebilaadimine ebaõnnestus: {str(e)}",
                                      QMessageBox.Ok,

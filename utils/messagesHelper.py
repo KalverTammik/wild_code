@@ -1,18 +1,12 @@
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QMessageBox, QFrame, QSpacerItem, QSizePolicy
+    QMessageBox,  QSpacerItem, QSizePolicy
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QIcon, QPixmap
+from ..constants.module_icons import IconNames
+from ..widgets.theme_manager import ThemeManager
+from ..constants.file_paths import QssPaths
 
-# Handle imports for both standalone and plugin usage
-try:
-    from ..widgets.theme_manager import ThemeManager
-    from ..constants.file_paths import QssPaths
-except ImportError:
-    # Fallback for testing or when imports fail
-    ThemeManager = None
-    QssPaths = None
 
 
 class ModernMessageDialog:
@@ -21,27 +15,27 @@ class ModernMessageDialog:
     @staticmethod
     def Info_messages_modern(title: str, message: str):
         """Show an information message dialog with modern styling."""
-        dialog = ModernMessageDialog._create_dialog(title, message, QMessageBox.Information)
+        dialog = ModernMessageDialog._create_dialog(title, message, ThemeManager.get_qicon(IconNames.INFO))
         dialog.exec_()
 
     @staticmethod
     def Warning_messages_modern(title: str, message: str, *, with_cancel: bool = False):
         """Show a warning message dialog with modern styling."""
         dialog = ModernMessageDialog._create_dialog(
-            title, message, QMessageBox.Warning, with_cancel=with_cancel
+            title, message, ThemeManager.get_qicon(IconNames.WARNING), with_cancel=with_cancel
         )
         dialog.exec_()
 
     @staticmethod
     def Error_messages_modern(title: str, message: str):
         """Show an error message dialog with modern styling."""
-        dialog = ModernMessageDialog._create_dialog(title, message, QMessageBox.Critical)
+        dialog = ModernMessageDialog._create_dialog(title, message, ThemeManager.get_qicon(IconNames.CRITICAL))
         dialog.exec_()
 
     @staticmethod
     def Message_messages_modern(title: str, message: str):
         """Show a general message dialog with modern styling."""
-        dialog = ModernMessageDialog._create_dialog(title, message, QMessageBox.Question)
+        dialog = ModernMessageDialog._create_dialog(title, message, ThemeManager.get_qicon(IconNames.QUESTION))
         dialog.exec_()
 
     @staticmethod
@@ -61,11 +55,11 @@ class ModernMessageDialog:
 
         # Determine message type for styling
         message_type = "info"
-        if icon_type == QMessageBox.Warning:
+        if icon_type == ThemeManager.get_qicon(IconNames.WARNING):
             message_type = "warning"
-        elif icon_type == QMessageBox.Critical:
+        elif icon_type == ThemeManager.get_qicon(IconNames.CRITICAL):
             message_type = "error"
-        elif icon_type == QMessageBox.Question:
+        elif icon_type == ThemeManager.get_qicon(IconNames.INFO):
             message_type = "message"
 
         # Set property for QSS styling variants
@@ -87,19 +81,8 @@ class ModernMessageDialog:
         icon_label = QLabel()
         icon_label.setObjectName("iconLabel")  # For QSS targeting
         
-        # Load appropriate icon based on message type
-        icon_name = "icons8-message-48.png"  # Default
-        if icon_type == QMessageBox.Warning:
-            icon_name = "icons8-warning-48.png"
-        elif icon_type == QMessageBox.Critical:
-            icon_name = "icons8-x-48.png"
-        elif icon_type == QMessageBox.Information:
-            icon_name = "icons8-info-48.png"
-        elif icon_type == QMessageBox.Question:
-            icon_name = "icons8-message-48.png"
-        
         # Load and scale the icon
-        icon = ThemeManager.get_qicon(icon_name)
+        icon = ThemeManager.get_qicon(icon_type)
         pixmap = icon.pixmap(32, 32)  # Scale to 32x32
         icon_label.setPixmap(pixmap)
 

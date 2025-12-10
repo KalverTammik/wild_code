@@ -4,13 +4,14 @@ import gc
 from .constants.file_paths import QssPaths
 from .constants.module_icons import IconNames
 from .constants.settings_keys import SettingsService
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget, QMessageBox
 from PyQt5.QtGui import QMouseEvent
 from .widgets.FooterWidget import FooterWidget
 from .widgets.HeaderWidget import HeaderWidget
 # Removed unused: from qgis.PyQt.QtWidgets import QDialog as QgisQDialog
 
 from .modules.projects.ProjectsUi import ProjectsModule
+from .modules.projects.FolderNamingRuleDialog import FolderNamingRuleDialog
 from .modules.contract.ContractUi import ContractsModule
 from .modules.coordination.CoordinationModule import CoordinationModule
 from .modules.Property.PropertyUI import PropertyModule
@@ -28,6 +29,7 @@ from .languages.translation_keys import TranslationKeys, DialogLabels
 from .module_manager import ModuleManager
 from .widgets.sidebar import Sidebar
 from .utils.dialog_geometry_watcher import DialogGeometryWatcher
+from .utils.Folders.foldersHelpers import FolderHelpers
         
 from .utils.SessionManager import SessionManager
 from .utils.url_manager import Module
@@ -168,6 +170,23 @@ class PluginDialog(QDialog):
     def loadModules(self):
     
         qss_modular = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
+
+        def _pick_folder(_module_key: str, _key: str, current_value: str):
+            start_path = current_value or ""
+            return FolderHelpers.select_folder_path(self, start_path=start_path)
+
+        def _open_folder_rule(_module_key: str, _key: str, current_value: str):
+            print("[DEBUG] Opening folder naming rule dialog")
+            try:
+                dlg = FolderNamingRuleDialog(self.lang_manager, self, initial_rule=current_value or "")
+                result = dlg.exec_()
+                if result == QDialog.Accepted:
+                    return dlg.get_rule()
+                return current_value
+            except Exception as exc:
+                QMessageBox.warning(self, "Folder rule dialog failed", str(exc))
+                return current_value
+
     
         self.moduleManager.registerModule(
             WelcomePage, 
@@ -194,8 +213,25 @@ class PluginDialog(QDialog):
             supports_statuses=True,
             supports_tags=True,
             module_labels=[
-                {"key": SettingDialogPlaceholders.PROJECTS_SOURCE_FOLDER, "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_SOURCE_FOLDER)},
-                {"key": SettingDialogPlaceholders.PROJECTS_TARGET_FOLDER, "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_TARGET_FOLDER)},
+                {"key": SettingDialogPlaceholders.PROJECTS_SOURCE_FOLDER,
+                  "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_SOURCE_FOLDER), 
+                  "tool": "button",
+                  "on_click": _pick_folder},
+
+                {"key": SettingDialogPlaceholders.PROJECTS_TARGET_FOLDER, 
+                 "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_TARGET_FOLDER), 
+                 "tool": "button",
+                 "on_click": _pick_folder},
+
+                {"key": SettingDialogPlaceholders.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED,
+                    "tool": "checkBox",
+                    "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED),
+                    "on_click": None},
+
+                {"key": SettingDialogPlaceholders.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE,
+                    "tool": "button",
+                    "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE),
+                    "on_click": _open_folder_rule},
             ],
         )
         self.moduleManager.registerModule(

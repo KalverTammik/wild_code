@@ -9,35 +9,37 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 
 from ...utils.url_manager import Module
+from ...modules.Settings.setting_keys import SettingDialogPlaceholders
+from ...constants.settings_keys import SettingsService
 
 UPDATE_project_properties = 'updateProjectsProperties.graphql'
 
 class FolderEngines:
     @staticmethod
-    def copy_and_rename_folder(project_id, project_name, project_number):
+    def generate_project_folder_from_template( project_id, 
+                                               project_name, 
+                                               project_number,
+                                               source_folder,
+                                               target_folder
+                                               ) -> None:
         text = "Ettevalmistatud struktuuriga projektikaustade genereerimine on mõeldud eelkõige uutele projektidele.\nEnne jätkamist kontrolli ega samasisulist kausta pole juba loodud.\nOled kindel, et soovid jätkata?"
 
         overall_confirmation = QMessageBox.question(None, "Confirmation", text,
                                             QMessageBox.Yes | QMessageBox.No)
 
         if overall_confirmation == QMessageBox.Yes:
-
-            source_folder = SettingsDataSaveAndLoad().load_projcets_copy_folder_path_value()
-            target_folder = SettingsDataSaveAndLoad().load_target_Folder_path_value()
-
-
             try:
                 # Use the FolderNameGenerator to generate the folder name based on the user-defined order
                 folder_name = FolderNameGenerator().folder_structure_name_order(project_name, project_number)
-                
+                dest_dir = os.path.join(target_folder, folder_name)
+
                 # Check if the target folder with the new name already exists
-                if os.path.exists(os.path.join(os.path.dirname(target_folder), folder_name)):                        
+                if os.path.exists(dest_dir):
                     text = f"Kaust nimega '{folder_name}' on juba sihtkohas olemas."
                     heading = LanguageManager.translate_static(TranslationKeys.WARNING) or "Warning"
                     QMessageBox.warning(None, heading, text)
                 else:
-                    shutil.copytree(source_folder, target_folder)
-                    os.rename(target_folder, os.path.join(os.path.dirname(target_folder), folder_name))
+                    shutil.copytree(source_folder, dest_dir)
                     
                     # Ask the user for confirmation
                     confirmation = QMessageBox.question(None, "Confirmation", "Oled kindel, et soovid genereeritud kausta lingi lisada Mailablis projektile?",
@@ -47,8 +49,7 @@ class FolderEngines:
                     if confirmation == QMessageBox.Yes:
                         # Call the linkUpdater function
                         print(f"project_id {project_id}")
-                        link = os.path.join(os.path.dirname(target_folder), folder_name)
-                        Link_updater().update_link(project_id, link)
+                        Link_updater().update_link(project_id, dest_dir)
 
                     else:
                         print("Operation canceled by the user.")
@@ -71,10 +72,10 @@ class FolderEngines:
 class Link_updater:
     def update_link(self, project_id, link):
             
-        module = Module.PROJECT
+        module = Module.PROJECT.name
         from ...python.GraphQLQueryLoader import GraphQLQueryLoader
         file =  UPDATE_project_properties
-        query = GraphQLQueryLoader.load_query_by_module(module, file)
+        query = GraphQLQueryLoader().load_query_by_module(module, file)
         
         variables = {
                     "input": {
@@ -89,45 +90,62 @@ class Link_updater:
 
 
 class FolderNameGenerator:
-    
     def folder_structure_name_order(self, project_name, project_number):
-        value = SettingsDataSaveAndLoad.load_projects_prefered_folder_name_structure(self)
-        print(f"Value: {value}")
+        service = SettingsService()
 
-        # Split the value into individual components
-        components = value.split(" + ")
+        print("[folder_name] start", {"project_name": project_name, "project_number": project_number})
 
-        # Initialize an empty list to hold the parts of the folder name
+        enabled_raw = service.module_label_value(
+            Module.PROJECT.value,
+            SettingDialogPlaceholders.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED,
+        )
+        print("[folder_name] enabled_raw", enabled_raw)
+        rule_raw = service.module_label_value(
+            Module.PROJECT.value,
+            SettingDialogPlaceholders.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE,
+        ) or ""
+        print("[folder_name] rule_raw", rule_raw)
+
+        rule = str(rule_raw).strip()
+        enabled = self._as_bool(enabled_raw)
+        print("[folder_name] normalized", {"enabled": enabled, "rule": rule})
+
+        if not enabled or not rule:
+            rule = "PROJECT_NUMBER + PROJECT_NAME"
+            print("[folder_name] fallback rule", rule)
+
+        components = [c.strip() for c in rule.split(" + ") if c.strip()]
+        print("[folder_name] components", components)
         folder_name_parts = []
 
-        # Iterate through each component and construct the folder name parts
         for component in components:
-            # Check if the component contains a symbol in parentheses
-            if "(" in component and ")" in component:
-                # Extract the symbol from the parentheses
-                symbol = component.split("(")[-1].split(")")[0]
-                # Remove the symbol part from the component
-                component = component.replace(f"({symbol})", "")
-            else:
-                # If no symbol is specified, set it to an empty string
-                symbol = ""
+            print("[folder_name] component", component)
+            if component.startswith("SYMBOL(") and component.endswith(")"):
+                symbol = component[len("SYMBOL("):-1]
+                print("[folder_name] symbol", symbol)
+                if symbol:
+                    folder_name_parts.append(symbol)
+            elif component == "PROJECT_NUMBER":
+                folder_name_parts.append(project_number or "")
+            elif component == "PROJECT_NAME":
+                folder_name_parts.append(project_name or "")
 
-            # Check the component type and add the corresponding part to the folder name
-            if component == "Projekti number":
-                folder_name_parts.append(project_number)
-            elif component == "Sümbol":
-                folder_name_parts.append(symbol)
-            elif component == "Projekti nimetus":
-                folder_name_parts.append(project_name)
+        if not folder_name_parts:
+            folder_name_parts = [project_number or "", project_name or ""]
+            print("[folder_name] fallback parts", folder_name_parts)
 
-        # Construct the final folder name by joining the parts
         folder_name = "".join(folder_name_parts)
+        print("[folder_name] result", folder_name)
+        return folder_name
 
-        # Print the constructed folder name
-        heading = LanguageManager.translate_static(TranslationKeys.SUCCESS) or "Success"
-        text = f"Folder name preview: {folder_name}"
-        QMessageBox.information(None, heading, text)
-        #print("Folder name:", folder_name)
+    def _as_bool(self, value) -> bool:
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            if lowered in {"true", "1", "yes", "on"}:
+                return True
+            if lowered in {"false", "0", "no", "off", ""}:
+                return False
+        return bool(value)
 
 
 class FolderHelpers:

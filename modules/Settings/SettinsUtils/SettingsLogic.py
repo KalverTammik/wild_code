@@ -1,6 +1,9 @@
 
 from typing import Dict, Iterable, Optional
 
+from ....constants.module_icons import IconNames
+from ....widgets.theme_manager import ThemeManager
+
 from ....utils.url_manager import Module, ModuleSupports
 from ....module_manager import MODULES_LIST_BY_NAME
 from ....constants.settings_keys import SettingsService
@@ -138,7 +141,10 @@ class SettingsLogic:
     def save_module_label_value(self, module_key: str, label_key, value: str) -> None:
         try:
             key = getattr(label_key, 'value', label_key)
-            self._service.module_label_value(module_key, key, value=value or "")
+            if value is None:
+                self._service.module_label_value(module_key, key, clear=True)
+            else:
+                self._service.module_label_value(module_key, key, value=value)
         except Exception:
             pass
 
@@ -165,7 +171,7 @@ class SettingsLogic:
             from PyQt5.QtWidgets import QMessageBox
             
             mbox = QMessageBox(self)
-            mbox.setIcon(QMessageBox.Warning)
+            mbox.setIcon(ThemeManager.get_qicon(IconNames.WARNING))
             mbox.setWindowTitle(self.tr("Unsaved changes"))
             mbox.setText(self.tr("You have unsaved Settings changes."))
             mbox.setInformativeText(self.tr("Do you want to save your changes or discard them?"))

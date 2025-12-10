@@ -11,7 +11,7 @@ from ...utils.url_manager import OpenLink, loadWebpage, Module
 from ...python.api_actions import APIModuleActions
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 from ..theme_manager import ThemeManager
-from ...utils.Folders.foldersHelpers import FolderHelpers
+from ...utils.Folders.foldersHelpers import FolderHelpers, FolderEngines
 from PyQt5.QtWidgets import QMessageBox
 from ...constants.settings_keys import SettingsService
 from ...constants.module_icons import IconNames
@@ -155,12 +155,13 @@ class MoreActionsButton(CardActionButton):
                     focus_module=module,
                 )
                 return
-
-            item_id = item_data.get("id") if item_data else None
-            name = None
-            if item_data:
-                name = item_data.get("name") or item_data.get("jobName")
-            QMessageBox.information(None, "Action 1", f"You clicked Action 1!\nItem ID: {item_id}\nItem Name: {name}")
+            FolderEngines.generate_project_folder_from_template(
+                item_data.get("id"),
+                item_data.get("name"),
+                item_data.get("projectNumber"),
+                source_folder=folder_to_copy,
+                target_folder=target_folder,
+            )
 
         return handler
 

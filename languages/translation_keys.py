@@ -332,6 +332,10 @@ class DialogLabels:
     #Setting dialog labels
     PROJECTS_SOURCE_FOLDER = "Projects source folder"
     PROJECTS_TARGET_FOLDER = "Projects target folder"
+    PROJECTS_PHOTO_FOLDER = "Projects photo folder"
+    PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE = "name structure"
+    PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED = "name structure enabled"
+    PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE = "name structure rule"
 
 class RoleTranslationKeys:
     ADMINS = "Admins"
@@ -348,3 +352,19 @@ class ToolbarTranslationKeys:
     OPEN_ITEM_IN_BROWSER = "Open Item in Browser"
     SHOW_ITEMS_ON_MAP = "Show Items on Map"
     MORE_ACTIONS = "More Actions"
+
+class FolderNamingTranslationKeys:
+    TR_FOLDER_NAMING_RULE = "Folder naming rule"
+    TR_EMPTY = "Empty"
+    TR_PROJECT_NUMBER = "Project Number"
+    TR_PROJECT_NAME = "Project Name"
+    TR_SYMBOL = "Symbol"
+    TR_SYMBOL_TEXT = "Symbol text"
+    TR_PREVIEW_PREFIX = "Preview: "
+    TR_PREVIEW_EMPTY = "(empty)"
+    TR_SYMBOL_REQUIRED = "Symbol text is required."
+    TR_SELECT_AT_LEAST_ONE = "Select at least one slot."
+    TR_INVALID_RULE = "Invalid rule"
+
+class SettingDialogPlaceholders:
+    UNSET = "Unset"

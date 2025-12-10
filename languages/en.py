@@ -1,4 +1,12 @@
-from .translation_keys import TranslationKeys, RoleTranslationKeys, ToolbarTranslationKeys, DialogLabels, ToolbarTranslationKeys
+from .translation_keys import (
+    TranslationKeys,
+    RoleTranslationKeys,
+    ToolbarTranslationKeys,
+    DialogLabels,
+    ToolbarTranslationKeys,
+    FolderNamingTranslationKeys,
+    SettingDialogPlaceholders,
+)
 
 TRANSLATIONS = {
     TranslationKeys.PROJECTS_MODULE_LOADED: "Projects module loaded!",
@@ -251,5 +259,21 @@ TRANSLATIONS = {
     ,TranslationKeys.SELECT_TAGS_DESCRIPTION: "Select tags you want to focus on for this module. These will be highlighted in the interface."
     ,DialogLabels.PROJECTS_SOURCE_FOLDER: "Projects source folder"
     ,DialogLabels.PROJECTS_TARGET_FOLDER: "Projects target folder"
+    ,DialogLabels.PROJECTS_PHOTO_FOLDER: "Projects photo folder"
+    ,DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE: "Prefered folder name structure"
+    ,DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED: "Enable prefered folder name structure"
+    ,DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE: "Prefered folder name structure rule"
     ,ToolbarTranslationKeys.MORE_ACTIONS: "More actions"
+    ,SettingDialogPlaceholders.UNSET: "Unset"
+    ,FolderNamingTranslationKeys.TR_FOLDER_NAMING_RULE: "Folder naming rule"
+    ,FolderNamingTranslationKeys.TR_EMPTY: "Empty"
+    ,FolderNamingTranslationKeys.TR_PROJECT_NUMBER: "Project Number"
+    ,FolderNamingTranslationKeys.TR_PROJECT_NAME: "Project Name"
+    ,FolderNamingTranslationKeys.TR_SYMBOL: "Symbol"
+    ,FolderNamingTranslationKeys.TR_SYMBOL_TEXT: "Symbol text"
+    ,FolderNamingTranslationKeys.TR_PREVIEW_PREFIX: "Preview: "
+    ,FolderNamingTranslationKeys.TR_PREVIEW_EMPTY: "(empty)"
+    ,FolderNamingTranslationKeys.TR_SYMBOL_REQUIRED: "Symbol text is required."
+    ,FolderNamingTranslationKeys.TR_SELECT_AT_LEAST_ONE: "Select at least one slot."
+    ,FolderNamingTranslationKeys.TR_INVALID_RULE: "Invalid rule"
 }

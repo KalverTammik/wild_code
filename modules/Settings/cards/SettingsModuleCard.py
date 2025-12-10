@@ -1,5 +1,7 @@
 
 
+from typing import Any
+
 from PyQt5.QtWidgets import QVBoxLayout,  QFrame, QHBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal
 from .SettingsBaseCard import SettingsBaseCard
@@ -205,7 +207,11 @@ class SettingsModuleCard(SettingsBaseCard):
                 print(f"[SettingsModuleCard] Loaded label value for key '{key}': '{stored_value}'")
                 if key:
                     label_def = dict(label_def)
-                    label_def["value"] = stored_value or ""
+                    tool = label_def.get("tool")
+                    if tool == "checkBox":
+                        label_def["value"] = self._as_bool(stored_value)
+                    else:
+                        label_def["value"] = stored_value or ""
                 prepared_labels.append(label_def)
 
             labels_widget = ModuleLabelsWidget(self.module_key, prepared_labels, self.lang_manager)
@@ -213,7 +219,9 @@ class SettingsModuleCard(SettingsBaseCard):
             for label_def in prepared_labels:
                 key = label_def.get("key")
                 if key:
-                    val = label_def.get("value") or ""
+                    val = label_def.get("value")
+                    if val is None:
+                        val = False if label_def.get("tool") == "checkBox" else ""
                     self._orig_label_values[key] = val
                     self._pend_label_values[key] = val
             labels_widget.labelChanged.connect(self._on_label_changed)
@@ -610,10 +618,10 @@ class SettingsModuleCard(SettingsBaseCard):
         self._update_stored_values_display()
         self.pendingChanged.emit(self.has_pending_changes())
 
-    def _on_label_changed(self, key: str, value: str):
+    def _on_label_changed(self, key: str, value: Any):
         if not key:
             return
-        self._pend_label_values[key] = value or ""
+        self._pend_label_values[key] = value
         self.pendingChanged.emit(self.has_pending_changes())
 
     def _load_label_values(self):
@@ -625,3 +633,12 @@ class SettingsModuleCard(SettingsBaseCard):
             stored = self.logic.load_module_label_value(self.module_key, key) or ""
             values[key] = stored
         return values
+
+    def _as_bool(self, value: Any) -> bool:
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            if lowered in {"true", "1", "yes", "on"}:
+                return True
+            if lowered in {"false", "0", "no", "off", ""}:
+                return False
+        return bool(value)

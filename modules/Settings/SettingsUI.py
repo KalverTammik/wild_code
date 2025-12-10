@@ -1,10 +1,11 @@
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QLabel, QPushButton
-from PyQt5.QtCore import pyqtSignal, QTimer
+from PyQt5.QtCore import pyqtSignal
 from .SettinsUtils.userUtils import userUtils
 from ...widgets.theme_manager import ThemeManager
 from .SettinsUtils.SettingsLogic import SettingsLogic
 from ...constants.file_paths import QssPaths
+from ...constants.module_icons import IconNames
 from .cards.SettingsUserCard import UserSettingsCard
 from .cards.SettingsModuleCard import SettingsModuleCard
 from ...utils.url_manager import Module
@@ -12,7 +13,7 @@ from ...module_manager import ModuleManager, MODULES_LIST_BY_NAME
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
 from ...python.workers import FunctionWorker, start_worker
-from .scroll_helper import SettingsScrollHelper
+
 
 from ...languages.language_manager import LanguageManager
 
@@ -366,7 +367,7 @@ class SettingsModule(QWidget):
             from PyQt5.QtWidgets import QMessageBox
             
             mbox = QMessageBox(self)
-            mbox.setIcon(QMessageBox.Warning)
+            mbox.setIcon(ThemeManager.get_qicon(IconNames.WARNING))
             mbox.setWindowTitle(self.tr("Unsaved changes"))
             mbox.setText(self.tr("You have unsaved Settings changes."))
             mbox.setInformativeText(self.tr("Do you want to save your changes or discard them?"))

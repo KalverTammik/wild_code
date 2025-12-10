@@ -20,6 +20,11 @@ class IconNames:
     ICON_SHOW_ON_MAP = "Mine kaardile.png"
     ICON_LIST = "down-arrow.png"
 
+    WARNING = "warning-sign.png"
+    CRITICAL = "stop.png"
+    INFO = "info (3).png"
+    QUESTION = "question (3).png"
+
     def get_icon(icon_name):
         ROOT_ICONS = os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER)
         path = os.path.join(ROOT_ICONS, icon_name)

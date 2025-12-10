@@ -1,4 +1,12 @@
-from .translation_keys import TranslationKeys, RoleTranslationKeys, ToolbarTranslationKeys, DialogLabels, ToolbarTranslationKeys
+from .translation_keys import (
+    TranslationKeys,
+    RoleTranslationKeys,
+    ToolbarTranslationKeys,
+    DialogLabels,
+    ToolbarTranslationKeys,
+    FolderNamingTranslationKeys,
+    SettingDialogPlaceholders,
+)
 
 TRANSLATIONS = {
     TranslationKeys.PROJECTS_MODULE_LOADED: "Projektide moodul laaditud!",
@@ -261,5 +269,21 @@ TRANSLATIONS = {
     ,TranslationKeys.CONNECTIONS: "Otsin seoseid"
     ,DialogLabels.PROJECTS_SOURCE_FOLDER: "Projektide lähtekaust"
     ,DialogLabels.PROJECTS_TARGET_FOLDER: "Projektide sihtkaust"
+    ,DialogLabels.PROJECTS_PHOTO_FOLDER: "Projektide fotode kaust"
+    ,DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE: "Eelistatud kausta nime struktuur"
+    ,DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED: "Luba eelistatud kausta nime struktuur"
+    ,DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE: "Eelistatud kausta nime struktuuri reegel"
     ,ToolbarTranslationKeys.MORE_ACTIONS: "Rohkem toiminguid"
+    ,SettingDialogPlaceholders.UNSET: "Määramata"
+    ,FolderNamingTranslationKeys.TR_FOLDER_NAMING_RULE: "Nimetamisreeglid"
+    ,FolderNamingTranslationKeys.TR_EMPTY: "Tühi"
+    ,FolderNamingTranslationKeys.TR_PROJECT_NUMBER: "Projekti number"
+    ,FolderNamingTranslationKeys.TR_PROJECT_NAME: "Projekti nimi"
+    ,FolderNamingTranslationKeys.TR_SYMBOL: "sümbol"
+    ,FolderNamingTranslationKeys.TR_SYMBOL_TEXT: "sümboli tekst"
+    ,FolderNamingTranslationKeys.TR_PREVIEW_PREFIX: "Eelvaade: "
+    ,FolderNamingTranslationKeys.TR_PREVIEW_EMPTY: "(tühi)"
+    ,FolderNamingTranslationKeys.TR_SYMBOL_REQUIRED: "Sümboli tekst on kohustuslik."
+    ,FolderNamingTranslationKeys.TR_SELECT_AT_LEAST_ONE: "Valige vähemalt üks koht."
+    ,FolderNamingTranslationKeys.TR_INVALID_RULE: "Vigane reegel"
 }
