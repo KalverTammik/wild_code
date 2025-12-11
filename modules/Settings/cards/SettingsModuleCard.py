@@ -204,7 +204,6 @@ class SettingsModuleCard(SettingsBaseCard):
             for label_def in self._module_labels:
                 key = label_def.get("key")
                 stored_value = self.logic.load_module_label_value(self.module_key, key) if key else ""
-                print(f"[SettingsModuleCard] Loaded label value for key '{key}': '{stored_value}'")
                 if key:
                     label_def = dict(label_def)
                     tool = label_def.get("tool")

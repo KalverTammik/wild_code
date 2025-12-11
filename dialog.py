@@ -54,8 +54,11 @@ class PluginDialog(QDialog):
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
+            print("[dialog] __new__ creating instance")
             cls._instance = super(PluginDialog, cls).__new__(cls, *args, **kwargs)
             cls._instance._initialized = False
+        else:
+            print("[dialog] __new__ reusing instance")
         return cls._instance
 
     def __init__(self, parent=None):
@@ -63,7 +66,12 @@ class PluginDialog(QDialog):
 
         # Prevent reinitialization ASAP (no side-effects before this)
         if self._initialized:
+            print(f"[dialog] __init__ skip reinit id={id(self)}")
             return
+
+        print(f"[dialog] __init__ start id={id(self)}")
+
+        self._has_shown = False
 
 
         # Managers / services first
@@ -165,6 +173,7 @@ class PluginDialog(QDialog):
         return unsubscribe
 
     def _on_destroyed(self, obj):
+        print(f"[dialog] destroyed id={id(self)}")
         PluginDialog._instance = None
 
     def loadModules(self):
@@ -338,11 +347,26 @@ class PluginDialog(QDialog):
             return
         super().showEvent(event)
         QgsSettings().setValue("session/needs_login", False)
+        if self._has_shown and self.moduleManager.getActiveModuleName():
+            # Preserve the current active module on subsequent shows
+            active_name = self.moduleManager.getActiveModuleName()
+            inst = self.moduleManager.getActiveModuleInstance(active_name)
+            if inst:
+                try:
+                    widget = inst.get_widget()
+                    if widget:
+                        self.moduleStack.setCurrentWidget(widget)
+                        self.sidebar.setActiveModuleOnSidebarButton(active_name)
+                except Exception:
+                    pass
+            return
+
         pref_key = SettingsService().preferred_module().lower() or ""
         if pref_key and pref_key in self.moduleManager.modules:
             ModuleSwitchHelper.switch_module(pref_key, dialog=self)
         else:
             ModuleSwitchHelper.switch_module(Module.HOME.name, dialog=self)
+        self._has_shown = True
 
     def closeEvent(self, event):
         settings = SettingsModule()

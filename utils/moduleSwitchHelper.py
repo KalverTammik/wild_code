@@ -41,6 +41,7 @@ class ModuleSwitchHelper:
 
         module_manager = ModuleManager()
         previous_module_name = module_manager.getActiveModuleName()
+        normalized_name = module_name.lower()
 
         if not SettingsHelpers._confirm_unsaved_settings(previous_module_name):
             return
@@ -52,7 +53,15 @@ class ModuleSwitchHelper:
                 module_manager.activateModule(Module.HOME.name)
                 raise ValueError(f"Failed to get instance of module '{module_name}' after activation.")
 
-            if module_name == Module.PROPERTY.name:
+            if normalized_name == Module.PROPERTY.value:
+                try:
+                    instance.property_selected_from_map.disconnect(dlg.window_manager._minimize_window)
+                except Exception:
+                    pass
+                try:
+                    instance.property_selection_completed.disconnect(dlg.window_manager._restore_window)
+                except Exception:
+                    pass
                 instance.property_selected_from_map.connect(dlg.window_manager._minimize_window)
                 instance.property_selection_completed.connect(dlg.window_manager._restore_window)
 

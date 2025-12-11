@@ -276,4 +276,5 @@ TRANSLATIONS = {
     ,FolderNamingTranslationKeys.TR_SYMBOL_REQUIRED: "Symbol text is required."
     ,FolderNamingTranslationKeys.TR_SELECT_AT_LEAST_ONE: "Select at least one slot."
     ,FolderNamingTranslationKeys.TR_INVALID_RULE: "Invalid rule"
+    
 }

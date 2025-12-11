@@ -1,4 +1,5 @@
 
+import time
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import pyqtSignal
 from .SettinsUtils.userUtils import userUtils
@@ -49,6 +50,9 @@ class SettingsModule(QWidget):
         self._user_fetch_thread = None
         self._user_fetch_worker = None
         self._user_fetch_request_id = 0
+        self._last_user_payload_sig = None
+        self._module_cards_activated = False
+        self._settings_loaded_once = False
         self.setup_ui()
         # Centralized theming
         ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
@@ -183,7 +187,10 @@ class SettingsModule(QWidget):
     def _handle_user_worker_success(self, payload):
         if not self._is_active_user_worker():
             return
+        t0 = time.perf_counter()
         self._apply_user_payload(payload)
+        t1 = time.perf_counter()
+        print(f"[settings_timing] apply_user_payload took {(t1 - t0)*1000:.1f} ms")
 
     def _handle_user_worker_error(self, message):
         if not self._is_active_user_worker():
@@ -200,6 +207,11 @@ class SettingsModule(QWidget):
 
     def _apply_user_payload(self, payload):
         user_data = payload or {}
+        t0 = time.perf_counter()
+
+        sig = self._make_payload_signature(user_data)
+        same_payload = sig == self._last_user_payload_sig
+        self._last_user_payload_sig = sig
 
         userUtils.extract_and_set_user_labels(
             self._user_card.lbl_name,
@@ -211,27 +223,41 @@ class SettingsModule(QWidget):
 
         abilities = user_data.get("abilities", [])
         subjects = userUtils.abilities_to_subjects(abilities)
-        if Module.PROPERTY.value.capitalize() in subjects:
-            print("✅ User has Property access!")
-            self._has_property_rights = True
-        else:
-            print("❌ User does NOT have Property access")
-            self._has_property_rights = False
+        self._has_property_rights = Module.PROPERTY.value.capitalize() in subjects
 
         access_map = self.logic.get_module_access_from_abilities(subjects)
         update_permissions = self.logic.get_module_update_permissions(subjects)
         self._user_card.set_access_map(access_map)
         self._user_card.set_update_permissions(update_permissions)
 
-        self.logic.load_original_settings()
-        self._user_card.set_preferred(self.logic.get_original_preferred())
-        self._set_dirty(False)
+        # Ensure preferred selection stays in sync even when access pills are rebuilt
+        preferred_module = self.logic.get_original_preferred()
+
+        # Only reload settings when payload changed or never loaded
+        if not self._settings_loaded_once or not same_payload:
+            self.logic.load_original_settings()
+            preferred_module = self.logic.get_original_preferred()
+            self._set_dirty(False)
+            self._settings_loaded_once = True
+
+        self._user_card.set_preferred(preferred_module)
 
         if not self._initialized:
             self._initialized = True
             if not self._module_cards:
+                t_cards = time.perf_counter()
                 self._build_module_cards()
-        self._activate_module_cards()
+                print(f"[settings_timing] build_module_cards took {(time.perf_counter() - t_cards)*1000:.1f} ms")
+
+        if not self._module_cards_activated or not same_payload:
+            t_activate = time.perf_counter()
+            self._activate_module_cards()
+            self._module_cards_activated = True
+            print(f"[settings_timing] activate_module_cards took {(time.perf_counter() - t_activate)*1000:.1f} ms")
+        else:
+            print("[settings_timing] activate_module_cards skipped (payload unchanged)")
+
+        print(f"[settings_timing] _apply_user_payload total {(time.perf_counter() - t0)*1000:.1f} ms")
 
     def _set_user_labels_loading(self):
         if not hasattr(self, "_user_card"):
@@ -241,6 +267,22 @@ class SettingsModule(QWidget):
         self._user_card.lbl_name.setText(placeholder)
         self._user_card.lbl_email.setText("—")
         self._user_card.lbl_roles.setText("—")
+
+    def _make_payload_signature(self, payload):
+        if not isinstance(payload, dict):
+            return (None, tuple(), tuple())
+        user_id = payload.get("id")
+        try:
+            roles_raw = payload.get("roles") or []
+            roles_sig = tuple(sorted((str(r) for r in roles_raw), key=str))
+        except Exception:
+            roles_sig = tuple()
+        try:
+            abilities_raw = payload.get("abilities") or []
+            abilities_sig = tuple(sorted((str(a) for a in abilities_raw), key=str))
+        except Exception:
+            abilities_sig = tuple()
+        return (user_id, roles_sig, abilities_sig)
 
     def _clear_user_worker_refs(self):
         self._user_fetch_thread = None
@@ -391,4 +433,4 @@ class SettingsModule(QWidget):
             print(f"Settings navigation prompt failed: {e}", "error")
             return True
 
-    # --- Helpers ---
+   

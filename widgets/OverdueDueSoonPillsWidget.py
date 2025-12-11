@@ -5,24 +5,20 @@ using two minimal GraphQL queries (first:1) that rely only on pageInfo.total.
 """
 
 from PyQt5.QtWidgets import (
-    QWidget, QHBoxLayout, QPushButton, QGroupBox, QVBoxLayout
+    QWidget, QHBoxLayout, QPushButton, QVBoxLayout, QLabel, QFrame
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Tuple, Any
 
 from ..python.api_client import APIClient
 from ..python.responses import JsonResponseHandler
 from ..languages.language_manager import LanguageManager
 from ..utils.FilterHelpers.FilterHelper import FilterHelper
 from ..languages.translation_keys import TranslationKeys
+from ..constants.file_paths import QssPaths
+from ..widgets.theme_manager import ThemeManager
 
-# Legacy module-level state (kept for compatibility; instance methods use self.*)
-OVERDUE_BTN = None
-DUE_SOON_BTN = None
-IS_LOADING = False
-OVERDUE_ACTIVE = False
-DUE_SOON_ACTIVE = False
 
 class OverdueDueSoonPillsWidget(QWidget):
     # Emitted when user clicks pills (container will handle applying filters)
@@ -36,36 +32,42 @@ class OverdueDueSoonPillsWidget(QWidget):
         self._days_due_soon: int = 3
         self._overdue_active = False
         self._due_soon_active = False
-        self._lang = LanguageManager()  # Ensure _lang is initialized
+        self._lang = LanguageManager()  
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(2)
+        layout.setAlignment(Qt.AlignHCenter)
 
         #import translation keys
 
         title = self._lang.translate(TranslationKeys.URGENT_GROUP_TITLE)
-        self.group = QGroupBox(title or "GroupBoxTitle", self)
-        self.group.setObjectName("GroupBoxFrame")
-        self.group.setToolTip(self._lang.translate(TranslationKeys.URGENT_TOOLTIP))
-        pills_layout = QHBoxLayout()
-        pills_layout.setContentsMargins(6, 4, 6, 4)
-        pills_layout.setSpacing(4)
-        self.group.setLayout(pills_layout)
-        layout.addWidget(self.group)
+        self.title_label = QLabel(title, self)
+        self.title_label.setObjectName("PillTitle")
+        self.title_label.setAlignment(Qt.AlignHCenter)
+        self.title_label.setToolTip(self._lang.translate(TranslationKeys.URGENT_TOOLTIP))
+        layout.addWidget(self.title_label)
 
-        self.overdue_btn = QPushButton(self.group)
+        self.container = QFrame(self)
+        self.container.setObjectName("PillContainer")
+        pills_layout = QHBoxLayout()
+        pills_layout.setContentsMargins(2, 2, 2, 2)
+        pills_layout.setSpacing(4)
+        pills_layout.setAlignment(Qt.AlignHCenter)
+        self.container.setLayout(pills_layout)
+        layout.addWidget(self.container)
+
+        self.overdue_btn = QPushButton(self.container)
         self.overdue_btn.setObjectName("PillOverdue")
-        self.overdue_btn.setCheckable(True)
+
         # Prevent button from being triggered by Return key
         self.overdue_btn.setAutoDefault(False)
         self.overdue_btn.setDefault(False)
         self.overdue_btn.setCursor(Qt.PointingHandCursor)
         self.overdue_btn.clicked.connect(self.overdueClicked.emit)  # type: ignore
 
-        self.due_soon_btn = QPushButton(self.group)
+        self.due_soon_btn = QPushButton(self.container)
         self.due_soon_btn.setObjectName("PillDueSoon")
-        self.due_soon_btn.setCheckable(True)
         # Prevent button from being triggered by Return key
         self.due_soon_btn.setAutoDefault(False)
         self.due_soon_btn.setDefault(False)
@@ -79,25 +81,44 @@ class OverdueDueSoonPillsWidget(QWidget):
         self.due_soon_btn.setText("…")
 
         # Default look keeps native QGroupBox styling; no extra theme plumbing needed.
+        common_tip = self._lang.translate(TranslationKeys.URGENT_TOOLTIP)
+        self.overdue_btn.setToolTip(common_tip)
+        self.due_soon_btn.setToolTip(common_tip)
+        self.retheme()
 
     def retheme(self) -> None:
-        """No-op: native widgets already pick up theme automatically."""
+        ThemeManager.apply_module_style(self, [QssPaths.OVERDUE_PILLS])
+
+    def set_loading(self, loading: bool) -> None:
+        self._is_loading = bool(loading)
+        if loading:
+            self.overdue_btn.setText("…")
+            self.due_soon_btn.setText("…")
+        self.overdue_btn.setEnabled(not loading)
+        self.due_soon_btn.setEnabled(not loading)
+
+    def set_due_soon_window(self, days: int) -> None:
+        if isinstance(days, int) and days > 0:
+            self._days_due_soon = days
 
     def load_first_overdue_by_module(self, module) -> None:
-        if IS_LOADING:
+        if self._is_loading:
             return
+        self.set_loading(True)
 
-        # log_debug(f"[OverdueDueSoonPillsWidget] Refreshing counts for module: {module.value.capitalize() + 's'}")
+        def do_fetch():
+            overdue_total, due_soon_total = OverdueDueSoonPillsUtils.refresh_counts_for_module(
+                module,
+                days=self._days_due_soon,
+            )
 
-        IS_LOADING = True
+            def apply_counts():
+                self.set_counts(overdue_total, due_soon_total)
+                self.set_loading(False)
 
-        def apply(overdue_total, due_soon_total):
-            self.set_counts(overdue_total, due_soon_total)
-            IS_LOADING = False
+            QTimer.singleShot(0, apply_counts)
 
-        overdue_total, due_soon_total = OverdueDueSoonPillsUtils.refresh_counts_for_module(module)
-        
-        QTimer.singleShot(0, lambda: apply(overdue_total, due_soon_total))
+        QTimer.singleShot(0, do_fetch)
 
     def set_counts(self, overdue: int, due_soon: int) -> None:
         """Update this widget's pill labels with counts."""
@@ -105,68 +126,20 @@ class OverdueDueSoonPillsWidget(QWidget):
         self.due_soon_btn.setText(str(due_soon))
 
 
-    # --- Active state management ---
     def set_overdue_active(self, active: bool) -> None:
-        global OVERDUE_ACTIVE
-        OVERDUE_ACTIVE = active
         self._overdue_active = active
-        if self.overdue_btn:
-            self.overdue_btn.setChecked(active)
+        self.overdue_btn.setProperty("active", active)
+        self._repolish(self.overdue_btn)
 
     def set_due_soon_active(self, active: bool) -> None:
-        global DUE_SOON_ACTIVE
-        DUE_SOON_ACTIVE = active
         self._due_soon_active = active
-        if self.due_soon_btn:
-            self.due_soon_btn.setChecked(active)
+        self.due_soon_btn.setProperty("active", active)
+        self._repolish(self.due_soon_btn)
 
-
-class UIControllers:
-
-    @staticmethod
-    def build_query(module) -> str:
-        base_name = module.value
-        capitalized_name = base_name.capitalize() + "s"
-        plural_name = base_name + "s"
-        # avoid f-strings with literal braces - build with .format / concatenation
-        q = "query {}Count($first:Int,$where: Query{}WhereWhereConditions)".format(capitalized_name, capitalized_name)
-        query = (
-            q + " { " + plural_name + "(first:$first, where:$where){ pageInfo{ total } edges{ node { id } } } }"
-        )
-        return query
-
-
-    @staticmethod
-    def try_fetch(module, where_obj: Dict[str, Any]) -> Optional[int]:
-        try:
-            api = APIClient()
-        except Exception:
-            OverdueDueSoonPillsWidget._is_loading = False
-            return
-
-        plural_name = module.value + "s"
-        try:
-            query = UIControllers.build_query(module)
-            data = api.send_query(query, {"first": 1, "where": where_obj}, return_raw=True) or {}
-            page = JsonResponseHandler.get_page_info_from_path(data, [plural_name])
-            total = page.get("total")
-            if isinstance(total, int):
-                return total
-        except Exception:
-            pass
-        return None
-
-
-
-class OverdueDueSoonPillsLogic:
-    """
-    Handles the logic and state management for the OverdueDueSoonPillsWidget.
-    """
-    @staticmethod
-    def set_counts(overdue_values, btn1, btn2):
-        btn1.setText(str(overdue_values[0]))
-        btn2.setText(str(overdue_values[1]))
-
+    def _repolish(self, w: QWidget) -> None:
+        w.style().unpolish(w)
+        w.style().polish(w)
+        w.update()
 
 class OverdueDueSoonPillsUtils:
     """
@@ -214,10 +187,11 @@ class OverdueDueSoonPillsUtils:
         return {"AND": and_list}
 
     @staticmethod
-    def refresh_counts_for_module(module):
+    def refresh_counts_for_module(module, days: Optional[int] = None) -> Tuple[int, int]:
         api_client = APIClient()
         today = datetime.now().date()
-        soon = today + timedelta(days=OverdueDueSoonPillsUtils._days_due_soon)
+        days_window = days if isinstance(days, int) and days > 0 else OverdueDueSoonPillsUtils._days_due_soon
+        soon = today + timedelta(days=days_window)
         today_s = today.isoformat()
         soon_s = soon.isoformat()
 
@@ -256,7 +230,7 @@ class OverdueDueSoonPillsActionHelper:
     """Shared actions for applying overdue/due-soon filters across modules."""
 
     @staticmethod
-    def apply_due_filter(module, *, is_overdue: bool, base_query=None, days: Optional[int] = None) -> None:
+    def apply_due_filter(module: Any, *, is_overdue: bool, base_query=None, days: Optional[int] = None) -> None:
         feed_logic = getattr(module, "feed_logic", None)
         if feed_logic is None:
             feed_cls = getattr(module, "FEED_LOGIC_CLS", None)
@@ -313,10 +287,10 @@ class OverdueDueSoonPillsActionHelper:
         pills_widget.set_due_soon_active(not is_overdue)
 
     @staticmethod
-    def refresh_counts(pills_widget, module_enum) -> None:
+    def refresh_counts(pills_widget: Optional[OverdueDueSoonPillsWidget], module_enum: Any, *, days: Optional[int] = None) -> None:
         if pills_widget is None or module_enum is None:
             return
-        overdue_total, due_soon_total = OverdueDueSoonPillsUtils.refresh_counts_for_module(module_enum)
+        overdue_total, due_soon_total = OverdueDueSoonPillsUtils.refresh_counts_for_module(module_enum, days=days)
         pills_widget.set_counts(overdue_total, due_soon_total)
 
 

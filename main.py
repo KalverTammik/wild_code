@@ -53,6 +53,21 @@ class WildCodePlugin:
 
     def run(self):
         # import universalStatusbar for message display
+        try:
+            import sip
+        except ImportError:
+            sip = None
+
+        if self.pluginDialog is not None:
+            try:
+                if sip is None or not sip.isdeleted(self.pluginDialog):
+                    self.pluginDialog.show()
+                    self.pluginDialog.raise_()
+                    self.pluginDialog.activateWindow()
+                    return
+            except Exception:
+                pass
+
         project = QgsProject.instance()
         if project.fileName() == '':
             heading = LanguageManager.translate_static(TranslationKeys.NO_PROJECT_LOADED_TITLE)
@@ -96,6 +111,14 @@ class WildCodePlugin:
     def _show_main_dialog(self):
         """Unified method to show main dialog."""
         dlg = PluginDialog.get_instance()
+        if dlg is None and self.pluginDialog is not None:
+            try:
+                import sip
+                if sip and not sip.isdeleted(self.pluginDialog):
+                    dlg = self.pluginDialog
+            except Exception:
+                dlg = None
+
         if dlg is None:
             dlg = PluginDialog()
             self.pluginDialog = dlg

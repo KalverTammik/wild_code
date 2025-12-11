@@ -42,7 +42,7 @@ class UserSettingsCard(SettingsBaseCard):
         self.lbl_name = QLabel(self.lang_manager.translate(TranslationKeys.NAME) + ": —", user_info_card)
         self.lbl_name.setObjectName("UserName")
         left_column.addWidget(self.lbl_name)
-
+        
         # Email below name
         self.lbl_email = QLabel(self.lang_manager.translate(TranslationKeys.EMAIL) + ": —", user_info_card)
         self.lbl_email.setObjectName("UserEmail")
@@ -115,7 +115,7 @@ class UserSettingsCard(SettingsBaseCard):
         self._update_permissions = update_permissions or {}
         #print(f"DEBUG: Update permissions set: {self._update_permissions}")
 
-    def set_access_map(self, access_map: dict, label_resolver=None):
+    def set_access_map(self, access_map: dict):
         # Clear previous pills and checks
         self._clear_layout(self.access_layout)
         for btn in list(self._preferred_group.buttons()):
@@ -125,7 +125,6 @@ class UserSettingsCard(SettingsBaseCard):
 
         # Build new pills
         for module_name, has_access in (access_map or {}).items():
-            label_text = label_resolver(module_name) if label_resolver else module_name
 
             pill = QFrame(self.access_container)
             pill.setObjectName("AccessPill")
@@ -141,6 +140,8 @@ class UserSettingsCard(SettingsBaseCard):
             chk.setProperty("moduleName", module_name)
             chk.toggled.connect(lambda checked, btn=chk: self._on_pref_toggled(btn, checked))
             self._preferred_group.addButton(chk)
+
+            label_text = self.lang_manager.translate(module_name.lower())
 
             txt = QLabel(label_text, pill)
 

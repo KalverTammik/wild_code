@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (
     QFrame,
 )
 from qgis.core import QgsProject
+from ...utils.MapTools.MapHelpers import ActiveLayersHelper
 from ...constants.layer_constants import PROPERTY_TAG
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QFont
@@ -202,17 +203,16 @@ class PropertyModule(QWidget):
     def activate(self):
         """Called when the module becomes active."""
         try:
-            # Find the property layer
-            project = QgsProject.instance()
-            for layer in project.mapLayers().values():
-                if layer.customProperty(PROPERTY_TAG):
-                    active_layer = layer
-                    break
-            else:
-                return  # No property layer found
+            print("[property_ui] activate")
+            # Resolve the property layer using the same helper as map selection
+            active_layer = ActiveLayersHelper._get_active_property_layer()
+            if not active_layer:
+                print("[property_ui] no property layer found via helper")
+                return
 
             # Check if there's a selected feature and display it
             selected_features = active_layer.selectedFeatures()
+            print(f"[property_ui] selected features count: {len(selected_features)}")
             if selected_features:
                 self.tools.update_property_display(active_layer)
 
@@ -221,7 +221,7 @@ class PropertyModule(QWidget):
 
     def deactivate(self):
         """Called when the module becomes inactive."""
-        pass
+        print("[property_ui] deactivate")
 
     def get_widget(self):
         """Return the module's main QWidget."""

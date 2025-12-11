@@ -119,6 +119,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
 
     def deactivate(self) -> None:
         """Deactivate and optionally cancel engine work."""
+        print(f"[ModuleBaseUI] deactivate called for {self.__class__.__name__} id={id(self)}")
         self._activated = False
         engine = self.feed_load_engine
         if engine:

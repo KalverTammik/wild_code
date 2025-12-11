@@ -1,0 +1,53 @@
+/* Light theme for Overdue/Due Soon pills */
+
+#PillTitle {
+  color: #4a5568;
+  font-weight: 600;
+  font-size: 10px;
+  margin: 0 0 2px 0;
+}
+
+#PillContainer {
+  background: #f9fafb;
+  border: None;
+  border-radius: 3px;
+  padding: 2px 2px 2px 2px;
+}
+
+#PillOverdue, #PillDueSoon {
+  border-radius: 6px;
+  padding: 4px 4px;
+  min-height: 12px;
+  min-width: 24px;
+  font-weight: 600;
+  font-size: 10px;
+  text-align: center;
+  border: 1px solid #c9d1d9;
+  background: #ffffff;
+  color: #1f2937;
+}
+
+#PillOverdue:hover,
+#PillDueSoon:hover {
+  background: #f1f5f9;
+  border-color: #b6c2cc;
+}
+
+#PillOverdue {
+  background: #ffe8e6;
+  border-color: #f3b0a7;
+  color: #a61b0f;
+}
+
+#PillDueSoon {
+  background: #e7f0ff;
+  border-color: #b7c8f7;
+  color: #1e4bb8;
+}
+
+#PillOverdue:disabled,
+#PillDueSoon:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+}

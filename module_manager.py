@@ -72,7 +72,7 @@ class ModuleManager:
         if self.activeModule is module_data and target_instance:
             try:
                 target_instance.activate()
-            except Exception:
+            except Exception as exc:
                 pass
             return
 

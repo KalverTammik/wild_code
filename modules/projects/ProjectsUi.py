@@ -114,12 +114,6 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
     def deactivate(self) -> None:
         super().deactivate()
-        # Kosmeetika: lülita pillid passiivseks
-        try:
-            self.overdue_pills.set_overdue_active(False)
-            self.overdue_pills.set_due_soon_active(False)
-        except Exception:
-            pass
 
     # --- Andmete laadimine ---
     def load_next_batch(self):
