@@ -72,6 +72,7 @@ class PropertyDataLoader:
         self.area_field = Katastriyksus.pindala
         self.settlement_field = Katastriyksus.ay_nimi
 
+
         if self.property_layer:
             # kinnita, et väljad on olemas (annab kohe selge vea, mitte hiljem)
             for f in [
@@ -219,3 +220,16 @@ class PropertyDataLoader:
             print(f"Error loading properties for settlement: {e}")
             raise
 
+    def prepare_data_for_import_stage1(self, features):
+        """Lae kinnistute andmed impordiks (ilma geomeetriata)."""
+        properties = []
+        for feat in features:
+            properties.append({
+                self.tunnus_field: feat.attribute(self.tunnus_field) or '',
+                self.address_field: feat.attribute(self.address_field) or '',
+                self.settlement_field: feat.attribute(self.settlement_field) or '',
+                self.county_field: feat.attribute(self.county_field) or '',
+                self.municipality_field: feat.attribute(self.municipality_field) or '',
+                'feature': feat
+            })
+        return properties

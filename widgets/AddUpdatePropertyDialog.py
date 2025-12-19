@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 from qgis.gui import QgsCheckableComboBox
 
 from ..utils.mapandproperties.PropertyUpdateFlowCoordinator import PropertyUpdateFlowCoordinator
+from ..modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
 from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager, PropertyTableWidget
 
 from ..utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
@@ -16,7 +17,8 @@ from ..constants.file_paths import QssPaths
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.MapTools.item_selector_tools import PropertiesSelectors
-
+from ..constants.layer_constants import IMPORT_PROPERTY_TAG
+from ..utils.MapTools.MapHelpers import MapHelpers
 
 
 
@@ -82,15 +84,17 @@ class AddPropertyDialog(QDialog):
 
 
     def _on_dialog_finished(self, _result: int) -> None:
-        if not self._restore_parent_on_close or self._parent_window is None:
-            return
-        try:
-            self._parent_window.showNormal()
-            self._parent_window.raise_()
-            self._parent_window.activateWindow()
-        except Exception:
-            pass
-
+        import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        if import_layer:
+            MapHelpers.clear_layer_filter(import_layer)
+        # Ensure parent window is restored if dialog is closed directly
+        if self._restore_parent_on_close and self._parent_window is not None:
+            try:
+                self._parent_window.showNormal()
+                self._parent_window.raise_()
+                self._parent_window.activateWindow()
+            except Exception:
+                pass
 
     def _create_ui(self):
         """Create the user interface with hierarchical selection"""
@@ -99,8 +103,12 @@ class AddPropertyDialog(QDialog):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
 
+        import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        if import_layer:
+            MapHelpers.clear_layer_filter(import_layer)
         # Check if we have a property layer
         self.property_layer = self.data_loader.property_layer
+        MapHelpers.clear_layer_filter(self.property_layer)
         if not self.property_layer:
             error_label = QLabel(self.lang_manager.translate(TranslationKeys.NO_PROPERTY_LAYER_SELECTED))
             error_label.setObjectName("ErrorLabel")
@@ -266,7 +274,8 @@ class AddPropertyDialog(QDialog):
             lambda: self.table_manager.clear_selection(self.properties_table))
         self.cancel_button.clicked.connect(self.reject)
         self.add_button.clicked.connect(
-            lambda: PropertyUpdateFlowCoordinator.start_adding_properties(self.properties_table)
+            #lambda: PropertyUpdateFlowCoordinator.start_adding_properties(self.properties_table)
+            lambda: MainAddPropertiesFlow.start_adding_properties(self.properties_table)
         )
 
 
@@ -287,3 +296,5 @@ class AddPropertyDialog(QDialog):
 
     def _update_map_from_table_selection(self):
         PropertiesSelectors.show_connected_properties_on_map_from_table(self.properties_table, use_shp=True)
+    
+  
