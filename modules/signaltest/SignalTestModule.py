@@ -6,11 +6,13 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPlainTextEdit,
     QWidget,
+    QPushButton,
 )
 
 from ...constants.file_paths import QssPaths
 from ...utils.url_manager import Module
 from ...widgets.theme_manager import ThemeManager
+
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import Qgis, QgsMapLayer
 
@@ -29,6 +31,9 @@ class SignalTestModule(QWidget):
         qss_files: Optional[Sequence[str]] = None,
     ) -> None:
         super().__init__(parent)
+
+        self._qss_files = qss_files
+
 
         self.module_key = Module.SIGNALTEST.name.lower()
         self.name = self.module_key
@@ -52,6 +57,7 @@ class SignalTestModule(QWidget):
         self.output_area.setReadOnly(True)
         self.output_area.setPlaceholderText("Signal payloads will appear here")
         outer.addWidget(self.output_area, 1)
+
 
         # Live layer picker example powered by QgsMapLayerComboBox
         layer_intro = QLabel(
@@ -113,6 +119,7 @@ class SignalTestModule(QWidget):
         }
 
         self._render_result(payload)
+
 
     def activate(self) -> None:
         """Module lifecycle hook (currently unused)."""

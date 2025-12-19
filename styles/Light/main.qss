@@ -120,8 +120,8 @@ QPushButton[variant="danger"] {
 QPushButton[variant="danger"]:hover { background: #d14a3c; }
 QPushButton[variant="danger"]:pressed { background: #a43025; }
 
-/* ---------- Lists / Tables / Trees ---------- */
-QListWidget, QTableView, QTreeView {
+/* ---------- Lists / Trees ---------- */
+QListWidget, QTreeView {
     background: #ffffff;
     color: #24292e;
     border: 1px solid #e1e4e8;
@@ -200,3 +200,106 @@ QLabel a {
 }
 QLabel a:hover { color: #000000; text-decoration: underline; }
 QLabel a:active { color: #0078d4; }
+
+
+
+/* ---------- Table chrome aligned with teal/slate scheme ---------- */
+QTableView, QTableWidget {
+    border: 1px solid #cbd5e1;          /* slate-300 */
+    border-radius: 10px;
+    outline: 0;
+}
+
+/* Teal focus ring like buttons */
+QTableView:focus, QTableWidget:focus {
+    border: 1px solid rgba(15,118,110,0.55);   /* teal-700 alpha */
+}
+
+/* Header (dark slate with teal accent) */
+QTableView QHeaderView::section,
+QTableWidget QHeaderView::section {
+    background: rgba(15,118,110,0.50);                /* slate-900 */
+    color: #ffffff;
+    font-weight: 700;
+    padding: 1px 1px;                  /* visual height */
+    border: none;
+    border-right: 1px solid #1f2937;    /* slate-800 */
+    border-bottom: 2px solid #0f766e;   /* teal-700 underline accent */
+}
+
+/* If you hide vertical header, this won't show; harmless to keep */
+QHeaderView::section:vertical {
+    background: rgba(15,118,110,0.50);
+    color: #ffffff;
+    border: none;
+    border-bottom: 1px solid #1f2937;
+}
+
+/* Corner button (top-left) */
+QTableCornerButton::section {
+    background: rgba(15,118,110,0.50);
+    border: none;
+    border-right: 1px solid #1f2937;
+    border-bottom: 2px solid #0f766e;
+}
+
+/* Slightly nicer header hover (optional) */
+QHeaderView::section:hover {
+    background: rgba(15,118,110,0.75);                /* slate-800 */
+}
+
+/* ---------- Scrollbars to match (rounded handles) ---------- */
+QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 1px;                 /* your spacing */
+}
+QScrollBar::handle:vertical {
+    background: rgba(15,118,110,0.40);
+    border-radius: 2px;          /* rounder */
+    min-height: 20px;
+    margin: 1px;                 /* inset from edges */
+    border: 1px solid rgba(15,118,110,0.25);  /* subtle crisp edge */
+}
+QScrollBar::handle:vertical:hover {
+    background: rgba(15,118,110,0.55);
+    border: 1px solid rgba(15,118,110,0.35);
+}
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0px;
+    background: transparent;
+}
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 10px;
+    margin: 1px;
+}
+QScrollBar::handle:horizontal {
+    background: rgba(15,118,110,0.40);
+    border-radius: 2px;          /* rounder */
+    min-width: 20px;
+    margin: 1px;
+    border: 1px solid rgba(15,118,110,0.25);
+}
+QScrollBar::handle:horizontal:hover {
+    background: rgba(15,118,110,0.55);
+    border: 1px solid rgba(15,118,110,0.35);
+}
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0px;
+    background: transparent;
+}
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal {
+    background: transparent;
+}
+
+
+

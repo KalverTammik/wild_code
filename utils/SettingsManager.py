@@ -93,66 +93,7 @@ class SettingsManager:
         except Exception:
             return False
 
-    # Utility-specific convenience methods
 
-    @staticmethod
-    def save_shp_file_path(target_group: str, file_path: str) -> bool:
-        """
-        Save the last loaded Shapefile path for a target group.
 
-        Args:
-            target_group: Target group name
-            file_path: Path to the Shapefile
 
-        Returns:
-            bool: True if successful
-        """
-        from ..constants.settings_keys import UtilitySettings
-        key = UtilitySettings.shp_last_file_path(target_group)
-        return SettingsManager.save_setting(key, file_path)
 
-    @staticmethod
-    def load_shp_file_path(target_group: str) -> Optional[str]:
-        """
-        Load the last loaded Shapefile path for a target group.
-
-        Args:
-            target_group: Target group name
-
-        Returns:
-            Optional[str]: File path or None if not found
-        """
-        from ..constants.settings_keys import UtilitySettings
-        key = UtilitySettings.shp_last_file_path(target_group)
-        return SettingsManager.load_setting(key)
-
-    @staticmethod
-    def save_shp_layer_mapping(layer_name: str, file_path: str) -> bool:
-        """
-        Save Shapefile layer name to file path mapping.
-
-        Args:
-            layer_name: Name of the layer
-            file_path: Path to the Shapefile
-
-        Returns:
-            bool: True if successful
-        """
-        from ..constants.settings_keys import UtilitySettings
-        key = UtilitySettings.shp_layer_name_mapping(layer_name)
-        return SettingsManager.save_setting(key, file_path)
-
-    @staticmethod
-    def load_shp_layer_mapping(layer_name: str) -> Optional[str]:
-        """
-        Load Shapefile layer name to file path mapping.
-
-        Args:
-            layer_name: Name of the layer
-
-        Returns:
-            Optional[str]: File path or None if not found
-        """
-        from ..constants.settings_keys import UtilitySettings
-        key = UtilitySettings.shp_layer_name_mapping(layer_name)
-        return SettingsManager.load_setting(key)

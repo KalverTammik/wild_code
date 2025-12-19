@@ -9,6 +9,7 @@ from ....module_manager import MODULES_LIST_BY_NAME
 from ....constants.settings_keys import SettingsService
 
 
+
 SUBJECT_TO_MODULE = {
     Module.PROJECT.value.capitalize(): Module.PROJECT.value.capitalize(),
     Module.CONTRACT.value.capitalize(): Module.CONTRACT.value.capitalize(),
@@ -87,7 +88,7 @@ class SettingsLogic:
     # --- Module-layer helpers -------------------------------------------------
     def get_module_layer_ids(self, module_key: str, *, include_archive: bool = False) -> Dict[str, str]:
         """Return the persisted layer identifiers for the given module."""
-        element = self._service.module_main_layer_id(module_key) or ""
+        element = self._service.module_main_layer_name(module_key) or ""
         archive = ""
         if include_archive:
             archive = self._service.module_archive_layer_id(module_key) or ""
@@ -104,9 +105,9 @@ class SettingsLogic:
                     self._service.module_archive_layer_id(module_key, clear=True)
             else:
                 if normalized:
-                    self._service.module_main_layer_id(module_key, value=normalized)
+                    self._service.module_main_layer_name(module_key, value=normalized)
                 else:
-                    self._service.module_main_layer_id(module_key, clear=True)
+                    self._service.module_main_layer_name(module_key, clear=True)
         except Exception:
             pass
 

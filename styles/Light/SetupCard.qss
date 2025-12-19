@@ -191,12 +191,7 @@
 /* =========================================
    User Info Card — IMPROVED TWO-COLUMN LAYOUT
    ========================================= */
-#SetupCard QFrame#SettingsMainInfoCard {
-  background: rgba(255,255,255,0.8);
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 6px;
-  margin: 4px 0px;
-}
+
 
 #SetupCard QLabel#UserName {
   font-size: 16px;
@@ -248,6 +243,44 @@
   color: #cbd5e1;       /* slate-300 */
   transform: none;
   box-shadow: none;
+}
+
+/* Add Property Dialog alignment (light) */
+#AddButton, #SelectAllButton, #ClearSelectionButton, #CancelButton {
+  background: #0f766e;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+#AddButton:hover, #SelectAllButton:hover, #ClearSelectionButton:hover, #CancelButton:hover {
+  background: #115e59;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.22);
+}
+
+#AddButton:disabled, #SelectAllButton:disabled, #ClearSelectionButton:disabled, #CancelButton:disabled {
+  background: #94a3b8;
+  color: #cbd5e1;
+  box-shadow: none;
+}
+
+#FilterFrame, #TableFrame {
+  background: rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 8px;
+}
+
+
+#PropertiesTable {
+  background: rgba(255,255,255,0.96);
+  alternate-background-color: rgba(0,0,0,0.02);
+  gridline-color: rgba(0,0,0,0.08);
+  selection-background-color: rgba(0,120,212,0.18);
+  selection-color: #0f172a;
+  border: 1px solid rgba(0,0,0,0.10);
+  border-radius: 6px;
 }
 
 /* =========================================

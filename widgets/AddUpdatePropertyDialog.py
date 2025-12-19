@@ -1,15 +1,13 @@
 import os
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QTimer
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QListWidget, QListWidgetItem,
-    QPushButton, QHBoxLayout, QMessageBox, QComboBox, QFrame,
-    QTableWidget, QHeaderView, QSplitter
+    QDialog, QVBoxLayout, QLabel,
+    QPushButton, QHBoxLayout, QComboBox, QFrame
 )
 from qgis.gui import QgsCheckableComboBox
 
 from ..utils.mapandproperties.PropertyUpdateFlowCoordinator import PropertyUpdateFlowCoordinator
-
-from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager
+from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager, PropertyTableWidget
 
 from ..utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from .theme_manager import ThemeManager
@@ -17,7 +15,10 @@ from .theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
-from ..constants.cadastral_fields import Katastriyksus
+from ..utils.MapTools.item_selector_tools import PropertiesSelectors
+
+
+
 
 
 class AddPropertyDialog(QDialog):
@@ -29,62 +30,74 @@ class AddPropertyDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-    
+        # Minimize parent window while this dialog is open
+        self._parent_window = None
+        self._restore_parent_on_close = False
+        try:
+            self._parent_window = parent.window() if parent is not None else None
+            if self._parent_window is not None and self._parent_window.isVisible() and not self._parent_window.isMinimized():
+                self._parent_window.showMinimized()
+                self._restore_parent_on_close = True
+        except Exception:
+            self._parent_window = None
+            self._restore_parent_on_close = False
+
+        # Restore parent when dialog closes (accept/reject)
+        self.finished.connect(self._on_dialog_finished)
 
         # Initialize managers
         self.lang_manager = LanguageManager()
-        self.processor = PropertyDialogController(self)    
         # Initialize helper classes
-        self.data_loader = PropertyDataLoader(self.lang_manager)
-        self.table_manager = PropertyTableManager(None, self.lang_manager)  # Will be set after UI creation
-        self.selection_handler = PropertyUpdateFlowCoordinator(
-            self.data_loader, self.table_manager, None, None, None, self.lang_manager
-        )  # Combos will be set after UI creation
+        self.data_loader = PropertyDataLoader() #in file #PropertyDataLoader.py
+        self.table_manager = PropertyTableManager()
+
 
         # Set up dialog properties
         self.setWindowTitle(self.lang_manager.translate(TranslationKeys.ADD_NEW_PROPERTY))
         self.setModal(True)
-        self.setFixedSize(800, 600)  # Made larger for the new UI
+        self.setFixedSize(600, 400)  
 
         # Apply theme
-        self._apply_theme()
+        ThemeManager.set_initial_theme(
+            self,
+            None,  # No theme switch button for popup dialogs
+            qss_files=[QssPaths.MAIN, QssPaths.SETUP_CARD, QssPaths.COMBOBOX]
+        )
 
         self._create_ui()
+        # Kick off data loading (may take time for first combo)
+
         self._setup_connections()
-        self.processor.load_layer_data()
 
-        # Set up helper classes with UI references (only if UI was fully created)
-        if hasattr(self, 'properties_table') and self.properties_table:
-            self.table_manager.properties_table = self.properties_table
-        if hasattr(self, 'county_combo') and self.county_combo:
-            self.selection_handler.county_combo = self.county_combo
-        if hasattr(self, 'municipality_combo') and self.municipality_combo:
-            self.selection_handler.municipality_combo = self.municipality_combo
-        if hasattr(self, 'city_combo') and self.city_combo:
-            self.selection_handler.city_combo = self.city_combo
+        # Debounce map updates triggered by rapid table selection changes
+        self._map_update_timer = QTimer(self)
+        self._map_update_timer.setSingleShot(True)
+        self._map_update_timer.setInterval(150)
+        self._map_update_timer.timeout.connect(self._update_map_from_table_selection)
 
-    def _apply_theme(self):
-        """Apply theme to the dialog"""
+        self.show()
+
+        # Block until done
+        self.exec_()
+
+
+    def _on_dialog_finished(self, _result: int) -> None:
+        if not self._restore_parent_on_close or self._parent_window is None:
+            return
         try:
-            ThemeManager.set_initial_theme(
-                self,
-                None,  # No theme switch button for popup dialogs
-                qss_files=[QssPaths.MAIN, QssPaths.SETUP_CARD]
-            )
-        except Exception as e:
-            print(f"Theme application failed: {e}")
+            self._parent_window.showNormal()
+            self._parent_window.raise_()
+            self._parent_window.activateWindow()
+        except Exception:
+            pass
+
 
     def _create_ui(self):
         """Create the user interface with hierarchical selection"""
+        
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
-
-        # Title
-        title_label = QLabel(self.lang_manager.translate(TranslationKeys.SELECT_PROPERTIES))
-        title_label.setObjectName("DialogTitle")
-        title_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title_label)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
         # Check if we have a property layer
         self.property_layer = self.data_loader.property_layer
@@ -104,28 +117,22 @@ class AddPropertyDialog(QDialog):
             return
 
         # Hierarchical selection section
-        self._create_hierarchical_selection(layout)
+        self._create_combo_widget(layout)
 
-        # Properties table section
-        self._create_properties_table(layout)
-
+        self.properties_table_widget, self.properties_table = PropertyTableWidget._create_properties_table()
+        layout.addWidget(self.properties_table_widget)
         # Selection info and buttons
         self._create_selection_controls(layout)
+        PropertyUpdateFlowCoordinator.load_county_combo(self.county_combo, self.property_layer)
 
-        # Set up helper classes with UI references
-        self.table_manager.properties_table = self.properties_table
-        self.selection_handler.county_combo = self.county_combo
-        self.selection_handler.municipality_combo = self.municipality_combo
-        self.selection_handler.city_combo = self.city_combo
-
-    def _create_hierarchical_selection(self, parent_layout):
+    def _create_combo_widget(self, parent_layout):
         """Create county and municipality dropdowns"""
         # Filter section frame
         filter_frame = QFrame()
         filter_frame.setObjectName("FilterFrame")
         filter_frame.setFrameStyle(QFrame.StyledPanel)
         filter_layout = QVBoxLayout(filter_frame)
-        filter_layout.setContentsMargins(10, 10, 10, 10)
+        filter_layout.setContentsMargins(6, 6, 6, 6)
         filter_layout.setSpacing(6)
 
         # Filter title
@@ -182,46 +189,6 @@ class AddPropertyDialog(QDialog):
         filter_layout.addLayout(location_layout)
         parent_layout.addWidget(filter_frame)
 
-    def _create_properties_table(self, parent_layout):
-        """Create the properties table"""
-        # Table section
-        table_frame = QFrame()
-        table_frame.setObjectName("TableFrame")
-        table_frame.setFrameStyle(QFrame.StyledPanel)
-        table_layout = QVBoxLayout(table_frame)
-        table_layout.setContentsMargins(10, 10, 10, 10)
-        table_layout.setSpacing(10)
-        
-
-        # Table title
-        table_title = QLabel(self.lang_manager.translate(TranslationKeys.PROPERTIES))
-        table_title.setObjectName("TableTitle")
-        table_layout.addWidget(table_title)
-
-        # Properties table
-        self.properties_table = QTableWidget()
-        self.properties_table.setObjectName("PropertiesTable")
-        self.properties_table.setAlternatingRowColors(True)
-        self.properties_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.properties_table.setSelectionMode(QTableWidget.MultiSelection)
-
-        # Set up table headers
-        headers = [
-            self.lang_manager.translate(TranslationKeys.CADASTRAL_ID),
-            self.lang_manager.translate(TranslationKeys.ADDRESS),
-            self.lang_manager.translate(TranslationKeys.AREA),
-            self.lang_manager.translate(TranslationKeys.SETTLEMENT)
-        ]
-        self.properties_table.setColumnCount(len(headers))
-        self.properties_table.setHorizontalHeaderLabels(headers)
-
-        # Configure table
-        header = self.properties_table.horizontalHeader()
-        header.setStretchLastSection(True)
-        header.setSectionResizeMode(QHeaderView.Interactive)
-
-        table_layout.addWidget(self.properties_table)
-        parent_layout.addWidget(table_frame)
 
     def _create_selection_controls(self, parent_layout):
         """Create selection info and control buttons"""
@@ -257,111 +224,66 @@ class AddPropertyDialog(QDialog):
 
         parent_layout.addLayout(buttons_layout)
 
+        # Wire add button into table manager once created
+        self.table_manager.set_add_button(self.add_button)
+
     def _setup_connections(self):
         """Set up signal connections"""
-        # Only set up connections if UI was fully created
-        if not hasattr(self, 'county_combo') or not self.county_combo:
-            return
             
         # Dropdown connections - use selection handler
-        self.county_combo.currentTextChanged.connect(self.selection_handler.on_county_changed)
-        self.municipality_combo.currentTextChanged.connect(self.selection_handler.on_municipality_changed)
-        if hasattr(self, 'city_combo') and self.city_combo is not None:
-            self.city_combo.checkedItemsChanged.connect(self.selection_handler.on_city_changed)
+        self.county_combo.currentTextChanged.connect(
+            lambda text: PropertyUpdateFlowCoordinator.on_county_changed(
+                text, 
+                self.municipality_combo, 
+                self.properties_table
+            )
+        )
+        self.municipality_combo.currentTextChanged.connect(
+            lambda text: PropertyUpdateFlowCoordinator.on_municipality_changed(
+                text, 
+                self.county_combo, 
+                self.municipality_combo, 
+                self.city_combo, 
+                self.properties_table
+            )
+        )
+        self.city_combo.checkedItemsChanged.connect(
+            lambda: PropertyUpdateFlowCoordinator.on_city_changed(
+                self.properties_table,
+                self.county_combo,
+                self.municipality_combo,
+                self.city_combo
+            )
+        )
 
-        # Table connections - use table manager
-        self.properties_table.itemSelectionChanged.connect(self.table_manager.on_table_selection_changed)
-        self.table_manager.set_selection_changed_callback(self.processor.on_selection_count_changed)
+        self.properties_table.itemSelectionChanged.connect(self._on_table_selection_changed)
 
+    
         # Button connections
-        self.select_all_btn.clicked.connect(self.table_manager.select_all)
-        self.clear_selection_btn.clicked.connect(self.table_manager.clear_selection)
+        self.select_all_btn.clicked.connect(
+            lambda: self.table_manager.select_all(self.properties_table))
+        self.clear_selection_btn.clicked.connect(
+            lambda: self.table_manager.clear_selection(self.properties_table))
         self.cancel_button.clicked.connect(self.reject)
-        self.add_button.clicked.connect(self.processor.start_adding_properties)
+        self.add_button.clicked.connect(
+            lambda: PropertyUpdateFlowCoordinator.start_adding_properties(self.properties_table)
+        )
 
 
+    def _on_table_selection_changed(self):
+        #print("Table selection changed")
+        count = len(self.properties_table.selectionModel().selectedRows())
 
-class PropertyDialogController:
-    def __init__(self, dialog):
-        self.dialog = dialog  # Reference to AddPropertyDialog
-
-    def start_adding_properties(self):
-        selected_features = self.dialog.selection_handler.collect_active_selections_from_table()
-        if selected_features:
-            print(f"Emitting {len(selected_features)} selected features")
-            for feature in selected_features:
-                print(f" - Feature ID: {feature.id()}")
-            self.dialog.accept()  # Close the dialog
-
-            # Clear the layer filter to show all features again
-            from ..constants.layer_constants import IMPORT_PROPERTY_TAG
-            from ..utils.MapTools.MapHelpers import MapHelpers
-            layer = self.dialog.data_loader._get_layer_by_tag(IMPORT_PROPERTY_TAG)
-            if layer:
-                MapHelpers.clear_layer_filter(layer)
-
-            QMessageBox.information(
-                self.dialog,
-                self.dialog.lang_manager.translate(TranslationKeys.PROPERTIES_ADDED),
-                self.dialog.lang_manager.translate(TranslationKeys.SELECTED_PROPERTIES_ADDED)
-            )
-        else:
-            QMessageBox.warning(
-                self.dialog,
-                self.dialog.lang_manager.translate(TranslationKeys.NO_SELECTION),
-                self.dialog.lang_manager.translate(TranslationKeys.PLEASE_SELECT_AT_LEAST_ONE_PROPERTY)
-            )
-
-    def load_layer_data(self):
-        """Load data from the property layer"""
-        if not self.dialog.property_layer or not hasattr(self.dialog, 'county_combo') or not self.dialog.county_combo:
-            return
-
-        try:
-            # Load counties using data loader
-            counties = self.dialog.data_loader.load_counties()
-
-            # Populate county dropdown
-            self.dialog.county_combo.clear()
-            self.dialog.county_combo.addItem(
-                self.dialog.lang_manager.translate(TranslationKeys.SELECT_COUNTY) or "Vali maakond", "")
-
-            for county in counties:
-                self.dialog.county_combo.addItem(county, county)
-
-        except Exception as e:
-            print(f"Error loading layer data: {e}")
-            QMessageBox.warning(
-                self.dialog,
-                self.dialog.lang_manager.translate(TranslationKeys.DATA_LOADING_ERROR),
-                self.dialog.lang_manager.translate(TranslationKeys.FAILED_TO_LOAD_PROPERTY_DATA) + f" {str(e)}"
-            )
-
-
-    def on_selection_count_changed(self, selected_count):
-        """Handle selection count changes from table manager"""
-        self.dialog.selection_info.setText(
-            self.dialog.lang_manager.translate(TranslationKeys.SELECTED_COUNT_TEMPLATE).format(count=selected_count)
+        self.selection_info.setText(
+            self.lang_manager.translate(TranslationKeys.SELECTED_COUNT_TEMPLATE).format(count=count)
         )
         # Enable/disable add button based on selection
-        self.dialog.add_button.setEnabled(selected_count > 0)
+        self.add_button.setEnabled(count > 0)
         # Update map to show selected features
-        self.update_map_for_selected_rows()
 
-    def update_map_for_selected_rows(self):
-        """Update map display based on currently selected table rows"""
-        selected_features = self.dialog.selection_handler.collect_active_selections_from_table()
-        from ..constants.layer_constants import IMPORT_PROPERTY_TAG
-        from ..utils.MapTools.MapHelpers import MapHelpers
-        layer = self.dialog.data_loader._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        # Debounced map update to avoid spamming selectionChanged/zoom operations
+        self._map_update_timer.start()
 
-        if not selected_features:
-            # No selection - clear any existing filter and selection
-            if layer:
-                MapHelpers.clear_layer_filter(layer)
-                layer.removeSelection()
-            return
 
-        if layer and selected_features:
-            # Select features on map and zoom to them, filter layer to show only selected
-            MapHelpers._zoom_to_features_in_layer(selected_features, layer, select=True, filter_layer=True)
+    def _update_map_from_table_selection(self):
+        PropertiesSelectors.show_connected_properties_on_map_from_table(self.properties_table, use_shp=True)

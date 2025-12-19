@@ -1,12 +1,18 @@
 import os
 import platform
 import json
+import time
 import requests
+from requests import exceptions as requests_exceptions
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QThread
+from qgis.PyQt.QtWidgets import QApplication
 from ..utils.SessionManager import SessionManager
 from ..constants.file_paths import ConfigPaths, GraphQLSettings
 from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
+from ..utils.api_error_handling import ApiErrorKind, summarize_connection_error, tag_message
 
 class APIClient:
     def __init__(self, session_manager=None, config_path=None):
@@ -35,7 +41,19 @@ class APIClient:
             payload["variables"] = sanitized_variables
        
 
-        attempts = 2 if require_auth else 1
+        # Determine retry behavior.
+        is_main_thread = True
+        try:
+            app = QApplication.instance()
+            if app is not None:
+                is_main_thread = QThread.currentThread() == app.thread()
+        except Exception:
+            is_main_thread = True
+
+        auth_attempts = 2 if require_auth else 1
+        # Avoid blocking the UI thread with network retries.
+        network_attempts = 3 if not is_main_thread else 1
+        attempts = max(auth_attempts, network_attempts)
         last_error = None
 
         for attempt in range(1, attempts + 1):
@@ -55,14 +73,25 @@ class APIClient:
                 api_url = GraphQLSettings.graphql_endpoint()
                 response = requests.post(api_url, json=payload, headers=headers, timeout=timeout)
 
+                if response.status_code in (401, 403):
+                    raise Exception(tag_message(ApiErrorKind.AUTH, "Unauthenticated"))
+
+                if response.status_code >= 500:
+                    if attempt < network_attempts:
+                        time.sleep(0.4 * attempt)
+                        continue
+                    raise Exception(tag_message(ApiErrorKind.SERVER, f"HTTP {response.status_code}"))
+
                 if response.status_code == 200:
                     data = response.json()
                     errors = data.get("errors")
                     if errors:
                         message = self._extract_error_message(errors)
                         if self._errors_include_unauthenticated(errors):
-                            message = "Unauthenticated"
-                        raise Exception(message or self.lang.translate("network_error").format(error=""))
+                            message = tag_message(ApiErrorKind.AUTH, "Unauthenticated")
+                        else:
+                            message = tag_message(ApiErrorKind.GRAPHQL, message or "GraphQL error")
+                        raise Exception(message)
                     return data if return_raw else data.get("data", {})
 
                 # Non-200 HTTP response
@@ -70,18 +99,48 @@ class APIClient:
                     body = response.text
                 except Exception:
                     body = f"HTTP {response.status_code}"
-                raise Exception(self.lang.translate("login_failed_response").format(error=body))
+                template = self.lang.translate(TranslationKeys.LOGIN_FAILED_RESPONSE) or "Login failed: {error}"
+                raise Exception(tag_message(ApiErrorKind.SERVER, template.format(error=body)))
+
+            except requests_exceptions.RequestException as exc:
+                if attempt < network_attempts:
+                    time.sleep(0.4 * attempt)
+                    continue
+                summary = summarize_connection_error(str(exc))
+                template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
+                raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error=summary)))
 
             except Exception as exc:
                 msg = str(exc)
                 last_error = msg
-                if require_auth and msg and "Unauthenticated" in msg:
-                    if attempt < attempts and self._handle_unauthenticated():
-                        continue
-                    msg = self.lang.translate("session_expired")
-                raise Exception(msg or self.lang.translate("network_error").format(error=""))
 
-        raise Exception(last_error or self.lang.translate("network_error").format(error=""))
+                kind = ApiErrorKind.UNKNOWN
+                try:
+                    if msg.startswith("[WC-API]") and "[" in msg and "]" in msg:
+                        # format: [WC-API][kind] message
+                        kind_token = msg.split("]", 2)[1].lstrip("[").rstrip("]").strip().lower()
+                        if kind_token in ApiErrorKind._value2member_map_:
+                            kind = ApiErrorKind(kind_token)
+                except Exception:
+                    kind = ApiErrorKind.UNKNOWN
+
+                if require_auth and kind == ApiErrorKind.AUTH:
+                    if is_main_thread and attempt < auth_attempts and self._handle_unauthenticated():
+                        continue
+
+                    session_text = self.lang.translate(TranslationKeys.SESSION_EXPIRED) or "Session expired"
+                    raise Exception(tag_message(ApiErrorKind.AUTH, session_text))
+
+                if msg:
+                    raise Exception(msg)
+
+                template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
+                raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error="")))
+
+        if last_error:
+            raise Exception(last_error)
+        template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
+        raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error="")))
 
     def _extract_error_message(self, errors):
         try:
@@ -111,7 +170,7 @@ class APIClient:
         from ..utils.SessionManager import SessionManager
 
         result = SessionManager.show_session_expired_dialog(lang_manager=self.lang)
-        if result == "login":
+        if result == True:
             self.open_login_dialog()
             token = self.session_manager.get_token() if hasattr(self.session_manager, 'get_token') else None
             return bool(token)

@@ -139,7 +139,7 @@ QToolBar QComboBox {
 QToolBar QComboBox::drop-down { width: 18px; }
 
 /* Editors inside tables: slightly denser to match row height */
-QTableView QComboBox {
+QComboBox {
     min-height: 18px;
     padding: 1px 6px;
     padding-right: 22px;

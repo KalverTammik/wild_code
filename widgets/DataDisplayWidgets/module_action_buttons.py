@@ -62,7 +62,7 @@ def show_items_on_map(module_name: Optional[str], item_id: Optional[str]) -> Non
         return
     numbers = APIModuleActions.get_module_item_connected_properties(module_name, item_id)
     if numbers:
-        PropertiesSelectors.show_connected_properties_on_map(numbers)
+        PropertiesSelectors.show_connected_properties_on_map(numbers, module=module_name)
 
 
 class CardActionButton(QPushButton):

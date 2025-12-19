@@ -1,5 +1,4 @@
-
-from typing import List, Optional
+from typing import Iterable, List, Optional, Sequence, Union
 from ...languages.translation_keys import TranslationKeys
 from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer
 from qgis.utils import iface
@@ -9,6 +8,92 @@ from ...languages.language_manager import LanguageManager
 from ...utils.messagesHelper import ModernMessageDialog
 
 class MapHelpers:
+
+    @staticmethod
+    def _sql_quote(value: object) -> str:
+        """Best-effort SQL literal quoting for subset strings."""
+        if value is None:
+            return "NULL"
+        if isinstance(value, bool):
+            return "1" if value else "0"
+        if isinstance(value, (int, float)):
+            return str(value)
+        text = str(value)
+        text = text.replace("'", "''")
+        return f"'{text}'"
+
+    @staticmethod
+    def _quote_field(field_name: str) -> str:
+        """Quote a field name for provider SQL (OGR/SQLite/Postgres, etc)."""
+        name = (field_name or "").strip().replace('"', '""')
+        return f'"{name}"'
+
+    @staticmethod
+    def build_subset_in_clause(field_name: str, values: Sequence[object], *, chunk_size: int = 500) -> str:
+        """Build a provider subset string like: "field" IN ('a','b',...) with chunking."""
+        field = MapHelpers._quote_field(field_name)
+        cleaned: List[object] = []
+        seen = set()
+        for v in values or []:
+            if v is None:
+                continue
+            key = str(v)
+            if key in seen:
+                continue
+            seen.add(key)
+            cleaned.append(v)
+
+        if not cleaned:
+            return ""
+
+        chunk = max(1, int(chunk_size))
+        parts: List[str] = []
+        for i in range(0, len(cleaned), chunk):
+            segment = cleaned[i : i + chunk]
+            literals = ",".join(MapHelpers._sql_quote(v) for v in segment)
+            parts.append(f"{field} IN ({literals})")
+        return " OR ".join(parts)
+
+    @staticmethod
+    def _find_best_id_field(layer: QgsVectorLayer) -> Optional[str]:
+        """Try to find a usable id field for subsetString filters."""
+        if not layer or not layer.isValid():
+            return None
+
+        # Prefer provider primary key if it's a single attribute.
+        try:
+            provider = layer.dataProvider()
+            pk_indexes = []
+            if provider is not None and callable(getattr(provider, "pkAttributeIndexes", None)):
+                pk_indexes = list(provider.pkAttributeIndexes() or [])
+            if len(pk_indexes) == 1:
+                idx = int(pk_indexes[0])
+                field = layer.fields().field(idx)
+                if field is not None:
+                    return field.name()
+        except Exception:
+            pass
+
+        # Common id field names across providers
+        candidates = [
+            "fid",
+            "FID",
+            "ogc_fid",
+            "OGC_FID",
+            "objectid",
+            "OBJECTID",
+            "id",
+            "ID",
+        ]
+        try:
+            fields = layer.fields()
+            for name in candidates:
+                if fields.indexOf(name) != -1:
+                    return name
+        except Exception:
+            pass
+
+        return None
 
     @staticmethod
     def find_layer_by_id(layer_id: Optional[str]) -> Optional[QgsMapLayer]:
@@ -22,6 +107,23 @@ class MapHelpers:
             return project.mapLayer(layer_id)
         except Exception:
             return None
+
+
+
+    def _get_layer_by_tag(tag):
+        # uing traceback to find where its trigered from max of three levels
+        #import traceback
+        #show who is calling this function for debugging
+        #print("_get_layer_by_tag Called from:")
+        #traceback.print_stack(limit=10)
+      
+
+        project = QgsProject.instance()
+        for layer in project.mapLayers().values():
+            if layer.customProperty(tag):
+                #print(f"[MapHelpers] Checking layer: {layer.name()} with tag {tag}: {layer.customProperty(tag)}")  
+                return layer
+        return None
 
     @staticmethod
     def find_layer_by_name(layer_name: Optional[str], *, case_sensitive: bool = False) -> Optional[QgsMapLayer]:
@@ -69,96 +171,53 @@ class MapHelpers:
         return layer.name() if layer else ""
 
     @staticmethod
-    def _zoom_to_features_in_layer(features: List[QgsFeature], layer: QgsVectorLayer, select: bool = True, filter_layer: bool = False) -> None:
-        """
-        Selects the given features in a layer and zooms the map canvas to them.
-        Optionally filters the layer to show only selected features.
-
-        Args:
-            features (List[QgsFeature]): A list of QgsFeature objects to zoom to.
-            layer (QgsVectorLayer): The layer that contains the features.
-            select (bool): Whether to select the features on the map. Default True.
-            filter_layer (bool): Whether to filter the layer to show only selected features. Default False.
-
-        Returns:
-            None
-        """
+    def _zoom_to_features_in_layer(
+        features: List[QgsFeature],
+        layer: QgsVectorLayer,
+        select: bool = True,
+        clear_existing: bool = True,
+        padding_factor: float = 1.2,
+    ) -> None:
         if not features:
             print("⚠️ No features provided for zoom operation.")
             return
-
-        feature_ids = [feature.id() for feature in features]
         
-        # Select features if requested
-        if select:
-            layer.selectByIds(feature_ids)
-        
-        # Zoom to selected features and center the map
-        iface.mapCanvas().zoomToSelected(layer)
-        
-        # Filter layer to show only selected features if requested
-        if filter_layer and feature_ids:
-            # Create a filter expression for the selected feature IDs
-            id_list = ','.join(str(fid) for fid in feature_ids)
-            filter_expression = f"$id IN ({id_list})"
-            layer.setSubsetString(filter_expression)
-            #print(f"🔍 Applied filter to layer '{layer.name()}': {filter_expression}")
-        elif not filter_layer:
-            # Clear any existing filter
-            layer.setSubsetString("")
-            #print(f"🔍 Cleared filter from layer '{layer.name()}'")
+        print(f"Zooming to {len(features)} features in layer '{layer.name()}'")
 
-
-        # Ensure map extent is updated and centered
-        if layer.selectedFeatureCount() > 0:
-            # Get the extent of selected features
-            selected_extent = layer.boundingBoxOfSelected()
-            if not selected_extent.isEmpty():
-                # Add some padding around the selected features
-                selected_extent.scale(1.2)  # 20% padding
-                iface.mapCanvas().setExtent(selected_extent)
-                iface.mapCanvas().refresh()
-
-
-    @staticmethod
-    def _zoom_to_features_extent(features: List[QgsFeature], buffer_precent: float = 1.1) -> None:
-        """
-        Zooms to the combined extent of the given features without selecting them.
-
-        Args:
-            features (List[QgsFeature]): Features to zoom to.
-
-        Returns:
-            None
-        """
-        if not features:
-            print("⚠️ No features provided.")
-            return
-
-        extent = QgsRectangle()
-        extent.setMinimal()
-
-        valid_feature_found = False
-
-        #print(f"🔍 Received {len(features)} features.")
-        
-        for i, feature in enumerate(features):
-            geom = feature.geometry()
-            if geom and not geom.isEmpty():
-                bbox = geom.boundingBox()
-                #print(f"  Feature {i} → BBox: {bbox.toString()}")
-                extent.combineExtentWith(bbox)
-                valid_feature_found = True
+        # Build an extent from the *geometries*, so zoom works even if select=False
+        extent: QgsRectangle | None = None
+        for f in features:
+            geom = f.geometry()
+            if geom is None or geom.isEmpty():
+                continue
+            bb = geom.boundingBox()
+            if extent is None:
+                extent = QgsRectangle(bb)
             else:
-                print(f"⚠️ Feature {i} has no geometry!")
+                extent.combineExtentWith(bb)
 
-        if not valid_feature_found:
-            print("❌ No valid geometries found in features.")
+        #print(f"Computed extent for zoom: {extent}")
+        if extent is None or extent.isEmpty():
+            print("⚠️ Features had no valid geometry for zoom operation.")
             return
 
-        extent.scale(buffer_precent)  # Apply buffer
-        iface.mapCanvas().setExtent(extent)
-        iface.mapCanvas().refresh()
+        # Optional: clear old selection (but don't do it unless you really mean it)
+        if clear_existing:
+            layer.removeSelection()
+
+        # Optional: select the features
+        if select:
+            feature_ids = [f.id() for f in features]
+            layer.selectByIds(feature_ids)
+
+        # Apply padding + zoom
+        if padding_factor and padding_factor > 0:
+            extent.scale(padding_factor)
+
+        canvas = iface.mapCanvas()
+        canvas.setExtent(extent)
+        canvas.refresh()
+
 
     @staticmethod
     def zoom_to_layer(layer: QgsVectorLayer) -> None:
@@ -175,6 +234,129 @@ class MapHelpers:
             print(f"🔍 Cleared filter from layer '{layer.name()}'")
 
     @staticmethod
+    def set_layer_filter_by_field_values(
+        layer: QgsVectorLayer,
+        field_name: str,
+        values: Sequence[object],
+        *,
+        clear_if_empty: bool = True,
+        chunk_size: int = 500,
+    ) -> None:
+        """Set subset string to keep only rows where field is in values."""
+        if not layer or not layer.isValid():
+            return
+        clause = MapHelpers.build_subset_in_clause(field_name, values, chunk_size=chunk_size)
+        if not clause:
+            if clear_if_empty:
+                MapHelpers.clear_layer_filter(layer)
+            return
+        layer.setSubsetString(clause)
+
+    @staticmethod
+    def set_layer_filter_by_features(
+        layer: QgsVectorLayer,
+        field_name: str,
+        features: Union[Sequence[QgsFeature], Iterable[QgsFeature]],
+        *,
+        clear_if_empty: bool = True,
+        chunk_size: int = 500,
+    ) -> None:
+        """Set subset string based on a field extracted from provided features."""
+        if not layer or not layer.isValid():
+            return
+        extracted: List[object] = []
+        for f in features or []:
+            try:
+                extracted.append(f[field_name])
+            except Exception:
+                continue
+        MapHelpers.set_layer_filter_by_field_values(
+            layer,
+            field_name,
+            extracted,
+            clear_if_empty=clear_if_empty,
+            chunk_size=chunk_size,
+        )
+
+    @staticmethod
+    def set_layer_filter_to_features(
+        layer: QgsVectorLayer,
+        features: Union[Sequence[QgsFeature], Iterable[QgsFeature]],
+        *,
+        field_name: Optional[str] = None,
+        clear_if_empty: bool = True,
+        chunk_size: int = 500,
+    ) -> None:
+        """Set subset string from a list of QgsFeature objects.
+
+        - If `field_name` is provided: uses that attribute from features.
+        - Else: tries provider PK / common id fields; falls back to feature.id() when possible.
+        """
+        if not layer or not layer.isValid():
+            return
+
+        feats = list(features or [])
+        if not feats:
+            if clear_if_empty:
+                MapHelpers.clear_layer_filter(layer)
+            return
+
+        if field_name:
+            MapHelpers.set_layer_filter_by_features(
+                layer,
+                field_name,
+                feats,
+                clear_if_empty=clear_if_empty,
+                chunk_size=chunk_size,
+            )
+            return
+
+        best_field = MapHelpers._find_best_id_field(layer)
+        if best_field:
+            MapHelpers.set_layer_filter_by_features(
+                layer,
+                best_field,
+                feats,
+                clear_if_empty=clear_if_empty,
+                chunk_size=chunk_size,
+            )
+            return
+
+        # Last-resort: attempt to filter by feature ids using a guessed fid field.
+        # Not all providers expose an id column for subsetString; if this doesn't work,
+        # caller should prefer selection APIs.
+        ids = [f.id() for f in feats if f is not None]
+        if not ids:
+            if clear_if_empty:
+                MapHelpers.clear_layer_filter(layer)
+            return
+        clause = MapHelpers.build_subset_in_clause("fid", ids, chunk_size=chunk_size)
+        layer.setSubsetString(clause)
+
+    @staticmethod
+    def set_layer_filter_to_selected_features(
+        layer: QgsVectorLayer,
+        *,
+        field_name: Optional[str] = None,
+        clear_if_empty: bool = True,
+        chunk_size: int = 500,
+    ) -> None:
+        """Convenience: subsetString from `layer.selectedFeatures()`."""
+        if not layer or not layer.isValid():
+            return
+        try:
+            feats = layer.selectedFeatures() or []
+        except Exception:
+            feats = []
+        MapHelpers.set_layer_filter_to_features(
+            layer,
+            feats,
+            field_name=field_name,
+            clear_if_empty=clear_if_empty,
+            chunk_size=chunk_size,
+        )
+
+    @staticmethod
     def select_features_by_ids(layer: QgsVectorLayer, feature_ids: List[int], zoom: bool = False) -> None:
         """Select features by their IDs and optionally zoom to them."""
         if layer and layer.isValid() and feature_ids:
@@ -184,7 +366,7 @@ class MapHelpers:
                 iface.mapCanvas().refresh()
 
     @staticmethod
-    def ensure_layer_visible(layer: QgsVectorLayer) -> None:
+    def ensure_layer_visible(layer: QgsVectorLayer, make_active: bool = False) -> None:
         if not layer or not layer.isValid():
             return
         root = QgsProject.instance().layerTreeRoot()
@@ -192,8 +374,14 @@ class MapHelpers:
         if node:
             node.setItemVisibilityChecked(True)
 
+        if make_active:
+            try:
+                iface.setActiveLayer(layer)
+            except Exception:
+                pass
+
     @staticmethod
-    def find_features_by_values(layer: QgsVectorLayer, field_name: str, values: List[str]) -> List[QgsFeature]:
+    def find_features_by_fields_and_values(layer: QgsVectorLayer, field_name: str, values: List[str]) -> List[QgsFeature]:
         if not layer or not layer.isValid() or not values:
             return []
         lookup = set(values)
@@ -206,17 +394,12 @@ class MapHelpers:
                 continue
         return matches
 
-    @staticmethod
-    def select_and_zoom_features(layer: QgsVectorLayer, features: List[QgsFeature], filter_layer: bool = False) -> None:
-        if not layer or not layer.isValid() or not features:
-            return
-        MapHelpers._zoom_to_features_in_layer(features, layer, select=True, filter_layer=filter_layer)
 
 class ActiveLayersHelper:
 
     @staticmethod
     def _get_active_property_layer():
-        layer_id = SettingsService().module_main_layer_id(Module.PROPERTY.value) or ""
+        layer_id = SettingsService().module_main_layer_name(Module.PROPERTY.value) or ""
         active_layer = MapHelpers.resolve_layer(layer_id)
         if not active_layer:
             ModernMessageDialog.Warning_messages_modern(

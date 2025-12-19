@@ -145,11 +145,11 @@ class SessionManager:
         msg.exec_()
         if msg.clickedButton() == login_btn:
             #print("[SessionManager] Log in button clicked")
-            return "login"
+            return True
         else:
             #print("[SessionManager] Cancel button clicked")
             SessionManager.clear()
-            return "cancel"
+            return False
 
     @staticmethod
     def setSession(apiToken, user):

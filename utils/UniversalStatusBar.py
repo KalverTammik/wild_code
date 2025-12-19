@@ -126,12 +126,11 @@ class UniversalStatusBar:
         self.canceled = False  # Add cancellation flag
         
         self.widget = self._build_ui()
-        self.progress_bar = self.widget.findChild(QProgressBar, "progressBar")
-        self.title_label = self.widget.findChild(QLabel, "titleLabel")
-        self.main_label = self.widget.findChild(QLabel, "mainLabel")
-        self.text1_label = self.widget.findChild(QLabel, "text1Label")
-        self.text2_label = self.widget.findChild(QLabel, "text2Label")
-
+        self.progress_bar = self.widget.findChild(QProgressBar, "progressBar", Qt.FindChildrenRecursively)
+        self.title_label = self.widget.findChild(QLabel, "titleLabel", Qt.FindChildrenRecursively)
+        self.main_label = self.widget.findChild(QLabel, "mainLabel", Qt.FindChildrenRecursively)
+        self.text1_label = self.widget.findChild(QLabel, "text1Label", Qt.FindChildrenRecursively)
+        self.text2_label = self.widget.findChild(QLabel, "text2Label", Qt.FindChildrenRecursively)
         self.progress_bar.setValue(initial_value)
         self.progress_bar.setMaximum(maximum)
         self.title_label.setText(title)
@@ -149,7 +148,7 @@ class UniversalStatusBar:
             flags |= Qt.WindowStaysOnTopHint
         self.widget.setWindowFlags(flags)
 
-        self.widget.setAttribute(Qt.WA_TranslucentBackground)
+        #self.widget.setAttribute(Qt.WA_TranslucentBackground)
         self.widget.setAttribute(Qt.WA_DeleteOnClose)
 
         # Enable mouse tracking for drag functionality

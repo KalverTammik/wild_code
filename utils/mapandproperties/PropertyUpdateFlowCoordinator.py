@@ -1,5 +1,14 @@
+from PyQt5.QtCore import QSignalBlocker
 from PyQt5.QtWidgets import QMessageBox
 
+from ...languages.translation_keys import TranslationKeys
+from ...constants.layer_constants import IMPORT_PROPERTY_TAG
+from ...constants.settings_keys import SettingsService
+from ...utils.mapandproperties.PropertyTableManager import PropertyTableManager
+from ...utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
+from ...languages.language_manager import LanguageManager 
+from ...utils.MapTools.MapHelpers import MapHelpers
+from ...utils.url_manager import Module
 
 class PropertyUpdateFlowCoordinator:
     """
@@ -7,155 +16,158 @@ class PropertyUpdateFlowCoordinator:
     Separated for better maintainability.
     """
 
-    def __init__(self, data_loader, table_manager, county_combo, municipality_combo, city_combo, lang_manager):
-        self.data_loader = data_loader
-        self.table_manager = table_manager
-        self.county_combo = county_combo
-        self.municipality_combo = municipality_combo
-        self.city_combo = city_combo
-        self.lang_manager = lang_manager
 
-    def on_county_changed(self, county_name):
-        """Handle county selection change"""
-        if not self.municipality_combo or not self.table_manager:
+    @staticmethod
+    def load_county_combo(county_combo, layer):
+        """Load data from the property layer"""
+
+        # Load counties using data loader
+        counties = PropertyDataLoader().load_counties(layer)
+
+        # Populate county dropdown (avoid emitting signals during repopulation)
+        blocker = QSignalBlocker(county_combo)
+        try:
+            county_combo.clear()
+            county_combo.addItem(
+                LanguageManager().translate(TranslationKeys.SELECT_COUNTY) or "Vali maakond", "")
+
+            for county in counties:
+                county_combo.addItem(county, county)
+        finally:
+            del blocker
+
+    @staticmethod
+    def on_county_changed(county_name, municipality_combo, table):
+        """Handle county selection change."""
+        
+        if not municipality_combo or not PropertyTableManager():
             return  # UI not fully initialized yet
             
-        if not county_name or county_name == (self.lang_manager.translate("Select County") or "Vali maakond"):
+        if not county_name or county_name == (LanguageManager().translate("Select County") or "Vali maakond"):
+            #block table signals for performance
+            table.blockSignals(True)
             # Clear municipality dropdown
-            self.municipality_combo.clear()
-            self.municipality_combo.addItem(self.lang_manager.translate("Select Municipality") or "Vali omavalitsus", "")
-            self.municipality_combo.setEnabled(False)
+            blocker = QSignalBlocker(municipality_combo)
+            try:
+                municipality_combo.clear()
+                municipality_combo.addItem(LanguageManager().translate("Select Municipality") or "Vali omavalitsus", "")
+                municipality_combo.setEnabled(False)
+            finally:
+                del blocker
             # Clear properties table
-            self.table_manager.populate_properties_table([])
+            PropertyTableManager().populate_properties_table([], table)
+            table.blockSignals(False)
             return
 
         # Load municipalities for selected county
+        municipalities = PropertyDataLoader().load_municipalities_for_county(county_name)
+
+        # Populate municipality dropdown
+        blocker = QSignalBlocker(municipality_combo)
         try:
-            municipalities = self.data_loader.load_municipalities_for_county(county_name)
-
-            # Populate municipality dropdown
-            self.municipality_combo.clear()
-            self.municipality_combo.addItem(self.lang_manager.translate("Select Municipality") or "Vali omavalitsus", "")
-
+            municipality_combo.clear()
+            municipality_combo.addItem(LanguageManager().translate("Select Municipality") or "Vali omavalitsus", "")
             for municipality in municipalities:
-                self.municipality_combo.addItem(municipality, municipality)
+                municipality_combo.addItem(municipality, municipality)
+            municipality_combo.setEnabled(True)
+        finally:
+            del blocker
 
-            self.municipality_combo.setEnabled(True)
-
-        except Exception as e:
-            parent_widget = self.municipality_combo.parent() if self.municipality_combo else None
-            QMessageBox.warning(
-                parent_widget,
-                self.lang_manager.translate("Data Loading Error") or "Andmete laadimise viga",
-                self.lang_manager.translate("Failed to load municipalities from layer.") or
-                f"Omavalitsuste laadimine kihist ebaõnnestus: {str(e)}"
-            )
-
-    def on_municipality_changed(self, municipality_name):
+    @staticmethod
+    def on_municipality_changed(municipality_name, county_combo, municipality_combo, city_combo, table):
         """Handle municipality selection change"""
-        if not self.table_manager or not self.county_combo or not self.municipality_combo:
-            return  # UI not fully initialized yet
             
-            
-        if not municipality_name or municipality_name == (self.lang_manager.translate("Select Municipality") or "Vali omavalitsus"):
+        if not municipality_name or municipality_name == (LanguageManager().translate("Select Municipality") or "Vali omavalitsus"):
             # Clear city/settlement dropdown
-            if self.city_combo is not None:
-                self.city_combo.clear()
-                self.city_combo.setEnabled(False)
+            if city_combo is not None:
+                blocker = QSignalBlocker(city_combo)
+                try:
+                    city_combo.clear()
+                    city_combo.setEnabled(False)
+                finally:
+                    del blocker
             # Clear properties table
-            self.table_manager.populate_properties_table([])
+            table.blockSignals(True)
+            PropertyTableManager().populate_properties_table([], table)
+            table.blockSignals(False)
             return
 
         # Load settlements for selected municipality
-        county_name = self.county_combo.currentData()
-        municipality_name = self.municipality_combo.currentData()
-        try:
-            settlements = self.data_loader.load_settlements_for_municipality(county_name, municipality_name)
+        county_name = county_combo.currentData()
+        municipality_name = municipality_combo.currentData()
 
-            # Populate settlement dropdown
-            if self.city_combo is not None:
-                self.city_combo.clear()
+        settlements = PropertyDataLoader().load_settlements_for_municipality(county_name, municipality_name)
+        # Populate settlement dropdown
+        if city_combo is not None:
+            blocker = QSignalBlocker(city_combo)
+            try:
+                city_combo.clear()
                 if settlements:
                     # Add all settlements to the checkable combo box
                     for settlement in settlements:
-                        self.city_combo.addItem(settlement)
-                    self.city_combo.setEnabled(True)
+                        city_combo.addItem(settlement)
+                    city_combo.setEnabled(True)
                 else:
-                    self.city_combo.setEnabled(False)
-                self.city_combo.update()
-
-            # Load properties for selected municipality
-            properties = self.data_loader.load_properties_for_municipality(county_name, municipality_name)
-            self.table_manager.populate_properties_table(properties)
-            #print(f"DEBUG: Loaded {len(properties)} properties")
-
-        except Exception as e:
-            print(f"DEBUG: Error in on_municipality_changed: {e}")
-            parent_widget = self.municipality_combo.parent() if self.municipality_combo else None
-            QMessageBox.warning(
-                parent_widget,
-                self.lang_manager.translate("Data Loading Error") or "Andmete laadimise viga",
-                self.lang_manager.translate("Failed to load settlements and properties from layer.") or
-                f"Asustusüksuste ja kinnistute laadimine kihist ebaõnnestus: {str(e)}"
-            )
-
-    def on_city_changed(self):
+                    city_combo.setEnabled(False)
+                city_combo.update()
+            finally:
+                del blocker
+        # Load properties for selected municipality
+        properties = PropertyDataLoader().load_properties_for_municipality(county_name, municipality_name)
+        result = PropertyTableManager().populate_properties_table(properties, table)
+        if result == True:            
+            table.selectAll()
+   
+    @staticmethod
+    def on_city_changed(table=None,county_combo=None, municipality_combo=None, city_combo=None):
         """Handle settlement/city selection change"""
-        if not self.table_manager or not self.county_combo or not self.municipality_combo:
-            return  # UI not fully initialized
-            
-        if self.city_combo is None:
-            return
             
         # Get checked settlements
-        checked_settlements = self.city_combo.checkedItems()
-        
+
+        checked_settlements = city_combo.checkedItems()
+        print(f"DEBUG: Checked settlements: {checked_settlements}")
         if not checked_settlements:
             # No settlements selected - show all properties for the municipality
-            county_name = self.county_combo.currentData()
-            municipality_name = self.municipality_combo.currentData()
+            print(f"DEBUG: no settlements selected, loading all properties for municipality")
+            county_name = county_combo.currentData()
+            municipality_name = municipality_combo.currentData()
             if county_name and municipality_name:
-                try:
-                    properties = self.data_loader.load_properties_for_municipality(county_name, municipality_name)
-                    self.table_manager.populate_properties_table(properties)
-                except Exception as e:
-                    parent_widget = self.city_combo.parent() if self.city_combo is not None else None
-                    QMessageBox.warning(
-                        parent_widget,
-                        self.lang_manager.translate("Data Loading Error") or "Andmete laadimise viga",
-                        self.lang_manager.translate("Failed to load properties from layer.") or
-                        f"Kinnistute laadimine kihist ebaõnnestus: {str(e)}"
-                    )
-            return
+                properties = PropertyDataLoader().load_properties_for_municipality(county_name, municipality_name)
+                table.blockSignals(True)
+                result = PropertyTableManager().populate_properties_table(properties, table)
+                table.blockSignals(False)
+                if result == True:
+                    table.selectAll()
+                return
 
         # Load properties for selected settlements
-        county_name = self.county_combo.currentData()
-        municipality_name = self.municipality_combo.currentData()
-        try:
-            # Load properties for each selected settlement and combine
-            all_properties = []
-            for settlement in checked_settlements:
-                properties = self.data_loader.load_properties_for_settlement(county_name, municipality_name, settlement)
-                all_properties.extend(properties)
+        county_name = county_combo.currentData()
+        municipality_name = municipality_combo.currentData()
+        # Load properties for each selected settlement and combine
+        all_properties = []
+        for settlement in checked_settlements:
+            properties = PropertyDataLoader().load_properties_for_settlement(county_name, municipality_name, settlement)
+            all_properties.extend(properties)
+        print(f"DEBUG: adding properties for settelments as there was selection")
+        table.blockSignals(True)
+        result = PropertyTableManager().populate_properties_table(all_properties, table)
+        table.blockSignals(False)
+        if result == True:
+            table.selectAll()
+            from ...utils.MapTools.item_selector_tools import PropertiesSelectors
+            PropertiesSelectors.show_connected_properties_on_map_from_table(table, use_shp=True)
+    
+    @staticmethod
+    def start_adding_properties(table=None):
+        selected_features = PropertyTableManager().get_selected_features(table)
+        if selected_features:
+            # Clear the layer filter to show all features again
             
-            self.table_manager.populate_properties_table(all_properties)
-
-        except Exception as e:
-            parent_widget = self.city_combo.parent() if self.city_combo is not None else None
-            QMessageBox.warning(
-                parent_widget,
-                self.lang_manager.translate("Data Loading Error") or "Andmete laadimise viga",
-                self.lang_manager.translate("Failed to load properties from layer.") or
-                f"Kinnistute laadimine kihist ebaõnnestus: {str(e)}"
-            )
-
-    def collect_active_selections_from_table(self):
-        """Get the selected properties data"""
-        
-            
-        selected_features = self.table_manager.get_selected_features()
-
-        if not selected_features:
-            return None
-
-        return selected_features
+            layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+            if layer:
+                #MapHelpers.set_layer_filter_to_features(layer, selected_features)
+                MapHelpers.set_layer_filter_to_selected_features(layer)
+            taret_layer_name = SettingsService().module_main_layer_name(Module.PROPERTY.value)
+            active_layer = MapHelpers.find_layer_by_name(taret_layer_name)
+            if active_layer:
+                MapHelpers.ensure_layer_visible(active_layer, make_active=True)

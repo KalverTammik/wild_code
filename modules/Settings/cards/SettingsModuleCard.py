@@ -102,8 +102,8 @@ class SettingsModuleCard(SettingsBaseCard):
 
         primary_layer_group, primary_layer_widget = SettingsModuleFeatureCard.build_filter_group(
             parent=layers_container,
-            title_key=TranslationKeys.MODULES_MAIN_LAYER,
-            description_key=TranslationKeys.MAIN_LAYER_DESCRIPTION,
+            title_key=TranslationKeys.MAIN_PROPERTY_LAYER,
+            description_key=TranslationKeys.PROPERTY_LAYER_OVERVIEW,
             group_object_name="MainLayerGroup",
             container_object_name="LayerSelectorContainer",
             widget_factory=lambda container: self._create_layer_combobox(container),

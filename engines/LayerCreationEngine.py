@@ -296,7 +296,7 @@ class LayerCreationEngine:
         memory_layer = self.create_memory_layer_from_template(
             new_layer_name, template_layer
         )
-
+        print(f"[LayerCreationEngine] Created memory layer: {memory_layer}")
         if not memory_layer:
             return None
 
@@ -306,7 +306,7 @@ class LayerCreationEngine:
         # Apply default QML style for property layers
         self.apply_qml_style(memory_layer, "properties_background_new")
 
-        return new_layer_name
+        return memory_layer
 
     def save_memory_layer_to_geopackage(
         self,
@@ -582,14 +582,16 @@ class LayerCreationEngine:
         """
         memory_layer_name = f"{layer_name}_memory"
 
+        print(f"[LayerCreationEngine] Import start: layer={layer_name}, group={group_name}")
+
         # Create memory layer with correct structure using existing method
         result = self.copy_virtual_layer_for_properties(
             memory_layer_name,
             group_name,
             shp_layer
         )
-
-        if not result:
+        print(f"[LayerCreationEngine] Memory layer creation result: {result}")
+        if result== None:
             return None
 
         # Get the created memory layer
@@ -609,6 +611,8 @@ class LayerCreationEngine:
         # Get total feature count
         total_features = shp_layer.featureCount()
 
+        print(f"[LayerCreationEngine] Source features: {total_features}")
+
         if total_features == 0:
             # No features to import, just finalize
             memory_layer.updateExtents()
@@ -616,23 +620,17 @@ class LayerCreationEngine:
 
         # Create progress dialog
         progress = None
-        if parent_widget:
-            try:
-                progress_title = "Importing Shapefile" if not self.lang_manager else \
-                    (self.lang_manager.translate("Importing Shapefile") or "Importing Shapefile")
-                progress = UniversalStatusBar(
-                    title=progress_title,
-                    maximum=total_features,
-                    theme=ThemeManager.load_theme_setting()
-                )
-                print(f"Progress dialog created successfully")
-            except Exception as e:
-                print(f"Warning: Failed to create progress dialog: {e}")
-                progress = None
-
+        progress_title = "Importing Shapefile" 
+        progress = UniversalStatusBar(
+            title=progress_title,
+            maximum=total_features,
+            theme=ThemeManager.load_theme_setting()
+        )
+        print("[LayerCreationEngine] Progress dialog created")
         # Get data provider for batch operations
         provider = memory_layer.dataProvider()
         if not provider:
+            print("[LayerCreationEngine] No data provider for memory layer")
             return None
 
         # Disable undo stack for bulk operations (still useful for memory management)
@@ -646,6 +644,8 @@ class LayerCreationEngine:
         batch_size = batch_size if batch_size and batch_size > 0 else 5000
         features_added = 0
         progress_update_interval = progress_update_interval if progress_update_interval and progress_update_interval > 0 else 2000
+
+        print(f"[LayerCreationEngine] Using batch_size={batch_size}, progress_interval={progress_update_interval}")
 
         # Disable signals during bulk operations for maximum performance
         memory_layer.blockSignals(True)
@@ -686,81 +686,38 @@ class LayerCreationEngine:
                     return None
                 features_added += len(features_batch)
 
+            print(f"[LayerCreationEngine] Features imported: {features_added}")
+
             # Update progress to indicate finalization (reuse progress UI instead of a separate dialog)
             if progress:
-                try:
-                    final_touches_text = "Adding final touches..." if not self.lang_manager else \
-                        (self.lang_manager.translate("Adding final touches...") or "Adding final touches...")
-                    progress.update(
-                        value=total_features,
-                        text1=final_touches_text,
-                        text2=f"Features copied: {features_added}"
-                    )
-                    QCoreApplication.processEvents()
-                except Exception:
-                    # If progress widget fails, continue finalization without blocking
-                    pass
+                final_touches_text = "Adding final touches..." if not self.lang_manager else \
+                    (self.lang_manager.translate("Adding final touches...") or "Adding final touches...")
+                progress.update(
+                    value=total_features,
+                    text1=final_touches_text,
+                    text2=f"Features copied: {features_added}"
+                )
+                QCoreApplication.processEvents()
 
-            # Finalize the layer
-            try:
-                memory_layer.updateExtents()
-                # Skip print for performance
-            except Exception as e:
-                # Skip warning print for performance
-                pass  # Extents update is optional
+            memory_layer.updateExtents()
 
-            try:
-                provider.createSpatialIndex()
-                # Skip print for performance
-            except Exception as e:
-                # Skip warning print for performance
-                pass  # Spatial index creation is optional
+            provider.createSpatialIndex()
 
-            # For memory layers with direct provider operations, no commit needed
-            # Apply style (skip for performance if not critical)
-            try:
-                style_path = get_style("maa_amet_import")
-                if os.path.exists(style_path):
-                    memory_layer.loadNamedStyle(style_path)
-                    # Skip print for performance
-                # Skip else print for performance
-            except Exception as e:
-                # Skip style loading errors for performance
-                pass
+            style_path = QmlPaths.get_style("maa_amet_import")
+            if os.path.exists(style_path):
+                memory_layer.loadNamedStyle(style_path)
+                print(f"[LayerCreationEngine] Style applied: {style_path}")
 
-            # Show completion on the reused progress dialog and then show a single success dialog
-            try:
-                if progress:
-                    try:
-                        complete_text = "Import complete!" if not self.lang_manager else \
-                            (self.lang_manager.translate("Import complete!") or "Import complete!")
-                        progress.update(
-                            value=total_features,
-                            text1=complete_text,
-                            text2=f"{features_added} features imported"
-                        )
-                        # Close progress after a short delay to let user see the final state
-                        QTimer.singleShot(1200, lambda: progress.close())
-                    except Exception:
-                        try:
-                            progress.close()
-                        except Exception:
-                            pass
-
-                # Do not show a modal success dialog here. The caller is responsible for
-                # informing the user (so we don't display duplicate notifications).
-                # Keep the progress widget showing the final state and close it shortly.
-                try:
-                    if progress:
-                        # Progress was already updated above; ensure it will be closed.
-                        QTimer.singleShot(1200, lambda: progress.close())
-                except Exception as e:
-                    print(f"Warning: Could not finalize progress dialog: {e}")
-                    print(f"Import completed: {features_added} features imported to {memory_layer_name}")
-            except Exception as e:
-                # Outer completion/finalization step failed; log and continue cleanup
-                print(f"Warning: Could not finalize import completion: {e}")
-                print(f"Import completed: {features_added} features imported to {memory_layer_name}")
+            if progress:
+                complete_text = "Import complete!" if not self.lang_manager else \
+                    (self.lang_manager.translate("Import complete!") or "Import complete!")
+                progress.update(
+                    value=total_features,
+                    text1=complete_text,
+                    text2=f"{features_added} features imported"
+                )
+                # Close progress after a short delay to let user see the final state
+                QTimer.singleShot(1200, lambda: progress.close())
 
             # Restore undo stack
             if original_undo_stack:
@@ -777,29 +734,16 @@ class LayerCreationEngine:
             import traceback
             traceback.print_exc()
             # Close any open progress dialog on unexpected error
-            try:
-                if progress:
-                    progress.close()
-            except:
-                pass
+            if progress:
+                progress.close()
             return None
         finally:
             # Always restore signals and undo stack
-            try:
-                memory_layer.blockSignals(False)
-            except:
-                pass  # Ignore errors if layer is invalid
+            memory_layer.blockSignals(False)
             if original_undo_stack:
-                try:
-                    memory_layer.setUndoStack(original_undo_stack)
-                except Exception as e:
-                    print(f"Warning: Failed to restore undo stack in finally: {e}")
-            try:
-                if progress:
-                    progress.close()
-            except:
-                pass
-
+                memory_layer.setUndoStack(original_undo_stack)
+            if progress:
+                progress.close()
 
 def get_layer_engine() -> LayerCreationEngine:
     """

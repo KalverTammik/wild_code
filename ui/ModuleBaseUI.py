@@ -23,11 +23,14 @@ from ..feed.feed_load_engine import FeedLoadEngine
 from ..widgets.theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
 from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
+from ..utils.SessionManager import SessionManager
+from ..python.api_client import APIClient
 from ..utils.FilterHelpers.FilterHelper import FilterHelper
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.messagesHelper import ModernMessageDialog
 from ..utils.url_manager import ModuleSupports
+from ..utils.api_error_handling import ApiErrorKind, parse_tagged_message
 
 
 class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget):
@@ -119,7 +122,6 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
 
     def deactivate(self) -> None:
         """Deactivate and optionally cancel engine work."""
-        print(f"[ModuleBaseUI] deactivate called for {self.__class__.__name__} id={id(self)}")
         self._activated = False
         engine = self.feed_load_engine
         if engine:
@@ -264,13 +266,20 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         try:
             return feed_logic.fetch_next_batch() or []
         except Exception as exc:
-            session_msg = LanguageManager.translate_static(TranslationKeys.SESSION_EXPIRED)
-            msg_text = str(exc)
-            if session_msg and (msg_text == session_msg or "Unauthenticated" in msg_text):
-                heading = LanguageManager.translate_static(TranslationKeys.SESSION_EXPIRED_TITLE)
-                ModernMessageDialog.Warning_messages_modern(heading, session_msg)
+            kind, friendly = parse_tagged_message(exc)
+            if kind == ApiErrorKind.AUTH:
+                client = APIClient(session_manager=SessionManager())
+                if client._handle_unauthenticated():
+                    return None
+                # User canceled re-login (or dialog already shown)
+                session_msg = LanguageManager.translate_static(TranslationKeys.SESSION_EXPIRED) or "Session expired"
+                self._show_empty_state(session_msg)
                 return None
-            raise
+
+            shown = friendly or str(exc)
+            if shown:
+                self._show_empty_state(shown)
+            return []
 
     def _filter_new_items(self, items) -> list:
         if not items:

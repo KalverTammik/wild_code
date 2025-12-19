@@ -220,10 +220,10 @@ class TranslationKeys:
     WELCOME = "Welcome"
     SELECT_A_MODULE_FROM_THE_LEFT = "Select a module from the left or open Settings to set your preferred module."
     OPEN_SETTINGS = "Open Settings"
-    MODULES_MAIN_LAYER = "Modules main layer"
+    MAIN_PROPERTY_LAYER = "Properties main layer"
+    PROPERTY_LAYER_OVERVIEW = "Properties main layer description"
     ARCHIVE_LAYER = "Archive layer"
     SELECT_LAYER = "Select layer"
-    MAIN_LAYER_DESCRIPTION = "Main layer description"
     ARCHIVE_LAYER_DESCRIPTION = "Archive layer description"
     CHOOSE_LAYERS_USED_BY_THIS_MODULE = "Choose layers used by this module (element and archive)."
     CHOOSE_PROPERTY_LAYER_FOR_MODULE = "Select a property layer for data operations and management."
@@ -336,6 +336,7 @@ class DialogLabels:
     PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE = "name structure"
     PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED = "name structure enabled"
     PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE = "name structure rule"
+
 
 class RoleTranslationKeys:
     ADMINS = "Admins"

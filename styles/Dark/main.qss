@@ -136,12 +136,76 @@ QListWidget::item:selected {
 
 /* Table specifics */
 
-/* Headers */
-QHeaderView::section {
-    background: #35353f;
+/* ---------- Table chrome aligned with teal/slate scheme ---------- */
+QTableView, QTableWidget {
+    background: #2e2f38;
+    color: #c5c5d2;
+    border: 1px solid #4d4d4d;
+    border-radius: 10px;
+    outline: 0;
+}
+
+/* Teal focus ring like buttons */
+QTableView:focus, QTableWidget:focus {
+    border: 1px solid rgba(9,144,143,0.55);
+}
+
+QTableView::viewport, QTableWidget::viewport {
+    background: #2e2f38;
+}
+
+QTableView::item, QTableWidget::item {
+    background: transparent;
+    color: #c5c5d2;
+    padding: 1px 1px;
+    border: none;
+}
+QTableView::item:alternate, QTableWidget::item:alternate {
+    background: #303a42;
+}
+QTableView::item:hover, QTableWidget::item:hover {
+    background: #3a3f4b;
+}
+QTableView::item:selected, QTableWidget::item:selected {
+    background: rgba(9,144,143,0.55);
+    color: #ececf1;
+}
+QTableView::item:selected:inactive, QTableWidget::item:selected:inactive {
+    background: rgba(9,144,143,0.55);
+    color: #ececf1;
+}
+
+/* Header (dark slate with teal accent) */
+QTableView QHeaderView::section,
+QTableWidget QHeaderView::section {
+    background: rgba(9,144,143,0.50);
     color: #e8e9ef;
-    border: 0.5px solid #323232;
-    padding: 2px 6px;
+    font-weight: 700;
+    padding: 1px 1px;
+    border: none;
+    border-right: 1px solid #1f2937;
+    border-bottom: 2px solid rgb(9,144,143);
+}
+
+/* If you hide vertical header, this won't show; harmless to keep */
+QHeaderView::section:vertical {
+    background: rgba(9,144,143,0.50);
+    color: #e8e9ef;
+    border: none;
+    border-bottom: 1px solid #1f2937;
+}
+
+/* Corner button (top-left) */
+QTableCornerButton::section {
+    background: rgba(9,144,143,0.50);
+    border: none;
+    border-right: 1px solid #1f2937;
+    border-bottom: 2px solid rgb(9,144,143);
+}
+
+/* Slightly nicer header hover (optional) */
+QHeaderView::section:hover {
+    background: rgba(9,144,143,0.75);
 }
 
 /* Tree specifics */
@@ -169,26 +233,58 @@ QGroupBox::title {
     padding: 2px 6px;
 }
 
-/* ---------- Scrollbars ---------- */
-QScrollBar:vertical, QScrollBar:horizontal {
-    background: #2e2f38;
-    border: none;
-    border-radius: 6px;
+/* ---------- Scrollbars to match (rounded handles) ---------- */
+QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 1px;
 }
-QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
-    background: rgb(9,144,143);
-    border-radius: 6px;
-    min-height: 24px;
-    min-width: 24px;
+QScrollBar::handle:vertical {
+    background: rgba(9,144,143,0.40);
+    border-radius: 2px;
+    min-height: 20px;
+    margin: 1px;
+    border: 1px solid rgba(9,144,143,0.25);
 }
-QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
-    background: #0b918f;
+QScrollBar::handle:vertical:hover {
+    background: rgba(9,144,143,0.55);
+    border: 1px solid rgba(9,144,143,0.35);
 }
-QScrollBar::add-line, QScrollBar::sub-line {
-    background: none;
-    height: 0px; width: 0px;
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0px;
+    background: transparent;
 }
-QScrollBar::add-page, QScrollBar::sub-page { background: #2e2f38; }
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 10px;
+    margin: 1px;
+}
+QScrollBar::handle:horizontal {
+    background: rgba(9,144,143,0.40);
+    border-radius: 2px;
+    min-width: 20px;
+    margin: 1px;
+    border: 1px solid rgba(9,144,143,0.25);
+}
+QScrollBar::handle:horizontal:hover {
+    background: rgba(9,144,143,0.55);
+    border: 1px solid rgba(9,144,143,0.35);
+}
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0px;
+    background: transparent;
+}
+QScrollBar::add-page:horizontal,
+QScrollBar::sub-page:horizontal {
+    background: transparent;
+}
 
 /* ---------- Links in rich text labels (global) ---------- */
 QLabel a {

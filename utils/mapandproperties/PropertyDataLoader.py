@@ -1,7 +1,8 @@
+from ...utils.MapTools.MapHelpers import MapHelpers
 from ...constants.layer_constants import IMPORT_PROPERTY_TAG
 from ...constants.cadastral_fields import Katastriyksus
-
-from qgis.core import QgsProject, QgsFeatureRequest
+from ...languages.language_manager import LanguageManager
+from qgis.core import QgsFeatureRequest
 from PyQt5.QtCore import QCoreApplication
 
 
@@ -15,13 +16,6 @@ class PropertyDataLoader:
 
     # --- Utiliidid ---------------------------------------------------------
 
-    def _get_layer_by_tag(self, tag):
-        project = QgsProject.instance()
-        for layer in project.mapLayers().values():
-            # customProperty võib olla bool, number või string; tõlgendame 'truthy' väärtusena
-            if bool(layer.customProperty(tag)):
-                return layer
-        return None
 
     def _ensure_field(self, field_name):
         idx = self.property_layer.fields().lookupField(field_name)
@@ -65,9 +59,10 @@ class PropertyDataLoader:
 
     # --- Init --------------------------------------------------------------
 
-    def __init__(self, lang_manager):
-        self.lang_manager = lang_manager
-        self.property_layer = self._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+    def __init__(self):
+        self.lang_manager = LanguageManager()
+        self.property_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+
 
         # väljade nimed (Katastriyksus enum/klass)
         self.county_field = Katastriyksus.mk_nimi
@@ -87,14 +82,12 @@ class PropertyDataLoader:
 
     # --- Laadijad ----------------------------------------------------------
 
-    def load_counties(self):
+    def load_counties(self, layer):
         """Tagasta unikaalsed maakonnad."""
-        if not self.property_layer:
-            return []
         try:
             idx = self._ensure_field(self.county_field)
             # uniqueValues on QGIS-is optimeeritud ja kasutab vajadusel DB poolset DISTINCT-i
-            values = self.property_layer.uniqueValues(idx)
+            values = layer.uniqueValues(idx)
             counties = {str(v).strip() for v in values if v is not None and str(v).strip()}
             return sorted(counties)
         except Exception as e:
@@ -122,7 +115,7 @@ class PropertyDataLoader:
 
     def load_settlements_for_municipality(self, county_name, municipality_name):
         """Tagasta asulad valitud vallas/linnas (unikaalsed, sorditud)."""
-        print(f"DEBUG: load_settlements_for_municipality called with county: {county_name}, municipality: {municipality_name}")
+        #print(f"DEBUG: load_settlements_for_municipality called with county: {county_name}, municipality: {municipality_name}")
         if not self.property_layer:
             print("DEBUG: No property layer")
             return []
@@ -131,7 +124,7 @@ class PropertyDataLoader:
                 self._eq_expr(self.county_field, county_name),
                 self._eq_expr(self.municipality_field, municipality_name),
             )
-            print(f"DEBUG: Filter expression: {expr}")
+            #print(f"DEBUG: Filter expression: {expr}")
             req = self._request(
                 [self.county_field, self.municipality_field, self.settlement_field],
                 expr,
@@ -190,6 +183,7 @@ class PropertyDataLoader:
             raise
 
     def load_properties_for_settlement(self, county_name, municipality_name, settlement_name):
+
         """Tagasta objektid valitud asulas (ilma geomeetriata)."""
         if not self.property_layer:
             return []
@@ -224,3 +218,4 @@ class PropertyDataLoader:
         except Exception as e:
             print(f"Error loading properties for settlement: {e}")
             raise
+

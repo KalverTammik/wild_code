@@ -41,10 +41,10 @@ TRANSLATIONS = {
     TranslationKeys.NO_PROJECT_LOADED_MESSAGE: "Please load a QGIS project before using this plugin.",
     TranslationKeys.OPEN_SETTINGS: "Open Settings",
     # Added: ModuleCard/layer picker labels
-    TranslationKeys.MODULES_MAIN_LAYER: "Modules main layer",
+    TranslationKeys.MAIN_PROPERTY_LAYER: "Properties main layer",
     TranslationKeys.ARCHIVE_LAYER: "Archive layer",
     TranslationKeys.SELECT_LAYER: "Select layer",
-    TranslationKeys.MAIN_LAYER_DESCRIPTION: "This is your module's primary layer. Choose the layer containing the core data you work with.",
+    TranslationKeys.PROPERTY_LAYER_OVERVIEW: "This is your properties primary layer. Choose the layer containing the core data you work with.",
     TranslationKeys.ARCHIVE_LAYER_DESCRIPTION: "Use an optional archive layer to store historical or backup data versions.",
     TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Choose layers used by this module (element and archive).",
     TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE: "Select a property layer for data operations and management.",

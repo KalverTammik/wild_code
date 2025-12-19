@@ -83,7 +83,23 @@ class PropertyUITools:
             self.update_property_display(active_layer)
         finally:
             self._emit_ui_signal("property_selection_completed")
-            PropertiesSelectors.bring_dialog_to_front(ui)
+            self.bring_dialog_to_front(ui)
+
+    @staticmethod
+    def bring_dialog_to_front(widget) -> None:
+        """Best-effort attempt to bring the widget's top-level window to the foreground."""
+        if widget is None:
+            return
+        try:
+            main_dialog = widget.window()
+            if not main_dialog:
+                return
+            main_dialog.showNormal()
+            main_dialog.raise_()
+            main_dialog.activateWindow()
+        except Exception:
+            # Not fatal if the window cannot be brought to the foreground
+            pass
 
     def update_property_display(self, active_layer, *, trigger_connections: bool = True):
         """Update the UI labels with the selected property data."""
@@ -287,9 +303,8 @@ class PropertyUITools:
             self._show_tree_message("Kinnistu ei leitud")
             return
 
-        PropertiesSelectors.show_connected_properties_on_map([cadastral_number])
+        active_layer = PropertiesSelectors.show_connected_properties_on_map([cadastral_number],Module.PROPERTY.value)
 
-        active_layer = self._resolve_property_layer()
         if active_layer:
             self.update_property_display(active_layer, trigger_connections=False)
         else:
@@ -303,20 +318,7 @@ class PropertyUITools:
         friendly = message or "Kinnistu ei leitud"
         self._show_tree_message(friendly)
 
-    def _resolve_property_layer(self):
-        layer = ActiveLayersHelper._get_active_property_layer()
-        if layer:
-            return layer
-        try:
-            layer_id = self._settings.module_main_layer_id(Module.PROPERTY.value)
-        except Exception:
-            layer_id = None
-        if layer_id:
-            try:
-                return PropertiesSelectors._layer_for_type(layer_id)
-            except Exception:
-                return None
-        return None
+
 
     def _show_tree_message(self, message: str):
         ui = self._get_active_ui()

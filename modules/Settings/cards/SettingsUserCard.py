@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QCheckBox, QButtonGroup
 )
 from ....languages.translation_keys import TranslationKeys
-from .SettingsPropertyManagement import PropertyManagement
+from .SettingsPropertyManagement import PropertyManagementUI
 from .SettingsBaseCard import SettingsBaseCard  # assumes BaseCard provides: content_widget(), retheme(), etc.
 
 
@@ -14,11 +14,8 @@ class UserSettingsCard(SettingsBaseCard):
     Product-level user card displaying user info, module access,
     """
     preferredModuleChanged = pyqtSignal(object)
-    addShpClicked = pyqtSignal()
-    addPropertyClicked = pyqtSignal()
-    removePropertyClicked = pyqtSignal()
 
-    def __init__(self, lang_manager):
+    def __init__(self, lang_manager, payload=None):
         super().__init__(lang_manager, lang_manager.translate(TranslationKeys.USER), None)
 
         cw = self.content_widget()
@@ -38,14 +35,20 @@ class UserSettingsCard(SettingsBaseCard):
         left_column = QVBoxLayout()
         left_column.setSpacing(4)
 
+        loading_text = self.lang_manager.translate(TranslationKeys.LOADING) if self.lang_manager else "Loading"
+        placeholder = f"{loading_text}…"
+
+
         # Name prominently displayed
         self.lbl_name = QLabel(self.lang_manager.translate(TranslationKeys.NAME) + ": —", user_info_card)
         self.lbl_name.setObjectName("UserName")
+        self.lbl_name.setText(placeholder)
         left_column.addWidget(self.lbl_name)
-        
+
         # Email below name
         self.lbl_email = QLabel(self.lang_manager.translate(TranslationKeys.EMAIL) + ": —", user_info_card)
         self.lbl_email.setObjectName("UserEmail")
+        self.lbl_email.setText(placeholder)
         left_column.addWidget(self.lbl_email)
 
         left_column.addStretch(1)  # Push content to top
@@ -56,9 +59,10 @@ class UserSettingsCard(SettingsBaseCard):
         right_column.setSpacing(4)
 
         # Roles label
-        roles_label = QLabel(self.lang_manager.translate(TranslationKeys.ROLES), user_info_card)
-        roles_label.setObjectName("UserRolesLabel")
-        right_column.addWidget(roles_label)
+        lbl_roles = QLabel(self.lang_manager.translate(TranslationKeys.ROLES), user_info_card)
+        lbl_roles.setObjectName("UserRolesLabel")
+        lbl_roles.setText(placeholder)
+        right_column.addWidget(lbl_roles)
 
         # Roles value (separate line)
         self.lbl_roles = QLabel("—", user_info_card)
@@ -72,36 +76,51 @@ class UserSettingsCard(SettingsBaseCard):
 
         # ---------- Module access (pills with checkboxes) ----------
         module_access_frame = QFrame(cw)
-        module_access_frame.setObjectName("SettingsMainInfoCard")
+        module_access_frame.setObjectName("SetupCard")
+
         module_access_layout = QVBoxLayout(module_access_frame)
-        module_access_layout.setContentsMargins(0, 0, 0, 0)
-        module_access_layout.setSpacing(2)
+        module_access_layout.setContentsMargins(6, 6, 6, 6)
+        module_access_layout.setSpacing(6)
 
-        pills_title = QLabel(self.lang_manager.translate(TranslationKeys.MODULE_ACCESS), module_access_frame)
-        pills_title.setObjectName("SetupCardSectionTitle")
-        module_access_layout.addWidget(pills_title)
+        # --- Title row ---
+        title_frame = QFrame(module_access_frame)
+        title_layout = QHBoxLayout(title_frame)
+        title_layout.setContentsMargins(1, 1, 1, 1)
 
+        pills_title = QLabel(
+            self.lang_manager.translate(TranslationKeys.MODULE_ACCESS),
+            title_frame,
+        )
+        pills_title.setObjectName("SetupCardTitle")
+        title_layout.addWidget(pills_title)
+        title_layout.addStretch()
+
+        module_access_layout.addWidget(title_frame)
+
+        # --- Access pills container ---
         self.access_container = QFrame(module_access_frame)
         self.access_container.setObjectName("AccessPills")
 
         self.access_layout = QHBoxLayout(self.access_container)
         self.access_layout.setContentsMargins(0, 0, 0, 0)
-        self.access_layout.setSpacing(8)  # Increased spacing for better visual separation
+        self.access_layout.setSpacing(8)  # Better visual separation between pills
+
         module_access_layout.addWidget(self.access_container)
 
-        cl.addWidget(module_access_frame)
-
+        # QButtonGroup for preferred module
         self._preferred_group = QButtonGroup(self)
         self._preferred_group.setExclusive(True)
 
-        # ---------- Property Management Widget ----------
+        # ---------- Property Management Widget (inside same card) ----------
+        self.property_management_container = QFrame(module_access_frame)
+        pm_layout = QVBoxLayout(self.property_management_container)
+        pm_layout.setContentsMargins(0, 0, 0, 0)
+        pm_layout.setSpacing(4)
+        self.property_management = None
 
-        self.property_management = PropertyManagement(self.lang_manager)
-        # Connect signals from property management widget
-        self.property_management.addShpClicked.connect(self.addShpClicked)
-        self.property_management.addPropertyClicked.connect(self.addPropertyClicked)
-        self.property_management.removePropertyClicked.connect(self.removePropertyClicked)
-        cl.addWidget(self.property_management)
+        # ---------- Lõpuks lisa kaart peamisse layout'i ----------
+        cl.addWidget(module_access_frame)
+        cl.addWidget(self.property_management_container)
 
         # Internal state
         self._check_by_module = {}
@@ -110,12 +129,30 @@ class UserSettingsCard(SettingsBaseCard):
 
     # ---------- Public API (SettingsUI uses these) ----------
 
-    def set_update_permissions(self, update_permissions: dict):
-        """Set which modules the user can update/modify"""
-        self._update_permissions = update_permissions or {}
-        #print(f"DEBUG: Update permissions set: {self._update_permissions}")
 
-    def set_access_map(self, access_map: dict):
+    def build_property_managment(self, can_create_property: bool):
+        pm_layout = self.property_management_container.layout()
+        if pm_layout is None:
+            pm_layout = QVBoxLayout(self.property_management_container)
+            pm_layout.setContentsMargins(0, 0, 0, 0)
+            pm_layout.setSpacing(0)
+
+        # Clear existing widget if any
+        if self.property_management is not None:
+            try:
+                pm_layout.removeWidget(self.property_management)
+                self.property_management.setParent(None)
+            except Exception:
+                pass
+            self.property_management = None
+
+        if can_create_property:
+            self.property_management = PropertyManagementUI(self.lang_manager)
+            pm_layout.addWidget(self.property_management)
+
+
+
+    def build_and_set_access_controls(self, access_map: dict):
         # Clear previous pills and checks
         self._clear_layout(self.access_layout)
         for btn in list(self._preferred_group.buttons()):
@@ -130,7 +167,7 @@ class UserSettingsCard(SettingsBaseCard):
             pill.setObjectName("AccessPill")
             pill.setFocusPolicy(Qt.StrongFocus)  # allows focus ring via :focus-within
             hl = QHBoxLayout(pill)
-            hl.setContentsMargins(8, 2, 8, 2)  # Consistent padding with roles pills
+            hl.setContentsMargins(2, 2, 2, 2)  # Consistent padding with roles pills
             hl.setSpacing(6)
 
             chk = QCheckBox(pill)
@@ -217,10 +254,7 @@ class UserSettingsCard(SettingsBaseCard):
 
     def _reset_click_targets(self):
         for w in list(self._pill_click_targets.keys()):
-            try:
-                w.removeEventFilter(self)
-            except Exception:
-                pass
+            w.removeEventFilter(self)
         self._pill_click_targets.clear()
 
     def eventFilter(self, obj, event):
@@ -257,5 +291,3 @@ class UserSettingsCard(SettingsBaseCard):
             self._preferred_group.setExclusive(True)
         else:
             checkbox.click()
-
-

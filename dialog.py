@@ -43,6 +43,7 @@ from .utils.search.searchHelpers import SearchHeplpers
 
 
 
+
 # Shared managers for all modules
 theme_manager = ThemeManager()
 
@@ -54,11 +55,8 @@ class PluginDialog(QDialog):
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            print("[dialog] __new__ creating instance")
             cls._instance = super(PluginDialog, cls).__new__(cls, *args, **kwargs)
             cls._instance._initialized = False
-        else:
-            print("[dialog] __new__ reusing instance")
         return cls._instance
 
     def __init__(self, parent=None):
@@ -66,10 +64,7 @@ class PluginDialog(QDialog):
 
         # Prevent reinitialization ASAP (no side-effects before this)
         if self._initialized:
-            print(f"[dialog] __init__ skip reinit id={id(self)}")
             return
-
-        print(f"[dialog] __init__ start id={id(self)}")
 
         self._has_shown = False
 
@@ -186,16 +181,14 @@ class PluginDialog(QDialog):
 
         def _open_folder_rule(_module_key: str, _key: str, current_value: str):
             print("[DEBUG] Opening folder naming rule dialog")
-            try:
-                dlg = FolderNamingRuleDialog(self.lang_manager, self, initial_rule=current_value or "")
-                result = dlg.exec_()
-                if result == QDialog.Accepted:
-                    return dlg.get_rule()
-                return current_value
-            except Exception as exc:
-                QMessageBox.warning(self, "Folder rule dialog failed", str(exc))
-                return current_value
+            dlg = FolderNamingRuleDialog(self.lang_manager, self, initial_rule=current_value or "")
+            result = dlg.exec_()
+            if result == QDialog.Accepted:
+                return dlg.get_rule()
+            return current_value
+            
 
+            
     
         self.moduleManager.registerModule(
             WelcomePage, 
@@ -213,6 +206,7 @@ class PluginDialog(QDialog):
             qss_files=qss_modular, 
             lang_manager=self.lang_manager,
             supports_archive_layer=True,
+            
         )
         self.moduleManager.registerModule(
             ProjectsModule, 
@@ -231,11 +225,6 @@ class PluginDialog(QDialog):
                  "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_TARGET_FOLDER), 
                  "tool": "button",
                  "on_click": _pick_folder},
-
-                {"key": SettingDialogPlaceholders.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED,
-                    "tool": "checkBox",
-                    "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED),
-                    "on_click": None},
 
                 {"key": SettingDialogPlaceholders.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE,
                     "tool": "button",

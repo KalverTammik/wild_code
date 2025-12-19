@@ -117,7 +117,7 @@ class SettingsService:
             default="",
         )
 
-    def module_main_layer_id(self, module_name: str, value=_UNSET, *, clear: bool = False):
+    def module_main_layer_name(self, module_name: str, value=_UNSET, *, clear: bool = False):
         return self.module_setting(
             module_name,
             MODULE_SETTING_MAIN_LAYER,

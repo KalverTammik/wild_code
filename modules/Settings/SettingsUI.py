@@ -1,5 +1,6 @@
 
 import time
+import json
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import pyqtSignal
 from .SettinsUtils.userUtils import userUtils
@@ -14,6 +15,7 @@ from ...module_manager import ModuleManager, MODULES_LIST_BY_NAME
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
 from ...python.workers import FunctionWorker, start_worker
+
 
 
 from ...languages.language_manager import LanguageManager
@@ -40,7 +42,6 @@ class SettingsModule(QWidget):
         # Logic layer
         self.logic = SettingsLogic()
         self._cards = []
-        self._initialized = False
         self._pending_changes = False
         # Global footer controls
         self._footer_frame = None
@@ -50,9 +51,8 @@ class SettingsModule(QWidget):
         self._user_fetch_thread = None
         self._user_fetch_worker = None
         self._user_fetch_request_id = 0
-        self._last_user_payload_sig = None
-        self._module_cards_activated = False
         self._settings_loaded_once = False
+        self.user_payload = None
         self.setup_ui()
         # Centralized theming
         ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
@@ -70,7 +70,7 @@ class SettingsModule(QWidget):
         root.addWidget(self.scroll_area)
 
         # Add one User card first
-        user_card = self._build_user_setup_card()
+        user_card = self._build_user_setup_card(payload=self.user_payload)
         self._cards.append(user_card)
         self.cards_layout.insertWidget(0, user_card)
 
@@ -105,12 +105,12 @@ class SettingsModule(QWidget):
         root.addWidget(self._footer_frame)
         self._footer_frame.setVisible(False)
 
-    def _build_user_setup_card(self) -> QWidget:
-        card = UserSettingsCard(self.lang_manager)
+    def _build_user_setup_card(self, payload=None) -> QWidget:
+        card = UserSettingsCard(self.lang_manager, payload)
         card.setObjectName("SetupCard")
         card.setProperty("cardTone", "user")
         card.preferredModuleChanged.connect(self._user_preferred_module_changed)
-        # Keep references needed for labels and later use
+    
         self._user_card = card
         return card
 
@@ -159,11 +159,8 @@ class SettingsModule(QWidget):
         return card
 
     def _activate_module_cards(self):
-        for card in self._module_cards.values():
-            try:
-                card.on_settings_activate()
-            except Exception as exc:
-                print(f"Failed to activate settings card for {getattr(card, 'module_key', 'unknown')}: {exc}")
+        for card in self._module_cards.values():            
+            card.on_settings_activate()
         return
 
     def activate(self):
@@ -175,9 +172,8 @@ class SettingsModule(QWidget):
             self._cancel_user_fetch_worker()
 
         self._user_fetch_request_id += 1
-        self._set_user_labels_loading()
 
-        worker = FunctionWorker(userUtils.fetch_user_payload, self.lang_manager)
+        worker = FunctionWorker(userUtils.fetch_user_payload)
         worker.request_id = self._user_fetch_request_id
         worker.finished.connect(self._handle_user_worker_success)
         worker.error.connect(self._handle_user_worker_error)
@@ -187,32 +183,54 @@ class SettingsModule(QWidget):
     def _handle_user_worker_success(self, payload):
         if not self._is_active_user_worker():
             return
-        t0 = time.perf_counter()
-        self._apply_user_payload(payload)
-        t1 = time.perf_counter()
-        print(f"[settings_timing] apply_user_payload took {(t1 - t0)*1000:.1f} ms")
+        self._on_user_payload_ready(payload or {})
 
     def _handle_user_worker_error(self, message):
         if not self._is_active_user_worker():
             return
         print(f"[SettingsUI] Failed to load user info: {message}")
-        self._apply_user_payload({})
+        self._on_user_payload_ready({})
 
     def _is_active_user_worker(self) -> bool:
         worker = self._user_fetch_worker
         if worker is None:
             return False
-        request_id = getattr(worker, "request_id", None)
+        request_id = worker.request_id
         return request_id == self._user_fetch_request_id
 
-    def _apply_user_payload(self, payload):
+    def _on_user_payload_ready(self, payload: dict):
         user_data = payload or {}
-        t0 = time.perf_counter()
+        self.user_payload = user_data
 
-        sig = self._make_payload_signature(user_data)
-        same_payload = sig == self._last_user_payload_sig
-        self._last_user_payload_sig = sig
+        self._update_user_header(user_data)
 
+        abilities = user_data.get("abilities", [])
+        abilities = json.loads(abilities)
+
+        has_qgis_access, can_create_property  = userUtils.has_property_rights(user_data)
+
+        self._user_card.build_property_managment(can_create_property)
+
+        subjects = userUtils.abilities_to_subjects(abilities)
+
+        access_map = self.logic.get_module_access_from_abilities(subjects)
+        self._user_card.build_and_set_access_controls(access_map)
+
+        self.update_permissions = self.logic.get_module_update_permissions(subjects)
+        allowed_modules = [name for name, allowed in access_map.items() if allowed]
+
+        self._ensure_original_settings_loaded()
+        preferred_module = self.logic.get_original_preferred()
+        self._user_card.set_preferred(preferred_module)
+
+        self._ensure_module_cards(
+            allowed_modules=allowed_modules,
+            access_map=access_map,
+            update_permissions=self.update_permissions,
+        )
+        self._activate_module_cards()
+
+    def _update_user_header(self, user_data: dict):
         userUtils.extract_and_set_user_labels(
             self._user_card.lbl_name,
             self._user_card.lbl_email,
@@ -221,52 +239,33 @@ class SettingsModule(QWidget):
         roles = userUtils.get_roles_list(user_data.get("roles"))
         userUtils.set_roles(self._user_card.lbl_roles, roles)
 
-        abilities = user_data.get("abilities", [])
-        subjects = userUtils.abilities_to_subjects(abilities)
-        self._has_property_rights = Module.PROPERTY.value.capitalize() in subjects
-
-        access_map = self.logic.get_module_access_from_abilities(subjects)
-        update_permissions = self.logic.get_module_update_permissions(subjects)
-        self._user_card.set_access_map(access_map)
-        self._user_card.set_update_permissions(update_permissions)
-
-        # Ensure preferred selection stays in sync even when access pills are rebuilt
-        preferred_module = self.logic.get_original_preferred()
-
-        # Only reload settings when payload changed or never loaded
-        if not self._settings_loaded_once or not same_payload:
-            self.logic.load_original_settings()
-            preferred_module = self.logic.get_original_preferred()
-            self._set_dirty(False)
-            self._settings_loaded_once = True
-
-        self._user_card.set_preferred(preferred_module)
-
-        if not self._initialized:
-            self._initialized = True
-            if not self._module_cards:
-                t_cards = time.perf_counter()
-                self._build_module_cards()
-                print(f"[settings_timing] build_module_cards took {(time.perf_counter() - t_cards)*1000:.1f} ms")
-
-        if not self._module_cards_activated or not same_payload:
-            t_activate = time.perf_counter()
-            self._activate_module_cards()
-            self._module_cards_activated = True
-            print(f"[settings_timing] activate_module_cards took {(time.perf_counter() - t_activate)*1000:.1f} ms")
-        else:
-            print("[settings_timing] activate_module_cards skipped (payload unchanged)")
-
-        print(f"[settings_timing] _apply_user_payload total {(time.perf_counter() - t0)*1000:.1f} ms")
-
-    def _set_user_labels_loading(self):
-        if not hasattr(self, "_user_card"):
+    def _ensure_original_settings_loaded(self):
+        if self._settings_loaded_once:
             return
-        loading_text = self.lang_manager.translate(TranslationKeys.LOADING) if self.lang_manager else "Loading"
-        placeholder = f"{loading_text}…"
-        self._user_card.lbl_name.setText(placeholder)
-        self._user_card.lbl_email.setText("—")
-        self._user_card.lbl_roles.setText("—")
+        self.logic.load_original_settings()
+        self._set_dirty(False)
+        self._settings_loaded_once = True
+
+    def _ensure_module_cards(self, *, allowed_modules, access_map, update_permissions):
+        # Remove disallowed cards
+        for name, card in list(self._module_cards.items()):
+            if name not in allowed_modules:
+                self.cards_layout.removeWidget(card)
+                card.setParent(None)
+                del self._module_cards[name]
+
+        # Add missing allowed cards
+        for module_name in allowed_modules:
+            if module_name not in self._module_cards:
+                card = self._generate_module_card(module_name)
+                self._module_cards[module_name] = card
+                self.cards_layout.addWidget(card)
+            
+        # Rebuild cards list: user card first, then current module cards
+        self._cards = [self._user_card] + list(self._module_cards.values())
+
+
+
 
     def _make_payload_signature(self, payload):
         if not isinstance(payload, dict):
@@ -311,6 +310,7 @@ class SettingsModule(QWidget):
      
     def deactivate(self):
         self._cancel_user_fetch_worker(invalidate_request=True)
+        
         # Deactivate module cards to free memory
         for card in self._module_cards.values():
             try:

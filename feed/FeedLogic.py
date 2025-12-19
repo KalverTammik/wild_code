@@ -5,6 +5,7 @@ from ..python.api_client import APIClient
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.responses import JsonResponseHandler
 # from ..utils.logger import debug as log_debug
+from ..utils.api_error_handling import parse_tagged_message
 
 class UnifiedFeedLogic:
     """
@@ -237,7 +238,8 @@ class UnifiedFeedLogic:
         except Exception as e:
             self.last_error = e
             try:
-                print(f"[UnifiedFeedLogic] fetch error for module '{self._module_name}': {e}")
+                _kind, friendly = parse_tagged_message(e)
+                print(f"[UnifiedFeedLogic] fetch error for module '{self._module_name}': {friendly or e}")
             except Exception:
                 pass
             return []

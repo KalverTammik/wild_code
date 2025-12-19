@@ -44,67 +44,63 @@ class SHPLayerLoader:
         Returns:
             bool: True if successful, False otherwise
         """
-        try:
-            # Show file dialog for SHP files
-            file_path = self._get_shp_file_path()
-            if not file_path:
-                return False  # User cancelled
+        print("[SHPLayerLoader] Starting load_shp_layer")
+        # Show file dialog for SHP files
+        file_path = self._get_shp_file_path()
+        if not file_path:
+            print("[SHPLayerLoader] No file selected (cancelled)")
+            return False  # User cancelled
 
-            # Validate and load the Shapefile
-            layer_name = os.path.splitext(os.path.basename(file_path))[0]
-            shp_layer = self._load_shp_layer(file_path, layer_name)
+        # Validate and load the Shapefile
+        layer_name = os.path.splitext(os.path.basename(file_path))[0]
+        shp_layer = QgsVectorLayer(file_path, layer_name, 'ogr')
 
-            if not shp_layer:
-                 return False
-
-            # Create memory layer and import data
-            result = self._create_memory_layer(shp_layer, layer_name)
-
-            if result:
-
-                # Save the last loaded file path for future reference
-                SettingsManager.save_shp_file_path(self.target_group, file_path)
-                # Save layer name mapping
-                SettingsManager.save_shp_layer_mapping(layer_name, file_path)
-
-                # Get feature count for success message
-                memory_layer = None
-                for layer in self.engine.project.mapLayers().values():
-                    if layer.name() == result:
-                        memory_layer = layer
-                        break
-
-                if memory_layer:
-                    # Set the property tag on the newly created layer
-                    memory_layer.setCustomProperty(IMPORT_PROPERTY_TAG, "true")
-
-                    # Ensure layer is not in editing mode before applying style
-                    if memory_layer.isEditable():
-                        memory_layer.commitChanges()
-
-                    # Apply QML style using the engine's centralized method
-                    self.engine.apply_qml_style(memory_layer, PROPERTIES_BACKGROUND_STYLE)
-
-                feature_count = memory_layer.featureCount() if memory_layer else 0
-                message = (self.lang_manager.translate("Shapefile loaded with data message") or "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud' ({count} objekti imporditud)")
-                if feature_count > 0:
-                    message = message.format(name=layer_name, count=feature_count)
-                else:
-                    message = (self.lang_manager.translate("Shapefile loaded message") or "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud'").format(name=layer_name)
-
-                QMessageBox.information(
-                    self.parent,
-                    self.lang_manager.translate("Shapefile loaded successfully") or "Shapefile edukalt laaditud",
-                    message
-                )
-                return True
-            else:
-                QMessageBox.warning(self.parent, "Shapefile load failed", "Failed to create memory layer or import data")
-                return False
-
-        except Exception as e:
-            QMessageBox.critical(self.parent, "Shapefile loading error", f"Error: {str(e)}")
+        if not shp_layer.isValid():
+            print("[SHPLayerLoader] QgsVectorLayer is not valid")
             return False
+
+        print("[SHPLayerLoader] Importing shapefile to memory layer")
+        memory_layer = self.engine.import_shapefile_to_memory_layer(
+                shp_layer=shp_layer,
+                layer_name=layer_name,
+                group_name=self.target_group,
+                parent_widget=self.parent
+            )
+        print(f"[SHPLayerLoader] Import result layer name: {memory_layer}")
+
+        # If engine returns a layer name (str), resolve it to the actual layer object
+        if isinstance(memory_layer, str):
+            layers = self.engine.project.mapLayersByName(memory_layer)
+            memory_layer = layers[0] if layers else None
+
+        if memory_layer:
+            print(f"[SHPLayerLoader] Memory layer found; setting tag and applying style. Feature count pre-style: {memory_layer.featureCount()}")
+            # Set the property tag on the newly created layer
+            memory_layer.setCustomProperty(IMPORT_PROPERTY_TAG, "true")
+
+            # Ensure layer is not in editing mode before applying style
+            if memory_layer.isEditable():
+                memory_layer.commitChanges()
+
+            # Apply QML style using the engine's centralized method
+            self.engine.apply_qml_style(memory_layer, PROPERTIES_BACKGROUND_STYLE)
+
+        feature_count = memory_layer.featureCount() if memory_layer else 0
+        print(f"[SHPLayerLoader] Final feature_count={feature_count}")
+        message = (self.lang_manager.translate("Shapefile loaded with data message") or "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud' ({count} objekti imporditud)")
+        if feature_count > 0:
+            message = message.format(name=layer_name, count=feature_count)
+        else:
+            message = (self.lang_manager.translate("Shapefile loaded message") or "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud'").format(name=layer_name)
+
+        QMessageBox.information(
+            self.parent,
+            self.lang_manager.translate("Shapefile loaded successfully") or "Shapefile edukalt laaditud",
+            message
+        )
+        return True
+
+
 
     def _get_shp_file_path(self) -> Optional[str]:
         """
@@ -120,51 +116,3 @@ class SHPLayerLoader:
             "SHP files (*.shp);;All files (*.*)"
         )
         return file_path if file_path else None
-
-    def _load_shp_layer(self, file_path: str, layer_name: str) -> Optional[QgsVectorLayer]:
-        """
-        Load and validate Shapefile.
-
-        Args:
-            file_path: Path to Shapefile
-            layer_name: Name for the layer
-
-        Returns:
-            Optional[QgsVectorLayer]: Loaded layer or None if invalid
-        """
-        shp_layer = QgsVectorLayer(file_path, layer_name, 'ogr')
-
-        if not shp_layer.isValid():
-            QMessageBox.warning(
-                self.parent,
-                self.lang_manager.translate("Invalid Shapefile") or "Vigane Shapefile",
-                self.lang_manager.translate("Invalid Shapefile message") or "Valitud Shapefile fail ei ole kehtiv."
-            )
-            return None
-
-        return shp_layer
-
-    def _create_memory_layer(self, shp_layer: QgsVectorLayer, layer_name: str) -> Optional[str]:
-        """
-        Create memory layer from Shapefile using centralized LayerCreationEngine.
-
-        Args:
-            shp_layer: Source Shapefile layer
-            layer_name: Name for the new memory layer
-
-        Returns:
-            Optional[str]: Name of created layer or None if failed
-        """
-        try:
-            # Use the centralized engine method for Shapefile import
-            return self.engine.import_shapefile_to_memory_layer(
-                shp_layer=shp_layer,
-                layer_name=layer_name,
-                group_name=self.target_group,
-                parent_widget=self.parent
-            )
-
-        except Exception as e:
-            QMessageBox.critical(self.parent, "Memory layer creation error", f"Error: {str(e)}")
-            return None
-
