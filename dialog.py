@@ -175,6 +175,8 @@ class PluginDialog(QDialog):
     
         qss_modular = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
 
+        qss_signaltest = qss_modular + [QssPaths.SETUP_CARD]
+
         def _pick_folder(_module_key: str, _key: str, current_value: str):
             start_path = current_value or ""
             return FolderHelpers.select_folder_path(self, start_path=start_path)
@@ -205,8 +207,7 @@ class PluginDialog(QDialog):
             Module.PROPERTY.name, 
             qss_files=qss_modular, 
             lang_manager=self.lang_manager,
-            supports_archive_layer=True,
-            
+            supports_archive_layer=True
         )
         self.moduleManager.registerModule(
             ProjectsModule, 
@@ -254,7 +255,7 @@ class PluginDialog(QDialog):
         self.moduleManager.registerModule(
             SignalTestModule,
             Module.SIGNALTEST.name,
-            qss_files=qss_modular,
+            qss_files=qss_signaltest,
             lang_manager=self.lang_manager,
         )
         

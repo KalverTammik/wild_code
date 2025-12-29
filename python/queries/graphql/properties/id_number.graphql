@@ -1,5 +1,14 @@
 
-query properties($first: Int, $after: String, $search: String, $where: QueryPropertiesWhereWhereConditions) 
+query properties(
+    $first: Int
+    $after: String
+    $search: String
+    $where: QueryPropertiesWhereWhereConditions
+    $tagsFirst: Int = 10
+    $tagsAfter: String
+    $tagsWhere: PropertyTagsWhereWhereConditions
+    $tagsOrderBy: [PropertyTagsOrderByOrderByClause!]
+) 
     {
     properties(
         first: $first
@@ -22,9 +31,17 @@ query properties($first: Int, $after: String, $search: String, $where: QueryProp
                     id
                     displayAddress
                     cadastralUnitNumber
-                    cadastralUnit {
-                        number
+                    cadastralUnitFirstRegistration
+                    cadastralUnitLastUpdated
+                    tags(first: $tagsFirst, after: $tagsAfter, where: $tagsWhere, orderBy: $tagsOrderBy) {
+                        edges {
+                            node {
+                                id
+                                name
+                                module
+                            }
                         }
+                    }
                     }
                 }
             }

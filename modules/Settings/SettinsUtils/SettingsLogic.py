@@ -91,7 +91,7 @@ class SettingsLogic:
         element = self._service.module_main_layer_name(module_key) or ""
         archive = ""
         if include_archive:
-            archive = self._service.module_archive_layer_id(module_key) or ""
+            archive = self._service.module_archive_layer_name(module_key) or ""
         return {"element": element, "archive": archive}
 
     def set_module_layer_id(self, module_key: str, *, kind: str, layer_name: Optional[str]) -> None:
@@ -100,9 +100,9 @@ class SettingsLogic:
         try:
             if kind == "archive":
                 if normalized:
-                    self._service.module_archive_layer_id(module_key, value=normalized)
+                    self._service.module_archive_layer_name(module_key, value=normalized)
                 else:
-                    self._service.module_archive_layer_id(module_key, clear=True)
+                    self._service.module_archive_layer_name(module_key, clear=True)
             else:
                 if normalized:
                     self._service.module_main_layer_name(module_key, value=normalized)

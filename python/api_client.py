@@ -33,7 +33,16 @@ class APIClient:
         require_auth: bool = True,
         timeout: int = 30,
         return_raw: bool = False,
+        with_success: bool = False,
     ):
+        def _wrap_success(raw_json: dict):
+            if return_raw:
+                return {"success": True, "response": raw_json, "raw": raw_json, "error": None}
+            return {"success": True, "response": (raw_json or {}).get("data", {}), "raw": raw_json, "error": None}
+
+        def _wrap_error(message: str):
+            return {"success": False, "response": None, "raw": None, "error": message}
+
         payload = {"query": query}
 
         if variables:
@@ -92,6 +101,8 @@ class APIClient:
                         else:
                             message = tag_message(ApiErrorKind.GRAPHQL, message or "GraphQL error")
                         raise Exception(message)
+                    if with_success:
+                        return _wrap_success(data)
                     return data if return_raw else data.get("data", {})
 
                 # Non-200 HTTP response
@@ -129,18 +140,31 @@ class APIClient:
                         continue
 
                     session_text = self.lang.translate(TranslationKeys.SESSION_EXPIRED) or "Session expired"
-                    raise Exception(tag_message(ApiErrorKind.AUTH, session_text))
+                    msg2 = tag_message(ApiErrorKind.AUTH, session_text)
+                    if with_success:
+                        return _wrap_error(msg2)
+                    raise Exception(msg2)
 
                 if msg:
+                    if with_success:
+                        return _wrap_error(msg)
                     raise Exception(msg)
 
                 template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
-                raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error="")))
+                msg2 = tag_message(ApiErrorKind.NETWORK, template.format(error=""))
+                if with_success:
+                    return _wrap_error(msg2)
+                raise Exception(msg2)
 
         if last_error:
+            if with_success:
+                return _wrap_error(last_error)
             raise Exception(last_error)
         template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
-        raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error="")))
+        msg2 = tag_message(ApiErrorKind.NETWORK, template.format(error=""))
+        if with_success:
+            return _wrap_error(msg2)
+        raise Exception(msg2)
 
     def _extract_error_message(self, errors):
         try:

@@ -29,7 +29,6 @@ class SettingsModule(QWidget):
     # Signals for user action buttons
     addShpClicked = pyqtSignal()
     addPropertyClicked = pyqtSignal()
-    removePropertyClicked = pyqtSignal()
 
     def __init__(
             self,

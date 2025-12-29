@@ -265,7 +265,7 @@ TRANSLATIONS = {
     ,TranslationKeys.START: "Algus"
     ,TranslationKeys.CREATED: "Loodud"
     ,TranslationKeys.UPDATED: "Muudetud"
-    ,"Signaltest": "Signaalitester"
+    ,"Signaltest": "Test Lab"
     ,TranslationKeys.CONNECTIONS: "Otsin seoseid"
     ,DialogLabels.PROJECTS_SOURCE_FOLDER: "Projektide lähtekaust"
     ,DialogLabels.PROJECTS_TARGET_FOLDER: "Projektide sihtkaust"

@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional, Sequence, Tuple
 from PyQt5.QtCore import Qt
 
-from ...utils.url_manager import ModuleSupports
+from ...utils.url_manager import ModuleSupports, Module
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
@@ -19,11 +19,17 @@ class FilterHelper:
             ModuleSupports.TYPES.value: f"{module}_types.graphql",
         }
 
+        if module == Module.PROPERTY.name.lower():
+            module_value = "PROPERTIES"
+        else:
+            module_value = str(module).upper() + "S"
+
         query = GraphQLQueryLoader().load_query_by_module(key, key_map.get(key))
         variables = {
             "first": 50,
             "after": None,
-            "where": {"column": "MODULE", "value": f"{str(module).upper()}S"},
+            # IMPORTANT: value must be JSON-serializable (no Python set)
+            "where": {"column": "MODULE", "operator": "EQ", "value": module_value},
         }
 
         if key == ModuleSupports.TYPES.value:

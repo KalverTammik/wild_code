@@ -1,9 +1,13 @@
+import re
+import datetime
+
 from ...utils.MapTools.MapHelpers import MapHelpers
 from ...constants.layer_constants import IMPORT_PROPERTY_TAG
-from ...constants.cadastral_fields import Katastriyksus
+from ...constants.cadastral_fields import Katastriyksus, AreaUnit
 from ...languages.language_manager import LanguageManager
 from qgis.core import QgsFeatureRequest
-from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import QDate, QDateTime, QCoreApplication
+from ...widgets.DateHelpers import DateHelpers
 
 
 class PropertyDataLoader:
@@ -65,19 +69,25 @@ class PropertyDataLoader:
 
 
         # väljade nimed (Katastriyksus enum/klass)
+        self.tunnus_field = Katastriyksus.tunnus
+        self.immo_number_field = Katastriyksus.hkood
         self.county_field = Katastriyksus.mk_nimi
         self.municipality_field = Katastriyksus.ov_nimi
-        self.tunnus_field = Katastriyksus.tunnus
-        self.address_field = Katastriyksus.l_aadress
-        self.area_field = Katastriyksus.pindala
         self.settlement_field = Katastriyksus.ay_nimi
+        self.address_field = Katastriyksus.l_aadress
+        self.firstr_reg_date_field = Katastriyksus.registr
+        self.last_upd_date_field = Katastriyksus.muudet
+        self.area_field = Katastriyksus.pindala
+
+
 
 
         if self.property_layer:
             # kinnita, et väljad on olemas (annab kohe selge vea, mitte hiljem)
             for f in [
                 self.county_field, self.municipality_field, self.tunnus_field,
-                self.address_field, self.area_field, self.settlement_field
+                self.address_field, self.area_field, self.settlement_field,
+                self.immo_number_field, self.firstr_reg_date_field, self.last_upd_date_field
             ]:
                 self._ensure_field(f)
 
@@ -220,16 +230,137 @@ class PropertyDataLoader:
             print(f"Error loading properties for settlement: {e}")
             raise
 
-    def prepare_data_for_import_stage1(self, features):
+    @staticmethod
+    def get_address_details_from_street(street):
+        data = {}
+        
+        # Find the position of the first digit in the street address
+        number_match = re.search(r'\d', street)
+
+        # If at least one digit is found
+        if number_match:
+            number_index = number_match.start()
+            data['street'] = street[:number_index].strip()
+            data['house'] = street[number_index:].strip()
+        else:
+            data['street'] = street.strip()
+        return data
+
+
+
+    def prepare_data_for_import_stage1(self, feature):
         """Lae kinnistute andmed impordiks (ilma geomeetriata)."""
-        properties = []
-        for feat in features:
-            properties.append({
-                self.tunnus_field: feat.attribute(self.tunnus_field) or '',
-                self.address_field: feat.attribute(self.address_field) or '',
-                self.settlement_field: feat.attribute(self.settlement_field) or '',
-                self.county_field: feat.attribute(self.county_field) or '',
-                self.municipality_field: feat.attribute(self.municipality_field) or '',
-                'feature': feat
-            })
-        return properties
+        
+        street_full = feature.attribute(self.address_field) or ''
+        street_data = self.get_address_details_from_street(street_full)
+        house_number = street_data.get('house', '')
+
+        first_registration = feature.attribute(self.firstr_reg_date_field)
+        print(f"First registration raw value: {first_registration}")
+        firest_reg_date_str = DateHelpers().date_to_iso_string(first_registration)
+
+        last_updated = feature.attribute(self.last_upd_date_field)
+        print(f"Last updated raw value: {last_updated}")
+        last_updated_str = DateHelpers().date_to_iso_string(last_updated)
+        
+        tunnus = feature.attribute(self.tunnus_field)
+
+        property_data = {
+            "immovableNumber": feature.attribute(self.immo_number_field),
+            "cadastralUnit": {
+                "number": tunnus,
+                "firstRegistration": firest_reg_date_str,
+                "lastUpdated": last_updated_str
+            },
+            "address": {
+                "street": street_data['street'],
+                "houseNumber": house_number, 
+                "city": feature.attribute(self.settlement_field),
+                "state": feature.attribute(self.municipality_field),
+                "county": feature.attribute(self.county_field)
+                },    
+            "area": {
+                "size": feature.attribute(self.area_field),
+                "unit": AreaUnit.M
+            }
+        }
+        
+        siht_data = propertyUsages.extract_intendedUse_data(feature, num_siht_items=3)
+
+        return property_data, tunnus, siht_data,  last_updated_str
+    
+
+
+class propertyUsages:
+    @staticmethod
+    def extract_intendedUse_data(feature, num_siht_items: int = 3):
+        """Build PropertyIntendedUseInput list from a QgsFeature.
+
+        Mirrors the table-based logic:
+        - Reads fields siht1..sihtN and so_prts1..so_prtsN
+        - Skips NULL/empty names
+        - Coerces percentage to int (fallback 0)
+        """
+
+        def _field_exists(fname: str) -> bool:
+            try:
+                return feature.fields().lookupField(fname) != -1
+            except Exception:
+                return True
+
+        def _to_int(val) -> int:
+            if val is None:
+                return 0
+            # QGIS may return QVariant-like values
+            try:
+                if hasattr(val, "value"):
+                    val = val.value()
+            except Exception:
+                pass
+            if isinstance(val, bool):
+                return int(val)
+            if isinstance(val, int):
+                return val
+            if isinstance(val, float):
+                return int(val)
+            s = str(val).strip()
+            if not s or s.upper() == "NULL":
+                return 0
+            try:
+                return int(s)
+            except Exception:
+                try:
+                    return int(float(s.replace(",", ".")))
+                except Exception:
+                    return 0
+
+        siht_field_1 = Katastriyksus.siht1
+        prts_field_1 = Katastriyksus.so_prts1
+        siht_base = str(siht_field_1)[:-1]
+        prts_base = str(prts_field_1)[:-1]
+
+        input_data = []
+        for i in range(1, int(num_siht_items) + 1):
+            siht_name = f"{siht_base}{i}"
+            prts_name = f"{prts_base}{i}"
+
+            if not _field_exists(siht_name) or not _field_exists(prts_name):
+                continue
+
+            siht_data = feature.attribute(siht_name)
+            so_prts_data = feature.attribute(prts_name)
+
+            siht_text = "" if siht_data is None else str(siht_data).strip()
+            if not siht_text or siht_text.upper() == "NULL":
+                continue
+
+            intended_use = {
+                "sortOrder": i,
+                "name": siht_text,
+                "percentage": _to_int(so_prts_data),
+            }
+            input_data.append(intended_use)
+
+        return input_data
+    
+

@@ -105,3 +105,38 @@ class KatasterMappings:
 class Purpose:
     """Purpose constants for land use classification."""
     transport = "TRANSPORDIMAA"
+
+
+
+class AreaUnit:
+    M = "SQM"
+    H = "H"
+
+    def convert_to_area_unit(value):
+        if value == "M":
+            return AreaUnit.M
+        elif value == "H":
+            return AreaUnit.H
+        else:
+            # Handle invalid input, if necessary
+            return AreaUnit.M  # Default value
+
+    def process_size_and_unit(size, unit_raw):
+        try:
+            size = float(size)  # Convert size to float
+        except ValueError:
+            # Handle the case where size is not a valid number
+            return "Invalid Size"
+
+        if unit_raw == "H":
+            value = size / 1000  # Divide size by 1000 if unit is "H"
+        elif unit_raw == "M":
+            value = size
+        elif unit_raw is None:
+            value = size
+            unit_raw = AreaUnit.M
+        else:
+            # Handle invalid unit_raw values
+            return "Invalid Unit"
+
+        return str(value), unit_raw

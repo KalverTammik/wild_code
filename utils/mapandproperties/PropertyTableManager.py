@@ -57,7 +57,26 @@ class PropertyTableManager:
             properties_table.setItem(row, 3, settlement_item)
 
             # Store feature data in the row
-            cadastral_item.setData(Qt.UserRole, property_data['feature'])
+            feature = property_data['feature']
+
+            # Store feature on all cells so selectedItems() always yields feature payloads.
+            try:
+                cadastral_item.setData(Qt.UserRole, feature)
+            except Exception:
+                pass
+            try:
+                address_item.setData(Qt.UserRole, feature)
+            except Exception:
+                pass
+            try:
+                area_item.setData(Qt.UserRole, feature)
+            except Exception:
+                pass
+            try:
+                settlement_item.setData(Qt.UserRole, feature)
+            except Exception:
+                pass
+    
 
             # Process events periodically to keep UI responsive during table population
             if row % 50 == 0:
@@ -135,6 +154,10 @@ class PropertyTableWidget:
         properties_table.setAlternatingRowColors(True)
         properties_table.setShowGrid(True)                 # or False if you want cleaner blocks
         properties_table.setGridStyle(Qt.SolidLine)
+
+        properties_table.setSelectionBehavior(QTableWidget.SelectRows)
+        properties_table.setSelectionMode(QTableWidget.MultiSelection)   # or ExtendedSelection (usually nicer)
+
 
         # Make selection/hover feel nicer and avoid “full repaint storms”
         properties_table.setMouseTracking(True)            # enables :hover painting reliably

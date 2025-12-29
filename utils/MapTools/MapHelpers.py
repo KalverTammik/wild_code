@@ -6,6 +6,7 @@ from ...utils.url_manager import Module
 from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...utils.messagesHelper import ModernMessageDialog
+from ...constants.cadastral_fields import Katastriyksus
 
 class MapHelpers:
 
@@ -393,6 +394,90 @@ class MapHelpers:
             except KeyError:
                 continue
         return matches
+    
+    @staticmethod
+    def if_feature_exists_in_layer(layer: QgsVectorLayer, field_name: str, value: str) -> bool:
+        if not layer or not layer.isValid() or not value:
+            return False
+        for feature in layer.getFeatures():
+            try:
+                if feature[field_name] == value:
+                    return True
+            except KeyError:
+                continue
+        return False
+    @staticmethod
+    def feature_comparer_between_layers(
+        source_layer: QgsVectorLayer,
+        target_layer: QgsVectorLayer,
+        field_name: str
+    ) -> List[QgsFeature]:
+        """Compare features between two layers based on a field value."""
+        if not source_layer or not source_layer.isValid():
+            return []
+        if not target_layer or not target_layer.isValid():
+            return []
+
+        source_values = set()
+        for feature in source_layer.getFeatures():
+            try:
+                source_values.add(feature[field_name])
+            except KeyError:
+                continue
+
+        matching_features: List[QgsFeature] = []
+        for feature in target_layer.getFeatures():
+            try:
+                if feature[field_name] in source_values:
+                    matching_features.append(feature)
+            except KeyError:
+                continue
+
+        return matching_features
+
+
+class FeatureActions:
+
+    @staticmethod
+    def copy_feature_to_layer(source_feature: QgsFeature, target_layer: QgsVectorLayer):
+        if not target_layer.isEditable():
+            return False, "Target layer is not in edit mode."
+
+        new_feat = QgsFeature(target_layer.fields())
+        new_feat.setGeometry(source_feature.geometry())
+
+        free_fid = FeatureActions.next_free_fid_int_value(target_layer)
+
+        source_names = set(source_feature.fields().names())
+
+        for fld in target_layer.fields():
+            name = fld.name()
+
+            if name in source_names:
+                new_feat.setAttribute(name, source_feature.attribute(name))
+
+        # Internal feature id: let provider assign
+        new_feat.setId(-1)
+        new_feat.setAttribute(Katastriyksus.fid, free_fid)
+
+        ok = target_layer.addFeature(new_feat)
+
+        if not ok:
+            return False, "Layer.addFeature returned False."
+
+        return True, ""
+    @staticmethod
+    def next_free_fid_int_value(layer):
+        used = set()
+        for f in layer.getFeatures():
+            v = f.attribute(Katastriyksus.fid)
+            if v is not None:
+                used.add(int(v))
+        n = 1
+        while n in used:
+            n += 1
+        return n
+
 
 
 class ActiveLayersHelper:

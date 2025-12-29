@@ -281,8 +281,14 @@ class AddPropertyDialog(QDialog):
 
     def _on_table_selection_changed(self):
         #print("Table selection changed")
-        count = len(self.properties_table.selectionModel().selectedRows())
-
+        selected_features = set()
+        for index in self.properties_table.selectionModel().selectedRows():
+            item = self.properties_table.item(index.row(), 0)  # always column 0
+            if item:
+                feature = item.data(Qt.UserRole)
+                if feature:
+                    selected_features.add(feature)
+        count = len(selected_features)
         self.selection_info.setText(
             self.lang_manager.translate(TranslationKeys.SELECTED_COUNT_TEMPLATE).format(count=count)
         )

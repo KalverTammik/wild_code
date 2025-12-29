@@ -106,6 +106,7 @@ class TagsFilterWidget(QWidget):
         self._worker_thread = start_worker(worker, on_thread_finished=self._cleanup_worker)
 
     def _handle_tags_loaded(self, request_id: int, payload: List[Tuple[str, str]]) -> None:
+        #print(f"[DEBUG] Tags loaded for module {self._module}: {payload}")
         if request_id != self._load_request_id:
             return
         self.combo.clear()

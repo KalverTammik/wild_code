@@ -1,0 +1,12 @@
+mutation UpdateProperty($input: UpdatePropertyInput!) {
+    updateProperty(input: $input) {
+        tags(first: 50) {
+            edges {
+                node {
+                    id
+                    name
+                }
+            }
+        }
+    }
+}

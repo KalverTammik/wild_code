@@ -10,6 +10,7 @@ from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....utils.SHPLayerLoader import SHPLayerLoader
 from ....utils.MapTools.MapHelpers import MapHelpers
 from ....widgets.AddUpdatePropertyDialog import AddPropertyDialog
+from ....modules.Property.FlowControllers.MainDeleteProperties import DeletePropertyUI
 from ....languages.translation_keys import TranslationKeys
 from ....languages.language_manager import LanguageManager
 from ....constants.settings_keys import SettingsService
@@ -17,8 +18,6 @@ from ....utils.url_manager import Module
 
 
 class PropertyManagementUI(SettingsBaseCard):
-    removePropertyClicked = pyqtSignal()
-
     def __init__(self, lang_manager: LanguageManager):
         super().__init__(
             lang_manager,
@@ -93,9 +92,7 @@ class PropertyManagementUI(SettingsBaseCard):
 
     def _on_remove_property_clicked(self):
         """Handle Remove property button click"""
-        self.removePropertyClicked.emit()
-
-
+        DeletePropertyUI(self)
 
     def _on_add_property_clicked(self):
         """Handle Add property button click"""

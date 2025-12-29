@@ -157,17 +157,4 @@ class PropertyUpdateFlowCoordinator:
             from ...utils.MapTools.item_selector_tools import PropertiesSelectors
             PropertiesSelectors.show_connected_properties_on_map_from_table(table, use_shp=True)
     
-    @staticmethod
-    def start_adding_properties(table=None):
-        selected_features = PropertyTableManager().get_selected_features(table)
-        if selected_features:
-            # Clear the layer filter to show all features again
-            
-            layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
-            if layer:
-                #MapHelpers.set_layer_filter_to_features(layer, selected_features)
-                MapHelpers.set_layer_filter_to_selected_features(layer)
-            taret_layer_name = SettingsService().module_main_layer_name(Module.PROPERTY.value)
-            active_layer = MapHelpers.find_layer_by_name(taret_layer_name)
-            if active_layer:
-                MapHelpers.ensure_layer_visible(active_layer, make_active=True)
+ 
