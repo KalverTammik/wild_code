@@ -67,7 +67,6 @@ class APIModuleActions:
                 "id": item_id,
             }
             payload = client.send_query(query, variables=variables, return_raw=True) or {}
-            print(f"[DEBUG] Connected properties payload: {payload}")
             path = [module_name, "properties"]
             edges = JsonResponseHandler.get_edges_from_path(payload, path) or []
             if not edges:
@@ -88,7 +87,6 @@ class APIModuleActions:
 
             if has_next_page is False or not end_cursor:
                 break
-        print(f"[DEBUG] Retrieved connected cadastral numbers: {cadastral_numbers}")
         return cadastral_numbers
 
     @staticmethod

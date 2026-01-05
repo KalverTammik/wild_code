@@ -180,10 +180,8 @@ class MapHelpers:
         padding_factor: float = 1.2,
     ) -> None:
         if not features:
-            print("⚠️ No features provided for zoom operation.")
             return
         
-        print(f"Zooming to {len(features)} features in layer '{layer.name()}'")
 
         # Build an extent from the *geometries*, so zoom works even if select=False
         extent: QgsRectangle | None = None

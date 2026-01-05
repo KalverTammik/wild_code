@@ -283,6 +283,19 @@ class TranslationKeys:
     SELECT_PROPERTY_FIRST = "Please select a property feature on the map first."
     SELECT_SINGLE_PROPERTY_TITLE = "Select Single Property"
     SELECT_SINGLE_PROPERTY_MESSAGE = "Please select only one property feature on the map."
+    MAP_SELECTION_NONE = "No properties were selected from the map."
+    MAP_SELECTION_START_FAILED = "Could not start map selection for properties."
+    LINK_PROPERTIES_SUCCESS = "Linked properties saved for project {pid}.\nTotal linked: {count}. {preview}{extra}"
+    LINK_PROPERTIES_MISSING_NOTE = "Missing/not found: {missing}"
+    LINK_PROPERTIES_ERROR = (
+        "Could not link properties for project {pid}.\n"
+        "Pending selection ({count}): {preview}\n\nDetails: {err}"
+    )
+    MORE_COUNT_SUFFIX = " … (+{count} more)"
+    LINK_REVIEW_CONNECTIONS_TITLE = "Connections"
+    LINK_REVIEW_ALREADY_LINKED = "Already linked"
+    LINK_REVIEW_NEW_SELECTIONS = "New selections"
+    LINK_REVIEW_RESELECT = "Reselect"
     CONNECT_PROPERTIES = "Connect Properties"
     CHOSE_FROM_MAP = "Chose from map"
 
