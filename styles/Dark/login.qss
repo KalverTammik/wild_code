@@ -37,45 +37,9 @@ QLineEdit:focus {
     background-color: #23272e;
 }
 
-QPushButton {
-    background-color: #359692;
-    color: #ffffff;
-    border: none;
-    border-radius: 5px;
-    padding: 8px 12px;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-QPushButton:hover {
-    background-color: #2e5c58;
-}
-
-QPushButton:pressed {
-    background-color: #1e252b;
-}
-
-QPushButton:disabled {
-    background-color: #23272e;
-    color: #959da5;
-}
-
 QPushButton#togglePasswordButton {
-    border: none;
-    background: transparent;
     padding: 0;
-}
-QPushButton#togglePasswordButton:focus {
-    outline: none;
-    background: transparent;
-}
-QPushButton#togglePasswordButton:hover {
-    border: none;
-    background: rgba(9,144,143, 0.08);
-}
-QPushButton#togglePasswordButton:pressed {
-    border: none;
-    background: rgba(9,144,143, 0.16);
+    min-width: 0;
 }
 
 QComboBox {

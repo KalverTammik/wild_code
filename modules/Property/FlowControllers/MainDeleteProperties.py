@@ -12,7 +12,8 @@ from ....widgets.theme_manager import ThemeManager
 from ....constants.file_paths import QssPaths
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
+from ....utils.messagesHelper import ModernMessageDialog
 
 
 
@@ -104,11 +105,9 @@ class DeletePropertyUI(QDialog):
     def _on_confirm_clicked(self) -> None:
         property_id = (self._id_input.text() or "").strip()
         if not property_id:
-            QMessageBox.warning(
-                self,
+            ModernMessageDialog.show_warning(
                 self.lang_manager.translate("Missing ID") or "Missing ID",
                 self.lang_manager.translate("Please enter a property id.") or "Please enter a property id.",
-                QMessageBox.Ok,
             )
             return
 
@@ -118,22 +117,18 @@ class DeletePropertyUI(QDialog):
             ok, message = deleteProperty.delete_single_item(property_id)
         
             if not ok:
-                QMessageBox.warning(
-                    self,
+                ModernMessageDialog.show_warning(
                     self.lang_manager.translate("Delete failed") ,
                     message,
-                    QMessageBox.Ok,
                 )
         finally:
             self._btn_confirm.setEnabled(True)
             self._btn_cancel.setEnabled(True)
 
         if ok:
-            QMessageBox.information(
-                self,
+            ModernMessageDialog.show_info(
                 self.lang_manager.translate("Deleted") or "Deleted",
                 self.lang_manager.translate("Property deleted successfully.") or "Property deleted successfully.",
-                QMessageBox.Ok,
             )
             self.accept()
             return

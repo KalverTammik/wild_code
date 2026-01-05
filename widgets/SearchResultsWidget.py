@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QListWidget, QListWidgetItem, 
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QEvent, QTimer
 from PyQt5.QtGui import QColor, QFont
 from ..widgets.theme_manager import ThemeManager, styleExtras, ThemeShadowColors
+from ..constants.button_props import ButtonVariant
 from ..constants.file_paths import QssPaths
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
@@ -46,6 +47,8 @@ class SearchResultsWidget(QDialog):
         # Close button
         self.close_button = QPushButton("×")
         self.close_button.setObjectName("searchResultsCloseButton")
+        self.close_button.setProperty("variant", ButtonVariant.ICON)
+        self.close_button.setProperty("iconRole", "close")
         self.close_button.setFixedSize(24, 24)
         self.close_button.setToolTip("Close search results")
         self.close_button.clicked.connect(self.hide_results)

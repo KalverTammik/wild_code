@@ -148,10 +148,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             pass
 
         # Encourage Python to reclaim Qt object graphs sooner
-        try:
-            gc.collect()
-        except Exception:
-            pass
+        gc.collect()
+
 
 
 

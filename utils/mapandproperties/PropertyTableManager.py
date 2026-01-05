@@ -1,3 +1,5 @@
+from typing import Any, Callable, Optional
+
 from PyQt5.QtCore import QCoreApplication, Qt
 from PyQt5.QtWidgets import QTableWidgetItem
 
@@ -60,22 +62,10 @@ class PropertyTableManager:
             feature = property_data['feature']
 
             # Store feature on all cells so selectedItems() always yields feature payloads.
-            try:
-                cadastral_item.setData(Qt.UserRole, feature)
-            except Exception:
-                pass
-            try:
-                address_item.setData(Qt.UserRole, feature)
-            except Exception:
-                pass
-            try:
-                area_item.setData(Qt.UserRole, feature)
-            except Exception:
-                pass
-            try:
-                settlement_item.setData(Qt.UserRole, feature)
-            except Exception:
-                pass
+            cadastral_item.setData(Qt.UserRole, feature)
+            address_item.setData(Qt.UserRole, feature)
+            area_item.setData(Qt.UserRole, feature)
+            settlement_item.setData(Qt.UserRole, feature)
     
 
             # Process events periodically to keep UI responsive during table population
@@ -114,26 +104,228 @@ class PropertyTableManager:
                 selected_features.add(feature)
 
         return list(selected_features)
-    
+
     @staticmethod
-    def _get_active_rows_column_values(table, index_column=0):
-        """
-        Get values from a specific column for all selected rows in the table.
+    def get_selected_row_indices(table) -> list[int]:
+        """Return unique selected row indices in ascending order."""
+
+        if table is None:
+            return []
+
+        try:
+            rows_set: set[int] = set()
+            for item in table.selectedItems() or []:
+                rows_set.add(int(item.row()))
+            return sorted(rows_set)
+        except Exception:
+            return []
+
+    @staticmethod
+    def get_first_selected_row_index(table) -> Optional[int]:
+        """Return the first selected row index, or None if nothing selected."""
+
+        rows = PropertyTableManager.get_selected_row_indices(table)
+        return rows[0] if rows else None
+
+    @staticmethod
+    def get_cell_text(table, row: int, col: int) -> str:
+        if table is None:
+            return ""
+        try:
+            item = table.item(int(row), int(col))
+            return (item.text() if item is not None else "").strip()
+        except Exception:
+            return ""
+
+    @staticmethod
+    def set_cell_text(table, row: int, col: int, text: str) -> bool:
+        """Ensure a cell exists and set its text.
+
+        Returns True when the cell was updated, False otherwise.
         """
 
-        selected_values = []
-        for index in table.selectedIndexes():
-            if index.column() == index_column:
-                value = index.data()
-                if value:
-                    selected_values.append(str(value))
+        if table is None:
+            return False
 
-        if not selected_values:
+        try:
+            row_i = int(row)
+            col_i = int(col)
+        except (TypeError, ValueError):
+            return False
+
+        try:
+            item = table.item(row_i, col_i)
+            if item is None:
+                item = QTableWidgetItem("")
+                table.setItem(row_i, col_i, item)
+            item.setText(str(text or ""))
+            return True
+        except Exception:
+            return False
+
+    @staticmethod
+    def get_cell_data(table, row: int, col: int, *, role=Qt.UserRole) -> Any:
+        if table is None:
+            return None
+        try:
+            item = table.item(int(row), int(col))
+            return item.data(role) if item is not None else None
+        except Exception:
             return None
 
-        return selected_values
+    @staticmethod
+    def get_payload_field_value(table, row: int, payload_col: int, field_key: object, *, role=Qt.UserRole) -> Any:
+        """Read a field value from the payload stored in a table cell.
+
+        Supports QgsFeature and other dict-like payloads implementing `__getitem__`.
+        """
+
+        payload = PropertyTableManager.get_cell_data(table, row, payload_col, role=role)
+        if payload is None:
+            return None
+        try:
+            return payload[field_key]
+        except Exception:
+            return None
+
+    @staticmethod
+    def get_payload_field_text(
+        table,
+        row: int,
+        payload_col: int,
+        field_key: object,
+        *,
+        role=Qt.UserRole,
+        normalizer: Optional[Callable[[Any], Optional[str]]] = None,
+        default: str = "",
+    ) -> str:
+        value = PropertyTableManager.get_payload_field_value(table, row, payload_col, field_key, role=role)
+        if value is None:
+            return default
+
+        if normalizer is not None:
+            try:
+                normalized = normalizer(value)
+            except Exception:
+                normalized = None
+            if normalized:
+                return str(normalized)
+
+        try:
+            return str(value)
+        except Exception:
+            return default
+
+    @staticmethod
+    def get_selected_column_values(
+        table,
+        col: int,
+        *,
+        unique: bool = True,
+        include_empty: bool = False,
+    ) -> list[str]:
+        """Return values from `col` for selected rows.
+
+        Uses `get_selected_row_indices()` so it works regardless of which cells are selected.
+        """
+
+        if table is None:
+            return []
+
+        values: list[str] = []
+        for row in PropertyTableManager.get_selected_row_indices(table):
+            value = PropertyTableManager.get_cell_text(table, row, col)
+            if not value and not include_empty:
+                continue
+            values.append(value)
+
+        if not unique:
+            return values
+
+        seen: set[str] = set()
+        unique_values: list[str] = []
+        for value in values:
+            if value in seen:
+                continue
+            seen.add(value)
+            unique_values.append(value)
+        return unique_values
+
+    @staticmethod
+    def create_snapshot_table_from_rows(source_table, rows: list[int], *, table_factory=None):
+        """Create a read-only snapshot table for the given source rows.
+
+        `table_factory` should return `(frame, table)` (e.g. `PropertyTableWidget._create_properties_table`).
+        """
+
+        if source_table is None:
+            return None, None
+
+        if table_factory is None:
+            table_factory = PropertyTableWidget._create_properties_table
+
+        frame, snapshot_table = table_factory()
+
+        headers: list[str] = []
+        for c in range(source_table.columnCount()):
+            try:
+                h = source_table.horizontalHeaderItem(c)
+                headers.append(h.text() if h else "")
+            except Exception:
+                headers.append("")
+
+        snapshot_table.setColumnCount(len(headers))
+        snapshot_table.setHorizontalHeaderLabels(headers)
+
+        snapshot_table.setRowCount(len(rows))
+        for out_row_idx, src_row_idx in enumerate(rows):
+            for col in range(source_table.columnCount()):
+                src_item = source_table.item(src_row_idx, col)
+                text = src_item.text() if src_item is not None else ""
+                snapshot_table.setItem(out_row_idx, col, QTableWidgetItem(text))
+
+        snapshot_table.setSelectionMode(QTableWidget.NoSelection)
+        snapshot_table.setFocusPolicy(Qt.NoFocus)
+
+        return frame, snapshot_table
+
+    @staticmethod
+    def reset_and_populate_properties_table(table, rows, *, after_populate=None) -> bool:
+        """Reset table contents and repopulate via the shared PropertyTableManager."""
+
+        if table is None:
+            return False
+
+        table.setUpdatesEnabled(False)
+        table.clearSelection()
+        table.clearContents()
+        table.setRowCount(0)
+
+        try:
+            ok = bool(PropertyTableManager().populate_properties_table(rows, table))
+        except Exception:
+            ok = False
+
+        if ok and after_populate is not None:
+            after_populate()
+
+        table.setUpdatesEnabled(True)
+
+        table.viewport().update()
+        table.repaint()
+
+        return ok
 
 class PropertyTableWidget:
+
+    _COL_CADASTRAL_ID = 0
+    _COL_ADDRESS = 1
+    _COL_AREA = 2
+    _COL_SETTLEMENT = 3
+    _COL_ATTENTION = 4
+
+
+
     @staticmethod   
     def _create_properties_table():
         """Create the properties table"""
@@ -186,7 +378,8 @@ class PropertyTableWidget:
             lang_manager.translate(TranslationKeys.CADASTRAL_ID),
             lang_manager.translate(TranslationKeys.ADDRESS),
             lang_manager.translate(TranslationKeys.AREA),
-            lang_manager.translate(TranslationKeys.SETTLEMENT)
+            lang_manager.translate(TranslationKeys.SETTLEMENT),
+            lang_manager.translate(TranslationKeys.ATTENTION),
         ]
         properties_table.setColumnCount(len(headers))
         properties_table.setHorizontalHeaderLabels(headers)

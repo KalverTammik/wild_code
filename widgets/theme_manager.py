@@ -1,5 +1,6 @@
 # ==== BEGIN ThemeManager v2 ====
 from functools import lru_cache
+from typing import Any, Callable
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIcon
 from qgis.core import QgsSettings
@@ -22,6 +23,65 @@ def is_dark(value: str) -> bool:
 class ThemeManager(QObject):
     # Emits Theme.LIGHT or Theme.DARK (effective mode)
     themeChanged = pyqtSignal(str)
+
+    _retheme_engine = None
+
+    # Centralized bundles (keep parity between light/dark; order matters)
+    APP_BUNDLE = (
+        QssPaths.MAIN,
+        QssPaths.BUTTONS,
+        QssPaths.COMBOBOX,
+        QssPaths.SIDEBAR,
+        QssPaths.HEADER,
+        QssPaths.FOOTER,
+        QssPaths.MODULE_INFO,
+    )
+
+    MODULE_BUNDLE = APP_BUNDLE + (
+        QssPaths.MODULE_TOOLBAR,
+        QssPaths.MODULE_CARD,
+        QssPaths.SETUP_CARD,
+        QssPaths.PILLS,
+        QssPaths.POPUP,
+        QssPaths.TOOLTIP,
+        QssPaths.LAYER_TREE_PICKER,
+        QssPaths.SEARCH_RESULTS_WIDGET,
+        QssPaths.PROGRESS_DIALOG,
+        QssPaths.PROPERTIES_UI,
+        QssPaths.DATES,
+    )
+
+    LOGIN_BUNDLE = (
+        QssPaths.MAIN,
+        QssPaths.BUTTONS,
+        QssPaths.LOGIN,
+    )
+
+    @staticmethod
+    def _merge_bundle(base: tuple, extra: list[str] | None = None) -> tuple:
+        merged = list(base)
+        if extra:
+            merged.extend(extra)
+        # Preserve order while deduping
+        seen = set()
+        unique = []
+        for item in merged:
+            if item not in seen:
+                seen.add(item)
+                unique.append(item)
+        return tuple(unique)
+
+    @staticmethod
+    def app_bundle(extra: list[str] | None = None) -> tuple:
+        return ThemeManager._merge_bundle(ThemeManager.APP_BUNDLE, extra)
+
+    @staticmethod
+    def module_bundle(extra: list[str] | None = None) -> tuple:
+        return ThemeManager._merge_bundle(ThemeManager.MODULE_BUNDLE, extra)
+
+    @staticmethod
+    def login_bundle(extra: list[str] | None = None) -> tuple:
+        return ThemeManager._merge_bundle(ThemeManager.LOGIN_BUNDLE, extra)
 
     @staticmethod
     def save_theme_setting(theme_name: str):
@@ -50,7 +110,7 @@ class ThemeManager(QObject):
     @staticmethod
     def set_initial_theme(widget, switch_button=None, logout_button=None, qss_files=None) -> str:
         theme = ThemeManager.effective_theme()
-        ThemeManager._apply_theme_for(widget, theme, qss_files)
+        ThemeManager._apply_theme_for(widget, theme, qss_files or ThemeManager.app_bundle())
         ThemeManager._update_header_icons(theme, switch_button, logout_button)
         return theme
 
@@ -58,7 +118,7 @@ class ThemeManager(QObject):
     def toggle_theme(widget, current_theme, switch_button=None, logout_button=None, qss_files=None) -> str:
         theme_now = current_theme or ThemeManager.effective_theme()
         new_theme = Theme.DARK if theme_now == Theme.LIGHT else Theme.LIGHT
-        ThemeManager._apply_theme_for(widget, new_theme, qss_files)
+        ThemeManager._apply_theme_for(widget, new_theme, qss_files or ThemeManager.app_bundle())
         ThemeManager._update_header_icons(new_theme, switch_button, logout_button)
         ThemeManager.save_theme_setting(new_theme)
         # Emit change for listeners
@@ -86,6 +146,12 @@ class ThemeManager(QObject):
             ))
 
     @staticmethod
+    def get_retheme_engine():
+        if ThemeManager._retheme_engine is None:
+            ThemeManager._retheme_engine = RethemeEngine()
+        return ThemeManager._retheme_engine
+
+    @staticmethod
     @lru_cache(maxsize=64)
     def _read_qss(theme_dir: str, qss_files_tuple: tuple) -> str:
         css = ""
@@ -101,7 +167,7 @@ class ThemeManager(QObject):
         if widget is None:
             return
         if not qss_files:
-            qss_files = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
+            qss_files = ThemeManager.app_bundle()
         qss_tuple = tuple(qss_files)
         try:
             css = ThemeManager._read_qss(theme_dir, qss_tuple)
@@ -110,11 +176,46 @@ class ThemeManager(QObject):
             pass
 
     @staticmethod
-    def apply_module_style(widget, qss_files):
+    def apply_module_style(widget, qss_files=None):
         theme = ThemeManager.effective_theme()
         theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
-        ThemeManager.apply_theme(widget, theme_dir, qss_files)
+        bundle = ThemeManager.module_bundle(qss_files)
+        ThemeManager.apply_theme(widget, theme_dir, bundle)
 # ==== END ThemeManager v2 ====
+
+
+class RethemeEngine:
+    """Central registry-based retheme engine; no per-widget retheme methods required."""
+
+    def __init__(self):
+        self._registrations: list[dict[str, Any]] = []
+
+    def register(self, widget: Any, *, qss_files: Any = None, after_apply: Callable | None = None):
+        if widget is None:
+            return
+        # Update if already present
+        for reg in self._registrations:
+            if reg.get("widget") is widget:
+                reg["qss_files"] = qss_files
+                reg["after_apply"] = after_apply
+                return
+        self._registrations.append({"widget": widget, "qss_files": qss_files, "after_apply": after_apply})
+
+    def retheme_all(self):
+        theme = ThemeManager.effective_theme()
+        theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
+        for reg in list(self._registrations):
+            widget = reg.get("widget")
+            if widget is None:
+                continue
+            qss_files = reg.get("qss_files") or ThemeManager.app_bundle()
+            ThemeManager.apply_theme(widget, theme_dir, qss_files)
+            after = reg.get("after_apply")
+            if callable(after):
+                try:
+                    after(widget, theme)
+                except Exception:
+                    pass
 
 # ==== BEGIN styleExtras fix ====
 # ==== styleExtras (color variables, theme-aware) ====

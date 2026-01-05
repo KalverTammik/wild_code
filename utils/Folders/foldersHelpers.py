@@ -3,7 +3,7 @@ import subprocess
 from typing import Optional
 import shutil
 import os
-from PyQt5.QtWidgets import QMessageBox, QFileDialog
+from PyQt5.QtWidgets import QFileDialog
 from ...python.api_client import APIClient
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
@@ -11,6 +11,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...utils.url_manager import Module
 from ...modules.Settings.setting_keys import SettingDialogPlaceholders
 from ...constants.settings_keys import SettingsService
+from ..messagesHelper import ModernMessageDialog
 
 UPDATE_project_properties = 'updateProjectsProperties.graphql'
 
@@ -23,11 +24,19 @@ class FolderEngines:
                                                target_folder
                                                ) -> None:
         text = "Ettevalmistatud struktuuriga projektikaustade genereerimine on mõeldud eelkõige uutele projektidele.\nEnne jätkamist kontrolli ega samasisulist kausta pole juba loodud.\nOled kindel, et soovid jätkata?"
+        confirm_title = LanguageManager.translate_static(TranslationKeys.CONFIRM) or "Confirmation"
+        yes_label = LanguageManager.translate_static(TranslationKeys.YES) or "Yes"
+        no_label = LanguageManager.translate_static(TranslationKeys.NO) or "No"
 
-        overall_confirmation = QMessageBox.question(None, "Confirmation", text,
-                                            QMessageBox.Yes | QMessageBox.No)
+        overall_confirmation = ModernMessageDialog.ask_yes_no(
+            confirm_title,
+            text,
+            yes_label=yes_label,
+            no_label=no_label,
+            default=yes_label,
+        )
 
-        if overall_confirmation == QMessageBox.Yes:
+        if overall_confirmation:
             try:
                 # Use the FolderNameGenerator to generate the folder name based on the user-defined order
                 folder_name = FolderNameGenerator().folder_structure_name_order(project_name, project_number)
@@ -37,16 +46,21 @@ class FolderEngines:
                 if os.path.exists(dest_dir):
                     text = f"Kaust nimega '{folder_name}' on juba sihtkohas olemas."
                     heading = LanguageManager.translate_static(TranslationKeys.WARNING) or "Warning"
-                    QMessageBox.warning(None, heading, text)
+                    ModernMessageDialog.show_warning(heading, text)
                 else:
                     shutil.copytree(source_folder, dest_dir)
                     
                     # Ask the user for confirmation
-                    confirmation = QMessageBox.question(None, "Confirmation", "Oled kindel, et soovid genereeritud kausta lingi lisada Mailablis projektile?",
-                                                        QMessageBox.Yes | QMessageBox.No)
+                    confirmation = ModernMessageDialog.ask_yes_no(
+                        confirm_title,
+                        "Oled kindel, et soovid genereeritud kausta lingi lisada Mailablis projektile?",
+                        yes_label=yes_label,
+                        no_label=no_label,
+                        default=yes_label,
+                    )
 
 
-                    if confirmation == QMessageBox.Yes:
+                    if confirmation:
                         # Call the linkUpdater function
                         print(f"project_id {project_id}")
                         Link_updater().update_link(project_id, dest_dir)
@@ -58,12 +72,12 @@ class FolderEngines:
                     heading = LanguageManager.translate_static(TranslationKeys.SUCCESS) or "Success"
                     text = (f"Kausta '{source_folder}'\n(k.a kaustas sisalduvad alamkaustad ja failid) dubleerimine õnnestus.")
                     text_2 = f"Sihtkohta on genereeritud kaust nimetusega \n'{folder_name}'."
-                    QMessageBox.information(None, heading, f"{text}\n\n{text_2}")
+                    ModernMessageDialog.show_info(heading, f"{text}\n\n{text_2}")
                     
             except Exception as e:
                 heading = LanguageManager.translate_static(TranslationKeys.WARNING) or "Warning"
                 text = f"An error occurred: {e}"
-                QMessageBox.warning(None, heading, text)
+                ModernMessageDialog.show_warning(heading, text)
                         
         else:
             print("Operation canceled by the user.")

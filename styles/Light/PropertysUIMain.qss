@@ -1,34 +1,5 @@
 
 /* ===== PropertysUIMain (Light) ===== */
-QPushButton#ChooseFromMapButton {
-    background: #0f766e;
-    color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 16px;
-    font-weight: 600;
-    font-size: 12px;
-    min-width: 90px;
-}
-
-QPushButton#ChooseFromMapButton:hover {
-        background: #115e59; /* teal-800 */
-        transform: translateY(-1px);
-        box-shadow: 0 4px 16px rgba(15, 118, 110, 0.25);
-}
-
-QPushButton#ChooseFromMapButton:pressed {
-        background: #0b4b45; /* teal-900 */
-        transform: translateY(0);
-        box-shadow: 0 2px 8px rgba(15, 118, 110, 0.35);
-}
-
-QPushButton#ChooseFromMapButton:disabled {
-        background: #cbd5e1; /* slate-300 */
-        color: #64748b;      /* slate-500 */
-        transform: none;
-        box-shadow: none;
-}
 
 QFrame #PropertyDetailsFrame {
     background: #ffffff;
@@ -237,28 +208,6 @@ QLabel {
     selection-color: #1976d2;
 }
 
-#PropertyDetailsWidget QPushButton {
-    background: #0f766e;
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-#PropertyDetailsWidget QPushButton:hover {
-    background: #115e59;
-}
-
-#PropertyDetailsWidget QPushButton:pressed {
-    background: #0b4b45;
-}
-
-#PropertyDetailsWidget QPushButton:disabled {
-    background: #cbd5e1;
-    color: #64748b;
-}
 
 #PropertyDetailsWidget QCheckBox {
     font-size: 12px;

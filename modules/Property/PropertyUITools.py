@@ -63,7 +63,7 @@ class PropertyUITools:
         ui = self._get_active_ui()
         if not ui:
             return
-        active_layer = ActiveLayersHelper._get_active_property_layer()
+        active_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
         if not active_layer:
             return
 

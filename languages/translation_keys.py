@@ -36,6 +36,8 @@ class TranslationKeys:
     SELECT_MODULE = "Select a module from the left or open Settings to set your preferred module."
     NO_PROJECT_LOADED_TITLE = "No Project Loaded"
     NO_PROJECT_LOADED_MESSAGE = "Please load a QGIS project before using this plugin."
+    PROJECT_FOLDER_MISSING_TITLE = "Project folder setup required"
+    PROJECT_FOLDER_MISSING_MESSAGE = "Project folders are not set for this module. Opening Settings..."
 
     # Module labels (match Module enum values)
     MODULE_HOME = "home"
@@ -200,6 +202,7 @@ class TranslationKeys:
     ADDRESS = "Address"
     AREA = "Area (m²)"
     SETTLEMENT = "Settlement"
+    ATTENTION = "Attention"
     PROPERTY_NAME = "Property Name"
     PROPERTY_TYPE = "Property Type"
     VALUE = "Value (€)"
@@ -253,6 +256,18 @@ class TranslationKeys:
     ADD_SELECTED = "Add Selected"
     CLOSE = "Close"
 
+    # Property action buttons (new flows)
+    DELETE_BY_ID = "Delete by ID"
+    SELECT_FROM_MAP = "Select from map"
+    SELECT_BY_LOCATION_LIST = "Select by location (list)"
+    RESELECT_FROM_MAP = "Reselect from map"
+    ARCHIVE = "Archive"
+    UNARCHIVE = "Unarchive"
+    UNARCHIVE_EXISTING = "Unarchive existing"
+    CREATE_NEW = "Create new"
+    SKIP = "Skip"
+    CREATE_LOAD_IN_GPKG = "Create/Load in GPKG…"
+
     # Property selection filters
     SELECT_COUNTY = "Select County"
     SELECT_MUNICIPALITY = "Select Municipality"
@@ -268,7 +283,8 @@ class TranslationKeys:
     SELECT_PROPERTY_FIRST = "Please select a property feature on the map first."
     SELECT_SINGLE_PROPERTY_TITLE = "Select Single Property"
     SELECT_SINGLE_PROPERTY_MESSAGE = "Please select only one property feature on the map."
-    CHOOSE_FROM_MAP = "Choose from map"
+    CONNECT_PROPERTIES = "Connect Properties"
+    CHOSE_FROM_MAP = "Chose from map"
 
     # Property form helpers
     ENTER_AREA_IN_M2 = "Enter area in m²"
@@ -352,6 +368,7 @@ class ToolbarTranslationKeys:
     OPEN_FOLDER = "Open Folder"
     OPEN_ITEM_IN_BROWSER = "Open Item in Browser"
     SHOW_ITEMS_ON_MAP = "Show Items on Map"
+    GENERATE_PROJECT_FOLDER = "Generate project folder"
     MORE_ACTIONS = "More Actions"
 
 class FolderNamingTranslationKeys:

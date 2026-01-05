@@ -11,6 +11,7 @@ from qgis.PyQt.QtWidgets import (
 from .widgets.theme_manager import ThemeManager
 from .constants.file_paths import QssPaths
 from .constants.module_icons import IconNames
+from .constants.button_props import ButtonVariant, ButtonSize
 from .languages.language_manager import LanguageManager
 from .utils.SessionManager import SessionManager
 #import tranlation keys
@@ -41,8 +42,7 @@ class LoginDialog(QDialog):
         ThemeManager.set_initial_theme(
             self,
             None,  # No switch button
-
-            qss_files=[QssPaths.MAIN, QssPaths.LOGIN]
+            qss_files=ThemeManager.login_bundle()
         )
 
         layout = QVBoxLayout()
@@ -75,6 +75,8 @@ class LoginDialog(QDialog):
         self.toggle_password_button.setIcon(ThemeManager.get_qicon(icon_name=IconNames.ICON_EYE))
         self.toggle_password_button.setCheckable(True)
         self.toggle_password_button.setText("")
+        self.toggle_password_button.setProperty("variant", ButtonVariant.GHOST)
+        self.toggle_password_button.setProperty("btnSize", ButtonSize.SMALL)
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
         password_row.addWidget(self.toggle_password_button, alignment=Qt.AlignRight)
         layout.addLayout(password_row)
@@ -86,6 +88,8 @@ class LoginDialog(QDialog):
 
 
         self.login_button = QPushButton(button_text)
+        self.login_button.setProperty("variant", ButtonVariant.PRIMARY)
+        self.login_button.setProperty("btnSize", ButtonSize.LARGE)
         self.login_button.clicked.connect(self.authenticate_user)
         layout.addWidget(self.login_button)
 

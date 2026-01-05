@@ -58,16 +58,6 @@ class WildCodePlugin:
         except ImportError:
             sip = None
 
-        if self.pluginDialog is not None:
-            try:
-                if sip is None or not sip.isdeleted(self.pluginDialog):
-                    self.pluginDialog.show()
-                    self.pluginDialog.raise_()
-                    self.pluginDialog.activateWindow()
-                    return
-            except Exception:
-                pass
-
         project = QgsProject.instance()
         if project.fileName() == '':
             heading = LanguageManager.translate_static(TranslationKeys.NO_PROJECT_LOADED_TITLE)
@@ -78,7 +68,9 @@ class WildCodePlugin:
         session = SessionManager()
         session.load()
 
+        # If session is missing/expired, force login and avoid reusing a stale dialog
         if session.needs_login() or not session.get_token():
+            self.pluginDialog = None
             self._show_login_dialog()
             if self.login_successful:
                 self._show_main_dialog()
@@ -86,20 +78,33 @@ class WildCodePlugin:
             return
 
         if not session.revalidateSession():
+            self.pluginDialog = None
             self._show_login_dialog()
-            # Check if login was successful after dialog closes
             if self.login_successful:
                 self._show_main_dialog()
-                self.login_successful = False  # Reset flag
+                self.login_successful = False
             return
-        if session.isLoggedIn():
-            self._show_main_dialog()
-        else:
+
+        if not session.isLoggedIn():
+            self.pluginDialog = None
             self._show_login_dialog()
-            # Check if login was successful after dialog closes
             if self.login_successful:
                 self._show_main_dialog()
-                self.login_successful = False  # Reset flag
+                self.login_successful = False
+            return
+
+        # Session looks valid; reuse dialog if alive, else create
+        if self.pluginDialog is not None:
+            try:
+                if sip is None or not sip.isdeleted(self.pluginDialog):
+                    self.pluginDialog.show()
+                    self.pluginDialog.raise_()
+                    self.pluginDialog.activateWindow()
+                    return
+            except Exception:
+                pass
+
+        self._show_main_dialog()
 
     def _show_login_dialog(self):
         """Unified method to show login dialog with consistent setup."""

@@ -149,6 +149,7 @@ class AvatarBubble(QLabel):
             layout.setSpacing(4)
 
             # Apply theme-based styling to the popup
+            
             ThemeManager.apply_module_style(popup, [QssPaths.POPUP])
 
             # Create labels for each member name
@@ -264,5 +265,5 @@ class MembersView(QWidget):
     # Participants are now shown only on hover of responsible avatars (popup_members passed above).
 
     def retheme(self):
-        """Update colors based on current theme - no shadows in minimalist design."""
+
         ThemeManager.apply_module_style(self)

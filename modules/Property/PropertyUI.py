@@ -11,6 +11,7 @@ from PyQt5.QtGui import QFont
 from .PropertyUITools import PropertyUITools
 from .property_tree_widget import PropertyTreeWidget
 from ...widgets.theme_manager import ThemeManager,styleExtras
+from ...constants.button_props import ButtonVariant, ButtonSize
 from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
 from ...utils.url_manager import Module
@@ -87,8 +88,10 @@ class PropertyModule(QWidget):
         top_row.addWidget(details_title)
         top_row.addStretch()
 
-        self.pbdisplayPropertyInfo = QPushButton(self.lang_manager.translate(TranslationKeys.CHOOSE_FROM_MAP))
+        self.pbdisplayPropertyInfo = QPushButton(self.lang_manager.translate(TranslationKeys.CHOSE_FROM_MAP))
         self.pbdisplayPropertyInfo.setObjectName("ChooseFromMapButton")
+        self.pbdisplayPropertyInfo.setProperty("variant", ButtonVariant.PRIMARY)
+        self.pbdisplayPropertyInfo.setProperty("btnSize", ButtonSize.SMALL)
         self.pbdisplayPropertyInfo.clicked.connect(self.tools.select_property_from_map)
         top_row.addWidget(self.pbdisplayPropertyInfo)
         header_layout.addLayout(top_row)
@@ -198,14 +201,14 @@ class PropertyModule(QWidget):
 
     def retheme(self):
         # Apply main module styling
-        ThemeManager.apply_module_style(self, [QssPaths.PROPERTIES_UI, QssPaths.MODULE_CARD])
+        ThemeManager.apply_module_style(self, [QssPaths.PROPERTIES_UI, QssPaths.MODULE_CARD, QssPaths.BUTTONS])
 
     def activate(self):
         """Called when the module becomes active."""
         try:
             print("[property_ui] activate")
             # Resolve the property layer using the same helper as map selection
-            active_layer = ActiveLayersHelper._get_active_property_layer()
+            active_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
             if not active_layer:
                 print("[property_ui] no property layer found via helper")
                 return

@@ -53,14 +53,7 @@ QLabel#footerLabel:disabled {
 /* === Legacy layout compatibility (safe to keep; remove if unused) === */
 QWidget#footerLeftFrame { background: transparent; padding: 0; margin: 0; }
 QLabel#footerCopyrightLabel { color: #c5c5d2; padding-right: 6px; }
-QPushButton#footerLinkButton {
-    color: #c5c5d2; border: none; background: transparent;
-    padding: 0 6px; margin: 0; font-size: 11px;
-}
-QPushButton#footerLinkButton:hover { color: #ffffff; text-decoration: underline; }
-QPushButton#footerLinkButton:pressed { color: #a8f1ef; }
-QPushButton#footerLinkButton:focus { outline: none; }
-QLabel#footerLinkSeparator { color: rgba(197,197,210,0.40); padding: 0 4px; }
+
 
 /* === Optional compact mode (setProperty("compact", True)) === */
 QFrame#footerWidgetFrame[compact="true"] {

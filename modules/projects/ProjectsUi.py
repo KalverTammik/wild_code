@@ -98,7 +98,7 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.feed_content)
         # Teema
-        ThemeManager.apply_module_style(self._empty_state, [QssPaths.MODULE_CARD])
+        self.retheme_projects()
 
         if self.feed_logic is None:
             self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)

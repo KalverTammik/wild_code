@@ -27,12 +27,3 @@ QLabel[modulelabelvalue="false"] {
     font-style: italic;
 }
 
-/* Button styling */
-QPushButton[moduleLabelButton="true"] {
-    min-width: 24px;
-    padding: 2px 2px;
-    font-size: 12px;
-    background: #222;
-    color: #eee;
-    border: 1px solid #444;
-}

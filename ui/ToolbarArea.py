@@ -76,7 +76,8 @@ class ModuleToolbarArea(QFrame):
 
 
         # Apply toolbar + centralized combo styling (includes ComboBox.qss)
-        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.MODULE_TOOLBAR])
+
+        self.retheme()
         styleExtras.apply_chip_shadow(
             self._left,
             blur_radius=10,

@@ -67,7 +67,7 @@ class FooterWidget(QWidget):
 
         # Apply QSS (your ThemeManager call)
 
-        ThemeManager.apply_module_style(self, [QssPaths.FOOTER])
+        self.retheme_footer()
         
     def retheme_footer(self):
         """

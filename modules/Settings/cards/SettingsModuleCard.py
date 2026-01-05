@@ -617,6 +617,36 @@ class SettingsModuleCard(SettingsBaseCard):
         self._update_stored_values_display()
         self.pendingChanged.emit(self.has_pending_changes())
 
+    # --- External sync helpers (used by flows) ---
+    def sync_archive_layer_selection(self, layer_name: str, *, force: bool = False) -> bool:
+        """Sync archive picker + stored values to an already-persisted setting.
+
+        This is useful when some flow creates an archive layer programmatically and
+        also persists it via SettingsService/SettingsLogic; the Settings UI should
+        immediately reflect the new layer.
+
+        Returns True if the UI was updated.
+        """
+
+        if not self.supports_archive:
+            return False
+
+        normalized = (layer_name or "").strip()
+
+        # If user has a pending archive change, don't override unless forced.
+        if (not force) and (self._pend_archive_name != self._orig_archive_name):
+            return False
+
+        self._orig_archive_name = normalized
+        self._pend_archive_name = normalized
+
+        if self._archive_picker:
+            self._restore_layer_selection(self._archive_picker, normalized)
+
+        self._update_stored_values_display()
+        self.pendingChanged.emit(self.has_pending_changes())
+        return True
+
     def _on_label_changed(self, key: str, value: Any):
         if not key:
             return

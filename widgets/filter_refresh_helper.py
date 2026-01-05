@@ -4,6 +4,7 @@ from typing import Optional
 
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton
+from ..constants.button_props import ButtonVariant
 from ..constants.module_icons import IconNames
 from .theme_manager import ThemeManager
 
@@ -22,6 +23,7 @@ class FilterRefreshHelper:
 
         btn = QPushButton("", container)
         btn.setObjectName("FeedRefreshButton")
+        btn.setProperty("variant", ButtonVariant.ICON)
         btn.setAutoDefault(False)
         btn.setDefault(False)
         size_px = 28

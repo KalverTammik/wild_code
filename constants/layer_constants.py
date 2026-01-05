@@ -19,5 +19,4 @@ SHP_LAYER_SUFFIX = "_shp"
 GEOPACKAGE_EXTENSION = ".gpkg"
 GEOPACKAGE_DRIVER = "GPKG"
 
-# Style names
-PROPERTIES_BACKGROUND_STYLE = "properties_background_new"
+

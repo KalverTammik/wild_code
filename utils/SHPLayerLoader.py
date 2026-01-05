@@ -3,13 +3,14 @@
 
 import os
 from typing import Optional
-from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QFileDialog
 from qgis.core import QgsVectorLayer
 
 from ..engines.LayerCreationEngine import get_layer_engine, MailablGroupFolders
 from ..languages.language_manager import LanguageManager
-from ..constants.layer_constants import PROPERTIES_BACKGROUND_STYLE, IMPORT_PROPERTY_TAG
-from ..utils.SettingsManager import SettingsManager
+from ..constants.layer_constants import IMPORT_PROPERTY_TAG
+from ..constants.file_paths import QmlPaths
+from .messagesHelper import ModernMessageDialog
 
 
 class SHPLayerLoader:
@@ -83,7 +84,7 @@ class SHPLayerLoader:
                 memory_layer.commitChanges()
 
             # Apply QML style using the engine's centralized method
-            self.engine.apply_qml_style(memory_layer, PROPERTIES_BACKGROUND_STYLE)
+            self.engine.apply_qml_style(memory_layer, QmlPaths.MAAMET_IMPORT)
 
         feature_count = memory_layer.featureCount() if memory_layer else 0
         print(f"[SHPLayerLoader] Final feature_count={feature_count}")
@@ -93,10 +94,9 @@ class SHPLayerLoader:
         else:
             message = (self.lang_manager.translate("Shapefile loaded message") or "Shapefile '{name}' on edukalt laaditud grupis 'Uued kinnistud'").format(name=layer_name)
 
-        QMessageBox.information(
-            self.parent,
+        ModernMessageDialog.show_info(
             self.lang_manager.translate("Shapefile loaded successfully") or "Shapefile edukalt laaditud",
-            message
+            message,
         )
         return True
 

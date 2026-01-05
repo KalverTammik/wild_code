@@ -10,6 +10,7 @@ from PyQt5.QtGui import QFont, QKeySequence
 
 
 from ..languages.language_manager import LanguageManager
+from ..constants.button_props import ButtonVariant, ButtonSize
 
 
 
@@ -136,6 +137,8 @@ class ProgressDialogModern(QDialog):
 
         self.cancel_button = QPushButton(self.lang_manager.translate("Cancel") or "Cancel")
         self.cancel_button.setObjectName("CancelButton")
+        self.cancel_button.setProperty("variant", ButtonVariant.GHOST)
+        self.cancel_button.setProperty("btnSize", ButtonSize.SMALL)
         self.cancel_button.clicked.connect(self._on_cancel_clicked)
         button_layout.addWidget(self.cancel_button)
 

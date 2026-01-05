@@ -102,7 +102,7 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.feed_content)
 
-        ThemeManager.apply_module_style(self, [QssPaths.MODULE_CARD])
+        self.retheme_contract()
 
         # Configure optional single-item query for opening a contract by id
         try:

@@ -1,6 +1,7 @@
 from qgis.PyQt.QtCore import QSettings
 from qgis.core import QgsApplication, QgsAuthMethodConfig
 from ..languages.translation_keys import TranslationKeys
+from .messagesHelper import ModernMessageDialog
 
 
 SESSION_TOKEN = "session/token"
@@ -134,22 +135,21 @@ class SessionManager:
         if SessionManager._session_expired_shown:
             return "shown"
         SessionManager._session_expired_shown = True
-        from qgis.PyQt.QtWidgets import QMessageBox
-        msg = QMessageBox(parent)
-        msg.setIcon(QMessageBox.Information)
-        msg.setWindowTitle(lang_manager.translate(TranslationKeys.SESSION_EXPIRED_TITLE))
+        title = lang_manager.translate(TranslationKeys.SESSION_EXPIRED_TITLE)
         text = lang_manager.translate(TranslationKeys.SESSION_EXPIRED)
-        msg.setText(text)
-        login_btn = msg.addButton(lang_manager.translate(TranslationKeys.LOGIN_BUTTON), QMessageBox.AcceptRole)
-        cancel_btn = msg.addButton(lang_manager.translate(TranslationKeys.CANCEL_BUTTON), QMessageBox.RejectRole)
-        msg.exec_()
-        if msg.clickedButton() == login_btn:
-            #print("[SessionManager] Log in button clicked")
+        login_label = lang_manager.translate(TranslationKeys.LOGIN_BUTTON)
+        cancel_label = lang_manager.translate(TranslationKeys.CANCEL_BUTTON)
+        choice = ModernMessageDialog.ask_choice_modern(
+            title,
+            text,
+            buttons=[login_label, cancel_label],
+            default=login_label,
+            cancel=cancel_label,
+        )
+        if choice == login_label:
             return True
-        else:
-            #print("[SessionManager] Cancel button clicked")
-            SessionManager.clear()
-            return False
+        SessionManager.clear()
+        return False
 
     @staticmethod
     def setSession(apiToken, user):

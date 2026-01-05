@@ -223,7 +223,9 @@ class UserSettingsCard(SettingsBaseCard):
     def retheme(self):
         super().retheme()
         # Repolish dynamic widgets so [active]/[inactive] QSS is reapplied
-        self._repolish_pills(self.access_layout)
+        layout = getattr(self, "access_layout", None)
+        if layout is not None:
+            self._repolish_pills(layout)
 
     # ---------- Callbacks ----------
     def _on_pref_toggled(self, btn, checked):

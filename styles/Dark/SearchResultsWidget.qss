@@ -26,22 +26,3 @@ QListWidget#searchResultsList::item:selected {
 
 /* Header / show-more rows are styled dynamically in Python to avoid unsupported attribute selectors. */
 
-QPushButton#searchResultsCloseButton {
-    background: transparent;
-    border: none;
-    color: #aaaaaa;
-    font-size: 16px;
-    font-weight: bold;
-    padding: 2px;
-}
-
-QPushButton#searchResultsCloseButton:hover {
-    background: rgba(255, 0, 0, 0.1);
-    color: #ff6666;
-    border-radius: 3px;
-}
-
-QPushButton#searchResultsCloseButton:pressed {
-    background: rgba(255, 0, 0, 0.2);
-    color: #ff4444;
-}

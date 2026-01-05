@@ -1,33 +1,4 @@
 /* ModulesMain.qss - Dark Theme */
-QPushButton#ChooseFromMapButton {
-    background: #0e639c;
-    color: #f4f4f4;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 16px;
-    font-weight: 600;
-    font-size: 12px;
-    min-width: 90px;
-}
-
-QPushButton#ChooseFromMapButton:hover {
-    background: #0d53a3;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(13, 83, 163, 0.35);
-}
-
-QPushButton#ChooseFromMapButton:pressed {
-    background: #0a3d6b;
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(10, 61, 107, 0.35);
-}
-
-QPushButton#ChooseFromMapButton:disabled {
-    background: #3e3e42;
-    color: #8f8f95;
-    box-shadow: none;
-    transform: none;
-}
 
 /* ModulesMain.qss - Dark Theme */
 QFrame #PropertyDetailsFrame {
@@ -234,28 +205,6 @@ QLabel#DetailsTitle {
     selection-color: #4fc3f7;
 }
 
-#PropertyDetailsWidget QPushButton {
-    background: #0e639c;
-    color: #e6e6e6;
-    border: none;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-#PropertyDetailsWidget QPushButton:hover {
-    background: #0d53a3;
-}
-
-#PropertyDetailsWidget QPushButton:pressed {
-    background: #0a3d6b;
-}
-
-#PropertyDetailsWidget QPushButton:disabled {
-    background: #3e3e42;
-    color: #999999;
-}
 
 #PropertyDetailsWidget QCheckBox {
     font-size: 12px;

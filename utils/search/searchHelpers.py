@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMessageBox
+from ..messagesHelper import ModernMessageDialog
 class SearchHeplpers:
     @staticmethod
     def _on_search_result_clicked(dialog, module: str, item_id: str, title: str) -> None:
@@ -18,10 +18,9 @@ class SearchHeplpers:
 
         target_enum = MODULE_SEARCH_TO_ENUM.get(module.upper())
         if target_enum is None:
-            QMessageBox.information(
-            dialog,
-            "Not available",
-            "This module cannot be opened from search yet.",
+            ModernMessageDialog.show_info(
+                "Not available",
+                "This module cannot be opened from search yet.",
             )
             return
 
@@ -37,8 +36,7 @@ class SearchHeplpers:
             instance.open_item_from_search(module, item_id, title)
             return
 
-        QMessageBox.information(
-            dialog,
+        ModernMessageDialog.show_info(
             "Not available",
             "This module cannot be opened from search yet.",
         )

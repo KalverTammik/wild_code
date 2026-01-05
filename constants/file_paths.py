@@ -48,6 +48,7 @@ class GraphQLSettings:
 # QSS file names (for modular theme loading)
 class QssPaths:
     COMBOBOX = "ComboBox.qss"
+    BUTTONS = "QPushButton.qss"
     MAIN = "main.qss"
     SIDEBAR = "sidebar.qss"
     HEADER = "header.qss"
@@ -115,8 +116,8 @@ class StylePaths:
 
 # QML style file paths (for layer symbology)
 class QmlPaths:
-    PROPERTIES_BACKGROUND_NEW = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Properties_background_new.qml")
-    PROPERTIES_BACKGROUND = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Properties_backgrund.qml")
+    PROPERTIES_BACKGROUND = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Properties.qml")
+    PROPERTIES_ARCHIVED = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Archived_properties.qml")
     MAAMET_IMPORT = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Maa_amet_temp_layer.qml")
     EASETMENT_DRAINAGE = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Drainage.qml")
     EASEMENT_PROPERTIES = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Properties.qml")
@@ -136,8 +137,7 @@ class QmlPaths:
             ValueError: If style name is not recognized
         """
         style_map = {
-            'properties_background_new': QmlPaths.PROPERTIES_BACKGROUND_NEW,
-            'properties_background': QmlPaths.PROPERTIES_BACKGROUND,
+            'properties_background_new': QmlPaths.PROPERTIES_BACKGROUND,
             'maa_amet_import': QmlPaths.MAAMET_IMPORT,
             'easement_drainage': QmlPaths.EASETMENT_DRAINAGE,
             'easement_properties': QmlPaths.EASEMENT_PROPERTIES,

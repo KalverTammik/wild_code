@@ -2,23 +2,6 @@ QLabel#errorLabel {
     color: #d32f2f;
     font-weight: bold;
 }
-QPushButton#togglePasswordButton {
-    background: transparent;
-    border: none;
-    color: #888;
-    opacity: 0.6;
-    padding: 0 4px;
-    min-width: 24px;
-    min-height: 24px;
-    max-width: 24px;
-    max-height: 24px;
-}
-
-QPushButton#togglePasswordButton:hover {
-    opacity: 1.0;
-    color: #1976d2;
-}
-/* Login dialog QSS for Light Theme */
 
 QDialog {
     background: #ffffff;
@@ -47,25 +30,6 @@ QLineEdit:focus {
     background: #f1f8ff;
 }
 
-QPushButton {
-    background: #1976d2;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 7px 18px;
-    font-size: 14px;
-    font-weight: 500;
-    margin-top: 8px;
-}
-
-QPushButton:pressed {
-    background: #1565c0;
-}
-
-QPushButton:disabled {
-    background: #b0bec5;
-    color: #eee;
-}
 
 QComboBox {
     background: #fff;

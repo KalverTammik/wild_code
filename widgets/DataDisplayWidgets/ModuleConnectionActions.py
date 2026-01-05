@@ -45,8 +45,17 @@ class ModuleConnectionActions(QWidget):
             has_connections=bool(has_connections),
         )
         layout.addWidget(map_btn)
-        
-        actions_btn = MoreActionsButton(lang_manager=lang_manager, item_data=item_data, module=module_key)
+
+        def _enable_map_button(refreshed_numbers: list[str]):
+            if refreshed_numbers:
+                map_btn.setEnabled(True)
+
+        actions_btn = MoreActionsButton(
+            lang_manager=lang_manager,
+            item_data=item_data,
+            module=module_key,
+            on_properties_linked=_enable_map_button,
+        )
         layout.addWidget(actions_btn)
 
 

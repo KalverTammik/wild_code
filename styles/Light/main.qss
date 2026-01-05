@@ -70,56 +70,6 @@ QCheckBox::indicator:disabled {
     border: 1px dashed rgba(209,215,222,0.8);
 }
 
-/* ---------- Buttons ---------- */
-/* Neutral button (default) — calm by default */
-QPushButton {
-    background: #fafbfc;
-    color: #24292e;
-    border: 1px solid #e1e4e8;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
-}
-QPushButton:hover {
-    background: #eaeef2;
-    border-color: #d0d7de;
-    color: #111416;
-}
-QPushButton:pressed {
-    background: #dce1e6;
-    border-color: #b6bec9;
-    color: #111416;
-}
-QPushButton:disabled {
-    background: #f3f4f6;
-    border: 1px dashed rgba(209,215,222,0.8);
-    color: rgba(36,41,46,0.45);
-}
-
-/* Primary variant — set dynamically: button.setProperty("variant","primary") */
-QPushButton[variant="primary"] {
-    background: #0078d4;
-    color: #ffffff;
-    border: 1px solid #005a9e;
-}
-QPushButton[variant="primary"]:hover {
-    background: #2188ff;
-    border-color: #0366d6;
-}
-QPushButton[variant="primary"]:pressed {
-    background: #0366d6;
-    border-color: #034ea2;
-}
-
-/* Destructive variant (optional) */
-QPushButton[variant="danger"] {
-    background: #c0392b;
-    border-color: #7b241c;
-    color: #ffffff;
-}
-QPushButton[variant="danger"]:hover { background: #d14a3c; }
-QPushButton[variant="danger"]:pressed { background: #a43025; }
-
 /* ---------- Lists / Trees ---------- */
 QListWidget, QTreeView {
     background: #ffffff;
@@ -300,6 +250,4 @@ QScrollBar::add-page:horizontal,
 QScrollBar::sub-page:horizontal {
     background: transparent;
 }
-
-
 

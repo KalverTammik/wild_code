@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
     QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect,
 )
 
+from ..constants.button_props import ButtonVariant, ButtonSize
 from ..constants.file_paths import QssPaths
 from ..widgets.theme_manager import ThemeManager, Theme, is_dark
 from ..languages.language_manager import LanguageManager
@@ -81,6 +82,8 @@ class Sidebar(QWidget):
         self.settingsButton.setObjectName("SidebarSettingsButton")
         self.settingsButton.setAutoDefault(False)
         self.settingsButton.setDefault(False)
+        self.settingsButton.setProperty("variant", ButtonVariant.SIDEBAR)
+        self.settingsButton.setProperty("btnSize", ButtonSize.LARGE)
         self.settingsButton.setIcon(QIcon(ModuleIconPaths.get_module_icon(Module.SETTINGS.name)))
         self.settingsButton.clicked.connect(
             lambda checked=False: self._on_button_clicked(Module.SETTINGS.value, self.settingsButton)
@@ -144,6 +147,8 @@ class Sidebar(QWidget):
         # Prevent button from being triggered by Return key
         btn.setAutoDefault(False)
         btn.setDefault(False)
+        btn.setProperty("variant", ButtonVariant.SIDEBAR)
+        btn.setProperty("btnSize", ButtonSize.LARGE)
         btn.setIcon(ThemeManager.get_qicon(iconPath))
         btn.setIconSize(QSize(16, 16))  # Ühtlustatud ikooni suurus
 

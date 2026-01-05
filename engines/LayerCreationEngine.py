@@ -17,7 +17,7 @@ from qgis.core import (
     QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsFields,
     Qgis
 )
-from qgis.PyQt.QtWidgets import QFileDialog, QMessageBox, QWidget
+from qgis.PyQt.QtWidgets import QFileDialog, QWidget
 from qgis.PyQt.QtCore import QTimer, QCoreApplication
 from qgis.PyQt.QtXml import QDomDocument
 
@@ -28,6 +28,7 @@ from ..constants.layer_constants import DEFAULT_CRS, GEOPACKAGE_EXTENSION, GEOPA
 # Prefer module-level imports for clarity. Kept here to avoid accidental circular imports when possible.
 from ..utils.UniversalStatusBar import UniversalStatusBar
 from ..widgets.theme_manager import ThemeManager
+from ..utils.messagesHelper import ModernMessageDialog
 
 # Global layer engine instance
 _layer_engine_instance = None
@@ -42,6 +43,8 @@ class MailablGroupFolders:
     IMPORT = "Imporditavad kinnistud"  # Updated to Estonian name
     EXPORT = "Eksport"
     SYNC = "Sünkroonimine"
+
+
 
 
 class LayerCreationEngine:
@@ -304,7 +307,7 @@ class LayerCreationEngine:
         group.addLayer(memory_layer)
 
         # Apply default QML style for property layers
-        self.apply_qml_style(memory_layer, "properties_background_new")
+        self.apply_qml_style(memory_layer, QmlPaths.MAAMET_IMPORT)
 
         return memory_layer
 
@@ -350,12 +353,11 @@ class LayerCreationEngine:
 
         # Handle existing file
         if os.path.exists(file_path):
-            reply = QMessageBox.question(
-                None, "Fail on olemas",
+            overwrite = ModernMessageDialog.ask_yes_no(
+                "Fail on olemas",
                 f"Fail '{file_path}' on juba olemas. Kas kirjutada üle?",
-                QMessageBox.Yes | QMessageBox.No
             )
-            if reply == QMessageBox.No:
+            if not overwrite:
                 return False
             os.remove(file_path)
 
@@ -509,7 +511,7 @@ class LayerCreationEngine:
         else:
             return False
 
-    def apply_qml_style(self, layer: QgsVectorLayer, style_name: str = "properties_background_new") -> bool:
+    def apply_qml_style(self, layer: QgsVectorLayer, style_name) -> bool:
         """
         Apply QML style to a layer using the plugin's standard approach.
 
@@ -521,7 +523,7 @@ class LayerCreationEngine:
             bool: True if style was applied successfully, False otherwise
         """
         # Get the QML style file path
-        qml_path = QmlPaths.get_style(style_name)
+        qml_path = style_name
 
         if not os.path.exists(qml_path):
             return False
@@ -703,10 +705,9 @@ class LayerCreationEngine:
 
             provider.createSpatialIndex()
 
-            style_path = QmlPaths.get_style("maa_amet_import")
-            if os.path.exists(style_path):
-                memory_layer.loadNamedStyle(style_path)
-                print(f"[LayerCreationEngine] Style applied: {style_path}")
+            style_path = QmlPaths.MAAMET_IMPORT
+            memory_layer.loadNamedStyle(style_path)
+            print(f"[LayerCreationEngine] Style applied: {style_path}")
 
             if progress:
                 complete_text = "Import complete!" if not self.lang_manager else \

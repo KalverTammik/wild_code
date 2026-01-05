@@ -43,6 +43,8 @@ TRANSLATIONS = {
     TranslationKeys.SELECT_MODULE: "Vali vasakult moodul või ava Seaded, et määrata eelistatud moodul.",
     TranslationKeys.NO_PROJECT_LOADED_TITLE: "Ühtegi projekti pole avatud",
     TranslationKeys.NO_PROJECT_LOADED_MESSAGE: "Kavitro plugnin nõuab QGIS projektifaili, et töötada. Palun ava või loo uus projekt.",
+    TranslationKeys.PROJECT_FOLDER_MISSING_TITLE: "Projektikausta seadistus vajalik",
+    TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE: "Projekti kaustad pole selle mooduli jaoks määratud. Avan Seaded...",
     TranslationKeys.OPEN_SETTINGS: "Ava Seaded",
     TranslationKeys.MAIN_PROPERTY_LAYER: "Kinnistute põhikiht",
     TranslationKeys.ARCHIVE_LAYER: "Arhiivikiht",
@@ -212,15 +214,27 @@ TRANSLATIONS = {
     ,TranslationKeys.SELECT_ALL: "Vali kõik"
     ,TranslationKeys.CLEAR_SELECTION: "Tühjenda valik"
     ,TranslationKeys.ADD_SELECTED: "Lisa valitud"
+    ,TranslationKeys.DELETE_BY_ID: "Kustuta ID järgi"
+    ,TranslationKeys.SELECT_FROM_MAP: "Vali kaardilt"
+    ,TranslationKeys.SELECT_BY_LOCATION_LIST: "Vali asukoha järgi (loend)"
+    ,TranslationKeys.RESELECT_FROM_MAP: "Vali uuesti kaardilt"
+    ,TranslationKeys.ARCHIVE: "Arhiveeri"
+    ,TranslationKeys.UNARCHIVE: "Taasta arhiivist"
+    ,TranslationKeys.UNARCHIVE_EXISTING: "Taasta olemasolev"
+    ,TranslationKeys.CREATE_NEW: "Loo uus"
+    ,TranslationKeys.SKIP: "Jäta vahele"
+    ,TranslationKeys.CREATE_LOAD_IN_GPKG: "Loo/lae GPKG-s…"
     ,TranslationKeys.SELECT_COUNTY: "Vali maakond"
     ,TranslationKeys.SELECT_MUNICIPALITY: "Vali omavalitsus"
     ,TranslationKeys.FILTER_BY_LOCATION: "Filtreeri asukoha järgi"
     ,TranslationKeys.SELECTED_PROPERTIES_COUNT: "Valitud: 0 kinnistut"
     ,TranslationKeys.SELECTED_COUNT_TEMPLATE: "Valitud: {count} kinnistut"
     ,TranslationKeys.NO_SELECTION: "Valikut pole"
+    ,TranslationKeys.ATTENTION: "Tähelepanu"
     ,ToolbarTranslationKeys.OPEN_FOLDER: "Ava kaust"
     ,ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER: "Ava kirje brauseris"
     ,ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP: "Näita kirjeid kaardil"
+    ,ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER: "Genereeri projekti kaust"
     ,TranslationKeys.PLEASE_SELECT_AT_LEAST_ONE_PROPERTY: "Palun valige vähemalt üks kinnistu."
     ,TranslationKeys.NO_PROPERTY_LAYER_SELECTED: "Kinnistute kihti pole valitud. Palun valige esmalt kinnistute kiht."
     ,TranslationKeys.DATA_LOADING_ERROR: "Andmete laadimise viga"
@@ -229,7 +243,8 @@ TRANSLATIONS = {
     ,TranslationKeys.SELECTED_PROPERTIES_ADDED: "Valitud kinnistud on lisatud."
     , TranslationKeys.COUNTY: "Maakond"
     ,TranslationKeys.MUNICIPALITY: "Omavalitsus"
-    ,TranslationKeys.CHOOSE_FROM_MAP: "Vali kaardilt"
+    ,TranslationKeys.CONNECT_PROPERTIES: "Seosta kinnistuid"
+    ,TranslationKeys.CHOSE_FROM_MAP: "Vali kaardilt"
     ,TranslationKeys.NO_SELECTION: "Valikut pole"
     ,TranslationKeys.SELECT_PROPERTY_FIRST: "Palun valige esmalt kaardilt kinnisvara objekt."
     ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Viga kinnisvara valimisel"

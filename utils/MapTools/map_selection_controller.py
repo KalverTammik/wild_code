@@ -28,6 +28,7 @@ class MapSelectionController(QObject):
         self._max_selected: Optional[int] = 1
         self._debounce_timer: Optional[QTimer] = None
         self._debounce_ms: int = 75
+        self._baseline_selection_ids = set()
 
     def start_selection(
         self,
@@ -39,6 +40,7 @@ class MapSelectionController(QObject):
         min_selected: int = 1,
         max_selected: Optional[int] = None,
         clear_filter: bool = False,
+        keep_existing_selection: bool = False,
     ) -> bool:
         """Prepare the given layer for a one-off selection and activate the map tool.
 
@@ -63,7 +65,9 @@ class MapSelectionController(QObject):
             except Exception:
                 pass
 
-        layer.removeSelection()
+        self._baseline_selection_ids = set(layer.selectedFeatureIds() or []) if keep_existing_selection else set()
+        if not keep_existing_selection:
+            layer.removeSelection()
 
         self._layer = layer
         self._callback = on_selected
@@ -116,6 +120,7 @@ class MapSelectionController(QObject):
         finally:
             self._layer = None
             self._callback = None
+            self._baseline_selection_ids = set()
             self.selection_cancelled.emit()
 
     # ------------------------------------------------------------------
@@ -151,13 +156,14 @@ class MapSelectionController(QObject):
             return
 
         selected = layer.selectedFeatures()
-        count = len(selected)
+        filtered = [f for f in selected if f.id() not in getattr(self, "_baseline_selection_ids", set())]
+        count = len(filtered)
         if count < (self._min_selected or 1):
             return
         if self._max_selected is not None and count > self._max_selected:
             return
 
-        features = list(selected)
+        features = list(filtered)
 
         try:
             layer.selectionChanged.disconnect(self._handle_selection_changed)
@@ -173,6 +179,7 @@ class MapSelectionController(QObject):
         callback = self._callback
         self._layer = None
         self._callback = None
+        self._baseline_selection_ids = set()
 
         if callback and layer:
             callback(layer, features)

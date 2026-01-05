@@ -89,7 +89,7 @@ class CoordinationModule(SearchOpenItemMixin, ModuleBaseUI):
 
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.feed_content)
-        ThemeManager.apply_module_style(self._empty_state, [QssPaths.MODULE_CARD])
+        self.retheme_coordinations()
 
     # ------------------------------------------------------------------
     # Lifecycle

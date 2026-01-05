@@ -3,6 +3,7 @@ from .utils.url_manager import Module
 
 from .constants.module_icons import ModuleIconPaths
 from .languages.language_manager import LanguageManager
+from .widgets.theme_manager import ThemeManager
 
 MODULES_LIST_BY_NAME = []
 
@@ -92,6 +93,13 @@ class ModuleManager:
             target_instance = cls(**params)
             module_data["instance"] = target_instance
 
+            # Register module root with centralized retheme engine
+            engine = ThemeManager.get_retheme_engine()
+            qss_files = params.get("qss_files") if params else None
+            widget = self._get_widget_safe(target_instance)
+            after_apply = self._pick_retheme_hook(target_instance, key)
+            engine.register(widget, qss_files=qss_files or ThemeManager.module_bundle(), after_apply=after_apply)
+
         # Activate and mark as current
         self.activeModule = module_data
         try:
@@ -133,4 +141,27 @@ class ModuleManager:
         if not module_data:
             return []
         return module_data.get("module_labels", [])
+
+    @staticmethod
+    def _get_widget_safe(instance):
+        getter = getattr(instance, "get_widget", None)
+        if callable(getter):
+            try:
+                return getter()
+            except Exception:
+                return instance
+        return instance
+
+    @staticmethod
+    def _pick_retheme_hook(instance, key: str):
+        candidates = (
+            "retheme",
+            f"retheme_{key}",
+            f"retheme_{key}s",
+        )
+        for name in candidates:
+            method = getattr(instance, name, None)
+            if callable(method):
+                return lambda _widget, _theme, m=method: m()
+        return None
  

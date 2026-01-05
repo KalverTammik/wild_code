@@ -47,31 +47,7 @@ QLabel#ModuleRowMeta {
 }
 
 
-QPushButton {
-    background: #e6f7f7;
-    border-radius: 6px;
-    border: 1px solid #b2e0e0;
-    padding: 1px 1px;
-    color: #09908f;
-}
 
-QPushButton:hover {
-    background: #d1f0f0;
-    border: 1px solid #7bc7c6;
-    color: #067c7b;
-}
-
-QPushButton:pressed {
-    background: #c0e7e7;
-    border: 1px solid #5fb6b4;
-    color: #056968;
-}
-
-QPushButton:disabled {
-    background: #f5f8f9;
-    border: 1px solid #d7e3e7;
-    color: rgba(12,60,60,0.35);
-}
 
 
 QLabel#ProjectNameLabel {

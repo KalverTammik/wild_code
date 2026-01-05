@@ -4,7 +4,7 @@ import gc
 from .constants.file_paths import QssPaths
 from .constants.module_icons import IconNames
 from .constants.settings_keys import SettingsService
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget, QMessageBox
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget
 from PyQt5.QtGui import QMouseEvent
 from .widgets.FooterWidget import FooterWidget
 from .widgets.HeaderWidget import HeaderWidget
@@ -72,6 +72,7 @@ class PluginDialog(QDialog):
         # Managers / services first
         self.lang_manager = LanguageManager()  
         self.moduleManager = ModuleManager()
+        self.retheme_engine = ThemeManager.get_retheme_engine()
         self.window_manager = WindowManagerMinMax(self)  
         self._geometry_restored = False
 
@@ -136,11 +137,16 @@ class PluginDialog(QDialog):
             self,
             self.header_widget.switchButton,
             self.header_widget.logoutButton,
-            qss_files=[QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR, QssPaths.HEADER, QssPaths.FOOTER]
+            qss_files=None  # use centralized app bundle
         )
 
+        # Register shell widgets for centralized retheming
+        self.retheme_engine.register(self, qss_files=ThemeManager.app_bundle())
+        self.retheme_engine.register(self.header_widget, qss_files=ThemeManager.app_bundle())
+        self.retheme_engine.register(self.sidebar, qss_files=ThemeManager.module_bundle())
+        self.retheme_engine.register(self.footer_widget, qss_files=ThemeManager.app_bundle())
+
         self.loadModules()
-        self._retheme_dynamic_children()
         self.sidebar.itemClicked.connect(lambda moduleName: ModuleSwitchHelper.switch_module(moduleName, dialog=self))
 
         self.destroyed.connect(self._on_destroyed)
@@ -172,10 +178,9 @@ class PluginDialog(QDialog):
         PluginDialog._instance = None
 
     def loadModules(self):
-    
-        qss_modular = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
+        qss_modular = list(ThemeManager.module_bundle())
 
-        qss_signaltest = qss_modular + [QssPaths.SETUP_CARD]
+        qss_signaltest = list(ThemeManager.module_bundle([QssPaths.SETUP_CARD]))
 
         def _pick_folder(_module_key: str, _key: str, current_value: str):
             start_path = current_value or ""
@@ -264,63 +269,15 @@ class PluginDialog(QDialog):
       
     def apply_theme_toggle(self):
         # Use ThemeManager to toggle theme and update icon
-        qss_files = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR, QssPaths.HEADER, QssPaths.MODULE_INFO]
         new_theme = ThemeManager.toggle_theme(
             self,
             self.current_theme,
             self.header_widget.switchButton,
             self.header_widget.logoutButton,
-            qss_files=qss_files
+            qss_files=None  # use centralized app bundle
         )
         self.current_theme = new_theme
-
-        retheme_targets = (
-            ("header_widget", "retheme_header"),
-            ("sidebar", "retheme_sidebar"),
-            ("projectsModule", "retheme_projects"),
-            ("contractsModule", "retheme_contract"),
-            ("propertyModule",),  # Uses default "retheme" method
-            ("settingsModule", "retheme_settings"),
-            ("footer_widget", "retheme_footer"),
-        )
-        for target in retheme_targets:
-            if len(target) == 2:
-                attr_name, method_name = target
-                self._call_child_retheme(attr_name, method_name)
-            else:
-                # Single item tuple - use default "retheme" method
-                self._call_child_retheme(target[0])
-
-        # Re-theme any dynamically created widgets (like DatesWidget in cards)
-        self._retheme_dynamic_children()
-
-
-    def _call_child_retheme(self, attr_name: str, method_name: str = "retheme") -> None:
-        """Call a retheme method on a child widget.
-        If method_name is not specified, defaults to 'retheme'.
-        """
-        try:
-            child = getattr(self, attr_name, None)
-            if child:
-                method = getattr(child, method_name, None)
-                if callable(method):
-                    method()
-        except Exception:
-            pass
-
-    def _retheme_dynamic_children(self):
-        """Find any child widgets that expose retheme() and call it.
-        This is a fallback for dynamic theming discovery.
-        """
-        try:
-            count = 0
-            for w in self.findChildren(QWidget):
-                rt = getattr(w, 'retheme', None)
-                if callable(rt):
-                    rt()
-                    count += 1
-        except Exception:
-            pass
+        self.retheme_engine.retheme_all()
 
     def mouseMoveEvent(self, event: QMouseEvent):
         super().mouseMoveEvent(event)

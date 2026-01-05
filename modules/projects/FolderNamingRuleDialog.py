@@ -3,9 +3,10 @@ from __future__ import annotations
 import os
 from typing import List, Optional, Tuple
 
-from PyQt5.QtWidgets import QComboBox, QDialog, QLineEdit, QMessageBox
+from PyQt5.QtWidgets import QComboBox, QDialog, QLineEdit
 from ...languages.translation_keys import FolderNamingTranslationKeys
 from PyQt5.uic import loadUi
+from ...utils.messagesHelper import ModernMessageDialog
 
 INTERNAL_PROJECT_NAME = "PROJECT_NAME"
 INTERNAL_PROJECT_NUMBER = "PROJECT_NUMBER"
@@ -180,7 +181,10 @@ class FolderNamingRuleDialog(QDialog):
     def _on_accept(self) -> None:
         error = self._validate()
         if error:
-            QMessageBox.warning(self, self.lang_manager.translate(FolderNamingTranslationKeys.TR_INVALID_RULE), error)
+            ModernMessageDialog.show_warning(
+                self.lang_manager.translate(FolderNamingTranslationKeys.TR_INVALID_RULE),
+                error,
+            )
             return
         self._result_rule = self._serialize_rule()
         self.accept()

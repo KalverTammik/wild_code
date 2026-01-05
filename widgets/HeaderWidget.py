@@ -2,6 +2,7 @@ import os
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit, QVBoxLayout, QListWidget, QListWidgetItem
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
 from .theme_manager import IntensityLevels, ThemeManager, is_dark, styleExtras, ThemeShadowColors
+from ..constants.button_props import ButtonVariant, ButtonSize
 from ..constants.file_paths import QssPaths
 from ..constants.module_icons import IconNames
 
@@ -49,6 +50,8 @@ class HeaderWidget(QWidget):
         # Prevent help button from being the default button that triggers on Return key
         self.helpButton.setAutoDefault(False)
         self.helpButton.setDefault(False)
+        self.helpButton.setProperty("variant", ButtonVariant.GHOST)
+        self.helpButton.setProperty("btnSize", ButtonSize.SMALL)
         
         # Add help icon and text
         self.helpButton.setIcon(ThemeManager.get_qicon(IconNames.ICON_HELP))
@@ -109,6 +112,7 @@ class HeaderWidget(QWidget):
         # Prevent button from being triggered by Return key
         self.switchButton.setAutoDefault(False)
         self.switchButton.setDefault(False)
+        self.switchButton.setProperty("variant", ButtonVariant.GHOST)
         self.switchButton.clicked.connect(switch_callback)
         # Rakenda tooltip keelefailist
         tooltip = LanguageManager().translate("theme_switch_tooltip")
@@ -120,6 +124,7 @@ class HeaderWidget(QWidget):
         # Prevent button from being triggered by Return key
         self.logoutButton.setAutoDefault(False)
         self.logoutButton.setDefault(False)
+        self.logoutButton.setProperty("variant", ButtonVariant.DANGER)
         self.logoutButton.clicked.connect(logout_callback)
 
         # Rakenda tooltip keelefailist
@@ -148,7 +153,7 @@ class HeaderWidget(QWidget):
         return self._search_results
 
     def retheme_header(self):
-        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.HEADER])
+        ThemeManager.apply_module_style(self,[QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.HEADER])
         theme = ThemeManager.effective_theme()
         ThemeManager._update_header_icons(theme, self.switchButton, self.logoutButton)
 

@@ -1,0 +1,15 @@
+mutation UpdateEasement($input: UpdateEasementInput!) {
+  updateEasement(input: $input) {
+    __typename
+    id
+    properties {
+      edges {
+        node {
+          id
+          displayAddress
+          cadastralUnitNumber
+        }
+      }
+    }
+  }
+}

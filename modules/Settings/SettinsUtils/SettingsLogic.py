@@ -3,6 +3,7 @@ from typing import Dict, Iterable, Optional
 
 from ....constants.module_icons import IconNames
 from ....widgets.theme_manager import ThemeManager
+from ....utils.messagesHelper import ModernMessageDialog
 
 from ....utils.url_manager import Module, ModuleSupports
 from ....module_manager import MODULES_LIST_BY_NAME
@@ -160,7 +161,7 @@ class SettingsLogic:
         """Handle unsaved changes prompt when navigating away from Settings.
         
         Args:
-            parent_dialog: The parent dialog for QMessageBox
+            parent_dialog: Parent dialog for the prompt
             
         Returns:
             True if navigation may proceed, False to cancel
@@ -169,29 +170,29 @@ class SettingsLogic:
             return True
             
         try:
-            from PyQt5.QtWidgets import QMessageBox
-            
-            mbox = QMessageBox(self)
-            mbox.setIcon(ThemeManager.get_qicon(IconNames.WARNING))
-            mbox.setWindowTitle(self.tr("Unsaved changes"))
-            mbox.setText(self.tr("You have unsaved Settings changes."))
-            mbox.setInformativeText(self.tr("Do you want to save your changes or discard them?"))
-            save_btn = mbox.addButton(self.tr("Save"), QMessageBox.AcceptRole)
-            discard_btn = mbox.addButton(self.tr("Discard"), QMessageBox.DestructiveRole)
-            cancel_btn = mbox.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
-            mbox.setDefaultButton(save_btn)
-            mbox.exec_()
-            
-            clicked = mbox.clickedButton()
-            if clicked == save_btn:
+            title = self.tr("Unsaved changes")
+            text = self.tr("You have unsaved Settings changes.")
+            detail = self.tr("Do you want to save your changes or discard them?")
+            save_label = self.tr("Save")
+            discard_label = self.tr("Discard")
+            cancel_label = self.tr("Cancel")
+
+            choice = ModernMessageDialog.ask_choice_modern(
+                title,
+                f"{text}\n\n{detail}",
+                buttons=[save_label, discard_label, cancel_label],
+                default=save_label,
+                cancel=cancel_label,
+                icon_name=IconNames.WARNING,
+            )
+
+            if choice == save_label:
                 self.apply_pending_changes()
                 return True
-            elif clicked == discard_btn:
+            if choice == discard_label:
                 self.revert_pending_changes()
                 return True
-            else:
-                # Cancel
-                return False
+            return False
         except Exception as e:
             print(f"Settings navigation prompt failed: {e}", "error")
             return True

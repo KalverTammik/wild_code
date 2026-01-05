@@ -23,9 +23,3 @@ QLabel[modulelabelvalue="false"] {
     font-style: italic;
 }
 
-/* Button styling */
-QPushButton {
-    min-width: 24px;
-    padding: 2px 2px;
-    font-size: 12px;
-}

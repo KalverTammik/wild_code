@@ -446,7 +446,10 @@ class FeatureActions:
         new_feat = QgsFeature(target_layer.fields())
         new_feat.setGeometry(source_feature.geometry())
 
-        free_fid = FeatureActions.next_free_fid_int_value(target_layer)
+        try:
+            pk_indexes = list(target_layer.dataProvider().pkAttributeIndexes() or [])
+        except Exception:
+            pk_indexes = []
 
         source_names = set(source_feature.fields().names())
 
@@ -458,7 +461,28 @@ class FeatureActions:
 
         # Internal feature id: let provider assign
         new_feat.setId(-1)
-        new_feat.setAttribute(Katastriyksus.fid, free_fid)
+
+        # IMPORTANT:
+        # - If destination layer has a provider primary key attribute (common in GeoPackage),
+        #   we must not assign it manually (causes UNIQUE constraint errors like: ... failed: <layer>.fid).
+        # - If `fid` is NOT a provider PK (legacy/non-db layers), keep current behavior and assign a free value.
+        fid_idx = -1
+        try:
+            fid_idx = int(target_layer.fields().indexOf(Katastriyksus.fid))
+        except Exception:
+            fid_idx = -1
+
+        if fid_idx >= 0 and fid_idx in pk_indexes:
+            try:
+                new_feat.setAttribute(fid_idx, None)
+            except Exception:
+                pass
+        else:
+            # Legacy behavior: ensure `fid` field stays unique within the visible layer features.
+            # (Used by some workflows as a stable identifier.)
+            if fid_idx >= 0:
+                free_fid = FeatureActions.next_free_fid_int_value(target_layer)
+                new_feat.setAttribute(fid_idx, free_fid)
 
         ok = target_layer.addFeature(new_feat)
 
@@ -478,18 +502,139 @@ class FeatureActions:
             n += 1
         return n
 
+    @staticmethod
+    def delete_features_by_field_values(layer: QgsVectorLayer, field_name: str, values: Sequence[object]):
+        """Delete all matching features and commit.
+
+        Returns: (ok_commit: bool, feature_ids: list[int], error: str)
+        """
+
+        if not layer or not layer.isValid() or not values:
+            return False, [], ""
+
+        try:
+            matches = MapHelpers.find_features_by_fields_and_values(layer, field_name, list(values))
+        except Exception:
+            matches = []
+
+        feature_ids = [f.id() for f in (matches or [])]
+        if not feature_ids:
+            return True, [], ""
+
+        try:
+            if not layer.isEditable():
+                layer.startEditing()
+
+            ok_delete = bool(layer.deleteFeatures(feature_ids))
+            ok_commit = bool(layer.commitChanges()) if ok_delete else False
+            if not ok_commit:
+                err = "; ".join(layer.commitErrors() or [])
+                try:
+                    layer.rollBack()
+                except Exception:
+                    pass
+                return False, feature_ids, err
+
+            return True, feature_ids, ""
+        except Exception as e:
+            try:
+                layer.rollBack()
+            except Exception:
+                pass
+            return False, feature_ids, str(e)
+
+    @staticmethod
+    def update_feature_attribute_by_field_value(
+        layer: QgsVectorLayer,
+        field_name: str,
+        value: object,
+        attribute_name: str,
+        new_value: object,
+    ):
+        """Update a single matching feature attribute and commit.
+
+        Returns: (ok_commit: bool, feature_id: Optional[int], error: str)
+        """
+
+        if not layer or not layer.isValid() or not value:
+            return False, None, ""
+
+        try:
+            matches = MapHelpers.find_features_by_fields_and_values(layer, field_name, [value])
+        except Exception:
+            matches = []
+
+        if not matches:
+            return False, None, "not_found"
+
+        feature = matches[0]
+        feature_id = None
+        try:
+            feature_id = feature.id()
+        except Exception:
+            feature_id = None
+
+        try:
+            if not layer.isEditable():
+                layer.startEditing()
+
+            feature.setAttribute(attribute_name, new_value)
+            ok_update = bool(layer.updateFeature(feature))
+            ok_commit = bool(layer.commitChanges()) if ok_update else False
+            if not ok_commit:
+                err = "; ".join(layer.commitErrors() or [])
+                try:
+                    layer.rollBack()
+                except Exception:
+                    pass
+                return False, feature_id, err
+
+            return True, feature_id, ""
+        except Exception as e:
+            try:
+                layer.rollBack()
+            except Exception:
+                pass
+            return False, feature_id, str(e)
+
+    @staticmethod
+    def get_first_feature_by_field_value(layer: QgsVectorLayer, field_name: str, value: object) -> Optional[QgsFeature]:
+        if not layer or not layer.isValid() or value is None or value == "":
+            return None
+        try:
+            matches = MapHelpers.find_features_by_fields_and_values(layer, field_name, [value])
+        except Exception:
+            matches = []
+        return matches[0] if matches else None
+
+    @staticmethod
+    def get_first_attribute_by_field_value(
+        layer: QgsVectorLayer,
+        field_name: str,
+        value: object,
+        attribute_name: str,
+    ) -> object:
+        feature = FeatureActions.get_first_feature_by_field_value(layer, field_name, value)
+        if feature is None:
+            return None
+        try:
+            return feature.attribute(attribute_name)
+        except Exception:
+            return None
+
 
 
 class ActiveLayersHelper:
 
     @staticmethod
-    def _get_active_property_layer():
+    def resolve_main_property_layer(*, silent: bool = False):
         layer_id = SettingsService().module_main_layer_name(Module.PROPERTY.value) or ""
-        active_layer = MapHelpers.resolve_layer(layer_id)
-        if not active_layer:
-            ModernMessageDialog.Warning_messages_modern(
-                "Property layer not configured or missing from project",
-                LanguageManager().translate(TranslationKeys.ERROR),
-            )
+        layer = MapHelpers.resolve_layer(layer_id)
+        if not layer:
+            if not silent:
+                ModernMessageDialog.Warning_messages_modern(
+                    "Property layer not configured or missing from project",
+                    LanguageManager().translate(TranslationKeys.ERROR),
+                )
             return None
-        return active_layer
+        return layer

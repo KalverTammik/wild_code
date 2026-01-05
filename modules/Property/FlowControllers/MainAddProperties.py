@@ -1,8 +1,8 @@
+import os
 import re
 import requests
 from requests.exceptions import Timeout
 
-from PyQt5.QtWidgets import QMessageBox
 from qgis.core import QgsFeature
 
 from ....python.api_client import APIClient
@@ -14,11 +14,14 @@ from ....utils.mapandproperties.PropertyTableManager import PropertyTableManager
 from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from ....languages.language_manager import LanguageManager 
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions
-from ....utils.url_manager import Module
+from ....utils.url_manager import Module, ModuleSupports
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from .UpdatePropertyData import UpdatePropertyData
 from ....widgets.DateHelpers import DateHelpers
 from ....utils.TagsEngines import TagsHelpers, TagsEngines
+from ....utils.moduleSwitchHelper import ModuleSwitchHelper
+from ....utils.mapandproperties.ArchiveLayerHandler import ArchiveLayerHandler
+from ....utils.messagesHelper import ModernMessageDialog
 
 
 class MainAddPropertiesFlow:
@@ -29,7 +32,7 @@ class MainAddPropertiesFlow:
     
 
     @staticmethod
-    def start_adding_properties(table=None):
+    def start_adding_properties(table=None, *, selected_features=None):
         """
         Goals:
         1) Add selected properties from the import layer to:
@@ -83,8 +86,9 @@ class MainAddPropertiesFlow:
         Returns: bool - success status
 
         """
-        table_manager = PropertyTableManager()
-        selected_features = table_manager.get_selected_features(table)
+        if selected_features is None:
+            table_manager = PropertyTableManager()
+            selected_features = table_manager.get_selected_features(table)
 
         if not selected_features:
             return False
@@ -107,6 +111,7 @@ class MainAddPropertiesFlow:
                 archive_layer.startEditing()
             try:
                 for feature in selected_features:
+                    lm = LanguageManager()
                     data, tunnus, siht_data, last_updated_str = PropertyDataLoader().prepare_data_for_import_stage1(feature)
                     # last updated str is iso format string
                     #check if property with tunnus already exists in Kavtro
@@ -158,28 +163,26 @@ class MainAddPropertiesFlow:
                             archived_backend_id = None
 
                         if archived_only_backend and archived_backend_id:
-                            msg = QMessageBox()
-                            msg.setIcon(QMessageBox.Question)
-                            msg.setWindowTitle("Archived backend match")
-                            msg.setText(
-                                f"Backend has an archived property for cadastral number {tunnus}.\n\n"
-                                f"What do you want to do?"
-                            )
-                            btn_unarchive = msg.addButton("Unarchive existing", QMessageBox.AcceptRole)
-                            btn_create_new = msg.addButton("Create new", QMessageBox.ActionRole)
-                            btn_skip = msg.addButton("Skip", QMessageBox.RejectRole)
-                            msg.setDefaultButton(btn_unarchive)
-                            msg.exec_()
-                            clicked = msg.clickedButton()
+                            btn_unarchive = lm.translate(TranslationKeys.UNARCHIVE_EXISTING) or "Unarchive existing"
+                            btn_create_new = lm.translate(TranslationKeys.CREATE_NEW) or "Create new"
+                            btn_skip = lm.translate(TranslationKeys.SKIP) or "Skip"
 
-                            if clicked == btn_skip:
+                            choice = ModernMessageDialog.ask_choice_modern(
+                                "Archived backend match",
+                                f"Backend has an archived property for cadastral number {tunnus}.\n\n"
+                                f"What do you want to do?",
+                                buttons=[btn_unarchive, btn_create_new, btn_skip],
+                                default=btn_unarchive,
+                                cancel=btn_skip,
+                            )
+
+                            if choice == btn_skip or choice is None:
                                 print(f"Skipped {tunnus} (archived-only backend match).")
                                 continue
 
-                            if clicked == btn_unarchive:
+                            if choice == btn_unarchive:
                                 if not UpdatePropertyData._unarchive_property_data(item_id=archived_backend_id):
-                                    QMessageBox.warning(
-                                        None,
+                                    ModernMessageDialog.Error_messages_modern(
                                         "Unarchive failed",
                                         f"Failed to unarchive backend property {archived_backend_id} for {tunnus}.",
                                     )
@@ -191,8 +194,7 @@ class MainAddPropertiesFlow:
                                     siht_data,
                                 )
                                 if not ok:
-                                    QMessageBox.warning(
-                                        None,
+                                    ModernMessageDialog.Warning_messages_modern(
                                         "Backend update failed",
                                         f"Unarchived backend property but failed to update data for {tunnus}.",
                                     )
@@ -204,17 +206,17 @@ class MainAddPropertiesFlow:
                                         f"Property {tunnus} is now active in backend but is missing from main layer.\n\n"
                                         f"Copy feature from import layer to main layer?"
                                     )
-                                    reply = QMessageBox.question(
-                                        None,
+                                    reply = ModernMessageDialog.ask_choice_modern(
                                         title,
                                         text,
-                                        QMessageBox.Yes | QMessageBox.No,
-                                        QMessageBox.Yes,
+                                        buttons=[lm.translate(TranslationKeys.YES) or "Yes", lm.translate(TranslationKeys.NO) or "No"],
+                                        default=lm.translate(TranslationKeys.YES) or "Yes",
+                                        cancel=lm.translate(TranslationKeys.NO) or "No",
                                     )
-                                    if reply == QMessageBox.Yes:
+                                    if reply == (lm.translate(TranslationKeys.YES) or "Yes"):
                                         ok2, msg2 = FeatureActions.copy_feature_to_layer(feature, target_layer)
                                         if not ok2:
-                                            QMessageBox.warning(None, "Copy failed", msg2)
+                                            ModernMessageDialog.Error_messages_modern("Copy failed", msg2)
                                     else:
                                         print(f"Skipped copying {tunnus} into main layer (backend re-activated).")
 
@@ -235,14 +237,14 @@ class MainAddPropertiesFlow:
                                     f"Property {tunnus} exists in main layer but is missing from backend.\n\n"
                                     f"Create backend record from import data?"
                                 )
-                            reply = QMessageBox.question(
-                                None,
+                            reply = ModernMessageDialog.ask_choice_modern(
                                 title,
                                 text,
-                                QMessageBox.Yes | QMessageBox.No,
-                                QMessageBox.Yes,
+                                buttons=[lm.translate(TranslationKeys.YES) or "Yes", lm.translate(TranslationKeys.NO) or "No"],
+                                default=lm.translate(TranslationKeys.YES) or "Yes",
+                                cancel=lm.translate(TranslationKeys.NO) or "No",
                             )
-                            if reply != QMessageBox.Yes:
+                            if reply != (lm.translate(TranslationKeys.YES) or "Yes"):
                                 print(f"Skipped backend creation for {tunnus} (main layer already has feature).")
                                 continue
 
@@ -275,17 +277,17 @@ class MainAddPropertiesFlow:
                             f"Property {tunnus} exists in backend but is missing from main layer.\n\n"
                             f"Copy feature from import layer to main layer?"
                         )
-                        reply = QMessageBox.question(
-                            None,
+                        reply = ModernMessageDialog.ask_choice_modern(
                             title,
                             text,
-                            QMessageBox.Yes | QMessageBox.No,
-                            QMessageBox.Yes,
+                            buttons=[lm.translate(TranslationKeys.YES) or "Yes", lm.translate(TranslationKeys.NO) or "No"],
+                            default=lm.translate(TranslationKeys.YES) or "Yes",
+                            cancel=lm.translate(TranslationKeys.NO) or "No",
                         )
-                        if reply == QMessageBox.Yes:
+                        if reply == (lm.translate(TranslationKeys.YES) or "Yes"):
                             ok, msg = FeatureActions.copy_feature_to_layer(feature, target_layer)
                             if not ok:
-                                QMessageBox.warning(None, "Copy failed", msg)
+                                ModernMessageDialog.Error_messages_modern("Copy failed", msg)
                         else:
                             print(f"Skipped copying {tunnus} into main layer (backend already exists).")
                         continue
@@ -306,28 +308,26 @@ class MainAddPropertiesFlow:
                             f"- Marks backend property as archived\n"
                             f"- Replaces main-layer feature with import feature"
                         )
-                        reply = QMessageBox.question(
-                            None,
+                        choice = ModernMessageDialog.ask_choice_modern(
                             title,
                             text,
-                            QMessageBox.Yes | QMessageBox.No,
-                            QMessageBox.No,
+                            buttons=[lm.translate(TranslationKeys.YES) or "Yes", lm.translate(TranslationKeys.NO) or "No"],
+                            default=lm.translate(TranslationKeys.NO) or "No",
+                            cancel=lm.translate(TranslationKeys.NO) or "No",
                         )
-                        if reply != QMessageBox.Yes:
+                        if choice != (lm.translate(TranslationKeys.YES) or "Yes"):
                             print(f"Skipped archive/replace for {tunnus}.")
                             continue
 
                         if not existing_map_feature:
-                            QMessageBox.warning(
-                                None,
+                            ModernMessageDialog.Error_messages_modern(
                                 "Replace failed",
                                 f"Could not locate existing main-layer feature for {tunnus} to archive/replace.",
                             )
                             raise RuntimeError(f"Missing existing map feature for {tunnus}")
 
                         if not archive_layer or not archive_layer.isValid():
-                            QMessageBox.warning(
-                                None,
+                            ModernMessageDialog.Warning_messages_modern(
                                 "Archive layer missing",
                                 "Archive layer is not configured or missing; cannot archive/replace.",
                             )
@@ -338,7 +338,7 @@ class MainAddPropertiesFlow:
 
                         ok, msg = FeatureActions.copy_feature_to_layer(existing_map_feature, archive_layer)
                         if not ok:
-                            QMessageBox.warning(None, "Archive copy failed", msg)
+                            ModernMessageDialog.Error_messages_modern("Archive copy failed", msg)
                             raise RuntimeError(f"Archive copy failed for {tunnus}: {msg}")
 
                         try:
@@ -346,8 +346,7 @@ class MainAddPropertiesFlow:
                         except Exception:
                             deleted = False
                         if not deleted:
-                            QMessageBox.warning(
-                                None,
+                            ModernMessageDialog.Error_messages_modern(
                                 "Replace failed",
                                 f"Failed to delete existing main-layer feature for {tunnus}.",
                             )
@@ -355,15 +354,14 @@ class MainAddPropertiesFlow:
 
                         ok, msg = FeatureActions.copy_feature_to_layer(feature, target_layer)
                         if not ok:
-                            QMessageBox.warning(None, "Replace failed", msg)
+                            ModernMessageDialog.Error_messages_modern("Replace failed", msg)
                             raise RuntimeError(f"Copy import->main failed for {tunnus}: {msg}")
 
                         backend_prop = backend_info.get("property") or {}
                         backend_id = backend_prop.get("id")
                         if backend_id:
                             if not UpdatePropertyData._archive_a_propertie(backend_id, archive_tag=tag_id):
-                                QMessageBox.warning(
-                                    None,
+                                ModernMessageDialog.Error_messages_modern(
                                     "Backend archive failed",
                                     f"Failed to mark backend property as archived for {tunnus}.",
                                 )
@@ -417,6 +415,158 @@ class MainAddPropertiesFlow:
         return False
 
     @staticmethod
+    def preflight_archive_layer_before_dialog() -> bool:
+        """Ensure archive layer is configured/available BEFORE opening modal dialogs.
+
+        Returns True when archive layer is ready; False when user chose to open Settings
+        or cancel (caller should abort opening the dialog).
+        """
+
+        target_layer_name = SettingsService().module_main_layer_name(Module.PROPERTY.value)
+        active_layer = MapHelpers.find_layer_by_name(target_layer_name)
+        if not active_layer or not active_layer.isValid():
+            ModernMessageDialog.Warning_messages_modern(
+                "Main layer missing",
+                "Main property layer is not found/invalid. Please configure it in Settings.",
+            )
+            return False
+
+        archive_layer = MainAddPropertiesFlow._ensure_archive_layer_ready(active_layer)
+        if not archive_layer:
+            return False
+
+        # Keep both visible so user immediately sees what will be used.
+        MapHelpers.ensure_layer_visible(active_layer, make_active=True)
+        MapHelpers.ensure_layer_visible(archive_layer, make_active=False)
+        return True
+
+    @staticmethod
+    def _ensure_archive_layer_ready(active_layer):
+        """Return a valid archive layer, or None if user cancels."""
+
+        settings = SettingsService()
+        archive_layer_name = (settings.module_archive_layer_name(Module.PROPERTY.value) or "").strip()
+        archive_layer = MapHelpers.find_layer_by_name(archive_layer_name) if archive_layer_name else None
+
+        if not active_layer:
+            return None
+
+        if not archive_layer_name or not archive_layer or not archive_layer.isValid():
+            # User-driven resolution: either open Settings (layer configurer) or create/load an archive layer in the same GPKG.
+            title = "Archive layer required"
+            lm = LanguageManager()
+
+            if not archive_layer_name:
+                body = (
+                    "Archive layer is not configured for Properties.\n\n"
+                    "Choose what to do:\n"
+                    "- Open Settings to pick an archive layer\n"
+                    "- Create/load an archive layer inside the same GPKG as MAIN"
+                )
+            else:
+                body = (
+                    f"Archive layer '{archive_layer_name}' is not found/invalid in the project.\n\n"
+                    "Choose what to do:\n"
+                    "- Open Settings to pick an archive layer\n"
+                    "- Create/load an archive layer inside the same GPKG as MAIN"
+                )
+
+            choice = ModernMessageDialog.ask_choice_modern(
+                title,
+                body,
+                buttons=[
+                    lm.translate(TranslationKeys.OPEN_SETTINGS) or "Open Settings",
+                    lm.translate(TranslationKeys.CREATE_LOAD_IN_GPKG) or "Create/Load in GPKG…",
+                    lm.translate(TranslationKeys.CANCEL) or "Cancel",
+                ],
+                default=lm.translate(TranslationKeys.OPEN_SETTINGS) or "Open Settings",
+                cancel=lm.translate(TranslationKeys.CANCEL) or "Cancel",
+            )
+
+            if choice == (lm.translate(TranslationKeys.OPEN_SETTINGS) or "Open Settings"):
+                try:
+                    ModuleSwitchHelper.switch_module(
+                        Module.SETTINGS.name,
+                        focus_module=Module.PROPERTY.name,
+                    )
+                except Exception as e:
+                    ModernMessageDialog.Warning_messages_modern(
+                        "Open Settings failed",
+                        f"Could not open Settings module automatically.\n\nError: {e}",
+                    )
+                return None
+
+            if choice in (None, (lm.translate(TranslationKeys.CANCEL) or "Cancel")):
+                return None
+
+            if choice == (lm.translate(TranslationKeys.CREATE_LOAD_IN_GPKG) or "Create/Load in GPKG…"):
+                # Only supported when MAIN layer is sourced from a GeoPackage.
+                try:
+                    uri = active_layer.dataProvider().dataSourceUri() or ""
+                except Exception:
+                    uri = ""
+                gpkg_path = (uri.split("|")[0] if uri else "").strip()
+                if not gpkg_path or os.path.splitext(gpkg_path)[1].lower() != ".gpkg":
+                    ModernMessageDialog.Warning_messages_modern(
+                        "Cannot create archive layer",
+                        "Auto-creating an archive layer is only supported when MAIN is a GeoPackage (.gpkg) layer.\n\n"
+                        "Please configure the archive layer in Settings.",
+                    )
+                    return None
+
+                default_name = archive_layer_name or "Archive_Layer"
+                layer_name, ok = ModernMessageDialog.get_text_modern(
+                    "Create/Load archive layer",
+                    "Archive layer name:",
+                    text=default_name,
+                )
+                if not ok:
+                    return None
+
+                layer_name = (layer_name or "").strip()
+                if not layer_name:
+                    ModernMessageDialog.Warning_messages_modern("Invalid name", "Archive layer name cannot be empty.")
+                    return None
+
+                created_layer = None
+                try:
+                    created_layer = ArchiveLayerHandler.resolve_or_create_archive_layer(active_layer, layer_name)
+                except Exception as e:
+                    ModernMessageDialog.Error_messages_modern(
+                        "Archive layer creation failed",
+                        f"Failed to create/load archive layer '{layer_name}'.\n\nError: {e}",
+                    )
+                    return None
+
+                if not created_layer or not created_layer.isValid():
+                    ModernMessageDialog.Error_messages_modern(
+                        "Archive layer creation failed",
+                        f"Failed to create/load archive layer '{layer_name}'.",
+                    )
+                    return None
+
+                # Persist to settings so next run doesn't need prompts.
+                try:
+                    settings.module_archive_layer_name(Module.PROPERTY.value, value=layer_name)
+                except Exception:
+                    pass
+
+                # If Settings UI is open, immediately sync the archive dropdown.
+                try:
+                    from ....dialog import PluginDialog
+
+                    dlg = PluginDialog.get_instance() if PluginDialog else None
+                    sm = getattr(dlg, "settingsModule", None) if dlg else None
+                    if sm is not None:
+                        sm.sync_module_archive_layer_dropdown(Module.PROPERTY.value, layer_name, force=True)
+                except Exception:
+                    pass
+
+                return created_layer
+
+        return archive_layer
+
+    @staticmethod
     def _prepare_layers() -> None:
         # 1) Import layer filtering (optional but explicit)
         import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
@@ -430,9 +580,10 @@ class MainAddPropertiesFlow:
         target_layer_name = SettingsService().module_main_layer_name(Module.PROPERTY.value)
         active_layer = MapHelpers.find_layer_by_name(target_layer_name)
 
-        # 3) Take care of Archive layer presence
-        archive_layer_name = SettingsService().module_archive_layer_name(Module.PROPERTY.value)
-        archive_layer = MapHelpers.find_layer_by_name(archive_layer_name)
+        # 3) Ensure archive layer exists/valid (may prompt user)
+        archive_layer = MainAddPropertiesFlow._ensure_archive_layer_ready(active_layer) if active_layer else None
+        if active_layer and not archive_layer:
+            return import_layer, active_layer, None
         
         #4) Ensure archive layers are visible
         if active_layer:
@@ -548,12 +699,150 @@ class BackendPropertyVerifier:
         try:
             client = APIClient()
 
+            def _unwrap_data(payload: dict) -> dict:
+                if isinstance(payload, dict) and "data" in payload and isinstance(payload.get("data"), dict):
+                    return payload.get("data")
+                return payload if isinstance(payload, dict) else {}
+
+            def _resolve_property_status_id_by_name(status_name: str) -> str | None:
+                name = ("" if status_name is None else str(status_name)).strip()
+                if not name:
+                    return None
+
+                try:
+                    statuses_query = GraphQLQueryLoader().load_query_by_module(ModuleSupports.STATUSES.value, "ListModuleStatuses.graphql")
+                except Exception:
+                    return None
+
+                variables_local = {
+                    "first": 50,
+                    "after": None,
+                    "where": {
+                        "AND": [
+                            {"column": "MODULE", "operator": "EQ", "value": "PROPERTIES"},
+                            {"column": "NAME", "operator": "EQ", "value": name},
+                        ]
+                    },
+                }
+
+                try:
+                    raw = client.send_query(statuses_query, variables=variables_local, return_raw=True) or {}
+                    data_local = _unwrap_data(raw)
+                    edges_local = ((data_local.get("statuses") or {}).get("edges") or [])
+                    for edge in edges_local:
+                        node = (edge or {}).get("node") or {}
+                        if (node.get("name") or "").strip().lower() == name.lower():
+                            sid = node.get("id")
+                            return str(sid) if sid else None
+                except Exception:
+                    return None
+
+                return None
+
+            def _fetch_nodes_for_where(where_obj: dict) -> list[dict]:
+                nodes_local: list[dict] = []
+                end_cursor_local = None
+                safety_cap_local = 200
+                vars_local = {
+                    "first": 50,
+                    "after": None,
+                    "search": None,
+                    "where": where_obj,
+                }
+
+                while True:
+                    vars_local["after"] = end_cursor_local
+                    payload = client.send_query(query, variables=vars_local)
+                    props = (payload or {}).get("properties") or {}
+                    page_info = props.get("pageInfo") or {}
+                    edges = props.get("edges") or []
+                    for e in edges:
+                        n = (e or {}).get("node")
+                        if isinstance(n, dict) and n:
+                            nodes_local.append(n)
+
+                    has_next = bool(page_info.get("hasNextPage"))
+                    end_cursor_local = page_info.get("endCursor")
+                    if not has_next or not end_cursor_local:
+                        break
+                    if len(nodes_local) >= safety_cap_local:
+                        break
+
+                return nodes_local
+
+            # Preferred (new backend): classify by STATUS
+            active_status_id = _resolve_property_status_id_by_name("ACTIVE")
+            archived_status_id = _resolve_property_status_id_by_name("ARCHIVED")
+
+            if active_status_id and archived_status_id:
+                base_conditions = [
+                    {"column": "CADASTRAL_UNIT_NUMBER", "operator": "EQ", "value": item},
+                ]
+                active_where = {"AND": base_conditions + [{"column": "STATUS", "operator": "IN", "value": [active_status_id]}]}
+                archived_where = {"AND": base_conditions + [{"column": "STATUS", "operator": "IN", "value": [archived_status_id]}]}
+
+                active_nodes = _fetch_nodes_for_where(active_where)
+                archived_nodes = _fetch_nodes_for_where(archived_where)
+
+                active_count = len(active_nodes)
+                archived_count = len(archived_nodes)
+                archived_only = (active_count == 0 and archived_count > 0)
+
+                if active_count == 0 and archived_count == 0:
+                    return {
+                        "exists": False,
+                        "archived_only": False,
+                        "active_count": 0,
+                        "archived_count": 0,
+                        "property": None,
+                        "tags": [],
+                        "error": None,
+                    }
+
+                chosen = (active_nodes[0] if active_nodes else (archived_nodes[0] if archived_nodes else {}))
+                tags_edges = ((chosen.get("tags") or {}).get("edges") or [])
+                tags = []
+                for edge in tags_edges:
+                    tag_node = (edge or {}).get("node")
+                    if isinstance(tag_node, dict) and tag_node:
+                        tags.append(tag_node)
+
+                def _compact(n: dict) -> dict:
+                    return {
+                        "id": n.get("id"),
+                        "cadastralUnitNumber": n.get("cadastralUnitNumber"),
+                        "displayAddress": n.get("displayAddress"),
+                    }
+
+                active_props = [_compact(n) for n in active_nodes if isinstance(n, dict)]
+                archived_props = [_compact(n) for n in archived_nodes if isinstance(n, dict)]
+
+                return {
+                    "exists": active_count > 0,
+                    "archived_only": archived_only,
+                    "active_count": active_count,
+                    "archived_count": archived_count,
+                    "active_ids": [p.get("id") for p in active_props if p.get("id")],
+                    "archived_ids": [p.get("id") for p in archived_props if p.get("id")],
+                    "active_properties": active_props,
+                    "archived_properties": archived_props,
+                    "property": {
+                        "id": chosen.get("id"),
+                        "cadastralUnitNumber": chosen.get("cadastralUnitNumber"),
+                        "displayAddress": chosen.get("displayAddress"),
+                    },
+                    "FirstRegistration": chosen.get("cadastralUnitFirstRegistration"),
+                    "LastUpdated": chosen.get("cadastralUnitLastUpdated"),
+                    "tags": tags,
+                    "error": None,
+                }
+
+            # Legacy fallback: fetch everything and classify by archived tag/prefix
             nodes = []
             safety_cap = 200
             while True:
                 variables["after"] = end_cursor
                 data = client.send_query(query, variables=variables)
-                print(f"ExistingPropertyVerifier response data: {data}")
 
                 props = data.get("properties") or {}
                 page_info = props.get("pageInfo") or {}
@@ -564,19 +853,11 @@ class BackendPropertyVerifier:
                         if isinstance(n, dict) and n:
                             nodes.append(n)
 
-                # stop conditions
-                try:
-                    total = int(page_info.get("total"))
-                except Exception:
-                    total = None
-
                 has_next = bool(page_info.get("hasNextPage"))
                 end_cursor = page_info.get("endCursor")
                 if not has_next:
                     break
                 if not end_cursor:
-                    break
-                if total is not None and len(nodes) >= total:
                     break
                 if len(nodes) >= safety_cap:
                     break
@@ -595,13 +876,15 @@ class BackendPropertyVerifier:
             def _is_archived_property(node_dict: dict) -> bool:
                 if not isinstance(node_dict, dict):
                     return False
+                tag_name = (TagsEngines.ARHIVEERITUD_TAG_NAME or "").strip().lower()
+
                 tags_edges_local = ((node_dict.get("tags") or {}).get("edges") or [])
                 for te in tags_edges_local:
                     tag_node = (te or {}).get("node")
                     if not isinstance(tag_node, dict):
                         continue
                     name = (tag_node.get("name") or "").strip().lower()
-                    if name == TagsEngines.ARHIVEERITUD_TAG_NAME.strip().lower():
+                    if name == tag_name and tag_name:
                         return True
 
                 display = (node_dict.get("displayAddress") or "").strip().lower()

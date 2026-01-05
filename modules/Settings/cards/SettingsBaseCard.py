@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButto
 from ....languages.language_manager import LanguageManager
 from ....widgets.theme_manager import ThemeManager
 from ....constants.file_paths import QssPaths
+from ....constants.button_props import ButtonVariant, ButtonSize
 from PyQt5.QtGui import  QPixmap
 from ....languages.translation_keys import TranslationKeys
 
@@ -87,6 +88,9 @@ class SettingsBaseCard(QFrame):
         # Reset button (can be shown/hidden by subclasses)
         self._reset_btn = QPushButton(self.lang_manager.translate(TranslationKeys.RESET))
         self._reset_btn.setObjectName("ResetButton")
+        self._reset_btn.setProperty("variant", ButtonVariant.GHOST)
+        self._reset_btn.setProperty("btnSize", ButtonSize.SMALL)
+        
         self._reset_btn.setVisible(False)  # Hidden by default
         buttons_layout.addWidget(self._reset_btn)
 
@@ -94,6 +98,8 @@ class SettingsBaseCard(QFrame):
         self._confirm_btn = QPushButton(self.lang_manager.translate(TranslationKeys.CONFIRM))
         self._confirm_btn.setVisible(False)
         self._confirm_btn.setObjectName("ConfirmButton")  # For QSS styling
+        self._confirm_btn.setProperty("variant", ButtonVariant.PRIMARY)
+        self._confirm_btn.setProperty("btnSize", ButtonSize.SMALL)
         buttons_layout.addWidget(self._confirm_btn)
 
         ftr.addWidget(buttons_frame, 0)  # No expansion

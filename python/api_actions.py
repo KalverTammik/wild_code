@@ -5,6 +5,7 @@ from .api_client import APIClient
 from .GraphQLQueryLoader import GraphQLQueryLoader
 from ..languages.language_manager import LanguageManager
 from .responses import JsonResponseHandler
+from ..utils.url_manager import Module
 
 
 _PROPERTIES_PAGE_SIZE = 50
@@ -89,4 +90,79 @@ class APIModuleActions:
                 break
         print(f"[DEBUG] Retrieved connected cadastral numbers: {cadastral_numbers}")
         return cadastral_numbers
+
+    @staticmethod
+    def resolve_property_ids_by_cadastral(numbers: List[str]) -> tuple[list[str], list[str]]:
+        """Resolve cadastral numbers to property IDs (chunked to 25 per query). Returns (ids, missing_numbers)."""
+        cleaned = [str(n).strip() for n in numbers if str(n).strip()]
+        if not cleaned:
+            return [], cleaned
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.PROPERTY.value, "id_number.graphql")
+        client = APIClient()
+
+        ids: list[str] = []
+        resolved_numbers = set()
+        chunk_size = 25
+
+        for start in range(0, len(cleaned), chunk_size):
+            chunk = cleaned[start:start + chunk_size]
+            variables = {
+                "first": len(chunk),
+                "after": None,
+                "search": None,
+                "where": {
+                    "AND": [
+                        {
+                            "column": "CADASTRAL_UNIT_NUMBER",
+                            "operator": "IN",
+                            "value": chunk,
+                        }
+                    ]
+                },
+            }
+
+            payload = client.send_query(query, variables=variables, return_raw=True) or {}
+            edges = JsonResponseHandler.get_edges_from_path(payload, ["properties"]) or []
+            for edge in edges:
+                node = edge.get("node") or {}
+                pid = node.get("id")
+                cnum = node.get("cadastralUnitNumber")
+                if pid and cnum:
+                    ids.append(str(pid))
+                    resolved_numbers.add(str(cnum))
+
+        missing = [n for n in cleaned if n not in resolved_numbers]
+        return ids, missing
+
+    @staticmethod
+    def associate_properties(module: str, item_id: str, property_ids: List[str]):
+        """Associate property IDs to a module item via its update*Properties mutation.
+
+        - module: lower-case module key (e.g., 'project', 'contract', 'coordination', 'task', 'easement')
+        - item_id: target item id
+        - property_ids: list of property ids to associate
+        - query_file: optional override for mutation filename; defaults to update<Module>Properties.graphql
+        """
+        if not property_ids:
+            raise ValueError("No property IDs provided for association")
+
+        module_key = module.strip().lower()
+        qfile = f"update{module_key.capitalize()}Properties.graphql"
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(module_key, qfile)
+        variables = {
+            "input": {
+                "id": item_id,
+                "properties": {
+                    "associate": property_ids,
+                },
+            }
+        }
+
+        client = APIClient()
+        return client.send_query(query, variables=variables, return_raw=True)
+
 

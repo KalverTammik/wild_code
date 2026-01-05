@@ -35,35 +35,6 @@ QDialog#ModernMessageDialog QLabel#iconLabel {
     padding: 0;
 }
 
-/* OK Button - Primary action button */
-QDialog#ModernMessageDialog QPushButton {
-    background: #0078d4;  /* blue-600 */
-    color: #ffffff;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-weight: 600;
-    font-size: 12px;
-    min-width: 80px;
-}
-
-QDialog#ModernMessageDialog QPushButton:hover {
-    background: #106ebe;  /* blue-700 */
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
-}
-
-QDialog#ModernMessageDialog QPushButton:pressed {
-    background: #005a9e;  /* blue-800 */
-    transform: translateY(0px);
-    box-shadow: 0 2px 4px rgba(0, 120, 212, 0.2);
-}
-
-QDialog#ModernMessageDialog QPushButton:focus {
-    outline: none;
-    border: 2px solid rgba(0, 120, 212, 0.5);
-    border-radius: 6px;
-}
 
 /* Warning message box variant */
 QDialog#ModernMessageDialog[messageType="warning"] {

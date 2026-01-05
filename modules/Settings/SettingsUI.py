@@ -8,6 +8,7 @@ from ...widgets.theme_manager import ThemeManager
 from .SettinsUtils.SettingsLogic import SettingsLogic
 from ...constants.file_paths import QssPaths
 from ...constants.module_icons import IconNames
+from ...constants.button_props import ButtonVariant
 from .cards.SettingsUserCard import UserSettingsCard
 from .cards.SettingsModuleCard import SettingsModuleCard
 from ...utils.url_manager import Module
@@ -15,6 +16,7 @@ from ...module_manager import ModuleManager, MODULES_LIST_BY_NAME
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
 from ...python.workers import FunctionWorker, start_worker
+from ...utils.messagesHelper import ModernMessageDialog
 
 
 
@@ -54,7 +56,7 @@ class SettingsModule(QWidget):
         self.user_payload = None
         self.setup_ui()
         # Centralized theming
-        ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
+        self.retheme_settings()
 
     def setup_ui(self):
         root = QVBoxLayout(self)
@@ -96,6 +98,7 @@ class SettingsModule(QWidget):
             self._footer_frame
         )
         self._footer_confirm.setObjectName("ConfirmButton")
+        self._footer_confirm.setProperty("variant", ButtonVariant.PRIMARY)
         self._footer_confirm.setVisible(False)
         self._footer_confirm.setEnabled(False)
         self._footer_confirm.clicked.connect(self.apply_pending_changes)
@@ -161,6 +164,22 @@ class SettingsModule(QWidget):
         for card in self._module_cards.values():            
             card.on_settings_activate()
         return
+
+    def sync_module_archive_layer_dropdown(self, module_key: str, layer_name: str, *, force: bool = True) -> bool:
+        """Best-effort: update a module card's archive-layer dropdown to match persisted settings."""
+
+        key = (module_key or "").strip().lower()
+        if not key:
+            return False
+
+        for card in (self._module_cards or {}).values():
+            try:
+                if getattr(card, "module_key", "") == key:
+                    return bool(card.sync_archive_layer_selection(layer_name, force=force))
+            except Exception:
+                continue
+
+        return False
 
     def activate(self):
         """Activates the Settings UI with fresh user data."""
@@ -396,7 +415,7 @@ class SettingsModule(QWidget):
         """Handle unsaved changes prompt when navigating away from Settings.
         
         Args:
-            parent_dialog: The parent dialog for QMessageBox
+            parent_dialog: Parent dialog for the prompt
             
         Returns:
             True if navigation may proceed, False to cancel
@@ -405,29 +424,28 @@ class SettingsModule(QWidget):
             return True
             
         try:
-            from PyQt5.QtWidgets import QMessageBox
-            
-            mbox = QMessageBox(self)
-            mbox.setIcon(ThemeManager.get_qicon(IconNames.WARNING))
-            mbox.setWindowTitle(self.tr("Unsaved changes"))
-            mbox.setText(self.tr("You have unsaved Settings changes."))
-            mbox.setInformativeText(self.tr("Do you want to save your changes or discard them?"))
-            save_btn = mbox.addButton(self.tr("Save"), QMessageBox.AcceptRole)
-            discard_btn = mbox.addButton(self.tr("Discard"), QMessageBox.DestructiveRole)
-            cancel_btn = mbox.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
-            mbox.setDefaultButton(save_btn)
-            mbox.exec_()
-            
-            clicked = mbox.clickedButton()
-            if clicked == save_btn:
+            title = self.tr("Unsaved changes")
+            text = self.tr("You have unsaved Settings changes.")
+            detail = self.tr("Do you want to save your changes or discard them?")
+            save_label = self.tr("Save")
+            discard_label = self.tr("Discard")
+            cancel_label = self.tr("Cancel")
+            choice = ModernMessageDialog.ask_choice_modern(
+                title,
+                f"{text}\n\n{detail}",
+                buttons=[save_label, discard_label, cancel_label],
+                default=save_label,
+                cancel=cancel_label,
+                icon_name=IconNames.WARNING,
+            )
+
+            if choice == save_label:
                 self.apply_pending_changes()
                 return True
-            elif clicked == discard_btn:
+            if choice == discard_label:
                 self.revert_pending_changes()
                 return True
-            else:
-                # Cancel
-                return False
+            return False
         except Exception as e:
             print(f"Settings navigation prompt failed: {e}", "error")
             return True

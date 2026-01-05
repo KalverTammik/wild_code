@@ -39,6 +39,8 @@ TRANSLATIONS = {
     TranslationKeys.SELECT_MODULE: "Select a module from the left or open Settings to set your preferred module.",
     TranslationKeys.NO_PROJECT_LOADED_TITLE: "No Project Loaded",
     TranslationKeys.NO_PROJECT_LOADED_MESSAGE: "Please load a QGIS project before using this plugin.",
+    TranslationKeys.PROJECT_FOLDER_MISSING_TITLE: "Project folder setup required",
+    TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE: "Project folders are not set for this module. Opening Settings...",
     TranslationKeys.OPEN_SETTINGS: "Open Settings",
     # Added: ModuleCard/layer picker labels
     TranslationKeys.MAIN_PROPERTY_LAYER: "Properties main layer",
@@ -216,8 +218,19 @@ TRANSLATIONS = {
     ,TranslationKeys.SELECT_ALL: "Select All"
     ,TranslationKeys.CLEAR_SELECTION: "Clear Selection"
     ,TranslationKeys.ADD_SELECTED: "Add Selected"
+    ,TranslationKeys.DELETE_BY_ID: "Delete by ID"
+    ,TranslationKeys.SELECT_FROM_MAP: "Select from map"
+    ,TranslationKeys.SELECT_BY_LOCATION_LIST: "Select by location (list)"
+    ,TranslationKeys.RESELECT_FROM_MAP: "Reselect from map"
+    ,TranslationKeys.ARCHIVE: "Archive"
+    ,TranslationKeys.UNARCHIVE: "Unarchive"
+    ,TranslationKeys.UNARCHIVE_EXISTING: "Unarchive existing"
+    ,TranslationKeys.CREATE_NEW: "Create new"
+    ,TranslationKeys.SKIP: "Skip"
+    ,TranslationKeys.CREATE_LOAD_IN_GPKG: "Create/Load in GPKG…"
     ,TranslationKeys.SELECT_COUNTY: "Select County"
     ,TranslationKeys.SELECT_MUNICIPALITY: "Select Municipality"
+    ,TranslationKeys.ATTENTION: "Attention"
     ,TranslationKeys.FILTER_BY_LOCATION: "Filter by Location"
     ,TranslationKeys.SELECTED_PROPERTIES_COUNT: "Selected: 0 properties"
     ,TranslationKeys.SELECTED_COUNT_TEMPLATE: "Selected: {count} properties"
@@ -228,7 +241,8 @@ TRANSLATIONS = {
     ,TranslationKeys.FAILED_TO_LOAD_PROPERTY_DATA: "Failed to load property data from layer."
     ,TranslationKeys.PROPERTIES_ADDED: "Properties Added"
     ,TranslationKeys.SELECTED_PROPERTIES_ADDED: "Selected properties have been added."
-    ,TranslationKeys.CHOOSE_FROM_MAP: "Choose from map"
+    ,TranslationKeys.CONNECT_PROPERTIES: "connect Prperties"
+    ,TranslationKeys.CHOSE_FROM_MAP: "Chose from map"
     ,TranslationKeys.NO_SELECTION: "No Selection"
     ,TranslationKeys.SELECT_PROPERTY_FIRST: "Please select a property feature on the map first."
     ,TranslationKeys.ERROR: "Error"
@@ -238,6 +252,7 @@ TRANSLATIONS = {
     ,ToolbarTranslationKeys.OPEN_FOLDER: "Open folder"
     ,ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER: "Open item in browser"
     ,ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP: "Show items on map"
+    ,ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER: "Generate project folder"
     ,RoleTranslationKeys.ADMINS: "Admins"
     ,RoleTranslationKeys.ADMINISTRATORS: "Administrators"
     ,RoleTranslationKeys.PROJECT_MANAGERS: "Project Managers"

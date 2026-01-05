@@ -25,8 +25,8 @@ class DatesPopupWidget(QWidget):
         # Create a frame for the content with theming
         self.frame = QFrame(self)
         self.frame.setObjectName("PopupFrame")
-        ThemeManager.apply_module_style(self.frame, [QssPaths.POPUP])
-
+        self.retheme()
+        
         # Main layout on the frame
         layout = QVBoxLayout(self.frame)
         layout.setContentsMargins(8, 8, 8, 8)

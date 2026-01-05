@@ -1,5 +1,4 @@
 from PyQt5.QtCore import QSignalBlocker
-from PyQt5.QtWidgets import QMessageBox
 
 from ...languages.translation_keys import TranslationKeys
 from ...constants.layer_constants import IMPORT_PROPERTY_TAG
@@ -37,7 +36,7 @@ class PropertyUpdateFlowCoordinator:
             del blocker
 
     @staticmethod
-    def on_county_changed(county_name, municipality_combo, table):
+    def on_county_changed(county_name, municipality_combo, table, *, after_table_update=None):
         """Handle county selection change."""
         
         if not municipality_combo or not PropertyTableManager():
@@ -57,6 +56,11 @@ class PropertyUpdateFlowCoordinator:
             # Clear properties table
             PropertyTableManager().populate_properties_table([], table)
             table.blockSignals(False)
+            try:
+                if callable(after_table_update):
+                    after_table_update(table)
+            except Exception:
+                pass
             return
 
         # Load municipalities for selected county
@@ -74,7 +78,7 @@ class PropertyUpdateFlowCoordinator:
             del blocker
 
     @staticmethod
-    def on_municipality_changed(municipality_name, county_combo, municipality_combo, city_combo, table):
+    def on_municipality_changed(municipality_name, county_combo, municipality_combo, city_combo, table, *, after_table_update=None):
         """Handle municipality selection change"""
             
         if not municipality_name or municipality_name == (LanguageManager().translate("Select Municipality") or "Vali omavalitsus"):
@@ -90,6 +94,11 @@ class PropertyUpdateFlowCoordinator:
             table.blockSignals(True)
             PropertyTableManager().populate_properties_table([], table)
             table.blockSignals(False)
+            try:
+                if callable(after_table_update):
+                    after_table_update(table)
+            except Exception:
+                pass
             return
 
         # Load settlements for selected municipality
@@ -117,18 +126,29 @@ class PropertyUpdateFlowCoordinator:
         result = PropertyTableManager().populate_properties_table(properties, table)
         if result == True:            
             table.selectAll()
+        try:
+            if callable(after_table_update):
+                after_table_update(table)
+        except Exception:
+            pass
    
     @staticmethod
-    def on_city_changed(table=None,county_combo=None, municipality_combo=None, city_combo=None):
+    def on_city_changed(
+        table=None,
+        county_combo=None,
+        municipality_combo=None,
+        city_combo=None,
+        *,
+        after_table_update=None,
+        update_map: bool = True,
+    ):
         """Handle settlement/city selection change"""
             
         # Get checked settlements
 
         checked_settlements = city_combo.checkedItems()
-        print(f"DEBUG: Checked settlements: {checked_settlements}")
         if not checked_settlements:
             # No settlements selected - show all properties for the municipality
-            print(f"DEBUG: no settlements selected, loading all properties for municipality")
             county_name = county_combo.currentData()
             municipality_name = municipality_combo.currentData()
             if county_name and municipality_name:
@@ -138,6 +158,11 @@ class PropertyUpdateFlowCoordinator:
                 table.blockSignals(False)
                 if result == True:
                     table.selectAll()
+                try:
+                    if callable(after_table_update):
+                        after_table_update(table)
+                except Exception:
+                    pass
                 return
 
         # Load properties for selected settlements
@@ -148,13 +173,19 @@ class PropertyUpdateFlowCoordinator:
         for settlement in checked_settlements:
             properties = PropertyDataLoader().load_properties_for_settlement(county_name, municipality_name, settlement)
             all_properties.extend(properties)
-        print(f"DEBUG: adding properties for settelments as there was selection")
         table.blockSignals(True)
         result = PropertyTableManager().populate_properties_table(all_properties, table)
         table.blockSignals(False)
         if result == True:
             table.selectAll()
-            from ...utils.MapTools.item_selector_tools import PropertiesSelectors
-            PropertiesSelectors.show_connected_properties_on_map_from_table(table, use_shp=True)
+            if update_map:
+                from ...utils.MapTools.item_selector_tools import PropertiesSelectors
+
+                PropertiesSelectors.show_connected_properties_on_map_from_table(table, use_shp=True)
+        try:
+            if callable(after_table_update):
+                after_table_update(table)
+        except Exception:
+            pass
     
  

@@ -98,6 +98,7 @@ QPushButton#headerHelpButton {
     text-align: left;
 }
 
+
 QPushButton#headerHelpButton:hover {
     background: #455a64;
     border-color: #1f5d5c;
