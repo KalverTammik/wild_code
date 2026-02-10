@@ -92,6 +92,12 @@ __pypackages__/
 .vscode/
 vs-code-bpmn-io/
 
+# Local modeling assets (not required for runtime)
+bpmn/
+
+# Local virtual environment
+.venv/
+
 # QGIS plugin specific
 .qgis2/
 .qgis3/

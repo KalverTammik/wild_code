@@ -234,7 +234,7 @@ def _write_plugins_xml(meta: PluginMeta, out_path: Path, download_url: str, file
     add("deprecated", meta.deprecated or "False")
 
     # Optional build timestamp for humans
-    add("create_date", _dt.datetime.utcnow().strftime("%Y-%m-%d"))
+    add("create_date", _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%d"))
 
     _indent_xml(plugins)
     tree = ET.ElementTree(plugins)
@@ -326,6 +326,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     # Default exclusions: keep runtime code/resources, drop dev/runtime noise.
     exclude_dirs: Tuple[str, ...] = tuple(
         [
+            "bpmn",
             "docs",
             "reports",
             "tools",
