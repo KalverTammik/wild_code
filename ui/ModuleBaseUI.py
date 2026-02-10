@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 """
 ModuleBaseUI – residentne feed'i UI-baas QGIS pluginale.
 
@@ -8,32 +9,121 @@ Põhimõtted:
 - Scrolli sündmused on idempotentselt ühendatud.
 - Kaarti lisades ei käivita scroll-handlerit (_ignore_scroll_event).
 """
-from typing import Optional, Callable, Sequence
+from typing import Optional, Callable, TYPE_CHECKING, Protocol, Any
 import gc
 from PyQt5.QtCore import Qt, QTimer, QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea
 
-from ..widgets.DataDisplayWidgets.ModuleFeedBuilder import ModuleFeedBuilder
 from ..ui.ToolbarArea import ModuleToolbarArea
 from ..widgets.FeedCounterWidget import FeedCounterWidget
+from ..ui.module_card_factory import ModuleCardFactory
 from .mixins.dedupe_mixin import DedupeMixin
 from .mixins.feed_counter_mixin import FeedCounterMixin
 from .mixins.progressive_load_mixin import ProgressiveLoadMixin
 from ..feed.feed_load_engine import FeedLoadEngine
-from ..widgets.theme_manager import ThemeManager
-from ..constants.file_paths import QssPaths
 from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
-from ..utils.SessionManager import SessionManager
-from ..python.api_client import APIClient
-from ..utils.FilterHelpers.FilterHelper import FilterHelper
+from ..Logs.switch_logger import SwitchLogger
+from ..Logs.python_fail_logger import PythonFailLogger
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
-from ..utils.messagesHelper import ModernMessageDialog
-from ..utils.url_manager import ModuleSupports
-from ..utils.api_error_handling import ApiErrorKind, parse_tagged_message
+from .mixins.token_mixin import TokenMixin
+
+if TYPE_CHECKING:
+    from ..utils.api_error_handling import ApiErrorKind
+    class EmptyStateWidgetProtocol(Protocol):
+        def setText(self, text: str) -> None: ...
+        def setVisible(self, visible: bool) -> None: ...
+        def raise_(self) -> None: ...
+
+    class FeedLogicProtocol(Protocol):
+        total_count: Optional[int]
+        last_response: Optional[object]
+        last_error_kind: Optional[ApiErrorKind]
+        last_error_message: Optional[str]
+
+        def fetch_next_batch(self) -> list[dict[str, Any]]: ...
+        def set_single_item_mode(self, value: bool) -> None: ...
+        def set_extra_arguments(self, *args, **kwargs) -> None: ...
+        def reset_pagination(self) -> None: ...
 
 
-class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget):
+class FeedSessionController:
+    """Encapsulate feed session lifecycle operations for ModuleBaseUI."""
+
+    def __init__(self, ui: "ModuleBaseUI") -> None:
+        self._ui = ui
+
+    def reset_session(self) -> None:
+        """Hard reset before (re)opening a feed."""
+        self.reset_feed_ui_state()
+
+    def reset_feed_ui_state(self) -> None:
+        layout = self._ui.feed_layout
+        if layout:
+            while layout.count() > 2:
+                item = layout.takeAt(1)
+                widget = item.widget() if item else None
+                if widget:
+                    widget.deleteLater()
+
+        self._ui._reset_dedupe()
+
+        if self._ui.feed_load_engine:
+            self._ui.feed_load_engine.reset()
+
+        feed_logic = self._ui.active_feed_logic
+        if feed_logic:
+            reset_fn = getattr(feed_logic, "reset_pagination", None)
+            if callable(reset_fn):
+                reset_fn()
+            else:
+                try:
+                    PythonFailLogger.log(
+                        "module_base_reset_pagination_missing",
+                        module=getattr(self._ui, "module_key", None),
+                    )
+                except Exception:
+                    pass
+
+    def clear_feed(self, feed_layout: Optional[QVBoxLayout], empty_state: Optional["EmptyStateWidgetProtocol"] = None) -> None:
+        if getattr(self._ui, "_clearing_feed", False) or feed_layout is None:
+            return
+        self._ui._clearing_feed = True
+        try:
+            while feed_layout.count() > 2:
+                item = feed_layout.takeAt(1)
+                widget = item.widget() if item else None
+                if widget:
+                    widget.deleteLater()
+            if empty_state:
+                empty_state.setVisible(False)
+            self._ui._reset_dedupe()
+        finally:
+            self._ui._clearing_feed = False
+        self._ui._update_feed_counter_live()
+
+    def deactivate_session(self) -> None:
+        engine = self._ui.feed_load_engine
+        if engine:
+            engine.reset()
+            engine.progressive_insert_func = None
+            engine.parent_ui = None
+
+        # Aggressively drop UI widgets and dedupe state to free memory when module hides
+        self.clear_feed(self._ui.feed_layout, self._ui.empty_state)
+
+        # Release cached responses/extra args so objects can be collected
+        feed_logic = self._ui.feed_logic
+        if feed_logic:
+            feed_logic.set_single_item_mode(False)
+            feed_logic.set_extra_arguments()
+            feed_logic.last_response = None
+
+        # Encourage Python to reclaim Qt object graphs sooner
+        gc.collect()
+
+
+class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMixin, QWidget):
     """Unified base UI for module feeds.
     """
 
@@ -46,14 +136,15 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         DedupeMixin.__init__(self)
         FeedCounterMixin.__init__(self)
         ProgressiveLoadMixin.__init__(self)
+        TokenMixin.__init__(self)
 
         self.lang_manager = lang_manager
         self._settings_logic = SettingsLogic()
-        self._filter_widgets = []
+        self._filter_widgets: list[QWidget] = []
 
-        self.status_filter = None
-        self.type_filter = None
-        self.tags_filter = None
+        self.status_filter: Optional[QWidget] = None
+        self.type_filter: Optional[QWidget] = None
+        self.tags_filter: Optional[QWidget] = None
         self.tags_match_mode = "ANY"
 
         # Preference loading guards
@@ -64,11 +155,12 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         self._type_preferences_loaded = False
         self._tags_preferences_loaded = False
 
-        self.feed_layout = None
+        self.feed_layout: Optional[QVBoxLayout] = None
 
-        self.feed_load_engine = None
-        self.feed_logic = None
-        self._extract_item_id_error_logged = False
+        self.feed_load_engine: Optional[FeedLoadEngine] = None
+        self.feed_logic: FeedLogicProtocol | None = None
+        self._empty_state: Optional["EmptyStateWidgetProtocol"] = None
+        self._feed_session = FeedSessionController(self)
 
         self.layout = QVBoxLayout(self)
         self.toolbar_area = ModuleToolbarArea(self)
@@ -95,8 +187,10 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         self.layout.addWidget(self.footer_area)
 
         self._activated = False
+        self._active_token = 0
+        self._visible_once = False
 
-    def _extract_item_id(self, item):  # pragma: no cover - default hook
+    def _extract_item_id(self, item: dict[str, Any]) -> Optional[str]:  # pragma: no cover - default hook
         """Subclasses can override to provide stable IDs for dedupe."""
         return None
 
@@ -108,47 +202,46 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         if self._activated:
             return
         self._activated = True
+        self._show_loading_placeholder()
+        if self.isVisible():
+            self._ensure_first_visible()
 
-        #print(f"[ModuleBaseUI] Activating module UI...")
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self._activated:
+            self._ensure_first_visible()
+
+    def _ensure_first_visible(self) -> None:
+        if self._visible_once:
+            return
+        self._visible_once = True
         if self.feed_load_engine is None:
-            #print(f"[ModuleBaseUI] feed_load_engine is None, initializing...")
             self.init_feed_engine(self.load_next_batch, debounce_ms=self.LOAD_DEBOUNCE_MS)
-
-        #print(f"[ModuleBaseUI] Resetting feed session...")
         self.reset_feed_session()
-
         self._connect_scroll_signals()
+        self.on_first_visible()
+
+    def on_first_visible(self) -> None:
+        """Hook for subclasses to start heavy loads when first visible."""
+        return None
 
 
     def deactivate(self) -> None:
         """Deactivate and optionally cancel engine work."""
         self._activated = False
-        engine = self.feed_load_engine
-        if engine:
-            try:
-                engine.reset()
-                engine.progressive_insert_func = None
-                engine.parent_ui = None
-            except Exception:
-                pass
+        self._visible_once = False
+        self._feed_session.deactivate_session()
 
-        # Aggressively drop UI widgets and dedupe state to free memory when module hides
-        try:
-            self.clear_feed(self.feed_layout, self._empty_state)
-        except Exception:
-            pass
+    def is_token_active(self, token: int) -> bool:
+        return super().is_token_active(token)
 
-        # Release cached responses/extra args so objects can be collected
-        try:
-            if self.feed_logic:
-                self.feed_logic.set_single_item_mode(False)
-                self.feed_logic.set_extra_arguments()
-                self.feed_logic.last_response = None
-        except Exception:
-            pass
+    @property
+    def active_feed_logic(self) -> FeedLogicProtocol | None:
+        return self.feed_logic
 
-        # Encourage Python to reclaim Qt object graphs sooner
-        gc.collect()
+    @property
+    def empty_state(self) -> EmptyStateWidgetProtocol | None:
+        return self._empty_state
 
 
 
@@ -162,10 +255,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         self.feed_load_engine.attach(parent_ui=self)
         # Ensure dedupe state is fresh when engine is initialized to avoid
         # skipping items that may have been marked seen during a previous session.
-        try:
-            self._reset_dedupe()
-        except Exception:
-            pass
+        self._reset_dedupe()
         self._connect_scroll_signals()
 
     def _connect_scroll_signals(self) -> None:  # override precedence -> ProgressiveLoadMixin
@@ -174,7 +264,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
     # ------------------------------------------------------------------
     # Card insertion
     # ------------------------------------------------------------------
-    def _progressive_insert_card(self, item, insert_at_top: bool = False) -> None:
+    def _progressive_insert_card(self, item: dict[str, Any], insert_at_top: bool = False) -> None:
         layout = self.feed_layout
         if layout is None:
             return
@@ -192,22 +282,11 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         insert_index = 1 if insert_at_top else max(0, layout.count() - 1)
         self._ignore_scroll_event = True
         try:
-            from ..module_manager import ModuleManager
-            moduleManager = ModuleManager()
-            module_name = moduleManager.getActiveModuleName()
-            card = ModuleFeedBuilder.create_item_card(item, module_name=module_name, lang_manager=self.lang_manager)
-            ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
+            card = ModuleCardFactory.create_card(item, self.lang_manager)
             layout.insertWidget(insert_index, card)
             QCoreApplication.processEvents()
-            try:
-                self._update_feed_counter_live()
-            except Exception:
-                pass
-        except Exception as e:
-            try:  # logging is best-effort
-                print(f"[ModuleBaseUI] Failed to build card: {e}")
-            except Exception:
-                pass
+            self._hide_loading_placeholder()
+            self._update_feed_counter_live()
         finally:
             self._ignore_scroll_event = False
 
@@ -217,14 +296,30 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
     def process_next_batch(self,
                            revision: Optional[int] = None,
                            retheme_func: Optional[Callable[[], None]] = None,
-                           insert_at_top: bool = False):
-        self._extract_item_id_error_logged = False
-        items = self._fetch_next_batch_safe()
-        if items is None:
+                           insert_at_top: bool = False) -> list[dict[str, Any]]:
+        if not getattr(self, "_activated", False):
             return []
+        feed_logic = self.active_feed_logic
+        if feed_logic is None:
+            return []
+        items = feed_logic.fetch_next_batch() or []
+        try:
+            module_key = getattr(self, "module_key", None) or getattr(self, "name", None) or ""
+            SwitchLogger.log(
+                "feed_batch_result",
+                module=str(module_key),
+                extra={
+                    "count": len(items),
+                    "has_more": getattr(feed_logic, "has_more", None),
+                    "single": getattr(feed_logic, "_single_item_mode", None),
+                },
+            )
+        except Exception:
+            pass
 
         if not items:
-            self._show_empty_state()
+            message = feed_logic.last_error_message
+            self._show_empty_state(message or "No values found!")
             return []
 
         engine = self.feed_load_engine
@@ -241,45 +336,40 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
 
         return filtered
 
-    def _show_empty_state(self, message: str = "No values found!") -> None:
+    def _show_empty_state(self, message: Optional[str] = None) -> None:
         """Display a friendly empty-state card when no items are returned."""
-        try:
-            empty_state = getattr(self, "_empty_state", None)
-            feed_layout = getattr(self, "feed_layout", None)
-            if not empty_state or not feed_layout:
-                return
+        empty_state = self.empty_state
+        feed_layout = self.feed_layout
+        if not empty_state or not feed_layout:
+            return
+        if not message:
+            lang_manager = self.lang_manager or LanguageManager()
+            message = lang_manager.translate(TranslationKeys.NO_VALUES_FOUND)
 
-            if hasattr(empty_state, "setText"):
-                empty_state.setText(message)
-            empty_state.setVisible(True)
-            empty_state.raise_()
+        empty_state.setText(message)
+        empty_state.setVisible(True)
+        empty_state.raise_()
+
+    def _show_loading_placeholder(self) -> None:
+        empty_state = self.empty_state
+        if not empty_state:
+            return
+        lang_manager = self.lang_manager or LanguageManager()
+        empty_state.setText(lang_manager.translate(TranslationKeys.LOADING))
+        empty_state.setVisible(True)
+        empty_state.raise_()
+
+    def _hide_loading_placeholder(self) -> None:
+        empty_state = self.empty_state
+        if not empty_state:
+            return
+        try:
+            if empty_state.isVisible():
+                empty_state.setVisible(False)
         except Exception:
             pass
 
-    # --- Batch helpers -------------------------------------------------
-    def _fetch_next_batch_safe(self) -> Optional[list]:
-        feed_logic = self.feed_logic
-        if feed_logic is None:
-            return None
-        try:
-            return feed_logic.fetch_next_batch() or []
-        except Exception as exc:
-            kind, friendly = parse_tagged_message(exc)
-            if kind == ApiErrorKind.AUTH:
-                client = APIClient(session_manager=SessionManager())
-                if client._handle_unauthenticated():
-                    return None
-                # User canceled re-login (or dialog already shown)
-                session_msg = LanguageManager.translate_static(TranslationKeys.SESSION_EXPIRED) or "Session expired"
-                self._show_empty_state(session_msg)
-                return None
-
-            shown = friendly or str(exc)
-            if shown:
-                self._show_empty_state(shown)
-            return []
-
-    def _filter_new_items(self, items) -> list:
+    def _filter_new_items(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not items:
             return []
 
@@ -292,7 +382,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
             filtered.append(item)
         return filtered
 
-    def _schedule_post_batch_updates(self, retheme_func: Optional[Callable[[], None]]):
+    def _schedule_post_batch_updates(self, retheme_func: Optional[Callable[[], None]]) -> None:
         if self.scroll_area is not None:
             self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
@@ -302,75 +392,36 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, QWidget)
         if retheme_func:
             retheme_func()
 
-    def _update_counter_snapshot(self):
-        feed_logic = self.feed_logic
-        total = feed_logic.total_count if feed_logic else None
-        try:
-            loaded = self._compute_loaded_cards()
-        except Exception:
-            loaded = 0
-        try:
-            self._set_feed_counter(loaded, total)
-        except Exception:
-            pass
-
-    def clear_feed(self, feed_layout, empty_state: Optional[QWidget] = None) -> None:
-        if getattr(self, '_clearing_feed', False) or feed_layout is None:
+    def _update_counter_snapshot(self) -> None:
+        if not getattr(self, "_activated", False):
             return
-        self._clearing_feed = True
-        try:
-            while feed_layout.count() > 2:
-                item = feed_layout.takeAt(1)
-                widget = item.widget() if item else None
-                if widget:
-                    widget.deleteLater()
-            if empty_state:
-                empty_state.setVisible(False)
-            self._reset_dedupe()
-        finally:
-            self._clearing_feed = False
-        self._update_feed_counter_live()
+        feed_logic = self.active_feed_logic
+        total = feed_logic.total_count if feed_logic else None
+        loaded = self._compute_loaded_cards()
+        self._set_feed_counter(loaded, total)
 
-    def reset_feed_session(self):
+    def clear_feed(self, feed_layout: Optional[QVBoxLayout], empty_state: Optional["EmptyStateWidgetProtocol"] = None) -> None:
+        self._feed_session.clear_feed(feed_layout, empty_state)
+
+    def reset_feed_session(self) -> None:
         """Hard reset before (re)opening a feed: clears UI cards, dedupe, engine buffer, and pagination."""
-        layout = getattr(self, 'feed_layout', None)
-        if layout:
-            while layout.count() > 2:
-                item = layout.takeAt(1)
-                widget = item.widget() if item else None
-                if widget:
-                    widget.deleteLater()
-
-        self._reset_dedupe()
-
-        if self.feed_load_engine:
-            self.feed_load_engine.reset()
-
-        feed_logic = self.feed_logic
-        if feed_logic and hasattr(feed_logic, 'reset_pagination'):
-            feed_logic.reset_pagination()
+        self._feed_session.reset_session()
 
 
  
-    def get_widget(self):
+    def get_widget(self) -> QWidget:
         """Return self as the widget for module system compatibility."""
         return self
+
+    def _reset_feed_ui_state(self) -> None:
+        self._feed_session.reset_feed_ui_state()
 
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
 
-    def _safe_extract_item_id(self, item) -> Optional[str]:
-        try:
-            return self._extract_item_id(item)
-        except Exception as exc:
-            if not self._extract_item_id_error_logged:
-                self._extract_item_id_error_logged = True
-                try:
-                    print(f"[ModuleBaseUI] _extract_item_id failed: {exc}")
-                except Exception:
-                    pass
-            return None
+    def _safe_extract_item_id(self, item: dict[str, Any]) -> Optional[str]:
+        return self._extract_item_id(item)
 
 
 

@@ -1,4 +1,4 @@
-# wild_code package initializer
+# Kavitro package initializer
 
 from .main import WildCodePlugin
 

@@ -8,6 +8,7 @@ Consumer must define / provide:
 - _progressive_insert_card(item, insert_at_top=False) method or override
 """
 from PyQt5.QtCore import QTimer
+from ...Logs.switch_logger import SwitchLogger
 
 class ProgressiveLoadMixin:
     PREFETCH_PX: int = 300
@@ -38,6 +39,9 @@ class ProgressiveLoadMixin:
     def _on_scroll_value(self, value: int) -> None:
         if self._ignore_scroll_event:
             return
+        if hasattr(self, "_activated") and not getattr(self, "_activated", False):
+            return
+        SwitchLogger.log("scroll_value", extra={"value": value})
         scroll_area = self.scroll_area  # type: ignore[attr-defined]
         feed_logic = self.feed_logic  # type: ignore[attr-defined]
         if not scroll_area or not feed_logic:
@@ -74,6 +78,10 @@ class ProgressiveLoadMixin:
 
     # Initial autofill -------------------------------------------------
     def _initial_autofill_tick(self) -> None:
+        if hasattr(self, "_activated") and not getattr(self, "_activated", False):
+            self._autofill_ticks = 0
+            return
+        SwitchLogger.log("autofill_tick", extra={"ticks": self._autofill_ticks})
         engine = self.feed_load_engine  # type: ignore[attr-defined]
         feed_logic = self.feed_logic  # type: ignore[attr-defined]
         if not engine or not feed_logic:

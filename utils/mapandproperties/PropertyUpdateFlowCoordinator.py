@@ -1,13 +1,10 @@
 from PyQt5.QtCore import QSignalBlocker
 
 from ...languages.translation_keys import TranslationKeys
-from ...constants.layer_constants import IMPORT_PROPERTY_TAG
-from ...constants.settings_keys import SettingsService
 from ...utils.mapandproperties.PropertyTableManager import PropertyTableManager
 from ...utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from ...languages.language_manager import LanguageManager 
-from ...utils.MapTools.MapHelpers import MapHelpers
-from ...utils.url_manager import Module
+from ...Logs.python_fail_logger import PythonFailLogger
 
 class PropertyUpdateFlowCoordinator:
     """
@@ -27,8 +24,7 @@ class PropertyUpdateFlowCoordinator:
         blocker = QSignalBlocker(county_combo)
         try:
             county_combo.clear()
-            county_combo.addItem(
-                LanguageManager().translate(TranslationKeys.SELECT_COUNTY) or "Vali maakond", "")
+            county_combo.addItem(LanguageManager().translate(TranslationKeys.SELECT_COUNTY), "")
 
             for county in counties:
                 county_combo.addItem(county, county)
@@ -42,14 +38,14 @@ class PropertyUpdateFlowCoordinator:
         if not municipality_combo or not PropertyTableManager():
             return  # UI not fully initialized yet
             
-        if not county_name or county_name == (LanguageManager().translate("Select County") or "Vali maakond"):
+        if not county_name or county_name == LanguageManager().translate(TranslationKeys.SELECT_COUNTY):
             #block table signals for performance
             table.blockSignals(True)
             # Clear municipality dropdown
             blocker = QSignalBlocker(municipality_combo)
             try:
                 municipality_combo.clear()
-                municipality_combo.addItem(LanguageManager().translate("Select Municipality") or "Vali omavalitsus", "")
+                municipality_combo.addItem(LanguageManager().translate(TranslationKeys.SELECT_MUNICIPALITY), "")
                 municipality_combo.setEnabled(False)
             finally:
                 del blocker
@@ -59,8 +55,12 @@ class PropertyUpdateFlowCoordinator:
             try:
                 if callable(after_table_update):
                     after_table_update(table)
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="property_table_after_update_failed",
+                )
             return
 
         # Load municipalities for selected county
@@ -70,7 +70,7 @@ class PropertyUpdateFlowCoordinator:
         blocker = QSignalBlocker(municipality_combo)
         try:
             municipality_combo.clear()
-            municipality_combo.addItem(LanguageManager().translate("Select Municipality") or "Vali omavalitsus", "")
+            municipality_combo.addItem(LanguageManager().translate(TranslationKeys.SELECT_MUNICIPALITY), "")
             for municipality in municipalities:
                 municipality_combo.addItem(municipality, municipality)
             municipality_combo.setEnabled(True)
@@ -81,7 +81,7 @@ class PropertyUpdateFlowCoordinator:
     def on_municipality_changed(municipality_name, county_combo, municipality_combo, city_combo, table, *, after_table_update=None):
         """Handle municipality selection change"""
             
-        if not municipality_name or municipality_name == (LanguageManager().translate("Select Municipality") or "Vali omavalitsus"):
+        if not municipality_name or municipality_name == LanguageManager().translate(TranslationKeys.SELECT_MUNICIPALITY):
             # Clear city/settlement dropdown
             if city_combo is not None:
                 blocker = QSignalBlocker(city_combo)
@@ -97,8 +97,12 @@ class PropertyUpdateFlowCoordinator:
             try:
                 if callable(after_table_update):
                     after_table_update(table)
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="property_table_after_update_failed",
+                )
             return
 
         # Load settlements for selected municipality
@@ -129,8 +133,12 @@ class PropertyUpdateFlowCoordinator:
         try:
             if callable(after_table_update):
                 after_table_update(table)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="property_table_after_update_failed",
+            )
    
     @staticmethod
     def on_city_changed(
@@ -161,8 +169,12 @@ class PropertyUpdateFlowCoordinator:
                 try:
                     if callable(after_table_update):
                         after_table_update(table)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="ui",
+                        event="property_table_after_update_failed",
+                    )
                 return
 
         # Load properties for selected settlements
@@ -185,7 +197,11 @@ class PropertyUpdateFlowCoordinator:
         try:
             if callable(after_table_update):
                 after_table_update(table)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="property_table_after_update_failed",
+            )
     
  

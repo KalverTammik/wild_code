@@ -4,6 +4,7 @@ from enum import Enum
 import requests
 import webbrowser
 from ..config.setup import config
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class Module(Enum):
@@ -47,21 +48,29 @@ class loadWebpage:
         try:
             response = requests.get(web_link, verify=False, timeout=10)
             webbrowser.open(response.url)
-        except requests.exceptions.Timeout:
-            # Request timed out
-            pass
+        except requests.exceptions.Timeout as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="net",
+                event="open_webpage_timeout",
+            )
         except Exception as e:
             try:
-                from .logger import error as log_error
+                from ..Logs.logger import error as log_error
                 log_error(f"Error opening webpage: {e}")
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="net",
+                    event="open_webpage_log_failed",
+                )
         
 class OpenLink:
     def __init__(self):
         self.main = config.get('weblink', '')
         self.privacy = config.get('privacy', '')
         self.terms = config.get('terms', '')
+        self.maa_amet = config.get('page_maa_amet', '')
 
     @staticmethod
     def weblink_by_module(module_path: str) -> str:

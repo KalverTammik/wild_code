@@ -25,7 +25,7 @@ class LoginDialog(QDialog):
 
     def __init__(
         self,
-        title=LanguageManager().translate(DialogLabels.LOGIN_TITLE),
+        title=LanguageManager().translate(TranslationKeys.LOGIN_BUTTON),
         username_label=LanguageManager().translate(DialogLabels.USERNAME_LABEL),
         password_label=LanguageManager().translate(DialogLabels.PASSWORD_LABEL),
         button_text=LanguageManager().translate(DialogLabels.LOGIN_BUTTON),
@@ -74,7 +74,7 @@ class LoginDialog(QDialog):
         self.toggle_password_button.setObjectName("togglePasswordButton")
         self.toggle_password_button.setIcon(ThemeManager.get_qicon(icon_name=IconNames.ICON_EYE))
         self.toggle_password_button.setCheckable(True)
-        self.toggle_password_button.setText("")
+        self.toggle_password_button.setToolTip(lang.translate(TranslationKeys.TOGGLE_PASSWORD))
         self.toggle_password_button.setProperty("variant", ButtonVariant.GHOST)
         self.toggle_password_button.setProperty("btnSize", ButtonSize.SMALL)
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
@@ -116,7 +116,7 @@ class LoginDialog(QDialog):
     def change_language(self, language):
         lang.set_language(language)
         lang.save_language_preference()
-        self.setWindowTitle(LanguageManager().translate(DialogLabels.LOGIN_TITLE))
+        self.setWindowTitle(LanguageManager().translate(TranslationKeys.LOGIN_BUTTON))
         self.language_label.setText(LanguageManager().translate(DialogLabels.LANGUAGE_LABEL))
         self.username_label.setText(LanguageManager().translate(DialogLabels.USERNAME_LABEL))
         self.password_label.setText(LanguageManager().translate(DialogLabels.PASSWORD_LABEL))

@@ -3,6 +3,9 @@ from PyQt5.QtGui import QColor, QPainter, QConicalGradient, QPen, QFont
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QApplication, QVBoxLayout, QLabel
 
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
+
 
 class GradientSpinner(QWidget):
     """
@@ -225,7 +228,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     window = QWidget()
-    window.setWindowTitle("GradientSpinner + dots demo")
+    window.setWindowTitle(LanguageManager().translate(TranslationKeys.DELAY_HELPERS_LOADINGSPINNER_TITLE))
     layout = QVBoxLayout(window)
     layout.setContentsMargins(32, 32, 32, 32)
     layout.setSpacing(16)

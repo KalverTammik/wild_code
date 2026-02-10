@@ -1,0 +1,187 @@
+=== Translation Audit Report ===
+Defined keys: 442
+EN keys: 445
+ET keys: 445
+Used keys: 288
+
+-- Missing in EN --
+(none)
+
+-- Missing in ET --
+(none)
+
+-- Unused keys (safe cleanup list) --
+API endpoint not configured
+Add Property
+Additional Information
+Admin
+Administraatorid
+Administrator
+Admins
+Agricultural
+Agricultural Land
+Agricultural land template
+Application Preferences
+Area (m²):
+Area must be greater than 0.
+Attention
+Choose layers used by this module (element and archive).
+Commercial
+Commercial Property
+Commercial building template
+Configuration error: {error}
+Contracts
+Coordinations
+Dashboard
+Data Loading Error
+Deleting
+Easements
+Edit
+Editor
+Empty land parcel template
+Enter additional notes or description
+Enter area in m²
+Enter property address
+Enter property name
+Enter property value
+Error selecting property
+Failed to load property data from layer.
+Features copied
+Folder naming rule
+Import complete
+Importing Shapefile
+Industrial
+Industrial Property
+Industrial facility template
+Invalid Shapefile
+Invalid Shapefile message
+Invalid email or password.
+Invalid value
+Juhid
+Kasutajad
+Külalised
+Letters
+Load Shapefile
+Loading related data...
+Module settings placeholder
+Name missing
+No Selection
+OK
+Ordinances
+Other
+Please select a property feature on the map first.
+Please select at least one property.
+Please select only one property feature on the map.
+Preferred module
+Processing features
+Projects
+Projects module loaded
+Projects photo folder
+Projektijuhid
+Properties
+Properties Added
+Property Details
+Property Name
+Property Name:
+Property Type
+Property Type:
+Property name is required.
+Quick Actions
+Reports
+Residential
+Residential Property
+Roles & Permissions
+Save
+Saving
+Search
+Searching
+Select
+Select Properties
+Select Single Property
+Select a module from the left or open Settings to set your preferred module.
+Select a property layer for data operations and management.
+Select a property layer...
+Select a property template to add:
+Selected properties have been added.
+Session expired. Please log in again.
+Shapefile load failed
+Shapefile load failed message
+Shapefile loading error
+Specifications
+Standard residential property template
+Submissions
+Tasks
+This field is required
+Toimetajad
+Updated {date}
+User Authentication
+User Information
+User Profile
+Vaatajad
+Vacant Land
+Validation Error
+Value (€)
+Value (€):
+Value must be greater than 0.
+Value must be greater than {min}
+Value must be less than {max}
+Viewer
+When enabled, project/contract numbers will be displayed in item cards for easy identification.
+about_page
+data_display_widgets_overview_title
+dev_dbg_tooltip
+dev_frames_tooltip
+feature imported
+features imported
+home_page
+mailabl_listener
+name structure
+name structure enabled
+property_archive_layer_create_failed_body
+property_archive_layer_create_failed_body_generic
+property_archive_layer_create_failed_title
+property_archive_layer_missing_body
+property_archive_layer_missing_title
+property_archive_layer_name_prompt_label
+property_archive_layer_name_prompt_title
+property_archive_layer_required_body_name
+property_archive_layer_required_body_no_name
+property_archive_layer_required_title
+property_archived_backend_match_body
+property_archived_backend_match_title
+property_backend_exists_missing_map_body
+property_backend_exists_missing_map_title
+property_backend_missing_archived_body
+property_backend_missing_body
+property_backend_missing_title
+property_backend_update_failed_body
+property_backend_update_failed_title
+property_main_layer_missing_body
+property_main_layer_missing_title
+property_newer_import_body
+property_newer_import_title
+property_open_settings_failed_body
+property_open_settings_failed_title
+property_replace_failed_body_copy
+property_replace_failed_body_delete
+property_replace_failed_body_no_feature
+property_replace_failed_title
+property_unarchive_failed_body
+property_unarchive_failed_title
+query_file_not_found: {file}
+save_setting
+settings_page
+switch_to_dark_mode
+switch_to_light_mode
+tags
+unknown_module: {module}
+
+-- Translate calls with literal strings --
+(none)
+
+-- Translate calls with unknown expressions --
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\languages\language_manager.py:53 [translate] Name(id='translation_key', ctx=Load())
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\languages\language_manager.py:59 [translate] Name(id='key', ctx=Load())
+
+-- UI literals (should become keys) --
+(none)

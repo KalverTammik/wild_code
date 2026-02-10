@@ -6,6 +6,7 @@ from ..DateHelpers import DateHelpers
 from ..theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
+from ...python.responses import DataDisplayExtractors
 
 
 class DatesPopupWidget(QWidget):
@@ -83,10 +84,11 @@ class DatesWidget(QWidget):
         locale = QLocale.system()
         today = datetime.datetime.now().date()
         
-        start_dt   = DateHelpers.parse_iso(item_data.get('startAt'))
-        due_dt     = DateHelpers.parse_iso(item_data.get('dueAt'))
-        created_dt = DateHelpers.parse_iso(item_data.get('createdAt'))
-        updated_dt = DateHelpers.parse_iso(item_data.get('updatedAt'))
+        dates = DataDisplayExtractors.extract_dates(item_data)
+        start_dt = DateHelpers.parse_iso(dates.start_at)
+        due_dt = DateHelpers.parse_iso(dates.due_at)
+        created_dt = DateHelpers.parse_iso(dates.created_at)
+        updated_dt = DateHelpers.parse_iso(dates.updated_at)
 
         def short_date(dt: Optional[datetime.datetime]) -> str:
             if not dt:
@@ -97,21 +99,16 @@ class DatesWidget(QWidget):
         def full_tooltip(prefix: str, dt: Optional[datetime.datetime]) -> str:
             return DateHelpers.build_label(prefix, dt, locale)
 
-        def translate_label(key, fallback):
-            if self.lang_manager:
-                try:
-                    translated = self.lang_manager.translate(key)
-                    if translated:
-                        return translated
-                except Exception:
-                    return fallback
-            return fallback
+        due_label = self.lang_manager.translate(TranslationKeys.DUE) if self.lang_manager else "Due"
+        start_label = self.lang_manager.translate(TranslationKeys.START) if self.lang_manager else "Start"
+        created_label = self.lang_manager.translate(TranslationKeys.CREATED) if self.lang_manager else "Created"
+        updated_label = self.lang_manager.translate(TranslationKeys.UPDATED) if self.lang_manager else "Updated"
 
         date_options = [
-            {"label": translate_label(TranslationKeys.DUE, "Tähtaeg"), "dt": due_dt, "type": "due"},
-            {"label": translate_label(TranslationKeys.START, "Algus"), "dt": start_dt, "type": "start"},
-            {"label": translate_label(TranslationKeys.CREATED, "Loodud"), "dt": created_dt, "type": "created"},
-            {"label": translate_label(TranslationKeys.UPDATED, "Uuendatud"), "dt": updated_dt, "type": "updated"},
+            {"label": due_label, "dt": due_dt, "type": "due"},
+            {"label": start_label, "dt": start_dt, "type": "start"},
+            {"label": created_label, "dt": created_dt, "type": "created"},
+            {"label": updated_label, "dt": updated_dt, "type": "updated"},
         ]
 
         primary_option = next((opt for opt in date_options if opt["dt"]), None)
@@ -149,7 +146,11 @@ class DatesWidget(QWidget):
 
             main_layout.addWidget(due_container)
         else:
-            placeholder = QLabel("Kuupäevad puuduvad")
+            placeholder_text = translate_label(
+                TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY,
+                "No dates available",
+            )
+            placeholder = QLabel(placeholder_text)
             placeholder.setObjectName("DateLabel")
             placeholder.setStyleSheet("color: rgb(130, 130, 130);")
             main_layout.addWidget(placeholder)

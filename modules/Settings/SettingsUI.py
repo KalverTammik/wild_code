@@ -1,14 +1,16 @@
 
 import time
 import json
+from functools import partial
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QLabel, QPushButton
-from PyQt5.QtCore import pyqtSignal
-from .SettinsUtils.userUtils import userUtils
+from PyQt5.QtCore import pyqtSignal, QTimer
+from ...utils.auth.user_utils import UserUtils
 from ...widgets.theme_manager import ThemeManager
 from .SettinsUtils.SettingsLogic import SettingsLogic
 from ...constants.file_paths import QssPaths
 from ...constants.module_icons import IconNames
 from ...constants.button_props import ButtonVariant
+from ...constants.file_paths import ConfigPaths
 from .cards.SettingsUserCard import UserSettingsCard
 from .cards.SettingsModuleCard import SettingsModuleCard
 from ...utils.url_manager import Module
@@ -16,14 +18,20 @@ from ...module_manager import ModuleManager, MODULES_LIST_BY_NAME
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
 from ...python.workers import FunctionWorker, start_worker
+from ...python.GraphQLQueryLoader import GraphQLQueryLoader
+from ...python.api_client import APIClient
+from ...utils.SessionManager import SessionManager
 from ...utils.messagesHelper import ModernMessageDialog
+from ...Logs.switch_logger import SwitchLogger
+from ...Logs.python_fail_logger import PythonFailLogger
+from ...ui.mixins.token_mixin import TokenMixin
 
 
 
 from ...languages.language_manager import LanguageManager
 
 
-class SettingsModule(QWidget):
+class SettingsModule(TokenMixin, QWidget):
     """
     This module supports dynamic theme switching via ThemeManager.apply_module_style.
     Call retheme_settings() to re-apply QSS after a theme change.
@@ -35,7 +43,8 @@ class SettingsModule(QWidget):
     def __init__(
             self,
         ):
-        super().__init__()
+        QWidget.__init__(self)
+        TokenMixin.__init__(self)
 
         self.name = Module.SETTINGS.name
         
@@ -49,11 +58,14 @@ class SettingsModule(QWidget):
         self._footer_confirm = None
         # Modules available for module-specific cards
         self._module_cards = {}
+        self._allowed_modules = []
         self._user_fetch_thread = None
         self._user_fetch_worker = None
-        self._user_fetch_request_id = 0
         self._settings_loaded_once = False
         self.user_payload = None
+        self._pending_module_queue = []
+        self._pending_allowed_set = set()
+        self._pending_build_active = False
         self.setup_ui()
         # Centralized theming
         self.retheme_settings()
@@ -116,27 +128,15 @@ class SettingsModule(QWidget):
         self._user_card = card
         return card
 
-    def _build_module_cards(self):
-        # Remove existing module cards first
-        for name, card in list(self._module_cards.items()):
-            card.setParent(None)
-        self._module_cards.clear()
-        # Rebuild _cards to keep first (user) card, then module cards
-        self._cards = self._cards[:1]
-        insert_index = 1
-        for module_name in MODULES_LIST_BY_NAME:
-            if module_name == Module.HOME.name.capitalize():
-                continue
-            card = self._generate_module_card(module_name)
-            self._module_cards[module_name] = card
-            self.cards_layout.insertWidget(insert_index, card)
-            self._cards.append(card)
-            insert_index += 1
+    def _build_module_cards(self, allowed_modules=None):
+        """Build module cards only for allowed modules (no full rebuild)."""
+        allowed = list(allowed_modules or self._allowed_modules or [])
+        self._ensure_module_cards(allowed_modules=allowed)
         return
 
     def _generate_module_card(self, module_name: str) -> QWidget:
  
-        translated = self.lang_manager.translate(module_name.lower())
+        translated = self.lang_manager.translate_module_name(module_name)
 
         module_manager = ModuleManager()
         supports_types, supports_statuses, supports_tags, supports_archive_layer = module_manager.getModuleSupports(module_name) or {}
@@ -183,38 +183,38 @@ class SettingsModule(QWidget):
 
     def activate(self):
         """Activates the Settings UI with fresh user data."""
+        self.mark_activated(self._active_token)
         self._refresh_user_info()
 
     def _refresh_user_info(self):
         if self._user_fetch_thread is not None:
             self._cancel_user_fetch_worker()
 
-        self._user_fetch_request_id += 1
-
-        worker = FunctionWorker(userUtils.fetch_user_payload)
-        worker.request_id = self._user_fetch_request_id
+        query_loader = GraphQLQueryLoader()
+        api_client = APIClient(SessionManager(), ConfigPaths.CONFIG)
+        fetcher = partial(UserUtils.fetch_user_payload, query_loader, api_client)
+        worker = FunctionWorker(fetcher)
+        worker.active_token = self._active_token
         worker.finished.connect(self._handle_user_worker_success)
         worker.error.connect(self._handle_user_worker_error)
         self._user_fetch_worker = worker
         self._user_fetch_thread = start_worker(worker, on_thread_finished=self._clear_user_worker_refs)
 
     def _handle_user_worker_success(self, payload):
-        if not self._is_active_user_worker():
+        if not self.is_token_active(getattr(self._user_fetch_worker, "active_token", None)):
             return
         self._on_user_payload_ready(payload or {})
 
     def _handle_user_worker_error(self, message):
-        if not self._is_active_user_worker():
+        if not self.is_token_active(getattr(self._user_fetch_worker, "active_token", None)):
             return
-        print(f"[SettingsUI] Failed to load user info: {message}")
+        PythonFailLogger.log_exception(
+            Exception(str(message)),
+            module=Module.SETTINGS.value,
+            event="settings_user_fetch_failed",
+        )
         self._on_user_payload_ready({})
 
-    def _is_active_user_worker(self) -> bool:
-        worker = self._user_fetch_worker
-        if worker is None:
-            return False
-        request_id = worker.request_id
-        return request_id == self._user_fetch_request_id
 
     def _on_user_payload_ready(self, payload: dict):
         user_data = payload or {}
@@ -222,40 +222,35 @@ class SettingsModule(QWidget):
 
         self._update_user_header(user_data)
 
-        abilities = user_data.get("abilities", [])
-        abilities = json.loads(abilities)
+        abilities = UserUtils.parse_abilities(user_data.get("abilities", []))
 
-        has_qgis_access, can_create_property  = userUtils.has_property_rights(user_data)
+        has_qgis_access, can_create_property  = UserUtils.has_property_rights(user_data)
 
         self._user_card.build_property_managment(can_create_property)
 
-        subjects = userUtils.abilities_to_subjects(abilities)
+        subjects = UserUtils.abilities_to_subjects(abilities)
 
         access_map = self.logic.get_module_access_from_abilities(subjects)
         self._user_card.build_and_set_access_controls(access_map)
 
         self.update_permissions = self.logic.get_module_update_permissions(subjects)
         allowed_modules = [name for name, allowed in access_map.items() if allowed]
+        self._allowed_modules = list(allowed_modules)
 
         self._ensure_original_settings_loaded()
         preferred_module = self.logic.get_original_preferred()
         self._user_card.set_preferred(preferred_module)
 
-        self._ensure_module_cards(
-            allowed_modules=allowed_modules,
-            access_map=access_map,
-            update_permissions=self.update_permissions,
-        )
-        self._activate_module_cards()
+        self._ensure_module_cards(allowed_modules=allowed_modules)
 
     def _update_user_header(self, user_data: dict):
-        userUtils.extract_and_set_user_labels(
-            self._user_card.lbl_name,
-            self._user_card.lbl_email,
-            user_data,
-        )
-        roles = userUtils.get_roles_list(user_data.get("roles"))
-        userUtils.set_roles(self._user_card.lbl_roles, roles)
+        dash = self.lang_manager.translate(TranslationKeys.SETTINGS_UTILS_DASH)
+        header = UserUtils.extract_user_header(user_data, dash)
+        self._user_card.lbl_name.setText(header["full_name"])
+        self._user_card.lbl_email.setText(header["email"])
+        roles = UserUtils.get_roles_list(user_data.get("roles"))
+        roles_text = ", ".join(roles) if roles else dash
+        self._user_card.lbl_roles.setText(roles_text)
 
     def _ensure_original_settings_loaded(self):
         if self._settings_loaded_once:
@@ -264,23 +259,101 @@ class SettingsModule(QWidget):
         self._set_dirty(False)
         self._settings_loaded_once = True
 
-    def _ensure_module_cards(self, *, allowed_modules, access_map, update_permissions):
+    def _ensure_module_cards(self, *, allowed_modules):
+        allowed = [name for name in (allowed_modules or []) if name]
+        current = set(self._module_cards.keys())
+        target = set(allowed)
+
         # Remove disallowed cards
         for name, card in list(self._module_cards.items()):
-            if name not in allowed_modules:
-                self.cards_layout.removeWidget(card)
-                card.setParent(None)
+            if name not in target:
+                self._dispose_module_card(card)
                 del self._module_cards[name]
 
-        # Add missing allowed cards
-        for module_name in allowed_modules:
-            if module_name not in self._module_cards:
-                card = self._generate_module_card(module_name)
-                self._module_cards[module_name] = card
-                self.cards_layout.addWidget(card)
-            
+        # Queue missing allowed cards for incremental build
+        self._pending_allowed_set = set(allowed)
+        self._pending_module_queue = [name for name in allowed if name not in self._module_cards]
+        if not self._pending_build_active:
+            self._pending_build_active = True
+            QTimer.singleShot(0, self._build_next_module_card)
+
         # Rebuild cards list: user card first, then current module cards
         self._cards = [self._user_card] + list(self._module_cards.values())
+
+    def _build_next_module_card(self) -> None:
+        while self._pending_module_queue:
+            module_name = self._pending_module_queue.pop(0)
+            if module_name in self._module_cards:
+                continue
+            if module_name not in self._pending_allowed_set:
+                continue
+            card = self._generate_module_card(module_name)
+            self._module_cards[module_name] = card
+            try:
+                self.cards_container.setUpdatesEnabled(False)
+            except Exception:
+                pass
+            try:
+                insert_at = max(0, self.cards_layout.count() - 1)
+                self.cards_layout.insertWidget(insert_at, card)
+            finally:
+                try:
+                    self.cards_container.setUpdatesEnabled(True)
+                    self.cards_container.update()
+                except Exception:
+                    pass
+            try:
+                card.on_settings_activate()
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.SETTINGS.value,
+                    event="settings_card_activate_failed",
+                )
+            self._cards = [self._user_card] + list(self._module_cards.values())
+            QTimer.singleShot(0, self._build_next_module_card)
+            return
+
+        self._pending_build_active = False
+
+    def _dispose_module_card(self, card: QWidget) -> None:
+        if not card:
+            return
+        try:
+            if hasattr(card, "on_settings_deactivate"):
+                card.on_settings_deactivate()
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_card_deactivate_failed",
+            )
+        try:
+            if hasattr(card, "pendingChanged"):
+                card.pendingChanged.disconnect(self._update_dirty_state)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_card_disconnect_failed",
+            )
+        try:
+            self.cards_layout.removeWidget(card)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_card_remove_failed",
+            )
+        try:
+            card.setParent(None)
+            card.deleteLater()
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_card_delete_failed",
+            )
 
 
 
@@ -308,18 +381,26 @@ class SettingsModule(QWidget):
 
     def _cancel_user_fetch_worker(self, invalidate_request: bool = False):
         if invalidate_request:
-            self._user_fetch_request_id += 1
+            self.bump_token()
         worker = self._user_fetch_worker
         thread = self._user_fetch_thread
         if worker is not None:
             try:
                 worker.finished.disconnect(self._handle_user_worker_success)
             except Exception:
-                pass
+                PythonFailLogger.log_exception(
+                    Exception("settings_disconnect_finished_failed"),
+                    module=Module.SETTINGS.value,
+                    event="settings_disconnect_finished_failed",
+                )
             try:
                 worker.error.disconnect(self._handle_user_worker_error)
             except Exception:
-                pass
+                PythonFailLogger.log_exception(
+                    Exception("settings_disconnect_error_failed"),
+                    module=Module.SETTINGS.value,
+                    event="settings_disconnect_error_failed",
+                )
         if thread is not None and thread.isRunning():
             thread.quit()
             thread.wait(200)
@@ -327,14 +408,19 @@ class SettingsModule(QWidget):
         self._user_fetch_thread = None
      
     def deactivate(self):
-        self._cancel_user_fetch_worker(invalidate_request=True)
+        self.mark_deactivated(bump_token=True)
+        self._cancel_user_fetch_worker(invalidate_request=False)
         
         # Deactivate module cards to free memory
         for card in self._module_cards.values():
             try:
                 card.on_settings_deactivate()
             except Exception:
-                pass
+                PythonFailLogger.log_exception(
+                    Exception("settings_card_deactivate_failed"),
+                    module=Module.SETTINGS.value,
+                    event="settings_card_deactivate_failed",
+                )
 
     def reset(self):
         pass
@@ -396,12 +482,8 @@ class SettingsModule(QWidget):
             module_dirty = self._any_module_dirty()
             return bool(logic_dirty or module_dirty)
         except Exception:
-            # If logic fails, just check module cards
-            try:
-                return self._any_module_dirty()
-            except Exception:
-                # If everything fails, assume no changes
-                return False
+            # If everything fails, assume dirty to avoid data loss
+            return True
 
     def _any_module_dirty(self) -> bool:
         """Check if any module cards have pending changes."""
@@ -411,14 +493,14 @@ class SettingsModule(QWidget):
         return False
 
 
-    def confirm_navigation_away(self) -> bool:
+    def confirm_navigation_away(self, parent=None) -> bool:
         """Handle unsaved changes prompt when navigating away from Settings.
         
         Args:
-            parent_dialog: Parent dialog for the prompt
-            
+            parent: Parent dialog for the prompt (optional).
+
         Returns:
-            True if navigation may proceed, False to cancel
+            True if navigation may proceed, False to cancel.
         """
         if not self.has_unsaved_changes():
             return True
@@ -427,9 +509,9 @@ class SettingsModule(QWidget):
             title = self.tr("Unsaved changes")
             text = self.tr("You have unsaved Settings changes.")
             detail = self.tr("Do you want to save your changes or discard them?")
-            save_label = self.tr("Save")
+            save_label = self.lang_manager.translate(TranslationKeys.SAVE)
             discard_label = self.tr("Discard")
-            cancel_label = self.tr("Cancel")
+            cancel_label = self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON)
             choice = ModernMessageDialog.ask_choice_modern(
                 title,
                 f"{text}\n\n{detail}",
@@ -447,7 +529,14 @@ class SettingsModule(QWidget):
                 return True
             return False
         except Exception as e:
-            print(f"Settings navigation prompt failed: {e}", "error")
-            return True
+            PythonFailLogger.log_exception(
+                e,
+                module=Module.SETTINGS.value,
+                event="settings_navigation_prompt_failed",
+            )
+            return False
+
+    def is_token_active(self, token: int | None) -> bool:
+        return super().is_token_active(token)
 
    

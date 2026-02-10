@@ -73,7 +73,9 @@ class DeletePropertyUI(QDialog):
         layout.addWidget(title)
 
         self._id_input = QLineEdit(self)
-        self._id_input.setPlaceholderText("Property ID")
+        self._id_input.setPlaceholderText(
+            self.lang_manager.translate(TranslationKeys.PROPERTY_ID_PLACEHOLDER)
+        )
         self._id_input.setClearButtonEnabled(True)
         self._id_input.setObjectName("PropertyIdInput")
         layout.addWidget(self._id_input)
@@ -82,7 +84,7 @@ class DeletePropertyUI(QDialog):
         btns.addStretch(1)
 
         self._btn_cancel = QPushButton(
-            self.lang_manager.translate(TranslationKeys.CANCEL) or "Cancel",
+            self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON) or "Cancel",
             self,
         )
         self._btn_cancel.setObjectName("ConfirmButton")
@@ -106,8 +108,8 @@ class DeletePropertyUI(QDialog):
         property_id = (self._id_input.text() or "").strip()
         if not property_id:
             ModernMessageDialog.show_warning(
-                self.lang_manager.translate("Missing ID") or "Missing ID",
-                self.lang_manager.translate("Please enter a property id.") or "Please enter a property id.",
+                self.lang_manager.translate(TranslationKeys.MISSING_PROPERTY_ID_TITLE),
+                self.lang_manager.translate(TranslationKeys.MISSING_PROPERTY_ID_BODY),
             )
             return
 

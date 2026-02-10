@@ -1,34 +1,31 @@
 # PropertyManagement.py
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QPushButton
-)
+
+from ....constants.button_props import ButtonVariant
+from qgis.utils import iface
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton
 from qgis.core import QgsProject
 
 from .SettingsBaseCard import SettingsBaseCard
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....utils.SHPLayerLoader import SHPLayerLoader
 from ....utils.MapTools.MapHelpers import MapHelpers
-from ....widgets.AddUpdatePropertyDialog import AddPropertyDialog
+from ....widgets.AddUpdatePropertyDialog import AddPropertyDialog, PropertyDialogMode
 from ....modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
 from ....modules.Property.FlowControllers.MainDeleteProperties import DeletePropertyUI
-from ....modules.Property.FlowControllers.BackendPropertyActions import BackendPropertyActions
 from ....languages.translation_keys import TranslationKeys
 from ....languages.language_manager import LanguageManager
-from ....constants.settings_keys import SettingsService
 from ....utils.url_manager import Module
 from ....utils.messagesHelper import ModernMessageDialog
-from ....utils.MapTools.map_selection_controller import MapSelectionController
-from ....widgets.AddFromMapPropertyDialog import AddFromMapPropertyDialog
-from ....modules.signaltest.BackendActionPromptDialog import BackendActionPromptDialog
-from ....utils.mapandproperties.PropertyTableManager import PropertyTableManager, PropertyTableWidget
-from ....utils.MapTools.MapHelpers import ActiveLayersHelper, FeatureActions
-from ....constants.cadastral_fields import Katastriyksus
+from ....utils.mapandproperties.property_row_builder import PropertyRowBuilder
+from ....utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
+from ....utils.MapTools.MapHelpers import ActiveLayersHelper
+from ....utils.mapandproperties.property_action_service import PropertyActionService
+from ....Logs.python_fail_logger import PythonFailLogger
+from ....ui.window_state.DialogCoordinator import get_dialog_coordinator
+from ....ui.window_state.dialog_helpers import DialogHelpers
+from time import monotonic
 
-try:
-    from qgis.utils import iface
-except Exception:
-    iface = None
+
 
 
 class PropertyManagementUI(SettingsBaseCard):
@@ -39,13 +36,22 @@ class PropertyManagementUI(SettingsBaseCard):
             None,
         )
 
-        self._project = QgsProject.instance()
         self._import_selection_controller = None
         self._delete_selection_controller = None
         self._add_from_map_dialog = None
 
         self._map_action_parent_window = None
         self._restore_parent_after_map_action = False
+        self._shp_feature_cache: dict[str, object] = {
+            "layer_id": None,
+            "count": 0,
+            "ts": 0.0,
+        }
+        self._layer_signals_connected = False
+        self._layers_added_conn = None
+        self._layers_removed_conn = None
+        self._layer_will_be_removed_conn = None
+        self._has_shown_once = False
 
         cw = self.content_widget()
         main_layout = QVBoxLayout(cw)
@@ -56,6 +62,11 @@ class PropertyManagementUI(SettingsBaseCard):
         btn_row = QHBoxLayout()
         btn_row.setContentsMargins(0, 0, 0, 0)
         btn_row.setSpacing(6)
+
+        self.btn_open_maa_amet = QPushButton(
+            self.lang_manager.translate(TranslationKeys.OPEN_MAA_AMET_PAGE),
+            cw,
+        )
 
         self.btn_add_shp = QPushButton(
             self.lang_manager.translate(TranslationKeys.ADD_SHP_FILE),
@@ -73,20 +84,30 @@ class PropertyManagementUI(SettingsBaseCard):
 
         # Emergency option: delete by backend ID.
         self.btn_remove_property_by_id = QPushButton(
-            self.lang_manager.translate(TranslationKeys.DELETE_BY_ID) or "Delete by ID",
+            self.lang_manager.translate(TranslationKeys.DELETE_BY_ID),
             cw,
         )
 
+        self.btn_open_maa_amet.clicked.connect(self._handle_maa_amet_page)
         self.btn_add_shp.clicked.connect(self._handle_file_import)
         self.btn_add_property.clicked.connect(self._on_add_property_clicked)
         self.btn_remove_property.clicked.connect(self._on_remove_property_clicked)
         self.btn_remove_property_by_id.clicked.connect(self._on_remove_property_by_id_clicked)
 
+        self.btn_open_maa_amet.setObjectName("ConfirmButton")
         self.btn_add_shp.setObjectName("ConfirmButton")
         self.btn_add_property.setObjectName("ConfirmButton")
         self.btn_remove_property.setObjectName("ConfirmButton")
         self.btn_remove_property_by_id.setObjectName("ConfirmButton")
 
+        self.btn_open_maa_amet.setProperty("variant", ButtonVariant.WARNING)
+        self.btn_add_shp.setProperty("variant", ButtonVariant.PRIMARY)
+        self.btn_add_property.setProperty("variant", ButtonVariant.SUCCESS)
+        self.btn_remove_property.setProperty("variant", ButtonVariant.DANGER)
+        self.btn_remove_property_by_id.setProperty("variant", ButtonVariant.DANGER)
+
+
+        btn_row.addWidget(self.btn_open_maa_amet)
         btn_row.addWidget(self.btn_add_shp)
         btn_row.addWidget(self.btn_add_property)
         btn_row.addWidget(self.btn_remove_property)
@@ -95,62 +116,72 @@ class PropertyManagementUI(SettingsBaseCard):
 
         main_layout.addLayout(btn_row)
 
-        # Initial state
-        self._update_button_states()
+        # Initial state deferred until widget is shown
 
     def _minimize_plugin_window_if_safe(self) -> None:
-        """Minimize only the plugin window (never QGIS main window)."""
+        self._enter_map_selection_mode()
 
+    def _restore_plugin_window(self) -> None:
+        self._exit_map_selection_mode()
+
+    def _get_safe_parent_window(self):
         try:
             w = self.window()
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_property_window_failed",
+            )
             w = None
 
         if w is None:
-            return
+            return None
 
         try:
             qgis_main = iface.mainWindow() if iface is not None else None
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_property_qgis_main_failed",
+            )
             qgis_main = None
 
-        # Never minimize QGIS main window.
         if qgis_main is not None and w is qgis_main:
-            return
+            return None
 
-        try:
-            if w.isVisible() and not w.isMinimized():
-                w.showMinimized()
-                self._map_action_parent_window = w
-                self._restore_parent_after_map_action = True
-        except Exception:
-            pass
+        return w
 
-    def _restore_plugin_window(self) -> None:
+    def _enter_map_selection_mode(self) -> None:
+        coordinator = get_dialog_coordinator(iface)
+        parent_window = self._get_safe_parent_window()
+        coordinator.enter_map_selection_mode(parent=parent_window)
+        if parent_window is not None:
+            self._map_action_parent_window = parent_window
+            self._restore_parent_after_map_action = True
+
+    def _exit_map_selection_mode(self) -> None:
         if not self._restore_parent_after_map_action:
             return
-
-        w = self._map_action_parent_window
-        if w is None:
-            return
-
-        try:
-            w.showNormal()
-            w.raise_()
-            w.activateWindow()
-        except Exception:
-            pass
-        finally:
-            self._map_action_parent_window = None
-            self._restore_parent_after_map_action = False
+        coordinator = get_dialog_coordinator(iface)
+        parent_window = self._get_safe_parent_window() or self._map_action_parent_window
+        coordinator.exit_map_selection_mode(parent=parent_window)
+        self._map_action_parent_window = None
+        self._restore_parent_after_map_action = False
 
     def hideEvent(self, event):
         """Clean up when widget is hidden"""
         super().hideEvent(event)
+        self._disconnect_layer_signals()
 
     def showEvent(self, event):
         """Update button states when widget becomes visible"""
         super().showEvent(event)
+        self._connect_layer_signals()
+        if not self._has_shown_once:
+            self._has_shown_once = True
+            self._update_button_states()
 
     # ---------- Button Handlers ----------
     def _on_add_shp_clicked(self):
@@ -183,12 +214,6 @@ class PropertyManagementUI(SettingsBaseCard):
             "Then choose an action (Archive/Unarchive/Delete).",
         )
 
-        controller = MapSelectionController()
-        self._delete_selection_controller = controller
-
-        # Let user interact with the map: minimize plugin window only.
-        self._minimize_plugin_window_if_safe()
-
         def _on_selected(_layer, features):
             try:
                 # Bring plugin UI back before we show any dialogs.
@@ -202,65 +227,18 @@ class PropertyManagementUI(SettingsBaseCard):
                     )
                     return
 
-                rows = []
-                tunnused: list[str] = []
-                for f in feats:
-                    try:
-                        cadastral_id = str(f[Katastriyksus.tunnus])
-                    except Exception:
-                        cadastral_id = ""
-                    try:
-                        address = str(f[Katastriyksus.l_aadress])
-                    except Exception:
-                        address = ""
-                    try:
-                        area = str(f[Katastriyksus.pindala])
-                    except Exception:
-                        area = ""
-                    try:
-                        settlement = str(f[Katastriyksus.ay_nimi])
-                    except Exception:
-                        settlement = ""
+                rows = PropertyRowBuilder.rows_from_features(feats, log_prefix="PropertyManagementUI")
+                tunnused = PropertyRowBuilder.extract_tunnused(rows, key="cadastral_id")
 
-                    if cadastral_id:
-                        tunnused.append(cadastral_id)
-
-                    rows.append(
-                        {
-                            "cadastral_id": cadastral_id,
-                            "address": address,
-                            "area": area,
-                            "settlement": settlement,
-                            "feature": f,
-                        }
-                    )
-
-                # Build a read-only snapshot table and show the exact same prompt dialog as SignalTest.
-                frame, table = PropertyTableWidget._create_properties_table()
-                PropertyTableManager.reset_and_populate_properties_table(table, rows)
-                try:
-                    table.selectAll()
-                except Exception:
-                    pass
-
-                dlg = BackendActionPromptDialog(parent=self, table_frame=frame, table=table, title="Choose action")
-                ok = dlg.exec_()
-                if not ok:
-                    return
-
-                action = dlg.action
+                action = DialogHelpers.prompt_backend_action(
+                    self,
+                    rows,
+                    title="Choose action",
+                )
                 if not action:
                     return
 
-                # De-dup tunnused while preserving order.
-                seen = set()
-                tunnused_u: list[str] = []
-                for t in tunnused:
-                    t = str(t or "").strip()
-                    if not t or t in seen:
-                        continue
-                    seen.add(t)
-                    tunnused_u.append(t)
+                tunnused_u = PropertyRowBuilder.dedupe_values(tunnused)
 
                 if not tunnused_u:
                     ModernMessageDialog.Warning_messages_modern(
@@ -269,55 +247,23 @@ class PropertyManagementUI(SettingsBaseCard):
                     )
                     return
 
-                if action == "archive":
-                    BackendPropertyActions.archive_properties_by_tunnused(
-                        tunnused_u,
-                        archive_tag_name="Arhiveeritud",
-                        module_name=Module.PROPERTY.name,
-                    )
-                    ModernMessageDialog.Info_messages_modern(
-                        "Backend action",
-                        f"Archived in backend: {len(tunnused_u)}",
-                    )
-                elif action == "unarchive":
-                    BackendPropertyActions.unarchive_properties_by_tunnused(tunnused_u)
-                    ModernMessageDialog.Info_messages_modern(
-                        "Backend action",
-                        f"Unarchived in backend: {len(tunnused_u)}",
-                    )
-                elif action == "delete":
-                    # SignalTest-style: delete backend + delete MAIN features by tunnus.
-                    BackendPropertyActions.delete_properties_by_tunnused(tunnused_u)
-
-                    ok_commit, feature_ids, err = FeatureActions.delete_features_by_field_values(
-                        main_layer,
-                        Katastriyksus.tunnus,
-                        tunnused_u,
-                    )
-
-                    lines = [
-                        f"Backend delete attempted: {len(tunnused_u)}",
-                        f"MAIN matched: {len(feature_ids or [])}",
-                        f"MAIN deleted: {len(feature_ids or []) if ok_commit else 0}",
-                    ]
-                    if err:
-                        lines.append(f"Error: {err}")
-
-                    if ok_commit:
-                        ModernMessageDialog.Info_messages_modern("Delete", "\n".join(lines))
-                    else:
-                        ModernMessageDialog.Warning_messages_modern("Delete (partial)", "\n".join(lines))
-
+                result = PropertyActionService.run_action(
+                    action,
+                    tunnused_u,
+                    main_layer=main_layer,
+                    module_name=Module.PROPERTY.name,
+                )
+                self._invalidate_shp_feature_cache()
+                if result.ok:
+                    ModernMessageDialog.Info_messages_modern(result.title, result.message)
                 else:
-                    ModernMessageDialog.Warning_messages_modern(
-                        "Unknown action",
-                        f"Action '{action}' is not supported.",
-                    )
+                    ModernMessageDialog.Warning_messages_modern(result.title, result.message)
             finally:
                 self._delete_selection_controller = None
                 self._restore_plugin_window()
 
-        started = controller.start_selection(
+        orchestrator = MapSelectionOrchestrator(parent=self)
+        started = orchestrator.start_selection_for_layer(
             main_layer,
             on_selected=_on_selected,
             selection_tool="rectangle",
@@ -326,6 +272,10 @@ class PropertyManagementUI(SettingsBaseCard):
             max_selected=None,
             clear_filter=False,
         )
+        self._delete_selection_controller = orchestrator
+
+        # Let user interact with the map: minimize plugin window only.
+        self._minimize_plugin_window_if_safe()
 
         if not started:
             self._delete_selection_controller = None
@@ -342,16 +292,17 @@ class PropertyManagementUI(SettingsBaseCard):
     def _on_add_property_clicked(self):
         """Handle Add property button click"""
 
-        btn_from_map = self.lang_manager.translate(TranslationKeys.SELECT_FROM_MAP) or "Select from map"
-        btn_by_location = self.lang_manager.translate(TranslationKeys.SELECT_BY_LOCATION_LIST) or "Select by location (list)"
-        btn_cancel = self.lang_manager.translate(TranslationKeys.CANCEL) or "Cancel"
+        btn_from_map = self.lang_manager.translate(TranslationKeys.SELECT_FROM_MAP)
+        btn_by_location = self.lang_manager.translate(TranslationKeys.SELECT_BY_LOCATION_LIST)
+        btn_cancel = self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON)
 
         choice = ModernMessageDialog.ask_choice_modern(
-            self.lang_manager.translate(TranslationKeys.ADD_PROPERTY) or "Add property",
-            "How do you want to select properties?",
+            self.lang_manager.translate(TranslationKeys.ADD_PROPERTY),
+            self.lang_manager.translate(TranslationKeys.HOW_SELECT_PROPERTIES),
             buttons=[btn_from_map, btn_by_location, btn_cancel],
             default=btn_by_location,
             cancel=btn_cancel,
+            button_variants=[ButtonVariant.PRIMARY, ButtonVariant.SUCCESS, ButtonVariant.WARNING],
         )
 
         if choice in (None, btn_cancel):
@@ -360,29 +311,24 @@ class PropertyManagementUI(SettingsBaseCard):
         if choice == btn_by_location:
             if not MainAddPropertiesFlow.preflight_archive_layer_before_dialog():
                 return
-            AddPropertyDialog(self)
+            AddPropertyDialog(self, mode=PropertyDialogMode.BY_LOCATION)
             return
 
         if choice == btn_from_map:
             if not MainAddPropertiesFlow.preflight_archive_layer_before_dialog():
                 return
-
-            # New UX: open a dialog similar to AddPropertyDialog, but without location filters.
-            # User selects from map, table fills like SignalTest, then user clicks Add.
-            try:
-                if self._add_from_map_dialog is not None and self._add_from_map_dialog.isVisible():
-                    self._add_from_map_dialog.raise_()
-                    self._add_from_map_dialog.activateWindow()
-                    return
-            except Exception:
-                pass
-
-            self._add_from_map_dialog = AddFromMapPropertyDialog(self)
+            AddPropertyDialog(self, mode=PropertyDialogMode.FROM_MAP)
             return
 
         # Unknown choice (future-proof)
         return
 
+    @staticmethod
+    def _handle_maa_amet_page():
+        """Open the Maa-Amet page for cadastral data."""
+        from ....utils.url_manager import OpenLink, loadWebpage
+        wl = OpenLink()
+        loadWebpage.open_webpage(wl.maa_amet)
 
     def _handle_file_import(self):
         """Handle file import for property data using existing SHPLayerLoader"""
@@ -390,6 +336,7 @@ class PropertyManagementUI(SettingsBaseCard):
         loader = SHPLayerLoader(self)
         success = loader.load_shp_layer()
         if success:
+            self._invalidate_shp_feature_cache()
             self._update_button_states()
             pass
         else:
@@ -408,19 +355,22 @@ class PropertyManagementUI(SettingsBaseCard):
         using the pure helper.
         """
         # 1) Discover layers
-        main_layer_name = SettingsService().module_main_layer_name(
-            Module.PROPERTY.name.lower()
-        )
-        main_layer = MapHelpers.find_layer_by_name(main_layer_name)
+        main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=True)
         shp_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
 
         main_exists = main_layer is not None
         shp_exists = shp_layer is not None
 
         # 2) Compute state using helper
+        if not main_exists or not shp_exists:
+            shp_feature_count = 0
+        else:
+            shp_feature_count = self._get_shp_feature_count_cached(shp_layer)
+
         shp_en, add_en, rem_en = LayerChecker.compute_property_button_states(
             main_exists,
             shp_exists,
+            shp_feature_count,
         )
 
         # 3) Apply to buttons
@@ -430,15 +380,116 @@ class PropertyManagementUI(SettingsBaseCard):
         self.btn_remove_property.setEnabled(rem_en)
 
         # Emergency delete-by-id should stay available.
+        self._best_effort_ui_call(
+            self.btn_remove_property_by_id.setEnabled,
+            True,
+            event="settings_property_set_emergency_button_failed",
+        )
+
+    @staticmethod
+    def _best_effort_ui_call(func, *args, event: str, **kwargs) -> bool:
+        """Best-effort UI helper: logs failures and returns explicit success/failure."""
         try:
-            self.btn_remove_property_by_id.setEnabled(True)
+            func(*args, **kwargs)
+            return True
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event=event,
+            )
+            return False
+
+    def _get_shp_feature_count_cached(self, shp_layer) -> int:
+        if shp_layer is None:
+            self._invalidate_shp_feature_cache()
+            return 0
+
+        try:
+            layer_id = shp_layer.id() if hasattr(shp_layer, "id") else None
         except Exception:
-            pass
+            layer_id = None
+
+        now = monotonic()
+        cached_id = self._shp_feature_cache.get("layer_id")
+        cached_ts = float(self._shp_feature_cache.get("ts") or 0.0)
+        cached_count = int(self._shp_feature_cache.get("count") or 0)
+
+        if layer_id and cached_id == layer_id and (now - cached_ts) < 3.0:
+            return cached_count
+
+        try:
+            count = 0
+            for _idx, _feat in enumerate(shp_layer.getFeatures()):
+                count += 1
+                if count >= 3:
+                    break
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_property_shp_feature_count_failed",
+            )
+            return 0
+
+        self._shp_feature_cache.update({"layer_id": layer_id, "count": count, "ts": now})
+        return count
+
+    def _invalidate_shp_feature_cache(self) -> None:
+        self._shp_feature_cache.update({"layer_id": None, "count": 0, "ts": 0.0})
+
+    def _connect_layer_signals(self) -> None:
+        if self._layer_signals_connected:
+            return
+        project = QgsProject.instance() if QgsProject else None
+        if project is None:
+            return
+        try:
+            self._layers_added_conn = project.layersAdded.connect(self._on_layers_changed)
+            self._layers_removed_conn = project.layersRemoved.connect(self._on_layers_changed)
+            self._layer_will_be_removed_conn = project.layerWillBeRemoved.connect(self._on_layers_changed)
+            self._layer_signals_connected = True
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_property_layer_signal_connect_failed",
+            )
+
+    def _disconnect_layer_signals(self) -> None:
+        if not self._layer_signals_connected:
+            return
+        project = QgsProject.instance() if QgsProject else None
+        if project is None:
+            self._layer_signals_connected = False
+            return
+        try:
+            if self._layers_added_conn:
+                project.layersAdded.disconnect(self._on_layers_changed)
+            if self._layers_removed_conn:
+                project.layersRemoved.disconnect(self._on_layers_changed)
+            if self._layer_will_be_removed_conn:
+                project.layerWillBeRemoved.disconnect(self._on_layers_changed)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_property_layer_signal_disconnect_failed",
+            )
+        finally:
+            self._layers_added_conn = None
+            self._layers_removed_conn = None
+            self._layer_will_be_removed_conn = None
+            self._layer_signals_connected = False
+
+    def _on_layers_changed(self, *args) -> None:
+        self._invalidate_shp_feature_cache()
+        self._update_button_states()
 
 
 class LayerChecker:    
     @staticmethod
-    def compute_property_button_states(main_layer_exists: bool, shp_layer_exists: bool):
+    def compute_property_button_states(main_layer_exists: bool, shp_layer_exists: bool, shp_feature_count: int = 0):
         """
         Return a tuple (shp_enabled, add_prop_enabled, remove_prop_enabled)
         based purely on whether layers exist.
@@ -448,7 +499,7 @@ class LayerChecker:
         # - Add property: only if BOTH main layer and shp layer exist
         # - Remove property: only if main layer exists
         shp_enabled = True
-        add_prop_enabled = main_layer_exists and shp_layer_exists
+        add_prop_enabled = main_layer_exists and shp_layer_exists and (shp_feature_count > 0)
         remove_prop_enabled = main_layer_exists
 
         return shp_enabled, add_prop_enabled, remove_prop_enabled

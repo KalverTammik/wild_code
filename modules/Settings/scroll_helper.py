@@ -14,10 +14,16 @@ class SettingsScrollHelper:
 
         if not module_key or settings_module is None:
             return
+        try:
+            if not getattr(settings_module, "_is_active", False):
+                return
+        except Exception:
+            return
 
-        # Rebuild cards if not ready
+        # Rebuild cards if not ready (allowed modules only)
         if not settings_module._module_cards:
-            settings_module._build_module_cards()
+            allowed = getattr(settings_module, "_allowed_modules", None) or []
+            settings_module._ensure_module_cards(allowed_modules=allowed)
 
         # Locate the target card
         target_card = None
@@ -43,6 +49,8 @@ class SettingsScrollHelper:
 
         def _scroll():
             try:
+                if not getattr(settings_module, "_is_active", False):
+                    return
                 viewport_h = settings_module.scroll_area.viewport().height()
                 container_h = settings_module.cards_container.height()
                 if viewport_h == 0 or container_h == 0:
@@ -65,8 +73,24 @@ class SettingsScrollHelper:
                 if bar:
                     bar.setValue(offset)
                 target_card.setFocus()
+            except RuntimeError as exc:
+                from ...Logs.python_fail_logger import PythonFailLogger
+                from ...utils.url_manager import Module
+
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.SETTINGS.value,
+                    event="settings_scroll_aborted_deleted_widget",
+                )
             except Exception as exc:
-                print(f"[SettingsScrollHelper] Failed to scroll to module {module_key}: {exc}")
+                from ...Logs.python_fail_logger import PythonFailLogger
+                from ...utils.url_manager import Module
+
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.SETTINGS.value,
+                    event="settings_scroll_to_module_failed",
+                )
 
         # Give the layout a brief moment on first attempt, immediate on retries
         initial_delay = 150 if attempt == 0 else 0

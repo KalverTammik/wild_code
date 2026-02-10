@@ -4,6 +4,7 @@ from PyQt5.QtCore import QCoreApplication
 
 from ..utils.UniversalStatusBar import UniversalStatusBar
 from ..constants.cadastral_fields import Katastriyksus, OldKatastriyksus, KatasterMappings, Purpose
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 
@@ -20,18 +21,27 @@ class RemapPropertiesLayer:
         """Get the target cadastral layer name from QGIS settings."""
         try:
             settings = QgsSettings()
-            layer_name = settings.value("wild_code/target_cadastral_layer", "katastriyksus")
+            layer_name = settings.value("kavitro/target_cadastral_layer", "katastriyksus")
             return layer_name or "katastriyksus"
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="cadastral_layer_name_load_failed",
+            )
             return "katastriyksus"
 
     def _save_target_cadastral_name(self, layer_name: str):
         """Save the target cadastral layer name to QGIS settings."""
         try:
             settings = QgsSettings()
-            settings.setValue("wild_code/target_cadastral_layer", layer_name)
-        except Exception:
-            pass
+            settings.setValue("kavitro/target_cadastral_layer", layer_name)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="cadastral_layer_name_save_failed",
+            )
 
     def get_layer_by_name(self, layer_name):
         """Retrieve a layer by name from the current QGIS project."""

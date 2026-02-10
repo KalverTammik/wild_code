@@ -6,6 +6,8 @@ from ...utils.url_manager import Module
 from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...utils.messagesHelper import ModernMessageDialog
+from ...Logs.switch_logger import SwitchLogger
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.cadastral_fields import Katastriyksus
 
 class MapHelpers:
@@ -72,8 +74,12 @@ class MapHelpers:
                 field = layer.fields().field(idx)
                 if field is not None:
                     return field.name()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="maphelpers_pk_field_failed",
+            )
 
         # Common id field names across providers
         candidates = [
@@ -91,8 +97,12 @@ class MapHelpers:
             for name in candidates:
                 if fields.indexOf(name) != -1:
                     return name
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="maphelpers_find_id_field_failed",
+            )
 
         return None
 
@@ -106,7 +116,12 @@ class MapHelpers:
             return None
         try:
             return project.mapLayer(layer_id)
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="maphelpers_find_layer_by_id_failed",
+            )
             return None
 
 
@@ -127,6 +142,35 @@ class MapHelpers:
         return None
 
     @staticmethod
+    def cleanup_empty_import_layers(tag: str) -> int:
+        """Remove empty memory layers tagged with the provided custom property.
+
+        Returns the number of layers removed.
+        """
+        removed = 0
+        project = QgsProject.instance()
+        if not project:
+            return removed
+
+        for layer in list(project.mapLayers().values()):
+            try:
+                if not layer or not layer.isValid():
+                    continue
+                if not layer.customProperty(tag):
+                    continue
+                if getattr(layer, "providerType", lambda: "")() != "memory":
+                    continue
+                count = int(layer.featureCount() or 0)
+                if count > 0:
+                    continue
+                project.removeMapLayer(layer.id())
+                removed += 1
+                SwitchLogger.log("import_layer_removed_empty", extra={"layer": layer.name()})
+            except Exception as exc:
+                SwitchLogger.log("import_layer_cleanup_failed", extra={"error": str(exc)})
+        return removed
+
+    @staticmethod
     def find_layer_by_name(layer_name: Optional[str], *, case_sensitive: bool = False) -> Optional[QgsMapLayer]:
         """Resolve the first layer that matches the provided name."""
         if not layer_name:
@@ -138,7 +182,12 @@ class MapHelpers:
         for layer in project.mapLayers().values():
             try:
                 candidate = layer.name()
-            except Exception:
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="maphelpers_layer_name_failed",
+                )
                 continue
             if not candidate:
                 continue
@@ -345,7 +394,12 @@ class MapHelpers:
             return
         try:
             feats = layer.selectedFeatures() or []
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="maphelpers_selected_features_failed",
+            )
             feats = []
         MapHelpers.set_layer_filter_to_features(
             layer,
@@ -376,21 +430,62 @@ class MapHelpers:
         if make_active:
             try:
                 iface.setActiveLayer(layer)
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="maphelpers_set_active_layer_failed",
+                )
 
     @staticmethod
     def find_features_by_fields_and_values(layer: QgsVectorLayer, field_name: str, values: List[str]) -> List[QgsFeature]:
         if not layer or not layer.isValid() or not values:
             return []
+        try:
+            fields = layer.fields()
+            if fields.indexOf(field_name) == -1:
+                try:
+                    PythonFailLogger.log(
+                        "property_layer_field_missing",
+                        module=Module.PROPERTY.value,
+                        extra={
+                            "field": field_name,
+                            "layer_name": layer.name(),
+                            "layer_id": layer.id(),
+                        },
+                    )
+                except Exception as log_exc:
+                    print(f"[MapHelpers] Failed to log missing field: {log_exc}")
+                return []
+        except Exception as exc:
+            try:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="property_layer_field_check_error",
+                )
+            except Exception as log_exc:
+                print(f"[MapHelpers] Failed to log field check error: {log_exc}")
+            return []
         lookup = set(values)
         matches: List[QgsFeature] = []
-        for feature in layer.getFeatures():
+        try:
+            for feature in layer.getFeatures():
+                try:
+                    if feature[field_name] in lookup:
+                        matches.append(feature)
+                except KeyError:
+                    continue
+        except Exception as exc:
             try:
-                if feature[field_name] in lookup:
-                    matches.append(feature)
-            except KeyError:
-                continue
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="property_layer_feature_iter_error",
+                )
+            except Exception as log_exc:
+                print(f"[MapHelpers] Failed to log feature iter error: {log_exc}")
+            return []
         return matches
     
     @staticmethod
@@ -467,14 +562,23 @@ class FeatureActions:
         fid_idx = -1
         try:
             fid_idx = int(target_layer.fields().indexOf(Katastriyksus.fid))
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="featureactions_fid_index_failed",
+            )
             fid_idx = -1
 
         if fid_idx >= 0 and fid_idx in pk_indexes:
             try:
                 new_feat.setAttribute(fid_idx, None)
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="featureactions_fid_clear_failed",
+                )
         else:
             # Legacy behavior: ensure `fid` field stays unique within the visible layer features.
             # (Used by some workflows as a stable identifier.)
@@ -512,7 +616,12 @@ class FeatureActions:
 
         try:
             matches = MapHelpers.find_features_by_fields_and_values(layer, field_name, list(values))
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="featureactions_find_matches_failed",
+            )
             matches = []
 
         feature_ids = [f.id() for f in (matches or [])]
@@ -529,16 +638,24 @@ class FeatureActions:
                 err = "; ".join(layer.commitErrors() or [])
                 try:
                     layer.rollBack()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module=Module.PROPERTY.value,
+                        event="featureactions_rollback_failed",
+                    )
                 return False, feature_ids, err
 
             return True, feature_ids, ""
         except Exception as e:
             try:
                 layer.rollBack()
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="featureactions_rollback_failed",
+                )
             return False, feature_ids, str(e)
 
     @staticmethod
@@ -559,7 +676,12 @@ class FeatureActions:
 
         try:
             matches = MapHelpers.find_features_by_fields_and_values(layer, field_name, [value])
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="featureactions_find_match_failed",
+            )
             matches = []
 
         if not matches:
@@ -569,7 +691,12 @@ class FeatureActions:
         feature_id = None
         try:
             feature_id = feature.id()
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="featureactions_feature_id_failed",
+            )
             feature_id = None
 
         try:
@@ -583,16 +710,24 @@ class FeatureActions:
                 err = "; ".join(layer.commitErrors() or [])
                 try:
                     layer.rollBack()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module=Module.PROPERTY.value,
+                        event="featureactions_update_rollback_failed",
+                    )
                 return False, feature_id, err
 
             return True, feature_id, ""
         except Exception as e:
             try:
                 layer.rollBack()
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="featureactions_update_rollback_failed",
+                )
             return False, feature_id, str(e)
 
     @staticmethod
@@ -601,7 +736,12 @@ class FeatureActions:
             return None
         try:
             matches = MapHelpers.find_features_by_fields_and_values(layer, field_name, [value])
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="featureactions_get_first_match_failed",
+            )
             matches = []
         return matches[0] if matches else None
 
@@ -617,7 +757,12 @@ class FeatureActions:
             return None
         try:
             return feature.attribute(attribute_name)
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="featureactions_get_attribute_failed",
+            )
             return None
 
 

@@ -9,7 +9,6 @@ class ButtonVariant:
     FOOTER_LINK = "footer-link"
     DIALOG_PRIMARY = "dialog-primary"
     SIDEBAR = "sidebar"
-    MODULE_CARD = "modulecard"
 
 
 class ButtonSize:

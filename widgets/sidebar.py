@@ -13,6 +13,8 @@ from ..languages.language_manager import LanguageManager
 from ..constants.module_icons import ModuleIconPaths
 from ..utils.url_manager import Module  
 from ..languages.translation_keys import TranslationKeys
+from ..Logs.switch_logger import SwitchLogger
+from ..Logs.python_fail_logger import PythonFailLogger
 lang_manager = LanguageManager()
 theme_manager = ThemeManager()
 
@@ -103,7 +105,7 @@ class Sidebar(QWidget):
 
         tooltip = lang_manager.translate(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP) or "Collapse Sidebar"
         self.toggleButton.setToolTip(tooltip)
-        self.toggleButton.setText("«")                # expanded → show collapse glyph
+        self.toggleButton.setText(lang_manager.translate(TranslationKeys.SIDEBAR_LEFT_ARROW) or "«")                # expanded → show collapse glyph
         self.toggleButton.clicked.connect(self.toggleSidebar)
         self._apply_toggle_shadow()
         self.toggleButton.raise_()
@@ -162,6 +164,21 @@ class Sidebar(QWidget):
     def _on_button_clicked(self, module_name, btn):
         if not btn.isEnabled():
             return
+        try:
+            SwitchLogger.log(
+                "sidebar_click",
+                extra={
+                    "module": module_name,
+                    "btn_enabled": bool(btn.isEnabled()),
+                    "btn_name": btn.objectName() or "",
+                },
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="sidebar_click_log_failed",
+            )
         self.emitItemClicked(module_name)
 
     def _set_disabled_button(self, btn):
@@ -253,10 +270,10 @@ class Sidebar(QWidget):
 
         # settings button
         if self._is_compact:
-            self.toggleButton.setText("»")
+            self.toggleButton.setText(lang_manager.translate(TranslationKeys.SIDEBAR_RIGHT_ARROW) or "»")
             self.toggleButton.setToolTip(lang_manager.translate(TranslationKeys.SIDEBAR_EXPAND_TOOLTIP) or "Expand Sidebar")
         else:
-            self.toggleButton.setText("«")
+            self.toggleButton.setText(lang_manager.translate(TranslationKeys.SIDEBAR_LEFT_ARROW) or "«")
             self.toggleButton.setToolTip(lang_manager.translate(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP) or "Collapse Sidebar")
 
         start_w = self.SidebarMainFrame.width()

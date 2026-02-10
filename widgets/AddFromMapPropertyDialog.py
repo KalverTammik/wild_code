@@ -3,6 +3,7 @@ from typing import Optional
 from qgis.utils import iface
 
 from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QColor, QBrush
 from PyQt5.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -11,6 +12,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QCheckBox,
     QProgressBar,
+    QTableWidgetItem,
 )
 
 from ..constants.button_props import ButtonVariant, ButtonSize
@@ -23,24 +25,21 @@ from ..modules.Property.FlowControllers.AttentionDisplayRules import AttentionDi
 from ..modules.Property.FlowControllers.BackendVerifyController import BackendVerifyController
 from ..modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
 from ..modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
+from qgis.core import QgsFeatureRequest
 from ..utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
 from ..utils.MapTools.map_selection_controller import MapSelectionController
 from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager, PropertyTableWidget
+from ..utils.mapandproperties.property_row_builder import PropertyRowBuilder
 from ..widgets.DateHelpers import DateHelpers
 from .theme_manager import ThemeManager
+from ..Logs.python_fail_logger import PythonFailLogger
+from ..ui.window_state.DialogCoordinator import get_dialog_coordinator
 
 
 
 
 class AddFromMapPropertyDialog(QDialog):
-    """Add properties by selecting features on the map.
-
-    UX:
-    - opens a dialog similar to `AddPropertyDialog` but without location filters
-    - starts map selection on the IMPORT layer
-    - fills the same table UI as SignalTest
-    - user reviews/selects rows and starts `MainAddPropertiesFlow`
-    """
+    """Add properties by selecting features on the map."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -52,7 +51,12 @@ class AddFromMapPropertyDialog(QDialog):
         self._restore_parent_on_close = False
         try:
             self._parent_window = parent.window() if parent is not None else None
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_parent_window_failed",
+            )
             self._parent_window = None
 
         self._import_selection_controller: Optional[MapSelectionController] = None
@@ -77,7 +81,11 @@ class AddFromMapPropertyDialog(QDialog):
         self._main_checked_rows = set()
         self._total_rows_for_checks = 0
         self._main_layer_for_verify = None
+        self._main_layer_lookup = {}
+        self._main_layer_lookup = {}
         self._table_filtered_to_attention = False
+        self._archive_backend_plan: dict[str, bool] = {}
+        self._archive_map_plan: dict[str, bool] = {}
 
         self._checks_start_timer = QTimer(self)
         self._checks_start_timer.setSingleShot(True)
@@ -88,77 +96,29 @@ class AddFromMapPropertyDialog(QDialog):
         self._map_update_timer.setSingleShot(True)
         self._map_update_timer.setInterval(150)
 
-        self.setWindowTitle(self.lang_manager.translate(TranslationKeys.ADD_NEW_PROPERTY))
+        self.setWindowTitle(self.lang_manager.translate(TranslationKeys.PROPERTY_MANAGEMENT))
         self.setModal(False)
-        self.setFixedSize(720, 520)
-
-        ThemeManager.set_initial_theme(
-            self,
-            None,
-            qss_files=[QssPaths.MAIN, QssPaths.SETUP_CARD, QssPaths.COMBOBOX],
-        )
-
-        self._create_ui()
-        self._setup_connections()
-
-        # Restore parent when dialog closes (accept/reject)
-        try:
-            self.finished.connect(self._on_dialog_finished)
-        except Exception:
-            pass
-
-        # Start selection after first paint so UI exists.
-        QTimer.singleShot(0, self._start_import_layer_map_selector)
-
-        # Modeless: do NOT block QGIS.
-        self.show()
-    def _on_dialog_finished(self, _result: int) -> None:
-        # Stop any pending selection controller
-        try:
-            if self._import_selection_controller is not None:
-                self._import_selection_controller.cancel_selection()
-        except Exception:
-            pass
-        self._import_selection_controller = None
-
-        # Restore parent plugin window if we minimized it.
-        self._restore_parent_window()
-
-    def _minimize_parent_window_if_safe(self) -> None:
-        w = self._parent_window
-        if w is None:
-            return
-
-        # Never minimize QGIS main window.
-        try:
-            qgis_main = iface.mainWindow() if iface is not None else None
-        except Exception:
-            qgis_main = None
-
-        if qgis_main is not None and w is qgis_main:
-            return
-
-        try:
-            if w.isVisible() and not w.isMinimized():
-                w.showMinimized()
-                self._restore_parent_on_close = True
-        except Exception:
-            pass
-
-    def _restore_parent_window(self) -> None:
-        if not self._restore_parent_on_close:
-            return
+        self.setMinimumSize(770, 540)
+        """Legacy wrapper retained for compatibility.
+        
+        Use `AddPropertyDialog` with `PropertyDialogMode.FROM_MAP`.
+        """
+        from .AddUpdatePropertyDialog import AddPropertyDialog, PropertyDialogMode
+        super().__init__(parent, mode=PropertyDialogMode.FROM_MAP)
 
         w = self._parent_window
         if w is None:
             return
 
         try:
-            w.showNormal()
-            w.raise_()
-            w.activateWindow()
-        except Exception:
-            pass
+            coordinator = get_dialog_coordinator(iface)
+            coordinator.bring_to_front(w)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_restore_window_failed",
+            )
 
 
     # ---------------------------------------------------------------------
@@ -178,60 +138,71 @@ class AddFromMapPropertyDialog(QDialog):
         header.setObjectName("FilterTitle")
         layout.addWidget(header)
 
+        # Attention toggle row (top-right above table)
+        attention_row = QHBoxLayout()
+        attention_row.addStretch()
+        self.attention_only_checkbox = QCheckBox("Show only attention")
+        self.attention_only_checkbox.setChecked(True)
+        self.attention_only_checkbox.setObjectName("SelectionInfo")
+        attention_row.addWidget(self.attention_only_checkbox)
+        layout.addLayout(attention_row)
+
         self.properties_table_widget, self.properties_table = PropertyTableWidget._create_properties_table()
         layout.addWidget(self.properties_table_widget, 1)
 
+        # Table controls row (counter + selection helpers)
+        controls_row = QHBoxLayout()
+        controls_row.setSpacing(10)
         self.selection_info = QLabel(self.lang_manager.translate(TranslationKeys.SELECTED_PROPERTIES_COUNT))
         self.selection_info.setObjectName("SelectionInfo")
-        layout.addWidget(self.selection_info)
+        controls_row.addWidget(self.selection_info)
+        controls_row.addStretch()
+        self.select_all_btn = QPushButton(self.lang_manager.translate(TranslationKeys.SELECT_ALL))
+        self.select_all_btn.setObjectName("SelectAllButton")
+        self.select_all_btn.setProperty("btnSize", ButtonSize.SMALL)
+        controls_row.addWidget(self.select_all_btn)
+        self.clear_selection_btn = QPushButton(self.lang_manager.translate(TranslationKeys.CLEAR_SELECTION))
+        self.clear_selection_btn.setObjectName("ClearSelectionButton")
+        self.clear_selection_btn.setProperty("btnSize", ButtonSize.SMALL)
+        controls_row.addWidget(self.clear_selection_btn)
+        self._btn_reselect = QPushButton(self.lang_manager.translate(TranslationKeys.RESELECT_FROM_MAP))
+        self._btn_reselect.setObjectName("ConfirmButton")
+        self._btn_reselect.setProperty("variant", ButtonVariant.PRIMARY)
+        controls_row.addWidget(self._btn_reselect)
+        layout.addLayout(controls_row)
 
+        # Progress widget row
+        progress_row = QHBoxLayout()
+        progress_row.setSpacing(8)
         self.check_progress_bar = QProgressBar()
         self.check_progress_bar.setObjectName("CheckProgressBar")
         self.check_progress_bar.setTextVisible(True)
         self.check_progress_bar.setRange(0, 1)
         self.check_progress_bar.setValue(0)
         self.check_progress_bar.setVisible(False)
-        layout.addWidget(self.check_progress_bar)
+        progress_row.addWidget(self.check_progress_bar, 1)
+        self.add_progress_label = QLabel("")
+        self.add_progress_label.setObjectName("AddProgressLabel")
+        self.add_progress_label.setVisible(False)
+        progress_row.addWidget(self.add_progress_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        layout.addLayout(progress_row)
 
-        self.attention_only_checkbox = QCheckBox("Show only attention")
-        self.attention_only_checkbox.setChecked(True)
-        self.attention_only_checkbox.setObjectName("SelectionInfo")
-        layout.addWidget(self.attention_only_checkbox)
-
-        buttons_layout = QHBoxLayout()
-        buttons_layout.setSpacing(10)
-
-        self.select_all_btn = QPushButton(self.lang_manager.translate(TranslationKeys.SELECT_ALL))
-        self.select_all_btn.setObjectName("SelectAllButton")
-        self.select_all_btn.setProperty("variant", ButtonVariant.GHOST)
-        self.select_all_btn.setProperty("btnSize", ButtonSize.SMALL)
-        buttons_layout.addWidget(self.select_all_btn)
-
-        self.clear_selection_btn = QPushButton(self.lang_manager.translate(TranslationKeys.CLEAR_SELECTION))
-        self.clear_selection_btn.setObjectName("ClearSelectionButton")
-        self.clear_selection_btn.setProperty("variant", ButtonVariant.GHOST)
-        self.clear_selection_btn.setProperty("btnSize", ButtonSize.SMALL)
-        buttons_layout.addWidget(self.clear_selection_btn)
-
-        self._btn_reselect = QPushButton(self.lang_manager.translate(TranslationKeys.RESELECT_FROM_MAP))
-        self._btn_reselect.setObjectName("ConfirmButton")
-        self._btn_reselect.setProperty("variant", ButtonVariant.PRIMARY)
-        buttons_layout.addWidget(self._btn_reselect)
-
-        buttons_layout.addStretch(1)
-
-        self.cancel_button = QPushButton(self.lang_manager.translate(TranslationKeys.CANCEL))
+        # Footer with main actions
+        footer_layout = QHBoxLayout()
+        footer_layout.setSpacing(10)
+        self.cancel_button = QPushButton(self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON))
         self.cancel_button.setObjectName("CancelButton")
-        self.cancel_button.setProperty("variant", ButtonVariant.GHOST)
-        buttons_layout.addWidget(self.cancel_button)
+        footer_layout.addWidget(self.cancel_button)
+
+        footer_layout.addStretch(1)
 
         self.add_button = QPushButton(self.lang_manager.translate(TranslationKeys.ADD_SELECTED))
         self.add_button.setObjectName("AddButton")
         self.add_button.setEnabled(False)
         self.add_button.setProperty("variant", ButtonVariant.PRIMARY)
-        buttons_layout.addWidget(self.add_button)
+        footer_layout.addWidget(self.add_button)
 
-        layout.addLayout(buttons_layout)
+        layout.addLayout(footer_layout)
 
     def _setup_connections(self):
         self.properties_table.itemSelectionChanged.connect(self._on_table_selection_changed)
@@ -248,6 +219,39 @@ class AddFromMapPropertyDialog(QDialog):
     # Selection
     # ---------------------------------------------------------------------
 
+    def _get_safe_parent_window(self):
+        w = self._parent_window
+        if w is None:
+            return None
+
+        try:
+            qgis_main = iface.mainWindow() if iface is not None else None
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_qgis_main_failed",
+            )
+            qgis_main = None
+
+        if qgis_main is not None and w is qgis_main:
+            return None
+        return w
+
+    def _enter_map_selection_mode(self) -> None:
+        coordinator = get_dialog_coordinator(iface)
+        parent_window = self._get_safe_parent_window()
+        coordinator.enter_map_selection_mode(parent=parent_window, dialogs=[self])
+
+    def _exit_map_selection_mode(self, bring_front: bool = True) -> None:
+        coordinator = get_dialog_coordinator(iface)
+        parent_window = self._get_safe_parent_window()
+        coordinator.exit_map_selection_mode(
+            parent=parent_window,
+            dialogs=[self],
+            bring_front=bring_front,
+        )
+
     def _start_import_layer_map_selector(self) -> None:
         import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if not import_layer or not import_layer.isValid():
@@ -257,8 +261,12 @@ class AddFromMapPropertyDialog(QDialog):
         try:
             if self._import_selection_controller is not None:
                 self._import_selection_controller.cancel_selection()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_cancel_selection_failed",
+            )
         self._import_selection_controller = None
 
         # Clear any subset string so selection behaves predictably.
@@ -266,15 +274,15 @@ class AddFromMapPropertyDialog(QDialog):
         try:
             if hasattr(import_layer, "subsetString") and hasattr(import_layer, "setSubsetString"):
                 import_layer.setSubsetString("")
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_clear_filter_failed",
+            )
 
         # Minimize plugin window + this dialog so user can see the map.
-        self._minimize_parent_window_if_safe()
-        try:
-            self.showMinimized()
-        except Exception:
-            pass
+        self._enter_map_selection_mode()
 
         controller = MapSelectionController()
         self._import_selection_controller = controller
@@ -294,65 +302,35 @@ class AddFromMapPropertyDialog(QDialog):
         )
         if not started:
             self._import_selection_controller = None
-            try:
-                self.showNormal()
-                self.raise_()
-                self.activateWindow()
-            except Exception:
-                pass
+            self._exit_map_selection_mode()
 
     def _restore_window_after_selection(self) -> None:
-        # Restore plugin window first (so this dialog isn't hidden behind it)
-        self._restore_parent_window()
-        try:
-            self.showNormal()
-            self.raise_()
-            self.activateWindow()
-        except Exception:
-            pass
+        self._exit_map_selection_mode()
 
     def _set_table_from_features(self, feats) -> None:
         features = list(feats or [])
 
-        rows = []
-        for f in features:
-            try:
-                cadastral_id = str(f[Katastriyksus.tunnus])
-            except Exception:
-                cadastral_id = ""
-            try:
-                address = str(f[Katastriyksus.l_aadress])
-            except Exception:
-                address = ""
-            try:
-                area = str(f[Katastriyksus.pindala])
-            except Exception:
-                area = ""
-            try:
-                settlement = str(f[Katastriyksus.ay_nimi])
-            except Exception:
-                settlement = ""
-
-            rows.append(
-                {
-                    "cadastral_id": cadastral_id,
-                    "address": address,
-                    "area": area,
-                    "settlement": settlement,
-                    "feature": f,
-                }
-            )
+        rows = PropertyRowBuilder.rows_from_features(features, log_prefix="AddFromMapPropertyDialog")
 
         def _after_populate() -> None:
             try:
                 self.properties_table.clearSelection()
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="property",
+                    event="add_from_map_clear_selection_failed",
+                )
             try:
                 for row_idx in range(self.properties_table.rowCount()):
-                    PropertyTableManager.set_cell_text(self.properties_table, row_idx, PropertyTableWidget._COL_ATTENTION, "")
-            except Exception:
-                pass
+                    tunnus = PropertyTableManager.get_cell_text(self.properties_table, row_idx, PropertyTableWidget._COL_CADASTRAL_ID)
+                    self._set_attention_row(row_idx, tunnus=tunnus, main_causes=[], backend_causes=[], main_done=False, backend_done=False, text="")
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="property",
+                    event="add_from_map_init_attention_rows_failed",
+                )
 
         PropertyTableManager.reset_and_populate_properties_table(
             self.properties_table,
@@ -364,8 +342,12 @@ class AddFromMapPropertyDialog(QDialog):
         try:
             if self.properties_table.rowCount() > 0:
                 self.properties_table.selectAll()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_select_all_failed",
+            )
 
         self._stop_attention_checks(clear_attention=True)
         self._refresh_selection_info(update_map=False)
@@ -373,7 +355,12 @@ class AddFromMapPropertyDialog(QDialog):
         # Start checks after a short quiet period (same as AddPropertyDialog).
         try:
             self._checks_start_timer.start()
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_start_checks_timer_failed",
+            )
             self._start_attention_checks(source="add_from_map_dialog")
 
     # ---------------------------------------------------------------------
@@ -383,6 +370,9 @@ class AddFromMapPropertyDialog(QDialog):
     def _run_add_flow_from_table(self) -> None:
         if self.properties_table is None:
             return
+
+        self._run_missing_cleanup_if_any()
+
         MainAddPropertiesFlow.start_adding_properties(self.properties_table)
         self.accept()
 
@@ -407,7 +397,12 @@ class AddFromMapPropertyDialog(QDialog):
                 feature = item.data(Qt.UserRole)
                 if feature:
                     selected_features.add(feature)
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_selection_read_failed",
+            )
             selected_features = set()
 
         count = len(selected_features)
@@ -415,8 +410,12 @@ class AddFromMapPropertyDialog(QDialog):
             self.selection_info.setText(
                 self.lang_manager.translate(TranslationKeys.SELECTED_COUNT_TEMPLATE).format(count=count)
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_update_selection_label_failed",
+            )
 
         self._update_add_button_state(selected_count=count)
 
@@ -434,8 +433,12 @@ class AddFromMapPropertyDialog(QDialog):
         can_add = bool(selected_count and int(selected_count) > 0 and not self._checks_running)
         try:
             self.add_button.setEnabled(can_add)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_set_add_button_failed",
+            )
 
     # ---------------------------------------------------------------------
     # Attention checks (copied from AddPropertyDialog with minimal changes)
@@ -455,8 +458,12 @@ class AddFromMapPropertyDialog(QDialog):
     def _stop_attention_checks(self, *, clear_attention: bool = False) -> None:
         try:
             self._checks_start_timer.stop()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_stop_checks_timer_failed",
+            )
 
         self._backend_verify_controller.stop()
         self._main_check_controller.stop()
@@ -472,12 +479,15 @@ class AddFromMapPropertyDialog(QDialog):
 
         self._set_check_progress(0, 0)
         self._table_filtered_to_attention = False
+        self._archive_backend_plan = {}
+        self._archive_map_plan = {}
 
         if clear_attention:
             table = self.properties_table
             if table is not None:
                 for row_idx in range(table.rowCount()):
-                    PropertyTableManager.set_cell_text(table, row_idx, PropertyTableWidget._COL_ATTENTION, "")
+                    tunnus = PropertyTableManager.get_cell_text(table, row_idx, PropertyTableWidget._COL_CADASTRAL_ID)
+                    self._set_attention_row(row_idx, tunnus=tunnus, main_causes=[], backend_causes=[], main_done=False, backend_done=False, text="")
 
         self._update_add_button_state()
 
@@ -520,23 +530,55 @@ class AddFromMapPropertyDialog(QDialog):
 
         self._main_layer_for_verify = ActiveLayersHelper.resolve_main_property_layer(silent=False)
 
+        tunnus_set = {t for (_row_idx, t, _muudet) in rows}
+        self._main_layer_lookup = self._build_main_layer_lookup(self._main_layer_for_verify, tunnus_set)
+
         self._main_check_controller.configure(
             rows_for_verify_by_row=self._rows_for_verify_by_row,
             main_layer=self._main_layer_for_verify,
             checked_rows=self._main_checked_rows,
+            main_layer_lookup=self._main_layer_lookup,
         )
 
         table.setUpdatesEnabled(False)
-        for row_idx, _tunnus, _import_muudet in rows:
-            PropertyTableManager.set_cell_text(table, row_idx, PropertyTableWidget._COL_ATTENTION, "Võrdlen andmeid...")
+        for row_idx, tunnus, _import_muudet in rows:
+            self._set_attention_row(row_idx, tunnus=tunnus, main_causes=[], backend_causes=[], main_done=False, backend_done=False, text="Võrdlen andmeid...")
         table.setUpdatesEnabled(True)
 
         try:
             self._backend_verify_controller.start(rows, source=source)
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_backend_verify_start_failed",
+            )
             self._backend_checked_rows = set(self._rows_for_verify_by_row.keys())
             remaining = list(self._rows_for_verify_by_row.keys())
             self._main_check_controller.start_pending(remaining, batch_size=50, interval_ms=0)
+
+    def _build_main_layer_lookup(self, layer, tunnus_set: set[str]) -> dict:
+        lookup = {}
+        if not layer or not tunnus_set:
+            return lookup
+        try:
+            req = QgsFeatureRequest().setSubsetOfAttributes([Katastriyksus.tunnus], layer.fields())
+            for feat in layer.getFeatures(req):
+                val = feat.attribute(Katastriyksus.tunnus)
+                key = str(val).strip() if val is not None else ""
+                if not key:
+                    continue
+                if key in tunnus_set and key not in lookup:
+                    lookup[key] = feat
+                    if len(lookup) == len(tunnus_set):
+                        break
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_build_lookup_failed",
+            )
+        return lookup
 
     def _on_backend_verify_row_result(self, row: int, _tunnus: str, result: dict) -> None:
         row_idx = int(row)
@@ -560,7 +602,12 @@ class AddFromMapPropertyDialog(QDialog):
     def _on_backend_verify_finished(self, _summary: dict) -> None:
         try:
             remaining = [r for r in self._rows_for_verify_by_row.keys() if r not in self._main_checked_rows]
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_remaining_rows_failed",
+            )
             remaining = []
 
         if remaining:
@@ -594,7 +641,15 @@ class AddFromMapPropertyDialog(QDialog):
             main_done=main_done,
             backend_done=backend_done,
         )
-        PropertyTableManager.set_cell_text(self.properties_table, row_idx, PropertyTableWidget._COL_ATTENTION, text)
+        self._set_attention_row(
+            row_idx,
+            tunnus=self._rows_for_verify_by_row.get(row_idx, ("", ""))[0],
+            main_causes=main_causes,
+            backend_causes=backend_causes,
+            main_done=main_done,
+            backend_done=backend_done,
+            text=text,
+        )
 
     def _maybe_finish_checks(self) -> None:
         if not self._checks_running:
@@ -620,10 +675,65 @@ class AddFromMapPropertyDialog(QDialog):
 
         self._set_check_progress(total, total)
 
+        # Build archive plans: map archive for items missing from main layer; backend archive only if backend exists/lookup succeeded.
+        archive_map_plan: dict[str, bool] = {}
+        archive_backend_plan: dict[str, bool] = {}
+
+        missing_set = set()
+        try:
+            main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=True)
+            tunnus_set = {t for (_row_idx, t, _m) in self._rows_for_verify_by_row.items()}
+            if main_layer:
+                for feat in main_layer.getFeatures():
+                    val = feat.attribute(Katastriyksus.tunnus)
+                    t = str(val).strip() if val is not None else ""
+                    if not t:
+                        continue
+                    if t not in tunnus_set:
+                        missing_set.add(t)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_missing_scan_failed",
+            )
+            missing_set = set()
+
+        for row_idx, (tunnus, _muudet) in self._rows_for_verify_by_row.items():
+            t = (tunnus or "").strip()
+            in_missing = t in missing_set
+            backend_causes = [c.lower() for c in (self._backend_compare_causes_by_row.get(row_idx) or [])]
+            backend_missing = any("missing in backend" in c for c in backend_causes)
+            backend_lookup_failed = any("backend lookup failed" in c for c in backend_causes)
+            archive_map_plan[t] = bool(in_missing)
+            archive_backend_plan[t] = bool(in_missing and not backend_missing and not backend_lookup_failed)
+
+        self._archive_map_plan = archive_map_plan
+        self._archive_backend_plan = archive_backend_plan
+
+        for row_idx in self._rows_for_verify_by_row.keys():
+            self._update_row_attention_display(row_idx)
+
         # Hide the progress bar once finished.
         self._set_check_progress(0, 0)
 
         self._apply_attention_only_filter_if_ready()
+
+    def _run_missing_cleanup_if_any(self) -> None:
+        missing = sorted({t for t, flag in self._archive_map_plan.items() if flag})
+        if not missing:
+            return
+
+        backend_allowed = {t for t, flag in self._archive_backend_plan.items() if flag}
+
+        try:
+            MainAddPropertiesFlow.archive_missing_from_import(missing, backend_allowed=backend_allowed)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_archive_missing_failed",
+            )
 
     def _apply_attention_only_filter_if_ready(self) -> None:
         if not bool(self.attention_only_checkbox.isChecked()):
@@ -697,6 +807,79 @@ class AddFromMapPropertyDialog(QDialog):
 
         self._set_check_progress(done_rows, total)
 
+    # ------------------------------------------------------------------
+    # Attention rendering helpers (icons + text)
+    # ------------------------------------------------------------------
+    def _set_icon_cell(self, row: int, col: int, symbol: str, color_name: str) -> None:
+        table = self.properties_table
+        if table is None:
+            return
+        try:
+            item = table.item(row, col)
+            if item is None:
+                item = QTableWidgetItem("")
+                table.setItem(row, col, item)
+            item.setText(symbol)
+            item.setTextAlignment(Qt.AlignCenter)
+            if color_name:
+                item.setData(Qt.ForegroundRole, QBrush(QColor(color_name)))
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_set_icon_failed",
+            )
+
+    def _attention_symbol(self, causes: list, done: bool) -> tuple[str, str]:
+        if not done:
+            return "…", "gray"
+        if causes:
+            return "✗", "firebrick"
+        return "✓", "darkgreen"
+
+    def _set_attention_row(self, row_idx: int, *, tunnus: str, main_causes: list, backend_causes: list, main_done: bool, backend_done: bool, text: str) -> None:
+        backend_symbol, backend_color = self._attention_symbol(backend_causes, backend_done)
+        main_symbol, main_color = self._attention_symbol(main_causes, main_done)
+        self._set_icon_cell(row_idx, PropertyTableWidget._COL_BACKEND_ATTENTION, backend_symbol, backend_color)
+        self._set_icon_cell(row_idx, PropertyTableWidget._COL_MAIN_ATTENTION, main_symbol, main_color)
+
+        # Keep the detail as tooltips on the attention cells (column removed from UI).
+        try:
+            item_backend = self.properties_table.item(row_idx, PropertyTableWidget._COL_BACKEND_ATTENTION)
+            if item_backend:
+                item_backend.setToolTip(text)
+            item_main = self.properties_table.item(row_idx, PropertyTableWidget._COL_MAIN_ATTENTION)
+            if item_main:
+                item_main.setToolTip(text)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_from_map_set_tooltip_failed",
+            )
+
+        t = (tunnus or "").strip()
+        archive_backend = self._archive_backend_plan.get(t, False)
+        archive_map = self._archive_map_plan.get(t, False)
+
+        if main_done and backend_done:
+            backend_causes_lower = [c.lower() for c in (backend_causes or [])]
+            backend_missing = any("missing in backend" in c for c in backend_causes_lower)
+            backend_lookup_failed = any("backend lookup failed" in c for c in backend_causes_lower)
+
+            if backend_missing or backend_lookup_failed:
+                backend_symbol_plan, backend_color_plan = ("–", "gray")
+            else:
+                backend_symbol_plan, backend_color_plan = (("✗", "firebrick") if archive_backend else ("✓", "darkgreen"))
+
+            map_symbol_plan, map_color_plan = (("✗", "firebrick") if archive_map else ("✓", "darkgreen"))
+        else:
+            backend_symbol_plan, backend_color_plan = ("…", "gray")
+            map_symbol_plan, map_color_plan = ("…", "gray")
+
+        self._set_icon_cell(row_idx, PropertyTableWidget._COL_ARCHIVE_BACKEND, backend_symbol_plan, backend_color_plan)
+        self._set_icon_cell(row_idx, PropertyTableWidget._COL_ARCHIVE_MAP, map_symbol_plan, map_color_plan)
+
     def _set_check_progress(self, done: int, total: int) -> None:
         bar = self.check_progress_bar
         if bar is None:
@@ -721,3 +904,16 @@ class AddFromMapPropertyDialog(QDialog):
         bar.setRange(0, total_i)
         bar.setValue(done_i)
         bar.setFormat("%v/%m")
+
+
+# ------------------------------------------------------------------
+# Deprecated shim (dialog consolidated into AddPropertyDialog)
+# ------------------------------------------------------------------
+from .AddUpdatePropertyDialog import AddPropertyDialog, PropertyDialogMode
+
+
+class AddFromMapPropertyDialog(AddPropertyDialog):
+    """Deprecated: use AddPropertyDialog(mode=PropertyDialogMode.FROM_MAP)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent, mode=PropertyDialogMode.FROM_MAP)

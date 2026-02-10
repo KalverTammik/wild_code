@@ -7,7 +7,8 @@ from ....widgets.theme_manager import ThemeManager
 from ....constants.module_icons import IconNames
 from ....utils.Folders.foldersHelpers import FolderHelpers
 from ....constants.file_paths import QssPaths
-from ....languages.translation_keys import SettingDialogPlaceholders
+from ....languages.translation_keys import SettingDialogPlaceholders, TranslationKeys
+from ....Logs.python_fail_logger import PythonFailLogger
 
 class ModuleLabelsWidget(QFrame):
 
@@ -33,7 +34,12 @@ class ModuleLabelsWidget(QFrame):
         if callable(raw_value):
             try:
                 raw_value = raw_value()
-            except Exception:
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="settings",
+                    event="settings_label_value_failed",
+                )
                 raw_value = None
         if raw_value is None or raw_value == "":
             return self._not_defined_jet()
@@ -46,7 +52,12 @@ class ModuleLabelsWidget(QFrame):
         if callable(raw_value):
             try:
                 raw_value = raw_value()
-            except Exception:
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="settings",
+                    event="settings_checkbox_value_failed",
+                )
                 raw_value = False
         if isinstance(raw_value, str):
             lowered = raw_value.strip().lower()
@@ -94,7 +105,7 @@ class ModuleLabelsWidget(QFrame):
                     clear_button.setObjectName(f"{key}_clear")
                     icon = ThemeManager().get_qicon(IconNames.CRITICAL)
                     clear_button.setIcon(icon)
-                    clear_button.setToolTip(self.lang_manager.translate("Clear value") if self.lang_manager else "Clear value")
+                    clear_button.setToolTip(self.lang_manager.translate(TranslationKeys.CLEAR_VALUE))
                     clear_button.clicked.connect(lambda _, k=key: self._clear_label_value(k))
 
                     value_label = QLabel(self._label_value(label_def))
@@ -160,8 +171,12 @@ class ModuleLabelsWidget(QFrame):
             new_value = handler(self.module_key, key, current)
             if new_value not in (None, ""):
                 self._update_label_value(key, str(new_value), value_label)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_label_custom_click_failed",
+            )
 
     def _on_checkbox_changed(self, key: str, checkbox: QCheckBox) -> None:
         if not key:
@@ -198,6 +213,27 @@ class ModuleLabelsWidget(QFrame):
     def retheme(self) -> None:
         ThemeManager.apply_module_style(self, [QssPaths.SETTING_MODULE_LABELS])
         #styleExtras.apply_chip_shadow(self)
+
+    def clear_data(self) -> None:
+        """Clear label widgets to free memory; safe to call on deactivate."""
+        try:
+            for key, widget in list(self._label_widgets.items()):
+                if isinstance(widget, QCheckBox):
+                    widget.blockSignals(True)
+                    widget.setChecked(False)
+                    widget.blockSignals(False)
+                elif isinstance(widget, QLabel):
+                    widget.setText(self._not_defined_jet())
+            self._label_widgets.clear()
+        except Exception as exc:
+            from ....Logs.python_fail_logger import PythonFailLogger
+            from ....utils.url_manager import Module
+
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_module_labels_clear_failed",
+            )
 
 
 

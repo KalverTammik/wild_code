@@ -5,7 +5,8 @@ from ..python.api_client import APIClient
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.responses import JsonResponseHandler
 # from ..utils.logger import debug as log_debug
-from ..utils.api_error_handling import parse_tagged_message
+from ..utils.api_error_handling import ApiErrorKind, parse_tagged_message
+from ..Logs.python_fail_logger import PythonFailLogger
 
 class UnifiedFeedLogic:
     """
@@ -53,6 +54,8 @@ class UnifiedFeedLogic:
         self._extra_args: Dict[str, Any] = {}
         self.last_response: Optional[Dict[str, Any]] = None
         self.last_error: Optional[Exception] = None
+        self.last_error_kind: Optional[ApiErrorKind] = None
+        self.last_error_message: Optional[str] = None
         self.total_count: Optional[int] = None
 
     # --- Query mode management -------------------------------------------------
@@ -93,6 +96,12 @@ class UnifiedFeedLogic:
         self.has_more = True
         self.total_count = None
         self.last_error = None
+        self.last_error_kind = None
+        self.last_error_message = None
+
+    def reset_pagination(self) -> None:
+        """Alias for reset() to match UI expectations."""
+        self.reset()
 
     def set_where(self, where: Optional[Dict[str, Any]]) -> None:
         self.where = where
@@ -108,10 +117,14 @@ class UnifiedFeedLogic:
 
     def fetch_next_batch(self) -> List[Dict[str, Any]]:
         if self.is_loading or (not self.has_more and not self._single_item_mode):
+            self.last_error_kind = None
+            self.last_error_message = None
             return []
 
         self.is_loading = True
         self.last_error = None
+        self.last_error_kind = None
+        self.last_error_message = None
 
         # Build variables and query depending on mode
         if self._single_item_mode and self._single_item_query_name:
@@ -206,8 +219,12 @@ class UnifiedFeedLogic:
                     if self.total_count <= pages_seen and loaded_items_guess > self.total_count:
                         # Mark unknown so counter can show only loaded or loaded+
                         self.total_count = None
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=self._module_name,
+                    event="feed_total_count_heuristic_failed",
+                )
 
             # In single-item mode we expect only one page; mark as finished.
             if self._single_item_mode:
@@ -230,8 +247,12 @@ class UnifiedFeedLogic:
             try:
                 prev = getattr(self, '_loaded_items_debug', 0)
                 setattr(self, '_loaded_items_debug', prev + len(result))
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=self._module_name,
+                    event="feed_loaded_items_debug_failed",
+                )
             #print(f"[UnifiedFeedLogic] fetched {len(result)} items (has_more={self.has_more})")
             return result
 
@@ -239,9 +260,22 @@ class UnifiedFeedLogic:
             self.last_error = e
             try:
                 _kind, friendly = parse_tagged_message(e)
+                self.last_error_kind = _kind if _kind else None
+                self.last_error_message = friendly or str(e)
                 print(f"[UnifiedFeedLogic] fetch error for module '{self._module_name}': {friendly or e}")
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=self._module_name,
+                    event="feed_parse_error_message_failed",
+                )
+                self.last_error_kind = None
+                self.last_error_message = str(e) if e else None
+            PythonFailLogger.log_exception(
+                e,
+                module=self._module_name,
+                event="feed_fetch_failed",
+            )
             return []
         finally:
             self.is_loading = False

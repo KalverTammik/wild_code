@@ -20,6 +20,8 @@ class IconNames:
     ICON_SHOW_ON_MAP = "Mine kaardile.png"
     ICON_LIST = "down-arrow.png"
 
+    ICON_CLOSE_X = "close-x.png"
+
     WARNING = "warning-sign.png"
     CRITICAL = "stop.png"
     INFO = "info (3).png"

@@ -1,6 +1,7 @@
 from ...constants.help_urls import DEFAULT_HELP_URL, HELP_URLS
 from ...utils.url_manager import Module
 from ...module_manager import ModuleManager
+from ...Logs.python_fail_logger import PythonFailLogger
 
 
 import webbrowser
@@ -37,5 +38,9 @@ class ShowHelp:
             # Log error but don't crash - fallback to main help page
             try:
                 webbrowser.open(DEFAULT_HELP_URL)
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="show_help_fallback_failed",
+                )

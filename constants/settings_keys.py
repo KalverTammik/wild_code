@@ -2,9 +2,10 @@ from typing import Optional
 
 from qgis.core import QgsSettings
 from ..utils.url_manager import ModuleSupports
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
-PLUGIN = "wild_code"
+PLUGIN = "kavitro"
 MODULE_SETTINGS_BASE = f"{PLUGIN}/modules"
 
 # Plugin-wide setting keys
@@ -189,8 +190,12 @@ class SettingsService:
                 writer(module, value=",".join(cleaned))
             else:
                 writer(module, clear=True)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_save_preferred_ids_failed",
+            )
     
 
     
@@ -202,11 +207,11 @@ class UtilitySettings:
 
     @staticmethod
     def shp_last_file_path(target_group: str) -> str:
-        return f"wild_code/last_shp_file_{target_group}"
+        return f"kavitro/last_shp_file_{target_group}"
 
     @staticmethod
     def shp_layer_name_mapping(layer_name: str) -> str:
-        return f"wild_code/layer_name_{layer_name}"
+        return f"kavitro/layer_name_{layer_name}"
 
 
 

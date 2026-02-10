@@ -1,6 +1,7 @@
 from collections import deque
 
 from PyQt5.QtCore import QTimer, QCoreApplication
+from ..Logs.switch_logger import SwitchLogger
 
 
 class FeedLoadEngine:
@@ -51,6 +52,45 @@ class FeedLoadEngine:
     def _upstream_feed_logic(self):
         return self.parent_ui.feed_logic if self.parent_ui else None
 
+    def _is_active(self) -> bool:
+        if self.parent_ui is not None:
+            return bool(getattr(self.parent_ui, "_activated", True))
+        # Fallback: check bound load_next_batch target if parent_ui was cleared
+        target = getattr(self.load_next_batch, "__self__", None)
+        if target is not None and hasattr(target, "_activated"):
+            return bool(getattr(target, "_activated", False))
+        return True
+
+    def _current_token(self) -> int | None:
+        ui = self.parent_ui
+        if ui is not None:
+            return getattr(ui, "_active_token", None)
+        target = getattr(self.load_next_batch, "__self__", None)
+        if target is not None:
+            return getattr(target, "_active_token", None)
+        return None
+
+    def _is_token_active(self, token: int | None) -> bool:
+        if token is None:
+            return self._is_active()
+        ui = self.parent_ui
+        if ui is not None and hasattr(ui, "is_token_active"):
+            try:
+                return bool(ui.is_token_active(token))
+            except Exception:
+                return False
+        target = getattr(self.load_next_batch, "__self__", None)
+        if target is not None and hasattr(target, "is_token_active"):
+            try:
+                return bool(target.is_token_active(token))
+            except Exception:
+                return False
+        if ui is not None:
+            return bool(getattr(ui, "_activated", False)) and token == getattr(ui, "_active_token", None)
+        if target is not None:
+            return bool(getattr(target, "_activated", False)) and token == getattr(target, "_active_token", None)
+        return self._is_active()
+
     def _upstream_has_more(self) -> bool:
         feed_logic = self._upstream_feed_logic()
         return bool(feed_logic and feed_logic.has_more)
@@ -67,14 +107,25 @@ class FeedLoadEngine:
     # -------------------- Scheduling --------------------
     def schedule_load(self):
     # Debug print removed
+        SwitchLogger.log("feed_schedule_load", extra={"pending": self._load_pending, "loading": self._is_loading})
+        if not self._is_active():
+            SwitchLogger.log("feed_schedule_blocked_inactive")
+            return
         if self._load_pending or self._is_loading:
+            SwitchLogger.log("feed_schedule_blocked_busy")
             return
         self._load_pending = True
-        QTimer.singleShot(self.debounce_ms, self._load_next_batch_guarded)
+        token = self._current_token()
+        QTimer.singleShot(self.debounce_ms, lambda t=token: self._load_next_batch_guarded(t))
 
-    def _load_next_batch_guarded(self):
+    def _load_next_batch_guarded(self, token: int | None = None):
     # Debug print removed
         self._load_pending = False
+        SwitchLogger.log("feed_load_guarded_start")
+        if not self._is_token_active(token):
+            SwitchLogger.log("feed_load_guarded_inactive_token")
+            self._is_loading = False
+            return
         self._is_loading = True
     # Debug print removed
         if not callable(self.load_next_batch):
@@ -82,10 +133,11 @@ class FeedLoadEngine:
                 "FeedLoadEngine: load_next_batch is not callable. Did you pass a valid function? Value: {}".format(self.load_next_batch)
             )
         new_items = self.load_next_batch() or []
+        SwitchLogger.log("feed_load_guarded_done", extra={"count": len(new_items)})
     # Debug print removed
         if new_items:
             self.buffer.extend(new_items)
-        self._start_progressive_insert()
+        self._start_progressive_insert(token=token)
         self._is_loading = False
 
     # -------------------- Buffer API --------------------
@@ -109,10 +161,11 @@ class FeedLoadEngine:
             self._progressive_insert_next()
 
     # -------------------- Progressive insert --------------------
-    def _start_progressive_insert(self):
+    def _start_progressive_insert(self, token: int | None = None):
     # Debug print removed
         if not self.buffer:
             return
+        SwitchLogger.log("feed_insert_start", extra={"buffer": len(self.buffer)})
         # On the very first batch, insert a larger chunk immediately to avoid perceived slowness
         if self._first_batch_fast:
             self._first_batch_fast = False
@@ -127,9 +180,9 @@ class FeedLoadEngine:
         # Start paced auto-drip which will consume small batches per tick until buffer is drained
         if not self._auto_drip_running:
             self._auto_drip_running = True
-            QTimer.singleShot(self._auto_drip_ms, self._auto_drip_tick)
+            QTimer.singleShot(self._auto_drip_ms, lambda t=token: self._auto_drip_tick(t))
 
-    def _auto_drip_tick(self):
+    def _auto_drip_tick(self, token: int | None = None):
         """Called via QTimer to drain a few items per tick.
 
         Stops when buffer empty or UI reports filled+1 (via parent_ui._is_filled_plus_one()).
@@ -137,7 +190,12 @@ class FeedLoadEngine:
         if not self.buffer:
             # Buffer drained: allow another fetch if upstream has more
             self._auto_drip_running = False
+            SwitchLogger.log("feed_drip_end_empty")
             self._request_next_batch_on_drain()
+            return
+        if not self._is_token_active(token):
+            self._auto_drip_running = False
+            SwitchLogger.log("feed_drip_end_inactive_token")
             return
         ui = self.parent_ui
         # If UI says viewport is filled+1, stop auto-dripping for now
@@ -151,7 +209,7 @@ class FeedLoadEngine:
             count += 1
         if self.buffer:
             # Schedule next tick
-            QTimer.singleShot(self._auto_drip_ms, self._auto_drip_tick)
+            QTimer.singleShot(self._auto_drip_ms, lambda t=token: self._auto_drip_tick(t))
         else:
             self._auto_drip_running = False
             self._request_next_batch_on_drain()

@@ -12,6 +12,7 @@ from ...utils.url_manager import Module
 from ...modules.Settings.setting_keys import SettingDialogPlaceholders
 from ...constants.settings_keys import SettingsService
 from ..messagesHelper import ModernMessageDialog
+from ...Logs.python_fail_logger import PythonFailLogger
 
 UPDATE_project_properties = 'updateProjectsProperties.graphql'
 
@@ -180,5 +181,9 @@ class FolderHelpers:
                 subprocess.Popen(["start", "", target], shell=True)
             else:
                 subprocess.Popen(["explorer", target], shell=True)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="open_item_folder_failed",
+            )

@@ -18,15 +18,17 @@ class SearchResultsWidget(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         # Use QDialog with translucent background for better popup control
+        # Use ToolTip type to avoid stealing focus, but still float above
         self.setWindowFlags(
-                Qt.Popup
-                | Qt.FramelessWindowHint
-                | Qt.NoDropShadowWindowHint
-                )
+            Qt.ToolTip
+            | Qt.FramelessWindowHint
+            | Qt.NoDropShadowWindowHint
+            )
         self.setAttribute(Qt.WA_TranslucentBackground)  # Enable translucent background
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)  # Keep focus on search field
         self.setModal(False)  # Non-modal dialog
         self.setObjectName("searchResultsWidget")
+        self.setFocusPolicy(Qt.NoFocus)  # Never accept focus
         # Track expanded state for each module type
 
         self.expanded_modules = set()
@@ -50,7 +52,7 @@ class SearchResultsWidget(QDialog):
         self.close_button.setProperty("variant", ButtonVariant.ICON)
         self.close_button.setProperty("iconRole", "close")
         self.close_button.setFixedSize(24, 24)
-        self.close_button.setToolTip("Close search results")
+        self.close_button.setToolTip(LanguageManager().translate(TranslationKeys.SEARCH_RESULTS_WIDGET_CLOSE_TOOLTIP))
         self.close_button.clicked.connect(self.hide_results)
         header_layout.addWidget(self.close_button)
 
@@ -62,6 +64,8 @@ class SearchResultsWidget(QDialog):
         self.resultsList.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.resultsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resultsList.setFocusPolicy(Qt.NoFocus)
+        self.resultsList.setMouseTracking(True)
+        self.resultsList.setSelectionMode(QListWidget.SingleSelection)
         styleExtras.apply_chip_shadow(
             element=self.resultsList,
             blur_radius=16,
@@ -136,7 +140,7 @@ class SearchResultsWidget(QDialog):
 
             # Add module header
             header_item = QListWidgetItem()
-            header_text = f"{LanguageManager().translate(module_type.capitalize())} ({total_hits})"
+            header_text = f"{LanguageManager().translate_module_name(module_type)} ({total_hits})"
             header_item.setText(header_text)
             header_item.setData(Qt.UserRole, {"type": "header", "module": module_type})
 
@@ -268,28 +272,37 @@ class SearchResultsWidget(QDialog):
             super().keyPressEvent(event)
 
     def eventFilter(self, obj, event):
-        """Filter events to detect clicks outside the dialog."""
+        """Filter events to detect clicks outside the dialog, but never take focus."""
         if not self._event_filter_installed:
             return False
 
         if event.type() == QEvent.MouseButtonPress and self.isVisible():
-            # Check if click is outside this widget
+            # Only hide if click is outside this widget
             if not self.geometry().contains(event.globalPos()):
-                # Check if click is on a child widget of this dialog
                 widget_at_pos = QApplication.widgetAt(event.globalPos())
                 if widget_at_pos is None or not self.isAncestorOf(widget_at_pos):
-                    # log_debug(f"[DEBUG] Click outside SearchResultsWidget detected, hiding")
+                    print("[DEBUG] Click outside SearchResultsWidget detected, hiding popup")
                     self.hide_results()
                     return True
+        # Never take focus, never respond to keyboard events
+        if event.type() in (QEvent.FocusIn, QEvent.FocusOut, QEvent.KeyPress, QEvent.KeyRelease):
+            return False
         return False
 
     def _on_application_focus_changed(self, old, new):
-        """Handle application focus changes to close dialog when switching away from QGIS."""
+        """Handle application focus changes to close dialog when switching away from QGIS, with debug logging."""
         if not self._focus_connection_made:
             return
 
         if self.isVisible() and new is None:
-            # Focus moved outside QGIS application
+            print("[DEBUG] Focus moved outside QGIS application, hiding popup")
+            self.hide_results()
+        elif self.isVisible() and new is not None:
+            # If focus moves to the search field, do not hide
+            if hasattr(self.parent(), 'searchEdit') and new == self.parent().searchEdit:
+                print("[DEBUG] Focus moved to search field, keeping popup open")
+                return
+            print(f"[DEBUG] Focus changed to {new}, hiding popup")
             self.hide_results()
 
     def _on_item_clicked(self, item):

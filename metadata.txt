@@ -1,5 +1,5 @@
 [general]
-name=Wild Code
+name=Kavitro
 description=An experimental QGIS plugin
 version=0.1
 qgisMinimumVersion=3.0

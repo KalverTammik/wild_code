@@ -14,9 +14,10 @@ class SettingsModuleFeatureCard:
 	def build_filter_group(
 		*,
 		parent: QWidget,
-		title_key: str,
+		title_text: str,
+		lang_manager: Optional[LanguageManager] = None,
 		widget_factory: Callable[[QWidget], WidgetT],
-		description_key: Optional[str] = None,
+		description_text: Optional[str] = None,
 		group_object_name: Optional[str] = None,
 		container_object_name: Optional[str] = None,
 		explanation_object_name: str = "GroupExplanation",
@@ -26,9 +27,7 @@ class SettingsModuleFeatureCard:
 	) -> Tuple[QGroupBox, WidgetT]:
 		"""Construct a standardized filter block containing a widget and optional blurb."""
 
-		translator = LanguageManager()
-		title = translator.translate(title_key)
-		group = QGroupBox(title, parent)
+		group = QGroupBox(title_text, parent)
 		if group_object_name:
 			group.setObjectName(group_object_name)
 
@@ -48,9 +47,8 @@ class SettingsModuleFeatureCard:
 		container_layout.addWidget(widget)
 		layout.addWidget(container, 2)
 
-		if description_key:
-			description = translator.translate(description_key)
-			label = QLabel(description, group)
+		if description_text:
+			label = QLabel(description_text, group)
 			label.setObjectName(explanation_object_name)
 			label.setWordWrap(True)
 			label.setStyleSheet("color: #888; font-size: 11px; padding: 4px 0px;")

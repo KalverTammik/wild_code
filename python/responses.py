@@ -1,5 +1,219 @@
+from dataclasses import dataclass
 import requests
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
+
+Json = Mapping[str, Any]
+
+
+class GqlKeys:
+    # connection pattern
+    EDGES = "edges"
+    NODE = "node"
+    TOTAL_COUNT = "totalCount"
+    PAGE_INFO = "pageInfo"
+
+    # common display fields
+    DISPLAY_NAME = "displayName"
+    NAME = "name"
+    COLOR = "color"
+    ACTIVE = "active"
+
+    # domain roots
+    TAGS = "tags"
+    STATUS = "status"
+    MEMBERS = "members"
+    CONTACTS = "contacts"
+    PROPERTIES = "properties"
+    FILES_PATH = "filesPath"
+    ID = "id"
+    NUMBER = "number"
+    PROJECT_NUMBER = "projectNumber"
+    JOB_NAME = "jobName"
+    CLIENT = "client"
+    IS_PUBLIC = "isPublic"
+
+    # members edge fields
+    IS_RESPONSIBLE = "isResponsible"
+
+    # dates
+    START_AT = "startAt"
+    DUE_AT = "dueAt"
+    CREATED_AT = "createdAt"
+    UPDATED_AT = "updatedAt"
+
+
+@dataclass(frozen=True)
+class StatusInfo:
+    name: str = "-"
+    color: str = "cccccc"
+
+
+@dataclass(frozen=True)
+class DatesInfo:
+    start_at: Optional[str] = None
+    due_at: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class DataDisplayExtractors:
+    """
+    Pure helpers reading GraphQL-ish dicts and returning safe defaults.
+    No Qt imports. No side effects.
+    """
+
+    @staticmethod
+    def _as_dict(value: Any) -> Dict[str, Any]:
+        return value if isinstance(value, dict) else {}
+
+    @staticmethod
+    def _edges_from(item_data: Optional[Json], key: str) -> List[Dict[str, Any]]:
+        if not isinstance(item_data, Mapping):
+            return []
+        conn = item_data.get(key)
+        conn_dict = DataDisplayExtractors._as_dict(conn)
+        edges = conn_dict.get(GqlKeys.EDGES, [])
+        return list(edges) if isinstance(edges, list) else []
+
+    @staticmethod
+    def extract_tag_names(item_data: Optional[Json]) -> List[str]:
+        names: List[str] = []
+        for edge in DataDisplayExtractors._edges_from(item_data, GqlKeys.TAGS):
+            node = DataDisplayExtractors._as_dict(edge).get(GqlKeys.NODE) or {}
+            name = DataDisplayExtractors._as_dict(node).get(GqlKeys.NAME)
+            if isinstance(name, str):
+                trimmed = name.strip()
+                if trimmed:
+                    names.append(trimmed)
+        return names
+
+    @staticmethod
+    def extract_contact_names(item_data: Optional[Json]) -> List[str]:
+        names: List[str] = []
+        for edge in DataDisplayExtractors._edges_from(item_data, GqlKeys.CONTACTS):
+            node = DataDisplayExtractors._as_dict(edge).get(GqlKeys.NODE) or {}
+            name = DataDisplayExtractors._as_dict(node).get(GqlKeys.DISPLAY_NAME)
+            if isinstance(name, str):
+                trimmed = name.strip()
+                if trimmed:
+                    names.append(trimmed)
+        return names
+
+    @staticmethod
+    def extract_status(item_data: Optional[Json]) -> StatusInfo:
+        if not isinstance(item_data, Mapping):
+            return StatusInfo()
+        status = DataDisplayExtractors._as_dict(item_data.get(GqlKeys.STATUS))
+        name = status.get(GqlKeys.NAME) or "-"
+        color = status.get(GqlKeys.COLOR) or "cccccc"
+        return StatusInfo(str(name), str(color))
+
+    @staticmethod
+    def extract_members(item_data: Optional[Json]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        responsible_nodes: List[Dict[str, Any]] = []
+        participant_nodes: List[Dict[str, Any]] = []
+
+        for edge in DataDisplayExtractors._edges_from(item_data, GqlKeys.MEMBERS):
+            edge_dict = DataDisplayExtractors._as_dict(edge)
+            node = DataDisplayExtractors._as_dict(edge_dict.get(GqlKeys.NODE))
+            if not node:
+                continue
+            active = node.get(GqlKeys.ACTIVE, True)
+            if active is False:
+                continue
+            if edge_dict.get(GqlKeys.IS_RESPONSIBLE):
+                responsible_nodes.append(node)
+            else:
+                participant_nodes.append(node)
+        return responsible_nodes, participant_nodes
+
+    @staticmethod
+    def extract_dates(item_data: Optional[Json]) -> DatesInfo:
+        if not isinstance(item_data, Mapping):
+            return DatesInfo()
+        return DatesInfo(
+            start_at=item_data.get(GqlKeys.START_AT),
+            due_at=item_data.get(GqlKeys.DUE_AT),
+            created_at=item_data.get(GqlKeys.CREATED_AT),
+            updated_at=item_data.get(GqlKeys.UPDATED_AT),
+        )
+
+    @staticmethod
+    def extract_files_path(item_data: Optional[Json]) -> str:
+        if not isinstance(item_data, Mapping):
+            return ""
+        value = item_data.get(GqlKeys.FILES_PATH, "")
+        return str(value) if value else ""
+
+    @staticmethod
+    def extract_properties_connection_count(item_data: Optional[Json]) -> int:
+        if not isinstance(item_data, Mapping):
+            return 0
+        properties = DataDisplayExtractors._as_dict(item_data.get(GqlKeys.PROPERTIES))
+        page_info = DataDisplayExtractors._as_dict(properties.get(GqlKeys.PAGE_INFO))
+        for key in ("count", "total", GqlKeys.TOTAL_COUNT):
+            value = page_info.get(key)
+            if isinstance(value, (int, float)):
+                return int(value)
+            if isinstance(value, str):
+                try:
+                    return int(value)
+                except ValueError:
+                    pass
+        edges = properties.get(GqlKeys.EDGES, [])
+        if isinstance(edges, list) and edges:
+            return len(edges)
+        return 0
+
+    @staticmethod
+    def extract_item_id(item_data: Optional[Json]) -> Optional[str]:
+        if not isinstance(item_data, Mapping):
+            return None
+        value = item_data.get(GqlKeys.ID)
+        return str(value) if value else None
+
+    @staticmethod
+    def extract_item_number(item_data: Optional[Json]) -> Optional[str]:
+        if not isinstance(item_data, Mapping):
+            return None
+        value = item_data.get(GqlKeys.NUMBER)
+        return str(value) if value else None
+
+    @staticmethod
+    def extract_project_number(item_data: Optional[Json]) -> Optional[str]:
+        if not isinstance(item_data, Mapping):
+            return None
+        value = item_data.get(GqlKeys.PROJECT_NUMBER)
+        return str(value) if value else None
+
+    @staticmethod
+    def extract_item_name(item_data: Optional[Json]) -> Optional[str]:
+        if not isinstance(item_data, Mapping):
+            return None
+        value = item_data.get(GqlKeys.NAME) or item_data.get(GqlKeys.JOB_NAME)
+        return str(value) if value else None
+
+    @staticmethod
+    def extract_client_display_name(item_data: Optional[Json]) -> Optional[str]:
+        if not isinstance(item_data, Mapping):
+            return None
+        client = DataDisplayExtractors._as_dict(item_data.get(GqlKeys.CLIENT))
+        value = client.get(GqlKeys.DISPLAY_NAME)
+        return str(value) if value else None
+
+    @staticmethod
+    def extract_is_public(item_data: Optional[Json]) -> bool:
+        if not isinstance(item_data, Mapping):
+            return False
+        return bool(item_data.get(GqlKeys.IS_PUBLIC))
+
+    @staticmethod
+    def extract_member_display_name(node: Any) -> str:
+        if isinstance(node, Mapping):
+            value = node.get(GqlKeys.DISPLAY_NAME)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+        return "-"
 
 class HandlePropertiesResponses:
     @staticmethod

@@ -4,6 +4,7 @@ from PyQt5.QtCore import QDate, QDateTime, QLocale
 
 
 import datetime
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class DateHelpers:
@@ -13,7 +14,12 @@ class DateHelpers:
             return None
         try:
             return datetime.datetime.fromisoformat(s.replace('Z', '+00:00'))
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="datehelpers_parse_iso_failed",
+            )
             return None
 
     @staticmethod
@@ -101,8 +107,12 @@ class DateHelpers:
             if dt is not None:
                 try:
                     return dt.date().strftime("%Y-%m-%d")
-                except Exception:
-                    pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="ui",
+                        event="datehelpers_iso_date_failed",
+                    )
 
             # Qt string representation
             m = re.search(r'QDate\((\d+),\s*(\d+),\s*(\d+)\)', s)
@@ -140,5 +150,10 @@ class DateHelpers:
             if isinstance(date_str, (datetime.date, datetime.datetime)):
                 return date_str.date() if isinstance(date_str, datetime.datetime) else date_str
             return datetime.date.fromisoformat(str(date_str))
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="datehelpers_parse_iso_date_failed",
+            )
             return None

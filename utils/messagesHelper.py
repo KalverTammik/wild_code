@@ -1,12 +1,18 @@
+
+# Standard PyQt5 imports
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QSpacerItem, QSizePolicy
 )
 from PyQt5.QtCore import Qt
+# Project-specific imports below violate utils/ dependency direction
 from ..constants.module_icons import IconNames
-from ..widgets.theme_manager import ThemeManager
+from ..widgets.theme_manager import ThemeManager  # TODO: Move to ui/ or refactor out of utils/
 from ..constants.file_paths import QssPaths
 from ..constants.button_props import ButtonVariant, ButtonSize
+from ..Logs.python_fail_logger import PythonFailLogger
+from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
 
 
 
@@ -83,8 +89,14 @@ class ModernMessageDialog:
         default: str | None = None,
         cancel: str | None = None,
         icon_name: str = IconNames.QUESTION,
+        button_variants: list[ButtonVariant | str | None] | None = None,
     ) -> str | None:
-        """Show a modal dialog with custom buttons and return the clicked label."""
+        """Show a modal dialog with custom buttons and return the clicked label.
+
+        Args:
+            buttons: Visible labels for buttons.
+            button_variants: Optional per-button variants (fallbacks: primary, cancel→ghost).
+        """
 
         dialog, result_box = ModernMessageDialog._create_choice_dialog(
             title,
@@ -93,6 +105,7 @@ class ModernMessageDialog:
             buttons=buttons,
             default=default,
             cancel=cancel,
+            button_variants=button_variants,
         )
         dialog.exec_()
         return result_box.get("choice")
@@ -133,7 +146,7 @@ class ModernMessageDialog:
         dialog = QDialog()
         dialog.setWindowTitle(title)
         dialog.setModal(True)
-        dialog.setFixedWidth(400)
+        dialog.setMinimumWidth(380)
         dialog.setObjectName("ModernMessageDialog")  # For QSS targeting
 
         # Determine message type for styling
@@ -207,14 +220,16 @@ class ModernMessageDialog:
         # Optional Cancel button
         cancel_button = None
         if with_cancel:
-            cancel_button = QPushButton("Cancel")
+            cancel_button = QPushButton(
+                LanguageManager().translate(TranslationKeys.CANCEL_BUTTON) or "Cancel"
+            )
             cancel_button.setProperty("variant", ButtonVariant.GHOST)
             cancel_button.setProperty("btnSize", ButtonSize.SMALL)
             cancel_button.clicked.connect(dialog.reject)
             button_layout.addWidget(cancel_button)
 
         # OK button
-        ok_button = QPushButton("OK")
+        ok_button = QPushButton(LanguageManager().translate(TranslationKeys.OK) or "OK")
         ok_button.setProperty("variant", ButtonVariant.PRIMARY)
         ok_button.clicked.connect(dialog.accept)
         ok_button.setDefault(True)
@@ -223,6 +238,8 @@ class ModernMessageDialog:
 
         layout.addLayout(button_layout)
 
+        dialog.setSizeGripEnabled(True)
+        dialog.adjustSize()
         return dialog
 
     @staticmethod
@@ -234,6 +251,7 @@ class ModernMessageDialog:
         buttons: list[str],
         default: str | None = None,
         cancel: str | None = None,
+        button_variants: list[ButtonVariant | str | None] | None = None,
     ) -> tuple[QDialog, dict]:
         """Create a custom dialog with multiple action buttons."""
 
@@ -256,8 +274,12 @@ class ModernMessageDialog:
                         w = it.widget() if it else None
                         if w is not None:
                             w.setParent(None)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="message_dialog_replace_buttons_failed",
+            )
 
         button_layout = QHBoxLayout()
         button_layout.addStretch()
@@ -273,14 +295,35 @@ class ModernMessageDialog:
         default_norm = (default or "").strip()
         cancel_norm = (cancel or "").strip()
 
-        for text in btn_texts:
+        for idx, text in enumerate(btn_texts):
             b = QPushButton(text)
             is_cancel = bool(cancel_norm and text == cancel_norm)
-            if is_cancel:
-                b.setProperty("variant", ButtonVariant.GHOST)
-                b.setProperty("btnSize", ButtonSize.SMALL)
+            # Allow callers to override button variant while keeping sensible defaults.
+            variant = None
+            if button_variants and idx < len(button_variants):
+                variant = button_variants[idx]
+
+            if variant:
+                b.setProperty("variant", str(variant))
             else:
-                b.setProperty("variant", ButtonVariant.PRIMARY)
+                if is_cancel:
+                    b.setProperty("variant", ButtonVariant.GHOST)
+                    b.setProperty("btnSize", ButtonSize.SMALL)
+                else:
+                    b.setProperty("variant", ButtonVariant.PRIMARY)
+
+            # Re-polish so variant takes effect even when stylesheet already applied.
+            try:
+                style = b.style()
+                style.unpolish(b)
+                style.polish(b)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="message_dialog_repolish_failed",
+                )
+
             b.clicked.connect(lambda _=False, t=text, c=is_cancel: _set_choice_and_close(t, not c))
             if default_norm and text == default_norm:
                 b.setDefault(True)
@@ -294,10 +337,33 @@ class ModernMessageDialog:
                 if w0 is not None:
                     w0.setDefault(True)
                     w0.setFocus()
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="message_dialog_default_focus_failed",
+                )
 
         layout.addLayout(button_layout)
+        # Ensure new buttons pick up theme rules even if styles were applied earlier.
+        try:
+            ThemeManager.apply_module_style(dialog, [QssPaths.BUTTONS])
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="message_dialog_apply_theme_failed",
+            )
+
+        # Widen if needed so button text is not cramped.
+        try:
+            min_w = max(dialog.minimumWidth(), layout.sizeHint().width() + 20)
+            dialog.setMinimumWidth(min_w)
+            dialog.resize(dialog.sizeHint())
+        except Exception:
+            dialog.adjustSize()
+        else:
+            dialog.adjustSize()
         return dialog, result_box
 
     @staticmethod
@@ -365,12 +431,12 @@ class ModernMessageDialog:
         btn_row = QHBoxLayout()
         btn_row.addStretch(1)
 
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton(LanguageManager().translate(TranslationKeys.CANCEL_BUTTON) or "Cancel")
         cancel_btn.setProperty("variant", ButtonVariant.GHOST)
         cancel_btn.setProperty("btnSize", ButtonSize.SMALL)
-        ok_btn = QPushButton("OK")
+        ok_btn = QPushButton(LanguageManager().translate(TranslationKeys.OK) or "OK")
         ok_btn.setProperty("variant", ButtonVariant.PRIMARY)
-        ok_btn.sertProperty("btnSize", ButtonSize.SMALL)
+        ok_btn.setProperty("btnSize", ButtonSize.SMALL)
         ok_btn.setDefault(True)
 
         def _ok():

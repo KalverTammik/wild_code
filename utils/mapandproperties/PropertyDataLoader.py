@@ -5,9 +5,12 @@ from ...utils.MapTools.MapHelpers import MapHelpers
 from ...constants.layer_constants import IMPORT_PROPERTY_TAG
 from ...constants.cadastral_fields import Katastriyksus, AreaUnit
 from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 from qgis.core import QgsFeatureRequest
-from PyQt5.QtCore import QDate, QDateTime, QCoreApplication
+from PyQt5.QtCore import QCoreApplication
 from ...widgets.DateHelpers import DateHelpers
+from .property_row_builder import PropertyRowBuilder
+from ...Logs.python_fail_logger import PythonFailLogger
 
 
 class PropertyDataLoader:
@@ -25,9 +28,9 @@ class PropertyDataLoader:
         idx = self.property_layer.fields().lookupField(field_name)
         if idx == -1:
             # kasuta keelemänedžeri tõlget, kui saadaval
-            msg = self.lang_manager.translate(
-                f"Field '{field_name}' not found on the property layer."
-            ) or f"Väli '{field_name}' puudub kinnistute kihil."
+            msg = self.lang_manager.translate(TranslationKeys.PROPERTY_LAYER_FIELD_NOT_FOUND).format(
+                field_name=field_name
+            )
             raise ValueError(msg)
         return idx
 
@@ -178,14 +181,7 @@ class PropertyDataLoader:
 
             properties = []
             for i, feat in enumerate(self.property_layer.getFeatures(req), start=1):
-                properties.append({
-                    'cadastral_id': feat.attribute(self.tunnus_field) or '',
-                    'address': feat.attribute(self.address_field) or '',
-                    'area': feat.attribute(self.area_field) or '',
-                    'settlement': feat.attribute(self.settlement_field) or '',
-                    # kui vajad hiljem geomeetriat, tee eraldi päring FID alusel
-                    'feature': feat
-                })
+                properties.append(PropertyRowBuilder.row_from_feature(feat, log_prefix="PropertyDataLoader"))
                 if i % 250 == 0:
                     QCoreApplication.processEvents()
             return properties
@@ -216,13 +212,7 @@ class PropertyDataLoader:
 
             properties = []
             for i, feat in enumerate(self.property_layer.getFeatures(req), start=1):
-                properties.append({
-                    'cadastral_id': feat.attribute(self.tunnus_field) or '',
-                    'address': feat.attribute(self.address_field) or '',
-                    'area': feat.attribute(self.area_field) or '',
-                    'settlement': feat.attribute(self.settlement_field) or '',
-                    'feature': feat
-                })
+                properties.append(PropertyRowBuilder.row_from_feature(feat, log_prefix="PropertyDataLoader"))
                 if i % 250 == 0:
                     QCoreApplication.processEvents()
             return properties
@@ -305,7 +295,12 @@ class propertyUsages:
         def _field_exists(fname: str) -> bool:
             try:
                 return feature.fields().lookupField(fname) != -1
-            except Exception:
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="data",
+                    event="property_field_lookup_failed",
+                )
                 return True
 
         def _to_int(val) -> int:
@@ -315,8 +310,12 @@ class propertyUsages:
             try:
                 if hasattr(val, "value"):
                     val = val.value()
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="data",
+                    event="property_value_unwrap_failed",
+                )
             if isinstance(val, bool):
                 return int(val)
             if isinstance(val, int):
@@ -328,10 +327,20 @@ class propertyUsages:
                 return 0
             try:
                 return int(s)
-            except Exception:
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="data",
+                    event="property_value_parse_int_failed",
+                )
                 try:
                     return int(float(s.replace(",", ".")))
-                except Exception:
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="data",
+                        event="property_value_parse_float_failed",
+                    )
                     return 0
 
         siht_field_1 = Katastriyksus.siht1

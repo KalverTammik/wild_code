@@ -35,10 +35,7 @@ class BackendActionPromptDialog(QDialog):
         self.setWindowTitle(title)
         self.setModal(True)
 
-        try:
-            ThemeManager.apply_module_style(self, [QssPaths.MAIN])
-        except Exception:
-            pass
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN])
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -54,7 +51,7 @@ class BackendActionPromptDialog(QDialog):
         btn_row = QHBoxLayout()
         btn_row.addStretch(1)
 
-        cancel_text = self.lang_manager.translate(TranslationKeys.CANCEL) or "Cancel"
+        cancel_text = self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON) or "Cancel"
         archive_text = self.lang_manager.translate(TranslationKeys.ARCHIVE) or "Archive"
         unarchive_text = self.lang_manager.translate(TranslationKeys.UNARCHIVE) or "Unarchive"
         delete_text = self.lang_manager.translate(TranslationKeys.DELETE) or "Delete"
@@ -80,11 +77,8 @@ class BackendActionPromptDialog(QDialog):
 
         layout.addLayout(btn_row)
 
-        try:
-            table.setSelectionMode(table.NoSelection)
-            table.setFocusPolicy(Qt.NoFocus)
-        except Exception:
-            pass
+        table.setSelectionMode(table.NoSelection)
+        table.setFocusPolicy(Qt.NoFocus)
 
     def _choose(self, action: str) -> None:
         self._action = action

@@ -3,6 +3,7 @@ from PyQt5.QtGui import QColor
 
 from .groups import AnimationGroupManager
 from .pulses import create_colorize_pulse
+from ...Logs.python_fail_logger import PythonFailLogger
 
 
 class AnimationController:
@@ -47,8 +48,12 @@ class AnimationController:
                 try:
                     if self._dbg is not None:
                         self._dbg.setStrength(0.0)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="ui",
+                        event="animation_dbg_strength_reset_failed",
+                    )
 
             # Frames red pulse
             if frames_on and self._frames is not None:
@@ -67,10 +72,18 @@ class AnimationController:
                 try:
                     if self._frames is not None:
                         self._frames.setStrength(0.0)
-                except Exception:
-                    pass
-        except Exception:
-            pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="ui",
+                        event="animation_frames_strength_reset_failed",
+                    )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="animation_apply_state_failed",
+            )
 
     def stop_all(self) -> None:
         try:
@@ -82,7 +95,15 @@ class AnimationController:
                     self._dbg.setStrength(0.0)
                 if self._frames is not None:
                     self._frames.setStrength(0.0)
-            except Exception:
-                pass
-        except Exception:
-            pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="animation_stop_strength_reset_failed",
+                )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="animation_stop_all_failed",
+            )

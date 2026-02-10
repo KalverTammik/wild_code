@@ -1,3 +1,4 @@
+
 import requests, platform, json, os
 from qgis.core import QgsSettings, Qgis
 from .FileLoaderHelper import GraphQLQueryLoader
@@ -6,8 +7,8 @@ from ...utils.messagesHelper import ModernMessageDialog
 from ...KeelelisedMuutujad.modules import Module
 from ...constants.file_paths import ConfigPaths
 
-def _load_graphql_endpoint():
-    """Load GraphQL endpoint from config file."""
+def get_graphql_endpoint():
+    """Lazily load GraphQL endpoint from config file."""
     try:
         with open(ConfigPaths.CONFIG, "r", encoding="utf-8") as f:
             config = json.load(f)
@@ -17,8 +18,6 @@ def _load_graphql_endpoint():
         return api_url
     except Exception:
         return "https://api.example.com/graphql"  # fallback
-
-GRAPHQL_ENDPOINT = _load_graphql_endpoint()
 
 
 

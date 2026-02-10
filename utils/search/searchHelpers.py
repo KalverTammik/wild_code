@@ -41,3 +41,9 @@ class SearchHeplpers:
             "This module cannot be opened from search yet.",
         )
 
+
+class SearchUIController:
+    @staticmethod
+    def handle_search_result(dialog, module: str, item_id: str, title: str) -> None:
+        SearchHeplpers._on_search_result_clicked(dialog, module, item_id, title)
+

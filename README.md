@@ -1,7 +1,7 @@
-# Wild Code Plugin
+# Kavitro Plugin
 
 ## Overview
-The Wild Code Plugin is an experimental QGIS plugin designed to explore and expand ideas without relying on automated tools like QGIS Plugin Builder or Qt Designer. This plugin will be built from scratch, focusing on creativity and flexibility.
+The Kavitro Plugin is an experimental QGIS plugin designed to explore and expand ideas without relying on automated tools like QGIS Plugin Builder or Qt Designer. This plugin will be built from scratch, focusing on creativity and flexibility.
 
 ## Goals
 - **Learn by Doing**: Understand the QGIS plugin development process by coding everything manually.

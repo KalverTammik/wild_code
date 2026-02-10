@@ -56,7 +56,6 @@ class DedupeMixin:
         self._dedupe_session_token = object()
 
     def _on_duplicate_skipped(self) -> None:
-        try:
-            self._update_feed_counter_live()  # type: ignore[attr-defined]
-        except AttributeError:
-            pass
+        updater = getattr(self, "_update_feed_counter_live", None)
+        if callable(updater):
+            updater()

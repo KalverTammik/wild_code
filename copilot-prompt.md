@@ -319,7 +319,7 @@ Components
 - `modules/Settings/SettingsLogic.py` (persistence, data mapping)
   - Loads user data through `GraphQLQueryLoader` and `APIClient`.
   - Parses roles and maps abilities to module access with `get_module_access_from_abilities()`.
-  - Preferred module persistence via `QgsSettings` key `wild_code/preferred_module`.
+  - Preferred module persistence via `QgsSettings` key `kavitro/preferred_module`.
   - Tracks original vs pending preferred and provides `apply_pending_changes()` / `revert_pending_changes()`.
   - Uses global `MODULES_LIST_BY_NAME` for module access filtering instead of local available modules list.
 
@@ -349,7 +349,7 @@ Flow
 5. Leaving Settings or closing dialog prompts to save/discard when `has_unsaved_changes()` is true.
 
 Notes
-- Preferred key: `wild_code/preferred_module` (string module name). Removing the key means Welcome page on startup.
+- Preferred key: `kavitro/preferred_module` (string module name). Removing the key means Welcome page on startup.
 - Access mapping is extendable; ensure subjects map to module constants and are filtered by global `MODULES_LIST_BY_NAME`.
 - Module cards are built dynamically using `MODULES_LIST_BY_NAME`, excluding the HOME module.
 - When programmatically updating preferred, block signals on the checkboxes to avoid spurious dirty state.
@@ -358,24 +358,24 @@ Notes
 
 ## 14. Centralized Settings Management
 
-All settings in the wild_code plugin follow a hierarchical, centralized architecture with consistent key naming and management patterns.
+All settings in the Kavitro plugin follow a hierarchical, centralized architecture with consistent key naming and management patterns.
 
 ### Settings Categories & Managers
 
 1. **Theme Settings** → `ThemeManager`
-  - Key: `"wild_code/theme"`
+  - Key: `"kavitro/theme"`
   - Methods: `save_theme_setting()`, `load_theme_setting()`
 
 2. **Preferred Module Settings** → `SettingsLogic`
-  - Key: `"wild_code/preferred_module"`
+  - Key: `"kavitro/preferred_module"`
   - Methods: `load_original_settings()`, `set_user_preferred_module()`, `apply_pending_changes()`
 
 3. **Module-Specific Settings** → `SettingsLogic` + `SettingsService`
-  - Key Pattern: `"wild_code/modules/{module_name}/{setting_key}"`
+  - Key Pattern: `"kavitro/modules/{module_name}/{setting_key}"`
   - Methods: `get_module_layer_ids()`, `set_module_layer_id()`, `load_module_preference_ids()`, `save_module_preference_ids()`, `clear_module_preference_ids()`
 
 4. **Utility Settings** → `SettingsManager`
-  - Key Pattern: `"wild_code/{utility_specific_key}"`
+  - Key Pattern: `"kavitro/{utility_specific_key}"`
   - Methods: `save_setting()`, `load_setting()`, `remove_setting()`
 
 `SettingsService` in `constants/settings_keys.py` is the low-level helper backing `SettingsLogic`. Access it directly only when you are adding a brand-new helper; otherwise call through the logic layer so change tracking stays consistent.
@@ -385,7 +385,7 @@ All settings in the wild_code plugin follow a hierarchical, centralized architec
 All settings keys are centralized in `constants/settings_keys.py`:
 - **Direct constants**: `THEME`, `PREFERRED_MODULE`, `MAIN_PROPERTY_LAYER_ID`
 - **Utility class**: `UtilitySettings` with methods for dynamic keys
-- **Consistent prefix**: All keys start with `"wild_code/"`
+- **Consistent prefix**: All keys start with `"kavitro/"`
 
 ### SettingsManager API
 
@@ -395,9 +395,9 @@ The `SettingsManager` provides centralized access to utility settings:
 from ..utils.SettingsManager import SettingsManager
 
 # Generic settings methods
-SettingsManager.save_setting("wild_code/custom_key", value)
-value = SettingsManager.load_setting("wild_code/custom_key", default)
-SettingsManager.remove_setting("wild_code/custom_key")
+SettingsManager.save_setting("kavitro/custom_key", value)
+value = SettingsManager.load_setting("kavitro/custom_key", default)
+SettingsManager.remove_setting("kavitro/custom_key")
 
 # Utility-specific convenience methods
 SettingsManager.save_shp_file_path(target_group, file_path)
@@ -406,7 +406,7 @@ SettingsManager.save_shp_layer_mapping(layer_name, file_path)
 
 ### Rules for Settings Management
 
-1. **Always use "wild_code/" prefix** for all settings keys
+1. **Always use "kavitro/" prefix** for all settings keys
 2. **Use the matching manager** based on category:
   - Theme → `ThemeManager`
   - Preferred module + module-specific values → `SettingsLogic` (which delegates to `SettingsService`)
@@ -432,7 +432,7 @@ SettingsManager.save_shp_file_path("NEW_PROPERTIES", "/path/to/file.shp")
 
 # ❌ WRONG - Direct QSettings usage
 settings = QSettings()
-settings.setValue("wild_code/some_key", value)
+settings.setValue("kavitro/some_key", value)
 ```
 
 This architecture ensures consistent settings management, easier testing, and maintainable code across the entire plugin.

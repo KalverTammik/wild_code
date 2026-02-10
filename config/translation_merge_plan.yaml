@@ -1,0 +1,3789 @@
+- canonical_id: translationkeys.folder_naming_rule_dialog_title
+  chosen_en: Folder Naming Rule
+  chosen_et: Kausta nimetamise reegel
+  cluster_id: folder naming rule
+  members:
+  - TranslationKeys.FOLDER_NAMING_RULE_DIALOG_TITLE
+  - FolderNamingTranslationKeys.TR_FOLDER_NAMING_RULE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.settings_base_card_text
+  chosen_en: Settings
+  chosen_et: Seaded
+  cluster_id: settings
+  members:
+  - TranslationKeys.SETTINGS_BASE_CARD_TEXT
+  - DialogLabels.SETTINGS_TITLE
+  - '''settings'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.settings_utils_dash
+  chosen_en: —
+  chosen_et: —
+  cluster_id: —
+  members:
+  - TranslationKeys.SETTINGS_UTILS_DASH
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_dialog_title
+  chosen_en: Field Mapper
+  chosen_et: Väljade kaardistaja
+  cluster_id: field mapper
+  members:
+  - TranslationKeys.SIGNALTEST_DIALOG_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.add_update_property_dialog_cancelling
+  chosen_en: Cancelling...
+  chosen_et: Katkestamine...
+  cluster_id: cancelling…
+  members:
+  - TranslationKeys.ADD_UPDATE_PROPERTY_DIALOG_CANCELLING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.header_widget_abi
+  chosen_en: Abi
+  chosen_et: Abi
+  cluster_id: abi
+  members:
+  - TranslationKeys.HEADER_WIDGET_ABI
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.overdue_due_soon_pills_ellipsis
+  chosen_en: …
+  chosen_et: …
+  cluster_id: …
+  members:
+  - TranslationKeys.OVERDUE_DUE_SOON_PILLS_ELLIPSIS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.progress_dialog_modern_percent
+  chosen_en: 0%
+  chosen_et: 0%
+  cluster_id: 0%
+  members:
+  - TranslationKeys.PROGRESS_DIALOG_MODERN_PERCENT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.search_results_widget_close_tooltip
+  chosen_en: Close search results
+  chosen_et: Sulge otsingutulemused
+  cluster_id: close search results
+  members:
+  - TranslationKeys.SEARCH_RESULTS_WIDGET_CLOSE_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.sidebar_left_arrow
+  chosen_en: «
+  chosen_et: «
+  cluster_id: «
+  members:
+  - TranslationKeys.SIDEBAR_LEFT_ARROW
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.sidebar_right_arrow
+  chosen_en: »
+  chosen_et: »
+  cluster_id: »
+  members:
+  - TranslationKeys.SIDEBAR_RIGHT_ARROW
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_extrainfo_tooltip
+  chosen_en: Open detailed overview
+  chosen_et: Ava detailne ülevaade
+  cluster_id: open detailed overview
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_EXTRAINFO_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_infocardheader_tooltip
+  chosen_en: Private
+  chosen_et: Privaatne
+  cluster_id: private
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_dates_empty
+  chosen_en: No dates available
+  chosen_et: Kuupäevad puuduvad
+  cluster_id: no dates available
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_detail_title_suffix
+  chosen_en: Detailed overview
+  chosen_et: Detailne ülevaade
+  cluster_id: detailed overview
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_DETAIL_TITLE_SUFFIX
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_close
+  chosen_en: Close
+  chosen_et: Sulge
+  cluster_id: close
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_CLOSE
+  - TranslationKeys.CLOSE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_overview_title
+  chosen_en: Activity overview
+  chosen_et: Tegevuste ülevaade
+  cluster_id: activity overview
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_OVERVIEW_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_project_overview_title
+  chosen_en: Project activity overview
+  chosen_et: Projekti tegevuste ülevaade
+  cluster_id: project activity overview
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_contract_overview_title
+  chosen_en: Contract activity overview
+  chosen_et: Lepingu tegevuste ülevaade
+  cluster_id: contract activity overview
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_OVERVIEW_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_column_done
+  chosen_en: Done
+  chosen_et: Tehtud
+  cluster_id: done
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_column_in_progress
+  chosen_en: In progress
+  chosen_et: Töös
+  cluster_id: in progress
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_IN_PROGRESS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_column_todo
+  chosen_en: To do
+  chosen_et: Tegemata
+  cluster_id: to do
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_TODO
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_column_signed
+  chosen_en: Signed
+  chosen_et: Allkirjastatud
+  cluster_id: signed
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_SIGNED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_column_processing
+  chosen_en: Processing
+  chosen_et: Töötlemisel
+  cluster_id: processing
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_PROCESSING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_column_pending
+  chosen_en: Pending
+  chosen_et: Ootel
+  cluster_id: pending
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_PENDING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_planning
+  chosen_en: Planning
+  chosen_et: Planeerimine
+  cluster_id: planning
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PLANNING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_compilation
+  chosen_en: Compilation
+  chosen_et: Koostamine
+  cluster_id: compilation
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPILATION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_review
+  chosen_en: Review
+  chosen_et: Ülevaatamine
+  cluster_id: review
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REVIEW
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_approval
+  chosen_en: Approval
+  chosen_et: Kinnitamine
+  cluster_id: approval
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_APPROVAL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_testing
+  chosen_en: Testing
+  chosen_et: Testimine
+  cluster_id: testing
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_TESTING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_documenting
+  chosen_en: Documentation
+  chosen_et: Dokumenteerimine
+  cluster_id: documentation
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_DOCUMENTING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_optimizing
+  chosen_en: Optimization
+  chosen_et: Optimeerimine
+  cluster_id: optimization
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_OPTIMIZING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_publishing
+  chosen_en: Publishing
+  chosen_et: Avaldamine
+  cluster_id: publishing
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PUBLISHING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_monitoring
+  chosen_en: Monitoring
+  chosen_et: Jälgimine
+  cluster_id: monitoring
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_MONITORING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_archiving
+  chosen_en: Archiving
+  chosen_et: Arhiveerimine
+  cluster_id: archiving
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_ARCHIVING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_reporting
+  chosen_en: Reporting
+  chosen_et: Raporteerimine
+  cluster_id: reporting
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REPORTING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_contract_drafting
+  chosen_en: Contract drafting
+  chosen_et: Lepingu koostamine
+  cluster_id: contract drafting
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_CONTRACT_DRAFTING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_party_consent
+  chosen_en: Party consent
+  chosen_et: Osapoolte nõusolek
+  cluster_id: party consent
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PARTY_CONSENT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_notarial_confirm
+  chosen_en: Notarial confirmation
+  chosen_et: Notariaalne kinnitamine
+  cluster_id: notarial confirmation
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_NOTARIAL_CONFIRM
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_legal_review
+  chosen_en: Legal review
+  chosen_et: Juriidiline ülevaatus
+  cluster_id: legal review
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_LEGAL_REVIEW
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_financial_check
+  chosen_en: Financial check
+  chosen_et: Finantskontroll
+  cluster_id: financial check
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_FINANCIAL_CHECK
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_signatures
+  chosen_en: Signatures
+  chosen_et: Osapoolte allkirjad
+  cluster_id: signatures
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_SIGNATURES
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_activity_completion_check
+  chosen_en: Completion check
+  chosen_et: Täitmise kontroll
+  cluster_id: completion check
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPLETION_CHECK
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_project_detail_content
+  chosen_en: "\n        <h3>Project Detailed Overview</h3>\n        <p>Lorem ipsum\
+    \ dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt\
+    \ ut labore et dolore magna aliqua.</p>\n\n        <h4>Project Phases</h4>\n \
+    \       <ul>\n        <li><b>Planning:</b> Defining the project goals and scope</li>\n\
+    \        <li><b>Compilation:</b> Building project components</li>\n        <li><b>Testing:</b>\
+    \ Verifying functionality</li>\n        <li><b>Publishing:</b> Final release of\
+    \ the project</li>\n        </ul>\n\n        <h4>Project Statistics</h4>\n   \
+    \     <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum\
+    \ dolore eu fugiat nulla pariatur.</p>\n        "
+  chosen_et: "\n        <h3>Projekti Detailne Ülevaade</h3>\n        <p>Lorem ipsum\
+    \ dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt\
+    \ ut labore et dolore magna aliqua.</p>\n\n        <h4>Projekti Faasid</h4>\n\
+    \        <ul>\n        <li><b>Planeerimine:</b> Projekti eesmärkide ja ulatuse\
+    \ määramine</li>\n        <li><b>Koostamine:</b> Projekti komponentide arendamine</li>\n\
+    \        <li><b>Testimine:</b> Funktsionaalsuse kontrollimine</li>\n        <li><b>Avaldamine:</b>\
+    \ Projekti lõplik väljastamine</li>\n        </ul>\n\n        <h4>Projekti Statistika</h4>\n\
+    \        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum\
+    \ dolore eu fugiat nulla pariatur.</p>\n        "
+  cluster_id: <h3>project detailed overview</h3> <p>lorem ipsum dolor sit amet, consectetur
+    adipiscing elit. sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    <h4>project phases</h4> <ul> <li><b>planning:</b> defining the project goals and
+    scope</li> <li><b>compilation:</b> building project components</li> <li><b>testing:</b>
+    verifying functionality</li> <li><b>publishing:</b> final release of the project</li>
+    </ul> <h4>project statistics</h4> <p>duis aute irure dolor in reprehenderit in
+    voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_DETAIL_CONTENT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_contract_detail_content
+  chosen_en: "\n        <h3>Contract Detailed Overview</h3>\n        <p>Contract management\
+    \ and legal documentation overview.</p>\n\n        <h4>Contract Phases</h4>\n\
+    \        <ul>\n        <li><b>Signed:</b> Legal binding agreements</li>\n    \
+    \    <li><b>Processing:</b> Under legal and financial review</li>\n        <li><b>Pending:</b>\
+    \ Awaiting signatures or completion</li>\n        </ul>\n        "
+  chosen_et: "\n        <h3>Lepingu Detailne Ülevaade</h3>\n        <p>Contract management\
+    \ and legal documentation overview.</p>\n\n        <h4>Lepingu Faasid</h4>\n \
+    \       <ul>\n        <li><b>Allkirjastatud:</b> Legal binding agreements</li>\n\
+    \        <li><b>Töötlemisel:</b> Under legal and financial review</li>\n     \
+    \   <li><b>Ootel:</b> Awaiting signatures or completion</li>\n        </ul>\n\
+    \        "
+  cluster_id: <h3>contract detailed overview</h3> <p>contract management and legal
+    documentation overview.</p> <h4>contract phases</h4> <ul> <li><b>signed:</b> legal
+    binding agreements</li> <li><b>processing:</b> under legal and financial review</li>
+    <li><b>pending:</b> awaiting signatures or completion</li> </ul>
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_DETAIL_CONTENT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.header_help_button_tooltip
+  chosen_en: Help
+  chosen_et: Abi
+  cluster_id: help
+  members:
+  - TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.no_projects_found
+  chosen_en: No projects found
+  chosen_et: Projekte ei leitud
+  cluster_id: no projects found
+  members:
+  - TranslationKeys.NO_PROJECTS_FOUND
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.no_contracts_found
+  chosen_en: No contracts found
+  chosen_et: Lepinguid ei leitud
+  cluster_id: no contracts found
+  members:
+  - TranslationKeys.NO_CONTRACTS_FOUND
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.no_coordinations_found
+  chosen_en: No coordinations found
+  chosen_et: Kooskõlastusi ei leitud
+  cluster_id: no coordinations found
+  members:
+  - TranslationKeys.NO_COORDINATIONS_FOUND
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.no_values_found
+  chosen_en: No values found!
+  chosen_et: Väärtusi ei leitud!
+  cluster_id: no values found
+  members:
+  - TranslationKeys.NO_VALUES_FOUND
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.loading
+  chosen_en: Loading
+  chosen_et: Laadimine
+  cluster_id: loading
+  members:
+  - TranslationKeys.LOADING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.clear_value
+  chosen_en: Clear value
+  chosen_et: Tühjenda väärtus
+  cluster_id: clear value
+  members:
+  - TranslationKeys.CLEAR_VALUE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_id_placeholder
+  chosen_en: Property ID
+  chosen_et: Kinnistu ID
+  cluster_id: property id
+  members:
+  - TranslationKeys.PROPERTY_ID_PLACEHOLDER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.missing_property_id_title
+  chosen_en: Missing ID
+  chosen_et: ID puudub
+  cluster_id: missing id
+  members:
+  - TranslationKeys.MISSING_PROPERTY_ID_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.missing_property_id_body
+  chosen_en: Please enter a property id.
+  chosen_et: Palun sisesta kinnistu ID.
+  cluster_id: please enter a property id
+  members:
+  - TranslationKeys.MISSING_PROPERTY_ID_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_layer_field_not_found
+  chosen_en: Field '{field_name}' not found on the property layer.
+  chosen_et: Väli '{field_name}' puudub kinnistute kihil.
+  cluster_id: field '{field_name}' not found on the property layer
+  members:
+  - TranslationKeys.PROPERTY_LAYER_FIELD_NOT_FOUND
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.add_update_progress_prefix
+  chosen_en: Adding properties
+  chosen_et: Kinnistute lisamine
+  cluster_id: adding properties
+  members:
+  - TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.add_update_progress_prefix_no_checks
+  chosen_en: Adding (no checks)
+  chosen_et: Lisamine (ilma kontrollideta)
+  cluster_id: adding (no checks)
+  members:
+  - TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX_NO_CHECKS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.add_update_progress_finished
+  chosen_en: Finished
+  chosen_et: Lõpetatud
+  cluster_id: finished
+  members:
+  - TranslationKeys.ADD_UPDATE_PROGRESS_FINISHED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.add_update_progress_finished_no_checks
+  chosen_en: Finished (no checks)
+  chosen_et: Lõpetatud (ilma kontrollideta)
+  cluster_id: finished (no checks)
+  members:
+  - TranslationKeys.ADD_UPDATE_PROGRESS_FINISHED_NO_CHECKS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.add_update_progress_template
+  chosen_en: '{prefix} {done}/{total}'
+  chosen_et: '{prefix} {done}/{total}'
+  cluster_id: '{prefix} {done}/{total}'
+  members:
+  - TranslationKeys.ADD_UPDATE_PROGRESS_TEMPLATE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.add_update_progress_cancelled_template
+  chosen_en: '{prefix} - cancelled at {done}/{total}'
+  chosen_et: '{prefix} - katkestati {done}/{total} juures'
+  cluster_id: '{prefix} - cancelled at {done}/{total}'
+  members:
+  - TranslationKeys.ADD_UPDATE_PROGRESS_CANCELLED_TEMPLATE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.delay_helpers_loadingspinner_title
+  chosen_en: GradientSpinner + dots demo
+  chosen_et: GradientSpinner + täpid demo
+  cluster_id: gradientspinner + dots demo
+  members:
+  - TranslationKeys.DELAY_HELPERS_LOADINGSPINNER_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.projects_module_loaded
+  chosen_en: Projects module loaded!
+  chosen_et: Projektide moodul laaditud!
+  cluster_id: projects module loaded
+  members:
+  - TranslationKeys.PROJECTS_MODULE_LOADED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.api_endpoint_not_configured
+  chosen_en: API endpoint not configured.
+  chosen_et: API lõpp-punkti pole seadistatud.
+  cluster_id: api endpoint not configured
+  members:
+  - TranslationKeys.API_ENDPOINT_NOT_CONFIGURED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.config_error
+  chosen_en: 'Configuration error: {error}'
+  chosen_et: 'Seadistuse viga: {error}'
+  cluster_id: 'configuration error: {error}'
+  members:
+  - TranslationKeys.CONFIG_ERROR
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.login_failed
+  chosen_en: 'Login failed: {error}'
+  chosen_et: 'Sisselogimine ebaõnnestus: {error}'
+  cluster_id: 'login failed: {error}'
+  members:
+  - TranslationKeys.LOGIN_FAILED
+  - TranslationKeys.LOGIN_FAILED_RESPONSE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.no_api_token_received
+  chosen_en: No API token received.
+  chosen_et: API võtit ei saadud.
+  cluster_id: no api token received
+  members:
+  - TranslationKeys.NO_API_TOKEN_RECEIVED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.network_error
+  chosen_en: 'Network error: {error}'
+  chosen_et: 'Võrgu viga: {error}'
+  cluster_id: 'network error: {error}'
+  members:
+  - TranslationKeys.NETWORK_ERROR
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.kavitro_plugin_title
+  chosen_en: Kavitro Plugin
+  chosen_et: Kavitro
+  cluster_id: kavitro plugin
+  members:
+  - TranslationKeys.KAVITRO_PLUGIN_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.username_label
+  chosen_en: 'Username:'
+  chosen_et: 'Kasutajanimi:'
+  cluster_id: username
+  members:
+  - TranslationKeys.USERNAME_LABEL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.password_label
+  chosen_en: 'Password:'
+  chosen_et: 'Parool:'
+  cluster_id: password
+  members:
+  - TranslationKeys.PASSWORD_LABEL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.login_button
+  chosen_en: Login
+  chosen_et: Logi sisse
+  cluster_id: login
+  members:
+  - TranslationKeys.LOGIN_BUTTON
+  - DialogLabels.LOGIN_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.cancel_button
+  chosen_en: Cancel
+  chosen_et: Tühista
+  cluster_id: cancel
+  members:
+  - TranslationKeys.CANCEL_BUTTON
+  - '''Cancel'''
+  - TranslationKeys.SIGNALTEST_CANCEL_BUTTON
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.toggle_password
+  chosen_en: Show Password
+  chosen_et: Näita parooli
+  cluster_id: show password
+  members:
+  - TranslationKeys.TOGGLE_PASSWORD
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.language_label
+  chosen_en: 'Language:'
+  chosen_et: 'Keel:'
+  cluster_id: language
+  members:
+  - TranslationKeys.LANGUAGE_LABEL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: dialoglabels.login_section
+  chosen_en: User Authentication
+  chosen_et: Kasutaja autentimine
+  cluster_id: user authentication
+  members:
+  - DialogLabels.LOGIN_SECTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: dialoglabels.settings_section
+  chosen_en: Application Preferences
+  chosen_et: Rakenduse eelistused
+  cluster_id: application preferences
+  members:
+  - DialogLabels.SETTINGS_SECTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: dialoglabels.session_expired_error
+  chosen_en: Session expired. Please log in again.
+  chosen_et: Seanss on aegunud. Palun logi uuesti sisse.
+  cluster_id: session expired. please log in again
+  members:
+  - DialogLabels.SESSION_EXPIRED_ERROR
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: dialoglabels.invalid_credentials_error
+  chosen_en: Invalid email or password.
+  chosen_et: Vale e-post või parool.
+  cluster_id: invalid email or password
+  members:
+  - DialogLabels.INVALID_CREDENTIALS_ERROR
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.mailabl_listener
+  chosen_en: Mailabl Listener
+  chosen_et: Mailabl Listener
+  cluster_id: mailabl listener
+  members:
+  - TranslationKeys.MAILABL_LISTENER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.unknown_module
+  chosen_en: 'Unknown module: {module}'
+  chosen_et: 'Tundmatu moodul: {module}'
+  cluster_id: 'unknown module: {module}'
+  members:
+  - TranslationKeys.UNKNOWN_MODULE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.query_file_not_found
+  chosen_en: 'Query file not found: {file}'
+  chosen_et: 'Päringu faili ei leitud: {file}'
+  cluster_id: 'query file not found: {file}'
+  members:
+  - TranslationKeys.QUERY_FILE_NOT_FOUND
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.save_setting
+  chosen_en: Save setting
+  chosen_et: Salvesta säte
+  cluster_id: save setting
+  members:
+  - TranslationKeys.SAVE_SETTING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.user
+  chosen_en: User
+  chosen_et: Kasutaja
+  cluster_id: user
+  members:
+  - TranslationKeys.USER
+  - '''User'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.roles
+  chosen_en: Roles
+  chosen_et: Rollid
+  cluster_id: roles
+  members:
+  - TranslationKeys.ROLES
+  - '''Roles'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.module_access
+  chosen_en: Module Access
+  chosen_et: Mooduli juurdepääs
+  cluster_id: module access
+  members:
+  - TranslationKeys.MODULE_ACCESS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.confirm
+  chosen_en: Confirm
+  chosen_et: Kinnita
+  cluster_id: confirm
+  members:
+  - TranslationKeys.CONFIRM
+  - '''Confirm'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.name
+  chosen_en: Name
+  chosen_et: Nimi
+  cluster_id: name
+  members:
+  - TranslationKeys.NAME
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.email
+  chosen_en: Email
+  chosen_et: E-post
+  cluster_id: email
+  members:
+  - TranslationKeys.EMAIL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.module_settings_placeholder
+  chosen_en: Module settings placeholder
+  chosen_et: Mooduli seadete kohatäide
+  cluster_id: module settings placeholder
+  members:
+  - TranslationKeys.MODULE_SETTINGS_PLACEHOLDER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.preferred_module
+  chosen_en: Preferred module
+  chosen_et: Eelistatud moodul
+  cluster_id: preferred module
+  members:
+  - TranslationKeys.PREFERRED_MODULE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.county
+  chosen_en: County
+  chosen_et: Maakond
+  cluster_id: county
+  members:
+  - TranslationKeys.COUNTY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.municipality
+  chosen_en: Municipality
+  chosen_et: Omavalitsus
+  cluster_id: municipality
+  members:
+  - TranslationKeys.MUNICIPALITY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.due
+  chosen_en: Due at
+  chosen_et: Tähtaeg
+  cluster_id: due at
+  members:
+  - TranslationKeys.DUE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.searching
+  chosen_en: Searching
+  chosen_et: Otsimine
+  cluster_id: searching
+  members:
+  - TranslationKeys.SEARCHING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_settlements
+  chosen_en: Select Settlements
+  chosen_et: Vali asustusüksused
+  cluster_id: select settlements
+  members:
+  - TranslationKeys.SELECT_SETTLEMENTS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.home_page
+  chosen_en: Home page
+  chosen_et: Avaleht
+  cluster_id: home page
+  members:
+  - TranslationKeys.HOME_PAGE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.settings_page
+  chosen_en: Settings page
+  chosen_et: Seadete leht
+  cluster_id: settings page
+  members:
+  - TranslationKeys.SETTINGS_PAGE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.about_page
+  chosen_en: About page
+  chosen_et: Teave
+  cluster_id: about page
+  members:
+  - TranslationKeys.ABOUT_PAGE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.switch_to_dark_mode
+  chosen_en: Switch to dark mode
+  chosen_et: Lülita tumedale režiimile
+  cluster_id: switch to dark mode
+  members:
+  - TranslationKeys.SWITCH_TO_DARK_MODE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.switch_to_light_mode
+  chosen_en: Switch to light mode
+  chosen_et: Lülita heledale režiimile
+  cluster_id: switch to light mode
+  members:
+  - TranslationKeys.SWITCH_TO_LIGHT_MODE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.welcome
+  chosen_en: Welcome
+  chosen_et: Tere tulemast
+  cluster_id: welcome
+  members:
+  - TranslationKeys.WELCOME
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_module
+  chosen_en: Select a module from the left or open Settings to set your preferred
+    module.
+  chosen_et: Vali vasakult moodul või ava Seaded, et määrata eelistatud moodul.
+  cluster_id: select a module from the left or open settings to set your preferred
+    module
+  members:
+  - TranslationKeys.SELECT_MODULE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.no_project_loaded_title
+  chosen_en: No Project Loaded
+  chosen_et: Ühtegi projekti pole avatud
+  cluster_id: no project loaded
+  members:
+  - TranslationKeys.NO_PROJECT_LOADED_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.no_project_loaded_message
+  chosen_en: Please load a QGIS project before using this plugin.
+  chosen_et: Kavitro plugnin nõuab QGIS projektifaili, et töötada. Palun ava või loo
+    uus projekt.
+  cluster_id: please load a qgis project before using this plugin
+  members:
+  - TranslationKeys.NO_PROJECT_LOADED_MESSAGE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.project_folder_missing_title
+  chosen_en: Project folder setup required
+  chosen_et: Projektikausta seadistus vajalik
+  cluster_id: project folder setup required
+  members:
+  - TranslationKeys.PROJECT_FOLDER_MISSING_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.project_folder_missing_message
+  chosen_en: Project folders are not set for this module. Opening Settings...
+  chosen_et: Projekti kaustad pole selle mooduli jaoks määratud. Avan Seaded...
+  cluster_id: project folders are not set for this module. opening settings…
+  members:
+  - TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.how_select_properties
+  chosen_en: How do you want to select properties?
+  chosen_et: Kuidas soovid kinnistuid valida?
+  cluster_id: how do you want to select properties
+  members:
+  - TranslationKeys.HOW_SELECT_PROPERTIES
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archived_backend_match_title
+  chosen_en: Archived backend match
+  chosen_et: Arhiveeritud kanne olemas
+  cluster_id: archived backend match
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archived_backend_match_body
+  chosen_en: 'Backend has an archived property for cadastral number {tunnus}.
+
+
+    What do you want to do?'
+  chosen_et: 'Taustasüsteemis on arhiveeritud kinnistu katastrinumbriga {tunnus}.
+
+
+    Mida soovid teha?'
+  cluster_id: backend has an archived property for cadastral number {tunnus}. what
+    do you want to do
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_unarchive_failed_title
+  chosen_en: Unarchive failed
+  chosen_et: Lahtiarhiveerimine ebaõnnestus
+  cluster_id: unarchive failed
+  members:
+  - TranslationKeys.PROPERTY_UNARCHIVE_FAILED_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_unarchive_failed_body
+  chosen_en: Failed to unarchive backend property {backend_id} for {tunnus}.
+  chosen_et: Taustasüsteemi kinnistu {backend_id} lahtiarhiveerimine {tunnus} jaoks
+    ebaõnnestus.
+  cluster_id: failed to unarchive backend property {backend_id} for {tunnus}
+  members:
+  - TranslationKeys.PROPERTY_UNARCHIVE_FAILED_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_backend_update_failed_title
+  chosen_en: Backend update failed
+  chosen_et: Taustasüsteemi uuendus ebaõnnestus
+  cluster_id: backend update failed
+  members:
+  - TranslationKeys.PROPERTY_BACKEND_UPDATE_FAILED_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_backend_update_failed_body
+  chosen_en: Unarchived backend property but failed to update data for {tunnus}.
+  chosen_et: Taustasüsteemi kinnistu lahtiarhiveeriti, kuid andmete uuendamine {tunnus}
+    jaoks ebaõnnestus.
+  cluster_id: unarchived backend property but failed to update data for {tunnus}
+  members:
+  - TranslationKeys.PROPERTY_BACKEND_UPDATE_FAILED_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_backend_missing_title
+  chosen_en: Backend missing
+  chosen_et: Taustasüsteemis puudub
+  cluster_id: backend missing
+  members:
+  - TranslationKeys.PROPERTY_BACKEND_MISSING_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_backend_missing_body
+  chosen_en: 'Property {tunnus} exists in main layer but is missing from backend.
+
+
+    Create backend record from import data?'
+  chosen_et: 'Kinnistu {tunnus} on põhikihis, kuid puudub taustasüsteemis.
+
+
+    Kas luua taustasüsteemi kirje importandmetest?'
+  cluster_id: property {tunnus} exists in main layer but is missing from backend.
+    create backend record from import data
+  members:
+  - TranslationKeys.PROPERTY_BACKEND_MISSING_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_backend_missing_archived_body
+  chosen_en: 'Property {tunnus} exists in main layer. Backend has only an archived
+    record for this cadastral number.
+
+
+    Create a new ACTIVE backend record from import data?'
+  chosen_et: 'Kinnistu {tunnus} on põhikihis. Taustasüsteemis on ainult arhiveeritud
+    kirje selle katastrinumbriga.
+
+
+    Kas luua uus AKTIIVNE kirje taustasüsteemi importandmetest?'
+  cluster_id: property {tunnus} exists in main layer. backend has only an archived
+    record for this cadastral number. create a new active backend record from import
+    data
+  members:
+  - TranslationKeys.PROPERTY_BACKEND_MISSING_ARCHIVED_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_backend_exists_missing_map_title
+  chosen_en: Property exists
+  chosen_et: Kinnistu olemas
+  cluster_id: property exists
+  members:
+  - TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_backend_exists_missing_map_body
+  chosen_en: 'Property {tunnus} exists in backend but is missing from main layer.
+
+
+    Copy feature from import layer to main layer?'
+  chosen_et: 'Kinnistu {tunnus} on taustasüsteemis olemas, kuid puudub põhikihis.
+
+
+    Kas kopeerida objekt importkihist põhikihti?'
+  cluster_id: property {tunnus} exists in backend but is missing from main layer.
+    copy feature from import layer to main layer
+  members:
+  - TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_newer_import_title
+  chosen_en: Newer import detected
+  chosen_et: Uuem import tuvastatud
+  cluster_id: newer import detected
+  members:
+  - TranslationKeys.PROPERTY_NEWER_IMPORT_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_newer_import_body
+  chosen_en: 'Property {tunnus} exists in backend and main layer, but import appears
+    newer.
+
+
+    Archive/replace existing property?
+
+    - Moves existing main-layer feature to archive layer
+
+    - Marks backend property as archived
+
+    - Replaces main-layer feature with import feature'
+  chosen_et: 'Kinnistu {tunnus} on taustasüsteemis ja põhikihis, kuid import paistab
+    uuem.
+
+
+    Kas arhiveerida/asendada olemasolev kinnistu?
+
+    - Tõstab olemasoleva objekti arhiivikihile
+
+    - Märgib taustasüsteemi kinnistu arhiveerituks
+
+    - Asendab põhikihi objekti importkihist võetuga'
+  cluster_id: property {tunnus} exists in backend and main layer, but import appears
+    newer. archive/replace existing property? - moves existing main-layer feature
+    to archive layer - marks backend property as archived - replaces main-layer feature
+    with import feature
+  members:
+  - TranslationKeys.PROPERTY_NEWER_IMPORT_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_replace_failed_title
+  chosen_en: Replace failed
+  chosen_et: Asendamine ebaõnnestus
+  cluster_id: replace failed
+  members:
+  - TranslationKeys.PROPERTY_REPLACE_FAILED_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_replace_failed_body_no_feature
+  chosen_en: Could not locate existing main-layer feature for {tunnus} to archive/replace.
+  chosen_et: Olemasolevat objekti {tunnus} arhiveerimiseks/asendamiseks ei leitud.
+  cluster_id: could not locate existing main-layer feature for {tunnus} to archive/replace
+  members:
+  - TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_NO_FEATURE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_replace_failed_body_delete
+  chosen_en: Failed to delete existing main-layer feature for {tunnus}.
+  chosen_et: Olemasoleva objekti kustutamine põhikihist {tunnus} ebaõnnestus.
+  cluster_id: failed to delete existing main-layer feature for {tunnus}
+  members:
+  - TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_DELETE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_replace_failed_body_copy
+  chosen_en: 'Copy import->main failed for {tunnus}: {message}'
+  chosen_et: 'Impordi kopeerimine põhikihile ebaõnnestus {tunnus}: {message}'
+  cluster_id: 'copy import->main failed for {tunnus}: {message}'
+  members:
+  - TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_COPY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archive_layer_missing_title
+  chosen_en: Archive layer missing
+  chosen_et: Arhiivikiht puudub
+  cluster_id: archive layer missing
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_MISSING_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archive_layer_missing_body
+  chosen_en: Archive layer is not configured or missing; cannot archive/replace.
+  chosen_et: Arhiivikiht on seadistamata või puudub; arhiveerimine/asendamine ei ole
+    võimalik.
+  cluster_id: archive layer is not configured or missing; cannot archive/replace
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_MISSING_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_main_layer_missing_title
+  chosen_en: Main layer missing
+  chosen_et: Põhikiht puudub
+  cluster_id: main layer missing
+  members:
+  - TranslationKeys.PROPERTY_MAIN_LAYER_MISSING_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_main_layer_missing_body
+  chosen_en: Main property layer is not found/invalid. Please configure it in Settings.
+  chosen_et: Põhikinnistute kiht puudub või on vigane. Palun seadista Seadetes.
+  cluster_id: main property layer is not found/invalid. please configure it in settings
+  members:
+  - TranslationKeys.PROPERTY_MAIN_LAYER_MISSING_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archive_layer_required_title
+  chosen_en: Archive layer required
+  chosen_et: Arhiivikiht on nõutud
+  cluster_id: archive layer required
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_REQUIRED_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archive_layer_required_body_no_name
+  chosen_en: 'Archive layer is not configured for Properties.
+
+
+    Choose what to do:
+
+    - Open Settings to pick an archive layer
+
+    - Create/load an archive layer inside the same GPKG as MAIN'
+  chosen_et: 'Arhiivikiht pole kinnistute jaoks seadistatud.
+
+
+    Vali edasine:
+
+    - Ava Seaded arhiivikihi valimiseks
+
+    - Loo/laadi arhiivikiht samasse GPKG-sse nagu MAIN'
+  cluster_id: 'archive layer is not configured for properties. choose what to do:
+    - open settings to pick an archive layer - create/load an archive layer inside
+    the same gpkg as main'
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_REQUIRED_BODY_NO_NAME
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archive_layer_required_body_name
+  chosen_en: 'Archive layer ''{name}'' is not found/invalid in the project.
+
+
+    Choose what to do:
+
+    - Open Settings to pick an archive layer
+
+    - Create/load an archive layer inside the same GPKG as MAIN'
+  chosen_et: 'Arhiivikiht ''{name}'' ei leidu/projektis on vigane.
+
+
+    Vali edasine:
+
+    - Ava Seaded arhiivikihi valimiseks
+
+    - Loo/laadi arhiivikiht samasse GPKG-sse nagu MAIN'
+  cluster_id: 'archive layer ''{name}'' is not found/invalid in the project. choose
+    what to do: - open settings to pick an archive layer - create/load an archive
+    layer inside the same gpkg as main'
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_REQUIRED_BODY_NAME
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_open_settings_failed_title
+  chosen_en: Open Settings failed
+  chosen_et: Seadete avamine ebaõnnestus
+  cluster_id: open settings failed
+  members:
+  - TranslationKeys.PROPERTY_OPEN_SETTINGS_FAILED_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_open_settings_failed_body
+  chosen_en: 'Could not open Settings module automatically.
+
+
+    Error: {error}'
+  chosen_et: 'Seadete moodulit ei õnnestunud automaatselt avada.
+
+
+    Viga: {error}'
+  cluster_id: 'could not open settings module automatically. error: {error}'
+  members:
+  - TranslationKeys.PROPERTY_OPEN_SETTINGS_FAILED_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_cannot_create_archive_title
+  chosen_en: Cannot create archive layer
+  chosen_et: Arhiivikihti ei saa luua
+  cluster_id: cannot create archive layer
+  members:
+  - TranslationKeys.PROPERTY_CANNOT_CREATE_ARCHIVE_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_cannot_create_archive_body
+  chosen_en: 'Auto-creating an archive layer is only supported when MAIN is a GeoPackage
+    (.gpkg) layer.
+
+
+    Please configure the archive layer in Settings.'
+  chosen_et: 'Arhiivikihi automaatne loomine on toetatud ainult siis, kui MAIN on
+    GeoPackage (.gpkg) kiht.
+
+
+    Palun seadista arhiivikiht Seadetes.'
+  cluster_id: auto-creating an archive layer is only supported when main is a geopackage
+    (.gpkg) layer. please configure the archive layer in settings
+  members:
+  - TranslationKeys.PROPERTY_CANNOT_CREATE_ARCHIVE_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_invalid_archive_name_title
+  chosen_en: Invalid name
+  chosen_et: Vigane nimi
+  cluster_id: invalid name
+  members:
+  - TranslationKeys.PROPERTY_INVALID_ARCHIVE_NAME_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_invalid_archive_name_body
+  chosen_en: Archive layer name cannot be empty.
+  chosen_et: Arhiivikihi nimi ei tohi olla tühi.
+  cluster_id: archive layer name cannot be empty
+  members:
+  - TranslationKeys.PROPERTY_INVALID_ARCHIVE_NAME_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archive_layer_create_failed_title
+  chosen_en: Archive layer creation failed
+  chosen_et: Arhiivikihi loomine ebaõnnestus
+  cluster_id: archive layer creation failed
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_CREATE_FAILED_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archive_layer_create_failed_body
+  chosen_en: 'Failed to create/load archive layer ''{name}''.
+
+
+    Error: {error}'
+  chosen_et: 'Arhiivikihi ''{name}'' loomine/laadimine ebaõnnestus.
+
+
+    Viga: {error}'
+  cluster_id: 'failed to create/load archive layer ''{name}''. error: {error}'
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_CREATE_FAILED_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archive_layer_create_failed_body_generic
+  chosen_en: Failed to create/load archive layer '{name}'.
+  chosen_et: Arhiivikihi '{name}' loomine/laadimine ebaõnnestus.
+  cluster_id: failed to create/load archive layer '{name}'
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_CREATE_FAILED_BODY_GENERIC
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archive_layer_name_prompt_title
+  chosen_en: Create/Load archive layer
+  chosen_et: Loo/Laadi arhiivikiht
+  cluster_id: create/load archive layer
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_NAME_PROMPT_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_archive_layer_name_prompt_label
+  chosen_en: 'Archive layer name:'
+  chosen_et: 'Arhiivikihi nimi:'
+  cluster_id: archive layer name
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_NAME_PROMPT_LABEL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.run_attention_checks
+  chosen_en: Run checks
+  chosen_et: Käivita kontroll
+  cluster_id: run checks
+  members:
+  - TranslationKeys.RUN_ATTENTION_CHECKS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.yes_to_all
+  chosen_en: Yes to all
+  chosen_et: Jah kõigile
+  cluster_id: yes to all
+  members:
+  - TranslationKeys.YES_TO_ALL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.add_without_checks
+  chosen_en: Add without checks
+  chosen_et: Lisa ilma kontrollita
+  cluster_id: add without checks
+  members:
+  - TranslationKeys.ADD_WITHOUT_CHECKS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.open_settings
+  chosen_en: Open Settings
+  chosen_et: Ava Seaded
+  cluster_id: open settings
+  members:
+  - TranslationKeys.OPEN_SETTINGS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.main_property_layer
+  chosen_en: Properties main layer
+  chosen_et: Kinnistute põhikiht
+  cluster_id: properties main layer
+  members:
+  - TranslationKeys.MAIN_PROPERTY_LAYER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.archive_layer
+  chosen_en: Archive layer
+  chosen_et: Arhiivikiht
+  cluster_id: archive layer
+  members:
+  - TranslationKeys.ARCHIVE_LAYER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_layer
+  chosen_en: Select layer
+  chosen_et: Vali kiht
+  cluster_id: select layer
+  members:
+  - TranslationKeys.SELECT_LAYER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_layer_overview
+  chosen_en: This is your properties primary layer. Choose the layer containing the
+    core data you work with.
+  chosen_et: 'See on kinnistute põhikiht.
+
+    Vali kiht, mis kajastab ettevõtte peamist kinnistute kaardikihti.'
+  cluster_id: this is your properties primary layer. choose the layer containing the
+    core data you work with
+  members:
+  - TranslationKeys.PROPERTY_LAYER_OVERVIEW
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.archive_layer_description
+  chosen_en: Use an optional archive layer to store historical or backup data versions.
+  chosen_et: Kasuta valikulist arhiivikihti ajalooliste või varuandmete salvestamiseks.
+  cluster_id: use an optional archive layer to store historical or backup data versions
+  members:
+  - TranslationKeys.ARCHIVE_LAYER_DESCRIPTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.choose_layers_used_by_this_module
+  chosen_en: Choose layers used by this module (element and archive).
+  chosen_et: Vali selle mooduli kasutatavad kihid (elemendi ja arhiivi).
+  cluster_id: choose layers used by this module (element and archive)
+  members:
+  - TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.choose_property_layer_for_module
+  chosen_en: Select a property layer for data operations and management.
+  chosen_et: Vali kinnistu kiht.
+  cluster_id: select a property layer for data operations and management
+  members:
+  - TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_a_property_layer
+  chosen_en: Select a property layer...
+  chosen_et: Vali kinnistute kiht...
+  cluster_id: select a property layer…
+  members:
+  - TranslationKeys.SELECT_A_PROPERTY_LAYER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_tree_header
+  chosen_en: Property-related data
+  chosen_et: Kinnistuga seotud andmed
+  cluster_id: property-related data
+  members:
+  - TranslationKeys.PROPERTY_TREE_HEADER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_tree_default_message
+  chosen_en: Select a property on the map
+  chosen_et: Vali kinnistu kaardilt
+  cluster_id: select a property on the map
+  members:
+  - TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_tree_loading
+  chosen_en: Loading related data...
+  chosen_et: Laen seotud andmeid...
+  cluster_id: loading related data…
+  members:
+  - TranslationKeys.PROPERTY_TREE_LOADING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_tree_no_connections
+  chosen_en: No connections found
+  chosen_et: Seoseid ei leitud
+  cluster_id: no connections found
+  members:
+  - TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_tree_no_data
+  chosen_en: No data available
+  chosen_et: Andmed puuduvad
+  cluster_id: no data available
+  members:
+  - TranslationKeys.PROPERTY_TREE_NO_DATA
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_tree_module_empty
+  chosen_en: No records
+  chosen_et: Kirjeid ei ole
+  cluster_id: no records
+  members:
+  - TranslationKeys.PROPERTY_TREE_MODULE_EMPTY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_tree_row_no_title
+  chosen_en: Name missing
+  chosen_et: Nimetus puudub
+  cluster_id: name missing
+  members:
+  - TranslationKeys.PROPERTY_TREE_ROW_NO_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.property_tree_row_updated_prefix
+  chosen_en: Updated {date}
+  chosen_et: Uuendatud {date}
+  cluster_id: updated {date}
+  members:
+  - TranslationKeys.PROPERTY_TREE_ROW_UPDATED_PREFIX
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.logout_button_tooltip
+  chosen_en: Log out from your account
+  chosen_et: Logi välja
+  cluster_id: log out from your account
+  members:
+  - TranslationKeys.LOGOUT_BUTTON_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.search_tooltip
+  chosen_en: This feature is not yet available
+  chosen_et: Funktsioon veel ei tööta
+  cluster_id: this feature is not yet available
+  members:
+  - TranslationKeys.SEARCH_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.search_placeholder
+  chosen_en: Search...
+  chosen_et: Otsi...
+  cluster_id: search…
+  members:
+  - TranslationKeys.SEARCH_PLACEHOLDER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.search_no_results
+  chosen_en: No results found for '{term}'
+  chosen_et: 'Tulemusi ei leitud: ''{term}'''
+  cluster_id: no results found for '{term}'
+  members:
+  - TranslationKeys.SEARCH_NO_RESULTS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.sidebar_collapse_tooltip
+  chosen_en: Collapse Sidebar
+  chosen_et: Ahenda külgriba
+  cluster_id: collapse sidebar
+  members:
+  - TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.sidebar_expand_tooltip
+  chosen_en: Expand Sidebar
+  chosen_et: Laienda külgriba
+  cluster_id: expand sidebar
+  members:
+  - TranslationKeys.SIDEBAR_EXPAND_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.theme_switch_tooltip
+  chosen_en: Switch between dark and light theme
+  chosen_et: Tume/Hele režiim
+  cluster_id: switch between dark and light theme
+  members:
+  - TranslationKeys.THEME_SWITCH_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.dev_dbg_tooltip
+  chosen_en: Toggle developer logs (print) on/off
+  chosen_et: Lülita arenduslogid (print) sisse/välja
+  cluster_id: toggle developer logs (print) on/off
+  members:
+  - TranslationKeys.DEV_DBG_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.dev_frames_tooltip
+  chosen_en: Show/Hide FRAME labels on the home page
+  chosen_et: Näita/peida FRAME sildid avalehel
+  cluster_id: show/hide frame labels on the home page
+  members:
+  - TranslationKeys.DEV_FRAMES_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.session_expired
+  chosen_en: Your session has expired. Please sign in again.
+  chosen_et: Teie seanss on aegunud. Palun logige uuesti sisse.
+  cluster_id: your session has expired. please sign in again
+  members:
+  - TranslationKeys.SESSION_EXPIRED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.session_expired_title
+  chosen_en: Session Expired
+  chosen_et: Seanss aegunud
+  cluster_id: session expired
+  members:
+  - TranslationKeys.SESSION_EXPIRED_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.urgent_group_title
+  chosen_en: Urgent!
+  chosen_et: null
+  cluster_id: urgent
+  members:
+  - TranslationKeys.URGENT_GROUP_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.urgent_tooltip
+  chosen_en: What needs fast attention
+  chosen_et: Vajab kiiret tähelepanu
+  cluster_id: what needs fast attention
+  members:
+  - TranslationKeys.URGENT_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.status_filter
+  chosen_en: Filter by Status
+  chosen_et: Staatuste järgi filtreerimine
+  cluster_id: filter by status
+  members:
+  - TranslationKeys.STATUS_FILTER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.tags_filter
+  chosen_en: Filter by Tags
+  chosen_et: Tunnuste järgi filtreerimine
+  cluster_id: filter by tags
+  members:
+  - TranslationKeys.TAGS_FILTER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.type_filter
+  chosen_en: Filter by Type
+  chosen_et: Liigi järgi filtreerimine
+  cluster_id: filter by type
+  members:
+  - TranslationKeys.TYPE_FILTER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.type_group_filter
+  chosen_en: Filter by Type Group
+  chosen_et: Liigi grupi järgi filtreerimine
+  cluster_id: filter by type group
+  members:
+  - TranslationKeys.TYPE_GROUP_FILTER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.reset
+  chosen_en: Reset
+  chosen_et: Lähtesta
+  cluster_id: reset
+  members:
+  - TranslationKeys.RESET
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.filters_refresh
+  chosen_en: Refresh filters
+  chosen_et: Värskenda filtreid
+  cluster_id: refresh filters
+  members:
+  - TranslationKeys.FILTERS_REFRESH
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.filters_clear
+  chosen_en: Clear filter selections
+  chosen_et: Tühjenda filtrivalikud
+  cluster_id: clear filter selections
+  members:
+  - TranslationKeys.FILTERS_CLEAR
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.reset_all_settings
+  chosen_en: Reset all settings for this module to default values
+  chosen_et: Lähtesta kõik selle mooduli seaded vaikimisi väärtustele
+  cluster_id: reset all settings for this module to default values
+  members:
+  - TranslationKeys.RESET_ALL_SETTINGS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.settings_reset_to_defaults
+  chosen_en: Settings reset to defaults
+  chosen_et: Seaded lähtestati vaikimisi väärtustele
+  cluster_id: settings reset to defaults
+  members:
+  - TranslationKeys.SETTINGS_RESET_TO_DEFAULTS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.show_project_numbers_description
+  chosen_en: When enabled, item numbers will be displayed in cards for easy identification.
+  chosen_et: Sisselülitamisel kuvatakse kannetel numbrid, et neid oleks lihtsam tuvastada.
+  cluster_id: when enabled, item numbers will be displayed in cards for easy identification
+  members:
+  - TranslationKeys.SHOW_PROJECT_NUMBERS_DESCRIPTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.user_profile
+  chosen_en: User Profile
+  chosen_et: Kasutaja profiil
+  cluster_id: user profile
+  members:
+  - TranslationKeys.USER_PROFILE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.roles_permissions
+  chosen_en: Roles & Permissions
+  chosen_et: Rollid ja õigused
+  cluster_id: roles & permissions
+  members:
+  - TranslationKeys.ROLES_PERMISSIONS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.administrator
+  chosen_en: Administrator
+  chosen_et: Administraator
+  cluster_id: administrator
+  members:
+  - TranslationKeys.ADMINISTRATOR
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.editor
+  chosen_en: Editor
+  chosen_et: Toimetaja
+  cluster_id: editor
+  members:
+  - TranslationKeys.EDITOR
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.viewer
+  chosen_en: Viewer
+  chosen_et: Vaataja
+  cluster_id: viewer
+  members:
+  - TranslationKeys.VIEWER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.open_maa_amet_page
+  chosen_en: Open Maa-amet page
+  chosen_et: Ava Maa-ameti leht
+  cluster_id: open maa-amet page
+  members:
+  - TranslationKeys.OPEN_MAA_AMET_PAGE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.dashboard
+  chosen_en: Dashboard
+  chosen_et: Töölaud
+  cluster_id: dashboard
+  members:
+  - TranslationKeys.DASHBOARD
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.reports
+  chosen_en: Reports
+  chosen_et: Aruanded
+  cluster_id: reports
+  members:
+  - TranslationKeys.REPORTS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.signaltest
+  chosen_en: SignalTest
+  chosen_et: Signaltest
+  cluster_id: signaltest
+  members:
+  - '''signaltest'''
+  - TranslationKeys.SIGNALTEST_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.admin
+  chosen_en: Admin
+  chosen_et: null
+  cluster_id: admin
+  members:
+  - '''Admin'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.user_information
+  chosen_en: User Information
+  chosen_et: null
+  cluster_id: user information
+  members:
+  - '''User Information'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.property_management
+  chosen_en: Property Management
+  chosen_et: null
+  cluster_id: property management
+  members:
+  - '''Property Management'''
+  - TranslationKeys.ADD_NEW_PROPERTY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.quick_actions
+  chosen_en: Quick Actions
+  chosen_et: null
+  cluster_id: quick actions
+  members:
+  - '''Quick Actions'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.add_shp_file
+  chosen_en: Add SHP file
+  chosen_et: null
+  cluster_id: add shp file
+  members:
+  - '''Add Shp file'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.add_property
+  chosen_en: Add property
+  chosen_et: null
+  cluster_id: add property
+  members:
+  - '''Add property'''
+  - '''Add Property'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.remove_property
+  chosen_en: Remove property
+  chosen_et: null
+  cluster_id: remove property
+  members:
+  - '''Remove property'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.load_shapefile
+  chosen_en: Load Shapefile
+  chosen_et: null
+  cluster_id: load shapefile
+  members:
+  - '''Load Shapefile'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.select_shapefile
+  chosen_en: Select Shapefile
+  chosen_et: null
+  cluster_id: select shapefile
+  members:
+  - '''Select Shapefile'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.shapefile_loaded_successfully
+  chosen_en: Shapefile loaded successfully
+  chosen_et: null
+  cluster_id: shapefile loaded successfully
+  members:
+  - '''Shapefile loaded successfully'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.shapefile_loaded_message
+  chosen_en: Shapefile '{name}' has been successfully loaded in the 'New Properties'
+    group
+  chosen_et: null
+  cluster_id: shapefile '{name}' has been successfully loaded in the 'new properties'
+    group
+  members:
+  - '''Shapefile loaded message'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.shapefile_loaded_with_data_message
+  chosen_en: Shapefile '{name}' has been successfully loaded in the 'New Properties'
+    group ({count} features imported)
+  chosen_et: null
+  cluster_id: shapefile '{name}' has been successfully loaded in the 'new properties'
+    group ({count} features imported)
+  members:
+  - '''Shapefile loaded with data message'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.invalid_shapefile
+  chosen_en: Invalid Shapefile
+  chosen_et: null
+  cluster_id: invalid shapefile
+  members:
+  - '''Invalid Shapefile'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.invalid_shapefile_message
+  chosen_en: The selected Shapefile is not valid.
+  chosen_et: null
+  cluster_id: the selected shapefile is not valid
+  members:
+  - '''Invalid Shapefile message'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.shapefile_load_failed
+  chosen_en: Shapefile load failed
+  chosen_et: null
+  cluster_id: shapefile load failed
+  members:
+  - '''Shapefile load failed'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.shapefile_load_failed_message
+  chosen_en: Failed to load the Shapefile.
+  chosen_et: Shapefile faili laadimine ebaõnnestus.
+  cluster_id: failed to load the shapefile
+  members:
+  - '''Shapefile load failed message'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.shapefile_loading_error
+  chosen_en: Shapefile loading error
+  chosen_et: Shapefile laadimise viga
+  cluster_id: shapefile loading error
+  members:
+  - '''Shapefile loading error'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.importing_shapefile
+  chosen_en: Importing Shapefile
+  chosen_et: Shapefile importimine
+  cluster_id: importing shapefile
+  members:
+  - '''Importing Shapefile'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.processing_features
+  chosen_en: Processing features
+  chosen_et: Objektide töötlemine
+  cluster_id: processing features
+  members:
+  - '''Processing features'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.features_copied
+  chosen_en: Features copied
+  chosen_et: Objekte kopeeritud
+  cluster_id: features copied
+  members:
+  - '''Features copied'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.import_complete
+  chosen_en: Import complete
+  chosen_et: Import lõpetatud
+  cluster_id: import complete
+  members:
+  - '''Import complete'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.features_imported
+  chosen_en: features imported
+  chosen_et: objekti imporditud
+  cluster_id: features imported
+  members:
+  - '''features imported'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.feature_imported
+  chosen_en: feature imported
+  chosen_et: objekt imporditud
+  cluster_id: feature imported
+  members:
+  - '''feature imported'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.initializing
+  chosen_en: Initializing...
+  chosen_et: Initsialiseerimine...
+  cluster_id: initializing…
+  members:
+  - '''Initializing...'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.add_new_property
+  chosen_en: Add New Property
+  chosen_et: Lisa uus kinnistu
+  cluster_id: add new property
+  members:
+  - '''Add New Property'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.select_a_property_template_to_add
+  chosen_en: 'Select a property template to add:'
+  chosen_et: 'Vali lisatav kinnistu mall:'
+  cluster_id: select a property template to add
+  members:
+  - '''Select a property template to add:'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.residential_property
+  chosen_en: Residential Property
+  chosen_et: Elamukinnistu
+  cluster_id: residential property
+  members:
+  - '''Residential Property'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.commercial_property
+  chosen_en: Commercial Property
+  chosen_et: Ärikinnistu
+  cluster_id: commercial property
+  members:
+  - '''Commercial Property'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.industrial_property
+  chosen_en: Industrial Property
+  chosen_et: Tööstuskinnistu
+  cluster_id: industrial property
+  members:
+  - '''Industrial Property'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.agricultural_land
+  chosen_en: Agricultural Land
+  chosen_et: Põllumajandusmaa
+  cluster_id: agricultural land
+  members:
+  - '''Agricultural Land'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.vacant_land
+  chosen_en: Vacant Land
+  chosen_et: Tühi maatükk
+  cluster_id: vacant land
+  members:
+  - '''Vacant Land'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.standard_residential_property_template
+  chosen_en: Standard residential property template
+  chosen_et: Standardne elamukinnistu mall
+  cluster_id: standard residential property template
+  members:
+  - '''Standard residential property template'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.commercial_building_template
+  chosen_en: Commercial building template
+  chosen_et: Ärihoone mall
+  cluster_id: commercial building template
+  members:
+  - '''Commercial building template'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.industrial_facility_template
+  chosen_en: Industrial facility template
+  chosen_et: Tööstushoone mall
+  cluster_id: industrial facility template
+  members:
+  - '''Industrial facility template'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.agricultural_land_template
+  chosen_en: Agricultural land template
+  chosen_et: Põllumajandusmaa mall
+  cluster_id: agricultural land template
+  members:
+  - '''Agricultural land template'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.empty_land_parcel_template
+  chosen_en: Empty land parcel template
+  chosen_et: Tühi maatüki mall
+  cluster_id: empty land parcel template
+  members:
+  - '''Empty land parcel template'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.property_details
+  chosen_en: Property Details
+  chosen_et: Kinnistu andmed
+  cluster_id: property details
+  members:
+  - '''Property Details'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.additional_information
+  chosen_en: Additional Information
+  chosen_et: Lisateave
+  cluster_id: additional information
+  members:
+  - '''Additional Information'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.property_name
+  chosen_en: 'Property Name:'
+  chosen_et: 'Kinnistu nimi:'
+  cluster_id: property name
+  members:
+  - '''Property Name:'''
+  - '''Property Name'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.property_type
+  chosen_en: 'Property Type:'
+  chosen_et: 'Kinnistu tüüp:'
+  cluster_id: property type
+  members:
+  - '''Property Type:'''
+  - '''Property Type'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.area_m2
+  chosen_en: 'Area (m²):'
+  chosen_et: 'Pindala (m²):'
+  cluster_id: area (m²)
+  members:
+  - '''Area (m²):'''
+  - '''Area (m²)'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.value
+  chosen_en: 'Value (€):'
+  chosen_et: 'Väärtus (€):'
+  cluster_id: value (€)
+  members:
+  - '''Value (€):'''
+  - '''Value (€)'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.residential
+  chosen_en: Residential
+  chosen_et: Elamu
+  cluster_id: residential
+  members:
+  - '''Residential'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.commercial
+  chosen_en: Commercial
+  chosen_et: Äri
+  cluster_id: commercial
+  members:
+  - '''Commercial'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.industrial
+  chosen_en: Industrial
+  chosen_et: Tööstus
+  cluster_id: industrial
+  members:
+  - '''Industrial'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.agricultural
+  chosen_en: Agricultural
+  chosen_et: Põllumajandus
+  cluster_id: agricultural
+  members:
+  - '''Agricultural'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.other
+  chosen_en: Other
+  chosen_et: Muu
+  cluster_id: other
+  members:
+  - '''Other'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.enter_property_name
+  chosen_en: Enter property name
+  chosen_et: Sisesta kinnistu nimi
+  cluster_id: enter property name
+  members:
+  - '''Enter property name'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.enter_area_in_m2
+  chosen_en: Enter area in m²
+  chosen_et: Sisesta pindala m²
+  cluster_id: enter area in m²
+  members:
+  - '''Enter area in m²'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.enter_property_value
+  chosen_en: Enter property value
+  chosen_et: Sisesta kinnistu väärtus
+  cluster_id: enter property value
+  members:
+  - '''Enter property value'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.enter_property_address
+  chosen_en: Enter property address
+  chosen_et: Sisesta kinnistu aadress
+  cluster_id: enter property address
+  members:
+  - '''Enter property address'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.enter_additional_notes_or_description
+  chosen_en: Enter additional notes or description
+  chosen_et: Sisesta lisamärkused või kirjeldus
+  cluster_id: enter additional notes or description
+  members:
+  - '''Enter additional notes or description'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.property_name_is_required
+  chosen_en: Property name is required.
+  chosen_et: Kinnistu nimi on kohustuslik.
+  cluster_id: property name is required
+  members:
+  - '''Property name is required.'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.area_must_be_greater_than_0
+  chosen_en: Area must be greater than 0.
+  chosen_et: Pindala peab olema suurem kui 0.
+  cluster_id: area must be greater than 0
+  members:
+  - '''Area must be greater than 0.'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.value_must_be_greater_than_0
+  chosen_en: Value must be greater than 0.
+  chosen_et: Väärtus peab olema suurem kui 0.
+  cluster_id: value must be greater than 0
+  members:
+  - '''Value must be greater than 0.'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.validation_error
+  chosen_en: Validation Error
+  chosen_et: Valideerimise viga
+  cluster_id: validation error
+  members:
+  - '''Validation Error'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.cadastral_id
+  chosen_en: Cadastral ID
+  chosen_et: Katastritunnus
+  cluster_id: cadastral id
+  members:
+  - '''Cadastral ID'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.address
+  chosen_en: Address
+  chosen_et: Aadress
+  cluster_id: address
+  members:
+  - '''Address'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.settlement
+  chosen_en: Settlement
+  chosen_et: null
+  cluster_id: settlement
+  members:
+  - '''Settlement'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.save
+  chosen_en: Save
+  chosen_et: Salvesta
+  cluster_id: save
+  members:
+  - '''Save'''
+  - TranslationKeys.SIGNALTEST_SAVE_BUTTON
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.delete
+  chosen_en: Delete
+  chosen_et: Kustuta
+  cluster_id: delete
+  members:
+  - '''Delete'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.edit
+  chosen_en: Edit
+  chosen_et: Muuda
+  cluster_id: edit
+  members:
+  - '''Edit'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.select
+  chosen_en: Select
+  chosen_et: Vali
+  cluster_id: select
+  members:
+  - '''Select'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.search
+  chosen_en: Search
+  chosen_et: Otsi
+  cluster_id: search
+  members:
+  - '''Search'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.yes
+  chosen_en: 'Yes'
+  chosen_et: Jah
+  cluster_id: 'yes'
+  members:
+  - TranslationKeys.YES
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.no
+  chosen_en: 'No'
+  chosen_et: Ei
+  cluster_id: 'no'
+  members:
+  - TranslationKeys.NO
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.ok
+  chosen_en: OK
+  chosen_et: OK
+  cluster_id: ok
+  members:
+  - TranslationKeys.OK
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.saving
+  chosen_en: Saving
+  chosen_et: Salvestan
+  cluster_id: saving
+  members:
+  - TranslationKeys.SAVING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.deleting
+  chosen_en: Deleting
+  chosen_et: Kustutamine
+  cluster_id: deleting
+  members:
+  - TranslationKeys.DELETING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.success
+  chosen_en: Success
+  chosen_et: Edu
+  cluster_id: success
+  members:
+  - TranslationKeys.SUCCESS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.error
+  chosen_en: Error
+  chosen_et: Viga
+  cluster_id: error
+  members:
+  - TranslationKeys.ERROR
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.warning
+  chosen_en: Warning
+  chosen_et: Hoiatus
+  cluster_id: warning
+  members:
+  - '''Warning'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.this_field_is_required
+  chosen_en: This field is required
+  chosen_et: See väli on kohustuslik
+  cluster_id: this field is required
+  members:
+  - '''This field is required'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.invalid_value
+  chosen_en: Invalid value
+  chosen_et: Vigane väärtus
+  cluster_id: invalid value
+  members:
+  - '''Invalid value'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.value_must_be_greater_than_min
+  chosen_en: Value must be greater than {min}
+  chosen_et: Väärtus peab olema suurem kui {min}
+  cluster_id: value must be greater than {min}
+  members:
+  - '''Value must be greater than {min}'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.value_must_be_less_than_max
+  chosen_en: Value must be less than {max}
+  chosen_et: Väärtus peab olema väiksem kui {max}
+  cluster_id: value must be less than {max}
+  members:
+  - '''Value must be less than {max}'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.properties
+  chosen_en: Properties
+  chosen_et: Kinnistud
+  cluster_id: properties
+  members:
+  - TranslationKeys.PROPERTIES
+  - TranslationKeys.MODULE_PROPERTY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.contracts
+  chosen_en: Contracts
+  chosen_et: Lepingud
+  cluster_id: contracts
+  members:
+  - TranslationKeys.CONTRACTS
+  - TranslationKeys.MODULE_CONTRACT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.projects
+  chosen_en: Projects
+  chosen_et: Projektid
+  cluster_id: projects
+  members:
+  - TranslationKeys.PROJECTS
+  - TranslationKeys.MODULE_PROJECT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.letters
+  chosen_en: Letters
+  chosen_et: Kirjad
+  cluster_id: letters
+  members:
+  - TranslationKeys.LETTERS
+  - TranslationKeys.MODULE_LETTER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.specifications
+  chosen_en: Specifications
+  chosen_et: Tingimused
+  cluster_id: specifications
+  members:
+  - TranslationKeys.SPECIFICATIONS
+  - TranslationKeys.MODULE_SPECIFICATION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.easements
+  chosen_en: Easements
+  chosen_et: Servituudid
+  cluster_id: easements
+  members:
+  - TranslationKeys.EASEMENTS
+  - TranslationKeys.MODULE_EASEMENT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.coordinations
+  chosen_en: Coordinations
+  chosen_et: Kooskõlastused
+  cluster_id: coordinations
+  members:
+  - TranslationKeys.COORDINATIONS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.tasks
+  chosen_en: Tasks
+  chosen_et: Ülesanded
+  cluster_id: tasks
+  members:
+  - TranslationKeys.TASKS
+  - TranslationKeys.MODULE_TASK
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.submissions
+  chosen_en: Submissions
+  chosen_et: Esitused
+  cluster_id: submissions
+  members:
+  - TranslationKeys.SUBMISSIONS
+  - TranslationKeys.MODULE_SUBMISSION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.ordinances
+  chosen_en: Ordinances
+  chosen_et: Käskkirjad
+  cluster_id: ordinances
+  members:
+  - TranslationKeys.ORDINANCES
+  - TranslationKeys.MODULE_ORDINANCE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.module_home
+  chosen_en: Home
+  chosen_et: Avaleht
+  cluster_id: home
+  members:
+  - TranslationKeys.MODULE_HOME
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.module_coordination
+  chosen_en: Coordination
+  chosen_et: Kooskõlastused
+  cluster_id: coordination
+  members:
+  - TranslationKeys.MODULE_COORDINATION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.module_asbuilt
+  chosen_en: As-built
+  chosen_et: Teostusjoonised
+  cluster_id: as-built
+  members:
+  - TranslationKeys.MODULE_ASBUILT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.module_works
+  chosen_en: Works
+  chosen_et: Tööd
+  cluster_id: works
+  members:
+  - TranslationKeys.MODULE_WORKS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.module_tags
+  chosen_en: Tags
+  chosen_et: Tunnused
+  cluster_id: tags
+  members:
+  - TranslationKeys.MODULE_TAGS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.module_statuses
+  chosen_en: Statuses
+  chosen_et: Staatused
+  cluster_id: statuses
+  members:
+  - TranslationKeys.MODULE_STATUSES
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_properties
+  chosen_en: Select Properties
+  chosen_et: Vali kinnistud
+  cluster_id: select properties
+  members:
+  - TranslationKeys.SELECT_PROPERTIES
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_all
+  chosen_en: Select All
+  chosen_et: Vali kõik
+  cluster_id: select all
+  members:
+  - TranslationKeys.SELECT_ALL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.clear_selection
+  chosen_en: Clear Selection
+  chosen_et: Tühjenda valik
+  cluster_id: clear selection
+  members:
+  - TranslationKeys.CLEAR_SELECTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.add_selected
+  chosen_en: Add Selected
+  chosen_et: Lisa valitud
+  cluster_id: add selected
+  members:
+  - TranslationKeys.ADD_SELECTED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.delete_by_id
+  chosen_en: Delete by ID
+  chosen_et: Kustuta ID järgi
+  cluster_id: delete by id
+  members:
+  - TranslationKeys.DELETE_BY_ID
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_from_map
+  chosen_en: Select from map
+  chosen_et: Vali kaardilt
+  cluster_id: select from map
+  members:
+  - TranslationKeys.SELECT_FROM_MAP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_by_location_list
+  chosen_en: Select by location (list)
+  chosen_et: Vali asukoha järgi (loend)
+  cluster_id: select by location (list)
+  members:
+  - TranslationKeys.SELECT_BY_LOCATION_LIST
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.reselect_from_map
+  chosen_en: Reselect from map
+  chosen_et: Vali uuesti kaardilt
+  cluster_id: reselect from map
+  members:
+  - TranslationKeys.RESELECT_FROM_MAP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.archive
+  chosen_en: Archive
+  chosen_et: Arhiveeri
+  cluster_id: archive
+  members:
+  - TranslationKeys.ARCHIVE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.unarchive
+  chosen_en: Unarchive
+  chosen_et: Taasta arhiivist
+  cluster_id: unarchive
+  members:
+  - TranslationKeys.UNARCHIVE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.unarchive_existing
+  chosen_en: Unarchive existing
+  chosen_et: Taasta olemasolev
+  cluster_id: unarchive existing
+  members:
+  - TranslationKeys.UNARCHIVE_EXISTING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.create_new
+  chosen_en: Create new
+  chosen_et: Loo uus
+  cluster_id: create new
+  members:
+  - TranslationKeys.CREATE_NEW
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.skip
+  chosen_en: Skip
+  chosen_et: Jäta vahele
+  cluster_id: skip
+  members:
+  - TranslationKeys.SKIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.create_load_in_gpkg
+  chosen_en: Create/Load in GPKG…
+  chosen_et: Loo/lae GPKG-s…
+  cluster_id: create/load in gpkg…
+  members:
+  - TranslationKeys.CREATE_LOAD_IN_GPKG
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_county
+  chosen_en: Select County
+  chosen_et: Vali maakond
+  cluster_id: select county
+  members:
+  - TranslationKeys.SELECT_COUNTY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_municipality
+  chosen_en: Select Municipality
+  chosen_et: Vali omavalitsus
+  cluster_id: select municipality
+  members:
+  - TranslationKeys.SELECT_MUNICIPALITY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.attention
+  chosen_en: Attention
+  chosen_et: Tähelepanu
+  cluster_id: attention
+  members:
+  - TranslationKeys.ATTENTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.filter_by_location
+  chosen_en: Filter by Location
+  chosen_et: Filtreeri asukoha järgi
+  cluster_id: filter by location
+  members:
+  - TranslationKeys.FILTER_BY_LOCATION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.selected_properties_count
+  chosen_en: 'Selected: 0 properties'
+  chosen_et: 'Valitud: 0 kinnistut'
+  cluster_id: 'selected: 0 properties'
+  members:
+  - TranslationKeys.SELECTED_PROPERTIES_COUNT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.selected_count_template
+  chosen_en: 'Selected: {count} properties'
+  chosen_et: 'Valitud: {count} kinnistut'
+  cluster_id: 'selected: {count} properties'
+  members:
+  - TranslationKeys.SELECTED_COUNT_TEMPLATE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.no_selection
+  chosen_en: No Selection
+  chosen_et: Valikut pole
+  cluster_id: no selection
+  members:
+  - TranslationKeys.NO_SELECTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.please_select_at_least_one_property
+  chosen_en: Please select at least one property.
+  chosen_et: Palun valige vähemalt üks kinnistu.
+  cluster_id: please select at least one property
+  members:
+  - TranslationKeys.PLEASE_SELECT_AT_LEAST_ONE_PROPERTY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.no_property_layer_selected
+  chosen_en: No property layer selected. Please select a property layer first.
+  chosen_et: Kinnistute kihti pole valitud. Palun valige esmalt kinnistute kiht.
+  cluster_id: no property layer selected. please select a property layer first
+  members:
+  - TranslationKeys.NO_PROPERTY_LAYER_SELECTED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_loading_error
+  chosen_en: Data Loading Error
+  chosen_et: Andmete laadimise viga
+  cluster_id: data loading error
+  members:
+  - TranslationKeys.DATA_LOADING_ERROR
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.failed_to_load_property_data
+  chosen_en: Failed to load property data from layer.
+  chosen_et: Andmete laadimine kihist ebaõnnestus.
+  cluster_id: failed to load property data from layer
+  members:
+  - TranslationKeys.FAILED_TO_LOAD_PROPERTY_DATA
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.properties_added
+  chosen_en: Properties Added
+  chosen_et: Kinnistud lisatud
+  cluster_id: properties added
+  members:
+  - TranslationKeys.PROPERTIES_ADDED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.selected_properties_added
+  chosen_en: Selected properties have been added.
+  chosen_et: Valitud kinnistud on lisatud.
+  cluster_id: selected properties have been added
+  members:
+  - TranslationKeys.SELECTED_PROPERTIES_ADDED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.connect_properties
+  chosen_en: connect Prperties
+  chosen_et: Seosta kinnistuid
+  cluster_id: connect prperties
+  members:
+  - TranslationKeys.CONNECT_PROPERTIES
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.chose_from_map
+  chosen_en: Chose from map
+  chosen_et: Vali kaardilt
+  cluster_id: chose from map
+  members:
+  - TranslationKeys.CHOSE_FROM_MAP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_property_first
+  chosen_en: Please select a property feature on the map first.
+  chosen_et: Palun valige esmalt kaardilt kinnisvara objekt.
+  cluster_id: please select a property feature on the map first
+  members:
+  - TranslationKeys.SELECT_PROPERTY_FIRST
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.error_selecting_property
+  chosen_en: Error selecting property
+  chosen_et: Viga kinnisvara valimisel
+  cluster_id: error selecting property
+  members:
+  - TranslationKeys.ERROR_SELECTING_PROPERTY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_single_property_title
+  chosen_en: Select Single Property
+  chosen_et: Vali üks kinnisvara
+  cluster_id: select single property
+  members:
+  - TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_single_property_message
+  chosen_en: Please select only one property feature on the map.
+  chosen_et: Palun valige kaardilt ainult üks kinnisvara objekt.
+  cluster_id: please select only one property feature on the map
+  members:
+  - TranslationKeys.SELECT_SINGLE_PROPERTY_MESSAGE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.map_selection_none
+  chosen_en: No properties were selected from the map.
+  chosen_et: Kaardilt ei valitud ühtegi kinnistut.
+  cluster_id: no properties were selected from the map
+  members:
+  - TranslationKeys.MAP_SELECTION_NONE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.map_selection_start_failed
+  chosen_en: Could not start map selection for properties.
+  chosen_et: Kinnistute kaardivalikut ei saanud alustada.
+  cluster_id: could not start map selection for properties
+  members:
+  - TranslationKeys.MAP_SELECTION_START_FAILED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.link_properties_success
+  chosen_en: 'Linked properties saved for project {pid}.
+
+    Total linked: {count}. {preview}{extra}'
+  chosen_et: 'Kinnistute seosed salvestatud projektile {pid}.
+
+    Kokku seotud: {count}. {preview}{extra}'
+  cluster_id: 'linked properties saved for project {pid}. total linked: {count}. {preview}{extra}'
+  members:
+  - TranslationKeys.LINK_PROPERTIES_SUCCESS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.link_properties_missing_note
+  chosen_en: 'Missing/not found: {missing}'
+  chosen_et: 'Puuduvad/ei leitud: {missing}'
+  cluster_id: 'missing/not found: {missing}'
+  members:
+  - TranslationKeys.LINK_PROPERTIES_MISSING_NOTE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.link_properties_error
+  chosen_en: 'Could not link properties for project {pid}.
+
+    Pending selection ({count}): {preview}
+
+
+    Details: {err}'
+  chosen_et: 'Kinnistute seostamine projektile {pid} ebaõnnestus.
+
+    Ootel valik ({count}): {preview}
+
+
+    Detailid: {err}'
+  cluster_id: 'could not link properties for project {pid}. pending selection ({count}):
+    {preview} details: {err}'
+  members:
+  - TranslationKeys.LINK_PROPERTIES_ERROR
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.more_count_suffix
+  chosen_en: ' … (+{count} more)'
+  chosen_et: ' … (+{count} veel)'
+  cluster_id: … (+{count} more)
+  members:
+  - TranslationKeys.MORE_COUNT_SUFFIX
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.link_review_connections_title
+  chosen_en: Connections
+  chosen_et: Seosed
+  cluster_id: connections
+  members:
+  - TranslationKeys.LINK_REVIEW_CONNECTIONS_TITLE
+  - TranslationKeys.CONNECTIONS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.link_review_already_linked
+  chosen_en: Already linked
+  chosen_et: Juba seotud
+  cluster_id: already linked
+  members:
+  - TranslationKeys.LINK_REVIEW_ALREADY_LINKED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.link_review_new_selections
+  chosen_en: New selections
+  chosen_et: Uued valikud
+  cluster_id: new selections
+  members:
+  - TranslationKeys.LINK_REVIEW_NEW_SELECTIONS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.link_review_reselect
+  chosen_en: Reselect
+  chosen_et: Vali uuesti
+  cluster_id: reselect
+  members:
+  - TranslationKeys.LINK_REVIEW_RESELECT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: toolbartranslationkeys.open_folder
+  chosen_en: Open folder
+  chosen_et: Ava kaust
+  cluster_id: open folder
+  members:
+  - ToolbarTranslationKeys.OPEN_FOLDER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: toolbartranslationkeys.open_item_in_browser
+  chosen_en: Open item in browser
+  chosen_et: Ava kirje brauseris
+  cluster_id: open item in browser
+  members:
+  - ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: toolbartranslationkeys.show_items_on_map
+  chosen_en: Show items on map
+  chosen_et: Näita kirjeid kaardil
+  cluster_id: show items on map
+  members:
+  - ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: toolbartranslationkeys.generate_project_folder
+  chosen_en: Generate project folder
+  chosen_et: Genereeri projekti kaust
+  cluster_id: generate project folder
+  members:
+  - ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: roletranslationkeys.admins
+  chosen_en: Admins
+  chosen_et: Admin
+  cluster_id: admins
+  members:
+  - RoleTranslationKeys.ADMINS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: roletranslationkeys.administrators
+  chosen_en: Administrators
+  chosen_et: Administraatorid
+  cluster_id: administrators
+  members:
+  - RoleTranslationKeys.ADMINISTRATORS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: roletranslationkeys.project_managers
+  chosen_en: Project Managers
+  chosen_et: Projektijuht
+  cluster_id: project managers
+  members:
+  - RoleTranslationKeys.PROJECT_MANAGERS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: roletranslationkeys.users
+  chosen_en: Users
+  chosen_et: Kasuta
+  cluster_id: users
+  members:
+  - RoleTranslationKeys.USERS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: roletranslationkeys.managers
+  chosen_en: Managers
+  chosen_et: Vastutaja
+  cluster_id: managers
+  members:
+  - RoleTranslationKeys.MANAGERS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: roletranslationkeys.editors
+  chosen_en: Editors
+  chosen_et: Muutja
+  cluster_id: editors
+  members:
+  - RoleTranslationKeys.EDITORS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: roletranslationkeys.viewers
+  chosen_en: Viewers
+  chosen_et: Vaataja
+  cluster_id: viewers
+  members:
+  - RoleTranslationKeys.VIEWERS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: roletranslationkeys.guests
+  chosen_en: Guests
+  chosen_et: Külaline
+  cluster_id: guests
+  members:
+  - RoleTranslationKeys.GUESTS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.start
+  chosen_en: Start
+  chosen_et: Algus
+  cluster_id: start
+  members:
+  - TranslationKeys.START
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.created
+  chosen_en: Created
+  chosen_et: Loodud
+  cluster_id: created
+  members:
+  - TranslationKeys.CREATED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.updated
+  chosen_en: Updated
+  chosen_et: Muudetud
+  cluster_id: updated
+  members:
+  - TranslationKeys.UPDATED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: common.test_lab
+  chosen_en: Test Lab
+  chosen_et: Test Lab
+  cluster_id: test lab
+  members:
+  - '''Signaltest'''
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.tags_preferences
+  chosen_en: Tags preferences
+  chosen_et: Eelistatud tunnused
+  cluster_id: tags preferences
+  members:
+  - TranslationKeys.TAGS_PREFERENCES
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.status_preferences
+  chosen_en: Status preferences
+  chosen_et: Eelistatud staatused
+  cluster_id: status preferences
+  members:
+  - TranslationKeys.STATUS_PREFERENCES
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.type_preferences
+  chosen_en: Type preferences
+  chosen_et: Eelistatud liigid
+  cluster_id: type preferences
+  members:
+  - TranslationKeys.TYPE_PREFERENCES
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_type_description
+  chosen_en: Select types you want to focus on for this module. These will be highlighted
+    in the interface.
+  chosen_et: Vali liigid, mida soovid selles moodulis eelistada. Need tõstetakse esile
+  cluster_id: select types you want to focus on for this module. these will be highlighted
+    in the interface
+  members:
+  - TranslationKeys.SELECT_TYPE_DESCRIPTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_statuses_description
+  chosen_en: Select statuses you want to prioritize for this module. These will be
+    highlighted in the interface.
+  chosen_et: Vali staatused, mida soovid selles moodulis eelistada. Need tõstetakse
+    esile
+  cluster_id: select statuses you want to prioritize for this module. these will be
+    highlighted in the interface
+  members:
+  - TranslationKeys.SELECT_STATUSES_DESCRIPTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.select_tags_description
+  chosen_en: Select tags you want to focus on for this module. These will be highlighted
+    in the interface.
+  chosen_et: Vali tunnused, mida soovid selles moodulis eelistada. Need tõstetakse
+    esile
+  cluster_id: select tags you want to focus on for this module. these will be highlighted
+    in the interface
+  members:
+  - TranslationKeys.SELECT_TAGS_DESCRIPTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: dialoglabels.projects_source_folder
+  chosen_en: Projects source folder
+  chosen_et: Projektide lähtekaust
+  cluster_id: projects source folder
+  members:
+  - DialogLabels.PROJECTS_SOURCE_FOLDER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: dialoglabels.projects_target_folder
+  chosen_en: Projects target folder
+  chosen_et: Projektide sihtkaust
+  cluster_id: projects target folder
+  members:
+  - DialogLabels.PROJECTS_TARGET_FOLDER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: dialoglabels.projects_photo_folder
+  chosen_en: Projects photo folder
+  chosen_et: Projektide fotode kaust
+  cluster_id: projects photo folder
+  members:
+  - DialogLabels.PROJECTS_PHOTO_FOLDER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: dialoglabels.projects_prefered_folder_name_structure
+  chosen_en: Prefered folder name structure
+  chosen_et: Eelistatud kausta nime struktuur
+  cluster_id: prefered folder name structure
+  members:
+  - DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: dialoglabels.projects_prefered_folder_name_structure_enabled
+  chosen_en: Enable prefered folder name structure
+  chosen_et: Luba eelistatud kausta nime struktuur
+  cluster_id: enable prefered folder name structure
+  members:
+  - DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: dialoglabels.projects_prefered_folder_name_structure_rule
+  chosen_en: Prefered folder name structure rule
+  chosen_et: Eelistatud kausta nime struktuuri reegel
+  cluster_id: prefered folder name structure rule
+  members:
+  - DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: toolbartranslationkeys.more_actions
+  chosen_en: More actions
+  chosen_et: Rohkem toiminguid
+  cluster_id: more actions
+  members:
+  - ToolbarTranslationKeys.MORE_ACTIONS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: settingdialogplaceholders.unset
+  chosen_en: Unset
+  chosen_et: Määramata
+  cluster_id: unset
+  members:
+  - SettingDialogPlaceholders.UNSET
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: foldernamingtranslationkeys.tr_empty
+  chosen_en: Empty
+  chosen_et: Tühi
+  cluster_id: empty
+  members:
+  - FolderNamingTranslationKeys.TR_EMPTY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: foldernamingtranslationkeys.tr_project_number
+  chosen_en: Project Number
+  chosen_et: Projekti number
+  cluster_id: project number
+  members:
+  - FolderNamingTranslationKeys.TR_PROJECT_NUMBER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: foldernamingtranslationkeys.tr_project_name
+  chosen_en: Project Name
+  chosen_et: Projekti nimi
+  cluster_id: project name
+  members:
+  - FolderNamingTranslationKeys.TR_PROJECT_NAME
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: foldernamingtranslationkeys.tr_symbol
+  chosen_en: Symbol
+  chosen_et: sümbol
+  cluster_id: symbol
+  members:
+  - FolderNamingTranslationKeys.TR_SYMBOL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: foldernamingtranslationkeys.tr_symbol_text
+  chosen_en: Symbol text
+  chosen_et: sümboli tekst
+  cluster_id: symbol text
+  members:
+  - FolderNamingTranslationKeys.TR_SYMBOL_TEXT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: foldernamingtranslationkeys.tr_preview_prefix
+  chosen_en: 'Preview: '
+  chosen_et: 'Eelvaade: '
+  cluster_id: preview
+  members:
+  - FolderNamingTranslationKeys.TR_PREVIEW_PREFIX
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: foldernamingtranslationkeys.tr_preview_empty
+  chosen_en: (empty)
+  chosen_et: (tühi)
+  cluster_id: (empty)
+  members:
+  - FolderNamingTranslationKeys.TR_PREVIEW_EMPTY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: foldernamingtranslationkeys.tr_symbol_required
+  chosen_en: Symbol text is required.
+  chosen_et: Sümboli tekst on kohustuslik.
+  cluster_id: symbol text is required
+  members:
+  - FolderNamingTranslationKeys.TR_SYMBOL_REQUIRED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: foldernamingtranslationkeys.tr_select_at_least_one
+  chosen_en: Select at least one slot.
+  chosen_et: Valige vähemalt üks koht.
+  cluster_id: select at least one slot
+  members:
+  - FolderNamingTranslationKeys.TR_SELECT_AT_LEAST_ONE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: foldernamingtranslationkeys.tr_invalid_rule
+  chosen_en: Invalid rule
+  chosen_et: Vigane reegel
+  cluster_id: invalid rule
+  members:
+  - FolderNamingTranslationKeys.TR_INVALID_RULE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_desc
+  chosen_en: Load a SHP into a temporary memory layer and compare its fields against
+    the expected property schema.
+  chosen_et: Lae SHP ajamällu ja võrdle selle välju oodatud kinnisvara skeemiga.
+  cluster_id: load a shp into a temporary memory layer and compare its fields against
+    the expected property schema
+  members:
+  - TranslationKeys.SIGNALTEST_DESC
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_step_load
+  chosen_en: Load SHP into memory
+  chosen_et: Lae SHP mällu
+  cluster_id: load shp into memory
+  members:
+  - TranslationKeys.SIGNALTEST_STEP_LOAD
+  - TranslationKeys.SIGNALTEST_LOAD_BTN
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_step_review
+  chosen_en: Review the table of logical vs layer fields
+  chosen_et: 'Vaata tabelit: loogilised vs kihi väljad'
+  cluster_id: review the table of logical vs layer fields
+  members:
+  - TranslationKeys.SIGNALTEST_STEP_REVIEW
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_step_map
+  chosen_en: If required/optional are missing/unmapped, click 'Open mapper' and align
+  chosen_et: Kui nõutud/valikulised on puudu/joondamata, ava kaardistaja ja joonda
+  cluster_id: if required/optional are missing/unmapped, click 'open mapper' and align
+  members:
+  - TranslationKeys.SIGNALTEST_STEP_MAP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_mapper_btn
+  chosen_en: Open mapper
+  chosen_et: Ava mapper
+  cluster_id: open mapper
+  members:
+  - TranslationKeys.SIGNALTEST_MAPPER_BTN
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_panel_schema
+  chosen_en: Schema vs SHP
+  chosen_et: Skeem vs SHP
+  cluster_id: schema vs shp
+  members:
+  - TranslationKeys.SIGNALTEST_PANEL_SCHEMA
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_panel_main
+  chosen_en: Main layer vs SHP
+  chosen_et: Põhikiht vs SHP
+  cluster_id: main layer vs shp
+  members:
+  - TranslationKeys.SIGNALTEST_PANEL_MAIN
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_panel_archive
+  chosen_en: Archive layer vs SHP
+  chosen_et: Arhiivikiht vs SHP
+  cluster_id: archive layer vs shp
+  members:
+  - TranslationKeys.SIGNALTEST_PANEL_ARCHIVE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_legend_mapped
+  chosen_en: Mapped
+  chosen_et: Joondatud
+  cluster_id: mapped
+  members:
+  - TranslationKeys.SIGNALTEST_LEGEND_MAPPED
+  - TranslationKeys.SIGNALTEST_STATUS_MAPPED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_legend_missing_required
+  chosen_en: Missing (required)
+  chosen_et: Puudub (nõutud)
+  cluster_id: missing (required)
+  members:
+  - TranslationKeys.SIGNALTEST_LEGEND_MISSING_REQUIRED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_legend_unmapped_optional
+  chosen_en: Unmapped (optional)
+  chosen_et: Joondamata (valikuline)
+  cluster_id: unmapped (optional)
+  members:
+  - TranslationKeys.SIGNALTEST_LEGEND_UNMAPPED_OPTIONAL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_legend_extra
+  chosen_en: Extra fields
+  chosen_et: Lisa väljad
+  cluster_id: extra fields
+  members:
+  - TranslationKeys.SIGNALTEST_LEGEND_EXTRA
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_summary_template
+  chosen_en: 'Required missing: {missing_required} | Optional unmapped: {missing_optional}
+    | Extras: {extras}'
+  chosen_et: 'Nõutud puudu: {missing_required} | Valikulised joondamata: {missing_optional}
+    | Lisad: {extras}'
+  cluster_id: 'required missing: {missing_required} | optional unmapped: {missing_optional}
+    | extras: {extras}'
+  members:
+  - TranslationKeys.SIGNALTEST_SUMMARY_TEMPLATE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_main_summary_template
+  chosen_en: 'Missing in main vs SHP: {missing} | Fields only in main: {extras}'
+  chosen_et: 'Puudu põhikihis vs SHP: {missing} | Väljad ainult põhikihis: {extras}'
+  cluster_id: 'missing in main vs shp: {missing} | fields only in main: {extras}'
+  members:
+  - TranslationKeys.SIGNALTEST_MAIN_SUMMARY_TEMPLATE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_archive_summary_template
+  chosen_en: 'Missing in archive vs SHP: {missing} | Fields only in archive: {extras}'
+  chosen_et: 'Puudu arhiivkihis vs SHP: {missing} | Väljad ainult arhiivis: {extras}'
+  cluster_id: 'missing in archive vs shp: {missing} | fields only in archive: {extras}'
+  members:
+  - TranslationKeys.SIGNALTEST_ARCHIVE_SUMMARY_TEMPLATE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_archive_not_found
+  chosen_en: Archive layer not found
+  chosen_et: Arhiivikiht puudub
+  cluster_id: archive layer not found
+  members:
+  - TranslationKeys.SIGNALTEST_ARCHIVE_NOT_FOUND
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_table_header_logical
+  chosen_en: Standard fields
+  chosen_et: Standard väljad
+  cluster_id: standard fields
+  members:
+  - TranslationKeys.SIGNALTEST_TABLE_HEADER_LOGICAL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_table_header_layer
+  chosen_en: Fields in file
+  chosen_et: Väljad failis
+  cluster_id: fields in file
+  members:
+  - TranslationKeys.SIGNALTEST_TABLE_HEADER_LAYER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_table_header_status
+  chosen_en: Result
+  chosen_et: Tulemus
+  cluster_id: result
+  members:
+  - TranslationKeys.SIGNALTEST_TABLE_HEADER_STATUS
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_table_header_note
+  chosen_en: Notes
+  chosen_et: Märkused
+  cluster_id: notes
+  members:
+  - TranslationKeys.SIGNALTEST_TABLE_HEADER_NOTE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_file_dialog_title
+  chosen_en: Select SHP
+  chosen_et: Vali SHP
+  cluster_id: select shp
+  members:
+  - TranslationKeys.SIGNALTEST_FILE_DIALOG_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_file_dialog_filter
+  chosen_en: Shapefiles (*.shp)
+  chosen_et: Shapefailid (*.shp)
+  cluster_id: shapefiles (*.shp)
+  members:
+  - TranslationKeys.SIGNALTEST_FILE_DIALOG_FILTER
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_no_layer_title
+  chosen_en: No layer
+  chosen_et: Kiht puudub
+  cluster_id: no layer
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_NO_LAYER_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_no_layer_body
+  chosen_en: Load a SHP first.
+  chosen_et: Laadi kõigepealt SHP.
+  cluster_id: load a shp first
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_NO_LAYER_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_load_fail
+  chosen_en: Could not load SHP layer.
+  chosen_et: SHP kihti ei õnnestunud laadida.
+  cluster_id: could not load shp layer
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_LOAD_FAIL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_copy_fail
+  chosen_en: Failed to copy SHP to memory layer.
+  chosen_et: SHP kopeerimine mälukihti ebaõnnestus.
+  cluster_id: failed to copy shp to memory layer
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_COPY_FAIL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_comparison_title
+  chosen_en: Field comparison
+  chosen_et: Väljade võrdlus
+  cluster_id: field comparison
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_COMPARISON_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_comparison_done
+  chosen_en: Comparison complete. See details below.
+  chosen_et: Võrdlus valmis. Vaata tulemusi allpool.
+  cluster_id: comparison complete. see details below
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_COMPARISON_DONE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_mapping_saved_title
+  chosen_en: Mapping saved
+  chosen_et: Kaardistus salvestatud
+  cluster_id: mapping saved
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_MAPPING_SAVED_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_mapping_saved_body
+  chosen_en: Field mapping stored on the layer.
+  chosen_et: Väljade vastendus salvestati kihile.
+  cluster_id: field mapping stored on the layer
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_MAPPING_SAVED_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_mapping_not_saved_title
+  chosen_en: Mapping not saved
+  chosen_et: Kaardistust ei salvestatud
+  cluster_id: mapping not saved
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_MAPPING_NOT_SAVED_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_mapping_not_saved_body
+  chosen_en: No changes were applied.
+  chosen_et: Muudatusi ei rakendatud.
+  cluster_id: no changes were applied
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_MAPPING_NOT_SAVED_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_missing_field_title
+  chosen_en: Missing field
+  chosen_et: Puuduv väli
+  cluster_id: missing field
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_MISSING_FIELD_TITLE
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_msg_missing_field_body
+  chosen_en: 'Please map required field: {field}'
+  chosen_et: 'Palun kaardista nõutud väli: {field}'
+  cluster_id: 'please map required field: {field}'
+  members:
+  - TranslationKeys.SIGNALTEST_MSG_MISSING_FIELD_BODY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_status_missing
+  chosen_en: Missing
+  chosen_et: Puudub
+  cluster_id: missing
+  members:
+  - TranslationKeys.SIGNALTEST_STATUS_MISSING
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_status_unmapped
+  chosen_en: Unmapped
+  chosen_et: Mappimata
+  cluster_id: unmapped
+  members:
+  - TranslationKeys.SIGNALTEST_STATUS_UNMAPPED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_status_extra
+  chosen_en: Extra
+  chosen_et: Lisaväli
+  cluster_id: extra
+  members:
+  - TranslationKeys.SIGNALTEST_STATUS_EXTRA
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_note_required
+  chosen_en: required
+  chosen_et: nõutav
+  cluster_id: required
+  members:
+  - TranslationKeys.SIGNALTEST_NOTE_REQUIRED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_note_optional
+  chosen_en: optional
+  chosen_et: valikuline
+  cluster_id: optional
+  members:
+  - TranslationKeys.SIGNALTEST_NOTE_OPTIONAL
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_note_extra
+  chosen_en: Only in layer
+  chosen_et: Ainult kihis
+  cluster_id: only in layer
+  members:
+  - TranslationKeys.SIGNALTEST_NOTE_EXTRA
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_note_target_only
+  chosen_en: Only in target layer
+  chosen_et: Ainult sihtkihis
+  cluster_id: only in target layer
+  members:
+  - TranslationKeys.SIGNALTEST_NOTE_TARGET_ONLY
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_label_extra
+  chosen_en: <extra>
+  chosen_et: <lisaväli>
+  cluster_id: <extra>
+  members:
+  - TranslationKeys.SIGNALTEST_LABEL_EXTRA
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_source_stored
+  chosen_en: stored mapping
+  chosen_et: salvestatud kaardistus
+  cluster_id: stored mapping
+  members:
+  - TranslationKeys.SIGNALTEST_SOURCE_STORED
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_source_auto
+  chosen_en: auto
+  chosen_et: automaatne
+  cluster_id: auto
+  members:
+  - TranslationKeys.SIGNALTEST_SOURCE_AUTO
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_dialog_hint
+  chosen_en: 'Map plugin logical fields to your layer''s fields. Required fields are
+    marked with *.
+
+    Select the matching SHP field; <None> leaves it unmapped (allowed only for optional).'
+  chosen_et: 'Seo plugina loogilised väljad kihis olevate väljadega. Nõutavad väljad
+    on märgitud *.
+
+    Vali sobiv SHP väli; <None> jätab kaardistamata (lubatud vaid valikulisel).'
+  cluster_id: map plugin logical fields to your layer's fields. required fields are
+    marked with *. select the matching shp field; <none> leaves it unmapped (allowed
+    only for optional)
+  members:
+  - TranslationKeys.SIGNALTEST_DIALOG_HINT
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_none_option
+  chosen_en: <None>
+  chosen_et: <Puudub>
+  cluster_id: <none>
+  members:
+  - TranslationKeys.SIGNALTEST_NONE_OPTION
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_option_tooltip
+  chosen_en: Map {logical} to {name}
+  chosen_et: Seo {logical} väljaga {name}
+  cluster_id: map {logical} to {name}
+  members:
+  - TranslationKeys.SIGNALTEST_OPTION_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_required_suffix
+  chosen_en: ' *'
+  chosen_et: ' *'
+  cluster_id: '*'
+  members:
+  - TranslationKeys.SIGNALTEST_REQUIRED_SUFFIX
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.signaltest_logical_tooltip
+  chosen_en: 'Plugin logical field: {logical}'
+  chosen_et: 'Plugina loogiline väli: {logical}'
+  cluster_id: 'plugin logical field: {logical}'
+  members:
+  - TranslationKeys.SIGNALTEST_LOGICAL_TOOLTIP
+  notes: ''
+  status: AUTO_SAFE
+- canonical_id: translationkeys.data_display_widgets_dates_empty
+  chosen_en: No dates available
+  chosen_et: Kuupäevad puuduvad
+  cluster_id: no dates available,no data available
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY
+  - TranslationKeys.PROPERTY_TREE_NO_DATA
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.data_display_widgets_activity_review
+  chosen_en: Review
+  chosen_et: Ülevaatamine
+  cluster_id: review,preview
+  members:
+  - TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REVIEW
+  - FolderNamingTranslationKeys.TR_PREVIEW_PREFIX
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.user
+  chosen_en: User
+  chosen_et: Kasutaja
+  cluster_id: user,users
+  members:
+  - TranslationKeys.USER
+  - '''User'''
+  - RoleTranslationKeys.USERS
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.property_archive_layer_required_body_no_name
+  chosen_en: 'Archive layer is not configured for Properties.
+
+
+    Choose what to do:
+
+    - Open Settings to pick an archive layer
+
+    - Create/load an archive layer inside the same GPKG as MAIN'
+  chosen_et: 'Arhiivikiht pole kinnistute jaoks seadistatud.
+
+
+    Vali edasine:
+
+    - Ava Seaded arhiivikihi valimiseks
+
+    - Loo/laadi arhiivikiht samasse GPKG-sse nagu MAIN'
+  cluster_id: 'archive layer is not configured for properties. choose what to do:
+    - open settings to pick an archive layer - create/load an archive layer inside
+    the same gpkg as main,archive layer ''{name}'' is not found/invalid in the project.
+    choose what to do: - open settings to pick an archive layer - create/load an archive
+    layer inside the same gpkg as main'
+  members:
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_REQUIRED_BODY_NO_NAME
+  - TranslationKeys.PROPERTY_ARCHIVE_LAYER_REQUIRED_BODY_NAME
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.search_placeholder
+  chosen_en: Search...
+  chosen_et: Otsi...
+  cluster_id: search…,search
+  members:
+  - TranslationKeys.SEARCH_PLACEHOLDER
+  - '''Search'''
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.administrator
+  chosen_en: Administrator
+  chosen_et: Administraator
+  cluster_id: administrator,administrators
+  members:
+  - TranslationKeys.ADMINISTRATOR
+  - RoleTranslationKeys.ADMINISTRATORS
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.editor
+  chosen_en: Editor
+  chosen_et: Toimetaja
+  cluster_id: editor,editors
+  members:
+  - TranslationKeys.EDITOR
+  - RoleTranslationKeys.EDITORS
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.viewer
+  chosen_en: Viewer
+  chosen_et: Vaataja
+  cluster_id: viewer,viewers
+  members:
+  - TranslationKeys.VIEWER
+  - RoleTranslationKeys.VIEWERS
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: common.admin
+  chosen_en: Admin
+  chosen_et: null
+  cluster_id: admin,admins
+  members:
+  - '''Admin'''
+  - RoleTranslationKeys.ADMINS
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: common.features_imported
+  chosen_en: features imported
+  chosen_et: objekti imporditud
+  cluster_id: features imported,feature imported
+  members:
+  - '''features imported'''
+  - '''feature imported'''
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: common.area_must_be_greater_than_0
+  chosen_en: Area must be greater than 0.
+  chosen_et: Pindala peab olema suurem kui 0.
+  cluster_id: area must be greater than 0,value must be greater than 0
+  members:
+  - '''Area must be greater than 0.'''
+  - '''Value must be greater than 0.'''
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: common.value_must_be_greater_than_0
+  chosen_en: Value must be greater than 0.
+  chosen_et: Väärtus peab olema suurem kui 0.
+  cluster_id: value must be greater than 0,value must be greater than {min}
+  members:
+  - '''Value must be greater than 0.'''
+  - '''Value must be greater than {min}'''
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.coordinations
+  chosen_en: Coordinations
+  chosen_et: Kooskõlastused
+  cluster_id: coordinations,coordination
+  members:
+  - TranslationKeys.COORDINATIONS
+  - TranslationKeys.MODULE_COORDINATION
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.select_from_map
+  chosen_en: Select from map
+  chosen_et: Vali kaardilt
+  cluster_id: select from map,reselect from map
+  members:
+  - TranslationKeys.SELECT_FROM_MAP
+  - TranslationKeys.RESELECT_FROM_MAP
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.tags_preferences
+  chosen_en: Tags preferences
+  chosen_et: Eelistatud tunnused
+  cluster_id: tags preferences,status preferences
+  members:
+  - TranslationKeys.TAGS_PREFERENCES
+  - TranslationKeys.STATUS_PREFERENCES
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.select_type_description
+  chosen_en: Select types you want to focus on for this module. These will be highlighted
+    in the interface.
+  chosen_et: Vali liigid, mida soovid selles moodulis eelistada. Need tõstetakse esile
+  cluster_id: select types you want to focus on for this module. these will be highlighted
+    in the interface,select tags you want to focus on for this module. these will
+    be highlighted in the interface
+  members:
+  - TranslationKeys.SELECT_TYPE_DESCRIPTION
+  - TranslationKeys.SELECT_TAGS_DESCRIPTION
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.select_statuses_description
+  chosen_en: Select statuses you want to prioritize for this module. These will be
+    highlighted in the interface.
+  chosen_et: Vali staatused, mida soovid selles moodulis eelistada. Need tõstetakse
+    esile
+  cluster_id: select statuses you want to prioritize for this module. these will be
+    highlighted in the interface,select tags you want to focus on for this module.
+    these will be highlighted in the interface
+  members:
+  - TranslationKeys.SELECT_STATUSES_DESCRIPTION
+  - TranslationKeys.SELECT_TAGS_DESCRIPTION
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: dialoglabels.projects_prefered_folder_name_structure
+  chosen_en: Prefered folder name structure
+  chosen_et: Eelistatud kausta nime struktuur
+  cluster_id: prefered folder name structure,enable prefered folder name structure
+  members:
+  - DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE
+  - DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: dialoglabels.projects_prefered_folder_name_structure
+  chosen_en: Prefered folder name structure
+  chosen_et: Eelistatud kausta nime struktuur
+  cluster_id: prefered folder name structure,prefered folder name structure rule
+  members:
+  - DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE
+  - DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW
+- canonical_id: translationkeys.signaltest_main_summary_template
+  chosen_en: 'Missing in main vs SHP: {missing} | Fields only in main: {extras}'
+  chosen_et: 'Puudu põhikihis vs SHP: {missing} | Väljad ainult põhikihis: {extras}'
+  cluster_id: 'missing in main vs shp: {missing} | fields only in main: {extras},missing
+    in archive vs shp: {missing} | fields only in archive: {extras}'
+  members:
+  - TranslationKeys.SIGNALTEST_MAIN_SUMMARY_TEMPLATE
+  - TranslationKeys.SIGNALTEST_ARCHIVE_SUMMARY_TEMPLATE
+  notes: REVIEW FUZZY MATCHES
+  status: NEEDS_REVIEW

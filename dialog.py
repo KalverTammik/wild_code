@@ -1,45 +1,38 @@
 import gc
+from functools import partial
+from .Logs.switch_logger import SwitchLogger
+from typing import TYPE_CHECKING
 
-
-from .constants.file_paths import QssPaths
+if TYPE_CHECKING:
+    from .languages.language_manager import LanguageManager
+    from .module_manager import ModuleManager
 from .constants.module_icons import IconNames
-from .constants.settings_keys import SettingsService
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget
 from PyQt5.QtGui import QMouseEvent
 from .widgets.FooterWidget import FooterWidget
 from .widgets.HeaderWidget import HeaderWidget
 # Removed unused: from qgis.PyQt.QtWidgets import QDialog as QgisQDialog
 
-from .modules.projects.ProjectsUi import ProjectsModule
-from .modules.projects.FolderNamingRuleDialog import FolderNamingRuleDialog
-from .modules.contract.ContractUi import ContractsModule
-from .modules.coordination.CoordinationModule import CoordinationModule
-from .modules.Property.PropertyUI import PropertyModule
-from .modules.Settings.SettingsUI import SettingsModule
-from .modules.Settings.setting_keys import SettingDialogPlaceholders
-from .modules.signaltest.SignalTestModule import SignalTestModule
-
-from .widgets.WelcomePage import WelcomePage
-
 from .utils.help.ShowHelp import ShowHelp
 from .widgets.theme_manager import ThemeManager
-from .utils.WindowManagerMinMax import WindowManagerMinMax
+from .ui.window_state.WindowManagerMinMax import WindowManagerMinMax
 from .languages.language_manager import LanguageManager
-from .languages.translation_keys import TranslationKeys, DialogLabels
+from .languages.translation_keys import TranslationKeys
 from .module_manager import ModuleManager
 from .widgets.sidebar import Sidebar
-from .utils.dialog_geometry_watcher import DialogGeometryWatcher
-from .utils.Folders.foldersHelpers import FolderHelpers
+from .ui.window_state.dialog_geometry_watcher import DialogGeometryWatcher
+from .ui.window_state.dialog_helpers import DialogHelpers
+from .utils.SessionManager import SessionUIController
+from .ui.modules_registry import ModulesRegistry
         
-from .utils.SessionManager import SessionManager
 from .utils.url_manager import Module
 from .utils.moduleSwitchHelper import ModuleSwitchHelper
-from qgis.core import QgsSettings
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QSizePolicy
 
-from .utils.search.searchHelpers import SearchHeplpers
+from .utils.search.searchHelpers import SearchUIController
+from .modules.Settings.settings_ui_controller import SettingsUIController
 
 
 
@@ -70,8 +63,8 @@ class PluginDialog(QDialog):
 
 
         # Managers / services first
-        self.lang_manager = LanguageManager()  
-        self.moduleManager = ModuleManager()
+        self.lang_manager: "LanguageManager" = LanguageManager()
+        self.moduleManager: "ModuleManager" = ModuleManager()
         self.retheme_engine = ThemeManager.get_retheme_engine()
         self.window_manager = WindowManagerMinMax(self)  
         self._geometry_restored = False
@@ -85,7 +78,7 @@ class PluginDialog(QDialog):
         )
 
         # Title + icon
-        self.setWindowTitle(self.lang_manager.translate(TranslationKeys.WILD_CODE_PLUGIN_TITLE))
+        self.setWindowTitle(self.lang_manager.translate(TranslationKeys.KAVITRO_PLUGIN_TITLE))
         icon = theme_manager.get_qicon(IconNames.VALISEE_V_ICON_NAME)
         self.setWindowIcon(icon)
 
@@ -103,12 +96,14 @@ class PluginDialog(QDialog):
         dialog_layout.setSpacing(0)
 
         self.header_widget = HeaderWidget(
-            title=self.lang_manager.translate(TranslationKeys.WILD_CODE_PLUGIN_TITLE),
+            title=self.lang_manager.translate(TranslationKeys.KAVITRO_PLUGIN_TITLE),
             switch_callback=self.apply_theme_toggle,
             logout_callback=self.logout
         )
         self.header_widget.helpRequested.connect(ShowHelp.show_help_for_module)
-        self.header_widget.searchResultClicked.connect(lambda module, item_id, title: SearchHeplpers._on_search_result_clicked(self, module, item_id, title))
+        self.header_widget.searchResultClicked.connect(
+            partial(SearchUIController.handle_search_result, self)
+        )
         dialog_layout.addWidget(self.header_widget)
 
         content_layout = QHBoxLayout()
@@ -147,7 +142,10 @@ class PluginDialog(QDialog):
         self.retheme_engine.register(self.footer_widget, qss_files=ThemeManager.app_bundle())
 
         self.loadModules()
-        self.sidebar.itemClicked.connect(lambda moduleName: ModuleSwitchHelper.switch_module(moduleName, dialog=self))
+        self.sidebar.itemClicked.connect(self._on_sidebar_item_clicked)
+        ModuleSwitchHelper.set_dialog_resolver(PluginDialog.get_instance)
+        ModuleSwitchHelper.set_settings_confirm_handler(DialogHelpers.confirm_settings_navigation)
+        ModuleSwitchHelper.set_settings_focus_handler(DialogHelpers.focus_settings_section)
 
         self.destroyed.connect(self._on_destroyed)
 
@@ -161,7 +159,11 @@ class PluginDialog(QDialog):
                 cb(x, y, w, h)
 
             except Exception as e:
-                pass
+                SwitchLogger.log(
+                    "dialog_geometry_callback_failed",
+                    module=Module.HOME.value,
+                    extra={"error": str(e)},
+                )
 
     def subscribe_geometry_updates(self, callback):
         self._geometry_update_callbacks.append(callback)
@@ -178,95 +180,12 @@ class PluginDialog(QDialog):
         PluginDialog._instance = None
 
     def loadModules(self):
-        qss_modular = list(ThemeManager.module_bundle())
+        ModulesRegistry.register_all(self.moduleManager, self)
 
-        qss_signaltest = list(ThemeManager.module_bundle([QssPaths.SETUP_CARD]))
+    def _on_sidebar_item_clicked(self, moduleName):
+        ModuleSwitchHelper.switch_module(moduleName, dialog=self)
 
-        def _pick_folder(_module_key: str, _key: str, current_value: str):
-            start_path = current_value or ""
-            return FolderHelpers.select_folder_path(self, start_path=start_path)
-
-        def _open_folder_rule(_module_key: str, _key: str, current_value: str):
-            print("[DEBUG] Opening folder naming rule dialog")
-            dlg = FolderNamingRuleDialog(self.lang_manager, self, initial_rule=current_value or "")
-            result = dlg.exec_()
-            if result == QDialog.Accepted:
-                return dlg.get_rule()
-            return current_value
-            
-
-            
-    
-        self.moduleManager.registerModule(
-            WelcomePage, 
-            Module.HOME.name, 
-            lang_manager=self.lang_manager,
-        )
-        self.moduleManager.registerModule(
-            SettingsModule, 
-            Module.SETTINGS.name, 
-            sidebar_main_item=False
-        )
-        self.moduleManager.registerModule(
-            PropertyModule, 
-            Module.PROPERTY.name, 
-            qss_files=qss_modular, 
-            lang_manager=self.lang_manager,
-            supports_archive_layer=True
-        )
-        self.moduleManager.registerModule(
-            ProjectsModule, 
-            Module.PROJECT.name, 
-            qss_files=qss_modular, 
-            language=self.lang_manager,
-            supports_statuses=True,
-            supports_tags=True,
-            module_labels=[
-                {"key": SettingDialogPlaceholders.PROJECTS_SOURCE_FOLDER,
-                  "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_SOURCE_FOLDER), 
-                  "tool": "button",
-                  "on_click": _pick_folder},
-
-                {"key": SettingDialogPlaceholders.PROJECTS_TARGET_FOLDER, 
-                 "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_TARGET_FOLDER), 
-                 "tool": "button",
-                 "on_click": _pick_folder},
-
-                {"key": SettingDialogPlaceholders.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE,
-                    "tool": "button",
-                    "title_value": self.lang_manager.translate(DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE),
-                    "on_click": _open_folder_rule},
-            ],
-        )
-        self.moduleManager.registerModule(
-            ContractsModule, 
-            Module.CONTRACT.name, 
-            qss_files=qss_modular, 
-            lang_manager=self.lang_manager,
-            supports_types=True,
-            supports_statuses=True,
-            supports_tags=True,
-        )
-        self.moduleManager.registerModule(
-            CoordinationModule,
-            Module.COORDINATION.name,
-            qss_files=qss_modular,
-            language=self.lang_manager,
-            supports_types=True,
-            supports_statuses=True,
-            supports_tags=True,
-            supports_archive_layer=True,
-        )
-        self.moduleManager.registerModule(
-            SignalTestModule,
-            Module.SIGNALTEST.name,
-            qss_files=qss_signaltest,
-            lang_manager=self.lang_manager,
-        )
-        
-        self.sidebar.populate_from_modules(self.moduleManager)
-        
-      
+             
     def apply_theme_toggle(self):
         # Use ThemeManager to toggle theme and update icon
         new_theme = ThemeManager.toggle_theme(
@@ -283,45 +202,22 @@ class PluginDialog(QDialog):
         super().mouseMoveEvent(event)
 
     def logout(self):
-        SessionManager.clear()
-        import gc
-        gc.collect()
-        self.close()
+        SessionUIController.logout(self)
 
     def showEvent(self, event):
-        if not SessionManager().isLoggedIn():
-            self.close()
+        if not SessionUIController.ensure_logged_in(self):
             return
         super().showEvent(event)
-        QgsSettings().setValue("session/needs_login", False)
-        if self._has_shown and self.moduleManager.getActiveModuleName():
-            # Preserve the current active module on subsequent shows
-            active_name = self.moduleManager.getActiveModuleName()
-            inst = self.moduleManager.getActiveModuleInstance(active_name)
-            if inst:
-                try:
-                    widget = inst.get_widget()
-                    if widget:
-                        self.moduleStack.setCurrentWidget(widget)
-                        self.sidebar.setActiveModuleOnSidebarButton(active_name)
-                except Exception:
-                    pass
-            return
-
-        pref_key = SettingsService().preferred_module().lower() or ""
-        if pref_key and pref_key in self.moduleManager.modules:
-            ModuleSwitchHelper.switch_module(pref_key, dialog=self)
-        else:
-            ModuleSwitchHelper.switch_module(Module.HOME.name, dialog=self)
-        self._has_shown = True
+        SessionUIController.after_show(self)
 
     def closeEvent(self, event):
-        settings = SettingsModule()
-        if settings and settings.has_unsaved_changes():
-            if not settings.confirm_navigation_away(self):
-                event.ignore()
-                return
+        if getattr(self, "_force_close", False):
+            event.accept()
+            return
+        if not SettingsUIController.can_close(self):
+            event.ignore()
+            return
 
         gc.collect()
-        self.hide()
+        self.showMinimized()
         event.ignore()

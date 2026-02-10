@@ -1,5 +1,6 @@
 
 from ...utils.status_color_helper import StatusColorHelper
+from ...python.responses import DataDisplayExtractors
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
@@ -15,12 +16,11 @@ class StatusWidget(QWidget):
         row.setContentsMargins(0, 0, 0, 0)
         row.addStretch(1)  # push everything right
 
-        status = item_data.get('status', {}) or {}
-        name = status.get('name', '-') or '-'
-        hex_color = status.get('color', 'cccccc')
+        status_info = DataDisplayExtractors.extract_status(item_data)
+        name = status_info.name or '-'
+        hex_color = status_info.color or 'cccccc'
 
         bg, fg, border = StatusColorHelper.upgrade_status_color(hex_color)
-        #print(f"[StatusWidget] status '{name}' colors: bg={bg}, fg={fg}, border={border}")
 
         self.status_label = QLabel(name)
         self.status_label.setObjectName("StatusLabel")

@@ -10,18 +10,20 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel, QFrame
 
 from ...ui.ModuleBaseUI import ModuleBaseUI
-from ...widgets.StatusFilterWidget import StatusFilterWidget
-from ...widgets.TypeFilterWidget import TypeFilterWidget
-from ...widgets.TagsFilterWidget import TagsFilterWidget
+from ...widgets.Filters.StatusFilterWidget import StatusFilterWidget
+from ...widgets.Filters.TypeFilterWidget import TypeFilterWidget
+from ...widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ...utils.url_manager import Module
 from ...module_manager import ModuleManager
 from ...widgets.theme_manager import ThemeManager, styleExtras
 from ...constants.file_paths import QssPaths
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
 from ...widgets.OverdueDueSoonPillsWidget import OverduePillsMixin
-from ...widgets.filter_refresh_helper import FilterRefreshHelper
+from ...widgets.Filters.filter_refresh_helper import FilterRefreshHelper
 from ...utils.FilterHelpers.FilterHelper import FilterHelper, FilterRefreshService
 from ...utils.search.SearchOpenItemMixin import SearchOpenItemMixin
+from ...Logs.python_fail_logger import PythonFailLogger
+from ...languages.translation_keys import TranslationKeys
 
 class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
@@ -58,22 +60,28 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
         self._type_preferences_loaded = False
         self._suppress_filter_events = False
 
-        self.wire_overdue_pills(self.toolbar_area)
+        self.wire_overdue_pills(self.toolbar_area, lang_manager=self.lang_manager)
 
         # Register filters (status + optional type)
         if self.supports_status_filter:
-            self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area)
+            self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area, auto_load=False)
             self.toolbar_area.add_left(self.status_filter)
             self.status_filter.selectionChanged.connect(self._on_status_filter_selection)
 
         self.type_filter = None
-        if self.supports_type_filter:
-            self.type_filter = TypeFilterWidget(self.module_key, self.toolbar_area)
-            self.toolbar_area.add_left(self.type_filter)
-            self.type_filter.selectionChanged.connect(self._on_type_filter_selection)
-
+        try:
+            if self.supports_type_filter:
+                self.type_filter = TypeFilterWidget(self.module_key, self.toolbar_area, auto_load=False)
+                self.toolbar_area.add_left(self.type_filter)
+                self.type_filter.selectionChanged.connect(self._on_type_filter_selection)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="contract",
+                event="contract_configure_single_item_failed",
+            )
         if self.supports_tags_filter:
-            self.tags_filter = TagsFilterWidget(self.module_key, self.lang_manager, self.toolbar_area)
+            self.tags_filter = TagsFilterWidget(self.module_key, self.lang_manager, self.toolbar_area, auto_load=False)
             self.toolbar_area.add_left(self.tags_filter)
             self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
 
@@ -92,7 +100,7 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
         self.feed_layout.setContentsMargins(0, 0, 0, 0)
         self.feed_layout.setSpacing(6)
 
-        self._empty_state = QLabel(self.lang_manager.translate("No contracts found") if self.lang_manager else "No contracts found")
+        self._empty_state = QLabel(self.lang_manager.translate(TranslationKeys.NO_CONTRACTS_FOUND))
         self._empty_state.setAlignment(Qt.AlignCenter)
         self._empty_state.setVisible(False)
         self.feed_layout.addWidget(self._empty_state)
@@ -109,18 +117,68 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
             if self.feed_logic is None:
                 self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
             self.feed_logic.configure_single_item_query(self.SINGLE_ITEM_QUERY_FILE)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="contract",
+                event="contract_configure_single_item_failed",
+            )
 
     def activate(self) -> None:
         super().activate()
-        self._refresh_filters()
 
+    def on_first_visible(self) -> None:
+        self._ensure_filters_loaded()
+        self._refresh_filters()
         # Load overdue/due-soon counts for the module and apply to buttons
         self.refresh_overdue_counts(Module.CONTRACT)
 
     def deactivate(self) -> None:
+        self._clear_filters()
+        # Cancel filter worker threads to avoid QThread teardown crashes
+        try:
+            FilterHelper.cancel_pending_load(self.status_filter, invalidate_request=True)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="contract",
+                event="contract_cancel_status_filter_failed",
+            )
+        try:
+            FilterHelper.cancel_pending_load(self.type_filter, invalidate_request=True)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="contract",
+                event="contract_cancel_type_filter_failed",
+            )
+        try:
+            FilterHelper.cancel_pending_load(self.tags_filter, invalidate_request=True)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="contract",
+                event="contract_cancel_tags_filter_failed",
+            )
         super().deactivate()
+
+    def _ensure_filters_loaded(self) -> None:
+        for widget in self._filter_widgets:
+            ensure_loaded = getattr(widget, "ensure_loaded", None)
+            if callable(ensure_loaded):
+                try:
+                    ensure_loaded()
+                except Exception as exc:
+                    print(f"[ContractsModule] Failed to load filter widget: {exc}")
+
+    def _clear_filters(self) -> None:
+        for widget in self._filter_widgets:
+            clear_data = getattr(widget, "clear_data", None)
+            if callable(clear_data):
+                try:
+                    clear_data()
+                except Exception as exc:
+                    print(f"[ContractsModule] Failed to clear filter widget: {exc}")
 
 
     # --- Andmete laadimine ---

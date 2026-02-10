@@ -15,8 +15,9 @@ from ...constants.button_props import ButtonVariant, ButtonSize
 from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
 from ...utils.url_manager import Module
+from ...ui.mixins.token_mixin import TokenMixin
 
-class PropertyModule(QWidget):
+class PropertyModule(TokenMixin, QWidget):
     """
     Property module - focused on displaying and managing data for a single property item.
     Features a header area with info/tools and a tree view for property-related data.
@@ -39,7 +40,8 @@ class PropertyModule(QWidget):
         **kwargs: Any
     ) -> None:
 
-        super().__init__()
+        QWidget.__init__(self)
+        TokenMixin.__init__(self)
         self.name = Module.PROPERTY.value
         self.lang_manager = lang_manager
         self.tools = PropertyUITools(self)

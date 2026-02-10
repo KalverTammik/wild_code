@@ -1,0 +1,25 @@
+Translation Audit (read-only)
+
+What it does
+- Parses languages/translation_keys.py for key constants
+- Scans all .py files for translate(...) usage and UI literal strings
+- Reports missing keys (EN/ET), unknown key usage, literal UI strings, and unused keys
+
+How to run (from repo root)
+python tools/translation_audit.py
+
+Optional outputs
+- Write JSON report:
+  python tools/translation_audit.py --json tools/translation_audit_report.json
+- Create baseline for safe-enforce:
+  python tools/translation_audit.py --write-baseline tools/translation_audit_baseline.json
+- Check only new literals vs baseline:
+  python tools/translation_audit.py --baseline tools/translation_audit_baseline.json
+
+Where the report goes
+- Console output by default
+- JSON report saved to the path passed with --json
+
+Exit codes
+- 0: success, no baseline violations
+- 2: new literal UI strings found compared to baseline

@@ -150,3 +150,76 @@ QComboBox QAbstractItemView::indicator {                   /* checkbox in multi-
     width: 14px; height: 14px;
     margin: 0 6px 0 0;     /* smaller gap between checkbox and text */
 }
+
+/* ---------- Select-all checkbox base (only) ---------- */
+QCheckBox#SelectAllCheckbox[variant="status-filter"]::indicator,
+QCheckBox#SelectAllCheckbox[variant="tags-filter"]::indicator,
+QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 4px;
+
+    /* hard reset against QGIS theme */
+    image: none;
+    border-image: none;
+
+    background-color: #ffffff;
+}
+
+/* also hard-reset *all* states (QGIS often sets image on these) */
+QCheckBox#SelectAllCheckbox[variant="status-filter"]::indicator:unchecked,
+QCheckBox#SelectAllCheckbox[variant="status-filter"]::indicator:checked,
+QCheckBox#SelectAllCheckbox[variant="status-filter"]::indicator:indeterminate,
+QCheckBox#SelectAllCheckbox[variant="status-filter"]::indicator:hover,
+QCheckBox#SelectAllCheckbox[variant="status-filter"]::indicator:pressed,
+QCheckBox#SelectAllCheckbox[variant="status-filter"]::indicator:disabled,
+QCheckBox#SelectAllCheckbox[variant="tags-filter"]::indicator:unchecked,
+QCheckBox#SelectAllCheckbox[variant="tags-filter"]::indicator:checked,
+QCheckBox#SelectAllCheckbox[variant="tags-filter"]::indicator:indeterminate,
+QCheckBox#SelectAllCheckbox[variant="tags-filter"]::indicator:hover,
+QCheckBox#SelectAllCheckbox[variant="tags-filter"]::indicator:pressed,
+QCheckBox#SelectAllCheckbox[variant="tags-filter"]::indicator:disabled,
+QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:unchecked,
+QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:checked,
+QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:indeterminate,
+QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:hover,
+QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:pressed,
+QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:disabled {
+    image: none;
+    border-image: none;
+}
+
+/* ---------- Status variant ---------- */
+QCheckBox#SelectAllCheckbox[variant="status-filter"]::indicator {
+    border: 1px solid #0f9b8e;
+}
+
+QCheckBox#SelectAllCheckbox[variant="status-filter"]::indicator:checked,
+QCheckBox#SelectAllCheckbox[variant="status-filter"]::indicator:indeterminate {
+    background-color: #0f9b8e;
+}
+
+/* ---------- Tags variant ---------- */
+QCheckBox#SelectAllCheckbox[variant="tags-filter"]::indicator {
+    border: 1px solid #6b46c1;
+}
+
+QCheckBox#SelectAllCheckbox[variant="tags-filter"]::indicator:checked,
+QCheckBox#SelectAllCheckbox[variant="tags-filter"]::indicator:indeterminate {
+    background-color: #6b46c1;
+}
+
+/* ---------- Type variant ---------- */
+QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator {
+    border: 1px solid #0078d4;
+}
+
+QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:checked,
+QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:indeterminate {
+    background-color: #0078d4;
+}
+
+/* optional: slightly bigger click-target (since your checkbox has no text) */
+QCheckBox#SelectAllCheckbox {
+    padding: 2px;
+}

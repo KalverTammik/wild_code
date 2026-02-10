@@ -6,6 +6,7 @@ from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from ....python.api_client import APIClient
 
 from ....utils.TagsEngines import TagsEngines
+from ....Logs.python_fail_logger import PythonFailLogger
 
 class UpdatePropertyData:
 
@@ -216,7 +217,12 @@ class UpdatePropertyData:
         mutation_file = "UpdateProperty.graphql"
         try:
             mutation = GraphQLQueryLoader().load_query_by_module(module=Module.PROPERTY.name, query_filename=mutation_file)
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_status_mutation_load_failed",
+            )
             return False
 
         client = APIClient()
@@ -229,8 +235,13 @@ class UpdatePropertyData:
             try:
                 client.send_query(mutation, {"input": input_payload})
                 return True
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="property_status_update_failed",
+                    extra={"input": input_payload},
+                )
 
         # 2) Try status relation via STATUS id
         status_id = UpdatePropertyData._resolve_property_status_id_by_name(status_name)
@@ -246,8 +257,13 @@ class UpdatePropertyData:
             try:
                 client.send_query(mutation, {"input": input_payload})
                 return True
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="property_status_update_failed",
+                    extra={"input": input_payload},
+                )
 
         return False
 
@@ -260,8 +276,12 @@ class UpdatePropertyData:
         # Best-effort: mark backend status
         try:
             UpdatePropertyData._set_backend_property_status(item_id, status_name="ARCHIVED")
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_backend_archive_status_failed",
+            )
 
         #print(f"✔️ Final item_id to use: {item_id} ({type(item_id)})")
         module= Module.PROPERTY.name
@@ -307,7 +327,12 @@ class UpdatePropertyData:
         prefix = (TagsEngines.ARHIVEERITUD_NAME_ADDITION or "") + " - "
         try:
             current_name = str(UpdatePropertyData._get_properties_street_name_to_achived(property_id=item_id) or "")
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_archive_name_fetch_failed",
+            )
             current_name = ""
         had_prefix = bool(prefix and current_name.startswith(prefix))
 
@@ -320,7 +345,12 @@ class UpdatePropertyData:
                 if wanted and name == wanted:
                     tag_present = True
                     break
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_archive_tags_fetch_failed",
+            )
             # If tags cannot be fetched, fall back to prefix-only behavior.
             tag_present = False
 
@@ -331,8 +361,12 @@ class UpdatePropertyData:
         # Best-effort: mark backend status
         try:
             UpdatePropertyData._set_backend_property_status(item_id, status_name="ACTIVE")
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_backend_activate_status_failed",
+            )
 
         # Remove archive tag (no need to create if missing!)
         tag_id = TagsEngines.get_modules_tag_id_by_name(tag_name=tag_name, module=module)

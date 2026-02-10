@@ -10,6 +10,7 @@ from PyQt5.QtGui import (
 from typing import Optional
 import sys
 import os
+import time
 
 # Handle imports for both standalone and plugin usage
 import sys
@@ -46,6 +47,10 @@ class FrostedGlassFrame(QFrame):
         self.border_color = border_color
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WA_StyledBackground, True)
+        self._cache_key = None
+        self._cached_blur = QPixmap()
+        self._last_grab_ts = 0.0
+        self._min_grab_interval = 0.25
 
     def _grab_under(self) -> QPixmap:
         if not self.window() or not self.window().windowHandle():
@@ -84,10 +89,27 @@ class FrostedGlassFrame(QFrame):
 
         painter.setClipPath(path)
 
-        base = self._grab_under()
-        base = self._blur_pixmap(base)
-        if not base.isNull():
-            painter.drawPixmap(0, 0, base)
+        try:
+            gpos = self.mapToGlobal(QPoint(0, 0))
+            scr = self.window().windowHandle().screen() if self.window() and self.window().windowHandle() else None
+            dpr = scr.devicePixelRatio() if scr else 1.0
+            cache_key = (gpos.x(), gpos.y(), self.width(), self.height(), dpr, self.blur_radius)
+        except Exception:
+            cache_key = None
+
+        now = time.monotonic()
+        should_refresh = (cache_key != self._cache_key) or ((now - self._last_grab_ts) > self._min_grab_interval)
+
+        if should_refresh:
+            base = self._grab_under()
+            blurred = self._blur_pixmap(base)
+            if not blurred.isNull():
+                self._cached_blur = blurred
+                self._cache_key = cache_key
+                self._last_grab_ts = now
+
+        if not self._cached_blur.isNull():
+            painter.drawPixmap(0, 0, self._cached_blur)
 
         painter.fillPath(path, QBrush(self.tint))
 
@@ -98,6 +120,10 @@ class FrostedGlassFrame(QFrame):
         painter.drawPath(path)
 
         painter.end()
+
+    def resizeEvent(self, event):
+        self._cache_key = None
+        super().resizeEvent(event)
 
 
 # --- UniversalStatusBar ------------------------------------------------

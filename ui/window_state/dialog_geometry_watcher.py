@@ -1,11 +1,12 @@
 from qgis.PyQt.QtCore import QSettings, QTimer
+from ...Logs.python_fail_logger import PythonFailLogger
 
 class DialogGeometryWatcher:
     """
     Utility class to monitor and persist the geometry (position and size) of a QDialog.
     Can be attached to any QDialog instance for live geometry tracking and QSettings persistence.
     """
-    def __init__(self, dialog, on_update=None, settings_key="wild_code/plugin_dialog/geometry", poll_interval=200):
+    def __init__(self, dialog, on_update=None, settings_key="kavitro/plugin_dialog/geometry", poll_interval=200):
         self.dialog = dialog
         self.on_update = on_update  # Callback: on_update(x, y, w, h)
         self.settings_key = settings_key
@@ -68,8 +69,12 @@ class DialogGeometryWatcher:
         try:
             settings = QSettings()
             settings.setValue(self.settings_key, [x, y, w, h])
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="dialog_geometry_save_failed",
+            )
 
     def restore_geometry(self):
         try:
@@ -83,10 +88,19 @@ class DialogGeometryWatcher:
                 self.dialog.setGeometry(x, y, w, h)
                 try:
                     self._last_geom = (int(x), int(y), int(w), int(h))
-                except Exception:
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="ui",
+                        event="dialog_geometry_last_geom_failed",
+                    )
                     self._last_geom = None
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="dialog_geometry_restore_failed",
+            )
 
     def stop(self):
         if self._timer:

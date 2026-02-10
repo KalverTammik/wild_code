@@ -1,7 +1,8 @@
 {
-    "graphql_endpoint": "https://kiisu.kavitro.io/graphql",
-    "weblink": "https://kohevpesa.kavitro.io",
+    "graphql_endpoint": "https://base.mailabl.com/graphql",
+    "weblink": "https://app.mailabl.com",
     "api_base": "https://api.kavitro.com/v1",
     "privacy": "https://kavitro.com/et/privaatsuspoliitika/",
-    "terms": "https://kavitro.com/et/kasutustingimused/"
+    "terms": "https://kavitro.com/et/kasutustingimused/",
+    "page_maa_amet": "https://geoportaal.maaamet.ee/est/Ruumiandmed/Maakatastri-andmed/Katastriuksuste-allalaadimine-p592.html"
 }

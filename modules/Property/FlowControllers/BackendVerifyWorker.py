@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import time
+
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from .MainAddProperties import BackendPropertyVerifier, MainAddPropertiesFlow
+from ....Logs.python_fail_logger import PythonFailLogger
 
 
 class BackendVerifyWorker(QObject):
@@ -27,6 +30,18 @@ class BackendVerifyWorker(QObject):
         self._backend_last_updated_override_by_tunnus = backend_last_updated_override_by_tunnus or {}
         self._stop = False
 
+        total = len(rows or [])
+        if total <= 50:
+            self._sleep_every = 0
+            self._sleep_secs = 0.0
+        elif total <= 150:
+            self._sleep_every = 20
+            self._sleep_secs = 0.03
+        else:
+            self._sleep_every = 25
+            self._sleep_secs = 0.05
+        self._no_sleep_until = 50  # process first chunk quickly
+
     def stop(self) -> None:
         self._stop = True
 
@@ -37,6 +52,8 @@ class BackendVerifyWorker(QObject):
         archived_only_backend: list[str] = []
         outdated_backend: list[str] = []
         errors: list[dict] = []
+
+        call_count = 0
 
         for row, tunnus, import_muudet in self._rows:
             if self._stop:
@@ -118,6 +135,22 @@ class BackendVerifyWorker(QObject):
                     "backend_info": backend_info if isinstance(backend_info, dict) else None,
                 },
             )
+
+            call_count += 1
+            if (
+                not self._stop
+                and self._sleep_every
+                and call_count > self._no_sleep_until
+                and call_count % self._sleep_every == 0
+            ):
+                try:
+                    time.sleep(self._sleep_secs)
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="property",
+                        event="backend_verify_sleep_failed",
+                    )
 
         self.finished.emit(
             {

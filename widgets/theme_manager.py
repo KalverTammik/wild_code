@@ -9,6 +9,7 @@ from PyQt5.QtGui import QColor
 from enum import Enum
 from ..constants.file_paths import StylePaths, QssPaths
 from ..constants.module_icons import IconNames, ModuleIconPaths
+from ..Logs.python_fail_logger import PythonFailLogger
 
 settings = QgsSettings()
 
@@ -25,6 +26,8 @@ class ThemeManager(QObject):
     themeChanged = pyqtSignal(str)
 
     _retheme_engine = None
+    _icon_cache: dict[str, QIcon] = {}
+    _STYLE_GUARD_PROP = "kavitro_style_guard"
 
     # Centralized bundles (keep parity between light/dark; order matters)
     APP_BUNDLE = (
@@ -85,11 +88,11 @@ class ThemeManager(QObject):
 
     @staticmethod
     def save_theme_setting(theme_name: str):
-        settings.setValue("wild_code/theme", theme_name)
+        settings.setValue("kavitro/theme", theme_name)
 
     @staticmethod
     def load_theme_setting() -> str:
-        return settings.value("wild_code/theme", Theme.LIGHT)
+        return settings.value("kavitro/theme", Theme.LIGHT)
 
     @staticmethod
     def effective_theme() -> str:
@@ -105,7 +108,14 @@ class ThemeManager(QObject):
         #print(f"Requested icon name: {icon_name}")
         i = IconNames.get_icon(icon_name)
         #print(f"[ThemeManager.get_qicon] resolved icon path: {i}")
-        return QIcon(i)
+        if not i:
+            return QIcon()
+        cached = ThemeManager._icon_cache.get(i)
+        if cached is not None:
+            return cached
+        icon = QIcon(i)
+        ThemeManager._icon_cache[i] = icon
+        return icon
 
     @staticmethod
     def set_initial_theme(widget, switch_button=None, logout_button=None, qss_files=None) -> str:
@@ -140,7 +150,6 @@ class ThemeManager(QObject):
             switch_button.setIcon(ThemeManager.get_qicon(
                 IconNames.LIGHTNESS_ICON if is_dark(theme) else IconNames.DARKNESS_ICON
             ))
-            switch_button.setText("")
         if logout_button is not None:
             logout_button.setIcon(ThemeManager.get_qicon(IconNames.ICON_LOGOUT
             ))
@@ -172,15 +181,43 @@ class ThemeManager(QObject):
         try:
             css = ThemeManager._read_qss(theme_dir, qss_tuple)
             widget.setStyleSheet(css)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="theme_apply_failed",
+            )
 
     @staticmethod
     def apply_module_style(widget, qss_files=None):
         theme = ThemeManager.effective_theme()
         theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
         bundle = ThemeManager.module_bundle(qss_files)
+        try:
+            key = f"{theme}::{'|'.join(bundle)}"
+            if widget is not None:
+                prev = widget.property(ThemeManager._STYLE_GUARD_PROP)
+                if prev == key:
+                    return
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="theme_style_guard_read_failed",
+            )
+            key = None
+
         ThemeManager.apply_theme(widget, theme_dir, bundle)
+
+        try:
+            if widget is not None and key is not None:
+                widget.setProperty(ThemeManager._STYLE_GUARD_PROP, key)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="theme_style_guard_write_failed",
+            )
 # ==== END ThemeManager v2 ====
 
 
@@ -214,8 +251,12 @@ class RethemeEngine:
             if callable(after):
                 try:
                     after(widget, theme)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="ui",
+                        event="theme_after_apply_failed",
+                    )
 
 # ==== BEGIN styleExtras fix ====
 # ==== styleExtras (color variables, theme-aware) ====

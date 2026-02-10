@@ -13,6 +13,7 @@ from ..constants.file_paths import ConfigPaths, GraphQLSettings
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.api_error_handling import ApiErrorKind, summarize_connection_error, tag_message
+from ..Logs.python_fail_logger import PythonFailLogger
 
 class APIClient:
     def __init__(self, session_manager=None, config_path=None):
@@ -190,39 +191,13 @@ class APIClient:
         return False
 
     def _handle_unauthenticated(self) -> bool:
-        """Prompt the user to log in again and return True if a retry should be attempted."""
-        from ..utils.SessionManager import SessionManager
-
-        result = SessionManager.show_session_expired_dialog(lang_manager=self.lang)
-        if result == True:
-            self.open_login_dialog()
-            token = self.session_manager.get_token() if hasattr(self.session_manager, 'get_token') else None
-            return bool(token)
+        """Handle unauthenticated response by invalidating the session."""
+        SessionManager.invalidate_session(reason="401")
         return False
 
     def open_login_dialog(self):
-        """Open the LoginDialog so the user can re-authenticate after session expiry.
-
-        Uses a class-level guard to avoid spawning multiple dialogs if multiple
-        requests fail concurrently. The dialog itself sets the session via
-        SessionManager on successful authentication.
-        """
-        if getattr(APIClient, '_login_dialog_open', False):
-            return
-        APIClient._login_dialog_open = True
-        try:
-            from ..login_dialog import LoginDialog  # inline import: avoid circular at module import time
-            dlg = LoginDialog()
-            dlg.exec_()
-        except Exception as e:
-            # Best-effort log without raising a secondary exception
-            try:
-                from ..utils.logger import error as log_error
-                log_error(f"Failed to open login dialog: {e}")
-            except Exception:
-                pass
-        finally:
-            APIClient._login_dialog_open = False
+        """Open login dialog via SessionManager (guarded)."""
+        SessionManager.request_login(reason="401")
 
 
 class requestBuilder:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 from .BackendVerifyWorker import BackendVerifyWorker
+from ....Logs.python_fail_logger import PythonFailLogger
 
 
 class BackendVerifyController(QObject):
@@ -26,14 +27,22 @@ class BackendVerifyController(QObject):
         try:
             if worker is not None:
                 worker.stop()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="backend_verify_worker_stop_failed",
+            )
 
         try:
             if thread is not None:
                 thread.quit()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="backend_verify_thread_quit_failed",
+            )
 
     def start(
         self,

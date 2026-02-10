@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 from ....languages.translation_keys import TranslationKeys
 from .SettingsPropertyManagement import PropertyManagementUI
 from .SettingsBaseCard import SettingsBaseCard  # assumes BaseCard provides: content_widget(), retheme(), etc.
+from ....Logs.python_fail_logger import PythonFailLogger
 
 
 class UserSettingsCard(SettingsBaseCard):
@@ -142,8 +143,12 @@ class UserSettingsCard(SettingsBaseCard):
             try:
                 pm_layout.removeWidget(self.property_management)
                 self.property_management.setParent(None)
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="settings",
+                    event="settings_user_card_remove_property_management_failed",
+                )
             self.property_management = None
 
         if can_create_property:
@@ -178,7 +183,7 @@ class UserSettingsCard(SettingsBaseCard):
             chk.toggled.connect(lambda checked, btn=chk: self._on_pref_toggled(btn, checked))
             self._preferred_group.addButton(chk)
 
-            label_text = self.lang_manager.translate(module_name.lower())
+            label_text = self.lang_manager.translate_module_name(module_name)
 
             txt = QLabel(label_text, pill)
 
@@ -250,8 +255,12 @@ class UserSettingsCard(SettingsBaseCard):
     def _register_click_target(self, widget, checkbox):
         try:
             widget.installEventFilter(self)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_user_card_register_click_target_failed",
+            )
         self._pill_click_targets[widget] = checkbox
 
     def _reset_click_targets(self):

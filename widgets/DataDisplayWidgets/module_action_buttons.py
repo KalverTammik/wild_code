@@ -23,6 +23,9 @@ from ...languages.translation_keys import TranslationKeys
 from ...utils.MapTools.map_selection_controller import MapSelectionController
 from ...constants.cadastral_fields import Katastriyksus
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
+from ...Logs.python_fail_logger import PythonFailLogger
+from ...ui.window_state.DialogCoordinator import get_dialog_coordinator
+from ...python.responses import DataDisplayExtractors
 
 
 
@@ -39,8 +42,12 @@ def open_item_in_browser(module_name: Optional[str], item_id: Optional[str]) -> 
             base = f"{base}s"
         url = f"{base}/{item_id}"
         loadWebpage.open_webpage(url)
-    except Exception:
-        pass
+    except Exception as exc:
+        PythonFailLogger.log_exception(
+            exc,
+            module=module_name or "general",
+            event="module_action_open_browser_failed",
+        )
 
 
 def show_items_on_map(module_name: Optional[str], item_id: Optional[str]) -> None:
@@ -56,7 +63,7 @@ class CardActionButton(QPushButton):
         self,
         object_name: str,
         icon_name: Optional[str],
-        tooltip_key: Optional[str],
+        tooltip_text: Optional[str],
         lang_manager,
     ) -> None:
         super().__init__("")
@@ -68,16 +75,17 @@ class CardActionButton(QPushButton):
         self.setIconSize(QSize(14, 14))
         if icon_name:
             self.setIcon(ThemeManager.get_qicon(icon_name))
-        if tooltip_key:
-            self.setToolTip(lang_manager.translate(tooltip_key))
+        if tooltip_text:
+            self.setToolTip(tooltip_text)
 
 
 class OpenFolderActionButton(CardActionButton):
     def __init__(self, file_path: Optional[str], lang_manager) -> None:
+        tooltip = lang_manager.translate(ToolbarTranslationKeys.OPEN_FOLDER) if lang_manager else ""
         super().__init__(
             "OpenFolderButton",
             IconNames.ICON_FOLDERICON,
-            ToolbarTranslationKeys.OPEN_FOLDER,
+            tooltip,
             lang_manager,
         )
         enabled = bool(file_path)
@@ -88,10 +96,11 @@ class OpenFolderActionButton(CardActionButton):
 
 class OpenWebActionButton(CardActionButton):
     def __init__(self, module_name: Optional[str], item_id: Optional[str], lang_manager) -> None:
+        tooltip = lang_manager.translate(ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER) if lang_manager else ""
         super().__init__(
             "OpenWebpageButton",
             IconNames.VALISEE_V_ICON_NAME,
-            ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER,
+            tooltip,
             lang_manager,
         )
         enabled = bool(module_name and item_id)
@@ -104,10 +113,11 @@ class OpenWebActionButton(CardActionButton):
 
 class MoreActionsButton(CardActionButton):
     def __init__(self, lang_manager=None, item_data=None, module=None, on_properties_linked=None) -> None:
+        tooltip = lang_manager.translate(ToolbarTranslationKeys.MORE_ACTIONS) if lang_manager else ""
         super().__init__(
             "MoreActionsButton",
             IconNames.ICON_ADD,
-            ToolbarTranslationKeys.MORE_ACTIONS,
+            tooltip,
             lang_manager,
         )
         self._item_data = item_data
@@ -157,9 +167,9 @@ class MoreActionsButton(CardActionButton):
                 )
                 return
             FolderEngines.generate_project_folder_from_template(
-                item_data.get("id"),
-                item_data.get("name"),
-                item_data.get("projectNumber"),
+                DataDisplayExtractors.extract_item_id(item_data),
+                DataDisplayExtractors.extract_item_name(item_data),
+                DataDisplayExtractors.extract_project_number(item_data),
                 source_folder=folder_to_copy,
                 target_folder=target_folder,
             )
@@ -283,8 +293,12 @@ class MoreActionsButton(CardActionButton):
                     if callable(self._on_properties_linked):
                         try:
                             self._on_properties_linked(list(refreshed))
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            PythonFailLogger.log_exception(
+                                exc,
+                                module=module or "general",
+                                event="module_action_properties_linked_callback_failed",
+                            )
                 else:
                     summary = ", ".join(selected_numbers[:5])
                     if len(selected_numbers) > 5:
@@ -339,7 +353,7 @@ class MoreActionsButton(CardActionButton):
             _open_review_dialog(cadastral_numbers, features)
 
         def _start_selection():
-            self._minimize_parent_window_if_safe()
+            self._enter_map_selection_mode()
             started = controller.start_selection(
                 main_layer,
                 on_selected=_on_selected,
@@ -356,34 +370,47 @@ class MoreActionsButton(CardActionButton):
                     lang_manager.translate(TranslationKeys.MAP_SELECTION_START_FAILED),
                 )
                 self._map_selection_controller = None
-                self._restore_parent_window()
+                self._exit_map_selection_mode()
 
         _start_selection()
 
     def _minimize_parent_window_if_safe(self) -> None:
-        w = self._resolve_parent_window()
-        if w is None:
-            return
-        try:
-            if w.isVisible() and not w.isMinimized():
-                w.showMinimized()
-                self._parent_window = w
-                self._restore_parent_on_close = True
-        except Exception:
-            pass
+        self._enter_map_selection_mode()
 
     def _restore_parent_window(self) -> None:
+        self._exit_map_selection_mode()
+
+    def _get_safe_parent_window(self) -> Optional[QDialog]:
+        w = self._resolve_parent_window()
+        if w is None:
+            return None
+        try:
+            qgis_main = iface.mainWindow() if iface is not None else None
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=self.module or "general",
+                event="module_action_qgis_main_failed",
+            )
+            qgis_main = None
+        if qgis_main is not None and w is qgis_main:
+            return None
+        return w
+
+    def _enter_map_selection_mode(self) -> None:
+        coordinator = get_dialog_coordinator(iface)
+        parent_window = self._get_safe_parent_window()
+        coordinator.enter_map_selection_mode(parent=parent_window, dialogs=[self])
+        if parent_window is not None:
+            self._parent_window = parent_window
+            self._restore_parent_on_close = True
+
+    def _exit_map_selection_mode(self) -> None:
         if not self._restore_parent_on_close:
             return
-        w = self._parent_window or self._resolve_parent_window()
-        if w is None:
-            return
-        try:
-            w.showNormal()
-            w.raise_()
-            w.activateWindow()
-        except Exception:
-            pass
+        coordinator = get_dialog_coordinator(iface)
+        parent_window = self._get_safe_parent_window() or self._parent_window
+        coordinator.exit_map_selection_mode(parent=parent_window, dialogs=[self])
         self._restore_parent_on_close = False
 
     def _resolve_parent_window(self) -> Optional[QDialog]:
@@ -391,18 +418,15 @@ class MoreActionsButton(CardActionButton):
             top = self.window()
             while top is not None and top.parent() not in (None, top):
                 top = top.parent()
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=self.module or "general",
+                event="module_action_resolve_parent_failed",
+            )
             top = None
 
         if top is None:
-            return None
-
-        try:
-            qgis_main = iface.mainWindow() if iface is not None else None
-        except Exception:
-            qgis_main = None
-
-        if qgis_main is not None and top is qgis_main:
             return None
 
         return top

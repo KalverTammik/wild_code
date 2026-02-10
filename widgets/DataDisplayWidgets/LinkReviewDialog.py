@@ -50,7 +50,7 @@ class LinkReviewDialog(QDialog):
         reselect_btn.setProperty("variant", ButtonVariant.PRIMARY)
         confirm_btn = QPushButton(lang_manager.translate(TranslationKeys.CONFIRM))
         confirm_btn.setProperty("variant", ButtonVariant.SUCCESS)
-        cancel_btn = QPushButton(lang_manager.translate(TranslationKeys.CANCEL))
+        cancel_btn = QPushButton(lang_manager.translate(TranslationKeys.CANCEL_BUTTON))
         cancel_btn.setProperty("variant", ButtonVariant.WARNING)
         buttons.addWidget(reselect_btn)
         buttons.addWidget(cancel_btn)

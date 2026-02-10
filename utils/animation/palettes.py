@@ -1,5 +1,5 @@
 from PyQt5.QtGui import QColor
-from wild_code.widgets.theme_manager import ThemeManager, Theme, is_dark
+from ...widgets.theme_manager import ThemeManager, Theme, is_dark
 
 
 def get_dev_halo_palette():

@@ -13,6 +13,7 @@ from qgis.gui import QgsCheckableComboBox
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.mapandproperties.PropertyUpdateFlowCoordinator import PropertyUpdateFlowCoordinator
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class LocationFilterHelper(QObject):
@@ -77,9 +78,13 @@ class LocationFilterHelper(QObject):
             self._zoom_after_table_update = False
             try:
                 self._zoom_map()
-            except Exception:
+            except Exception as exc:
                 # Zoom is best-effort; don't break the UI flow.
-                pass
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="location_filter_zoom_failed",
+                )
 
     def reload_current_table_from_filters(self, *, zoom: bool = False) -> None:
         self._stop_checks(True)
@@ -123,8 +128,12 @@ class LocationFilterHelper(QObject):
         self._stop_checks(False)
         try:
             self._update_add_button_state(0)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="location_filter_update_add_button_failed",
+            )
 
         self.request_zoom_after_next_table_update()
         self._city_reload_timer.start()
@@ -192,6 +201,7 @@ class LocationFilterWidget(QFrame):
 
         self.city_combo = QgsCheckableComboBox()
         self.city_combo.setObjectName("CityCombo")
+        self.city_combo.setMaxVisibleItems(12)
         self.city_combo.setPlaceholderText(self.lang_manager.translate(TranslationKeys.SELECT_SETTLEMENTS))
         self.city_combo.setEnabled(False)
         city_layout.addWidget(self.city_combo)

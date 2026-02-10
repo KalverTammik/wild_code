@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
 
 from ..widgets.theme_manager import ThemeManager, styleExtras, ThemeShadowColors, AlphaLevel
 from ..constants.file_paths import QssPaths
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class ModuleToolbarArea(QFrame):
@@ -133,8 +134,12 @@ class ModuleToolbarArea(QFrame):
                 if w is not None:
                     w.setParent(None)
                     w.deleteLater()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="toolbar_clear_layout_failed",
+            )
 
     def resizeEvent(self, event):  # noqa: D401
         super().resizeEvent(event)

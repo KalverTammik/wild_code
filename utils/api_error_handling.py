@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from time import monotonic
 from typing import Optional, Tuple, Union
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class ApiErrorKind(str, Enum):
@@ -60,8 +61,12 @@ def parse_tagged_message(message: Union[str, Exception]) -> Tuple[ApiErrorKind, 
             rest = after_prefix[after_prefix.index("]") + 1 :].lstrip()
             kind = ApiErrorKind(kind_token) if kind_token in ApiErrorKind._value2member_map_ else ApiErrorKind.UNKNOWN
             return kind, rest
-    except Exception:
-        pass
+    except Exception as exc:
+        PythonFailLogger.log_exception(
+            exc,
+            module="api",
+            event="parse_tagged_message_failed",
+        )
 
     return ApiErrorKind.UNKNOWN, text
 

@@ -3,6 +3,8 @@ from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QFrame, QHBoxLayout, Q
 from PyQt5.QtGui import QFont
 from ...constants.file_paths import QssPaths
 from ...constants.module_icons import IconNames
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import ThemeManager
 from .ModuleConfig import ModuleConfigFactory
 
@@ -21,7 +23,12 @@ class ExtraInfoWidget(QWidget):
         super().__init__(parent)
         self.item_id = item_id
         self.module_name = module_name
-        self.config = ModuleConfigFactory.create_config(module_type=self.module_name, item_id=self.item_id)
+        self._lang = LanguageManager()
+        self.config = ModuleConfigFactory.create_config(
+            module_type=self.module_name,
+            item_id=self.item_id,
+            lang_manager=self._lang,
+        )
         self._build_ui()
 
     def _build_ui(self):
@@ -47,7 +54,7 @@ class ExtraInfoWidget(QWidget):
 
         expand_btn = QPushButton()
         expand_btn.setObjectName("ExpandButton")
-        expand_btn.setToolTip("Ava detailne ülevaade")
+        expand_btn.setToolTip(self._lang.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_EXTRAINFO_TOOLTIP))
         expand_btn.setFixedSize(22, 22)                    # a little tighter
         expand_btn.setIcon(ThemeManager.get_qicon(IconNames.ICON_EYE))
         expand_btn.setIconSize(QSize(14, 14))              # icon fits inside 22x22 nicely
@@ -142,7 +149,10 @@ class ExtraInfoWidget(QWidget):
     def _show_detailed_overview(self):
         """Show detailed activity overview in a dialog window."""
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"{self.config.title} - Detailne ülevaade")
+        title_suffix = self._lang.translate(
+            TranslationKeys.DATA_DISPLAY_WIDGETS_DETAIL_TITLE_SUFFIX
+        )
+        dialog.setWindowTitle(f"{self.config.title} - {title_suffix}")
         dialog.setModal(True)
         dialog.resize(600, 400)
 
@@ -210,7 +220,8 @@ class ExtraInfoWidget(QWidget):
         layout.addWidget(scroll_area)
 
         # Close button
-        close_btn = QPushButton("Sulge")
+        close_label = self._lang.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_CLOSE)
+        close_btn = QPushButton(close_label)
         # Prevent button from being triggered by Return key
         close_btn.setAutoDefault(False)
         close_btn.setDefault(False)

@@ -1,14 +1,17 @@
 from typing import Optional, Sequence
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget, QPushButton
 
-from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
-
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
+from ...modules.signaltest.SignalTestDialog import SignalTestDialog
+from ...widgets.theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
 from ...utils.url_manager import Module
-from ...widgets.theme_manager import ThemeManager
+from ...ui.mixins.token_mixin import TokenMixin
 
 
-class SignalTestModule(QWidget):
-    """Retired placeholder for the former SignalTest sandbox."""
+class SignalTestModule(TokenMixin, QWidget):
+    """Minimal host that launches the standalone SignalTest dialog."""
 
     def __init__(
         self,
@@ -16,14 +19,13 @@ class SignalTestModule(QWidget):
         parent: Optional[QWidget] = None,
         qss_files: Optional[Sequence[str]] = None,
     ) -> None:
-        super().__init__(parent)
-
-        self._qss_files = qss_files
+        QWidget.__init__(self, parent)
+        TokenMixin.__init__(self)
 
         self.module_key = Module.SIGNALTEST.name.lower()
         self.name = self.module_key
-        self.lang_manager = lang_manager
-        self.display_name = "Signaltest"
+        self.lang_manager = lang_manager or LanguageManager()
+        self.display_name = self.lang_manager.translate(TranslationKeys.SIGNALTEST)
 
         ThemeManager.apply_module_style(self, qss_files or [QssPaths.MAIN])
 
@@ -31,16 +33,17 @@ class SignalTestModule(QWidget):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(8)
 
-        title = QLabel("SignalTest")
+        title = QLabel(self.lang_manager.translate(TranslationKeys.SIGNALTEST))
         title.setObjectName("FilterTitle")
         layout.addWidget(title)
 
-        desc = QLabel(
-            "The SignalTest module has completed its test role and is now a placeholder.\n\n"
-            "You can remove or repurpose this slot as needed."
-        )
+        desc = QLabel(self.lang_manager.translate(TranslationKeys.SIGNALTEST_DESC))
         desc.setWordWrap(True)
         layout.addWidget(desc)
+
+        launch_btn = QPushButton(self.lang_manager.translate(TranslationKeys.SIGNALTEST_LOAD_BTN))
+        launch_btn.clicked.connect(self._open_dialog)
+        layout.addWidget(launch_btn)
 
         layout.addStretch(1)
 
@@ -53,7 +56,9 @@ class SignalTestModule(QWidget):
     def get_widget(self) -> QWidget:
         return self
 
-    def _on_test_button(self, n: int) -> None:
-        # legacy toggle removed; this method is intentionally a no-op
-        return
+    def _open_dialog(self) -> None:
+        dialog = SignalTestDialog(self.lang_manager, parent=self)
+        dialog.exec_()
+    
+
 

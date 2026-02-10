@@ -8,6 +8,7 @@ from ..constants.module_icons import IconNames
 
 # from ..utils.logger import debug as log_debug
 from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
 from .SearchResultsWidget import SearchResultsWidget
 from ..utils.search.UnifiedSearchController import UnifiedSearchController
 
@@ -56,10 +57,10 @@ class HeaderWidget(QWidget):
         # Add help icon and text
         self.helpButton.setIcon(ThemeManager.get_qicon(IconNames.ICON_HELP))
         self.helpButton.setIconSize(QSize(18, 18))
-        self.helpButton.setText("Abi")
+        self.helpButton.setText(LanguageManager().translate(TranslationKeys.HEADER_WIDGET_ABI) or "Abi")
                     
         # Add tooltip
-        tooltip = LanguageManager().translate("help_button_tooltip")
+        tooltip = LanguageManager().translate(TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP)
         if tooltip:
             self.helpButton.setToolTip(tooltip)
         
@@ -103,6 +104,9 @@ class HeaderWidget(QWidget):
         self.search_controller.searchSucceeded.connect(self._on_search_success)
         self.search_controller.searchFailed.connect(self._on_search_error)
         self.search_controller.searchStatus.connect(self._on_search_status)
+
+        self._active_token = None
+        self._activated = True
         
         layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
         
@@ -163,24 +167,31 @@ class HeaderWidget(QWidget):
         '''
         self.titleLabel.setText(text)
 
+    def set_active_token(self, token):
+        self._active_token = token
+
+    def is_token_active(self, token):
+        if token is None:
+            return True
+        return self._activated and token == self._active_token
+
     def _emit_help(self):
         """Emit help requested signal."""
         self.helpRequested.emit()
 
     def _on_search_text_changed(self, text):
-        """Handle search text changes with debouncing."""
-        # print(f"[DEBUG] Search text changed: '{text}' (length: {len(text)})")
+        """Handle search text changes with debouncing and debug logging."""
+        print(f"[DEBUG] Search text changed: '{text}' (length: {len(text)})")
         # Hide results if text is too short
         if len(text.strip()) < 3:
-            # print("[DEBUG] Search text too short, hiding results and stopping timer")
+            print("[DEBUG] Search text too short, hiding results and stopping timer")
             self.search_results_widget.hide_results()
             self._search_timer.stop()
             self.search_controller.invalidate()
             return
-            
         # Restart timer for debounced search
-        # print("[DEBUG] Starting search timer (1.5s delay)")
-        self._search_timer.start(500)  # 1.5 second delay
+        print("[DEBUG] Starting search timer (0.5s delay)")
+        self._search_timer.start(500)  # 0.5 second delay
     
     def _perform_search(self):
         """Execute the search query in a worker thread."""

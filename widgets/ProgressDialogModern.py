@@ -7,10 +7,13 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QKeySequence
+from qgis.utils import iface
 
 
 from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
 from ..constants.button_props import ButtonVariant, ButtonSize
+from ..ui.window_state.DialogCoordinator import get_dialog_coordinator
 
 
 
@@ -120,7 +123,9 @@ class ProgressDialogModern(QDialog):
         status_layout.setContentsMargins(10, 10, 10, 10)
 
         # Primary status
-        self.status_label1 = QLabel(self.lang_manager.translate("Initializing...") or "Initializing...")
+        self.status_label1 = QLabel(
+            self.lang_manager.translate(TranslationKeys.INITIALIZING) or "Initializing..."
+        )
         self.status_label1.setObjectName("StatusLabel1")
         status_layout.addWidget(self.status_label1)
 
@@ -135,7 +140,9 @@ class ProgressDialogModern(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        self.cancel_button = QPushButton(self.lang_manager.translate("Cancel") or "Cancel")
+        self.cancel_button = QPushButton(
+            self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON) or "Cancel"
+        )
         self.cancel_button.setObjectName("CancelButton")
         self.cancel_button.setProperty("variant", ButtonVariant.GHOST)
         self.cancel_button.setProperty("btnSize", ButtonSize.SMALL)
@@ -219,10 +226,10 @@ class ProgressDialogModern(QDialog):
         self.current_value = 0
         self.is_cancelled = False
         self.progress_bar.setValue(0)
-        self.status_label1.setText(self.lang_manager.translate("Initializing...") or "Initializing...")
-        self.status_label2.setText("")
-        self.percentage_label.setText("0%")
-        self.cancel_button.setText(self.lang_manager.translate("Cancel") or "Cancel")
+        self.status_label1.setText(self.lang_manager.translate(TranslationKeys.INITIALIZING))
+        self.status_label2.clear()
+        self.percentage_label.setText(self.lang_manager.translate(TranslationKeys.PROGRESS_DIALOG_MODERN_PERCENT))
+        self.cancel_button.setText(self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON))
         self.cancel_button.setEnabled(True)
 
     def setPhase(self, title, subtitle=""):
@@ -256,9 +263,8 @@ class ProgressDialogModern(QDialog):
     def showEvent(self, event):
         """Handle dialog show event."""
         super().showEvent(event)
-        # Ensure dialog stays on top
-        self.raise_()
-        self.activateWindow()
+        coordinator = get_dialog_coordinator(iface)
+        coordinator.bring_to_front(self)
 
     def closeEvent(self, event):
         """Handle dialog close event."""

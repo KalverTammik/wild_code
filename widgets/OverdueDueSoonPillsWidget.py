@@ -4,6 +4,9 @@ Provides two pill buttons inside a small group box plus logic to fetch counts
 using two minimal GraphQL queries (first:1) that rely only on pageInfo.total.
 """
 
+from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
+
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QPushButton, QVBoxLayout, QLabel, QFrame
 )
@@ -13,11 +16,11 @@ from typing import Optional, Tuple, Any
 
 from ..python.api_client import APIClient
 from ..python.responses import JsonResponseHandler
-from ..languages.language_manager import LanguageManager
 from ..utils.FilterHelpers.FilterHelper import FilterHelper
-from ..languages.translation_keys import TranslationKeys
 from ..constants.file_paths import QssPaths
 from ..widgets.theme_manager import ThemeManager
+from ..Logs.switch_logger import SwitchLogger
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class OverdueDueSoonPillsWidget(QWidget):
@@ -25,14 +28,16 @@ class OverdueDueSoonPillsWidget(QWidget):
     overdueClicked = pyqtSignal()
     dueSoonClicked = pyqtSignal()
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, lang_manager: LanguageManager, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setObjectName("OverdueDueSoonPillsWidget")
         self._is_loading = False
         self._days_due_soon: int = 3
         self._overdue_active = False
         self._due_soon_active = False
-        self._lang = LanguageManager()  
+        if lang_manager is None:
+            raise ValueError("lang_manager is required for OverdueDueSoonPillsWidget")
+        self._lang = lang_manager
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(2, 2, 2, 2)
@@ -77,8 +82,9 @@ class OverdueDueSoonPillsWidget(QWidget):
         pills_layout.addWidget(self.overdue_btn)
         pills_layout.addWidget(self.due_soon_btn)
 
-        self.overdue_btn.setText("…")
-        self.due_soon_btn.setText("…")
+        ellipsis = self._lang.translate(TranslationKeys.OVERDUE_DUE_SOON_PILLS_ELLIPSIS)
+        self.overdue_btn.setText(ellipsis)
+        self.due_soon_btn.setText(ellipsis)
 
         # Default look keeps native QGroupBox styling; no extra theme plumbing needed.
         common_tip = self._lang.translate(TranslationKeys.URGENT_TOOLTIP)
@@ -92,8 +98,9 @@ class OverdueDueSoonPillsWidget(QWidget):
     def set_loading(self, loading: bool) -> None:
         self._is_loading = bool(loading)
         if loading:
-            self.overdue_btn.setText("…")
-            self.due_soon_btn.setText("…")
+            ellipsis = self._lang.translate(TranslationKeys.OVERDUE_DUE_SOON_PILLS_ELLIPSIS)
+            self.overdue_btn.setText(ellipsis)
+            self.due_soon_btn.setText(ellipsis)
         self.overdue_btn.setEnabled(not loading)
         self.due_soon_btn.setEnabled(not loading)
 
@@ -105,6 +112,14 @@ class OverdueDueSoonPillsWidget(QWidget):
         if self._is_loading:
             return
         self.set_loading(True)
+        try:
+            SwitchLogger.log("overdue_load_start", module=getattr(module, "value", None))
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="overdue_load_start_log_failed",
+            )
 
         def do_fetch():
             overdue_total, due_soon_total = OverdueDueSoonPillsUtils.refresh_counts_for_module(
@@ -115,6 +130,14 @@ class OverdueDueSoonPillsWidget(QWidget):
             def apply_counts():
                 self.set_counts(overdue_total, due_soon_total)
                 self.set_loading(False)
+                try:
+                    SwitchLogger.log("overdue_load_done", module=getattr(module, "value", None))
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="ui",
+                        event="overdue_load_done_log_failed",
+                    )
 
             QTimer.singleShot(0, apply_counts)
 
@@ -210,8 +233,12 @@ class OverdueDueSoonPillsUtils:
                 total = page.get("total")
                 if isinstance(total, int):
                     return total
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=module.value if module else "ui",
+                    event="overdue_count_fetch_failed",
+                )
             return None
 
         overdue_total = try_fetch({"AND": [{"column": OverdueDueSoonPillsUtils._due_at_column, "operator": "LT", "value": today_s}]})
@@ -297,8 +324,10 @@ class OverdueDueSoonPillsActionHelper:
 class OverduePillsMixin:
     """Mixin to wire overdue/due-soon pills with unified handling."""
 
-    def wire_overdue_pills(self, parent_container=None) -> None:
-        self.overdue_pills = OverdueDueSoonPillsWidget()
+    def wire_overdue_pills(self, parent_container=None, *, lang_manager: LanguageManager) -> None:
+        if lang_manager is None:
+            raise ValueError("lang_manager is required for OverduePillsMixin.wire_overdue_pills")
+        self.overdue_pills = OverdueDueSoonPillsWidget(lang_manager=lang_manager)
         self.overdue_pills.overdueClicked.connect(lambda: self._on_due_pill_clicked(True))
         self.overdue_pills.dueSoonClicked.connect(lambda: self._on_due_pill_clicked(False))
 

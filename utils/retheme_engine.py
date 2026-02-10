@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..widgets.theme_manager import ThemeManager
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class RethemeEngine:
@@ -54,7 +55,12 @@ class RethemeEngine:
         if callable(getter):
             try:
                 return getter()
-            except Exception:
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="retheme_get_widget_failed",
+                )
                 return instance
         return instance
 
@@ -66,5 +72,10 @@ class RethemeEngine:
                 method = getattr(child, method_name, None)
                 if callable(method):
                     method()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="retheme_child_failed",
+                extra={"attr": attr_name, "method": method_name},
+            )

@@ -9,6 +9,8 @@ from PyQt5.QtWidgets import QFrame, QVBoxLayout, QLabel
 from PyQt5.QtCore import Qt
 from ..theme_manager import ThemeManager, IntensityLevels, styleExtras, ThemeShadowColors
 from ...constants.file_paths import QssPaths
+from ...Logs.python_fail_logger import PythonFailLogger
+from ...python.responses import DataDisplayExtractors
 
 
 class AvatarUtils:
@@ -118,8 +120,12 @@ class AvatarBubble(QLabel):
         try:
             if self._popup_members:
                 self._show_members_popup()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="members_popup_show_failed",
+            )
 
     def leaveEvent(self, e):
         # Simple leave behavior - just hide popup
@@ -128,8 +134,12 @@ class AvatarBubble(QLabel):
         try:
             if self._members_popup:
                 self._hide_members_popup()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="members_popup_hide_failed",
+            )
 
     def _show_members_popup(self):
         """Create and show a tooltip-like popup with member names in a vertical list."""
@@ -160,7 +170,7 @@ class AvatarBubble(QLabel):
 
             # Then add participant members
             for node in self._popup_members[:11]:  # Limit to 11 since responsible takes one spot
-                full = (node.get('displayName') or "-").strip() if isinstance(node, dict) else str(node)
+                full = DataDisplayExtractors.extract_member_display_name(node)
                 label = QLabel(f"  {full}", popup)  # Indent with spaces for visual hierarchy
                 label.setStyleSheet("font-size: 11px; padding: 2px 0px;")
                 layout.addWidget(label)
@@ -170,8 +180,12 @@ class AvatarBubble(QLabel):
             popup.move(gp.x(), gp.y() + 6)
             popup.show()
             self._members_popup = popup
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="members_popup_create_failed",
+            )
 
     def _hide_members_popup(self):
         try:
@@ -179,11 +193,19 @@ class AvatarBubble(QLabel):
                 try:
                     self._members_popup.hide()
                     self._members_popup.deleteLater()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="ui",
+                        event="members_popup_delete_failed",
+                    )
                 self._members_popup = None
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="members_popup_cleanup_failed",
+            )
 
     def _add_icon_overlay(self, icon_type: str, size: int, bg_color: QColor):
         """Add an icon overlay to the avatar bubble."""
@@ -230,20 +252,7 @@ class MembersView(QWidget):
         layout = QVBoxLayout(self); layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        members = (item_data.get('members', {}) or {}).get('edges', []) or []
-        # Participants extracted for potential popup display
-        participant_nodes = [
-            (m or {}).get('node', {}) or {}
-            for m in members
-            if not m.get('isResponsible') and ((m.get('node') or {}).get('active', True))
-        ]
-
-        # Responsible members as avatar bubbles (centered at top)
-        responsible_nodes = [
-            (m or {}).get('node', {}) or {}
-            for m in members
-            if m.get('isResponsible') and ((m.get('node') or {}).get('active', True))
-        ]
+        responsible_nodes, participant_nodes = DataDisplayExtractors.extract_members(item_data)
 
         if responsible_nodes:
             # Create horizontal layout for responsible avatars
@@ -253,7 +262,7 @@ class MembersView(QWidget):
 
 
             for node in responsible_nodes[:3]:  # Limit to 3 responsible members
-                full = (node.get('displayName') or "-").strip()
+                full = DataDisplayExtractors.extract_member_display_name(node)
                 # Attach participant nodes as popup members when hovering this responsible avatar
                 bubble = AvatarBubble(full,  overlap_px=0, first=True, salt="responsible-v1", icon="", popup_members=participant_nodes)
                 # Do not add icon overlay badge for responsible

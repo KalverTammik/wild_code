@@ -6,6 +6,7 @@ from PyQt5.QtCore import QObject
 
 from .map_selection_controller import MapSelectionController, SelectionCallback
 from .MapHelpers import MapHelpers
+from ...Logs.python_fail_logger import PythonFailLogger
 
 
 class MapSelectionOrchestrator(QObject):
@@ -26,8 +27,12 @@ class MapSelectionOrchestrator(QObject):
     def cancel(self) -> None:
         try:
             self._controller.cancel_selection()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="map",
+                event="map_selection_cancel_failed",
+            )
 
     def start_selection_for_layer(
         self,
@@ -46,14 +51,22 @@ class MapSelectionOrchestrator(QObject):
 
         try:
             MapHelpers.ensure_layer_visible(layer, make_active=True)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="map",
+                event="map_selection_ensure_visible_failed",
+            )
 
         if before_start is not None:
             try:
                 before_start()
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="map",
+                    event="map_selection_before_start_failed",
+                )
 
         try:
             return bool(
@@ -67,7 +80,12 @@ class MapSelectionOrchestrator(QObject):
                     clear_filter=clear_filter,
                 )
             )
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="map",
+                event="map_selection_start_failed",
+            )
             return False
 
     def start_selection_for_layer_tag(
@@ -85,7 +103,12 @@ class MapSelectionOrchestrator(QObject):
         layer = None
         try:
             layer = MapHelpers._get_layer_by_tag(layer_tag)
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="map",
+                event="map_selection_get_layer_by_tag_failed",
+            )
             layer = None
 
         return self.start_selection_for_layer(

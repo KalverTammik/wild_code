@@ -31,7 +31,7 @@ class FooterWidget(QWidget):
             wl = OpenLink()
 
             left_label = FooterLinksLabel(
-                [f"© {current_year} Valisee", "Koduleht", "Privaatsus", "Kasutustingimused"],
+                [f"© {current_year} Tuloli OÜ/Kavito", "Koduleht", "Privaatsus", "Kasutustingimused"],
                 [None, wl.main, wl.privacy, wl.terms],
             )
             left_label.setObjectName("footerLeftLabel")

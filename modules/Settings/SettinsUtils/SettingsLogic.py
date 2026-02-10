@@ -8,6 +8,7 @@ from ....utils.messagesHelper import ModernMessageDialog
 from ....utils.url_manager import Module, ModuleSupports
 from ....module_manager import MODULES_LIST_BY_NAME
 from ....constants.settings_keys import SettingsService
+from ....Logs.python_fail_logger import PythonFailLogger
 
 
 
@@ -109,8 +110,12 @@ class SettingsLogic:
                     self._service.module_main_layer_name(module_key, value=normalized)
                 else:
                     self._service.module_main_layer_name(module_key, clear=True)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_set_module_layer_failed",
+            )
 
     # --- Module preference helpers -------------------------------------------
     def load_module_preference_ids(self, module_key: str, *, support_key: str) -> Iterable[str]:
@@ -147,63 +152,22 @@ class SettingsLogic:
                 self._service.module_label_value(module_key, key, clear=True)
             else:
                 self._service.module_label_value(module_key, key, value=value)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_save_label_failed",
+            )
 
     def clear_module_label_value(self, module_key: str, label_key) -> None:
         try:
             key = getattr(label_key, 'value', label_key)
             self._service.module_label_value(module_key, key, clear=True)
-        except Exception:
-            pass
-
-    def confirm_navigation_away(self) -> bool:
-        """Handle unsaved changes prompt when navigating away from Settings.
-        
-        Args:
-            parent_dialog: Parent dialog for the prompt
-            
-        Returns:
-            True if navigation may proceed, False to cancel
-        """
-        if not self.has_unsaved_changes():
-            return True
-            
-        try:
-            title = self.tr("Unsaved changes")
-            text = self.tr("You have unsaved Settings changes.")
-            detail = self.tr("Do you want to save your changes or discard them?")
-            save_label = self.tr("Save")
-            discard_label = self.tr("Discard")
-            cancel_label = self.tr("Cancel")
-
-            choice = ModernMessageDialog.ask_choice_modern(
-                title,
-                f"{text}\n\n{detail}",
-                buttons=[save_label, discard_label, cancel_label],
-                default=save_label,
-                cancel=cancel_label,
-                icon_name=IconNames.WARNING,
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_clear_label_failed",
             )
 
-            if choice == save_label:
-                self.apply_pending_changes()
-                return True
-            if choice == discard_label:
-                self.revert_pending_changes()
-                return True
-            return False
-        except Exception as e:
-            print(f"Settings navigation prompt failed: {e}", "error")
-            return True
 
-class SettingsHelpers:
-    @staticmethod
-    def _confirm_unsaved_settings(active_name) -> bool:
-        """Check for unsaved changes in Settings and prompt the user.
-        Returns True if navigation may proceed, False to cancel.
-        """
-        if active_name == Module.SETTINGS.name:
-            return SettingsLogic.confirm_navigation_away()
-        
-        return True

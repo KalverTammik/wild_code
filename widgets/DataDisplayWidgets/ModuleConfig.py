@@ -3,16 +3,18 @@ Module-specific configurations for ExtraInfoWidget.
 Each module type can define its own status columns and activities.
 """
 
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 from ...utils.url_manager import Module
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 
 
 class ModuleConfig:
     """Configuration class for different module types."""
 
-    def __init__(self, module_type: str):
+    def __init__(self, module_type: str, *, title: str):
         self.module_type = module_type
-        self.title = "Tegevuste ülevaade"
+        self.title = title
         self.columns: List[Dict[str, Any]] = []
         self.detailed_content = ""
 
@@ -37,98 +39,100 @@ class ModuleConfigFactory:
     """Factory for creating module-specific configurations."""
 
     @staticmethod
-    def create_config(module_type: str, item_id: Dict[str, Any] = None) -> ModuleConfig:
+    def create_config(
+        module_type: str,
+        item_id: Dict[str, Any] = None,
+        *,
+        lang_manager: Optional[LanguageManager] = None,
+    ) -> ModuleConfig:
         """Create configuration based on module type."""
         if module_type == Module.PROJECT.value:
-            return ModuleConfigFactory._create_project_config(item_id)
+            return ModuleConfigFactory._create_project_config(item_id, lang_manager=lang_manager)
         elif module_type == Module.CONTRACT.value:
-            return ModuleConfigFactory._create_contract_config(item_id)
+            return ModuleConfigFactory._create_contract_config(item_id, lang_manager=lang_manager)
         else:
-            return ModuleConfigFactory._create_contract_config(item_id)
+            return ModuleConfigFactory._create_contract_config(item_id, lang_manager=lang_manager)
 
     @staticmethod
-    def _create_project_config(item_id: Dict[str, Any]) -> ModuleConfig:
+    def _create_project_config(
+        item_id: Dict[str, Any],
+        *,
+        lang_manager: Optional[LanguageManager] = None,
+    ) -> ModuleConfig:
         """Create configuration for project modules."""
-        config = ModuleConfig(Module.PROJECT.value)
-        #print(f"[ModuleConfigFactory] Creating project config for item: {item_id}")
-        config.set_title("Projekti tegevuste ülevaade")
+        lm = lang_manager or LanguageManager()
+        config = ModuleConfig(
+            Module.PROJECT.value,
+            title=lm.translate(
+                TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE,
+            ),
+        )
 
         # Tehtud column
-        config.add_column("Tehtud", "#4CAF50", [
-            ("Planeerimine", "✓"),
-            ("Koostamine", "✓"),
-            ("Ülevaatamine", "✓"),
-            ("Kinnitamine", "✓")
+        config.add_column(lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE), "#4CAF50", [
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PLANNING), "✓"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPILATION), "✓"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REVIEW), "✓"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_APPROVAL), "✓"),
         ])
 
         # Töös column
-        config.add_column("Töös", "#FF9800", [
-            ("Testimine", "⟳"),
-            ("Dokumenteerimine", "⟳"),
-            ("Optimeerimine", "⟳")
+        config.add_column(lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_IN_PROGRESS), "#FF9800", [
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_TESTING), "⟳"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_DOCUMENTING), "⟳"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_OPTIMIZING), "⟳"),
         ])
 
         # Tegemata column
-        config.add_column("Tegemata", "#F44336", [
-            ("Avaldamine", "○"),
-            ("Jälgimine", "○"),
-            ("Arhiveerimine", "○"),
-            ("Raporteerimine", "○")
+        config.add_column(lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_TODO), "#F44336", [
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PUBLISHING), "○"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_MONITORING), "○"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_ARCHIVING), "○"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REPORTING), "○"),
         ])
 
         # Set detailed content
-        config.set_detailed_content("""
-        <h3>Projekti Detailne Ülevaade</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-
-        <h4>Projekti Faasid</h4>
-        <ul>
-        <li><b>Planeerimine:</b> Projekti eesmärkide ja ulatuse määramine</li>
-        <li><b>Koostamine:</b> Projekti komponentide arendamine</li>
-        <li><b>Testimine:</b> Funktsionaalsuse kontrollimine</li>
-        <li><b>Avaldamine:</b> Projekti lõplik väljastamine</li>
-        </ul>
-
-        <h4>Projekti Statistika</h4>
-        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-        """)
+        config.set_detailed_content(
+            lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_DETAIL_CONTENT)
+        )
 
         return config
 
     @staticmethod
-    def _create_contract_config(item_id: Dict[str, Any]) -> ModuleConfig:
+    def _create_contract_config(
+        item_id: Dict[str, Any],
+        *,
+        lang_manager: Optional[LanguageManager] = None,
+    ) -> ModuleConfig:
         """Create configuration for contract modules."""
-        config = ModuleConfig(Module.CONTRACT.value)
-        config.set_title("Lepingu tegevuste ülevaade")
+        lm = lang_manager or LanguageManager()
+        config = ModuleConfig(
+            Module.CONTRACT.value,
+            title=lm.translate(
+                TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_OVERVIEW_TITLE,
+            ),
+        )
 
         # Lepingu staatused
-        config.add_column("Allkirjastatud", "#4CAF50", [
-            ("Lepingu koostamine", "✓"),
-            ("Osapoolte nõusolek", "✓"),
-            ("Notariaalne kinnitamine", "✓")
+        config.add_column(lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_SIGNED), "#4CAF50", [
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_CONTRACT_DRAFTING), "✓"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PARTY_CONSENT), "✓"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_NOTARIAL_CONFIRM), "✓"),
         ])
 
-        config.add_column("Töötlemisel", "#FF9800", [
-            ("Juriidiline ülevaatus", "⟳"),
-            ("Finantskontroll", "⟳")
+        config.add_column(lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_PROCESSING), "#FF9800", [
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_LEGAL_REVIEW), "⟳"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_FINANCIAL_CHECK), "⟳"),
         ])
 
-        config.add_column("Ootel", "#F44336", [
-            ("Osapoolte allkirjad", "○"),
-            ("Täitmise kontroll", "○")
+        config.add_column(lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_PENDING), "#F44336", [
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_SIGNATURES), "○"),
+            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPLETION_CHECK), "○"),
         ])
 
-        config.set_detailed_content("""
-        <h3>Lepingu Detailne Ülevaade</h3>
-        <p>Contract management and legal documentation overview.</p>
-
-        <h4>Lepingu Faasid</h4>
-        <ul>
-        <li><b>Allkirjastatud:</b> Legal binding agreements</li>
-        <li><b>Töötlemisel:</b> Under legal and financial review</li>
-        <li><b>Ootel:</b> Awaiting signatures or completion</li>
-        </ul>
-        """)
+        config.set_detailed_content(
+            lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_DETAIL_CONTENT)
+        )
 
         return config
 

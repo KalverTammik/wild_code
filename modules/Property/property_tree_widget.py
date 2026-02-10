@@ -217,6 +217,8 @@ class PropertyConnectionCard(QFrame):
 class ModuleConnectionSection(QFrame):
     """Collapsible section hosting all connections for a module."""
 
+    _pixmap_cache: Dict[tuple, QPixmap] = {}
+
     def __init__(
         self,
         module_key: str,
@@ -237,7 +239,8 @@ class ModuleConnectionSection(QFrame):
             alpha_level="medium",
         )
 
-        module_name = lang_manager.translate(module_key)
+        translator = lang_manager or LanguageManager()
+        module_name = translator.translate_module_name(module_key)
         count = module_info.get("count", 0)
         items = module_info.get("items") or []
 
@@ -260,8 +263,9 @@ class ModuleConnectionSection(QFrame):
 
         icon = ModuleIconPaths.get_module_icon(module_key.upper())
         if icon:
-            pix = QPixmap(icon).scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            icon_label.setPixmap(pix)
+            pix = self._get_icon_pixmap(icon, 24)
+            if not pix.isNull():
+                icon_label.setPixmap(pix)
         header_row.addWidget(icon_label)
 
         title = QLabel(f"{module_name} ({count})")
@@ -305,6 +309,16 @@ class ModuleConnectionSection(QFrame):
     def _toggle_body(self, checked: bool):
         self.body.setVisible(checked)
         self.toggle_button.setArrowType(Qt.DownArrow if checked else Qt.RightArrow)
+
+    @classmethod
+    def _get_icon_pixmap(cls, icon_path: str, size: int) -> QPixmap:
+        key = (icon_path, size)
+        cached = cls._pixmap_cache.get(key)
+        if cached is not None:
+            return cached
+        pix = QPixmap(icon_path).scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        cls._pixmap_cache[key] = pix
+        return pix
 
 
 class ModuleConnectionRow(QFrame):

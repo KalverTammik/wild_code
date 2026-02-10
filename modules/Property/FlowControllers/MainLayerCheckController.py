@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from PyQt5.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
 
 from ....constants.cadastral_fields import Katastriyksus
 from ....utils.MapTools.MapHelpers import MapHelpers
 from ....widgets.DateHelpers import DateHelpers
+from ....Logs.python_fail_logger import PythonFailLogger
 
 
 class MainLayerCheckController(QObject):
@@ -29,6 +30,9 @@ class MainLayerCheckController(QObject):
         self._rows_for_verify_by_row: Dict[int, Tuple[str, str]] = {}
         self._main_layer = None
         self._main_muudet_override_by_tunnus: Dict[str, str] = {}
+        self._main_layer_lookup: Dict[str, Any] = {}
+        self._process_events_counter: int = 0
+        self._process_events_every: int = 12
 
     # ------------------------------------------------------------------
     # Configuration
@@ -40,12 +44,14 @@ class MainLayerCheckController(QObject):
         main_layer,
         main_muudet_override_by_tunnus: Optional[Dict[str, str]] = None,
         checked_rows: Optional[set[int]] = None,
+        main_layer_lookup: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.stop()
         self._rows_for_verify_by_row = dict(rows_for_verify_by_row or {})
         self._main_layer = main_layer
         self._main_muudet_override_by_tunnus = dict(main_muudet_override_by_tunnus or {})
         self._checked_rows = set(checked_rows or set())
+        self._main_layer_lookup = dict(main_layer_lookup or {})
 
     def is_checked(self, row: int) -> bool:
         return int(row) in self._checked_rows
@@ -92,10 +98,15 @@ class MainLayerCheckController(QObject):
         try:
             if self._timer is not None:
                 self._timer.stop()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="main_layer_check_timer_stop_failed",
+            )
         self._timer = None
         self._pending_rows = []
+        self._process_events_counter = 0
 
     # ------------------------------------------------------------------
     # Internals
@@ -118,10 +129,10 @@ class MainLayerCheckController(QObject):
             self._checked_rows.add(row_idx)
             self.rowResult.emit(row_idx, causes)
 
-        try:
+        self._process_events_counter += processed
+        if self._process_events_counter >= self._process_events_every:
             QCoreApplication.processEvents()
-        except Exception:
-            pass
+            self._process_events_counter = 0
 
     def _compute_causes_for_row(self, row_idx: int) -> List[str]:
         tunnus, import_muudet = self._rows_for_verify_by_row.get(int(row_idx), ("", ""))
@@ -132,17 +143,25 @@ class MainLayerCheckController(QObject):
         if not main_layer:
             return []
 
-        causes: List[str] = []
+        feature = None
         try:
-            matches = MapHelpers.find_features_by_fields_and_values(main_layer, Katastriyksus.tunnus, [tunnus])
+            if self._main_layer_lookup:
+                feature = self._main_layer_lookup.get(tunnus)
         except Exception:
-            matches = []
+            feature = None
 
-        if not matches:
-            causes.append("missing in main layer")
-            return causes
+        causes: List[str] = []
+        if feature is None:
+            try:
+                matches = MapHelpers.find_features_by_fields_and_values(main_layer, Katastriyksus.tunnus, [tunnus])
+            except Exception:
+                matches = []
 
-        feature = matches[0]
+            if not matches:
+                causes.append("missing in main layer")
+                return causes
+
+            feature = matches[0]
         try:
             main_muudet_raw = feature.attribute(Katastriyksus.muudet)
         except Exception:

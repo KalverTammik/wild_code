@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Sequence, Tuple
+from typing import List, Dict, Optional, Sequence, Tuple, Union
 from PyQt5.QtCore import Qt
 
 from ...utils.url_manager import ModuleSupports, Module
@@ -7,11 +7,16 @@ from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.responses import JsonResponseHandler
 from ...python.api_client import APIClient
+from ...Logs.python_fail_logger import PythonFailLogger
+from ...Logs.switch_logger import SwitchLogger
 
 
 class FilterHelper:
     @staticmethod
-    def get_filter_edges_by_key_and_module(key, module) -> List[str]:
+    def get_filter_edges_by_key_and_module(
+        key,
+        module,
+    ) -> Union[List[Dict[str, Optional[str]]], List[Tuple[str, str]]]:
         #print(f"[FilterHelper] Fetching filter edges for key: {key}, module: {module}")
         key_map = {
             ModuleSupports.TAGS.value: "ListModuleTags.graphql",
@@ -33,36 +38,36 @@ class FilterHelper:
         }
 
         if key == ModuleSupports.TYPES.value:
-            edges = []
             after: Optional[str] = None
             path = [f"{module}Types"]
+            entries: List[Dict[str, Optional[str]]] = []
+
+            def group_key(label: str) -> str:
+                """Prefix before first ' - ' (or whole label if not present)."""
+                parts = (label or "").split(" - ", 1)
+                return parts[0].strip() if parts else (label or "").strip()
+
             while True:
                 variables["after"] = after
                 payload = APIClient().send_query(query, variables=variables, return_raw=True) or {}
                 page_edges = JsonResponseHandler.get_edges_from_path(payload, path)
-                edges.extend(page_edges)
+
+                for edge in page_edges:
+                    node = (edge or {}).get("node") or {}
+                    type_id = node.get("id")
+                    label = node.get("name")
+                    group_name = (node.get("group") or {}).get("name") if isinstance(node.get("group"), dict) else None
+                    if not group_name:
+                        group_name = group_key(label)
+                    if type_id and label:
+                        entries.append({"id": type_id, "label": label, "group": group_name})
 
                 page_info = JsonResponseHandler.get_page_info_from_path(payload, path)
                 has_next = bool(page_info.get("hasNextPage"))
                 after = page_info.get("endCursor") if has_next else None
                 if not has_next or not after:
                     break
-            entries: List[Dict[str, Optional[str]]] = []
-            for edge in edges:
-                node = (edge or {}).get("node") or {}
-                type_id = node.get("id")
-                label = node.get("name")
-                group_name = (node.get("group") or {}).get("name") if isinstance(node.get("group"), dict) else None
 
-                def group_key(label: str) -> str:
-                    """Prefix before first ' - ' (or whole label if not present)."""
-                    parts = (label or "").split(" - ", 1)
-                    return parts[0].strip() if parts else (label or "").strip()
-
-                if not group_name:
-                    group_name = group_key(label)
-                if type_id and label:
-                    entries.append({"id": type_id, "label": label, "group": group_name})
             #print(f"[FilterHelper] Fetched {entries} entries for types.")
             return entries
         
@@ -94,11 +99,13 @@ class FilterHelper:
 
     @staticmethod
     def selected_ids(widget) -> List[str]:
-        return list(widget.combo.checkedItemsData() or [])  
+        values = list(widget.combo.checkedItemsData() or [])
+        return [v for v in values if v]
 
     @staticmethod
     def selected_texts(widget) -> List[str]:
-        return list(widget.combo.checkedItems() or [])  
+        values = list(widget.combo.checkedItems() or [])
+        return [v for v in values if v]
 
     @staticmethod
     def cancel_pending_load(
@@ -113,9 +120,11 @@ class FilterHelper:
             return
         try:
             if invalidate_request and hasattr(widget, load_request_attr):
-                current = getattr(widget, load_request_attr, 0) or 0
-                setattr(widget, load_request_attr, current + 1)
-
+                try:
+                    current = int(getattr(widget, load_request_attr, 0) or 0)
+                    setattr(widget, load_request_attr, current + 1)
+                except Exception:
+                    pass
             thread = getattr(widget, thread_attr, None)
             is_running = bool(thread and callable(getattr(thread, "isRunning", None)) and thread.isRunning())
 
@@ -127,17 +136,28 @@ class FilterHelper:
             if thread is not None and callable(getattr(thread, "isRunning", None)) and thread.isRunning():
                 try:
                     thread.quit()
-                    thread.wait(50)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="filter",
+                        event="filter_thread_quit_failed",
+                    )
 
-            if is_running and hasattr(widget, "loadFinished"):
+            if is_running and invalidate_request and hasattr(widget, "loadFinished"):
                 try:
                     widget.loadFinished.emit(False)
-                except Exception:
-                    pass
-        except Exception:
-            pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="filter",
+                        event="filter_load_finished_emit_failed",
+                    )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="filter",
+                event="filter_cancel_pending_load_failed",
+            )
 
 
     @staticmethod
@@ -263,6 +283,19 @@ class FilterRefreshService:
             type_getter=type_getter,
             tags_getter=tags_getter,
         )
+        try:
+            module_key = getattr(module, "module_key", None) or getattr(module, "name", None) or ""
+            SwitchLogger.log(
+                "filter_refresh",
+                module=str(module_key),
+                extra={
+                    "status_count": len(ids.get("status") or []),
+                    "type_count": len(ids.get("type") or []),
+                    "tags_count": len(ids.get("tags") or []),
+                },
+            )
+        except Exception:
+            pass
 
         and_list: List[dict] = []
         if ids["status"]:

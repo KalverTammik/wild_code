@@ -64,6 +64,11 @@ QPushButton[variant="primary"] {
     color: #ffffff;
     border: 1px solid #0b4544;
 }
+QPushButton[variant="primary"]:disabled {
+    background-color: #142024;
+    border: 1px dashed rgba(11,69,68,0.45);
+    color: rgba(230,233,239,0.45);
+}
 
 QPushButton[variant="primary"]:hover {
     background-color: #0b7c7a;
@@ -80,6 +85,11 @@ QPushButton[variant="success"] {
     background-color: #22c55e;
     border: 1px solid #166534;
 }
+QPushButton[variant="success"]:disabled {
+    background-color: #17241d;
+    border: 1px dashed rgba(22,101,52,0.45);
+    color: rgba(230,233,239,0.45);
+}
 
 QPushButton[variant="success"]:hover { background-color: #16a34a; }
 QPushButton[variant="success"]:pressed { background-color: #15803d; }
@@ -89,6 +99,11 @@ QPushButton[variant="warning"] {
     background-color: #f59e0b;
     border: 1px solid #b45309;
 }
+QPushButton[variant="warning"]:disabled {
+    background-color: #241f17;
+    border: 1px dashed rgba(180,83,9,0.45);
+    color: rgba(230,233,239,0.45);
+}
 QPushButton[variant="warning"]:hover { background-color: #d97706; }
 QPushButton[variant="warning"]:pressed { background-color: #b45309; }
 
@@ -96,6 +111,11 @@ QPushButton[variant="warning"]:pressed { background-color: #b45309; }
 QPushButton[variant="danger"] {
     background-color: #ef4444;
     border: 1px solid #9f1a1a;
+}
+QPushButton[variant="danger"]:disabled {
+    background-color: #241818;
+    border: 1px dashed rgba(159,26,26,0.45);
+    color: rgba(230,233,239,0.45);
 }
 QPushButton[variant="danger"]:hover { background-color: #dc2626; }
 QPushButton[variant="danger"]:pressed { background-color: #b91c1c; }
@@ -106,6 +126,11 @@ QPushButton[variant="ghost"] {
     color: #0f9b8e;
     border: 1px solid #2f3a42;
 }
+QPushButton[variant="ghost"]:disabled {
+    background-color: transparent;
+    border: 1px dashed rgba(47,58,66,0.75);
+    color: rgba(15,155,142,0.45);
+}
 QPushButton[variant="ghost"]:hover { background-color: #243039; border-color: #18b2a3; color: #0c857d; }
 QPushButton[variant="ghost"]:pressed { background-color: #1b2329; border-color: #0b6a63; color: #0b6a63; }
 
@@ -114,6 +139,11 @@ QPushButton[variant="card"] {
     background-color: #1f2b2f;
     border: 1px solid #2f3a42;
     color: #0f9b8e;
+}
+QPushButton[variant="card"]:disabled {
+    background-color: #151c20;
+    border: 1px dashed rgba(47,58,66,0.75);
+    color: rgba(15,155,142,0.45);
 }
 QPushButton[variant="card"]:hover { background-color: #26343a; border-color: #18b2a3; }
 QPushButton[variant="card"]:pressed { background-color: #1b2329; border-color: #0b6a63; }
@@ -130,6 +160,7 @@ QPushButton[variant="footer-link"] {
 QPushButton[variant="footer-link"]:hover { color: #ffffff; text-decoration: underline; }
 QPushButton[variant="footer-link"]:pressed { color: #a8f1ef; }
 QPushButton[variant="footer-link"]:focus {}
+QPushButton[variant="footer-link"]:disabled { color: rgba(197,197,210,0.45); }
 
 /* Dialog primary (MessageBox) */
 QPushButton[variant="dialog-primary"],
@@ -155,6 +186,12 @@ QPushButton[variant="dialog-primary"]:focus,
 QDialog#ModernMessageDialog QPushButton:focus {
     border: 2px solid rgba(14, 165, 233, 0.5);
     border-radius: 6px;
+}
+QPushButton[variant="dialog-primary"]:disabled,
+QDialog#ModernMessageDialog QPushButton:disabled {
+    background-color: #14212b;
+    border: 1px dashed rgba(14,165,233,0.35);
+    color: rgba(14,165,233,0.45);
 }
 
 
@@ -219,6 +256,10 @@ QPushButton[variant="sidebar"] {
     color: #c5c5d2;
     border: none;
     text-align: left;
+}
+QPushButton[variant="sidebar"]:disabled {
+    background-color: transparent;
+    color: rgba(197,197,210,0.45);
 }
 QPushButton[variant="sidebar"]:hover {
     background-color: rgba(9,144,143,0.12);

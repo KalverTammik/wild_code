@@ -1,5 +1,6 @@
 from PyQt5.QtCore import QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
 from PyQt5.QtGui import QColor
+from ...Logs.python_fail_logger import PythonFailLogger
 
 
 def create_colorize_pulse(effect, start_color: QColor, mid_color: QColor,
@@ -18,8 +19,12 @@ def create_colorize_pulse(effect, start_color: QColor, mid_color: QColor,
         c_anim.setEndValue(start_color)
         try:
             c_anim.setEasingCurve(QEasingCurve.InOutSine)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="pulse_color_easing_failed",
+            )
 
         s_anim = QPropertyAnimation(effect, b"strength", parent)
         s_anim.setDuration(int(duration))
@@ -28,18 +33,31 @@ def create_colorize_pulse(effect, start_color: QColor, mid_color: QColor,
         s_anim.setEndValue(float(strength_min))
         try:
             s_anim.setEasingCurve(QEasingCurve.InOutSine)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="pulse_strength_easing_failed",
+            )
 
         grp = QParallelAnimationGroup(parent)
         grp.addAnimation(c_anim)
         grp.addAnimation(s_anim)
         try:
             grp.setLoopCount(-1)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="pulse_loop_count_failed",
+            )
         return grp
-    except Exception:
+    except Exception as exc:
+        PythonFailLogger.log_exception(
+            exc,
+            module="ui",
+            event="pulse_create_failed",
+        )
         return None
 
 
@@ -73,16 +91,28 @@ def build_glow_pulse(
                 blur_anim.setEndValue(float(blur_end))
                 try:
                     blur_anim.setEasingCurve(QEasingCurve.InOutSine)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="ui",
+                        event="glow_blur_easing_failed",
+                    )
                 grp.addAnimation(blur_anim)
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="glow_blur_anim_failed",
+                )
         else:
             try:
                 glow_effect.setBlurRadius(float(blur_start))
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="glow_blur_set_failed",
+                )
 
         color_anim = QPropertyAnimation(glow_effect, b"color", parent)
         color_anim.setDuration(int(duration))
@@ -91,9 +121,18 @@ def build_glow_pulse(
         color_anim.setEndValue(end_color)
         try:
             color_anim.setEasingCurve(QEasingCurve.InOutSine)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="glow_color_easing_failed",
+            )
         grp.addAnimation(color_anim)
         return grp
-    except Exception:
+    except Exception as exc:
+        PythonFailLogger.log_exception(
+            exc,
+            module="ui",
+            event="glow_pulse_create_failed",
+        )
         return None

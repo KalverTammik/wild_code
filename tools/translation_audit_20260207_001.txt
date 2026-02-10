@@ -1,0 +1,279 @@
+=== Translation Audit Report ===
+Defined keys: 391
+EN keys: 371
+ET keys: 380
+Used keys: 220
+
+-- Missing in EN --
+A session is already active. Please log out first.
+A tähe õppimine
+Application Preferences
+B tähe õppimine
+C tähe õppimine
+County
+DueAt
+Invalid email or password.
+Login
+Municipality
+Preferred module
+Searching
+Select Settlements
+Select statuses you want to prioritize for this module. These will be highlighted in the interface.
+Session expired. Please log in again.
+Settings
+User Authentication
+about_page
+home_page
+settings_page
+switch_to_dark_mode
+switch_to_light_mode
+
+-- Missing in ET --
+A session is already active. Please log out first.
+A tähe õppimine
+Application Preferences
+B tähe õppimine
+C tähe õppimine
+DueAt
+Invalid email or password.
+Searching
+Select statuses you want to prioritize for this module. These will be highlighted in the interface.
+Session expired. Please log in again.
+Settings
+Show Password
+User Authentication
+
+-- Unused keys (safe cleanup list) --
+A Tähe õppimine
+A session is already active. Please log out first.
+A tähe õppimine
+A täht on eesti tähestiku esimene täht. See on täht, millega algab paljude sõnade ja nimede kirjutamine. Õppides A tähte, teed esimese sammu lugemise ja kirjutamise oskuse poole.
+API endpoint not configured
+Add Property
+Additional Information
+Admin
+Administraatorid
+Administrator
+Admins
+Agricultural
+Agricultural Land
+Agricultural land template
+Application Preferences
+Area (m²):
+Area must be greater than 0.
+Attention
+B Tähe õppimine
+B tähe õppimine
+B täht on eesti tähestikus teine täht. Seda kasutatakse paljudes sõnades, näiteks 'banaan' ja 'buss'. B tähe õppimine aitab laiendada sõnavara ja parandada hääldust.
+C Tähe õppimine
+C tähe õppimine
+C täht esineb eesti keeles peamiselt võõrsõnades, näiteks 'cirkus' või 'cello'. C tähe tundmine aitab mõista ja lugeda rahvusvahelisi sõnu.
+Choose layers used by this module (element and archive).
+Commercial
+Commercial Property
+Commercial building template
+Configuration error: {error}
+Contracts
+Coordinations
+Dashboard
+Data Loading Error
+Deleting
+Easements
+Edit
+Editor
+Empty land parcel template
+Enter additional notes or description
+Enter area in m²
+Enter property address
+Enter property name
+Enter property value
+Error selecting property
+Failed to load property data from layer.
+Features copied
+Import complete
+Importing Shapefile
+Industrial
+Industrial Property
+Industrial facility template
+Invalid Shapefile
+Invalid Shapefile message
+Invalid email or password.
+Invalid value
+Juhid
+Kasutajad
+Külalised
+Letters
+Load Shapefile
+Loading related data...
+Module settings placeholder
+Name missing
+No Selection
+OK
+Ordinances
+Other
+Please select a property feature on the map first.
+Please select at least one property.
+Please select only one property feature on the map.
+Preferred module
+Processing features
+Projects
+Projects module loaded
+Projects photo folder
+Projektijuhid
+Properties
+Properties Added
+Property Details
+Property Name
+Property Name:
+Property Type
+Property Type:
+Property name is required.
+Quick Actions
+Reports
+Residential
+Residential Property
+Roles & Permissions
+Save
+Saving
+Search
+Searching
+Select
+Select Properties
+Select Single Property
+Select a module from the left or open Settings to set your preferred module.
+Select a property layer for data operations and management.
+Select a property layer...
+Select a property template to add:
+Select statuses you want to prioritize for this module. These will be highlighted in the interface.
+Selected properties have been added.
+Session expired. Please log in again.
+Settings
+Shapefile load failed
+Shapefile load failed message
+Shapefile loading error
+Show Password
+Specifications
+Standard residential property template
+Submissions
+Tasks
+This field is required
+Toimetajad
+Updated {date}
+User Authentication
+User Information
+User Profile
+Vaatajad
+Vacant Land
+Validation Error
+Value (€)
+Value (€):
+Value must be greater than 0.
+Value must be greater than {min}
+Value must be less than {max}
+Viewer
+When enabled, project/contract numbers will be displayed in item cards for easy identification.
+about_page
+asbuilt
+contract
+coordination
+dev_dbg_tooltip
+dev_frames_tooltip
+easement
+feature imported
+features imported
+home
+home_page
+letter
+mailabl_listener
+name structure
+name structure enabled
+ordinance
+project
+property
+property_archive_layer_create_failed_body
+property_archive_layer_create_failed_body_generic
+property_archive_layer_create_failed_title
+property_archive_layer_missing_body
+property_archive_layer_missing_title
+property_archive_layer_name_prompt_label
+property_archive_layer_name_prompt_title
+property_archive_layer_required_body_name
+property_archive_layer_required_body_no_name
+property_archive_layer_required_title
+property_archived_backend_match_body
+property_archived_backend_match_title
+property_backend_exists_missing_map_body
+property_backend_exists_missing_map_title
+property_backend_missing_archived_body
+property_backend_missing_body
+property_backend_missing_title
+property_backend_update_failed_body
+property_backend_update_failed_title
+property_main_layer_missing_body
+property_main_layer_missing_title
+property_newer_import_body
+property_newer_import_title
+property_open_settings_failed_body
+property_open_settings_failed_title
+property_replace_failed_body_copy
+property_replace_failed_body_delete
+property_replace_failed_body_no_feature
+property_replace_failed_title
+property_unarchive_failed_body
+property_unarchive_failed_title
+query_file_not_found: {file}
+save_setting
+settings_page
+specification
+statuses
+submission
+switch_to_dark_mode
+switch_to_light_mode
+tags
+task
+unknown_module: {module}
+works
+
+-- Translate calls with literal strings --
+(none)
+
+-- Translate calls with unknown expressions --
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\module_manager.py:49 [translate] Call(func=Attribute(value=Name(id='module_name', ctx=Load()), attr='lower', ctx=Load()))
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\languages\language_manager.py:29 [translate] Name(id='key', ctx=Load())
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\Property\property_tree_widget.py:242 [translate] Name(id='module_key', ctx=Load())
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\Settings\SettingsUI.py:130 [translate] Call(func=Attribute(value=Name(id='module_name', ctx=Load()), attr='lower', ctx=Load()))
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\Settings\cards\SettingModuleFeatureCard.py:30 [translate] Name(id='title_key', ctx=Load())
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\Settings\cards\SettingModuleFeatureCard.py:52 [translate] Name(id='description_key', ctx=Load())
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\Settings\cards\SettingsUserCard.py:186 [translate] Call(func=Attribute(value=Name(id='module_name', ctx=Load()), attr='lower', ctx=Load()))
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\signaltest\SignalTestDialog.py:245 [translate] Name(id='key', ctx=Load())
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\signaltest\SignalTestDialog.py:257 [translate] Name(id='key', ctx=Load())
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\utils\moduleSwitchHelper.py:197 [translate] Name(id='normalized_name', ctx=Load())
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\utils\mapandproperties\PropertyDataLoader.py:30 [translate] JoinedStr(values=[Constant(value="Field '"), FormattedValue(value=Name(id='field_name', ctx=Load()), conversion=-1), Constant(value="' not found on the property layer.")])
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\SearchResultsWidget.py:143 [translate] Call(func=Attribute(value=Name(id='module_type', ctx=Load()), attr='capitalize', ctx=Load()))
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\DataDisplayWidgets\DatesWidget.py:103 [translate] Name(id='key', ctx=Load())
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\DataDisplayWidgets\module_action_buttons.py:77 [translate] Name(id='tooltip_key', ctx=Load())
+
+-- UI literals (should become keys) --
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\login_dialog.py:77 [setText] 
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\projects\FolderNamingRuleDialog.py:99 [setText] 
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\Property\FlowControllers\MainDeleteProperties.py:76 [setPlaceholderText] Property ID
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\Settings\cards\SettingsBaseCard.py:135 [setText] 
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\Settings\SettinsUtils\userUtils.py:82 [setText] —
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\modules\signaltest\SignalTestDialog.py:65 [setWindowTitle] SignalTest
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\AddUpdatePropertyDialog.py:639 [setText] Cancelling...
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\AddUpdatePropertyDialog.py:652 [setText] 
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\HeaderWidget.py:59 [setText] Abi
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\OverdueDueSoonPillsWidget.py:82 [setText] …
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\OverdueDueSoonPillsWidget.py:83 [setText] …
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\OverdueDueSoonPillsWidget.py:97 [setText] …
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\OverdueDueSoonPillsWidget.py:98 [setText] …
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\ProgressDialogModern.py:223 [setText] 
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\ProgressDialogModern.py:224 [setText] 0%
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\SearchResultsWidget.py:55 [setToolTip] Close search results
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\sidebar.py:108 [setText] «
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\sidebar.py:273 [setText] »
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\sidebar.py:276 [setText] «
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\theme_manager.py:153 [setText] 
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\DataDisplayWidgets\ExtraInfoWidget.py:50 [setToolTip] Ava detailne ülevaade
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\DataDisplayWidgets\InfoCardHeader.py:96 [setToolTip] Privaatne
+C:\Users\Kalver\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\kavitro\widgets\DelayHelpers\LoadingSpinner.py:228 [setWindowTitle] GradientSpinner + dots demo

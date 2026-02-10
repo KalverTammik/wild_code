@@ -4,11 +4,12 @@ Centralized Settings Manager for utility-specific settings.
 This module provides a centralized way to manage settings that don't fit into
 the specialized categories (theme, preferred module, module-specific settings).
 
-All settings use the "wild_code/" prefix for consistency with the existing architecture.
+All settings use the "kavitro/" prefix for consistency with the new architecture.
 """
 
 from typing import Any, Optional
 from qgis.core import QgsSettings
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class SettingsManager:
@@ -16,7 +17,7 @@ class SettingsManager:
     Centralized settings manager for utility-specific settings.
 
     Provides a consistent API for saving and loading settings across the application.
-    All settings automatically use the "wild_code/" prefix for consistency.
+    All settings automatically use the "kavitro/" prefix for consistency.
     """
 
     @staticmethod
@@ -25,7 +26,7 @@ class SettingsManager:
         Save a setting value.
 
         Args:
-            key: Settings key (should include "wild_code/" prefix)
+            key: Settings key (should include "kavitro/" prefix)
             value: Value to save
 
         Returns:
@@ -35,7 +36,12 @@ class SettingsManager:
             settings = QgsSettings()
             settings.setValue(key, value)
             return True
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_manager_save_failed",
+            )
             return False
 
     @staticmethod
@@ -44,7 +50,7 @@ class SettingsManager:
         Load a setting value.
 
         Args:
-            key: Settings key (should include "wild_code/" prefix)
+            key: Settings key (should include "kavitro/" prefix)
             default_value: Default value if key doesn't exist
 
         Returns:
@@ -53,7 +59,12 @@ class SettingsManager:
         try:
             settings = QgsSettings()
             return settings.value(key, default_value)
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_manager_load_failed",
+            )
             return default_value
 
     @staticmethod
@@ -71,7 +82,12 @@ class SettingsManager:
             settings = QgsSettings()
             settings.remove(key)
             return True
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_manager_remove_failed",
+            )
             return False
 
     @staticmethod
@@ -90,7 +106,12 @@ class SettingsManager:
             # Try to get the value - if it returns the default, check if it was actually set
             value = settings.value(key, "__NOT_SET__")
             return value != "__NOT_SET__"
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_manager_has_failed",
+            )
             return False
 
 

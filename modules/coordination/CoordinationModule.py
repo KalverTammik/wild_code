@@ -6,17 +6,19 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel, QFrame
 
 from ...ui.ModuleBaseUI import ModuleBaseUI
-from ...widgets.StatusFilterWidget import StatusFilterWidget
-from ...widgets.TypeFilterWidget import TypeFilterWidget
-from ...widgets.TagsFilterWidget import TagsFilterWidget
+from ...widgets.Filters.StatusFilterWidget import StatusFilterWidget
+from ...widgets.Filters.TypeFilterWidget import TypeFilterWidget
+from ...widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ...utils.url_manager import Module
 from ...module_manager import ModuleManager
 from ...widgets.theme_manager import ThemeManager, styleExtras
 from ...constants.file_paths import QssPaths
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
-from ...widgets.filter_refresh_helper import FilterRefreshHelper
-from ...utils.FilterHelpers.FilterHelper import FilterRefreshService
+from ...widgets.Filters.filter_refresh_helper import FilterRefreshHelper
+from ...utils.FilterHelpers.FilterHelper import FilterRefreshService, FilterHelper
 from ...utils.search.SearchOpenItemMixin import SearchOpenItemMixin
+from ...Logs.python_fail_logger import PythonFailLogger
+from ...languages.translation_keys import TranslationKeys
 
 
 class CoordinationModule(SearchOpenItemMixin, ModuleBaseUI):
@@ -52,19 +54,19 @@ class CoordinationModule(SearchOpenItemMixin, ModuleBaseUI):
 
         if self.supports_status_filter:
             self.status_filter: Optional[StatusFilterWidget] = None
-            self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area)
+            self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area, auto_load=False)
             self.toolbar_area.add_left(self.status_filter)
             self.status_filter.selectionChanged.connect(self._on_status_filter_selection)
 
         if self.supports_type_filter:
             self.type_filter: Optional[TypeFilterWidget] = None
-            self.type_filter = TypeFilterWidget(self.module_key, self.toolbar_area)
+            self.type_filter = TypeFilterWidget(self.module_key, self.toolbar_area, auto_load=False)
             self.toolbar_area.add_left(self.type_filter)
             self.type_filter.selectionChanged.connect(self._on_type_filter_selection)
 
         if self.supports_tags_filter:
             self.tags_filter: Optional[TagsFilterWidget] = None
-            self.tags_filter = TagsFilterWidget(Module.COORDINATION, self.lang_manager, self.toolbar_area)
+            self.tags_filter = TagsFilterWidget(self.module_key, self.lang_manager, self.toolbar_area, auto_load=False)
             self.toolbar_area.add_left(self.tags_filter)
             self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
 
@@ -80,8 +82,8 @@ class CoordinationModule(SearchOpenItemMixin, ModuleBaseUI):
         self.feed_layout.setContentsMargins(0, 0, 0, 0)
         self.feed_layout.setSpacing(6)
 
-        empty_text = self.lang_manager.translate("No coordinations found") if self.lang_manager else "No coordinations found"
-        self._empty_state = QLabel(empty_text or "No coordinations found")
+        empty_text = self.lang_manager.translate(TranslationKeys.NO_COORDINATIONS_FOUND)
+        self._empty_state = QLabel(empty_text)
         self._empty_state.setAlignment(Qt.AlignCenter)
         self._empty_state.setVisible(False)
         self.feed_layout.addWidget(self._empty_state)
@@ -97,7 +99,57 @@ class CoordinationModule(SearchOpenItemMixin, ModuleBaseUI):
     def activate(self) -> None:
         super().activate()
         print("[CoordinationModule] Activated")
+
+    def on_first_visible(self) -> None:
+        self._ensure_filters_loaded()
         self._refresh_filters()
+
+    def deactivate(self) -> None:
+        self._clear_filters()
+        # Cancel filter worker threads to avoid QThread teardown crashes
+        try:
+            FilterHelper.cancel_pending_load(self.status_filter, invalidate_request=True)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="coordination",
+                event="coordination_cancel_status_filter_failed",
+            )
+        try:
+            FilterHelper.cancel_pending_load(self.type_filter, invalidate_request=True)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="coordination",
+                event="coordination_cancel_type_filter_failed",
+            )
+        try:
+            FilterHelper.cancel_pending_load(self.tags_filter, invalidate_request=True)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="coordination",
+                event="coordination_cancel_tags_filter_failed",
+            )
+        super().deactivate()
+
+    def _ensure_filters_loaded(self) -> None:
+        for widget in self._filter_widgets:
+            ensure_loaded = getattr(widget, "ensure_loaded", None)
+            if callable(ensure_loaded):
+                try:
+                    ensure_loaded()
+                except Exception as exc:
+                    print(f"[CoordinationModule] Failed to load filter widget: {exc}")
+
+    def _clear_filters(self) -> None:
+        for widget in self._filter_widgets:
+            clear_data = getattr(widget, "clear_data", None)
+            if callable(clear_data):
+                try:
+                    clear_data()
+                except Exception as exc:
+                    print(f"[CoordinationModule] Failed to clear filter widget: {exc}")
 
     def _ensure_feed_logic(self) -> None:
         print("[CoordinationModule] Ensuring feed logic is initialized")

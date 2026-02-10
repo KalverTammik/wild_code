@@ -9,17 +9,20 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel, QFrame
 
 from ...ui.ModuleBaseUI import ModuleBaseUI
-from ...widgets.StatusFilterWidget import StatusFilterWidget
-from ...widgets.TagsFilterWidget import TagsFilterWidget
+from ...widgets.Filters.StatusFilterWidget import StatusFilterWidget
+from ...widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ...utils.url_manager import Module
 from ...module_manager import ModuleManager
 from ...widgets.theme_manager import ThemeManager, styleExtras
 from ...constants.file_paths import QssPaths
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
 from ...widgets.OverdueDueSoonPillsWidget import  OverduePillsMixin
-from ...widgets.filter_refresh_helper import FilterRefreshHelper
+from ...widgets.Filters.filter_refresh_helper import FilterRefreshHelper
 from ...utils.FilterHelpers.FilterHelper import FilterHelper, FilterRefreshService
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.search.SearchOpenItemMixin import SearchOpenItemMixin
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 
 
 class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
@@ -42,7 +45,7 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
         self.name = self.module_key
         self.setObjectName(self.name)
 
-        self.lang_manager = language
+        self.lang_manager = language or LanguageManager()
         self.theme_manager = ThemeManager()
 
         supports_types, supports_statuses, supports_tags, supports_archive_layer = ModuleManager().getModuleSupports(Module.PROJECT.name) or {}
@@ -60,17 +63,17 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
         self._tags_preferences_loaded = False
         self._suppress_filter_events = False
 
-        self.wire_overdue_pills(self.toolbar_area)
+        self.wire_overdue_pills(self.toolbar_area, lang_manager=self.lang_manager)
 
         # Status filter (kasuta module_key)
         if supports_statuses:
-            self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area)
+            self.status_filter = StatusFilterWidget(self.module_key, self.toolbar_area, auto_load=False)
             self.toolbar_area.add_left(self.status_filter)
             self.status_filter.selectionChanged.connect(self._on_status_filter_selection)
 
         # Tags filter (see näib eeldavat Module enum'i; jätame nii)
         if supports_tags:
-            self.tags_filter = TagsFilterWidget(Module.PROJECT, self.lang_manager, self.toolbar_area)
+            self.tags_filter = TagsFilterWidget(self.module_key, self.lang_manager, self.toolbar_area, auto_load=False)
             self.toolbar_area.add_left(self.tags_filter)
             self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
 
@@ -89,7 +92,7 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
         self.feed_layout.setContentsMargins(0, 0, 0, 0)
         self.feed_layout.setSpacing(6)
 
-        self._empty_state = QLabel(self.lang_manager.translate("No projects found") if self.lang_manager else "No projects found")
+        self._empty_state = QLabel(self.lang_manager.translate(TranslationKeys.NO_PROJECTS_FOUND))
         self._empty_state.setAlignment(Qt.AlignCenter)
         self._empty_state.setVisible(False)
         self.feed_layout.addWidget(self._empty_state)
@@ -108,12 +111,50 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
     def activate(self) -> None:
         super().activate()
 
+    def on_first_visible(self) -> None:
+        self._ensure_filters_loaded()
         self._refresh_filters()
         self.refresh_overdue_counts(Module.PROJECT)
 
 
     def deactivate(self) -> None:
+        self._clear_filters()
+        # Cancel filter worker threads to avoid QThread teardown crashes
+        try:
+            FilterHelper.cancel_pending_load(self.status_filter, invalidate_request=True)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="projects",
+                event="projects_cancel_status_filter_failed",
+            )
+        try:
+            FilterHelper.cancel_pending_load(self.tags_filter, invalidate_request=True)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="projects",
+                event="projects_cancel_tags_filter_failed",
+            )
         super().deactivate()
+
+    def _ensure_filters_loaded(self) -> None:
+        for widget in self._filter_widgets:
+            ensure_loaded = getattr(widget, "ensure_loaded", None)
+            if callable(ensure_loaded):
+                try:
+                    ensure_loaded()
+                except Exception as exc:
+                    print(f"[ProjectsModule] Failed to load filter widget: {exc}")
+
+    def _clear_filters(self) -> None:
+        for widget in self._filter_widgets:
+            clear_data = getattr(widget, "clear_data", None)
+            if callable(clear_data):
+                try:
+                    clear_data()
+                except Exception as exc:
+                    print(f"[ProjectsModule] Failed to clear filter widget: {exc}")
 
     # --- Andmete laadimine ---
     def load_next_batch(self):

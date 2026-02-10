@@ -5,9 +5,11 @@ from ....constants.file_paths import QssPaths
 from ....constants.button_props import ButtonVariant, ButtonSize
 from PyQt5.QtGui import  QPixmap
 from ....languages.translation_keys import TranslationKeys
+from ....Logs.python_fail_logger import PythonFailLogger
 
 class SettingsBaseCard(QFrame):
     """Reusable SetupCard base with header, content area and confirm footer."""
+    _pixmap_cache = {}
     def __init__(self, lang_manager: LanguageManager, title_text: str, icon_path: str = None):
         super().__init__()
         self.lang_manager = lang_manager or LanguageManager()
@@ -18,8 +20,12 @@ class SettingsBaseCard(QFrame):
         self._build(title_text, icon_path)
         try:
             ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="settings",
+                event="settings_card_theme_failed",
+            )
 
     def _build(self, title_text: str, icon_path: str = None):
         self.lay = QVBoxLayout(self)
@@ -34,10 +40,18 @@ class SettingsBaseCard(QFrame):
         
         if icon_path:
             icon_label = QLabel()
-            icon_label.setPixmap(QPixmap(icon_path).scaled(18, 18))  # Smaller icons
+            cache_key = (icon_path, 18, 18)
+            pixmap = self._pixmap_cache.get(cache_key)
+            if pixmap is None:
+                pixmap = QPixmap(icon_path).scaled(18, 18)
+                self._pixmap_cache[cache_key] = pixmap
+            icon_label.setPixmap(pixmap)  # Smaller icons
             header_layout.addWidget(icon_label, 0)
             header_layout.addSpacing(6)
 
+        # Use translation key if title_text matches the default literal
+        if title_text == "Settings":
+            title_text = self.lang_manager.translate(TranslationKeys.SETTINGS_BASE_CARD_TEXT)
         title = QLabel(title_text)
         title.setObjectName("SetupCardTitle")
         header_layout.addWidget(title, 0)
@@ -121,6 +135,6 @@ class SettingsBaseCard(QFrame):
 
     def clear_status(self):
         """Clear status text and hide footer left area."""
-        self._status_label.setText("")
+        self._status_label.clear()
         self._footer_left.setVisible(False)
 

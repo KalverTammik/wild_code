@@ -1,15 +1,18 @@
 from typing import Any, Callable, Optional
 
 from PyQt5.QtCore import QCoreApplication, Qt
-from PyQt5.QtWidgets import QTableWidgetItem
+from PyQt5.QtWidgets import QTableWidgetItem, QTableView
 
 from ...languages.translation_keys import TranslationKeys
 from ...languages.language_manager import LanguageManager
 from PyQt5.QtWidgets import (
     QVBoxLayout, QLabel,
     QFrame,
-    QTableWidget, QHeaderView
+    QTableWidget, QHeaderView, QTableView
 )
+
+from .property_table_model import PropertyTableModel
+from ...Logs.python_fail_logger import PythonFailLogger
  
 class PropertyTableManager:
     """
@@ -31,6 +34,20 @@ class PropertyTableManager:
         """Populate the properties table with data"""
         if not properties_table:
             return False
+
+        if isinstance(properties_table, QTableView):
+            model = properties_table.model()
+            if not isinstance(model, PropertyTableModel):
+                headers = PropertyTableWidget._headers()
+                model = PropertyTableModel(headers, parent=properties_table)
+                properties_table.setModel(model)
+
+            model.set_rows(properties)
+
+            if self.add_button is not None:
+                self.add_button.setEnabled(bool(properties))
+
+            return True
 
         properties_table.setRowCount(len(properties))
 
@@ -91,6 +108,15 @@ class PropertyTableManager:
         """Get the selected features from the table"""
         if not table:
             return []
+
+        if isinstance(table, QTableView):
+            selected_rows = table.selectionModel().selectedRows() if table.selectionModel() else []
+            selected_features = set()
+            for index in selected_rows:
+                feature = PropertyTableManager.get_cell_data(table, index.row(), 0, role=Qt.UserRole)
+                if feature:
+                    selected_features.add(feature)
+            return list(selected_features)
             
         selected_items = table.selectedItems()
         if not selected_items:
@@ -112,6 +138,13 @@ class PropertyTableManager:
         if table is None:
             return []
 
+        if isinstance(table, QTableView):
+            try:
+                rows = {int(index.row()) for index in (table.selectionModel().selectedRows() or [])}
+                return sorted(rows)
+            except Exception:
+                return []
+
         try:
             rows_set: set[int] = set()
             for item in table.selectedItems() or []:
@@ -131,6 +164,14 @@ class PropertyTableManager:
     def get_cell_text(table, row: int, col: int) -> str:
         if table is None:
             return ""
+        if isinstance(table, QTableView):
+            try:
+                model = table.model()
+                if model is None:
+                    return ""
+                return str(model.data(model.index(int(row), int(col)), Qt.DisplayRole) or "").strip()
+            except Exception:
+                return ""
         try:
             item = table.item(int(row), int(col))
             return (item.text() if item is not None else "").strip()
@@ -146,6 +187,14 @@ class PropertyTableManager:
 
         if table is None:
             return False
+
+        if isinstance(table, QTableView):
+            try:
+                model = table.model()
+                if isinstance(model, PropertyTableModel):
+                    return bool(model.set_cell_text(int(row), int(col), text))
+            except Exception:
+                return False
 
         try:
             row_i = int(row)
@@ -167,11 +216,48 @@ class PropertyTableManager:
     def get_cell_data(table, row: int, col: int, *, role=Qt.UserRole) -> Any:
         if table is None:
             return None
+        if isinstance(table, QTableView):
+            try:
+                model = table.model()
+                if model is None:
+                    return None
+                return model.data(model.index(int(row), int(col)), role)
+            except Exception:
+                return None
         try:
             item = table.item(int(row), int(col))
             return item.data(role) if item is not None else None
         except Exception:
             return None
+
+    @staticmethod
+    def set_status(table, row: int, col: int, *, state: str, tooltip: str = "") -> bool:
+        if table is None:
+            return False
+
+        if isinstance(table, QTableView):
+            try:
+                model = table.model()
+                if isinstance(model, PropertyTableModel):
+                    return bool(model.set_status(int(row), int(col), state=state, tooltip=tooltip))
+            except Exception:
+                return False
+        return False
+
+    @staticmethod
+    def row_count(table) -> int:
+        if table is None:
+            return 0
+        if isinstance(table, QTableView):
+            try:
+                model = table.model()
+                return int(model.rowCount()) if model is not None else 0
+            except Exception:
+                return 0
+        try:
+            return int(table.rowCount())
+        except Exception:
+            return 0
 
     @staticmethod
     def get_payload_field_value(table, row: int, payload_col: int, field_key: object, *, role=Qt.UserRole) -> Any:
@@ -266,6 +352,24 @@ class PropertyTableManager:
 
         frame, snapshot_table = table_factory()
 
+        if isinstance(source_table, QTableView):
+            rows_payload: list[dict[str, Any]] = []
+            for src_row_idx in rows:
+                rows_payload.append(
+                    {
+                        "cadastral_id": PropertyTableManager.get_cell_text(source_table, src_row_idx, 0),
+                        "address": PropertyTableManager.get_cell_text(source_table, src_row_idx, 1),
+                        "area": PropertyTableManager.get_cell_text(source_table, src_row_idx, 2),
+                        "settlement": PropertyTableManager.get_cell_text(source_table, src_row_idx, 3),
+                        "feature": PropertyTableManager.get_cell_data(source_table, src_row_idx, 0, role=Qt.UserRole),
+                    }
+                )
+
+            PropertyTableManager.reset_and_populate_properties_table(snapshot_table, rows_payload)
+            snapshot_table.setSelectionMode(QTableView.NoSelection)
+            snapshot_table.setFocusPolicy(Qt.NoFocus)
+            return frame, snapshot_table
+
         headers: list[str] = []
         for c in range(source_table.columnCount()):
             try:
@@ -298,12 +402,20 @@ class PropertyTableManager:
 
         table.setUpdatesEnabled(False)
         table.clearSelection()
-        table.clearContents()
-        table.setRowCount(0)
+        if isinstance(table, QTableView):
+            pass
+        else:
+            table.clearContents()
+            table.setRowCount(0)
 
         try:
             ok = bool(PropertyTableManager().populate_properties_table(rows, table))
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="property_table_populate_failed",
+            )
             ok = False
 
         if ok and after_populate is not None:
@@ -311,8 +423,15 @@ class PropertyTableManager:
 
         table.setUpdatesEnabled(True)
 
-        table.viewport().update()
-        table.repaint()
+        try:
+            table.viewport().update()
+            table.repaint()
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="property_table_repaint_failed",
+            )
 
         return ok
 
@@ -322,11 +441,28 @@ class PropertyTableWidget:
     _COL_ADDRESS = 1
     _COL_AREA = 2
     _COL_SETTLEMENT = 3
-    _COL_ATTENTION = 4
+    _COL_BACKEND_ATTENTION = 4
+    _COL_MAIN_ATTENTION = 5
+    _COL_ARCHIVE_BACKEND = 6
+    _COL_ARCHIVE_MAP = 7
 
 
 
     @staticmethod   
+    def _headers():
+        lang_manager = LanguageManager()
+        return [
+            lang_manager.translate(TranslationKeys.CADASTRAL_ID),
+            lang_manager.translate(TranslationKeys.ADDRESS),
+            lang_manager.translate(TranslationKeys.AREA),
+            lang_manager.translate(TranslationKeys.SETTLEMENT),
+            "Backend",
+            "Main",
+            "Archive backend",
+            "Archive map",
+        ]
+
+    @staticmethod
     def _create_properties_table():
         """Create the properties table"""
         # Table section
@@ -340,15 +476,22 @@ class PropertyTableWidget:
         table_layout.setSpacing(6)
         
         # Properties table
-        properties_table = QTableWidget()
+        properties_table = QTableView()
         properties_table.setObjectName("PropertiesTable")
         # Zebra + look
         properties_table.setAlternatingRowColors(True)
-        properties_table.setShowGrid(True)                 # or False if you want cleaner blocks
-        properties_table.setGridStyle(Qt.SolidLine)
+        try:
+            properties_table.setShowGrid(True)                 # or False if you want cleaner blocks
+            properties_table.setGridStyle(Qt.SolidLine)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="property_table_grid_failed",
+            )
 
-        properties_table.setSelectionBehavior(QTableWidget.SelectRows)
-        properties_table.setSelectionMode(QTableWidget.MultiSelection)   # or ExtendedSelection (usually nicer)
+        properties_table.setSelectionBehavior(QTableView.SelectRows)
+        properties_table.setSelectionMode(QTableView.MultiSelection)   # or ExtendedSelection (usually nicer)
 
 
         # Make selection/hover feel nicer and avoid “full repaint storms”
@@ -363,7 +506,14 @@ class PropertyTableWidget:
         properties_table.verticalHeader().setHighlightSections(False)
 
         properties_table.verticalHeader().setVisible(False)
-        properties_table.setCornerButtonEnabled(False)          # hides the top-left corner button area (sometimes)
+        try:
+            properties_table.setCornerButtonEnabled(False)          # hides the top-left corner button area (sometimes)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="property_table_corner_button_failed",
+            )
         properties_table.horizontalHeader().setStretchLastSection(True)
 
         header = properties_table.horizontalHeader()
@@ -373,16 +523,10 @@ class PropertyTableWidget:
 
 
 
-        # Set up table headers
-        headers = [
-            lang_manager.translate(TranslationKeys.CADASTRAL_ID),
-            lang_manager.translate(TranslationKeys.ADDRESS),
-            lang_manager.translate(TranslationKeys.AREA),
-            lang_manager.translate(TranslationKeys.SETTLEMENT),
-            lang_manager.translate(TranslationKeys.ATTENTION),
-        ]
-        properties_table.setColumnCount(len(headers))
-        properties_table.setHorizontalHeaderLabels(headers)
+        # Set up table headers / model
+        headers = PropertyTableWidget._headers()
+        model = PropertyTableModel(headers, parent=properties_table)
+        properties_table.setModel(model)
 
         # Configure table
         header = properties_table.horizontalHeader()

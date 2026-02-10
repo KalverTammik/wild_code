@@ -1,0 +1,2121 @@
+'''Warning''':
+  count: 3
+  files:
+  - .venv\Lib\site-packages\pip\_vendor\pygments\lexers\python.py
+DialogLabels.INVALID_CREDENTIALS_ERROR:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+DialogLabels.LOGIN_SECTION:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+DialogLabels.PROJECTS_PHOTO_FOLDER:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE:
+  count: 7
+  files:
+  - languages\en.py
+  - languages\et.py
+  - ui\modules_registry.py
+DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+DialogLabels.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - ui\modules_registry.py
+DialogLabels.PROJECTS_SOURCE_FOLDER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - ui\modules_registry.py
+DialogLabels.PROJECTS_TARGET_FOLDER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - ui\modules_registry.py
+DialogLabels.SESSION_EXPIRED_ERROR:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+DialogLabels.SETTINGS_SECTION:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+FolderNamingTranslationKeys.TR_EMPTY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\FolderNamingRuleDialog.py
+FolderNamingTranslationKeys.TR_INVALID_RULE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\FolderNamingRuleDialog.py
+FolderNamingTranslationKeys.TR_PREVIEW_EMPTY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\FolderNamingRuleDialog.py
+FolderNamingTranslationKeys.TR_PREVIEW_PREFIX:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\FolderNamingRuleDialog.py
+FolderNamingTranslationKeys.TR_PROJECT_NAME:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\FolderNamingRuleDialog.py
+FolderNamingTranslationKeys.TR_PROJECT_NUMBER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\FolderNamingRuleDialog.py
+FolderNamingTranslationKeys.TR_SELECT_AT_LEAST_ONE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\FolderNamingRuleDialog.py
+FolderNamingTranslationKeys.TR_SYMBOL:
+  count: 9
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\FolderNamingRuleDialog.py
+FolderNamingTranslationKeys.TR_SYMBOL_REQUIRED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\FolderNamingRuleDialog.py
+FolderNamingTranslationKeys.TR_SYMBOL_TEXT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\FolderNamingRuleDialog.py
+RoleTranslationKeys.ADMINISTRATORS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+RoleTranslationKeys.ADMINS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+RoleTranslationKeys.EDITORS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+RoleTranslationKeys.GUESTS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+RoleTranslationKeys.MANAGERS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+RoleTranslationKeys.PROJECT_MANAGERS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+RoleTranslationKeys.USERS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+RoleTranslationKeys.VIEWERS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+SettingDialogPlaceholders.UNSET:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\ModuleLabelsWidget.py
+ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+ToolbarTranslationKeys.MORE_ACTIONS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+ToolbarTranslationKeys.OPEN_FOLDER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+TranslationKeys.ABOUT_PAGE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.ADD_SELECTED:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddFromMapPropertyDialog.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.ADD_UPDATE_PROGRESS_CANCELLED_TEMPLATE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.ADD_UPDATE_PROGRESS_FINISHED:
+  count: 6
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.ADD_UPDATE_PROGRESS_FINISHED_NO_CHECKS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX:
+  count: 8
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX_NO_CHECKS:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.ADD_UPDATE_PROGRESS_TEMPLATE:
+  count: 5
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.ADD_UPDATE_PROPERTY_DIALOG_CANCELLING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.ADD_WITHOUT_CHECKS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.ADMINISTRATOR:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.API_ENDPOINT_NOT_CONFIGURED:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.ARCHIVE:
+  count: 9
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\BackendActionPromptDialog.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.ARCHIVE_LAYER:
+  count: 6
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.ARCHIVE_LAYER_DESCRIPTION:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.ATTENTION:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.CANCEL_BUTTON:
+  count: 10
+  files:
+  - languages\en.py
+  - languages\et.py
+  - utils\messagesHelper.py
+  - utils\SessionManager.py
+  - widgets\ProgressDialogModern.py
+  - modules\Settings\SettingsUI.py
+  - modules\signaltest\BackendActionPromptDialog.py
+  - modules\signaltest\SignalTestDialog.py
+  - modules\Property\FlowControllers\MainDeleteProperties.py
+TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.CHOSE_FROM_MAP:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\LinkReviewDialog.py
+  - modules\Property\PropertyUI.py
+TranslationKeys.CLEAR_SELECTION:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddFromMapPropertyDialog.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.CLEAR_VALUE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\ModuleLabelsWidget.py
+TranslationKeys.CLOSE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.CONFIG_ERROR:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.CONFIRM:
+  count: 7
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\LinkReviewDialog.py
+  - utils\Folders\foldersHelpers.py
+  - modules\Settings\SettingsUI.py
+  - modules\Settings\cards\SettingsBaseCard.py
+  - modules\Property\FlowControllers\MainDeleteProperties.py
+TranslationKeys.CONNECTIONS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\property_tree_widget.py
+TranslationKeys.CONNECT_PROPERTIES:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+TranslationKeys.CONTRACTS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.COORDINATIONS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.COUNTY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\LocationFilterWidget.py
+TranslationKeys.CREATED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\DatesWidget.py
+TranslationKeys.CREATE_LOAD_IN_GPKG:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.CREATE_NEW:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.DASHBOARD:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_APPROVAL:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_ARCHIVING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPILATION:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPLETION_CHECK:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_CONTRACT_DRAFTING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_DOCUMENTING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_FINANCIAL_CHECK:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_LEGAL_REVIEW:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_MONITORING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_NOTARIAL_CONFIRM:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_OPTIMIZING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PARTY_CONSENT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PLANNING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PUBLISHING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REPORTING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REVIEW:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_SIGNATURES:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_TESTING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_CLOSE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ExtraInfoWidget.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_IN_PROGRESS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_PENDING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_PROCESSING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_SIGNED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_TODO:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_DETAIL_CONTENT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_OVERVIEW_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\DatesWidget.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_DETAIL_TITLE_SUFFIX:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ExtraInfoWidget.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_EXTRAINFO_TOOLTIP:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ExtraInfoWidget.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\InfoCardHeader.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_OVERVIEW_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_DETAIL_CONTENT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\ModuleConfig.py
+TranslationKeys.DATA_LOADING_ERROR:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.DELAY_HELPERS_LOADINGSPINNER_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DelayHelpers\LoadingSpinner.py
+TranslationKeys.DELETE_BY_ID:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsPropertyManagement.py
+TranslationKeys.DELETING:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.DEV_DBG_TOOLTIP:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.DEV_FRAMES_TOOLTIP:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.DUE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\DatesWidget.py
+TranslationKeys.EASEMENTS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.EDITOR:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.EMAIL:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsUserCard.py
+TranslationKeys.ERROR:
+  count: 12
+  files:
+  - login_dialog.py
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+  - widgets\Filters\BaseSingleFilterWidget.py
+  - utils\MapTools\MapHelpers.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.ERROR_SELECTING_PROPERTY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.FAILED_TO_LOAD_PROPERTY_DATA:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.FILTERS_CLEAR:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\Filters\filter_refresh_helper.py
+TranslationKeys.FILTERS_REFRESH:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\Filters\filter_refresh_helper.py
+TranslationKeys.FILTER_BY_LOCATION:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\LocationFilterWidget.py
+TranslationKeys.FOLDER_NAMING_RULE_DIALOG_TITLE:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\translation_keys.py
+  - modules\projects\FolderNamingRuleDialog.py
+TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\HeaderWidget.py
+TranslationKeys.HEADER_WIDGET_ABI:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\HeaderWidget.py
+TranslationKeys.HOME_PAGE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.HOW_SELECT_PROPERTIES:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsPropertyManagement.py
+TranslationKeys.KAVITRO_PLUGIN_TITLE:
+  count: 5
+  files:
+  - dialog.py
+  - main.py
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.LANGUAGE_LABEL:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.LETTERS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.LINK_PROPERTIES_ERROR:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+TranslationKeys.LINK_PROPERTIES_MISSING_NOTE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+TranslationKeys.LINK_PROPERTIES_SUCCESS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+TranslationKeys.LINK_REVIEW_ALREADY_LINKED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\LinkReviewDialog.py
+TranslationKeys.LINK_REVIEW_CONNECTIONS_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.LINK_REVIEW_NEW_SELECTIONS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\LinkReviewDialog.py
+TranslationKeys.LINK_REVIEW_RESELECT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\LinkReviewDialog.py
+TranslationKeys.LOADING:
+  count: 7
+  files:
+  - languages\en.py
+  - languages\et.py
+  - ui\ModuleBaseUI.py
+  - widgets\Filters\BaseSingleFilterWidget.py
+  - widgets\Filters\TypeFilterWidget.py
+  - modules\Property\property_tree_widget.py
+  - modules\Settings\cards\SettingsUserCard.py
+TranslationKeys.LOGIN_BUTTON:
+  count: 6
+  files:
+  - login_dialog.py
+  - languages\en.py
+  - languages\et.py
+  - languages\translation_keys.py
+  - utils\SessionManager.py
+TranslationKeys.LOGIN_FAILED:
+  count: 6
+  files:
+  - login_dialog.py
+  - languages\en.py
+  - languages\et.py
+  - python\api_client.py
+TranslationKeys.LOGIN_FAILED_RESPONSE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - python\api_client.py
+TranslationKeys.LOGOUT_BUTTON_TOOLTIP:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.MAILABL_LISTENER:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.MAIN_PROPERTY_LAYER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.MAP_SELECTION_NONE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+TranslationKeys.MAP_SELECTION_START_FAILED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+TranslationKeys.MISSING_PROPERTY_ID_BODY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainDeleteProperties.py
+TranslationKeys.MISSING_PROPERTY_ID_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainDeleteProperties.py
+TranslationKeys.MODULE_ACCESS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsUserCard.py
+TranslationKeys.MODULE_ASBUILT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_CONTRACT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_COORDINATION:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_EASEMENT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_HOME:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_LETTER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_ORDINANCE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_PROJECT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_PROPERTY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_SETTINGS_PLACEHOLDER:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.MODULE_SPECIFICATION:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_STATUSES:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_SUBMISSION:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_TAGS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.MODULE_TASK:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MODULE_WORKS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\language_manager.py
+TranslationKeys.MORE_COUNT_SUFFIX:
+  count: 6
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+TranslationKeys.MUNICIPALITY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\LocationFilterWidget.py
+TranslationKeys.NAME:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsUserCard.py
+TranslationKeys.NETWORK_ERROR:
+  count: 5
+  files:
+  - languages\en.py
+  - languages\et.py
+  - python\api_client.py
+TranslationKeys.NO:
+  count: 34
+  files:
+  - login_dialog.py
+  - main.py
+  - languages\en.py
+  - languages\et.py
+  - ui\ModuleBaseUI.py
+  - widgets\AddUpdatePropertyDialog.py
+  - utils\Folders\foldersHelpers.py
+  - modules\contract\ContractUi.py
+  - modules\coordination\CoordinationModule.py
+  - modules\projects\ProjectsUi.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.NO_API_TOKEN_RECEIVED:
+  count: 3
+  files:
+  - login_dialog.py
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.NO_CONTRACTS_FOUND:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\contract\ContractUi.py
+TranslationKeys.NO_COORDINATIONS_FOUND:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\coordination\CoordinationModule.py
+TranslationKeys.NO_PROJECTS_FOUND:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\projects\ProjectsUi.py
+TranslationKeys.NO_PROJECT_LOADED_MESSAGE:
+  count: 3
+  files:
+  - main.py
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.NO_PROJECT_LOADED_TITLE:
+  count: 3
+  files:
+  - main.py
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.NO_PROPERTY_LAYER_SELECTED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.NO_SELECTION:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.NO_VALUES_FOUND:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - ui\ModuleBaseUI.py
+TranslationKeys.OK:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - utils\messagesHelper.py
+TranslationKeys.OPEN_MAA_AMET_PAGE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsPropertyManagement.py
+TranslationKeys.OPEN_SETTINGS:
+  count: 5
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.ORDINANCES:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.OVERDUE_DUE_SOON_PILLS_ELLIPSIS:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\OverdueDueSoonPillsWidget.py
+TranslationKeys.PASSWORD_LABEL:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PLEASE_SELECT_AT_LEAST_ONE_PROPERTY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PREFERRED_MODULE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROGRESS_DIALOG_MODERN_PERCENT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\ProgressDialogModern.py
+TranslationKeys.PROJECTS:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROJECTS_MODULE_LOADED:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+TranslationKeys.PROJECT_FOLDER_MISSING_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+TranslationKeys.PROPERTIES:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTIES_ADDED:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_BODY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVE_LAYER_CREATE_FAILED_BODY:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVE_LAYER_CREATE_FAILED_BODY_GENERIC:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVE_LAYER_CREATE_FAILED_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVE_LAYER_MISSING_BODY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVE_LAYER_MISSING_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVE_LAYER_NAME_PROMPT_LABEL:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVE_LAYER_NAME_PROMPT_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVE_LAYER_REQUIRED_BODY_NAME:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVE_LAYER_REQUIRED_BODY_NO_NAME:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_ARCHIVE_LAYER_REQUIRED_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_BODY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_BACKEND_MISSING_ARCHIVED_BODY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_BACKEND_MISSING_BODY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_BACKEND_MISSING_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_BACKEND_UPDATE_FAILED_BODY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_BACKEND_UPDATE_FAILED_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_CANNOT_CREATE_ARCHIVE_BODY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.PROPERTY_CANNOT_CREATE_ARCHIVE_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.PROPERTY_ID_PLACEHOLDER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainDeleteProperties.py
+TranslationKeys.PROPERTY_INVALID_ARCHIVE_NAME_BODY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.PROPERTY_INVALID_ARCHIVE_NAME_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.PROPERTY_LAYER_FIELD_NOT_FOUND:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - utils\mapandproperties\PropertyDataLoader.py
+TranslationKeys.PROPERTY_LAYER_OVERVIEW:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.PROPERTY_MAIN_LAYER_MISSING_BODY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_MAIN_LAYER_MISSING_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_NEWER_IMPORT_BODY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_NEWER_IMPORT_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_OPEN_SETTINGS_FAILED_BODY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_OPEN_SETTINGS_FAILED_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_COPY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_DELETE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_NO_FEATURE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_REPLACE_FAILED_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\property_tree_widget.py
+TranslationKeys.PROPERTY_TREE_HEADER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\property_tree_widget.py
+TranslationKeys.PROPERTY_TREE_LOADING:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_TREE_MODULE_EMPTY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\property_tree_widget.py
+TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\property_tree_widget.py
+TranslationKeys.PROPERTY_TREE_NO_DATA:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\property_tree_widget.py
+TranslationKeys.PROPERTY_TREE_ROW_NO_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_TREE_ROW_UPDATED_PREFIX:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_UNARCHIVE_FAILED_BODY:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.PROPERTY_UNARCHIVE_FAILED_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.QUERY_FILE_NOT_FOUND:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.REPORTS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.RESELECT_FROM_MAP:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddFromMapPropertyDialog.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.RESET:
+  count: 6
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsBaseCard.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.RESET_ALL_SETTINGS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.ROLES:
+  count: 5
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsUserCard.py
+TranslationKeys.ROLES_PERMISSIONS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.RUN_ATTENTION_CHECKS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.SAVE_SETTING:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SAVING:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SEARCHING:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SEARCH_NO_RESULTS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\SearchResultsWidget.py
+TranslationKeys.SEARCH_PLACEHOLDER:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SEARCH_RESULTS_WIDGET_CLOSE_TOOLTIP:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\SearchResultsWidget.py
+TranslationKeys.SEARCH_TOOLTIP:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SELECTED_COUNT_TEMPLATE:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddFromMapPropertyDialog.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.SELECTED_PROPERTIES_ADDED:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SELECTED_PROPERTIES_COUNT:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddFromMapPropertyDialog.py
+  - widgets\AddUpdatePropertyDialog.py
+TranslationKeys.SELECT_ALL:
+  count: 6
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddFromMapPropertyDialog.py
+  - widgets\AddUpdatePropertyDialog.py
+  - widgets\Filters\BaseSingleFilterWidget.py
+  - widgets\Filters\TypeFilterWidget.py
+TranslationKeys.SELECT_A_PROPERTY_LAYER:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SELECT_BY_LOCATION_LIST:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsPropertyManagement.py
+TranslationKeys.SELECT_COUNTY:
+  count: 5
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\LocationFilterWidget.py
+  - utils\mapandproperties\PropertyUpdateFlowCoordinator.py
+TranslationKeys.SELECT_FROM_MAP:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\AddUpdatePropertyDialog.py
+  - modules\Settings\cards\SettingsPropertyManagement.py
+TranslationKeys.SELECT_LAYER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.SELECT_MODULE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SELECT_MUNICIPALITY:
+  count: 6
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\LocationFilterWidget.py
+  - utils\mapandproperties\PropertyUpdateFlowCoordinator.py
+TranslationKeys.SELECT_PROPERTIES:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SELECT_PROPERTY_FIRST:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SELECT_SETTLEMENTS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\LocationFilterWidget.py
+TranslationKeys.SELECT_SINGLE_PROPERTY_MESSAGE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SELECT_STATUSES_DESCRIPTION:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.SELECT_TAGS_DESCRIPTION:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.SELECT_TYPE_DESCRIPTION:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.SESSION_EXPIRED:
+  count: 7
+  files:
+  - languages\en.py
+  - languages\et.py
+  - python\api_client.py
+  - utils\SessionManager.py
+TranslationKeys.SESSION_EXPIRED_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - utils\SessionManager.py
+TranslationKeys.SETTINGS_BASE_CARD_TEXT:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - languages\translation_keys.py
+  - modules\Settings\cards\SettingsBaseCard.py
+TranslationKeys.SETTINGS_PAGE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SETTINGS_RESET_TO_DEFAULTS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SETTINGS_UTILS_DASH:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\SettingsUI.py
+TranslationKeys.SHOW_PROJECT_NUMBERS_DESCRIPTION:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\sidebar.py
+TranslationKeys.SIDEBAR_EXPAND_TOOLTIP:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\sidebar.py
+TranslationKeys.SIDEBAR_LEFT_ARROW:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\sidebar.py
+TranslationKeys.SIDEBAR_RIGHT_ARROW:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\sidebar.py
+TranslationKeys.SIGNALTEST_ARCHIVE_NOT_FOUND:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_ARCHIVE_SUMMARY_TEMPLATE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_DESC:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+  - modules\signaltest\SignalTestModule.py
+TranslationKeys.SIGNALTEST_DIALOG_HINT:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_DIALOG_TITLE:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_FILE_DIALOG_FILTER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_FILE_DIALOG_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_LABEL_EXTRA:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_LEGEND_EXTRA:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_LEGEND_MAPPED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_LEGEND_MISSING_REQUIRED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_LEGEND_UNMAPPED_OPTIONAL:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_LOAD_BTN:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+  - modules\signaltest\SignalTestModule.py
+TranslationKeys.SIGNALTEST_LOGICAL_TOOLTIP:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MAIN_SUMMARY_TEMPLATE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MAPPER_BTN:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_COMPARISON_DONE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_COMPARISON_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_COPY_FAIL:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_LOAD_FAIL:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_MAPPING_NOT_SAVED_BODY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_MAPPING_NOT_SAVED_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_MAPPING_SAVED_BODY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_MAPPING_SAVED_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_MISSING_FIELD_BODY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_MISSING_FIELD_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_NO_LAYER_BODY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_MSG_NO_LAYER_TITLE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_NONE_OPTION:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_NOTE_EXTRA:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_NOTE_OPTIONAL:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_NOTE_REQUIRED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_NOTE_TARGET_ONLY:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_OPTION_TOOLTIP:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_PANEL_ARCHIVE:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_PANEL_MAIN:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_PANEL_SCHEMA:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_REQUIRED_SUFFIX:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_SOURCE_AUTO:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_SOURCE_STORED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_STATUS_EXTRA:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_STATUS_MAPPED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_STATUS_MISSING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_STATUS_UNMAPPED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_STEP_LOAD:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_STEP_MAP:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_STEP_REVIEW:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_SUMMARY_TEMPLATE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_TABLE_HEADER_LAYER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_TABLE_HEADER_LOGICAL:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_TABLE_HEADER_NOTE:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SIGNALTEST_TABLE_HEADER_STATUS:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\SignalTestDialog.py
+TranslationKeys.SKIP:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.SPECIFICATIONS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.START:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\DatesWidget.py
+TranslationKeys.STATUS_FILTER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\Filters\StatusFilterWidget.py
+TranslationKeys.STATUS_PREFERENCES:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.SUBMISSIONS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SUCCESS:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\module_action_buttons.py
+  - utils\Folders\foldersHelpers.py
+TranslationKeys.SWITCH_TO_DARK_MODE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.SWITCH_TO_LIGHT_MODE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.TAGS_FILTER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\Filters\TagsFilterWidget.py
+TranslationKeys.TAGS_PREFERENCES:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.TASKS:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.THEME_SWITCH_TOOLTIP:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.TOGGLE_PASSWORD:
+  count: 3
+  files:
+  - login_dialog.py
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.TYPE_FILTER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\Filters\TypeFilterWidget.py
+TranslationKeys.TYPE_GROUP_FILTER:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\Filters\TypeFilterWidget.py
+TranslationKeys.TYPE_PREFERENCES:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsModuleCard.py
+TranslationKeys.UNARCHIVE:
+  count: 6
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\signaltest\BackendActionPromptDialog.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.UNARCHIVE_EXISTING:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.UNKNOWN_MODULE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.UPDATED:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\DataDisplayWidgets\DatesWidget.py
+TranslationKeys.URGENT_GROUP_TITLE:
+  count: 2
+  files:
+  - languages\en.py
+  - widgets\OverdueDueSoonPillsWidget.py
+TranslationKeys.URGENT_TOOLTIP:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\OverdueDueSoonPillsWidget.py
+TranslationKeys.USER:
+  count: 11
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Settings\cards\SettingsUserCard.py
+TranslationKeys.USERNAME_LABEL:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.USER_PROFILE:
+  count: 2
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.VIEWER:
+  count: 4
+  files:
+  - languages\en.py
+  - languages\et.py
+TranslationKeys.WELCOME:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - widgets\WelcomePage.py
+TranslationKeys.YES:
+  count: 15
+  files:
+  - languages\en.py
+  - languages\et.py
+  - utils\Folders\foldersHelpers.py
+  - modules\Property\FlowControllers\MainAddProperties.py
+TranslationKeys.YES_TO_ALL:
+  count: 3
+  files:
+  - languages\en.py
+  - languages\et.py
+  - modules\Property\FlowControllers\MainAddProperties.py

@@ -7,6 +7,7 @@ from qgis.core import QgsFeature, QgsVectorLayer
 from qgis.utils import iface
 
 from .MapHelpers import MapHelpers
+from ...Logs.python_fail_logger import PythonFailLogger
 
 SelectionCallback = Callable[[QgsVectorLayer, List[QgsFeature]], None]
 
@@ -60,10 +61,18 @@ class MapSelectionController(QObject):
                         layer.setSubsetString("")
                         try:
                             layer.triggerRepaint()
-                        except Exception:
-                            pass
-            except Exception:
-                pass
+                        except Exception as exc:
+                            PythonFailLogger.log_exception(
+                                exc,
+                                module="map",
+                                event="map_selection_repaint_failed",
+                            )
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="map",
+                    event="map_selection_clear_filter_failed",
+                )
 
         self._baseline_selection_ids = set(layer.selectedFeatureIds() or []) if keep_existing_selection else set()
         if not keep_existing_selection:
@@ -107,16 +116,24 @@ class MapSelectionController(QObject):
         try:
             if self._debounce_timer is not None:
                 self._debounce_timer.stop()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="map",
+                event="map_selection_stop_timer_failed",
+            )
         self._debounce_timer = None
 
         if not self._layer:
             return
         try:
             self._layer.selectionChanged.disconnect(self._handle_selection_changed)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="map",
+                event="map_selection_disconnect_failed",
+            )
         finally:
             self._layer = None
             self._callback = None
@@ -145,8 +162,12 @@ class MapSelectionController(QObject):
 
         try:
             self._debounce_timer.stop()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="map",
+                event="map_selection_stop_timer_failed",
+            )
 
         self._debounce_timer.start(int(self._debounce_ms))
 
@@ -167,14 +188,22 @@ class MapSelectionController(QObject):
 
         try:
             layer.selectionChanged.disconnect(self._handle_selection_changed)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="map",
+                event="map_selection_disconnect_failed",
+            )
 
         if self._restore_pan:
             try:
                 iface.actionPan().trigger()
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="map",
+                    event="map_selection_restore_pan_failed",
+                )
 
         callback = self._callback
         self._layer = None
@@ -196,5 +225,9 @@ class MapSelectionController(QObject):
         if action:
             try:
                 action().trigger()
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="map",
+                    event="map_selection_trigger_tool_failed",
+                )

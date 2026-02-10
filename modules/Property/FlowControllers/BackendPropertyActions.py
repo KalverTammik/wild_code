@@ -4,6 +4,7 @@ from .MainAddProperties import BackendPropertyVerifier
 from .UpdatePropertyData import UpdatePropertyData
 from .MainDeleteProperties import deleteProperty
 from ....utils.TagsEngines import TagsHelpers
+from ....Logs.python_fail_logger import PythonFailLogger
 
 
 class BackendPropertyActions:
@@ -103,8 +104,13 @@ class BackendPropertyActions:
                     if int(active_count or 0) > 0:
                         print({"delete_backend": {"tunnus": tunnus, "ok": False, "reason": "active_backend_exists"}})
                         continue
-                except Exception:
-                    pass
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="property",
+                        event="backend_active_count_parse_failed",
+                        extra={"tunnus": tunnus, "active_count": active_count},
+                    )
 
                 archived_ids = backend_info.get("archived_ids") or []
                 if isinstance(archived_ids, list):

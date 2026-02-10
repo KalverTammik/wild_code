@@ -4,7 +4,7 @@ import os
 from typing import List, Optional, Tuple
 
 from PyQt5.QtWidgets import QComboBox, QDialog, QLineEdit
-from ...languages.translation_keys import FolderNamingTranslationKeys
+from ...languages.translation_keys import FolderNamingTranslationKeys, TranslationKeys
 from PyQt5.uic import loadUi
 from ...utils.messagesHelper import ModernMessageDialog
 
@@ -36,7 +36,7 @@ class FolderNamingRuleDialog(QDialog):
         symbolText3 = widget.symbolText3
 
 
-        self.setWindowTitle(self.lang_manager.translate(FolderNamingTranslationKeys.TR_FOLDER_NAMING_RULE))
+        self.setWindowTitle(self.lang_manager.translate(TranslationKeys.FOLDER_NAMING_RULE_DIALOG_TITLE))
 
         self.slot_rows: List[Tuple[QComboBox, QLineEdit]] = [
             (comboSlot1, symbolText1),
@@ -96,11 +96,14 @@ class FolderNamingRuleDialog(QDialog):
             selected_key, symbol_text = parts[idx]
             if selected_key is None:
                 combo.setCurrentIndex(0)
-                symbol_input.setText("")
+                symbol_input.clear()
             else:
                 combo_index = combo.findData(selected_key)
                 combo.setCurrentIndex(combo_index if combo_index >= 0 else 0)
-                symbol_input.setText(symbol_text or "")
+                if symbol_text:
+                    symbol_input.setText(symbol_text)
+                else:
+                    symbol_input.clear()
                 is_symbol = selected_key == INTERNAL_SYMBOL
                 symbol_input.setVisible(is_symbol)
                 symbol_input.setEnabled(is_symbol)

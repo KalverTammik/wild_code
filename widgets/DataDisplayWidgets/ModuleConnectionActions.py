@@ -7,6 +7,7 @@ from .module_action_buttons import (
     ShowOnMapActionButton,
     MoreActionsButton
 )
+from ...python.responses import DataDisplayExtractors
 
 
 class ModuleConnectionActions(QWidget):
@@ -26,7 +27,7 @@ class ModuleConnectionActions(QWidget):
         layout.setSpacing(4)
         layout.addStretch(1)
 
-        file_path = item_data.get('filesPath', '')
+        file_path = DataDisplayExtractors.extract_files_path(item_data)
 
         folder_btn = OpenFolderActionButton(file_path, lang_manager)
         layout.addWidget(folder_btn)
@@ -34,9 +35,7 @@ class ModuleConnectionActions(QWidget):
         web_btn = OpenWebActionButton(module_key, item_id, lang_manager)
         layout.addWidget(web_btn)
 
-        properties_conn = item_data.get('properties') or {}
-        page_info = properties_conn.get('pageInfo') or {}
-        has_connections = page_info.get('count') or page_info.get('total', 0)
+        has_connections = DataDisplayExtractors.extract_properties_connection_count(item_data)
 
         map_btn = ShowOnMapActionButton(
             module_key,

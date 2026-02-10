@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel
 from ...constants.file_paths import QssPaths
 from ...constants.module_icons import IconNames
 from ...widgets.theme_manager import ThemeManager
+from ...python.responses import DataDisplayExtractors
 
 
 class ContactsWidget(QFrame):
@@ -11,8 +12,7 @@ class ContactsWidget(QFrame):
 
     def __init__(self, item_data, total=None, parent=None):
         super().__init__(parent)
-        names = [n for n in (self.extract_contacts(item_data) or []) if n]
-        #print(f"[ContactsWidget] Extracted contact names: {names}")
+        names = [n for n in (DataDisplayExtractors.extract_contact_names(item_data) or []) if n]
         if not names:
             self.setVisible(False)
             return
@@ -49,20 +49,6 @@ class ContactsWidget(QFrame):
             more.setFixedWidth(more_width)
             layout.addWidget(more, 0, Qt.AlignLeft | Qt.AlignVCenter)
         self.retheme()
-    @staticmethod
-    def extract_contacts (item_data):
-        """Extract contact names from item data."""
-        contacts_conn = item_data.get('contacts') or {}
-        if not contacts_conn:
-            return []
-        contact_edges = contacts_conn.get('edges') or []
-        contact_names = [
-            (edge.get('node') or {}).get('displayName')
-            for edge in contact_edges
-            if isinstance(edge, dict) and (edge.get('node') or {}).get('displayName')
-        ]
-        return contact_names
-    
     def retheme(self):
         """Reapply theme styles when theme changes."""
         ThemeManager.apply_module_style(self, [QssPaths.CONTACTS])

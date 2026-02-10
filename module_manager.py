@@ -4,6 +4,7 @@ from .utils.url_manager import Module
 from .constants.module_icons import ModuleIconPaths
 from .languages.language_manager import LanguageManager
 from .widgets.theme_manager import ThemeManager
+from .Logs.switch_logger import SwitchLogger
 
 MODULES_LIST_BY_NAME = []
 
@@ -20,7 +21,7 @@ class ModuleManager:
             self.modules = {}  # Dictionary to store modules by name
             self.activeModule = None  # Reference to the currently active module
             self.lang_manager = LanguageManager()
-        
+            self._activation_counter = 0
 
     def registerModule(
         self,
@@ -45,7 +46,7 @@ class ModuleManager:
             "instance": None,              # Lazy: created on-demand
             "name": module_name.lower(),
             "icon": ModuleIconPaths.get_module_icon(module_name),
-            "display_name": self.lang_manager.translate(module_name.lower()),
+            "display_name": self.lang_manager.translate_module_name(module_name),
             "sidebar_main_item": sidebar_main_item,
             "supports_types": supports_types,
             "supports_statuses": supports_statuses,
@@ -74,7 +75,8 @@ class ModuleManager:
             try:
                 target_instance.activate()
             except Exception as exc:
-                pass
+                SwitchLogger.log("module_activate_error", module=key, extra={"error": str(exc)})
+                raise
             return
 
         # Deactivate whatever is currently active
@@ -82,16 +84,26 @@ class ModuleManager:
             current_instance = self.activeModule.get("instance")
             if current_instance:
                 try:
+                    SwitchLogger.log("module_deactivate_start", module=self.activeModule.get("name"))
+                    current_instance.mark_deactivated(bump_token=True)
                     current_instance.deactivate()
-                except Exception:
-                    pass
+                    SwitchLogger.log("module_deactivate_done", module=self.activeModule.get("name"))
+                except Exception as exc:
+                    SwitchLogger.log(
+                        "module_deactivate_error",
+                        module=self.activeModule.get("name"),
+                        extra={"error": str(exc)},
+                    )
+                    raise
 
         # Lazily instantiate the target module (only once)
         if target_instance is None:
             cls = module_data["module_class"]
             params = module_data["init_params"]
+            SwitchLogger.log("module_init_start", module=key)
             target_instance = cls(**params)
             module_data["instance"] = target_instance
+            SwitchLogger.log("module_init_done", module=key)
 
             # Register module root with centralized retheme engine
             engine = ThemeManager.get_retheme_engine()
@@ -103,8 +115,14 @@ class ModuleManager:
         # Activate and mark as current
         self.activeModule = module_data
         try:
+            self._activation_counter += 1
+            target_instance.prepare_activation(self._activation_counter)
+            SwitchLogger.log("module_activate_start", module=key)
             target_instance.activate()
+            target_instance.mark_activated(self._activation_counter)
+            SwitchLogger.log("module_activate_done", module=key)
         except Exception as exc:
+            SwitchLogger.log("module_activate_error", module=key, extra={"error": str(exc)})
             raise
 
     def getActiveModuleInstance(self, moduleName):

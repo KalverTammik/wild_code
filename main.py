@@ -2,6 +2,7 @@ import gc
 import os
 import tempfile
 import faulthandler
+from qgis.PyQt.QtCore import QTimer
 from qgis.PyQt.QtWidgets import QAction
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsProject
@@ -15,10 +16,15 @@ from .languages.language_manager import LanguageManager
 from .languages.translation_keys import TranslationKeys
 from .widgets.theme_manager import ThemeManager
 from .utils.messagesHelper import ModernMessageDialog
+from .Logs.switch_logger import SwitchLogger
+from .Logs.python_fail_logger import PythonFailLogger
+from .utils.MapTools.MapHelpers import MapHelpers
+from .constants.layer_constants import IMPORT_PROPERTY_TAG
+from .ui.window_state.DialogCoordinator import get_dialog_coordinator
 
 
 
-CRASH_LOG_PATH = os.path.join(tempfile.gettempdir(), "wild_code_crash.log")
+CRASH_LOG_PATH = os.path.join(tempfile.gettempdir(), "kavitro_crash.log")
 try:
     _CRASH_LOG_HANDLE = open(CRASH_LOG_PATH, "w", encoding="utf-8")
     faulthandler.enable(_CRASH_LOG_HANDLE, all_threads=True)
@@ -42,13 +48,30 @@ class WildCodePlugin:
         gc.collect()
         icon_path = IconNames.VALISEE_V_ICON_NAME
 
-        self.action = QAction(ThemeManager.get_qicon(icon_path), LanguageManager.translate_static(TranslationKeys.WILD_CODE_PLUGIN_TITLE), self.iface.mainWindow())  # Set the icon for the action
+        self.action = QAction(ThemeManager.get_qicon(icon_path), LanguageManager.translate_static(TranslationKeys.KAVITRO_PLUGIN_TITLE), self.iface.mainWindow())  # Set the icon for the action
         self.action.triggered.connect(self.run)
         self.iface.addToolBarIcon(self.action)
 
     def unload(self):
         self.iface.removeToolBarIcon(self.action)
         self.action = None
+        try:
+            dlg = self.pluginDialog or PluginDialog.get_instance()
+            if dlg is not None:
+                try:
+                    setattr(dlg, "_force_close", True)
+                except Exception:
+                    pass
+                try:
+                    dlg.close()
+                except Exception:
+                    pass
+                try:
+                    dlg.deleteLater()
+                except Exception:
+                    pass
+        finally:
+            self.pluginDialog = None
         gc.collect()
 
     def run(self):
@@ -65,44 +88,46 @@ class WildCodePlugin:
             ModernMessageDialog.Warning_messages_modern(heading, text)
             return
 
+        SwitchLogger.start_session()
+        PythonFailLogger.start_session()
+        SwitchLogger.log("plugin_run")
+        MapHelpers.cleanup_empty_import_layers(IMPORT_PROPERTY_TAG)
         session = SessionManager()
         session.load()
-
-        # If session is missing/expired, force login and avoid reusing a stale dialog
-        if session.needs_login() or not session.get_token():
+        if not SessionManager.is_session_valid():
             self.pluginDialog = None
-            self._show_login_dialog()
-            if self.login_successful:
-                self._show_main_dialog()
-                self.login_successful = False
-            return
+            if not hasattr(self, "_pending_login_listener"):
+                def _on_session_valid():
+                    if SessionManager.is_session_valid():
+                        SessionManager.unregister_listener(_on_session_valid)
+                        if hasattr(self, "_pending_login_listener"):
+                            delattr(self, "_pending_login_listener")
+                        self._show_main_dialog()
+                        def _raise_dialog():
+                            dlg = self.pluginDialog or PluginDialog.get_instance()
+                            if dlg:
+                                coordinator = get_dialog_coordinator(self.iface)
+                                coordinator.bring_to_front(dlg, retries=1, delay_ms=200)
+                        QTimer.singleShot(0, _raise_dialog)
 
-        if not session.revalidateSession():
-            self.pluginDialog = None
-            self._show_login_dialog()
-            if self.login_successful:
-                self._show_main_dialog()
-                self.login_successful = False
-            return
-
-        if not session.isLoggedIn():
-            self.pluginDialog = None
-            self._show_login_dialog()
-            if self.login_successful:
-                self._show_main_dialog()
-                self.login_successful = False
+                self._pending_login_listener = _on_session_valid
+                SessionManager.register_listener(_on_session_valid)
+            SessionManager.request_login(parent=self.iface.mainWindow(), reason="startup")
             return
 
         # Session looks valid; reuse dialog if alive, else create
         if self.pluginDialog is not None:
             try:
                 if sip is None or not sip.isdeleted(self.pluginDialog):
-                    self.pluginDialog.show()
-                    self.pluginDialog.raise_()
-                    self.pluginDialog.activateWindow()
+                    coordinator = get_dialog_coordinator(self.iface)
+                    coordinator.bring_to_front(self.pluginDialog, retries=1, delay_ms=200)
                     return
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="plugin_dialog_show_failed",
+                )
 
         self._show_main_dialog()
 
@@ -121,7 +146,12 @@ class WildCodePlugin:
                 import sip
                 if sip and not sip.isdeleted(self.pluginDialog):
                     dlg = self.pluginDialog
-            except Exception:
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="plugin_dialog_reuse_check_failed",
+                )
                 dlg = None
 
         if dlg is None:
@@ -129,11 +159,12 @@ class WildCodePlugin:
             self.pluginDialog = dlg
             dlg.finished.connect(self.reset_plugin_dialog)
             dlg.show()
+            coordinator = get_dialog_coordinator(self.iface)
+            coordinator.bring_to_front(dlg, retries=1, delay_ms=200)
         else:
             self.pluginDialog = dlg
-            dlg.show()
-            dlg.raise_()
-            dlg.activateWindow()
+            coordinator = get_dialog_coordinator(self.iface)
+            coordinator.bring_to_front(dlg, retries=1, delay_ms=200)
 
     def reset_login_dialog(self):
         self.loginDialog = None
