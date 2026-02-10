@@ -26,6 +26,15 @@ _MODULE_TRANSLATION_KEY_MAP = {
     Module.STATUSES.value: TranslationKeys.MODULE_STATUSES,
     Module.SIGNALTEST.value: TranslationKeys.SIGNALTEST,
     "properties": TranslationKeys.PROPERTIES,
+    "projects": TranslationKeys.PROJECTS,
+    "contracts": TranslationKeys.CONTRACTS,
+    "coordinations": TranslationKeys.COORDINATIONS,
+    "letters": TranslationKeys.LETTERS,
+    "specifications": TranslationKeys.SPECIFICATIONS,
+    "easements": TranslationKeys.EASEMENTS,
+    "ordinances": TranslationKeys.ORDINANCES,
+    "submissions": TranslationKeys.SUBMISSIONS,
+    "tasks": TranslationKeys.TASKS,
 }
 
 class LanguageManager:

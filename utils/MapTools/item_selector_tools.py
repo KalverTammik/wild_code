@@ -69,6 +69,7 @@ class PropertiesSelectors:
                     "property_layer_missing",
                     module=Module.PROPERTY.value,
                     message="Layer not found in show_connected_properties_on_map",
+                    extra={"module": module or Module.PROPERTY.value},
                 )
             except Exception as exc:
                 print(f"[PropertiesSelectors] Failed to log missing layer: {exc}")
@@ -84,19 +85,6 @@ class PropertiesSelectors:
             except Exception as exc:
                 print(f"[PropertiesSelectors] Failed to log invalid layer: {exc}")
             return
-
-        try:
-            PythonFailLogger.log(
-                "property_layer_selected",
-                module=Module.PROPERTY.value,
-                extra={
-                    "layer_name": getattr(layer, "name", lambda: "")(),
-                    "layer_id": getattr(layer, "id", lambda: "")(),
-                    "provider": getattr(layer, "providerType", lambda: "")(),
-                },
-            )
-        except Exception as exc:
-            print(f"[PropertiesSelectors] Failed to log layer selection: {exc}")
 
         try:
             features = MapHelpers.find_features_by_fields_and_values(layer, Katastriyksus.tunnus, values)

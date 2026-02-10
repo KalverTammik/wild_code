@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<plugins>
+  <pyqgis_plugin name="Kavitro" version="2.00.1">
+    <description>Integration plugin for Kavitro workflows in QGIS</description>
+    <about>Kavitro integration plugin for internal workflows. Provides UI modules, data loading and layer creation helpers.</about>
+    <version>2.00.1</version>
+    <qgis_minimum_version>3.0</qgis_minimum_version>
+    <homepage>https://kavitro.com</homepage>
+    <file_name>kavitro.2.00.1.zip</file_name>
+    <download_url>https://kalvertammik.github.io/wild_code/qgis-repo/kavitro.2.00.1.zip</download_url>
+    <icon>https://kalvertammik.github.io/wild_code/qgis-repo/kavitro.png</icon>
+    <author_name>Kalver Tammik / Tuloli OÜ</author_name>
+    <email>tulolikt@gmail.com</email>
+    <tracker>https://github.com/KalverTammik/wild_code/issues</tracker>
+    <repository>https://github.com/KalverTammik/wild_code</repository>
+    <experimental>False</experimental>
+    <deprecated>False</deprecated>
+    <create_date>2026-02-10</create_date>
+    </pyqgis_plugin>
+  </plugins>

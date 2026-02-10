@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import requests
 from typing import Any, Dict, List, Mapping, Optional, Union
+from ..Logs.python_fail_logger import PythonFailLogger
 
 Json = Mapping[str, Any]
 
@@ -157,7 +158,8 @@ class DataDisplayExtractors:
                 return int(value)
             if isinstance(value, str):
                 try:
-                    return int(value)
+                    parsed = int(value)
+                    return parsed
                 except ValueError:
                     pass
         edges = properties.get(GqlKeys.EDGES, [])
