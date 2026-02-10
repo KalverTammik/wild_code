@@ -17,6 +17,8 @@ class FooterWidget(QWidget):
     def __init__(self, parent=None, show_left=True, show_right=True, compact=False):
         super().__init__(parent)
 
+        self._version_label = None
+
         # Outer frame for the glow + top border (styled via QSS)
         frame = QFrame(self)
         frame.setObjectName("footerWidgetFrame")
@@ -47,16 +49,15 @@ class FooterWidget(QWidget):
         if show_right:
             from ..constants.file_paths import ConfigPaths
             metadata_file = ConfigPaths.METADATA
-            qgis_version = Qgis.QGIS_VERSION
-            plugin_version = Version.get_plugin_version(metadata_file)
-
-            right = QLabel(f"QGIS {qgis_version} | Plugin v{plugin_version}")
-            right.setObjectName("footerLabel")
-            right.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            right.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+            self._version_label = QLabel("")
+            self._version_label.setObjectName("footerLabel")
+            self._version_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self._version_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
             layout.addStretch(1)
-            layout.addWidget(right)
+            layout.addWidget(self._version_label)
+
+            self.refresh_versions(metadata_file)
         else:
             layout.addStretch(1)
 
@@ -68,6 +69,26 @@ class FooterWidget(QWidget):
         # Apply QSS (your ThemeManager call)
 
         self.retheme_footer()
+
+    def refresh_versions(self, metadata_file=None):
+        if not self._version_label:
+            return
+
+        try:
+            if metadata_file is None:
+                from ..constants.file_paths import ConfigPaths
+                metadata_file = ConfigPaths.METADATA
+
+            qgis_version = Qgis.QGIS_VERSION
+            plugin_version = Version.get_plugin_version(metadata_file)
+            plugin_version = (plugin_version or "?").strip()
+            self._version_label.setText(f"QGIS {qgis_version} | Plugin v{plugin_version}")
+        except Exception:
+            try:
+                qgis_version = Qgis.QGIS_VERSION
+            except Exception:
+                qgis_version = "?"
+            self._version_label.setText(f"QGIS {qgis_version} | Plugin v?")
         
     def retheme_footer(self):
         """

@@ -207,6 +207,11 @@ class PluginDialog(QDialog):
     def showEvent(self, event):
         if not SessionUIController.ensure_logged_in(self):
             return
+        if hasattr(self, "footer_widget") and self.footer_widget:
+            try:
+                self.footer_widget.refresh_versions()
+            except Exception:
+                pass
         super().showEvent(event)
         SessionUIController.after_show(self)
 

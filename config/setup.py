@@ -12,10 +12,15 @@ with open(config_file_path, "r") as json_content:
 class Version:
     @staticmethod
     def get_plugin_version(metadata_file):
-        with open(metadata_file, 'r') as f:
-            for line in f:
-                if line.strip().startswith("version="):
-                    return line.strip().split('=')[1]
+        try:
+            with open(metadata_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    stripped = line.strip()
+                    if stripped.startswith("version="):
+                        return stripped.split("=", 1)[1].strip()
+        except Exception:
+            return None
+        return None
 
 
 
