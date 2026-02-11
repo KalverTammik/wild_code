@@ -1,5 +1,5 @@
 [general]
-name=Kavitro
+name=Kavitro DEV
 description=Integration plugin for Kavitro workflows in QGIS
 version=2.00.2
 qgisMinimumVersion=3.0
