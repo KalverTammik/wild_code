@@ -3,15 +3,6 @@ name: Build QGIS repo artifacts on Release
 on:
   release:
     types: [published]
-  push:
-    tags:
-      - "v*"
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to build (e.g. 2.00.3). If empty, uses the release tag or tag ref."
-        required: false
-        default: ""
 
 permissions:
   contents: write
