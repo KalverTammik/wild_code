@@ -79,24 +79,105 @@ jobs:
                 continue
             out.append(line)
 
-          if not replaced:
-            raise SystemExit("metadata.txt does not contain a version key")
+          name: Build QGIS repo artifacts on Release
 
-          path.write_text("".join(out), encoding="utf-8")
-          print(f"metadata.txt version set to {version}")
-          PY
+          on:
+            release:
+              types: [published]
 
-      - name: Build docs/qgis-repo artifacts
-        shell: bash
-        run: |
-          python tools/qgis_repo_release.py --out docs/qgis-repo --repo-path qgis-repo
+          permissions:
+            contents: write
 
-      - name: Upload QGIS plugin artifact
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: docs/qgis-repo/plugin.zip
-          asset_name: plugin-v${{ steps.ver.outputs.version }}.zip
-          asset_content_type: application/zip
+          concurrency:
+            group: "qgis-release"
+            cancel-in-progress: false
+
+          jobs:
+            build-and-commit:
+              runs-on: ubuntu-latest
+
+              steps:
+                - name: Checkout main
+                  uses: actions/checkout@v4
+                  with:
+                    ref: main
+                    fetch-depth: 0
+
+                - name: Set up Python
+                  uses: actions/setup-python@v5
+                  with:
+                    python-version: "3.x"
+
+                - name: Determine version
+                  id: ver
+                  shell: bash
+                  run: |
+                    if [ "${{ github.event_name }}" = "release" ]; then
+                      ver="${{ github.event.release.tag_name }}"
+                    else
+                      ver="${{ github.ref_name }}"
+                    fi
+
+                    # strip leading 'v' from tags like v2.00.06
+                    ver="${ver#v}"
+
+                    if [ -z "$ver" ]; then
+                      echo "Unable to determine version" >&2
+                      exit 1
+                    fi
+
+                    echo "version=$ver" >> "$GITHUB_OUTPUT"
+                    echo "Building version: $ver"
+
+                - name: Use release metadata (inside kavitro/)
+                  shell: bash
+                  run: |
+                    test -f metadata.release.txt
+                    test -d kavitro
+                    cp metadata.release.txt kavitro/metadata.txt
+
+                - name: Update kavitro/metadata.txt version
+                  shell: bash
+                  run: |
+                    python - <<'PY'
+                    from pathlib import Path
+
+                    version = "${{ steps.ver.outputs.version }}".strip()
+                    path = Path("kavitro/metadata.txt")
+
+                    text = path.read_text(encoding="utf-8", errors="replace").splitlines(True)
+                    out = []
+                    replaced = False
+
+                    for line in text:
+                        stripped = line.strip()
+                        if stripped.lower().startswith("version") and ("=" in stripped or ":" in stripped):
+                            key, _ = (line.split("=", 1) if "=" in line else line.split(":", 1))
+                            if key.strip().lower() == "version":
+                                sep = "=" if "=" in line else ":"
+                                out.append(f"version{sep}{version}\n")
+                                replaced = True
+                                continue
+                        out.append(line)
+
+                    if not replaced:
+                        raise SystemExit("kavitro/metadata.txt does not contain a version key")
+
+                    path.write_text("".join(out), encoding="utf-8")
+                    print(f"kavitro/metadata.txt version set to {version}")
+                    PY
+
+                - name: Build docs/qgis-repo artifacts (plugin-dir=kavitro)
+                  shell: bash
+                  run: |
+                    python tools/qgis_repo_release.py --plugin-dir kavitro --out docs/qgis-repo --repo-path qgis-repo
+
+                - name: Upload QGIS plugin artifact
+                  uses: actions/upload-release-asset@v1
+                  env:
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  with:
+                    upload_url: ${{ github.event.release.upload_url }}
+                    asset_path: docs/qgis-repo/plugin.zip
+                    asset_name: plugin-v${{ steps.ver.outputs.version }}.zip
+                    asset_content_type: application/zip
