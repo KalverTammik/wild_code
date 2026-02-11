@@ -1,7 +1,7 @@
 [general]
 name=Kavitro
 description=Integration plugin for Kavitro workflows in QGIS
-version=2.00.04
+version=2.00.05
 qgisMinimumVersion=3.0
 author=Kalver Tammik / Tuloli OÜ
 email=tulolikt@gmail.com
