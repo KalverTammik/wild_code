@@ -1,6 +1,6 @@
 {
-    "graphql_endpoint": "https://base.mailabl.com/graphql",
-    "weblink": "https://app.mailabl.com",
+    "graphql_endpoint": "https://kiisu.kavitro.io/graphql",
+    "weblink": "https://kohevpesa.kavitro.io",
     "api_base": "https://api.kavitro.com/v1",
     "privacy": "https://kavitro.com/et/privaatsuspoliitika/",
     "terms": "https://kavitro.com/et/kasutustingimused/",
