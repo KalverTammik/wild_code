@@ -39,8 +39,7 @@ pip-delete-this-directory.txt
 htmlcov/
 .tox/
 
-# QGIS plugin metadata for local dev/live separation
-metadata.txt
+
 .nox/
 .coverage
 .coverage.*

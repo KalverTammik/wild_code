@@ -33,7 +33,13 @@ class QueryPaths:
 
 class ConfigPaths:
     CONFIG = os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json")
-    METADATA = os.path.join(PLUGIN_ROOT, "metadata.txt")
+    # Use metadata.dev.txt if it exists, otherwise fallback to metadata.txt
+    _dev_metadata = os.path.join(PLUGIN_ROOT, "metadata.dev.txt")
+    _main_metadata = os.path.join(PLUGIN_ROOT, "metadata.txt")
+    if os.path.exists(_dev_metadata):
+        METADATA = _dev_metadata
+    else:
+        METADATA = _main_metadata
 
 class GraphQLSettings:
     @staticmethod
