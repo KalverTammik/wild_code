@@ -104,6 +104,9 @@ bpmn/
 .qgis2/
 .qgis3/
 
+# Local dev metadata override
+metadata.dev.txt
+
 # Mac
 .DS_Store
 
