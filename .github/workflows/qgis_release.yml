@@ -31,6 +31,10 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Use release metadata
+        run: cp metadata.release.txt metadata.txt
+        shell: bash
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
