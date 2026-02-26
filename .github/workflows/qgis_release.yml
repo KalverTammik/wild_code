@@ -99,7 +99,7 @@ jobs:
               if line.startswith("experimental="):
                   out.append("experimental=False")
                   continue
-                if line.startswith("version="):
+              if line.startswith("version="):
                   out.append(f"version={release_version}")
                   continue
               out.append(line)
