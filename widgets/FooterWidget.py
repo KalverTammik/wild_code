@@ -82,13 +82,16 @@ class FooterWidget(QWidget):
             qgis_version = Qgis.QGIS_VERSION
             plugin_version = Version.get_plugin_version(metadata_file)
             plugin_version = (plugin_version or "?").strip()
-            self._version_label.setText(f"QGIS {qgis_version} | Plugin v{plugin_version}")
+            from ..constants.file_paths import ConfigPaths
+            self._version_label.setText(
+                f"QGIS {qgis_version} | Plugin v{plugin_version} | Config: {ConfigPaths.CONFIG_NAME}"
+            )
         except Exception:
             try:
                 qgis_version = Qgis.QGIS_VERSION
             except Exception:
                 qgis_version = "?"
-            self._version_label.setText(f"QGIS {qgis_version} | Plugin v?")
+            self._version_label.setText(f"QGIS {qgis_version} | Plugin v? | Config: ?")
         
     def retheme_footer(self):
         """

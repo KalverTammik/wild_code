@@ -33,6 +33,7 @@ from PyQt5.QtWidgets import QSizePolicy
 
 from .utils.search.searchHelpers import SearchUIController
 from .modules.Settings.settings_ui_controller import SettingsUIController
+from .constants.file_paths import ConfigPaths
 
 
 
@@ -78,7 +79,11 @@ class PluginDialog(QDialog):
         )
 
         # Title + icon
-        self.setWindowTitle(self.lang_manager.translate(TranslationKeys.KAVITRO_PLUGIN_TITLE))
+        plugin_title = self.lang_manager.translate(TranslationKeys.KAVITRO_PLUGIN_TITLE)
+        if ConfigPaths.CONFIG_NAME == "config_dev.json":
+            plugin_title = f"{plugin_title} [DEV]"
+
+        self.setWindowTitle(plugin_title)
         icon = theme_manager.get_qicon(IconNames.VALISEE_V_ICON_NAME)
         self.setWindowIcon(icon)
 
@@ -96,7 +101,7 @@ class PluginDialog(QDialog):
         dialog_layout.setSpacing(0)
 
         self.header_widget = HeaderWidget(
-            title=self.lang_manager.translate(TranslationKeys.KAVITRO_PLUGIN_TITLE),
+            title=plugin_title,
             switch_callback=self.apply_theme_toggle,
             logout_callback=self.logout
         )

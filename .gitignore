@@ -113,5 +113,5 @@ metadata.dev.txt
 # Windows
 Thumbs.db
 
-# Ignore config folder (environment configs)
-config/
+# Ignore local DEV-only config
+config/config_dev.json

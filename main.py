@@ -21,6 +21,7 @@ from .Logs.python_fail_logger import PythonFailLogger
 from .utils.MapTools.MapHelpers import MapHelpers
 from .constants.layer_constants import IMPORT_PROPERTY_TAG
 from .ui.window_state.DialogCoordinator import get_dialog_coordinator
+from .constants.file_paths import ConfigPaths
 
 
 
@@ -47,8 +48,11 @@ class WildCodePlugin:
         # Force final garbage collection
         gc.collect()
         icon_path = IconNames.VALISEE_V_ICON_NAME
+        plugin_title = LanguageManager.translate_static(TranslationKeys.KAVITRO_PLUGIN_TITLE)
+        if ConfigPaths.CONFIG_NAME == "config_dev.json":
+            plugin_title = f"{plugin_title} [DEV]"
 
-        self.action = QAction(ThemeManager.get_qicon(icon_path), LanguageManager.translate_static(TranslationKeys.KAVITRO_PLUGIN_TITLE), self.iface.mainWindow())  # Set the icon for the action
+        self.action = QAction(ThemeManager.get_qicon(icon_path), plugin_title, self.iface.mainWindow())  # Set the icon for the action
         self.action.triggered.connect(self.run)
         self.iface.addToolBarIcon(self.action)
 

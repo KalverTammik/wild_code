@@ -3,6 +3,28 @@ import os
 from .base_paths import PLUGIN_ROOT, CONFIG_DIR, RESOURCE, STYLES, TYPE_QUERIES, PYTHON, CONNECTED_DATA
 from .base_paths import QUERIES, GRAPHQL, USER_QUERIES, PROJECT_QUERIES, CONTRACT_QUERIES, EASEMENT_QUERIES, TAGS_QUERIES, STATUS_QUERIES, TASK_QUERIES, COORDINATION_QUERIES, SUBMISSION_QUERIES, SPECIFICATION_QUERIES, PROPERTIES_QUERIES
 
+
+def _read_metadata_name(metadata_path):
+    try:
+        with open(metadata_path, "r", encoding="utf-8") as metadata:
+            for raw_line in metadata:
+                line = raw_line.strip()
+                if line.lower().startswith("name="):
+                    return line.split("=", 1)[1].strip()
+    except Exception:
+        return ""
+    return ""
+
+
+def _resolve_runtime_config(metadata_path):
+    config_json = os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json")
+    config_dev_json = os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config_dev.json")
+    plugin_name = (_read_metadata_name(metadata_path) or "").upper()
+    is_dev_name = "[DEV]" in plugin_name
+    if is_dev_name and os.path.exists(config_dev_json):
+        return config_dev_json
+    return config_json
+
 # GraphQL query folder paths for each module (standards-compliant)
 class QueryPaths:
     STATUSES = os.path.join(PLUGIN_ROOT,PYTHON, QUERIES, GRAPHQL, STATUS_QUERIES)
@@ -32,7 +54,8 @@ class QueryPaths:
 
 
 class ConfigPaths:
-    CONFIG = os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json")
+    CONFIG = ""
+    CONFIG_NAME = ""
     # Use metadata.dev.txt if it exists, otherwise fallback to metadata.txt
     _dev_metadata = os.path.join(PLUGIN_ROOT, "metadata.dev.txt")
     _main_metadata = os.path.join(PLUGIN_ROOT, "metadata.txt")
@@ -40,11 +63,13 @@ class ConfigPaths:
         METADATA = _dev_metadata
     else:
         METADATA = _main_metadata
+    CONFIG = _resolve_runtime_config(METADATA)
+    CONFIG_NAME = os.path.basename(CONFIG)
 
 class GraphQLSettings:
     @staticmethod
     def graphql_endpoint():
-        with open(os.path.join(PLUGIN_ROOT, CONFIG_DIR, "config.json"), "r") as json_content:
+        with open(ConfigPaths.CONFIG, "r", encoding="utf-8") as json_content:
             config = json.load(json_content)
         return config.get('graphql_endpoint', '')
 

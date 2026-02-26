@@ -1,183 +1,133 @@
-name: Build QGIS repo artifacts on Release
+name: Release QGIS Plugin
 
 on:
   release:
-    types: [published]
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: Version to package for manual test run (e.g. 2.0.6)
+        required: true
+      release_tag:
+        description: Optional tag override for manual runs (e.g. v2.0.6)
+        required: false
 
 permissions:
   contents: write
 
-concurrency:
-  group: "qgis-release"
-  cancel-in-progress: false
-
 jobs:
-  build-and-commit:
+  release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout main
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Use release metadata
-        run: cp metadata.release.txt metadata.txt
-        shell: bash
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: "3.13"
 
-      - name: Determine version
-        id: ver
+      - name: Install qgis-plugin-ci
+        run: python -m pip install --upgrade pip qgis-plugin-ci
+
+      - name: Resolve release values
+        id: release_values
         shell: bash
         run: |
-          input_version="${{ inputs.version }}"
-
-          if [ -n "$input_version" ]; then
-            ver="$input_version"
-          elif [ "${{ github.event_name }}" = "release" ]; then
-            ver="${{ github.event.release.tag_name }}"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            RELEASE_TAG="${{ github.event.release.tag_name }}"
+            RELEASE_VERSION="${RELEASE_TAG#v}"
           else
-            ver="${{ github.ref_name }}"
+            RELEASE_VERSION="${{ inputs.release_version }}"
+            if [ -n "${{ inputs.release_tag }}" ]; then
+              RELEASE_TAG="${{ inputs.release_tag }}"
+            else
+              RELEASE_TAG="v${RELEASE_VERSION}"
+            fi
           fi
 
-          # strip leading 'v' from tags like v2.00.3
-          ver="${ver#v}"
+          RELEASE_VERSION="${RELEASE_VERSION#.}"
 
-          if [ -z "$ver" ]; then
-            echo "Unable to determine version" >&2
+          if [[ "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            RELEASE_VERSION="${RELEASE_VERSION}.0"
+          elif [[ "${RELEASE_VERSION}" =~ ^[0-9]+$ ]]; then
+            RELEASE_VERSION="${RELEASE_VERSION}.0.0"
+          fi
+
+          if ! [[ "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
+            echo "Invalid release version '${RELEASE_VERSION}'. Use x.y.z (or vX.Y.Z as tag)."
             exit 1
           fi
 
-          echo "version=$ver" >> "$GITHUB_OUTPUT"
-          echo "Building version: $ver"
+          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "release_version=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Update metadata.txt version
+      - name: Prepare live plugin directory
         shell: bash
         run: |
+          rm -rf kavitro_live
+          mkdir -p kavitro_live
+
+          rsync -a ./ kavitro_live/ \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'kavitro_live/' \
+            --exclude '__pycache__/' \
+            --exclude '*.pyc' \
+            --exclude '.venv/' \
+            --exclude '.pytest_cache/' \
+            --exclude 'config/config_dev.json' \
+            --exclude 'metadata.dev.txt'
+
           python - <<'PY'
           from pathlib import Path
 
-          version = "${{ steps.ver.outputs.version }}".strip()
-          path = Path("metadata.txt")
-          text = path.read_text(encoding="utf-8", errors="replace").splitlines(True)
+          metadata_path = Path("kavitro_live/metadata.txt")
+          text = metadata_path.read_text(encoding="utf-8")
+          lines = text.splitlines()
 
           out = []
-          replaced = False
-          for line in text:
-            stripped = line.strip()
-            if stripped.lower().startswith("version") and ("=" in stripped or ":" in stripped):
-              key, _ = (line.split("=", 1) if "=" in line else line.split(":", 1))
-              if key.strip().lower() == "version":
-                sep = "=" if "=" in line else ":"
-                out.append(f"version{sep}{version}\n")
-                replaced = True
-                continue
-            out.append(line)
+          for line in lines:
+              if line.startswith("name="):
+                  value = line.split("=", 1)[1]
+                  value = value.replace(" [DEV]", "").replace("[DEV]", "").strip()
+                  out.append(f"name={value}")
+                  continue
+              if line.startswith("experimental="):
+                  out.append("experimental=False")
+                  continue
+              out.append(line)
 
-          name: Build QGIS repo artifacts on Release
+          metadata_path.write_text("\n".join(out) + "\n", encoding="utf-8")
+          PY
 
-          on:
-            release:
-              types: [published]
+          cat > .qgis-plugin-ci << 'EOF'
+          plugin_path: kavitro_live
+          github_organization_slug: KalverTammik
+          project_slug: wild_code
+          EOF
 
-          permissions:
-            contents: write
+      - name: Stage generated release files
+        run: |
+          git add -A kavitro_live .qgis-plugin-ci
 
-          concurrency:
-            group: "qgis-release"
-            cancel-in-progress: false
+      - name: Ensure GitHub release exists (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG="${{ steps.release_values.outputs.release_tag }}"
+          gh release view "${TAG}" >/dev/null 2>&1 || gh release create "${TAG}" --target "${GITHUB_SHA}" --title "${TAG}" --notes "Manual release ${TAG}"
 
-          jobs:
-            build-and-commit:
-              runs-on: ubuntu-latest
-
-              steps:
-                - name: Checkout main
-                  uses: actions/checkout@v4
-                  with:
-                    ref: main
-                    fetch-depth: 0
-
-                - name: Set up Python
-                  uses: actions/setup-python@v5
-                  with:
-                    python-version: "3.x"
-
-                - name: Determine version
-                  id: ver
-                  shell: bash
-                  run: |
-                    if [ "${{ github.event_name }}" = "release" ]; then
-                      ver="${{ github.event.release.tag_name }}"
-                    else
-                      ver="${{ github.ref_name }}"
-                    fi
-
-                    # strip leading 'v' from tags like v2.00.06
-                    ver="${ver#v}"
-
-                    if [ -z "$ver" ]; then
-                      echo "Unable to determine version" >&2
-                      exit 1
-                    fi
-
-                    echo "version=$ver" >> "$GITHUB_OUTPUT"
-                    echo "Building version: $ver"
-
-                - name: Use release metadata (inside kavitro/)
-                  shell: bash
-                  run: |
-                    test -f metadata.release.txt
-                    test -d kavitro
-                    cp metadata.release.txt kavitro/metadata.txt
-
-                - name: Update kavitro/metadata.txt version
-                  shell: bash
-                  run: |
-                    python - <<'PY'
-                    from pathlib import Path
-
-                    version = "${{ steps.ver.outputs.version }}".strip()
-                    path = Path("kavitro/metadata.txt")
-
-                    text = path.read_text(encoding="utf-8", errors="replace").splitlines(True)
-                    out = []
-                    replaced = False
-
-                    for line in text:
-                        stripped = line.strip()
-                        if stripped.lower().startswith("version") and ("=" in stripped or ":" in stripped):
-                            key, _ = (line.split("=", 1) if "=" in line else line.split(":", 1))
-                            if key.strip().lower() == "version":
-                                sep = "=" if "=" in line else ":"
-                                out.append(f"version{sep}{version}\n")
-                                replaced = True
-                                continue
-                        out.append(line)
-
-                    if not replaced:
-                        raise SystemExit("kavitro/metadata.txt does not contain a version key")
-
-                    path.write_text("".join(out), encoding="utf-8")
-                    print(f"kavitro/metadata.txt version set to {version}")
-                    PY
-
-                - name: Build docs/qgis-repo artifacts (plugin-dir=kavitro)
-                  shell: bash
-                  run: |
-                    python tools/qgis_repo_release.py --plugin-dir kavitro --out docs/qgis-repo --repo-path qgis-repo
-
-                - name: Upload QGIS plugin artifact
-                  uses: actions/upload-release-asset@v1
-                  env:
-                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  with:
-                    upload_url: ${{ github.event.release.upload_url }}
-                    asset_path: docs/qgis-repo/plugin.zip
-                    asset_name: plugin-v${{ steps.ver.outputs.version }}.zip
-                    asset_content_type: application/zip
+      - name: Deploy plugin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          qgis-plugin-ci release "${{ steps.release_values.outputs.release_version }}" \
+            --release-tag "${{ steps.release_values.outputs.release_tag }}" \
+            --github-token "${GITHUB_TOKEN}" \
+            --create-plugin-repo \
+            --allow-uncommitted-changes
