@@ -135,3 +135,17 @@ jobs:
             --github-token "${GITHUB_TOKEN}" \
             --create-plugin-repo \
             --allow-uncommitted-changes
+
+      - name: Mark release as latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG="${{ steps.release_values.outputs.release_tag }}"
+          RELEASE_ID="$(gh api "repos/${{ github.repository }}/releases/tags/${TAG}" --jq '.id')"
+
+          gh api \
+            --method PATCH \
+            "repos/${{ github.repository }}/releases/${RELEASE_ID}" \
+            -F make_latest=true \
+            -F prerelease=false
