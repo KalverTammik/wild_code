@@ -56,6 +56,7 @@ class QueryPaths:
 class ConfigPaths:
     CONFIG = ""
     CONFIG_NAME = ""
+    PLUGIN_NAME = ""
     # Use metadata.dev.txt if it exists, otherwise fallback to metadata.txt
     _dev_metadata = os.path.join(PLUGIN_ROOT, "metadata.dev.txt")
     _main_metadata = os.path.join(PLUGIN_ROOT, "metadata.txt")
@@ -63,6 +64,7 @@ class ConfigPaths:
         METADATA = _dev_metadata
     else:
         METADATA = _main_metadata
+    PLUGIN_NAME = _read_metadata_name(METADATA) or "Kavitro"
     CONFIG = _resolve_runtime_config(METADATA)
     CONFIG_NAME = os.path.basename(CONFIG)
 

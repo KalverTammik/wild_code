@@ -79,9 +79,7 @@ class PluginDialog(QDialog):
         )
 
         # Title + icon
-        plugin_title = self.lang_manager.translate(TranslationKeys.KAVITRO_PLUGIN_TITLE)
-        if ConfigPaths.CONFIG_NAME == "config_dev.json":
-            plugin_title = f"{plugin_title} [DEV]"
+        plugin_title = ConfigPaths.PLUGIN_NAME or self.lang_manager.translate(TranslationKeys.KAVITRO_PLUGIN_TITLE)
 
         self.setWindowTitle(plugin_title)
         icon = theme_manager.get_qicon(IconNames.VALISEE_V_ICON_NAME)

@@ -48,9 +48,7 @@ class WildCodePlugin:
         # Force final garbage collection
         gc.collect()
         icon_path = IconNames.VALISEE_V_ICON_NAME
-        plugin_title = LanguageManager.translate_static(TranslationKeys.KAVITRO_PLUGIN_TITLE)
-        if ConfigPaths.CONFIG_NAME == "config_dev.json":
-            plugin_title = f"{plugin_title} [DEV]"
+        plugin_title = ConfigPaths.PLUGIN_NAME or LanguageManager.translate_static(TranslationKeys.KAVITRO_PLUGIN_TITLE)
 
         self.action = QAction(ThemeManager.get_qicon(icon_path), plugin_title, self.iface.mainWindow())  # Set the icon for the action
         self.action.triggered.connect(self.run)
