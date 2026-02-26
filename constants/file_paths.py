@@ -5,11 +5,20 @@ from .base_paths import QUERIES, GRAPHQL, USER_QUERIES, PROJECT_QUERIES, CONTRAC
 
 
 def _read_metadata_name(metadata_path):
+    return _read_metadata_value(metadata_path, "name")
+
+
+def _read_metadata_version(metadata_path):
+    return _read_metadata_value(metadata_path, "version")
+
+
+def _read_metadata_value(metadata_path, key):
+    target_key = f"{key}=".lower()
     try:
         with open(metadata_path, "r", encoding="utf-8") as metadata:
             for raw_line in metadata:
                 line = raw_line.strip()
-                if line.lower().startswith("name="):
+                if line.lower().startswith(target_key):
                     return line.split("=", 1)[1].strip()
     except Exception:
         return ""
@@ -57,6 +66,8 @@ class ConfigPaths:
     CONFIG = ""
     CONFIG_NAME = ""
     PLUGIN_NAME = ""
+    PLUGIN_VERSION = ""
+    IS_DEV = False
     # Use metadata.dev.txt if it exists, otherwise fallback to metadata.txt
     _dev_metadata = os.path.join(PLUGIN_ROOT, "metadata.dev.txt")
     _main_metadata = os.path.join(PLUGIN_ROOT, "metadata.txt")
@@ -65,8 +76,10 @@ class ConfigPaths:
     else:
         METADATA = _main_metadata
     PLUGIN_NAME = _read_metadata_name(METADATA) or "Kavitro"
+    PLUGIN_VERSION = _read_metadata_version(METADATA) or "?"
     CONFIG = _resolve_runtime_config(METADATA)
     CONFIG_NAME = os.path.basename(CONFIG)
+    IS_DEV = "[DEV]" in (PLUGIN_NAME or "").upper() or CONFIG_NAME == "config_dev.json"
 
 class GraphQLSettings:
     @staticmethod

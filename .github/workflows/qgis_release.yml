@@ -85,6 +85,7 @@ jobs:
           from pathlib import Path
 
           metadata_path = Path("kavitro_live/metadata.txt")
+          release_version = "${{ steps.release_values.outputs.release_version }}".strip()
           text = metadata_path.read_text(encoding="utf-8")
           lines = text.splitlines()
 
@@ -97,6 +98,9 @@ jobs:
                   continue
               if line.startswith("experimental="):
                   out.append("experimental=False")
+                  continue
+                if line.startswith("version="):
+                  out.append(f"version={release_version}")
                   continue
               out.append(line)
 

@@ -3,10 +3,9 @@ from qgis.PyQt.QtCore import Qt, QUrl
 from PyQt5.QtGui import QDesktopServices
 from qgis.core import Qgis
 
-from ..config.setup import Version
 from ..utils.url_manager import OpenLink
 from ..widgets.theme_manager import ThemeManager
-from ..constants.file_paths import QssPaths
+from ..constants.file_paths import QssPaths, ConfigPaths
 import datetime
 
 
@@ -76,15 +75,13 @@ class FooterWidget(QWidget):
 
         try:
             if metadata_file is None:
-                from ..constants.file_paths import ConfigPaths
                 metadata_file = ConfigPaths.METADATA
 
             qgis_version = Qgis.QGIS_VERSION
-            plugin_version = Version.get_plugin_version(metadata_file)
-            plugin_version = (plugin_version or "?").strip()
-            from ..constants.file_paths import ConfigPaths
+            plugin_version = (ConfigPaths.PLUGIN_VERSION or "?").strip()
+            env_suffix = " DEV" if ConfigPaths.IS_DEV else ""
             self._version_label.setText(
-                f"QGIS {qgis_version} | Plugin v{plugin_version} | Config: {ConfigPaths.CONFIG_NAME}"
+                f"QGIS {qgis_version} | Plugin v{plugin_version}{env_suffix} | Config: {ConfigPaths.CONFIG_NAME}"
             )
         except Exception:
             try:
