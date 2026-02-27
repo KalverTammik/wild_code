@@ -1,7 +1,6 @@
 
-import time
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QPushButton
-from PyQt5.QtCore import pyqtSignal, QTimer
+from PyQt5.QtCore import pyqtSignal
 from ...utils.auth.user_utils import UserUtils
 from ...widgets.theme_manager import ThemeManager
 from .SettinsUtils.SettingsLogic import SettingsLogic
@@ -9,10 +8,10 @@ from ...constants.file_paths import QssPaths
 from ...constants.module_icons import IconNames
 from ...constants.button_props import ButtonVariant
 from .settings_user_fetch_service import SettingsUserFetchService
+from .settings_card_factory import SettingsCardFactory
+from .settings_card_build_service import SettingsCardBuildService
 from .cards.SettingsUserCard import UserSettingsCard
-from .cards.SettingsModuleCard import SettingsModuleCard
 from ...utils.url_manager import Module
-from ...module_manager import ModuleManager
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
 from ...utils.messagesHelper import ModernMessageDialog
@@ -57,9 +56,6 @@ class SettingsModule(TokenMixin, QWidget):
         self._user_fetch_worker = None
         self._settings_loaded_once = False
         self.user_payload = None
-        self._pending_module_queue = []
-        self._pending_allowed_set = set()
-        self._pending_build_active = False
         self.setup_ui()
         # Centralized theming
         self.retheme_settings()
@@ -130,30 +126,12 @@ class SettingsModule(TokenMixin, QWidget):
         return card
 
     def _generate_module_card(self, module_name: str) -> QWidget:
- 
-        translated = self.lang_manager.translate_module_name(module_name)
-
-        module_manager = ModuleManager()
-        supports_types, supports_statuses, supports_tags, supports_archive_layer = module_manager.getModuleSupports(module_name) or {}
-        module_labels = module_manager.getModuleLabels(module_name)
-        card = SettingsModuleCard(
-            self.lang_manager,
-            module_name,
-            translated,
-            supports_types,
-            supports_statuses,
-            supports_tags,
-            supports_archive_layer,
-            module_labels=module_labels,
+        return SettingsCardFactory.create_module_card(
+            lang_manager=self.lang_manager,
+            module_name=module_name,
             logic=self.logic,
+            on_pending_changed=self._update_dirty_state,
         )
-
-        card.setObjectName("SetupCard")
-        card.setProperty("cardTone", module_name.lower())
- 
-        card.pendingChanged.connect(self._update_dirty_state)
- 
-        return card
 
     def sync_module_archive_layer_dropdown(self, module_key: str, layer_name: str, *, force: bool = True) -> bool:
         """Best-effort: update a module card's archive-layer dropdown to match persisted settings."""
@@ -248,119 +226,47 @@ class SettingsModule(TokenMixin, QWidget):
 
     def _ensure_module_cards(self, *, allowed_modules):
         allowed = [name for name in (allowed_modules or []) if name]
-        current = set(self._module_cards.keys())
         target = set(allowed)
 
         # Remove disallowed cards
         for name, card in list(self._module_cards.items()):
             if name not in target:
-                self._dispose_module_card(card)
+                SettingsCardBuildService.dispose_card(
+                    card=card,
+                    cards_layout=self.cards_layout,
+                    on_pending_changed=self._update_dirty_state,
+                    log_error=self._log_settings_exception,
+                )
                 del self._module_cards[name]
 
-        # Queue missing allowed cards for incremental build
-        self._pending_allowed_set = set(allowed)
-        self._pending_module_queue = [name for name in allowed if name not in self._module_cards]
-        if not self._pending_build_active:
-            self._pending_build_active = True
-            QTimer.singleShot(0, self._build_next_module_card)
+        SettingsCardBuildService.build_missing_cards(
+            allowed_modules=allowed,
+            module_cards=self._module_cards,
+            cards_container=self.cards_container,
+            cards_layout=self.cards_layout,
+            create_card=self._generate_module_card,
+            activate_card=self._activate_settings_card,
+            profile_log=self._log_settings_card_profile,
+        )
 
         # Rebuild cards list: user card first, then current module cards
         self._cards = [self._user_card] + list(self._module_cards.values())
 
-    def _build_next_module_card(self) -> None:
-        pending = [
-            name
-            for name in self._pending_module_queue
-            if name not in self._module_cards and name in self._pending_allowed_set
-        ]
-        self._pending_module_queue = []
-
-        if not pending:
-            self._pending_build_active = False
-            return
-
-        created_cards = []
+    def _activate_settings_card(self, card):
         try:
-            self.cards_container.setUpdatesEnabled(False)
+            card.on_settings_activate()
+        except Exception as exc:
+            self._log_settings_exception(exc, "settings_card_activate_failed")
+
+    def _log_settings_card_profile(self, event_name: str, extra: dict):
+        try:
+            SwitchLogger.log(
+                event_name,
+                module=Module.SETTINGS.value,
+                extra=extra,
+            )
         except Exception:
             pass
-
-        batch_started = time.monotonic()
-        try:
-            for module_name in pending:
-                card = self._generate_module_card(module_name)
-                self._module_cards[module_name] = card
-                insert_at = max(0, self.cards_layout.count() - 1)
-                self.cards_layout.insertWidget(insert_at, card)
-                created_cards.append(card)
-        finally:
-            try:
-                self.cards_container.setUpdatesEnabled(True)
-                self.cards_container.update()
-            except Exception:
-                pass
-
-        for card in created_cards:
-            started = time.monotonic()
-            try:
-                card.on_settings_activate()
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.SETTINGS.value,
-                    event="settings_card_activate_failed",
-                )
-            finally:
-                elapsed_ms = int((time.monotonic() - started) * 1000)
-                try:
-                    SwitchLogger.log(
-                        "settings_card_activate_profile",
-                        module=Module.SETTINGS.value,
-                        extra={
-                            "card": getattr(card, "module_key", type(card).__name__),
-                            "elapsed_ms": elapsed_ms,
-                        },
-                    )
-                except Exception:
-                    pass
-
-        if created_cards:
-            total_ms = int((time.monotonic() - batch_started) * 1000)
-            try:
-                SwitchLogger.log(
-                    "settings_card_batch_activate_profile",
-                    module=Module.SETTINGS.value,
-                    extra={
-                        "count": len(created_cards),
-                        "elapsed_ms": total_ms,
-                    },
-                )
-            except Exception:
-                pass
-
-        self._cards = [self._user_card] + list(self._module_cards.values())
-        self._pending_build_active = False
-
-    def _dispose_module_card(self, card: QWidget) -> None:
-        if not card:
-            return
-        try:
-            card.on_settings_deactivate()
-        except Exception as exc:
-            self._log_settings_exception(exc, "settings_card_deactivate_failed")
-        try:
-            card.pendingChanged.disconnect(self._update_dirty_state)
-        except Exception as exc:
-            self._log_settings_exception(exc, "settings_card_disconnect_failed")
-        try:
-            self.cards_layout.removeWidget(card)
-        except Exception as exc:
-            self._log_settings_exception(exc, "settings_card_remove_failed")
-        try:
-            card.setParent(None)
-            card.deleteLater()
-        except Exception as exc:
-            self._log_settings_exception(exc, "settings_card_delete_failed")
 
     def _clear_user_worker_refs(self):
         self._user_fetch_thread = None
@@ -505,7 +411,5 @@ class SettingsModule(TokenMixin, QWidget):
             )
             return False
 
-    def is_token_active(self, token: int | None) -> bool:
-        return super().is_token_active(token)
 
    
