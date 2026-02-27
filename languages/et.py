@@ -142,6 +142,7 @@ TRANSLATIONS = {
     TranslationKeys.PROJECT_FOLDER_MISSING_TITLE: "Projektikausta seadistus vajalik",
     TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE: "Projekti kaustad pole selle mooduli jaoks määratud. Avan Seaded...",
     TranslationKeys.HOW_SELECT_PROPERTIES: "Kuidas soovid kinnistuid valida?",
+    TranslationKeys.PROPERTY_BACKEND_ACTION_PROMPT_TITLE: "Vali tegevus",
     TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_TITLE: "Arhiveeritud kanne olemas",
     TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_BODY: "Taustasüsteemis on arhiveeritud kinnistu katastrinumbriga {tunnus}.\n\nMida soovid teha?",
     TranslationKeys.PROPERTY_UNARCHIVE_FAILED_TITLE: "Lahtiarhiveerimine ebaõnnestus",

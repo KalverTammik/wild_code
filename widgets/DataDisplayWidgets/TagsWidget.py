@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (
 )
 from ..theme_manager import ThemeManager
 from ...constants.module_icons import IconNames
-from ...ui.window_state.dialog_helpers import PopupHelpers
+from ...ui.window_state.popup_helpers import PopupHelpers
 
 
 class TagsWidget(QWidget):
@@ -60,14 +60,15 @@ class TagsWidget(QWidget):
         self.destroyed.connect(self._on_destroyed)
 
     def eventFilter(self, obj, event):
-        PopupHelpers.handle_popup_hover_event_for(
-            "tags",
+        PopupHelpers.handle_popup_hover_event(
             obj,
             event,
             popup_widget=self.hover_popup,
             timer=self._hide_timer,
             anchor_matcher=lambda widget: bool(widget) and widget.objectName() == "TagsContainer",
             on_anchor_enter=self.show_tags_popup,
+            delay_ms=PopupHelpers.popup_delay("tags"),
+            close_on_deactivate=PopupHelpers.popup_close_on_deactivate("tags"),
             on_popup_deactivate=lambda: PopupHelpers.hide_popup_attr(self, "hover_popup", self._hide_timer, self),
         )
         return super().eventFilter(obj, event)

@@ -143,6 +143,7 @@ TRANSLATIONS = {
     TranslationKeys.PROJECT_FOLDER_MISSING_TITLE: "Project folder setup required",
     TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE: "Project folders are not set for this module. Opening Settings...",
     TranslationKeys.HOW_SELECT_PROPERTIES: "How do you want to select properties?",
+    TranslationKeys.PROPERTY_BACKEND_ACTION_PROMPT_TITLE: "Choose action",
     TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_TITLE: "Archived backend match",
     TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_BODY: "Backend has an archived property for cadastral number {tunnus}.\n\nWhat do you want to do?",
     TranslationKeys.PROPERTY_UNARCHIVE_FAILED_TITLE: "Unarchive failed",

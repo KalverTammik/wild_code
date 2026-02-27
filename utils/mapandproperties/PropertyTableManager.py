@@ -463,6 +463,10 @@ class PropertyTableWidget:
         ]
 
     @staticmethod
+    def create_properties_table():
+        return PropertyTableWidget._create_properties_table()
+
+    @staticmethod
     def _create_properties_table():
         """Create the properties table"""
         # Table section

@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
 from ..theme_manager import ThemeManager, IntensityLevels, styleExtras, ThemeShadowColors
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.responses import DataDisplayExtractors
-from ...ui.window_state.dialog_helpers import PopupHelpers
+from ...ui.window_state.popup_helpers import PopupHelpers
 
 
 class AvatarUtils:
@@ -123,14 +123,15 @@ class AvatarBubble(QLabel):
 
 
     def eventFilter(self, obj, event):
-        PopupHelpers.handle_popup_hover_event_for(
-            "members",
+        PopupHelpers.handle_popup_hover_event(
             obj,
             event,
             popup_widget=self._members_popup,
             timer=self._hide_timer,
             anchor_matcher=lambda widget: widget is self,
             on_anchor_enter=lambda _widget: self._show_members_popup(),
+            delay_ms=PopupHelpers.popup_delay("members"),
+            close_on_deactivate=PopupHelpers.popup_close_on_deactivate("members"),
             on_popup_deactivate=lambda: PopupHelpers.hide_popup_attr(self, "_members_popup", self._hide_timer, self),
         )
         return super().eventFilter(obj, event)

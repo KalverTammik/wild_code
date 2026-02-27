@@ -233,7 +233,7 @@ class PropertyManagementUI(SettingsBaseCard):
                 action = DialogHelpers.prompt_backend_action(
                     self,
                     rows,
-                    title="Choose action",
+                    title=self.lang_manager.translate(TranslationKeys.PROPERTY_BACKEND_ACTION_PROMPT_TITLE),
                 )
                 if not action:
                     return

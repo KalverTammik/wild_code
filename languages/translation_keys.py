@@ -39,6 +39,7 @@ class TranslationKeys:
     PROJECT_FOLDER_MISSING_TITLE = "Project folder setup required"
     PROJECT_FOLDER_MISSING_MESSAGE = "Project folders are not set for this module. Opening Settings..."
     HOW_SELECT_PROPERTIES = "How do you want to select properties?"
+    PROPERTY_BACKEND_ACTION_PROMPT_TITLE = "property_backend_action_prompt_title"
     PROPERTY_ARCHIVED_BACKEND_MATCH_TITLE = "property_archived_backend_match_title"
     PROPERTY_ARCHIVED_BACKEND_MATCH_BODY = "property_archived_backend_match_body"
     PROPERTY_UNARCHIVE_FAILED_TITLE = "property_unarchive_failed_title"
