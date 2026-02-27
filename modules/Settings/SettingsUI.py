@@ -1,8 +1,6 @@
 
 import time
-import json
-from functools import partial
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QPushButton
 from PyQt5.QtCore import pyqtSignal, QTimer
 from ...utils.auth.user_utils import UserUtils
 from ...widgets.theme_manager import ThemeManager
@@ -10,17 +8,13 @@ from .SettinsUtils.SettingsLogic import SettingsLogic
 from ...constants.file_paths import QssPaths
 from ...constants.module_icons import IconNames
 from ...constants.button_props import ButtonVariant
-from ...constants.file_paths import ConfigPaths
+from .settings_user_fetch_service import SettingsUserFetchService
 from .cards.SettingsUserCard import UserSettingsCard
 from .cards.SettingsModuleCard import SettingsModuleCard
 from ...utils.url_manager import Module
-from ...module_manager import ModuleManager, MODULES_LIST_BY_NAME
+from ...module_manager import ModuleManager
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
-from ...python.workers import FunctionWorker, start_worker
-from ...python.GraphQLQueryLoader import GraphQLQueryLoader
-from ...python.api_client import APIClient
-from ...utils.SessionManager import SessionManager
 from ...utils.messagesHelper import ModernMessageDialog
 from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -69,6 +63,13 @@ class SettingsModule(TokenMixin, QWidget):
         self.setup_ui()
         # Centralized theming
         self.retheme_settings()
+
+    def _log_settings_exception(self, exc, event: str) -> None:
+        PythonFailLogger.log_exception(
+            exc,
+            module=Module.SETTINGS.value,
+            event=event,
+        )
 
     def setup_ui(self):
         root = QVBoxLayout(self)
@@ -128,12 +129,6 @@ class SettingsModule(TokenMixin, QWidget):
         self._user_card = card
         return card
 
-    def _build_module_cards(self, allowed_modules=None):
-        """Build module cards only for allowed modules (no full rebuild)."""
-        allowed = list(allowed_modules or self._allowed_modules or [])
-        self._ensure_module_cards(allowed_modules=allowed)
-        return
-
     def _generate_module_card(self, module_name: str) -> QWidget:
  
         translated = self.lang_manager.translate_module_name(module_name)
@@ -160,11 +155,6 @@ class SettingsModule(TokenMixin, QWidget):
  
         return card
 
-    def _activate_module_cards(self):
-        for card in self._module_cards.values():            
-            card.on_settings_activate()
-        return
-
     def sync_module_archive_layer_dropdown(self, module_key: str, layer_name: str, *, force: bool = True) -> bool:
         """Best-effort: update a module card's archive-layer dropdown to match persisted settings."""
 
@@ -190,15 +180,12 @@ class SettingsModule(TokenMixin, QWidget):
         if self._user_fetch_thread is not None:
             self._cancel_user_fetch_worker()
 
-        query_loader = GraphQLQueryLoader()
-        api_client = APIClient(SessionManager(), ConfigPaths.CONFIG)
-        fetcher = partial(UserUtils.fetch_user_payload, query_loader, api_client)
-        worker = FunctionWorker(fetcher)
-        worker.active_token = self._active_token
-        worker.finished.connect(self._handle_user_worker_success)
-        worker.error.connect(self._handle_user_worker_error)
-        self._user_fetch_worker = worker
-        self._user_fetch_thread = start_worker(worker, on_thread_finished=self._clear_user_worker_refs)
+        self._user_fetch_worker, self._user_fetch_thread = SettingsUserFetchService.start_user_fetch(
+            active_token=self._active_token,
+            on_success=self._handle_user_worker_success,
+            on_error=self._handle_user_worker_error,
+            on_finished=self._clear_user_worker_refs,
+        )
 
     def _handle_user_worker_success(self, payload):
         if not self.is_token_active(getattr(self._user_fetch_worker, "active_token", None)):
@@ -224,7 +211,7 @@ class SettingsModule(TokenMixin, QWidget):
 
         abilities = UserUtils.parse_abilities(user_data.get("abilities", []))
 
-        has_qgis_access, can_create_property  = UserUtils.has_property_rights(user_data)
+        _, can_create_property = UserUtils.has_property_rights(user_data)
 
         self._user_card.build_property_managment(can_create_property)
 
@@ -281,27 +268,40 @@ class SettingsModule(TokenMixin, QWidget):
         self._cards = [self._user_card] + list(self._module_cards.values())
 
     def _build_next_module_card(self) -> None:
-        while self._pending_module_queue:
-            module_name = self._pending_module_queue.pop(0)
-            if module_name in self._module_cards:
-                continue
-            if module_name not in self._pending_allowed_set:
-                continue
-            card = self._generate_module_card(module_name)
-            self._module_cards[module_name] = card
-            try:
-                self.cards_container.setUpdatesEnabled(False)
-            except Exception:
-                pass
-            try:
+        pending = [
+            name
+            for name in self._pending_module_queue
+            if name not in self._module_cards and name in self._pending_allowed_set
+        ]
+        self._pending_module_queue = []
+
+        if not pending:
+            self._pending_build_active = False
+            return
+
+        created_cards = []
+        try:
+            self.cards_container.setUpdatesEnabled(False)
+        except Exception:
+            pass
+
+        batch_started = time.monotonic()
+        try:
+            for module_name in pending:
+                card = self._generate_module_card(module_name)
+                self._module_cards[module_name] = card
                 insert_at = max(0, self.cards_layout.count() - 1)
                 self.cards_layout.insertWidget(insert_at, card)
-            finally:
-                try:
-                    self.cards_container.setUpdatesEnabled(True)
-                    self.cards_container.update()
-                except Exception:
-                    pass
+                created_cards.append(card)
+        finally:
+            try:
+                self.cards_container.setUpdatesEnabled(True)
+                self.cards_container.update()
+            except Exception:
+                pass
+
+        for card in created_cards:
+            started = time.monotonic()
             try:
                 card.on_settings_activate()
             except Exception as exc:
@@ -310,69 +310,57 @@ class SettingsModule(TokenMixin, QWidget):
                     module=Module.SETTINGS.value,
                     event="settings_card_activate_failed",
                 )
-            self._cards = [self._user_card] + list(self._module_cards.values())
-            QTimer.singleShot(0, self._build_next_module_card)
-            return
+            finally:
+                elapsed_ms = int((time.monotonic() - started) * 1000)
+                try:
+                    SwitchLogger.log(
+                        "settings_card_activate_profile",
+                        module=Module.SETTINGS.value,
+                        extra={
+                            "card": getattr(card, "module_key", type(card).__name__),
+                            "elapsed_ms": elapsed_ms,
+                        },
+                    )
+                except Exception:
+                    pass
 
+        if created_cards:
+            total_ms = int((time.monotonic() - batch_started) * 1000)
+            try:
+                SwitchLogger.log(
+                    "settings_card_batch_activate_profile",
+                    module=Module.SETTINGS.value,
+                    extra={
+                        "count": len(created_cards),
+                        "elapsed_ms": total_ms,
+                    },
+                )
+            except Exception:
+                pass
+
+        self._cards = [self._user_card] + list(self._module_cards.values())
         self._pending_build_active = False
 
     def _dispose_module_card(self, card: QWidget) -> None:
         if not card:
             return
         try:
-            if hasattr(card, "on_settings_deactivate"):
-                card.on_settings_deactivate()
+            card.on_settings_deactivate()
         except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.SETTINGS.value,
-                event="settings_card_deactivate_failed",
-            )
+            self._log_settings_exception(exc, "settings_card_deactivate_failed")
         try:
-            if hasattr(card, "pendingChanged"):
-                card.pendingChanged.disconnect(self._update_dirty_state)
+            card.pendingChanged.disconnect(self._update_dirty_state)
         except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.SETTINGS.value,
-                event="settings_card_disconnect_failed",
-            )
+            self._log_settings_exception(exc, "settings_card_disconnect_failed")
         try:
             self.cards_layout.removeWidget(card)
         except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.SETTINGS.value,
-                event="settings_card_remove_failed",
-            )
+            self._log_settings_exception(exc, "settings_card_remove_failed")
         try:
             card.setParent(None)
             card.deleteLater()
         except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.SETTINGS.value,
-                event="settings_card_delete_failed",
-            )
-
-
-
-
-    def _make_payload_signature(self, payload):
-        if not isinstance(payload, dict):
-            return (None, tuple(), tuple())
-        user_id = payload.get("id")
-        try:
-            roles_raw = payload.get("roles") or []
-            roles_sig = tuple(sorted((str(r) for r in roles_raw), key=str))
-        except Exception:
-            roles_sig = tuple()
-        try:
-            abilities_raw = payload.get("abilities") or []
-            abilities_sig = tuple(sorted((str(a) for a in abilities_raw), key=str))
-        except Exception:
-            abilities_sig = tuple()
-        return (user_id, roles_sig, abilities_sig)
+            self._log_settings_exception(exc, "settings_card_delete_failed")
 
     def _clear_user_worker_refs(self):
         self._user_fetch_thread = None
@@ -382,28 +370,13 @@ class SettingsModule(TokenMixin, QWidget):
     def _cancel_user_fetch_worker(self, invalidate_request: bool = False):
         if invalidate_request:
             self.bump_token()
-        worker = self._user_fetch_worker
-        thread = self._user_fetch_thread
-        if worker is not None:
-            try:
-                worker.finished.disconnect(self._handle_user_worker_success)
-            except Exception:
-                PythonFailLogger.log_exception(
-                    Exception("settings_disconnect_finished_failed"),
-                    module=Module.SETTINGS.value,
-                    event="settings_disconnect_finished_failed",
-                )
-            try:
-                worker.error.disconnect(self._handle_user_worker_error)
-            except Exception:
-                PythonFailLogger.log_exception(
-                    Exception("settings_disconnect_error_failed"),
-                    module=Module.SETTINGS.value,
-                    event="settings_disconnect_error_failed",
-                )
-        if thread is not None and thread.isRunning():
-            thread.quit()
-            thread.wait(200)
+        SettingsUserFetchService.cancel_user_fetch(
+            worker=self._user_fetch_worker,
+            thread=self._user_fetch_thread,
+            on_success=self._handle_user_worker_success,
+            on_error=self._handle_user_worker_error,
+            log_error=self._log_settings_exception,
+        )
         self._user_fetch_worker = None
         self._user_fetch_thread = None
      
@@ -415,12 +388,8 @@ class SettingsModule(TokenMixin, QWidget):
         for card in self._module_cards.values():
             try:
                 card.on_settings_deactivate()
-            except Exception:
-                PythonFailLogger.log_exception(
-                    Exception("settings_card_deactivate_failed"),
-                    module=Module.SETTINGS.value,
-                    event="settings_card_deactivate_failed",
-                )
+            except Exception as exc:
+                self._log_settings_exception(exc, "settings_card_deactivate_failed")
 
     def reset(self):
         pass
