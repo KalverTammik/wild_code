@@ -41,6 +41,7 @@ When multiple valid refactor options exist, choose the one with fewer moving par
 - **Normalize naming to project style:** classes use CamelCase, files use snake_case; avoid introducing new lowercase class names.
 - **Import only canonical symbols:** feature modules should import the canonical public API symbol, not alternative aliases.
 - **Compatibility shims are temporary:** if a shim is needed, mark and remove it after call sites migrate.
+- **Remove obsolete UI flags early:** during widget refactors, verify constructor params and `setProperty(...)` flags are still consumed by call sites/QSS/selectors; delete dead params/properties and update all callers.
 
 ## Refactor acceptance gate (quick check)
 
@@ -56,6 +57,7 @@ Before merging, verify all are true:
 8. **Reuse scan done first:** existing similar methods/classes were searched before creating new ones.
 9. **Refactor plan when misplaced:** if reusable logic exists in the wrong layer/location, a move-to-shared-location plan is proposed instead of duplicating code.
 10. **Strict i18n compliance:** touched UI code does not introduce translation fallbacks that can mask missing keys or show mixed-language text.
+11. **No dead widget API/state:** touched widgets do not keep unused constructor arguments or orphaned dynamic properties without active consumers.
 
 - Prefer explicit submodule imports: import symbols from their defining module (no eager package-level re-exports).
 - Avoid work at import time: no network, DB, or heavy CPU in module scope — initialize lazily or via constructors.
@@ -129,3 +131,5 @@ _Add a short rationale and list of files touched for each refactor here._
 - 2026-02-09: Applied DataDisplayWidgets translation keys and completed extractor usage for remaining fields. Files: languages/translation_keys.py, languages/en.py, languages/et.py, widgets/DataDisplayWidgets/DatesWidget.py, widgets/DataDisplayWidgets/ExtraInfoWidget.py, widgets/DataDisplayWidgets/InfoCardHeader.py, widgets/DataDisplayWidgets/MembersView.py, widgets/DataDisplayWidgets/module_action_buttons.py, python/responses.py.
 - 2026-02-27: Thinned Settings property management UI by extracting remove-selection orchestration into `PropertySelectionActionService`; UI now delegates selection/prompt/action flow and keeps only view wiring/state hooks. Files: utils/mapandproperties/property_action_service.py, modules/Settings/cards/SettingsPropertyManagement.py.
 - 2026-02-27: Applied strict translation refactor to Settings remove-selection flow by replacing remaining hardcoded dialog strings with `TranslationKeys` and EN/ET catalog entries. Files: utils/mapandproperties/property_action_service.py, modules/Settings/cards/SettingsPropertyManagement.py, languages/translation_keys.py, languages/en.py, languages/et.py, REFACTOR_RULES.md.
+- 2026-02-27: Simplified `ContactsWidget` by removing unused total-count path, consolidating chip creation, dropping inline style hardcoding, and only attaching visible widget instances in card factory. Files: widgets/DataDisplayWidgets/ContactsWidget.py, ui/module_card_factory.py, REFACTOR_RULES.md.
+- 2026-02-27: Added explicit widget-API hygiene check (remove unused constructor args/dynamic properties) and applied it by removing obsolete `compact` argument/property from `DatesWidget` and updating all call sites. Files: REFACTOR_RULES.md, widgets/DataDisplayWidgets/DatesWidget.py, ui/module_card_factory.py, modules/Property/property_tree_widget.py.

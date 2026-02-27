@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QDateTime, QLocale, Qt, QTimer
+from PyQt5.QtCore import QLocale, Qt, QTimer
 from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QFrame
 import datetime
 from typing import Optional
@@ -27,7 +27,7 @@ class DatesPopupWidget(QWidget):
 
         # Create a frame for the content with theming
         self.frame = QFrame(self)
-        self.frame.setObjectName("PopupFrame")
+        self.frame.setObjectName("DatesPopup")
         self.retheme()
         
         # Main layout on the frame
@@ -42,12 +42,12 @@ class DatesPopupWidget(QWidget):
             row_layout.setSpacing(8)
 
             label = QLabel(label_text)
-            label.setObjectName("Label")
+            label.setObjectName("DateLabel")
             label.setFixedWidth(60)
             row_layout.addWidget(label)
 
-            date_value = QLabel(self._short_date(dt, locale))
-            date_value.setObjectName("Value")
+            date_value = QLabel(DateHelpers.format_short_date(dt, locale))
+            date_value.setObjectName("DateValue")
             date_value.setToolTip(DateHelpers.build_label(label_text.replace(":", ""), dt, locale))
             row_layout.addWidget(date_value)
 
@@ -58,12 +58,6 @@ class DatesPopupWidget(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(self.frame)
 
-    def _short_date(self, dt: Optional[datetime.datetime], locale) -> str:
-        if not dt:
-            return "–"
-        qdt = QDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-        return locale.toString(qdt.date(), QLocale.ShortFormat)
-
     def retheme(self):
         """Reapply theme styles when theme changes."""
         PopupHelpers.apply_popup_style(self.frame, "dates")
@@ -72,9 +66,8 @@ class DatesPopupWidget(QWidget):
         self.frame.style().polish(self.frame)
 
 class DatesWidget(QWidget):
-    def __init__(self, item_data, parent=None, compact=False, lang_manager=None):
+    def __init__(self, item_data, parent=None, lang_manager=None):
         super().__init__(parent)
-        self.setProperty("compact", compact)
         self.item_data = item_data
         self.lang_manager = lang_manager or LanguageManager()
 
@@ -91,12 +84,6 @@ class DatesWidget(QWidget):
         due_dt = DateHelpers.parse_iso(dates.due_at)
         created_dt = DateHelpers.parse_iso(dates.created_at)
         updated_dt = DateHelpers.parse_iso(dates.updated_at)
-
-        def short_date(dt: Optional[datetime.datetime]) -> str:
-            if not dt:
-                return "–"
-            qdt = QDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-            return locale.toString(qdt.date(), QLocale.ShortFormat)
 
         def full_tooltip(prefix: str, dt: Optional[datetime.datetime]) -> str:
             return DateHelpers.build_label(prefix, dt, locale)
@@ -127,11 +114,11 @@ class DatesWidget(QWidget):
             due_layout.setContentsMargins(4, 2, 4, 2)
             due_layout.setSpacing(4)
 
-            due_label = QLabel(f"{primary_option['label']}:")
-            due_label.setObjectName("DateLabel")
-            due_layout.addWidget(due_label)
+            primary_label = QLabel(f"{primary_option['label']}:")
+            primary_label.setObjectName("DateLabel")
+            due_layout.addWidget(primary_label)
 
-            due_value = QLabel(short_date(primary_dt))
+            due_value = QLabel(DateHelpers.format_short_date(primary_dt, locale))
             due_value.setObjectName("DateValue")
             due_value.setToolTip(full_tooltip(primary_option['label'], primary_dt))
 
@@ -151,7 +138,7 @@ class DatesWidget(QWidget):
             placeholder_text = self.lang_manager.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY)
             placeholder = QLabel(placeholder_text)
             placeholder.setObjectName("DateLabel")
-            placeholder.setStyleSheet("color: rgb(130, 130, 130);")
+            placeholder.setProperty("empty", "true")
             main_layout.addWidget(placeholder)
 
 

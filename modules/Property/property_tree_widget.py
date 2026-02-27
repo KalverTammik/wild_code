@@ -356,7 +356,6 @@ class ModuleConnectionRow(QFrame):
         date = DatesWidget(
             self.raw,
             parent=self,
-            compact= False,
             lang_manager=self.lang_manager,
         )
         grid.addWidget(date, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)

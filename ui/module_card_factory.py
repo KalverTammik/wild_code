@@ -60,7 +60,6 @@ class ModuleCardFactory:
         dates_widget = DatesWidget(
             item_data,
             parent=card,
-            compact=False,
             lang_manager=lang_manager,
         )
         header_row.addWidget(dates_widget, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
@@ -91,7 +90,7 @@ class ModuleCardFactory:
         cl.addLayout(header_row)
 
         contacts_widget = ContactsWidget(item_data, parent=content)
-        if contacts_widget:
+        if not contacts_widget.isHidden():
             cl.addWidget(contacts_widget, 0, Qt.AlignLeft)
 
         cl.addWidget(ExtraInfoFrame(item_id, module_name))

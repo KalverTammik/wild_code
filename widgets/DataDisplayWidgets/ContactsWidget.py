@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy
 
 from ...constants.file_paths import QssPaths
 from ...constants.module_icons import IconNames
@@ -10,7 +10,8 @@ from ...python.responses import DataDisplayExtractors
 class ContactsWidget(QFrame):
     """Inline chip list for coordination contacts."""
 
-    def __init__(self, item_data, total=None, parent=None):
+    MAX_VISIBLE_CONTACTS = 5
+    def __init__(self, item_data, parent=None):
         super().__init__(parent)
         names = [n for n in (DataDisplayExtractors.extract_contact_names(item_data) or []) if n]
         if not names:
@@ -27,28 +28,26 @@ class ContactsWidget(QFrame):
         icon_label.setObjectName("ContactsIcon")
         icon_label.setFixedSize(16, 16)
         icon_label.setPixmap(ThemeManager.get_qicon(IconNames.ICON_CONTACTS).pixmap(16, 16))
-        icon_label.setStyleSheet("padding-left: 0px;")
         layout.addWidget(icon_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        
 
-        max_show = 5
         shown = 0
-        for name in names[:max_show]:
-            chip = QLabel(name)
-            chip.setObjectName("ContactChip")
-            chip_width = chip.fontMetrics().horizontalAdvance(name) + 6
-            chip.setFixedWidth(chip_width)
-            layout.addWidget(chip, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        for name in names[:self.MAX_VISIBLE_CONTACTS]:
+            layout.addWidget(self._create_chip(name), 0, Qt.AlignLeft | Qt.AlignVCenter)
             shown += 1
 
-        remaining = (total or len(names)) - shown
+        remaining = len(names) - shown
         if remaining > 0:
-            more = QLabel(f"+{remaining}")
-            more.setObjectName("ContactChip")
-            more_width = more.fontMetrics().horizontalAdvance(more.text()) + 6
-            more.setFixedWidth(more_width)
-            layout.addWidget(more, 0, Qt.AlignLeft | Qt.AlignVCenter)
+            layout.addWidget(self._create_chip(f"+{remaining}"), 0, Qt.AlignLeft | Qt.AlignVCenter)
+
         self.retheme()
+
+    def _create_chip(self, text: str) -> QLabel:
+        chip = QLabel(text)
+        chip.setObjectName("ContactChip")
+        chip.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        chip.adjustSize()
+        return chip
+
     def retheme(self):
         """Reapply theme styles when theme changes."""
         ThemeManager.apply_module_style(self, [QssPaths.CONTACTS])

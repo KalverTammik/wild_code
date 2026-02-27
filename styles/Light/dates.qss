@@ -1,14 +1,5 @@
 /* DatesWidget Light Theme */
 
-/* Reset general QFrame styles from main.qss */
-QFrame {
-  border: none;
-  background: transparent;
-  margin: 0;
-  padding: 0;
-  border-radius: 0;
-}
-
 /* Due date container */
 QFrame#DueDateContainer {
   background: #ffffff;
@@ -25,6 +16,10 @@ QLabel#DateLabel {
   font-weight: 500;
   margin: 0;
   padding: 0;
+}
+
+QLabel#DateLabel[empty="true"] {
+  color: rgb(130, 130, 130);
 }
 
 /* Normal date value */
@@ -50,6 +45,34 @@ QLabel#DateValue[due_soon="true"] {
   color: #fd7e14;
   font-size: 11px;
   font-weight: 600;
+  margin: 0;
+  padding: 0;
+}
+
+/* Dates popup container (aligned with popup/members styling) */
+QFrame#DatesPopup {
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(9, 144, 143, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15), 0 2px 8px rgba(9, 144, 143, 0.1);
+  margin: 0;
+  padding: 0;
+}
+
+/* Popup date labels */
+QFrame#DatesPopup QLabel#DateLabel {
+  color: #6c757d;
+  font-size: 11px;
+  font-weight: 500;
+  margin: 0;
+  padding: 0;
+}
+
+/* Popup date values */
+QFrame#DatesPopup QLabel#DateValue {
+  color: #495057;
+  font-size: 12px;
+  font-weight: 500;
   margin: 0;
   padding: 0;
 }

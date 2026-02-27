@@ -41,6 +41,13 @@ class DateHelpers:
         day = locale.dayName(qdt.date().dayOfWeek())
         short = locale.toString(qdt.date(), QLocale.ShortFormat)
         return f"{prefix}: {short} ({day})"
+
+    @staticmethod
+    def format_short_date(dt: Optional[datetime.datetime], locale: QLocale) -> str:
+        if not dt:
+            return "–"
+        qdt = QDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        return locale.toString(qdt.date(), QLocale.ShortFormat)
     
 
     def QGIS_date_to_string(self, date_item):
