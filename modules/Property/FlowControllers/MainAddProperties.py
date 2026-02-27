@@ -582,7 +582,7 @@ class MainAddPropertiesFlow:
     @staticmethod
     def _prepare_layers() -> None:
         # 1) Import layer filtering (optional but explicit)
-        import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         #set import layer and active layer 
         if import_layer:
             # Choose ONE behavior:

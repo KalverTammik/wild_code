@@ -8,7 +8,7 @@ from qgis.core import QgsProject
 from .SettingsBaseCard import SettingsBaseCard
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....utils.SHPLayerLoader import SHPLayerLoader
-from ....utils.MapTools.MapHelpers import MapHelpers
+from ....utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
 from ....widgets.AddUpdatePropertyDialog import AddPropertyDialog, PropertyDialogMode
 from ....modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
 from ....modules.Property.FlowControllers.MainDeleteProperties import DeletePropertyUI
@@ -16,13 +16,10 @@ from ....languages.translation_keys import TranslationKeys
 from ....languages.language_manager import LanguageManager
 from ....utils.url_manager import Module
 from ....utils.messagesHelper import ModernMessageDialog
-from ....utils.mapandproperties.property_row_builder import PropertyRowBuilder
-from ....utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
-from ....utils.MapTools.MapHelpers import ActiveLayersHelper
 from ....utils.mapandproperties.property_action_service import PropertyActionService
+from ....utils.mapandproperties.property_action_service import PropertySelectionActionService
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....ui.window_state.DialogCoordinator import get_dialog_coordinator
-from ....ui.window_state.dialog_helpers import DialogHelpers
 from time import monotonic
 
 
@@ -184,15 +181,8 @@ class PropertyManagementUI(SettingsBaseCard):
             self._update_button_states()
 
     # ---------- Button Handlers ----------
-    def _on_add_shp_clicked(self):
-        """Handle Add SHP file button click"""
-        self._handle_file_import()
-
-
-
     def _on_property_added(self, property_data):
         """Handle when a property is successfully added"""
-        print(f"Property added: {property_data}")
         # Here you can add logic to save the property data
         # For now, just emit the original signal
         self.addPropertyClicked.emit()
@@ -208,82 +198,20 @@ class PropertyManagementUI(SettingsBaseCard):
         if not main_layer:
             return
 
-        ModernMessageDialog.Info_messages_modern(
-            "Select properties",
-            "Select one or more properties on the map from the MAIN property layer.\n\n"
-            "Then choose an action (Archive/Unarchive/Delete).",
+        self._delete_selection_controller = PropertySelectionActionService.start_settings_remove_flow(
+            parent=self,
+            main_layer=main_layer,
+            translate=self.lang_manager.translate,
+            prompt_title=self.lang_manager.translate(TranslationKeys.PROPERTY_BACKEND_ACTION_PROMPT_TITLE),
+            on_restore_ui=self._restore_plugin_window,
+            on_minimize_ui=self._minimize_plugin_window_if_safe,
+            on_flow_finished=self._finish_remove_flow,
         )
 
-        def _on_selected(_layer, features):
-            try:
-                # Bring plugin UI back before we show any dialogs.
-                self._restore_plugin_window()
-
-                feats = list(features or [])
-                if not feats:
-                    ModernMessageDialog.Info_messages_modern(
-                        "No selection",
-                        "No properties were selected.",
-                    )
-                    return
-
-                rows = PropertyRowBuilder.rows_from_features(feats, log_prefix="PropertyManagementUI")
-                tunnused = PropertyRowBuilder.extract_tunnused(rows, key="cadastral_id")
-
-                action = DialogHelpers.prompt_backend_action(
-                    self,
-                    rows,
-                    title=self.lang_manager.translate(TranslationKeys.PROPERTY_BACKEND_ACTION_PROMPT_TITLE),
-                )
-                if not action:
-                    return
-
-                tunnused_u = PropertyRowBuilder.dedupe_values(tunnused)
-
-                if not tunnused_u:
-                    ModernMessageDialog.Warning_messages_modern(
-                        "Missing tunnus",
-                        "Selected features do not contain cadastral tunnus.",
-                    )
-                    return
-
-                result = PropertyActionService.run_action(
-                    action,
-                    tunnused_u,
-                    main_layer=main_layer,
-                    module_name=Module.PROPERTY.name,
-                )
-                self._invalidate_shp_feature_cache()
-                if result.ok:
-                    ModernMessageDialog.Info_messages_modern(result.title, result.message)
-                else:
-                    ModernMessageDialog.Warning_messages_modern(result.title, result.message)
-            finally:
-                self._delete_selection_controller = None
-                self._restore_plugin_window()
-
-        orchestrator = MapSelectionOrchestrator(parent=self)
-        started = orchestrator.start_selection_for_layer(
-            main_layer,
-            on_selected=_on_selected,
-            selection_tool="rectangle",
-            restore_pan=True,
-            min_selected=1,
-            max_selected=None,
-            clear_filter=False,
-        )
-        self._delete_selection_controller = orchestrator
-
-        # Let user interact with the map: minimize plugin window only.
-        self._minimize_plugin_window_if_safe()
-
-        if not started:
-            self._delete_selection_controller = None
-            self._restore_plugin_window()
-            ModernMessageDialog.Warning_messages_modern(
-                "Selection failed",
-                "Could not start map selection on the MAIN property layer.",
-            )
+    def _finish_remove_flow(self) -> None:
+        self._delete_selection_controller = None
+        self._invalidate_shp_feature_cache()
+        self._restore_plugin_window()
 
     def _on_remove_property_by_id_clicked(self):
         """Emergency delete-by-id dialog (legacy)."""
@@ -308,16 +236,16 @@ class PropertyManagementUI(SettingsBaseCard):
         if choice in (None, btn_cancel):
             return
 
+        mode = None
         if choice == btn_by_location:
-            if not MainAddPropertiesFlow.preflight_archive_layer_before_dialog():
-                return
-            AddPropertyDialog(self, mode=PropertyDialogMode.BY_LOCATION)
-            return
+            mode = PropertyDialogMode.BY_LOCATION
+        elif choice == btn_from_map:
+            mode = PropertyDialogMode.FROM_MAP
 
-        if choice == btn_from_map:
+        if mode is not None:
             if not MainAddPropertiesFlow.preflight_archive_layer_before_dialog():
                 return
-            AddPropertyDialog(self, mode=PropertyDialogMode.FROM_MAP)
+            AddPropertyDialog(self, mode=mode)
             return
 
         # Unknown choice (future-proof)
@@ -338,12 +266,10 @@ class PropertyManagementUI(SettingsBaseCard):
         if success:
             self._invalidate_shp_feature_cache()
             self._update_button_states()
-            pass
         else:
             ModernMessageDialog.show_warning(
-                self.lang_manager.translate("Import Failed") or "Import ebaõnnestus",
-                self.lang_manager.translate("Failed to import property file.") or
-                "Kinnistute faili import ebaõnnestus.",
+                self.lang_manager.translate(TranslationKeys.SHAPEFILE_LOAD_FAILED),
+                self.lang_manager.translate(TranslationKeys.SHAPEFILE_LOAD_FAILED_MESSAGE),
             )
             
 
@@ -356,16 +282,13 @@ class PropertyManagementUI(SettingsBaseCard):
         """
         # 1) Discover layers
         main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=True)
-        shp_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        shp_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
 
         main_exists = main_layer is not None
         shp_exists = shp_layer is not None
 
         # 2) Compute state using helper
-        if not main_exists or not shp_exists:
-            shp_feature_count = 0
-        else:
-            shp_feature_count = self._get_shp_feature_count_cached(shp_layer)
+        shp_feature_count = self._get_shp_feature_count_cached(shp_layer) if (main_exists and shp_exists) else 0
 
         shp_en, add_en, rem_en = LayerChecker.compute_property_button_states(
             main_exists,

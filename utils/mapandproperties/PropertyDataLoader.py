@@ -68,7 +68,7 @@ class PropertyDataLoader:
 
     def __init__(self):
         self.lang_manager = LanguageManager()
-        self.property_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        self.property_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
 
 
         # väljade nimed (Katastriyksus enum/klass)

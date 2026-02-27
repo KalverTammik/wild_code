@@ -126,7 +126,9 @@ class MapHelpers:
 
 
 
-    def _get_layer_by_tag(tag):
+    @staticmethod
+    def get_layer_by_tag(tag):
+        """Return first layer that has the given custom property tag."""
         # uing traceback to find where its trigered from max of three levels
         #import traceback
         #show who is calling this function for debugging
@@ -135,6 +137,8 @@ class MapHelpers:
       
 
         project = QgsProject.instance()
+        if not project:
+            return None
         for layer in project.mapLayers().values():
             if layer.customProperty(tag):
                 #print(f"[MapHelpers] Checking layer: {layer.name()} with tag {tag}: {layer.customProperty(tag)}")  

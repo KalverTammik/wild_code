@@ -253,7 +253,7 @@ class AddFromMapPropertyDialog(QDialog):
         )
 
     def _start_import_layer_map_selector(self) -> None:
-        import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if not import_layer or not import_layer.isValid():
             return
 
@@ -786,7 +786,7 @@ class AddFromMapPropertyDialog(QDialog):
         if table.rowCount() > 0:
             table.selectAll()
 
-        import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if import_layer is not None:
             import_layer.removeSelection()
 

@@ -54,7 +54,7 @@ class PropertiesSelectors:
         Returns: None."""
 
         if use_shp:
-            shp_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+            shp_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
             layer = shp_layer
 
         else:
@@ -138,7 +138,7 @@ class PropertiesSelectors:
         Returns: None."""
 
         if use_shp:
-            shp_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+            shp_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
             layer = shp_layer
 
         else:

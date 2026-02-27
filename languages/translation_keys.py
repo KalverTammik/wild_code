@@ -305,9 +305,13 @@ class TranslationKeys:
     # Property state messaging
     SELECTED_PROPERTIES_COUNT = "Selected: 0 properties"
     SELECTED_COUNT_TEMPLATE = "Selected: {count} properties"
+    SELECT_PROPERTIES_MAP_INSTRUCTION = "Select one or more properties on the map from the MAIN property layer.\n\nThen choose an action (Archive/Unarchive/Delete)."
     SELECTED_PROPERTIES_ADDED = "Selected properties have been added."
     PROPERTIES_ADDED = "Properties Added"
     NO_SELECTION = "No Selection"
+    MISSING_TUNNUS_TITLE = "Missing tunnus"
+    MISSING_TUNNUS_MESSAGE = "Selected features do not contain cadastral tunnus."
+    SELECTION_FAILED_TITLE = "Selection failed"
     SELECT_PROPERTY_FIRST = "Please select a property feature on the map first."
     SELECT_SINGLE_PROPERTY_TITLE = "Select Single Property"
     SELECT_SINGLE_PROPERTY_MESSAGE = "Please select only one property feature on the map."

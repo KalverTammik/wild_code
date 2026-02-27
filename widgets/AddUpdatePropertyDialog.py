@@ -208,7 +208,7 @@ class AddPropertyDialog(QDialog):
         self._import_selection_controller = None
         if self._location_filter_helper is not None:
             self._location_filter_helper.stop_pending_city_reload()
-        import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if import_layer:
             MapHelpers.clear_layer_filter(import_layer)
         # Ensure parent window is restored if dialog is closed directly
@@ -222,7 +222,7 @@ class AddPropertyDialog(QDialog):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
 
-        import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if import_layer:
             MapHelpers.clear_layer_filter(import_layer)
         # Check if we have a property layer
@@ -446,7 +446,7 @@ class AddPropertyDialog(QDialog):
         if self._dialog_mode != PropertyDialogMode.FROM_MAP:
             return
 
-        import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if not import_layer or not import_layer.isValid():
             return
 
@@ -1206,7 +1206,7 @@ class AddPropertyDialog(QDialog):
             table.selectAll()
 
         # Clear map selection first, then zoom/select from the table.
-        import_layer = MapHelpers._get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if import_layer is not None:
             import_layer.removeSelection()
 

@@ -3,11 +3,8 @@ from typing import Any, TypeVar
 
 from PyQt5.QtCore import QTimer
 
-from ...Logs.python_fail_logger import PythonFailLogger
 from ...Logs.switch_logger import SwitchLogger
 from ...modules.Settings.scroll_helper import SettingsScrollHelper
-from ...modules.signaltest.BackendActionPromptDialog import BackendActionPromptDialog
-from ...utils.mapandproperties.PropertyTableManager import PropertyTableManager, PropertyTableWidget
 from ...utils.url_manager import Module
 
 T = TypeVar("T")
@@ -24,13 +21,14 @@ class DialogHelpers:
 
     @staticmethod
     def confirm_settings_navigation(previous_module_name: str, dialog: Any) -> bool:
-        if previous_module_name != Module.SETTINGS.name:
+        previous_key = (previous_module_name or "").strip().lower()
+        if previous_key != Module.SETTINGS.value:
             return True
         try:
-            instance = dialog.moduleManager.getActiveModuleInstance(Module.SETTINGS.name)
+            instance = dialog.moduleManager.getActiveModuleInstance(Module.SETTINGS.value)
             if instance is None:
                 raise ValueError("Settings module instance not found.")
-            return bool(instance.confirm_navigation_away())
+            return bool(instance.confirm_navigation_away(parent=dialog))
         except Exception as exc:
             SwitchLogger.log(
                 "settings_confirm_navigation_failed",
@@ -57,22 +55,3 @@ class DialogHelpers:
                 module=Module.SETTINGS.value,
                 extra={"error": str(exc), "focus": focus_module},
             )
-
-    @staticmethod
-    def prompt_backend_action(parent: Any, rows: list[Any], *, title: str) -> str | None:
-        frame, table = PropertyTableWidget.create_properties_table()
-        PropertyTableManager.reset_and_populate_properties_table(table, rows)
-        try:
-            table.selectAll()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_property_table_select_failed",
-            )
-
-        dlg = BackendActionPromptDialog(parent=parent, table_frame=frame, table=table, title=title)
-        ok = dlg.exec_()
-        if not ok:
-            return None
-        return dlg.action

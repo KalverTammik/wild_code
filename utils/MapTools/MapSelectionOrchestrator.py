@@ -102,7 +102,7 @@ class MapSelectionOrchestrator(QObject):
     ) -> bool:
         layer = None
         try:
-            layer = MapHelpers._get_layer_by_tag(layer_tag)
+            layer = MapHelpers.get_layer_by_tag(layer_tag)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
