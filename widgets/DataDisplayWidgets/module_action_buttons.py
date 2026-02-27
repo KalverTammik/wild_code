@@ -8,7 +8,7 @@ from qgis.utils import iface
 
 
 from ...languages.translation_keys import ToolbarTranslationKeys
-from ...utils.url_manager import OpenLink, loadWebpage, Module
+from ...utils.url_manager import OpenLink, Module, loadWebpage
 from ...python.api_actions import APIModuleActions
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 from ..theme_manager import ThemeManager

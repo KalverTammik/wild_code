@@ -1,54 +1,46 @@
+import datetime
+
 from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QLabel, QFrame, QSizePolicy
-from qgis.PyQt.QtCore import Qt, QUrl
-from PyQt5.QtGui import QDesktopServices
+from qgis.PyQt.QtCore import Qt
 from qgis.core import Qgis
 
-from ..utils.url_manager import OpenLink
+from ..utils.url_manager import OpenLink, loadWebpage
 from ..widgets.theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths, ConfigPaths
-import datetime
 
 
 class FooterWidget(QWidget):
-
-
-
-    def __init__(self, parent=None, show_left=True, show_right=True, compact=False):
+    def __init__(self, parent=None, show_left=True, show_right=True):
         super().__init__(parent)
 
-        self._version_label = None
+        self._version_label: QLabel | None = None
 
-        # Outer frame for the glow + top border (styled via QSS)
         frame = QFrame(self)
         frame.setObjectName("footerWidgetFrame")
 
         layout = QHBoxLayout(frame)
-        layout.setContentsMargins(8, 2, 8, 2 if compact else 3)
+        layout.setContentsMargins(8, 2, 8, 3)
         layout.setSpacing(6)
 
-        # Left: one rich-text label with programmatic links (no visible hrefs)
         if show_left:
-            current_year = datetime.datetime.now().year
+            current_year = datetime.date.today().year
             wl = OpenLink()
 
             left_label = FooterLinksLabel(
                 [f"© {current_year} Tuloli OÜ/Kavito", "Koduleht", "Privaatsus", "Kasutustingimused"],
                 [None, wl.main, wl.privacy, wl.terms],
+                parent=frame,
             )
             left_label.setObjectName("footerLeftLabel")
             left_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
             left_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
             left_label.setCursor(Qt.PointingHandCursor)
-
             layout.addWidget(left_label)
         else:
             layout.addStretch(1)
 
-        # Right: versions
         if show_right:
-            from ..constants.file_paths import ConfigPaths
-            metadata_file = ConfigPaths.METADATA
-            self._version_label = QLabel("")
+            self._version_label = QLabel("", frame)
             self._version_label.setObjectName("footerLabel")
             self._version_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self._version_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
@@ -56,59 +48,38 @@ class FooterWidget(QWidget):
             layout.addStretch(1)
             layout.addWidget(self._version_label)
 
-            self.refresh_versions(metadata_file)
+            self.refresh_versions()
         else:
             layout.addStretch(1)
 
-        # Set final layout on the widget
         outer = QHBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.addWidget(frame)
 
-        # Apply QSS (your ThemeManager call)
-
         self.retheme_footer()
 
-    def refresh_versions(self, metadata_file=None):
+    def refresh_versions(self) -> None:
         if not self._version_label:
             return
 
-        try:
-            if metadata_file is None:
-                metadata_file = ConfigPaths.METADATA
+        qgis_version = getattr(Qgis, "QGIS_VERSION", "?")
+        plugin_version = str(getattr(ConfigPaths, "PLUGIN_VERSION", "?") or "?").strip() or "?"
+        is_dev = bool(getattr(ConfigPaths, "IS_DEV", False))
+        env_suffix = " DEV" if is_dev else ""
 
-            qgis_version = Qgis.QGIS_VERSION
-            plugin_version = (ConfigPaths.PLUGIN_VERSION or "?").strip()
-            env_suffix = " DEV" if ConfigPaths.IS_DEV else ""
-            self._version_label.setText(
-                f"QGIS {qgis_version} | Plugin v{plugin_version}{env_suffix}"
-            )
-        except Exception:
-            try:
-                qgis_version = Qgis.QGIS_VERSION
-            except Exception:
-                qgis_version = "?"
-            self._version_label.setText(f"QGIS {qgis_version} | Plugin v?")
-        
-    def retheme_footer(self):
-        """
-        Re-applies the correct theme and QSS to the footer, forcing a style refresh.
-        """
+        self._version_label.setText(f"QGIS {qgis_version} | Plugin v{plugin_version}{env_suffix}")
+
+    def retheme_footer(self) -> None:
         ThemeManager.apply_module_style(self, [QssPaths.FOOTER])
 
 
 class FooterLinksLabel(QLabel):
     def __init__(self, text_segments, urls, parent=None):
-        """
-        text_segments: ["© 2025 Valisee", "Koduleht", "Privaatsus", "Kasutustingimused"]
-        urls:          [None, home_url, privacy_url, terms_url]
-                       (None means not clickable)
-        """
         super().__init__(parent)
-        self.segments = text_segments
-        self.urls = urls
 
-        # Build rich text with href tokens but no visible URLs
+        if len(text_segments) != len(urls):
+            raise ValueError("FooterLinksLabel: text_segments and urls length mismatch")
+
         html_parts = []
         for seg, url in zip(text_segments, urls):
             if url:
@@ -118,9 +89,8 @@ class FooterLinksLabel(QLabel):
 
         self.setText(" | ".join(html_parts))
         self.setTextFormat(Qt.RichText)
-        self.setTextInteractionFlags(Qt.TextBrowserInteraction)
-        self.setOpenExternalLinks(False)  # handle ourselves for full control
-        self.linkActivated.connect(self.open_link)
 
-    def open_link(self, link: str):
-        QDesktopServices.openUrl(QUrl(link))
+        self.setTextInteractionFlags(Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard)
+
+        self.setOpenExternalLinks(False)
+        self.linkActivated.connect(loadWebpage.open_webpage)

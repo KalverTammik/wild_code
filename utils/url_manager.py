@@ -1,8 +1,8 @@
-
 from enum import Enum
 
-import requests
-import webbrowser
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtGui import QDesktopServices
+
 from ..config.setup import config
 from ..Logs.python_fail_logger import PythonFailLogger
 
@@ -15,15 +15,12 @@ class Module(Enum):
     SPECIFICATION = "specification"
     EASEMENT = "easement"
     ORDINANCE = "ordinance"
-    SUBMISSION = "submission"    
+    SUBMISSION = "submission"
 
-    # task related modules
     ASBUILT = "task"
     WORKS = "works"
     TASK = "task"
 
-
-    # user related
     USER = "user"
 
     PROPERTY = "property"
@@ -31,9 +28,9 @@ class Module(Enum):
     HOME = "home"
     SIGNALTEST = "signaltest"
 
-
     STATUSES = "statuses"
     TYPES = "type"
+
 
 class ModuleSupports(Enum):
     TAGS = "tags"
@@ -43,40 +40,47 @@ class ModuleSupports(Enum):
 
 class loadWebpage:
     @staticmethod
-    def open_webpage(web_link: str):
-        """Open a web page in the default browser, following redirects."""
+    def open_webpage(web_link: str) -> bool:
+        if not web_link:
+            return False
+
         try:
-            response = requests.get(web_link, verify=False, timeout=10)
-            webbrowser.open(response.url)
-        except requests.exceptions.Timeout as exc:
+            url = QUrl.fromUserInput(web_link)
+            if not url.isValid():
+                PythonFailLogger.log_exception(
+                    ValueError(f"Invalid URL: {web_link}"),
+                    module=PythonFailLogger.LOG_MODULE_UI,
+                    event=PythonFailLogger.EVENT_OPEN_WEBPAGE_INVALID_URL,
+                )
+                return False
+
+            if QDesktopServices.openUrl(url):
+                return True
+
+            PythonFailLogger.log_exception(
+                RuntimeError(f"QDesktopServices.openUrl returned False: {web_link}"),
+                module=PythonFailLogger.LOG_MODULE_UI,
+                event=PythonFailLogger.EVENT_OPEN_WEBPAGE_FAILED,
+            )
+            return False
+        except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="net",
-                event="open_webpage_timeout",
+                module=PythonFailLogger.LOG_MODULE_UI,
+                event=PythonFailLogger.EVENT_OPEN_WEBPAGE_FAILED,
             )
-        except Exception as e:
-            try:
-                from ..Logs.logger import error as log_error
-                log_error(f"Error opening webpage: {e}")
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="net",
-                    event="open_webpage_log_failed",
-                )
-        
+            return False
+
+
 class OpenLink:
     def __init__(self):
-        self.main = config.get('weblink', '')
-        self.privacy = config.get('privacy', '')
-        self.terms = config.get('terms', '')
-        self.maa_amet = config.get('page_maa_amet', '')
+        self.main = config.get("weblink", "")
+        self.privacy = config.get("privacy", "")
+        self.terms = config.get("terms", "")
+        self.maa_amet = config.get("page_maa_amet", "")
 
     @staticmethod
     def weblink_by_module(module_path: str) -> str:
-        """
-        Build a full link like: https://example.com/projects/
-        Usage:
-
-        """
-        return f"{OpenLink().main}/{module_path}"
+        base = (OpenLink().main or "").rstrip("/")
+        suffix = (module_path or "").lstrip("/")
+        return f"{base}/{suffix}" if base and suffix else ""

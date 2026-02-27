@@ -1,10 +1,6 @@
 from ...constants.help_urls import DEFAULT_HELP_URL, HELP_URLS
-from ...utils.url_manager import Module
+from ...utils.url_manager import Module, loadWebpage
 from ...module_manager import ModuleManager
-from ...Logs.python_fail_logger import PythonFailLogger
-
-
-import webbrowser
 
 
 class ShowHelp:
@@ -18,29 +14,14 @@ class ShowHelp:
             active_module: The currently active module dict from moduleManager.getActiveModule()
         """
         module_name = ModuleManager().getActiveModuleName()
-        try:
-            # First check if Home module is currently active
-            if module_name and module_name == Module.HOME.value:
-                # Home/Welcome page is active - open general QGIS plugin help
-                help_url = "https://help.kavitro.com/et/collections/10606065-kavitro-qgis-plugin"
-                webbrowser.open(help_url)
-                return
+        if module_name and module_name == Module.HOME.value:
+            help_url = "https://help.kavitro.com/et/collections/10606065-kavitro-qgis-plugin"
+            loadWebpage.open_webpage(help_url)
+            return
 
-            # Check for other active modules
-            if module_name:   
-                # Get the help URL for the active module, fallback to default if not found
-                help_url = HELP_URLS.get(module_name, DEFAULT_HELP_URL)
-                webbrowser.open(help_url)
-            else:
-                # No active module and not on welcome page, open main help page
-                webbrowser.open(DEFAULT_HELP_URL)
-        except Exception as e:
-            # Log error but don't crash - fallback to main help page
-            try:
-                webbrowser.open(DEFAULT_HELP_URL)
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="ui",
-                    event="show_help_fallback_failed",
-                )
+        if module_name:
+            help_url = HELP_URLS.get(module_name, DEFAULT_HELP_URL)
+            loadWebpage.open_webpage(help_url)
+            return
+
+        loadWebpage.open_webpage(DEFAULT_HELP_URL)

@@ -28,8 +28,10 @@ QFrame {
 
 /* Size scale (smaller/medium/larger) */
 QPushButton[btnSize="sm"] { padding: 1px 6px; min-height: 20px; font-size: 10px; }
+QPushButton[btnSize="md"] { padding: 6px 12px; min-height: 24px; font-size: 13px; }
 QPushButton[btnSize="lg"] { padding: 4px 10px; min-height: 24px; font-size: 12px; }
 QPushButton[btnSize="sm"]:pressed { padding-top: 6px; padding-bottom: 4px; }
+QPushButton[btnSize="md"]:pressed { padding-top: 8px; padding-bottom: 6px; }
 QPushButton[btnSize="lg"]:pressed { padding-top: 9px; padding-bottom: 7px; }
 
 /* Icon buttons (close/refresh/etc.) */
@@ -194,60 +196,6 @@ QDialog#ModernMessageDialog QPushButton:disabled {
     color: rgba(14,165,233,0.45);
 }
 
-
-/* Named buttons */
-QPushButton#themeSwitchButton,
-QPushButton#logoutButton {
-    background-color: #1f2b2f;
-    color: #e5e7eb;
-    border: 1px solid #2f3a42;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 13px;
-}
-QPushButton#themeSwitchButton:hover,
-QPushButton#logoutButton:hover {
-    background-color: #243039;
-    border-color: #18b2a3;
-    color: #ffffff;
-}
-QPushButton#themeSwitchButton:pressed,
-QPushButton#logoutButton:pressed {
-    background-color: #1b2329;
-    border-color: #0b6a63;
-}
-QPushButton#themeSwitchButton:focus,
-QPushButton#logoutButton:focus {
-    border-color: #18b2a3;
-}
-
-/* Help button */
-QPushButton#headerHelpButton {
-    background-color: #1f2b2f;
-    color: #e5e7eb;
-    border: 1px solid #2f3a42;
-    border-radius: 6px;
-    padding: 4px 4px;
-    font-size: 12px;
-    font-weight: 500;
-    min-width: 45px;
-    min-height: 24px;
-    max-width: 45px;
-    max-height: 24px;
-    text-align: left;
-}
-QPushButton#headerHelpButton:hover {
-    background-color: #243039;
-    border-color: #18b2a3;
-    color: #0f9b8e;
-}
-QPushButton#headerHelpButton:pressed {
-    background-color: #1b2329;
-    border-color: #0b6a63;
-}
-QPushButton#headerHelpButton:focus {
-    border-color: #18b2a3;
-}
 
 /* Feed refresh */
 /* Sidebar buttons */

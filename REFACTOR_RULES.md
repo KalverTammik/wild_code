@@ -3,6 +3,58 @@
 
 Use this checklist as a canonical pointer when planning or reviewing refactors (project-specific terminology):
 
+## Simplicity-first policy (default)
+
+When multiple valid refactor options exist, choose the one with fewer moving parts.
+
+- **Prefer deletion over abstraction:** remove dead code and duplicate branches before introducing new helpers/classes.
+- **One new concept at a time:** avoid combining renames, architecture moves, and behavior changes in one PR.
+- **No wrapper chains:** do not add pass-through methods that only call another method with same args.
+- **No speculative extensibility:** avoid adding optional flags, strategy hooks, or config knobs unless a real current caller needs them.
+- **Early-return flow:** flatten nested `if/else` logic; prefer guard clauses and one clear happy path.
+- **Keep local until reused:** keep logic in-place until it is reused in at least 2 places or clearly blocks readability.
+- **Extract only meaningful units:** create a helper only if it has a clear domain name and reduces cognitive load.
+- **Minimize file churn:** prefer improving existing files/classes over creating new ones unless separation is necessary.
+- **UI composition, not orchestration:** UI should assemble widgets and delegate actions; avoid embedding branching business flows.
+- **Exception handling must be explicit and minimal:** catch only where recovery is possible; otherwise log and surface failure.
+
+## Conciseness guardrails
+
+- Target smaller diffs: prefer a focused change set over broad rewrites.
+- If a function grows, first try simplification (remove branches/duplication) before splitting.
+- Avoid duplicate state (no parallel booleans/fields representing the same thing).
+- Prefer direct expressions over temporary variables when readability is not reduced.
+- Avoid comments that describe obvious code; keep comments for intent/tradeoffs only.
+
+## Centralization and API consistency
+
+- **One public entrypoint per concern:** expose one canonical API for each concern (e.g., URL opening), and use it everywhere.
+- **Reuse-first is mandatory:** before adding any new method/class, search for similar existing implementations and reuse them when possible.
+- **Relocate instead of duplicate:** if similar logic exists but is not in a proper shared location (`utils/`/`modules/` service/helper), propose a refactor plan to move/centralize it before adding another implementation.
+- **No mixed call styles:** do not use both low-level helper functions and wrapper classes for the same behavior at call sites.
+- **Keep internals private:** if a low-level helper is needed, keep it private and never import/use it from feature/UI files.
+- **Centralize reusable literals:** move repeated module names, event keys, folder names, and prefixes into shared constants.
+- **Log keys from one source:** logging module/event identifiers must come from a central constants owner, not inline strings in feature code.
+- **Avoid pass-through wrappers:** do not keep methods that only forward arguments unless required for compatibility.
+- **Prefer direct signal wiring:** if a signal can connect directly to the canonical callable, do that instead of adding local one-line handlers.
+- **Normalize naming to project style:** classes use CamelCase, files use snake_case; avoid introducing new lowercase class names.
+- **Import only canonical symbols:** feature modules should import the canonical public API symbol, not alternative aliases.
+- **Compatibility shims are temporary:** if a shim is needed, mark and remove it after call sites migrate.
+
+## Refactor acceptance gate (quick check)
+
+Before merging, verify all are true:
+
+1. **Less complexity:** branch count and nesting are same or lower than before.
+2. **Less surface area:** no unnecessary new classes/files/public methods.
+3. **Clearer flow:** main path is readable top-to-bottom without jumping across many helpers.
+4. **No hidden behavior changes:** behavior changes are intentional and documented.
+5. **No silent fallback masking:** failures are either handled explicitly or logged and returned.
+6. **Single call pattern:** one canonical API usage style is applied across all touched call sites.
+7. **Centralized constants:** newly introduced repeated literals are extracted to shared constants.
+8. **Reuse scan done first:** existing similar methods/classes were searched before creating new ones.
+9. **Refactor plan when misplaced:** if reusable logic exists in the wrong layer/location, a move-to-shared-location plan is proposed instead of duplicating code.
+
 - Prefer explicit submodule imports: import symbols from their defining module (no eager package-level re-exports).
 - Avoid work at import time: no network, DB, or heavy CPU in module scope — initialize lazily or via constructors.
 - Make helpers pure or `@staticmethod`/module functions where appropriate; inject clients (GraphQL/DB) rather than import them globally.
@@ -40,6 +92,8 @@ Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description 
 
 _Add a short rationale and list of files touched for each refactor here._
 
+- 2026-02-27: Added explicit centralization and API consistency rules from URL-opening/logging cleanup session (single public entrypoint, no mixed call styles, centralized literals, direct signal wiring, naming normalization). Files: REFACTOR_RULES.md.
+- 2026-02-27: Strengthened checklist with mandatory reuse-first scan and relocation-before-duplication rule; added acceptance-gate checks for reuse scan and refactor-plan requirement when similar logic exists in wrong location. Files: REFACTOR_RULES.md.
 - 2026-02-06: Extracted folder selection and naming-rule dialog handlers into static dialog helpers to thin `PluginDialog` and centralize UI callbacks. Files: ui/window_state/dialog_helpers.py, dialog.py.
 - 2026-02-06: Moved settings navigation confirmation and focus handling into `DialogHelpers` to reduce UI logic in `PluginDialog`. Files: ui/window_state/dialog_helpers.py, dialog.py.
 - 2026-02-06: Routed logout and show lifecycle session handling through `DialogHelpers` to keep dialog UI thin while keeping session logic in `SessionManager`. Files: ui/window_state/dialog_helpers.py, dialog.py.

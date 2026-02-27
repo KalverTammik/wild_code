@@ -13,4 +13,5 @@ class ButtonVariant:
 
 class ButtonSize:
     SMALL = "sm"
+    MEDIUM = "md"
     LARGE = "lg"

@@ -8,6 +8,22 @@ from typing import Any
 class PythonFailLogger:
     """Per-module Python error logger (non-switch diagnostics)."""
 
+    LOG_MODULE_UI = "ui"
+    EVENT_OPEN_WEBPAGE_FAILED = "open_webpage_failed"
+    EVENT_OPEN_WEBPAGE_INVALID_URL = "open_webpage_invalid_url"
+
+    class _Cfg:
+        DEFAULT_MODULE = "general"
+        PROPERTY_MODULE = "property"
+        LOG_ROOT = "Logs"
+        PYTHON_LOGS_DIR = "PythonLogs"
+        MODULE_FOLDER_DEFAULT = "general"
+        MODULE_FOLDER_PROPERTY = "property"
+        MAX_LOG_FILES_PER_FOLDER = 5
+        PREFIX_TEMPLATE = "python_{module}_log_"
+        FILE_STAMP_FORMAT = "%m_%d_%H%M%S"
+        LINE_TS_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
+
     _log_paths: dict[str, str] = {}
     _fatal_handle = None
 
@@ -17,7 +33,11 @@ class PythonFailLogger:
 
     @staticmethod
     def _logs_dir() -> str:
-        return os.path.join(PythonFailLogger._base_dir(), "Logs", "PythonLogs")
+        return os.path.join(
+            PythonFailLogger._base_dir(),
+            PythonFailLogger._Cfg.LOG_ROOT,
+            PythonFailLogger._Cfg.PYTHON_LOGS_DIR,
+        )
 
     @staticmethod
     def start_session() -> None:
@@ -58,8 +78,8 @@ class PythonFailLogger:
 
     @staticmethod
     def _sanitize_module(module: str | None) -> str:
-        value = (module or "general").strip().lower()
-        return value.replace(" ", "_") or "general"
+        value = (module or PythonFailLogger._Cfg.DEFAULT_MODULE).strip().lower()
+        return value.replace(" ", "_") or PythonFailLogger._Cfg.DEFAULT_MODULE
 
     @staticmethod
     def _get_log_path(module: str | None) -> str | None:
@@ -69,18 +89,18 @@ class PythonFailLogger:
             return cached
         logs_dir = PythonFailLogger._logs_dir()
         try:
-            folder_name = "general"
-            if mod == "property":
-                folder_name = "property"
-            elif mod == "general":
-                folder_name = "general"
+            folder_name = PythonFailLogger._Cfg.MODULE_FOLDER_DEFAULT
+            if mod == PythonFailLogger._Cfg.PROPERTY_MODULE:
+                folder_name = PythonFailLogger._Cfg.MODULE_FOLDER_PROPERTY
+            elif mod == PythonFailLogger._Cfg.DEFAULT_MODULE:
+                folder_name = PythonFailLogger._Cfg.MODULE_FOLDER_DEFAULT
             folder_path = os.path.join(logs_dir, folder_name)
             os.makedirs(folder_path, exist_ok=True)
-            prefix = f"python_{mod}_log_"
+            prefix = PythonFailLogger._Cfg.PREFIX_TEMPLATE.format(module=mod)
             existing = [name for name in os.listdir(folder_path) if name.startswith(prefix) and name.endswith(".log")]
-            if len(existing) >= 5:
+            if len(existing) >= PythonFailLogger._Cfg.MAX_LOG_FILES_PER_FOLDER:
                 existing.sort(key=lambda name: os.path.getmtime(os.path.join(folder_path, name)))
-                while len(existing) >= 5:
+                while len(existing) >= PythonFailLogger._Cfg.MAX_LOG_FILES_PER_FOLDER:
                     oldest_name = existing.pop(0)
                     try:
                         os.remove(os.path.join(folder_path, oldest_name))
@@ -88,7 +108,7 @@ class PythonFailLogger:
                         print(f"[PythonFailLogger] Failed to remove {oldest_name}", file=sys.stderr)
                         break
 
-            stamp = datetime.now().strftime("%m_%d_%H%M%S")
+            stamp = datetime.now().strftime(PythonFailLogger._Cfg.FILE_STAMP_FORMAT)
             filename = f"{prefix}{stamp}.log"
             path = os.path.join(folder_path, filename)
             if os.path.exists(path):
@@ -107,7 +127,7 @@ class PythonFailLogger:
 
     @staticmethod
     def _format_line(event: str, *, module: str | None = None, extra: dict | None = None, message: str | None = None) -> str:
-        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        ts = datetime.now().strftime(PythonFailLogger._Cfg.LINE_TS_FORMAT)[:-3]
         parts = [f"[{ts}]", event]
         if module:
             parts.append(f"module={module}")

@@ -1,7 +1,6 @@
-import os
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit, QVBoxLayout, QListWidget, QListWidgetItem
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
-from .theme_manager import IntensityLevels, ThemeManager, is_dark, styleExtras, ThemeShadowColors
+from .theme_manager import IntensityLevels, ThemeManager, styleExtras, ThemeShadowColors
 from ..constants.button_props import ButtonVariant, ButtonSize
 from ..constants.file_paths import QssPaths
 from ..constants.module_icons import IconNames
@@ -21,15 +20,16 @@ class HeaderWidget(QWidget):
     helpRequested = pyqtSignal()
     searchResultClicked = pyqtSignal(str, str, str)  # module, id, title
     
-    def __init__(self, title, switch_callback, logout_callback, parent=None, compact=False):
+    def __init__(self, title, switch_callback, logout_callback, parent=None):
         super().__init__(parent)
+        self.lang_manager = LanguageManager()
 
         # Outer frame (lets us draw the bottom glow/separator via QSS)
         frame = QFrame(self)
         frame.setObjectName("headerWidgetFrame")
 
         layout = QHBoxLayout(frame)
-        layout.setContentsMargins(10, 6 if not compact else 4, 10, 6 if not compact else 4)
+        layout.setContentsMargins(10, 6, 10, 6)
         layout.setSpacing(10)
 
         # Title (fixed width is okay if you want consistent center balance)
@@ -47,34 +47,33 @@ class HeaderWidget(QWidget):
         # Help button next to title
         self.helpButton = QPushButton()
         self.helpButton.setObjectName("headerHelpButton")
-        self.helpButton.setFixedSize(45, 24)
         # Prevent help button from being the default button that triggers on Return key
         self.helpButton.setAutoDefault(False)
         self.helpButton.setDefault(False)
-        self.helpButton.setProperty("variant", ButtonVariant.GHOST)
+        self.helpButton.setProperty("variant", ButtonVariant.ICON)
         self.helpButton.setProperty("btnSize", ButtonSize.SMALL)
         
         # Add help icon and text
         self.helpButton.setIcon(ThemeManager.get_qicon(IconNames.ICON_HELP))
         self.helpButton.setIconSize(QSize(18, 18))
-        self.helpButton.setText(LanguageManager().translate(TranslationKeys.HEADER_WIDGET_ABI) or "Abi")
+        self.helpButton.setText(self.lang_manager.translate(TranslationKeys.HEADER_WIDGET_ABI) or "")
                     
         # Add tooltip
-        tooltip = LanguageManager().translate(TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP)
+        tooltip = self.lang_manager.translate(TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP)
         if tooltip:
             self.helpButton.setToolTip(tooltip)
         
-        self.helpButton.clicked.connect(self._emit_help)
+        self.helpButton.clicked.connect(self.helpRequested.emit)
         frame_layout.addWidget(self.helpButton)
         layout.addWidget(self.titleFrame, 0, Qt.AlignLeft | Qt.AlignVCenter)
 
         # Search (center)
         self.searchEdit = QLineEdit()
 
-        placeholder = LanguageManager().translate("search_placeholder")
+        placeholder = self.lang_manager.translate(TranslationKeys.SEARCH_PLACEHOLDER)
         self.searchEdit.setPlaceholderText(placeholder)
         self.searchEdit.setObjectName("headerSearchEdit")
-        self.searchEdit.setFixedWidth(220)
+        self.searchEdit.setFixedWidth(240)
         
         styleExtras.apply_chip_shadow(
             element=self.searchEdit, 
@@ -85,7 +84,7 @@ class HeaderWidget(QWidget):
             alpha_level=IntensityLevels.MEDIUM
             )
         # Rakenda tooltip keelefailist
-        tooltip = LanguageManager().translate("search_tooltip")
+        tooltip = self.lang_manager.translate(TranslationKeys.SEARCH_TOOLTIP)
         self.searchEdit.setToolTip(tooltip)
         
         # Initialize search functionality
@@ -116,23 +115,25 @@ class HeaderWidget(QWidget):
         # Prevent button from being triggered by Return key
         self.switchButton.setAutoDefault(False)
         self.switchButton.setDefault(False)
-        self.switchButton.setProperty("variant", ButtonVariant.GHOST)
+        self.switchButton.setProperty("variant", ButtonVariant.ICON)
+        self.switchButton.setProperty("btnSize", ButtonSize.SMALL)
         self.switchButton.clicked.connect(switch_callback)
         # Rakenda tooltip keelefailist
-        tooltip = LanguageManager().translate("theme_switch_tooltip")
+        tooltip = self.lang_manager.translate(TranslationKeys.THEME_SWITCH_TOOLTIP)
         self.switchButton.setToolTip(tooltip)
         layout.addWidget(self.switchButton, 0, Qt.AlignRight | Qt.AlignVCenter)
 
-        self.logoutButton = QPushButton("Logout")
+        self.logoutButton = QPushButton()
         self.logoutButton.setObjectName("logoutButton")
         # Prevent button from being triggered by Return key
         self.logoutButton.setAutoDefault(False)
         self.logoutButton.setDefault(False)
-        self.logoutButton.setProperty("variant", ButtonVariant.DANGER)
+        self.logoutButton.setProperty("variant", ButtonVariant.ICON)
+        self.logoutButton.setProperty("btnSize", ButtonSize.SMALL)
         self.logoutButton.clicked.connect(logout_callback)
 
         # Rakenda tooltip keelefailist
-        tooltip = LanguageManager().translate("logout_button_tooltip")
+        tooltip = self.lang_manager.translate(TranslationKeys.LOGOUT_BUTTON_TOOLTIP)
         self.logoutButton.setToolTip(tooltip)
         layout.addWidget(self.logoutButton, 0, Qt.AlignRight | Qt.AlignVCenter)
 
@@ -175,22 +176,15 @@ class HeaderWidget(QWidget):
             return True
         return self._activated and token == self._active_token
 
-    def _emit_help(self):
-        """Emit help requested signal."""
-        self.helpRequested.emit()
-
     def _on_search_text_changed(self, text):
         """Handle search text changes with debouncing and debug logging."""
-        print(f"[DEBUG] Search text changed: '{text}' (length: {len(text)})")
         # Hide results if text is too short
         if len(text.strip()) < 3:
-            print("[DEBUG] Search text too short, hiding results and stopping timer")
             self.search_results_widget.hide_results()
             self._search_timer.stop()
             self.search_controller.invalidate()
             return
         # Restart timer for debounced search
-        print("[DEBUG] Starting search timer (0.5s delay)")
         self._search_timer.start(500)  # 0.5 second delay
     
     def _perform_search(self):
