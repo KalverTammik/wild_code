@@ -1,16 +1,14 @@
 import hashlib
 from functools import lru_cache
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QHBoxLayout
+    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame
 )
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QLabel
-from PyQt5.QtCore import Qt
 from ..theme_manager import ThemeManager, IntensityLevels, styleExtras, ThemeShadowColors
-from ...constants.file_paths import QssPaths
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.responses import DataDisplayExtractors
+from ...ui.window_state.dialog_helpers import PopupHelpers
 
 
 class AvatarUtils:
@@ -68,6 +66,17 @@ class AvatarBubble(QLabel):
         # Optional list of member nodes to display on hover (for responsible avatars)
         self._popup_members = popup_members or []
         self._members_popup = None
+        self._hide_timer = QTimer(self)
+        self._hide_timer.setSingleShot(True)
+        self.installEventFilter(self)
+        PopupHelpers.bind_hide_timeout_attr_for(
+            "members",
+            owner=self,
+            attr_name="_members_popup",
+            timer=self._hide_timer,
+            anchor_getter=self,
+            event_filter_owner=self,
+        )
 
         self.setText(AvatarUtils.initials(self.fullname))
         self.setAlignment(Qt.AlignCenter)
@@ -113,33 +122,18 @@ class AvatarBubble(QLabel):
             self._add_icon_overlay(icon, self.base_size, bg)
 
 
-    def enterEvent(self, e):
-        # Simple hover behavior - just show popup for members
-        super().enterEvent(e)
-        # Show members popup if present (responsible avatar hover behavior)
-        try:
-            if self._popup_members:
-                self._show_members_popup()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="members_popup_show_failed",
-            )
-
-    def leaveEvent(self, e):
-        # Simple leave behavior - just hide popup
-        super().leaveEvent(e)
-        # Hide popup when leaving avatar
-        try:
-            if self._members_popup:
-                self._hide_members_popup()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="members_popup_hide_failed",
-            )
+    def eventFilter(self, obj, event):
+        PopupHelpers.handle_popup_hover_event_for(
+            "members",
+            obj,
+            event,
+            popup_widget=self._members_popup,
+            timer=self._hide_timer,
+            anchor_matcher=lambda widget: widget is self,
+            on_anchor_enter=lambda _widget: self._show_members_popup(),
+            on_popup_deactivate=lambda: PopupHelpers.hide_popup_attr(self, "_members_popup", self._hide_timer, self),
+        )
+        return super().eventFilter(obj, event)
 
     def _show_members_popup(self):
         """Create and show a tooltip-like popup with member names in a vertical list."""
@@ -159,8 +153,7 @@ class AvatarBubble(QLabel):
             layout.setSpacing(4)
 
             # Apply theme-based styling to the popup
-            
-            ThemeManager.apply_module_style(popup, [QssPaths.POPUP])
+            PopupHelpers.apply_popup_style(popup, "members")
 
             # Create labels for each member name
             # First, add the responsible person (bold and distinguished)
@@ -176,10 +169,14 @@ class AvatarBubble(QLabel):
                 layout.addWidget(label)
 
             # Position popup near this avatar (below)
-            gp = self.mapToGlobal(self.rect().bottomLeft())
-            popup.move(gp.x(), gp.y() + 6)
-            popup.show()
-            self._members_popup = popup
+            self._members_popup = PopupHelpers.show_popup_for(
+                "members",
+                timer=self._hide_timer,
+                current_popup=self._members_popup,
+                anchor_widget=self,
+                popup_factory=lambda: popup,
+                event_filter_owner=self,
+            )
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -187,31 +184,8 @@ class AvatarBubble(QLabel):
                 event="members_popup_create_failed",
             )
 
-    def _hide_members_popup(self):
-        try:
-            if self._members_popup:
-                try:
-                    self._members_popup.hide()
-                    self._members_popup.deleteLater()
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module="ui",
-                        event="members_popup_delete_failed",
-                    )
-                self._members_popup = None
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="members_popup_cleanup_failed",
-            )
-
     def _add_icon_overlay(self, icon_type: str, size: int, bg_color: QColor):
         """Add an icon overlay to the avatar bubble."""
-        from PyQt5.QtWidgets import QLabel
-        from PyQt5.QtGui import QFont
-
         # Create icon label
         icon_label = QLabel("★", self)  # Star icon placeholder
         icon_label.setAlignment(Qt.AlignCenter)

@@ -1,12 +1,14 @@
-from PyQt5.QtCore import QDateTime, QLocale, Qt, QPoint, QEvent
+from PyQt5.QtCore import QDateTime, QLocale, Qt, QTimer
 from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QFrame
 import datetime
 from typing import Optional
 from ..DateHelpers import DateHelpers
 from ..theme_manager import ThemeManager
+from ...languages.language_manager import LanguageManager
 from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
 from ...python.responses import DataDisplayExtractors
+from ...ui.window_state.dialog_helpers import PopupHelpers
 
 
 class DatesPopupWidget(QWidget):
@@ -64,7 +66,7 @@ class DatesPopupWidget(QWidget):
 
     def retheme(self):
         """Reapply theme styles when theme changes."""
-        ThemeManager.apply_module_style(self.frame, [QssPaths.DATES])
+        PopupHelpers.apply_popup_style(self.frame, "dates")
         # Force style refresh
         self.frame.style().unpolish(self.frame)
         self.frame.style().polish(self.frame)
@@ -74,7 +76,7 @@ class DatesWidget(QWidget):
         super().__init__(parent)
         self.setProperty("compact", compact)
         self.item_data = item_data
-        self.lang_manager = lang_manager
+        self.lang_manager = lang_manager or LanguageManager()
 
         # Main layout - vertical to stack under status
         main_layout = QVBoxLayout(self)
@@ -99,10 +101,10 @@ class DatesWidget(QWidget):
         def full_tooltip(prefix: str, dt: Optional[datetime.datetime]) -> str:
             return DateHelpers.build_label(prefix, dt, locale)
 
-        due_label = self.lang_manager.translate(TranslationKeys.DUE) if self.lang_manager else "Due"
-        start_label = self.lang_manager.translate(TranslationKeys.START) if self.lang_manager else "Start"
-        created_label = self.lang_manager.translate(TranslationKeys.CREATED) if self.lang_manager else "Created"
-        updated_label = self.lang_manager.translate(TranslationKeys.UPDATED) if self.lang_manager else "Updated"
+        due_label = self.lang_manager.translate(TranslationKeys.DUE)
+        start_label = self.lang_manager.translate(TranslationKeys.START)
+        created_label = self.lang_manager.translate(TranslationKeys.CREATED)
+        updated_label = self.lang_manager.translate(TranslationKeys.UPDATED)
 
         date_options = [
             {"label": due_label, "dt": due_dt, "type": "due"},
@@ -146,10 +148,7 @@ class DatesWidget(QWidget):
 
             main_layout.addWidget(due_container)
         else:
-            placeholder_text = translate_label(
-                TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY,
-                "No dates available",
-            )
+            placeholder_text = self.lang_manager.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY)
             placeholder = QLabel(placeholder_text)
             placeholder.setObjectName("DateLabel")
             placeholder.setStyleSheet("color: rgb(130, 130, 130);")
@@ -164,38 +163,46 @@ class DatesWidget(QWidget):
         ]
 
         self.hover_popup = None
+        self._hover_anchor = None
+        self._hide_timer = QTimer(self)
+        self._hide_timer.setSingleShot(True)
+        PopupHelpers.bind_hide_timeout_attr_for(
+            "dates",
+            owner=self,
+            attr_name="hover_popup",
+            timer=self._hide_timer,
+            anchor_getter=lambda: self._hover_anchor,
+            event_filter_owner=self,
+        )
         self.retheme()
 
 
     def eventFilter(self, obj, event):
-        if obj.objectName() == "DueDateContainer":
-            if event.type() == QEvent.Enter:
-                self.show_dates_popup(obj)
-            elif event.type() == QEvent.Leave:
-                self.hide_dates_popup()
+        PopupHelpers.handle_popup_hover_event_for(
+            "dates",
+            obj,
+            event,
+            popup_widget=self.hover_popup,
+            timer=self._hide_timer,
+            anchor_matcher=lambda widget: bool(widget) and widget.objectName() == "DueDateContainer",
+            on_anchor_enter=self.show_dates_popup,
+            on_popup_deactivate=lambda: PopupHelpers.hide_popup_attr(self, "hover_popup", self._hide_timer, self),
+        )
         return super().eventFilter(obj, event)
 
     def show_dates_popup(self, anchor_widget):
         if not self.other_dates:
             return
 
-        if self.hover_popup:
-            self.hide_dates_popup()
-
-        # Create custom popup widget with proper theming
-        self.hover_popup = DatesPopupWidget(self.other_dates, self.window())
-
-        # Position popup near the anchor widget
-        self.hover_popup.adjustSize()
-        pos = anchor_widget.mapToGlobal(QPoint(0, anchor_widget.height()))
-        self.hover_popup.move(pos)
-        self.hover_popup.show()
-        self.hover_popup.raise_()
-
-    def hide_dates_popup(self):
-        if self.hover_popup:
-            self.hover_popup.close()
-            self.hover_popup = None
+        self._hover_anchor = anchor_widget
+        self.hover_popup = PopupHelpers.show_popup_for(
+            "dates",
+            timer=self._hide_timer,
+            current_popup=self.hover_popup,
+            anchor_widget=anchor_widget,
+            popup_factory=lambda: DatesPopupWidget(self.other_dates, self.window()),
+            event_filter_owner=self,
+        )
 
     def retheme(self):
         """Reapply theme styles when theme changes."""

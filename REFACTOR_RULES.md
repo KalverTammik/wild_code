@@ -35,6 +35,7 @@ When multiple valid refactor options exist, choose the one with fewer moving par
 - **Keep internals private:** if a low-level helper is needed, keep it private and never import/use it from feature/UI files.
 - **Centralize reusable literals:** move repeated module names, event keys, folder names, and prefixes into shared constants.
 - **Log keys from one source:** logging module/event identifiers must come from a central constants owner, not inline strings in feature code.
+- **Strict translations only:** UI translation lookups must use strict key resolution (no fallback text/key arguments) so missing keys fail fast during development.
 - **Avoid pass-through wrappers:** do not keep methods that only forward arguments unless required for compatibility.
 - **Prefer direct signal wiring:** if a signal can connect directly to the canonical callable, do that instead of adding local one-line handlers.
 - **Normalize naming to project style:** classes use CamelCase, files use snake_case; avoid introducing new lowercase class names.
@@ -54,6 +55,7 @@ Before merging, verify all are true:
 7. **Centralized constants:** newly introduced repeated literals are extracted to shared constants.
 8. **Reuse scan done first:** existing similar methods/classes were searched before creating new ones.
 9. **Refactor plan when misplaced:** if reusable logic exists in the wrong layer/location, a move-to-shared-location plan is proposed instead of duplicating code.
+10. **Strict i18n compliance:** touched UI code does not introduce translation fallbacks that can mask missing keys or show mixed-language text.
 
 - Prefer explicit submodule imports: import symbols from their defining module (no eager package-level re-exports).
 - Avoid work at import time: no network, DB, or heavy CPU in module scope — initialize lazily or via constructors.
@@ -67,6 +69,7 @@ Before merging, verify all are true:
 - Never mask exceptions in helpers or business logic (no try/except that silently passes). If you must handle errors, log and return an explicit failure.
 - Avoid `hasattr`/`getattr` fallback checks for required methods or properties; prefer explicit interfaces/contracts and fix the caller/implementation rather than masking missing API.
 - Avoid UI fallback paths that bypass business logic contexts (e.g., required context objects must be enforced, not optional). UI must not implement alternate code paths that “still work” when context is missing.
+- Avoid translation fallback paths in UI (`translate(..., fallback=...)`, hardcoded language fallback strings, or key-as-text fallbacks). Missing keys must surface immediately via strict translation lookup.
 - Never mark modules active before calling `activate()`; activation must initialize feed/UI and set activation flags afterward.
 - Avoid calling `setText()` inside `resizeEvent` without reentry guards or queued updates; use scheduled eliding to prevent recursion.
 - Never touch map layers (selection/visibility/feature iteration) when lookup yields no matches; return early and show a user message instead.
@@ -92,6 +95,7 @@ Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description 
 
 _Add a short rationale and list of files touched for each refactor here._
 
+- 2026-02-27: Added strict translation policy to prevent fallback-masked i18n issues (no UI fallback text/key usage), plus acceptance-gate check for strict i18n compliance. Files: REFACTOR_RULES.md.
 - 2026-02-27: Added explicit centralization and API consistency rules from URL-opening/logging cleanup session (single public entrypoint, no mixed call styles, centralized literals, direct signal wiring, naming normalization). Files: REFACTOR_RULES.md.
 - 2026-02-27: Strengthened checklist with mandatory reuse-first scan and relocation-before-duplication rule; added acceptance-gate checks for reuse scan and refactor-plan requirement when similar logic exists in wrong location. Files: REFACTOR_RULES.md.
 - 2026-02-06: Extracted folder selection and naming-rule dialog handlers into static dialog helpers to thin `PluginDialog` and centralize UI callbacks. Files: ui/window_state/dialog_helpers.py, dialog.py.

@@ -1,11 +1,10 @@
-from PyQt5.QtCore import Qt, QPoint, QEvent
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
 )
 from ..theme_manager import ThemeManager
-from ...constants.file_paths import QssPaths
 from ...constants.module_icons import IconNames
-from ...Logs.python_fail_logger import PythonFailLogger
+from ...ui.window_state.dialog_helpers import PopupHelpers
 
 
 class TagsWidget(QWidget):
@@ -14,6 +13,8 @@ class TagsWidget(QWidget):
 
         # Store tag names (should be a list)
         self.tag_names = tag_names if isinstance(tag_names, list) else []
+
+        self._tags_container = None
 
         # Main layout
         main_layout = QVBoxLayout(self)
@@ -38,84 +39,55 @@ class TagsWidget(QWidget):
             # Make the container hoverable for showing all tags
             tags_container.setMouseTracking(True)
             tags_container.installEventFilter(self)
+            self._tags_container = tags_container
 
             main_layout.addWidget(tags_container)
             
 
 
         self.hover_popup = None
+        self._hide_timer = QTimer(self)
+        self._hide_timer.setSingleShot(True)
+        PopupHelpers.bind_hide_timeout_attr_for(
+            "tags",
+            owner=self,
+            attr_name="hover_popup",
+            timer=self._hide_timer,
+            anchor_getter=lambda: self._tags_container,
+            event_filter_owner=self,
+        )
 
-    def __del__(self):
-        """Ensure proper cleanup when the widget is destroyed."""
-        try:
-            self.hide_tags_popup()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="tags_widget_cleanup_failed",
-            )
+        self.destroyed.connect(self._on_destroyed)
 
     def eventFilter(self, obj, event):
-        try:
-            if obj and obj.objectName() == "TagsContainer":
-                if event.type() == QEvent.Enter:
-                    self.show_tags_popup(obj)
-                elif event.type() == QEvent.Leave:
-                    self.hide_tags_popup()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="tags_widget_event_failed",
-            )
+        PopupHelpers.handle_popup_hover_event_for(
+            "tags",
+            obj,
+            event,
+            popup_widget=self.hover_popup,
+            timer=self._hide_timer,
+            anchor_matcher=lambda widget: bool(widget) and widget.objectName() == "TagsContainer",
+            on_anchor_enter=self.show_tags_popup,
+            on_popup_deactivate=lambda: PopupHelpers.hide_popup_attr(self, "hover_popup", self._hide_timer, self),
+        )
         return super().eventFilter(obj, event)
+
+    def _on_destroyed(self, _obj=None):
+        PopupHelpers.stop_hide_timer(self._hide_timer)
+        self.hover_popup = PopupHelpers.hide_popup_attr(self, "hover_popup", self._hide_timer, self)
 
     def show_tags_popup(self, anchor_widget):
         if not self.tag_names:
             return
 
-        # Clean up any existing popup
-        self.hide_tags_popup()
-
-        # Create popup widget with all tags
-        self.hover_popup = TagPopup(self.tag_names, self.window())
-
-        # Position popup near the anchor widget
-        self.hover_popup.adjustSize()
-        pos = anchor_widget.mapToGlobal(QPoint(4, 0))
-        self.hover_popup.move(pos)
-        self.hover_popup.show()
-        self.hover_popup.raise_()
-
-    def hide_tags_popup(self):
-        try:
-            if self.hover_popup:
-                if not self.hover_popup.isVisible():
-                    self.hover_popup = None
-                    return
-
-                # Disconnect any event filters
-                try:
-                    self.hover_popup.removeEventFilter(self)
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module="ui",
-                        event="tags_widget_remove_filter_failed",
-                    )
-
-                # Close and delete the popup
-                self.hover_popup.close()
-                self.hover_popup.deleteLater()
-                self.hover_popup = None
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="tags_widget_hide_failed",
-            )
-            self.hover_popup = None
+        self.hover_popup = PopupHelpers.show_popup_for(
+            "tags",
+            timer=self._hide_timer,
+            current_popup=self.hover_popup,
+            anchor_widget=anchor_widget,
+            popup_factory=lambda: TagPopup(self.tag_names, self.window()),
+            event_filter_owner=self,
+        )
 
 class TagPopup(QWidget):
     def __init__(self, tags: list, parent=None):
@@ -135,7 +107,7 @@ class TagPopup(QWidget):
         self._tags_display = self._create_tags_display(tags)
         lay.addWidget(self._tags_display)
 
-        ThemeManager.apply_module_style(self, [QssPaths.POPUP])
+        PopupHelpers.apply_popup_style(self, "tags")
 
     def _create_tags_display(self, tag_names):
         """Create a widget that displays all tags in a vertical layout."""
@@ -177,7 +149,7 @@ class TagPopup(QWidget):
         return frame
 
     def showEvent(self, event):
-        ThemeManager.apply_module_style(self, [QssPaths.POPUP])
+        PopupHelpers.apply_popup_style(self, "tags")
 
         return super().showEvent(event)
 
