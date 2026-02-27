@@ -52,7 +52,7 @@ class ModuleCardFactory:
             raise ValueError("Module feed items must include an 'id' field")
         pos = 0
 
-        header_frame = InfocardHeaderFrame(item_data, module_name=module_name)
+        header_frame = InfocardHeaderFrame(item_data, lang_manager=lang_manager)
         header_row.addWidget(header_frame, 0, pos, Qt.AlignVCenter)
 
         pos_next = pos + 1
@@ -73,6 +73,8 @@ class ModuleCardFactory:
             lang_manager=lang_manager,
         )
         header_row.addWidget(actions_widget, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
+        header_row.setColumnStretch(pos_next, 0)
+        header_row.setColumnMinimumWidth(pos_next, actions_widget.sizeHint().width())
 
         pos_next += 1
 
@@ -93,7 +95,7 @@ class ModuleCardFactory:
         if not contacts_widget.isHidden():
             cl.addWidget(contacts_widget, 0, Qt.AlignLeft)
 
-        cl.addWidget(ExtraInfoFrame(item_id, module_name))
+        cl.addWidget(ExtraInfoFrame(item_id, module_name, lang_manager=lang_manager))
         main.addWidget(content, 1)
 
         ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])

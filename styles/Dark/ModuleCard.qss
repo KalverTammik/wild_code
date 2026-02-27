@@ -121,10 +121,8 @@ QLabel#ProjectNumberBadge {
     color: #e8f6f6;
     background: rgba(9,144,143,0.25);
     border: 1px solid rgba(9,144,143,0.50);
-    width: 100px;
+    min-width: 24px;
     text-align: center;
     letter-spacing: 0.2px;
-    white-space: nowrap;
-    overflow: hidden;
 }
 

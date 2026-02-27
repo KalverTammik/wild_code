@@ -6,11 +6,13 @@ from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import ThemeManager, styleExtras
 
 
-class LinkReviewDialog(QDialog):
+class PropertyLinkReviewDialog(QDialog):
+    LIST_MIN_WIDTH = 200
+
     def __init__(self, existing_display: dict[str, str], selected_display: dict[str, str], lang_manager) -> None:
         super().__init__()
         self.setObjectName("LinkReviewDialog")
-        self.setWindowTitle(lang_manager.translate(TranslationKeys.CHOSE_FROM_MAP))
+        self.setWindowTitle(lang_manager.translate(TranslationKeys.LINK_REVIEW_CONNECTIONS_TITLE))
         self.reselect_requested = False
 
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.BUTTONS])
@@ -24,7 +26,7 @@ class LinkReviewDialog(QDialog):
         existing_list = QListWidget()
         existing_items = sorted(existing_display.values(), key=lambda s: s.lower())
         existing_list.addItems(existing_items)
-        existing_list.setMinimumWidth(200)
+        existing_list.setMinimumWidth(self.LIST_MIN_WIDTH)
         lists.addWidget(
             self._wrap_with_label(
                 lang_manager.translate(TranslationKeys.LINK_REVIEW_ALREADY_LINKED), existing_list
@@ -35,7 +37,7 @@ class LinkReviewDialog(QDialog):
         new_items = sorted((selected_display.get(n, n) for n in new_numbers), key=lambda s: s.lower())
         new_list = QListWidget()
         new_list.addItems(new_items)
-        new_list.setMinimumWidth(200)
+        new_list.setMinimumWidth(self.LIST_MIN_WIDTH)
         lists.addWidget(
             self._wrap_with_label(
                 lang_manager.translate(TranslationKeys.LINK_REVIEW_NEW_SELECTIONS), new_list

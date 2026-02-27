@@ -51,10 +51,10 @@ QLabel#DateValue[due_soon="true"] {
 
 /* Dates popup container (aligned with popup/members styling) */
 QFrame#DatesPopup {
-  background-color: rgba(255, 255, 255, 0.95);
-  border: 2px solid rgba(9, 144, 143, 0.3);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15), 0 2px 8px rgba(9, 144, 143, 0.1);
+  border: 1px solid rgba(0,120,212,0.45) !important;
+  background-color: #fafbfc;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   margin: 0;
   padding: 0;
 }

@@ -48,7 +48,7 @@ _Short summary of the plugin, its modular approach, and the purpose of these gui
 
 ## 2. Architecture & Module System
 
-**Module contract:** A module is any QWidget-backed class that implements `activate()`, `deactivate()`, (optional) `run()`/`reset()`, and `get_widget()`; it does not need to inherit from `BaseModule` (that stub is legacy and currently unused). Always set `self.name`/`self.module_key` inside `__init__` so ModuleManager and analytics agree on identifiers.
+**Module contract:** A module is any QWidget-backed class that implements `activate()`, `deactivate()`, (optional) `run()`/`reset()`, and `get_widget()`. Always set `self.name`/`self.module_key` inside `__init__` so ModuleManager and analytics agree on identifiers.
 
 ### 2.1 Registration & lifecycle
 - Register modules through `ModuleManager.registerModule(cls, Module.ENUM.name, **init_params)` as done in `dialog.py`. The manager stores metadata (`supports_statuses`, `supports_types`, `supports_tags`, icon paths) and lazily instantiates the class the first time it is activated.

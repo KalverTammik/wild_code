@@ -2,7 +2,7 @@ from typing import Optional, Iterable
 
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QAction, QMenu, QPushButton, QDialog
-from ...widgets.DataDisplayWidgets.LinkReviewDialog import LinkReviewDialog
+from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
 
 from qgis.utils import iface
 
@@ -257,7 +257,7 @@ class MoreActionsButton(CardActionButton):
             for num in selected_numbers:
                 selected_display.setdefault(num, _format_label(num))
 
-            dialog = LinkReviewDialog(existing_display, selected_display, lang_manager)
+            dialog = PropertyLinkReviewDialog(existing_display, selected_display, lang_manager)
             result = dialog.exec_()
             if dialog.reselect_requested:
                 _start_selection()

@@ -1,0 +1,55 @@
+QWidget#ExtraInfoWidget QLabel#ExtraInfoTitle {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+QWidget#ExtraInfoWidget QLabel#ExtraInfoColumnTitle {
+  font-weight: 600;
+  font-size: 11px;
+  padding: 2px 4px;
+  margin-bottom: 0px;
+}
+
+QWidget#ExtraInfoWidget QListWidget#ExtraInfoList {
+  border: 1px solid #3a4352;
+  border-radius: 6px;
+  background-color: #232b33;
+  padding: 2px;
+  margin-top: 0px;
+  color: #e2e8f0;
+}
+
+QWidget#ExtraInfoWidget QListWidget#ExtraInfoList::item {
+  padding: 3px 6px;
+  border-radius: 3px;
+  margin: 1px;
+  background-color: transparent;
+  color: #e2e8f0;
+}
+
+QWidget#ExtraInfoWidget QListWidget#ExtraInfoList::item:hover {
+  background-color: #2d3642;
+}
+
+QWidget#ExtraInfoWidget QListWidget#ExtraInfoList::item:selected {
+  background-color: #394354;
+}
+
+QDialog#ExtraInfoDialog QLabel#ExtraInfoDialogTitle {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+QDialog#ExtraInfoDialog QScrollArea#ExtraInfoScroll {
+  border: 1px solid #3a4352;
+  border-radius: 6px;
+  background-color: #232b33;
+}
+
+QDialog#ExtraInfoDialog QLabel#ExtraInfoContent {
+  color: #e2e8f0;
+  padding: 10px;
+}

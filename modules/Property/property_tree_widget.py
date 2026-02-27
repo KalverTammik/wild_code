@@ -342,13 +342,13 @@ class ModuleConnectionRow(QFrame):
         self.setFrameStyle(QFrame.NoFrame)
 
         grid = QGridLayout(self)
-        grid.setContentsMargins(2, 0, 2, 0)
+        grid.setContentsMargins(0, 2, 0, 2)
         grid.setHorizontalSpacing(2)
-        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(0, 1)
 
         pos = 0
 
-        header_frame = InfocardHeaderFrame(self.raw, module_name=self.module_key)
+        header_frame = InfocardHeaderFrame(self.raw, lang_manager=self.lang_manager)
         grid.addWidget(header_frame, 0, pos, Qt.AlignVCenter)
 
         pos_next = pos + 1
@@ -371,10 +371,12 @@ class ModuleConnectionRow(QFrame):
             self.module_key,
             self.item_id,
             actions_payload,
-            lang_manager=lang_manager,
+            lang_manager=self.lang_manager,
             parent=self,
         )
         grid.addWidget(actions_widget, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
+        grid.setColumnStretch(pos_next, 0)
+        grid.setColumnMinimumWidth(pos_next, actions_widget.sizeHint().width())
 
         pos_next = pos_next + 1
 

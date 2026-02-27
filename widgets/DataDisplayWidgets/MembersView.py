@@ -58,11 +58,12 @@ class AvatarUtils:
 
 
 class AvatarBubble(QLabel):
-    def __init__(self, fullname: str,  overlap_px: int = 8, first=False, salt: str = "", icon: str = "", popup_members=None, parent=None):
+    MAX_POPUP_PARTICIPANTS = 11
+
+    def __init__(self, fullname: str, salt: str = "", popup_members=None, parent=None):
         super().__init__(parent)
         self.fullname = (fullname or "-").strip()
         self.base_size = 26
-        self.icon_type = icon
         # Optional list of member nodes to display on hover (for responsible avatars)
         self._popup_members = popup_members or []
         self._members_popup = None
@@ -117,10 +118,6 @@ class AvatarBubble(QLabel):
             alpha_level=IntensityLevels.EXTRA_HIGH
         )
 
-        # Add icon overlay if specified (responsible avatars won't pass icon anymore)
-        if icon:
-            self._add_icon_overlay(icon, self.base_size, bg)
-
 
     def eventFilter(self, obj, event):
         PopupHelpers.handle_popup_hover_event(
@@ -148,6 +145,7 @@ class AvatarBubble(QLabel):
 
             popup = QFrame(None, Qt.ToolTip)
             popup.setObjectName('PopupFrame')
+            popup.setProperty("popupKind", "members")
             popup.setWindowFlags(Qt.ToolTip)
             layout = QVBoxLayout(popup)
             layout.setContentsMargins(8, 8, 8, 8)
@@ -159,14 +157,14 @@ class AvatarBubble(QLabel):
             # Create labels for each member name
             # First, add the responsible person (bold and distinguished)
             responsible_label = QLabel(f"★ {self.fullname}", popup)
-            responsible_label.setStyleSheet(" font-size: 11px; font-weight: bold; padding: 2px 0px;")
+            responsible_label.setObjectName("Value")
             layout.addWidget(responsible_label)
 
             # Then add participant members
-            for node in self._popup_members[:11]:  # Limit to 11 since responsible takes one spot
+            for node in self._popup_members[:self.MAX_POPUP_PARTICIPANTS]:  # Limit to 11 since responsible takes one spot
                 full = DataDisplayExtractors.extract_member_display_name(node)
                 label = QLabel(f"  {full}", popup)  # Indent with spaces for visual hierarchy
-                label.setStyleSheet("font-size: 11px; padding: 2px 0px;")
+                label.setObjectName("Label")
                 layout.addWidget(label)
 
             # Position popup near this avatar (below)
@@ -185,42 +183,11 @@ class AvatarBubble(QLabel):
                 event="members_popup_create_failed",
             )
 
-    def _add_icon_overlay(self, icon_type: str, size: int, bg_color: QColor):
-        """Add an icon overlay to the avatar bubble."""
-        # Create icon label
-        icon_label = QLabel("★", self)  # Star icon placeholder
-        icon_label.setAlignment(Qt.AlignCenter)
-
-        # Calculate icon size (about 40% of avatar size)
-        icon_size = max(10, int(size * 0.4))
-        icon_label.setFixedSize(icon_size, icon_size)
-
-        # Position at bottom right corner
-        icon_x = size - icon_size - 2  # 2px padding from edge
-        icon_y = size - icon_size - 2
-        icon_label.move(icon_x, icon_y)
-
-        # Style the icon
-        fg_color = AvatarUtils.fg_for_bg(bg_color)
-        icon_label.setStyleSheet(
-            f"QLabel {{"
-            f" color: {fg_color};"
-            f" font-size: {icon_size-6}px;"
-            f" font-weight: bold;"
-            f" background: transparent;"
-            f"}}"
-        )
-
-        # Store reference to prevent garbage collection
-        self.icon_overlay = icon_label
-
 class MembersView(QWidget):
     """Public widget to display responsible and participant members with avatar bubbles."""
-    MAX_NAMES_VISIBLE = 6
 
     def __init__(self, item_data: dict, parent=None):
         super().__init__(parent)
-        self.avatar_size = 26
         self._build(item_data)
 
     def _build(self, item_data: dict):
@@ -239,8 +206,7 @@ class MembersView(QWidget):
             for node in responsible_nodes[:3]:  # Limit to 3 responsible members
                 full = DataDisplayExtractors.extract_member_display_name(node)
                 # Attach participant nodes as popup members when hovering this responsible avatar
-                bubble = AvatarBubble(full,  overlap_px=0, first=True, salt="responsible-v1", icon="", popup_members=participant_nodes)
-                # Do not add icon overlay badge for responsible
+                bubble = AvatarBubble(full, salt="responsible-v1", popup_members=participant_nodes)
                 resp_layout.addWidget(bubble)
 
             resp_layout.addStretch()  # Right stretch for centering

@@ -1,5 +1,4 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt, QTimer, QEvent
 from PyQt5.QtWidgets import (
     QLabel, QVBoxLayout, QHBoxLayout, QFrame,
     QSizePolicy
@@ -26,6 +25,7 @@ class ElidedLabel(QLabel):
 
     def setText(self, text):
         self._full = text or ""
+        self.setToolTip(self._full)
         super().setText(self._full)
         self._schedule_elide()
 
@@ -40,13 +40,7 @@ class ElidedLabel(QLabel):
         if self._pending_elide:
             return
         self._pending_elide = True
-        try:
-            from PyQt5.QtCore import QTimer
-
-            QTimer.singleShot(0, self._elide)
-        except Exception:
-            self._pending_elide = False
-            self._elide()
+        QTimer.singleShot(0, self._elide)
 
     def _elide(self):
         if self._pending_elide:
@@ -67,14 +61,15 @@ class ElidedLabel(QLabel):
 
 
 class InfocardHeaderFrame(QFrame):
-    def __init__(self, item_data, parent=None, module_name=None):
+    def __init__(self, item_data, parent=None, lang_manager=None):
         super().__init__(parent)
         
         self.setFrameShape(QFrame.NoFrame)
         self.setObjectName("InfocardHeaderFrame")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setMinimumHeight(0)
-        self.module_name = module_name or "default"
+        self._lang = lang_manager or LanguageManager()
+        self._number_badge = None
 
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -94,8 +89,9 @@ class InfocardHeaderFrame(QFrame):
         nameRow.setSpacing(6)
 
         if DataDisplayExtractors.extract_is_public(item_data):
-            privateIcon = QLabel(); privateIcon.setObjectName("ProjectPrivateIcon")
-            privateIcon.setToolTip(LanguageManager().translate(TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP))
+            privateIcon = QLabel()
+            privateIcon.setObjectName("ProjectPrivateIcon")
+            privateIcon.setToolTip(self._lang.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP))
             icon = ThemeManager.get_qicon(MiscIcons.ICON_IS_PRIVATE)
             privateIcon.setPixmap(icon.pixmap(12, 12))
             nameRow.addWidget(privateIcon, 0, Qt.AlignVCenter)
@@ -105,12 +101,15 @@ class InfocardHeaderFrame(QFrame):
             numberBadge = QLabel(str(number))
             numberBadge.setObjectName("ProjectNumberBadge")
             numberBadge.setAlignment(Qt.AlignCenter)
-            numberBadge.setMinimumWidth(24)
+            numberBadge.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+            self._number_badge = numberBadge
             nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
 
         name = DataDisplayExtractors.extract_item_name(item_data)
-        nameLabel = ElidedLabel(name); 
-        nameLabel.setObjectName("ProjectNameLabel")  # Eemaldatud tooltip
+        nameLabel = ElidedLabel(name)
+        nameLabel.setObjectName("ProjectNameLabel")
+        nameLabel.setMinimumWidth(0)
+        nameLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         nameRow.addWidget(nameLabel, 1, Qt.AlignVCenter)
 
         tags = DataDisplayExtractors.extract_tag_names(item_data)
@@ -122,10 +121,11 @@ class InfocardHeaderFrame(QFrame):
         client = DataDisplayExtractors.extract_client_display_name(item_data)
         if client:
             clientRow = QHBoxLayout()
-            clientRow.setContentsMargins(0,0,0,0); 
+            clientRow.setContentsMargins(0,0,0,0)
             icon = ThemeManager.get_qicon(MiscIcons.ICON_IS_CLIENT)
             clientRow.setSpacing(6) 
-            clientIcon = QLabel(); clientIcon.setPixmap(icon.pixmap(12, 12))
+            clientIcon = QLabel()
+            clientIcon.setPixmap(icon.pixmap(12, 12))
             clientIcon.setObjectName("ClientIcon")
             clientRow.addWidget(clientIcon, 0, Qt.AlignVCenter)
 
@@ -136,3 +136,17 @@ class InfocardHeaderFrame(QFrame):
             leftL.addLayout(clientRow)
 
         root.addWidget(left, 1, Qt.AlignVCenter)
+        QTimer.singleShot(0, self._sync_number_badge_width)
+
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        if event.type() in (QEvent.StyleChange, QEvent.FontChange):
+            QTimer.singleShot(0, self._sync_number_badge_width)
+
+    def _sync_number_badge_width(self):
+        badge = self._number_badge
+        if badge is None:
+            return
+        badge.ensurePolished()
+        text_width = badge.fontMetrics().horizontalAdvance(badge.text())
+        badge.setFixedWidth(max(24, text_width + 18))

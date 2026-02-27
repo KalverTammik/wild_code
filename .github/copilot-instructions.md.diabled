@@ -10,7 +10,7 @@ DISABLED: Custom instructions for Copilot in wild_code QGIS Plugin for refractor
 ### Core Components
 - **Main Entry Point**: `main.py` - Plugin initialization, authentication flow, module activation
 - **UI Framework**: `dialog.py` - Main dialog with sidebar navigation and module stacking
-- **Module System**: `BaseModule` inheritance with `activate()`/`deactivate()`/`get_widget()` lifecycle
+- **Module System**: QWidget-backed module lifecycle with `activate()`/`deactivate()`/`get_widget()` contract
 - **Authentication**: `SessionManager` with QGIS AuthManager integration and GraphQL API client
 
 ### Data Flow
@@ -44,7 +44,7 @@ class NewModule(ModuleBaseUI):
 ```
 
 ### Class Definition Rules
-- Inherit from `ModuleBaseUI` (the shared base class for UI modules, providing toolbar, feed engine, and theming logic). Avoid inheriting directly from `BaseModule` unless it's an abstract or non-UI module.
+- Inherit from `ModuleBaseUI` (the shared base class for UI modules, providing toolbar, feed engine, and theming logic) for UI modules.
 - The module must define a unique `name` as an **instance attribute** in the constructor (e.g., `self.name = Module.MY_MODULE.value`). Do not use class-level attributes for `name`, `display_name`, or `icon`.
 - The constructor should accept essential managers (e.g., `lang_manager`, `theme_manager`) and other dependencies (e.g., `parent`, `qss_files`). Use `**kwargs` for flexibility to handle future additions without breaking existing code.
 - Implement all required methods: `activate` (for lazy loading and initialization), `deactivate` (for cleanup), and `get_widget` (to return the QWidget instance). `run` and `reset` are optional and may be inherited from `ModuleBaseUI` if not overridden.

@@ -1,5 +1,5 @@
 from typing import Optional
-from PyQt5.QtWidgets import QHBoxLayout, QWidget
+from PyQt5.QtWidgets import QHBoxLayout, QWidget, QSizePolicy
 
 from .module_action_buttons import (
     OpenFolderActionButton,
@@ -22,10 +22,10 @@ class ModuleConnectionActions(QWidget):
         parent: Optional[QWidget] = None,
     ):
         super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
-        layout.addStretch(1)
 
         file_path = DataDisplayExtractors.extract_files_path(item_data)
 
@@ -59,6 +59,7 @@ class ModuleConnectionActions(QWidget):
 
 
         self._buttons = (folder_btn, web_btn, map_btn, actions_btn)
+        self.setMinimumWidth(self.sizeHint().width())
 
     @property
     def buttons(self):
