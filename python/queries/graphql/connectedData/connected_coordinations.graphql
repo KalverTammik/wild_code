@@ -59,6 +59,11 @@ query property(
           jobNumber
           externalCode
           filesPath
+          properties(first: 1) {
+            pageInfo {
+              count
+            }
+          }
 
         }
       }

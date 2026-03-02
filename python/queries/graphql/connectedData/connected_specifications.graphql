@@ -55,6 +55,11 @@ query property(
             }
           }
           filesPath
+          properties(first: 1) {
+            pageInfo {
+              count
+            }
+          }
 
         }
       }

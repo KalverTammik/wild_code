@@ -60,8 +60,12 @@ class PropertiesSelectors:
         else:
             if module == None:
                 module = Module.PROPERTY.value
-            active_layer_name = SettingsService().module_main_layer_name(module)
+            settings = SettingsService()
+            active_layer_name = settings.module_main_layer_name(module)
             layer = MapHelpers.find_layer_by_name(active_layer_name)
+            if not layer and module != Module.PROPERTY.value:
+                fallback_layer_name = settings.module_main_layer_name(Module.PROPERTY.value)
+                layer = MapHelpers.find_layer_by_name(fallback_layer_name)
         
         if not layer:
             try:
@@ -144,8 +148,12 @@ class PropertiesSelectors:
         else:
             if module == None:
                 module = Module.PROPERTY.value
-            active_layer_name = SettingsService().module_main_layer_name(module)
+            settings = SettingsService()
+            active_layer_name = settings.module_main_layer_name(module)
             layer = MapHelpers.find_layer_by_name(active_layer_name)
+            if not layer and module != Module.PROPERTY.value:
+                fallback_layer_name = settings.module_main_layer_name(Module.PROPERTY.value)
+                layer = MapHelpers.find_layer_by_name(fallback_layer_name)
         
         if not layer:
             return

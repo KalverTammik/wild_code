@@ -35,6 +35,11 @@ query property($id: ID!, $first: Int, $after: String, $orderBy: [PropertyEasemen
           createdAt
           updatedAt
           filesPath
+          properties(first: 1) {
+            pageInfo {
+              count
+            }
+          }
         }
       }
     }

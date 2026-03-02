@@ -36,7 +36,6 @@ class PropertyUITools:
         self._selection_controller = MapSelectionController()
         self._lookup_thread: Optional[QThread] = None
         self._lookup_worker: Optional[FunctionWorker] = None
-        self._disable_map_lookup_on_search = True
 
     def _get_active_ui(self):
         ui = getattr(self, "property_ui", None)
@@ -434,49 +433,28 @@ class PropertyUITools:
             self._show_tree_message("Kinnistu ei leitud")
             return
 
-        if self._disable_map_lookup_on_search:
-            try:
-                PythonFailLogger.log(
-                    "property_map_lookup_skipped",
-                    module=Module.PROPERTY.value,
-                    extra={"cadastral": cadastral_number},
-                )
-            except Exception as exc:
-                print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
-        else:
-            active_layer = PropertiesSelectors.show_connected_properties_on_map([cadastral_number], Module.PROPERTY.value)
+        active_layer = PropertiesSelectors.show_connected_properties_on_map([cadastral_number], Module.PROPERTY.value)
 
-            if active_layer:
-                if self._is_layer_valid(active_layer):
+        if active_layer:
+            if self._is_layer_valid(active_layer):
+                selected = []
+                try:
+                    selected = active_layer.selectedFeatures() or []
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module=Module.PROPERTY.value,
+                        event="property_layer_selected_features_failed",
+                    )
                     selected = []
-                    try:
-                        selected = active_layer.selectedFeatures() or []
-                    except Exception as exc:
-                        PythonFailLogger.log_exception(
-                            exc,
-                            module=Module.PROPERTY.value,
-                            event="property_layer_selected_features_failed",
-                        )
-                        selected = []
-                    if selected:
-                        self.update_property_display(active_layer, trigger_connections=False)
-                    else:
-                        try:
-                            PythonFailLogger.log(
-                                "property_layer_no_selection",
-                                module=Module.PROPERTY.value,
-                                message="No selected features after search map lookup",
-                                extra={"cadastral": cadastral_number},
-                            )
-                        except Exception as exc:
-                            print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
-                        self._show_tree_message("Kinnistu puudub kihil")
+                if selected:
+                    self.update_property_display(active_layer, trigger_connections=False)
                 else:
                     try:
                         PythonFailLogger.log(
-                            "property_layer_invalid",
+                            "property_layer_no_selection",
                             module=Module.PROPERTY.value,
-                            message="Layer invalid after search map lookup",
+                            message="No selected features after search map lookup",
                             extra={"cadastral": cadastral_number},
                         )
                     except Exception as exc:
@@ -485,14 +463,25 @@ class PropertyUITools:
             else:
                 try:
                     PythonFailLogger.log(
-                        "property_feature_not_found",
+                        "property_layer_invalid",
                         module=Module.PROPERTY.value,
-                        message="No matching features after search map lookup",
+                        message="Layer invalid after search map lookup",
                         extra={"cadastral": cadastral_number},
                     )
                 except Exception as exc:
                     print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
                 self._show_tree_message("Kinnistu puudub kihil")
+        else:
+            try:
+                PythonFailLogger.log(
+                    "property_feature_not_found",
+                    module=Module.PROPERTY.value,
+                    message="No matching features after search map lookup",
+                    extra={"cadastral": cadastral_number},
+                )
+            except Exception as exc:
+                print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
+            self._show_tree_message("Kinnistu puudub kihil")
 
         self._load_property_connections(cadastral_number)
 
