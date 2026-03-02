@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor
 
 from ...module_manager import Module
 from ...constants.file_paths import QueryPaths
@@ -21,7 +22,7 @@ class PropertiesConnectedElementsQueries:
     def __init__(self):
         self.query_loader = QueryPaths()
         self.handle_response = HandlePropertiesResponses()
-        self._api_client = APIClient()
+        self._processor = ProcessElementData()
 
     def load_query_properties(module_name):
         cl = PropertiesConnectedElementsQueries()
@@ -48,7 +49,7 @@ class PropertiesConnectedElementsQueries:
         if not module_file:
             return []
 
-        query = QueryPaths().load_query_properties_connected_elements(module_file)
+        query = self.query_loader.load_query_properties_connected_elements(module_file)
 
         variables = {
             "id": propertie_id,
@@ -62,13 +63,23 @@ class PropertiesConnectedElementsQueries:
             ]
         }
 
-        payload = self._api_client.send_query(query, variables=variables, return_raw=True) or {}
-        return ProcessElementData().process_response_data(module_key, payload)
+        payload = APIClient().send_query(query, variables=variables, return_raw=True) or {}
+        return self._processor.process_response_data(module_key, payload)
 
     def fetch_all_module_data(self, propertie_id):
         aggregated: Dict[str, List[Dict[str, Any]]] = {}
-        for module_key in self.module_to_filename.keys():
-            nodes = self.fetch_module_data(module_key, propertie_id)
+        module_keys = list(self.module_to_filename.keys())
+        with ThreadPoolExecutor(max_workers=min(4, len(module_keys))) as executor:
+            future_by_module = {
+                module_key: executor.submit(self.fetch_module_data, module_key, propertie_id)
+                for module_key in module_keys
+            }
+
+        for module_key in module_keys:
+            try:
+                nodes = future_by_module[module_key].result()
+            except Exception:
+                nodes = []
             if nodes:
                 aggregated[module_key] = nodes
         return aggregated

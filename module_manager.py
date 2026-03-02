@@ -109,7 +109,7 @@ class ModuleManager:
             engine = ThemeManager.get_retheme_engine()
             qss_files = params.get("qss_files") if params else None
             widget = self._get_widget_safe(target_instance)
-            after_apply = self._pick_retheme_hook(target_instance, key)
+            after_apply = self._get_explicit_retheme_hook(target_instance)
             engine.register(widget, qss_files=qss_files or ThemeManager.module_bundle(), after_apply=after_apply)
 
         # Activate and mark as current
@@ -171,15 +171,9 @@ class ModuleManager:
         return instance
 
     @staticmethod
-    def _pick_retheme_hook(instance, key: str):
-        candidates = (
-            "retheme",
-            f"retheme_{key}",
-            f"retheme_{key}s",
-        )
-        for name in candidates:
-            method = getattr(instance, name, None)
-            if callable(method):
-                return lambda _widget, _theme, m=method: m()
+    def _get_explicit_retheme_hook(instance):
+        method = getattr(instance, "retheme", None)
+        if callable(method):
+            return lambda _widget, _theme, m=method: m()
         return None
  

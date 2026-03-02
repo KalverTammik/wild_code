@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 from qgis.core import QgsProject
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper
 from ...constants.layer_constants import PROPERTY_TAG
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
 from .PropertyUITools import PropertyUITools
 from .property_tree_widget import PropertyTreeWidget
@@ -16,6 +16,7 @@ from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
 from ...utils.url_manager import Module
 from ...ui.mixins.token_mixin import TokenMixin
+from ...Logs.python_fail_logger import PythonFailLogger
 
 class PropertyModule(TokenMixin, QWidget):
     """
@@ -205,8 +206,63 @@ class PropertyModule(TokenMixin, QWidget):
         # Apply main module styling
         ThemeManager.apply_module_style(self, [QssPaths.PROPERTIES_UI, QssPaths.MODULE_CARD, QssPaths.BUTTONS])
 
+    def _resolve_window_manager(self):
+        try:
+            host_window = self.window()
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_module_window_resolve_failed",
+            )
+            return None
+        if host_window is None:
+            return None
+        return getattr(host_window, "window_manager", None)
+
+    def _disconnect_window_manager_signals(self) -> None:
+        window_manager = self._resolve_window_manager()
+        if window_manager is None:
+            return
+        try:
+            try:
+                self.property_selected_from_map.disconnect(window_manager._minimize_window)
+            except TypeError:
+                pass
+            self.property_selection_completed.disconnect(window_manager._restore_window)
+        except TypeError:
+            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_module_signal_disconnect_failed",
+            )
+
+    def _connect_window_manager_signals(self) -> None:
+        window_manager = self._resolve_window_manager()
+        if window_manager is None:
+            return
+        self._disconnect_window_manager_signals()
+        try:
+            self.property_selected_from_map.connect(
+                window_manager._minimize_window,
+                type=Qt.UniqueConnection,
+            )
+            self.property_selection_completed.connect(
+                window_manager._restore_window,
+                type=Qt.UniqueConnection,
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_module_signal_connect_failed",
+            )
+
     def activate(self):
         """Called when the module becomes active."""
+        self._connect_window_manager_signals()
         try:
             print("[property_ui] activate")
             # Resolve the property layer using the same helper as map selection
@@ -226,6 +282,7 @@ class PropertyModule(TokenMixin, QWidget):
 
     def deactivate(self):
         """Called when the module becomes inactive."""
+        self._disconnect_window_manager_signals()
         print("[property_ui] deactivate")
 
     def get_widget(self):

@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple, Any
 
 from ..python.api_client import APIClient
+from ..python.workers import FunctionWorker, start_worker
 from ..python.responses import JsonResponseHandler
 from ..utils.FilterHelpers.FilterHelper import FilterHelper
 from ..constants.file_paths import QssPaths
@@ -314,11 +315,97 @@ class OverdueDueSoonPillsActionHelper:
         pills_widget.set_due_soon_active(not is_overdue)
 
     @staticmethod
-    def refresh_counts(pills_widget: Optional[OverdueDueSoonPillsWidget], module_enum: Any, *, days: Optional[int] = None) -> None:
+    def refresh_counts(
+        pills_widget: Optional[OverdueDueSoonPillsWidget],
+        module_enum: Any,
+        *,
+        days: Optional[int] = None,
+        module_instance: Any = None,
+    ) -> None:
         if pills_widget is None or module_enum is None:
             return
-        overdue_total, due_soon_total = OverdueDueSoonPillsUtils.refresh_counts_for_module(module_enum, days=days)
-        pills_widget.set_counts(overdue_total, due_soon_total)
+
+        previous_thread = getattr(pills_widget, "_counts_worker_thread", None)
+        if previous_thread is not None and callable(getattr(previous_thread, "isRunning", None)):
+            try:
+                if previous_thread.isRunning():
+                    previous_thread.quit()
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=getattr(module_enum, "value", "ui"),
+                    event="overdue_counts_cancel_previous_failed",
+                )
+
+        pills_widget._counts_worker = None
+        pills_widget._counts_worker_thread = None
+
+        token = getattr(module_instance, "_active_token", None)
+        pills_widget.set_loading(True)
+
+        try:
+            SwitchLogger.log("overdue_load_start", module=getattr(module_enum, "value", None))
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="overdue_load_start_log_failed",
+            )
+
+        worker = FunctionWorker(lambda: OverdueDueSoonPillsUtils.refresh_counts_for_module(module_enum, days=days))
+        worker.active_token = token
+
+        def _is_stale(tok) -> bool:
+            if module_instance is None:
+                return False
+            checker = getattr(module_instance, "is_token_active", None)
+            if not callable(checker):
+                return False
+            try:
+                return not bool(checker(tok))
+            except Exception:
+                return True
+
+        def _apply_counts(payload, tok):
+            def _do_apply():
+                if _is_stale(tok):
+                    return
+                overdue_total, due_soon_total = payload if isinstance(payload, tuple) else (0, 0)
+                pills_widget.set_counts(int(overdue_total or 0), int(due_soon_total or 0))
+                pills_widget.set_loading(False)
+                try:
+                    SwitchLogger.log("overdue_load_done", module=getattr(module_enum, "value", None))
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="ui",
+                        event="overdue_load_done_log_failed",
+                    )
+
+            QTimer.singleShot(0, _do_apply)
+
+        def _handle_error(message, tok):
+            def _do_error():
+                if _is_stale(tok):
+                    return
+                pills_widget.set_loading(False)
+                PythonFailLogger.log_exception(
+                    Exception(str(message)),
+                    module=getattr(module_enum, "value", "ui"),
+                    event="overdue_count_fetch_failed",
+                )
+
+            QTimer.singleShot(0, _do_error)
+
+        def _clear_worker_refs():
+            pills_widget._counts_worker = None
+            pills_widget._counts_worker_thread = None
+
+        worker.finished.connect(lambda payload, tok=token: _apply_counts(payload, tok))
+        worker.error.connect(lambda message, tok=token: _handle_error(message, tok))
+
+        pills_widget._counts_worker = worker
+        pills_widget._counts_worker_thread = start_worker(worker, on_thread_finished=_clear_worker_refs)
 
 
 class OverduePillsMixin:
@@ -343,5 +430,9 @@ class OverduePillsMixin:
         OverdueDueSoonPillsActionHelper.apply_due_filter(self, is_overdue=is_overdue)
 
     def refresh_overdue_counts(self, module_enum) -> None:
-        OverdueDueSoonPillsActionHelper.refresh_counts(getattr(self, "overdue_pills", None), module_enum)
+        OverdueDueSoonPillsActionHelper.refresh_counts(
+            getattr(self, "overdue_pills", None),
+            module_enum,
+            module_instance=self,
+        )
 

@@ -14,14 +14,16 @@ from ...module_manager import ModuleManager
 from ...widgets.theme_manager import ThemeManager, styleExtras
 from ...constants.file_paths import QssPaths
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
+from ...widgets.OverdueDueSoonPillsWidget import OverduePillsMixin
 from ...widgets.Filters.filter_refresh_helper import FilterRefreshHelper
 from ...utils.FilterHelpers.FilterHelper import FilterRefreshService, FilterHelper
 from ...utils.search.SearchOpenItemMixin import SearchOpenItemMixin
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 
 
-class CoordinationModule(SearchOpenItemMixin, ModuleBaseUI):
+class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
     FEED_LOGIC_CLS: Type[FeedLogic] = FeedLogic
     QUERY_FILE = "ListFilteredCoordinations.graphql"
@@ -39,7 +41,7 @@ class CoordinationModule(SearchOpenItemMixin, ModuleBaseUI):
         self.module_key = Module.COORDINATION.value
         self.setObjectName(self.module_key)
 
-        self.lang_manager = language
+        self.lang_manager = language or LanguageManager()
         self.theme_manager = ThemeManager()
 
         types, statuses, tags, archive_layer = ModuleManager().getModuleSupports(Module.COORDINATION.name) or {}
@@ -51,6 +53,8 @@ class CoordinationModule(SearchOpenItemMixin, ModuleBaseUI):
         self.feed_logic = None
         self._current_where = None
         self._suppress_filter_events = False
+
+        self.wire_overdue_pills(self.toolbar_area, lang_manager=self.lang_manager)
 
         if self.supports_status_filter:
             self.status_filter: Optional[StatusFilterWidget] = None
@@ -103,6 +107,7 @@ class CoordinationModule(SearchOpenItemMixin, ModuleBaseUI):
     def on_first_visible(self) -> None:
         self._ensure_filters_loaded()
         self._refresh_filters()
+        self.refresh_overdue_counts(Module.COORDINATION)
 
     def deactivate(self) -> None:
         self._clear_filters()
