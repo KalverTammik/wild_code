@@ -97,6 +97,8 @@ Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description 
 
 _Add a short rationale and list of files touched for each refactor here._
 
+- 2026-03-02: Senior pass on `PropertyUITools`: enforced strict translation lookups in touched UI flow (removed fallback arguments), replaced silent `bring_dialog_to_front` exception swallow with explicit `PythonFailLogger` diagnostics, and kept behavior unchanged for property search/map/header flows. Files: modules/Property/PropertyUITools.py, REFACTOR_RULES.md.
+
 - 2026-02-27: Added strict translation policy to prevent fallback-masked i18n issues (no UI fallback text/key usage), plus acceptance-gate check for strict i18n compliance. Files: REFACTOR_RULES.md.
 - 2026-02-27: Added explicit centralization and API consistency rules from URL-opening/logging cleanup session (single public entrypoint, no mixed call styles, centralized literals, direct signal wiring, naming normalization). Files: REFACTOR_RULES.md.
 - 2026-02-27: Strengthened checklist with mandatory reuse-first scan and relocation-before-duplication rule; added acceptance-gate checks for reuse scan and refactor-plan requirement when similar logic exists in wrong location. Files: REFACTOR_RULES.md.

@@ -120,6 +120,12 @@ class TranslationKeys:
     PROPERTY_TREE_MODULE_EMPTY = "No records"
     PROPERTY_TREE_ROW_NO_TITLE = "Name missing"
     PROPERTY_TREE_ROW_UPDATED_PREFIX = "Updated {date}"
+    PROPERTY_NOT_FOUND = "property_not_found"
+    PROPERTY_MISSING_ON_LAYER = "property_missing_on_layer"
+    PROPERTY_NOT_FOUND_ON_LAYER = "property_not_found_on_layer"
+    PROPERTY_NOT_SELECTED = "property_not_selected"
+    PROPERTY_CONNECTIONS_LOAD_ERROR = "property_connections_load_error"
+    PROPERTY_CONNECTIONS_LOAD_FAILED_REASON = "property_connections_load_failed_reason"
     
     # UI tooltips
     LOGOUT_BUTTON_TOOLTIP = "logout_button_tooltip"

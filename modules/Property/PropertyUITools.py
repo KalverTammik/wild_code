@@ -12,6 +12,7 @@ from ...constants.settings_keys import SettingsService
 from ...python.api_client import APIClient
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 from ...languages.MaaAmetFieldFormater import format_field
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
@@ -36,6 +37,9 @@ class PropertyUITools:
         self._selection_controller = MapSelectionController()
         self._lookup_thread: Optional[QThread] = None
         self._lookup_worker: Optional[FunctionWorker] = None
+
+    def _t(self, key: str) -> str:
+        return self.lang_manager.translate(key)
 
     def _get_active_ui(self):
         ui = getattr(self, "property_ui", None)
@@ -128,9 +132,11 @@ class PropertyUITools:
                 print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
             return
 
-        started = self._selection_controller.start_single_selection(
+        started = self._selection_controller.start_selection(
             active_layer,
             on_selected=self._handle_property_layer_selection,
+            min_selected=1,
+            max_selected=None,
         )
         if started:
             self._emit_ui_signal("property_selected_from_map")
@@ -157,9 +163,12 @@ class PropertyUITools:
                 return
             coordinator = get_dialog_coordinator(iface)
             coordinator.bring_to_front(main_dialog)
-        except Exception:
-            # Not fatal if the window cannot be brought to the foreground
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_bring_dialog_to_front_failed",
+            )
 
     def update_property_display(self, active_layer, *, trigger_connections: bool = True):
         """Update the UI labels with the selected property data."""
@@ -180,14 +189,6 @@ class PropertyUITools:
 
         features = active_layer.selectedFeatures()
         if not features:
-            try:
-                PythonFailLogger.log(
-                    "property_layer_no_selection",
-                    module=Module.PROPERTY.value,
-                    message="No selected features in property layer",
-                )
-            except Exception as exc:
-                print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
             return  # No selection
         feature = features[0]  # Use the first (and assumed only) selected feature
         cadastral_value = None
@@ -318,27 +319,13 @@ class PropertyUITools:
             return
 
         if not cadastral_number:
-            try:
-                PythonFailLogger.log(
-                    "property_connections_missing_id",
-                    module=Module.PROPERTY.value,
-                )
-            except Exception as exc:
-                print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
-            tree_widget.show_message("Kinnistu pole valitud")
+            tree_widget.show_message(
+                self._t(TranslationKeys.PROPERTY_NOT_SELECTED)
+            )
             return
 
         tree_widget.show_loading()
         token = self._current_token()
-
-        try:
-            PythonFailLogger.log(
-                "property_connections_start",
-                module=Module.PROPERTY.value,
-                extra={"token": token, "cadastral": cadastral_number},
-            )
-        except Exception as exc:
-            print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
 
         worker = FunctionWorker(self._data_service.build_connections_for_cadastral, cadastral_number)
         worker.active_token = token
@@ -369,15 +356,6 @@ class PropertyUITools:
 
         token = self._current_token()
 
-        try:
-            PythonFailLogger.log(
-                "property_search_start",
-                module=Module.PROPERTY.value,
-                extra={"token": token, "item_id": item_id},
-            )
-        except Exception as exc:
-            print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
-
         worker = FunctionWorker(self._fetch_property_payload, item_id)
         worker.active_token = token
         worker.finished.connect(
@@ -403,34 +381,20 @@ class PropertyUITools:
             or {}
         )
         if not property_data:
-            raise RuntimeError("Kinnistu ei leitud")
+            raise RuntimeError(self._t(TranslationKeys.PROPERTY_NOT_FOUND))
         return property_data
 
     def _handle_property_lookup_success(self, payload: dict, token: int | None):
         if not self._is_token_active(token):
-            SwitchLogger.log(
-                "property_lookup_ignored_inactive_token",
-                module=Module.PROPERTY.value,
-                extra={"token": token, "current": self._current_token()},
-            )
             return
-        SwitchLogger.log(
-            "property_lookup_token_ok",
-            module=Module.PROPERTY.value,
-            extra={"token": token, "current": self._current_token()},
-        )
+
+        not_found_message = self._t(TranslationKeys.PROPERTY_NOT_FOUND)
+        missing_on_layer_message = self._t(TranslationKeys.PROPERTY_MISSING_ON_LAYER)
 
         cadastral_number = payload.get("cadastralUnitNumber")
         if not cadastral_number:
-            try:
-                PythonFailLogger.log(
-                    "property_search_missing_cadastral",
-                    module=Module.PROPERTY.value,
-                    extra={"token": token},
-                )
-            except Exception as exc:
-                print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
-            self._show_tree_message("Kinnistu ei leitud")
+            self._show_tree_message(not_found_message)
+            self._show_property_not_found_in_header()
             return
 
         active_layer = PropertiesSelectors.show_connected_properties_on_map([cadastral_number], Module.PROPERTY.value)
@@ -450,16 +414,8 @@ class PropertyUITools:
                 if selected:
                     self.update_property_display(active_layer, trigger_connections=False)
                 else:
-                    try:
-                        PythonFailLogger.log(
-                            "property_layer_no_selection",
-                            module=Module.PROPERTY.value,
-                            message="No selected features after search map lookup",
-                            extra={"cadastral": cadastral_number},
-                        )
-                    except Exception as exc:
-                        print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
-                    self._show_tree_message("Kinnistu puudub kihil")
+                    self._show_tree_message(missing_on_layer_message)
+                    self._show_property_not_found_in_header()
             else:
                 try:
                     PythonFailLogger.log(
@@ -470,36 +426,20 @@ class PropertyUITools:
                     )
                 except Exception as exc:
                     print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
-                self._show_tree_message("Kinnistu puudub kihil")
+                self._show_tree_message(missing_on_layer_message)
+                self._show_property_not_found_in_header()
         else:
-            try:
-                PythonFailLogger.log(
-                    "property_feature_not_found",
-                    module=Module.PROPERTY.value,
-                    message="No matching features after search map lookup",
-                    extra={"cadastral": cadastral_number},
-                )
-            except Exception as exc:
-                print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
-            self._show_tree_message("Kinnistu puudub kihil")
+            self._show_tree_message(missing_on_layer_message)
+            self._show_property_not_found_in_header()
 
         self._load_property_connections(cadastral_number)
 
     def _handle_property_lookup_error(self, message: str, token: int | None):
         if not self._is_token_active(token):
-            SwitchLogger.log(
-                "property_lookup_ignored_inactive_token",
-                module=Module.PROPERTY.value,
-                extra={"token": token, "current": self._current_token()},
-            )
             return
-        SwitchLogger.log(
-            "property_lookup_token_ok",
-            module=Module.PROPERTY.value,
-            extra={"token": token, "current": self._current_token()},
-        )
-        friendly = message or "Kinnistu ei leitud"
+        friendly = message or self._t(TranslationKeys.PROPERTY_NOT_FOUND)
         self._show_tree_message(friendly)
+        self._show_property_not_found_in_header()
 
 
 
@@ -509,6 +449,29 @@ class PropertyUITools:
         if tree_widget:
             tree_widget.show_message(message)
 
+    def _show_property_not_found_in_header(self) -> None:
+        ui = self._get_active_ui()
+        if not ui:
+            return
+        try:
+            ui.lbl_katastritunnus_value.setText(
+                self._t(TranslationKeys.PROPERTY_NOT_FOUND_ON_LAYER)
+            )
+            ui.lbl_kinnistu_value.setText("—")
+            ui.lbl_address_value.setText("—")
+            ui.lbl_area_value.setText("—")
+            ui.lbl_siht1_value.setText("—")
+            ui.lbl_siht2_value.setText("—")
+            ui.lbl_siht3_value.setText("—")
+            ui.lbl_registr_value.setText("—")
+            ui.lbl_muudet_value.setText("—")
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_header_not_found_update_failed",
+            )
+
     def _clear_lookup_worker_refs(self):
         self._lookup_worker = None
         self._lookup_thread = None
@@ -516,56 +479,28 @@ class PropertyUITools:
     def handle_success(self, payload: dict, token: int | None):
         """Käsitle õnnestunud ühenduse laadimise tulemust."""
         if not self._is_token_active(token):
-            SwitchLogger.log(
-                "property_connections_ignored_inactive_token",
-                module=Module.PROPERTY.value,
-                extra={"token": token, "current": self._current_token()},
-            )
             return
-        SwitchLogger.log(
-            "property_connections_token_ok",
-            module=Module.PROPERTY.value,
-            extra={"token": token, "current": self._current_token()},
-        )
 
         ui = self._get_active_ui()
         tree_widget = ui.tree_section if ui else None
         if not tree_widget:
             return
-
-        entries = payload.get("entries") or []
+        entries = payload.get("entries", [])
         message = payload.get("message")
-
-        try:
-            PythonFailLogger.log(
-                "property_connections_success",
-                module=Module.PROPERTY.value,
-                extra={"token": token, "entries": len(entries)},
-            )
-        except Exception as exc:
-            print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
 
         if message:
             tree_widget.show_message(message)
         elif entries:
             tree_widget.load_connections(entries)
         else:
-            tree_widget.show_message("Seoseid ei leitud")
+            tree_widget.show_message(
+                self._t(TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS)
+            )
 
     def handle_error(self, error_message: str, token: int | None):
         """Käsitle veaolukorda ühenduse laadimisel."""
         if not self._is_token_active(token):
-            SwitchLogger.log(
-                "property_connections_ignored_inactive_token",
-                module=Module.PROPERTY.value,
-                extra={"token": token, "current": self._current_token()},
-            )
             return
-        SwitchLogger.log(
-            "property_connections_token_ok",
-            module=Module.PROPERTY.value,
-            extra={"token": token, "current": self._current_token()},
-        )
 
         try:
             PythonFailLogger.log(
@@ -582,9 +517,12 @@ class PropertyUITools:
         if not tree_widget:
             return
 
-        tree_widget.show_message(f"Viga: {error_message or 'Ühenduste laadimisel tekkis viga'}")
+        error_text = error_message or self._t(TranslationKeys.PROPERTY_CONNECTIONS_LOAD_FAILED_REASON)
+        tree_widget.show_message(
+            self._t(TranslationKeys.PROPERTY_CONNECTIONS_LOAD_ERROR).format(error=error_text)
+        )
 
-    def cleanup(self, thread: QThread, worker: FunctionWorker):
+    def cleanup(self, thread, worker):
         """Puhasta viited aktiivsele workerile/threadile, kui just see eksemplar lõpetas."""
         if self._connection_worker is worker:
             self._connection_worker = None
