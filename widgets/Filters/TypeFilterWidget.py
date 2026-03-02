@@ -64,6 +64,7 @@ class TypeFilterWidget(QWidget):
         self.all_cb = SelectAllCheckBox(self)
         self.all_cb.setTristate(True)
         self.all_cb.setObjectName("SelectAllCheckbox")
+        self.all_cb.setProperty("kavitroSelectAll", True)
         self.all_cb.setToolTip(self._lang.translate(TranslationKeys.SELECT_ALL))
         self.all_cb.setProperty("variant", "type-filter")
         self.all_cb.setEnabled(False)

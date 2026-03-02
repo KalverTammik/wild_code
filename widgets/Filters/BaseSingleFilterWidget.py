@@ -62,6 +62,7 @@ class BaseSingleFilterWidget(QWidget):
         self.all_cb = SelectAllCheckBox(self)
         self.all_cb.setTristate(True)
         self.all_cb.setObjectName("SelectAllCheckbox")
+        self.all_cb.setProperty("kavitroSelectAll", True)
         self.all_cb.setToolTip(self._lang.translate(TranslationKeys.SELECT_ALL))
         self.all_cb.setEnabled(False)
         self.all_cb.stateChanged.connect(self._on_all_cb_state_changed)
