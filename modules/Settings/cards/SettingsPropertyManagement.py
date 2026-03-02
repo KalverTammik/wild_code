@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton
 from qgis.core import QgsProject
 
 from .SettingsBaseCard import SettingsBaseCard
+from ..settings_layer_helper import SettingsLayerHelper
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....utils.SHPLayerLoader import SHPLayerLoader
 from ....utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
@@ -45,9 +46,6 @@ class PropertyManagementUI(SettingsBaseCard):
             "ts": 0.0,
         }
         self._layer_signals_connected = False
-        self._layers_added_conn = None
-        self._layers_removed_conn = None
-        self._layer_will_be_removed_conn = None
         self._has_shown_once = False
 
         cw = self.content_widget()
@@ -127,7 +125,7 @@ class PropertyManagementUI(SettingsBaseCard):
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event="settings_property_window_failed",
             )
             w = None
@@ -140,7 +138,7 @@ class PropertyManagementUI(SettingsBaseCard):
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event="settings_property_qgis_main_failed",
             )
             qgis_main = None
@@ -318,7 +316,7 @@ class PropertyManagementUI(SettingsBaseCard):
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event=event,
             )
             return False
@@ -350,7 +348,7 @@ class PropertyManagementUI(SettingsBaseCard):
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event="settings_property_shp_feature_count_failed",
             )
             return 0
@@ -364,46 +362,21 @@ class PropertyManagementUI(SettingsBaseCard):
     def _connect_layer_signals(self) -> None:
         if self._layer_signals_connected:
             return
-        project = QgsProject.instance() if QgsProject else None
-        if project is None:
-            return
-        try:
-            self._layers_added_conn = project.layersAdded.connect(self._on_layers_changed)
-            self._layers_removed_conn = project.layersRemoved.connect(self._on_layers_changed)
-            self._layer_will_be_removed_conn = project.layerWillBeRemoved.connect(self._on_layers_changed)
-            self._layer_signals_connected = True
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_property_layer_signal_connect_failed",
-            )
+        self._layer_signals_connected = SettingsLayerHelper.connect_project_layer_signals(
+            project=QgsProject.instance() if QgsProject else None,
+            handler=self._on_layers_changed,
+            layer_will_be_removed_handler=self._on_layers_changed,
+        )
 
     def _disconnect_layer_signals(self) -> None:
         if not self._layer_signals_connected:
             return
-        project = QgsProject.instance() if QgsProject else None
-        if project is None:
-            self._layer_signals_connected = False
-            return
-        try:
-            if self._layers_added_conn:
-                project.layersAdded.disconnect(self._on_layers_changed)
-            if self._layers_removed_conn:
-                project.layersRemoved.disconnect(self._on_layers_changed)
-            if self._layer_will_be_removed_conn:
-                project.layerWillBeRemoved.disconnect(self._on_layers_changed)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_property_layer_signal_disconnect_failed",
-            )
-        finally:
-            self._layers_added_conn = None
-            self._layers_removed_conn = None
-            self._layer_will_be_removed_conn = None
-            self._layer_signals_connected = False
+        SettingsLayerHelper.disconnect_project_layer_signals(
+            project=QgsProject.instance() if QgsProject else None,
+            handler=self._on_layers_changed,
+            layer_will_be_removed_handler=self._on_layers_changed,
+        )
+        self._layer_signals_connected = False
 
     def _on_layers_changed(self, *args) -> None:
         self._invalidate_shp_feature_cache()

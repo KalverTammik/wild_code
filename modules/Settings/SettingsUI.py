@@ -245,28 +245,17 @@ class SettingsModule(TokenMixin, QWidget):
             cards_container=self.cards_container,
             cards_layout=self.cards_layout,
             create_card=self._generate_module_card,
-            activate_card=self._activate_settings_card,
-            profile_log=self._log_settings_card_profile,
+            activate_card=lambda card: card.on_settings_activate(),
+            profile_log=lambda event_name, extra: SwitchLogger.log(
+                event_name,
+                module=Module.SETTINGS.value,
+                extra=extra,
+            ),
+            log_error=self._log_settings_exception,
         )
 
         # Rebuild cards list: user card first, then current module cards
         self._cards = [self._user_card] + list(self._module_cards.values())
-
-    def _activate_settings_card(self, card):
-        try:
-            card.on_settings_activate()
-        except Exception as exc:
-            self._log_settings_exception(exc, "settings_card_activate_failed")
-
-    def _log_settings_card_profile(self, event_name: str, extra: dict):
-        try:
-            SwitchLogger.log(
-                event_name,
-                module=Module.SETTINGS.value,
-                extra=extra,
-            )
-        except Exception:
-            pass
 
     def _clear_user_worker_refs(self):
         self._user_fetch_thread = None
@@ -379,7 +368,7 @@ class SettingsModule(TokenMixin, QWidget):
         """
         if not self.has_unsaved_changes():
             return True
-            
+
         try:
             title = self.tr("Unsaved changes")
             text = self.tr("You have unsaved Settings changes.")

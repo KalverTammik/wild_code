@@ -9,6 +9,8 @@ from ....utils.Folders.foldersHelpers import FolderHelpers
 from ....constants.file_paths import QssPaths
 from ....languages.translation_keys import SettingDialogPlaceholders, TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
+from ....utils.url_manager import Module
+from ....utils.text_helpers import to_bool
 
 class ModuleLabelsWidget(QFrame):
 
@@ -37,7 +39,7 @@ class ModuleLabelsWidget(QFrame):
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,
-                    module="settings",
+                    module=Module.SETTINGS.value,
                     event="settings_label_value_failed",
                 )
                 raw_value = None
@@ -55,17 +57,11 @@ class ModuleLabelsWidget(QFrame):
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,
-                    module="settings",
+                    module=Module.SETTINGS.value,
                     event="settings_checkbox_value_failed",
                 )
                 raw_value = False
-        if isinstance(raw_value, str):
-            lowered = raw_value.strip().lower()
-            if lowered in {"true", "1", "yes", "on"}:
-                return True
-            if lowered in {"false", "0", "no", "off", ""}:
-                return False
-        return bool(raw_value)
+        return to_bool(raw_value)
 
     def _build(self):
         
@@ -174,7 +170,7 @@ class ModuleLabelsWidget(QFrame):
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event="settings_label_custom_click_failed",
             )
 

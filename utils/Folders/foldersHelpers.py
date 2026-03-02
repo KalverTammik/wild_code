@@ -12,6 +12,7 @@ from ...utils.url_manager import Module
 from ...modules.Settings.setting_keys import SettingDialogPlaceholders
 from ...constants.settings_keys import SettingsService
 from ..messagesHelper import ModernMessageDialog
+from ..text_helpers import to_bool
 from ...Logs.python_fail_logger import PythonFailLogger
 
 UPDATE_project_properties = 'updateProjectsProperties.graphql'
@@ -122,7 +123,7 @@ class FolderNameGenerator:
         print("[folder_name] rule_raw", rule_raw)
 
         rule = str(rule_raw).strip()
-        enabled = self._as_bool(enabled_raw)
+        enabled = to_bool(enabled_raw)
         print("[folder_name] normalized", {"enabled": enabled, "rule": rule})
 
         if not enabled or not rule:
@@ -152,16 +153,6 @@ class FolderNameGenerator:
         folder_name = "".join(folder_name_parts)
         print("[folder_name] result", folder_name)
         return folder_name
-
-    def _as_bool(self, value) -> bool:
-        if isinstance(value, str):
-            lowered = value.strip().lower()
-            if lowered in {"true", "1", "yes", "on"}:
-                return True
-            if lowered in {"false", "0", "no", "off", ""}:
-                return False
-        return bool(value)
-
 
 class FolderHelpers:
     @staticmethod

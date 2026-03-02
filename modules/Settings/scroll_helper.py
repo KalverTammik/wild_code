@@ -2,6 +2,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PyQt5.QtCore import QTimer
+from ...Logs.python_fail_logger import PythonFailLogger
+from ...utils.url_manager import Module
 
 
 if TYPE_CHECKING:
@@ -14,15 +16,13 @@ class SettingsScrollHelper:
 
         if not module_key or settings_module is None:
             return
-        try:
-            if not getattr(settings_module, "_is_active", False):
-                return
-        except Exception:
+
+        if not settings_module.is_token_active(None):
             return
 
         # Rebuild cards if not ready (allowed modules only)
         if not settings_module._module_cards:
-            allowed = getattr(settings_module, "_allowed_modules", None) or []
+            allowed = settings_module._allowed_modules or []
             settings_module._ensure_module_cards(allowed_modules=allowed)
 
         # Locate the target card
@@ -49,7 +49,7 @@ class SettingsScrollHelper:
 
         def _scroll():
             try:
-                if not getattr(settings_module, "_is_active", False):
+                if not settings_module.is_token_active(None):
                     return
                 viewport_h = settings_module.scroll_area.viewport().height()
                 container_h = settings_module.cards_container.height()
@@ -74,18 +74,12 @@ class SettingsScrollHelper:
                     bar.setValue(offset)
                 target_card.setFocus()
             except RuntimeError as exc:
-                from ...Logs.python_fail_logger import PythonFailLogger
-                from ...utils.url_manager import Module
-
                 PythonFailLogger.log_exception(
                     exc,
                     module=Module.SETTINGS.value,
                     event="settings_scroll_aborted_deleted_widget",
                 )
             except Exception as exc:
-                from ...Logs.python_fail_logger import PythonFailLogger
-                from ...utils.url_manager import Module
-
                 PythonFailLogger.log_exception(
                     exc,
                     module=Module.SETTINGS.value,

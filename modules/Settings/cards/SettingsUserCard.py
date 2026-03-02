@@ -8,6 +8,7 @@ from ....languages.translation_keys import TranslationKeys
 from .SettingsPropertyManagement import PropertyManagementUI
 from .SettingsBaseCard import SettingsBaseCard  # assumes BaseCard provides: content_widget(), retheme(), etc.
 from ....Logs.python_fail_logger import PythonFailLogger
+from ....utils.url_manager import Module
 
 
 class UserSettingsCard(SettingsBaseCard):
@@ -146,7 +147,7 @@ class UserSettingsCard(SettingsBaseCard):
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,
-                    module="settings",
+                    module=Module.SETTINGS.value,
                     event="settings_user_card_remove_property_management_failed",
                 )
             self.property_management = None
@@ -258,7 +259,7 @@ class UserSettingsCard(SettingsBaseCard):
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event="settings_user_card_register_click_target_failed",
             )
         self._pill_click_targets[widget] = checkbox

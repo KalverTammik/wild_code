@@ -113,7 +113,7 @@ class SettingsLogic:
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event="settings_set_module_layer_failed",
             )
 
@@ -145,6 +145,15 @@ class SettingsLogic:
 
         return value
 
+    def load_module_label_values(self, module_key: str, module_labels) -> Dict[str, str]:
+        values: Dict[str, str] = {}
+        for label_def in (module_labels or []):
+            key = label_def.get("key") if isinstance(label_def, dict) else None
+            if not key:
+                continue
+            values[key] = self.load_module_label_value(module_key, key) or ""
+        return values
+
     def save_module_label_value(self, module_key: str, label_key, value: str) -> None:
         try:
             key = getattr(label_key, 'value', label_key)
@@ -155,7 +164,7 @@ class SettingsLogic:
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event="settings_save_label_failed",
             )
 
@@ -166,8 +175,9 @@ class SettingsLogic:
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event="settings_clear_label_failed",
             )
+
 
 

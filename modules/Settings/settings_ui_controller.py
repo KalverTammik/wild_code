@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ...ui.window_state.dialog_helpers import DialogHelpers
+from ...utils.url_manager import Module
 
 
 class SettingsUIController:
@@ -17,7 +18,7 @@ class SettingsUIController:
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event="settings_close_guard_failed",
             )
             return False

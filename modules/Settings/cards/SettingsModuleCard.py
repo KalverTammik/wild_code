@@ -8,6 +8,7 @@ from .SettingsBaseCard import SettingsBaseCard
 from .SettingModuleFeatureCard import SettingsModuleFeatureCard
 from .ModuleLabelsWidget import ModuleLabelsWidget
 from ..SettinsUtils.SettingsLogic import SettingsLogic
+from ..settings_layer_helper import SettingsLayerHelper
 from ....widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from ....widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from ....widgets.Filters.TagsFilterWidget import TagsFilterWidget
@@ -18,6 +19,7 @@ from ....utils.FilterHelpers.FilterHelper import FilterHelper
 from ....utils.url_manager import ModuleSupports
 from ....languages.translation_keys import TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
+from ....utils.text_helpers import to_bool
 
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayer, QgsProject, Qgis
@@ -87,6 +89,14 @@ class SettingsModuleCard(SettingsBaseCard):
         self.placeholder_text = self.lang_manager.translate(TranslationKeys.SELECT_LAYER)
 
         self._build_ui()
+
+    def _log_error(self, event: str, exc: Exception, *, extra: dict | None = None) -> None:
+        PythonFailLogger.log_exception(
+            exc,
+            module=Module.SETTINGS.value,
+            event=event,
+            extra=extra,
+        )
 
 
     def set_module_label_value(self, key: str, value: str):
@@ -167,7 +177,7 @@ class SettingsModuleCard(SettingsBaseCard):
                 ),
             )
             self._status_filter_widget = status_widget
-            self._status_filter_widget.selectionChanged.connect(self._on_status_selection_changed)
+            self._connect_preference_selection(self._status_filter_widget, ModuleSupports.STATUSES.value)
             self._install_lazy_filter_loader(self._status_filter_widget)
             first_row_layout.addWidget(status_group)
 
@@ -189,7 +199,7 @@ class SettingsModuleCard(SettingsBaseCard):
                 ),
             )
             self._tags_filter_widget = tags_widget
-            self._tags_filter_widget.selectionChanged.connect(self._on_tags_selection_changed)
+            self._connect_preference_selection(self._tags_filter_widget, ModuleSupports.TAGS.value)
             self._install_lazy_filter_loader(self._tags_filter_widget)
             first_row_layout.addWidget(tags_group)
 
@@ -210,7 +220,7 @@ class SettingsModuleCard(SettingsBaseCard):
                 ),
             )
             self._type_filter_widget = type_widget
-            self._type_filter_widget.selectionChanged.connect(self._on_type_selection_changed)
+            self._connect_preference_selection(self._type_filter_widget, ModuleSupports.TYPES.value)
             self._install_lazy_filter_loader(self._type_filter_widget)
             options_layout.addWidget(type_group)
 
@@ -218,15 +228,16 @@ class SettingsModuleCard(SettingsBaseCard):
 
         labels_widget = None
         if self._module_labels:
+            loaded_label_values = self.logic.load_module_label_values(self.module_key, self._module_labels)
             prepared_labels = []
             for label_def in self._module_labels:
                 key = label_def.get("key")
-                stored_value = self.logic.load_module_label_value(self.module_key, key) if key else ""
+                stored_value = loaded_label_values.get(key, "") if key else ""
                 if key:
                     label_def = dict(label_def)
                     tool = label_def.get("tool")
                     if tool == "checkBox":
-                        label_def["value"] = self._as_bool(stored_value)
+                        label_def["value"] = to_bool(stored_value)
                     else:
                         label_def["value"] = stored_value or ""
                 prepared_labels.append(label_def)
@@ -267,22 +278,69 @@ class SettingsModuleCard(SettingsBaseCard):
             return
         self._on_archive_selected(layer.id() if layer else "")
 
-    def _set_layer_combo_project(self, combo: QgsMapLayerComboBox | None, project) -> None:
-        if combo is None:
-            return
-        try:
-            current = combo.project() if hasattr(combo, "project") else None
-            if current is project:
-                return
-        except Exception:
-            pass
-        combo.setProject(project)
-
     def _set_status_text_if_changed(self, text: str, visible: bool = True) -> None:
         if self._last_status_text == text:
             return
         self._last_status_text = text
         self.set_status_text(text, visible)
+
+    def _preference_specs(self):
+        return (
+            (True, ModuleSupports.STATUSES.value, "_orig_status_preferences", "_pend_status_preferences", self._status_filter_widget),
+            (self.supports_tags, ModuleSupports.TAGS.value, "_orig_tag_preferences", "_pend_tag_preferences", self._tags_filter_widget),
+            (self.supports_types, ModuleSupports.TYPES.value, "_orig_type_preferences", "_pend_type_preferences", self._type_filter_widget),
+        )
+
+    def _load_preference_states(self) -> None:
+        for enabled, support_key, orig_attr, pend_attr, _widget in self._preference_specs():
+            if not enabled:
+                setattr(self, orig_attr, set())
+                setattr(self, pend_attr, set())
+                continue
+            loaded = set(
+                self.logic.load_module_preference_ids(
+                    self.module_key,
+                    support_key=support_key,
+                )
+            )
+            setattr(self, orig_attr, loaded)
+            setattr(self, pend_attr, set(loaded))
+
+    def _save_preference_states(self) -> bool:
+        changed = False
+        for enabled, support_key, orig_attr, pend_attr, _widget in self._preference_specs():
+            if not enabled:
+                continue
+            original = getattr(self, orig_attr)
+            pending = getattr(self, pend_attr)
+            if pending != original:
+                self.logic.save_module_preference_ids(
+                    self.module_key,
+                    support_key=support_key,
+                    ids=pending,
+                )
+                setattr(self, orig_attr, set(pending))
+                changed = True
+        return changed
+
+    def _revert_preference_states(self) -> None:
+        for enabled, _support_key, orig_attr, pend_attr, widget in self._preference_specs():
+            original = set(getattr(self, orig_attr))
+            setattr(self, pend_attr, set(original))
+            if enabled and widget is not None:
+                widget.set_selected_ids(list(original), emit=False)
+
+    def _clear_preference_states_and_storage(self) -> None:
+        for enabled, support_key, orig_attr, pend_attr, widget in self._preference_specs():
+            if widget is not None:
+                widget.set_selected_ids([], emit=False)
+            setattr(self, orig_attr, set())
+            setattr(self, pend_attr, set())
+            if enabled:
+                self.logic.clear_module_preference_ids(
+                    self.module_key,
+                    support_key=support_key,
+                )
 
     def _emit_pending_changed(self, state: bool) -> None:
         self._last_pending_state = bool(state)
@@ -338,12 +396,7 @@ class SettingsModuleCard(SettingsBaseCard):
                     try:
                         ensure_loaded()
                     except Exception as exc:
-                        PythonFailLogger.log_exception(
-                            exc,
-                            module="settings",
-                            event="settings_module_filter_lazy_load_failed",
-                            extra={"widget": type(obj).__name__},
-                        )
+                        self._log_error("settings_module_filter_lazy_load_failed", exc, extra={"widget": type(obj).__name__})
                 to_remove = {obj}
                 for target in list(self._lazy_filter_widgets):
                     if target is obj:
@@ -360,7 +413,7 @@ class SettingsModuleCard(SettingsBaseCard):
                     try:
                         target.removeEventFilter(self)
                     except Exception:
-                        pass
+                        continue
         return super().eventFilter(obj, event)
 
 
@@ -368,11 +421,15 @@ class SettingsModuleCard(SettingsBaseCard):
     def on_settings_activate(self, snapshot=None):
         project = QgsProject.instance() if QgsProject else None
         if project is not None and not self._project_bound:
-            self._set_layer_combo_project(self._layer_selector, project)
+            SettingsLayerHelper.set_combo_project(self._layer_selector, project)
             if self.supports_archive and self._archive_picker:
-                self._set_layer_combo_project(self._archive_picker, project)
+                SettingsLayerHelper.set_combo_project(self._archive_picker, project)
             self._project_bound = True
-        self._connect_layer_signals()
+        if not self._layer_signals_connected:
+            self._layer_signals_connected = SettingsLayerHelper.connect_project_layer_signals(
+                project=project,
+                handler=self._on_project_layers_changed,
+            )
         # Lae algsed layer-nimed
         layer_state = self.logic.get_module_layer_ids(self.module_key, include_archive=self.supports_archive)
         next_element = layer_state.get("element", "")
@@ -384,56 +441,33 @@ class SettingsModuleCard(SettingsBaseCard):
             self._orig_archive_name = next_archive
             self._pend_archive_name = next_archive
 
-        # Lae status/type eelistused
-        self._orig_status_preferences = set(
-            self.logic.load_module_preference_ids(
-                self.module_key,
-                support_key=ModuleSupports.STATUSES.value,
-            )
-        )
-        self._pend_status_preferences = set(self._orig_status_preferences)
+        # Lae status/type/tag eelistused
+        self._load_preference_states()
         # Load label values from settings and sync UI
-        self._orig_label_values = self._load_label_values()
+        self._orig_label_values = self.logic.load_module_label_values(self.module_key, self._module_labels)
         self._pend_label_values = dict(self._orig_label_values)
         if self._labels_widget:
             for k, v in self._orig_label_values.items():
                 self._labels_widget.set_label_value(k, v)
 
-        if self.supports_types:
-            self._orig_type_preferences = set(
-                self.logic.load_module_preference_ids(
-                    self.module_key,
-                    support_key=ModuleSupports.TYPES.value,
-                )
-            )
-            self._pend_type_preferences = set(self._orig_type_preferences)
-        else:
-            self._orig_type_preferences = set()
-            self._pend_type_preferences = set()
-
-        if self.supports_tags:
-            self._orig_tag_preferences = set(
-                self.logic.load_module_preference_ids(
-                    self.module_key,
-                    support_key=ModuleSupports.TAGS.value,
-                )
-            )
-            self._pend_tag_preferences = set(self._orig_tag_preferences)
-        else:
-            self._orig_tag_preferences = set()
-            self._pend_tag_preferences = set()
-
 
         # Taasta layeri valikud (vaid kui kiht on olemas)
-        self._restore_layer_selection(self._layer_selector, self._orig_element_name)
-        if self.supports_archive and self._archive_picker:
-            self._restore_layer_selection(self._archive_picker, self._orig_archive_name)
+        self._restore_layer_selections(
+            element_name=self._orig_element_name,
+            archive_name=self._orig_archive_name,
+        )
 
         self._update_stored_values_display()
 
     def on_settings_deactivate(self):
         self._cancel_filter_workers()
-        self._disconnect_layer_signals()
+        if self._layer_signals_connected:
+            project = QgsProject.instance() if QgsProject else None
+            SettingsLayerHelper.disconnect_project_layer_signals(
+                project=project,
+                handler=self._on_project_layers_changed,
+            )
+            self._layer_signals_connected = False
         # Clear filter widgets to release memory
         for widget in (
             self._status_filter_widget,
@@ -446,33 +480,20 @@ class SettingsModuleCard(SettingsBaseCard):
             if callable(clear_fn):
                 try:
                     clear_fn()
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module="settings",
-                        event="settings_module_filter_clear_failed",
-                        extra={"widget": type(widget).__name__},
-                    )
+                except Exception:
+                    continue
 
         if self._labels_widget:
             clear_labels = getattr(self._labels_widget, "clear_data", None)
             if callable(clear_labels):
                 try:
                     clear_labels()
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module="settings",
-                        event="settings_module_labels_clear_failed",
-                    )
+                except Exception:
+                    pass
         try:
             self._set_status_text_if_changed("")
         except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_module_clear_status_failed",
-            )
+            self._log_error("settings_module_clear_status_failed", exc)
 
         # Keep map layer combo bindings to avoid expensive rebinds on next open
 
@@ -508,45 +529,17 @@ class SettingsModuleCard(SettingsBaseCard):
         if self._pend_element_name != self._orig_element_name:
             self._write_saved_layer_value("element", self._pend_element_name)
             self._orig_element_name = self._pend_element_name
-            self._restore_layer_selection(self._layer_selector, self._orig_element_name)
+            SettingsLayerHelper.restore_combo_selection(self._layer_selector, self._orig_element_name)
             changed = True
 
         if self.supports_archive and (self._pend_archive_name != self._orig_archive_name):
             self._write_saved_layer_value("archive", self._pend_archive_name)
             self._orig_archive_name = self._pend_archive_name
             if self._archive_picker:
-                self._restore_layer_selection(self._archive_picker, self._orig_archive_name)
+                SettingsLayerHelper.restore_combo_selection(self._archive_picker, self._orig_archive_name)
             changed = True
 
-        # Save status prefs
-        if self._pend_status_preferences != self._orig_status_preferences:
-            self.logic.save_module_preference_ids(
-                self.module_key,
-                support_key=ModuleSupports.STATUSES.value,
-                ids=self._pend_status_preferences,
-            )
-            self._orig_status_preferences = set(self._pend_status_preferences)
-            changed = True
-
-        # Save tag prefs
-        if self.supports_tags and (self._pend_tag_preferences != self._orig_tag_preferences):
-            self.logic.save_module_preference_ids(
-                self.module_key,
-                support_key=ModuleSupports.TAGS.value,
-                ids=self._pend_tag_preferences,
-            )
-            self._orig_tag_preferences = set(self._pend_tag_preferences)
-            changed = True
-
-        # Save type prefs
-        if self.supports_types and (self._pend_type_preferences != self._orig_type_preferences):
-            self.logic.save_module_preference_ids(
-                self.module_key,
-                support_key=ModuleSupports.TYPES.value,
-                ids=self._pend_type_preferences,
-            )
-            self._orig_type_preferences = set(self._pend_type_preferences)
-            changed = True
+        changed = self._save_preference_states() or changed
 
         # Save label values
         for key, value in self._pend_label_values.items():
@@ -571,29 +564,14 @@ class SettingsModuleCard(SettingsBaseCard):
 
     def revert(self):
         # Layers
-        self._restore_layer_selection(self._layer_selector, self._orig_element_name)
-        if self.supports_archive and self._archive_picker:
-            self._restore_layer_selection(self._archive_picker, self._orig_archive_name)
+        self._restore_layer_selections(
+            element_name=self._orig_element_name,
+            archive_name=self._orig_archive_name,
+        )
         self._pend_element_name = self._orig_element_name
         self._pend_archive_name = self._orig_archive_name
 
-        # Status prefs
-        self._pend_status_preferences = set(self._orig_status_preferences)
-        if self._status_filter_widget:
-            self._status_filter_widget.set_selected_ids(list(self._orig_status_preferences), emit=False)
-
-        # Tag prefs
-        if self.supports_tags:
-            self._pend_tag_preferences = set(self._orig_tag_preferences)
-            if self._tags_filter_widget:
-                self._tags_filter_widget.set_selected_ids(list(self._orig_tag_preferences), emit=False)
-
-
-        # Type prefs
-        if self.supports_types:
-            self._pend_type_preferences = set(self._orig_type_preferences)
-            if self._type_filter_widget:
-                self._type_filter_widget.set_selected_ids(list(self._orig_type_preferences), emit=False)
+        self._revert_preference_states()
 
         self._update_stored_values_display()
         self._emit_pending_changed(False)
@@ -607,16 +585,11 @@ class SettingsModuleCard(SettingsBaseCard):
                         lyr = combo.currentLayer()
                         if lyr:
                             return lyr.name()
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module="settings",
-                        event="settings_module_display_for_failed",
-                    )
+                except Exception:
+                    return fallback_name or ""
                 return fallback_name or ""
 
             element_name = display_for(self._layer_selector, self._pend_element_name or self._orig_element_name)
-            supports_archive_layer: bool = False
             archive_name = ""
             if self.supports_archive:
                 archive_name = display_for(self._archive_picker, self._pend_archive_name or self._orig_archive_name)
@@ -633,11 +606,7 @@ class SettingsModuleCard(SettingsBaseCard):
             else:
                 self._set_status_text_if_changed("No layers configured")
         except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_module_update_status_failed",
-            )
+            self._log_error("settings_module_update_status_failed", exc)
             self._set_status_text_if_changed("Settings loaded")
 
 
@@ -649,107 +618,67 @@ class SettingsModuleCard(SettingsBaseCard):
             self._tags_filter_widget,
                 ):
             FilterHelper.cancel_pending_load(widget, invalidate_request=True)
-            
-    def _on_type_selection_changed(self, texts=None, ids=None):
-        try:
-            selected_ids = ids if ids is not None else self._type_filter_widget.selected_ids()
-            self._pend_type_preferences = set(selected_ids or [])
-            self._emit_pending_changed(self.has_pending_changes())
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_module_type_selection_failed",
-            )
 
-    def _on_status_selection_changed(self, texts=None, ids=None):
-        try:
-            selected_ids = ids if ids is not None else self._status_filter_widget.selected_ids()
-            self._pend_status_preferences = {str(v) for v in (selected_ids or [])}
-            self._emit_pending_changed(self.has_pending_changes())
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_module_status_selection_failed",
-            )
+    @staticmethod
+    def _preference_error_event(support_key: str) -> str:
+        return {
+            ModuleSupports.STATUSES.value: "settings_module_status_selection_failed",
+            ModuleSupports.TAGS.value: "settings_module_tags_selection_failed",
+            ModuleSupports.TYPES.value: "settings_module_type_selection_failed",
+        }.get(support_key, "settings_module_preference_selection_failed")
 
-    def _on_tags_selection_changed(self, texts=None, ids=None):
+    def _apply_pending_preference_set(self, support_key: str, values: set) -> None:
+        if support_key == ModuleSupports.STATUSES.value:
+            self._pend_status_preferences = values
+            return
+        if support_key == ModuleSupports.TAGS.value:
+            self._pend_tag_preferences = values
+            return
+        if support_key == ModuleSupports.TYPES.value:
+            self._pend_type_preferences = values
+
+    @staticmethod
+    def _stringify_preference_ids(support_key: str) -> bool:
+        return support_key in (ModuleSupports.STATUSES.value, ModuleSupports.TAGS.value)
+
+    def _connect_preference_selection(self, widget, support_key: str) -> None:
+        if widget is None:
+            return
+        widget.selectionChanged.connect(
+            lambda texts=None, ids=None: self._on_preference_selection_changed(
+                support_key=support_key,
+                widget=widget,
+                ids=ids,
+            )
+        )
+
+    def _on_preference_selection_changed(self, *, support_key: str, widget, ids=None) -> None:
         try:
-            selected_ids = ids if ids is not None else self._tags_filter_widget.selected_ids()
-            self._pend_tag_preferences = {str(v) for v in (selected_ids or [])}
+            selected_ids = ids if ids is not None else (widget.selected_ids() if widget is not None else [])
+            stringify = self._stringify_preference_ids(support_key)
+            normalized = {str(v) for v in (selected_ids or [])} if stringify else set(selected_ids or [])
+            self._apply_pending_preference_set(support_key, normalized)
             self._emit_pending_changed(self.has_pending_changes())
         except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_module_tags_selection_failed",
-            )
+            self._log_error(self._preference_error_event(support_key), exc)
 
     def _on_reset_settings(self):
         """Reset all stored values for this module card."""
         try:
             # Reset layer selections
-            self._clear_layer_combo(self._layer_selector)
+            SettingsLayerHelper.clear_combo_selection(self._layer_selector)
             if self.supports_archive:
-                self._clear_layer_combo(self._archive_picker)
+                SettingsLayerHelper.clear_combo_selection(self._archive_picker)
             self._pend_element_name = ""
             self._pend_archive_name = ""
 
-            # Reset filters
-            if self._status_filter_widget:
-                try:
-                    self._status_filter_widget.set_selected_ids([], emit=False)
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module="settings",
-                        event="settings_module_reset_status_failed",
-                    )
-            if self.supports_types and self._type_filter_widget:
-                try:
-                    self._type_filter_widget.set_selected_ids([], emit=False)
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module="settings",
-                        event="settings_module_reset_type_failed",
-                    )
-            if self.supports_tags and self._tags_filter_widget:
-                try:
-                    self._tags_filter_widget.set_selected_ids([], emit=False)
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module="settings",
-                        event="settings_module_reset_tags_failed",
-                    )
+            # Reset filters and clear stored preference settings
+            self._clear_preference_states_and_storage()
 
-            self._orig_status_preferences = set()
-            self._orig_type_preferences = set()
-            self._orig_tag_preferences = set()
-            self._pend_status_preferences = set()
-            self._pend_type_preferences = set()
-            self._pend_tag_preferences = set()
-
-            # Clear stored settings
+            # Clear stored layer settings
             self._write_saved_layer_value("element", "")
             if self.supports_archive:
                 self._write_saved_layer_value("archive", "")
-            self.logic.clear_module_preference_ids(
-                self.module_key,
-                support_key=ModuleSupports.STATUSES.value,
-            )
-            if self.supports_tags:
-                self.logic.clear_module_preference_ids(
-                    self.module_key,
-                    support_key=ModuleSupports.TAGS.value,
-                )
-            if self.supports_types:
-                self.logic.clear_module_preference_ids(
-                    self.module_key,
-                    support_key=ModuleSupports.TYPES.value,
-                )
 
             # Clear label values
             for key in list(self._orig_label_values.keys()):
@@ -767,98 +696,31 @@ class SettingsModuleCard(SettingsBaseCard):
 
     # --- Eelistused (settings) ---
 
-    def _restore_layer_selection(self, combo: QgsMapLayerComboBox | None, stored_name: str):
-        """Resolve a stored layer name and update the combo selection."""
-        if not combo:
-            return
-        try:
-            resolved_id = MapHelpers.resolve_layer_id(stored_name)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_module_resolve_layer_failed",
-            )
-            resolved_id = None
-
-        project = QgsProject.instance() if QgsProject else None
-        layer = project.mapLayer(resolved_id) if (project and resolved_id) else None
-
-        try:
-            combo.blockSignals(True)
-            combo.setLayer(layer)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_module_set_layer_failed",
-            )
-            combo.setLayer(None)
-        finally:
-            combo.blockSignals(False)
-
-    def _connect_layer_signals(self) -> None:
-        if self._layer_signals_connected:
-            return
-        project = QgsProject.instance() if QgsProject else None
-        if project is None:
-            return
-        try:
-            project.layersAdded.connect(self._on_project_layers_changed)
-            project.layersRemoved.connect(self._on_project_layers_changed)
-            self._layer_signals_connected = True
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_module_layer_signal_connect_failed",
-            )
-
-    def _disconnect_layer_signals(self) -> None:
-        if not self._layer_signals_connected:
-            return
-        project = QgsProject.instance() if QgsProject else None
-        if project is None:
-            self._layer_signals_connected = False
-            return
-        try:
-            project.layersAdded.disconnect(self._on_project_layers_changed)
-            project.layersRemoved.disconnect(self._on_project_layers_changed)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="settings",
-                event="settings_module_layer_signal_disconnect_failed",
-            )
-        finally:
-            self._layer_signals_connected = False
-
     def _on_project_layers_changed(self, *args) -> None:
-        self._restore_layer_selection(self._layer_selector, self._orig_element_name)
-        if self.supports_archive and self._archive_picker:
-            self._restore_layer_selection(self._archive_picker, self._orig_archive_name)
+        self._restore_layer_selections(
+            element_name=self._pend_element_name,
+            archive_name=self._pend_archive_name,
+        )
 
-    def _clear_layer_combo(self, combo: QgsMapLayerComboBox | None) -> None:
-        if not combo:
-            return
-        try:
-            combo.blockSignals(True)
-            combo.setLayer(None)
-        finally:
-            combo.blockSignals(False)
+    def _restore_layer_selections(self, *, element_name: str, archive_name: str = "") -> None:
+        SettingsLayerHelper.restore_combo_selection(self._layer_selector, element_name)
+        if self.supports_archive and self._archive_picker:
+            SettingsLayerHelper.restore_combo_selection(self._archive_picker, archive_name)
 
     # --- Layer valiku handlerid ---
-    def _on_element_selected(self, layer_id: str):
-        self._pend_element_name = MapHelpers.layer_name_from_id(layer_id) if layer_id else ""
+    def _update_pending_layer_selection(self, *, layer_id: str, target_attr: str) -> None:
+        layer_name = MapHelpers.layer_name_from_id(layer_id) if layer_id else ""
+        setattr(self, target_attr, layer_name)
         self._update_stored_values_display()
         self._emit_pending_changed(self.has_pending_changes())
+
+    def _on_element_selected(self, layer_id: str):
+        self._update_pending_layer_selection(layer_id=layer_id, target_attr="_pend_element_name")
 
     def _on_archive_selected(self, layer_id: str):
         if not self.supports_archive:
             return
-        self._pend_archive_name = MapHelpers.layer_name_from_id(layer_id) if layer_id else ""
-        self._update_stored_values_display()
-        self._emit_pending_changed(self.has_pending_changes())
+        self._update_pending_layer_selection(layer_id=layer_id, target_attr="_pend_archive_name")
 
     # --- External sync helpers (used by flows) ---
     def sync_archive_layer_selection(self, layer_name: str, *, force: bool = False) -> bool:
@@ -884,7 +746,7 @@ class SettingsModuleCard(SettingsBaseCard):
         self._pend_archive_name = normalized
 
         if self._archive_picker:
-            self._restore_layer_selection(self._archive_picker, normalized)
+            SettingsLayerHelper.restore_combo_selection(self._archive_picker, normalized)
 
         self._update_stored_values_display()
         self._emit_pending_changed(self.has_pending_changes())
@@ -896,21 +758,3 @@ class SettingsModuleCard(SettingsBaseCard):
         self._pend_label_values[key] = value
         self._emit_pending_changed(self.has_pending_changes())
 
-    def _load_label_values(self):
-        values = {}
-        for label_def in self._module_labels:
-            key = label_def.get("key")
-            if not key:
-                continue
-            stored = self.logic.load_module_label_value(self.module_key, key) or ""
-            values[key] = stored
-        return values
-
-    def _as_bool(self, value: Any) -> bool:
-        if isinstance(value, str):
-            lowered = value.strip().lower()
-            if lowered in {"true", "1", "yes", "on"}:
-                return True
-            if lowered in {"false", "0", "no", "off", ""}:
-                return False
-        return bool(value)

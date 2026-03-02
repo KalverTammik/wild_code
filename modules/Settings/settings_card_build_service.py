@@ -3,12 +3,13 @@ import time
 
 class SettingsCardBuildService:
     @staticmethod
-    def insert_cards_batch(*, pending_names, cards_container, cards_layout, module_cards, create_card):
+    def insert_cards_batch(*, pending_names, cards_container, cards_layout, module_cards, create_card, log_error=None):
         created_cards = []
         try:
             cards_container.setUpdatesEnabled(False)
-        except Exception:
-            pass
+        except Exception as exc:
+            if callable(log_error):
+                log_error(exc, "settings_cards_disable_updates_failed")
 
         try:
             for module_name in pending_names:
@@ -21,18 +22,23 @@ class SettingsCardBuildService:
             try:
                 cards_container.setUpdatesEnabled(True)
                 cards_container.update()
-            except Exception:
-                pass
+            except Exception as exc:
+                if callable(log_error):
+                    log_error(exc, "settings_cards_enable_updates_failed")
 
         return created_cards
 
     @staticmethod
-    def activate_cards_with_profile(*, created_cards, activate_card, profile_log):
+    def activate_cards_with_profile(*, created_cards, activate_card, profile_log, log_error=None):
         batch_started = time.monotonic()
 
         for card in created_cards:
             started = time.monotonic()
-            activate_card(card)
+            try:
+                activate_card(card)
+            except Exception as exc:
+                if callable(log_error):
+                    log_error(exc, "settings_card_activate_failed")
             elapsed_ms = int((time.monotonic() - started) * 1000)
             profile_log(
                 "settings_card_activate_profile",
@@ -53,7 +59,7 @@ class SettingsCardBuildService:
             )
 
     @staticmethod
-    def build_missing_cards(*, allowed_modules, module_cards, cards_container, cards_layout, create_card, activate_card, profile_log):
+    def build_missing_cards(*, allowed_modules, module_cards, cards_container, cards_layout, create_card, activate_card, profile_log, log_error=None):
         pending_names = [
             name
             for name in (allowed_modules or [])
@@ -69,12 +75,14 @@ class SettingsCardBuildService:
             cards_layout=cards_layout,
             module_cards=module_cards,
             create_card=create_card,
+            log_error=log_error,
         )
 
         SettingsCardBuildService.activate_cards_with_profile(
             created_cards=created_cards,
             activate_card=activate_card,
             profile_log=profile_log,
+            log_error=log_error,
         )
 
         return created_cards

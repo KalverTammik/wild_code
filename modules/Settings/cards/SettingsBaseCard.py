@@ -6,6 +6,7 @@ from ....constants.button_props import ButtonVariant, ButtonSize
 from PyQt5.QtGui import  QPixmap
 from ....languages.translation_keys import TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
+from ....utils.url_manager import Module
 
 class SettingsBaseCard(QFrame):
     """Reusable SetupCard base with header, content area and confirm footer."""
@@ -23,7 +24,7 @@ class SettingsBaseCard(QFrame):
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module="settings",
+                module=Module.SETTINGS.value,
                 event="settings_card_theme_failed",
             )
 
