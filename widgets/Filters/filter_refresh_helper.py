@@ -132,7 +132,7 @@ class FilterRefreshHelper:
         try:
             refresh_fn = getattr(owner, "_refresh_filters", None)
             if callable(refresh_fn):
-                refresh_fn()
+                refresh_fn(status_ids=[], type_ids=[], tags_ids=[])
             else:
                 FilterRefreshService.refresh_filters(
                     owner,

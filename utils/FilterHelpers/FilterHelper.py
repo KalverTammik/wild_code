@@ -8,7 +8,6 @@ from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.responses import JsonResponseHandler
 from ...python.api_client import APIClient
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...Logs.switch_logger import SwitchLogger
 
 
 class FilterHelper:
@@ -41,6 +40,7 @@ class FilterHelper:
             after: Optional[str] = None
             path = [f"{module}Types"]
             entries: List[Dict[str, Optional[str]]] = []
+            page_index = 0
 
             def group_key(label: str) -> str:
                 """Prefix before first ' - ' (or whole label if not present)."""
@@ -48,6 +48,7 @@ class FilterHelper:
                 return parts[0].strip() if parts else (label or "").strip()
 
             while True:
+                page_index += 1
                 variables["after"] = after
                 payload = APIClient().send_query(query, variables=variables, return_raw=True) or {}
                 page_edges = JsonResponseHandler.get_edges_from_path(payload, path)
@@ -68,7 +69,6 @@ class FilterHelper:
                 if not has_next or not after:
                     break
 
-            #print(f"[FilterHelper] Fetched {entries} entries for types.")
             return entries
         
         else:
@@ -198,6 +198,18 @@ class FilterRefreshService:
         return list(selected()) if callable(selected) else []
 
     @staticmethod
+    def _is_filter_loaded(filter_widget) -> bool:
+        if filter_widget is None:
+            return False
+        is_loaded = getattr(filter_widget, "is_loaded", None)
+        if callable(is_loaded):
+            try:
+                return bool(is_loaded())
+            except Exception:
+                return False
+        return True
+
+    @staticmethod
     def _resolve_ids(
         module,
         status_ids,
@@ -217,19 +229,19 @@ class FilterRefreshService:
 
         if resolved_status is None and status_filter is not None:
             resolved_status = FilterHelper.selected_ids(status_filter)
-            if not resolved_status:
+            if not resolved_status and not FilterRefreshService._is_filter_loaded(status_filter):
                 if callable(status_getter):
                     resolved_status = status_getter() or []
 
         if resolved_type is None and type_filter is not None:
             resolved_type = FilterRefreshService._selected_type_ids(type_filter)
-            if not resolved_type:
+            if not resolved_type and not FilterRefreshService._is_filter_loaded(type_filter):
                 if callable(type_getter):
                     resolved_type = type_getter() or []
 
         if resolved_tags is None and tags_filter is not None:
             resolved_tags = FilterHelper.selected_ids(tags_filter)
-            if not resolved_tags:
+            if not resolved_tags and not FilterRefreshService._is_filter_loaded(tags_filter):
                 if callable(tags_getter):
                     resolved_tags = tags_getter() or []
 
@@ -283,20 +295,6 @@ class FilterRefreshService:
             type_getter=type_getter,
             tags_getter=tags_getter,
         )
-        try:
-            module_key = getattr(module, "module_key", None) or getattr(module, "name", None) or ""
-            SwitchLogger.log(
-                "filter_refresh",
-                module=str(module_key),
-                extra={
-                    "status_count": len(ids.get("status") or []),
-                    "type_count": len(ids.get("type") or []),
-                    "tags_count": len(ids.get("tags") or []),
-                },
-            )
-        except Exception:
-            pass
-
         and_list: List[dict] = []
         if ids["status"]:
             and_list.append({"column": "STATUS", "operator": "IN", "value": ids["status"]})

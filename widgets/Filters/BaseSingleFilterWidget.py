@@ -12,7 +12,6 @@ from ...languages.translation_keys import TranslationKeys
 from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
-from ...Logs.switch_logger import SwitchLogger
 from ..theme_manager import ThemeManager
 
 
@@ -165,11 +164,6 @@ class BaseSingleFilterWidget(QWidget):
         if request_id != self._load_request_id:
             return
         if not self._is_token_active(token):
-            SwitchLogger.log(
-                "filter_ignored_inactive_token",
-                module=str(self._module),
-                extra={"token": token},
-            )
             return
         self.combo.clear()
         for label, value in payload:
@@ -191,11 +185,6 @@ class BaseSingleFilterWidget(QWidget):
         if request_id != self._load_request_id:
             return
         if not self._is_token_active(token):
-            SwitchLogger.log(
-                "filter_ignored_inactive_token",
-                module=str(self._module),
-                extra={"token": token},
-            )
             return
         self.combo.clear()
         self.combo.addItem(f"{self._lang.translate(TranslationKeys.ERROR)}: {message[:60]}…")

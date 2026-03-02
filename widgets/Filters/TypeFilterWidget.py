@@ -13,7 +13,6 @@ from ...python.workers import FunctionWorker, start_worker
 from ...utils.url_manager import ModuleSupports
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
-from ...Logs.switch_logger import SwitchLogger
 from ..theme_manager import ThemeManager
 
 
@@ -35,6 +34,7 @@ class TypeFilterWidget(QWidget):
         self._module = module_name
         self._lang = LanguageManager()
         self._group_map: Dict[str, List[str]] = {}
+        self._all_types_payload: List[Dict[str, str]] = []
         self._suppress_group_emit = False
         self._suppress_type_emit = False
         self._loaded = False
@@ -93,6 +93,7 @@ class TypeFilterWidget(QWidget):
     def reload(self) -> None:
         self._loaded = False
         self._load_request_id += 1
+        self._all_types_payload = []
         self.group_combo.clear()
         self.type_combo.clear()
         self._set_all_cb_state(Qt.Unchecked, enabled=False)
@@ -118,7 +119,7 @@ class TypeFilterWidget(QWidget):
         if not self._loaded:
             self._pending_type_ids = list(targets)
             return
-        self._apply_type_selection(targets, emit)
+        self._apply_type_selection(targets, emit, source="set_selected_ids")
 
     def _on_group_selection_changed(self) -> None:
         if self._suppress_group_emit:
@@ -128,20 +129,18 @@ class TypeFilterWidget(QWidget):
             for g in (self.group_combo.checkedItemsData() or [])  # type: ignore[attr-defined]
             if g
         }
-        target_ids: set[str] = set()
-        for group in selected_groups:
-            target_ids.update(self._group_map.get(group, []))
-        self._apply_type_selection(target_ids, emit=False)
-        self._emit_selection_change()
+        current_selected_ids = set(self.selected_ids())
+        self._rebuild_type_combo(selected_groups if selected_groups else None, preserve_selected_ids=current_selected_ids)
+        self._sync_all_checkbox_state()
 
     def _on_type_selection_changed(self) -> None:
         if self._suppress_type_emit:
             return
         self._sync_groups_to_types()
         self._sync_all_checkbox_state()
-        self._emit_selection_change()
+        self._emit_selection_change(source="type_combo")
 
-    def _apply_type_selection(self, target_ids: Sequence[str], emit: bool) -> None:
+    def _apply_type_selection(self, target_ids: Sequence[str], emit: bool, source: str = "programmatic") -> None:
         targets = {str(v) for v in target_ids or []}
         self._suppress_type_emit = True
         try:
@@ -155,7 +154,7 @@ class TypeFilterWidget(QWidget):
         self._sync_groups_to_types()
         self._sync_all_checkbox_state()
         if emit:
-            self._emit_selection_change()
+            self._emit_selection_change(source=source)
 
     def _apply_preferred_types(self) -> None:
         if not self._loaded:
@@ -190,7 +189,7 @@ class TypeFilterWidget(QWidget):
         finally:
             self._suppress_group_emit = False
 
-    def _emit_selection_change(self) -> None:
+    def _emit_selection_change(self, source: str = "unknown") -> None:
         texts = self.selected_texts()
         ids = self.selected_ids()
         self.selectionChanged.emit(texts, ids)
@@ -201,6 +200,21 @@ class TypeFilterWidget(QWidget):
         placeholder = f"{loading_text}…"
         self.group_combo.addItem(placeholder)
         self.type_combo.addItem(placeholder)
+
+    def _normalize_group_name(self, label: Optional[str], backend_group: Optional[str]) -> Optional[str]:
+        safe_label = (label or "").strip()
+
+        # Global rule for all type-enabled modules:
+        # - labels containing " - " are treated as subtypes (group by prefix)
+        # - plain labels remain standalone groups
+        if " - " in safe_label:
+            return safe_label.split(" - ", 1)[0].strip() or safe_label
+
+        if safe_label:
+            return safe_label
+
+        safe_backend_group = (backend_group or "").strip()
+        return safe_backend_group or None
 
     def _start_async_load(self) -> None:
         FilterHelper.cancel_pending_load(self, invalidate_request=False)
@@ -228,24 +242,22 @@ class TypeFilterWidget(QWidget):
         if request_id != self._load_request_id:
             return
         if not self._is_token_active(token):
-            SwitchLogger.log(
-                "type_filter_ignored_inactive_token",
-                module=str(self._module),
-                extra={"token": token},
-            )
             return
         self.type_combo.clear()
         self.group_combo.clear()
         self._group_map.clear()
+        self._all_types_payload = []
 
         for entry in payload:
             type_id = entry.get("id")
             label = entry.get("label")
-            group_name = entry.get("group")
+            group_name = self._normalize_group_name(label, entry.get("group"))
             if type_id and label:
-                self.type_combo.addItem(label, type_id)
+                self._all_types_payload.append({"id": str(type_id), "label": str(label), "group": str(group_name or "")})
                 if group_name:
                     self._group_map.setdefault(group_name, []).append(type_id)
+
+        self._rebuild_type_combo(None)
 
         for group_name in sorted(self._group_map.keys(), key=str.lower):
             self.group_combo.addItem(group_name, group_name)
@@ -259,7 +271,8 @@ class TypeFilterWidget(QWidget):
         self.all_cb.setEnabled(True)
         self._apply_preferred_types()
         if self._pending_type_ids:
-            self.set_selected_ids(self._pending_type_ids, emit=False)
+            pending_ids = list(self._pending_type_ids)
+            self.set_selected_ids(pending_ids, emit=False)
             self._pending_type_ids = []
         self._sync_all_checkbox_state()
         self.loadFinished.emit(True)
@@ -268,11 +281,6 @@ class TypeFilterWidget(QWidget):
         if request_id != self._load_request_id:
             return
         if not self._is_token_active(token):
-            SwitchLogger.log(
-                "type_filter_ignored_inactive_token",
-                module=str(self._module),
-                extra={"token": token},
-            )
             return
         self.group_combo.clear()
         self.type_combo.clear()
@@ -306,10 +314,39 @@ class TypeFilterWidget(QWidget):
             self.type_combo.setEnabled(False)
             self._set_all_cb_state(Qt.Unchecked, enabled=False)
             self._group_map.clear()
+            self._all_types_payload = []
             self._loaded = False
             self._pending_type_ids = []
         except Exception as exc:
             print(f"[TypeFilterWidget] clear_data failed: {exc}")
+
+    def _rebuild_type_combo(
+        self,
+        visible_groups: Optional[set],
+        preserve_selected_ids: Optional[set] = None,
+    ) -> None:
+        selected_ids = {str(v) for v in (preserve_selected_ids or set()) if v}
+        self._suppress_type_emit = True
+        try:
+            self.type_combo.clear()
+            for item in self._all_types_payload:
+                item_group = str(item.get("group") or "")
+                if visible_groups and item_group not in visible_groups:
+                    continue
+                item_id = str(item.get("id") or "")
+                item_label = str(item.get("label") or "")
+                if not item_id or not item_label:
+                    continue
+                self.type_combo.addItem(item_label, item_id)
+
+            for row in range(self.type_combo.count()):
+                value = str(self.type_combo.itemData(row) or "")
+                self.type_combo.setItemCheckState(
+                    row,
+                    Qt.Checked if value in selected_ids else Qt.Unchecked,
+                )
+        finally:
+            self._suppress_type_emit = False
     def _apply_select_all(self, checked: bool) -> None:
         if checked and hasattr(self.type_combo, "selectAllOptions"):
             self.type_combo.selectAllOptions()
@@ -334,7 +371,7 @@ class TypeFilterWidget(QWidget):
             self._suppress_type_emit = False
         self._sync_groups_to_types()
         self._sync_all_checkbox_state()
-        self._emit_selection_change()
+        self._emit_selection_change(source="select_all_checkbox")
 
     def _sync_all_checkbox_state(self) -> None:
         total = 0

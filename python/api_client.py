@@ -49,6 +49,7 @@ class APIClient:
         if variables:
             sanitized_variables = requestBuilder.sanitize_for_json(variables)
             payload["variables"] = sanitized_variables
+        api_url = GraphQLSettings.graphql_endpoint()
        
 
         # Determine retry behavior.
@@ -80,7 +81,6 @@ class APIClient:
                     print("[DEBUG] No auth token available!")
 
             try:
-                api_url = GraphQLSettings.graphql_endpoint()
                 response = requests.post(api_url, json=payload, headers=headers, timeout=timeout)
 
                 if response.status_code in (401, 403):
