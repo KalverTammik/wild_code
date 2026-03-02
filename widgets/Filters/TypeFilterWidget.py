@@ -14,6 +14,7 @@ from ...utils.url_manager import ModuleSupports
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ...Logs.switch_logger import SwitchLogger
+from ..theme_manager import ThemeManager
 
 
 class TypeFilterWidget(QWidget):
@@ -56,6 +57,9 @@ class TypeFilterWidget(QWidget):
         self.type_combo = QgsCheckableComboBox(self)
         self.type_combo.setObjectName("TypeFilterCombo")
         layout.addWidget(self.type_combo)
+
+        ThemeManager.apply_checkable_combo_popup_style(self.group_combo)
+        ThemeManager.apply_checkable_combo_popup_style(self.type_combo)
 
         self.all_cb = SelectAllCheckBox(self)
         self.all_cb.setTristate(True)
@@ -244,6 +248,9 @@ class TypeFilterWidget(QWidget):
 
         for group_name in sorted(self._group_map.keys(), key=str.lower):
             self.group_combo.addItem(group_name, group_name)
+
+        ThemeManager.apply_checkable_combo_popup_style(self.group_combo)
+        ThemeManager.apply_checkable_combo_popup_style(self.type_combo)
 
         self.group_combo.setEnabled(True)
         self.type_combo.setEnabled(True)

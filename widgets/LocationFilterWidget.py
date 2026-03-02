@@ -14,6 +14,7 @@ from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.mapandproperties.PropertyUpdateFlowCoordinator import PropertyUpdateFlowCoordinator
 from ..Logs.python_fail_logger import PythonFailLogger
+from .theme_manager import ThemeManager
 
 
 class LocationFilterHelper(QObject):
@@ -204,6 +205,7 @@ class LocationFilterWidget(QFrame):
         self.city_combo.setMaxVisibleItems(12)
         self.city_combo.setPlaceholderText(self.lang_manager.translate(TranslationKeys.SELECT_SETTLEMENTS))
         self.city_combo.setEnabled(False)
+        ThemeManager.apply_checkable_combo_popup_style(self.city_combo)
         city_layout.addWidget(self.city_combo)
         location_layout.addLayout(city_layout)
 

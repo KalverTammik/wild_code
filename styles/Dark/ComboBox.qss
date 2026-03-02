@@ -43,6 +43,54 @@ QComboBox:disabled {
     border: 1px dashed rgba(120,120,130,0.50);
 }
 
+/* ---------------------- Tagged QgsCheckableComboBox control ---------------------- */
+QComboBox[kavitroCheckableCombo="true"] {
+    background: transparent;
+    color: #c5c5d2;
+    border: 1px solid #4d4d4d;
+    border-radius: 6px;
+    padding: 2px 8px;
+    padding-right: 28px;
+    min-height: 20px;
+}
+QComboBox[kavitroCheckableCombo="true"]:hover {
+    background: #2e2f38;
+    border-color: #1f5d5c;
+}
+QComboBox[kavitroCheckableCombo="true"]:focus,
+QComboBox[kavitroCheckableCombo="true"]:pressed,
+QComboBox[kavitroCheckableCombo="true"]:on {
+    background: #2e2f38;
+    border-color: #1f5d5c;
+}
+QComboBox[kavitroCheckableCombo="true"]:disabled {
+    background: #24252e;
+    color: rgba(170,170,180,0.55);
+    border: 1px dashed rgba(120,120,130,0.50);
+}
+QComboBox[kavitroCheckableCombo="true"]::drop-down {
+    width: 20px;
+    border-left: 1px solid #4d4d4d;
+    background: #303a42;
+    margin: 0;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+QComboBox[kavitroCheckableCombo="true"]:hover::drop-down,
+QComboBox[kavitroCheckableCombo="true"]:focus::drop-down {
+    background: #2e2f38;
+    border-left-color: #1f5d5c;
+}
+QComboBox[kavitroCheckableCombo="true"]:pressed::drop-down,
+QComboBox[kavitroCheckableCombo="true"]:on::drop-down {
+    background: #3a3f4b;
+    border-left-color: #1f5d5c;
+}
+QComboBox[kavitroCheckableCombo="true"]:disabled::drop-down {
+    background: #24252e;
+    border-left-color: rgba(120,120,130,0.50);
+}
+
 /* -------------------- Drop-down subcontrol -------------------- */
 /* keep this filled so the arrow strip never looks black */
 QComboBox::drop-down {
@@ -150,18 +198,77 @@ QComboBox {
 
 /* ---------------------- Multi-select popup checkbox (QgsSelectableComboBox) ---------------------- */
 QComboBox QAbstractItemView::indicator {
-    width: 14px; height: 14px;
+    width: 12px; height: 12px;
     margin: 0 6px 0 0;                 /* small gap before text */
     border: 1px solid #4d4d4d;
     border-radius: 3px;
     background: #303a42;
 }
 QComboBox QAbstractItemView::indicator:checked {
-    background: rgb(9,144,143);
+    background: #303a42;
     border-color: rgb(9,144,143);
+    border-image: url(check.png);
 }
 QComboBox QAbstractItemView::indicator:unchecked {
     background: #303a42;
+}
+
+/* ---------------------- Tagged QgsCheckableComboBox popup view ---------------------- */
+QAbstractItemView[kavitroCheckablePopup="true"],
+QListView[kavitroCheckablePopup="true"],
+QTreeView[kavitroCheckablePopup="true"] {
+    background: #2e2f38;
+    color: #c5c5d2;
+    border: 1px solid #1f5d5c;
+    border-radius: 3px;
+    padding: 1px;
+    outline: none;
+}
+QAbstractItemView[kavitroCheckablePopup="true"]::item,
+QListView[kavitroCheckablePopup="true"]::item,
+QTreeView[kavitroCheckablePopup="true"]::item {
+    height: 20px;
+    padding: 2px 6px;
+    margin: 0;
+    border-radius: 3px;
+}
+QAbstractItemView[kavitroCheckablePopup="true"]::item:selected,
+QListView[kavitroCheckablePopup="true"]::item:selected,
+QTreeView[kavitroCheckablePopup="true"]::item:selected {
+    background: rgb(9,144,143);
+    color: #ffffff;
+}
+QAbstractItemView[kavitroCheckablePopup="true"]::item:hover,
+QListView[kavitroCheckablePopup="true"]::item:hover,
+QTreeView[kavitroCheckablePopup="true"]::item:hover {
+    background: #3a3f4b;
+    color: #ffffff;
+}
+QAbstractItemView[kavitroCheckablePopup="true"]::indicator,
+QListView[kavitroCheckablePopup="true"]::indicator,
+QTreeView[kavitroCheckablePopup="true"]::indicator {
+    width: 12px;
+    height: 12px;
+    margin: 0 6px 0 0;
+    border: 1px solid #4d4d4d;
+    border-radius: 3px;
+    background: #303a42;
+    border-image: none;
+}
+QAbstractItemView[kavitroCheckablePopup="true"]::indicator:checked,
+QListView[kavitroCheckablePopup="true"]::indicator:checked,
+QTreeView[kavitroCheckablePopup="true"]::indicator:checked {
+    background: #303a42;
+    border-color: rgb(9,144,143);
+    border-image: url(check.png);
+}
+QAbstractItemView[kavitroCheckablePopup="true"]::indicator:unchecked,
+QListView[kavitroCheckablePopup="true"]::indicator:unchecked,
+QTreeView[kavitroCheckablePopup="true"]::indicator:unchecked,
+QAbstractItemView[kavitroCheckablePopup="true"]::indicator:indeterminate,
+QListView[kavitroCheckablePopup="true"]::indicator:indeterminate,
+QTreeView[kavitroCheckablePopup="true"]::indicator:indeterminate {
+    border-image: none;
 }
 
 /* ---------- Select-all checkbox base (only) ---------- */
@@ -173,7 +280,6 @@ QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator {
     border-radius: 4px;
 
     /* hard reset against QGIS theme */
-    image: none;
     border-image: none;
 
     background-color: #0f1419;
@@ -198,7 +304,6 @@ QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:indeterminate,
 QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:hover,
 QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:pressed,
 QCheckBox#SelectAllCheckbox[variant="type-filter"]::indicator:disabled {
-    image: none;
     border-image: none;
 }
 

@@ -13,6 +13,7 @@ from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ...Logs.switch_logger import SwitchLogger
+from ..theme_manager import ThemeManager
 
 
 class BaseSingleFilterWidget(QWidget):
@@ -55,6 +56,8 @@ class BaseSingleFilterWidget(QWidget):
         self.combo.setObjectName(object_name)
         self.combo.setMaxVisibleItems(12)
         layout.addWidget(self.combo)
+
+        ThemeManager.apply_checkable_combo_popup_style(self.combo)
 
         self.all_cb = SelectAllCheckBox(self)
         self.all_cb.setTristate(True)
@@ -170,6 +173,7 @@ class BaseSingleFilterWidget(QWidget):
         self.combo.clear()
         for label, value in payload:
             self.combo.addItem(label, value)
+        ThemeManager.apply_checkable_combo_popup_style(self.combo)
         self.combo.setEnabled(True)
         self._loaded = True
         self.all_cb.setEnabled(True)

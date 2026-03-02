@@ -5,6 +5,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIcon
 from qgis.core import QgsSettings
 import os
+import re
 from PyQt5.QtGui import QColor
 from enum import Enum
 from ..constants.file_paths import StylePaths, QssPaths
@@ -161,6 +162,32 @@ class ThemeManager(QObject):
         return ThemeManager._retheme_engine
 
     @staticmethod
+    def _resolve_qss_urls(css: str, qss_dir: str) -> str:
+        if not css:
+            return css
+
+        def _replace(match: re.Match) -> str:
+            raw = (match.group(1) or "").strip().strip('"\'')
+            if not raw:
+                return match.group(0)
+
+            lower = raw.lower()
+            if (
+                raw.startswith(":")
+                or lower.startswith("qrc:")
+                or lower.startswith("http://")
+                or lower.startswith("https://")
+                or lower.startswith("file://")
+                or os.path.isabs(raw)
+            ):
+                return f"url({raw})"
+
+            absolute = os.path.abspath(os.path.join(qss_dir, raw)).replace("\\", "/")
+            return f"url({absolute})"
+
+        return re.sub(r"url\(([^)]+)\)", _replace, css)
+
+    @staticmethod
     @lru_cache(maxsize=64)
     def _read_qss(theme_dir: str, qss_files_tuple: tuple) -> str:
         css = ""
@@ -168,7 +195,9 @@ class ThemeManager(QObject):
             qss_path = os.path.join(theme_dir, qss_file)
             if os.path.exists(qss_path):
                 with open(qss_path, "r", encoding="utf-8") as fh:
-                    css += fh.read() + "\n"
+                    qss_text = fh.read()
+                    qss_text = ThemeManager._resolve_qss_urls(qss_text, os.path.dirname(qss_path))
+                    css += qss_text + "\n"
         return css
 
     @staticmethod
@@ -187,6 +216,27 @@ class ThemeManager(QObject):
                 module="ui",
                 event="theme_apply_failed",
             )
+
+    @staticmethod
+    def apply_checkable_combo_popup_style(combo) -> None:
+        if combo is None:
+            return
+
+        combo.setProperty("kavitroCheckableCombo", True)
+
+        view = combo.view() if hasattr(combo, "view") else None
+        if view is None:
+            return
+
+        view.setProperty("kavitroCheckablePopup", True)
+        viewport = view.viewport() if hasattr(view, "viewport") else None
+        if viewport is not None:
+            viewport.setProperty("kavitroCheckablePopup", True)
+
+        theme = ThemeManager.effective_theme()
+        theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
+        ThemeManager.apply_theme(combo, theme_dir, [QssPaths.COMBOBOX])
+        ThemeManager.apply_theme(view, theme_dir, [QssPaths.COMBOBOX])
 
     @staticmethod
     def apply_module_style(widget, qss_files=None):
