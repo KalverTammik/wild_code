@@ -18,6 +18,7 @@ from ...utils.messagesHelper import ModernMessageDialog
 from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.mixins.token_mixin import TokenMixin
+from ...module_manager import ModuleManager
 
 
 
@@ -196,6 +197,17 @@ class SettingsModule(TokenMixin, QWidget):
         subjects = UserUtils.abilities_to_subjects(abilities)
 
         access_map = self.logic.get_module_access_from_abilities(subjects)
+
+        # Ensure task-backed frontend modules always have settings cards when registered.
+        forced_setting_modules = [
+            Module.WORKS.value.capitalize(),
+            Module.ASBUILT.value.capitalize(),
+        ]
+        module_manager = ModuleManager()
+        for module_name in forced_setting_modules:
+            if module_name.lower() in module_manager.modules:
+                access_map[module_name] = True
+
         self._user_card.build_and_set_access_controls(access_map)
 
         self.update_permissions = self.logic.get_module_update_permissions(subjects)

@@ -48,10 +48,13 @@ class ModuleConfigFactory:
         """Create configuration based on module type."""
         if module_type == Module.PROJECT.value:
             return ModuleConfigFactory._create_project_config(item_id, lang_manager=lang_manager)
-        elif module_type == Module.CONTRACT.value:
+        if module_type == Module.CONTRACT.value:
             return ModuleConfigFactory._create_contract_config(item_id, lang_manager=lang_manager)
-        else:
-            return ModuleConfigFactory._create_contract_config(item_id, lang_manager=lang_manager)
+        if module_type == Module.WORKS.value:
+            return ModuleConfigFactory._create_works_config(item_id, lang_manager=lang_manager)
+        if module_type == Module.ASBUILT.value:
+            return ModuleConfigFactory._create_asbuilt_config(item_id, lang_manager=lang_manager)
+        return ModuleConfigFactory._create_contract_config(item_id, lang_manager=lang_manager)
 
     @staticmethod
     def _create_project_config(
@@ -134,5 +137,43 @@ class ModuleConfigFactory:
             lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_DETAIL_CONTENT)
         )
 
+        return config
+
+    @staticmethod
+    def _create_works_config(
+        item_id: Dict[str, Any],
+        *,
+        lang_manager: Optional[LanguageManager] = None,
+    ) -> ModuleConfig:
+        """Create configuration for works modules."""
+        lm = lang_manager or LanguageManager()
+        config = ModuleConfig(
+            Module.WORKS.value,
+            title=lm.translate(
+                TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_OVERVIEW_TITLE,
+            ),
+        )
+        config.set_detailed_content(
+            lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_DETAIL_CONTENT)
+        )
+        return config
+
+    @staticmethod
+    def _create_asbuilt_config(
+        item_id: Dict[str, Any],
+        *,
+        lang_manager: Optional[LanguageManager] = None,
+    ) -> ModuleConfig:
+        """Create configuration for asbuilt modules."""
+        lm = lang_manager or LanguageManager()
+        config = ModuleConfig(
+            Module.ASBUILT.value,
+            title=lm.translate(
+                TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_OVERVIEW_TITLE,
+            ),
+        )
+        config.set_detailed_content(
+            lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_DETAIL_CONTENT)
+        )
         return config
 

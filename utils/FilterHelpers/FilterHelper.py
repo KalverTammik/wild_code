@@ -25,6 +25,8 @@ class FilterHelper:
 
         if module == Module.PROPERTY.name.lower():
             module_value = "PROPERTIES"
+        elif module in (Module.WORKS.value, Module.ASBUILT.value):
+            module_value = "TASKS"
         else:
             module_value = str(module).upper() + "S"
 

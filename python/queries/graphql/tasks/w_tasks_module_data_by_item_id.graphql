@@ -1,0 +1,33 @@
+query task($id: ID!) {
+  task(id: $id) {
+    __typename
+    id
+    name: title
+    startAt
+    dueAt
+    createdAt
+    updatedAt
+    members {
+      edges {
+        node {
+          id
+          displayName
+          deletedAt
+        }
+        isResponsible
+      }
+    }
+    status {
+      id
+      name
+      color
+      type
+    }
+    type {
+      id
+      name
+    }
+    priority
+    description
+  }
+}

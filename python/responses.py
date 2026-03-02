@@ -22,6 +22,7 @@ class GqlKeys:
     # domain roots
     TAGS = "tags"
     STATUS = "status"
+    TYPE = "type"
     MEMBERS = "members"
     CONTACTS = "contacts"
     PROPERTIES = "properties"
@@ -55,6 +56,12 @@ class DatesInfo:
     due_at: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class TypeInfo:
+    name: str = "-"
+    color: str = "808080"
 
 
 class DataDisplayExtractors:
@@ -108,6 +115,40 @@ class DataDisplayExtractors:
         name = status.get(GqlKeys.NAME) or "-"
         color = status.get(GqlKeys.COLOR) or "cccccc"
         return StatusInfo(str(name), str(color))
+
+    @staticmethod
+    def extract_type(item_data: Optional[Json]) -> TypeInfo:
+        if not isinstance(item_data, Mapping):
+            return TypeInfo()
+        raw_type = item_data.get(GqlKeys.TYPE)
+        type_data = DataDisplayExtractors._as_dict(raw_type)
+
+        name = (
+            type_data.get(GqlKeys.NAME)
+            or type_data.get(GqlKeys.DISPLAY_NAME)
+            or type_data.get("label")
+            or type_data.get("title")
+        )
+        if not name and isinstance(type_data.get(GqlKeys.NODE), Mapping):
+            node_data = DataDisplayExtractors._as_dict(type_data.get(GqlKeys.NODE))
+            name = node_data.get(GqlKeys.NAME) or node_data.get(GqlKeys.DISPLAY_NAME)
+        if not name and isinstance(type_data.get(GqlKeys.EDGES), list):
+            edges = type_data.get(GqlKeys.EDGES) or []
+            if edges:
+                first_edge = DataDisplayExtractors._as_dict(edges[0])
+                node_data = DataDisplayExtractors._as_dict(first_edge.get(GqlKeys.NODE))
+                name = node_data.get(GqlKeys.NAME) or node_data.get(GqlKeys.DISPLAY_NAME)
+        if not name and isinstance(raw_type, str):
+            name = raw_type
+        if not name:
+            name = item_data.get("typeName")
+        if not name:
+            status_data = DataDisplayExtractors._as_dict(item_data.get(GqlKeys.STATUS))
+            name = status_data.get(GqlKeys.TYPE)
+
+        resolved_name = str(name).strip() if isinstance(name, str) else ""
+        color = type_data.get(GqlKeys.COLOR) or "808080"
+        return TypeInfo(resolved_name or "-", str(color))
 
     @staticmethod
     def extract_members(item_data: Optional[Json]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:

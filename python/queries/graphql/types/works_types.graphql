@@ -1,0 +1,16 @@
+query worksTypes($first: Int, $after: String) {
+  worksTypes: taskTypes(first: $first, after: $after) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      currentPage
+      total
+    }
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+}

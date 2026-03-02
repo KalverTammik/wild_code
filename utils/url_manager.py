@@ -17,7 +17,7 @@ class Module(Enum):
     ORDINANCE = "ordinance"
     SUBMISSION = "submission"
 
-    ASBUILT = "task"
+    ASBUILT = "asbuilt"
     WORKS = "works"
     TASK = "task"
 
@@ -82,5 +82,7 @@ class OpenLink:
     @staticmethod
     def weblink_by_module(module_path: str) -> str:
         base = (OpenLink().main or "").rstrip("/")
-        suffix = (module_path or "").lstrip("/")
+        suffix = (module_path or "").lstrip("/").lower()
+        if suffix in (Module.WORKS.value, Module.ASBUILT.value):
+            suffix = Module.TASK.value
         return f"{base}/{suffix}" if base and suffix else ""

@@ -28,6 +28,8 @@ TRANSLATIONS = {
         TranslationKeys.DATA_DISPLAY_WIDGETS_OVERVIEW_TITLE: "Activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE: "Project activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_OVERVIEW_TITLE: "Contract activity overview",
+        TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_OVERVIEW_TITLE: "Works activity overview",
+        TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_OVERVIEW_TITLE: "As-built activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE: "Done",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_IN_PROGRESS: "In progress",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_TODO: "To do",
@@ -78,10 +80,20 @@ TRANSLATIONS = {
         <li><b>Pending:</b> Awaiting signatures or completion</li>
         </ul>
         """,
+        TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_DETAIL_CONTENT: """
+        <h3>Works Detailed Overview</h3>
+        <p>Task execution and field delivery overview.</p>
+        """,
+        TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_DETAIL_CONTENT: """
+        <h3>As-built Detailed Overview</h3>
+        <p>As-built documentation and validation overview.</p>
+        """,
         TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP: "Help",
         TranslationKeys.NO_PROJECTS_FOUND: "No projects found",
         TranslationKeys.NO_CONTRACTS_FOUND: "No contracts found",
         TranslationKeys.NO_COORDINATIONS_FOUND: "No coordinations found",
+        TranslationKeys.NO_WORKS_FOUND: "No works found",
+        TranslationKeys.NO_ASBUILT_FOUND: "No as-built items found",
         TranslationKeys.NO_VALUES_FOUND: "No values found!",
         TranslationKeys.LOADING: "Loading…",
         TranslationKeys.CLEAR_VALUE: "Clear value",

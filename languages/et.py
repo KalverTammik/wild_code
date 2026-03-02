@@ -28,6 +28,8 @@ TRANSLATIONS = {
         TranslationKeys.DATA_DISPLAY_WIDGETS_OVERVIEW_TITLE: "Tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE: "Projekti tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_OVERVIEW_TITLE: "Lepingu tegevuste ülevaade",
+        TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_OVERVIEW_TITLE: "Tööde tegevuste ülevaade",
+        TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_OVERVIEW_TITLE: "Teostusjooniste tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE: "Tehtud",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_IN_PROGRESS: "Töös",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_TODO: "Tegemata",
@@ -78,10 +80,20 @@ TRANSLATIONS = {
         <li><b>Ootel:</b> Awaiting signatures or completion</li>
         </ul>
         """,
+        TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_DETAIL_CONTENT: """
+        <h3>Tööde Detailne Ülevaade</h3>
+        <p>Ülesannete täitmise ja välitööde ülevaade.</p>
+        """,
+        TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_DETAIL_CONTENT: """
+        <h3>Teostusjooniste Detailne Ülevaade</h3>
+        <p>Teostusandmete dokumenteerimise ja valideerimise ülevaade.</p>
+        """,
         TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP: "Abi",
         TranslationKeys.NO_PROJECTS_FOUND: "Projekte ei leitud",
         TranslationKeys.NO_CONTRACTS_FOUND: "Lepinguid ei leitud",
         TranslationKeys.NO_COORDINATIONS_FOUND: "Kooskõlastusi ei leitud",
+        TranslationKeys.NO_WORKS_FOUND: "Töid ei leitud",
+        TranslationKeys.NO_ASBUILT_FOUND: "Teostusjooniseid ei leitud",
         TranslationKeys.NO_VALUES_FOUND: "Väärtusi ei leitud!",
         TranslationKeys.LOADING: "Laadimine…",
         TranslationKeys.CLEAR_VALUE: "Tühjenda väärtus",

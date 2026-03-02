@@ -1,0 +1,47 @@
+query tasks(
+  $first: Int
+  $after: String
+  $where: QueryTasksWhereWhereConditions
+) {
+  tasks(first: $first, after: $after, where: $where) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        __typename
+        id
+        name: title
+        startAt
+        dueAt
+        createdAt
+        updatedAt
+        members {
+          edges {
+            node {
+              id
+              displayName
+              deletedAt
+            }
+            isResponsible
+          }
+        }
+        status {
+          id
+          name
+          color
+          type
+        }
+        type {
+          id
+          name
+        }
+        priority
+        description
+      }
+    }
+  }
+}

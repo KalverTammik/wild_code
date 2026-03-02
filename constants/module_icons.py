@@ -61,6 +61,8 @@ class ModuleIconPaths:
         Module.PROPERTY.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROPERTY),
         Module.SIGNALTEST.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_SIGNAL_TEST),
         Module.COORDINATION.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_COORDINATION),
+        Module.WORKS.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROJECTS),
+        Module.ASBUILT.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROJECTS),
     }
 
     @staticmethod

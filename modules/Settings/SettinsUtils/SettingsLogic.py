@@ -17,6 +17,8 @@ SUBJECT_TO_MODULE = {
     Module.CONTRACT.value.capitalize(): Module.CONTRACT.value.capitalize(),
     Module.PROPERTY.value.capitalize(): Module.PROPERTY.value.capitalize(),
     Module.COORDINATION.value.capitalize(): Module.COORDINATION.value.capitalize(),
+    Module.WORKS.value.capitalize(): Module.WORKS.value.capitalize(),
+    Module.ASBUILT.value.capitalize(): Module.ASBUILT.value.capitalize(),
 }
 
 class SettingsLogic:

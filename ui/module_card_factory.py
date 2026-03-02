@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..utils.url_manager import Module
+
 
 class ModuleCardFactory:
     @staticmethod
@@ -52,7 +54,7 @@ class ModuleCardFactory:
             raise ValueError("Module feed items must include an 'id' field")
         pos = 0
 
-        header_frame = InfocardHeaderFrame(item_data, lang_manager=lang_manager)
+        header_frame = InfocardHeaderFrame(item_data, module_name=module_name, lang_manager=lang_manager)
         header_row.addWidget(header_frame, 0, pos, Qt.AlignVCenter)
 
         pos_next = pos + 1
@@ -95,7 +97,9 @@ class ModuleCardFactory:
         if not contacts_widget.isHidden():
             cl.addWidget(contacts_widget, 0, Qt.AlignLeft)
 
-        cl.addWidget(ExtraInfoFrame(item_id, module_name, lang_manager=lang_manager))
+        show_extra_info = module_name not in (Module.WORKS.value, Module.ASBUILT.value)
+        if show_extra_info:
+            cl.addWidget(ExtraInfoFrame(item_id, module_name, lang_manager=lang_manager))
         main.addWidget(content, 1)
 
         ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])

@@ -29,6 +29,8 @@ class ModulesRegistry:
         from ..modules.projects.FolderNamingRuleDialog import FolderNamingRuleDialog
         from ..modules.contract.ContractUi import ContractsModule
         from ..modules.coordination.CoordinationModule import CoordinationModule
+        from ..modules.works.WorksUi import WorksModule
+        from ..modules.asbuilt.AsBuiltUi import AsBuiltModule
         from ..modules.signaltest.SignalTestModule import SignalTestModule
         from ..utils.url_manager import Module
         from .window_state.dialog_helpers import DialogHelpers
@@ -114,6 +116,24 @@ class ModulesRegistry:
             supports_statuses=True,
             supports_tags=True,
             supports_archive_layer=True,
+        )
+        module_manager.registerModule(
+            WorksModule,
+            Module.WORKS.name,
+            qss_files=qss_modular,
+            lang_manager=dialog.lang_manager,
+            supports_types=True,
+            supports_statuses=True,
+            supports_tags=False,
+        )
+        module_manager.registerModule(
+            AsBuiltModule,
+            Module.ASBUILT.name,
+            qss_files=qss_modular,
+            lang_manager=dialog.lang_manager,
+            supports_types=True,
+            supports_statuses=True,
+            supports_tags=False,
         )
         module_manager.registerModule(
             SignalTestModule,

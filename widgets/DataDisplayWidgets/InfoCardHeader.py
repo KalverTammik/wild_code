@@ -61,7 +61,7 @@ class ElidedLabel(QLabel):
 
 
 class InfocardHeaderFrame(QFrame):
-    def __init__(self, item_data, parent=None, lang_manager=None):
+    def __init__(self, item_data, module_name=None, parent=None, lang_manager=None):
         super().__init__(parent)
         
         self.setFrameShape(QFrame.NoFrame)
@@ -112,6 +112,10 @@ class InfocardHeaderFrame(QFrame):
         nameLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         nameRow.addWidget(nameLabel, 1, Qt.AlignVCenter)
 
+        type_badge = self._create_type_badge(item_data, module_name)
+        if type_badge is not None:
+            nameRow.addWidget(type_badge, 0, Qt.AlignVCenter)
+
         tags = DataDisplayExtractors.extract_tag_names(item_data)
         if tags:
             nameRow.addWidget(TagsWidget(tags), 0, Qt.AlignVCenter)
@@ -150,3 +154,17 @@ class InfocardHeaderFrame(QFrame):
         badge.ensurePolished()
         text_width = badge.fontMetrics().horizontalAdvance(badge.text())
         badge.setFixedWidth(max(24, text_width + 18))
+
+    def _create_type_badge(self, item_data, module_name=None):
+        type_info = DataDisplayExtractors.extract_type(item_data)
+        name = (type_info.name or "").strip() or "-"
+        if name == "-":
+            return None
+
+        badge = QLabel(name)
+        badge.setObjectName("TypeInlineLabel")
+        badge.setAlignment(Qt.AlignCenter)
+        badge.setToolTip(name)
+        width = badge.fontMetrics().horizontalAdvance(name)
+        badge.setFixedWidth(max(56, min(200, width + 16)))
+        return badge

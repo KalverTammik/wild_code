@@ -1,0 +1,16 @@
+query asbuiltTypes($first: Int, $after: String) {
+  asbuiltTypes: taskTypes(first: $first, after: $after) {
+    pageInfo {
+      hasNextPage
+      endCursor
+      currentPage
+      total
+    }
+    edges {
+      node {
+        id
+        name
+      }
+    }
+  }
+}
