@@ -3,11 +3,17 @@
    Follows the established light theme palette
    ========================================================= */
 
-ProgressDialogModern {
+QDialog#ProgressDialogModern {
     background: #f6f7f8;
     color: #24292e;
     border: 1px solid #e1e4e8;
     border-radius: 8px;
+}
+
+QDialog#ProgressDialogModern QSizeGrip {
+    width: 14px;
+    height: 14px;
+    background: transparent;
 }
 
 #ProgressTitleFrame {

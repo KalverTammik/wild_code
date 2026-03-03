@@ -26,8 +26,7 @@ from ..constants.file_paths import QmlPaths
 
 from ..constants.layer_constants import DEFAULT_CRS, GEOPACKAGE_EXTENSION, GEOPACKAGE_DRIVER
 # Prefer module-level imports for clarity. Kept here to avoid accidental circular imports when possible.
-from ..utils.UniversalStatusBar import UniversalStatusBar
-from ..widgets.theme_manager import ThemeManager
+from ..widgets.ProgressDialogModern import ProgressDialogModern
 from ..utils.messagesHelper import ModernMessageDialog
 
 # Global layer engine instance
@@ -569,7 +568,7 @@ class LayerCreationEngine:
         parent_widget: Optional['QWidget'] = None,
         batch_size: Optional[int] = None,
         progress_update_interval: Optional[int] = None,
-    ) -> Optional[str]:
+    ) -> Optional[QgsVectorLayer]:
         """
         Import Shapefile data to a new memory layer with optimized batch processing.
 
@@ -580,7 +579,7 @@ class LayerCreationEngine:
             parent_widget: Optional parent widget for progress dialog
 
         Returns:
-            Optional[str]: Name of created layer or None if failed
+            Optional[QgsVectorLayer]: Created memory layer or None if failed
         """
         memory_layer_name = f"{layer_name}_memory"
 
@@ -618,16 +617,17 @@ class LayerCreationEngine:
         if total_features == 0:
             # No features to import, just finalize
             memory_layer.updateExtents()
-            return memory_layer_name
+            return memory_layer
 
         # Create progress dialog
         progress = None
         progress_title = "Importing Shapefile" 
-        progress = UniversalStatusBar(
+        progress = ProgressDialogModern(
             title=progress_title,
             maximum=total_features,
-            theme=ThemeManager.load_theme_setting()
+            parent=parent_widget,
         )
+        progress.show()
         print("[LayerCreationEngine] Progress dialog created")
         # Get data provider for batch operations
         provider = memory_layer.dataProvider()
@@ -728,7 +728,7 @@ class LayerCreationEngine:
                 except Exception as e:
                     print(f"Warning: Failed to restore undo stack: {e}")
 
-            return memory_layer_name
+            return memory_layer
 
         except Exception as e:
             print(f"Unexpected error during Shapefile import: {e}")

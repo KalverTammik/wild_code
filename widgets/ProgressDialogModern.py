@@ -42,6 +42,7 @@ class ProgressDialogModern(QDialog):
             parent: Parent widget
         """
         super().__init__(parent)
+        self.setObjectName("ProgressDialogModern")
         self.lang_manager = LanguageManager()
         self.maximum = maximum
         self.current_value = 0
@@ -53,7 +54,13 @@ class ProgressDialogModern(QDialog):
         self.setWindowTitle(title)
         # Allow resizing - remove fixed size
         self.setMinimumSize(400, 250)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+
+        # Keep native title bar/chrome visible and remove only help button.
+        flags = self.windowFlags() | Qt.Window | Qt.WindowTitleHint | Qt.WindowSystemMenuHint
+        flags &= ~Qt.WindowContextHelpButtonHint
+        flags &= ~Qt.FramelessWindowHint
+        self.setWindowFlags(flags)
+        self.setSizeGripEnabled(True)
 
         # Delete on close for memory management
         self.setAttribute(Qt.WA_DeleteOnClose)

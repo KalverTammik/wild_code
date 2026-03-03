@@ -286,7 +286,7 @@ class PropertyManagementUI(SettingsBaseCard):
         shp_exists = shp_layer is not None
 
         # 2) Compute state using helper
-        shp_feature_count = self._get_shp_feature_count_cached(shp_layer) if (main_exists and shp_exists) else 0
+        shp_feature_count = self._get_shp_feature_count_cached(shp_layer) if shp_exists else 0
 
         shp_en, add_en, rem_en = LayerChecker.compute_property_button_states(
             main_exists,
@@ -392,10 +392,10 @@ class LayerChecker:
         """
         # Base rule:
         # - SHP import button: always enabled (user can always try to import)
-        # - Add property: only if BOTH main layer and shp layer exist
+        # - Add property: enabled once SHP import layer exists and has features
         # - Remove property: only if main layer exists
         shp_enabled = True
-        add_prop_enabled = main_layer_exists and shp_layer_exists and (shp_feature_count > 0)
+        add_prop_enabled = shp_layer_exists and (shp_feature_count > 0)
         remove_prop_enabled = main_layer_exists
 
         return shp_enabled, add_prop_enabled, remove_prop_enabled
