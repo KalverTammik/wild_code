@@ -386,8 +386,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         if self.scroll_area is not None:
             self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
-        QTimer.singleShot(0, self._initial_autofill_tick)
-        QTimer.singleShot(0, self._update_counter_snapshot)
+        self._initial_autofill_tick()
+        self._update_counter_snapshot()
 
         if retheme_func:
             retheme_func()

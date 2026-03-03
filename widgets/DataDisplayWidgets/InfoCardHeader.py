@@ -7,6 +7,7 @@ from ...widgets.theme_manager import ThemeManager
 from ...constants.module_icons import MiscIcons
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...module_manager import ModuleManager
 from ...python.responses import DataDisplayExtractors
 from .TagsWidget import TagsWidget
 
@@ -37,6 +38,11 @@ class ElidedLabel(QLabel):
         self._schedule_elide()
 
     def _schedule_elide(self):
+        if self._is_eliding:
+            return
+        if self.width() > 0:
+            self._elide()
+            return
         if self._pending_elide:
             return
         self._pending_elide = True
@@ -70,6 +76,9 @@ class InfocardHeaderFrame(QFrame):
         self.setMinimumHeight(0)
         self._lang = lang_manager or LanguageManager()
         self._number_badge = None
+        self._name_label = None
+        self._client_label = None
+        self._type_badge = None
 
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -111,41 +120,48 @@ class InfocardHeaderFrame(QFrame):
         nameLabel.setMinimumWidth(0)
         nameLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         nameRow.addWidget(nameLabel, 1, Qt.AlignVCenter)
-
-        type_badge = self._create_type_badge(item_data, module_name)
-        if type_badge is not None:
-            nameRow.addWidget(type_badge, 0, Qt.AlignVCenter)
+        self._name_label = nameLabel
 
         tags = DataDisplayExtractors.extract_tag_names(item_data)
         if tags:
             nameRow.addWidget(TagsWidget(tags), 0, Qt.AlignVCenter)
         leftL.addLayout(nameRow)
 
-        # Client row (optional)
+        type_badge = self._create_type_badge(item_data, module_name)
+        self._type_badge = type_badge
         client = DataDisplayExtractors.extract_client_display_name(item_data)
-        if client:
-            clientRow = QHBoxLayout()
-            clientRow.setContentsMargins(0,0,0,0)
-            icon = ThemeManager.get_qicon(MiscIcons.ICON_IS_CLIENT)
-            clientRow.setSpacing(6) 
-            clientIcon = QLabel()
-            clientIcon.setPixmap(icon.pixmap(12, 12))
-            clientIcon.setObjectName("ClientIcon")
-            clientRow.addWidget(clientIcon, 0, Qt.AlignVCenter)
+        if type_badge is not None or client:
+            metaRow = QHBoxLayout()
+            metaRow.setContentsMargins(0, 0, 0, 0)
+            metaRow.setSpacing(6)
 
-            clientLabel = QLabel(client) 
-            clientLabel.setObjectName("ProjectClientLabel")  
-            clientRow.addWidget(clientLabel, 1, Qt.AlignVCenter)
+            if type_badge is not None:
+                metaRow.addWidget(type_badge, 0, Qt.AlignLeft | Qt.AlignVCenter)
 
-            leftL.addLayout(clientRow)
+            if client:
+                icon = ThemeManager.get_qicon(MiscIcons.ICON_IS_CLIENT)
+                clientIcon = QLabel()
+                clientIcon.setPixmap(icon.pixmap(12, 12))
+                clientIcon.setObjectName("ClientIcon")
+                metaRow.addWidget(clientIcon, 0, Qt.AlignVCenter)
+
+                clientLabel = ElidedLabel(client)
+                clientLabel.setObjectName("ProjectClientLabel")
+                clientLabel.setMinimumWidth(0)
+                clientLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+                metaRow.addWidget(clientLabel, 1, Qt.AlignVCenter)
+                self._client_label = clientLabel
+            leftL.addLayout(metaRow)
 
         root.addWidget(left, 1, Qt.AlignVCenter)
-        QTimer.singleShot(0, self._sync_number_badge_width)
+        self._sync_number_badge_width()
+        self._sync_vertical_metrics()
 
     def changeEvent(self, event):
         super().changeEvent(event)
         if event.type() in (QEvent.StyleChange, QEvent.FontChange):
-            QTimer.singleShot(0, self._sync_number_badge_width)
+            self._sync_number_badge_width()
+            self._sync_vertical_metrics()
 
     def _sync_number_badge_width(self):
         badge = self._number_badge
@@ -155,16 +171,37 @@ class InfocardHeaderFrame(QFrame):
         text_width = badge.fontMetrics().horizontalAdvance(badge.text())
         badge.setFixedWidth(max(24, text_width + 18))
 
+    def _sync_vertical_metrics(self):
+        if self._name_label is not None:
+            name_h = max(16, self._name_label.fontMetrics().height() + 3)
+            self._name_label.setMinimumHeight(name_h)
+        if self._client_label is not None:
+            client_h = max(14, self._client_label.fontMetrics().height() + 2)
+            self._client_label.setMinimumHeight(client_h)
+        if self._type_badge is not None:
+            chip_h = max(16, self._type_badge.fontMetrics().height() + 5)
+            self._type_badge.setFixedHeight(chip_h)
+
     def _create_type_badge(self, item_data, module_name=None):
+        supports_types = False
+        module_key = (module_name or "").strip().lower()
+        if module_key in ("task", "tasks"):
+            supports_types = True
+        elif module_key:
+            supports = ModuleManager().getModuleSupports(module_key)
+            if supports:
+                supports_types = bool(supports[0])
+
         type_info = DataDisplayExtractors.extract_type(item_data)
         name = (type_info.name or "").strip() or "-"
-        if name == "-":
+        if name == "-" and not supports_types:
             return None
 
-        badge = QLabel(name)
+        badge = ElidedLabel(name)
         badge.setObjectName("TypeInlineLabel")
         badge.setAlignment(Qt.AlignCenter)
         badge.setToolTip(name)
-        width = badge.fontMetrics().horizontalAdvance(name)
-        badge.setFixedWidth(max(56, min(200, width + 16)))
+        badge.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        badge.setMinimumWidth(56)
+        badge.setMaximumWidth(160)
         return badge
