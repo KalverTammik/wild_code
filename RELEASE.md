@@ -57,3 +57,26 @@ Then install/update the plugin from the **Not installed** tab.
 
 - Make sure the version in `metadata.txt` matches the `version` attribute in `plugins.xml` (the script keeps them in sync).
 - If you rename the plugin folder, you must also publish zips using the new folder name, otherwise QGIS will treat it as a different plugin.
+
+## Publishing release notes to QGIS Plugin Manager
+
+QGIS shows plugin update notes from the `<changelog>` field in `plugins.xml`.
+The release script now supports writing this from your GitHub Release title/body.
+
+### Option A (recommended): pull from GitHub release tag
+
+Run after creating the GitHub release (requires `gh` CLI logged in):
+
+`C:/Users/Kalver/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins/kavitro/.venv/Scripts/python.exe tools/qgis_repo_release.py --out docs/qgis-repo --repo-path qgis-repo --release-tag v2.00.17`
+
+This reads release `name` + `body` and writes them into `plugins.xml` `<changelog>`.
+
+### Option B: pass title/notes explicitly
+
+`...python.exe tools/qgis_repo_release.py --out docs/qgis-repo --release-title "v2.00.17" --release-notes "Bug fixes and UI improvements"`
+
+### Option C: pass notes from file
+
+`...python.exe tools/qgis_repo_release.py --out docs/qgis-repo --release-title "v2.00.17" --release-notes-file release-notes.md`
+
+After running, commit and push updated `docs/qgis-repo/plugins.xml` so users see the notes in Plugin Manager.

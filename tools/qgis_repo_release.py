@@ -20,8 +20,10 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import json
 import os
 import re
+import subprocess
 import sys
 import zipfile
 from dataclasses import dataclass
@@ -46,6 +48,7 @@ class PluginMeta:
     experimental: str
     deprecated: str
     icon_path: Optional[str]
+    changelog: str
 
 
 _KEYVAL_RE = re.compile(r"^(?P<key>[A-Za-z0-9_]+)\s*(?:=|:)\s*(?P<val>.*)$")
@@ -232,6 +235,8 @@ def _write_plugins_xml(meta: PluginMeta, out_path: Path, download_url: str, file
     # Ensure these exist even if metadata omitted
     add("experimental", meta.experimental or "False")
     add("deprecated", meta.deprecated or "False")
+    if meta.changelog:
+        add("changelog", meta.changelog)
 
     # Optional build timestamp for humans
     add("create_date", _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%d"))
@@ -262,6 +267,7 @@ def _read_plugin_meta(plugin_root: Path) -> PluginMeta:
     experimental = meta.get("experimental", "False").strip()
     deprecated = meta.get("deprecated", "False").strip()
     icon_path = meta.get("icon", "").strip() or None
+    changelog = meta.get("changelog", "").strip()
 
     return PluginMeta(
         folder_name=plugin_root.name,
@@ -278,7 +284,37 @@ def _read_plugin_meta(plugin_root: Path) -> PluginMeta:
         experimental=experimental,
         deprecated=deprecated,
         icon_path=icon_path,
+        changelog=changelog,
     )
+
+
+def _fetch_github_release_notes(release_tag: str) -> Tuple[str, str]:
+    if not release_tag:
+        return "", ""
+
+    try:
+        completed = subprocess.run(
+            ["gh", "release", "view", release_tag, "--json", "name,body"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        payload = json.loads(completed.stdout or "{}")
+        title = str(payload.get("name") or "").strip()
+        body = str(payload.get("body") or "").strip()
+        return title, body
+    except Exception:
+        return "", ""
+
+
+def _compose_changelog(title: str, notes: str) -> str:
+    title_clean = (title or "").strip()
+    notes_clean = (notes or "").strip()
+    if title_clean and notes_clean:
+        return f"{title_clean}\n\n{notes_clean}"
+    if title_clean:
+        return title_clean
+    return notes_clean
 
 
 def _copy_repo_icon(plugin_root: Path, meta: PluginMeta, out_dir: Path, repo_icon_name: str) -> Optional[Path]:
@@ -315,6 +351,26 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         default=[],
         help="Directory prefix (relative to plugin root) to exclude from zip. Can be repeated.",
     )
+    parser.add_argument(
+        "--release-title",
+        default="",
+        help="Optional release title to place at the top of plugin changelog.",
+    )
+    parser.add_argument(
+        "--release-notes",
+        default="",
+        help="Optional release notes text to publish into plugin changelog.",
+    )
+    parser.add_argument(
+        "--release-notes-file",
+        default="",
+        help="Optional UTF-8 file path containing release notes text.",
+    )
+    parser.add_argument(
+        "--release-tag",
+        default="",
+        help="Optional Git tag (e.g. v2.00.17). If no notes are provided explicitly, title/body are fetched from GitHub release via gh CLI.",
+    )
 
     args = parser.parse_args(list(argv) if argv is not None else None)
 
@@ -322,6 +378,41 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     out_dir = Path(args.out).resolve()
 
     meta = _read_plugin_meta(plugin_root)
+
+    # Resolve changelog precedence: explicit args > notes file > GitHub release > metadata.txt changelog
+    release_title = (args.release_title or "").strip()
+    release_notes = (args.release_notes or "").strip()
+
+    notes_file = (args.release_notes_file or "").strip()
+    if notes_file:
+        notes_path = Path(notes_file).resolve()
+        if notes_path.exists() and notes_path.is_file():
+            release_notes = notes_path.read_text(encoding="utf-8", errors="replace").strip()
+
+    if not release_title and not release_notes and args.release_tag:
+        gh_title, gh_body = _fetch_github_release_notes(args.release_tag)
+        release_title = gh_title or release_title
+        release_notes = gh_body or release_notes
+
+    composed = _compose_changelog(release_title, release_notes)
+    if composed:
+        meta = PluginMeta(
+            folder_name=meta.folder_name,
+            name=meta.name,
+            description=meta.description,
+            about=meta.about,
+            version=meta.version,
+            qgis_minimum_version=meta.qgis_minimum_version,
+            homepage=meta.homepage,
+            author=meta.author,
+            email=meta.email,
+            tracker=meta.tracker,
+            repository=meta.repository,
+            experimental=meta.experimental,
+            deprecated=meta.deprecated,
+            icon_path=meta.icon_path,
+            changelog=composed,
+        )
 
     # Default exclusions: keep runtime code/resources, drop dev/runtime noise.
     exclude_dirs: Tuple[str, ...] = tuple(
