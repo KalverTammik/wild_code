@@ -137,14 +137,35 @@ jobs:
             --allow-uncommitted-changes
 
       - name: Build changelog-aware repository assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TITLE: ${{ github.event.release.name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
         shell: bash
         run: |
           TAG="${{ steps.release_values.outputs.release_tag }}"
+          NOTES_FILE="release_notes.md"
+
+          if [ -n "${RELEASE_BODY}" ]; then
+            printf '%s\n' "${RELEASE_BODY}" > "${NOTES_FILE}"
+          fi
+
+          RELEASE_TITLE_ARG=()
+          RELEASE_NOTES_ARG=()
+          if [ -n "${RELEASE_TITLE}" ]; then
+            RELEASE_TITLE_ARG=(--release-title "${RELEASE_TITLE}")
+          fi
+          if [ -s "${NOTES_FILE}" ]; then
+            RELEASE_NOTES_ARG=(--release-notes-file "${NOTES_FILE}")
+          fi
+
           python tools/qgis_repo_release.py \
             --plugin-dir kavitro_live \
             --out release_repo \
             --base-url "https://github.com/${{ github.repository }}/releases/download/${TAG}/" \
-            --release-tag "${TAG}"
+            --release-tag "${TAG}" \
+            "${RELEASE_TITLE_ARG[@]}" \
+            "${RELEASE_NOTES_ARG[@]}"
 
       - name: Upload repository assets to release
         env:
