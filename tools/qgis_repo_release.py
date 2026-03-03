@@ -395,6 +395,9 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         release_notes = gh_body or release_notes
 
     composed = _compose_changelog(release_title, release_notes)
+    if not composed and args.release_tag:
+        composed = args.release_tag.strip()
+
     if composed:
         meta = PluginMeta(
             folder_name=meta.folder_name,
