@@ -200,6 +200,28 @@ jobs:
             --github-token "${GITHUB_TOKEN}" \
             --create-plugin-repo \
             --allow-uncommitted-changes
+
+      - name: Build changelog-aware repository assets
+        shell: bash
+        run: |
+          TAG="${{ steps.release_values.outputs.release_tag }}"
+          python tools/qgis_repo_release.py \
+            --plugin-dir yourplugin_live \
+            --out release_repo \
+            --base-url "https://github.com/${{ github.repository }}/releases/download/${TAG}/" \
+            --release-tag "${TAG}"
+
+      - name: Upload repository assets to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG="${{ steps.release_values.outputs.release_tag }}"
+          gh release upload "${TAG}" \
+            release_repo/plugins.xml \
+            release_repo/*.zip \
+            release_repo/*.png \
+            --clobber
 ```
 
 ---
@@ -257,6 +279,7 @@ QGIS path:
 - LIVE released plugin shows no `[DEV]`
 - LIVE dialog shows `Config: config.json`
 - `releases/latest/download/plugins.xml` resolves and includes latest version
+- `plugins.xml` includes a `<changelog>` block containing GitHub release title + notes
 
 ---
 
