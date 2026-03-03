@@ -115,3 +115,7 @@ Thumbs.db
 
 # Ignore local DEV-only config
 config/config_dev.json
+
+# Local release test artifacts
+tmp_release_repo/
+tmp_prev_plugins.xml

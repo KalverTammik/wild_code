@@ -206,31 +206,65 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TITLE: ${{ github.event.release.name }}
           RELEASE_BODY: ${{ github.event.release.body }}
+          EVENT_NAME: ${{ github.event_name }}
         shell: bash
         run: |
           TAG="${{ steps.release_values.outputs.release_tag }}"
           NOTES_FILE="release_notes.md"
+          PREVIOUS_XML_FILE="previous_plugins.xml"
+
+          if [ -z "${RELEASE_TITLE}" ]; then
+            RELEASE_TITLE="${TAG}"
+          fi
+
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            API_PATH="repos/${{ github.repository }}/releases/tags/${TAG}"
+            API_TITLE="$(gh api "${API_PATH}" --jq '.name // .tag_name' 2>/dev/null || true)"
+            API_BODY="$(gh api "${API_PATH}" --jq '.body // ""' 2>/dev/null || true)"
+            if [ -n "${API_TITLE}" ]; then
+              RELEASE_TITLE="${API_TITLE}"
+            fi
+            if [ -n "${API_BODY}" ]; then
+              RELEASE_BODY="${API_BODY}"
+            fi
+          fi
 
           if [ -n "${RELEASE_BODY}" ]; then
             printf '%s\n' "${RELEASE_BODY}" > "${NOTES_FILE}"
           fi
 
-          RELEASE_TITLE_ARG=()
-          RELEASE_NOTES_ARG=()
-          if [ -n "${RELEASE_TITLE}" ]; then
-            RELEASE_TITLE_ARG=(--release-title "${RELEASE_TITLE}")
-          fi
-          if [ -s "${NOTES_FILE}" ]; then
-            RELEASE_NOTES_ARG=(--release-notes-file "${NOTES_FILE}")
+          PREV_TAG="$(gh api "repos/${{ github.repository }}/releases" --jq "[.[] | select(.tag_name != \"${TAG}\")][0].tag_name // \"\"" 2>/dev/null || true)"
+          if [ -n "${PREV_TAG}" ]; then
+            PREV_XML_URL="$(gh api "repos/${{ github.repository }}/releases/tags/${PREV_TAG}" --jq '.assets[] | select(.name=="plugins.xml") | .browser_download_url' 2>/dev/null || true)"
+            if [ -n "${PREV_XML_URL}" ]; then
+              curl -fsSL "${PREV_XML_URL}" -o "${PREVIOUS_XML_FILE}" || true
+            fi
           fi
 
-          python tools/qgis_repo_release.py \
-            --plugin-dir yourplugin_live \
-            --out release_repo \
-            --base-url "https://github.com/${{ github.repository }}/releases/download/${TAG}/" \
-            --release-tag "${TAG}" \
-            "${RELEASE_TITLE_ARG[@]}" \
-            "${RELEASE_NOTES_ARG[@]}"
+          CMD=(
+            python tools/qgis_repo_release.py
+            --plugin-dir yourplugin_live
+            --out release_repo
+            --base-url "https://github.com/${{ github.repository }}/releases/download/${TAG}/"
+            --release-tag "${TAG}"
+            --release-title "${RELEASE_TITLE}"
+          )
+          if [ -s "${NOTES_FILE}" ]; then
+            CMD+=(--release-notes-file "${NOTES_FILE}")
+          fi
+          if [ -s "${PREVIOUS_XML_FILE}" ]; then
+            CMD+=(--previous-plugins-xml "${PREVIOUS_XML_FILE}")
+          fi
+          "${CMD[@]}"
+
+      - name: Validate changelog exists in plugins.xml
+        shell: bash
+        run: |
+          if ! grep -q "<changelog>" release_repo/plugins.xml; then
+            echo "ERROR: release_repo/plugins.xml is missing <changelog>."
+            cat release_repo/plugins.xml
+            exit 1
+          fi
 
       - name: Upload repository assets to release
         env:

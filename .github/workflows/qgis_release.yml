@@ -146,6 +146,7 @@ jobs:
         run: |
           TAG="${{ steps.release_values.outputs.release_tag }}"
           NOTES_FILE="release_notes.md"
+          PREVIOUS_XML_FILE="previous_plugins.xml"
 
           # Always have a visible changelog header in QGIS Plugin Manager.
           if [ -z "${RELEASE_TITLE}" ]; then
@@ -169,6 +170,14 @@ jobs:
             printf '%s\n' "${RELEASE_BODY}" > "${NOTES_FILE}"
           fi
 
+          PREV_TAG="$(gh api "repos/${{ github.repository }}/releases" --jq "[.[] | select(.tag_name != \"${TAG}\")][0].tag_name // \"\"" 2>/dev/null || true)"
+          if [ -n "${PREV_TAG}" ]; then
+            PREV_XML_URL="$(gh api "repos/${{ github.repository }}/releases/tags/${PREV_TAG}" --jq '.assets[] | select(.name=="plugins.xml") | .browser_download_url' 2>/dev/null || true)"
+            if [ -n "${PREV_XML_URL}" ]; then
+              curl -fsSL "${PREV_XML_URL}" -o "${PREVIOUS_XML_FILE}" || true
+            fi
+          fi
+
           CMD=(
             python tools/qgis_repo_release.py
             --plugin-dir kavitro_live
@@ -179,6 +188,9 @@ jobs:
           )
           if [ -s "${NOTES_FILE}" ]; then
             CMD+=(--release-notes-file "${NOTES_FILE}")
+          fi
+          if [ -s "${PREVIOUS_XML_FILE}" ]; then
+            CMD+=(--previous-plugins-xml "${PREVIOUS_XML_FILE}")
           fi
           "${CMD[@]}"
 

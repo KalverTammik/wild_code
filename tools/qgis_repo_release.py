@@ -317,6 +317,74 @@ def _compose_changelog(title: str, notes: str) -> str:
     return notes_clean
 
 
+def _extract_changelog_from_plugins_xml(plugins_xml_path: Path, plugin_name: str) -> str:
+    if not plugins_xml_path.exists() or not plugins_xml_path.is_file():
+        return ""
+
+    try:
+        tree = ET.parse(plugins_xml_path)
+        root = tree.getroot()
+    except Exception:
+        return ""
+
+    plugin_nodes = root.findall("pyqgis_plugin")
+    if not plugin_nodes:
+        return ""
+
+    target = None
+    for node in plugin_nodes:
+        if (node.attrib.get("name") or "").strip() == plugin_name:
+            target = node
+            break
+
+    if target is None:
+        target = plugin_nodes[0]
+
+    changelog_node = target.find("changelog")
+    if changelog_node is None or changelog_node.text is None:
+        return ""
+
+    return changelog_node.text.strip()
+
+
+def _compose_changelog_entry(version: str, title: str, notes: str, tag_fallback: str = "") -> str:
+    title_clean = (title or "").strip()
+    notes_clean = (notes or "").strip()
+    fallback = (tag_fallback or "").strip()
+
+    if not title_clean:
+        title_clean = fallback
+
+    if title_clean and title_clean != version:
+        header = f"{version} - {title_clean}"
+    else:
+        header = version
+
+    if notes_clean:
+        return f"{header}\n{notes_clean}".strip()
+    return header.strip()
+
+
+def _version_already_in_changelog(changelog: str, version: str) -> bool:
+    if not changelog or not version:
+        return False
+    pattern = re.compile(rf"(?m)^{re.escape(version)}(?:\b|\s|-)")
+    return bool(pattern.search(changelog))
+
+
+def _merge_changelog_history(current_entry: str, previous_changelog: str, version: str) -> str:
+    current = (current_entry or "").strip()
+    previous = (previous_changelog or "").strip()
+
+    if not current:
+        return previous
+    if not previous:
+        return current
+    if _version_already_in_changelog(previous, version):
+        return previous
+    return f"{current}\n\n{previous}".strip()
+
+
 def _copy_repo_icon(plugin_root: Path, meta: PluginMeta, out_dir: Path, repo_icon_name: str) -> Optional[Path]:
     if not meta.icon_path:
         return None
@@ -371,6 +439,11 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         default="",
         help="Optional Git tag (e.g. v2.00.17). If no notes are provided explicitly, title/body are fetched from GitHub release via gh CLI.",
     )
+    parser.add_argument(
+        "--previous-plugins-xml",
+        default="",
+        help="Optional path to previous release plugins.xml to keep changelog history across releases.",
+    )
 
     args = parser.parse_args(list(argv) if argv is not None else None)
 
@@ -394,7 +467,21 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         release_title = gh_title or release_title
         release_notes = gh_body or release_notes
 
-    composed = _compose_changelog(release_title, release_notes)
+    previous_changelog = ""
+    previous_plugins_xml = (args.previous_plugins_xml or "").strip()
+    if previous_plugins_xml:
+        previous_changelog = _extract_changelog_from_plugins_xml(Path(previous_plugins_xml).resolve(), plugin_name=meta.name)
+
+    current_entry = _compose_changelog_entry(
+        version=meta.version,
+        title=release_title,
+        notes=release_notes,
+        tag_fallback=args.release_tag,
+    )
+    composed = _merge_changelog_history(current_entry=current_entry, previous_changelog=previous_changelog, version=meta.version)
+
+    if not composed:
+        composed = _compose_changelog(release_title, release_notes)
     if not composed and args.release_tag:
         composed = args.release_tag.strip()
 
