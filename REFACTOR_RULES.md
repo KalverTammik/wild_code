@@ -97,6 +97,8 @@ Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description 
 
 _Add a short rationale and list of files touched for each refactor here._
 
+- 2026-03-05: Centralized map-selection window lifecycle calls into `DialogHelpers` (`resolve_safe_parent_window`, `enter_map_selection_mode`, `exit_map_selection_mode`) and migrated duplicated UI call sites in Add Property dialog, Settings property card, and module action buttons to the shared helper for consistent parent-window handling and coordinator usage. Files: ui/window_state/dialog_helpers.py, widgets/AddUpdatePropertyDialog.py, modules/Settings/cards/SettingsPropertyManagement.py, widgets/DataDisplayWidgets/module_action_buttons.py, REFACTOR_RULES.md.
+
 - 2026-03-02: Senior cleanup pass on DataDisplay type rendering: removed unused `TypeWidget` to keep a single canonical type-display path, simplified `InfocardHeaderFrame` type badge logic (dropped module-alias fallback branching), and tightened `DataDisplayExtractors.extract_type` so missing values resolve to `"-"` instead of misleading `"None"`. Files: widgets/DataDisplayWidgets/InfoCardHeader.py, python/responses.py, widgets/DataDisplayWidgets/TypeWidget.py, REFACTOR_RULES.md.
 
 - 2026-03-02: Senior pass on `PropertyUITools`: enforced strict translation lookups in touched UI flow (removed fallback arguments), replaced silent `bring_dialog_to_front` exception swallow with explicit `PythonFailLogger` diagnostics, and kept behavior unchanged for property search/map/header flows. Files: modules/Property/PropertyUITools.py, REFACTOR_RULES.md.

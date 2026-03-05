@@ -20,7 +20,7 @@ from ....utils.messagesHelper import ModernMessageDialog
 from ....utils.mapandproperties.property_action_service import PropertyActionService
 from ....utils.mapandproperties.property_action_service import PropertySelectionActionService
 from ....Logs.python_fail_logger import PythonFailLogger
-from ....ui.window_state.DialogCoordinator import get_dialog_coordinator
+from ....ui.window_state.dialog_helpers import DialogHelpers
 from time import monotonic
 
 
@@ -129,29 +129,19 @@ class PropertyManagementUI(SettingsBaseCard):
                 event="settings_property_window_failed",
             )
             w = None
-
-        if w is None:
-            return None
-
-        try:
-            qgis_main = iface.mainWindow() if iface is not None else None
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.SETTINGS.value,
-                event="settings_property_qgis_main_failed",
-            )
-            qgis_main = None
-
-        if qgis_main is not None and w is qgis_main:
-            return None
-
-        return w
+        return DialogHelpers.resolve_safe_parent_window(
+            w,
+            iface_obj=iface,
+            module=Module.SETTINGS.value,
+            qgis_main_error_event="settings_property_qgis_main_failed",
+        )
 
     def _enter_map_selection_mode(self) -> None:
-        coordinator = get_dialog_coordinator(iface)
         parent_window = self._get_safe_parent_window()
-        coordinator.enter_map_selection_mode(parent=parent_window)
+        DialogHelpers.enter_map_selection_mode(
+            iface_obj=iface,
+            parent_window=parent_window,
+        )
         if parent_window is not None:
             self._map_action_parent_window = parent_window
             self._restore_parent_after_map_action = True
@@ -159,9 +149,11 @@ class PropertyManagementUI(SettingsBaseCard):
     def _exit_map_selection_mode(self) -> None:
         if not self._restore_parent_after_map_action:
             return
-        coordinator = get_dialog_coordinator(iface)
         parent_window = self._get_safe_parent_window() or self._map_action_parent_window
-        coordinator.exit_map_selection_mode(parent=parent_window)
+        DialogHelpers.exit_map_selection_mode(
+            iface_obj=iface,
+            parent_window=parent_window,
+        )
         self._map_action_parent_window = None
         self._restore_parent_after_map_action = False
 

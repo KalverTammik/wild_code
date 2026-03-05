@@ -13,7 +13,6 @@ from PyQt5.QtWidgets import (
     QProgressBar,
 )
 
-from qgis.core import QgsFeatureRequest
 from qgis.utils import iface
 
 from ..modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
@@ -39,7 +38,7 @@ from ..widgets.DateHelpers import DateHelpers
 
 from .LocationFilterWidget import LocationFilterWidget, LocationFilterHelper
 from ..Logs.python_fail_logger import PythonFailLogger
-from ..ui.window_state.DialogCoordinator import get_dialog_coordinator
+from ..ui.window_state.dialog_helpers import DialogHelpers
 
 
 
@@ -79,8 +78,10 @@ class AddPropertyDialog(QDialog):
             if self._dialog_mode == PropertyDialogMode.BY_LOCATION:
                 parent_window = self._get_safe_parent_window()
                 if parent_window is not None and parent_window.isVisible() and not parent_window.isMinimized():
-                    coordinator = get_dialog_coordinator(iface)
-                    coordinator.enter_map_selection_mode(parent=parent_window)
+                    DialogHelpers.enter_map_selection_mode(
+                        iface_obj=iface,
+                        parent_window=parent_window,
+                    )
                     self._restore_parent_on_close = True
         except Exception:
             self._parent_window = None
@@ -101,7 +102,7 @@ class AddPropertyDialog(QDialog):
 
         # Set up dialog properties
         if self._dialog_mode == PropertyDialogMode.FROM_MAP:
-            self.setWindowTitle(self.lang_manager.translate(TranslationKeys.SELECT_FROM_MAP) or "Add properties from map")
+            self.setWindowTitle(self.lang_manager.translate(TranslationKeys.SELECT_FROM_MAP))
             self.setModal(False)
         else:
             self.setWindowTitle(self.lang_manager.translate(TranslationKeys.PROPERTY_MANAGEMENT))
@@ -390,38 +391,27 @@ class AddPropertyDialog(QDialog):
     # Map selection (map mode)
     # ---------------------------------------------------------------------
 
-    def _minimize_parent_window_if_safe(self) -> None:
-        self._enter_map_selection_mode()
-
     def _get_safe_parent_window(self):
-        w = self._parent_window
-        if w is None:
-            return None
-
-        try:
-            qgis_main = iface.mainWindow() if iface is not None else None
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="property",
-                event="add_property_qgis_main_failed",
-            )
-            qgis_main = None
-
-        if qgis_main is not None and w is qgis_main:
-            return None
-        return w
+        return DialogHelpers.resolve_safe_parent_window(
+            self._parent_window,
+            iface_obj=iface,
+            module="property",
+            qgis_main_error_event="add_property_qgis_main_failed",
+        )
 
     def _enter_map_selection_mode(self) -> None:
-        coordinator = get_dialog_coordinator(iface)
         parent_window = self._get_safe_parent_window()
-        coordinator.enter_map_selection_mode(parent=parent_window, dialogs=[self])
+        DialogHelpers.enter_map_selection_mode(
+            iface_obj=iface,
+            parent_window=parent_window,
+            dialogs=[self],
+        )
 
     def _exit_map_selection_mode(self, bring_front: bool = True) -> None:
-        coordinator = get_dialog_coordinator(iface)
         parent_window = self._get_safe_parent_window()
-        coordinator.exit_map_selection_mode(
-            parent=parent_window,
+        DialogHelpers.exit_map_selection_mode(
+            iface_obj=iface,
+            parent_window=parent_window,
             dialogs=[self],
             bring_front=bring_front,
         )
@@ -435,9 +425,11 @@ class AddPropertyDialog(QDialog):
             return
 
         try:
-            coordinator = get_dialog_coordinator(iface)
             parent_window = self._get_safe_parent_window() or w
-            coordinator.exit_map_selection_mode(parent=parent_window)
+            DialogHelpers.exit_map_selection_mode(
+                iface_obj=iface,
+                parent_window=parent_window,
+            )
             self._restore_parent_on_close = False
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -475,14 +467,14 @@ class AddPropertyDialog(QDialog):
                 event="add_property_clear_filter_failed",
             )
 
-        self._minimize_parent_window_if_safe()
+        self._enter_map_selection_mode()
 
         controller = MapSelectionController()
         self._import_selection_controller = controller
 
         def _on_selected(_layer, features):
             self._set_table_from_features(features)
-            QTimer.singleShot(0, self._restore_window_after_selection)
+            QTimer.singleShot(0, self._exit_map_selection_mode)
 
         started = controller.start_selection(
             import_layer,
@@ -499,9 +491,6 @@ class AddPropertyDialog(QDialog):
         if not started:
             self._import_selection_controller = None
             self._exit_map_selection_mode()
-
-    def _restore_window_after_selection(self) -> None:
-        self._exit_map_selection_mode()
 
     def _set_table_from_features(self, feats) -> None:
         started = perf_counter()
@@ -1011,8 +1000,17 @@ class AddPropertyDialog(QDialog):
  
         # Mark in-progress in the Attention column.
         table.setUpdatesEnabled(False)
+        in_progress_text = self.lang_manager.translate(TranslationKeys.PROCESSING_FEATURES)
         for row_idx, tunnus, _import_muudet in rows:
-            self._set_attention_row(row_idx, tunnus=tunnus, main_causes=[], backend_causes=[], main_done=False, backend_done=False, text="Võrdlen andmeid...")
+            self._set_attention_row(
+                row_idx,
+                tunnus=tunnus,
+                main_causes=[],
+                backend_causes=[],
+                main_done=False,
+                backend_done=False,
+                text=in_progress_text,
+            )
         table.setUpdatesEnabled(True)
  
         self._update_check_status_label()

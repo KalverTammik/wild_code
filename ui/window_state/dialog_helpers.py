@@ -1,8 +1,10 @@
 from __future__ import annotations
-from typing import Any, TypeVar
+from typing import Any, Iterable, TypeVar
 
 from PyQt5.QtCore import QTimer
 
+from .DialogCoordinator import get_dialog_coordinator
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...Logs.switch_logger import SwitchLogger
 from ...modules.Settings.scroll_helper import SettingsScrollHelper
 from ...utils.url_manager import Module
@@ -55,3 +57,54 @@ class DialogHelpers:
                 module=Module.SETTINGS.value,
                 extra={"error": str(exc), "focus": focus_module},
             )
+
+    @staticmethod
+    def resolve_safe_parent_window(
+        window: Any,
+        *,
+        iface_obj: Any,
+        module: str,
+        qgis_main_error_event: str,
+    ) -> Any:
+        if window is None:
+            return None
+
+        try:
+            qgis_main = iface_obj.mainWindow() if iface_obj is not None else None
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=module,
+                event=qgis_main_error_event,
+            )
+            qgis_main = None
+
+        if qgis_main is not None and window is qgis_main:
+            return None
+
+        return window
+
+    @staticmethod
+    def enter_map_selection_mode(
+        *,
+        iface_obj: Any,
+        parent_window: Any = None,
+        dialogs: Iterable[Any] | None = None,
+    ) -> None:
+        coordinator = get_dialog_coordinator(iface_obj)
+        coordinator.enter_map_selection_mode(parent=parent_window, dialogs=dialogs)
+
+    @staticmethod
+    def exit_map_selection_mode(
+        *,
+        iface_obj: Any,
+        parent_window: Any = None,
+        dialogs: Iterable[Any] | None = None,
+        bring_front: bool = True,
+    ) -> None:
+        coordinator = get_dialog_coordinator(iface_obj)
+        coordinator.exit_map_selection_mode(
+            parent=parent_window,
+            dialogs=dialogs,
+            bring_front=bring_front,
+        )

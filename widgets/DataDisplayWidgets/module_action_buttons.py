@@ -24,7 +24,7 @@ from ...utils.MapTools.map_selection_controller import MapSelectionController
 from ...constants.cadastral_fields import Katastriyksus
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...ui.window_state.DialogCoordinator import get_dialog_coordinator
+from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...python.responses import DataDisplayExtractors
 
 
@@ -382,25 +382,20 @@ class MoreActionsButton(CardActionButton):
 
     def _get_safe_parent_window(self) -> Optional[QDialog]:
         w = self._resolve_parent_window()
-        if w is None:
-            return None
-        try:
-            qgis_main = iface.mainWindow() if iface is not None else None
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=self.module or "general",
-                event="module_action_qgis_main_failed",
-            )
-            qgis_main = None
-        if qgis_main is not None and w is qgis_main:
-            return None
-        return w
+        return DialogHelpers.resolve_safe_parent_window(
+            w,
+            iface_obj=iface,
+            module=self.module or "general",
+            qgis_main_error_event="module_action_qgis_main_failed",
+        )
 
     def _enter_map_selection_mode(self) -> None:
-        coordinator = get_dialog_coordinator(iface)
         parent_window = self._get_safe_parent_window()
-        coordinator.enter_map_selection_mode(parent=parent_window, dialogs=[self])
+        DialogHelpers.enter_map_selection_mode(
+            iface_obj=iface,
+            parent_window=parent_window,
+            dialogs=[self],
+        )
         if parent_window is not None:
             self._parent_window = parent_window
             self._restore_parent_on_close = True
@@ -408,9 +403,12 @@ class MoreActionsButton(CardActionButton):
     def _exit_map_selection_mode(self) -> None:
         if not self._restore_parent_on_close:
             return
-        coordinator = get_dialog_coordinator(iface)
         parent_window = self._get_safe_parent_window() or self._parent_window
-        coordinator.exit_map_selection_mode(parent=parent_window, dialogs=[self])
+        DialogHelpers.exit_map_selection_mode(
+            iface_obj=iface,
+            parent_window=parent_window,
+            dialogs=[self],
+        )
         self._restore_parent_on_close = False
 
     def _resolve_parent_window(self) -> Optional[QDialog]:
