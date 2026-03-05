@@ -131,8 +131,7 @@ class AddFromMapPropertyDialog(QDialog):
         layout.setSpacing(10)
 
         header = QLabel(
-            "Select properties from the map (IMPORT layer).\n"
-            "When selection is done, review the table and click Add."
+            self.lang_manager.translate(TranslationKeys.SELECT_PROPERTIES_MAP_INSTRUCTION)
         )
         header.setWordWrap(True)
         header.setObjectName("FilterTitle")
@@ -141,7 +140,9 @@ class AddFromMapPropertyDialog(QDialog):
         # Attention toggle row (top-right above table)
         attention_row = QHBoxLayout()
         attention_row.addStretch()
-        self.attention_only_checkbox = QCheckBox("Show only attention")
+        self.attention_only_checkbox = QCheckBox(
+            self.lang_manager.translate(TranslationKeys.SHOW_ONLY_ATTENTION)
+        )
         self.attention_only_checkbox.setChecked(True)
         self.attention_only_checkbox.setObjectName("SelectionInfo")
         attention_row.addWidget(self.attention_only_checkbox)
@@ -640,6 +641,7 @@ class AddFromMapPropertyDialog(QDialog):
             backend_causes,
             main_done=main_done,
             backend_done=backend_done,
+            translate=self.lang_manager.translate,
         )
         self._set_attention_row(
             row_idx,

@@ -245,8 +245,7 @@ class AddPropertyDialog(QDialog):
 
         if self._dialog_mode == PropertyDialogMode.FROM_MAP:
             self.header_label = QLabel(
-                "Select properties from the map (IMPORT layer).\n"
-                "When selection is done, review the table and click Add."
+                self.lang_manager.translate(TranslationKeys.SELECT_PROPERTIES_MAP_INSTRUCTION)
             )
             self.header_label.setWordWrap(True)
             self.header_label.setObjectName("FilterTitle")
@@ -270,7 +269,9 @@ class AddPropertyDialog(QDialog):
         # Attention toggle row (top-right above table)
         attention_row = QHBoxLayout()
         attention_row.addStretch()
-        self.attention_only_checkbox = QCheckBox("Show only attention")
+        self.attention_only_checkbox = QCheckBox(
+            self.lang_manager.translate(TranslationKeys.SHOW_ONLY_ATTENTION)
+        )
         self.attention_only_checkbox.setChecked(True)
         self.attention_only_checkbox.setObjectName("SelectionInfo")
         attention_row.addWidget(self.attention_only_checkbox)
@@ -1072,6 +1073,7 @@ class AddPropertyDialog(QDialog):
             backend_causes,
             main_done=main_done,
             backend_done=backend_done,
+            translate=self.lang_manager.translate,
         )
         tunnus = self._rows_for_verify_by_row.get(row_idx, ("", ""))[0]
         self._set_attention_row(
@@ -1395,7 +1397,8 @@ class AddPropertyDialog(QDialog):
         label = self.add_progress_label
         if label is not None:
             label.setVisible(True)
-            label.setText(f"Archiving missing ({len(missing)}) before add...")
+            template = self.lang_manager.translate(TranslationKeys.ARCHIVE_MISSING_PROGRESS_START)
+            label.setText(template.format(count=len(missing)))
 
         try:
             summary = MainAddPropertiesFlow.archive_missing_from_import(missing, backend_allowed=backend_allowed)
@@ -1403,9 +1406,15 @@ class AddPropertyDialog(QDialog):
             moved = int(summary.get("moved_map") or 0)
             errors = summary.get("errors") or []
             if label is not None:
+                template = self.lang_manager.translate(TranslationKeys.ARCHIVE_MISSING_PROGRESS_RESULT)
+                errors_suffix = " (errors)" if errors else ""
                 label.setText(
-                    f"Archived missing: backend {archived}/{len(missing)}, moved {moved}" +
-                    (" (errors)" if errors else "")
+                    template.format(
+                        archived=archived,
+                        total=len(missing),
+                        moved=moved,
+                        errors_suffix=errors_suffix,
+                    )
                 )
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -1414,7 +1423,8 @@ class AddPropertyDialog(QDialog):
                 event="add_property_archive_missing_failed",
             )
             if label is not None:
-                label.setText(f"Archiving missing ({len(missing)}) encountered an error")
+                template = self.lang_manager.translate(TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR)
+                label.setText(template.format(count=len(missing)))
 
         # Run once per check cycle.
         self._missing_from_import = set()

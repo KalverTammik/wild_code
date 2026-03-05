@@ -18,7 +18,8 @@ TRANSLATIONS = {
         TranslationKeys.OVERDUE_DUE_SOON_PILLS_ELLIPSIS: "…",
         TranslationKeys.PROGRESS_DIALOG_MODERN_PERCENT: "0%",
         TranslationKeys.SEARCH_RESULTS_WIDGET_CLOSE_TOOLTIP: "Sulge otsingutulemused",
-        TranslationKeys.SIDEBAR_LEFT_ARROW: "«",
+        ,TranslationKeys.ATTENTION: "Tähelepanu"
+        ,TranslationKeys.SHOW_ONLY_ATTENTION: "Näita ainult tähelepanu vajavaid"
         TranslationKeys.SIDEBAR_RIGHT_ARROW: "»",
         TranslationKeys.DATA_DISPLAY_WIDGETS_EXTRAINFO_TOOLTIP: "Ava detailne ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP: "Privaatne",
@@ -383,6 +384,15 @@ TRANSLATIONS = {
     ,TranslationKeys.SELECTED_PROPERTIES_ADDED: "Valitud kinnistud on lisatud."
     ,TranslationKeys.CONNECT_PROPERTIES: "Seosta kinnistuid"
     ,TranslationKeys.CHOSE_FROM_MAP: "Vali kaardilt"
+    ,TranslationKeys.ATTENTION_CAUSE_BACKEND_LOOKUP_FAILED: "taustasüsteemi päring ebaõnnestus"
+    ,TranslationKeys.ATTENTION_CAUSE_MISSING_BACKEND: "puudub taustasüsteemis"
+    ,TranslationKeys.ATTENTION_CAUSE_ARCHIVED_ONLY: "ainult arhiveeritud kirje"
+    ,TranslationKeys.ATTENTION_CAUSE_IMPORT_NEWER: "import on uuem"
+    ,TranslationKeys.ATTENTION_CAUSE_MISSING_MAIN_LAYER: "puudub põhikihis"
+    ,TranslationKeys.ATTENTION_CAUSE_MAIN_LAYER_OLDER: "põhikiht on vanem"
+    ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_START: "Arhiveerin puuduvaid ({count}) enne lisamist..."
+    ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_RESULT: "Puuduvad arhiveeritud: taustasüsteem {archived}/{total}, kaardile liigutatud {moved}{errors_suffix}"
+    ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR: "Puuduvate arhiveerimisel ({count}) tekkis viga"
     ,TranslationKeys.SELECT_PROPERTY_FIRST: "Palun valige esmalt kaardilt kinnisvara objekt."
     ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Viga kinnisvara valimisel"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Vali üks kinnisvara"

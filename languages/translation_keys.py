@@ -244,6 +244,7 @@ class TranslationKeys:
     AREA = "Area (m²)"
     SETTLEMENT = "Settlement"
     ATTENTION = "Attention"
+    SHOW_ONLY_ATTENTION = "Show only attention"
     PROPERTY_NAME = "Property Name"
     PROPERTY_TYPE = "Property Type"
     VALUE = "Value (€)"
@@ -336,6 +337,15 @@ class TranslationKeys:
     LINK_REVIEW_RESELECT = "Reselect"
     CONNECT_PROPERTIES = "Connect Properties"
     CHOSE_FROM_MAP = "Chose from map"
+    ATTENTION_CAUSE_BACKEND_LOOKUP_FAILED = "backend lookup failed"
+    ATTENTION_CAUSE_MISSING_BACKEND = "missing in backend"
+    ATTENTION_CAUSE_ARCHIVED_ONLY = "archived only"
+    ATTENTION_CAUSE_IMPORT_NEWER = "import newer"
+    ATTENTION_CAUSE_MISSING_MAIN_LAYER = "missing in main layer"
+    ATTENTION_CAUSE_MAIN_LAYER_OLDER = "main layer older"
+    ARCHIVE_MISSING_PROGRESS_START = "Archiving missing ({count}) before add..."
+    ARCHIVE_MISSING_PROGRESS_RESULT = "Archived missing: backend {archived}/{total}, moved {moved}{errors_suffix}"
+    ARCHIVE_MISSING_PROGRESS_ERROR = "Archiving missing ({count}) encountered an error"
 
     # Property form helpers
     ENTER_AREA_IN_M2 = "Enter area in m²"
