@@ -1,7 +1,8 @@
 import os
+from time import perf_counter
 from typing import Optional
 
-from PyQt5.QtCore import pyqtSignal, Qt, QTimer, QCoreApplication
+from PyQt5.QtCore import pyqtSignal, Qt, QTimer, QCoreApplication, QSignalBlocker
 from PyQt5.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -125,6 +126,8 @@ class AddPropertyDialog(QDialog):
         self._map_update_timer.timeout.connect(
             lambda: PropertiesSelectors.show_connected_properties_on_map_from_table(self.properties_table, use_shp=True)
         )
+        self._map_sync_row_limit = 1500
+        self._last_map_sync_skip_count = -1
 
         # Location filter controller (location mode only)
         if self._dialog_mode == PropertyDialogMode.BY_LOCATION:
@@ -489,6 +492,8 @@ class AddPropertyDialog(QDialog):
             min_selected=1,
             max_selected=None,
             clear_filter=True,
+            lightweight_fetch=True,
+            fetch_geometry=False,
         )
 
         if not started:
@@ -499,51 +504,51 @@ class AddPropertyDialog(QDialog):
         self._exit_map_selection_mode()
 
     def _set_table_from_features(self, feats) -> None:
+        started = perf_counter()
         features = list(feats or [])
+        feature_count = len(features)
 
-        rows = PropertyRowBuilder.rows_from_features(features, log_prefix="AddPropertyDialog")
+        try:
+            PythonFailLogger.log(
+                "add_property_map_features_received",
+                module="property",
+                extra={"count": feature_count},
+            )
+        except Exception:
+            pass
 
-        def _after_populate() -> None:
-            try:
-                self.properties_table.clearSelection()
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="property",
-                    event="add_property_clear_selection_failed",
-                )
-            try:
-                for row_idx in range(PropertyTableManager.row_count(self.properties_table)):
-                    tunnus = PropertyTableManager.get_cell_text(
-                        self.properties_table,
-                        row_idx,
-                        PropertyTableWidget._COL_CADASTRAL_ID,
-                    )
-                    self._set_attention_row(
-                        row_idx,
-                        tunnus=tunnus,
-                        main_causes=[],
-                        backend_causes=[],
-                        main_done=False,
-                        backend_done=False,
-                        text="",
-                    )
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="property",
-                    event="add_property_init_attention_rows_failed",
-                )
+        rows = []
+        for idx, feature in enumerate(features, start=1):
+            rows.append(PropertyRowBuilder.row_from_feature(feature, log_prefix="AddPropertyDialog"))
+            if idx % 250 == 0:
+                QCoreApplication.processEvents()
+        if feature_count and feature_count % 250 != 0:
+            QCoreApplication.processEvents()
+
+        rows_ms = int((perf_counter() - started) * 1000)
+        try:
+            PythonFailLogger.log(
+                "add_property_map_rows_built",
+                module="property",
+                extra={"count": len(rows), "ms": rows_ms},
+            )
+        except Exception:
+            pass
 
         PropertyTableManager.reset_and_populate_properties_table(
             self.properties_table,
             rows,
-            after_populate=_after_populate,
+            after_populate=None,
         )
 
         try:
             if PropertyTableManager.row_count(self.properties_table) > 0:
+                blocker = None
+                selection_model = self.properties_table.selectionModel()
+                if selection_model is not None:
+                    blocker = QSignalBlocker(selection_model)
                 self.properties_table.selectAll()
+                blocker = None
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -552,6 +557,16 @@ class AddPropertyDialog(QDialog):
             )
 
         self._after_table_update(self.properties_table)
+
+        total_ms = int((perf_counter() - started) * 1000)
+        try:
+            PythonFailLogger.log(
+                "add_property_map_table_ready",
+                module="property",
+                extra={"rows": PropertyTableManager.row_count(self.properties_table), "ms": total_ms},
+            )
+        except Exception:
+            pass
 
     def _on_add_without_checks(self) -> None:
         table = self.properties_table
@@ -768,7 +783,21 @@ class AddPropertyDialog(QDialog):
         self._update_run_checks_button()
 
         if update_map:
-            self._map_update_timer.start()
+            if count <= self._map_sync_row_limit:
+                self._last_map_sync_skip_count = -1
+                self._map_update_timer.start()
+            else:
+                self._map_update_timer.stop()
+                if self._last_map_sync_skip_count != count:
+                    self._last_map_sync_skip_count = count
+                    try:
+                        PythonFailLogger.log(
+                            "add_property_map_sync_skipped",
+                            module="property",
+                            extra={"count": count, "limit": self._map_sync_row_limit},
+                        )
+                    except Exception:
+                        pass
 
         return count
 

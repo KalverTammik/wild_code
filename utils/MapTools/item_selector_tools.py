@@ -1,11 +1,13 @@
 
 
 from typing import List
+from time import perf_counter
 try:
     import sip
 except ImportError:
     sip = None
 from qgis.core import QgsProject
+from qgis.utils import iface
 
 from ...constants.settings_keys import SettingsService
 from ...constants.cadastral_fields import Katastriyksus
@@ -160,10 +162,46 @@ class PropertiesSelectors:
 
 
         try:
+            started = perf_counter()
             features = PropertyTableManager().get_selected_features(table)
+            feature_ids = []
+            seen_ids = set()
+            for feature in features or []:
+                try:
+                    fid = int(feature.id())
+                except Exception:
+                    continue
+                if fid in seen_ids:
+                    continue
+                seen_ids.add(fid)
+                feature_ids.append(fid)
+
+            if not feature_ids:
+                return layer
+
             MapHelpers.ensure_layer_visible(layer, make_active=True)
             layer.removeSelection()
-            MapHelpers._zoom_to_features_in_layer(features, layer, select=True)
+            layer.selectByIds(feature_ids)
+
+            extent = layer.boundingBoxOfSelected()
+            if extent is not None and not extent.isEmpty() and iface is not None:
+                extent.scale(1.2)
+                canvas = iface.mapCanvas()
+                if canvas is not None:
+                    canvas.setExtent(extent)
+                    canvas.refresh()
+
+            try:
+                PythonFailLogger.log(
+                    "property_map_sync_from_table",
+                    module=Module.PROPERTY.value,
+                    extra={
+                        "selected": len(feature_ids),
+                        "ms": int((perf_counter() - started) * 1000),
+                    },
+                )
+            except Exception:
+                pass
             return layer
         except Exception as exc:
             try:

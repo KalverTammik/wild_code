@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from time import perf_counter
 from typing import Callable, List, Optional
 
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
-from qgis.core import QgsFeature, QgsVectorLayer
+from qgis.core import QgsFeature, QgsFeatureRequest, QgsVectorLayer
 from qgis.utils import iface
 
 from .MapHelpers import MapHelpers
@@ -30,6 +31,9 @@ class MapSelectionController(QObject):
         self._debounce_timer: Optional[QTimer] = None
         self._debounce_ms: int = 75
         self._baseline_selection_ids = set()
+        self._lightweight_fetch = False
+        self._fetch_geometry = True
+        self._fetch_field_names: Optional[list[str]] = None
 
     def start_selection(
         self,
@@ -42,6 +46,9 @@ class MapSelectionController(QObject):
         max_selected: Optional[int] = None,
         clear_filter: bool = False,
         keep_existing_selection: bool = False,
+        lightweight_fetch: bool = False,
+        fetch_geometry: bool = True,
+        fetch_field_names: Optional[list[str]] = None,
     ) -> bool:
         """Prepare the given layer for a one-off selection and activate the map tool.
 
@@ -84,6 +91,10 @@ class MapSelectionController(QObject):
         self._selection_tool = selection_tool
         self._min_selected = max(1, int(min_selected))
         self._max_selected = max_selected
+        self._lightweight_fetch = bool(lightweight_fetch)
+        self._fetch_geometry = bool(fetch_geometry)
+        normalized_fields = [str(name).strip() for name in (fetch_field_names or []) if str(name).strip()]
+        self._fetch_field_names = normalized_fields or None
 
         layer.selectionChanged.connect(self._handle_selection_changed)
         iface.setActiveLayer(layer)
@@ -138,6 +149,9 @@ class MapSelectionController(QObject):
             self._layer = None
             self._callback = None
             self._baseline_selection_ids = set()
+            self._lightweight_fetch = False
+            self._fetch_geometry = True
+            self._fetch_field_names = None
             self.selection_cancelled.emit()
 
     # ------------------------------------------------------------------
@@ -149,7 +163,7 @@ class MapSelectionController(QObject):
 
         QGIS can emit multiple selectionChanged signals during a single user selection
         gesture (e.g., rectangle selection), causing us to capture only the first
-        partial selection. Debounce and read selectedFeatures() once stable.
+        partial selection. Debounce and read selected IDs once stable.
         """
 
         if not self._layer:
@@ -176,15 +190,31 @@ class MapSelectionController(QObject):
         if not layer:
             return
 
-        selected = layer.selectedFeatures()
-        filtered = [f for f in selected if f.id() not in getattr(self, "_baseline_selection_ids", set())]
-        count = len(filtered)
+        selected_ids = list(layer.selectedFeatureIds() or [])
+        baseline_ids = getattr(self, "_baseline_selection_ids", set())
+        filtered_ids = [fid for fid in selected_ids if fid not in baseline_ids]
+        count = len(filtered_ids)
         if count < (self._min_selected or 1):
             return
         if self._max_selected is not None and count > self._max_selected:
             return
 
-        features = list(filtered)
+        started = perf_counter()
+        features = self._fetch_selected_features(layer, filtered_ids)
+        elapsed_ms = int((perf_counter() - started) * 1000)
+        if self._lightweight_fetch:
+            try:
+                PythonFailLogger.log(
+                    "map_selection_features_fetched",
+                    module="map",
+                    extra={
+                        "count": len(features),
+                        "ms": elapsed_ms,
+                        "with_geometry": bool(self._fetch_geometry),
+                    },
+                )
+            except Exception:
+                pass
 
         try:
             layer.selectionChanged.disconnect(self._handle_selection_changed)
@@ -209,10 +239,56 @@ class MapSelectionController(QObject):
         self._layer = None
         self._callback = None
         self._baseline_selection_ids = set()
+        self._lightweight_fetch = False
+        self._fetch_geometry = True
+        self._fetch_field_names = None
 
         if callback and layer:
             callback(layer, features)
         self.selection_completed.emit(layer, features)
+
+    def _fetch_selected_features(self, layer: QgsVectorLayer, feature_ids: list[int]) -> List[QgsFeature]:
+        if not feature_ids:
+            return []
+
+        if not self._lightweight_fetch:
+            selected = list(layer.selectedFeatures() or [])
+            allowed_ids = set(feature_ids)
+            return [f for f in selected if f.id() in allowed_ids]
+
+        request = QgsFeatureRequest()
+        request.setFilterFids(feature_ids)
+
+        if not self._fetch_geometry:
+            request.setFlags(QgsFeatureRequest.NoGeometry)
+
+        if self._fetch_field_names:
+            idxs = []
+            for field_name in self._fetch_field_names:
+                try:
+                    idx = layer.fields().lookupField(field_name)
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module="map",
+                        event="map_selection_lookup_field_failed",
+                        extra={"field": field_name},
+                    )
+                    idx = -1
+                if idx >= 0:
+                    idxs.append(idx)
+            if idxs:
+                request.setSubsetOfAttributes(idxs)
+
+        try:
+            return list(layer.getFeatures(request))
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="map",
+                event="map_selection_fetch_features_failed",
+            )
+            return []
 
     def _activate_selection_tool(self, tool_name: str) -> None:
         tools = {
