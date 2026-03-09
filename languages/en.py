@@ -191,6 +191,7 @@ TRANSLATIONS = {
     TranslationKeys.PROPERTY_ARCHIVE_LAYER_CREATE_FAILED_BODY_GENERIC: "Failed to create/load archive layer '{name}'.",
     TranslationKeys.PROPERTY_ARCHIVE_LAYER_NAME_PROMPT_TITLE: "Create/Load archive layer",
     TranslationKeys.PROPERTY_ARCHIVE_LAYER_NAME_PROMPT_LABEL: "Archive layer name:",
+    TranslationKeys.PROPERTY_COPY_FAILED_TITLE: "Copy failed",
     TranslationKeys.RUN_ATTENTION_CHECKS: "Run checks",
     TranslationKeys.YES_TO_ALL: "Yes to all",
     TranslationKeys.ADD_WITHOUT_CHECKS: "Add without checks",
@@ -399,6 +400,7 @@ TRANSLATIONS = {
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_START: "Archiving missing ({count}) before add..."
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_RESULT: "Archived missing: backend {archived}/{total}, moved {moved}{errors_suffix}"
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR: "Archiving missing ({count}) encountered an error"
+    ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX: " (errors)"
     ,TranslationKeys.SELECT_PROPERTY_FIRST: "Please select a property feature on the map first."
     ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Error selecting property"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Select Single Property"

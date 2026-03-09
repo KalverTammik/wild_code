@@ -75,6 +75,7 @@ class TranslationKeys:
     PROPERTY_ARCHIVE_LAYER_CREATE_FAILED_BODY_GENERIC = "property_archive_layer_create_failed_body_generic"
     PROPERTY_ARCHIVE_LAYER_NAME_PROMPT_TITLE = "property_archive_layer_name_prompt_title"
     PROPERTY_ARCHIVE_LAYER_NAME_PROMPT_LABEL = "property_archive_layer_name_prompt_label"
+    PROPERTY_COPY_FAILED_TITLE = "property_copy_failed_title"
 
     RUN_ATTENTION_CHECKS = "run_attention_checks"
 
@@ -346,6 +347,7 @@ class TranslationKeys:
     ARCHIVE_MISSING_PROGRESS_START = "Archiving missing ({count}) before add..."
     ARCHIVE_MISSING_PROGRESS_RESULT = "Archived missing: backend {archived}/{total}, moved {moved}{errors_suffix}"
     ARCHIVE_MISSING_PROGRESS_ERROR = "Archiving missing ({count}) encountered an error"
+    ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX = "archive_missing_progress_errors_suffix"
 
     # Property form helpers
     ENTER_AREA_IN_M2 = "Enter area in m²"

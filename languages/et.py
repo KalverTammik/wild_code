@@ -192,6 +192,7 @@ TRANSLATIONS = {
     TranslationKeys.PROPERTY_ARCHIVE_LAYER_CREATE_FAILED_BODY_GENERIC: "Arhiivikihi '{name}' loomine/laadimine ebaõnnestus.",
     TranslationKeys.PROPERTY_ARCHIVE_LAYER_NAME_PROMPT_TITLE: "Loo/Laadi arhiivikiht",
     TranslationKeys.PROPERTY_ARCHIVE_LAYER_NAME_PROMPT_LABEL: "Arhiivikihi nimi:",
+    TranslationKeys.PROPERTY_COPY_FAILED_TITLE: "Kopeerimine ebaõnnestus",
     TranslationKeys.RUN_ATTENTION_CHECKS: "Käivita kontroll",
     TranslationKeys.YES_TO_ALL: "Jah kõigile",
     TranslationKeys.ADD_WITHOUT_CHECKS: "Lisa ilma kontrollita",
@@ -394,6 +395,7 @@ TRANSLATIONS = {
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_START: "Arhiveerin puuduvaid ({count}) enne lisamist..."
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_RESULT: "Puuduvad arhiveeritud: taustasüsteem {archived}/{total}, kaardile liigutatud {moved}{errors_suffix}"
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR: "Puuduvate arhiveerimisel ({count}) tekkis viga"
+        ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX: " (vigadega)"
     ,TranslationKeys.SELECT_PROPERTY_FIRST: "Palun valige esmalt kaardilt kinnisvara objekt."
     ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Viga kinnisvara valimisel"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Vali üks kinnisvara"

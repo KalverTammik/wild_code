@@ -1,5 +1,4 @@
 import os
-from time import perf_counter
 from typing import Optional
 
 from PyQt5.QtCore import pyqtSignal, Qt, QTimer, QCoreApplication, QSignalBlocker
@@ -168,7 +167,6 @@ class AddPropertyDialog(QDialog):
         self._main_layer_cached = None
         self._main_layer_for_verify = None
         self._main_checks_started = False
-        self._last_rows_signature = None
         self._progress_update_every = 8
         self._last_progress_total = 0
         self._last_progress_done = -1
@@ -493,18 +491,8 @@ class AddPropertyDialog(QDialog):
             self._exit_map_selection_mode()
 
     def _set_table_from_features(self, feats) -> None:
-        started = perf_counter()
         features = list(feats or [])
         feature_count = len(features)
-
-        try:
-            PythonFailLogger.log(
-                "add_property_map_features_received",
-                module="property",
-                extra={"count": feature_count},
-            )
-        except Exception:
-            pass
 
         rows = []
         for idx, feature in enumerate(features, start=1):
@@ -513,16 +501,6 @@ class AddPropertyDialog(QDialog):
                 QCoreApplication.processEvents()
         if feature_count and feature_count % 250 != 0:
             QCoreApplication.processEvents()
-
-        rows_ms = int((perf_counter() - started) * 1000)
-        try:
-            PythonFailLogger.log(
-                "add_property_map_rows_built",
-                module="property",
-                extra={"count": len(rows), "ms": rows_ms},
-            )
-        except Exception:
-            pass
 
         PropertyTableManager.reset_and_populate_properties_table(
             self.properties_table,
@@ -547,16 +525,6 @@ class AddPropertyDialog(QDialog):
 
         self._after_table_update(self.properties_table)
 
-        total_ms = int((perf_counter() - started) * 1000)
-        try:
-            PythonFailLogger.log(
-                "add_property_map_table_ready",
-                module="property",
-                extra={"rows": PropertyTableManager.row_count(self.properties_table), "ms": total_ms},
-            )
-        except Exception:
-            pass
-
     def _on_add_without_checks(self) -> None:
         table = self.properties_table
         if table is None:
@@ -572,7 +540,7 @@ class AddPropertyDialog(QDialog):
 
         # If the user already ran checks and archive plans exist, apply that plan first
         # before resetting check state for the add run.
-        if not self._checks_running and bool(self._archive_map_plan):
+        if not self._checks_running and bool(self._missing_from_import):
             self._run_missing_cleanup_if_any()
 
         self._stop_attention_checks(clear_attention=True)
@@ -674,8 +642,6 @@ class AddPropertyDialog(QDialog):
                 )
         self._add_runner = None
         self._add_in_progress = False
-        # Force fresh attention recomputation on next manual run.
-        self._last_rows_signature = None
 
         if total > 0:
             prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_FINISHED)
@@ -817,14 +783,6 @@ class AddPropertyDialog(QDialog):
                 self._map_update_timer.stop()
                 if self._last_map_sync_skip_count != count:
                     self._last_map_sync_skip_count = count
-                    try:
-                        PythonFailLogger.log(
-                            "add_property_map_sync_skipped",
-                            module="property",
-                            extra={"count": count, "limit": self._map_sync_row_limit},
-                        )
-                    except Exception:
-                        pass
 
         return count
 
@@ -975,9 +933,6 @@ class AddPropertyDialog(QDialog):
                 QCoreApplication.processEvents()
         if event_counter and event_counter % self._rows_process_events_every != 0:
             QCoreApplication.processEvents()
-        rows_signature = tuple((int(r[0]), str(r[1]), str(r[2] or "")) for r in rows)
-
-        self._last_rows_signature = rows_signature
 
         self._stop_attention_checks(clear_attention=False)
 
@@ -1434,11 +1389,11 @@ class AddPropertyDialog(QDialog):
         return missing
 
     def _run_missing_cleanup_if_any(self) -> None:
-        missing = sorted({t for t, flag in self._archive_map_plan.items() if flag})
+        missing = sorted({str(t).strip() for t in (self._missing_from_import or set()) if str(t).strip()})
         if not missing:
             return
 
-        backend_allowed = {t for t, flag in self._archive_backend_plan.items() if flag}
+        backend_allowed = {t for t in missing if bool(self._archive_backend_plan.get(t, True))}
 
         label = self.add_progress_label
         if label is not None:
@@ -1453,7 +1408,11 @@ class AddPropertyDialog(QDialog):
             errors = summary.get("errors") or []
             if label is not None:
                 template = self.lang_manager.translate(TranslationKeys.ARCHIVE_MISSING_PROGRESS_RESULT)
-                errors_suffix = " (errors)" if errors else ""
+                errors_suffix = (
+                    self.lang_manager.translate(TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX)
+                    if errors
+                    else ""
+                )
                 label.setText(
                     template.format(
                         archived=archived,

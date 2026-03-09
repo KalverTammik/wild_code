@@ -97,6 +97,16 @@ Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description 
 
 _Add a short rationale and list of files touched for each refactor here._
 
+- 2026-03-09: Contained i18n cleanup in Add Property dialog flow by removing the remaining hardcoded user-facing archive-progress suffix literal (`" (errors)"`) and replacing it with `TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX` plus EN/ET catalog entries. Files: widgets/AddUpdatePropertyDialog.py, languages/translation_keys.py, languages/en.py, languages/et.py, REFACTOR_RULES.md.
+
+- 2026-03-09: Externalized remaining hardcoded user-facing strings in `MainAddPropertiesFlow` dialog/prompt paths to `TranslationKeys` (including strict button labels and archive-layer prompts), and added missing `PROPERTY_COPY_FAILED_TITLE` translations in EN/ET catalogs to keep behavior and i18n consistency. Files: modules/Property/FlowControllers/MainAddProperties.py, languages/translation_keys.py, languages/en.py, languages/et.py, REFACTOR_RULES.md.
+
+- 2026-03-09: Contained senior compliance pass in add-properties flow controller: removed runtime console-print noise from decision-matrix paths, converted failure points to structured `PythonFailLogger` events, and corrected `_prepare_layers` return annotation to match actual tuple return contract. Files: modules/Property/FlowControllers/MainAddProperties.py, REFACTOR_RULES.md.
+
+- 2026-03-09: Corrected add/check cleanup alignment by executing missing-archive cleanup from the actual check-computed `missing_from_import` set (instead of row-scoped archive flags), ensuring `Lisa ilma kontrollita`/`Käivita kontroll` handoff matches live missing-main-vs-import results. Files: widgets/AddUpdatePropertyDialog.py, REFACTOR_RULES.md.
+
+- 2026-03-09: Senior compliance cleanup in add/check dialog flow: removed unused check-signature cache state and removed routine success telemetry with silent fallback (`add_property_map_table_ready`, `add_property_map_features_received`, `add_property_map_rows_built`, `add_property_map_sync_skipped`) to align with simplicity and failure-focused logging rules. Files: widgets/AddUpdatePropertyDialog.py, REFACTOR_RULES.md.
+
 - 2026-03-09: Fixed attention-to-add handoff consistency: `Lisa ilma kontrollita` now applies existing check-derived archive plan before resetting checks, and manual `Käivita kontroll` no longer short-circuits on unchanged row signatures so checks re-evaluate live backend/main state after add/archive actions. Files: widgets/AddUpdatePropertyDialog.py, REFACTOR_RULES.md.
 
 - 2026-03-09: Simplified responsiveness code by removing process-events wrapper helpers and calling `QCoreApplication.processEvents()` directly in table/map hot paths; also reduced location-filter runtime logging to failure-only by removing routine success events (`property_filter_scope_zoom`, `property_scope_table_reload_skipped`). Files: utils/mapandproperties/PropertyTableManager.py, utils/MapTools/MapHelpers.py, utils/mapandproperties/PropertyUpdateFlowCoordinator.py, REFACTOR_RULES.md.
