@@ -8,6 +8,7 @@ from .module_action_buttons import (
     MoreActionsButton
 )
 from ...python.responses import DataDisplayExtractors
+from ...utils.url_manager import Module
 
 
 class ModuleConnectionActions(QWidget):
@@ -27,10 +28,12 @@ class ModuleConnectionActions(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        file_path = DataDisplayExtractors.extract_files_path(item_data)
-
-        folder_btn = OpenFolderActionButton(file_path, lang_manager)
-        layout.addWidget(folder_btn)
+        folder_btn = None
+        supports_folder_action = module_key not in (Module.ASBUILT.value, Module.WORKS.value)
+        if supports_folder_action:
+            file_path = DataDisplayExtractors.extract_files_path(item_data)
+            folder_btn = OpenFolderActionButton(file_path, lang_manager)
+            layout.addWidget(folder_btn)
 
         web_btn = OpenWebActionButton(module_key, item_id, lang_manager)
         layout.addWidget(web_btn)
@@ -57,8 +60,9 @@ class ModuleConnectionActions(QWidget):
         )
         layout.addWidget(actions_btn)
 
-
-        self._buttons = (folder_btn, web_btn, map_btn, actions_btn)
+        self._buttons = tuple(
+            button for button in (folder_btn, web_btn, map_btn, actions_btn) if button is not None
+        )
         self.setMinimumWidth(self.sizeHint().width())
 
     @property

@@ -4,6 +4,7 @@ from .api_client import APIClient
 
 from .GraphQLQueryLoader import GraphQLQueryLoader
 from ..languages.language_manager import LanguageManager
+from ..Logs.python_fail_logger import PythonFailLogger
 from .responses import JsonResponseHandler
 from ..utils.url_manager import Module
 
@@ -162,5 +163,62 @@ class APIModuleActions:
 
         client = APIClient()
         return client.send_query(query, variables=variables, return_raw=True)
+
+    @staticmethod
+    def get_task_description(item_id: str) -> Optional[str]:
+        """Fetch the latest task/asbuilt description from the backend."""
+
+        task_id = str(item_id or "").strip()
+        if not task_id:
+            return None
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "w_tasks_module_data_by_item_id.graphql")
+        client = APIClient()
+
+        try:
+            data = client.send_query(query, variables={"id": task_id}) or {}
+            task = (data.get("task") or {}) if isinstance(data, dict) else {}
+            description = task.get("description")
+            return str(description or "")
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.ASBUILT.value,
+                event="task_get_description_failed",
+                extra={"item_id": task_id},
+            )
+            return None
+
+    @staticmethod
+    def update_task_description(item_id: str, description: str) -> bool:
+        """Update the task/asbuilt description field used as notes in the UI."""
+
+        task_id = str(item_id or "").strip()
+        if not task_id:
+            return False
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "updateTaskDescription.graphql")
+        variables = {
+            "input": {
+                "id": task_id,
+                "description": str(description or ""),
+            }
+        }
+
+        client = APIClient()
+        try:
+            data = client.send_query(query, variables=variables) or {}
+            updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
+            return bool(updated.get("id"))
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.ASBUILT.value,
+                event="task_update_description_failed",
+                extra={"item_id": task_id},
+            )
+            return False
 
 

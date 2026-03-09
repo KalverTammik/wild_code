@@ -188,6 +188,13 @@ class DataDisplayExtractors:
         return str(value) if value else ""
 
     @staticmethod
+    def extract_description(item_data: Optional[Json]) -> str:
+        if not isinstance(item_data, Mapping):
+            return ""
+        value = item_data.get("description", "")
+        return str(value) if value else ""
+
+    @staticmethod
     def extract_properties_connection_count(item_data: Optional[Json]) -> int:
         if not isinstance(item_data, Mapping):
             return 0

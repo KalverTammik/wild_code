@@ -97,6 +97,14 @@ Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description 
 
 _Add a short rationale and list of files touched for each refactor here._
 
+- 2026-03-09: Removed the fixed dark body-text color from generated AsBuilt notes HTML so description text can inherit the active viewer/theme text color in light and dark modes, while keeping note-table headers explicitly readable on their light background. Files: modules/asbuilt/asbuilt_notes_service.py, REFACTOR_RULES.md.
+
+- 2026-03-09: Removed the unsupported folder action from AsBuilt and Works cards in the shared connection-action strip so users are no longer offered a file-location button for modules that do not support local file folders. Files: widgets/DataDisplayWidgets/ModuleConnectionActions.py, REFACTOR_RULES.md.
+
+- 2026-03-09: Replaced the temporary plain-text AsBuilt notes editor with a structured dialog based on the legacy note-table flow: added a module-scoped notes dialog plus a pure notes-description service to parse/serialize/patch the notes section inside task `description`, added a backend read helper for fresh description loads, and rewired the shared AsBuilt More Actions entry to preserve non-note description content on save. Files: modules/asbuilt/asbuilt_notes_dialog.py, modules/asbuilt/asbuilt_notes_service.py, widgets/DataDisplayWidgets/module_action_buttons.py, python/api_actions.py, python/responses.py, languages/translation_keys.py, languages/en.py, languages/et.py, REFACTOR_RULES.md.
+
+- 2026-03-09: Started AsBuilt-specific More Actions development with a first real action (`Add/Update notes`): added an AsBuilt menu item in the shared card action strip, introduced a themed reusable multiline text dialog, added a task-description update API helper plus `tasks/updateTaskDescription.graphql`, and wired EN/ET translations. Files: widgets/DataDisplayWidgets/module_action_buttons.py, utils/messagesHelper.py, python/api_actions.py, python/queries/graphql/tasks/updateTaskDescription.graphql, languages/translation_keys.py, languages/en.py, languages/et.py, REFACTOR_RULES.md.
+
 - 2026-03-09: Contained i18n cleanup in Add Property dialog flow by removing the remaining hardcoded user-facing archive-progress suffix literal (`" (errors)"`) and replacing it with `TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX` plus EN/ET catalog entries. Files: widgets/AddUpdatePropertyDialog.py, languages/translation_keys.py, languages/en.py, languages/et.py, REFACTOR_RULES.md.
 
 - 2026-03-09: Externalized remaining hardcoded user-facing strings in `MainAddPropertiesFlow` dialog/prompt paths to `TranslationKeys` (including strict button labels and archive-layer prompts), and added missing `PROPERTY_COPY_FAILED_TITLE` translations in EN/ET catalogs to keep behavior and i18n consistency. Files: modules/Property/FlowControllers/MainAddProperties.py, languages/translation_keys.py, languages/en.py, languages/et.py, REFACTOR_RULES.md.

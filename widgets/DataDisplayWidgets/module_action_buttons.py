@@ -7,6 +7,7 @@ from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDia
 from qgis.utils import iface
 
 
+from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import ToolbarTranslationKeys
 from ...utils.url_manager import OpenLink, Module, loadWebpage
 from ...python.api_actions import APIModuleActions
@@ -26,6 +27,8 @@ from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...python.responses import DataDisplayExtractors
+from ...modules.asbuilt.asbuilt_notes_dialog import AsBuiltNotesEditorDialog
+from ...modules.asbuilt.asbuilt_notes_service import AsBuiltNotesService
 
 
 
@@ -140,6 +143,16 @@ class MoreActionsButton(CardActionButton):
             action1.triggered.connect(self._generate_project_folder(module, item_data, lang_manager))
             menu.addAction(action1)
 
+        if module == Module.ASBUILT.value:
+            action_notes = QAction(
+                lang_manager.translate(TranslationKeys.ASBUILT_UPDATE_NOTES_ACTION),
+                self,
+            )
+            action_notes.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._edit_asbuilt_notes(data, lm)
+            )
+            menu.addAction(action_notes)
+
         action2 = QAction(
             lang_manager.translate(TranslationKeys.CONNECT_PROPERTIES),
             self,
@@ -175,6 +188,52 @@ class MoreActionsButton(CardActionButton):
             )
 
         return handler
+
+    def _edit_asbuilt_notes(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+
+        item_id = DataDisplayExtractors.extract_item_id(item)
+        if not item_id:
+            return
+
+        item_name = DataDisplayExtractors.extract_item_name(item) or item_id
+        cached_description = DataDisplayExtractors.extract_description(item)
+        opened_description = APIModuleActions.get_task_description(item_id)
+        source_description = opened_description if opened_description is not None else cached_description
+
+        dialog = AsBuiltNotesEditorDialog(
+            item_name=item_name,
+            notes=AsBuiltNotesService.parse_notes(source_description),
+            lang_manager=lm,
+            parent=self._get_safe_parent_window(),
+        )
+        if dialog.exec_() != QDialog.Accepted:
+            return
+
+        latest_description = APIModuleActions.get_task_description(item_id)
+        base_description = latest_description if latest_description is not None else source_description
+        merged_description = AsBuiltNotesService.merge_notes_into_description(
+            base_description,
+            dialog.get_notes(),
+        )
+
+        if merged_description == (base_description or ""):
+            return
+
+        success = APIModuleActions.update_task_description(item_id, merged_description)
+        if success:
+            item["description"] = merged_description
+            ModernMessageDialog.show_info(
+                lm.translate(TranslationKeys.SUCCESS),
+                lm.translate(TranslationKeys.ASBUILT_UPDATE_NOTES_SUCCESS).format(name=item_name),
+            )
+            return
+
+        ModernMessageDialog.show_warning(
+            lm.translate(TranslationKeys.ERROR),
+            lm.translate(TranslationKeys.ASBUILT_UPDATE_NOTES_FAILED).format(name=item_name),
+        )
 
     def _link_properties_from_map(self, module, item_data, lang_manager) -> None:
         object_id = (item_data).get("id")
