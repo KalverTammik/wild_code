@@ -46,16 +46,33 @@ class PropertyDataLoader:
         return req
 
     @staticmethod
+    def _sql_quote(value):
+        if value is None:
+            return "NULL"
+        if isinstance(value, bool):
+            return "1" if value else "0"
+        if isinstance(value, (int, float)):
+            return str(value)
+        v = str(value).replace("'", "''").strip()
+        return f"'{v}'"
+
+    @staticmethod
     def _eq_expr(field, value):
         """Turvaline = avaldis (tringid ülakomadega, ülakomade escape)."""
         if value is None:
             # mitte kunagi ei sobi, tagastame false avaldise
             return 'FALSE'
-        if isinstance(value, (int, float)):
-            return f'"{field}" = {value}'
-        # escape üksikud jutumärgid
-        v = str(value).replace("'", "''").strip()
-        return f'"{field}" = \'{v}\''
+        return f'"{field}" = {PropertyDataLoader._sql_quote(value)}'
+
+    @staticmethod
+    def _in_expr(field, values):
+        cleaned = [str(v).strip() for v in (values or []) if v is not None and str(v).strip()]
+        if not cleaned:
+            return 'FALSE'
+        if len(cleaned) == 1:
+            return PropertyDataLoader._eq_expr(field, cleaned[0])
+        literals = ",".join(PropertyDataLoader._sql_quote(v) for v in cleaned)
+        return f'"{field}" IN ({literals})'
 
     @staticmethod
     def _and(*parts):
@@ -63,6 +80,20 @@ class PropertyDataLoader:
         if not clean:
             return None
         return ' AND '.join(f'({p})' for p in clean)
+
+    @staticmethod
+    def build_scope_expression(*, county_name=None, municipality_name=None, settlements=None) -> str:
+        cleaned_settlements = [str(v).strip() for v in (settlements or []) if str(v).strip()]
+        settlement_clause = None
+        if cleaned_settlements:
+            settlement_clause = PropertyDataLoader._in_expr(Katastriyksus.ay_nimi, cleaned_settlements)
+
+        expression = PropertyDataLoader._and(
+            PropertyDataLoader._eq_expr(Katastriyksus.mk_nimi, county_name),
+            PropertyDataLoader._eq_expr(Katastriyksus.ov_nimi, municipality_name),
+            settlement_clause,
+        )
+        return expression or ""
 
     # --- Init --------------------------------------------------------------
 
@@ -162,13 +193,24 @@ class PropertyDataLoader:
 
     def load_properties_for_municipality(self, county_name, municipality_name):
         """Tagasta objektid valitud vallas/linnas (ilma geomeetriata)."""
+        return self.load_properties_for_scope(
+            county_name=county_name,
+            municipality_name=municipality_name,
+        )
+
+    def load_properties_for_scope(self, *, county_name=None, municipality_name=None, settlements=None):
+        """Tagasta objektid antud asukoha ulatuses (ilma geomeetriata)."""
         if not self.property_layer:
             return []
         try:
-            expr = self._and(
-                self._eq_expr(self.county_field, county_name),
-                self._eq_expr(self.municipality_field, municipality_name),
+            expr = PropertyDataLoader.build_scope_expression(
+                county_name=county_name,
+                municipality_name=municipality_name,
+                settlements=settlements,
             )
+            if not expr:
+                return []
+
             fields = [
                 self.tunnus_field,
                 self.address_field,
@@ -192,33 +234,19 @@ class PropertyDataLoader:
     def load_properties_for_settlement(self, county_name, municipality_name, settlement_name):
 
         """Tagasta objektid valitud asulas (ilma geomeetriata)."""
-        if not self.property_layer:
-            return []
-        try:
-            expr = self._and(
-                self._eq_expr(self.county_field, county_name),
-                self._eq_expr(self.municipality_field, municipality_name),
-                self._eq_expr(self.settlement_field, settlement_name),
-            )
-            fields = [
-                self.tunnus_field,
-                self.address_field,
-                self.area_field,
-                self.settlement_field,
-                self.county_field,
-                self.municipality_field,
-            ]
-            req = self._request(fields, expr)
+        return self.load_properties_for_scope(
+            county_name=county_name,
+            municipality_name=municipality_name,
+            settlements=[settlement_name],
+        )
 
-            properties = []
-            for i, feat in enumerate(self.property_layer.getFeatures(req), start=1):
-                properties.append(PropertyRowBuilder.row_from_feature(feat, log_prefix="PropertyDataLoader"))
-                if i % 250 == 0:
-                    QCoreApplication.processEvents()
-            return properties
-        except Exception as e:
-            print(f"Error loading properties for settlement: {e}")
-            raise
+    def load_properties_for_settlements(self, county_name, municipality_name, settlement_names):
+        """Tagasta objektid valitud asulates (üks päring, ilma geomeetriata)."""
+        return self.load_properties_for_scope(
+            county_name=county_name,
+            municipality_name=municipality_name,
+            settlements=settlement_names,
+        )
 
     @staticmethod
     def get_address_details_from_street(street):

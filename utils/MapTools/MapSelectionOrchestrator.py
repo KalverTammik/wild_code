@@ -44,6 +44,10 @@ class MapSelectionOrchestrator(QObject):
         min_selected: int = 1,
         max_selected: Optional[int] = None,
         clear_filter: bool = False,
+        keep_existing_selection: bool = False,
+        lightweight_fetch: bool = False,
+        fetch_geometry: bool = True,
+        fetch_field_names: Optional[list[str]] = None,
         before_start: Optional[Callable[[], None]] = None,
     ) -> bool:
         if not layer:
@@ -78,6 +82,10 @@ class MapSelectionOrchestrator(QObject):
                     min_selected=min_selected,
                     max_selected=max_selected,
                     clear_filter=clear_filter,
+                    keep_existing_selection=keep_existing_selection,
+                    lightweight_fetch=lightweight_fetch,
+                    fetch_geometry=fetch_geometry,
+                    fetch_field_names=fetch_field_names,
                 )
             )
         except Exception as exc:
@@ -98,6 +106,10 @@ class MapSelectionOrchestrator(QObject):
         min_selected: int = 1,
         max_selected: Optional[int] = None,
         clear_filter: bool = False,
+        keep_existing_selection: bool = False,
+        lightweight_fetch: bool = False,
+        fetch_geometry: bool = True,
+        fetch_field_names: Optional[list[str]] = None,
         before_start: Optional[Callable[[], None]] = None,
     ) -> bool:
         layer = None
@@ -119,5 +131,9 @@ class MapSelectionOrchestrator(QObject):
             min_selected=min_selected,
             max_selected=max_selected,
             clear_filter=clear_filter,
+            keep_existing_selection=keep_existing_selection,
+            lightweight_fetch=lightweight_fetch,
+            fetch_geometry=fetch_geometry,
+            fetch_field_names=fetch_field_names,
             before_start=before_start,
         )

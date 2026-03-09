@@ -49,6 +49,7 @@ class LocationFilterHelper(QObject):
         self._zoom_map = zoom_map
 
         self._zoom_after_table_update = False
+        self._suppress_empty_city_updates = True
 
         self._city_reload_timer = QTimer(self)
         self._city_reload_timer.setSingleShot(True)
@@ -106,15 +107,18 @@ class LocationFilterHelper(QObject):
     # ------------------------------------------------------------------
     def _on_county_combo_changed(self, text: str) -> None:
         self.stop_pending_city_reload()
+        self._suppress_empty_city_updates = True
         PropertyUpdateFlowCoordinator.on_county_changed(
             text,
             self.municipality_combo,
+            self.city_combo,
             self.properties_table,
             after_table_update=self._after_table_update,
         )
 
     def _on_municipality_combo_changed(self, text: str) -> None:
         self.stop_pending_city_reload()
+        self._suppress_empty_city_updates = True
         PropertyUpdateFlowCoordinator.on_municipality_changed(
             text,
             self.county_combo,
@@ -125,6 +129,12 @@ class LocationFilterHelper(QObject):
         )
 
     def _on_city_checked_items_changed(self) -> None:
+        checked_items = self.city_combo.checkedItems() if self.city_combo is not None else []
+        if not checked_items and self._suppress_empty_city_updates:
+            return
+        if checked_items:
+            self._suppress_empty_city_updates = False
+
         # Stop checks immediately (results would be stale once the table reloads).
         self._stop_checks(False)
         try:
@@ -146,7 +156,7 @@ class LocationFilterHelper(QObject):
             self.municipality_combo,
             self.city_combo,
             after_table_update=self._after_table_update,
-            update_map=False,
+            update_map=True,
         )
 
 

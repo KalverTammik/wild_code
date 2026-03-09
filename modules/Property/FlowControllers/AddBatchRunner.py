@@ -23,6 +23,7 @@ class AddBatchRunner(QObject):
         self,
         table,
         *,
+        use_filtered_rows: bool = False,
         batch_size: int = 1,
         rest_every: int = 25,
         rest_ms: int = 1000,
@@ -30,6 +31,7 @@ class AddBatchRunner(QObject):
     ) -> None:
         super().__init__(parent)
         self._table = table
+        self._use_filtered_rows = bool(use_filtered_rows)
         self._batch_size = max(1, int(batch_size or 1))
         self._rest_every = max(1, int(rest_every or 1))
         self._rest_ms = max(0, int(rest_ms or 0))
@@ -81,12 +83,15 @@ class AddBatchRunner(QObject):
         MainAddPropertiesFlow.reset_yes_to_all_flags()
         mgr = PropertyTableManager()
         try:
-            self._queue = list(mgr.get_selected_features(self._table) or [])
+            if self._use_filtered_rows:
+                self._queue = list(mgr.get_all_features(self._table) or [])
+            else:
+                self._queue = list(mgr.get_selected_features(self._table) or [])
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module="property",
-                event="add_batch_get_selected_failed",
+                event="add_batch_get_scope_failed",
             )
             self._queue = []
 

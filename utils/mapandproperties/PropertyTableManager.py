@@ -42,7 +42,10 @@ class PropertyTableManager:
                 model = PropertyTableModel(headers, parent=properties_table)
                 properties_table.setModel(model)
 
+            # Let queued UI work (e.g. map scope updates) run before heavy model reset.
+            QCoreApplication.processEvents()
             model.set_rows(properties)
+            QCoreApplication.processEvents()
 
             if self.add_button is not None:
                 self.add_button.setEnabled(bool(properties))
@@ -130,6 +133,33 @@ class PropertyTableManager:
                 selected_features.add(feature)
 
         return list(selected_features)
+
+    @staticmethod
+    def get_all_features(table=None):
+        """Get all feature payloads currently visible in the table."""
+        if not table:
+            return []
+
+        features = []
+        seen = set()
+
+        def _feature_key(feature):
+            try:
+                return ("fid", int(feature.id()))
+            except Exception:
+                return ("obj", id(feature))
+
+        for row in range(PropertyTableManager.row_count(table)):
+            feature = PropertyTableManager.get_cell_data(table, row, 0, role=Qt.UserRole)
+            if not feature:
+                continue
+            key = _feature_key(feature)
+            if key in seen:
+                continue
+            seen.add(key)
+            features.append(feature)
+
+        return features
 
     @staticmethod
     def get_selected_row_indices(table) -> list[int]:

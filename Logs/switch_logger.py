@@ -69,9 +69,9 @@ class SwitchLogger:
             logs_dir = SwitchLogger._logs_dir()
             os.makedirs(logs_dir, exist_ok=True)
             existing = [name for name in os.listdir(logs_dir) if name.startswith("switch_log_") and name.endswith(".log")]
-            if len(existing) >= 5:
+            if len(existing) >= 2:
                 existing.sort(key=lambda name: os.path.getmtime(os.path.join(logs_dir, name)))
-                while len(existing) >= 5:
+                while len(existing) >= 2:
                     oldest_name = existing.pop(0)
                     try:
                         os.remove(os.path.join(logs_dir, oldest_name))

@@ -16,7 +16,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...languages.MaaAmetFieldFormater import format_field
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
-from ...utils.MapTools.map_selection_controller import MapSelectionController
+from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ...utils.url_manager import Module
 from ...python.workers import FunctionWorker, start_worker
 from ...Logs.switch_logger import SwitchLogger
@@ -34,7 +34,7 @@ class PropertyUITools:
         self._connection_worker: Optional[FunctionWorker] = None
         self._data_service = data_service or PropertyDataService()
         self.lang_manager = LanguageManager()
-        self._selection_controller = MapSelectionController()
+        self._selection_orchestrator = MapSelectionOrchestrator(parent=property_ui)
         self._lookup_thread: Optional[QThread] = None
         self._lookup_worker: Optional[FunctionWorker] = None
 
@@ -132,7 +132,7 @@ class PropertyUITools:
                 print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
             return
 
-        started = self._selection_controller.start_selection(
+        started = self._selection_orchestrator.start_selection_for_layer(
             active_layer,
             on_selected=self._handle_property_layer_selection,
             min_selected=1,

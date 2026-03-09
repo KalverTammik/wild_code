@@ -1,6 +1,7 @@
 from typing import Iterable, List, Optional, Sequence, Union
 from ...languages.translation_keys import TranslationKeys
-from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer
+from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer, QgsFeatureRequest
+from PyQt5.QtCore import QCoreApplication
 from qgis.utils import iface
 from ...utils.url_manager import Module
 from ...constants.settings_keys import SettingsService
@@ -11,6 +12,10 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.cadastral_fields import Katastriyksus
 
 class MapHelpers:
+
+    _scope_zoom_cache: dict[tuple[str, str], tuple[QgsRectangle, int]] = {}
+    _scope_zoom_cache_limit: int = 64
+    _scope_zoom_process_every: int = 500
 
     @staticmethod
     def _sql_quote(value: object) -> str:
@@ -269,6 +274,232 @@ class MapHelpers:
         canvas = iface.mapCanvas()
         canvas.setExtent(extent)
         canvas.refresh()
+
+    @staticmethod
+    def select_and_zoom_to_expression_scope(
+        layer: QgsVectorLayer,
+        expression: str,
+        *,
+        padding_factor: float = 1.12,
+        make_active: bool = True,
+        clear_existing: bool = True,
+    ) -> int:
+        """Select features matching expression and zoom to selected extent.
+
+        Keeps resulting layer selection active and returns selected feature count.
+        """
+        if not layer or not layer.isValid():
+            return 0
+
+        expr = str(expression or "").strip()
+        if not expr:
+            return 0
+
+        try:
+            MapHelpers.ensure_layer_visible(layer, make_active=make_active)
+
+            if clear_existing:
+                try:
+                    layer.removeSelection()
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module=Module.PROPERTY.value,
+                        event="maphelpers_scope_select_clear_failed",
+                    )
+
+            QCoreApplication.processEvents()
+            layer.selectByExpression(expr)
+            QCoreApplication.processEvents()
+            try:
+                match_count = int(layer.selectedFeatureCount() or 0)
+            except Exception:
+                match_count = 0
+
+            if match_count <= 0:
+                return 0
+
+            extent = None
+            try:
+                extent = layer.boundingBoxOfSelected()
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="maphelpers_scope_select_bbox_failed",
+                )
+
+            if extent is None or extent.isEmpty():
+                return match_count
+
+            if padding_factor and padding_factor > 0:
+                extent.scale(padding_factor)
+
+            canvas = iface.mapCanvas() if iface is not None else None
+            if canvas is not None:
+                canvas.setExtent(extent)
+                canvas.refresh()
+                QCoreApplication.processEvents()
+
+            return match_count
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="maphelpers_scope_select_zoom_failed",
+            )
+            return 0
+
+    @staticmethod
+    def zoom_to_expression_scope(
+        layer: QgsVectorLayer,
+        expression: str,
+        *,
+        padding_factor: float = 1.12,
+        make_active: bool = True,
+        clear_selection: bool = True,
+    ) -> int:
+        """Zoom map canvas to extent of features matching expression.
+
+        Returns match count used for extent creation.
+        """
+        if not layer or not layer.isValid():
+            return 0
+
+        expr = str(expression or "").strip()
+        if not expr:
+            return 0
+
+        try:
+            layer_id = ""
+            try:
+                layer_id = str(layer.id() or "")
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="maphelpers_scope_zoom_layer_id_failed",
+                )
+            cache_key = (layer_id, expr)
+
+            cached = MapHelpers._scope_zoom_cache.get(cache_key)
+            extent: Optional[QgsRectangle] = None
+            match_count = 0
+            if cached is not None:
+                cached_extent, cached_count = cached
+                if cached_extent is not None and not cached_extent.isEmpty() and int(cached_count or 0) > 0:
+                    extent = QgsRectangle(cached_extent)
+                    match_count = int(cached_count)
+
+            if extent is None or match_count <= 0:
+                if clear_selection:
+                    signals_were_blocked = False
+                    try:
+                        signals_were_blocked = bool(layer.signalsBlocked())
+                    except Exception:
+                        signals_were_blocked = False
+
+                    try:
+                        layer.blockSignals(True)
+                    except Exception as exc:
+                        PythonFailLogger.log_exception(
+                            exc,
+                            module=Module.PROPERTY.value,
+                            event="maphelpers_scope_zoom_block_signals_failed",
+                        )
+
+                    try:
+                        QCoreApplication.processEvents()
+                        layer.selectByExpression(expr)
+                        QCoreApplication.processEvents()
+                        try:
+                            match_count = int(layer.selectedFeatureCount() or 0)
+                        except Exception:
+                            match_count = 0
+                        if match_count > 0:
+                            try:
+                                extent = layer.boundingBoxOfSelected()
+                            except Exception as exc:
+                                PythonFailLogger.log_exception(
+                                    exc,
+                                    module=Module.PROPERTY.value,
+                                    event="maphelpers_scope_zoom_selected_bbox_failed",
+                                )
+                                extent = None
+                    finally:
+                        try:
+                            layer.removeSelection()
+                        except Exception as exc:
+                            PythonFailLogger.log_exception(
+                                exc,
+                                module=Module.PROPERTY.value,
+                                event="maphelpers_scope_zoom_clear_selection_failed",
+                            )
+                        try:
+                            layer.blockSignals(signals_were_blocked)
+                        except Exception as exc:
+                            PythonFailLogger.log_exception(
+                                exc,
+                                module=Module.PROPERTY.value,
+                                event="maphelpers_scope_zoom_unblock_signals_failed",
+                            )
+
+                if extent is None or extent.isEmpty() or match_count <= 0:
+                    request = QgsFeatureRequest()
+                    request.setFilterExpression(expr)
+                    try:
+                        request.setSubsetOfAttributes([])
+                    except Exception:
+                        pass
+
+                    extent = None
+                    match_count = 0
+                    scanned = 0
+                    for feat in layer.getFeatures(request):
+                        geom = feat.geometry()
+                        if geom is None or geom.isEmpty():
+                            continue
+                        bbox = geom.boundingBox()
+                        if extent is None:
+                            extent = QgsRectangle(bbox)
+                        else:
+                            extent.combineExtentWith(bbox)
+                        match_count += 1
+                        scanned += 1
+                        if scanned % MapHelpers._scope_zoom_process_every == 0:
+                            QCoreApplication.processEvents()
+
+                if extent is not None and not extent.isEmpty() and match_count > 0 and cache_key[0]:
+                    MapHelpers._scope_zoom_cache[cache_key] = (QgsRectangle(extent), int(match_count))
+                    if len(MapHelpers._scope_zoom_cache) > MapHelpers._scope_zoom_cache_limit:
+                        try:
+                            oldest_key = next(iter(MapHelpers._scope_zoom_cache))
+                            MapHelpers._scope_zoom_cache.pop(oldest_key, None)
+                        except Exception:
+                            pass
+
+            if extent is None or extent.isEmpty() or match_count <= 0:
+                return 0
+
+            MapHelpers.ensure_layer_visible(layer, make_active=make_active)
+
+            if padding_factor and padding_factor > 0:
+                extent.scale(padding_factor)
+
+            canvas = iface.mapCanvas() if iface is not None else None
+            if canvas is not None:
+                canvas.setExtent(extent)
+                canvas.refresh()
+                QCoreApplication.processEvents()
+
+            return match_count
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="maphelpers_scope_zoom_failed",
+            )
+            return 0
 
 
     @staticmethod

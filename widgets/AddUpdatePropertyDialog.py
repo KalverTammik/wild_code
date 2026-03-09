@@ -32,7 +32,7 @@ from ..languages.translation_keys import TranslationKeys
 from ..utils.MapTools.item_selector_tools import PropertiesSelectors
 from ..constants.layer_constants import IMPORT_PROPERTY_TAG
 from ..utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
-from ..utils.MapTools.map_selection_controller import MapSelectionController
+from ..utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ..constants.cadastral_fields import Katastriyksus
 from ..widgets.DateHelpers import DateHelpers
 
@@ -87,7 +87,7 @@ class AddPropertyDialog(QDialog):
             self._parent_window = None
             self._restore_parent_on_close = False
 
-        self._import_selection_controller: Optional[MapSelectionController] = None
+        self._import_selection_orchestrator: Optional[MapSelectionOrchestrator] = None
         self.header_label = None
 
         # Restore parent when dialog closes (accept/reject)
@@ -201,15 +201,15 @@ class AddPropertyDialog(QDialog):
     def _on_dialog_finished(self, _result: int) -> None:
         self._stop_attention_checks()
         try:
-            if self._import_selection_controller is not None:
-                self._import_selection_controller.cancel_selection()
+            if self._import_selection_orchestrator is not None:
+                self._import_selection_orchestrator.cancel()
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module="property",
                 event="add_property_cancel_selection_failed",
             )
-        self._import_selection_controller = None
+        self._import_selection_orchestrator = None
         if self._location_filter_helper is not None:
             self._location_filter_helper.stop_pending_city_reload()
         import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
@@ -447,15 +447,15 @@ class AddPropertyDialog(QDialog):
             return
 
         try:
-            if self._import_selection_controller is not None:
-                self._import_selection_controller.cancel_selection()
+            if self._import_selection_orchestrator is not None:
+                self._import_selection_orchestrator.cancel()
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module="property",
                 event="add_property_cancel_selection_failed",
             )
-        self._import_selection_controller = None
+        self._import_selection_orchestrator = None
 
         try:
             if hasattr(import_layer, "subsetString") and hasattr(import_layer, "setSubsetString"):
@@ -467,16 +467,14 @@ class AddPropertyDialog(QDialog):
                 event="add_property_clear_filter_failed",
             )
 
-        self._enter_map_selection_mode()
-
-        controller = MapSelectionController()
-        self._import_selection_controller = controller
+        orchestrator = MapSelectionOrchestrator(parent=self)
+        self._import_selection_orchestrator = orchestrator
 
         def _on_selected(_layer, features):
             self._set_table_from_features(features)
             QTimer.singleShot(0, self._exit_map_selection_mode)
 
-        started = controller.start_selection(
+        started = orchestrator.start_selection_for_layer(
             import_layer,
             on_selected=_on_selected,
             selection_tool="rectangle",
@@ -484,12 +482,14 @@ class AddPropertyDialog(QDialog):
             min_selected=1,
             max_selected=None,
             clear_filter=True,
+            keep_existing_selection=False,
             lightweight_fetch=True,
             fetch_geometry=False,
+            before_start=self._enter_map_selection_mode,
         )
 
         if not started:
-            self._import_selection_controller = None
+            self._import_selection_orchestrator = None
             self._exit_map_selection_mode()
 
     def _set_table_from_features(self, feats) -> None:
@@ -565,10 +565,7 @@ class AddPropertyDialog(QDialog):
         if self._add_in_progress:
             return
 
-        try:
-            selected_count = len(table.selectionModel().selectedRows() or [])
-        except Exception:
-            selected_count = 0
+        selected_count = self._current_target_count()
 
         if selected_count <= 0:
             return
@@ -592,7 +589,11 @@ class AddPropertyDialog(QDialog):
         if mode == "with_checks":
             self._run_missing_cleanup_if_any()
 
-        runner = AddBatchRunner(table, parent=self)
+        runner = AddBatchRunner(
+            table,
+            parent=self,
+            use_filtered_rows=self._use_filtered_row_scope(),
+        )
         self._add_runner = runner
         self._add_in_progress = True
         self._add_mode = mode
@@ -737,6 +738,27 @@ class AddPropertyDialog(QDialog):
     def _on_table_selection_changed(self, *_args):
         self._refresh_selection_info(update_map=True)
 
+    def _use_filtered_row_scope(self) -> bool:
+        return self._dialog_mode == PropertyDialogMode.BY_LOCATION
+
+    def _current_target_count(self) -> int:
+        table = self.properties_table
+        if table is None:
+            return 0
+
+        if self._use_filtered_row_scope():
+            return PropertyTableManager.row_count(table)
+
+        try:
+            return len(table.selectionModel().selectedRows() or [])
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_property_selected_count_failed",
+            )
+            return 0
+
     def _refresh_selection_info(self, *, update_map: bool) -> int:
         """Refresh selected-count label.
 
@@ -747,6 +769,16 @@ class AddPropertyDialog(QDialog):
         table = self.properties_table
         if table is None:
             return 0
+
+        if self._use_filtered_row_scope():
+            count = PropertyTableManager.row_count(table)
+            self.selection_info.setText(
+                self.lang_manager.translate(TranslationKeys.SELECTED_COUNT_TEMPLATE).format(count=count)
+            )
+            self._update_add_button_state(selected_count=count)
+            self._update_run_checks_button()
+            self._map_update_timer.stop()
+            return count
 
         selected_features = set()
         try:
@@ -1230,10 +1262,6 @@ class AddPropertyDialog(QDialog):
         table.blockSignals(False)
         table.setUpdatesEnabled(True)
 
-        # Select remaining rows so map highlights only attention items.
-        if PropertyTableManager.row_count(table) > 0:
-            table.selectAll()
-
         # Clear map selection first, then zoom/select from the table.
         import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if import_layer is not None:
@@ -1300,17 +1328,8 @@ class AddPropertyDialog(QDialog):
 
 
     def _update_add_button_state(self, *, selected_count: Optional[int] = None) -> None:
-        table = self.properties_table
         if selected_count is None:
-            try:
-                selected_count = len(table.selectionModel().selectedRows() or []) if table is not None else 0
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="property",
-                    event="add_property_selected_count_failed",
-                )
-                selected_count = 0
+            selected_count = self._current_target_count()
 
         can_add = bool(selected_count and int(selected_count) > 0 and not self._checks_running and not self._add_in_progress)
         self.add_button.setEnabled(can_add)

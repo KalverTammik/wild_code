@@ -20,7 +20,7 @@ from ...utils.moduleSwitchHelper import ModuleSwitchHelper
 from ...constants.button_props import ButtonVariant
 from ...utils.messagesHelper import ModernMessageDialog
 from ...languages.translation_keys import TranslationKeys
-from ...utils.MapTools.map_selection_controller import MapSelectionController
+from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ...constants.cadastral_fields import Katastriyksus
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -122,7 +122,7 @@ class MoreActionsButton(CardActionButton):
         )
         self._item_data = item_data
         self.module = module  # Ensure module is passed correctly
-        self._map_selection_controller: Optional[MapSelectionController] = None
+        self._map_selection_orchestrator: Optional[MapSelectionOrchestrator] = None
         self._on_properties_linked = on_properties_linked
         self._parent_window: Optional[QDialog] = None
         self._restore_parent_on_close: bool = False
@@ -314,15 +314,15 @@ class MoreActionsButton(CardActionButton):
                             err=resp or "unknown",
                         ),
                     )
-            self._map_selection_controller = None
+            self._map_selection_orchestrator = None
             self._restore_parent_window()
 
         # Cancel any previous selection controller to avoid dangling signals
-        if self._map_selection_controller is not None:
-            self._map_selection_controller.cancel_selection()
+        if self._map_selection_orchestrator is not None:
+            self._map_selection_orchestrator.cancel()
 
-        controller = MapSelectionController()
-        self._map_selection_controller = controller
+        orchestrator = MapSelectionOrchestrator(parent=self)
+        self._map_selection_orchestrator = orchestrator
 
         def _on_selected(_layer, features: Iterable):
             # Selection finished; bring the plugin window back before dialogs
@@ -353,8 +353,7 @@ class MoreActionsButton(CardActionButton):
             _open_review_dialog(cadastral_numbers, features)
 
         def _start_selection():
-            self._enter_map_selection_mode()
-            started = controller.start_selection(
+            started = orchestrator.start_selection_for_layer(
                 main_layer,
                 on_selected=_on_selected,
                 selection_tool="rectangle",
@@ -363,13 +362,14 @@ class MoreActionsButton(CardActionButton):
                 max_selected=None,
                 clear_filter=False,
                 keep_existing_selection=bool(existing_numbers),
+                before_start=self._enter_map_selection_mode,
             )
             if not started:
                 ModernMessageDialog.show_warning(
                     lang_manager.translate(TranslationKeys.ERROR),
                     lang_manager.translate(TranslationKeys.MAP_SELECTION_START_FAILED),
                 )
-                self._map_selection_controller = None
+                self._map_selection_orchestrator = None
                 self._exit_map_selection_mode()
 
         _start_selection()

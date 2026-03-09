@@ -19,7 +19,7 @@ class PythonFailLogger:
         PYTHON_LOGS_DIR = "PythonLogs"
         MODULE_FOLDER_DEFAULT = "general"
         MODULE_FOLDER_PROPERTY = "property"
-        MAX_LOG_FILES_PER_FOLDER = 5
+        MAX_LOG_FILES_PER_FOLDER = 2
         PREFIX_TEMPLATE = "python_{module}_log_"
         FILE_STAMP_FORMAT = "%m_%d_%H%M%S"
         LINE_TS_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
