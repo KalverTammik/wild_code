@@ -97,6 +97,8 @@ Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description 
 
 _Add a short rationale and list of files touched for each refactor here._
 
+- 2026-03-09: Fixed attention-to-add handoff consistency: `Lisa ilma kontrollita` now applies existing check-derived archive plan before resetting checks, and manual `Käivita kontroll` no longer short-circuits on unchanged row signatures so checks re-evaluate live backend/main state after add/archive actions. Files: widgets/AddUpdatePropertyDialog.py, REFACTOR_RULES.md.
+
 - 2026-03-09: Simplified responsiveness code by removing process-events wrapper helpers and calling `QCoreApplication.processEvents()` directly in table/map hot paths; also reduced location-filter runtime logging to failure-only by removing routine success events (`property_filter_scope_zoom`, `property_scope_table_reload_skipped`). Files: utils/mapandproperties/PropertyTableManager.py, utils/MapTools/MapHelpers.py, utils/mapandproperties/PropertyUpdateFlowCoordinator.py, REFACTOR_RULES.md.
 
 - 2026-03-09: Added guarded UI event pumping (`QCoreApplication.processEvents`) in heavy map-scope zoom/select paths and around `QTableView` property model resets to reduce perceived UI freezing during location-filter updates while preserving latest-only scheduled map updates. Files: utils/MapTools/MapHelpers.py, utils/mapandproperties/PropertyTableManager.py, REFACTOR_RULES.md.

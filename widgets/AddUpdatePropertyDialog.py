@@ -570,8 +570,12 @@ class AddPropertyDialog(QDialog):
         if selected_count <= 0:
             return
 
-        self._stop_attention_checks(clear_attention=False)
-        self._checks_running = False
+        # If the user already ran checks and archive plans exist, apply that plan first
+        # before resetting check state for the add run.
+        if not self._checks_running and bool(self._archive_map_plan):
+            self._run_missing_cleanup_if_any()
+
+        self._stop_attention_checks(clear_attention=True)
         self._update_add_button_state(selected_count=selected_count)
 
         self._start_batch_add(table, mode="without_checks")
@@ -670,6 +674,8 @@ class AddPropertyDialog(QDialog):
                 )
         self._add_runner = None
         self._add_in_progress = False
+        # Force fresh attention recomputation on next manual run.
+        self._last_rows_signature = None
 
         if total > 0:
             prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_FINISHED)
@@ -970,12 +976,6 @@ class AddPropertyDialog(QDialog):
         if event_counter and event_counter % self._rows_process_events_every != 0:
             QCoreApplication.processEvents()
         rows_signature = tuple((int(r[0]), str(r[1]), str(r[2] or "")) for r in rows)
-
-        if rows_signature == self._last_rows_signature:
-            self._checks_running = False
-            self._set_check_progress(0, len(rows))
-            self._update_add_button_state()
-            return
 
         self._last_rows_signature = rows_signature
 
