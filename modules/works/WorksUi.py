@@ -3,11 +3,14 @@ from __future__ import annotations
 
 from typing import List, Optional
 
+from PyQt5.QtWidgets import QPushButton
 from PyQt5.QtWidgets import QWidget
 
 from ..task_shared.task_module_base_ui import TaskModuleBaseUI
+from ...constants.button_props import ButtonSize, ButtonVariant
 from ...languages.translation_keys import TranslationKeys
 from ...utils.url_manager import Module
+from .works_create_controller import WorksCreateController
 
 
 class WorksModule(TaskModuleBaseUI):
@@ -25,3 +28,26 @@ class WorksModule(TaskModuleBaseUI):
             parent=parent,
             qss_files=qss_files,
         )
+
+        self._create_controller = WorksCreateController(lang_manager=self.lang_manager)
+        self._create_on_map_button = QPushButton(
+            self.lang_manager.translate(TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON)
+        )
+        self._create_on_map_button.setObjectName("WorksCreateOnMapButton")
+        self._create_on_map_button.setProperty("variant", ButtonVariant.PRIMARY)
+        self._create_on_map_button.setProperty("btnSize", ButtonSize.SMALL)
+        self._create_on_map_button.setAutoDefault(False)
+        self._create_on_map_button.setDefault(False)
+        self._create_on_map_button.clicked.connect(self._start_create_on_map)
+        self.toolbar_area.add_right(self._create_on_map_button)
+
+    def _start_create_on_map(self) -> None:
+        self._create_controller.start_capture(
+            parent_window=self.window(),
+            allowed_type_ids=self._module_scope_type_ids(),
+            on_created=lambda _task_id: self._refresh_filters(),
+        )
+
+    def deactivate(self) -> None:
+        self._create_controller.cancel(bring_front=False)
+        super().deactivate()

@@ -2,23 +2,26 @@
 
 from typing import Any
 
-from PyQt5.QtWidgets import QVBoxLayout,  QFrame, QHBoxLayout, QWidget
+from PyQt5.QtWidgets import QVBoxLayout,  QFrame, QHBoxLayout, QWidget, QPushButton
 from PyQt5.QtCore import pyqtSignal, QTimer, QEvent
 from .SettingsBaseCard import SettingsBaseCard
 from .SettingModuleFeatureCard import SettingsModuleFeatureCard
 from .ModuleLabelsWidget import ModuleLabelsWidget
 from ..SettinsUtils.SettingsLogic import SettingsLogic
 from ..settings_layer_helper import SettingsLayerHelper
+from ...works.works_temp_layer_helper import WorksTempLayerHelper
 from ....widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from ....widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from ....widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ....constants.module_icons import ModuleIconPaths
+from ....constants.button_props import ButtonVariant, ButtonSize
 from ....utils.url_manager import Module
 from ....utils.MapTools.MapHelpers import MapHelpers
 from ....utils.FilterHelpers.FilterHelper import FilterHelper
 from ....utils.url_manager import ModuleSupports
 from ....languages.translation_keys import TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
+from ....utils.messagesHelper import ModernMessageDialog
 from ....utils.text_helpers import to_bool
 
 from qgis.gui import QgsMapLayerComboBox
@@ -146,6 +149,18 @@ class SettingsModuleCard(SettingsBaseCard):
 
         cl.addWidget(layers_container)
 
+        if self.module_key == Module.WORKS.value:
+            works_temp_group, _works_temp_button = SettingsModuleFeatureCard.build_filter_group(
+                parent=cw,
+                title_text=self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_HELPER_TITLE),
+                lang_manager=self.lang_manager,
+                description_text=self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_HELPER_DESCRIPTION),
+                group_object_name="WorksTempLayerHelperGroup",
+                container_object_name="WorksTempLayerHelperContainer",
+                widget_factory=lambda container: self._create_works_temp_layer_button(container),
+            )
+            cl.addWidget(works_temp_group)
+
         # Options container
         options_container = QFrame(cw)
         options_container.setObjectName("OptionsContainer")
@@ -262,6 +277,81 @@ class SettingsModuleCard(SettingsBaseCard):
         reset_btn.setToolTip(self.lang_manager.translate(TranslationKeys.RESET_ALL_SETTINGS))
         reset_btn.setVisible(True)
         reset_btn.clicked.connect(self._on_reset_settings)
+
+    def _create_works_temp_layer_button(self, parent: QWidget) -> QPushButton:
+        button = QPushButton(
+            self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_CREATE_BUTTON),
+            parent,
+        )
+        button.setObjectName("WorksTempLayerCreateButton")
+        button.setProperty("variant", ButtonVariant.WARNING)
+        button.setProperty("btnSize", ButtonSize.SMALL)
+        button.setAutoDefault(False)
+        button.setDefault(False)
+        button.clicked.connect(self._on_create_temp_works_layer_clicked)
+        return button
+
+    def _on_create_temp_works_layer_clicked(self) -> None:
+        preferred_layer = self._layer_selector.currentLayer() if self._layer_selector else None
+        reference_layer = WorksTempLayerHelper.resolve_reference_layer(preferred_layer)
+        if reference_layer is None:
+            ModernMessageDialog.show_warning(
+                self.lang_manager.translate(TranslationKeys.ERROR),
+                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_REFERENCE_REQUIRED),
+            )
+            return
+
+        if not WorksTempLayerHelper.gpkg_path_for_layer(reference_layer):
+            ModernMessageDialog.show_warning(
+                self.lang_manager.translate(TranslationKeys.ERROR),
+                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_GPKG_REQUIRED),
+            )
+            return
+
+        default_name = (
+            self._pend_element_name
+            or self._orig_element_name
+            or WorksTempLayerHelper.DEFAULT_LAYER_NAME
+        )
+        layer_name, ok = ModernMessageDialog.get_text_modern(
+            self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_PROMPT_TITLE),
+            self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_PROMPT_LABEL),
+            text=default_name,
+        )
+        if not ok:
+            return
+
+        normalized_name = (layer_name or "").strip()
+        if not normalized_name:
+            ModernMessageDialog.show_warning(
+                self.lang_manager.translate(TranslationKeys.ERROR),
+                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_NAME_REQUIRED),
+            )
+            return
+
+        created_layer, error_text = WorksTempLayerHelper.create_or_load_layer(
+            reference_layer,
+            normalized_name,
+        )
+        if created_layer is None or not created_layer.isValid():
+            ModernMessageDialog.show_warning(
+                self.lang_manager.translate(TranslationKeys.ERROR),
+                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_CREATE_FAILED).format(
+                    name=normalized_name,
+                    error=error_text or self.lang_manager.translate(TranslationKeys.ERROR),
+                ),
+            )
+            return
+
+        actual_name = created_layer.name() or normalized_name
+        self._write_saved_layer_value("element", actual_name)
+        self.sync_main_layer_selection(actual_name, force=True)
+
+        ModernMessageDialog.show_info(
+            self.lang_manager.translate(TranslationKeys.SUCCESS),
+            self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_READY).format(name=actual_name),
+        )
+
     def _create_layer_combobox(self, parent: QWidget) -> QgsMapLayerComboBox:
         combo = QgsMapLayerComboBox(parent)
         combo.setObjectName("ModuleLayerCombo")
@@ -748,6 +838,22 @@ class SettingsModuleCard(SettingsBaseCard):
         if self._archive_picker:
             SettingsLayerHelper.restore_combo_selection(self._archive_picker, normalized)
 
+        self._update_stored_values_display()
+        self._emit_pending_changed(self.has_pending_changes())
+        return True
+
+    def sync_main_layer_selection(self, layer_name: str, *, force: bool = False) -> bool:
+        """Sync main-layer picker + stored values to an already-persisted setting."""
+
+        normalized = (layer_name or "").strip()
+
+        if (not force) and (self._pend_element_name != self._orig_element_name):
+            return False
+
+        self._orig_element_name = normalized
+        self._pend_element_name = normalized
+
+        SettingsLayerHelper.restore_combo_selection(self._layer_selector, normalized)
         self._update_stored_values_display()
         self._emit_pending_changed(self.has_pending_changes())
         return True

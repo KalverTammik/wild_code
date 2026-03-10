@@ -221,4 +221,55 @@ class APIModuleActions:
             )
             return False
 
+    @staticmethod
+    def create_task(
+        *,
+        title: str,
+        type_id: str,
+        description: str = "",
+        priority: Optional[str] = None,
+        start_at: Optional[str] = None,
+        due_at: Optional[str] = None,
+        member_ids: Optional[List[str]] = None,
+    ) -> Optional[str]:
+        task_title = str(title or "").strip()
+        task_type_id = str(type_id or "").strip()
+        if not task_title or not task_type_id:
+            return None
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "createTask.graphql")
+
+        task_input = {
+            "title": task_title,
+            "typeId": task_type_id,
+        }
+        if description is not None:
+            task_input["description"] = str(description or "")
+        if priority:
+            task_input["priority"] = str(priority)
+        if start_at:
+            task_input["startAt"] = str(start_at)
+        if due_at:
+            task_input["dueAt"] = str(due_at)
+        if member_ids:
+            cleaned_members = [str(member_id).strip() for member_id in member_ids if str(member_id).strip()]
+            if cleaned_members:
+                task_input["members"] = {"associate": cleaned_members}
+
+        client = APIClient()
+        try:
+            data = client.send_query(query, variables={"input": task_input}) or {}
+            created = (data.get("createTask") or {}) if isinstance(data, dict) else {}
+            task_id = created.get("id")
+            return str(task_id) if task_id else None
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_create_failed",
+                extra={"title": task_title, "type_id": task_type_id},
+            )
+            return None
+
 

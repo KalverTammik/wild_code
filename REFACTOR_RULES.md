@@ -97,6 +97,12 @@ Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description 
 
 _Add a short rationale and list of files touched for each refactor here._
 
+- 2026-03-10: Restored backend property-link support for Works/task creation by adding the missing `tasks/updateTaskProperties.graphql` mutation used by the shared property-association action path, fixing post-create property association for newly created Works tasks. Files: python/queries/graphql/tasks/updateTaskProperties.graphql, REFACTOR_RULES.md.
+
+- 2026-03-10: Added a temporary Settings-side Works layer helper for development/testing: the Works settings card now exposes a button that creates or loads a point-based Works layer inside a GeoPackage using the selected Works reference layer or the configured Property main layer as the source GPKG/CRS, then persists and syncs the Works main-layer setting immediately. Files: modules/works/works_temp_layer_helper.py, modules/Settings/cards/SettingsModuleCard.py, languages/translation_keys.py, languages/en.py, languages/et.py, REFACTOR_RULES.md.
+
+- 2026-03-10: Started the modern Works rebuild with a focused first slice: added a Works toolbar action to create a task from a map click, introduced a code-built Works creation dialog plus a thin controller for point capture, added a minimal `createTask` GraphQL/API helper, and added a module-scoped layer service that safely writes created task ids into the configured Works point layer while auto-linking the clicked property when possible. Files: modules/works/WorksUi.py, modules/works/works_create_controller.py, modules/works/works_create_dialog.py, modules/works/works_layer_service.py, python/api_actions.py, python/queries/graphql/tasks/createTask.graphql, languages/translation_keys.py, languages/en.py, languages/et.py, REFACTOR_RULES.md.
+
 - 2026-03-09: Stabilized AsBuilt notes editing by constraining each note editor row to a consistent three visible text lines with internal scrolling, and fixed checkbox-state parsing so same-day grouped notes keep independent resolved states instead of all reopening as checked. Files: modules/asbuilt/asbuilt_notes_dialog.py, modules/asbuilt/asbuilt_notes_service.py, REFACTOR_RULES.md.
 
 - 2026-03-09: Removed the fixed dark body-text color from generated AsBuilt notes HTML so description text can inherit the active viewer/theme text color in light and dark modes, while keeping note-table headers explicitly readable on their light background. Files: modules/asbuilt/asbuilt_notes_service.py, REFACTOR_RULES.md.
