@@ -186,7 +186,11 @@ class AsBuiltNotesService:
     @staticmethod
     def _checkbox_checked(cell_html: str) -> bool:
         lowered = (cell_html or "").lower()
-        return 'data-checked="true"' in lowered or 'checked="checked"' in lowered or "checked" in lowered
+        return (
+            'data-checked="true"' in lowered
+            or 'checked="checked"' in lowered
+            or re.search(r'<input[^>]*\bchecked\b', lowered) is not None
+        )
 
     @staticmethod
     def _plain_text_to_html(value: str) -> str:

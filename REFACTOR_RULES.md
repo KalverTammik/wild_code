@@ -97,6 +97,8 @@ Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description 
 
 _Add a short rationale and list of files touched for each refactor here._
 
+- 2026-03-09: Stabilized AsBuilt notes editing by constraining each note editor row to a consistent three visible text lines with internal scrolling, and fixed checkbox-state parsing so same-day grouped notes keep independent resolved states instead of all reopening as checked. Files: modules/asbuilt/asbuilt_notes_dialog.py, modules/asbuilt/asbuilt_notes_service.py, REFACTOR_RULES.md.
+
 - 2026-03-09: Removed the fixed dark body-text color from generated AsBuilt notes HTML so description text can inherit the active viewer/theme text color in light and dark modes, while keeping note-table headers explicitly readable on their light background. Files: modules/asbuilt/asbuilt_notes_service.py, REFACTOR_RULES.md.
 
 - 2026-03-09: Removed the unsupported folder action from AsBuilt and Works cards in the shared connection-action strip so users are no longer offered a file-location button for modules that do not support local file folders. Files: widgets/DataDisplayWidgets/ModuleConnectionActions.py, REFACTOR_RULES.md.

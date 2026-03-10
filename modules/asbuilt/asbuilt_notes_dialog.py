@@ -25,7 +25,7 @@ from .asbuilt_notes_service import AsBuiltNote, AsBuiltNotesService
 
 
 class AsBuiltNotesEditorDialog(QDialog):
-    NOTE_MIN_HEIGHT = 64
+    NOTE_VISIBLE_LINES = 3
     RESOLVED_COLUMN_WIDTH = 90
     RESOLVED_DATE_WIDTH = 130
     DELETE_WIDTH = 110
@@ -190,15 +190,21 @@ class AsBuiltNotesEditorDialog(QDialog):
 
         note_edit = QTextEdit(row)
         note_edit.setObjectName("AsBuiltNoteTextEdit")
-        note_edit.setMinimumHeight(self.NOTE_MIN_HEIGHT)
+        note_edit.setAcceptRichText(False)
+        note_edit.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        note_edit.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         note_edit.setPlaceholderText(
             self._lang.translate(TranslationKeys.ASBUILT_NOTES_PLACEHOLDER)
         )
         note_edit.setPlainText(row_note.note)
+        editor_height = self._note_editor_height(note_edit)
+        note_edit.setFixedHeight(editor_height)
         layout.addWidget(note_edit, 1)
+        row.setMinimumHeight(editor_height)
 
         resolved_wrap = QWidget(row)
         resolved_wrap.setFixedWidth(self.RESOLVED_COLUMN_WIDTH)
+        resolved_wrap.setFixedHeight(editor_height)
         resolved_layout = QHBoxLayout(resolved_wrap)
         resolved_layout.setContentsMargins(0, 0, 0, 0)
         resolved_layout.setAlignment(Qt.AlignCenter)
@@ -239,6 +245,13 @@ class AsBuiltNotesEditorDialog(QDialog):
             resolved_date_edit.setText(AsBuiltNotesService.today_text())
 
         return row
+
+    @classmethod
+    def _note_editor_height(cls, note_edit: QTextEdit) -> int:
+        line_height = note_edit.fontMetrics().lineSpacing()
+        document_margin = int(note_edit.document().documentMargin()) * 2
+        frame_width = note_edit.frameWidth() * 2
+        return (line_height * cls.NOTE_VISIBLE_LINES) + document_margin + frame_width + 4
 
     def _add_note_for_today(self) -> None:
         group_box = self._ensure_group(AsBuiltNotesService.today_text())
