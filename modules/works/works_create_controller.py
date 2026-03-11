@@ -16,7 +16,7 @@ from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 from .works_create_dialog import WorksCreateDialog
-from .works_layer_service import WorksLayerService
+from .works_layer_service import WorksDescriptionService, WorksLayerService
 
 
 class _WorksPointCaptureTool(QgsMapTool):
@@ -105,12 +105,29 @@ class WorksCreateController:
             return
 
         now = datetime.now()
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
+        field_values = WorksLayerService.build_canonical_feature_values(
+            title=dialog.title_text(),
+            description=dialog.description_text(),
+            type_label=dialog.selected_type_label(),
+            priority=dialog.priority_value(),
+            has_property=property_feature is not None,
+            timestamp=now,
+        )
+        backend_description = WorksDescriptionService.build_task_description(
+            layer=works_layer,
+            point=point,
+            field_values=field_values,
+            property_feature=property_feature,
+            lang_manager=self._lang,
+        )
+
         task_id = None
         try:
             task_id = APIModuleActions.create_task(
                 title=dialog.title_text(),
                 type_id=dialog.selected_type_id(),
-                description=dialog.description_text(),
+                description=backend_description,
                 priority=dialog.priority_value(),
                 start_at=now.strftime("%Y-%m-%d"),
                 due_at=(now + timedelta(days=7)).strftime("%Y-%m-%d"),
@@ -130,7 +147,33 @@ class WorksCreateController:
             )
             return
 
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
+        final_backend_description = WorksDescriptionService.build_task_description(
+            layer=works_layer,
+            point=point,
+            field_values=field_values,
+            property_feature=property_feature,
+            task_id=task_id,
+            lang_manager=self._lang,
+        )
+        if final_backend_description and final_backend_description != backend_description:
+            try:
+                updated = APIModuleActions.update_task_description(task_id, final_backend_description)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.WORKS.value,
+                    event="works_task_metadata_update_failed",
+                    extra={"task_id": task_id},
+                )
+            else:
+                if not updated:
+                    PythonFailLogger.log_exception(
+                        RuntimeError("Could not update works task metadata description"),
+                        module=Module.WORKS.value,
+                        event="works_task_metadata_update_failed",
+                        extra={"task_id": task_id},
+                    )
+
         map_saved = False
         map_error = ""
         if works_layer is not None:
@@ -143,6 +186,7 @@ class WorksCreateController:
                 type_label=dialog.selected_type_label(),
                 priority=dialog.priority_value(),
                 has_property=property_feature is not None,
+                timestamp=now,
             )
 
         property_link_failed = False

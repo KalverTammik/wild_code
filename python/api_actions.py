@@ -165,8 +165,8 @@ class APIModuleActions:
         return client.send_query(query, variables=variables, return_raw=True)
 
     @staticmethod
-    def get_task_description(item_id: str) -> Optional[str]:
-        """Fetch the latest task/asbuilt description from the backend."""
+    def get_task_data(item_id: str) -> Optional[dict]:
+        """Fetch the latest task payload from the backend."""
 
         task_id = str(item_id or "").strip()
         if not task_id:
@@ -179,16 +179,82 @@ class APIModuleActions:
         try:
             data = client.send_query(query, variables={"id": task_id}) or {}
             task = (data.get("task") or {}) if isinstance(data, dict) else {}
-            description = task.get("description")
-            return str(description or "")
+            return task if isinstance(task, dict) and task else None
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module=Module.ASBUILT.value,
-                event="task_get_description_failed",
+                module=Module.TASK.value,
+                event="task_get_data_failed",
                 extra={"item_id": task_id},
             )
             return None
+
+    @staticmethod
+    def get_tasks_by_ids(item_ids: List[str]) -> dict[str, dict]:
+        """Fetch multiple tasks by id using the list query in small chunks."""
+
+        cleaned = list(dict.fromkeys(str(item_id).strip() for item_id in (item_ids or []) if str(item_id).strip()))
+        if not cleaned:
+            return {}
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "ListFilteredTasks.graphql")
+        client = APIClient()
+
+        chunk_size = 25
+        tasks: dict[str, dict] = {}
+
+        for start in range(0, len(cleaned), chunk_size):
+            chunk = cleaned[start:start + chunk_size]
+            variables = {
+                "first": len(chunk),
+                "after": None,
+                "where": {
+                    "AND": [
+                        {
+                            "column": "ID",
+                            "operator": "IN",
+                            "value": chunk,
+                        }
+                    ]
+                },
+            }
+
+            try:
+                data = client.send_query(query, variables=variables) or {}
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.TASK.value,
+                    event="task_bulk_fetch_failed",
+                    extra={"count": len(chunk)},
+                )
+                continue
+
+            tasks_conn = (data.get("tasks") or {}) if isinstance(data, dict) else {}
+            edges = tasks_conn.get("edges") or []
+            if not isinstance(edges, list):
+                continue
+
+            for edge in edges:
+                node = (edge or {}).get("node") or {}
+                if not isinstance(node, dict):
+                    continue
+                task_id = node.get("id")
+                if task_id:
+                    tasks[str(task_id)] = node
+
+        return tasks
+
+    @staticmethod
+    def get_task_description(item_id: str) -> Optional[str]:
+        """Fetch the latest task/asbuilt description from the backend."""
+
+        task = APIModuleActions.get_task_data(item_id)
+        if not isinstance(task, dict):
+            return None
+        description = task.get("description")
+        return str(description or "")
 
     @staticmethod
     def update_task_description(item_id: str, description: str) -> bool:
@@ -215,7 +281,7 @@ class APIModuleActions:
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module=Module.ASBUILT.value,
+                module=Module.TASK.value,
                 event="task_update_description_failed",
                 extra={"item_id": task_id},
             )

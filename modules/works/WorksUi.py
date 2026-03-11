@@ -11,6 +11,7 @@ from ...constants.button_props import ButtonSize, ButtonVariant
 from ...languages.translation_keys import TranslationKeys
 from ...utils.url_manager import Module
 from .works_create_controller import WorksCreateController
+from .works_sync_service import WorksSyncService
 
 
 class WorksModule(TaskModuleBaseUI):
@@ -30,6 +31,7 @@ class WorksModule(TaskModuleBaseUI):
         )
 
         self._create_controller = WorksCreateController(lang_manager=self.lang_manager)
+        self._sync_service = WorksSyncService(lang_manager=self.lang_manager)
         self._create_on_map_button = QPushButton(
             self.lang_manager.translate(TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON)
         )
@@ -48,6 +50,28 @@ class WorksModule(TaskModuleBaseUI):
             on_created=lambda _task_id: self._refresh_filters(),
         )
 
+    def on_first_visible(self) -> None:
+        self._sync_service.attach()
+        super().on_first_visible()
+
+    def _on_status_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
+        TaskModuleBaseUI._refresh_filters(self, status_ids=ids)
+
+    def _on_type_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
+        TaskModuleBaseUI._refresh_filters(self, type_ids=ids)
+
+    def _refresh_filters(
+        self,
+        *,
+        status_ids: Optional[List[str]] = None,
+        type_ids: Optional[List[str]] = None,
+        tags_ids: Optional[List[str]] = None,
+    ) -> None:
+        self._sync_service.attach()
+        self._sync_service.sync_from_backend()
+        TaskModuleBaseUI._refresh_filters(self, status_ids=status_ids, type_ids=type_ids)
+
     def deactivate(self) -> None:
+        self._sync_service.detach()
         self._create_controller.cancel(bring_front=False)
         super().deactivate()

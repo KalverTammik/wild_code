@@ -29,6 +29,8 @@ from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...python.responses import DataDisplayExtractors
 from ...modules.asbuilt.asbuilt_notes_dialog import AsBuiltNotesEditorDialog
 from ...modules.asbuilt.asbuilt_notes_service import AsBuiltNotesService
+from ...modules.works.works_layer_service import WorksLayerService
+from ...modules.works.works_reposition_controller import WorksRepositionController
 
 
 
@@ -53,9 +55,22 @@ def open_item_in_browser(module_name: Optional[str], item_id: Optional[str]) -> 
         )
 
 
-def show_items_on_map(module_name: Optional[str], item_id: Optional[str]) -> None:
+def show_items_on_map(module_name: Optional[str], item_id: Optional[str], lang_manager=None) -> None:
     if not module_name or not item_id:
         return
+
+    if module_name == Module.WORKS.value:
+        lang = lang_manager or LanguageManager()
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=lang, silent=False)
+        if works_layer is None:
+            return
+        if not WorksLayerService.focus_feature_by_task_id(works_layer, item_id):
+            ModernMessageDialog.show_warning(
+                lang.translate(TranslationKeys.ERROR),
+                lang.translate(TranslationKeys.WORKS_REPOSITION_FEATURE_NOT_FOUND).format(task_id=item_id),
+            )
+        return
+
     numbers = APIModuleActions.get_module_item_connected_properties(module_name, item_id)
     if numbers:
         PropertiesSelectors.show_connected_properties_on_map(numbers, module=module_name)
@@ -126,6 +141,7 @@ class MoreActionsButton(CardActionButton):
         self._item_data = item_data
         self.module = module  # Ensure module is passed correctly
         self._map_selection_orchestrator: Optional[MapSelectionOrchestrator] = None
+        self._works_reposition_controller: Optional[WorksRepositionController] = None
         self._on_properties_linked = on_properties_linked
         self._parent_window: Optional[QDialog] = None
         self._restore_parent_on_close: bool = False
@@ -152,6 +168,16 @@ class MoreActionsButton(CardActionButton):
                 lambda _, data=item_data, lm=lang_manager: self._edit_asbuilt_notes(data, lm)
             )
             menu.addAction(action_notes)
+
+        if module == Module.WORKS.value:
+            action_reposition = QAction(
+                lang_manager.translate(TranslationKeys.WORKS_REPOSITION_ACTION),
+                self,
+            )
+            action_reposition.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._reposition_work_on_map(data, lm)
+            )
+            menu.addAction(action_reposition)
 
         action2 = QAction(
             lang_manager.translate(TranslationKeys.CONNECT_PROPERTIES),
@@ -233,6 +259,22 @@ class MoreActionsButton(CardActionButton):
         ModernMessageDialog.show_warning(
             lm.translate(TranslationKeys.ERROR),
             lm.translate(TranslationKeys.ASBUILT_UPDATE_NOTES_FAILED).format(name=item_name),
+        )
+
+    def _reposition_work_on_map(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+
+        item_id = DataDisplayExtractors.extract_item_id(item)
+        if not item_id:
+            return
+
+        if self._works_reposition_controller is None:
+            self._works_reposition_controller = WorksRepositionController(lang_manager=lm)
+
+        self._works_reposition_controller.start_reposition(
+            task_id=item_id,
+            parent_window=self._get_safe_parent_window(),
         )
 
     def _link_properties_from_map(self, module, item_data, lang_manager) -> None:
@@ -510,5 +552,5 @@ class ShowOnMapActionButton(CardActionButton):
         self.setEnabled(can_execute)
         if module_name and item_id:
             self.clicked.connect(
-                lambda _, module=module_name, mid=item_id: show_items_on_map(module, mid)
+                lambda _, module=module_name, mid=item_id, lm=lang_manager: show_items_on_map(module, mid, lm)
             )
