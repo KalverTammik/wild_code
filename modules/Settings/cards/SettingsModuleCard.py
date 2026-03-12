@@ -1,8 +1,9 @@
 
 
 from typing import Any
+import os
 
-from PyQt5.QtWidgets import QVBoxLayout,  QFrame, QHBoxLayout, QWidget, QPushButton
+from PyQt5.QtWidgets import QVBoxLayout,  QFrame, QHBoxLayout, QWidget, QPushButton, QFileDialog
 from PyQt5.QtCore import pyqtSignal, QTimer, QEvent
 from .SettingsBaseCard import SettingsBaseCard
 from .SettingModuleFeatureCard import SettingsModuleFeatureCard
@@ -292,65 +293,120 @@ class SettingsModuleCard(SettingsBaseCard):
         return button
 
     def _on_create_temp_works_layer_clicked(self) -> None:
-        preferred_layer = self._layer_selector.currentLayer() if self._layer_selector else None
-        reference_layer = WorksTempLayerHelper.resolve_reference_layer(preferred_layer)
-        if reference_layer is None:
-            ModernMessageDialog.show_warning(
-                self.lang_manager.translate(TranslationKeys.ERROR),
-                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_REFERENCE_REQUIRED),
+        try:
+            preferred_layer = self._layer_selector.currentLayer() if self._layer_selector else None
+            reference_layer = WorksTempLayerHelper.resolve_reference_layer(preferred_layer)
+            if reference_layer is None:
+                ModernMessageDialog.show_warning(
+                    self.lang_manager.translate(TranslationKeys.ERROR),
+                    self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_REFERENCE_REQUIRED),
+                )
+                return
+
+            default_name = (
+                self._pend_element_name
+                or self._orig_element_name
+                or WorksTempLayerHelper.DEFAULT_LAYER_NAME
             )
-            return
-
-        if not WorksTempLayerHelper.gpkg_path_for_layer(reference_layer):
-            ModernMessageDialog.show_warning(
-                self.lang_manager.translate(TranslationKeys.ERROR),
-                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_GPKG_REQUIRED),
+            layer_name, ok = ModernMessageDialog.get_text_modern(
+                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_PROMPT_TITLE),
+                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_PROMPT_LABEL),
+                text=default_name,
             )
-            return
+            if not ok:
+                return
 
-        default_name = (
-            self._pend_element_name
-            or self._orig_element_name
-            or WorksTempLayerHelper.DEFAULT_LAYER_NAME
-        )
-        layer_name, ok = ModernMessageDialog.get_text_modern(
-            self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_PROMPT_TITLE),
-            self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_PROMPT_LABEL),
-            text=default_name,
-        )
-        if not ok:
-            return
+            normalized_name = (layer_name or "").strip()
+            if not normalized_name:
+                ModernMessageDialog.show_warning(
+                    self.lang_manager.translate(TranslationKeys.ERROR),
+                    self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_NAME_REQUIRED),
+                )
+                return
 
-        normalized_name = (layer_name or "").strip()
-        if not normalized_name:
-            ModernMessageDialog.show_warning(
-                self.lang_manager.translate(TranslationKeys.ERROR),
-                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_NAME_REQUIRED),
+            use_existing_label = self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_STORAGE_EXISTING)
+            standalone_label = self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_STORAGE_STANDALONE)
+            cancel_label = self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON)
+            storage_choice = ModernMessageDialog.ask_choice_modern(
+                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_STORAGE_TITLE),
+                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_STORAGE_MESSAGE),
+                buttons=[use_existing_label, standalone_label, cancel_label],
+                default=standalone_label,
+                cancel=cancel_label,
+                button_variants=[ButtonVariant.PRIMARY, ButtonVariant.SUCCESS, ButtonVariant.GHOST],
             )
-            return
+            if storage_choice in (None, cancel_label):
+                return
 
-        created_layer, error_text = WorksTempLayerHelper.create_or_load_layer(
-            reference_layer,
-            normalized_name,
-        )
-        if created_layer is None or not created_layer.isValid():
+            target_gpkg_path: str | None = None
+            overwrite_file = False
+            if storage_choice == use_existing_label:
+                if not WorksTempLayerHelper.gpkg_path_for_layer(reference_layer):
+                    ModernMessageDialog.show_warning(
+                        self.lang_manager.translate(TranslationKeys.ERROR),
+                        self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_GPKG_REQUIRED),
+                    )
+                    return
+            else:
+                default_path = WorksTempLayerHelper.default_standalone_gpkg_path(reference_layer, normalized_name)
+                selected_path, _selected_filter = QFileDialog.getSaveFileName(
+                    self,
+                    self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_SAVE_DIALOG_TITLE),
+                    default_path,
+                    "GeoPackage (*.gpkg)",
+                )
+                if not selected_path:
+                    return
+
+                target_gpkg_path = selected_path if selected_path.lower().endswith(".gpkg") else f"{selected_path}.gpkg"
+                if os.path.exists(target_gpkg_path):
+                    overwrite_file = ModernMessageDialog.ask_yes_no(
+                        self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_OVERWRITE_TITLE),
+                        self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_OVERWRITE_MESSAGE).format(path=target_gpkg_path),
+                        yes_label=self.lang_manager.translate(TranslationKeys.OK),
+                        no_label=cancel_label,
+                        default=self.lang_manager.translate(TranslationKeys.OK),
+                    )
+                    if not overwrite_file:
+                        return
+
+            created_layer, error_text = WorksTempLayerHelper.create_or_load_layer(
+                reference_layer,
+                normalized_name,
+                gpkg_path=target_gpkg_path,
+                overwrite_file=overwrite_file,
+            )
+            if created_layer is None or not created_layer.isValid():
+                ModernMessageDialog.show_warning(
+                    self.lang_manager.translate(TranslationKeys.ERROR),
+                    self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_CREATE_FAILED).format(
+                        name=normalized_name,
+                        error=error_text or self.lang_manager.translate(TranslationKeys.ERROR),
+                    ),
+                )
+                return
+
+            actual_name = created_layer.name() or normalized_name
+            self._write_saved_layer_value("element", actual_name)
+            self.sync_main_layer_selection(actual_name, force=True)
+
+            ModernMessageDialog.show_info(
+                self.lang_manager.translate(TranslationKeys.SUCCESS),
+                self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_READY).format(name=actual_name),
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="works_temp_layer_button_failed",
+            )
             ModernMessageDialog.show_warning(
                 self.lang_manager.translate(TranslationKeys.ERROR),
                 self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_CREATE_FAILED).format(
-                    name=normalized_name,
-                    error=error_text or self.lang_manager.translate(TranslationKeys.ERROR),
+                    name=(self._pend_element_name or self._orig_element_name or WorksTempLayerHelper.DEFAULT_LAYER_NAME),
+                    error=str(exc),
                 ),
             )
-            return
-
-        actual_name = created_layer.name() or normalized_name
-        self._write_saved_layer_value("element", actual_name)
-        self.sync_main_layer_selection(actual_name, force=True)
-
-        ModernMessageDialog.show_info(
-            self.lang_manager.translate(TranslationKeys.SUCCESS),
-            self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_READY).format(name=actual_name),
-        )
 
     def _create_layer_combobox(self, parent: QWidget) -> QgsMapLayerComboBox:
         combo = QgsMapLayerComboBox(parent)

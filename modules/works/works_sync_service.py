@@ -174,13 +174,17 @@ class WorksSyncService:
 
         self._syncing_geometry = True
         try:
+            changed_feature_ids: list[int] = []
             for feature_id, geometry in changed_geometries.items():
+                current_feature_id = int(feature_id)
+                changed_feature_ids.append(current_feature_id)
                 self._sync_feature_geometry_to_backend(
                     layer=layer,
-                    feature_id=int(feature_id),
+                    feature_id=current_feature_id,
                     geometry=geometry,
                     task_id_field=task_id_field,
                 )
+            self._stamp_geometry_audit_fields(layer=layer, feature_ids=changed_feature_ids)
         finally:
             self._syncing_geometry = False
 
@@ -240,39 +244,84 @@ class WorksSyncService:
 
     @staticmethod
     def _build_layer_updates(task: dict) -> dict[str, object]:
-        updates: dict[str, object] = {}
-
         title = str(task.get("name") or task.get("title") or "").strip()
-        if title:
-            updates["title"] = title
-
-        description = WorksDescriptionService.extract_user_description(task.get("description"))
-        updates["description"] = description
-
         type_name = str(((task.get("type") or {}).get("name") or "")).strip()
-        if type_name:
-            updates["type"] = type_name
 
-        updates["priority"] = str(task.get("priority") or "").strip()
+        return {
+            WorksLayerService.FIELD_EXT_SYSTEM: WorksLayerService.EXT_SYSTEM_NAME,
+            WorksLayerService.FIELD_EXT_JOB_NAME: title,
+            WorksLayerService.FIELD_EXT_JOB_TYPE: type_name,
+            WorksLayerService.FIELD_EXT_URL: "",
+            WorksLayerService.FIELD_EXT_JOB_STATE: WorksLayerService.status_id_from_task(task),
+            WorksLayerService.FIELD_BEGIN_DATE: WorksLayerService.begin_date_from_task(task),
+            WorksLayerService.FIELD_END_DATE: WorksLayerService.end_date_from_task(task),
+        }
 
-        status_type = str(((task.get("status") or {}).get("type") or "")).strip().upper()
-        if status_type:
-            is_active = status_type != "CLOSED"
-            updates["status"] = is_active
-            updates["active"] = is_active
+    def _stamp_geometry_audit_fields(self, *, layer: QgsVectorLayer, feature_ids: list[int]) -> None:
+        if not feature_ids:
+            return
 
-        created_at = str(task.get("createdAt") or "").strip()
-        updated_at = str(task.get("updatedAt") or "").strip()
-        if created_at:
-            updates["created_at"] = created_at
-        if updated_at:
-            updates["updated_at"] = updated_at
+        try:
+            field_indices = {field.name().lower(): index for index, field in enumerate(layer.fields())}
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_sync_geometry_audit_field_map_failed",
+            )
+            return
 
-        display_timestamp = WorksSyncService._format_display_datetime(created_at or updated_at)
-        if display_timestamp:
-            updates["datetime"] = display_timestamp
+        updated_by_index = field_indices.get(WorksLayerService.FIELD_UPDATED_BY.lower())
+        update_date_index = field_indices.get(WorksLayerService.FIELD_UPDATE_DATE.lower())
+        if updated_by_index is None and update_date_index is None:
+            return
 
-        return updates
+        started_edit = False
+        changed = False
+        username = WorksLayerService.current_username()
+        timestamp = datetime.now()
+
+        try:
+            if not layer.isEditable():
+                started_edit = bool(layer.startEditing())
+                if not started_edit:
+                    return
+
+            for feature_id in feature_ids:
+                if updated_by_index is not None and layer.changeAttributeValue(int(feature_id), updated_by_index, username):
+                    changed = True
+                if update_date_index is not None and layer.changeAttributeValue(int(feature_id), update_date_index, timestamp):
+                    changed = True
+
+            if not started_edit:
+                return
+
+            if not changed:
+                layer.rollBack()
+                return
+
+            if not layer.commitChanges():
+                errors = "; ".join(layer.commitErrors() or [])
+                layer.rollBack()
+                raise RuntimeError(errors or "Could not commit works geometry audit changes")
+
+            layer.triggerRepaint()
+        except Exception as exc:
+            if started_edit and layer.isEditable():
+                try:
+                    layer.rollBack()
+                except Exception as rollback_exc:
+                    PythonFailLogger.log_exception(
+                        rollback_exc,
+                        module=Module.WORKS.value,
+                        event="works_sync_geometry_audit_rollback_failed",
+                    )
+
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_sync_geometry_audit_failed",
+            )
 
     @staticmethod
     def _format_display_datetime(value: str) -> str:
@@ -291,15 +340,45 @@ class WorksSyncService:
 
     @staticmethod
     def _values_equal(current_value, new_value) -> bool:
+        current_dt = WorksSyncService._normalize_datetime_value(current_value)
+        new_dt = WorksSyncService._normalize_datetime_value(new_value)
+        if current_dt is not None or new_dt is not None:
+            return current_dt == new_dt
+
         if isinstance(new_value, bool):
             if isinstance(current_value, bool):
                 return current_value is new_value
             current_text = str(current_value or "").strip().lower()
             return (current_text in {"1", "true", "yes"}) is new_value
 
+        if isinstance(new_value, int) and not isinstance(new_value, bool):
+            return WorksLayerService.coerce_optional_int(current_value) == new_value
+
         current_text = "" if current_value is None else str(current_value).strip()
         new_text = "" if new_value is None else str(new_value).strip()
         return current_text == new_text
+
+    @staticmethod
+    def _normalize_datetime_value(value) -> Optional[datetime]:
+        if value is None:
+            return None
+
+        if isinstance(value, datetime):
+            return value.replace(microsecond=0, tzinfo=None)
+
+        to_py_datetime = getattr(value, "toPyDateTime", None)
+        if callable(to_py_datetime):
+            try:
+                parsed = to_py_datetime()
+            except Exception:
+                parsed = None
+            if isinstance(parsed, datetime):
+                return parsed.replace(microsecond=0, tzinfo=None)
+
+        parsed = WorksLayerService.parse_backend_datetime(value)
+        if isinstance(parsed, datetime):
+            return parsed.replace(microsecond=0, tzinfo=None)
+        return None
 
     @staticmethod
     def _geometry_point(geometry: Optional[QgsGeometry]):

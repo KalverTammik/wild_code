@@ -106,18 +106,10 @@ class WorksCreateController:
 
         now = datetime.now()
         works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
-        field_values = WorksLayerService.build_canonical_feature_values(
-            title=dialog.title_text(),
-            description=dialog.description_text(),
-            type_label=dialog.selected_type_label(),
-            priority=dialog.priority_value(),
-            has_property=property_feature is not None,
-            timestamp=now,
-        )
         backend_description = WorksDescriptionService.build_task_description(
             layer=works_layer,
             point=point,
-            field_values=field_values,
+            description_text=dialog.description_text(),
             property_feature=property_feature,
             lang_manager=self._lang,
         )
@@ -147,10 +139,12 @@ class WorksCreateController:
             )
             return
 
+        created_task = APIModuleActions.get_task_data(task_id) or {}
+
         final_backend_description = WorksDescriptionService.build_task_description(
             layer=works_layer,
             point=point,
-            field_values=field_values,
+            description_text=dialog.description_text(),
             property_feature=property_feature,
             task_id=task_id,
             lang_manager=self._lang,
@@ -177,16 +171,22 @@ class WorksCreateController:
         map_saved = False
         map_error = ""
         if works_layer is not None:
+            created_by = WorksLayerService.current_username()
+            created_title = str(created_task.get("name") or dialog.title_text() or "").strip()
+            created_type = str(((created_task.get("type") or {}).get("name") or dialog.selected_type_label() or "")).strip()
             map_saved, map_error = WorksLayerService.insert_work_feature(
                 layer=works_layer,
                 point=point,
                 task_id=task_id,
-                title=dialog.title_text(),
-                description=dialog.description_text(),
-                type_label=dialog.selected_type_label(),
-                priority=dialog.priority_value(),
-                has_property=property_feature is not None,
-                timestamp=now,
+                title=created_title,
+                type_label=created_type,
+                status_id=WorksLayerService.status_id_from_task(created_task),
+                begin_date=WorksLayerService.begin_date_from_task(created_task) or now,
+                end_date=WorksLayerService.end_date_from_task(created_task),
+                added_by=created_by,
+                added_date=now,
+                updated_by=created_by,
+                update_date=now,
             )
 
         property_link_failed = False

@@ -172,21 +172,21 @@ class WorkMapHelper:
         )
         layer = QgsProject.instance().mapLayersByName(works_layer_name)[0]
 
-        #print("🔍 Searching for feature with Mailabl_id:", task_id)
+        #print("🔍 Searching for feature with ext_job_id:", task_id)
 
-        # Find the feature with Mailabl_id = task_id
+        # Find the feature with ext_job_id = task_id
         matching_feature = None
         for feature in layer.getFeatures():
-            if str(feature["Mailabl_id"]) == str(task_id):
+            if str(feature["ext_job_id"]) == str(task_id):
                 matching_feature = feature
                 break
 
         if not matching_feature:
-            print(f"❌ No feature found with Mailabl_id = {task_id}")
+            print(f"❌ No feature found with ext_job_id = {task_id}")
             return
 
         fid = matching_feature.id()
-        #print(f"✅ Feature with Mailabl_id {task_id} found, FID: {fid}")
+        #print(f"✅ Feature with ext_job_id {task_id} found, FID: {fid}")
 
         # Zoom to and select the feature
         layer.removeSelection()
@@ -231,27 +231,24 @@ class WorkMapHelper:
         if not layer.isEditable():
             layer.startEditing()
 
-        feature_column = "Mailabl_id"
-        status_column = "status"
+        feature_column = "ext_job_id"
+        status_column = "ext_job_state"
+        status_idx = layer.fields().indexFromName(status_column)
 
 
         for feature in layer.getFeatures():
-            status_value = feature[status_column]
+            task_id = feature[feature_column]
+            details =TaskMain.load_task_data(task_id)
+            status_payload = ((details or {}).get("data") or {}).get("task", {}).get("status", {}) or {}
 
-            # Safely check if status is exactly True (ignores None, False, 0, etc.)
-            if isinstance(status_value, bool) and status_value is True:
-                task_id = feature[feature_column]
-                print(f"✅ Feature ID {task_id} is active (status = True)")
-            
-                details =TaskMain.load_task_data(task_id)
-                
-                status_type = details["data"]["task"]["status"]["type"]
-                if status_type == "CLOSED":
-                    active_state = False
-                else:
-                    active_state = True
-                feature.setAttribute("status", active_state)
-                layer.changeAttributeValue(feature.id(), layer.fields().indexFromName("status"), active_state)
+            try:
+                status_value = int(status_payload.get("id")) if status_payload.get("id") is not None else None
+            except (TypeError, ValueError):
+                status_value = None
+
+            if feature[status_column] != status_value:
+                feature.setAttribute(status_column, status_value)
+                layer.changeAttributeValue(feature.id(), status_idx, status_value)
 
         layer.commitChanges()
 
@@ -279,13 +276,16 @@ class WorkMapHelper:
                 task_type = task["type"]["name"]
                 priority = task.get("priority", "None")
         # ✅ Extract all task IDs where the status.type is OPEN
-        open_task_ids = {
-            edge["node"]["id"]
-            for edge in fetched_data
-            if edge["node"]["status"]["type"] == "OPEN"
-        }
+        task_status_by_id = {}
+        for edge in fetched_data:
+            node = edge.get("node") or {}
+            raw_status_id = ((node.get("status") or {}).get("id"))
+            try:
+                task_status_by_id[str(node.get("id"))] = int(raw_status_id) if raw_status_id is not None else None
+            except (TypeError, ValueError):
+                task_status_by_id[str(node.get("id"))] = None
 
-        print("✅ Open Task IDs:", open_task_ids)
+        print("✅ Open Task IDs:", set(task_status_by_id.keys()))
         module = Module.WORKS
         works_layer_name = PluginSettings.load_setting(
             module=module,
@@ -297,17 +297,17 @@ class WorkMapHelper:
         if not layer.isEditable():
             layer.startEditing()
 
-        feature_column = "Mailabl_id"
-        status_column = "status"
+        feature_column = "ext_job_id"
+        status_column = "ext_job_state"
         status_idx = layer.fields().indexFromName(status_column)
         for feature in layer.getFeatures():
             task_id = str(feature[feature_column])  # Ensure string for comparison
 
-            active_state = task_id in open_task_ids
+            active_state = task_status_by_id.get(task_id)
             current_status = feature[status_column]
 
             if current_status != active_state:
-                #print(f"🔄 Updating feature {feature.id()} (Mailabl_id={task_id}): {current_status} → {active_state}")
+                #print(f"🔄 Updating feature {feature.id()} (ext_job_id={task_id}): {current_status} → {active_state}")
                 layer.changeAttributeValue(feature.id(), status_idx, active_state)
 
         layer.updateFields()  # Optional, if schema changed
@@ -326,29 +326,26 @@ class WorkMapHelper:
         if not layer.isEditable():
             layer.startEditing()
 
-        feature_column = "Mailabl_id"
-        status_column = "status"
+        feature_column = "ext_job_id"
+        status_column = "ext_job_state"
+        status_idx = layer.fields().indexFromName(status_column)
 
         for feature in layer.getFeatures():
-            status_value = feature[status_column]
+            task_id = feature[feature_column]
 
-            # Safely check if status is exactly True (ignores None, False, 0, etc.)
-            if isinstance(status_value, bool) and status_value is True:
-                task_id = feature[feature_column]
-                #print(f"✅ Feature ID {task_id} is active (status = True)")
-            
-                details =TaskMain.load_task_data(task_id)
-                if not details or "data" not in details or not details["data"].get("task"):
-                    print(f"⚠️ Could not fetch task details for ID: {task_id}")
-                    continue  # skip this feature if task data couldn't be loaded
+            details =TaskMain.load_task_data(task_id)
+            if not details or "data" not in details or not details["data"].get("task"):
+                print(f"⚠️ Could not fetch task details for ID: {task_id}")
+                continue  # skip this feature if task data couldn't be loaded
 
-                status_type = details["data"]["task"]["status"]["type"]
-                if status_type == "CLOSED":
-                    active_state = False
-                else:
-                    active_state = True
-                feature.setAttribute("status", active_state)
-                layer.changeAttributeValue(feature.id(), layer.fields().indexFromName("status"), active_state)
+            status_payload = details["data"]["task"].get("status") or {}
+            try:
+                status_value = int(status_payload.get("id")) if status_payload.get("id") is not None else None
+            except (TypeError, ValueError):
+                status_value = None
+
+            feature.setAttribute(status_column, status_value)
+            layer.changeAttributeValue(feature.id(), status_idx, status_value)
 
         layer.commitChanges()
         iface.mapCanvas().refresh()

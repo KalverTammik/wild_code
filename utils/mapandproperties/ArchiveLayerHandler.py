@@ -71,10 +71,22 @@ class GPKGHelpers:
         return layer_uri, gpkg_path
     @staticmethod
     def gpkg_layer_exists(gpkg_path: str, layer_name: str) -> bool:
-        ds = ogr.Open(gpkg_path, 0)  # read-only
+        normalized_path = os.path.abspath(str(gpkg_path or "").strip())
+        if not normalized_path or not os.path.exists(normalized_path):
+            return False
+
+        try:
+            ds = ogr.Open(normalized_path, 0)  # read-only
+        except Exception:
+            return False
+
         if not ds:
             return False
-        return layer_name in [ds.GetLayerByIndex(i).GetName() for i in range(ds.GetLayerCount())]
+
+        try:
+            return layer_name in [ds.GetLayerByIndex(i).GetName() for i in range(ds.GetLayerCount())]
+        except Exception:
+            return False
     @staticmethod
     def load_layer_from_gpkg(gpkg_path: str, layer_name: str, group_name: str = "") -> Optional[QgsVectorLayer]:
         """
@@ -164,17 +176,31 @@ class GPKGHelpers:
         Returns:
             bool: True if successful, False otherwise.
         """
-        print(f"🆕 Creating empty GPKG layer '{layer_name}' at: {gpkg_path}")
+        normalized_path = os.path.abspath(str(gpkg_path or "").strip())
+        print(f"🆕 Creating empty GPKG layer '{layer_name}' at: {normalized_path}")
+
+        parent_dir = os.path.dirname(normalized_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
 
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.driverName = "GPKG"
         options.layerName = layer_name
         options.fileEncoding = encoding
-        options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
+        create_or_overwrite_file = getattr(
+            QgsVectorFileWriter,
+            "CreateOrOverwriteFile",
+            QgsVectorFileWriter.CreateOrOverwriteLayer,
+        )
+        options.actionOnExistingFile = (
+            QgsVectorFileWriter.CreateOrOverwriteLayer
+            if os.path.exists(normalized_path) and not overwrite
+            else create_or_overwrite_file
+        )
         transform_context = QgsProject.instance().transformContext()
 
         writer = QgsVectorFileWriter.create(
-            gpkg_path,
+            normalized_path,
             fields,
             geometry_type,
             crs,

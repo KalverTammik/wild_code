@@ -1,3 +1,11 @@
+"""Works layer services.
+
+Note:
+Strict required-field validation for the Works layer field set should be enabled next.
+This is planned for the Geospatial partnership workflow so the Geospatial-partnered
+GIS application can be activated with automated schema validation.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -22,6 +30,7 @@ from ...constants.cadastral_fields import Katastriyksus
 from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...utils.SessionManager import SessionManager
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
@@ -29,30 +38,52 @@ from ...Logs.python_fail_logger import PythonFailLogger
 
 
 class WorksLayerService:
-    TASK_ID_FIELD_CANDIDATES = ("Mailabl_id", "mailabl_id", "task_id", "taskid")
+    EXT_SYSTEM_NAME = "Kavitro"
+
+    FIELD_EXT_JOB_ID = "ext_job_id"
+    FIELD_EXT_SYSTEM = "ext_system"
+    FIELD_EXT_JOB_NAME = "ext_job_name"
+    FIELD_EXT_JOB_TYPE = "ext_job_type"
+    FIELD_EXT_URL = "ext_url"
+    FIELD_EXT_JOB_STATE = "ext_job_state"
+    FIELD_BEGIN_DATE = "begin_date"
+    FIELD_END_DATE = "end_date"
+    FIELD_ADDED_BY = "added_by"
+    FIELD_ADDED_DATE = "added_date"
+    FIELD_UPDATED_BY = "updated_by"
+    FIELD_UPDATE_DATE = "update_date"
 
     @staticmethod
     def build_canonical_feature_values(
         *,
         title: str,
-        description: str,
         type_label: str,
-        priority: str,
-        has_property: bool,
-        timestamp: Optional[datetime] = None,
+        status_id: object = None,
+        begin_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        added_by: Optional[str] = None,
+        added_date: Optional[datetime] = None,
+        updated_by: Optional[str] = None,
+        update_date: Optional[datetime] = None,
+        ext_url: str = "",
     ) -> dict[str, object]:
-        now = timestamp or datetime.now()
+        created_at = added_date or datetime.now()
+        updated_at = update_date or created_at
+        creator_name = str(added_by or WorksLayerService.current_username() or "").strip()
+        updater_name = str(updated_by or creator_name).strip()
+
         return {
-            "title": str(title or "").strip(),
-            "description": str(description or "").strip(),
-            "type": str(type_label or "").strip(),
-            "priority": str(priority or "").strip(),
-            "status": True,
-            "active": True,
-            "affected_properties": bool(has_property),
-            "datetime": now.strftime("%Y-%m-%d %H:%M"),
-            "created_at": now.isoformat(),
-            "updated_at": now.isoformat(),
+            WorksLayerService.FIELD_EXT_SYSTEM: WorksLayerService.EXT_SYSTEM_NAME,
+            WorksLayerService.FIELD_EXT_JOB_NAME: str(title or "").strip(),
+            WorksLayerService.FIELD_EXT_JOB_TYPE: str(type_label or "").strip(),
+            WorksLayerService.FIELD_EXT_URL: str(ext_url or "").strip(),
+            WorksLayerService.FIELD_EXT_JOB_STATE: WorksLayerService.coerce_optional_int(status_id),
+            WorksLayerService.FIELD_BEGIN_DATE: begin_date,
+            WorksLayerService.FIELD_END_DATE: end_date,
+            WorksLayerService.FIELD_ADDED_BY: creator_name,
+            WorksLayerService.FIELD_ADDED_DATE: created_at,
+            WorksLayerService.FIELD_UPDATED_BY: updater_name,
+            WorksLayerService.FIELD_UPDATE_DATE: updated_at,
         }
 
     @staticmethod
@@ -101,11 +132,96 @@ class WorksLayerService:
             )
             return None
 
-        for candidate in WorksLayerService.TASK_ID_FIELD_CANDIDATES:
-            actual = field_map.get(str(candidate).lower())
-            if actual:
-                return actual
-        return None
+        return field_map.get(WorksLayerService.FIELD_EXT_JOB_ID.lower())
+
+    @staticmethod
+    def current_username() -> str:
+        try:
+            session = SessionManager()
+            username = str(getattr(session, "username", "") or "").strip()
+            if username:
+                return username
+
+            session.load_credentials()
+            return str(getattr(session, "username", "") or "").strip()
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_current_user_resolve_failed",
+            )
+            return ""
+
+    @staticmethod
+    def coerce_optional_int(value) -> Optional[int]:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        try:
+            return int(text)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def parse_backend_datetime(value) -> Optional[datetime]:
+        text = str(value or "").strip()
+        if not text:
+            return None
+
+        normalized = text.replace("Z", "+00:00")
+        try:
+            parsed = datetime.fromisoformat(normalized)
+        except Exception:
+            parsed = None
+
+        if parsed is None:
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+                try:
+                    parsed = datetime.strptime(text, fmt)
+                    break
+                except Exception:
+                    continue
+
+        if parsed is None:
+            return None
+
+        if parsed.tzinfo is not None:
+            try:
+                parsed = parsed.astimezone().replace(tzinfo=None)
+            except Exception:
+                parsed = parsed.replace(tzinfo=None)
+
+        return parsed
+
+    @staticmethod
+    def status_id_from_task(task: Optional[dict]) -> Optional[int]:
+        if not isinstance(task, dict):
+            return None
+        status_payload = task.get("status") or {}
+        if not isinstance(status_payload, dict):
+            return None
+        return WorksLayerService.coerce_optional_int(status_payload.get("id"))
+
+    @staticmethod
+    def begin_date_from_task(task: Optional[dict]) -> Optional[datetime]:
+        if not isinstance(task, dict):
+            return None
+        return WorksLayerService.parse_backend_datetime(task.get("startAt"))
+
+    @staticmethod
+    def end_date_from_task(task: Optional[dict]) -> Optional[datetime]:
+        if not isinstance(task, dict):
+            return None
+
+        status_payload = task.get("status") or {}
+        status_type = str((status_payload or {}).get("type") or "").strip().upper()
+        if status_type != "CLOSED":
+            return None
+
+        return (
+            WorksLayerService.parse_backend_datetime(task.get("updatedAt"))
+            or WorksLayerService.parse_backend_datetime(task.get("dueAt"))
+        )
 
     @staticmethod
     def find_property_feature_at_point(point: QgsPointXY, *, radius_multiplier: float = 3.0):
@@ -243,11 +359,14 @@ class WorksLayerService:
         point: QgsPointXY,
         task_id: str,
         title: str,
-        description: str,
         type_label: str,
-        priority: str,
-        has_property: bool,
-        timestamp: Optional[datetime] = None,
+        status_id: object = None,
+        begin_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        added_by: Optional[str] = None,
+        added_date: Optional[datetime] = None,
+        updated_by: Optional[str] = None,
+        update_date: Optional[datetime] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False, "Invalid works layer"
@@ -263,14 +382,18 @@ class WorksLayerService:
         field_map = {field.name().lower(): field.name() for field in layer.fields()}
         field_values = WorksLayerService.build_canonical_feature_values(
             title=title,
-            description=description,
             type_label=type_label,
-            priority=priority,
-            has_property=has_property,
-            timestamp=timestamp,
+            status_id=status_id,
+            begin_date=begin_date,
+            end_date=end_date,
+            added_by=added_by,
+            added_date=added_date,
+            updated_by=updated_by,
+            update_date=update_date,
         )
 
-        feature.setAttribute(task_id_field, str(task_id))
+        task_id_value = WorksLayerService.coerce_optional_int(task_id)
+        feature.setAttribute(task_id_field, task_id_value if task_id_value is not None else str(task_id or "").strip())
         for canonical_name, value in field_values.items():
             WorksLayerService._set_attr_if_present(feature, field_map, canonical_name, value)
 
@@ -376,7 +499,7 @@ class WorksDescriptionService:
         *,
         layer: Optional[QgsVectorLayer],
         point: QgsPointXY,
-        field_values: dict[str, object],
+        description_text: str,
         property_feature=None,
         task_id: Optional[str] = None,
         lang_manager=None,
@@ -388,7 +511,7 @@ class WorksDescriptionService:
             if point_in_layer_crs or layer is None
             else WorksLayerService._point_in_layer_crs(point, layer)
         )
-        description_text = str(field_values.get("description") or "").strip()
+        description_text = str(description_text or "").strip()
 
         rows: list[tuple[str, str]] = []
 
@@ -474,7 +597,7 @@ class WorksDescriptionService:
         return cls.build_task_description(
             layer=layer,
             point=point,
-            field_values={"description": description_text},
+            description_text=description_text,
             lang_manager=lang_manager,
             point_in_layer_crs=point_in_layer_crs,
         )

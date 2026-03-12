@@ -74,12 +74,8 @@ class worksHelpers:
         feature = QgsFeature(works_layer.fields())
         feature.setGeometry(QgsGeometry.fromPointXY(point))
 
-        # Optional: match "tunnus" from property layer and add it as attribute
+        # Optional: match "tunnus" from property layer for later backend linking
         properties_feature = worksHelpers.get_feature_tunnus_from_layer(point, iface.mapCanvas(), plugin_instance)
-        if properties_feature:
-            feature.setAttribute("affected_properties", True)
-        else:
-            feature.setAttribute("affected_properties", False)
         # Add the feature to the layer
         
         res = worksTools.load_worksTools(feature, properties_feature)

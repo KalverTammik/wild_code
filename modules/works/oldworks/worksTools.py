@@ -220,21 +220,34 @@ class worksTools:
         task_id = CreateTask.Create_Task(variables)
 
         details = TaskMain.load_task_data(task_id)
-        status_type = details["data"]["task"]["status"]["type"]
-        active_state = (status_type != "CLOSED")
+        status_payload = ((details or {}).get("data") or {}).get("task", {}).get("status", {}) or {}
+        status_type = str(status_payload.get("type") or "").upper()
+
+        try:
+            status_id = int(status_payload.get("id")) if status_payload.get("id") is not None else None
+        except (TypeError, ValueError):
+            status_id = None
+
+        try:
+            task_id_value = int(task_id)
+        except (TypeError, ValueError):
+            task_id_value = task_id
+
+        end_date = now if status_type == "CLOSED" else None
 
         # Update feature attributes
-        feature.setAttribute("status", active_state)
-        feature.setAttribute("Mailabl_id", task_id)
-        feature.setAttribute("title", task_title)
-        feature.setAttribute("priority", priority)
-        feature.setAttribute("active", True)
-        feature.setAttribute("type", work_type)
-        feature.setAttribute("responsible_team", responsible)
-        feature.setAttribute("description", description)
-        feature.setAttribute("datetime", now.strftime("%Y-%m-%d %H:%M"))
-        feature.setAttribute("created_at", now.isoformat())
-        feature.setAttribute("updated_at", now.isoformat())
+        feature.setAttribute("ext_job_id", task_id_value)
+        feature.setAttribute("ext_system", "Kavitro")
+        feature.setAttribute("ext_job_name", task_title)
+        feature.setAttribute("ext_job_type", work_type)
+        feature.setAttribute("ext_url", "")
+        feature.setAttribute("ext_job_state", status_id)
+        feature.setAttribute("begin_date", now)
+        feature.setAttribute("end_date", end_date)
+        feature.setAttribute("added_by", responsible)
+        feature.setAttribute("added_date", now)
+        feature.setAttribute("updated_by", responsible)
+        feature.setAttribute("update_date", now)
 
         # Link properties if provided
         if properties_feature:
