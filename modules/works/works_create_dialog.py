@@ -27,20 +27,16 @@ from .works_layer_service import WorksLayerService
 
 
 class WorksCreateDialog(QDialog):
-    PRIORITY_OPTIONS = (
-        ("", TranslationKeys.WORKS_PRIORITY_NONE),
-        ("LOW", TranslationKeys.WORKS_PRIORITY_LOW),
-        ("MEDIUM", TranslationKeys.WORKS_PRIORITY_MEDIUM),
-        ("HIGH", TranslationKeys.WORKS_PRIORITY_HIGH),
-        ("URGENT", TranslationKeys.WORKS_PRIORITY_URGENT),
-    )
-
     def __init__(
         self,
         *,
         point,
         property_feature=None,
         allowed_type_ids: Optional[Iterable[str]] = None,
+        assignable_users: Optional[Iterable[dict]] = None,
+        priority_options: Optional[Iterable[dict]] = None,
+        default_priority: str = "",
+        default_responsible_id: str = "",
         lang_manager=None,
         parent=None,
     ) -> None:
@@ -49,6 +45,10 @@ class WorksCreateDialog(QDialog):
         self._point = point
         self._property_feature = property_feature
         self._allowed_type_ids = {str(item_id) for item_id in (allowed_type_ids or []) if item_id}
+        self._assignable_users = list(assignable_users or [])
+        self._priority_options = list(priority_options or [])
+        self._default_priority = str(default_priority or "").strip().upper()
+        self._default_responsible_id = str(default_responsible_id or "").strip()
         self._title_touched = False
 
         self.setModal(True)
@@ -59,6 +59,7 @@ class WorksCreateDialog(QDialog):
         self._build_ui()
         self._populate_priorities()
         self._populate_types()
+        self._populate_responsibles()
         self._apply_initial_title()
 
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.MODULE_INFO])
@@ -120,14 +121,19 @@ class WorksCreateDialog(QDialog):
         priority_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_PRIORITY_LABEL), self)
         self._priority_combo = QComboBox(self)
 
+        responsible_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_RESPONSIBLE_LABEL), self)
+        self._responsible_combo = QComboBox(self)
+
         form.addWidget(type_label, 0, 0)
         form.addWidget(self._type_combo, 0, 1)
         form.addWidget(title_label, 1, 0)
         form.addWidget(self._title_edit, 1, 1)
-        form.addWidget(priority_label, 2, 0)
-        form.addWidget(self._priority_combo, 2, 1)
-        form.addWidget(description_label, 3, 0)
-        form.addWidget(self._description_edit, 3, 1)
+        form.addWidget(responsible_label, 2, 0)
+        form.addWidget(self._responsible_combo, 2, 1)
+        form.addWidget(priority_label, 3, 0)
+        form.addWidget(self._priority_combo, 3, 1)
+        form.addWidget(description_label, 4, 0)
+        form.addWidget(self._description_edit, 4, 1)
         root.addLayout(form)
 
         self._types_hint = QLabel("", self)
@@ -158,8 +164,23 @@ class WorksCreateDialog(QDialog):
 
     def _populate_priorities(self) -> None:
         self._priority_combo.clear()
-        for value, key in self.PRIORITY_OPTIONS:
-            self._priority_combo.addItem(self._lang.translate(key), value)
+        for option in self._priority_options:
+            if not isinstance(option, dict):
+                continue
+
+            value = str(option.get("value") or "").strip().upper()
+            label = str(option.get("label") or value or "").strip()
+            if not label:
+                continue
+            self._priority_combo.addItem(label, value)
+
+        if self._priority_combo.count() <= 0:
+            self._priority_combo.addItem(self._lang.translate(TranslationKeys.WORKS_PRIORITY_NONE), "")
+
+        if self._default_priority:
+            index = self._priority_combo.findData(self._default_priority)
+            if index >= 0:
+                self._priority_combo.setCurrentIndex(index)
 
     def _populate_types(self) -> None:
         self._type_combo.clear()
@@ -194,6 +215,30 @@ class WorksCreateDialog(QDialog):
 
         self._types_hint.setText(self._lang.translate(TranslationKeys.WORKS_CREATE_NO_TYPES))
         self._types_hint.setVisible(True)
+
+    def _populate_responsibles(self) -> None:
+        self._responsible_combo.clear()
+        seen: set[str] = set()
+
+        for user in self._assignable_users:
+            if not isinstance(user, dict):
+                continue
+            user_id = str(user.get("id") or "").strip()
+            display_name = str(user.get("displayName") or user.get("name") or "").strip()
+            if not user_id or not display_name or user_id in seen:
+                continue
+            self._responsible_combo.addItem(display_name, user_id)
+            seen.add(user_id)
+
+        if self._responsible_combo.count() <= 0:
+            self._responsible_combo.setEnabled(False)
+            return
+
+        self._responsible_combo.setEnabled(True)
+        if self._default_responsible_id:
+            index = self._responsible_combo.findData(self._default_responsible_id)
+            if index >= 0:
+                self._responsible_combo.setCurrentIndex(index)
 
     def _apply_initial_title(self) -> None:
         self._update_suggested_title()
@@ -252,3 +297,9 @@ class WorksCreateDialog(QDialog):
 
     def priority_value(self) -> str:
         return str(self._priority_combo.currentData() or "").strip()
+
+    def selected_responsible_id(self) -> str:
+        return str(self._responsible_combo.currentData() or "").strip()
+
+    def selected_responsible_label(self) -> str:
+        return str(self._responsible_combo.currentText() or "").strip()

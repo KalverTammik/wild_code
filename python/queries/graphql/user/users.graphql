@@ -1,0 +1,15 @@
+query users($first: Int, $after: String) {
+  users(first: $first, after: $after) {
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    edges {
+      node {
+        id
+        displayName
+        deletedAt
+      }
+    }
+  }
+}

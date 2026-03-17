@@ -1,0 +1,5 @@
+mutation UpdateTaskMembers($input: UpdateTaskInput!) {
+  updateTask(input: $input) {
+    id
+  }
+}

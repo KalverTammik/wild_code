@@ -557,7 +557,7 @@ class ShowOnMapActionButton(CardActionButton):
         item_id: Optional[str],
         lang_manager,
         *,
-        has_connections: Optional[bool] = None,
+        has_connections: Optional[int] = None,
     ) -> None:
         super().__init__(
             "ShowOnMapButton",
@@ -566,7 +566,7 @@ class ShowOnMapActionButton(CardActionButton):
             lang_manager,
         )
         can_execute = bool(module_name and item_id)
-        if has_connections is False:
+        if has_connections is not None and int(has_connections) <= 0:
             can_execute = False
         self.setEnabled(can_execute)
         if module_name and item_id:

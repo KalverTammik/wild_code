@@ -4,14 +4,236 @@ from .api_client import APIClient
 
 from .GraphQLQueryLoader import GraphQLQueryLoader
 from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
 from ..Logs.python_fail_logger import PythonFailLogger
 from .responses import JsonResponseHandler
+from ..utils.SessionManager import SessionManager
 from ..utils.url_manager import Module
 
 
 _PROPERTIES_PAGE_SIZE = 50
 
 class APIModuleActions:
+    _TASK_PRIORITY_DEFAULTS = ("URGENT", "HIGH", "MEDIUM", "LOW")
+    _task_priority_values_cache: Optional[List[str]] = None
+
+    @staticmethod
+    def _property_owner_module(module: str) -> str:
+        module_name = str(module or "").strip().lower()
+        if module_name in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value):
+            return Module.TASK.value
+        return module_name
+
+    @staticmethod
+    def get_task_priority_values(*, force_refresh: bool = False) -> List[str]:
+        if APIModuleActions._task_priority_values_cache and not force_refresh:
+            return list(APIModuleActions._task_priority_values_cache)
+
+        loader = GraphQLQueryLoader()
+        client = APIClient()
+
+        try:
+            query = loader.load_query_by_module(Module.TASK.value, "taskPriorityEnum.graphql")
+            data = client.send_query(query) or {}
+            enum_payload = (data.get("__type") or {}) if isinstance(data, dict) else {}
+            enum_values = enum_payload.get("enumValues") or []
+
+            values = [
+                str(item.get("name") or "").strip().upper()
+                for item in enum_values
+                if isinstance(item, dict) and str(item.get("name") or "").strip()
+            ]
+            if values:
+                APIModuleActions._task_priority_values_cache = values
+                return list(values)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_priority_values_fetch_failed",
+            )
+
+        return list(APIModuleActions._TASK_PRIORITY_DEFAULTS)
+
+    @staticmethod
+    def task_priority_label(priority: str, *, lang_manager=None) -> str:
+        lang = lang_manager or LanguageManager()
+        normalized = str(priority or "").strip().upper()
+        if not normalized:
+            return lang.translate(TranslationKeys.WORKS_PRIORITY_NONE)
+
+        translation_map = {
+            "URGENT": TranslationKeys.WORKS_PRIORITY_URGENT,
+            "HIGH": TranslationKeys.WORKS_PRIORITY_HIGH,
+            "MEDIUM": TranslationKeys.WORKS_PRIORITY_MEDIUM,
+            "LOW": TranslationKeys.WORKS_PRIORITY_LOW,
+        }
+        translation_key = translation_map.get(normalized)
+        if translation_key:
+            return lang.translate(translation_key)
+
+        return normalized.replace("_", " ").title()
+
+    @staticmethod
+    def get_task_priority_options(*, lang_manager=None, include_empty: bool = True) -> List[dict[str, str]]:
+        lang = lang_manager or LanguageManager()
+        options: List[dict[str, str]] = []
+
+        if include_empty:
+            options.append(
+                {
+                    "value": "",
+                    "label": lang.translate(TranslationKeys.WORKS_PRIORITY_NONE),
+                }
+            )
+
+        for value in APIModuleActions.get_task_priority_values():
+            options.append(
+                {
+                    "value": value,
+                    "label": APIModuleActions.task_priority_label(value, lang_manager=lang),
+                }
+            )
+
+        return options
+
+    @staticmethod
+    def get_current_user_payload() -> Optional[dict]:
+        session = SessionManager()
+        cached_user = getattr(session, "loggedInUser", None)
+        if isinstance(cached_user, dict) and str(cached_user.get("id") or "").strip():
+            return cached_user
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.USER.value, "me.graphql")
+        client = APIClient()
+
+        try:
+            data = client.send_query(query) or {}
+            user = (data.get("me") or {}) if isinstance(data, dict) else {}
+            if isinstance(user, dict) and str(user.get("id") or "").strip():
+                try:
+                    session.loggedInUser = user
+                    SessionManager.save_session()
+                except Exception as cache_exc:
+                    PythonFailLogger.log_exception(
+                        cache_exc,
+                        module=Module.USER.value,
+                        event="current_user_cache_failed",
+                    )
+                return user
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.USER.value,
+                event="current_user_fetch_failed",
+            )
+
+        return cached_user if isinstance(cached_user, dict) else None
+
+    @staticmethod
+    def get_current_user_id() -> str:
+        user = APIModuleActions.get_current_user_payload() or {}
+        return str(user.get("id") or "").strip() if isinstance(user, dict) else ""
+
+    @staticmethod
+    def user_display_name(user: Optional[dict]) -> str:
+        if not isinstance(user, dict):
+            return ""
+
+        display_name = str(user.get("displayName") or "").strip()
+        if display_name:
+            return display_name
+
+        first_name = str(user.get("firstName") or "").strip()
+        last_name = str(user.get("lastName") or "").strip()
+        full_name = " ".join(part for part in (first_name, last_name) if part).strip()
+        if full_name:
+            return full_name
+
+        email = str(user.get("email") or "").strip()
+        if email:
+            return email
+
+        return str(user.get("id") or "").strip()
+
+    @staticmethod
+    def get_assignable_users(limit: int = 100) -> list[dict[str, str]]:
+        max_items = max(1, int(limit or 0))
+        current_user = APIModuleActions.get_current_user_payload() or {}
+        current_user_id = str(current_user.get("id") or "").strip()
+
+        users_by_id: dict[str, dict[str, str]] = {}
+        current_user_name = APIModuleActions.user_display_name(current_user)
+        if current_user_id and current_user_name:
+            users_by_id[current_user_id] = {
+                "id": current_user_id,
+                "displayName": current_user_name,
+            }
+
+        loader = GraphQLQueryLoader()
+        client = APIClient()
+
+        try:
+            query = loader.load_query_by_module(Module.USER.value, "users.graphql")
+            after: Optional[str] = None
+
+            while len(users_by_id) < max_items:
+                remaining = max_items - len(users_by_id)
+                variables = {
+                    "first": min(50, remaining),
+                    "after": after,
+                }
+                data = client.send_query(query, variables=variables) or {}
+                users_connection = (data.get("users") or {}) if isinstance(data, dict) else {}
+                edges = users_connection.get("edges") or []
+                if not isinstance(edges, list) or not edges:
+                    break
+
+                for edge in edges:
+                    node = (edge or {}).get("node") or {}
+                    if not isinstance(node, dict):
+                        continue
+
+                    user_id = str(node.get("id") or "").strip()
+                    if not user_id:
+                        continue
+
+                    if str(node.get("deletedAt") or "").strip():
+                        continue
+
+                    display_name = APIModuleActions.user_display_name(node)
+                    if not display_name:
+                        continue
+
+                    users_by_id[user_id] = {
+                        "id": user_id,
+                        "displayName": display_name,
+                    }
+                    if len(users_by_id) >= max_items:
+                        break
+
+                page_info = users_connection.get("pageInfo") or {}
+                after = str(page_info.get("endCursor") or "").strip()
+                if not page_info.get("hasNextPage") or not after:
+                    break
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.USER.value,
+                event="assignable_users_fetch_failed",
+                extra={"limit": max_items},
+            )
+
+        users = list(users_by_id.values())
+        users.sort(
+            key=lambda item: (
+                str(item.get("id") or "").strip() != current_user_id,
+                str(item.get("displayName") or "").casefold(),
+            )
+        )
+        return users
+
     @staticmethod
     def delete_item(module: str, item_id: str, lang_manager: LanguageManager) -> bool:
         """
@@ -49,19 +271,11 @@ class APIModuleActions:
         """Return cadastralUnitNumber values linked to the given module item."""
 
         module_name = module.strip().lower()
-
-        task_family_modules = {
-            Module.TASK.value,
-            Module.WORKS.value,
-            Module.ASBUILT.value,
-        }
-        if module_name in task_family_modules:
-            query_module = Module.TASK.value
-            query_root = Module.TASK.value
+        query_module = APIModuleActions._property_owner_module(module_name)
+        query_root = query_module
+        if query_module == Module.TASK.value:
             query_file = "w_tasks_module_data_by_item_id.graphql"
         else:
-            query_module = module_name
-            query_root = module_name
             query_file = f"W_{module_name}_id.graphql"
         
         loader = GraphQLQueryLoader()
@@ -178,7 +392,7 @@ class APIModuleActions:
         if not property_ids:
             raise ValueError("No property IDs provided for association")
 
-        module_key = module.strip().lower()
+        module_key = APIModuleActions._property_owner_module(module)
         qfile = f"update{module_key.capitalize()}Properties.graphql"
 
         loader = GraphQLQueryLoader()
@@ -193,7 +407,13 @@ class APIModuleActions:
         }
 
         client = APIClient()
-        return client.send_query(query, variables=variables, return_raw=True)
+        response = client.send_query(query, variables=variables, return_raw=True)
+        mutation_root = f"update{module_key.capitalize()}"
+        data = (response or {}).get("data") or {}
+        updated = (data.get(mutation_root) or {}) if isinstance(data, dict) else {}
+        if not isinstance(updated, dict) or not updated.get("id"):
+            raise RuntimeError(f"Property association did not return {mutation_root}.id")
+        return response
 
     @staticmethod
     def get_task_data(item_id: str) -> Optional[dict]:
@@ -319,6 +539,63 @@ class APIModuleActions:
             return False
 
     @staticmethod
+    def update_task_members(item_id: str, members_associate: List[object]) -> bool:
+        task_id = str(item_id or "").strip()
+        associate_payload = [member for member in (members_associate or []) if member]
+        if not task_id or not associate_payload:
+            return False
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "updateTaskMembers.graphql")
+        variables = {
+            "input": {
+                "id": task_id,
+                "members": {
+                    "associate": associate_payload,
+                },
+            }
+        }
+
+        client = APIClient()
+        try:
+            data = client.send_query(query, variables=variables) or {}
+            updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
+            return bool(updated.get("id"))
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_update_members_failed",
+                extra={"item_id": task_id},
+            )
+            return False
+
+    @staticmethod
+    def _build_task_member_associate_payload(
+        member_ids: Optional[List[str]],
+        *,
+        responsible_id: str = "",
+        include_responsible_flag: bool = True,
+    ) -> list[dict[str, object]]:
+        cleaned_member_ids = list(
+            dict.fromkeys(
+                str(member_id).strip()
+                for member_id in (member_ids or [])
+                if str(member_id).strip()
+            )
+        )
+        selected_responsible_id = str(responsible_id or "").strip()
+
+        payload: list[dict[str, object]] = []
+        for member_id in cleaned_member_ids:
+            member_payload: dict[str, object] = {"id": member_id}
+            if include_responsible_flag and selected_responsible_id:
+                member_payload["isResponsible"] = member_id == selected_responsible_id
+            payload.append(member_payload)
+
+        return payload
+
+    @staticmethod
     def create_task(
         *,
         title: str,
@@ -328,38 +605,85 @@ class APIModuleActions:
         start_at: Optional[str] = None,
         due_at: Optional[str] = None,
         member_ids: Optional[List[str]] = None,
+        responsible_id: Optional[str] = None,
     ) -> Optional[str]:
         task_title = str(title or "").strip()
         task_type_id = str(type_id or "").strip()
         if not task_title or not task_type_id:
             return None
 
+        current_user_id = APIModuleActions.get_current_user_id()
+        effective_responsible_id = str(responsible_id or "").strip() or current_user_id
+        cleaned_members = list(
+            dict.fromkeys(
+                member_id
+                for member_id in [
+                    effective_responsible_id,
+                    current_user_id,
+                    *[
+                        str(member_id).strip()
+                        for member_id in (member_ids or [])
+                        if str(member_id).strip()
+                    ],
+                ]
+                if member_id
+            )
+        )
+        member_payload = APIModuleActions._build_task_member_associate_payload(
+            cleaned_members,
+            responsible_id=effective_responsible_id,
+            include_responsible_flag=True,
+        )
+        fallback_member_payload = APIModuleActions._build_task_member_associate_payload(
+            cleaned_members,
+            include_responsible_flag=False,
+        )
+
         loader = GraphQLQueryLoader()
         query = loader.load_query_by_module(Module.TASK.value, "createTask.graphql")
 
-        task_input = {
-            "title": task_title,
-            "typeId": task_type_id,
-        }
-        if description is not None:
-            task_input["description"] = str(description or "")
-        if priority:
-            task_input["priority"] = str(priority)
-        if start_at:
-            task_input["startAt"] = str(start_at)
-        if due_at:
-            task_input["dueAt"] = str(due_at)
-        if member_ids:
-            cleaned_members = [str(member_id).strip() for member_id in member_ids if str(member_id).strip()]
-            if cleaned_members:
-                task_input["members"] = {"associate": cleaned_members}
+        def _build_task_input(associate_payload: Optional[List[object]]) -> dict:
+            task_input = {
+                "title": task_title,
+                "typeId": task_type_id,
+            }
+            if description is not None:
+                task_input["description"] = str(description or "")
+            if priority:
+                task_input["priority"] = str(priority).strip().upper()
+            if start_at:
+                task_input["startAt"] = str(start_at)
+            if due_at:
+                task_input["dueAt"] = str(due_at)
+            if associate_payload:
+                task_input["members"] = {"associate": associate_payload}
+            return task_input
 
         client = APIClient()
         try:
-            data = client.send_query(query, variables={"input": task_input}) or {}
+            try:
+                data = client.send_query(query, variables={"input": _build_task_input(member_payload)}) or {}
+                used_fallback_payload = False
+            except Exception as create_exc:
+                message = str(create_exc or "")
+                should_retry_without_flag = (
+                    bool(member_payload)
+                    and member_payload != fallback_member_payload
+                    and "members.associate" in message
+                    and "isResponsible" in message
+                )
+                if not should_retry_without_flag:
+                    raise
+
+                data = client.send_query(query, variables={"input": _build_task_input(fallback_member_payload)}) or {}
+                used_fallback_payload = True
+
             created = (data.get("createTask") or {}) if isinstance(data, dict) else {}
             task_id = created.get("id")
-            return str(task_id) if task_id else None
+            task_id_text = str(task_id) if task_id else None
+            if task_id_text and used_fallback_payload and effective_responsible_id and member_payload:
+                APIModuleActions.update_task_members(task_id_text, member_payload)
+            return task_id_text
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,

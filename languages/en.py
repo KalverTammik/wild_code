@@ -431,6 +431,7 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_TYPE_LABEL: "Type"
         ,TranslationKeys.WORKS_CREATE_TITLE_LABEL: "Title"
         ,TranslationKeys.WORKS_CREATE_TITLE_PLACEHOLDER: "Enter work title"
+        ,TranslationKeys.WORKS_CREATE_RESPONSIBLE_LABEL: "Responsible"
         ,TranslationKeys.WORKS_CREATE_DESCRIPTION_LABEL: "Description"
         ,TranslationKeys.WORKS_CREATE_PRIORITY_LABEL: "Priority"
         ,TranslationKeys.WORKS_CREATE_NO_TYPES: "No Works types are currently available for creation. Check module type settings if needed."

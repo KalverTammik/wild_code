@@ -94,10 +94,16 @@ class WorksCreateController:
         self._clear_capture_tool(bring_front=True)
 
         property_feature = WorksLayerService.find_property_feature_at_point(point)
+        assignable_users = APIModuleActions.get_assignable_users()
+        priority_options = APIModuleActions.get_task_priority_options(lang_manager=self._lang, include_empty=True)
+        default_responsible_id = APIModuleActions.get_current_user_id()
         dialog = WorksCreateDialog(
             point=point,
             property_feature=property_feature,
             allowed_type_ids=self._allowed_type_ids,
+            assignable_users=assignable_users,
+            priority_options=priority_options,
+            default_responsible_id=default_responsible_id,
             lang_manager=self._lang,
             parent=parent_window,
         )
@@ -123,6 +129,7 @@ class WorksCreateController:
                 priority=dialog.priority_value(),
                 start_at=now.strftime("%Y-%m-%d"),
                 due_at=(now + timedelta(days=7)).strftime("%Y-%m-%d"),
+                responsible_id=dialog.selected_responsible_id(),
             )
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -171,7 +178,10 @@ class WorksCreateController:
         map_saved = False
         map_error = ""
         if works_layer is not None:
-            created_by = WorksLayerService.current_username()
+            responsible_name = self._responsible_display_name(
+                created_task,
+                fallback=dialog.selected_responsible_label() or WorksLayerService.current_username(),
+            )
             created_title = str(created_task.get("name") or dialog.title_text() or "").strip()
             created_type = str(((created_task.get("type") or {}).get("name") or dialog.selected_type_label() or "")).strip()
             map_saved, map_error = WorksLayerService.insert_work_feature(
@@ -183,9 +193,9 @@ class WorksCreateController:
                 status_id=WorksLayerService.status_id_from_task(created_task),
                 begin_date=WorksLayerService.begin_date_from_task(created_task) or now,
                 end_date=WorksLayerService.end_date_from_task(created_task),
-                added_by=created_by,
+                added_by=responsible_name,
                 added_date=now,
-                updated_by=created_by,
+                updated_by=responsible_name,
                 update_date=now,
             )
 
@@ -241,6 +251,25 @@ class WorksCreateController:
             self._lang.translate(TranslationKeys.SUCCESS),
             self._lang.translate(TranslationKeys.WORKS_CREATE_SUCCESS).format(task_id=task_id),
         )
+
+    @staticmethod
+    def _responsible_display_name(task_data: Optional[dict], *, fallback: str = "") -> str:
+        task_payload = task_data if isinstance(task_data, dict) else {}
+        edges = ((task_payload.get("members") or {}).get("edges") or [])
+        for edge in edges:
+            edge_payload = edge if isinstance(edge, dict) else {}
+            if not edge_payload.get("isResponsible"):
+                continue
+
+            node = edge_payload.get("node") or {}
+            if not isinstance(node, dict):
+                continue
+
+            display_name = str(node.get("displayName") or "").strip()
+            if display_name:
+                return display_name
+
+        return str(fallback or "").strip()
 
     def _clear_capture_tool(self, *, bring_front: bool) -> None:
         canvas = iface.mapCanvas() if iface is not None else None

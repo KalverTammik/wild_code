@@ -23,6 +23,7 @@ class GqlKeys:
     TAGS = "tags"
     STATUS = "status"
     TYPE = "type"
+    PRIORITY = "priority"
     MEMBERS = "members"
     CONTACTS = "contacts"
     PROPERTIES = "properties"
@@ -149,6 +150,13 @@ class DataDisplayExtractors:
         resolved_name = str(name).strip() if isinstance(name, str) else ""
         color = type_data.get(GqlKeys.COLOR) or "808080"
         return TypeInfo(resolved_name or "-", str(color))
+
+    @staticmethod
+    def extract_priority(item_data: Optional[Json]) -> str:
+        if not isinstance(item_data, Mapping):
+            return ""
+        value = item_data.get(GqlKeys.PRIORITY)
+        return str(value or "").strip().upper()
 
     @staticmethod
     def extract_members(item_data: Optional[Json]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:

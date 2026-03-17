@@ -50,24 +50,37 @@ class PropertiesSelectors:
         return True
 
     @staticmethod
+    def _resolve_property_layer(*, module=None, use_shp: bool = False):
+        if use_shp:
+            return MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
+
+        settings = SettingsService()
+        property_layer_name = settings.module_main_layer_name(Module.PROPERTY.value)
+        layer = MapHelpers.find_layer_by_name(property_layer_name)
+        if layer:
+            return layer
+
+        module_key = str(module or "").strip().lower()
+        if module_key and module_key not in (
+            Module.PROPERTY.value,
+            Module.WORKS.value,
+            Module.ASBUILT.value,
+            Module.TASK.value,
+        ):
+            active_layer_name = settings.module_main_layer_name(module_key)
+            layer = MapHelpers.find_layer_by_name(active_layer_name)
+        return layer
+
+    @staticmethod
     def show_connected_properties_on_map(values, module=None, use_shp: bool=False) -> None:
         """Goal: select and zoom cadastral features; 
         values: List[str], layer_type: str; 
         Returns: None."""
 
-        if use_shp:
-            shp_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
-            layer = shp_layer
+        if module is None:
+            module = Module.PROPERTY.value
 
-        else:
-            if module == None:
-                module = Module.PROPERTY.value
-            settings = SettingsService()
-            active_layer_name = settings.module_main_layer_name(module)
-            layer = MapHelpers.find_layer_by_name(active_layer_name)
-            if not layer and module != Module.PROPERTY.value:
-                fallback_layer_name = settings.module_main_layer_name(Module.PROPERTY.value)
-                layer = MapHelpers.find_layer_by_name(fallback_layer_name)
+        layer = PropertiesSelectors._resolve_property_layer(module=module, use_shp=use_shp)
         
         if not layer:
             try:
@@ -143,19 +156,10 @@ class PropertiesSelectors:
         values: List[str], layer_type: str; 
         Returns: None."""
 
-        if use_shp:
-            shp_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
-            layer = shp_layer
+        if module is None:
+            module = Module.PROPERTY.value
 
-        else:
-            if module == None:
-                module = Module.PROPERTY.value
-            settings = SettingsService()
-            active_layer_name = settings.module_main_layer_name(module)
-            layer = MapHelpers.find_layer_by_name(active_layer_name)
-            if not layer and module != Module.PROPERTY.value:
-                fallback_layer_name = settings.module_main_layer_name(Module.PROPERTY.value)
-                layer = MapHelpers.find_layer_by_name(fallback_layer_name)
+        layer = PropertiesSelectors._resolve_property_layer(module=module, use_shp=use_shp)
         
         if not layer:
             return

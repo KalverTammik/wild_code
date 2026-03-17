@@ -1,0 +1,8 @@
+query TaskPriorityEnum {
+  __type(name: "TaskPriority") {
+    enumValues {
+      name
+      description
+    }
+  }
+}

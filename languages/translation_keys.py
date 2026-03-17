@@ -352,6 +352,7 @@ class TranslationKeys:
     WORKS_CREATE_TYPE_LABEL = "works_create_type_label"
     WORKS_CREATE_TITLE_LABEL = "works_create_title_label"
     WORKS_CREATE_TITLE_PLACEHOLDER = "works_create_title_placeholder"
+    WORKS_CREATE_RESPONSIBLE_LABEL = "works_create_responsible_label"
     WORKS_CREATE_DESCRIPTION_LABEL = "works_create_description_label"
     WORKS_CREATE_PRIORITY_LABEL = "works_create_priority_label"
     WORKS_CREATE_NO_TYPES = "works_create_no_types"

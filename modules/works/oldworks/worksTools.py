@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
 from ...config.settings import Filepaths, FilesByNames, OpenLink
 from ...config.SetupModules.AsBuitSettings import AsBuiltDrawings, DraggableFrame
 from ...config.settings_new import PluginSettings
+from ...python.api_actions import APIModuleActions
 
 from ...queries.python.tasks.taskQueries import CreateTask
 from ...queries.python.update_relations.updateElementProperties import ConnectElementWithPropertysties
@@ -125,18 +126,20 @@ class worksTools:
         worksTools._setup_dynamic_title(widget.workTypes, widget.lblHeadingValue, prefix_text=full_address, lineEdit=widget.worksTitleadition)
     @staticmethod
     def _populate_priority_combo(combo):
-        priority_map = {
-            "URGENT": "Kiire",
-            "HIGH": "Kõrge",
-            "MEDIUM": "Keskmine",
-            "LOW": "Madal"
-        }
+        combo.clear()
+        options = APIModuleActions.get_task_priority_options(include_empty=True)
 
-        # ➕ Add an empty initial item
-        combo.addItem("")  # No icon, no display text
-        combo.setItemData(0, None, Qt.UserRole)  # No associated enum value
+        for option in options:
+            if not isinstance(option, dict):
+                continue
+            enum_value = str(option.get("value") or "").strip().upper()
+            display_name = str(option.get("label") or "").strip()
 
-        for enum_value, display_name in priority_map.items():
+            if not enum_value:
+                combo.addItem("")
+                combo.setItemData(combo.count() - 1, None, Qt.UserRole)
+                continue
+
             icon = FlagIconHelper.generate_icon(priority=enum_value, size=18)
             combo.addItem(icon, display_name)
             combo.setItemData(combo.count() - 1, enum_value, Qt.UserRole)
