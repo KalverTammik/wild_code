@@ -82,7 +82,8 @@ class PluginDialog(QDialog):
         plugin_title = ConfigPaths.PLUGIN_NAME or self.lang_manager.translate(TranslationKeys.KAVITRO_PLUGIN_TITLE)
 
         self.setWindowTitle(plugin_title)
-        icon = theme_manager.get_qicon(IconNames.VALISEE_V_ICON_NAME)
+        #icon = theme_manager.get_qicon(IconNames.VALISEE_V_ICON_NAME)
+        icon = theme_manager.get_qicon(IconNames.KAVITRO_ICON)
         self.setWindowIcon(icon)
 
         # Core widgets

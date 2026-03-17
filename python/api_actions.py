@@ -50,10 +50,31 @@ class APIModuleActions:
 
         module_name = module.strip().lower()
 
-        query_file = f"W_{module_name}_id.graphql"
+        task_family_modules = {
+            Module.TASK.value,
+            Module.WORKS.value,
+            Module.ASBUILT.value,
+        }
+        if module_name in task_family_modules:
+            query_module = Module.TASK.value
+            query_root = Module.TASK.value
+            query_file = "w_tasks_module_data_by_item_id.graphql"
+        else:
+            query_module = module_name
+            query_root = module_name
+            query_file = f"W_{module_name}_id.graphql"
         
         loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(module_name, query_file)
+        try:
+            query = loader.load_query_by_module(query_module, query_file)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=module_name or Module.PROPERTY.value,
+                event="module_connected_properties_query_load_failed",
+                extra={"item_id": str(item_id or "").strip(), "query_file": query_file},
+            )
+            return []
 
         client = APIClient()
         end_cursor: Optional[str] = None
@@ -67,8 +88,18 @@ class APIModuleActions:
                 "propertiesAfter": end_cursor,
                 "id": item_id,
             }
-            payload = client.send_query(query, variables=variables, return_raw=True) or {}
-            path = [module_name, "properties"]
+            try:
+                payload = client.send_query(query, variables=variables, return_raw=True) or {}
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=module_name or Module.PROPERTY.value,
+                    event="module_connected_properties_fetch_failed",
+                    extra={"item_id": str(item_id or "").strip()},
+                )
+                return cadastral_numbers
+
+            path = [query_root, "properties"]
             edges = JsonResponseHandler.get_edges_from_path(payload, path) or []
             if not edges:
                 break

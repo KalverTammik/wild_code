@@ -439,6 +439,7 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_MAP_SAVE_FAILED: "Ülesanne {task_id} loodi, kuid kaardiobjekti ei saanud Tööde kihile salvestada. Detailid: {error}"
         ,TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED: "Ülesanne {task_id} loodi ja lisati kaardile, kuid kinnistu seostamine ebaõnnestus tunnusele {cadastral}."
         ,TranslationKeys.WORKS_CREATE_FAILED: "Uue töö loomine ebaõnnestus."
+        ,TranslationKeys.WORKS_SHOW_ITEM_ON_MAP_ACTION: "Näita tööd kaardil"
         ,TranslationKeys.WORKS_REPOSITION_ACTION: "Paiguta kaardil ümber"
         ,TranslationKeys.WORKS_REPOSITION_START_FAILED: "Töö ümberpaigutamise kaardivalikut ei saanud käivitada."
         ,TranslationKeys.WORKS_REPOSITION_FEATURE_NOT_FOUND: "Tööd {task_id} ei leitud seadistatud Tööde kihilt."

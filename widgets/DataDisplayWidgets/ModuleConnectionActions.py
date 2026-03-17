@@ -38,12 +38,7 @@ class ModuleConnectionActions(QWidget):
         web_btn = OpenWebActionButton(module_key, item_id, lang_manager)
         layout.addWidget(web_btn)
 
-        has_connection_count = module_key not in (Module.WORKS.value, Module.TASK.value)
-        has_connections = (
-            DataDisplayExtractors.extract_properties_connection_count(item_data)
-            if has_connection_count
-            else None
-        )
+        has_connections = DataDisplayExtractors.extract_properties_connection_count(item_data)
 
         map_btn = ShowOnMapActionButton(
             module_key,

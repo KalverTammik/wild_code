@@ -6,6 +6,9 @@ class IconNames:
     RANDOM_ICON_NAME = "Valisee_s.png"
     VALISEE_V_ICON_NAME = "Valisee_v.png"
 
+    KAVITRO_ICON_LARGE = "Kavitro-300x300.png"
+    KAVITRO_ICON = "Kavitro-favicon-96x96.png"
+
     ICON_LOGOUT = "Logout.png"
     ICON_HELP = "Otsing.png"
     ICON_INFO = "Abikeskus1.png"

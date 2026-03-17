@@ -1,4 +1,8 @@
-query task($id: ID!) {
+query task(
+  $id: ID!
+  $propertiesFirst: Int = 1
+  $propertiesAfter: String
+) {
   task(id: $id) {
     __typename
     id
@@ -26,6 +30,24 @@ query task($id: ID!) {
     type {
       id
       name
+    }
+    properties(first: $propertiesFirst, after: $propertiesAfter) {
+      pageInfo {
+        count
+        currentPage
+        startCursor
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        lastPage
+        total
+      }
+      edges {
+        node {
+          id
+          cadastralUnitNumber
+        }
+      }
     }
     priority
     description

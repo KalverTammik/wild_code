@@ -55,20 +55,23 @@ def open_item_in_browser(module_name: Optional[str], item_id: Optional[str]) -> 
         )
 
 
-def show_items_on_map(module_name: Optional[str], item_id: Optional[str], lang_manager=None) -> None:
-    if not module_name or not item_id:
+def show_work_item_on_map(item_id: Optional[str], lang_manager=None) -> None:
+    if not item_id:
         return
 
-    if module_name == Module.WORKS.value:
-        lang = lang_manager or LanguageManager()
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=lang, silent=False)
-        if works_layer is None:
-            return
-        if not WorksLayerService.focus_feature_by_task_id(works_layer, item_id):
-            ModernMessageDialog.show_warning(
-                lang.translate(TranslationKeys.ERROR),
-                lang.translate(TranslationKeys.WORKS_REPOSITION_FEATURE_NOT_FOUND).format(task_id=item_id),
-            )
+    lang = lang_manager or LanguageManager()
+    works_layer = WorksLayerService.resolve_main_layer(lang_manager=lang, silent=False)
+    if works_layer is None:
+        return
+    if not WorksLayerService.focus_feature_by_task_id(works_layer, item_id):
+        ModernMessageDialog.show_warning(
+            lang.translate(TranslationKeys.ERROR),
+            lang.translate(TranslationKeys.WORKS_REPOSITION_FEATURE_NOT_FOUND).format(task_id=item_id),
+        )
+
+
+def show_items_on_map(module_name: Optional[str], item_id: Optional[str], lang_manager=None) -> None:
+    if not module_name or not item_id:
         return
 
     numbers = APIModuleActions.get_module_item_connected_properties(module_name, item_id)
@@ -117,7 +120,7 @@ class OpenWebActionButton(CardActionButton):
         tooltip = lang_manager.translate(ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER) if lang_manager else ""
         super().__init__(
             "OpenWebpageButton",
-            IconNames.VALISEE_V_ICON_NAME,
+            IconNames.KAVITRO_ICON,
             tooltip,
             lang_manager,
         )
@@ -170,6 +173,15 @@ class MoreActionsButton(CardActionButton):
             menu.addAction(action_notes)
 
         if module == Module.WORKS.value:
+            action_show_item_on_map = QAction(
+                lang_manager.translate(TranslationKeys.WORKS_SHOW_ITEM_ON_MAP_ACTION),
+                self,
+            )
+            action_show_item_on_map.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._show_work_item_on_map(data, lm)
+            )
+            menu.addAction(action_show_item_on_map)
+
             action_reposition = QAction(
                 lang_manager.translate(TranslationKeys.WORKS_REPOSITION_ACTION),
                 self,
@@ -260,6 +272,13 @@ class MoreActionsButton(CardActionButton):
             lm.translate(TranslationKeys.ERROR),
             lm.translate(TranslationKeys.ASBUILT_UPDATE_NOTES_FAILED).format(name=item_name),
         )
+
+    def _show_work_item_on_map(self, item_data, lang_manager) -> None:
+        item = item_data if isinstance(item_data, dict) else {}
+        item_id = DataDisplayExtractors.extract_item_id(item)
+        if not item_id:
+            return
+        show_work_item_on_map(item_id, lang_manager)
 
     def _reposition_work_on_map(self, item_data, lang_manager) -> None:
         lm = lang_manager or LanguageManager()

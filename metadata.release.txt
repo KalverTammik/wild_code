@@ -22,7 +22,7 @@ tags=python, EVEL, Mailabl, projects, Water Companies,
 
 homepage=https://kavitro.com
 category=Web
-icon=resources/icons/Avaleht.png
+icon=resources/icons/Kavitro-favicon-96x96.png
 experimental=False
 deprecated=False
 server=False

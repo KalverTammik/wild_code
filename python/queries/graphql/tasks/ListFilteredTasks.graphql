@@ -2,6 +2,8 @@ query tasks(
   $first: Int
   $after: String
   $where: QueryTasksWhereWhereConditions
+  $propertiesFirst: Int = 1
+  $propertiesAfter: String
 ) {
   tasks(first: $first, after: $after, where: $where) {
     pageInfo {
@@ -38,6 +40,24 @@ query tasks(
         type {
           id
           name
+        }
+        properties(first: $propertiesFirst, after: $propertiesAfter) {
+          pageInfo {
+            count
+            currentPage
+            startCursor
+            endCursor
+            hasNextPage
+            hasPreviousPage
+            lastPage
+            total
+          }
+          edges {
+            node {
+              id
+              cadastralUnitNumber
+            }
+          }
         }
         priority
         description

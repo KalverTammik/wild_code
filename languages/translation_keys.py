@@ -365,6 +365,7 @@ class TranslationKeys:
     WORKS_CREATE_MAP_SAVE_FAILED = "works_create_map_save_failed"
     WORKS_CREATE_PROPERTY_LINK_FAILED = "works_create_property_link_failed"
     WORKS_CREATE_FAILED = "works_create_failed"
+    WORKS_SHOW_ITEM_ON_MAP_ACTION = "works_show_item_on_map_action"
     WORKS_REPOSITION_ACTION = "works_reposition_action"
     WORKS_REPOSITION_START_FAILED = "works_reposition_start_failed"
     WORKS_REPOSITION_FEATURE_NOT_FOUND = "works_reposition_feature_not_found"

@@ -444,6 +444,7 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_MAP_SAVE_FAILED: "Task {task_id} was created, but the map feature could not be saved to the Works layer. Details: {error}"
         ,TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED: "Task {task_id} was created and added to the map, but property linking failed for {cadastral}."
         ,TranslationKeys.WORKS_CREATE_FAILED: "Failed to create the new work item."
+        ,TranslationKeys.WORKS_SHOW_ITEM_ON_MAP_ACTION: "Show work on map"
         ,TranslationKeys.WORKS_REPOSITION_ACTION: "Reposition on map"
         ,TranslationKeys.WORKS_REPOSITION_START_FAILED: "Could not start map capture for repositioning the work."
         ,TranslationKeys.WORKS_REPOSITION_FEATURE_NOT_FOUND: "Work {task_id} could not be found on the configured Works layer."
