@@ -1,5 +1,6 @@
 import os
 from typing import List, Optional, Set
+import requests
 
 from .api_client import APIClient
 
@@ -725,6 +726,65 @@ class APIModuleActions:
                 module=Module.TASK.value,
                 event="task_file_download_link_failed",
                 extra={"uuid": resolved_uuid},
+            )
+            return None
+
+    @staticmethod
+    def fetch_file_preview_payload(file_uuid: str, *, max_bytes: int) -> Optional[dict]:
+        resolved_uuid = str(file_uuid or "").strip()
+        preview_limit = max(1, int(max_bytes or 0))
+        if not resolved_uuid:
+            return None
+
+        url = APIModuleActions.create_file_download_link(resolved_uuid)
+        if not url:
+            return None
+
+        headers = {
+            "Accept": "*/*",
+            "X-Requested-With": "XMLHttpRequest",
+        }
+
+        try:
+            with requests.get(url, headers=headers, stream=True, timeout=60) as response:
+                response.raise_for_status()
+
+                content = bytearray()
+                truncated = False
+                for chunk in response.iter_content(chunk_size=65536):
+                    if not chunk:
+                        continue
+
+                    remaining = preview_limit - len(content)
+                    if remaining <= 0:
+                        truncated = True
+                        break
+
+                    if len(chunk) > remaining:
+                        content.extend(chunk[:remaining])
+                        truncated = True
+                        break
+
+                    content.extend(chunk)
+
+                content_type = str(response.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+                disposition = str(response.headers.get("Content-Disposition") or "").strip()
+                content_length = str(response.headers.get("Content-Length") or "").strip()
+
+                return {
+                    "url": url,
+                    "content": bytes(content),
+                    "contentType": content_type,
+                    "contentDisposition": disposition,
+                    "contentLength": content_length,
+                    "truncated": truncated,
+                }
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_file_preview_fetch_failed",
+                extra={"uuid": resolved_uuid, "max_bytes": preview_limit},
             )
             return None
 

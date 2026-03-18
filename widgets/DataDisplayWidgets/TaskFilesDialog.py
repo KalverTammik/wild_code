@@ -24,9 +24,9 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import loadWebpage
 from ..DateHelpers import DateHelpers
 from ..theme_manager import ThemeManager
+from .TaskFilePreviewDialog import TaskFilePreviewDialog
 
 
 class TaskFilesDialog(QDialog):
@@ -91,7 +91,7 @@ class TaskFilesDialog(QDialog):
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
         self._table.verticalHeader().setVisible(False)
         self._table.itemSelectionChanged.connect(self._update_button_states)
-        self._table.itemDoubleClicked.connect(lambda *_: self._open_selected())
+        self._table.itemDoubleClicked.connect(lambda *_: self._preview_selected())
         layout.addWidget(self._table, 1)
 
         button_row = QHBoxLayout()
@@ -108,9 +108,9 @@ class TaskFilesDialog(QDialog):
         self._upload_button.clicked.connect(self._upload_files)
         button_row.addWidget(self._upload_button)
 
-        self._open_button = QPushButton(self._lang.translate(TranslationKeys.TASK_FILES_OPEN), self)
+        self._open_button = QPushButton(self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW), self)
         self._open_button.setProperty("variant", ButtonVariant.GHOST)
-        self._open_button.clicked.connect(self._open_selected)
+        self._open_button.clicked.connect(self._preview_selected)
         button_row.addWidget(self._open_button)
 
         self._delete_button = QPushButton(self._lang.translate(TranslationKeys.TASK_FILES_DELETE), self)
@@ -240,28 +240,32 @@ class TaskFilesDialog(QDialog):
         )
         return None
 
-    def _open_selected(self) -> None:
+    def _preview_selected(self) -> None:
         file_info = self._require_selected_file()
         if file_info is None:
             return
 
         file_uuid = str(file_info.get("uuid") or "").strip()
-        file_name = str(file_info.get("fileName") or file_uuid or "-")
         if not file_uuid:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
-                self._lang.translate(TranslationKeys.TASK_FILES_OPEN_FAILED).format(name=file_name),
+                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
+                    name=self._file_name_from_info(file_info)
+                ),
             )
             return
 
-        url = self._run_with_busy_cursor(
-            lambda: APIModuleActions.create_file_download_link(file_uuid)
+        dialog = TaskFilePreviewDialog(
+            file_info=file_info,
+            lang_manager=self._lang,
+            parent=self,
         )
-        if not url or not loadWebpage.open_webpage(url):
-            ModernMessageDialog.show_warning(
-                self._lang.translate(TranslationKeys.ERROR),
-                self._lang.translate(TranslationKeys.TASK_FILES_OPEN_FAILED).format(name=file_name),
-            )
+        dialog.exec_()
+
+    @staticmethod
+    def _file_name_from_info(file_info: Optional[dict]) -> str:
+        data = file_info if isinstance(file_info, dict) else {}
+        return str(data.get("fileName") or data.get("uuid") or "-")
 
     def _upload_files(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(
