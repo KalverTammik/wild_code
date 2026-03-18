@@ -107,9 +107,48 @@ class WorksSyncService:
         if not pending_updates:
             return
 
+        self._apply_pending_updates(layer=layer, pending_updates=pending_updates)
+
+    def sync_task_from_backend(self, task_id: str, *, task: Optional[dict] = None) -> None:
+        if self._syncing_from_backend:
+            return
+
+        task_id_text = str(task_id or "").strip()
+        if not task_id_text:
+            return
+
+        layer = self.attach()
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid() or layer.isEditable():
+            return
+
+        feature = WorksLayerService.find_feature_by_task_id(layer, task_id_text)
+        if feature is None:
+            return
+
+        task_payload = task if isinstance(task, dict) else APIModuleActions.get_task_data(task_id_text)
+        if not isinstance(task_payload, dict):
+            return
+
+        updates = self._build_layer_updates(task_payload)
+        if not updates:
+            return
+
+        self._apply_pending_updates(layer=layer, pending_updates=[(feature.id(), updates, feature)])
+
+    def _apply_pending_updates(
+        self,
+        *,
+        layer: QgsVectorLayer,
+        pending_updates: list[tuple[int, dict[str, object], object]],
+    ) -> None:
+        if not pending_updates:
+            return
+
         self._syncing_from_backend = True
         started_edit = False
         try:
+            field_indices = {field.name().lower(): index for index, field in enumerate(layer.fields())}
+
             if not layer.isEditable():
                 started_edit = bool(layer.startEditing())
                 if not started_edit:
@@ -122,11 +161,13 @@ class WorksSyncService:
                     if field_index is None:
                         continue
 
+                    field = layer.fields()[field_index]
+                    coerced_value = WorksLayerService.coerce_value_for_field(field, new_value)
                     current_value = feature.attribute(field_index)
-                    if self._values_equal(current_value, new_value):
+                    if self._values_equal(current_value, coerced_value):
                         continue
 
-                    if layer.changeAttributeValue(feature_id, field_index, new_value):
+                    if layer.changeAttributeValue(feature_id, field_index, coerced_value):
                         changed = True
 
             if not started_edit:
@@ -246,8 +287,10 @@ class WorksSyncService:
     def _build_layer_updates(task: dict) -> dict[str, object]:
         title = str(task.get("name") or task.get("title") or "").strip()
         type_name = str(((task.get("type") or {}).get("name") or "")).strip()
+        created_at = WorksLayerService.created_date_from_task(task)
+        updated_at = WorksLayerService.updated_date_from_task(task)
 
-        return {
+        updates = {
             WorksLayerService.FIELD_EXT_SYSTEM: WorksLayerService.EXT_SYSTEM_NAME,
             WorksLayerService.FIELD_EXT_JOB_NAME: title,
             WorksLayerService.FIELD_EXT_JOB_TYPE: type_name,
@@ -256,6 +299,13 @@ class WorksSyncService:
             WorksLayerService.FIELD_BEGIN_DATE: WorksLayerService.begin_date_from_task(task),
             WorksLayerService.FIELD_END_DATE: WorksLayerService.end_date_from_task(task),
         }
+
+        if created_at is not None:
+            updates[WorksLayerService.FIELD_ADDED_DATE] = created_at
+        if updated_at is not None:
+            updates[WorksLayerService.FIELD_UPDATE_DATE] = updated_at
+
+        return updates
 
     def _stamp_geometry_audit_fields(self, *, layer: QgsVectorLayer, feature_ids: list[int]) -> None:
         if not feature_ids:
@@ -290,8 +340,10 @@ class WorksSyncService:
             for feature_id in feature_ids:
                 if updated_by_index is not None and layer.changeAttributeValue(int(feature_id), updated_by_index, username):
                     changed = True
-                if update_date_index is not None and layer.changeAttributeValue(int(feature_id), update_date_index, timestamp):
-                    changed = True
+                if update_date_index is not None:
+                    coerced_timestamp = WorksLayerService.coerce_value_for_field(layer.fields()[update_date_index], timestamp)
+                    if layer.changeAttributeValue(int(feature_id), update_date_index, coerced_timestamp):
+                        changed = True
 
             if not started_edit:
                 return

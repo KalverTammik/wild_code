@@ -25,6 +25,90 @@ class APIModuleActions:
         return module_name
 
     @staticmethod
+    def _status_module_value(module: str) -> str:
+        module_name = str(module or "").strip().lower()
+        if not module_name:
+            return ""
+        if module_name == Module.PROPERTY.value:
+            return "PROPERTIES"
+        if module_name in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value):
+            return "TASKS"
+        return f"{module_name.upper()}S"
+
+    @staticmethod
+    def get_module_status_options(module_name: str, *, limit: int = 100) -> List[dict[str, object]]:
+        status_module = APIModuleActions._status_module_value(module_name)
+        max_items = max(1, int(limit or 0))
+        if not status_module:
+            return []
+
+        loader = GraphQLQueryLoader()
+        client = APIClient()
+        statuses_by_id: dict[str, dict[str, object]] = {}
+
+        try:
+            query = loader.load_query_by_module(Module.STATUSES.value, "ListModuleStatuses.graphql")
+            after: Optional[str] = None
+
+            while len(statuses_by_id) < max_items:
+                remaining = max_items - len(statuses_by_id)
+                variables = {
+                    "first": min(50, remaining),
+                    "after": after,
+                    "where": {"column": "MODULE", "operator": "EQ", "value": status_module},
+                }
+                data = client.send_query(query, variables=variables) or {}
+                statuses_connection = (data.get("statuses") or {}) if isinstance(data, dict) else {}
+                edges = statuses_connection.get("edges") or []
+                if not isinstance(edges, list) or not edges:
+                    break
+
+                for edge in edges:
+                    node = (edge or {}).get("node") or {}
+                    if not isinstance(node, dict):
+                        continue
+
+                    status_id = str(node.get("id") or "").strip()
+                    name = str(node.get("name") or "").strip()
+                    if not status_id or not name:
+                        continue
+
+                    statuses_by_id[status_id] = {
+                        "id": status_id,
+                        "name": name,
+                        "color": str(node.get("color") or "cccccc").strip() or "cccccc",
+                        "type": str(node.get("type") or "").strip().upper(),
+                        "description": str(node.get("description") or "").strip(),
+                        "isDefault": bool(node.get("isDefault")),
+                        "sortOrder": node.get("sortOrder"),
+                    }
+                    if len(statuses_by_id) >= max_items:
+                        break
+
+                page_info = statuses_connection.get("pageInfo") or {}
+                after = str(page_info.get("endCursor") or "").strip()
+                if not page_info.get("hasNextPage") or not after:
+                    break
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.STATUSES.value,
+                event="module_statuses_fetch_failed",
+                extra={"module": str(module_name or "")},
+            )
+            return []
+
+        def _sort_key(option: dict[str, object]) -> tuple[int, str]:
+            raw_sort = option.get("sortOrder")
+            try:
+                sort_value = int(raw_sort)
+            except (TypeError, ValueError):
+                sort_value = 0
+            return (sort_value, str(option.get("name") or "").lower())
+
+        return sorted(statuses_by_id.values(), key=_sort_key)
+
+    @staticmethod
     def get_task_priority_values(*, force_refresh: bool = False) -> List[str]:
         if APIModuleActions._task_priority_values_cache and not force_refresh:
             return list(APIModuleActions._task_priority_values_cache)
@@ -537,6 +621,36 @@ class APIModuleActions:
                 extra={"item_id": task_id},
             )
             return False
+
+    @staticmethod
+    def update_task_status(item_id: str, status_id: str) -> Optional[dict]:
+        task_id = str(item_id or "").strip()
+        resolved_status_id = str(status_id or "").strip()
+        if not task_id or not resolved_status_id:
+            return None
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "updateTaskStatus.graphql")
+        variables = {
+            "input": {
+                "id": task_id,
+                "status": resolved_status_id,
+            }
+        }
+
+        client = APIClient()
+        try:
+            data = client.send_query(query, variables=variables) or {}
+            updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
+            return updated if isinstance(updated, dict) and updated.get("id") else None
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_update_status_failed",
+                extra={"item_id": task_id, "status_id": resolved_status_id},
+            )
+            return None
 
     @staticmethod
     def update_task_members(item_id: str, members_associate: List[object]) -> bool:

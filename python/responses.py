@@ -47,8 +47,10 @@ class GqlKeys:
 
 @dataclass(frozen=True)
 class StatusInfo:
+    id: str = ""
     name: str = "-"
     color: str = "cccccc"
+    type: str = ""
 
 
 @dataclass(frozen=True)
@@ -113,9 +115,16 @@ class DataDisplayExtractors:
         if not isinstance(item_data, Mapping):
             return StatusInfo()
         status = DataDisplayExtractors._as_dict(item_data.get(GqlKeys.STATUS))
+        status_id = str(status.get(GqlKeys.ID) or "").strip()
         name = status.get(GqlKeys.NAME) or "-"
         color = status.get(GqlKeys.COLOR) or "cccccc"
-        return StatusInfo(str(name), str(color))
+        status_type = str(status.get(GqlKeys.TYPE) or "").strip().upper()
+        return StatusInfo(
+            id=status_id,
+            name=str(name),
+            color=str(color),
+            type=status_type,
+        )
 
     @staticmethod
     def extract_type(item_data: Optional[Json]) -> TypeInfo:

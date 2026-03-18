@@ -11,9 +11,11 @@ from qgis.utils import iface
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
+from ...python.workers import FunctionWorker, start_worker
 from ...ui.window_state.dialog_helpers import DialogHelpers
+from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import Module
+from ...utils.url_manager import Module, ModuleSupports
 from ...Logs.python_fail_logger import PythonFailLogger
 from .works_create_dialog import WorksCreateDialog
 from .works_layer_service import WorksDescriptionService, WorksLayerService
@@ -47,6 +49,13 @@ class WorksCreateController:
         self._parent_window = None
         self._allowed_type_ids: list[str] = []
         self._on_created: Optional[Callable[[str], None]] = None
+        self._preload_worker = None
+        self._preload_thread = None
+        self._preload_request_id = 0
+        self._cached_type_options: list[dict[str, str]] = []
+        self._cached_assignable_users: list[dict[str, str]] = []
+        self._cached_priority_options: list[dict[str, str]] = []
+        self._cached_default_responsible_id = ""
 
     def start_capture(
         self,
@@ -64,6 +73,7 @@ class WorksCreateController:
         self._parent_window = parent_window
         self._allowed_type_ids = [str(item_id) for item_id in (allowed_type_ids or []) if item_id]
         self._on_created = on_created
+        self.preload_dialog_data()
 
         canvas = iface.mapCanvas() if iface is not None else None
         if canvas is None:
@@ -89,18 +99,37 @@ class WorksCreateController:
     def cancel(self, *, bring_front: bool = True) -> None:
         self._clear_capture_tool(bring_front=bring_front)
 
+    def preload_dialog_data(self, *, force: bool = False) -> None:
+        if self._preload_thread is not None and not force:
+            return
+
+        self._preload_request_id += 1
+        request_id = self._preload_request_id
+
+        worker = FunctionWorker(self._fetch_preload_payload)
+        worker.finished.connect(
+            lambda payload, req=request_id: self._handle_preload_success(payload, req)
+        )
+        worker.error.connect(
+            lambda message, req=request_id: self._handle_preload_error(message, req)
+        )
+        self._preload_worker = worker
+        self._preload_thread = start_worker(worker, on_thread_finished=self._cleanup_preload_worker)
+
     def _handle_point_selected(self, point: QgsPointXY) -> None:
         parent_window = self._parent_window
         self._clear_capture_tool(bring_front=True)
 
         property_feature = WorksLayerService.find_property_feature_at_point(point)
-        assignable_users = APIModuleActions.get_assignable_users()
-        priority_options = APIModuleActions.get_task_priority_options(lang_manager=self._lang, include_empty=True)
-        default_responsible_id = APIModuleActions.get_current_user_id()
+        assignable_users = self._resolve_assignable_users()
+        priority_options = self._resolve_priority_options()
+        default_responsible_id = self._resolve_default_responsible_id()
+        type_options = self._resolve_type_options()
         dialog = WorksCreateDialog(
             point=point,
             property_feature=property_feature,
             allowed_type_ids=self._allowed_type_ids,
+            type_options=type_options,
             assignable_users=assignable_users,
             priority_options=priority_options,
             default_responsible_id=default_responsible_id,
@@ -178,6 +207,8 @@ class WorksCreateController:
         map_saved = False
         map_error = ""
         if works_layer is not None:
+            created_at = WorksLayerService.created_date_from_task(created_task) or now
+            updated_at = WorksLayerService.updated_date_from_task(created_task) or created_at
             responsible_name = self._responsible_display_name(
                 created_task,
                 fallback=dialog.selected_responsible_label() or WorksLayerService.current_username(),
@@ -191,12 +222,12 @@ class WorksCreateController:
                 title=created_title,
                 type_label=created_type,
                 status_id=WorksLayerService.status_id_from_task(created_task),
-                begin_date=WorksLayerService.begin_date_from_task(created_task) or now,
+                begin_date=WorksLayerService.begin_date_from_task(created_task) or created_at,
                 end_date=WorksLayerService.end_date_from_task(created_task),
                 added_by=responsible_name,
-                added_date=now,
+                added_date=created_at,
                 updated_by=responsible_name,
-                update_date=now,
+                update_date=updated_at,
             )
 
         property_link_failed = False
@@ -270,6 +301,118 @@ class WorksCreateController:
                 return display_name
 
         return str(fallback or "").strip()
+
+    def _fetch_preload_payload(self) -> dict[str, object]:
+        try:
+            raw_types = FilterHelper.get_filter_edges_by_key_and_module(
+                ModuleSupports.TYPES.value,
+                Module.WORKS.value,
+            )
+        except Exception:
+            raw_types = []
+
+        try:
+            assignable_users = APIModuleActions.get_assignable_users()
+        except Exception:
+            assignable_users = []
+
+        try:
+            default_responsible_id = APIModuleActions.get_current_user_id()
+        except Exception:
+            default_responsible_id = ""
+
+        try:
+            APIModuleActions.get_task_priority_values()
+        except Exception:
+            pass
+
+        return {
+            "type_options": self._normalize_type_options(raw_types),
+            "assignable_users": list(assignable_users or []),
+            "default_responsible_id": str(default_responsible_id or "").strip(),
+        }
+
+    def _handle_preload_success(self, payload: object, request_id: int) -> None:
+        if request_id != self._preload_request_id or not isinstance(payload, dict):
+            return
+
+        self._cached_type_options = self._normalize_type_options(payload.get("type_options") or [])
+        self._cached_assignable_users = self._normalize_assignable_users(payload.get("assignable_users") or [])
+        self._cached_default_responsible_id = str(payload.get("default_responsible_id") or "").strip()
+        self._cached_priority_options = APIModuleActions.get_task_priority_options(
+            lang_manager=self._lang,
+            include_empty=True,
+        )
+
+    def _handle_preload_error(self, message: str, request_id: int) -> None:
+        if request_id != self._preload_request_id:
+            return
+        PythonFailLogger.log_exception(
+            RuntimeError(message or "Works create dialog preload failed"),
+            module=Module.WORKS.value,
+            event="works_create_dialog_preload_failed",
+        )
+
+    def _cleanup_preload_worker(self) -> None:
+        self._preload_worker = None
+        self._preload_thread = None
+
+    def _resolve_assignable_users(self) -> list[dict[str, str]]:
+        if self._cached_assignable_users:
+            return list(self._cached_assignable_users)
+        return self._normalize_assignable_users(APIModuleActions.get_assignable_users())
+
+    def _resolve_priority_options(self) -> list[dict[str, str]]:
+        if self._cached_priority_options:
+            return list(self._cached_priority_options)
+        return APIModuleActions.get_task_priority_options(lang_manager=self._lang, include_empty=True)
+
+    def _resolve_default_responsible_id(self) -> str:
+        if self._cached_default_responsible_id:
+            return self._cached_default_responsible_id
+        return APIModuleActions.get_current_user_id()
+
+    def _resolve_type_options(self) -> list[dict[str, str]]:
+        if self._cached_type_options:
+            return list(self._cached_type_options)
+        try:
+            raw_types = FilterHelper.get_filter_edges_by_key_and_module(
+                ModuleSupports.TYPES.value,
+                Module.WORKS.value,
+            )
+        except Exception:
+            raw_types = []
+        return self._normalize_type_options(raw_types)
+
+    @staticmethod
+    def _normalize_assignable_users(users: object) -> list[dict[str, str]]:
+        normalized: list[dict[str, str]] = []
+        for user in users or []:
+            if not isinstance(user, dict):
+                continue
+            user_id = str(user.get("id") or "").strip()
+            display_name = str(user.get("displayName") or user.get("name") or "").strip()
+            if not user_id or not display_name:
+                continue
+            normalized.append({"id": user_id, "displayName": display_name})
+        return normalized
+
+    @staticmethod
+    def _normalize_type_options(entries: object) -> list[dict[str, str]]:
+        normalized: list[dict[str, str]] = []
+        for entry in entries or []:
+            if isinstance(entry, dict):
+                type_id = str(entry.get("id") or "").strip()
+                label = str(entry.get("label") or "").strip()
+            elif isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                label = str(entry[0] or "").strip()
+                type_id = str(entry[1] or "").strip()
+            else:
+                continue
+            if not type_id or not label:
+                continue
+            normalized.append({"id": type_id, "label": label})
+        return normalized
 
     def _clear_capture_tool(self, *, bring_front: bool) -> None:
         canvas = iface.mapCanvas() if iface is not None else None

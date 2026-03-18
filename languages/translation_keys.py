@@ -433,6 +433,9 @@ class TranslationKeys:
     DELETING = "Deleting"
     SUCCESS = "Success"
     WARNING = "Warning"
+    STATUS_WIDGET_CHANGE_TOOLTIP = "status_widget_change_tooltip"
+    STATUS_WIDGET_NO_OPTIONS = "status_widget_no_options"
+    STATUS_WIDGET_UPDATE_FAILED = "status_widget_update_failed"
 
     # Common actions
     YES = "Yes"

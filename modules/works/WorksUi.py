@@ -44,6 +44,7 @@ class WorksModule(TaskModuleBaseUI):
         self.toolbar_area.add_right(self._create_on_map_button)
 
     def _start_create_on_map(self) -> None:
+        self._create_controller.preload_dialog_data()
         self._create_controller.start_capture(
             parent_window=self.window(),
             allowed_type_ids=self._module_scope_type_ids(),
@@ -52,6 +53,7 @@ class WorksModule(TaskModuleBaseUI):
 
     def on_first_visible(self) -> None:
         self._sync_service.attach()
+        self._create_controller.preload_dialog_data()
         super().on_first_visible()
 
     def _on_status_filter_selection(self, _texts: List[str], ids: List[str]) -> None:

@@ -8,11 +8,13 @@ GIS application can be activated with automated schema validation.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 import html
 import re
 from typing import Optional
 
+from PyQt5.QtCore import QDate, QDateTime
+from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
     QgsCoordinateTransform,
     QgsFeature,
@@ -194,6 +196,18 @@ class WorksLayerService:
         return parsed
 
     @staticmethod
+    def created_date_from_task(task: Optional[dict]) -> Optional[datetime]:
+        if not isinstance(task, dict):
+            return None
+        return WorksLayerService.parse_backend_datetime(task.get("createdAt"))
+
+    @staticmethod
+    def updated_date_from_task(task: Optional[dict]) -> Optional[datetime]:
+        if not isinstance(task, dict):
+            return None
+        return WorksLayerService.parse_backend_datetime(task.get("updatedAt"))
+
+    @staticmethod
     def status_id_from_task(task: Optional[dict]) -> Optional[int]:
         if not isinstance(task, dict):
             return None
@@ -206,7 +220,10 @@ class WorksLayerService:
     def begin_date_from_task(task: Optional[dict]) -> Optional[datetime]:
         if not isinstance(task, dict):
             return None
-        return WorksLayerService.parse_backend_datetime(task.get("startAt"))
+        return (
+            WorksLayerService.parse_backend_datetime(task.get("startAt"))
+            or WorksLayerService.created_date_from_task(task)
+        )
 
     @staticmethod
     def end_date_from_task(task: Optional[dict]) -> Optional[datetime]:
@@ -395,7 +412,13 @@ class WorksLayerService:
         task_id_value = WorksLayerService.coerce_optional_int(task_id)
         feature.setAttribute(task_id_field, task_id_value if task_id_value is not None else str(task_id or "").strip())
         for canonical_name, value in field_values.items():
-            WorksLayerService._set_attr_if_present(feature, field_map, canonical_name, value)
+            WorksLayerService._set_attr_if_present(
+                feature,
+                layer=layer,
+                field_map=field_map,
+                field_name=canonical_name,
+                value=value,
+            )
 
         started_edit = False
         try:
@@ -434,11 +457,65 @@ class WorksLayerService:
             return False, str(exc)
 
     @staticmethod
-    def _set_attr_if_present(feature: QgsFeature, field_map: dict[str, str], field_name: str, value) -> None:
+    def _set_attr_if_present(
+        feature: QgsFeature,
+        *,
+        layer: Optional[QgsVectorLayer],
+        field_map: dict[str, str],
+        field_name: str,
+        value,
+    ) -> None:
         actual = field_map.get(str(field_name).lower())
         if not actual:
             return
-        feature.setAttribute(actual, value)
+
+        field = None
+        if isinstance(layer, QgsVectorLayer) and layer.isValid():
+            field_index = layer.fields().indexFromName(actual)
+            if field_index >= 0:
+                field = layer.fields()[field_index]
+
+        feature.setAttribute(actual, WorksLayerService.coerce_value_for_field(field, value))
+
+    @staticmethod
+    def coerce_value_for_field(field, value):
+        if field is None or value is None:
+            return value
+
+        try:
+            field_type = field.type()
+        except Exception:
+            field_type = None
+
+        if field_type == QVariant.DateTime:
+            if isinstance(value, QDateTime):
+                return value
+
+            parsed_datetime = value if isinstance(value, datetime) else WorksLayerService.parse_backend_datetime(value)
+            if isinstance(parsed_datetime, datetime):
+                return QDateTime(
+                    parsed_datetime.year,
+                    parsed_datetime.month,
+                    parsed_datetime.day,
+                    parsed_datetime.hour,
+                    parsed_datetime.minute,
+                    parsed_datetime.second,
+                )
+            return value
+
+        if field_type == QVariant.Date:
+            if isinstance(value, QDate):
+                return value
+
+            parsed_date = value if isinstance(value, date) and not isinstance(value, datetime) else None
+            parsed_datetime = value if isinstance(value, datetime) else WorksLayerService.parse_backend_datetime(value)
+            if isinstance(parsed_datetime, datetime):
+                parsed_date = parsed_datetime.date()
+            if isinstance(parsed_date, date):
+                return QDate(parsed_date.year, parsed_date.month, parsed_date.day)
+            return value
+
+        return value
 
     @staticmethod
     def _point_in_layer_crs(point: QgsPointXY, layer: QgsVectorLayer) -> QgsPointXY:

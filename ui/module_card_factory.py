@@ -93,7 +93,7 @@ class ModuleCardFactory:
             header_row.addWidget(priority_widget, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
             pos_next += 1
 
-        status_widget_header = StatusWidget(item_data)
+        status_widget_header = StatusWidget(item_data, module_name=module_name, lang_manager=lang_manager)
         if status_widget_header:
             header_row.addWidget(status_widget_header, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
 

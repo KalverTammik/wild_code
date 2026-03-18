@@ -33,6 +33,7 @@ class WorksCreateDialog(QDialog):
         point,
         property_feature=None,
         allowed_type_ids: Optional[Iterable[str]] = None,
+        type_options: Optional[Iterable[dict]] = None,
         assignable_users: Optional[Iterable[dict]] = None,
         priority_options: Optional[Iterable[dict]] = None,
         default_priority: str = "",
@@ -45,6 +46,7 @@ class WorksCreateDialog(QDialog):
         self._point = point
         self._property_feature = property_feature
         self._allowed_type_ids = {str(item_id) for item_id in (allowed_type_ids or []) if item_id}
+        self._type_options = list(type_options or [])
         self._assignable_users = list(assignable_users or [])
         self._priority_options = list(priority_options or [])
         self._default_priority = str(default_priority or "").strip().upper()
@@ -186,13 +188,15 @@ class WorksCreateDialog(QDialog):
         self._type_combo.clear()
         self._type_combo.addItem(self._lang.translate(TranslationKeys.SELECT), "")
 
-        try:
-            entries = FilterHelper.get_filter_edges_by_key_and_module(
-                ModuleSupports.TYPES.value,
-                Module.WORKS.value,
-            )
-        except Exception:
-            entries = []
+        entries = list(self._type_options)
+        if not entries:
+            try:
+                entries = FilterHelper.get_filter_edges_by_key_and_module(
+                    ModuleSupports.TYPES.value,
+                    Module.WORKS.value,
+                )
+            except Exception:
+                entries = []
 
         visible_entries = []
         for entry in entries or []:
