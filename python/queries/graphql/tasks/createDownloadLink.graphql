@@ -1,0 +1,6 @@
+mutation createDownloadLink($uuid: String!) {
+  createDownloadLink(uuid: $uuid) {
+    url
+    expiresAt
+  }
+}

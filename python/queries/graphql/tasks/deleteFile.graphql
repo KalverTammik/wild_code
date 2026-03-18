@@ -1,0 +1,8 @@
+mutation deleteFile($uuid: String!) {
+  deleteFile(uuid: $uuid) {
+    id
+    uuid
+    fileName
+    deletedAt
+  }
+}

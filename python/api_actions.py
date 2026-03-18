@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional, Set
 
 from .api_client import APIClient
@@ -525,6 +526,87 @@ class APIModuleActions:
             return None
 
     @staticmethod
+    def get_task_files(item_id: str, *, limit: int = 200) -> Optional[List[dict]]:
+        task_id = str(item_id or "").strip()
+        if not task_id:
+            return []
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "taskFiles.graphql")
+        client = APIClient()
+
+        max_items = max(1, int(limit or 0))
+        after: Optional[str] = None
+        files_by_uuid: dict[str, dict] = {}
+
+        try:
+            while len(files_by_uuid) < max_items:
+                remaining = max_items - len(files_by_uuid)
+                variables = {
+                    "id": task_id,
+                    "first": min(50, remaining),
+                    "after": after,
+                    "orderBy": [
+                        {
+                            "column": "CREATED_AT",
+                            "order": "DESC",
+                        }
+                    ],
+                }
+                data = client.send_query(query, variables=variables) or {}
+                task = (data.get("task") or {}) if isinstance(data, dict) else {}
+                connection = (task.get("files") or {}) if isinstance(task, dict) else {}
+                edges = connection.get("edges") or []
+
+                if not isinstance(edges, list) or not edges:
+                    break
+
+                for edge in edges:
+                    node = (edge or {}).get("node") or {}
+                    if not isinstance(node, dict):
+                        continue
+
+                    file_uuid = str(node.get("uuid") or "").strip()
+                    file_id = str(node.get("id") or "").strip()
+                    if not file_uuid and not file_id:
+                        continue
+
+                    key = file_uuid or file_id
+                    uploader = node.get("uploader") if isinstance(node.get("uploader"), dict) else {}
+                    model = node.get("model") if isinstance(node.get("model"), dict) else {}
+                    files_by_uuid[key] = {
+                        "id": file_id,
+                        "uuid": file_uuid,
+                        "fileName": str(node.get("fileName") or "").strip(),
+                        "mimeType": str(node.get("mimeType") or "").strip(),
+                        "ext": str(node.get("ext") or "").strip(),
+                        "size": node.get("size"),
+                        "humanReadableSize": str(node.get("humanReadableSize") or "").strip(),
+                        "uploader": uploader,
+                        "model": model,
+                        "createdAt": node.get("createdAt"),
+                        "updatedAt": node.get("updatedAt"),
+                        "deletedAt": node.get("deletedAt"),
+                    }
+                    if len(files_by_uuid) >= max_items:
+                        break
+
+                page_info = connection.get("pageInfo") or {}
+                after = str(page_info.get("endCursor") or "").strip()
+                if not page_info.get("hasNextPage") or not after:
+                    break
+
+            return list(files_by_uuid.values())
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_get_files_failed",
+                extra={"item_id": task_id},
+            )
+            return None
+
+    @staticmethod
     def get_tasks_by_ids(item_ids: List[str]) -> dict[str, dict]:
         """Fetch multiple tasks by id using the list query in small chunks."""
 
@@ -621,6 +703,91 @@ class APIModuleActions:
                 extra={"item_id": task_id},
             )
             return False
+
+    @staticmethod
+    def create_file_download_link(file_uuid: str) -> Optional[str]:
+        resolved_uuid = str(file_uuid or "").strip()
+        if not resolved_uuid:
+            return None
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "createDownloadLink.graphql")
+        client = APIClient()
+
+        try:
+            data = client.send_query(query, variables={"uuid": resolved_uuid}) or {}
+            payload = (data.get("createDownloadLink") or {}) if isinstance(data, dict) else {}
+            url = str(payload.get("url") or "").strip()
+            return url or None
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_file_download_link_failed",
+                extra={"uuid": resolved_uuid},
+            )
+            return None
+
+    @staticmethod
+    def delete_file(file_uuid: str) -> Optional[dict]:
+        resolved_uuid = str(file_uuid or "").strip()
+        if not resolved_uuid:
+            return None
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "deleteFile.graphql")
+        client = APIClient()
+
+        try:
+            data = client.send_query(query, variables={"uuid": resolved_uuid}) or {}
+            payload = (data.get("deleteFile") or {}) if isinstance(data, dict) else {}
+            return payload if isinstance(payload, dict) and str(payload.get("uuid") or "").strip() else None
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_file_delete_failed",
+                extra={"uuid": resolved_uuid},
+            )
+            return None
+
+    @staticmethod
+    def upload_task_file(item_id: str, file_path: str, *, metadata: Optional[dict] = None) -> Optional[dict]:
+        task_id = str(item_id or "").strip()
+        normalized_path = str(file_path or "").strip()
+        if not task_id or not normalized_path or not os.path.isfile(normalized_path):
+            return None
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "uploadTaskFile.graphql")
+        client = APIClient()
+
+        variables = {
+            "file": None,
+            "model": {
+                "id": task_id,
+                "type": "TASK",
+            },
+            "data": metadata if metadata is not None else None,
+        }
+
+        try:
+            data = client.send_multipart_query(
+                query,
+                variables=variables,
+                file_variables={"file": normalized_path},
+                timeout=120,
+            ) or {}
+            payload = (data.get("uploadFile") or {}) if isinstance(data, dict) else {}
+            return payload if isinstance(payload, dict) and str(payload.get("uuid") or "").strip() else None
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_file_upload_failed",
+                extra={"item_id": task_id, "file_name": os.path.basename(normalized_path)},
+            )
+            return None
 
     @staticmethod
     def update_task_status(item_id: str, status_id: str) -> Optional[dict]:

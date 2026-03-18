@@ -1,0 +1,24 @@
+mutation uploadFile($file: Upload!, $model: FileModelInput!, $data: JSON) {
+  uploadFile(input: { file: $file, model: $model, data: $data }) {
+    id
+    uuid
+    fileName
+    mimeType
+    ext
+    size
+    humanReadableSize
+    createdAt
+    updatedAt
+    uploader {
+      id
+      displayName
+      email
+    }
+    model {
+      id
+      type
+      displayName
+      icon
+    }
+  }
+}

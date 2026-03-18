@@ -31,6 +31,7 @@ from ...modules.asbuilt.asbuilt_notes_dialog import AsBuiltNotesEditorDialog
 from ...modules.asbuilt.asbuilt_notes_service import AsBuiltNotesService
 from ...modules.works.works_layer_service import WorksLayerService
 from ...modules.works.works_reposition_controller import WorksRepositionController
+from ...widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
 
 
 
@@ -172,6 +173,16 @@ class MoreActionsButton(CardActionButton):
             )
             menu.addAction(action_notes)
 
+        if module in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value):
+            action_files = QAction(
+                lang_manager.translate(TranslationKeys.TASK_FILES_ACTION),
+                self,
+            )
+            action_files.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._open_task_files(data, lm)
+            )
+            menu.addAction(action_files)
+
         if module == Module.WORKS.value:
             action_show_item_on_map = QAction(
                 lang_manager.translate(TranslationKeys.WORKS_SHOW_ITEM_ON_MAP_ACTION),
@@ -295,6 +306,23 @@ class MoreActionsButton(CardActionButton):
             task_id=item_id,
             parent_window=self._get_safe_parent_window(),
         )
+
+    def _open_task_files(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+
+        item_id = DataDisplayExtractors.extract_item_id(item)
+        if not item_id:
+            return
+
+        item_name = DataDisplayExtractors.extract_item_name(item) or item_id
+        dialog = TaskFilesDialog(
+            task_id=item_id,
+            item_name=item_name,
+            lang_manager=lm,
+            parent=self._get_safe_parent_window(),
+        )
+        dialog.exec_()
 
     def _link_properties_from_map(self, module, item_data, lang_manager) -> None:
         object_id = (item_data).get("id")
