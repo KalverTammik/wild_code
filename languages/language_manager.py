@@ -24,7 +24,6 @@ _MODULE_TRANSLATION_KEY_MAP = {
     Module.ASBUILT.value: TranslationKeys.MODULE_ASBUILT,
     Module.WORKS.value: TranslationKeys.MODULE_WORKS,
     Module.STATUSES.value: TranslationKeys.MODULE_STATUSES,
-    Module.SIGNALTEST.value: TranslationKeys.SIGNALTEST,
     "properties": TranslationKeys.PROPERTIES,
     "projects": TranslationKeys.PROJECTS,
     "contracts": TranslationKeys.CONTRACTS,

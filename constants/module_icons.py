@@ -43,7 +43,6 @@ class ModuleIcons:
     ICON_SETTINGS = "Seaded.png"
     ICON_PROJECTS = "Projektid.png"
     ICON_PROPERTY = "Kinnistud.png"
-    ICON_SIGNAL_TEST = "Abikeskus1.png"
     ICON_COORDINATION = "Kooskõlastused.png"
     
 
@@ -62,7 +61,6 @@ class ModuleIconPaths:
         Module.PROJECT.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROJECTS),
         Module.CONTRACT.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_CONTRACT),
         Module.PROPERTY.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROPERTY),
-        Module.SIGNALTEST.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_SIGNAL_TEST),
         Module.COORDINATION.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_COORDINATION),
         Module.WORKS.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROJECTS),
         Module.ASBUILT.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROJECTS),

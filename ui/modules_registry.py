@@ -20,7 +20,6 @@ class ModulesRegistry:
         from functools import partial
         from PyQt5.QtWidgets import QDialog
 
-        from ..constants.file_paths import QssPaths
         from ..languages.translation_keys import DialogLabels
         from ..modules.Settings.setting_keys import SettingDialogPlaceholders
         from ..modules.Settings.SettingsUI import SettingsModule
@@ -31,7 +30,6 @@ class ModulesRegistry:
         from ..modules.coordination.CoordinationModule import CoordinationModule
         from ..modules.works.WorksUi import WorksModule
         from ..modules.asbuilt.AsBuiltUi import AsBuiltModule
-        from ..modules.signaltest.SignalTestModule import SignalTestModule
         from ..utils.url_manager import Module
         from .window_state.dialog_helpers import DialogHelpers
         from ..utils.Folders.foldersHelpers import FolderHelpers
@@ -39,7 +37,6 @@ class ModulesRegistry:
         from ..widgets.theme_manager import ThemeManager
 
         qss_modular = list(ThemeManager.module_bundle())
-        qss_signaltest = list(ThemeManager.module_bundle([QssPaths.SETUP_CARD]))
 
         def pick_folder(_module_key: str, _key: str, current_value: str):
             return FolderHelpers.select_folder_path(dialog, start_path=current_value)
@@ -134,12 +131,6 @@ class ModulesRegistry:
             supports_types=True,
             supports_statuses=True,
             supports_tags=False,
-        )
-        module_manager.registerModule(
-            SignalTestModule,
-            Module.SIGNALTEST.name,
-            qss_files=qss_signaltest,
-            lang_manager=dialog.lang_manager,
         )
 
         dialog.sidebar.populate_from_modules(module_manager)

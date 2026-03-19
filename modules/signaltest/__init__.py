@@ -1,1 +1,0 @@
-# Signal test module package

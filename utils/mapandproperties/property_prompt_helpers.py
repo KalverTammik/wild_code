@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any
 
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...modules.signaltest.BackendActionPromptDialog import BackendActionPromptDialog
+from ...widgets.DataDisplayWidgets.BackendActionPromptDialog import prompt_backend_action_dialog
 from .PropertyTableManager import PropertyTableManager, PropertyTableWidget
 
 
@@ -20,8 +20,4 @@ class PropertyPromptHelpers:
                 event="settings_property_table_select_failed",
             )
 
-        dlg = BackendActionPromptDialog(parent=parent, table_frame=frame, table=table, title=title)
-        ok = dlg.exec_()
-        if not ok:
-            return None
-        return dlg.action
+        return prompt_backend_action_dialog(parent=parent, table_frame=frame, table=table, title=title)

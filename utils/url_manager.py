@@ -26,7 +26,6 @@ class Module(Enum):
     PROPERTY = "property"
     SETTINGS = "settings"
     HOME = "home"
-    SIGNALTEST = "signaltest"
 
     STATUSES = "statuses"
     TYPES = "type"
