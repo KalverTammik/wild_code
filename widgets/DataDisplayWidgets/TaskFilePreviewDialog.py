@@ -1,8 +1,8 @@
+# pyright: reportMissingImports=false
 from __future__ import annotations
 
 import os
 import tempfile
-import time
 from typing import Optional
 
 from qgis.PyQt.QtCore import Qt, QSize, QUrl
@@ -28,17 +28,6 @@ from ...python.api_actions import APIModuleActions
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import loadWebpage
 from ..theme_manager import ThemeManager
-
-try:
-    from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView  # type: ignore
-except Exception:
-    QWebEngineSettings = None  # type: ignore[assignment]
-    QWebEngineView = None  # type: ignore[assignment]
-
-try:
-    from qgis.PyQt.QtPdf import QPdfDocument  # type: ignore
-except Exception:
-    QPdfDocument = None  # type: ignore[assignment]
 
 
 class TaskFilePreviewDialog(QDialog):
@@ -69,7 +58,6 @@ class TaskFilePreviewDialog(QDialog):
         self._file_info = dict(file_info or {})
         self._last_url: str = ""
         self._pdf_temp_path: str = ""
-        self._pdf_document = None
         self._web_view = None
 
         self.setModal(True)
@@ -258,7 +246,10 @@ class TaskFilePreviewDialog(QDialog):
             )
             return
 
-        if QWebEngineView is None and QPdfDocument is None:
+        try:
+            # inline import: QtWebEngine is optional in some QGIS Qt5 builds; import lazily to avoid breaking plugin startup.
+            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView
+        except ImportError:
             self._show_placeholder(
                 self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
             )
@@ -303,10 +294,11 @@ class TaskFilePreviewDialog(QDialog):
             )
             return
 
-        if self._load_pdf_webengine_preview(temp_path):
-            return
-
-        if self._load_pdf_document_preview(temp_path):
+        if self._load_pdf_webengine_preview(
+            temp_path,
+            webengine_settings_cls=QWebEngineSettings,
+            webengine_view_cls=QWebEngineView,
+        ):
             return
 
         self._cleanup_pdf_temp_file()
@@ -316,37 +308,39 @@ class TaskFilePreviewDialog(QDialog):
             )
         )
 
-    def _load_pdf_webengine_preview(self, temp_path: str) -> bool:
-        if QWebEngineView is None:
-            return False
-
+    def _load_pdf_webengine_preview(
+        self,
+        temp_path: str,
+        *,
+        webengine_settings_cls,
+        webengine_view_cls,
+    ) -> bool:
         self._release_web_view()
         self._set_notice("")
         self._clear_content()
 
         try:
-            web_view = QWebEngineView(self._content_frame)
+            web_view = webengine_view_cls(self._content_frame)
         except Exception:
             return False
 
-        if QWebEngineSettings is not None:
-            try:
-                settings = web_view.settings()
-            except Exception:
-                settings = None
+        try:
+            settings = web_view.settings()
+        except Exception:
+            settings = None
 
-            if settings is not None:
-                if hasattr(QWebEngineSettings, "PdfViewerEnabled"):
-                    try:
-                        settings.setAttribute(QWebEngineSettings.PdfViewerEnabled, True)
-                    except Exception:
-                        pass
+        if settings is not None:
+            if hasattr(webengine_settings_cls, "PdfViewerEnabled"):
+                try:
+                    settings.setAttribute(webengine_settings_cls.PdfViewerEnabled, True)
+                except Exception:
+                    pass
 
-                if hasattr(QWebEngineSettings, "PluginsEnabled"):
-                    try:
-                        settings.setAttribute(QWebEngineSettings.PluginsEnabled, True)
-                    except Exception:
-                        pass
+            if hasattr(webengine_settings_cls, "PluginsEnabled"):
+                try:
+                    settings.setAttribute(webengine_settings_cls.PluginsEnabled, True)
+                except Exception:
+                    pass
 
         try:
             web_view.loadFinished.connect(self._handle_pdf_web_view_loaded)
@@ -372,98 +366,12 @@ class TaskFilePreviewDialog(QDialog):
         if ok or not self.isVisible():
             return
 
-        temp_path = str(self._pdf_temp_path or "").strip()
-        self._release_web_view()
-
-        if temp_path and self._load_pdf_document_preview(temp_path):
-            return
-
+        self._cleanup_pdf_temp_file()
         self._show_placeholder(
             self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
                 name=self._file_name()
             )
         )
-
-    def _load_pdf_document_preview(self, temp_path: str) -> bool:
-        if QPdfDocument is None:
-            return False
-
-        pdf_document = QPdfDocument(self)
-        try:
-            pdf_document.load(temp_path)
-        except Exception:
-            try:
-                pdf_document.close()
-            except Exception:
-                pass
-            return False
-
-        if not self._wait_for_pdf_document(pdf_document):
-            try:
-                pdf_document.close()
-            except Exception:
-                pass
-            return False
-
-        self._release_web_view()
-        self._pdf_document = pdf_document
-        self._set_notice("")
-        self._clear_content()
-
-        scroll = QScrollArea(self._content_frame)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-
-        container = QWidget(scroll)
-        container_layout = QVBoxLayout(container)
-        container_layout.setContentsMargins(8, 8, 8, 8)
-        container_layout.setSpacing(12)
-
-        page_count = max(0, int(pdf_document.pageCount()))
-        pages_to_render = min(page_count, self.PDF_PREVIEW_MAX_PAGES)
-
-        rendered_any = False
-        for page_index in range(pages_to_render):
-            try:
-                image = pdf_document.render(page_index, self.PDF_RENDER_SIZE)
-            except Exception:
-                image = None
-            if image is None or image.isNull():
-                continue
-
-            pixmap = QPixmap.fromImage(image)
-            if pixmap.isNull():
-                continue
-
-            page_label = QLabel(container)
-            page_label.setAlignment(Qt.AlignCenter)
-            page_label.setPixmap(pixmap)
-            container_layout.addWidget(page_label, 0, Qt.AlignHCenter)
-            rendered_any = True
-
-        container_layout.addStretch(1)
-        scroll.setWidget(container)
-        self._content_layout.addWidget(scroll, 1)
-
-        if not rendered_any:
-            self._clear_content()
-            try:
-                pdf_document.close()
-            except Exception:
-                pass
-            self._pdf_document = None
-            return False
-
-        if page_count > pages_to_render:
-            self._set_notice(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_PAGE_LIMIT).format(
-                    count=pages_to_render
-                )
-            )
-        else:
-            self._set_notice("")
-
-        return True
 
     def _write_pdf_temp_file(self, content: bytes) -> str:
         self._cleanup_pdf_temp_file()
@@ -480,13 +388,6 @@ class TaskFilePreviewDialog(QDialog):
     def _cleanup_pdf_temp_file(self) -> None:
         self._release_web_view()
 
-        if self._pdf_document is not None:
-            try:
-                self._pdf_document.close()
-            except Exception:
-                pass
-        self._pdf_document = None
-
         path = str(self._pdf_temp_path or "").strip()
         self._pdf_temp_path = ""
         if not path:
@@ -497,34 +398,6 @@ class TaskFilePreviewDialog(QDialog):
                 os.remove(path)
         except Exception:
             pass
-
-    @staticmethod
-    def _wait_for_pdf_document(pdf_document) -> bool:
-        ready_value = getattr(QPdfDocument, "Ready", 2)
-        error_value = getattr(QPdfDocument, "Error", 4)
-        loading_value = getattr(QPdfDocument, "Loading", 1)
-
-        deadline = time.monotonic() + 2.0
-        while time.monotonic() < deadline:
-            try:
-                status = pdf_document.status()
-            except Exception:
-                status = None
-
-            if status == ready_value:
-                return True
-            if status == error_value:
-                return False
-            if status != loading_value and pdf_document.pageCount() > 0:
-                return True
-
-            QApplication.processEvents()
-            time.sleep(0.02)
-
-        try:
-            return pdf_document.pageCount() > 0
-        except Exception:
-            return False
 
     def _load_image_preview(self, file_uuid: str) -> None:
         size_bytes = self._safe_int(self._file_info.get("size"))
