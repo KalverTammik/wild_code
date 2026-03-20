@@ -49,6 +49,7 @@ jobs:
           fi
 
           RELEASE_VERSION="${RELEASE_VERSION#.}"
+          RELEASE_VERSION="${RELEASE_VERSION#[vV]}"
 
           if [[ "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+$ ]]; then
             RELEASE_VERSION="${RELEASE_VERSION}.0"
