@@ -50,6 +50,8 @@ class ModuleConfigFactory:
             return ModuleConfigFactory._create_project_config(item_id, lang_manager=lang_manager)
         if module_type == Module.CONTRACT.value:
             return ModuleConfigFactory._create_contract_config(item_id, lang_manager=lang_manager)
+        if module_type == Module.EASEMENT.value:
+            return ModuleConfigFactory._create_easement_config(item_id, lang_manager=lang_manager)
         if module_type == Module.WORKS.value:
             return ModuleConfigFactory._create_works_config(item_id, lang_manager=lang_manager)
         if module_type == Module.ASBUILT.value:
@@ -155,6 +157,24 @@ class ModuleConfigFactory:
         )
         config.set_detailed_content(
             lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_DETAIL_CONTENT)
+        )
+        return config
+
+    @staticmethod
+    def _create_easement_config(
+        item_id: Dict[str, Any],
+        *,
+        lang_manager: Optional[LanguageManager] = None,
+    ) -> ModuleConfig:
+        lm = lang_manager or LanguageManager()
+        config = ModuleConfig(
+            Module.EASEMENT.value,
+            title=lm.translate(
+                TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_OVERVIEW_TITLE,
+            ),
+        )
+        config.set_detailed_content(
+            lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_DETAIL_CONTENT)
         )
         return config
 

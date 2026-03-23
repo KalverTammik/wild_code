@@ -180,6 +180,8 @@ class UnifiedFeedLogic:
                     single = data.get("contract")
                 elif "coordination" in data:
                     single = data.get("coordination")
+                elif "easement" in data:
+                    single = data.get("easement")
 
                 if isinstance(single, dict):
                     self.end_cursor = None

@@ -1,0 +1,2564 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>servituutDialogBase</class>
+ <widget class="QDialog" name="servituutDialogBase">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>900</width>
+    <height>750</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>900</width>
+    <height>750</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>900</width>
+    <height>750</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>servituut</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">
+#lblDialer{
+	background-color: None;
+	backround: None;
+	border: None
+}
+
+
+
+*{
+	border: transparent;
+	background-color: transparent;
+    background: transparent;
+	padding: 0;
+	margin: 0;
+	color: #c5c5d2;
+}
+
+
+QWidget{
+    background-color: #272c35;
+	color:#c5c5d2
+}
+
+
+/*Line Edit styling*/
+QLineEdit {
+    background-color: #35363f;  /* Lighter background color */
+    color: #ececf1;
+    /*border: 1px solid #4d4d5b;  Thinner border with a different color */
+    border-radius: 5px;
+    padding: 4px;
+}
+
+QLineEdit:hover {
+    background-color: #3d3e47;  /* Slightly darker background color on hover */
+}
+
+/* Remove top and side borders */
+QLineEdit {
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+
+/*konteinerite peamised omadused*/
+#centerMenuSubContainer{
+    background-color: #272c35;
+}
+
+#swWorkSpace{
+    background-color: #202123;
+}
+#Sevituudid{
+    background-color: #343b47;
+}
+
+#leftMenuContainer{
+    background-color: #202123 ;
+}
+
+#rightMenuContainer{
+    background-color: #272c35;
+}
+
+#SetupLayers, #SetupLayers_2, #SetupUserData {
+border: none;
+border-bottom: 1px solid rgb(131, 142, 162);
+}
+
+/*nuppu peamised omadused*/
+/*Üldomadused*/
+QPushButton{
+	padding: 1px 5px;
+	text-align: center;
+	border-radius: 5px;
+	background-color:#40414f;
+	border: 1px solid #565869;
+}
+
+
+QPushButton:hover{
+    background-color: #8e8ea0;
+	border: 0.5px solid #acacbe;
+	color: #343541;
+	text-align: center;
+	padding: 2px 5px;
+    border-radius: 5px;	
+}
+
+QPushButton:disabled {
+    background-color: #303040; /* Adjusted disabled background color */
+    border: 1px solid #707070; /* Adjust border color for disabled state */
+    color: #8a95a5; /* Adjust text color for disabled state */
+}
+
+
+#UC_Main_Frame QPushButton,#pbChoose_Properties_for_Projects{
+	padding: 1px 8px;
+    border-radiusr: 6px;
+}
+
+#UC_Main_Frame QPushButton:hover{
+
+	padding: 1px 8px;
+    border-radius: 6px;
+}
+
+
+#wOl_Settings QPushButton{
+	padding: 1px 8px;
+    border-radius: 6px;
+}
+
+#wOl_Settings QPushButton:hover{
+	padding: 1px 8px;
+    border-radius: 6px;
+}
+
+#rightMenuContainer QPushButton{
+	text-align: right;
+	border-top-right-radius: 0px;
+	border-bottom-right-radius: 0px;
+    
+}
+
+#rightMenuContainer QPushButton:hover{
+    text-align: right;
+    border-top-right-radius: 0px;
+	border-bottom-right-radius: 0px;  
+}
+
+
+#leftMenuContainer QPushButton{
+	text-align: left;
+	border-top-left-radius: 0px;
+	border-bottom-left-radius: 0px;	
+}
+#leftMenuContainer QPushButton:hover{
+    text-align: left;
+	border-top-left-radius: 0px;
+	border-bottom-left-radius: 0px;
+
+}
+
+
+
+
+/* Combined Style for QComboBox to Ensure Consistency */
+
+/* Base style for QComboBox */
+QComboBox {
+    border: 1px solid #565869; /* Using --gray-600 */
+    border-radius: 5px; /* Rounded corners */
+    background-color: #343541; /* Using --gray-800 */
+    color: #ececf1; /* Using --gray-100 */
+    padding-left: 2px; /* Move text 2 pixels to the right */
+}
+
+/* Disabled state */
+QComboBox:disabled {
+    background-color: #c5c5d2; /* Using --gray-300 */
+    color: #8e8ea0; /* Using --gray-500 */
+    padding-left: 2px; /* Move text 2 pixels to the right */
+}
+
+/* Hover state */
+QComboBox:hover {
+    border: 1px solid #acacbe; /* Using --gray-400 */
+    padding-left: 2px; /* Move text 2 pixels to the right */
+}
+
+/* Focus state */
+QComboBox:focus {
+    border: 1px solid #acacbe; /* Kept original lime green color */
+    padding-left: 2px; /* Move text 2 pixels to the right */
+}
+
+/* Dropdown button */
+QComboBox::drop-down {
+    subcontrol-position: center right;
+    border-radius: 3px; /* Rounded corners */
+    /*width: 24px;*/
+    borde: 0.5px solid #acacbe; /* Kept original lime green color */
+    background-color: #343541; /* Using --gray-800 */
+}
+
+/* Dropdown arrow */
+QComboBox::down-arrow {
+    image: url(':/qt-project.org/styles/macstyle/images/toolbar-ext.png'); /* Default arrow image */
+    height: 16px;
+    width: 16px;
+}
+
+QComboBox::down-arrow:on,
+QComboBox::down-arrow:hover,
+QComboBox::down-arrow:focus {
+    image: url(':/qt-project.org/styles/macstyle/images/toolbar-ext.png'); /* Arrow image on hover, focus */
+}
+
+/* QAbstractItemView (dropdown list) */
+QComboBox QAbstractItemView {
+    background-color: #343541; /* Using --gray-900 */
+    border: 1px solid #4d4d4d; /* Similar to gray-600 */
+    selection-background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 rgba(50, 50, 50, 255), /* Dark gray */
+        stop: 1 rgba(100, 100, 100, 255) /* Lighter gray */
+    );
+    selection-color: #ececf1; /* Using --gray-100 */
+    color: #ececf1;
+    padding-left: 2px; /* Move text 2 pixels to the right */
+}
+
+/* Selected item in list */
+QComboBox QAbstractItemView::item:selected {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 rgba(50, 50, 50, 255), /* Dark gray */
+        stop: 1 rgba(100, 100, 100, 255) /* Lighter gray */
+    );
+    color: #ececf1; /* Using --gray-100 */
+    padding-left: 2px; /* Move text 2 pixels to the right */
+}
+
+/* Hover over item in list */
+QComboBox QAbstractItemView::item:hover {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 rgba(50, 50, 50, 255), /* Dark gray */
+        stop: 1 rgba(100, 100, 100, 255) /* Lighter gray */
+    );
+    color: #ececf1; /* Using --gray-100 */
+    padding-left: 2px; /* Move text 2 pixels to the right */
+}
+
+/* Handle the padding of items in the list view */
+QComboBox QAbstractItemView::item {
+    padding-left: 2px; /* Move text 2 pixels to the right */
+}
+
+/* Ensure keyboard navigation shows selection */
+QComboBox::item:selected:!hover {
+    background-color: qlineargradient(
+        spread: pad, 
+        x1: 0, y1: 0, 
+        x2: 0, y2: 1, 
+        stop: 0.259887 rgba(50, 50, 50, 202), 
+        stop: 1 rgba(180, 180, 180, 255)
+    ); 
+    color: #ececf1; /* White text color for keyboard selection */
+    padding-left: 2px; /* Move text 2 pixels to the right */
+}
+
+/* Checked state of the checkbox */
+QComboBox::indicator:checked {
+    background-color: #565869; /* Kept original lime green color */
+    image: url(':/images/themes/default/algorithms/mAlgorithmCheckGeometry.svg'); /* Path to your checked image */
+    width: 10px;  /* Adjusted width to fit within the border */
+    height: 10px; /* Adjusted height to fit within the border */
+}
+
+/* Unchecked state can have a background color */
+QComboBox::indicator:unchecked {
+    background-color: #565869; /* Using --gray-600 */
+}
+
+
+
+
+
+/* General QCheckBox styles */
+QCheckBox {
+    color: #d1d1e0; /* Light gray text color */
+    spacing: 5px; /* Space between checkbox and text */
+}
+
+/* Style the indicator (checkbox) */
+QCheckBox::indicator {
+    width: 12px; /* Width of the checkbox */
+    height: 12px; /* Height of the checkbox */
+    background-color: #3a3b46; /* Darker gray for unchecked state */
+    border: 1px solid #565869; /* Border color for unchecked state */
+    border-radius: 2px; /* Slightly rounded corners */
+}
+
+/* Style the indicator when checked */
+QCheckBox::indicator:checked {
+    background-color: #4a4b59; /* Slightly darker gray for checked state */
+    border: 1px solid #4d4d4d; /* Border color matching the theme */
+    border-radius: 2px; /* Slightly rounded corners */
+    image: url(:/images/themes/default/algorithms/mAlgorithmCheckGeometry.svg); /* Using provided SVG icon URL */
+}
+
+/* Style the indicator when unchecked */
+QCheckBox::indicator:unchecked {
+    background-color: #3a3b46; /* Darker gray for unchecked state */
+    border: 1px solid #565869; /* Border color for unchecked state */
+}
+
+/* Style the indicator when hovered */
+QCheckBox::indicator:hover {
+    background-color: #4e4f5b; /* Medium gray when hovering */
+}
+
+/* Style the indicator when disabled */
+QCheckBox::indicator:disabled {
+    background-color: #30303a; /* Darker background color for disabled state */
+    border: 1px solid #4d4d4d; /* Darker border for disabled state */
+}
+
+/* Style the indicator when checked and disabled */
+QCheckBox::indicator:checked:disabled {
+    background-color: rgba(50, 50, 60, 0.5); /* Semi-transparent darker gray for checked and disabled state */
+    border: 1px solid #4d4d4d; /* Border color matching the theme */
+    image: url(:/images/themes/default/algorithms/mAlgorithmCheckGeometry.svg); /* Using provided SVG icon URL */
+    opacity: 0.5; /* Make the icon appear disabled */
+}
+
+/* Style the checkbox text when disabled */
+QCheckBox:disabled {
+    color: #6a6a75; /* Darker text color for disabled state */
+}
+
+
+QGroupBox{
+	color: #ececf1;
+}
+
+
+/* Style for the selected tab */
+QTabBar::tab:selected {
+    background-color: #50515f; /* Background color for the selected tab */
+    color: #ececf1; /* Text color for the selected tab */
+    border: 1px solid #acacbe; /* Lighter border for the selected tab */
+    border-bottom: 1px solid #202123; /* Match the background color of the tab pane to create a seamless look */
+    padding: 7px 12px; /* Slightly adjust padding for selected tab */
+}
+
+/* Style for the hovered tab */
+QTabBar::tab:hover {
+    background-color: #8e8ea0; /* Background color when hovering over a tab */
+    color: #343541; /* Text color for the hovered tab */
+    border: 1px solid #acacbe; /* Lighter border on hover */
+}
+
+/* Style for disabled tabs */
+QTabBar::tab:disabled {
+    background-color: #30303a; /* Darker background for disabled tabs */
+    color: #6a6a75; /* Muted text color for disabled tabs */
+    border: 1px solid #565869; /* Border color for disabled tabs */
+}
+
+/* Adjustments to the tab pane (content area below the tabs) */
+QTabWidget::pane {
+    border: 1px solid #565869; /* Border around the content area */
+    background-color: #202123; /* Match the background of the content area to other containers */
+    border-radius: 3px; /* Rounded corners for the content area */
+    margin-top: -1px; /* Overlap with the tab bar to create a seamless transition */
+}
+
+/* General QScrollBar style within QTableView */
+QScrollBar:vertical, QScrollBar:horizontal {
+    background-color: transparent; /* Ensure the scrollbar background is transparent */
+}
+
+/* Vertical scroll bar groove (track) */
+QScrollBar::groove:vertical {
+    border: 1px solid #4d4d4d; /* Dark border around the groove */
+    width: 8px; /* Width of the groove */
+    background: #333; /* Darker gray for the groove background */
+    border-radius: 3px; /* Adjusted to be less than half of 8px */
+}
+
+/* Horizontal scroll bar groove (track) */
+QScrollBar::groove:horizontal {
+    border: 1px solid #4d4d4d; /* Dark border around the groove */
+    height: 8px; /* Height of the groove */
+    background: #333; /* Darker gray for the groove background */
+    border-radius: 3px; /* Adjusted to be less than half of 8px */
+}
+
+/* Vertical scroll bar handle (thumb) */
+QScrollBar::handle:vertical {
+    background: #b5b5b5; /* Lighter gray for the handle */
+    border: 1px solid #707070; /* Slightly darker border for the handle */
+    width: 16px; /* Width of the handle */
+    border-radius: 6px; /* Adjusted to be less than half of 16px for a rounded effect */
+}
+
+/* Horizontal scroll bar handle (thumb) */
+QScrollBar::handle:horizontal {
+    background: #b5b5b5; /* Lighter gray for the handle */
+    border: 1px solid #707070; /* Slightly darker border for the handle */
+    height: 16px; /* Height of the handle */
+    border-radius: 6px; /* Adjusted to be less than half of 16px for a rounded effect */
+}
+
+/* Handle when hovered (both vertical and horizontal) */
+QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
+    background: #d8d8d8; /* Lighter gray when hovered */
+}
+
+/* Handle when pressed (both vertical and horizontal) */
+QScrollBar::handle:vertical:pressed, QScrollBar::handle:horizontal:pressed {
+    background: #999; /* Darker gray when pressed */
+}
+
+/* Slider groove when focused (both vertical and horizontal) */
+QScrollBar::groove:vertical:focus, QScrollBar::groove:horizontal:focus {
+    background: #444; /* Slightly brighter when focused */
+}
+
+/* Scrollbar arrows (both vertical and horizontal) */
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    background: #40414f; /* Background for the arrows */
+    border: 1px solid #565869; /* Border for the arrows */
+    border-radius: 2px; /* Adjusted to be less than half of 4px */
+}
+
+/* Arrows on hover */
+QScrollBar::add-line:vertical:hover, QScrollBar::sub-line:vertical:hover,
+QScrollBar::add-line:horizontal:hover, QScrollBar::sub-line:horizontal:hover {
+    background: #8e8ea0; /* Lighter background on hover */
+}
+
+/* Style for the scroll bar pages (scroll bar track) */
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical,
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none; /* No background for the pages */
+}
+
+/* Adjust QListWidget style */
+QListWidget {
+    background-color: #2e2f38; /* Dark gray background to match the new theme */
+    color: #d1d1e0; /* Light gray text color */
+    border: 1px solid #4d4d4d; /* Border color matching the scrollbar groove */
+    border-radius: 3px; /* Rounded corners */
+    padding: 3px; /* Add padding to the list */
+}
+
+/* Style for individual items in the QListWidget */
+QListWidget::item {
+    background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 rgba(60, 62, 73, 0.2), stop: 1 rgba(42, 42, 51, 0.35)); /* Gradient for non-selected items */
+    color: #d1d1e0; /* Light gray text color for unselected items */
+    padding: 3px; /* Padding around list items */
+    border-radius: 1.5px; /* Slight rounding of the item edges */
+}
+
+/* Style for selected items in QListWidget */
+QListWidget::item:selected {
+    background: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 1, stop: 0 rgba(210, 72, 72, 0.05), stop: 1 rgba(210, 72, 72, 0.25)); /* Gradient for selected items */
+    color: #ececf1; /* Lighter text color for selected items */
+    border: 1px solid #707070; /* Lighter border for the selected item */
+}
+
+/* Style for hovered items in QListWidget */
+QListWidget::item:hover {
+    background-color: #4e4f5b; /* Medium gray background color when hovering */
+    color: #ececf1; /* Text color on hover to maintain contrast */
+}
+
+/* Style for disabled items in QListWidget */
+QListWidget::item:disabled {
+    background-color: #30303a; /* Darker background for disabled items */
+    color: #6a6a75; /* Muted gray text color for disabled items */
+}
+
+/* General QLineEdit styles */
+QLineEdit {
+    background-color: #35363f; /* Lighter background color */
+    color: #ececf1; /* Light gray text color */
+    border: 1px solid #4d4d5b; /* Thinner border with a different color */
+    border-radius: 5px; /* Rounded corners */
+    padding: 4px; /* Padding inside the line edit */
+    /* Remove top and side borders */
+    border-top: none;
+    border-left: none;
+    border-right: none;
+}
+
+/* Style for the line edit when focused */
+QLineEdit:focus {
+    border: 1px solid #6a6a75; /* Highlight border color when focused */
+    background-color: #35363f; /* Keep the background color consistent when focused */
+}
+
+/* Style for the placeholder text */
+QLineEdit::placeholder {
+    color: #6a6a75; /* Lighter gray color for placeholder text */
+}
+
+/* Style for the line edit when disabled */
+QLineEdit:disabled {
+    background-color: #30303a; /* Darker background color for disabled state */
+    color: #6a6a75; /* Muted gray text color for disabled state */
+    border: 1px solid #4d4d4d; /* Same border color as normal state */
+}
+
+/* Style for the line edit when read-only */
+QLineEdit[readOnly=&quot;true&quot;] {
+    background-color: #35363f; /* Same as normal background */
+    color: #ececf1; /* Same as normal text color */
+    border: 1px solid #4d4d5b; /* Same as normal border */
+    border-style: dashed; /* Dashed border style for read-only state */
+}
+
+/* Style for the line edit when active */
+QLineEdit:active {
+    border: 1px solid #6a6a75; /* Highlight border color when active */
+}
+
+/* Style for the line edit when hovered */
+QLineEdit:hover {
+    background-color: #3d3e47; /* Slightly darker background color on hover */
+}
+
+/* Style for the line edit when error state (optional) */
+QLineEdit:invalid {
+    border: 1px solid #d20000; /* Red border for invalid input */
+}
+
+/* Style for the line edit when modified (optional) */
+QLineEdit:modified {
+    border: 1px solid #d1d1e0; /* Border color indicating modification */
+}
+
+
+/* General QTableView adjustments */
+QTableView {
+    background-color: #2e2f38; /* Dark gray for all rows */
+    color: #d1d1e0; /* Light gray text color */
+    border: 1px solid #4d4d4d; /* Border color matching the scrollbar groove */
+    border-radius: 5px; /* Rounded corners */
+    gridline-color: #565869; /* Gridline color */
+    selection-background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+		stop: 0 rgba(46, 47, 56, 10),   /* Lighter gray with higher transparency (about 47%) */
+        stop: 1 rgba(210, 72, 72, 50)    /* Darker red with lower transparency (about 29%) */
+    ); /* Gradient for selected cells */
+    selection-color: #ececf1; /* Lighter text color for selected cells */
+}
+
+/* Adjust header style */
+QHeaderView::section {
+    background-color: #35353f; /* Darker gray background for the header */
+    color: #d1d1e0; /* Light gray text color in the header */
+    border-top: 0.5px solid #323232; /* Slightly darker border on top */
+    border-left: 0.5px solid #323232; /* Slightly darker border on left */
+    border-right: 0.5px solid #323232; /* Slightly darker border on right */
+    border-bottom: 1px solid #4d4d4d; /* Lighter bottom border to separate data from headers */
+    padding: 1px 3px; /* Slightly reduced padding */
+    border-top-left-radius: 2px; /* Retain rounding on the top-left corner */
+    border-top-right-radius: 2px; /* Retain rounding on the top-right corner */
+    border-bottom-left-radius: 0px; /* No rounding on the bottom-left corner */
+    border-bottom-right-radius: 0px; /* No rounding on the bottom-right corner */
+    font-size: 11px; /* Reduced font size */
+}
+
+/* Style for hovered rows */
+QTableView::item:hover {
+    background-color: #4e4f5b; /* Medium gray background color when hovering over a row */
+    color: #ececf1; /* Text color on hover for better contrast */
+}
+
+/* Style for selected rows */
+QTableView::item:selected {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+		stop: 0 rgba(46, 47, 56, 10),   /* Lighter gray with higher transparency (about 47%) */
+        stop: 1 rgba(210, 72, 72, 50)    /* Darker red with lower transparency (about 29%) */
+    ); /* Gradient background color for selected rows */
+    color: #ececf1; /* Light gray text color for selected rows */
+}
+
+/* Style for all rows (non-selected) */
+QTableView::item {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+        stop: 0 rgba(80, 80, 80, 25),   /* Lighter gray with 20% opacity (2 steps lighter) */
+        stop: 1 rgba(42, 42, 51, 255)    /* Darker gray with 35% opacity */
+    ); /* Gradient background color for non-selected rows */
+    color: #d1d1e0; /* Light gray text color */
+}
+
+/* Ensure deselected rows return to their original state */
+QTableView::item:!selected {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+        stop: 0 rgba(80, 80, 80, 25),   /* Lighter gray with 20% opacity (2 steps lighter) */
+        stop: 1 rgba(42, 42, 51, 255)    /* Darker gray with 35% opacity */
+    ); /* Reset to the default background color */
+    color: #d1d1e0; /* Reset to the default text color */
+}
+
+
+/* General style for QProgressBar */
+QProgressBar {
+    background-color: #2e2f38; /* Dark gray background matching the table */
+    color: #d1d1e0; /* Light gray text color */
+    border: 1px solid #4d4d4d; /* Border matching the table border */
+    border-radius: 5px; /* Rounded corners */
+    text-align: center; /* Center the text inside the progress bar */
+    padding: 2px; /* Padding for better spacing */
+}
+
+/* Style for the progress chunk */
+QProgressBar::chunk {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 #d14848, /* Start with darker red matching the selection color */
+        stop: 1 #e57373  /* End with a slightly lighter red */
+    ); /* Gradient effect for the progress bar */
+    border-radius: 3px; /* Slight rounding of the progress chunk */
+}
+
+/* Style for the indeterminate progress bar (if used) */
+QProgressBar[minimum=&quot;0&quot;][maximum=&quot;0&quot;] {
+    background-color: #2e2f38; /* Dark gray background matching the table */
+    border: 1px solid #4d4d4d; /* Border matching the table border */
+    color: #d1d1e0; /* Light gray text color */
+}
+
+QProgressBar[minimum=&quot;0&quot;][maximum=&quot;0&quot;]::chunk {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 #d14848, /* Start with darker red */
+        stop: 1 #e57373  /* End with a slightly lighter red */
+    ); /* Moving gradient for the indeterminate progress bar */
+}
+
+/* General QGroupBox Styling */
+QGroupBox {
+    color: #ececf1; /* Light gray text color for the group box title */
+    background-color: #272c35; /* Dark background to match the surrounding theme */
+    border: 1px solid #565869; /* Border color to distinguish the group box */
+    border-radius: 5px; /* Rounded corners for a smoother look */
+    margin-top: 10px; /* Space above the group box title */
+    padding: 10px; /* Padding inside the group box to space out contents */
+}
+
+/* Title of the QGroupBox */
+QGroupBox::title {
+    subcontrol-origin: margin; /* Align the title relative to the group box's margin */
+    subcontrol-position: top left; /* Position the title at the top left */
+    padding-left: 5px; /* Add padding to the left of the title */
+    padding-right: 5px; /* Add padding to the right of the title */
+    background-color: #343b47; /* Background for the title to make it stand out */
+    color: #ececf1; /* Text color for the title */
+    border-radius: 3px; /* Slightly round the corners of the title background */
+    font-weight: bold; /* Make the title text bold */
+}
+
+/* QGroupBox when hovered */
+QGroupBox:hover {
+    border: 1px solid #8e8ea0; /* Lighter border color on hover */
+}
+
+/* QGroupBox when focused */
+QGroupBox:focus {
+    border: 1px solid #acacbe; /* Even lighter border color when focused */
+    box-shadow: 0 0 5px 1px #8e8ea0; /* Add a subtle shadow to indicate focus */
+}
+
+/* Disabled QGroupBox */
+QGroupBox:disabled {
+    color: #6a6a75; /* Darker gray text color when disabled */
+    background-color: #30303a; /* Slightly darker background for disabled state */
+    border: 1px solid #4d4d4d; /* Darker border color for disabled state */
+}
+
+QGroupBox::title:disabled {
+    color: #6a6a75; /* Darker title text color when disabled */
+    background-color: #3a3b46; /* Darker title background color for disabled state */
+}
+
+/* Content inside the QGroupBox */
+QGroupBox QWidget {
+    background-color: #2e2f38; /* Match background of content to group box */
+    color: #d1d1e0; /* Light gray text color for contents */
+}
+</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_6">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QFrame" name="fMain">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>200</height>
+      </size>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <property name="leftMargin">
+       <number>10</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>10</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QFrame" name="fMainTools">
+        <property name="styleSheet">
+         <string notr="true"/>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_9">
+         <item alignment="Qt::AlignTop">
+          <widget class="QFrame" name="fSelectedItem">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <property name="spacing">
+             <number>3</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>20</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QFrame" name="fItemSelections">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>100</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>100</height>
+               </size>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_5">
+               <property name="spacing">
+                <number>5</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frame_3">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>180</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>180</height>
+               </size>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_11">
+               <property name="spacing">
+                <number>5</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>10</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="leInfo">
+                 <property name="font">
+                  <font>
+                   <pointsize>9</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Ala koostatakse kandele:</string>
+                 </property>
+                 <property name="readOnly">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lSelectedEasment">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Servituudi nimi</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QFrame" name="frame">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_5">
+                  <property name="spacing">
+                   <number>3</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLineEdit" name="leSelectedProperties">
+                    <property name="font">
+                     <font>
+                      <pointsize>9</pointsize>
+                      <weight>75</weight>
+                      <bold>true</bold>
+                      <kerning>true</kerning>
+                     </font>
+                    </property>
+                    <property name="text">
+                     <string>Kinnistud</string>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QTableView" name="tvProperties"/>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QFrame" name="frame_6">
+              <property name="frameShape">
+               <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout">
+               <property name="spacing">
+                <number>5</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>18</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QPushButton" name="pbValiKinnistu">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Vali kinnistu</string>
+                 </property>
+                 <property name="icon">
+                  <iconset>
+                   <normaloff>../../../icons/iconoir--map-pin-plus_asukoht.svg</normaloff>../../../icons/iconoir--map-pin-plus_asukoht.svg</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>18</width>
+                   <height>18</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Puhver: 0</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QDial" name="dPuhvriSuurus">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pbClearCadastrals">
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true"/>
+                 </property>
+                 <property name="text">
+                  <string>Tühista</string>
+                 </property>
+                 <property name="icon">
+                  <iconset>
+                   <normaloff>../../../icons/Icons_hele/x-circle.svg</normaloff>../../../icons/Icons_hele/x-circle.svg</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacer_3">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="TestValues">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>100</height>
+            </size>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_9">
+            <property name="spacing">
+             <number>5</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QGroupBox" name="groupBox_2">
+              <property name="title">
+               <string>K (muuda diameeter/sügavus)</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_15">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>6</number>
+               </property>
+               <property name="topMargin">
+                <number>6</number>
+               </property>
+               <property name="rightMargin">
+                <number>6</number>
+               </property>
+               <property name="bottomMargin">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QFrame" name="frame_12">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_10">
+                  <property name="spacing">
+                   <number>5</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_3">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Di</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lblDeK">
+                    <property name="minimumSize">
+                     <size>
+                      <width>60</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>90</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>160</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_11">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>mm</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QFrame" name="frame_5">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_15">
+                  <property name="spacing">
+                   <number>5</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_5">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>H</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lblHK">
+                    <property name="minimumSize">
+                     <size>
+                      <width>90</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>90</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>1,98</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_8">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>m</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_5">
+              <property name="title">
+               <string>V (muuda diameeter/sügavus)</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_7">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>6</number>
+               </property>
+               <property name="topMargin">
+                <number>6</number>
+               </property>
+               <property name="rightMargin">
+                <number>6</number>
+               </property>
+               <property name="bottomMargin">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QFrame" name="frame_7">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_11">
+                  <property name="spacing">
+                   <number>5</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_2">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Di</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lblDeV">
+                    <property name="minimumSize">
+                     <size>
+                      <width>90</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>90</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>110</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>mm</string>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QFrame" name="frame_8">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_12">
+                  <property name="spacing">
+                   <number>5</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_7">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>H</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lblHV">
+                    <property name="minimumSize">
+                     <size>
+                      <width>90</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>90</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>1,65</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_10">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>m</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_6">
+              <property name="title">
+               <string>SK (muuda diameeter/sügavus)</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_14">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>6</number>
+               </property>
+               <property name="topMargin">
+                <number>6</number>
+               </property>
+               <property name="rightMargin">
+                <number>6</number>
+               </property>
+               <property name="bottomMargin">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QFrame" name="frame_9">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_13">
+                  <property name="spacing">
+                   <number>5</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_4">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>40</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Di</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lblDeSK">
+                    <property name="minimumSize">
+                     <size>
+                      <width>90</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>90</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>250</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_12">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>40</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>mm</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QFrame" name="frame_10">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_14">
+                  <property name="spacing">
+                   <number>5</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_6">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>40</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>H</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lblHSK">
+                    <property name="minimumSize">
+                     <size>
+                      <width>90</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>90</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>1,9</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="lineEdit_9">
+                    <property name="minimumSize">
+                     <size>
+                      <width>40</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>40</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>m</string>
+                    </property>
+                    <property name="frame">
+                     <bool>true</bool>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="fBaseSetup">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <property name="spacing">
+             <number>5</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QGroupBox" name="groupBox_4">
+              <property name="title">
+               <string>Reveevõrk</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_8">
+               <property name="spacing">
+                <number>5</number>
+               </property>
+               <property name="leftMargin">
+                <number>6</number>
+               </property>
+               <property name="topMargin">
+                <number>6</number>
+               </property>
+               <property name="rightMargin">
+                <number>6</number>
+               </property>
+               <property name="bottomMargin">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QCheckBox" name="cbK">
+                 <property name="text">
+                  <string>Torud</string>
+                 </property>
+                 <property name="checked">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cbKSK">
+                 <property name="text">
+                  <string>Survetorud</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                 <property name="checked">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cbsewagePupming">
+                 <property name="text">
+                  <string>Pumpla</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cbSewageDump">
+                 <property name="text">
+                  <string>Purgimissõlm</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cbsewagePlant">
+                 <property name="text">
+                  <string>Reoveepuhasti</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacer_7">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox">
+              <property name="title">
+               <string>Veevõrk</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_2">
+               <property name="spacing">
+                <number>5</number>
+               </property>
+               <property name="leftMargin">
+                <number>6</number>
+               </property>
+               <property name="topMargin">
+                <number>6</number>
+               </property>
+               <property name="rightMargin">
+                <number>6</number>
+               </property>
+               <property name="bottomMargin">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QCheckBox" name="cbV">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>Torud</string>
+                 </property>
+                 <property name="checked">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cbWaterStation">
+                 <property name="text">
+                  <string>Jaam</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacer_4">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_3">
+              <property name="title">
+               <string>Sademevee võrk</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_4">
+               <property name="spacing">
+                <number>5</number>
+               </property>
+               <property name="leftMargin">
+                <number>6</number>
+               </property>
+               <property name="topMargin">
+                <number>6</number>
+               </property>
+               <property name="rightMargin">
+                <number>6</number>
+               </property>
+               <property name="bottomMargin">
+                <number>6</number>
+               </property>
+               <item>
+                <widget class="QCheckBox" name="cbSK">
+                 <property name="text">
+                  <string>Torud</string>
+                 </property>
+                 <property name="checkable">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cbD">
+                 <property name="text">
+                  <string>Drenaaž</string>
+                 </property>
+                 <property name="checked">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cbRainPump">
+                 <property name="text">
+                  <string>Pumpla</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacer_6">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item alignment="Qt::AlignRight">
+          <widget class="QFrame" name="frame_2">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_12">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="frame_14">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <spacer name="horizontalSpacer_3">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>530</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="Round_or_Square">
+              <property name="text">
+               <string>puhver kuju ümar</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="frame_13">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <property name="spacing">
+             <number>5</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QPushButton" name="pbAddRoad">
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="text">
+               <string>Koosta tee ala servituut</string>
+              </property>
+             </widget>
+            </item>
+            <item alignment="Qt::AlignRight">
+             <widget class="QPushButton" name="pbKoostaServituut">
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+                <weight>75</weight>
+                <italic>false</italic>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true"/>
+              </property>
+              <property name="text">
+               <string>Koosta skeem</string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>:/newPrefix/Icons_a/cloud-lightning.svg</normaloff>:/newPrefix/Icons_a/cloud-lightning.svg</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>25</width>
+                <height>25</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_7">
+           <property name="title">
+            <string>Trükkimislehe seadistused</string>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_17">
+            <property name="spacing">
+             <number>5</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>5</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QGroupBox" name="groupBox_8">
+              <property name="title">
+               <string>Trüki lehe nimetus</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_16">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="lblLayoutName">
+                 <property name="styleSheet">
+                  <string notr="true"/>
+                 </property>
+                 <property name="text">
+                  <string>Kitsendus</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_9">
+              <property name="title">
+               <string>Kaardi kuva ala nimetus</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_17">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLineEdit" name="lblMapObject">
+                 <property name="styleSheet">
+                  <string notr="true"/>
+                 </property>
+                 <property name="text">
+                  <string>Map 1</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="groupBox_10">
+              <property name="title">
+               <string>Mõõtkava</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_18">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QComboBox" name="cmbScale">
+                 <property name="minimumSize">
+                  <size>
+                   <width>150</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>150</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="frame_11">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_18">
+            <item>
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pbprint">
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true"/>
+              </property>
+              <property name="text">
+               <string>Eelvaade*</string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>../../../icons/Icons_hele/printer.svg</normaloff>../../../icons/Icons_hele/printer.svg</iconset>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="frame_4">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_16"/>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="ActionTools">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_8">
+            <property name="spacing">
+             <number>10</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_5">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QFrame" name="fButtons">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_7">
+            <property name="spacing">
+             <number>10</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>411</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pbCancel">
+              <property name="text">
+               <string>Tühista</string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>../../icons/Icons_hele/x-circle.svg</normaloff>../../icons/Icons_hele/x-circle.svg</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pbSave">
+              <property name="font">
+               <font>
+                <family>Tahoma</family>
+               </font>
+              </property>
+              <property name="text">
+               <string>Salvesta</string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>../../icons/Icons_hele/save.svg</normaloff>../../icons/Icons_hele/save.svg</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>16</width>
+                <height>16</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="fHelpMenu">
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>200</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true"/>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_10">
+         <property name="spacing">
+          <number>5</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_4">
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Kuidas tööriista
+kasutada?</string>
+           </property>
+           <property name="textFormat">
+            <enum>Qt::AutoText</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTextEdit" name="textEdit">
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="html">
+            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:10pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;NB! Tärniga väärtused on arendamisel!&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-weight:600;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Servituudi nimi &lt;/span&gt;- näed, millisele servituudile skeemi koostama hakkad &lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Vali kinnistu&lt;/span&gt; - aktiveerib kinnistute aluskihi ning võimaldab valida kinnistuid.&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;   1. Vali konkreetne kinnistu, vajutades hiirega sobival kinnistul. &lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;   2. &lt;/span&gt;Mitme kinnistu valimiseks hoia all Ctrl klahvi.&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;   3. Hoides all Ctrl klahvi,  saad kinnistuid valikust lisada või eemaldada.&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt; &lt;span style=&quot; font-weight:600;&quot;&gt;Kinnistud &lt;/span&gt;-&lt;span style=&quot; font-weight:600;&quot;&gt; &lt;/span&gt; kastis kuvatakse valitud kinnistud.&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Tühista &lt;/span&gt;- tühistab varasema kinnistute valiku.&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Eelvaade&lt;/span&gt;&lt;br /&gt;1. Testimiseks seadista: &lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600; color:#aaaaff;&quot;&gt; &lt;/span&gt;&lt;span style=&quot; font-weight:600; font-style:italic; color:#aaaaff;&quot;&gt; QGIS&amp;gt;Seaded&amp;gt;Suvandid&amp;gt;Layouts&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;2. Lisa aadress, kus asub sinu:QGIS: &lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600; color:#5500ff;&quot;&gt; &lt;/span&gt;&lt;span style=&quot; font-weight:600; font-style:italic; color:#aaaaff;&quot;&gt; C:/Users/&amp;quot;Kasutaja&amp;quot;/Desktop/Plugins/mailabl-qgis/mailabl-qgis/QGIS_styles/Layouts&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;3. Koosta uus Layout: &lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-weight:600; color:#aaaaff;&quot;&gt;  &lt;/span&gt;&lt;span style=&quot; font-weight:600; font-style:italic; color:#aaaaff;&quot;&gt;Projekt&amp;gt;Layout&amp;gt;Manager&amp;gt;Uus Mallist&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;4. Vali rippmenüüst &amp;quot;MailablEasementLayoutTemp&amp;quot; ja vajuta nuppu &lt;span style=&quot; font-weight:600;&quot;&gt;&amp;quot;Koosta&amp;quot;&lt;/span&gt; või &lt;span style=&quot; font-weight:600;&quot;&gt;&amp;quot;Greate&amp;quot;&lt;/span&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;5.&lt;span style=&quot; font-weight:600;&quot;&gt; &lt;/span&gt;Koosta uue nimega mall (Testimiseks nimeta see &amp;quot;&lt;span style=&quot; font-weight:600;&quot;&gt;Kitsendus&lt;/span&gt;&amp;quot;)&lt;br /&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="overwriteMode">
+            <bool>false</bool>
+           </property>
+           <property name="textInteractionFlags">
+            <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

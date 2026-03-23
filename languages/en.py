@@ -28,6 +28,7 @@ TRANSLATIONS = {
         TranslationKeys.DATA_DISPLAY_WIDGETS_OVERVIEW_TITLE: "Activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE: "Project activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_OVERVIEW_TITLE: "Contract activity overview",
+        TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_OVERVIEW_TITLE: "Easement activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_OVERVIEW_TITLE: "Works activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_OVERVIEW_TITLE: "As-built activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE: "Done",
@@ -80,6 +81,10 @@ TRANSLATIONS = {
         <li><b>Pending:</b> Awaiting signatures or completion</li>
         </ul>
         """,
+        TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_DETAIL_CONTENT: """
+        <h3>Easement Detailed Overview</h3>
+        <p>Easement lifecycle, linked properties, and document state overview.</p>
+        """,
         TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_DETAIL_CONTENT: """
         <h3>Works Detailed Overview</h3>
         <p>Task execution and field delivery overview.</p>
@@ -92,6 +97,7 @@ TRANSLATIONS = {
         TranslationKeys.NO_PROJECTS_FOUND: "No projects found",
         TranslationKeys.NO_CONTRACTS_FOUND: "No contracts found",
         TranslationKeys.NO_COORDINATIONS_FOUND: "No coordinations found",
+        TranslationKeys.NO_EASEMENTS_FOUND: "No easements found",
         TranslationKeys.NO_WORKS_FOUND: "No works found",
         TranslationKeys.NO_ASBUILT_FOUND: "No as-built items found",
         TranslationKeys.NO_VALUES_FOUND: "No values found!",
@@ -201,6 +207,8 @@ TRANSLATIONS = {
     TranslationKeys.ARCHIVE_LAYER: "Archive layer",
     TranslationKeys.SELECT_LAYER: "Select layer",
     TranslationKeys.PROPERTY_LAYER_OVERVIEW: "This is your properties primary layer. Choose the layer containing the core data you work with.",
+    TranslationKeys.MODULE_MAIN_LAYER: "Module layer",
+    TranslationKeys.MODULE_LAYER_OVERVIEW: "This is the primary layer used by this module for its own map workflows. The connected-properties 'Show on map' action uses the Properties module main layer.",
     TranslationKeys.ARCHIVE_LAYER_DESCRIPTION: "Use an optional archive layer to store historical or backup data versions.",
     TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Choose layers used by this module (element and archive).",
     TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE: "Select a property layer for data operations and management.",

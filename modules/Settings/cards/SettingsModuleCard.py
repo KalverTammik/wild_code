@@ -114,6 +114,13 @@ class SettingsModuleCard(SettingsBaseCard):
         cl.setContentsMargins(1, 1, 1, 1)
         cl.setSpacing(6)
 
+        if self.module_key == Module.PROPERTY.value:
+            primary_layer_title = self.lang_manager.translate(TranslationKeys.MAIN_PROPERTY_LAYER)
+            primary_layer_description = self.lang_manager.translate(TranslationKeys.PROPERTY_LAYER_OVERVIEW)
+        else:
+            primary_layer_title = self.lang_manager.translate(TranslationKeys.MODULE_MAIN_LAYER)
+            primary_layer_description = self.lang_manager.translate(TranslationKeys.MODULE_LAYER_OVERVIEW)
+
         # Layers container
         layers_container = QFrame(cw)
         layers_container.setObjectName("LayersContainer")
@@ -123,9 +130,9 @@ class SettingsModuleCard(SettingsBaseCard):
 
         primary_layer_group, primary_layer_widget = SettingsModuleFeatureCard.build_filter_group(
             parent=layers_container,
-            title_text=self.lang_manager.translate(TranslationKeys.MAIN_PROPERTY_LAYER),
+            title_text=primary_layer_title,
             lang_manager=self.lang_manager,
-            description_text=self.lang_manager.translate(TranslationKeys.PROPERTY_LAYER_OVERVIEW),
+            description_text=primary_layer_description,
             group_object_name="MainLayerGroup",
             container_object_name="LayerSelectorContainer",
             widget_factory=lambda container: self._create_layer_combobox(container),

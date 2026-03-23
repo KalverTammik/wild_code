@@ -30,6 +30,7 @@ TRANSLATIONS = {
         TranslationKeys.DATA_DISPLAY_WIDGETS_OVERVIEW_TITLE: "Tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE: "Projekti tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_OVERVIEW_TITLE: "Lepingu tegevuste ülevaade",
+        TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_OVERVIEW_TITLE: "Servituudi tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_OVERVIEW_TITLE: "Tööde tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_OVERVIEW_TITLE: "Teostusjooniste tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE: "Tehtud",
@@ -82,6 +83,10 @@ TRANSLATIONS = {
         <li><b>Ootel:</b> Awaiting signatures or completion</li>
         </ul>
         """,
+        TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_DETAIL_CONTENT: """
+        <h3>Servituudi Detailne Ülevaade</h3>
+        <p>Servituudi elutsükli, seotud kinnistute ja dokumentide seisu ülevaade.</p>
+        """,
         TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_DETAIL_CONTENT: """
         <h3>Tööde Detailne Ülevaade</h3>
         <p>Ülesannete täitmise ja välitööde ülevaade.</p>
@@ -94,6 +99,7 @@ TRANSLATIONS = {
         TranslationKeys.NO_PROJECTS_FOUND: "Projekte ei leitud",
         TranslationKeys.NO_CONTRACTS_FOUND: "Lepinguid ei leitud",
         TranslationKeys.NO_COORDINATIONS_FOUND: "Kooskõlastusi ei leitud",
+        TranslationKeys.NO_EASEMENTS_FOUND: "Servituute ei leitud",
         TranslationKeys.NO_WORKS_FOUND: "Töid ei leitud",
         TranslationKeys.NO_ASBUILT_FOUND: "Teostusjooniseid ei leitud",
         TranslationKeys.NO_VALUES_FOUND: "Väärtusi ei leitud!",
@@ -201,6 +207,8 @@ TRANSLATIONS = {
     TranslationKeys.ARCHIVE_LAYER: "Arhiivikiht",
     TranslationKeys.SELECT_LAYER: "Vali kiht",
     TranslationKeys.PROPERTY_LAYER_OVERVIEW: "See on kinnistute põhikiht.\nVali kiht, mis kajastab ettevõtte peamist kinnistute kaardikihti.",
+    TranslationKeys.MODULE_MAIN_LAYER: "Mooduli kiht",
+    TranslationKeys.MODULE_LAYER_OVERVIEW: "See on mooduli enda töökiht kaardiga seotud töövoogude jaoks. Seotud kinnistute 'Näita kaardil' tegevus kasutab Kinnistute mooduli põhikihi seadistust.",
     TranslationKeys.ARCHIVE_LAYER_DESCRIPTION: "Kasuta valikulist arhiivikihti ajalooliste või varuandmete salvestamiseks.",
     TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Vali selle mooduli kasutatavad kihid (elemendi ja arhiivi).",
     TranslationKeys.LOGOUT_BUTTON_TOOLTIP: "Logi välja",

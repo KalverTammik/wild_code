@@ -13,13 +13,23 @@ from ....Logs.python_fail_logger import PythonFailLogger
 
 
 SUBJECT_TO_MODULE = {
-    Module.PROJECT.value.capitalize(): Module.PROJECT.value.capitalize(),
-    Module.CONTRACT.value.capitalize(): Module.CONTRACT.value.capitalize(),
-    Module.PROPERTY.value.capitalize(): Module.PROPERTY.value.capitalize(),
-    Module.COORDINATION.value.capitalize(): Module.COORDINATION.value.capitalize(),
-    Module.WORKS.value.capitalize(): Module.WORKS.value.capitalize(),
-    Module.ASBUILT.value.capitalize(): Module.ASBUILT.value.capitalize(),
+    Module.PROJECT.value: Module.PROJECT.value.capitalize(),
+    f"{Module.PROJECT.value}s": Module.PROJECT.value.capitalize(),
+    Module.CONTRACT.value: Module.CONTRACT.value.capitalize(),
+    f"{Module.CONTRACT.value}s": Module.CONTRACT.value.capitalize(),
+    Module.PROPERTY.value: Module.PROPERTY.value.capitalize(),
+    f"{Module.PROPERTY.value}s": Module.PROPERTY.value.capitalize(),
+    Module.COORDINATION.value: Module.COORDINATION.value.capitalize(),
+    f"{Module.COORDINATION.value}s": Module.COORDINATION.value.capitalize(),
+    Module.EASEMENT.value: Module.EASEMENT.value.capitalize(),
+    f"{Module.EASEMENT.value}s": Module.EASEMENT.value.capitalize(),
+    Module.WORKS.value: Module.WORKS.value.capitalize(),
+    Module.ASBUILT.value: Module.ASBUILT.value.capitalize(),
 }
+
+
+def _normalize_subject_name(value) -> str:
+    return str(value or "").strip().lower()
 
 class SettingsLogic:
     def __init__(self):
@@ -34,14 +44,16 @@ class SettingsLogic:
         
         # Return access for all modules, including Property for UserCard preferred selection
         access: Dict[str, bool] = {}
+        normalized_subjects = {_normalize_subject_name(subject) for subject in (subjects or []) if str(subject or "").strip()}
 
         for subj, mod in SUBJECT_TO_MODULE.items():
+            has_access = subj in normalized_subjects
             if mod == Module.PROPERTY.value.capitalize():
-                access[mod] = subj in subjects
+                access[mod] = access.get(mod, False) or has_access
             elif MODULES_LIST_BY_NAME and mod not in MODULES_LIST_BY_NAME:
                 continue
             else:
-                access[mod] = subj in subjects
+                access[mod] = access.get(mod, False) or has_access
         #print(f"[SettingsLogic.get_module_access_from_abilities] computed access: {access}")
         return access
 
@@ -52,8 +64,9 @@ class SettingsLogic:
         
         for subj in update_subjects:
             subject_name = subj[0] if isinstance(subj, list) and subj else subj if isinstance(subj, str) else None
-            if subject_name and subject_name in SUBJECT_TO_MODULE:
-                update_permissions[SUBJECT_TO_MODULE[subject_name]] = True
+            normalized_subject = _normalize_subject_name(subject_name)
+            if normalized_subject and normalized_subject in SUBJECT_TO_MODULE:
+                update_permissions[SUBJECT_TO_MODULE[normalized_subject]] = True
         
         return update_permissions
 

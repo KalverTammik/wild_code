@@ -44,6 +44,7 @@ class ModuleIcons:
     ICON_PROJECTS = "Projektid.png"
     ICON_PROPERTY = "Kinnistud.png"
     ICON_COORDINATION = "Kooskõlastused.png"
+    ICON_EASEMENTS = "Servituudid.png"
     
 
 class MiscIcons:
@@ -62,6 +63,7 @@ class ModuleIconPaths:
         Module.CONTRACT.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_CONTRACT),
         Module.PROPERTY.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROPERTY),
         Module.COORDINATION.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_COORDINATION),
+        Module.EASEMENT.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_EASEMENTS),
         Module.WORKS.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROJECTS),
         Module.ASBUILT.value: os.path.join(ROOT_ICONS, ModuleIcons.ICON_PROJECTS),
     }

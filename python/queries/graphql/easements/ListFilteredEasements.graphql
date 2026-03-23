@@ -1,0 +1,75 @@
+query Easements(
+  $first: Int
+  $after: String
+  $where: QueryEasementsWhereWhereConditions
+  $propertiesFirst: Int = 1
+  $propertiesAfter: String
+  $membersFirst: Int = 10
+  $membersAfter: String
+) {
+  easements(
+    first: $first
+    after: $after
+    where: $where
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        id
+        number
+        name
+        notes
+        startAt
+        dueAt
+        createdAt
+        updatedAt
+        filesPath
+        status {
+          id
+          name
+          color
+          type
+        }
+        type {
+          id
+          name
+        }
+        members(
+          first: $membersFirst
+          after: $membersAfter
+        ) {
+          edges {
+            node {
+              id
+              displayName
+              deletedAt
+            }
+          }
+        }
+        properties(first: $propertiesFirst, after: $propertiesAfter) {
+          pageInfo {
+            count
+            currentPage
+            startCursor
+            endCursor
+            hasNextPage
+            hasPreviousPage
+            lastPage
+            total
+          }
+          edges {
+            node {
+              id
+              cadastralUnitNumber
+            }
+          }
+        }
+      }
+    }
+  }
+}

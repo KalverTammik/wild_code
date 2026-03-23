@@ -23,6 +23,8 @@ from ...Logs.python_fail_logger import PythonFailLogger
 
 class TaskModuleBaseUI(SearchOpenItemMixin, ModuleBaseUI):
     FEED_LOGIC_CLS = FeedLogic
+    FEED_MODULE_ENUM = Module.TASK
+    FEED_ROOT_FIELD = "tasks"
     QUERY_FILE = "ListFilteredTasks.graphql"
     SINGLE_ITEM_QUERY_FILE = "w_tasks_module_data_by_item_id.graphql"
 
@@ -82,7 +84,16 @@ class TaskModuleBaseUI(SearchOpenItemMixin, ModuleBaseUI):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.feed_content)
 
-        self.feed_logic = self.FEED_LOGIC_CLS(Module.TASK.value, self.QUERY_FILE, self.lang_manager, root_field="tasks")
+        feed_module_enum = getattr(self, "FEED_MODULE_ENUM", Module.TASK)
+        feed_module_value = getattr(feed_module_enum, "value", Module.TASK.value)
+        root_field = getattr(self, "FEED_ROOT_FIELD", "tasks") or "tasks"
+
+        self.feed_logic = self.FEED_LOGIC_CLS(
+            feed_module_value,
+            self.QUERY_FILE,
+            self.lang_manager,
+            root_field=root_field,
+        )
         self.feed_logic.configure_single_item_query(self.SINGLE_ITEM_QUERY_FILE)
 
         self.retheme()

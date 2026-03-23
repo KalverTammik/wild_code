@@ -57,18 +57,6 @@ class PropertiesSelectors:
         settings = SettingsService()
         property_layer_name = settings.module_main_layer_name(Module.PROPERTY.value)
         layer = MapHelpers.find_layer_by_name(property_layer_name)
-        if layer:
-            return layer
-
-        module_key = str(module or "").strip().lower()
-        if module_key and module_key not in (
-            Module.PROPERTY.value,
-            Module.WORKS.value,
-            Module.ASBUILT.value,
-            Module.TASK.value,
-        ):
-            active_layer_name = settings.module_main_layer_name(module_key)
-            layer = MapHelpers.find_layer_by_name(active_layer_name)
         return layer
 
     @staticmethod
