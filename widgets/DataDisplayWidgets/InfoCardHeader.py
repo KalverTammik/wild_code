@@ -3,6 +3,10 @@ from PyQt5.QtWidgets import (
     QLabel, QVBoxLayout, QHBoxLayout, QFrame,
     QSizePolicy
 )
+try:
+    import sip
+except Exception:  # pragma: no cover - runtime availability depends on QGIS/PyQt packaging
+    sip = None
 from ...widgets.theme_manager import ThemeManager
 from ...constants.module_icons import MiscIcons
 from ...languages.language_manager import LanguageManager
@@ -18,6 +22,9 @@ class ElidedLabel(QLabel):
         self._full = text or ""
         self._is_eliding = False
         self._pending_elide = False
+        self._elide_timer = QTimer(self)
+        self._elide_timer.setSingleShot(True)
+        self._elide_timer.timeout.connect(self._safe_elide)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setWordWrap(False)
         self.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -38,20 +45,38 @@ class ElidedLabel(QLabel):
         self._schedule_elide()
 
     def _schedule_elide(self):
+        if self._is_deleted():
+            return
         if self._is_eliding:
             return
         if self.width() > 0:
-            self._elide()
+            self._safe_elide()
             return
         if self._pending_elide:
             return
         self._pending_elide = True
-        QTimer.singleShot(0, self._elide)
+        self._elide_timer.start(0)
+
+    def _is_deleted(self) -> bool:
+        try:
+            return bool(sip and sip.isdeleted(self))
+        except Exception:
+            return False
+
+    def _safe_elide(self):
+        if self._is_deleted():
+            return
+        try:
+            self._elide()
+        except RuntimeError:
+            return
 
     def _elide(self):
         if self._pending_elide:
             self._pending_elide = False
         if self._is_eliding:
+            return
+        if self._is_deleted():
             return
         if self.width() <= 0:
             return

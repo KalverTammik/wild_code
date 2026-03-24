@@ -20,6 +20,7 @@ class UnifiedSearchController(QObject):
         super().__init__(parent)
         self._worker = None
         self._thread = None
+        self._request_token = 0
 
     def search(self, term: str) -> None:
         cleaned = term.strip()
@@ -27,28 +28,38 @@ class UnifiedSearchController(QObject):
             self.invalidate()
             return
 
-        token = self._current_token()
+        lifecycle_token = self._current_token()
+        request_token = self._next_request_token()
         self.searchStatus.emit(f'Otsin "{cleaned}"…')
         try:
             PythonFailLogger.log(
                 "search_start",
                 module=getattr(self.parent(), "module_key", None),
                 message=cleaned,
-                extra={"token": token},
+                extra={"token": lifecycle_token, "request_token": request_token},
             )
         except Exception as exc:
             print(f"[UnifiedSearchController] search_start log failed: {exc}", file=sys.stderr)
 
         worker = FunctionWorker(self._run_search, cleaned)
-        worker.active_token = token
-        worker.finished.connect(lambda payload, tok=token: self._handle_success(payload, tok))
-        worker.error.connect(lambda message, tok=token: self._handle_error(message, tok))
+        worker.active_token = lifecycle_token
+        worker.search_request_token = request_token
+        worker.finished.connect(
+            lambda payload, tok=lifecycle_token, req=request_token: self._handle_success(payload, tok, req)
+        )
+        worker.error.connect(
+            lambda message, tok=lifecycle_token, req=request_token: self._handle_error(message, tok, req)
+        )
 
         self._worker = worker
         self._thread = start_worker(worker, on_thread_finished=self._clear_worker_refs)
 
     def invalidate(self) -> None:
-        return
+        self._request_token += 1
+        SwitchLogger.log(
+            "search_invalidated",
+            extra={"request_token": self._request_token, "lifecycle_token": self._current_token()},
+        )
 
     def _run_search(self, term: str) -> Dict[str, Any]:
         loader = GraphQLQueryLoader()
@@ -85,44 +96,57 @@ class UnifiedSearchController(QObject):
             return search_block
         return []
 
-    def _handle_success(self, payload: Any, token: int | None) -> None:
+    def _handle_success(self, payload: Any, token: int | None, request_token: int) -> None:
         if not self._is_token_active(token):
             SwitchLogger.log(
                 "search_ignored_inactive_token",
-                extra={"token": token, "current": self._current_token()},
+                extra={"token": token, "current": self._current_token(), "request_token": request_token},
+            )
+            return
+        if not self._is_request_token_active(request_token):
+            SwitchLogger.log(
+                "search_ignored_stale_request",
+                extra={"request_token": request_token, "current_request_token": self._request_token},
             )
             return
         SwitchLogger.log(
             "search_token_ok",
-            extra={"token": token, "current": self._current_token()},
+            extra={"token": token, "current": self._current_token(), "request_token": request_token},
         )
         normalized = self._normalize_payload(payload)
         try:
             PythonFailLogger.log(
                 "search_success",
                 module=getattr(self.parent(), "module_key", None),
-                extra={"token": token, "results": len(normalized)},
+                extra={"token": token, "request_token": request_token, "results": len(normalized)},
             )
         except Exception as exc:
             print(f"[UnifiedSearchController] search_success log failed: {exc}", file=sys.stderr)
         self.searchSucceeded.emit(normalized)
 
-    def _handle_error(self, message: str, token: int | None) -> None:
+    def _handle_error(self, message: str, token: int | None, request_token: int) -> None:
         if not self._is_token_active(token):
             SwitchLogger.log(
                 "search_ignored_inactive_token",
-                extra={"token": token, "current": self._current_token()},
+                extra={"token": token, "current": self._current_token(), "request_token": request_token},
+            )
+            return
+        if not self._is_request_token_active(request_token):
+            SwitchLogger.log(
+                "search_error_ignored_stale_request",
+                extra={"request_token": request_token, "current_request_token": self._request_token},
             )
             return
         SwitchLogger.log(
             "search_token_ok",
-            extra={"token": token, "current": self._current_token()},
+            extra={"token": token, "current": self._current_token(), "request_token": request_token},
         )
         try:
             PythonFailLogger.log(
                 "search_error",
                 module=getattr(self.parent(), "module_key", None),
                 message=message,
+                extra={"token": token, "request_token": request_token},
             )
         except Exception as exc:
             print(f"[UnifiedSearchController] search_error log failed: {exc}", file=sys.stderr)
@@ -140,6 +164,15 @@ class UnifiedSearchController(QObject):
         if hasattr(parent, "_active_token"):
             return getattr(parent, "_active_token", None)
         return None
+
+    def _next_request_token(self) -> int:
+        self._request_token += 1
+        return self._request_token
+
+    def _is_request_token_active(self, token: int | None) -> bool:
+        if token is None:
+            return True
+        return token == self._request_token
 
     def _is_token_active(self, token: int | None) -> bool:
         if token is None:

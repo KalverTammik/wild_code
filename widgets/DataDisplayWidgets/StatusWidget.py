@@ -4,6 +4,10 @@ from typing import Optional
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QMenu, QVBoxLayout, QWidget
+try:
+    import sip
+except Exception:  # pragma: no cover - depends on runtime packaging
+    sip = None
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
@@ -35,6 +39,10 @@ class StatusWidget(QWidget):
         self._module_name = str(module_name or "").strip().lower()
         self._lang = lang_manager or LanguageManager()
         self._is_updating = False
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.timeout.connect(self._perform_scheduled_card_refresh)
+        self._pending_refresh_payload: Optional[dict] = None
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -195,15 +203,35 @@ class StatusWidget(QWidget):
     def _schedule_card_refresh(self, item_data: Optional[dict]) -> None:
         if not isinstance(item_data, dict) or not item_data:
             return
-        payload = dict(item_data)
-        QTimer.singleShot(0, lambda data=payload: self._replace_current_card(data))
+        self._pending_refresh_payload = dict(item_data)
+        self._refresh_timer.start(0)
+
+    def _perform_scheduled_card_refresh(self) -> None:
+        payload = dict(self._pending_refresh_payload or {})
+        self._pending_refresh_payload = None
+        if not payload:
+            return
+        if self._is_deleted(self):
+            return
+        self._replace_current_card(payload)
+
+    @staticmethod
+    def _is_deleted(widget) -> bool:
+        try:
+            return bool(widget is None or (sip and sip.isdeleted(widget)))
+        except Exception:
+            return widget is None
 
     def _replace_current_card(self, item_data: dict) -> None:
+        if self._is_deleted(self):
+            return
         card = self._find_parent_card()
-        if card is None:
+        if self._is_deleted(card):
             return
 
         container = card.parentWidget()
+        if self._is_deleted(container):
+            return
         layout = container.layout() if container is not None else None
         insert_widget = getattr(layout, "insertWidget", None)
         remove_widget = getattr(layout, "removeWidget", None)
@@ -223,7 +251,10 @@ class StatusWidget(QWidget):
                 module_name=self._module_name,
                 lang_manager=self._lang,
             )
+            container.setUpdatesEnabled(False)
             remove_widget(card)
+            card.hide()
+            card.setParent(None)
             insert_widget(index, replacement)
             card.deleteLater()
         except Exception as exc:
@@ -233,6 +264,9 @@ class StatusWidget(QWidget):
                 event="status_widget_replace_card_failed",
                 extra={"item_id": str(item_data.get("id") or "")},
             )
+        finally:
+            if not self._is_deleted(container):
+                container.setUpdatesEnabled(True)
 
     def _find_parent_card(self) -> Optional[QFrame]:
         current = self.parentWidget()

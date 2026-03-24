@@ -1,5 +1,4 @@
 """Works layer services.
-
 Note:
 Strict required-field validation for the Works layer field set should be enabled next.
 This is planned for the Geospatial partnership workflow so the Geospatial-partnered

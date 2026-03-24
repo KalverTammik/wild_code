@@ -11,6 +11,7 @@ from .settings_user_fetch_service import SettingsUserFetchService
 from .settings_card_factory import SettingsCardFactory
 from .settings_card_build_service import SettingsCardBuildService
 from .cards.SettingsUserCard import UserSettingsCard
+from .cards.SettingsProjectBaseLayersCard import SettingsProjectBaseLayersCard
 from ...utils.url_manager import Module
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
@@ -52,6 +53,7 @@ class SettingsModule(TokenMixin, QWidget):
         self._footer_confirm = None
         # Modules available for module-specific cards
         self._module_cards = {}
+        self._project_base_layers_card = None
         self._allowed_modules = []
         self._user_fetch_thread = None
         self._user_fetch_worker = None
@@ -84,6 +86,11 @@ class SettingsModule(TokenMixin, QWidget):
         user_card = self._build_user_setup_card(payload=self.user_payload)
         self._cards.append(user_card)
         self.cards_layout.insertWidget(0, user_card)
+
+        self._project_base_layers_card = SettingsProjectBaseLayersCard(self.lang_manager)
+        self._project_base_layers_card.pendingChanged.connect(self._update_dirty_state)
+        self._cards.append(self._project_base_layers_card)
+        self.cards_layout.insertWidget(1, self._project_base_layers_card)
 
         # Footer with shared confirm button
         self._footer_frame = QFrame(self)
@@ -153,6 +160,8 @@ class SettingsModule(TokenMixin, QWidget):
     def activate(self):
         """Activates the Settings UI with fresh user data."""
         self.mark_activated(self._active_token)
+        if self._project_base_layers_card is not None:
+            self._project_base_layers_card.on_settings_activate()
         self._refresh_user_info()
 
     def _refresh_user_info(self):
@@ -266,8 +275,11 @@ class SettingsModule(TokenMixin, QWidget):
             log_error=self._log_settings_exception,
         )
 
-        # Rebuild cards list: user card first, then current module cards
-        self._cards = [self._user_card] + list(self._module_cards.values())
+        # Rebuild cards list: user card first, then project card, then current module cards
+        self._cards = [self._user_card]
+        if self._project_base_layers_card is not None:
+            self._cards.append(self._project_base_layers_card)
+        self._cards.extend(self._module_cards.values())
 
     def _clear_user_worker_refs(self):
         self._user_fetch_thread = None
@@ -290,6 +302,11 @@ class SettingsModule(TokenMixin, QWidget):
     def deactivate(self):
         self.mark_deactivated(bump_token=True)
         self._cancel_user_fetch_worker(invalidate_request=False)
+        if self._project_base_layers_card is not None:
+            try:
+                self._project_base_layers_card.on_settings_deactivate()
+            except Exception as exc:
+                self._log_settings_exception(exc, "settings_project_base_layers_deactivate_failed")
         
         # Deactivate module cards to free memory
         for card in self._module_cards.values():
@@ -318,6 +335,8 @@ class SettingsModule(TokenMixin, QWidget):
 
     # --- Handling unsaved changes ---
     def apply_pending_changes(self):
+        if self._project_base_layers_card is not None:
+            self._project_base_layers_card.apply()
         for card in self._module_cards.values():
             card.apply()
         self.logic.apply_pending_changes()
@@ -328,6 +347,8 @@ class SettingsModule(TokenMixin, QWidget):
     def revert_pending_changes(self):
         self.logic.revert_pending_changes()
         self._user_card.revert(self.logic.get_original_preferred())
+        if self._project_base_layers_card is not None:
+            self._project_base_layers_card.revert()
         for card in self._module_cards.values():
             card.revert()
         self._set_dirty(False)
@@ -363,6 +384,8 @@ class SettingsModule(TokenMixin, QWidget):
 
     def _any_module_dirty(self) -> bool:
         """Check if any module cards have pending changes."""
+        if self._project_base_layers_card is not None and self._project_base_layers_card.has_pending_changes():
+            return True
         for card in self._module_cards.values():
             if card.has_pending_changes():
                 return True

@@ -79,6 +79,17 @@ class PropertyUITools:
             return False
         return True
 
+    def _is_widget_valid(self, widget) -> bool:
+        if widget is None:
+            return False
+        if sip:
+            try:
+                if sip.isdeleted(widget):
+                    return False
+            except Exception:
+                return False
+        return True
+
     def _emit_ui_signal(self, signal_name: str):
         ui = self._get_active_ui()
         if not ui:
@@ -446,7 +457,7 @@ class PropertyUITools:
     def _show_tree_message(self, message: str):
         ui = self._get_active_ui()
         tree_widget = ui.tree_section if ui else None
-        if tree_widget:
+        if self._is_widget_valid(tree_widget):
             tree_widget.show_message(message)
 
     def _show_property_not_found_in_header(self) -> None:
@@ -454,6 +465,21 @@ class PropertyUITools:
         if not ui:
             return
         try:
+            if not all(
+                self._is_widget_valid(widget)
+                for widget in (
+                    ui.lbl_katastritunnus_value,
+                    ui.lbl_kinnistu_value,
+                    ui.lbl_address_value,
+                    ui.lbl_area_value,
+                    ui.lbl_siht1_value,
+                    ui.lbl_siht2_value,
+                    ui.lbl_siht3_value,
+                    ui.lbl_registr_value,
+                    ui.lbl_muudet_value,
+                )
+            ):
+                return
             ui.lbl_katastritunnus_value.setText(
                 self._t(TranslationKeys.PROPERTY_NOT_FOUND_ON_LAYER)
             )
@@ -483,7 +509,7 @@ class PropertyUITools:
 
         ui = self._get_active_ui()
         tree_widget = ui.tree_section if ui else None
-        if not tree_widget:
+        if not self._is_widget_valid(tree_widget):
             return
         entries = payload.get("entries", [])
         message = payload.get("message")
@@ -514,7 +540,7 @@ class PropertyUITools:
 
         ui = self._get_active_ui()
         tree_widget = ui.tree_section if ui else None
-        if not tree_widget:
+        if not self._is_widget_valid(tree_widget):
             return
 
         error_text = error_message or self._t(TranslationKeys.PROPERTY_CONNECTIONS_LOAD_FAILED_REASON)
