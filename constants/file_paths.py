@@ -168,6 +168,10 @@ class QmlPaths:
     MAAMET_IMPORT = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Maa_amet_temp_layer.qml")
     EASETMENT_DRAINAGE = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Drainage.qml")
     EASEMENT_PROPERTIES = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Properties.qml")
+    EASEMENT_WATER = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_W.qml")
+    EASEMENT_SEWER = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Sew.qml")
+    EASEMENT_PRESSURE_SEWER = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_PrSew.qml")
+    EASEMENT_FINAL = os.path.join(PLUGIN_ROOT, "QGIS_styles", "UnionedEasement.qml")
 
 
     def get_style(style_name: str) -> str:
@@ -188,6 +192,10 @@ class QmlPaths:
             'maa_amet_import': QmlPaths.MAAMET_IMPORT,
             'easement_drainage': QmlPaths.EASETMENT_DRAINAGE,
             'easement_properties': QmlPaths.EASEMENT_PROPERTIES,
+            'easement_water': QmlPaths.EASEMENT_WATER,
+            'easement_sewer': QmlPaths.EASEMENT_SEWER,
+            'easement_pressure_sewer': QmlPaths.EASEMENT_PRESSURE_SEWER,
+            'easement_final': QmlPaths.EASEMENT_FINAL,
         }
 
         if style_name not in style_map:

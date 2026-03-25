@@ -20,6 +20,11 @@ class ProjectBaseLayerKeys:
     SEWERPIPES = "sewerpipes"
     PRESSURE_SEWERPIPES = "pressure_sewerpipes"
     RAINWATERPIPES = "rainwaterpipes"
+    SEWAGE_PUMPING = "sewage_pumping"
+    SEWAGE_DUMP = "sewage_dump"
+    SEWAGE_PLANT = "sewage_plant"
+    WATER_STATION = "water_station"
+    RAIN_PUMP = "rain_pump"
     SEWER_MAPPING_ENABLED = "sewer_mapping_enabled"
     SEWER_MAPPING_FIELD = "sewer_mapping_field"
     SEWER_MAPPING_ROWS = "sewer_mapping_rows"
@@ -41,6 +46,11 @@ class ProjectBaseLayerKeys:
         SEWERPIPES,
         PRESSURE_SEWERPIPES,
         RAINWATERPIPES,
+        SEWAGE_PUMPING,
+        SEWAGE_DUMP,
+        SEWAGE_PLANT,
+        WATER_STATION,
+        RAIN_PUMP,
     )
 
     SEWER_TYPE_ORDER = (
@@ -108,6 +118,34 @@ class ProjectBaseLayersService:
             "sademeveetorud",
             "sademevesi",
             "rainwaterpipes",
+        ),
+        ProjectBaseLayerKeys.SEWAGE_PUMPING: (
+            "reoveepumpla",
+            "kanalisatsioonipumpla",
+            "sewage pumping station",
+            "wastewater pumping station",
+            "sewage pump",
+        ),
+        ProjectBaseLayerKeys.SEWAGE_DUMP: (
+            "purgimissõlm",
+            "sewage dump",
+            "dump node",
+        ),
+        ProjectBaseLayerKeys.SEWAGE_PLANT: (
+            "reoveepuhasti",
+            "sewage plant",
+            "wastewater treatment plant",
+        ),
+        ProjectBaseLayerKeys.WATER_STATION: (
+            "veejaam",
+            "water station",
+            "vee pumpla",
+        ),
+        ProjectBaseLayerKeys.RAIN_PUMP: (
+            "sademeveepumpla",
+            "rain pumping station",
+            "storm pumping station",
+            "rain pump",
         ),
     }
 

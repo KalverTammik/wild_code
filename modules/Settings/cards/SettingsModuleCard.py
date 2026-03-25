@@ -410,7 +410,12 @@ class SettingsModuleCard(SettingsBaseCard):
             ModernMessageDialog.show_warning(
                 self.lang_manager.translate(TranslationKeys.ERROR),
                 self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_CREATE_FAILED).format(
-                    name=(self._pend_element_name or self._orig_element_name or WorksTempLayerHelper.DEFAULT_LAYER_NAME),
+                    name=(
+                        MapHelpers.layer_name_from_id(self._pend_element_name or self._orig_element_name)
+                        or self._pend_element_name
+                        or self._orig_element_name
+                        or WorksTempLayerHelper.DEFAULT_LAYER_NAME
+                    ),
                     error=str(exc),
                 ),
             )
@@ -739,8 +744,8 @@ class SettingsModuleCard(SettingsBaseCard):
                         if lyr:
                             return lyr.name()
                 except Exception:
-                    return fallback_name or ""
-                return fallback_name or ""
+                    pass
+                return MapHelpers.layer_name_from_id(fallback_name) or fallback_name or ""
 
             element_name = display_for(self._layer_selector, self._pend_element_name or self._orig_element_name)
             archive_name = ""
@@ -862,8 +867,7 @@ class SettingsModuleCard(SettingsBaseCard):
 
     # --- Layer valiku handlerid ---
     def _update_pending_layer_selection(self, *, layer_id: str, target_attr: str) -> None:
-        layer_name = MapHelpers.layer_name_from_id(layer_id) if layer_id else ""
-        setattr(self, target_attr, layer_name)
+        setattr(self, target_attr, str(layer_id or "").strip())
         self._update_stored_values_display()
         self._emit_pending_changed(self.has_pending_changes())
 

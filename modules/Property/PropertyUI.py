@@ -17,6 +17,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...utils.url_manager import Module
 from ...ui.mixins.token_mixin import TokenMixin
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...widgets.PropertySummaryCard import PropertySummaryCard
 
 class PropertyModule(TokenMixin, QWidget):
     """
@@ -99,107 +100,27 @@ class PropertyModule(TokenMixin, QWidget):
         top_row.addWidget(self.pbdisplayPropertyInfo)
         header_layout.addLayout(top_row)
 
-        # Details frame holding compact cards
-        details_frame = QFrame()
-        details_frame.setObjectName("PropertyDetailsFrame")
-        details_frame.setFrameStyle(QFrame.StyledPanel)
-        details_layout = QHBoxLayout(details_frame)
-        details_layout.setContentsMargins(self.margin_layout, self.margin_layout, self.margin_layout, self.margin_layout)
-        details_layout.setSpacing(self.margin_layout * 2)
-        self.details_frame = details_frame
+        self.property_summary_card = PropertySummaryCard(header_frame)
+        self.details_frame = self.property_summary_card.findChild(QFrame, "PropertyDetailsFrame")
+        header_layout.addWidget(self.property_summary_card)
 
-        # Left card: Katastritunnus + registry + address
-        basic_frame = QFrame()
-        basic_frame.setObjectName("BasicInfoFrame")
-        basic_frame.setFrameStyle(QFrame.Box)
-        basic_frame.setLineWidth(2)
-        basic_layout = QVBoxLayout(basic_frame)
-        basic_layout.setContentsMargins(self.horizontal_label_spacing, self.horizontal_label_spacing, self.horizontal_label_spacing, self.horizontal_label_spacing)
-        basic_layout.setSpacing(self.vertical_label_spacing)
+        for attr_name in (
+            "lbl_katastritunnus_value",
+            "lbl_kinnistu_value",
+            "lbl_address_value",
+            "lbl_area_value",
+            "lbl_siht1_label",
+            "lbl_siht1_value",
+            "lbl_siht2_label",
+            "lbl_siht2_value",
+            "lbl_siht3_label",
+            "lbl_siht3_value",
+            "lbl_registr_value",
+            "lbl_muudet_value",
+        ):
+            setattr(self, attr_name, getattr(self.property_summary_card, attr_name))
 
-        ids_layout = QHBoxLayout()
-        tunnus_label = QLabel("Katastritunnus:")
-        tunnus_label.setObjectName("InfoLabel")
-        ids_layout.addWidget(tunnus_label)
-        self.lbl_katastritunnus_value = QLabel("katastritunnus...")
-        ids_layout.addWidget(self.lbl_katastritunnus_value)
-
-        reg_label = QLabel("(reg.nr:)")
-        reg_label.setObjectName("InfoLabel")
-        ids_layout.addSpacing(self.horizontal_label_spacing)
-        ids_layout.addWidget(reg_label)
-        self.lbl_kinnistu_value = QLabel("...")
-        ids_layout.addWidget(self.lbl_kinnistu_value)
-        ids_layout.addStretch()
-        basic_layout.addLayout(ids_layout)
-
-        address_layout = QHBoxLayout()
-        address_label = QLabel("Aadress:")
-        address_label.setObjectName("InfoLabel")
-        address_layout.addWidget(address_label)
-        self.lbl_address_value = QLabel("...")
-        address_layout.addWidget(self.lbl_address_value)
-        address_layout.addStretch()
-        basic_layout.addLayout(address_layout)
-
-        details_layout.addWidget(basic_frame)
-
-        # Right card: area + usage + timestamps
-        additional_frame = QFrame()
-        additional_frame.setObjectName("AdditionalInfoFrame")
-        additional_layout = QVBoxLayout(additional_frame)
-        additional_layout.setContentsMargins(self.margin_layout, self.margin_layout, self.margin_layout, self.margin_layout)
-        additional_layout.setSpacing(self.vertical_label_spacing)
-
-        # Area row
-        pindala_layout = QHBoxLayout()
-        pindala_label = QLabel("Pindala (m²):")
-        pindala_label.setObjectName("InfoLabel")
-        pindala_layout.addWidget(pindala_label)
-        self.lbl_area_value = QLabel("0.00")
-        pindala_layout.addWidget(self.lbl_area_value)
-        pindala_layout.addStretch()
-        additional_layout.addLayout(pindala_layout)
-
-        # Siht rows
-        siht_layouts = []
-        for idx in range(1, 4):
-            row = QHBoxLayout()
-            label = QLabel(f"Siht {idx}:")
-            label.setObjectName("InfoLabel")
-            row.addWidget(label)
-            value_label = QLabel("...")
-            row.addWidget(value_label)
-            row.addStretch()
-            additional_layout.addLayout(row)
-            siht_layouts.append((label, value_label))
-
-        (self.lbl_siht1_label, self.lbl_siht1_value), (
-            self.lbl_siht2_label, self.lbl_siht2_value), (
-            self.lbl_siht3_label, self.lbl_siht3_value) = siht_layouts
-
-        registr_layout = QHBoxLayout()
-        registr_label = QLabel("Moodustatud:")
-        registr_label.setObjectName("InfoLabel")
-        registr_layout.addWidget(registr_label)
-        self.lbl_registr_value = QLabel("...")
-        registr_layout.addWidget(self.lbl_registr_value)
-        registr_layout.addStretch()
-        additional_layout.addLayout(registr_layout)
-
-        muudet_layout = QHBoxLayout()
-        muudet_label = QLabel("Viimati muudetud:")
-        muudet_label.setObjectName("InfoLabel")
-        muudet_layout.addWidget(muudet_label)
-        self.lbl_muudet_value = QLabel("...")
-        muudet_layout.addWidget(self.lbl_muudet_value)
-        muudet_layout.addStretch()
-        additional_layout.addLayout(muudet_layout)
-
-        details_layout.addWidget(additional_frame)
-        header_layout.addWidget(details_frame)
-
-        styleExtras.apply_chip_shadow(details_frame)
+        styleExtras.apply_chip_shadow(self.details_frame)
         return header_frame
 
     def retheme(self):

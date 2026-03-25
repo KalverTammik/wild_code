@@ -23,12 +23,14 @@ class ModulesRegistry:
         from ..languages.translation_keys import DialogLabels
         from ..modules.Settings.setting_keys import SettingDialogPlaceholders
         from ..modules.Settings.SettingsUI import SettingsModule
+        from ..modules.Settings.EasementStatusMappingDialog import EasementStatusMappingDialog
         from ..modules.Property.PropertyUI import PropertyModule
         from ..modules.projects.ProjectsUi import ProjectsModule
         from ..modules.projects.FolderNamingRuleDialog import FolderNamingRuleDialog
         from ..modules.contract.ContractUi import ContractsModule
         from ..modules.coordination.CoordinationModule import CoordinationModule
         from ..modules.easements.EasementsUi import EasementsModule
+        from ..modules.easements.easement_layer_service import EasementLayerService
         from ..modules.works.WorksUi import WorksModule
         from ..modules.asbuilt.AsBuiltUi import AsBuiltModule
         from ..utils.url_manager import Module
@@ -41,6 +43,14 @@ class ModulesRegistry:
 
         def pick_folder(_module_key: str, _key: str, current_value: str):
             return FolderHelpers.select_folder_path(dialog, start_path=current_value)
+
+        def open_easement_status_mapping(_module_key: str, _key: str, current_value: str):
+            return EasementStatusMappingDialog.edit_mapping(
+                lang_manager=dialog.lang_manager,
+                stored_value=current_value,
+                parent=dialog,
+            )
+
         open_folder_rule = partial(
             DialogHelpers.open_folder_rule_dialog,
             dialog.lang_manager,
@@ -123,6 +133,15 @@ class ModulesRegistry:
             supports_types=True,
             supports_statuses=True,
             supports_tags=False,
+            module_labels=[
+                {
+                    "key": SettingDialogPlaceholders.EASEMENT_LAYER_STATUS_MAPPING,
+                    "title_value": dialog.lang_manager.translate(DialogLabels.EASEMENT_LAYER_STATUS_MAPPING),
+                    "tool": "button",
+                    "on_click": open_easement_status_mapping,
+                    "display_formatter": EasementLayerService.format_status_mapping_summary,
+                },
+            ],
         )
         module_manager.registerModule(
             WorksModule,

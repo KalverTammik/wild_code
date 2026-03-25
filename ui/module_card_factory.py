@@ -14,6 +14,7 @@ class ModuleCardFactory:
         from ..widgets.DataDisplayWidgets.StatusWidget import StatusWidget
         from ..widgets.DataDisplayWidgets.MembersView import MembersView
         from ..widgets.DataDisplayWidgets.ExtraInfoWidget import ExtraInfoFrame
+        from ..widgets.DataDisplayWidgets.EasementPropertiesWidget import EasementPropertiesWidget
         from ..widgets.DataDisplayWidgets.InfoCardHeader import InfocardHeaderFrame
         from ..widgets.DataDisplayWidgets.DatesWidget import DatesWidget
         from ..widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
@@ -103,7 +104,16 @@ class ModuleCardFactory:
         if not contacts_widget.isHidden():
             cl.addWidget(contacts_widget, 0, Qt.AlignLeft)
 
-        show_extra_info = module_name not in (Module.WORKS.value, Module.ASBUILT.value)
+        if module_name == Module.EASEMENT.value:
+            easement_properties_widget = EasementPropertiesWidget(
+                item_data,
+                parent=content,
+                lang_manager=lang_manager,
+            )
+            if not easement_properties_widget.isHidden():
+                cl.addWidget(easement_properties_widget)
+
+        show_extra_info = module_name not in (Module.WORKS.value, Module.ASBUILT.value, Module.EASEMENT.value)
         if show_extra_info:
             cl.addWidget(ExtraInfoFrame(item_id, module_name, lang_manager=lang_manager))
         main.addWidget(content, 1)

@@ -184,6 +184,40 @@ class MemoryLayerResultService:
         return layer
 
     @classmethod
+    def move_layer_to_group_end(cls, layer: Optional[QgsVectorLayer], *, group_name: Optional[str] = None) -> bool:
+        if layer is None or not layer.isValid():
+            return False
+
+        project = cls._project()
+        root = project.layerTreeRoot()
+        node = root.findLayer(layer.id())
+        if node is None:
+            return False
+
+        parent = node.parent()
+        if parent is None:
+            return False
+
+        if group_name:
+            group = cls._group(group_name)
+            if group is None or parent != group:
+                return False
+
+        try:
+            clone = node.clone()
+            parent.insertChildNode(len(parent.children()), clone)
+            parent.removeChildNode(node)
+            return True
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="layers",
+                event="memory_layer_move_to_group_end_failed",
+                extra={"layer": layer.name(), "group": group_name or ""},
+            )
+            return False
+
+    @classmethod
     def clear_tagged_empty_layers(cls, property_tag: str) -> int:
         try:
             return int(MapHelpers.cleanup_empty_import_layers(property_tag) or 0)

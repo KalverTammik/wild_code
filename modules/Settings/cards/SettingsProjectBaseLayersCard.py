@@ -37,6 +37,11 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         ProjectBaseLayerKeys.SEWERPIPES: TranslationKeys.SETTINGS_BASE_LAYER_SEWERPIPES,
         ProjectBaseLayerKeys.PRESSURE_SEWERPIPES: TranslationKeys.SETTINGS_BASE_LAYER_PRESSURE_SEWERPIPES,
         ProjectBaseLayerKeys.RAINWATERPIPES: TranslationKeys.SETTINGS_BASE_LAYER_RAINWATERPIPES,
+        ProjectBaseLayerKeys.SEWAGE_PUMPING: TranslationKeys.SETTINGS_BASE_LAYER_SEWAGE_PUMPING,
+        ProjectBaseLayerKeys.SEWAGE_DUMP: TranslationKeys.SETTINGS_BASE_LAYER_SEWAGE_DUMP,
+        ProjectBaseLayerKeys.SEWAGE_PLANT: TranslationKeys.SETTINGS_BASE_LAYER_SEWAGE_PLANT,
+        ProjectBaseLayerKeys.WATER_STATION: TranslationKeys.SETTINGS_BASE_LAYER_WATER_STATION,
+        ProjectBaseLayerKeys.RAIN_PUMP: TranslationKeys.SETTINGS_BASE_LAYER_RAIN_PUMP,
     }
 
     MAPPING_KIND_TO_TRANSLATION = {
@@ -571,6 +576,19 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
                     continue
                 label = self.lang_manager.translate(self.LAYER_KEY_TO_TRANSLATION[key])
                 parts.append(f"{label}: {layer.name()}")
+
+        for key in ProjectBaseLayerKeys.ORDER:
+            if key in (ProjectBaseLayerKeys.WATERPIPES, *ProjectBaseLayerKeys.SEWER_TYPE_ORDER):
+                continue
+            layer = ProjectBaseLayersService.resolve_layer(
+                key,
+                state=state,
+                include_legacy=include_legacy,
+            )
+            if layer is None:
+                continue
+            label = self.lang_manager.translate(self.LAYER_KEY_TO_TRANSLATION[key])
+            parts.append(f"{label}: {layer.name()}")
 
         if parts:
             self.set_status_text(" · ".join(parts), True)

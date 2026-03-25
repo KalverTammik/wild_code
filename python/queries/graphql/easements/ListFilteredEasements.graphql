@@ -2,7 +2,7 @@ query Easements(
   $first: Int
   $after: String
   $where: QueryEasementsWhereWhereConditions
-  $propertiesFirst: Int = 1
+  $propertiesFirst: Int = 25
   $propertiesAfter: String
   $membersFirst: Int = 10
   $membersAfter: String
@@ -63,8 +63,23 @@ query Easements(
             total
           }
           edges {
+            area {
+              size
+              unit
+            }
+            isPayable
+            pricePerAreaUnit {
+              amount
+              currencyCode
+            }
+            totalPrice {
+              amount
+              currencyCode
+            }
+            nextPaymentDate
             node {
               id
+              displayAddress
               cadastralUnitNumber
             }
           }

@@ -7,6 +7,7 @@ from qgis.core import QgsMapLayer, QgsProcessingFeatureSourceDefinition, QgsProj
 
 from ...engines.LayerCreationEngine import MailablGroupFolders
 from ...Logs.python_fail_logger import PythonFailLogger
+from ..MapTools.MapHelpers import MapHelpers
 from .memory_layer_result_service import MemoryLayerResultService
 
 
@@ -138,6 +139,55 @@ class LayerProcessingService:
         )
 
     @classmethod
+    def select_features_intersecting_layer(
+        cls,
+        source_layer: Optional[QgsVectorLayer],
+        overlay_layer: Optional[QgsVectorLayer],
+        *,
+        predicate: Optional[list[int]] = None,
+        method: int = 0,
+        make_visible: bool = True,
+        make_active: bool = False,
+    ) -> int:
+        if source_layer is None or overlay_layer is None:
+            return 0
+        if not source_layer.isValid() or not overlay_layer.isValid():
+            return 0
+
+        try:
+            processing.run(
+                "native:selectbylocation",
+                {
+                    "INPUT": source_layer,
+                    "PREDICATE": list(predicate or [0]),
+                    "INTERSECT": overlay_layer,
+                    "METHOD": int(method),
+                },
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="layers",
+                event="layer_processing_select_by_location_failed",
+                extra={
+                    "source": getattr(source_layer, "name", lambda: "")(),
+                    "overlay": getattr(overlay_layer, "name", lambda: "")(),
+                },
+            )
+            return 0
+
+        if make_visible:
+            try:
+                MapHelpers.ensure_layer_visible(source_layer, make_active=make_active)
+            except Exception:
+                pass
+
+        try:
+            return int(source_layer.selectedFeatureCount() or 0)
+        except Exception:
+            return 0
+
+    @classmethod
     def intersect_layers(
         cls,
         input_layer: Optional[QgsVectorLayer],
@@ -166,6 +216,44 @@ class LayerProcessingService:
                 "INPUT_FIELDS": [],
                 "OVERLAY_FIELDS": [],
                 "OVERLAY_FIELDS_PREFIX": "",
+            },
+            result_layer_name=result_layer_name,
+            group_name=group_name,
+            style_path=style_path,
+            replace_existing=replace_existing,
+            custom_properties=custom_properties,
+            make_visible=make_visible,
+            make_active=make_active,
+        )
+
+    @classmethod
+    def merge_layers(
+        cls,
+        source_layers: list[QgsVectorLayer],
+        *,
+        result_layer_name: str,
+        group_name: str = MailablGroupFolders.SANDBOXING,
+        style_path: Optional[str] = None,
+        replace_existing: bool = True,
+        custom_properties: Optional[dict[str, str]] = None,
+        make_visible: bool = True,
+        make_active: bool = False,
+    ) -> Optional[QgsVectorLayer]:
+        valid_layers = [layer for layer in (source_layers or []) if layer is not None and layer.isValid()]
+        if not valid_layers:
+            return None
+
+        merge_crs = None
+        try:
+            merge_crs = valid_layers[0].crs()
+        except Exception:
+            merge_crs = None
+
+        return cls.run_processing_to_memory(
+            "native:mergevectorlayers",
+            {
+                "LAYERS": valid_layers,
+                "CRS": merge_crs,
             },
             result_layer_name=result_layer_name,
             group_name=group_name,

@@ -424,15 +424,21 @@ class APIModuleActions:
     @staticmethod
     def resolve_property_ids_by_cadastral(numbers: List[str]) -> tuple[list[str], list[str]]:
         """Resolve cadastral numbers to property IDs (chunked to 25 per query). Returns (ids, missing_numbers)."""
+        resolved_map, missing = APIModuleActions.resolve_property_map_by_cadastral(numbers)
+        return list(resolved_map.values()), missing
+
+    @staticmethod
+    def resolve_property_map_by_cadastral(numbers: List[str]) -> tuple[dict[str, str], list[str]]:
+        """Resolve cadastral numbers to property IDs (chunked to 25 per query). Returns (number->id, missing_numbers)."""
         cleaned = [str(n).strip() for n in numbers if str(n).strip()]
         if not cleaned:
-            return [], cleaned
+            return {}, cleaned
 
         loader = GraphQLQueryLoader()
         query = loader.load_query_by_module(Module.PROPERTY.value, "id_number.graphql")
         client = APIClient()
 
-        ids: list[str] = []
+        resolved_map: dict[str, str] = {}
         resolved_numbers = set()
         chunk_size = 25
 
@@ -460,11 +466,78 @@ class APIModuleActions:
                 pid = node.get("id")
                 cnum = node.get("cadastralUnitNumber")
                 if pid and cnum:
-                    ids.append(str(pid))
+                    resolved_map[str(cnum)] = str(pid)
                     resolved_numbers.add(str(cnum))
 
         missing = [n for n in cleaned if n not in resolved_numbers]
-        return ids, missing
+        return resolved_map, missing
+
+    @staticmethod
+    def get_easement_property_edges(item_id: str) -> List[dict[str, object]]:
+        """Return easement-property edges with easement-specific metadata."""
+        easement_id = str(item_id or "").strip()
+        if not easement_id:
+            return []
+
+        loader = GraphQLQueryLoader()
+        try:
+            query = loader.load_query_by_module(Module.EASEMENT.value, "W_easement_id.graphql")
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_property_edges_query_load_failed",
+                extra={"item_id": easement_id},
+            )
+            return []
+
+        client = APIClient()
+        end_cursor: Optional[str] = None
+        edges_out: List[dict[str, object]] = []
+        seen_numbers: Set[str] = set()
+
+        while True:
+            variables = {
+                "propertiesFirst": _PROPERTIES_PAGE_SIZE,
+                "propertiesAfter": end_cursor,
+                "id": easement_id,
+            }
+            try:
+                payload = client.send_query(query, variables=variables, return_raw=True) or {}
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.EASEMENT.value,
+                    event="easement_property_edges_fetch_failed",
+                    extra={"item_id": easement_id},
+                )
+                return edges_out
+
+            path = [Module.EASEMENT.value, "properties"]
+            edges = JsonResponseHandler.get_edges_from_path(payload, path) or []
+            if not edges:
+                break
+
+            for edge in edges:
+                if not isinstance(edge, dict):
+                    continue
+                node = edge.get("node") or {}
+                number = str(node.get("cadastralUnitNumber") or "").strip()
+                if number and number in seen_numbers:
+                    continue
+                if number:
+                    seen_numbers.add(number)
+                edges_out.append(edge)
+
+            details = JsonResponseHandler.get_page_detalils_from_path(payload, path)
+            if details:
+                end_cursor, has_next_page, _ = details
+            else:
+                end_cursor, has_next_page = None, False
+
+            if has_next_page is False or not end_cursor:
+                break
+        return edges_out
 
     @staticmethod
     def associate_properties(module: str, item_id: str, property_ids: List[str]):
@@ -499,6 +572,50 @@ class APIModuleActions:
         updated = (data.get(mutation_root) or {}) if isinstance(data, dict) else {}
         if not isinstance(updated, dict) or not updated.get("id"):
             raise RuntimeError(f"Property association did not return {mutation_root}.id")
+        return response
+
+    @staticmethod
+    def associate_easement_properties(item_id: str, properties: List[dict[str, object]]):
+        """Associate easement properties using the easement edge payload shape."""
+        easement_id = str(item_id or "").strip()
+        cleaned_properties: List[dict[str, object]] = []
+        for prop in (properties or []):
+            if not isinstance(prop, dict) or not prop.get("id"):
+                continue
+
+            cleaned: dict[str, object] = {"id": prop.get("id")}
+            if isinstance(prop.get("area"), dict):
+                cleaned["area"] = prop.get("area")
+            if isinstance(prop.get("pricePerAreaUnit"), dict):
+                cleaned["pricePerAreaUnit"] = prop.get("pricePerAreaUnit")
+            if "isPayable" in prop:
+                cleaned["isPayable"] = bool(prop.get("isPayable"))
+            if prop.get("nextPaymentDate"):
+                cleaned["nextPaymentDate"] = prop.get("nextPaymentDate")
+            cleaned_properties.append(cleaned)
+
+        if not easement_id:
+            raise ValueError("No easement id provided for association")
+        if not cleaned_properties:
+            raise ValueError("No easement properties provided for association")
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.EASEMENT.value, "updateEasementProperties.graphql")
+        variables = {
+            "input": {
+                "id": easement_id,
+                "properties": {
+                    "associate": cleaned_properties,
+                },
+            }
+        }
+
+        client = APIClient()
+        response = client.send_query(query, variables=variables, return_raw=True)
+        data = (response or {}).get("data") or {}
+        updated = (data.get("updateEasement") or {}) if isinstance(data, dict) else {}
+        if not isinstance(updated, dict) or not updated.get("id"):
+            raise RuntimeError("Easement property association did not return updateEasement.id")
         return response
 
     @staticmethod

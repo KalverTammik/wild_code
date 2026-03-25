@@ -4,6 +4,20 @@ mutation UpdateEasement($input: UpdateEasementInput!) {
     id
     properties {
       edges {
+        area {
+          size
+          unit
+        }
+        isPayable
+        pricePerAreaUnit {
+          amount
+          currencyCode
+        }
+        totalPrice {
+          amount
+          currencyCode
+        }
+        nextPaymentDate
         node {
           id
           displayAddress

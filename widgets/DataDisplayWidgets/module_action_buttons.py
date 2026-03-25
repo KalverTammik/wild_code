@@ -1,6 +1,6 @@
 from typing import Optional, Iterable
 
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QAction, QMenu, QPushButton, QDialog
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
 
@@ -29,6 +29,7 @@ from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...python.responses import DataDisplayExtractors
 from ...modules.asbuilt.asbuilt_notes_dialog import AsBuiltNotesEditorDialog
 from ...modules.asbuilt.asbuilt_notes_service import AsBuiltNotesService
+from ...modules.easements.easement_preview_dialog import EasementPreviewDialog
 from ...modules.works.works_layer_service import WorksLayerService
 from ...modules.works.works_reposition_controller import WorksRepositionController
 from ...widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
@@ -146,6 +147,7 @@ class MoreActionsButton(CardActionButton):
         self.module = module  # Ensure module is passed correctly
         self._map_selection_orchestrator: Optional[MapSelectionOrchestrator] = None
         self._works_reposition_controller: Optional[WorksRepositionController] = None
+        self._easement_preview_dialog: Optional[EasementPreviewDialog] = None
         self._on_properties_linked = on_properties_linked
         self._parent_window: Optional[QDialog] = None
         self._restore_parent_on_close: bool = False
@@ -201,6 +203,16 @@ class MoreActionsButton(CardActionButton):
                 lambda _, data=item_data, lm=lang_manager: self._reposition_work_on_map(data, lm)
             )
             menu.addAction(action_reposition)
+
+        if module == Module.EASEMENT.value:
+            action_easement_preview = QAction(
+                lang_manager.translate(TranslationKeys.EASEMENT_PREVIEW_ACTION),
+                self,
+            )
+            action_easement_preview.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._open_easement_preview(data, lm)
+            )
+            menu.addAction(action_easement_preview)
 
         action2 = QAction(
             lang_manager.translate(TranslationKeys.CONNECT_PROPERTIES),
@@ -323,6 +335,31 @@ class MoreActionsButton(CardActionButton):
             parent=self._get_safe_parent_window(),
         )
         dialog.exec_()
+
+    def _open_easement_preview(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+        if self._easement_preview_dialog is not None:
+            try:
+                if self._easement_preview_dialog.isVisible():
+                    self._easement_preview_dialog.showNormal()
+                    self._easement_preview_dialog.raise_()
+                    self._easement_preview_dialog.activateWindow()
+                    return
+            except Exception:
+                self._easement_preview_dialog = None
+
+        dialog = EasementPreviewDialog(
+            item_data=item,
+            lang_manager=lm,
+            parent=self._get_safe_parent_window(),
+        )
+        dialog.setAttribute(Qt.WA_DeleteOnClose, True)
+        dialog.finished.connect(lambda *_args: setattr(self, "_easement_preview_dialog", None))
+        self._easement_preview_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
 
     def _link_properties_from_map(self, module, item_data, lang_manager) -> None:
         object_id = (item_data).get("id")

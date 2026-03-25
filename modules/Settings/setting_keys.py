@@ -5,5 +5,6 @@ class SettingDialogPlaceholders:
     PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE = "name structure"  # legacy bool flag
     PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED = PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE
     PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE = "name structure rule"
+    EASEMENT_LAYER_STATUS_MAPPING = "easement layer status mapping"
 
     SHP_LAYER_NAME = "SHP layer name"

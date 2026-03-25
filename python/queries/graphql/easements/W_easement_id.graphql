@@ -18,7 +18,23 @@ query easement($id: ID!, $propertiesFirst: Int, $propertiesAfter: String) {
         total
       }
       edges {
+        area {
+          size
+          unit
+        }
+        isPayable
+        pricePerAreaUnit {
+          amount
+          currencyCode
+        }
+        totalPrice {
+          amount
+          currencyCode
+        }
+        nextPaymentDate
         node {
+          id
+          displayAddress
           cadastralUnitNumber
         }
       }

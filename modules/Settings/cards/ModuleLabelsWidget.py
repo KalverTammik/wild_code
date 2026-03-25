@@ -23,6 +23,7 @@ class ModuleLabelsWidget(QFrame):
         self.lang_manager = lang_manager
         self._module_labels = module_labels or []
         self._label_widgets = {}
+        self._label_defs_by_key = {}
         self._build()
 
 
@@ -63,6 +64,28 @@ class ModuleLabelsWidget(QFrame):
                 raw_value = False
         return to_bool(raw_value)
 
+    def _display_value(self, label_def: dict, raw_value) -> str:
+        if not label_def:
+            return self._not_defined_jet()
+
+        formatter = label_def.get("display_formatter")
+        if callable(formatter):
+            try:
+                formatted = formatter(raw_value)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.SETTINGS.value,
+                    event="settings_label_display_formatter_failed",
+                )
+                formatted = raw_value
+        else:
+            formatted = raw_value
+
+        if formatted is None or formatted == "":
+            return self._not_defined_jet()
+        return str(formatted)
+
     def _build(self):
         
         root = QVBoxLayout(self)
@@ -80,6 +103,8 @@ class ModuleLabelsWidget(QFrame):
 
             key = label_def.get("key")
             value_widget = None
+            if key:
+                self._label_defs_by_key[key] = label_def
 
             title = QLabel(label_def.get("title_value") +":")
             title.setObjectName("modulelabeltitle")
@@ -104,7 +129,7 @@ class ModuleLabelsWidget(QFrame):
                     clear_button.setToolTip(self.lang_manager.translate(TranslationKeys.CLEAR_VALUE))
                     clear_button.clicked.connect(lambda _, k=key: self._clear_label_value(k))
 
-                    value_label = QLabel(self._label_value(label_def))
+                    value_label = QLabel(self._display_value(label_def, label_def.get("value")))
                     value_label.setObjectName("modulelabelvalue")
                     value_label.setProperty("modulelabelvalue", "true")
                     value_label.setWordWrap(True)
@@ -182,7 +207,8 @@ class ModuleLabelsWidget(QFrame):
         self.labelChanged.emit(key, value)
 
     def _update_label_value(self, key: str, value: str, widget: QLabel) -> None:
-        widget.setText(value)
+        label_def = self._label_defs_by_key.get(key, {})
+        widget.setText(self._display_value(label_def, value))
         self._label_widgets[key] = widget
         self.labelChanged.emit(key, value)
 
@@ -197,7 +223,8 @@ class ModuleLabelsWidget(QFrame):
                 target.blockSignals(False)
             else:
                 is_defined = value not in (None, "")
-                target.setText(str(value) if is_defined else self._not_defined_jet())
+                label_def = self._label_defs_by_key.get(key, {})
+                target.setText(self._display_value(label_def, value) if is_defined else self._not_defined_jet())
                 target.setProperty("modulelabelvalue", "true" if is_defined else "false")
                 target.style().unpolish(target)
                 target.style().polish(target)
