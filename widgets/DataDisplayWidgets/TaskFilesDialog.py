@@ -24,6 +24,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...utils.messagesHelper import ModernMessageDialog
+from ...utils.url_manager import Module
 from ..DateHelpers import DateHelpers
 from ..theme_manager import ThemeManager
 from .TaskFilePreviewDialog import TaskFilePreviewDialog
@@ -33,15 +34,17 @@ class TaskFilesDialog(QDialog):
     def __init__(
         self,
         *,
-        task_id: str,
+        item_id: str,
         item_name: str = "",
+        module_name: str = Module.TASK.value,
         lang_manager=None,
         parent=None,
     ) -> None:
         super().__init__(parent)
         self._lang = lang_manager or LanguageManager()
-        self._task_id = str(task_id or "").strip()
+        self._item_id = str(item_id or "").strip()
         self._item_name = str(item_name or "").strip()
+        self._module_name = str(module_name or Module.TASK.value).strip().lower() or Module.TASK.value
         self._files: list[dict] = []
 
         self.setModal(True)
@@ -50,7 +53,7 @@ class TaskFilesDialog(QDialog):
         self.setMinimumHeight(420)
         self.setWindowTitle(
             self._lang.translate(TranslationKeys.TASK_FILES_DIALOG_TITLE).format(
-                name=self._item_name or self._task_id
+                name=self._item_name or self._item_id
             )
         )
 
@@ -139,13 +142,13 @@ class TaskFilesDialog(QDialog):
 
     def _load_files(self) -> None:
         files = self._run_with_busy_cursor(
-            lambda: APIModuleActions.get_task_files(self._task_id)
+            lambda: APIModuleActions.get_module_files(self._module_name, self._item_id)
         )
         if files is None:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
                 self._lang.translate(TranslationKeys.TASK_FILES_LOAD_FAILED).format(
-                    name=self._item_name or self._task_id
+                    name=self._item_name or self._item_id
                 ),
             )
             return
@@ -287,7 +290,7 @@ class TaskFilesDialog(QDialog):
                 normalized_path = str(path or "").strip()
                 if not normalized_path:
                     continue
-                uploaded = APIModuleActions.upload_task_file(self._task_id, normalized_path)
+                uploaded = APIModuleActions.upload_module_file(self._module_name, self._item_id, normalized_path)
                 target_name = os.path.basename(normalized_path) or normalized_path
                 if isinstance(uploaded, dict) and str(uploaded.get("uuid") or "").strip():
                     uploaded_names.append(target_name)

@@ -1,0 +1,47 @@
+query easement(
+  $id: ID!
+  $first: Int = 50
+  $after: String
+) {
+  easement(id: $id) {
+    id
+    files(first: $first, after: $after) {
+      pageInfo {
+        count
+        currentPage
+        startCursor
+        endCursor
+        hasNextPage
+        hasPreviousPage
+        lastPage
+        total
+      }
+      edges {
+        cursor
+        node {
+          id
+          uuid
+          fileName
+          mimeType
+          ext
+          size
+          humanReadableSize
+          createdAt
+          updatedAt
+          deletedAt
+          uploader {
+            id
+            displayName
+            email
+          }
+          model {
+            id
+            type
+            displayName
+            icon
+          }
+        }
+      }
+    }
+  }
+}

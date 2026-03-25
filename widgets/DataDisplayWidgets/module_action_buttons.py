@@ -175,13 +175,13 @@ class MoreActionsButton(CardActionButton):
             )
             menu.addAction(action_notes)
 
-        if module in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value):
+        if module in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value, Module.EASEMENT.value):
             action_files = QAction(
                 lang_manager.translate(TranslationKeys.TASK_FILES_ACTION),
                 self,
             )
             action_files.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._open_task_files(data, lm)
+                lambda _, mod=module, data=item_data, lm=lang_manager: self._open_item_files(mod, data, lm)
             )
             menu.addAction(action_files)
 
@@ -319,7 +319,7 @@ class MoreActionsButton(CardActionButton):
             parent_window=self._get_safe_parent_window(),
         )
 
-    def _open_task_files(self, item_data, lang_manager) -> None:
+    def _open_item_files(self, module_name, item_data, lang_manager) -> None:
         lm = lang_manager or LanguageManager()
         item = item_data if isinstance(item_data, dict) else {}
 
@@ -329,8 +329,9 @@ class MoreActionsButton(CardActionButton):
 
         item_name = DataDisplayExtractors.extract_item_name(item) or item_id
         dialog = TaskFilesDialog(
-            task_id=item_id,
+            item_id=item_id,
             item_name=item_name,
+            module_name=str(module_name or Module.TASK.value),
             lang_manager=lm,
             parent=self._get_safe_parent_window(),
         )

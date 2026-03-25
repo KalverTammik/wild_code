@@ -38,6 +38,29 @@ class APIModuleActions:
         return f"{module_name.upper()}S"
 
     @staticmethod
+    def _file_owner_module(module: str) -> str:
+        module_name = str(module or "").strip().lower()
+        if module_name in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value):
+            return Module.TASK.value
+        return module_name
+
+    @staticmethod
+    def _file_model_type(module: str) -> str:
+        owner = APIModuleActions._file_owner_module(module)
+        if not owner:
+            return ""
+        return str(owner).upper()
+
+    @staticmethod
+    def _file_query_name(module: str) -> str:
+        owner = APIModuleActions._file_owner_module(module)
+        query_map = {
+            Module.TASK.value: "taskFiles.graphql",
+            Module.EASEMENT.value: "easementFiles.graphql",
+        }
+        return query_map.get(owner, "")
+
+    @staticmethod
     def get_module_status_options(module_name: str, *, limit: int = 100) -> List[dict[str, object]]:
         status_module = APIModuleActions._status_module_value(module_name)
         max_items = max(1, int(limit or 0))
@@ -644,13 +667,17 @@ class APIModuleActions:
             return None
 
     @staticmethod
-    def get_task_files(item_id: str, *, limit: int = 200) -> Optional[List[dict]]:
-        task_id = str(item_id or "").strip()
-        if not task_id:
+    def get_module_files(module_name: str, item_id: str, *, limit: int = 200) -> Optional[List[dict]]:
+        owner = APIModuleActions._file_owner_module(module_name)
+        query_name = APIModuleActions._file_query_name(module_name)
+        record_id = str(item_id or "").strip()
+        if not record_id:
             return []
+        if not owner or not query_name:
+            return None
 
         loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(Module.TASK.value, "taskFiles.graphql")
+        query = loader.load_query_by_module(owner, query_name)
         client = APIClient()
 
         max_items = max(1, int(limit or 0))
@@ -661,19 +688,20 @@ class APIModuleActions:
             while len(files_by_uuid) < max_items:
                 remaining = max_items - len(files_by_uuid)
                 variables = {
-                    "id": task_id,
+                    "id": record_id,
                     "first": min(50, remaining),
                     "after": after,
-                    "orderBy": [
+                }
+                if owner == Module.TASK.value:
+                    variables["orderBy"] = [
                         {
                             "column": "CREATED_AT",
                             "order": "DESC",
                         }
-                    ],
-                }
+                    ]
                 data = client.send_query(query, variables=variables) or {}
-                task = (data.get("task") or {}) if isinstance(data, dict) else {}
-                connection = (task.get("files") or {}) if isinstance(task, dict) else {}
+                root_payload = (data.get(owner) or {}) if isinstance(data, dict) else {}
+                connection = (root_payload.get("files") or {}) if isinstance(root_payload, dict) else {}
                 edges = connection.get("edges") or []
 
                 if not isinstance(edges, list) or not edges:
@@ -718,11 +746,15 @@ class APIModuleActions:
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module=Module.TASK.value,
-                event="task_get_files_failed",
-                extra={"item_id": task_id},
+                module=owner or Module.TASK.value,
+                event="module_get_files_failed",
+                extra={"item_id": record_id, "module": str(module_name or "")},
             )
             return None
+
+    @staticmethod
+    def get_task_files(item_id: str, *, limit: int = 200) -> Optional[List[dict]]:
+        return APIModuleActions.get_module_files(Module.TASK.value, item_id, limit=limit)
 
     @staticmethod
     def get_tasks_by_ids(item_ids: List[str]) -> dict[str, dict]:
@@ -929,10 +961,12 @@ class APIModuleActions:
             return None
 
     @staticmethod
-    def upload_task_file(item_id: str, file_path: str, *, metadata: Optional[dict] = None) -> Optional[dict]:
+    def upload_module_file(module_name: str, item_id: str, file_path: str, *, metadata: Optional[dict] = None) -> Optional[dict]:
+        owner = APIModuleActions._file_owner_module(module_name)
+        model_type = APIModuleActions._file_model_type(module_name)
         task_id = str(item_id or "").strip()
         normalized_path = str(file_path or "").strip()
-        if not task_id or not normalized_path or not os.path.isfile(normalized_path):
+        if not owner or not model_type or not task_id or not normalized_path or not os.path.isfile(normalized_path):
             return None
 
         loader = GraphQLQueryLoader()
@@ -943,7 +977,7 @@ class APIModuleActions:
             "file": None,
             "model": {
                 "id": task_id,
-                "type": "TASK",
+                "type": model_type,
             },
             "data": metadata if metadata is not None else None,
         }
@@ -960,11 +994,19 @@ class APIModuleActions:
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module=Module.TASK.value,
-                event="task_file_upload_failed",
-                extra={"item_id": task_id, "file_name": os.path.basename(normalized_path)},
+                module=owner,
+                event="module_file_upload_failed",
+                extra={
+                    "item_id": task_id,
+                    "file_name": os.path.basename(normalized_path),
+                    "module": str(module_name or ""),
+                },
             )
             return None
+
+    @staticmethod
+    def upload_task_file(item_id: str, file_path: str, *, metadata: Optional[dict] = None) -> Optional[dict]:
+        return APIModuleActions.upload_module_file(Module.TASK.value, item_id, file_path, metadata=metadata)
 
     @staticmethod
     def update_task_status(item_id: str, status_id: str) -> Optional[dict]:
