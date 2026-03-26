@@ -1,12 +1,14 @@
 # pyright: reportMissingImports=false
 from __future__ import annotations
 
+import mimetypes
 import os
 import tempfile
 from typing import Optional
 
+import requests
 from qgis.PyQt.QtCore import Qt, QSize, QUrl
-from qgis.PyQt.QtGui import QPixmap
+from qgis.PyQt.QtGui import QDesktopServices, QPixmap
 from qgis.PyQt.QtWidgets import (
     QApplication,
     QDialog,
@@ -51,11 +53,193 @@ class TaskFilePreviewDialog(QDialog):
         "image/svg+xml",
     }
     PDF_MIME_TYPES = {"application/pdf"}
+    FORCE_EXTERNAL_EXTENSIONS = set()
+    FORCE_EXTERNAL_MIME_TYPES = set()
+    _EXTERNAL_TEMP_FILES: set[str] = set()
 
-    def __init__(self, *, file_info: dict, lang_manager=None, parent=None) -> None:
+    @classmethod
+    def open_preview(cls, *, file_info: Optional[dict] = None, local_file_path: str = "", local_title: str = "", lang_manager=None, parent=None):
+        resolved_lang = lang_manager or LanguageManager()
+        mime_type, ext = cls._resolve_preview_identity(file_info=file_info, local_file_path=local_file_path)
+
+        if mime_type in cls.PDF_MIME_TYPES or ext in cls.PDF_EXTENSIONS:
+            supported, runtime_info = cls.embedded_pdf_runtime_support()
+            if not supported:
+                ModernMessageDialog.show_warning(
+                    resolved_lang.translate(TranslationKeys.WARNING),
+                    resolved_lang.translate(TranslationKeys.TASK_FILES_PDF_RUNTIME_UNSUPPORTED).format(
+                        qt_version=runtime_info.get("qt") or "unknown",
+                        pyqt_version=runtime_info.get("pyqt") or "unknown",
+                    ),
+                )
+                return None
+
+            return cls(
+                file_info=file_info,
+                local_file_path=local_file_path,
+                local_title=local_title,
+                lang_manager=lang_manager,
+                parent=parent,
+            )
+
+        if cls.should_force_external_open(file_info=file_info, local_file_path=local_file_path):
+            if cls.open_in_default_application(file_info=file_info, local_file_path=local_file_path):
+                return None
+
+            ModernMessageDialog.show_warning(
+                resolved_lang.translate(TranslationKeys.ERROR),
+                resolved_lang.translate(TranslationKeys.TASK_FILES_OPEN_FAILED).format(
+                    name=cls.resolve_file_name(file_info=file_info, local_file_path=local_file_path)
+                ),
+            )
+            return None
+
+        return cls(
+            file_info=file_info,
+            local_file_path=local_file_path,
+            local_title=local_title,
+            lang_manager=lang_manager,
+            parent=parent,
+        )
+
+    @classmethod
+    def should_force_external_open(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> bool:
+        mime_type, ext = cls._resolve_preview_identity(file_info=file_info, local_file_path=local_file_path)
+        return mime_type in cls.FORCE_EXTERNAL_MIME_TYPES or ext in cls.FORCE_EXTERNAL_EXTENSIONS
+
+    @classmethod
+    def embedded_pdf_runtime_support(cls) -> tuple[bool, dict[str, str]]:
+        qt_version = "unknown"
+        pyqt_version = "unknown"
+
+        try:
+            from qgis.PyQt.QtCore import QT_VERSION_STR, PYQT_VERSION_STR
+
+            qt_version = str(QT_VERSION_STR or "unknown")
+            pyqt_version = str(PYQT_VERSION_STR or "unknown")
+        except Exception:
+            pass
+
+        try:
+            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView  # noqa: F401
+
+            return bool(hasattr(QWebEngineSettings, "PdfViewerEnabled")), {
+                "qt": qt_version,
+                "pyqt": pyqt_version,
+            }
+        except Exception:
+            return False, {
+                "qt": qt_version,
+                "pyqt": pyqt_version,
+            }
+
+    @classmethod
+    def open_in_default_application(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> bool:
+        normalized_local_path = str(local_file_path or "").strip()
+        if normalized_local_path:
+            return cls._open_local_path_in_default_application(normalized_local_path)
+
+        data = file_info if isinstance(file_info, dict) else {}
+        temp_path = cls._materialize_remote_file_to_temp(data)
+        if not temp_path:
+            return False
+        return cls._open_local_path_in_default_application(temp_path)
+
+    @classmethod
+    def _open_local_path_in_default_application(cls, path: str) -> bool:
+        normalized_path = str(path or "").strip()
+        if not normalized_path or not os.path.exists(normalized_path):
+            return False
+
+        try:
+            if hasattr(os, "startfile"):
+                os.startfile(normalized_path)  # type: ignore[attr-defined]
+                return True
+        except Exception:
+            pass
+
+        try:
+            return bool(QDesktopServices.openUrl(QUrl.fromLocalFile(normalized_path)))
+        except Exception:
+            return False
+
+    @classmethod
+    def _materialize_remote_file_to_temp(cls, file_info: Optional[dict]) -> str:
+        data = file_info if isinstance(file_info, dict) else {}
+        file_uuid = str(data.get("uuid") or "").strip()
+        if not file_uuid:
+            return ""
+
+        url = APIModuleActions.create_file_download_link(file_uuid) or ""
+        if not url:
+            return ""
+
+        file_name = cls.resolve_file_name(file_info=data)
+        ext = str(data.get("ext") or "").strip().lower().lstrip(".")
+        suffix = f".{ext}" if ext else os.path.splitext(file_name)[1]
+        if not suffix:
+            suffix = ".bin"
+
+        cls._cleanup_missing_temp_paths()
+
+        try:
+            handle = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+            temp_path = str(handle.name or "")
+            with handle:
+                with requests.get(url, stream=True, timeout=120) as response:
+                    response.raise_for_status()
+                    for chunk in response.iter_content(chunk_size=65536):
+                        if chunk:
+                            handle.write(chunk)
+        except Exception:
+            try:
+                if temp_path and os.path.exists(temp_path):
+                    os.remove(temp_path)
+            except Exception:
+                pass
+            return ""
+
+        if not temp_path or not os.path.exists(temp_path):
+            return ""
+
+        cls._EXTERNAL_TEMP_FILES.add(temp_path)
+        return temp_path
+
+    @classmethod
+    def _cleanup_missing_temp_paths(cls) -> None:
+        cls._EXTERNAL_TEMP_FILES = {
+            path for path in cls._EXTERNAL_TEMP_FILES
+            if str(path or "").strip() and os.path.exists(path)
+        }
+
+    @classmethod
+    def resolve_file_name(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> str:
+        normalized_local_path = str(local_file_path or "").strip()
+        if normalized_local_path:
+            return os.path.basename(normalized_local_path) or normalized_local_path or "-"
+        data = file_info if isinstance(file_info, dict) else {}
+        return str(data.get("fileName") or data.get("uuid") or "-")
+
+    @classmethod
+    def _resolve_preview_identity(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> tuple[str, str]:
+        normalized_local_path = str(local_file_path or "").strip()
+        if normalized_local_path:
+            guessed, _ = mimetypes.guess_type(normalized_local_path)
+            mime_type = str(guessed or "").strip().lower()
+            ext = os.path.splitext(normalized_local_path)[1].strip().lower().lstrip(".")
+            return mime_type, ext
+
+        data = file_info if isinstance(file_info, dict) else {}
+        mime_type = str(data.get("mimeType") or "").strip().lower()
+        ext = str(data.get("ext") or "").strip().lower().lstrip(".")
+        return mime_type, ext
+
+    def __init__(self, *, file_info: Optional[dict] = None, local_file_path: str = "", local_title: str = "", lang_manager=None, parent=None) -> None:
         super().__init__(parent)
         self._lang = lang_manager or LanguageManager()
         self._file_info = dict(file_info or {})
+        self._local_file_path = str(local_file_path or "").strip()
+        self._local_title = str(local_title or "").strip()
         self._last_url: str = ""
         self._pdf_temp_path: str = ""
         self._web_view = None
@@ -65,7 +249,7 @@ class TaskFilePreviewDialog(QDialog):
         self.setMinimumSize(760, 520)
         self.setWindowTitle(
             self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_TITLE).format(
-                name=self._file_name()
+                name=self._local_title or self._file_name()
             )
         )
 
@@ -129,22 +313,33 @@ class TaskFilePreviewDialog(QDialog):
             QApplication.restoreOverrideCursor()
 
     def _file_name(self) -> str:
+        if self._local_file_path:
+            return os.path.basename(self._local_file_path) or self._local_file_path or "-"
         return str(self._file_info.get("fileName") or self._file_info.get("uuid") or "-")
 
     def _file_uuid(self) -> str:
         return str(self._file_info.get("uuid") or "").strip()
 
     def _file_mime(self) -> str:
+        if self._local_file_path:
+            guessed, _ = mimetypes.guess_type(self._local_file_path)
+            return str(guessed or "").strip().lower()
         return str(self._file_info.get("mimeType") or "").strip().lower()
 
     def _file_ext(self) -> str:
+        if self._local_file_path:
+            return os.path.splitext(self._local_file_path)[1].strip().lower().lstrip(".")
         return str(self._file_info.get("ext") or "").strip().lower().lstrip(".")
 
     def _set_meta_text(self) -> None:
         name = self._file_name()
-        size = str(self._file_info.get("humanReadableSize") or "").strip() or "–"
+        if self._local_file_path:
+            size = self._human_readable_size(self._safe_int(os.path.getsize(self._local_file_path)) if os.path.exists(self._local_file_path) else None)
+            uploader = "Local file"
+        else:
+            size = str(self._file_info.get("humanReadableSize") or "").strip() or "–"
+            uploader = APIModuleActions.user_display_name(self._file_info.get("uploader")) or "–"
         mime_type = self._file_mime() or self._file_ext() or "–"
-        uploader = APIModuleActions.user_display_name(self._file_info.get("uploader")) or "–"
         self._meta_label.setText(
             f"<b>{name}</b><br>{mime_type} • {size} • {uploader}"
         )
@@ -201,6 +396,10 @@ class TaskFilePreviewDialog(QDialog):
         super().closeEvent(event)
 
     def _load_preview(self) -> None:
+        if self._local_file_path:
+            self._load_local_preview()
+            return
+
         file_uuid = self._file_uuid()
         if not file_uuid:
             self._show_placeholder(
@@ -224,6 +423,54 @@ class TaskFilePreviewDialog(QDialog):
         self._set_notice("")
         self._show_placeholder(
             self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
+        )
+
+    def _load_local_preview(self) -> None:
+        if not self._local_file_path or not os.path.exists(self._local_file_path):
+            self._show_placeholder(
+                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
+                    name=self._file_name()
+                )
+            )
+            return
+
+        preview_kind = self._resolve_preview_kind()
+        if preview_kind != "pdf":
+            self._show_placeholder(
+                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
+            )
+            return
+
+        try:
+            size_bytes = os.path.getsize(self._local_file_path)
+        except Exception:
+            size_bytes = None
+        if size_bytes is not None and size_bytes > self.PDF_PREVIEW_MAX_BYTES:
+            self._show_placeholder(
+                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_TOO_LARGE)
+            )
+            return
+
+        try:
+            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView
+        except ImportError:
+            self._show_placeholder(
+                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
+            )
+            return
+
+        if self._load_pdf_webengine_preview(
+            self._local_file_path,
+            webengine_settings_cls=QWebEngineSettings,
+            webengine_view_cls=QWebEngineView,
+        ):
+            self._last_url = QUrl.fromLocalFile(self._local_file_path).toString()
+            return
+
+        self._show_placeholder(
+            self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
+                name=self._file_name()
+            )
         )
 
     def _resolve_preview_kind(self) -> str:
@@ -511,10 +758,7 @@ class TaskFilePreviewDialog(QDialog):
             return None
 
     def _open_externally(self) -> None:
-        url = self._last_url
-        if not url:
-            url = APIModuleActions.create_file_download_link(self._file_uuid()) or ""
-        if url and loadWebpage.open_webpage(url):
+        if self.open_in_default_application(file_info=self._file_info, local_file_path=self._local_file_path):
             return
 
         ModernMessageDialog.show_warning(
@@ -523,3 +767,20 @@ class TaskFilePreviewDialog(QDialog):
                 name=self._file_name()
             ),
         )
+
+    @staticmethod
+    def _human_readable_size(size_bytes: Optional[int]) -> str:
+        if size_bytes is None:
+            return "–"
+        try:
+            value = float(size_bytes)
+        except Exception:
+            return "–"
+        units = ["B", "KB", "MB", "GB"]
+        unit_index = 0
+        while value >= 1024.0 and unit_index < len(units) - 1:
+            value /= 1024.0
+            unit_index += 1
+        if unit_index == 0:
+            return f"{int(value)} {units[unit_index]}"
+        return f"{value:.1f} {units[unit_index]}"

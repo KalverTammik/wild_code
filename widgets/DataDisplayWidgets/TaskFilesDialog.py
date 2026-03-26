@@ -258,12 +258,13 @@ class TaskFilesDialog(QDialog):
             )
             return
 
-        dialog = TaskFilePreviewDialog(
+        dialog = TaskFilePreviewDialog.open_preview(
             file_info=file_info,
             lang_manager=self._lang,
             parent=self,
         )
-        dialog.exec_()
+        if dialog is not None:
+            dialog.exec_()
 
     @staticmethod
     def _file_name_from_info(file_info: Optional[dict]) -> str:

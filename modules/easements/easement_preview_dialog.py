@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from typing import Iterable
 from typing import Optional
@@ -31,6 +32,7 @@ from ...engines.LayerCreationEngine import MailablGroupFolders
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...modules.easements.easement_layer_service import EasementLayerService
+from ...modules.easements.easement_pdf_service import EasementPdfService
 from ...python.api_actions import APIModuleActions
 from ...python.responses import DataDisplayExtractors
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
@@ -44,6 +46,7 @@ from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...utils.url_manager import Module
 from ...widgets.DateHelpers import DateHelpers
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
+from ...widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
 from ...widgets.EasementPropertyAreaCalculationWidget import EasementPropertyAreaCalculationWidget
 from ...widgets.PropertySummaryCard import PropertySummaryCard
 from ...widgets.theme_manager import ThemeManager
@@ -155,6 +158,7 @@ class EasementPreviewDialog(QDialog):
         self._final_preview_name = ""
         self._calculated_property_area_sqm: dict[str, float] = {}
         self._final_area_sqm = 0.0
+        self._generated_pdf_path = ""
 
         self._item_id = DataDisplayExtractors.extract_item_id(self._item) or ""
         self._item_number = DataDisplayExtractors.extract_item_number(self._item) or self._item_id
@@ -246,6 +250,26 @@ class EasementPreviewDialog(QDialog):
         self._create_final_cut_button.setDefault(False)
         self._create_final_cut_button.clicked.connect(self._create_final_cut_from_button)
         controls.addWidget(self._create_final_cut_button)
+
+        self._preview_drawing_button = QPushButton(
+            self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PREVIEW),
+            self,
+        )
+        self._preview_drawing_button.setProperty("variant", ButtonVariant.GHOST)
+        self._preview_drawing_button.setAutoDefault(False)
+        self._preview_drawing_button.setDefault(False)
+        self._preview_drawing_button.clicked.connect(self._preview_pdf_drawing)
+        controls.addWidget(self._preview_drawing_button)
+
+        self._publish_drawing_button = QPushButton(
+            self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH),
+            self,
+        )
+        self._publish_drawing_button.setProperty("variant", ButtonVariant.PRIMARY)
+        self._publish_drawing_button.setAutoDefault(False)
+        self._publish_drawing_button.setDefault(False)
+        self._publish_drawing_button.clicked.connect(self._publish_pdf_drawing)
+        controls.addWidget(self._publish_drawing_button)
 
         controls.addStretch(1)
         layout.addLayout(controls)
@@ -507,6 +531,82 @@ class EasementPreviewDialog(QDialog):
         if ok:
             return True, self._lang.translate(TranslationKeys.EASEMENT_LAYER_SAVE_SUCCESS).format(layer=message)
         return False, self._lang.translate(TranslationKeys.EASEMENT_LAYER_SAVE_FAILED).format(error=message)
+
+    def _cleanup_generated_pdf(self) -> None:
+        path = str(self._generated_pdf_path or "").strip()
+        self._generated_pdf_path = ""
+        if not path:
+            return
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception:
+            pass
+
+    def _drawing_preview_title(self) -> str:
+        return f"{self._item_number or self._item_id or 'easement'}_drawing.pdf"
+
+    def _ensure_generated_pdf(self) -> tuple[str, str]:
+        final_layer, final_status = self._ensure_final_cut_layer()
+        if final_layer is None:
+            return "", final_status or self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_FINAL_FAILED)
+
+        self._cleanup_generated_pdf()
+        ok, payload = EasementPdfService.export_final_cut_pdf(
+            item_data=self._item,
+            item_id=self._item_id,
+            item_number=self._item_number,
+            item_name=self._item_name,
+            final_layer=final_layer,
+            property_layer=self._property_layer,
+        )
+        if not ok:
+            return "", self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_EXPORT_FAILED).format(
+                error=str(payload or "-")
+            )
+
+        self._generated_pdf_path = str(payload or "").strip()
+        return self._generated_pdf_path, ""
+
+    def _preview_pdf_drawing(self) -> None:
+        pdf_path, error = self._ensure_generated_pdf()
+        if not pdf_path:
+            ModernMessageDialog.show_error(
+                self._lang.translate(TranslationKeys.ERROR),
+                error or self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PREVIEW_FAILED),
+            )
+            return
+
+        dialog = TaskFilePreviewDialog.open_preview(
+            local_file_path=pdf_path,
+            local_title=self._drawing_preview_title(),
+            lang_manager=self._lang,
+            parent=self,
+        )
+        if dialog is not None:
+            dialog.exec_()
+
+    def _publish_pdf_drawing(self) -> None:
+        pdf_path, error = self._ensure_generated_pdf()
+        if not pdf_path:
+            ModernMessageDialog.show_error(
+                self._lang.translate(TranslationKeys.ERROR),
+                error or self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH_FAILED),
+            )
+            return
+
+        uploaded = APIModuleActions.upload_module_file(Module.EASEMENT.value, self._item_id, pdf_path)
+        if isinstance(uploaded, dict) and str(uploaded.get("uuid") or "").strip():
+            ModernMessageDialog.show_info(
+                self._lang.translate(TranslationKeys.SUCCESS),
+                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH_SUCCESS),
+            )
+            return
+
+        ModernMessageDialog.show_error(
+            self._lang.translate(TranslationKeys.ERROR),
+            self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH_FAILED),
+        )
 
     @classmethod
     def _calculate_total_amount(cls, area_value: float, price_value: float) -> Optional[float]:
@@ -1564,12 +1664,14 @@ class EasementPreviewDialog(QDialog):
 
     def reject(self) -> None:
         self._clear_previews()
+        self._cleanup_generated_pdf()
         self._exit_property_selection_mode()
         self._exit_map_view_mode()
         super().reject()
 
     def closeEvent(self, event) -> None:
         self._clear_previews()
+        self._cleanup_generated_pdf()
         self._exit_property_selection_mode()
         self._exit_map_view_mode()
         super().closeEvent(event)

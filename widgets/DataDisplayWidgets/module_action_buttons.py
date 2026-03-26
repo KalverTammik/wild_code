@@ -28,7 +28,9 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...python.responses import DataDisplayExtractors
 from ...modules.asbuilt.asbuilt_notes_dialog import AsBuiltNotesEditorDialog
+from ...modules.asbuilt.asbuilt_feature_map_controller import AsBuiltFeatureMapController
 from ...modules.asbuilt.asbuilt_notes_service import AsBuiltNotesService
+from ...modules.easements.easement_attach_existing_controller import EasementAttachExistingController
 from ...modules.easements.easement_preview_dialog import EasementPreviewDialog
 from ...modules.works.works_layer_service import WorksLayerService
 from ...modules.works.works_reposition_controller import WorksRepositionController
@@ -147,6 +149,8 @@ class MoreActionsButton(CardActionButton):
         self.module = module  # Ensure module is passed correctly
         self._map_selection_orchestrator: Optional[MapSelectionOrchestrator] = None
         self._works_reposition_controller: Optional[WorksRepositionController] = None
+        self._asbuilt_feature_map_controller: Optional[AsBuiltFeatureMapController] = None
+        self._easement_feature_map_controller: Optional[EasementAttachExistingController] = None
         self._easement_preview_dialog: Optional[EasementPreviewDialog] = None
         self._on_properties_linked = on_properties_linked
         self._parent_window: Optional[QDialog] = None
@@ -174,6 +178,15 @@ class MoreActionsButton(CardActionButton):
                 lambda _, data=item_data, lm=lang_manager: self._edit_asbuilt_notes(data, lm)
             )
             menu.addAction(action_notes)
+
+            action_draw_new = QAction(
+                lang_manager.translate(TranslationKeys.ASBUILT_DRAW_NEW_ACTION),
+                self,
+            )
+            action_draw_new.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._draw_new_asbuilt_on_map(data, lm)
+            )
+            menu.addAction(action_draw_new)
 
         if module in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value, Module.EASEMENT.value):
             action_files = QAction(
@@ -205,6 +218,33 @@ class MoreActionsButton(CardActionButton):
             menu.addAction(action_reposition)
 
         if module == Module.EASEMENT.value:
+            action_draw_new = QAction(
+                lang_manager.translate(TranslationKeys.EASEMENT_DRAW_NEW_ACTION),
+                self,
+            )
+            action_draw_new.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._draw_new_easement_on_map(data, lm)
+            )
+            menu.addAction(action_draw_new)
+
+            action_attach_existing = QAction(
+                lang_manager.translate(TranslationKeys.EASEMENT_ATTACH_EXISTING_ACTION),
+                self,
+            )
+            action_attach_existing.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._attach_existing_easement_on_map(data, lm)
+            )
+            menu.addAction(action_attach_existing)
+
+            action_edit_geometry = QAction(
+                lang_manager.translate(TranslationKeys.EASEMENT_EDIT_GEOMETRY_ACTION),
+                self,
+            )
+            action_edit_geometry.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._edit_easement_geometry_on_map(data, lm)
+            )
+            menu.addAction(action_edit_geometry)
+
             action_easement_preview = QAction(
                 lang_manager.translate(TranslationKeys.EASEMENT_PREVIEW_ACTION),
                 self,
@@ -319,6 +359,18 @@ class MoreActionsButton(CardActionButton):
             parent_window=self._get_safe_parent_window(),
         )
 
+    def _draw_new_asbuilt_on_map(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+        item_id = DataDisplayExtractors.extract_item_id(item)
+        if not item_id:
+            return
+
+        if self._asbuilt_feature_map_controller is None:
+            self._asbuilt_feature_map_controller = AsBuiltFeatureMapController(lang_manager=lm)
+
+        self._asbuilt_feature_map_controller.start_draw(item_data=item)
+
     def _open_item_files(self, module_name, item_data, lang_manager) -> None:
         lm = lang_manager or LanguageManager()
         item = item_data if isinstance(item_data, dict) else {}
@@ -361,6 +413,45 @@ class MoreActionsButton(CardActionButton):
         dialog.show()
         dialog.raise_()
         dialog.activateWindow()
+
+    def _attach_existing_easement_on_map(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+        item_id = DataDisplayExtractors.extract_item_id(item)
+        if not item_id:
+            return
+
+        if self._easement_feature_map_controller is None:
+            self._easement_feature_map_controller = EasementAttachExistingController(lang_manager=lm)
+
+        self._easement_feature_map_controller.start_attach(
+            item_data=item,
+            parent_window=self._get_safe_parent_window(),
+        )
+
+    def _draw_new_easement_on_map(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+        item_id = DataDisplayExtractors.extract_item_id(item)
+        if not item_id:
+            return
+
+        if self._easement_feature_map_controller is None:
+            self._easement_feature_map_controller = EasementAttachExistingController(lang_manager=lm)
+
+        self._easement_feature_map_controller.start_draw(item_data=item)
+
+    def _edit_easement_geometry_on_map(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+        item_id = DataDisplayExtractors.extract_item_id(item)
+        if not item_id:
+            return
+
+        if self._easement_feature_map_controller is None:
+            self._easement_feature_map_controller = EasementAttachExistingController(lang_manager=lm)
+
+        self._easement_feature_map_controller.start_edit(item_data=item)
 
     def _link_properties_from_map(self, module, item_data, lang_manager) -> None:
         object_id = (item_data).get("id")

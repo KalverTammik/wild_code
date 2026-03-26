@@ -5,7 +5,7 @@ import json
 from typing import Optional
 
 from qgis.PyQt.QtCore import QVariant, QDate, QDateTime
-from qgis.core import QgsCoordinateTransform, QgsFeature, QgsField, QgsGeometry, QgsMapLayer, QgsProject, QgsVectorLayer, QgsWkbTypes
+from qgis.core import QgsCoordinateTransform, QgsFeature, QgsFeatureRequest, QgsField, QgsGeometry, QgsMapLayer, QgsPointXY, QgsProject, QgsRectangle, QgsVectorLayer, QgsWkbTypes
 from qgis.utils import iface
 
 from ...constants.settings_keys import SettingsService
@@ -541,6 +541,321 @@ class EasementLayerService:
                 event="easement_layer_geometry_transform_failed",
             )
         return transformed
+
+    @staticmethod
+    def _point_in_layer_crs(point: QgsPointXY, layer: QgsVectorLayer) -> QgsPointXY:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return point
+
+        canvas = iface.mapCanvas() if iface is not None else None
+        if canvas is None:
+            return point
+
+        try:
+            source_crs = canvas.mapSettings().destinationCrs()
+            target_crs = layer.crs()
+            if not source_crs.isValid() or not target_crs.isValid() or source_crs == target_crs:
+                return point
+
+            transform = QgsCoordinateTransform(
+                source_crs,
+                target_crs,
+                QgsProject.instance().transformContext(),
+            )
+            return transform.transform(point)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_point_transform_failed",
+            )
+            return point
+
+    @classmethod
+    def find_feature_at_point(cls, point: QgsPointXY, *, layer: Optional[QgsVectorLayer], radius_multiplier: float = 3.0):
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return None
+
+        canvas = iface.mapCanvas() if iface is not None else None
+        if canvas is None:
+            return None
+
+        try:
+            search_radius = canvas.mapUnitsPerPixel() * float(radius_multiplier)
+        except Exception:
+            search_radius = 0.0
+        if search_radius <= 0:
+            search_radius = 2.0
+
+        layer_point = cls._point_in_layer_crs(point, layer)
+        search_rect = QgsRectangle(
+            layer_point.x() - search_radius,
+            layer_point.y() - search_radius,
+            layer_point.x() + search_radius,
+            layer_point.y() + search_radius,
+        )
+
+        try:
+            request = QgsFeatureRequest().setFilterRect(search_rect)
+            point_geometry = QgsGeometry.fromPointXY(layer_point)
+            for feature in layer.getFeatures(request):
+                geometry = feature.geometry()
+                if geometry is None or geometry.isEmpty():
+                    continue
+                try:
+                    if geometry.contains(point_geometry) or geometry.intersects(point_geometry):
+                        return feature
+                except Exception:
+                    continue
+            return None
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_feature_at_point_failed",
+            )
+            return None
+
+    @classmethod
+    def attach_backend_item_to_feature(
+        cls,
+        *,
+        layer: QgsVectorLayer,
+        feature_id: int,
+        item_id: str,
+        item_data: Optional[dict] = None,
+    ) -> tuple[bool, str]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return False, "Invalid easement main layer"
+
+        ok_fields, field_error = cls._ensure_custom_fields(layer)
+        if not ok_fields:
+            return False, field_error
+
+        item_payload = item_data if isinstance(item_data, dict) else {}
+        item_id_text = str(item_id or "").strip()
+        if not item_id_text:
+            return False, "Missing backend easement id"
+
+        try:
+            feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_attach_feature_load_failed",
+                extra={"feature_id": int(feature_id)},
+            )
+            feature = None
+
+        if feature is None:
+            return False, "Selected easement feature was not found"
+
+        item_number = str(item_payload.get("number") or "").strip()
+        item_type_name = str(((item_payload.get("type") or {}).get("name") or "")).strip()
+        username = cls.current_username()
+        updated_date = cls.parse_backend_datetime(item_payload.get("updatedAt")) or datetime.now()
+
+        existing_added_by = cls._resolve_first_field_name(layer, cls.FIELD_ADDED_BY_CANDIDATES)
+        existing_added_date = cls._resolve_first_field_name(layer, cls.FIELD_ADDED_DATE_CANDIDATES)
+
+        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ID_CANDIDATES, value=item_id_text)
+        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_NUMBER_CANDIDATES, value=item_number)
+        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_TYPE_CANDIDATES, value=item_type_name)
+        cls._set_attr_if_present(
+            feature,
+            layer=layer,
+            candidates=cls.FIELD_STATUS_CANDIDATES,
+            value=cls.map_backend_status_to_layer_value(item_payload.get("status") or {}),
+        )
+        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_SYSTEM_CANDIDATES, value=cls.EXT_SYSTEM_NAME)
+        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATED_BY_CANDIDATES, value=username)
+        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATE_DATE_CANDIDATES, value=updated_date)
+
+        try:
+            if existing_added_by and not str(feature.attribute(existing_added_by) or "").strip():
+                cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ADDED_BY_CANDIDATES, value=username)
+            if existing_added_date and not feature.attribute(existing_added_date):
+                cls._set_attr_if_present(
+                    feature,
+                    layer=layer,
+                    candidates=cls.FIELD_ADDED_DATE_CANDIDATES,
+                    value=cls.parse_backend_datetime(item_payload.get("createdAt")) or updated_date,
+                )
+        except Exception:
+            pass
+
+        started_edit = False
+        try:
+            if not layer.isEditable():
+                started_edit = bool(layer.startEditing())
+                if not started_edit:
+                    return False, "Could not start editing easement layer"
+
+            if not layer.updateFeature(feature):
+                if started_edit:
+                    layer.rollBack()
+                return False, "Could not update selected easement feature"
+
+            if started_edit and not layer.commitChanges():
+                errors = "; ".join(layer.commitErrors() or [])
+                layer.rollBack()
+                return False, errors or "Could not commit easement layer changes"
+
+            cls._refresh_saved_layer(layer)
+            verified_feature = cls.find_feature(layer, item_id=item_id_text, item_number=item_number)
+            if verified_feature is None or int(verified_feature.id()) != int(feature_id):
+                return False, "Updated easement feature could not be verified on the configured main layer"
+            return True, cls._layer_target_label(layer)
+        except Exception as exc:
+            try:
+                if layer.isEditable():
+                    layer.rollBack()
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.EASEMENT.value,
+                    event="easement_attach_rollback_failed",
+                )
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_attach_existing_save_failed",
+                extra={"item_id": item_id_text, "feature_id": int(feature_id)},
+            )
+            return False, str(exc)
+
+    @classmethod
+    def linked_backend_id_for_feature(cls, layer: Optional[QgsVectorLayer], feature: Optional[QgsFeature]) -> str:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid() or feature is None:
+            return ""
+        field_name = cls._resolve_identity_field_name(layer)
+        if not field_name:
+            return ""
+        try:
+            return str(feature.attribute(field_name) or "").strip()
+        except Exception:
+            return ""
+
+    @classmethod
+    def delete_feature_by_id(cls, *, layer: QgsVectorLayer, feature_id: int) -> tuple[bool, str]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return False, "Invalid easement main layer"
+
+        started_edit = False
+        try:
+            if not layer.isEditable():
+                started_edit = bool(layer.startEditing())
+                if not started_edit:
+                    return False, "Could not start editing easement layer"
+
+            if not layer.deleteFeature(int(feature_id)):
+                if started_edit:
+                    layer.rollBack()
+                return False, "Could not delete selected easement feature"
+
+            if started_edit and not layer.commitChanges():
+                errors = "; ".join(layer.commitErrors() or [])
+                layer.rollBack()
+                return False, errors or "Could not commit easement layer changes"
+
+            cls._refresh_saved_layer(layer)
+            try:
+                verified = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
+            except Exception:
+                verified = object()
+            if verified is not None:
+                return False, "Deleted easement feature could not be verified"
+            return True, cls._layer_target_label(layer)
+        except Exception as exc:
+            try:
+                if layer.isEditable():
+                    layer.rollBack()
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.EASEMENT.value,
+                    event="easement_delete_rollback_failed",
+                )
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_delete_feature_failed",
+                extra={"feature_id": int(feature_id)},
+            )
+            return False, str(exc)
+
+    @classmethod
+    def archive_feature_by_id(cls, *, layer: QgsVectorLayer, feature_id: int, archive_status_value: str = "(puudub)") -> tuple[bool, str]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return False, "Invalid easement main layer"
+
+        try:
+            feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_archive_feature_load_failed",
+                extra={"feature_id": int(feature_id)},
+            )
+            feature = None
+
+        if feature is None:
+            return False, "Selected easement feature was not found"
+
+        status_field = cls.resolve_status_field_name(layer)
+        if not status_field:
+            return False, "Easement status field was not found"
+
+        username = cls.current_username()
+        updated_date = datetime.now()
+        feature.setAttribute(status_field, archive_status_value)
+        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATED_BY_CANDIDATES, value=username)
+        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATE_DATE_CANDIDATES, value=updated_date)
+
+        started_edit = False
+        try:
+            if not layer.isEditable():
+                started_edit = bool(layer.startEditing())
+                if not started_edit:
+                    return False, "Could not start editing easement layer"
+
+            if not layer.updateFeature(feature):
+                if started_edit:
+                    layer.rollBack()
+                return False, "Could not archive selected easement feature"
+
+            if started_edit and not layer.commitChanges():
+                errors = "; ".join(layer.commitErrors() or [])
+                layer.rollBack()
+                return False, errors or "Could not commit easement layer changes"
+
+            cls._refresh_saved_layer(layer)
+            try:
+                verified = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
+            except Exception:
+                verified = None
+            if verified is None:
+                return False, "Archived easement feature could not be verified"
+            return True, cls._layer_target_label(layer)
+        except Exception as exc:
+            try:
+                if layer.isEditable():
+                    layer.rollBack()
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.EASEMENT.value,
+                    event="easement_archive_rollback_failed",
+                )
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_archive_feature_failed",
+                extra={"feature_id": int(feature_id)},
+            )
+            return False, str(exc)
 
     @staticmethod
     def _refresh_saved_layer(layer: Optional[QgsVectorLayer]) -> None:
