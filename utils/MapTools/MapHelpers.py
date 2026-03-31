@@ -650,8 +650,35 @@ class MapHelpers:
         if layer and layer.isValid() and feature_ids:
             layer.selectByIds(feature_ids)
             if zoom:
-                iface.mapCanvas().zoomToSelected(layer)
-                iface.mapCanvas().refresh()
+                extent: Optional[QgsRectangle] = None
+                try:
+                    request = QgsFeatureRequest().setFilterFids([int(fid) for fid in feature_ids])
+                    for feature in layer.getFeatures(request):
+                        geometry = feature.geometry()
+                        if geometry is None or geometry.isEmpty():
+                            continue
+                        bbox = geometry.boundingBox()
+                        if bbox is None or bbox.isEmpty():
+                            continue
+                        if extent is None:
+                            extent = QgsRectangle(bbox)
+                        else:
+                            extent.combineExtentWith(bbox)
+                except Exception as exc:
+                    PythonFailLogger.log_exception(
+                        exc,
+                        module=Module.PROPERTY.value,
+                        event="maphelpers_select_by_ids_extent_failed",
+                    )
+                    extent = None
+
+                if extent is not None and not extent.isEmpty() and iface is not None and iface.mapCanvas() is not None:
+                    try:
+                        extent.scale(1.12)
+                    except Exception:
+                        pass
+                    iface.mapCanvas().setExtent(extent)
+                    iface.mapCanvas().refresh()
 
     @staticmethod
     def ensure_layer_visible(layer: QgsVectorLayer, make_active: bool = False) -> None:

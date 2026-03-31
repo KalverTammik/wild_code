@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 from PyQt5.QtCore import Qt, QTimer
-from qgis.core import QgsFeature, QgsVectorLayer, QgsWkbTypes
+from qgis.core import QgsEditFormConfig, QgsFeature, QgsVectorLayer, QgsWkbTypes
 from qgis.gui import QgsMapTool
 from qgis.utils import iface
 
@@ -60,6 +60,7 @@ class ModuleFeatureWorkflowConfig:
     draw_messages: ModuleFeatureDrawMessages
     edit_messages: ModuleFeatureEditMessages
     before_attach: Optional[BeforeAttachHandler] = None
+    commit_edit_session_after_draw: bool = True
 
 
 class _CanvasClickCaptureTool(QgsMapTool):
@@ -254,6 +255,9 @@ class ModuleFeatureDrawController:
         self._log_module = "general"
         self._item_id: str = ""
         self._pending_feature_ids: set[int] = set()
+        self._started_edit_session = False
+        self._commit_edit_session = True
+        self._original_form_suppress = None
 
     def start_draw(
         self,
@@ -267,6 +271,7 @@ class ModuleFeatureDrawController:
         title_error: str,
         title_success: str,
         log_module: str,
+        commit_edit_session: bool = True,
     ) -> bool:
         layer = resolve_layer()
         if layer is None:
@@ -282,13 +287,18 @@ class ModuleFeatureDrawController:
         self._save_failed_message = save_failed_message
         self._success_message = success_message
         self._log_module = log_module
+        self._started_edit_session = False
+        self._commit_edit_session = bool(commit_edit_session)
 
         try:
             MapHelpers.ensure_layer_visible(layer, make_active=True)
-            if not layer.isEditable() and not layer.startEditing():
-                ModernMessageDialog.show_warning(title_error, start_failed_message)
-                self.cancel(log_module=log_module)
-                return False
+            self._suppress_attribute_form(layer)
+            if not layer.isEditable():
+                if not layer.startEditing():
+                    ModernMessageDialog.show_warning(title_error, start_failed_message)
+                    self.cancel(log_module=log_module)
+                    return False
+                self._started_edit_session = True
             layer.featureAdded.connect(self._handle_feature_added)
         except Exception as exc:
             PythonFailLogger.log_exception(exc, module=log_module, event="module_feature_draw_prepare_failed")
@@ -304,6 +314,8 @@ class ModuleFeatureDrawController:
 
     def cancel(self, *, log_module: str = "general") -> None:
         if isinstance(self._layer, QgsVectorLayer):
+            self._restore_attribute_form(self._layer)
+        if isinstance(self._layer, QgsVectorLayer):
             try:
                 self._layer.featureAdded.disconnect(self._handle_feature_added)
             except Exception:
@@ -318,14 +330,20 @@ class ModuleFeatureDrawController:
         self._success_message = ""
         self._log_module = log_module
         self._item_id = ""
+        self._started_edit_session = False
+        self._commit_edit_session = True
+        self._original_form_suppress = None
 
     def _handle_feature_added(self, feature_id: int) -> None:
         try:
             normalized_feature_id = int(feature_id)
         except Exception:
-            normalized_feature_id = -1
+            normalized_feature_id = None
 
-        if normalized_feature_id < 0:
+        # QGIS can assign temporary negative feature ids while a new feature
+        # still lives in the edit buffer. Those ids are valid for immediate
+        # post-create attribute updates and commit handling.
+        if normalized_feature_id is None:
             self.cancel(log_module=self._log_module)
             return
 
@@ -339,6 +357,7 @@ class ModuleFeatureDrawController:
         self._pending_feature_ids.discard(int(feature_id))
         layer = self._layer
         handler = self._on_feature_created
+        started_edit_session = bool(self._started_edit_session)
         if not isinstance(layer, QgsVectorLayer) or handler is None:
             self.cancel(log_module=self._log_module)
             return
@@ -358,6 +377,45 @@ class ModuleFeatureDrawController:
                 extra={"feature_id": int(feature_id), "item_id": self._item_id},
             )
             success, message = False, str(exc)
+
+        if started_edit_session:
+            try:
+                if success and self._commit_edit_session:
+                    if not layer.commitChanges():
+                        commit_errors = "; ".join(layer.commitErrors() or [])
+                        success = False
+                        message = commit_errors or "Could not commit layer changes after drawing"
+                        try:
+                            layer.rollBack()
+                        except Exception:
+                            pass
+                elif layer.isEditable():
+                    layer.rollBack()
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=self._log_module,
+                    event="module_feature_draw_commit_failed",
+                    extra={"feature_id": int(feature_id), "item_id": self._item_id},
+                )
+                success = False
+                message = str(exc)
+
+        if success:
+            try:
+                layer.triggerRepaint()
+            except Exception:
+                pass
+            try:
+                MapHelpers.ensure_layer_visible(layer, make_active=True)
+                MapHelpers.select_features_by_ids(layer, [int(feature_id)], zoom=True)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=self._log_module,
+                    event="module_feature_draw_postsave_focus_failed",
+                    extra={"feature_id": int(feature_id), "item_id": self._item_id},
+                )
 
         self.cancel(log_module=self._log_module)
 
@@ -393,6 +451,37 @@ class ModuleFeatureDrawController:
             except Exception:
                 continue
         return False
+
+    def _suppress_attribute_form(self, layer: QgsVectorLayer) -> None:
+        try:
+            config = layer.editFormConfig()
+            self._original_form_suppress = config.suppress()
+            suppress_on = getattr(QgsEditFormConfig, "SuppressOn", None)
+            if suppress_on is None:
+                return
+            config.setSuppress(suppress_on)
+            layer.setEditFormConfig(config)
+        except Exception as exc:
+            self._original_form_suppress = None
+            PythonFailLogger.log_exception(
+                exc,
+                module=self._log_module,
+                event="module_feature_draw_form_suppress_failed",
+            )
+
+    def _restore_attribute_form(self, layer: QgsVectorLayer) -> None:
+        if self._original_form_suppress is None:
+            return
+        try:
+            config = layer.editFormConfig()
+            config.setSuppress(self._original_form_suppress)
+            layer.setEditFormConfig(config)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=self._log_module,
+                event="module_feature_draw_form_restore_failed",
+            )
 
 
 class ModuleFeatureEditController:
@@ -513,6 +602,7 @@ class ModuleFeatureWorkflow:
             title_error=messages.title_error,
             title_success=messages.title_success,
             log_module=self._config.log_module,
+            commit_edit_session=self._config.commit_edit_session_after_draw,
         )
 
     def start_edit(self, *, item_data: Optional[dict]) -> bool:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 import html
+import json
 import re
 from typing import Optional
 
@@ -39,14 +40,12 @@ from ...Logs.python_fail_logger import PythonFailLogger
 
 
 class WorksLayerService:
-    EXT_SYSTEM_NAME = "Kavitro"
-
     FIELD_EXT_JOB_ID = "ext_job_id"
-    FIELD_EXT_SYSTEM = "ext_system"
     FIELD_EXT_JOB_NAME = "ext_job_name"
     FIELD_EXT_JOB_TYPE = "ext_job_type"
-    FIELD_EXT_URL = "ext_url"
     FIELD_EXT_JOB_STATE = "ext_job_state"
+    FIELD_ACTIVE = "active"
+    FIELD_DETAILED = "detailed"
     FIELD_BEGIN_DATE = "begin_date"
     FIELD_END_DATE = "end_date"
     FIELD_ADDED_BY = "added_by"
@@ -60,24 +59,22 @@ class WorksLayerService:
         title: str,
         type_label: str,
         status_id: object = None,
+        active: Optional[bool] = None,
+        detailed: object = None,
         begin_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         added_by: Optional[str] = None,
         added_date: Optional[datetime] = None,
         updated_by: Optional[str] = None,
         update_date: Optional[datetime] = None,
-        ext_url: str = "",
     ) -> dict[str, object]:
         created_at = added_date or datetime.now()
         updated_at = update_date or created_at
         creator_name = str(added_by or WorksLayerService.current_username() or "").strip()
         updater_name = str(updated_by or creator_name).strip()
-
         return {
-            WorksLayerService.FIELD_EXT_SYSTEM: WorksLayerService.EXT_SYSTEM_NAME,
             WorksLayerService.FIELD_EXT_JOB_NAME: str(title or "").strip(),
             WorksLayerService.FIELD_EXT_JOB_TYPE: str(type_label or "").strip(),
-            WorksLayerService.FIELD_EXT_URL: str(ext_url or "").strip(),
             WorksLayerService.FIELD_EXT_JOB_STATE: WorksLayerService.coerce_optional_int(status_id),
             WorksLayerService.FIELD_BEGIN_DATE: begin_date,
             WorksLayerService.FIELD_END_DATE: end_date,
@@ -85,6 +82,8 @@ class WorksLayerService:
             WorksLayerService.FIELD_ADDED_DATE: created_at,
             WorksLayerService.FIELD_UPDATED_BY: updater_name,
             WorksLayerService.FIELD_UPDATE_DATE: updated_at,
+            WorksLayerService.FIELD_ACTIVE: active,
+            WorksLayerService.FIELD_DETAILED: detailed,
         }
 
     @staticmethod
@@ -216,6 +215,42 @@ class WorksLayerService:
         return WorksLayerService.coerce_optional_int(status_payload.get("id"))
 
     @staticmethod
+    def status_type_from_task(task: Optional[dict]) -> str:
+        if not isinstance(task, dict):
+            return ""
+        status_payload = task.get("status") or {}
+        if not isinstance(status_payload, dict):
+            return ""
+        return str(status_payload.get("type") or "").strip().upper()
+
+    @staticmethod
+    def active_from_task(task: Optional[dict]) -> Optional[bool]:
+        status_type = WorksLayerService.status_type_from_task(task)
+        if not status_type:
+            return None
+        if status_type == "CLOSED":
+            return False
+        if status_type == "OPEN":
+            return True
+        return True
+
+    @staticmethod
+    def detailed_from_task(task: Optional[dict]):
+        if not isinstance(task, dict):
+            return None
+        status_payload = task.get("status") or {}
+        if not isinstance(status_payload, dict):
+            status_payload = {}
+        return {
+            "status": {
+                "id": status_payload.get("id"),
+                "name": status_payload.get("name"),
+                "type": status_payload.get("type"),
+            },
+            "updatedAt": task.get("updatedAt"),
+        }
+
+    @staticmethod
     def begin_date_from_task(task: Optional[dict]) -> Optional[datetime]:
         if not isinstance(task, dict):
             return None
@@ -229,8 +264,7 @@ class WorksLayerService:
         if not isinstance(task, dict):
             return None
 
-        status_payload = task.get("status") or {}
-        status_type = str((status_payload or {}).get("type") or "").strip().upper()
+        status_type = WorksLayerService.status_type_from_task(task)
         if status_type != "CLOSED":
             return None
 
@@ -377,6 +411,8 @@ class WorksLayerService:
         title: str,
         type_label: str,
         status_id: object = None,
+        active: Optional[bool] = None,
+        detailed: object = None,
         begin_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         added_by: Optional[str] = None,
@@ -400,6 +436,8 @@ class WorksLayerService:
             title=title,
             type_label=type_label,
             status_id=status_id,
+            active=active,
+            detailed=detailed,
             begin_date=begin_date,
             end_date=end_date,
             added_by=added_by,
@@ -485,6 +523,22 @@ class WorksLayerService:
             field_type = field.type()
         except Exception:
             field_type = None
+
+        if field_type == QVariant.Bool:
+            if isinstance(value, bool):
+                return value
+            text = str(value or "").strip().lower()
+            if text in ("true", "1", "yes", "y"):
+                return True
+            if text in ("false", "0", "no", "n"):
+                return False
+            return value
+
+        if field_type == QVariant.String and isinstance(value, (dict, list)):
+            try:
+                return json.dumps(value, ensure_ascii=False)
+            except Exception:
+                return str(value)
 
         if field_type == QVariant.DateTime:
             if isinstance(value, QDateTime):

@@ -222,6 +222,8 @@ class WorksCreateController:
                 title=created_title,
                 type_label=created_type,
                 status_id=WorksLayerService.status_id_from_task(created_task),
+                active=WorksLayerService.active_from_task(created_task),
+                detailed=WorksLayerService.detailed_from_task(created_task),
                 begin_date=WorksLayerService.begin_date_from_task(created_task) or created_at,
                 end_date=WorksLayerService.end_date_from_task(created_task),
                 added_by=responsible_name,

@@ -86,6 +86,7 @@ class EasementAttachExistingController:
                 title_success=self._lang.translate(TranslationKeys.SUCCESS),
             ),
             before_attach=self._handle_attach_conflict,
+            commit_edit_session_after_draw=True,
         )
 
     def _handle_attach_conflict(self, layer, feature, item_data: dict) -> bool:

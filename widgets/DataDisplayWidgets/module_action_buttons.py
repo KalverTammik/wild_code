@@ -21,6 +21,7 @@ from ...utils.moduleSwitchHelper import ModuleSwitchHelper
 from ...constants.button_props import ButtonVariant
 from ...utils.messagesHelper import ModernMessageDialog
 from ...languages.translation_keys import TranslationKeys
+from ...utils.MapTools.module_item_focus_service import ModuleItemFocusService
 from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ...constants.cadastral_fields import Katastriyksus
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
@@ -32,7 +33,7 @@ from ...modules.asbuilt.asbuilt_feature_map_controller import AsBuiltFeatureMapC
 from ...modules.asbuilt.asbuilt_notes_service import AsBuiltNotesService
 from ...modules.easements.easement_attach_existing_controller import EasementAttachExistingController
 from ...modules.easements.easement_preview_dialog import EasementPreviewDialog
-from ...modules.works.works_layer_service import WorksLayerService
+from ...modules.projects.projects_feature_map_controller import ProjectsFeatureMapController
 from ...modules.works.works_reposition_controller import WorksRepositionController
 from ...widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
 
@@ -59,21 +60,6 @@ def open_item_in_browser(module_name: Optional[str], item_id: Optional[str]) -> 
         )
 
 
-def show_work_item_on_map(item_id: Optional[str], lang_manager=None) -> None:
-    if not item_id:
-        return
-
-    lang = lang_manager or LanguageManager()
-    works_layer = WorksLayerService.resolve_main_layer(lang_manager=lang, silent=False)
-    if works_layer is None:
-        return
-    if not WorksLayerService.focus_feature_by_task_id(works_layer, item_id):
-        ModernMessageDialog.show_warning(
-            lang.translate(TranslationKeys.ERROR),
-            lang.translate(TranslationKeys.WORKS_REPOSITION_FEATURE_NOT_FOUND).format(task_id=item_id),
-        )
-
-
 def show_items_on_map(module_name: Optional[str], item_id: Optional[str], lang_manager=None) -> None:
     if not module_name or not item_id:
         return
@@ -81,6 +67,7 @@ def show_items_on_map(module_name: Optional[str], item_id: Optional[str], lang_m
     numbers = APIModuleActions.get_module_item_connected_properties(module_name, item_id)
     if numbers:
         PropertiesSelectors.show_connected_properties_on_map(numbers, module=module_name)
+    ModuleItemFocusService.focus_item_on_map(module_name, item_id)
 
 
 class CardActionButton(QPushButton):
@@ -151,6 +138,7 @@ class MoreActionsButton(CardActionButton):
         self._works_reposition_controller: Optional[WorksRepositionController] = None
         self._asbuilt_feature_map_controller: Optional[AsBuiltFeatureMapController] = None
         self._easement_feature_map_controller: Optional[EasementAttachExistingController] = None
+        self._projects_feature_map_controller: Optional[ProjectsFeatureMapController] = None
         self._easement_preview_dialog: Optional[EasementPreviewDialog] = None
         self._on_properties_linked = on_properties_linked
         self._parent_window: Optional[QDialog] = None
@@ -168,6 +156,15 @@ class MoreActionsButton(CardActionButton):
             )
             action1.triggered.connect(self._generate_project_folder(module, item_data, lang_manager))
             menu.addAction(action1)
+
+            action_draw_project_area = QAction(
+                lang_manager.translate(TranslationKeys.PROJECT_DRAW_NEW_ACTION),
+                self,
+            )
+            action_draw_project_area.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._draw_new_project_area_on_map(data, lm)
+            )
+            menu.addAction(action_draw_project_area)
 
         if module == Module.ASBUILT.value:
             action_notes = QAction(
@@ -199,15 +196,6 @@ class MoreActionsButton(CardActionButton):
             menu.addAction(action_files)
 
         if module == Module.WORKS.value:
-            action_show_item_on_map = QAction(
-                lang_manager.translate(TranslationKeys.WORKS_SHOW_ITEM_ON_MAP_ACTION),
-                self,
-            )
-            action_show_item_on_map.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._show_work_item_on_map(data, lm)
-            )
-            menu.addAction(action_show_item_on_map)
-
             action_reposition = QAction(
                 lang_manager.translate(TranslationKeys.WORKS_REPOSITION_ACTION),
                 self,
@@ -336,13 +324,6 @@ class MoreActionsButton(CardActionButton):
             lm.translate(TranslationKeys.ASBUILT_UPDATE_NOTES_FAILED).format(name=item_name),
         )
 
-    def _show_work_item_on_map(self, item_data, lang_manager) -> None:
-        item = item_data if isinstance(item_data, dict) else {}
-        item_id = DataDisplayExtractors.extract_item_id(item)
-        if not item_id:
-            return
-        show_work_item_on_map(item_id, lang_manager)
-
     def _reposition_work_on_map(self, item_data, lang_manager) -> None:
         lm = lang_manager or LanguageManager()
         item = item_data if isinstance(item_data, dict) else {}
@@ -370,6 +351,18 @@ class MoreActionsButton(CardActionButton):
             self._asbuilt_feature_map_controller = AsBuiltFeatureMapController(lang_manager=lm)
 
         self._asbuilt_feature_map_controller.start_draw(item_data=item)
+
+    def _draw_new_project_area_on_map(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+        item_id = DataDisplayExtractors.extract_item_id(item)
+        if not item_id:
+            return
+
+        if self._projects_feature_map_controller is None:
+            self._projects_feature_map_controller = ProjectsFeatureMapController(lang_manager=lm)
+
+        self._projects_feature_map_controller.start_draw(item_data=item)
 
     def _open_item_files(self, module_name, item_data, lang_manager) -> None:
         lm = lang_manager or LanguageManager()
@@ -723,7 +716,8 @@ class ShowOnMapActionButton(CardActionButton):
             lang_manager,
         )
         can_execute = bool(module_name and item_id)
-        if has_connections is not None and int(has_connections) <= 0:
+        can_focus_layer_item = ModuleItemFocusService.supports_layer_focus(module_name)
+        if has_connections is not None and int(has_connections) <= 0 and not can_focus_layer_item:
             can_execute = False
         self.setEnabled(can_execute)
         if module_name and item_id:

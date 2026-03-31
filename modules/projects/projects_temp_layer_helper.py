@@ -14,15 +14,15 @@ from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 
 
-class WorksTempLayerHelper:
-    DEFAULT_LAYER_NAME = "Works_Temp"
+class ProjectsTempLayerHelper:
+    DEFAULT_LAYER_NAME = "Projects_Temp"
 
     @staticmethod
     def default_standalone_gpkg_path(
         reference_layer: Optional[QgsVectorLayer],
         layer_name: str,
     ) -> str:
-        reference_path = WorksTempLayerHelper.gpkg_path_for_layer(reference_layer)
+        reference_path = ProjectsTempLayerHelper.gpkg_path_for_layer(reference_layer)
         if reference_path:
             base_dir = os.path.dirname(reference_path)
         else:
@@ -31,7 +31,7 @@ class WorksTempLayerHelper:
         safe_name = "".join(
             character if character not in '<>:"/\\|?*' else "_"
             for character in str(layer_name or "").strip()
-        ).strip(" ._") or WorksTempLayerHelper.DEFAULT_LAYER_NAME
+        ).strip(" ._") or ProjectsTempLayerHelper.DEFAULT_LAYER_NAME
         return os.path.join(base_dir, f"{safe_name}.gpkg")
 
     @staticmethod
@@ -47,20 +47,20 @@ class WorksTempLayerHelper:
 
     @staticmethod
     def _find_loaded_layer(layer_name: str, gpkg_path: str) -> Optional[QgsVectorLayer]:
-        normalized_path = WorksTempLayerHelper._normalize_gpkg_path(gpkg_path)
+        normalized_path = ProjectsTempLayerHelper._normalize_gpkg_path(gpkg_path)
         if not normalized_path:
             return None
 
         for layer in QgsProject.instance().mapLayersByName(layer_name):
             if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
                 continue
-            if WorksTempLayerHelper._normalize_gpkg_path(WorksTempLayerHelper.gpkg_path_for_layer(layer)) == normalized_path:
+            if ProjectsTempLayerHelper._normalize_gpkg_path(ProjectsTempLayerHelper.gpkg_path_for_layer(layer)) == normalized_path:
                 return layer
         return None
 
     @staticmethod
     def _remove_loaded_layers_for_gpkg(gpkg_path: str) -> None:
-        normalized_path = WorksTempLayerHelper._normalize_gpkg_path(gpkg_path)
+        normalized_path = ProjectsTempLayerHelper._normalize_gpkg_path(gpkg_path)
         if not normalized_path:
             return
 
@@ -68,14 +68,14 @@ class WorksTempLayerHelper:
         for layer in list(project.mapLayers().values()):
             if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
                 continue
-            layer_path = WorksTempLayerHelper._normalize_gpkg_path(WorksTempLayerHelper.gpkg_path_for_layer(layer))
+            layer_path = ProjectsTempLayerHelper._normalize_gpkg_path(ProjectsTempLayerHelper.gpkg_path_for_layer(layer))
             if layer_path == normalized_path:
                 project.removeMapLayer(layer.id())
 
     @staticmethod
     def resolve_reference_layer(preferred_layer: Optional[QgsVectorLayer] = None) -> Optional[QgsVectorLayer]:
         preferred = preferred_layer if isinstance(preferred_layer, QgsVectorLayer) and preferred_layer.isValid() else None
-        if WorksTempLayerHelper.gpkg_path_for_layer(preferred):
+        if ProjectsTempLayerHelper.gpkg_path_for_layer(preferred):
             return preferred
 
         try:
@@ -84,12 +84,12 @@ class WorksTempLayerHelper:
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module=Module.WORKS.value,
-                event="works_temp_reference_layer_failed",
+                module=Module.PROJECT.value,
+                event="projects_temp_reference_layer_failed",
             )
             property_layer = None
 
-        if isinstance(property_layer, QgsVectorLayer) and property_layer.isValid() and WorksTempLayerHelper.gpkg_path_for_layer(property_layer):
+        if isinstance(property_layer, QgsVectorLayer) and property_layer.isValid() and ProjectsTempLayerHelper.gpkg_path_for_layer(property_layer):
             return property_layer
         return preferred or property_layer
 
@@ -102,8 +102,8 @@ class WorksTempLayerHelper:
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module=Module.WORKS.value,
-                event="works_temp_reference_uri_failed",
+                module=Module.PROJECT.value,
+                event="projects_temp_reference_uri_failed",
             )
             return ""
 
@@ -128,13 +128,13 @@ class WorksTempLayerHelper:
         if not isinstance(reference_layer, QgsVectorLayer) or not reference_layer.isValid():
             return None, "Reference layer is invalid"
 
-        target_gpkg_path = WorksTempLayerHelper._normalize_gpkg_path(
-            gpkg_path or WorksTempLayerHelper.gpkg_path_for_layer(reference_layer)
+        target_gpkg_path = ProjectsTempLayerHelper._normalize_gpkg_path(
+            gpkg_path or ProjectsTempLayerHelper.gpkg_path_for_layer(reference_layer)
         )
         if not target_gpkg_path:
             return None, "GeoPackage path is empty"
 
-        existing_loaded = WorksTempLayerHelper._find_loaded_layer(normalized_name, target_gpkg_path)
+        existing_loaded = ProjectsTempLayerHelper._find_loaded_layer(normalized_name, target_gpkg_path)
         if existing_loaded is not None and not overwrite_file:
             return existing_loaded, ""
 
@@ -144,7 +144,7 @@ class WorksTempLayerHelper:
                 os.makedirs(parent_dir, exist_ok=True)
 
             if overwrite_file and os.path.exists(target_gpkg_path):
-                WorksTempLayerHelper._remove_loaded_layers_for_gpkg(target_gpkg_path)
+                ProjectsTempLayerHelper._remove_loaded_layers_for_gpkg(target_gpkg_path)
                 os.remove(target_gpkg_path)
 
             if not overwrite_file and GPKGHelpers.gpkg_layer_exists(target_gpkg_path, normalized_name):
@@ -160,9 +160,9 @@ class WorksTempLayerHelper:
             created = GPKGHelpers.create_empty_gpkg_layer(
                 gpkg_path=target_gpkg_path,
                 layer_name=normalized_name,
-                geometry_type=QgsWkbTypes.Point,
+                geometry_type=QgsWkbTypes.Polygon,
                 crs=reference_layer.crs(),
-                fields=WorksTempLayerHelper._build_fields(),
+                fields=ProjectsTempLayerHelper._build_fields(),
                 overwrite=False,
             )
             if not created:
@@ -179,8 +179,8 @@ class WorksTempLayerHelper:
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module=Module.WORKS.value,
-                event="works_temp_layer_create_failed",
+                module=Module.PROJECT.value,
+                event="projects_temp_layer_create_failed",
                 extra={"layer": normalized_name},
             )
             return None, str(exc)
@@ -188,16 +188,13 @@ class WorksTempLayerHelper:
     @staticmethod
     def _build_fields() -> QgsFields:
         fields = QgsFields()
-        integer_type = getattr(QVariant, "LongLong", QVariant.Int)
 
-        fields.append(QgsField("ext_job_id", integer_type))
-        fields.append(QgsField("ext_job_name", QVariant.String))
-        fields.append(QgsField("ext_job_type", QVariant.String))
-        fields.append(QgsField("ext_job_state", integer_type))
+        fields.append(QgsField("ext_project_id", QVariant.String))
+        fields.append(QgsField("ext_system", QVariant.String))
+        fields.append(QgsField("ext_project_name", QVariant.String))
+        fields.append(QgsField("ext_project_number", QVariant.String))
         fields.append(QgsField("detailed", QVariant.String))
         fields.append(QgsField("active", QVariant.Bool))
-        fields.append(QgsField("begin_date", QVariant.DateTime))
-        fields.append(QgsField("end_date", QVariant.DateTime))
         fields.append(QgsField("added_by", QVariant.String))
         fields.append(QgsField("added_date", QVariant.DateTime))
         fields.append(QgsField("updated_by", QVariant.String))

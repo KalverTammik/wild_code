@@ -291,11 +291,11 @@ class WorksSyncService:
         updated_at = WorksLayerService.updated_date_from_task(task)
 
         updates = {
-            WorksLayerService.FIELD_EXT_SYSTEM: WorksLayerService.EXT_SYSTEM_NAME,
             WorksLayerService.FIELD_EXT_JOB_NAME: title,
             WorksLayerService.FIELD_EXT_JOB_TYPE: type_name,
-            WorksLayerService.FIELD_EXT_URL: "",
             WorksLayerService.FIELD_EXT_JOB_STATE: WorksLayerService.status_id_from_task(task),
+            WorksLayerService.FIELD_ACTIVE: WorksLayerService.active_from_task(task),
+            WorksLayerService.FIELD_DETAILED: WorksLayerService.detailed_from_task(task),
             WorksLayerService.FIELD_BEGIN_DATE: WorksLayerService.begin_date_from_task(task),
             WorksLayerService.FIELD_END_DATE: WorksLayerService.end_date_from_task(task),
         }
