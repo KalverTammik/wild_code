@@ -33,6 +33,7 @@ from ...modules.asbuilt.asbuilt_feature_map_controller import AsBuiltFeatureMapC
 from ...modules.asbuilt.asbuilt_notes_service import AsBuiltNotesService
 from ...modules.easements.easement_attach_existing_controller import EasementAttachExistingController
 from ...modules.easements.easement_preview_dialog import EasementPreviewDialog
+from ...modules.projects.project_preview_dialog import ProjectPreviewDialog
 from ...modules.projects.projects_feature_map_controller import ProjectsFeatureMapController
 from ...modules.works.works_reposition_controller import WorksRepositionController
 from ...widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
@@ -140,6 +141,7 @@ class MoreActionsButton(CardActionButton):
         self._easement_feature_map_controller: Optional[EasementAttachExistingController] = None
         self._projects_feature_map_controller: Optional[ProjectsFeatureMapController] = None
         self._easement_preview_dialog: Optional[EasementPreviewDialog] = None
+        self._project_preview_dialog: Optional[ProjectPreviewDialog] = None
         self._on_properties_linked = on_properties_linked
         self._parent_window: Optional[QDialog] = None
         self._restore_parent_on_close: bool = False
@@ -156,6 +158,15 @@ class MoreActionsButton(CardActionButton):
             )
             action1.triggered.connect(self._generate_project_folder(module, item_data, lang_manager))
             menu.addAction(action1)
+
+            action_project_preview = QAction(
+                lang_manager.translate(TranslationKeys.PROJECT_PREVIEW_ACTION),
+                self,
+            )
+            action_project_preview.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._open_project_preview(data, lm)
+            )
+            menu.addAction(action_project_preview)
 
             action_draw_project_area = QAction(
                 lang_manager.translate(TranslationKeys.PROJECT_DRAW_NEW_ACTION),
@@ -363,6 +374,31 @@ class MoreActionsButton(CardActionButton):
             self._projects_feature_map_controller = ProjectsFeatureMapController(lang_manager=lm)
 
         self._projects_feature_map_controller.start_draw(item_data=item)
+
+    def _open_project_preview(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+        if self._project_preview_dialog is not None:
+            try:
+                if self._project_preview_dialog.isVisible():
+                    self._project_preview_dialog.showNormal()
+                    self._project_preview_dialog.raise_()
+                    self._project_preview_dialog.activateWindow()
+                    return
+            except Exception:
+                self._project_preview_dialog = None
+
+        dialog = ProjectPreviewDialog(
+            item_data=item,
+            lang_manager=lm,
+            parent=self._get_safe_parent_window(),
+        )
+        dialog.setAttribute(Qt.WA_DeleteOnClose, True)
+        dialog.finished.connect(lambda *_args: setattr(self, "_project_preview_dialog", None))
+        self._project_preview_dialog = dialog
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
 
     def _open_item_files(self, module_name, item_data, lang_manager) -> None:
         lm = lang_manager or LanguageManager()

@@ -23,12 +23,16 @@ class LayerProcessingService:
         except Exception:
             source_ref = ""
 
-        if not source_ref:
-            try:
-                source_ref = layer.source()
-            except Exception:
-                source_ref = ""
+        if source_ref:
+            return QgsProcessingFeatureSourceDefinition(source_ref, bool(selected_only))
 
+        if not selected_only:
+            return layer
+
+        try:
+            source_ref = layer.source()
+        except Exception:
+            source_ref = ""
         return QgsProcessingFeatureSourceDefinition(source_ref, bool(selected_only))
 
     @staticmethod
@@ -63,6 +67,7 @@ class LayerProcessingService:
         custom_properties: Optional[dict[str, str]] = None,
         make_visible: bool = True,
         make_active: bool = False,
+        register_result: bool = True,
     ) -> Optional[QgsVectorLayer]:
         try:
             processing_params = dict(parameters or {})
@@ -78,6 +83,9 @@ class LayerProcessingService:
             return None
 
         layer = cls._resolve_output_layer(output)
+        if not register_result:
+            return layer
+
         return MemoryLayerResultService.prepare_result_layer(
             layer,
             layer_name=result_layer_name,
@@ -136,6 +144,59 @@ class LayerProcessingService:
             custom_properties=custom_properties,
             make_visible=make_visible,
             make_active=make_active,
+        )
+
+    @classmethod
+    def buffer_layer(
+        cls,
+        source_layer: Optional[QgsVectorLayer],
+        *,
+        distance: float,
+        result_layer_name: str,
+        selected_only: bool = False,
+        group_name: str = MailablGroupFolders.SANDBOXING,
+        style_path: Optional[str] = None,
+        replace_existing: bool = True,
+        segments: int = 5,
+        dissolve: bool = False,
+        end_cap_style: int = 0,
+        join_style: int = 0,
+        miter_limit: float = 2.0,
+        custom_properties: Optional[dict[str, str]] = None,
+        make_visible: bool = True,
+        make_active: bool = False,
+        register_result: bool = True,
+    ) -> Optional[QgsVectorLayer]:
+        if source_layer is None or not source_layer.isValid():
+            return None
+
+        if selected_only:
+            try:
+                selected_count = int(source_layer.selectedFeatureCount() or 0)
+            except Exception:
+                selected_count = 0
+            if selected_count <= 0:
+                return None
+
+        return cls.run_processing_to_memory(
+            "native:buffer",
+            {
+                "INPUT": cls._source_definition(source_layer, selected_only=selected_only),
+                "DISTANCE": float(distance),
+                "SEGMENTS": int(segments),
+                "DISSOLVE": bool(dissolve),
+                "END_CAP_STYLE": int(end_cap_style),
+                "JOIN_STYLE": int(join_style),
+                "MITER_LIMIT": float(miter_limit),
+            },
+            result_layer_name=result_layer_name,
+            group_name=group_name,
+            style_path=style_path,
+            replace_existing=replace_existing,
+            custom_properties=custom_properties,
+            make_visible=make_visible,
+            make_active=make_active,
+            register_result=register_result,
         )
 
     @classmethod
@@ -278,6 +339,7 @@ class LayerProcessingService:
         custom_properties: Optional[dict[str, str]] = None,
         make_visible: bool = True,
         make_active: bool = False,
+        register_result: bool = True,
     ) -> Optional[QgsVectorLayer]:
         if source_layer is None or not source_layer.isValid():
             return None
@@ -296,4 +358,5 @@ class LayerProcessingService:
             custom_properties=custom_properties,
             make_visible=make_visible,
             make_active=make_active,
+            register_result=register_result,
         )

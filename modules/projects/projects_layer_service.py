@@ -414,6 +414,25 @@ class ProjectsLayerService:
             )
             return point
 
+    @staticmethod
+    def _geometry_in_layer_crs(geometry: QgsGeometry, *, source_layer: QgsVectorLayer, target_layer: QgsVectorLayer) -> QgsGeometry:
+        transformed = QgsGeometry(geometry)
+        try:
+            if source_layer.crs() != target_layer.crs():
+                transform = QgsCoordinateTransform(
+                    source_layer.crs(),
+                    target_layer.crs(),
+                    QgsProject.instance(),
+                )
+                transformed.transform(transform)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROJECT.value,
+                event="project_layer_geometry_transform_failed",
+            )
+        return transformed
+
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_number: str = "", item_name: str = ""):
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
@@ -587,5 +606,127 @@ class ProjectsLayerService:
                 module=Module.PROJECT.value,
                 event="project_attach_existing_save_failed",
                 extra={"item_id": item_id_text, "feature_id": int(feature_id)},
+            )
+            return False, str(exc)
+
+    @classmethod
+    def upsert_generated_area_feature(
+        cls,
+        *,
+        layer: QgsVectorLayer,
+        preview_layer: QgsVectorLayer,
+        item_id: str,
+        item_data: Optional[dict] = None,
+    ) -> tuple[bool, str]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return False, "Invalid Projects layer"
+        if not isinstance(preview_layer, QgsVectorLayer) or not preview_layer.isValid():
+            return False, "Invalid project preview layer"
+
+        ok_fields, field_error = cls._ensure_custom_fields(layer)
+        if not ok_fields:
+            return False, field_error
+
+        item_payload = item_data if isinstance(item_data, dict) else {}
+        item_id_text = str(item_id or "").strip()
+        if not item_id_text:
+            return False, "Missing backend project id"
+
+        item_name = str(item_payload.get("name") or item_payload.get("title") or "").strip()
+        item_number = str(item_payload.get("projectNumber") or item_payload.get("number") or "").strip()
+        created_date = cls.parse_backend_datetime(item_payload.get("createdAt")) or datetime.now()
+        updated_date = cls.parse_backend_datetime(item_payload.get("updatedAt")) or created_date
+        username = cls.current_username()
+
+        try:
+            preview_feature = next(preview_layer.getFeatures(), None)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROJECT.value,
+                event="project_preview_feature_read_failed",
+                extra={"item_id": item_id_text},
+            )
+            preview_feature = None
+
+        if preview_feature is None:
+            return False, "Project preview layer has no geometry"
+
+        geometry = preview_feature.geometry()
+        if geometry is None or geometry.isEmpty():
+            return False, "Project preview geometry is empty"
+
+        target_geometry = cls._geometry_in_layer_crs(
+            geometry,
+            source_layer=preview_layer,
+            target_layer=layer,
+        )
+
+        existing_feature = cls.find_feature(
+            layer,
+            item_id=item_id_text,
+            item_number=item_number,
+            item_name=item_name,
+        )
+        feature = QgsFeature(existing_feature) if existing_feature is not None else QgsFeature(layer.fields())
+        feature.setGeometry(target_geometry)
+
+        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_ID,), value=item_id_text)
+        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_SYSTEM,), value=cls.EXT_SYSTEM_NAME)
+        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_NAME,), value=item_name)
+        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_NUMBER,), value=item_number)
+        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_DETAILED,), value=cls.detailed_from_project(item_payload))
+        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ACTIVE,), value=cls.active_from_project(item_payload))
+        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_UPDATED_BY,), value=username)
+        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_UPDATE_DATE,), value=updated_date)
+
+        if existing_feature is None:
+            cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_BY,), value=username)
+            cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
+
+        started_edit = False
+        try:
+            if not layer.isEditable():
+                started_edit = bool(layer.startEditing())
+                if not started_edit:
+                    return False, "Could not start editing Projects layer"
+
+            if existing_feature is not None:
+                if not layer.updateFeature(feature):
+                    if started_edit:
+                        layer.rollBack()
+                    return False, "Could not update project area feature"
+            else:
+                if not layer.addFeature(feature):
+                    if started_edit:
+                        layer.rollBack()
+                    return False, "Could not add project area feature"
+
+            if started_edit and not layer.commitChanges():
+                errors = "; ".join(layer.commitErrors() or [])
+                layer.rollBack()
+                return False, errors or "Could not commit Projects layer changes"
+
+            cls._refresh_saved_layer(layer)
+            verified_feature = cls.find_feature(
+                layer,
+                item_id=item_id_text,
+                item_number=item_number,
+                item_name=item_name,
+            )
+            if verified_feature is None:
+                return False, "Saved project area feature could not be verified on the configured main layer"
+            return True, cls._layer_target_label(layer)
+        except Exception as exc:
+            try:
+                if started_edit and layer.isEditable():
+                    layer.rollBack()
+            except Exception:
+                pass
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROJECT.value,
+                event="project_generated_area_save_failed",
+                extra={"item_id": item_id_text},
             )
             return False, str(exc)
