@@ -21,7 +21,10 @@ from PyQt5.QtWidgets import (
 
 from ...constants.module_icons import ModuleIconPaths
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
+from ...widgets.DataDisplayWidgets.DatesWidget import DatesWidget
 from ...widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
+from ...widgets.DataDisplayWidgets.StatusWidget import StatusWidget
+from ...module_manager import ModuleManager
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.DelayHelpers.LoadingSpinner import GradientSpinner
 from ...languages.language_manager import LanguageManager
@@ -236,7 +239,7 @@ class PropertyConnectionCard(QFrame):
             outer.addWidget(content_frame)
             return
 
-        for module_key, module_info in modules.items():
+        for module_key, module_info in self._ordered_modules(modules):
             section = ModuleConnectionSection(
                 module_key,
                 module_info,
@@ -245,6 +248,23 @@ class PropertyConnectionCard(QFrame):
             content_layout.addWidget(section)
 
         outer.addWidget(content_frame)
+
+    @staticmethod
+    def _ordered_modules(modules: Dict[str, Any]) -> List[tuple[str, Any]]:
+        module_manager = ModuleManager()
+        registered_order = {
+            module_key: index
+            for index, module_key in enumerate(module_manager.modules.keys())
+        }
+        fallback_index = len(registered_order)
+
+        return sorted(
+            (modules or {}).items(),
+            key=lambda item: (
+                registered_order.get(str(item[0] or "").strip().lower(), fallback_index),
+                str(item[0] or "").strip().lower(),
+            ),
+        )
 
 
 class ModuleConnectionSection(QFrame):
@@ -439,8 +459,6 @@ class ModuleConnectionRow(QFrame):
 
         meta_texts = [
             self._safe_text(self.summary.get("type"), self._extract_type_name(), fallback=""),
-            self._safe_text(self.summary.get("status"), self._extract_status_name(), fallback=""),
-            self._format_updated_text(),
             self._extract_client_text(),
         ]
         meta_texts = [text for text in meta_texts if text]
@@ -452,6 +470,21 @@ class ModuleConnectionRow(QFrame):
             title_layout.addWidget(meta_label)
 
         grid.addWidget(title_container, 0, 0, Qt.AlignVCenter)
+
+        widget_payload = self._build_widget_payload()
+        dates_widget = DatesWidget(
+            widget_payload,
+            parent=self,
+            lang_manager=self.lang_manager,
+        )
+        grid.addWidget(dates_widget, 0, 1, Qt.AlignRight | Qt.AlignTop)
+
+        status_widget = StatusWidget(
+            widget_payload,
+            module_name=self.module_key,
+            parent=self,
+            lang_manager=self.lang_manager,
+        )
 
         file_path = self._extract_file_path()
         actions_payload = {
@@ -465,9 +498,12 @@ class ModuleConnectionRow(QFrame):
             lang_manager=self.lang_manager,
             parent=self,
         )
-        grid.addWidget(actions_widget, 0, 1, Qt.AlignRight | Qt.AlignTop)
+        grid.addWidget(actions_widget, 0, 2, Qt.AlignRight | Qt.AlignTop)
+        grid.addWidget(status_widget, 0, 3, Qt.AlignRight | Qt.AlignTop)
         grid.setColumnStretch(1, 0)
-        grid.setColumnMinimumWidth(1, actions_widget.sizeHint().width())
+        grid.setColumnStretch(2, 0)
+        grid.setColumnStretch(3, 0)
+        grid.setColumnMinimumWidth(2, actions_widget.sizeHint().width())
 
 
     def _extract_file_path(self) -> Optional[str]:
@@ -516,6 +552,43 @@ class ModuleConnectionRow(QFrame):
         if isinstance(client, dict):
             return str(client.get("displayName") or client.get("name") or "").strip()
         return ""
+
+    def _build_widget_payload(self) -> Dict[str, Any]:
+        payload = dict(self.raw) if isinstance(self.raw, dict) else {}
+
+        if not payload.get("id") and self.item_id is not None:
+            payload["id"] = self.item_id
+
+        status_payload = payload.get("status")
+        if not isinstance(status_payload, dict):
+            current_status_payload = payload.get("currentStatus")
+            if isinstance(current_status_payload, dict):
+                status_payload = {
+                    "id": str(current_status_payload.get("id") or "").strip(),
+                    "name": str(current_status_payload.get("name") or self.summary.get("status") or "").strip(),
+                    "color": str(current_status_payload.get("color") or "cccccc").strip() or "cccccc",
+                    "type": str(current_status_payload.get("type") or "").strip(),
+                }
+            else:
+                status_payload = {
+                    "id": "",
+                    "name": str(self.summary.get("status") or "").strip(),
+                    "color": "cccccc",
+                    "type": "",
+                }
+        else:
+            status_payload = {
+                "id": str(status_payload.get("id") or "").strip(),
+                "name": str(status_payload.get("name") or self.summary.get("status") or "").strip(),
+                "color": str(status_payload.get("color") or "cccccc").strip() or "cccccc",
+                "type": str(status_payload.get("type") or "").strip(),
+            }
+        payload["status"] = status_payload
+
+        if not payload.get("updatedAt"):
+            payload["updatedAt"] = self.summary.get("updatedAt") or payload.get("modifiedAt") or payload.get("createdAt")
+
+        return payload
 
     def _format_updated_text(self) -> str:
         raw_value = self.summary.get("updatedAt") or self.raw.get("updatedAt") or self.raw.get("createdAt")

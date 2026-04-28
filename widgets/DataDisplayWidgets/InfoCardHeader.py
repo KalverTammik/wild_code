@@ -13,6 +13,8 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...module_manager import ModuleManager
 from ...python.responses import DataDisplayExtractors
+from ...utils.url_manager import Module
+from .PriorityWidget import PriorityWidget
 from .TagsWidget import TagsWidget
 
 
@@ -122,7 +124,7 @@ class InfocardHeaderFrame(QFrame):
         nameRow.setContentsMargins(0,0,0,0) 
         nameRow.setSpacing(6)
 
-        if DataDisplayExtractors.extract_is_public(item_data):
+        if module_name != Module.PROJECT.value and DataDisplayExtractors.extract_is_public(item_data):
             privateIcon = QLabel()
             privateIcon.setObjectName("ProjectPrivateIcon")
             privateIcon.setToolTip(self._lang.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP))
@@ -138,6 +140,10 @@ class InfocardHeaderFrame(QFrame):
             numberBadge.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
             self._number_badge = numberBadge
             nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
+
+        priority_widget = PriorityWidget(item_data, parent=self, lang_manager=self._lang)
+        if not priority_widget.isHidden():
+            nameRow.addWidget(priority_widget, 0, Qt.AlignVCenter)
 
         name = DataDisplayExtractors.extract_item_name(item_data)
         nameLabel = ElidedLabel(name)

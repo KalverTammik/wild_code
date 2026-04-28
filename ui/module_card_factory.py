@@ -10,7 +10,6 @@ class ModuleCardFactory:
         from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QGridLayout
 
         from ..widgets.DataDisplayWidgets.ContactsWidget import ContactsWidget
-        from ..widgets.DataDisplayWidgets.PriorityWidget import PriorityWidget
         from ..widgets.DataDisplayWidgets.StatusWidget import StatusWidget
         from ..widgets.DataDisplayWidgets.MembersView import MembersView
         from ..widgets.DataDisplayWidgets.ExtraInfoWidget import ExtraInfoFrame
@@ -89,11 +88,6 @@ class ModuleCardFactory:
 
         pos_next += 1
 
-        priority_widget = PriorityWidget(item_data, parent=card, lang_manager=lang_manager)
-        if not priority_widget.isHidden():
-            header_row.addWidget(priority_widget, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
-            pos_next += 1
-
         status_widget_header = StatusWidget(item_data, module_name=module_name, lang_manager=lang_manager)
         if status_widget_header:
             header_row.addWidget(status_widget_header, 0, pos_next, Qt.AlignRight | Qt.AlignVCenter)
@@ -115,7 +109,7 @@ class ModuleCardFactory:
 
         show_extra_info = module_name not in (Module.WORKS.value, Module.ASBUILT.value, Module.EASEMENT.value)
         if show_extra_info:
-            cl.addWidget(ExtraInfoFrame(item_id, module_name, lang_manager=lang_manager))
+            cl.addWidget(ExtraInfoFrame(item_data, module_name, lang_manager=lang_manager))
         main.addWidget(content, 1)
 
         ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])

@@ -100,6 +100,14 @@ TRANSLATIONS = {
         <h4>Projekti Statistika</h4>
         <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
         """,
+        TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT: "Ava silmaikoon, et laadida projektiga seotud moodulite edenemise detailid.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_INTRO: "Laaditi seotud moodulite andmed {count} projekti kinnistu kaudu: {preview}",
+        TranslationKeys.PROJECT_BOARD_DETAILS_NO_PROPERTIES: "Sellel projektil ei ole veel seotud kinnistuid, seega ei saa moodulite edenemise detaile leida.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_DONE: "Ühtegi seotud mooduli kirjet ei paista veel lõpetatuna.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_IN_PROGRESS: "Ühtegi seotud mooduli kirjet ei liigitatud praegu töös olevaks.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_TODO: "Ühtegi seotud mooduli kirjet ei liigitatud praegu alustamata olekusse.",
+        TranslationKeys.PROJECT_BOARD_COLUMN_NOT_STARTED: "Alustamata",
+        TranslationKeys.PROJECT_BOARD_DETAILS_MISSING_MODULES: "Puuduvad seotud moodulid",
         TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_DETAIL_CONTENT: """
         <h3>Lepingu Detailne Ülevaade</h3>
         <p>Contract management and legal documentation overview.</p>

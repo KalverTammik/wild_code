@@ -7,6 +7,8 @@ from typing import List, Tuple, Dict, Any, Optional
 from ...utils.url_manager import Module
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...modules.projects.project_board_overview_service import ProjectBoardOverviewService
+from ...modules.projects.project_board_widgets import ProjectBoardOverviewWidget
 
 
 class ModuleConfig:
@@ -16,7 +18,10 @@ class ModuleConfig:
         self.module_type = module_type
         self.title = title
         self.columns: List[Dict[str, Any]] = []
+        self.summary_text = ""
         self.detailed_content = ""
+        self.detailed_widget = None
+        self.detail_loader = None
 
     def add_column(self, title: str, color: str, activities: List[Tuple[str, str]]):
         """Add a status column to the configuration."""
@@ -33,6 +38,21 @@ class ModuleConfig:
     def set_detailed_content(self, content: str):
         """Set the detailed overview content."""
         self.detailed_content = content
+
+    def set_summary_text(self, text: str):
+        self.summary_text = str(text or "")
+
+    def set_detail_loader(self, loader):
+        self.detail_loader = loader
+
+    def load_detailed_content(self):
+        if callable(self.detail_loader):
+            loaded = self.detail_loader()
+            if loaded is not None:
+                self.detailed_widget = loaded if hasattr(loaded, "setParent") else None
+            if isinstance(loaded, str) and loaded.strip():
+                self.detailed_content = loaded
+        return self.detailed_widget or self.detailed_content
 
 
 class ModuleConfigFactory:
@@ -73,32 +93,16 @@ class ModuleConfigFactory:
             ),
         )
 
-        # Tehtud column
-        config.add_column(lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE), "#4CAF50", [
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PLANNING), "✓"),
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPILATION), "✓"),
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REVIEW), "✓"),
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_APPROVAL), "✓"),
-        ])
-
-        # Töös column
-        config.add_column(lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_IN_PROGRESS), "#FF9800", [
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_TESTING), "⟳"),
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_DOCUMENTING), "⟳"),
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_OPTIMIZING), "⟳"),
-        ])
-
-        # Tegemata column
-        config.add_column(lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_TODO), "#F44336", [
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PUBLISHING), "○"),
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_MONITORING), "○"),
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_ARCHIVING), "○"),
-            (lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REPORTING), "○"),
-        ])
-
-        # Set detailed content
-        config.set_detailed_content(
-            lm.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_DETAIL_CONTENT)
+        config.set_summary_text(
+            lm.translate(TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT)
+        )
+        config.set_detail_loader(
+            lambda payload=item_id, lang=lm: ProjectBoardOverviewWidget(
+                ProjectBoardOverviewService.build_project_board_data(
+                    payload,
+                    lang_manager=lang,
+                )
+            )
         )
 
         return config

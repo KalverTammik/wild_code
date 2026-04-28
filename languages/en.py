@@ -98,6 +98,14 @@ TRANSLATIONS = {
         <h4>Project Statistics</h4>
         <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
         """,
+        TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT: "Open the eye view to load project-linked module progress details.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_INTRO: "Loaded linked module data through {count} project propertie(s): {preview}",
+        TranslationKeys.PROJECT_BOARD_DETAILS_NO_PROPERTIES: "This project has no linked properties yet, so module progress details cannot be resolved.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_DONE: "No linked module items look completed yet.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_IN_PROGRESS: "No linked module items are currently classified as in progress.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_TODO: "No linked module items are currently classified as not started.",
+        TranslationKeys.PROJECT_BOARD_COLUMN_NOT_STARTED: "Not started",
+        TranslationKeys.PROJECT_BOARD_DETAILS_MISSING_MODULES: "Missing linked modules",
         TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_DETAIL_CONTENT: """
         <h3>Contract Detailed Overview</h3>
         <p>Contract management and legal documentation overview.</p>
