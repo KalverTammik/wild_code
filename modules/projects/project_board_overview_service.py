@@ -5,9 +5,11 @@ from typing import Any, Dict, Iterable, Optional
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...module_manager import ModuleManager
 from ...python.responses import DataDisplayExtractors
 from ...utils.url_manager import Module
 from ..Property.query_cordinator import PropertiesConnectedElementsQueries, PropertyLookupService
+from .project_board_status_rules import ProjectBoardStatusRules
 
 
 class ProjectBoardOverviewService:
@@ -133,7 +135,32 @@ class ProjectBoardOverviewService:
 
     @staticmethod
     def _tracked_modules() -> list[str]:
-        return list(PropertiesConnectedElementsQueries.module_to_filename.keys())
+        return ProjectBoardOverviewService._ordered_module_keys(
+            list(PropertiesConnectedElementsQueries.module_to_filename.keys())
+        )
+
+    @staticmethod
+    def _ordered_module_keys(module_keys: Iterable[str]) -> list[str]:
+        normalized_keys: list[str] = []
+        for module_key in module_keys or []:
+            normalized = str(module_key or "").strip().lower()
+            if normalized and normalized not in normalized_keys:
+                normalized_keys.append(normalized)
+
+        module_manager = ModuleManager()
+        registered_order = {
+            module_key: index
+            for index, module_key in enumerate(module_manager.modules.keys())
+        }
+        fallback_index = len(registered_order)
+
+        return sorted(
+            normalized_keys,
+            key=lambda module_key: (
+                registered_order.get(module_key, fallback_index),
+                normalized_keys.index(module_key),
+            ),
+        )
 
     @classmethod
     def _normalize_node_summary(cls, node: Any) -> Optional[dict[str, Any]]:
@@ -162,7 +189,7 @@ class ProjectBoardOverviewService:
         }
         for module_key, items in module_items.items():
             for item in items:
-                bucket = cls._classify_status(item.get("status_type"))
+                bucket = cls.TODO if ProjectBoardStatusRules.is_not_started_item(module_key, item) else cls._classify_status(item.get("status_type"))
                 bucketed.setdefault(bucket, {}).setdefault(module_key, []).append(item)
         return bucketed
 
@@ -192,7 +219,10 @@ class ProjectBoardOverviewService:
             )
 
         groups = []
-        for module_key, items in grouped_items.items():
+        for module_key in cls._ordered_module_keys(grouped_items.keys()):
+            items = grouped_items.get(module_key) or []
+            if not items:
+                continue
             groups.append(
                 {
                     "title": f"{lang_manager.translate_module_name(module_key)} ({len(items)})",
@@ -218,7 +248,10 @@ class ProjectBoardOverviewService:
         title = lang_manager.translate(TranslationKeys.PROJECT_BOARD_COLUMN_NOT_STARTED)
         groups: list[dict[str, Any]] = []
 
-        for module_key, items in grouped_items.items():
+        for module_key in cls._ordered_module_keys(grouped_items.keys()):
+            items = grouped_items.get(module_key) or []
+            if not items:
+                continue
             groups.append(
                 {
                     "title": f"{lang_manager.translate_module_name(module_key)} ({len(items)})",

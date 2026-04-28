@@ -13,6 +13,7 @@ from ..settings_layer_helper import SettingsLayerHelper
 from ...works.works_temp_layer_helper import WorksTempLayerHelper
 from ...projects.projects_temp_layer_helper import ProjectsTempLayerHelper
 from ....widgets.Filters.StatusFilterWidget import StatusFilterWidget
+from ....widgets.Filters.NotStartedStatusFilterWidget import NotStartedStatusFilterWidget
 from ....widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from ....widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ....constants.module_icons import ModuleIconPaths
@@ -25,6 +26,8 @@ from ....languages.translation_keys import TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....utils.messagesHelper import ModernMessageDialog
 from ....utils.text_helpers import to_bool
+from ..setting_keys import SettingDialogPlaceholders
+from ...projects.project_board_status_rules import ProjectBoardStatusRules
 
 from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayer, QgsProject, Qgis
@@ -81,6 +84,8 @@ class SettingsModuleCard(SettingsBaseCard):
         self._pend_archive_name = ""
         self._orig_status_preferences = set()
         self._pend_status_preferences = set()
+        self._orig_not_started_status_preferences = set()
+        self._pend_not_started_status_preferences = set()
         self._orig_type_preferences = set()
         self._pend_type_preferences = set()
         self._orig_tag_preferences = set()
@@ -88,6 +93,7 @@ class SettingsModuleCard(SettingsBaseCard):
 
         # Filtrite viidad
         self._status_filter_widget: StatusFilterWidget | None = None
+        self._not_started_status_filter_widget: NotStartedStatusFilterWidget | None = None
         self._type_filter_widget: TypeFilterWidget | None = None
         self._tags_filter_widget: TagsFilterWidget | None = None
 
@@ -259,6 +265,31 @@ class SettingsModuleCard(SettingsBaseCard):
             self._connect_preference_selection(self._type_filter_widget, ModuleSupports.TYPES.value)
             self._install_lazy_filter_loader(self._type_filter_widget)
             options_layout.addWidget(type_group)
+
+        if self.supports_statuses:
+            not_started_group, not_started_widget = SettingsModuleFeatureCard.build_filter_group(
+                parent=options_container,
+                title_text=self.lang_manager.translate(TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_TITLE),
+                lang_manager=self.lang_manager,
+                description_text=self.lang_manager.translate(TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_DESCRIPTION),
+                group_object_name="ProjectBoardNotStartedStatusesGroup",
+                container_object_name="ProjectBoardNotStartedStatusesContainer",
+                widget_factory=lambda container: NotStartedStatusFilterWidget(
+                    self.module_key,
+                    container,
+                    settings_logic=self.logic,
+                    auto_load=False,
+                ),
+            )
+            self._not_started_status_filter_widget = not_started_widget
+            self._not_started_status_filter_widget.selectionChanged.connect(
+                lambda texts=None, ids=None: self._on_not_started_status_selection_changed(
+                    widget=self._not_started_status_filter_widget,
+                    ids=ids,
+                )
+            )
+            self._install_lazy_filter_loader(self._not_started_status_filter_widget)
+            options_layout.addWidget(not_started_group)
 
         cl.addWidget(options_container)
 
@@ -610,6 +641,7 @@ class SettingsModuleCard(SettingsBaseCard):
             )
             setattr(self, orig_attr, loaded)
             setattr(self, pend_attr, set(loaded))
+        self._load_not_started_status_preferences()
 
     def _save_preference_states(self) -> bool:
         changed = False
@@ -626,6 +658,7 @@ class SettingsModuleCard(SettingsBaseCard):
                 )
                 setattr(self, orig_attr, set(pending))
                 changed = True
+            changed = self._save_not_started_status_preferences() or changed
         return changed
 
     def _revert_preference_states(self) -> None:
@@ -634,6 +667,7 @@ class SettingsModuleCard(SettingsBaseCard):
             setattr(self, pend_attr, set(original))
             if enabled and widget is not None:
                 widget.set_selected_ids(list(original), emit=False)
+        self._revert_not_started_status_preferences()
 
     def _clear_preference_states_and_storage(self) -> None:
         for enabled, support_key, orig_attr, pend_attr, widget in self._preference_specs():
@@ -646,6 +680,56 @@ class SettingsModuleCard(SettingsBaseCard):
                     self.module_key,
                     support_key=support_key,
                 )
+        self._clear_not_started_status_preferences()
+
+    def _load_not_started_status_preferences(self) -> None:
+        loaded = set(ProjectBoardStatusRules.load_not_started_status_ids(self.module_key)) if self.supports_statuses else set()
+        self._orig_not_started_status_preferences = set(loaded)
+        self._pend_not_started_status_preferences = set(loaded)
+
+    def _save_not_started_status_preferences(self) -> bool:
+        if not self.supports_statuses:
+            return False
+        if self._pend_not_started_status_preferences == self._orig_not_started_status_preferences:
+            return False
+
+        serialized = ""
+        if self._pend_not_started_status_preferences:
+            widget = self._not_started_status_filter_widget
+            status_ids = list(widget.selected_ids()) if widget is not None else list(self._pend_not_started_status_preferences)
+            status_names = list(widget.selected_texts()) if widget is not None else status_ids
+            serialized = ProjectBoardStatusRules.serialize_not_started_status_rows(status_ids, status_names)
+
+        if serialized:
+            self.logic.save_module_label_value(
+                self.module_key,
+                SettingDialogPlaceholders.PROJECT_BOARD_NOT_STARTED_STATUSES,
+                serialized,
+            )
+        else:
+            self.logic.clear_module_label_value(
+                self.module_key,
+                SettingDialogPlaceholders.PROJECT_BOARD_NOT_STARTED_STATUSES,
+            )
+
+        self._orig_not_started_status_preferences = set(self._pend_not_started_status_preferences)
+        return True
+
+    def _revert_not_started_status_preferences(self) -> None:
+        original = set(self._orig_not_started_status_preferences)
+        self._pend_not_started_status_preferences = set(original)
+        if self._not_started_status_filter_widget is not None:
+            self._not_started_status_filter_widget.set_selected_ids(list(original), emit=False)
+
+    def _clear_not_started_status_preferences(self) -> None:
+        if self._not_started_status_filter_widget is not None:
+            self._not_started_status_filter_widget.set_selected_ids([], emit=False)
+        self._orig_not_started_status_preferences = set()
+        self._pend_not_started_status_preferences = set()
+        self.logic.clear_module_label_value(
+            self.module_key,
+            SettingDialogPlaceholders.PROJECT_BOARD_NOT_STARTED_STATUSES,
+        )
 
     def _emit_pending_changed(self, state: bool) -> None:
         self._last_pending_state = bool(state)
@@ -776,6 +860,7 @@ class SettingsModuleCard(SettingsBaseCard):
         # Clear filter widgets to release memory
         for widget in (
             self._status_filter_widget,
+            self._not_started_status_filter_widget,
             self._type_filter_widget,
             self._tags_filter_widget,
         ):
@@ -820,13 +905,14 @@ class SettingsModuleCard(SettingsBaseCard):
         el_dirty = self._pend_element_name != self._orig_element_name
         ar_dirty = self._pend_archive_name != self._orig_archive_name
         status_dirty = self._pend_status_preferences != self._orig_status_preferences
+        not_started_status_dirty = self._pend_not_started_status_preferences != self._orig_not_started_status_preferences
         type_dirty = bool(self.supports_types) and self._pend_type_preferences != self._orig_type_preferences
         tag_dirty = bool(self.supports_tags) and self._pend_tag_preferences != self._orig_tag_preferences
         label_dirty = any(
             self._pend_label_values.get(k, "") != self._orig_label_values.get(k, "")
             for k in set(self._pend_label_values.keys()) | set(self._orig_label_values.keys())
         )
-        return el_dirty or ar_dirty or status_dirty or type_dirty or tag_dirty or label_dirty
+        return el_dirty or ar_dirty or status_dirty or not_started_status_dirty or type_dirty or tag_dirty or label_dirty
 
     def apply(self):
         changed = False
@@ -919,6 +1005,7 @@ class SettingsModuleCard(SettingsBaseCard):
     def _cancel_filter_workers(self):
         for widget in (
             self._status_filter_widget,
+            self._not_started_status_filter_widget,
             self._type_filter_widget,
             self._tags_filter_widget,
                 ):
@@ -966,6 +1053,14 @@ class SettingsModuleCard(SettingsBaseCard):
             self._emit_pending_changed(self.has_pending_changes())
         except Exception as exc:
             self._log_error(self._preference_error_event(support_key), exc)
+
+    def _on_not_started_status_selection_changed(self, *, widget=None, ids=None) -> None:
+        try:
+            selected_ids = ids if ids is not None else (widget.selected_ids() if widget is not None else [])
+            self._pend_not_started_status_preferences = {str(value).strip() for value in (selected_ids or []) if str(value).strip()}
+            self._emit_pending_changed(self.has_pending_changes())
+        except Exception as exc:
+            self._log_error("settings_module_not_started_status_selection_failed", exc)
 
     def _on_reset_settings(self):
         """Reset all stored values for this module card."""

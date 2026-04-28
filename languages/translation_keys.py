@@ -724,6 +724,13 @@ class TranslationKeys:
     PROJECT_BOARD_DETAILS_EMPTY_TODO = "project_board_details_empty_todo"
     PROJECT_BOARD_COLUMN_NOT_STARTED = "project_board_column_not_started"
     PROJECT_BOARD_DETAILS_MISSING_MODULES = "project_board_details_missing_modules"
+    PROJECT_BOARD_NOT_STARTED_STATUS_TITLE = "project_board_not_started_status_title"
+    PROJECT_BOARD_NOT_STARTED_STATUS_DESCRIPTION = "project_board_not_started_status_description"
+    PROJECT_BOARD_NOT_STARTED_STATUS_HEADER = "project_board_not_started_status_header"
+    PROJECT_BOARD_NOT_STARTED_TYPE_HEADER = "project_board_not_started_type_header"
+    PROJECT_BOARD_NOT_STARTED_NO_BACKEND_STATUSES = "project_board_not_started_no_backend_statuses"
+    PROJECT_BOARD_NOT_STARTED_SUMMARY = "project_board_not_started_summary"
+    PROJECT_BOARD_NOT_STARTED_SUMMARY_EMPTY = "project_board_not_started_summary_empty"
     DATA_DISPLAY_WIDGETS_CONTRACT_DETAIL_CONTENT = "data_display_widgets_contract_detail_content"
     DATA_DISPLAY_WIDGETS_EASEMENT_DETAIL_CONTENT = "data_display_widgets_easement_detail_content"
     DATA_DISPLAY_WIDGETS_WORKS_DETAIL_CONTENT = "data_display_widgets_works_detail_content"
@@ -776,6 +783,7 @@ class DialogLabels:
     PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_ENABLED = "name structure enabled"
     PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE = "name structure rule"
     EASEMENT_LAYER_STATUS_MAPPING = "easement layer status mapping"
+    PROJECT_BOARD_NOT_STARTED_STATUSES = "project board not started statuses"
 
 
 class RoleTranslationKeys:

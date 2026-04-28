@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Callable, List, Optional, Sequence, Tuple, Union
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QHBoxLayout, QWidget
@@ -33,6 +33,7 @@ class BaseSingleFilterWidget(QWidget):
         variant: Optional[str] = None,
         settings_logic: Optional[SettingsLogic] = None,
         lang_manager: Optional[LanguageManager] = None,
+        selected_ids_loader: Optional[Callable[[], Sequence[str]]] = None,
     ) -> None:
         super().__init__(parent)
         self._module = getattr(module_name, "value", module_name)
@@ -46,6 +47,7 @@ class BaseSingleFilterWidget(QWidget):
         self._auto_load = auto_load
         self._suppress_all_cb = False
         self._load_request_id = 0
+        self._selected_ids_loader = selected_ids_loader
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(4, 2, 4, 2)
@@ -172,10 +174,16 @@ class BaseSingleFilterWidget(QWidget):
         self.combo.setEnabled(True)
         self._loaded = True
         self.all_cb.setEnabled(True)
-        saved_ids = self._settings_logic.load_module_preference_ids(
-            self._module,
-            support_key=self._support_key,
-        )
+        if callable(self._selected_ids_loader):
+            try:
+                saved_ids = self._selected_ids_loader() or []
+            except Exception:
+                saved_ids = []
+        else:
+            saved_ids = self._settings_logic.load_module_preference_ids(
+                self._module,
+                support_key=self._support_key,
+            )
         if saved_ids:
             FilterHelper.set_selected_ids(self, list(saved_ids), emit=False)
         self._sync_all_checkbox_state()

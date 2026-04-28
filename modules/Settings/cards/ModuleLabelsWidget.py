@@ -132,6 +132,7 @@ class ModuleLabelsWidget(QFrame):
                     value_label = QLabel(self._display_value(label_def, label_def.get("value")))
                     value_label.setObjectName("modulelabelvalue")
                     value_label.setProperty("modulelabelvalue", "true")
+                    value_label.setProperty("rawValue", label_def.get("value") or "")
                     value_label.setWordWrap(True)
 
                     button.clicked.connect(
@@ -177,6 +178,7 @@ class ModuleLabelsWidget(QFrame):
         if isinstance(widget, QLabel):
             widget.setText(self._not_defined_jet())
             widget.setProperty("modulelabelvalue", "false")
+            widget.setProperty("rawValue", "")
             widget.style().unpolish(widget)
             widget.style().polish(widget)
         elif isinstance(widget, QCheckBox):
@@ -188,7 +190,7 @@ class ModuleLabelsWidget(QFrame):
     def _handle_custom_click(self, handler: Callable[[str, str, str], Optional[str]], key: str, value_label: QLabel) -> None:
         """Run a custom handler; if it returns a value, update label and emit signal."""
         try:
-            current = value_label.text() or ""
+            current = value_label.property("rawValue") or ""
             new_value = handler(self.module_key, key, current)
             if new_value not in (None, ""):
                 self._update_label_value(key, str(new_value), value_label)
@@ -209,6 +211,7 @@ class ModuleLabelsWidget(QFrame):
     def _update_label_value(self, key: str, value: str, widget: QLabel) -> None:
         label_def = self._label_defs_by_key.get(key, {})
         widget.setText(self._display_value(label_def, value))
+        widget.setProperty("rawValue", value)
         self._label_widgets[key] = widget
         self.labelChanged.emit(key, value)
 
@@ -226,6 +229,7 @@ class ModuleLabelsWidget(QFrame):
                 label_def = self._label_defs_by_key.get(key, {})
                 target.setText(self._display_value(label_def, value) if is_defined else self._not_defined_jet())
                 target.setProperty("modulelabelvalue", "true" if is_defined else "false")
+                target.setProperty("rawValue", value if is_defined else "")
                 target.style().unpolish(target)
                 target.style().polish(target)
 

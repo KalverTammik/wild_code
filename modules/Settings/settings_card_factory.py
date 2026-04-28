@@ -10,7 +10,7 @@ class SettingsCardFactory:
         module_manager = ModuleManager()
         supports = module_manager.getModuleSupports(module_name) or (False, False, False, False)
         supports_types, supports_statuses, supports_tags, supports_archive_layer = supports
-        module_labels = module_manager.getModuleLabels(module_name)
+        module_labels = list(module_manager.getModuleLabels(module_name) or [])
 
         card = SettingsModuleCard(
             lang_manager,
