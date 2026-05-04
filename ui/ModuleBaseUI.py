@@ -17,6 +17,9 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea
 from ..ui.ToolbarArea import ModuleToolbarArea
 from ..widgets.FeedCounterWidget import FeedCounterWidget
 from ..ui.module_card_factory import ModuleCardFactory
+from ..widgets.theme_manager import ThemeManager, styleExtras
+from ..constants.file_paths import QssPaths
+from ..widgets.Filters.filter_refresh_helper import FilterRefreshHelper
 from .mixins.dedupe_mixin import DedupeMixin
 from .mixins.feed_counter_mixin import FeedCounterMixin
 from .mixins.progressive_load_mixin import ProgressiveLoadMixin
@@ -295,7 +298,6 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
     # ------------------------------------------------------------------
     def process_next_batch(self,
                            revision: Optional[int] = None,
-                           retheme_func: Optional[Callable[[], None]] = None,
                            insert_at_top: bool = False) -> list[dict[str, Any]]:
         if not getattr(self, "_activated", False):
             return []
@@ -332,7 +334,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
 
         filtered = self._filter_new_items(items)
 
-        self._schedule_post_batch_updates(retheme_func)
+        self._schedule_post_batch_updates()
 
         return filtered
 
@@ -382,15 +384,13 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
             filtered.append(item)
         return filtered
 
-    def _schedule_post_batch_updates(self, retheme_func: Optional[Callable[[], None]]) -> None:
+    def _schedule_post_batch_updates(self) -> None:
         if self.scroll_area is not None:
             self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
         self._initial_autofill_tick()
         self._update_counter_snapshot()
-
-        if retheme_func:
-            retheme_func()
+        self.retheme()
 
     def _update_counter_snapshot(self) -> None:
         if not getattr(self, "_activated", False):
@@ -412,6 +412,31 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
     def get_widget(self) -> QWidget:
         """Return self as the widget for module system compatibility."""
         return self
+
+    def retheme(self) -> None:
+        if self.toolbar_area is not None and hasattr(self.toolbar_area, "retheme"):
+            self.toolbar_area.retheme()
+
+        for widget in getattr(self, "_filter_widgets", []) or []:
+            retheme = getattr(widget, "retheme", None)
+            if callable(retheme):
+                retheme()
+
+        overdue_pills = getattr(self, "overdue_pills", None)
+        if overdue_pills is not None:
+            retheme = getattr(overdue_pills, "retheme", None)
+            if callable(retheme):
+                retheme()
+
+        FilterRefreshHelper.retheme_refresh_widget(getattr(self, "_filter_refresh_widget", None))
+
+        for card in self.scroll_area.findChildren(QWidget, "ModuleInfoCard"):
+            ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
+            styleExtras.apply_chip_shadow(card)
+            for child in card.findChildren(QWidget):
+                child_retheme = getattr(child, "retheme", None)
+                if callable(child_retheme):
+                    child_retheme()
 
     def _reset_feed_ui_state(self) -> None:
         self._feed_session.reset_feed_ui_state()

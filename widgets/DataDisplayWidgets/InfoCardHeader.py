@@ -93,6 +93,19 @@ class ElidedLabel(QLabel):
             self._is_eliding = False
 
 
+class WrappingTextLabel(QLabel):
+    def __init__(self, text="", parent=None):
+        super().__init__(text or "", parent)
+        self.setWordWrap(True)
+        self.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+
+    def setText(self, text):
+        full_text = text or ""
+        self.setToolTip(full_text)
+        super().setText(full_text)
+
+
 class InfocardHeaderFrame(QFrame):
     def __init__(self, item_data, module_name=None, parent=None, lang_manager=None):
         super().__init__(parent)
@@ -146,16 +159,15 @@ class InfocardHeaderFrame(QFrame):
             nameRow.addWidget(priority_widget, 0, Qt.AlignVCenter)
 
         name = DataDisplayExtractors.extract_item_name(item_data)
-        nameLabel = ElidedLabel(name)
+        nameLabel = WrappingTextLabel(name)
         nameLabel.setObjectName("ProjectNameLabel")
         nameLabel.setMinimumWidth(0)
-        nameLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         nameRow.addWidget(nameLabel, 1, Qt.AlignVCenter)
         self._name_label = nameLabel
 
         tags = DataDisplayExtractors.extract_tag_names(item_data)
         if tags:
-            nameRow.addWidget(TagsWidget(tags), 0, Qt.AlignVCenter)
+            nameRow.addWidget(TagsWidget(tags, compact=True), 0, Qt.AlignTop)
         leftL.addLayout(nameRow)
 
         type_badge = self._create_type_badge(item_data, module_name)
@@ -176,10 +188,9 @@ class InfocardHeaderFrame(QFrame):
                 clientIcon.setObjectName("ClientIcon")
                 metaRow.addWidget(clientIcon, 0, Qt.AlignVCenter)
 
-                clientLabel = ElidedLabel(client)
+                clientLabel = WrappingTextLabel(client)
                 clientLabel.setObjectName("ProjectClientLabel")
                 clientLabel.setMinimumWidth(0)
-                clientLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
                 metaRow.addWidget(clientLabel, 1, Qt.AlignVCenter)
                 self._client_label = clientLabel
             leftL.addLayout(metaRow)
@@ -233,6 +244,6 @@ class InfocardHeaderFrame(QFrame):
         badge.setAlignment(Qt.AlignCenter)
         badge.setToolTip(name)
         badge.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        badge.setMinimumWidth(56)
+        badge.setMinimumWidth(60)
         badge.setMaximumWidth(160)
         return badge

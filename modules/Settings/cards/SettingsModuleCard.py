@@ -643,6 +643,20 @@ class SettingsModuleCard(SettingsBaseCard):
             setattr(self, pend_attr, set(loaded))
         self._load_not_started_status_preferences()
 
+    def _ensure_saved_preference_widgets_loaded(self) -> None:
+        targets = [
+            (self._status_filter_widget, self._pend_status_preferences),
+            (self._tags_filter_widget, self._pend_tag_preferences),
+            (self._type_filter_widget, self._pend_type_preferences),
+            (self._not_started_status_filter_widget, self._pend_not_started_status_preferences),
+        ]
+        for widget, selected_ids in targets:
+            if widget is None or not selected_ids:
+                continue
+            ensure_loaded = getattr(widget, "ensure_loaded", None)
+            if callable(ensure_loaded):
+                ensure_loaded()
+
     def _save_preference_states(self) -> bool:
         changed = False
         for enabled, support_key, orig_attr, pend_attr, _widget in self._preference_specs():
@@ -832,6 +846,7 @@ class SettingsModuleCard(SettingsBaseCard):
 
         # Lae status/type/tag eelistused
         self._load_preference_states()
+        self._ensure_saved_preference_widgets_loaded()
         # Load label values from settings and sync UI
         self._orig_label_values = self.logic.load_module_label_values(self.module_key, self._module_labels)
         self._pend_label_values = dict(self._orig_label_values)

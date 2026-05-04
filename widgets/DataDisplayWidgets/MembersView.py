@@ -186,6 +186,10 @@ class AvatarBubble(QLabel):
 class MembersView(QWidget):
     """Public widget to display responsible and participant members with avatar bubbles."""
 
+    AVATAR_SIZE = 26
+    AVATAR_SPACING = 2
+    SIDE_PADDING = 10
+
     def __init__(self, item_data: dict, parent=None):
         super().__init__(parent)
         self._build(item_data)
@@ -200,8 +204,10 @@ class MembersView(QWidget):
             # Create horizontal layout for responsible avatars
             resp_layout = QHBoxLayout()
             resp_layout.setContentsMargins(0, 0, 0, 0)
-            resp_layout.addStretch()  # Left stretch for centering
+            resp_layout.setSpacing(self.AVATAR_SPACING)
+            resp_layout.setAlignment(Qt.AlignRight | Qt.AlignTop)
 
+            avatar_count = min(len(responsible_nodes), 3)
 
             for node in responsible_nodes[:3]:  # Limit to 3 responsible members
                 full = DataDisplayExtractors.extract_member_display_name(node)
@@ -209,11 +215,15 @@ class MembersView(QWidget):
                 bubble = AvatarBubble(full, salt="responsible-v1", popup_members=participant_nodes)
                 resp_layout.addWidget(bubble)
 
-            resp_layout.addStretch()  # Right stretch for centering
             layout.addLayout(resp_layout)
+            content_width = (
+                avatar_count * self.AVATAR_SIZE
+                + max(0, avatar_count - 1) * self.AVATAR_SPACING
+                + self.SIDE_PADDING
+            )
+            self.setFixedWidth(content_width)
 
     # Participants are now shown only on hover of responsible avatars (popup_members passed above).
 
     def retheme(self):
-
-        ThemeManager.apply_module_style(self)
+        return None

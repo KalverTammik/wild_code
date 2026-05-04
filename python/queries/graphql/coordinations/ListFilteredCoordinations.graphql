@@ -29,8 +29,6 @@ query coordinations(
         jobName
         jobNumber
         externalCode
-        description
-        terms
         startAt
         dueAt
         createdAt

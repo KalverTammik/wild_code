@@ -239,10 +239,22 @@ class ThemeManager(QObject):
         ThemeManager.apply_theme(view, theme_dir, [QssPaths.COMBOBOX])
 
     @staticmethod
+    def apply_combo_popup_style(combo) -> None:
+        if combo is None:
+            return
+
+        view = combo.view() if hasattr(combo, "view") else None
+        theme = ThemeManager.effective_theme()
+        theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
+        ThemeManager.apply_theme(combo, theme_dir, [QssPaths.COMBOBOX])
+        if view is not None:
+            ThemeManager.apply_theme(view, theme_dir, [QssPaths.COMBOBOX])
+
+    @staticmethod
     def apply_module_style(widget, qss_files=None):
         theme = ThemeManager.effective_theme()
         theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
-        bundle = ThemeManager.module_bundle(qss_files)
+        bundle = ThemeManager.module_bundle() if qss_files is None else ThemeManager._merge_bundle(tuple(), qss_files)
         try:
             key = f"{theme}::{'|'.join(bundle)}"
             if widget is not None:
@@ -258,6 +270,37 @@ class ThemeManager(QObject):
             key = None
 
         ThemeManager.apply_theme(widget, theme_dir, bundle)
+
+    @staticmethod
+    def apply_app_style(widget, qss_files=None):
+        theme = ThemeManager.effective_theme()
+        theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
+        bundle = ThemeManager.app_bundle(qss_files)
+        try:
+            key = f"app::{theme}::{'|'.join(bundle)}"
+            if widget is not None:
+                prev = widget.property(ThemeManager._STYLE_GUARD_PROP)
+                if prev == key:
+                    return
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="theme_app_style_guard_read_failed",
+            )
+            key = None
+
+        ThemeManager.apply_theme(widget, theme_dir, bundle)
+
+        try:
+            if widget is not None and key is not None:
+                widget.setProperty(ThemeManager._STYLE_GUARD_PROP, key)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="theme_app_style_guard_write_failed",
+            )
 
         try:
             if widget is not None and key is not None:

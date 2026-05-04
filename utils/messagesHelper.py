@@ -20,6 +20,10 @@ class ModernMessageDialog:
     """Custom styled message dialog that integrates with the theme system."""
 
     @staticmethod
+    def _apply_dialog_theme(dialog: QDialog) -> None:
+        ThemeManager.apply_app_style(dialog, [QssPaths.MESSAGE_BOX, QssPaths.BUTTONS])
+
+    @staticmethod
     def Info_messages_modern(title: str, message: str):
         """Show an information message dialog with modern styling."""
         dialog = ModernMessageDialog._create_dialog(title, message, IconNames.INFO)
@@ -86,6 +90,7 @@ class ModernMessageDialog:
         message: str,
         *,
         buttons: list[str],
+        parent: QDialog | None = None,
         default: str | None = None,
         cancel: str | None = None,
         icon_name: str = IconNames.QUESTION,
@@ -102,6 +107,7 @@ class ModernMessageDialog:
             title,
             message,
             icon_name,
+            parent=parent,
             buttons=buttons,
             default=default,
             cancel=cancel,
@@ -140,10 +146,11 @@ class ModernMessageDialog:
         message: str,
         icon_name: str,
         *,
+        parent: QDialog | None = None,
         with_cancel: bool = False,
     ) -> QDialog:
         """Create a custom styled dialog."""
-        dialog = QDialog()
+        dialog = QDialog(parent)
         dialog.setWindowTitle(title)
         dialog.setModal(True)
         dialog.setMinimumWidth(380)
@@ -164,7 +171,7 @@ class ModernMessageDialog:
         dialog.setProperty("messageType", message_type)
 
 
-        ThemeManager.apply_module_style(dialog, [QssPaths.MESSAGE_BOX, QssPaths.BUTTONS])
+        ModernMessageDialog._apply_dialog_theme(dialog)
 
         # Main layout
         layout = QVBoxLayout(dialog)
@@ -248,6 +255,7 @@ class ModernMessageDialog:
         message: str,
         icon_name: str,
         *,
+        parent: QDialog | None = None,
         buttons: list[str],
         default: str | None = None,
         cancel: str | None = None,
@@ -255,7 +263,7 @@ class ModernMessageDialog:
     ) -> tuple[QDialog, dict]:
         """Create a custom dialog with multiple action buttons."""
 
-        dialog = ModernMessageDialog._create_dialog(title, message, icon_name, with_cancel=False)
+        dialog = ModernMessageDialog._create_dialog(title, message, icon_name, parent=parent, with_cancel=False)
         result_box: dict = {"choice": None}
 
         layout = dialog.layout()
@@ -347,7 +355,7 @@ class ModernMessageDialog:
         layout.addLayout(button_layout)
         # Ensure new buttons pick up theme rules even if styles were applied earlier.
         try:
-            ThemeManager.apply_module_style(dialog, [QssPaths.BUTTONS])
+            ModernMessageDialog._apply_dialog_theme(dialog)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -382,7 +390,7 @@ class ModernMessageDialog:
         dialog.setModal(True)
         dialog.setObjectName("ModernMessageDialog")
         dialog.setProperty("messageType", "message")
-        ThemeManager.apply_module_style(dialog, [QssPaths.MESSAGE_BOX, QssPaths.BUTTONS])
+        ModernMessageDialog._apply_dialog_theme(dialog)
 
         layout = QVBoxLayout(dialog)
         layout.setContentsMargins(20, 20, 20, 20)

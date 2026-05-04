@@ -48,6 +48,8 @@ TRANSLATIONS = {
         TranslationKeys.SEARCH_RESULTS_WIDGET_CLOSE_TOOLTIP: "Close search results",
         TranslationKeys.SIDEBAR_LEFT_ARROW: "«",
         TranslationKeys.SIDEBAR_RIGHT_ARROW: "»",
+        TranslationKeys.SIDEBAR_UP_ARROW: "˄",
+        TranslationKeys.SIDEBAR_DOWN_ARROW: "˅",
         TranslationKeys.DATA_DISPLAY_WIDGETS_EXTRAINFO_TOOLTIP: "Open detailed overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP: "Private",
         TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY: "No dates available",
@@ -55,16 +57,12 @@ TRANSLATIONS = {
         TranslationKeys.DATA_DISPLAY_WIDGETS_CLOSE: "Close",
         TranslationKeys.DATA_DISPLAY_WIDGETS_OVERVIEW_TITLE: "Activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE: "Project activity overview",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_OVERVIEW_TITLE: "Contract activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_OVERVIEW_TITLE: "Easement activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_OVERVIEW_TITLE: "Works activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_OVERVIEW_TITLE: "As-built activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE: "Done",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_IN_PROGRESS: "In progress",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_TODO: "To do",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_SIGNED: "Signed",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_PROCESSING: "Processing",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_PENDING: "Pending",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PLANNING: "Planning",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPILATION: "Compilation",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REVIEW: "Review",
@@ -76,13 +74,6 @@ TRANSLATIONS = {
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_MONITORING: "Monitoring",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_ARCHIVING: "Archiving",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REPORTING: "Reporting",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_CONTRACT_DRAFTING: "Contract drafting",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PARTY_CONSENT: "Party consent",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_NOTARIAL_CONFIRM: "Notarial confirmation",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_LEGAL_REVIEW: "Legal review",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_FINANCIAL_CHECK: "Financial check",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_SIGNATURES: "Signatures",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPLETION_CHECK: "Completion check",
         TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_DETAIL_CONTENT: """
         <h3>Project Detailed Overview</h3>
         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
@@ -106,17 +97,7 @@ TRANSLATIONS = {
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_TODO: "No linked module items are currently classified as not started.",
         TranslationKeys.PROJECT_BOARD_COLUMN_NOT_STARTED: "Not started",
         TranslationKeys.PROJECT_BOARD_DETAILS_MISSING_MODULES: "Missing linked modules",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_DETAIL_CONTENT: """
-        <h3>Contract Detailed Overview</h3>
-        <p>Contract management and legal documentation overview.</p>
-
-        <h4>Contract Phases</h4>
-        <ul>
-        <li><b>Signed:</b> Legal binding agreements</li>
-        <li><b>Processing:</b> Under legal and financial review</li>
-        <li><b>Pending:</b> Awaiting signatures or completion</li>
-        </ul>
-        """,
+        TranslationKeys.DATA_DISPLAY_WIDGETS_TERMS_HEADING: "Terms",
         TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_DETAIL_CONTENT: """
         <h3>Easement Detailed Overview</h3>
         <p>Easement lifecycle, linked properties, and document state overview.</p>

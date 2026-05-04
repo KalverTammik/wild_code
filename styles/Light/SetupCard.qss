@@ -159,7 +159,15 @@
   color: rgba(50,50,50,0.55);
 }
 #SetupCard #AccessPills QFrame#AccessPill QLabel {
-  border: none; background: transparent; color: inherit;
+  border: none;
+  background: transparent;
+  color: #1f2933;
+}
+#SetupCard #AccessPills QFrame#AccessPill[active="true"] QLabel {
+  color: #083d77;
+}
+#SetupCard #AccessPills QFrame#AccessPill[inactive="true"] QLabel {
+  color: rgba(50,50,50,0.55);
 }
 #SetupCard #AccessPills QFrame#AccessPill[inactive="true"] QLabel {
   text-decoration: line-through;
@@ -278,9 +286,19 @@ QWidget#SetupCard[cardTone="coordination"], QFrame#SetupCard[cardTone="coordinat
   border-left: 4px solid rgba(0, 200, 180, 0.55);
 }
 
+QWidget#SetupCard[cardTone="easement"], QFrame#SetupCard[cardTone="easement"] {
+  background-color: rgba(0, 190, 230, 0.10);
+  border-left: 4px solid rgba(0, 190, 230, 0.55);
+}
+
 QWidget#SetupCard[cardTone="works"], QFrame#SetupCard[cardTone="works"] {
   background-color: rgba(255, 170, 60, 0.10);
   border-left: 4px solid rgba(255, 170, 60, 0.55);
+}
+
+QWidget#SetupCard[cardTone="asbuilt"], QFrame#SetupCard[cardTone="asbuilt"] {
+  background-color: rgba(255, 120, 90, 0.10);
+  border-left: 4px solid rgba(255, 120, 90, 0.55);
 }
 
 /* =========================================

@@ -4,6 +4,42 @@ QWidget#ExtraInfoWidget QLabel#ExtraInfoTitle {
   font-size: 12px;
 }
 
+QToolButton#ExtraInfoHandleButton {
+  background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+      stop:0 rgba(78,91,103,0.98),
+      stop:0.18 rgba(49,58,68,0.99),
+      stop:0.46 rgba(82,94,108,0.98),
+      stop:0.72 rgba(111,123,136,0.96),
+      stop:1 rgba(24,30,37,1.0)
+  );
+  color: #e0e0e6;
+  border-top: 1px solid rgba(184,197,210,0.42);
+  border-left: 1px solid rgba(139,151,166,0.34);
+  border-right: 1px solid rgba(10,14,19,0.72);
+  border-bottom: 1px solid rgba(6,10,14,0.88);
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  padding: 0;
+  font-size: 1px;
+  font-weight: 700;
+}
+
+QToolButton#ExtraInfoHandleButton:hover {
+  background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+      stop:0 rgba(57,97,96,0.99),
+      stop:0.18 rgba(28,62,62,1.0),
+      stop:0.46 rgba(61,103,103,0.98),
+      stop:0.72 rgba(116,146,146,0.98),
+      stop:1 rgba(10,28,28,1.0)
+  );
+  border-top: 1px solid rgba(162,224,218,0.46);
+  border-left: 1px solid rgba(107,192,186,0.42);
+  border-right: 1px solid rgba(7,71,71,0.76);
+  border-bottom: 1px solid rgba(5,44,44,0.92);
+}
+
 QWidget#ExtraInfoWidget QLabel#ExtraInfoColumnTitle {
   font-weight: 600;
   font-size: 11px;
@@ -52,4 +88,29 @@ QDialog#ExtraInfoDialog QScrollArea#ExtraInfoScroll {
 QDialog#ExtraInfoDialog QLabel#ExtraInfoContent {
   color: #e2e8f0;
   padding: 10px;
+}
+
+QFrame#ProjectBoardItemWidget {
+  border: 1px solid #3a4352;
+  border-radius: 6px;
+  background: #202830;
+}
+
+QLabel#ProjectBoardItemPrimary,
+QLabel#ProjectBoardGroupTitle {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+QLabel#ProjectBoardItemSecondary,
+QLabel#ProjectBoardEmptyLabel {
+  color: #9aa7b8;
+}
+
+QLabel#ProjectBoardItemSecondary {
+  font-size: 11px;
+}
+
+QLabel#ProjectBoardSectionTitle {
+  font-weight: 600;
 }

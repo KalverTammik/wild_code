@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
+    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QSizePolicy
 )
 from ..theme_manager import ThemeManager
 from ...constants.module_icons import IconNames
@@ -8,13 +8,15 @@ from ...ui.window_state.popup_helpers import PopupHelpers
 
 
 class TagsWidget(QWidget):
-    def __init__(self, tag_names: list, parent=None):
+    def __init__(self, tag_names: list, parent=None, compact=False):
         super().__init__(parent)
 
         # Store tag names (should be a list)
         self.tag_names = tag_names if isinstance(tag_names, list) else []
+        self._compact = bool(compact)
 
         self._tags_container = None
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
         # Main layout
         main_layout = QVBoxLayout(self)
@@ -26,13 +28,17 @@ class TagsWidget(QWidget):
             # Tags container
             tags_container = QFrame(self)
             tags_container.setObjectName("TagsContainer")
+            tags_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             tags_layout = QHBoxLayout(tags_container)
-            tags_layout.setContentsMargins(4, 2, 4, 2)
+            tags_layout.setContentsMargins(2, 1, 2, 1) if self._compact else tags_layout.setContentsMargins(4, 2, 4, 2)
+            tags_layout.setSpacing(0)
             
             # Tags icon
-            icon = ThemeManager.get_qicon(IconNames.ICON_LIST)
+            icon = ThemeManager.get_qicon(IconNames.ICON_TAGS)
             icon_label = QLabel()
-            icon_label.setPixmap(icon.pixmap(24, 24))
+            icon_size = 14 if self._compact else 24
+            icon_label.setPixmap(icon.pixmap(icon_size, icon_size))
+            icon_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
             #icon_label.setToolTip("Sildid")
             tags_layout.addWidget(icon_label)
 

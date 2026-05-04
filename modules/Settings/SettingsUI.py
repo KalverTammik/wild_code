@@ -325,12 +325,47 @@ class SettingsModule(TokenMixin, QWidget):
         """Return self as the widget for module system compatibility."""
         return self
 
+    def retheme(self) -> None:
+        self.retheme_settings()
+
     def retheme_settings(self):
-        # Re-theme all existing cards
+        SwitchLogger.log(
+            "settings_retheme_start",
+            module=Module.SETTINGS.value,
+            extra={
+                "theme": ThemeManager.effective_theme(),
+                "cards": len(self._cards or []),
+            },
+        )
+        ThemeManager.apply_module_style(self)
+
+        # Re-theme all existing cards through their own hooks so child controls
+        # like combo boxes, checkboxes, and nested settings widgets can refresh.
         for card in self._cards:
-            ThemeManager.apply_module_style(card, [QssPaths.SETUP_CARD])
+            card_retheme = getattr(card, "retheme", None)
+            if callable(card_retheme):
+                card_retheme()
+            else:
+                ThemeManager.apply_module_style(card, [QssPaths.SETUP_CARD])
+            try:
+                SwitchLogger.log(
+                    "settings_retheme_card",
+                    module=Module.SETTINGS.value,
+                    extra={
+                        "card": type(card).__name__,
+                        "tone": str(card.property("cardTone") or ""),
+                        "stylesheet_len": len(card.styleSheet() or ""),
+                    },
+                )
+            except Exception:
+                continue
         if self._footer_frame is not None:
             ThemeManager.apply_module_style(self._footer_frame, [QssPaths.SETUP_CARD])
+        SwitchLogger.log(
+            "settings_retheme_done",
+            module=Module.SETTINGS.value,
+            extra={"theme": ThemeManager.effective_theme()},
+        )
 
 
     # --- Handling unsaved changes ---
@@ -415,6 +450,7 @@ class SettingsModule(TokenMixin, QWidget):
                 title,
                 f"{text}\n\n{detail}",
                 buttons=[save_label, discard_label, cancel_label],
+                parent=parent,
                 default=save_label,
                 cancel=cancel_label,
                 icon_name=IconNames.WARNING,

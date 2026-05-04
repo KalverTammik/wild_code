@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import Optional
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+from ...constants.module_icons import IconNames
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
@@ -12,32 +14,11 @@ from ...python.responses import DataDisplayExtractors
 
 
 class PriorityWidget(QWidget):
-    _PALETTE = {
-        "URGENT": {
-            "bg": (254, 226, 226),
-            "fg": (153, 27, 27),
-            "border": (239, 68, 68),
-        },
-        "HIGH": {
-            "bg": (255, 237, 213),
-            "fg": (154, 52, 18),
-            "border": (249, 115, 22),
-        },
-        "MEDIUM": {
-            "bg": (254, 249, 195),
-            "fg": (133, 77, 14),
-            "border": (234, 179, 8),
-        },
-        "LOW": {
-            "bg": (220, 252, 231),
-            "fg": (22, 101, 52),
-            "border": (34, 197, 94),
-        },
-    }
-    _DEFAULT_PALETTE = {
-        "bg": (229, 231, 235),
-        "fg": (55, 65, 81),
-        "border": (156, 163, 175),
+    _ICON_NAMES = {
+        "URGENT": IconNames.PRIORITY_URGENT,
+        "HIGH": IconNames.PRIORITY_HIGH,
+        "MEDIUM": IconNames.PRIORITY_MEDIUM,
+        "LOW": IconNames.PRIORITY_LOW,
     }
 
     def __init__(
@@ -62,6 +43,7 @@ class PriorityWidget(QWidget):
         self.priority_label = QLabel(self)
         self.priority_label.setObjectName("PriorityLabel")
         self.priority_label.setAlignment(Qt.AlignCenter)
+        self.priority_label.setScaledContents(False)
         row.addWidget(self.priority_label, 0, Qt.AlignRight | Qt.AlignVCenter)
 
         main_layout.addLayout(row)
@@ -75,23 +57,17 @@ class PriorityWidget(QWidget):
             self.setVisible(False)
             return
 
-        palette = self._PALETTE.get(normalized, self._DEFAULT_PALETTE)
         label_text = APIModuleActions.task_priority_label(normalized, lang_manager=self._lang)
-        self.priority_label.setText(label_text)
         self.priority_label.setToolTip(
             f"{self._lang.translate(TranslationKeys.WORKS_CREATE_PRIORITY_LABEL)}: {label_text}"
         )
-        self.priority_label.setStyleSheet(
-            "QLabel#PriorityLabel {"
-            f"background-color: rgb({palette['bg'][0]},{palette['bg'][1]},{palette['bg'][2]});"
-            f"color: rgb({palette['fg'][0]},{palette['fg'][1]},{palette['fg'][2]});"
-            f"border: 1px solid rgb({palette['border'][0]},{palette['border'][1]},{palette['border'][2]});"
-            "border-radius: 6px;"
-            "padding: 2px 8px;"
-            "font-weight: 600;"
-            "font-size: 10px;"
-            "}"
-        )
-        text_width = self.priority_label.fontMetrics().horizontalAdvance(label_text)
-        self.priority_label.setFixedWidth(max(56, min(104, text_width + 20)))
+        icon_path = IconNames.get_icon(self._ICON_NAMES.get(normalized, IconNames.PRIORITY_MEDIUM))
+        icon_pixmap = QPixmap(icon_path)
+        if not icon_pixmap.isNull():
+            self.priority_label.setPixmap(
+                icon_pixmap.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            )
+        else:
+            self.priority_label.clear()
+        self.priority_label.setFixedSize(16, 16)
         self.setVisible(True)

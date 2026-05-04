@@ -247,6 +247,52 @@ class PopupHelpers:
             )
 
     @staticmethod
+    def position_popup_at_global(
+        popup_widget,
+        global_pos,
+        *,
+        offset=None,
+        keep_on_screen: bool = True,
+        screen_padding: int = 8,
+    ) -> None:
+        if not PopupHelpers.is_popup_alive(popup_widget) or global_pos is None:
+            return
+
+        try:
+            from PyQt5.QtCore import QPoint
+            from PyQt5.QtGui import QGuiApplication
+
+            offset = offset or QPoint(0, 0)
+            popup_widget.adjustSize()
+            pos = global_pos + offset
+
+            if keep_on_screen:
+                screen = QGuiApplication.screenAt(pos) or QGuiApplication.primaryScreen()
+                if screen is not None:
+                    available = screen.availableGeometry()
+
+                    min_x = available.left() + screen_padding
+                    max_x = available.right() - popup_widget.width() - screen_padding
+                    min_y = available.top() + screen_padding
+                    max_y = available.bottom() - popup_widget.height() - screen_padding
+
+                    if max_x < min_x:
+                        max_x = min_x
+                    if max_y < min_y:
+                        max_y = min_y
+
+                    pos.setX(max(min_x, min(pos.x(), max_x)))
+                    pos.setY(max(min_y, min(pos.y(), max_y)))
+
+            popup_widget.move(pos)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event=PopupHelpers.EVENT_POSITION_POPUP_FAILED,
+            )
+
+    @staticmethod
     def show_popup(
         *,
         timer,

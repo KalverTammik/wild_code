@@ -46,3 +46,39 @@ QFrame#PopupFrame[popupKind="members"] QLabel#Value {
   margin: 0;
   padding: 2px 0px;
 }
+
+QMenu#CardActionsMenu {
+  background: #232b33;
+  color: #e2e8f0;
+  border: 1px solid rgba(9,144,143,0.55);
+  border-radius: 6px;
+  padding: 6px;
+}
+
+QMenu#CardActionsMenu::item {
+  background: transparent;
+  color: #e2e8f0;
+  padding: 8px 14px;
+  border-radius: 4px;
+}
+
+QMenu#CardActionsMenu::item:selected {
+  background: rgba(9,144,143,0.22);
+  color: #f8fbff;
+}
+
+QMenu#CardActionsMenu::item:hover {
+  background: rgba(9,144,143,0.22);
+  color: #f8fbff;
+}
+
+QMenu#CardActionsMenu::item:disabled {
+  color: rgba(226,232,240,0.42);
+  background: transparent;
+}
+
+QMenu#CardActionsMenu::separator {
+  height: 1px;
+  margin: 6px 8px;
+  background: rgba(255,255,255,0.10);
+}

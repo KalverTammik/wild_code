@@ -92,6 +92,7 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
         # Add a compact refresh button on the left (after filters)
         self._refresh_helper = FilterRefreshHelper(self)
         refresh_widget = self._refresh_helper.make_filter_refresh_button(self.toolbar_area)
+        self._filter_refresh_widget = refresh_widget
         self.toolbar_area.set_refresh_widget(refresh_widget)
 
         self.feed_content = QWidget()
@@ -109,8 +110,6 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.feed_content)
-
-        self.retheme_contract()
 
         # Configure optional single-item query for opening a contract by id
         try:
@@ -183,7 +182,7 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
     # --- Andmete laadimine ---
     def load_next_batch(self):
-        return self.process_next_batch(retheme_func=self.retheme_contract)
+        return self.process_next_batch()
 
     # --- Filtrid (ühine muster) ---
     def _on_status_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
@@ -211,14 +210,6 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
             type_filter=self.type_filter,
             tags_filter=self.tags_filter,
         )
-
-    # --- Teema ---
-    def retheme_contract(self) -> None:
-        #print("Retheming contract module UI")
-        for card in self.scroll_area.findChildren(QFrame, "ModuleInfoCard"):
-            #print("Retheming contract card:", card)
-            ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
-            styleExtras.apply_chip_shadow(card)
 
     # --- Module contract ---
     def get_widget(self) -> QWidget:

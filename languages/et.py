@@ -50,6 +50,8 @@ TRANSLATIONS = {
         TranslationKeys.SHOW_ONLY_ATTENTION: "Näita ainult tähelepanu vajavaid",
         TranslationKeys.SIDEBAR_LEFT_ARROW: "«",
         TranslationKeys.SIDEBAR_RIGHT_ARROW: "»",
+        TranslationKeys.SIDEBAR_UP_ARROW: "˄",
+        TranslationKeys.SIDEBAR_DOWN_ARROW: "˅",
         TranslationKeys.DATA_DISPLAY_WIDGETS_EXTRAINFO_TOOLTIP: "Ava detailne ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP: "Privaatne",
         TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY: "Kuupäevad puuduvad",
@@ -57,16 +59,12 @@ TRANSLATIONS = {
         TranslationKeys.DATA_DISPLAY_WIDGETS_CLOSE: "Sulge",
         TranslationKeys.DATA_DISPLAY_WIDGETS_OVERVIEW_TITLE: "Tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE: "Projekti tegevuste ülevaade",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_OVERVIEW_TITLE: "Lepingu tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_OVERVIEW_TITLE: "Servituudi tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_OVERVIEW_TITLE: "Tööde tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_OVERVIEW_TITLE: "Teostusjooniste tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE: "Tehtud",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_IN_PROGRESS: "Töös",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_TODO: "Tegemata",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_SIGNED: "Allkirjastatud",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_PROCESSING: "Töötlemisel",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_PENDING: "Ootel",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PLANNING: "Planeerimine",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPILATION: "Koostamine",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REVIEW: "Ülevaatamine",
@@ -78,13 +76,6 @@ TRANSLATIONS = {
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_MONITORING: "Jälgimine",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_ARCHIVING: "Arhiveerimine",
         TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REPORTING: "Raporteerimine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_CONTRACT_DRAFTING: "Lepingu koostamine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PARTY_CONSENT: "Osapoolte nõusolek",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_NOTARIAL_CONFIRM: "Notariaalne kinnitamine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_LEGAL_REVIEW: "Juriidiline ülevaatus",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_FINANCIAL_CHECK: "Finantskontroll",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_SIGNATURES: "Osapoolte allkirjad",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPLETION_CHECK: "Täitmise kontroll",
         TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_DETAIL_CONTENT: """
         <h3>Projekti Detailne Ülevaade</h3>
         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
@@ -108,17 +99,7 @@ TRANSLATIONS = {
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_TODO: "Ühtegi seotud mooduli kirjet ei liigitatud praegu alustamata olekusse.",
         TranslationKeys.PROJECT_BOARD_COLUMN_NOT_STARTED: "Alustamata",
         TranslationKeys.PROJECT_BOARD_DETAILS_MISSING_MODULES: "Puuduvad seotud moodulid",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_CONTRACT_DETAIL_CONTENT: """
-        <h3>Lepingu Detailne Ülevaade</h3>
-        <p>Contract management and legal documentation overview.</p>
-
-        <h4>Lepingu Faasid</h4>
-        <ul>
-        <li><b>Allkirjastatud:</b> Legal binding agreements</li>
-        <li><b>Töötlemisel:</b> Under legal and financial review</li>
-        <li><b>Ootel:</b> Awaiting signatures or completion</li>
-        </ul>
-        """,
+        TranslationKeys.DATA_DISPLAY_WIDGETS_TERMS_HEADING: "Tingimused",
         TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_DETAIL_CONTENT: """
         <h3>Servituudi Detailne Ülevaade</h3>
         <p>Servituudi elutsükli, seotud kinnistute ja dokumentide seisu ülevaade.</p>

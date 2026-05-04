@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QMenu, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 try:
     import sip
 except Exception:  # pragma: no cover - depends on runtime packaging
@@ -14,6 +14,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
 from ...python.responses import DataDisplayExtractors, StatusInfo
+from ...ui.window_state.popup_helpers import PopupHelpers
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.status_color_helper import StatusColorHelper
 from ...utils.url_manager import Module
@@ -30,11 +31,99 @@ class _ClickableStatusLabel(QLabel):
         super().mousePressEvent(event)
 
 
+class _StatusOptionRow(QFrame):
+    clicked = pyqtSignal(object)
+
+    def __init__(self, option: dict, *, is_current: bool, parent=None):
+        super().__init__(parent)
+        self._option = dict(option or {})
+        self.setObjectName("StatusOptionRow")
+        self.setCursor(Qt.PointingHandCursor)
+
+        status_name = str(self._option.get("name") or "-")
+        status_color = str(self._option.get("color") or "cccccc")
+        bg, fg, border = StatusColorHelper.upgrade_status_color(status_color)
+        fill_alpha = "0.20" if is_current else "0.00"
+        border_alpha = "0.42" if is_current else "0.00"
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setSpacing(8)
+
+        name_label = QLabel(status_name, self)
+        name_label.setObjectName("Value")
+        name_label.setStyleSheet(
+            "QLabel#Value {"
+            f"color: rgb({fg[0]},{fg[1]},{fg[2]});"
+            "font-weight: 600;"
+            "}"
+        )
+        layout.addWidget(name_label, 1)
+
+        self.setStyleSheet(
+            "QFrame#StatusOptionRow {"
+            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, {fill_alpha});"
+            f"border: 1px solid rgba({border[0]},{border[1]},{border[2]}, {border_alpha});"
+            "border-radius: 6px;"
+            "}"
+            "QFrame#StatusOptionRow:hover {"
+            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, 0.24);"
+            f"border: 1px solid rgba({border[0]},{border[1]},{border[2]}, 0.52);"
+            "}"
+        )
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit(self._option)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+
+class _StatusOptionsPopup(QWidget):
+    optionSelected = pyqtSignal(object)
+
+    def __init__(self, options: list[dict], current_status_id: str, parent=None):
+        super().__init__(parent, flags=Qt.Popup | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
+        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self.setFocusPolicy(Qt.NoFocus)
+
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        self.frame = QFrame(self)
+        self.frame.setObjectName("PopupFrame")
+        self.frame.setProperty("popupKind", "status-menu")
+        frame_layout = QVBoxLayout(self.frame)
+        frame_layout.setContentsMargins(6, 6, 6, 6)
+        frame_layout.setSpacing(4)
+
+        for option in options:
+            row = _StatusOptionRow(
+                option,
+                is_current=str(option.get("id") or "") == current_status_id,
+                parent=self.frame,
+            )
+            row.clicked.connect(self.optionSelected.emit)
+            frame_layout.addWidget(row)
+
+        outer_layout.addWidget(self.frame)
+        PopupHelpers.apply_popup_style(self.frame)
+
+
 class StatusWidget(QWidget):
+    """Legacy badge-style status widget kept for fallback and reference.
+
+    The main product card surfaces now use MainStatusWidget.
+    """
+
     _EDITABLE_MODULES = {Module.WORKS.value, Module.ASBUILT.value, Module.TASK.value}
 
     def __init__(self, item_data, module_name: Optional[str] = None, parent=None, lang_manager=None):
         super().__init__(parent)
+        self.setObjectName("LegacyStatusWidget")
         self._item_data = dict(item_data or {}) if isinstance(item_data, dict) else dict(item_data or {})
         self._module_name = str(module_name or "").strip().lower()
         self._lang = lang_manager or LanguageManager()
@@ -43,6 +132,7 @@ class StatusWidget(QWidget):
         self._refresh_timer.setSingleShot(True)
         self._refresh_timer.timeout.connect(self._perform_scheduled_card_refresh)
         self._pending_refresh_payload: Optional[dict] = None
+        self._status_popup: Optional[_StatusOptionsPopup] = None
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -50,6 +140,10 @@ class StatusWidget(QWidget):
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.addStretch(1)
+
+        self.legacy_marker = QLabel("LEGACY", self)
+        self.legacy_marker.setObjectName("LegacyStatusMarker")
+        self.legacy_marker.setAlignment(Qt.AlignCenter)
 
         self.status_label = _ClickableStatusLabel(self)
         self.status_label.setObjectName("StatusLabel")
@@ -63,6 +157,8 @@ class StatusWidget(QWidget):
             )
             self.status_label.clicked.connect(self._show_status_menu)
 
+        row.addWidget(self.legacy_marker, 0, Qt.AlignRight | Qt.AlignVCenter)
+        row.addSpacing(4)
         row.addWidget(self.status_label, 0, Qt.AlignRight | Qt.AlignVCenter)
         main_layout.addLayout(row)
         self._apply_status_info(DataDisplayExtractors.extract_status(self._item_data))
@@ -96,7 +192,7 @@ class StatusWidget(QWidget):
             "}"
         )
 
-    def _show_status_menu(self) -> None:
+    def _show_status_menu(self, anchor_widget=None) -> None:
         if not self._can_edit_status() or self._is_updating:
             return
 
@@ -109,21 +205,30 @@ class StatusWidget(QWidget):
             return
 
         current_status_id = DataDisplayExtractors.extract_status(self._item_data).id
-        menu = QMenu(self)
-        menu.setObjectName("StatusMenu")
-
-        for option in status_options:
-            action = menu.addAction(str(option.get("name") or "-"))
-            action.setData(option)
-            action.setCheckable(True)
-            action.setChecked(str(option.get("id") or "") == current_status_id)
-
-        selected_action = menu.exec_(self.status_label.mapToGlobal(self.status_label.rect().bottomLeft()))
-        if selected_action is None:
+        if self._status_popup is not None and self._status_popup.isVisible():
+            self._close_status_popup()
             return
 
-        selected_option = selected_action.data() or {}
+        popup_anchor = anchor_widget or self.status_label
+
+        popup = _StatusOptionsPopup(status_options, current_status_id, self.window())
+        popup.optionSelected.connect(self._handle_status_option_selected)
+        popup.destroyed.connect(lambda _obj=None: setattr(self, "_status_popup", None))
+        PopupHelpers.position_popup(popup, popup_anchor, placement="below_left")
+        popup.show()
+        popup.raise_()
+        self._status_popup = popup
+
+    def _close_status_popup(self) -> None:
+        if self._status_popup is None:
+            return
+        self._status_popup.close()
+        self._status_popup = None
+
+    def _handle_status_option_selected(self, selected_option: dict) -> None:
+        self._close_status_popup()
         new_status_id = str(selected_option.get("id") or "").strip()
+        current_status_id = DataDisplayExtractors.extract_status(self._item_data).id
         if not new_status_id or new_status_id == current_status_id:
             return
 

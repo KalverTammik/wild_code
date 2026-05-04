@@ -22,6 +22,11 @@ class IconNames:
     ICON_CONTACTS = "Kontaktid.png"
     ICON_SHOW_ON_MAP = "Mine kaardile.png"
     ICON_LIST = "down-arrow.png"
+    ICON_TAGS = "tags-32.png"
+    PRIORITY_URGENT = "PriorityUrgent.png"
+    PRIORITY_HIGH = "PriorityImportant.png"
+    PRIORITY_MEDIUM = "PriorityMedium.png"
+    PRIORITY_LOW = "PriorityLow.png"
 
     ICON_CLOSE_X = "close-x.png"
 

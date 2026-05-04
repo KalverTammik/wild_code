@@ -44,6 +44,16 @@ query projectModuleDataById(
         }
       }
     }
+    contacts(first: 5) {
+      edges {
+        notes
+        node {
+          id
+          displayName
+          type
+        }
+      }
+    }
     properties(first: $propertiesFirst, after: $propertiesAfter) {
       pageInfo {
         count

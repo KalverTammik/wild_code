@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import QComboBox, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from ....languages.language_manager import LanguageManager
 from ....widgets.theme_manager import ThemeManager
 from ....constants.file_paths import QssPaths
@@ -38,6 +38,13 @@ class SettingsBaseCard(QFrame):
         header_frame.setObjectName("SetupCardHeader")
         header_layout = QHBoxLayout(header_frame)
         header_layout.setContentsMargins(1, 1, 1, 1)
+        header_layout.setSpacing(8)
+
+        title_frame = QFrame(header_frame)
+        title_frame.setObjectName("SetupCardTitleColumn")
+        title_layout = QHBoxLayout(title_frame)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(0)
         
         if icon_path:
             icon_label = QLabel()
@@ -47,34 +54,42 @@ class SettingsBaseCard(QFrame):
                 pixmap = QPixmap(icon_path).scaled(18, 18)
                 self._pixmap_cache[cache_key] = pixmap
             icon_label.setPixmap(pixmap)  # Smaller icons
-            header_layout.addWidget(icon_label, 0)
-            header_layout.addSpacing(6)
+            title_layout.addWidget(icon_label, 0)
+            title_layout.addSpacing(6)
 
         # Use translation key if title_text matches the default literal
         if title_text == "Settings":
             title_text = self.lang_manager.translate(TranslationKeys.SETTINGS_BASE_CARD_TEXT)
         title = QLabel(title_text)
         title.setObjectName("SetupCardTitle")
-        header_layout.addWidget(title, 0)
-        header_layout.addStretch(1)
+        title_layout.addWidget(title, 0)
+        title_layout.addStretch(1)
+        header_layout.addWidget(title_frame, 0)
+
+        self._meta_row = self._build_footer_row()
+        header_layout.addWidget(self._meta_row, 1)
         self.lay.addWidget(header_frame)
         
         # Content
         self._content = QFrame(self)
         self._content.setObjectName("SetupCardContent")
         self.lay.addWidget(self._content)
-        # Footer with improved layout
-        footer = self._build_footer()
-        self.lay.addLayout(footer)
 
     def retheme(self):
         ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
+        for combo in self.findChildren(QComboBox):
+            if hasattr(combo, "checkedItemsChanged"):
+                ThemeManager.apply_checkable_combo_popup_style(combo)
+            else:
+                ThemeManager.apply_combo_popup_style(combo)
 
 
-    def _build_footer(self):
-        """Build flexible footer area for confirm button and status display."""
-        ftr = QHBoxLayout()
-        ftr.setContentsMargins(0, 6, 0, 0)
+    def _build_footer_row(self):
+        """Build the compact status/actions row shown under the title."""
+        row = QFrame(self)
+        row.setObjectName("SetupCardMetaRow")
+        ftr = QHBoxLayout(row)
+        ftr.setContentsMargins(0, 0, 0, 0)
         ftr.setSpacing(8)
 
         # Left side - status/info area (can be used by subclasses)
@@ -118,7 +133,7 @@ class SettingsBaseCard(QFrame):
         buttons_layout.addWidget(self._confirm_btn)
 
         ftr.addWidget(buttons_frame, 0)  # No expansion
-        return ftr
+        return row
 
     def content_widget(self) -> QFrame:
         return self._content

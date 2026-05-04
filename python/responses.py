@@ -18,6 +18,7 @@ class GqlKeys:
     NAME = "name"
     COLOR = "color"
     ACTIVE = "active"
+    NOTES = "notes"
 
     # domain roots
     TAGS = "tags"
@@ -67,6 +68,12 @@ class TypeInfo:
     color: str = "808080"
 
 
+@dataclass(frozen=True)
+class ContactInfo:
+    name: str
+    notes: str = ""
+
+
 class DataDisplayExtractors:
     """
     Pure helpers reading GraphQL-ish dicts and returning safe defaults.
@@ -100,15 +107,22 @@ class DataDisplayExtractors:
 
     @staticmethod
     def extract_contact_names(item_data: Optional[Json]) -> List[str]:
-        names: List[str] = []
+        return [contact.name for contact in DataDisplayExtractors.extract_contacts(item_data)]
+
+    @staticmethod
+    def extract_contacts(item_data: Optional[Json]) -> List[ContactInfo]:
+        contacts: List[ContactInfo] = []
         for edge in DataDisplayExtractors._edges_from(item_data, GqlKeys.CONTACTS):
-            node = DataDisplayExtractors._as_dict(edge).get(GqlKeys.NODE) or {}
+            edge_dict = DataDisplayExtractors._as_dict(edge)
+            node = edge_dict.get(GqlKeys.NODE) or {}
             name = DataDisplayExtractors._as_dict(node).get(GqlKeys.DISPLAY_NAME)
             if isinstance(name, str):
                 trimmed = name.strip()
                 if trimmed:
-                    names.append(trimmed)
-        return names
+                    notes = edge_dict.get(GqlKeys.NOTES)
+                    notes_text = notes.strip() if isinstance(notes, str) else ""
+                    contacts.append(ContactInfo(name=trimmed, notes=notes_text))
+        return contacts
 
     @staticmethod
     def extract_status(item_data: Optional[Json]) -> StatusInfo:

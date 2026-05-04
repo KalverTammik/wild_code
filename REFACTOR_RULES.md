@@ -42,6 +42,8 @@ When multiple valid refactor options exist, choose the one with fewer moving par
 - **Import only canonical symbols:** feature modules should import the canonical public API symbol, not alternative aliases.
 - **Compatibility shims are temporary:** if a shim is needed, mark and remove it after call sites migrate.
 - **Remove obsolete UI flags early:** during widget refactors, verify constructor params and `setProperty(...)` flags are still consumed by call sites/QSS/selectors; delete dead params/properties and update all callers.
+- **Theme only at the right scope:** apply the narrowest stylesheet bundle that matches the widget's real scope; root containers may use app/module bundles, but leaf widgets should use exact QSS files or inherited theme selectors instead of broad bundle application.
+- **One retheme lifecycle only:** keep a single canonical retheme engine and route dynamic widget/card restyling through the owning base lifecycle instead of per-feature/manual retheme loops.
 
 ## Refactor acceptance gate (quick check)
 
@@ -96,6 +98,16 @@ Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description 
 ## Refactor Log
 
 _Add a short rationale and list of files touched for each refactor here._
+
+- 2026-05-04: Unified theming around the registry-based `ThemeManager` retheme engine, removed the dead legacy retheme engine helper, moved feed-card restyling into `ModuleBaseUI` as the canonical lifecycle, narrowed `apply_module_style` to exact-file scope when files are explicitly provided, and moved remaining fixed project-board / legacy-status inline styles into theme QSS where practical. Files: widgets/theme_manager.py, ui/ModuleBaseUI.py, modules/task_shared/task_module_base_ui.py, modules/projects/ProjectsUi.py, modules/contract/ContractUi.py, modules/coordination/CoordinationModule.py, modules/projects/project_board_widgets.py, widgets/DataDisplayWidgets/MembersView.py, widgets/DataDisplayWidgets/StatusWidget.py, styles/Light/ModuleInfo.qss, styles/Dark/ModuleInfo.qss, styles/Light/ModuleCard.qss, styles/Dark/ModuleCard.qss, utils/retheme_engine.py, REFACTOR_RULES.md.
+
+- 2026-04-29: Removed the temporary standalone `item_card_preview.py` design harness after the card/status/activity-overview UI work reached the main product, and switched project overview dialog items to the same shared `MainStatusWidget` rail used on module cards so status presentation stays consistent across both surfaces. Files: modules/projects/project_board_widgets.py, tools/item_card_preview.py, REFACTOR_RULES.md.
+
+- 2026-04-29: Reused the shared activity-overview panel for Easements so Projects, Contracts, and Easements now all expose the same compact left-edge detail handle and overview interaction on feed cards. The earlier handle refactor already covered Projects and Contracts through the common `ExtraInfoFrame` path; this change removes the Easements-only exclusion from the card factory. Files: ui/module_card_factory.py, REFACTOR_RULES.md.
+
+- 2026-04-29: Added a standalone PyQt item-card preview harness for design iteration outside QGIS. The new preview dialog rendered dummy feed cards and a larger single-card inspection panel so feed/item-area layout changes could be discussed quickly without touching plugin runtime widgets. This temporary harness was later removed once the main product implementation was accepted. Files: REFACTOR_RULES.md.
+
+- 2026-04-29: Renamed the former Works-only experimental rail to the neutral `MainStatusWidget`, migrated the main product to that canonical widget, marked the old badge-style `StatusWidget` as legacy in both code and UI, and removed the obsolete `WorksExperimentalStatusWidget` shim after all workspace imports were updated. Files: widgets/DataDisplayWidgets/MainStatusWidget.py, widgets/DataDisplayWidgets/StatusWidget.py, ui/module_card_factory.py, modules/Property/property_tree_widget.py, REFACTOR_RULES.md.
 
 - 2026-03-18: Added the first task-file management slice for task-family cards. Works/AsBuilt/Task More Actions menus now expose a `Files` dialog that lists current task attachments, opens files through backend-created download links, deletes files by UUID, and uploads new attachments through the documented `uploadFile` multipart GraphQL flow. This also extends the shared API client with multipart request support for `Upload` scalars. Files: python/api_client.py, python/api_actions.py, python/queries/graphql/tasks/taskFiles.graphql, python/queries/graphql/tasks/createDownloadLink.graphql, python/queries/graphql/tasks/deleteFile.graphql, python/queries/graphql/tasks/uploadTaskFile.graphql, widgets/DataDisplayWidgets/TaskFilesDialog.py, widgets/DataDisplayWidgets/module_action_buttons.py, languages/translation_keys.py, languages/en.py, languages/et.py, REFACTOR_RULES.md.
 

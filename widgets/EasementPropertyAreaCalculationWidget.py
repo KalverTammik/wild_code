@@ -57,12 +57,15 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         return f"{numeric:.2f} {currency_code}".strip()
 
     def _apply_read_only_mode(self) -> None:
-        self.unit_combo.setEnabled(False)
-        self.currency_combo.setEnabled(False)
+        if hasattr(self, "unit_combo"):
+            self.unit_combo.setEnabled(False)
+        if hasattr(self, "currency_combo"):
+            self.currency_combo.setEnabled(False)
         self.payable_checkbox.setEnabled(False)
         self.price_spin.setReadOnly(True)
         self.price_spin.setButtonSymbols(QDoubleSpinBox.NoButtons)
-        self.next_payment_edit.setReadOnly(True)
+        if hasattr(self, "next_payment_edit"):
+            self.next_payment_edit.setReadOnly(True)
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
@@ -89,6 +92,11 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         price_dict = self._edge.get("pricePerAreaUnit") or {}
         currency_code = str(price_dict.get("currencyCode") or self._default_currency)
         total_currency_code = str(total_dict.get("currencyCode") or currency_code)
+        is_payable = bool(self._edge.get("isPayable"))
+        self._current_unit_value = unit_value
+        self._current_currency_code = currency_code
+        self._current_total_text = ""
+        self._current_next_payment_text = str(self._edge.get("nextPaymentDate") or "")
 
         area_label = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_AREA), self)
         area_label.setObjectName("InfoLabel")
@@ -97,19 +105,9 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         self.area_value_label = QLabel(self._format_area_display(area_dict.get("size"), unit_value), self)
         layout.addWidget(self.area_value_label, 0, 1)
 
-        unit_label = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_UNIT), self)
-        unit_label.setObjectName("InfoLabel")
-        layout.addWidget(unit_label, 0, 2)
-
-        self.unit_combo = QComboBox(self)
-        for unit_value, unit_label_text in self._area_unit_labels.items():
-            self.unit_combo.addItem(unit_label_text, unit_value)
-        self.unit_combo.setCurrentIndex(max(0, self.unit_combo.findData(unit_value)))
-        layout.addWidget(self.unit_combo, 0, 3)
-
         price_label = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_PRICE), self)
         price_label.setObjectName("InfoLabel")
-        layout.addWidget(price_label, 0, 4)
+        layout.addWidget(price_label, 0, 2)
 
         self.price_spin = QDoubleSpinBox(self)
         self.price_spin.setDecimals(2)
@@ -117,56 +115,71 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         self.price_spin.setSingleStep(0.5)
         self.price_spin.setSpecialValueText("–")
         self.price_spin.setValue(float(price_dict.get("amount") or 0.0))
-        layout.addWidget(self.price_spin, 0, 5)
-
-        currency_label = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_CURRENCY), self)
-        currency_label.setObjectName("InfoLabel")
-        layout.addWidget(currency_label, 0, 6)
-
-        self.currency_combo = QComboBox(self)
-        self.currency_combo.addItem(currency_code, currency_code)
-        if currency_code != self._default_currency:
-            self.currency_combo.addItem(self._default_currency, self._default_currency)
-        self.currency_combo.setCurrentIndex(max(0, self.currency_combo.findData(currency_code)))
-        layout.addWidget(self.currency_combo, 1, 1)
-
-        total_title = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_TOTAL), self)
-        total_title.setObjectName("InfoLabel")
-        layout.addWidget(total_title, 1, 0)
-
-        total_amount = total_dict.get("amount")
-        if total_amount in (None, ""):
-            area_size = self._coerce_float(area_dict.get("size"))
-            price_amount = self._coerce_float(price_dict.get("amount"))
-            if area_size is not None and price_amount is not None:
-                total_amount = area_size * price_amount
-        self.total_label = QLabel(self._format_money_display(total_amount, total_currency_code), self)
-        layout.addWidget(self.total_label, 1, 2)
+        layout.addWidget(self.price_spin, 0, 3)
 
         self.payable_checkbox = QCheckBox(
             self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_PAYABLE),
             self,
         )
-        self.payable_checkbox.setChecked(bool(self._edge.get("isPayable")))
-        layout.addWidget(self.payable_checkbox, 1, 3)
+        self.payable_checkbox.setChecked(is_payable)
+        layout.addWidget(self.payable_checkbox, 0, 4)
 
-        next_payment_label = QLabel(
-            self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_NEXT_PAYMENT),
-            self,
-        )
-        next_payment_label.setObjectName("InfoLabel")
-        layout.addWidget(next_payment_label, 1, 4)
+        if is_payable:
+            total_title = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_TOTAL), self)
+            total_title.setObjectName("InfoLabel")
+            layout.addWidget(total_title, 0, 5)
 
-        self.next_payment_edit = QLineEdit(self)
-        self.next_payment_edit.setPlaceholderText(
-            self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_DATE_PLACEHOLDER)
-        )
-        self.next_payment_edit.setText(str(self._edge.get("nextPaymentDate") or ""))
-        layout.addWidget(self.next_payment_edit, 1, 5)
+            total_amount = total_dict.get("amount")
+            if total_amount in (None, ""):
+                area_size = self._coerce_float(area_dict.get("size"))
+                price_amount = self._coerce_float(price_dict.get("amount"))
+                if area_size is not None and price_amount is not None:
+                    total_amount = area_size * price_amount
+            self._current_total_text = self._format_money_display(total_amount, total_currency_code)
+            self.total_label = QLabel(self._current_total_text, self)
+            layout.addWidget(self.total_label, 0, 6)
+
+            next_payment_label = QLabel(
+                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_NEXT_PAYMENT),
+                self,
+            )
+            next_payment_label.setObjectName("InfoLabel")
+            layout.addWidget(next_payment_label, 1, 0)
+
+            self.next_payment_edit = QLineEdit(self)
+            self.next_payment_edit.setPlaceholderText(
+                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_DATE_PLACEHOLDER)
+            )
+            self.next_payment_edit.setText(self._current_next_payment_text)
+            layout.addWidget(self.next_payment_edit, 1, 1, 1, 2)
+
+        if not self._read_only:
+            unit_label = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_UNIT), self)
+            unit_label.setObjectName("InfoLabel")
+            layout.addWidget(unit_label, 0, 7)
+
+            self.unit_combo = QComboBox(self)
+            for unit_option, unit_label_text in self._area_unit_labels.items():
+                self.unit_combo.addItem(unit_label_text, unit_option)
+            self.unit_combo.setCurrentIndex(max(0, self.unit_combo.findData(unit_value)))
+            layout.addWidget(self.unit_combo, 0, 8)
+
+            currency_label = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_CURRENCY), self)
+            currency_label.setObjectName("InfoLabel")
+            layout.addWidget(currency_label, 1, 3)
+
+            self.currency_combo = QComboBox(self)
+            self.currency_combo.addItem(currency_code, currency_code)
+            if currency_code != self._default_currency:
+                self.currency_combo.addItem(self._default_currency, self._default_currency)
+            self.currency_combo.setCurrentIndex(max(0, self.currency_combo.findData(currency_code)))
+            layout.addWidget(self.currency_combo, 1, 4)
 
         self.price_spin.valueChanged.connect(self.totalsChanged.emit)
-        self.currency_combo.currentIndexChanged.connect(self.totalsChanged.emit)
-        self.unit_combo.currentIndexChanged.connect(self._emit_unit_changed)
+        if hasattr(self, "currency_combo"):
+            self.currency_combo.currentIndexChanged.connect(self.totalsChanged.emit)
+        if hasattr(self, "unit_combo"):
+            self.unit_combo.currentIndexChanged.connect(self._emit_unit_changed)
 
         if self._read_only:
             self._apply_read_only_mode()
@@ -175,22 +188,30 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         self.unitChanged.emit()
 
     def current_unit(self) -> str:
-        return str(self.unit_combo.currentData() or AreaUnit.M)
+        if hasattr(self, "unit_combo"):
+            return str(self.unit_combo.currentData() or AreaUnit.M)
+        return str(getattr(self, "_current_unit_value", AreaUnit.M) or AreaUnit.M)
 
     def price_value(self) -> float:
         return float(self.price_spin.value())
 
     def currency_code(self) -> str:
-        return str(self.currency_combo.currentData() or self._default_currency)
+        if hasattr(self, "currency_combo"):
+            return str(self.currency_combo.currentData() or self._default_currency)
+        return str(getattr(self, "_current_currency_code", self._default_currency) or self._default_currency)
 
     def is_payable(self) -> bool:
         return bool(self.payable_checkbox.isChecked())
 
     def next_payment_text(self) -> str:
-        return str(self.next_payment_edit.text() or "").strip()
+        if hasattr(self, "next_payment_edit"):
+            return str(self.next_payment_edit.text() or "").strip()
+        return str(getattr(self, "_current_next_payment_text", "") or "").strip()
 
     def set_area_display(self, text: str) -> None:
         self.area_value_label.setText(str(text or ""))
 
     def set_total_display(self, text: str) -> None:
-        self.total_label.setText(str(text or ""))
+        self._current_total_text = str(text or "")
+        if hasattr(self, "total_label"):
+            self.total_label.setText(self._current_total_text)

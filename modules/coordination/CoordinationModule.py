@@ -78,6 +78,7 @@ class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
         self._refresh_helper = FilterRefreshHelper(self)
         refresh_widget = self._refresh_helper.make_filter_refresh_button(self.toolbar_area)
+        self._filter_refresh_widget = refresh_widget
         self.toolbar_area.set_refresh_widget(refresh_widget)
 
         self.feed_content = QWidget()
@@ -95,7 +96,6 @@ class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.feed_content)
-        self.retheme_coordinations()
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -167,7 +167,7 @@ class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
             configure_single(self.SINGLE_ITEM_QUERY_FILE)
 
     def load_next_batch(self):
-        return self.process_next_batch(retheme_func=self.retheme_coordinations)
+        return self.process_next_batch()
 
     # ------------------------------------------------------------------
     # Filters
@@ -201,13 +201,6 @@ class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
     # ------------------------------------------------------------------
     # Search integration
     # ------------------------------------------------------------------
-    # ------------------------------------------------------------------
-    # Theming
-    # ------------------------------------------------------------------
-    def retheme_coordinations(self) -> None:
-        for card in self.scroll_area.findChildren(QFrame, "ModuleInfoCard"):
-            ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
-            styleExtras.apply_chip_shadow(card)
 
     # ------------------------------------------------------------------
     # Module contract

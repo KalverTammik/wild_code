@@ -89,6 +89,14 @@ class TypeFilterWidget(QWidget):
         if self._auto_load:
             QTimer.singleShot(0, self.reload)
 
+    def retheme(self) -> None:
+        ThemeManager.apply_checkable_combo_popup_style(self.group_combo)
+        ThemeManager.apply_checkable_combo_popup_style(self.type_combo)
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.all_cb.style().unpolish(self.all_cb)
+        self.all_cb.style().polish(self.all_cb)
+
     # ------------------------------------------------------------------
     def reload(self) -> None:
         self._loaded = False

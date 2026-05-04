@@ -53,6 +53,19 @@ class FilterRefreshHelper:
         layout.addWidget(clear_btn)
         return container
 
+    @staticmethod
+    def retheme_refresh_widget(container: Optional[QWidget]) -> None:
+        if container is None:
+            return
+        refresh_btn = container.findChild(QPushButton, "FeedRefreshButton")
+        if refresh_btn is not None:
+            refresh_btn.setIcon(ThemeManager.get_qicon(IconNames.ICON_REFRESH))
+        clear_btn = container.findChild(QPushButton, "FeedClearButton")
+        if clear_btn is not None:
+            clear_btn.setIcon(ThemeManager.get_qicon(IconNames.ICON_CLOSE_X))
+        container.style().unpolish(container)
+        container.style().polish(container)
+
     def _on_refresh_clicked(self):
         owner = self._owner
         status_ids: list[str] = []

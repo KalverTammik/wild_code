@@ -54,7 +54,6 @@ query contracts(
         type {
           name
         }
-        description
         tags(first: 10) {
           edges {
             node {

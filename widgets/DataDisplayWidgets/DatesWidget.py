@@ -70,11 +70,18 @@ class DatesWidget(QWidget):
         super().__init__(parent)
         self.item_data = item_data
         self.lang_manager = lang_manager or LanguageManager()
+        self._compact = False
+        self._wide_container = None
+        self._compact_container = None
+        self.hover_popup = None
+        self._hover_anchor = None
+        self._hide_timer = QTimer(self)
+        self._hide_timer.setSingleShot(True)
 
         # Main layout - vertical to stack under status
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(2)
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(2)
 
         locale = QLocale.system()
         today = datetime.datetime.now().date()
@@ -108,38 +115,33 @@ class DatesWidget(QWidget):
             if primary_option["type"] == "due" and primary_dt:
                 state = DateHelpers.due_state(primary_dt.date(), today)
 
-            due_container = QFrame(self)
-            due_container.setObjectName("DueDateContainer")
-            due_layout = QHBoxLayout(due_container)
-            due_layout.setContentsMargins(4, 2, 4, 2)
-            due_layout.setSpacing(4)
+            due_text = DateHelpers.format_short_date(primary_dt, locale)
+            tooltip_text = full_tooltip(primary_option['label'], primary_dt)
 
-            primary_label = QLabel(f"{primary_option['label']}:")
-            primary_label.setObjectName("DateLabel")
-            due_layout.addWidget(primary_label)
+            self._wide_container = self._create_due_container(
+                primary_option['label'],
+                due_text,
+                tooltip_text,
+                state,
+                compact=False,
+            )
+            self._compact_container = self._create_due_container(
+                primary_option['label'],
+                due_text,
+                tooltip_text,
+                state,
+                compact=True,
+            )
 
-            due_value = QLabel(DateHelpers.format_short_date(primary_dt, locale))
-            due_value.setObjectName("DateValue")
-            due_value.setToolTip(full_tooltip(primary_option['label'], primary_dt))
-
-            if state == 'overdue':
-                due_value.setProperty("overdue", "true")
-            elif state == 'soon':
-                due_value.setProperty("due_soon", "true")
-
-            due_layout.addWidget(due_value)
-            due_layout.addStretch()
-
-            due_container.setMouseTracking(True)
-            due_container.installEventFilter(self)
-
-            main_layout.addWidget(due_container)
+            self.main_layout.addWidget(self._wide_container)
+            self.main_layout.addWidget(self._compact_container)
+            self._apply_compact_mode(False)
         else:
             placeholder_text = self.lang_manager.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY)
             placeholder = QLabel(placeholder_text)
             placeholder.setObjectName("DateLabel")
             placeholder.setProperty("empty", "true")
-            main_layout.addWidget(placeholder)
+            self.main_layout.addWidget(placeholder)
 
 
         # Store other dates for hover popup
@@ -149,10 +151,6 @@ class DatesWidget(QWidget):
             if opt["dt"] and opt is not primary_option
         ]
 
-        self.hover_popup = None
-        self._hover_anchor = None
-        self._hide_timer = QTimer(self)
-        self._hide_timer.setSingleShot(True)
         PopupHelpers.bind_hide_timeout_attr_for(
             "dates",
             owner=self,
@@ -162,6 +160,46 @@ class DatesWidget(QWidget):
             event_filter_owner=self,
         )
         self.retheme()
+
+    def _create_due_container(self, label_text, value_text, tooltip_text, state, compact=False):
+        due_container = QFrame(self)
+        due_container.setObjectName("DueDateContainer")
+        due_layout = QVBoxLayout(due_container) if compact else QHBoxLayout(due_container)
+        due_layout.setContentsMargins(4, 2, 4, 2)
+        due_layout.setSpacing(0 if compact else 4)
+
+        primary_label = QLabel(f"{label_text}:")
+        primary_label.setObjectName("DateLabel")
+        due_layout.addWidget(primary_label, 0, Qt.AlignHCenter if compact else Qt.AlignLeft)
+
+        due_value = QLabel(value_text)
+        due_value.setObjectName("DateValue")
+        due_value.setToolTip(tooltip_text)
+
+        if state == 'overdue':
+            due_value.setProperty("overdue", "true")
+        elif state == 'soon':
+            due_value.setProperty("due_soon", "true")
+
+        due_layout.addWidget(due_value, 0, Qt.AlignHCenter if compact else Qt.AlignLeft)
+        if not compact:
+            due_layout.addStretch()
+
+        due_container.setMouseTracking(True)
+        due_container.installEventFilter(self)
+        return due_container
+
+    def _apply_compact_mode(self, compact):
+        self._compact = compact
+        if self._wide_container:
+            self._wide_container.setVisible(not compact)
+        if self._compact_container:
+            self._compact_container.setVisible(compact)
+
+    def set_compact(self, compact):
+        if compact == self._compact:
+            return
+        self._apply_compact_mode(compact)
 
 
     def eventFilter(self, obj, event):

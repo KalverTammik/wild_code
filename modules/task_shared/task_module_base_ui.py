@@ -16,8 +16,7 @@ from ...utils.url_manager import Module, ModuleSupports
 from ...widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from ...widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from ...widgets.Filters.filter_refresh_helper import FilterRefreshHelper
-from ...widgets.theme_manager import ThemeManager, styleExtras
-from ...constants.file_paths import QssPaths
+from ...widgets.theme_manager import ThemeManager
 from ...Logs.python_fail_logger import PythonFailLogger
 
 
@@ -67,6 +66,7 @@ class TaskModuleBaseUI(SearchOpenItemMixin, ModuleBaseUI):
 
         self._refresh_helper = FilterRefreshHelper(self)
         refresh_widget = self._refresh_helper.make_filter_refresh_button(self.toolbar_area)
+        self._filter_refresh_widget = refresh_widget
         self.toolbar_area.set_refresh_widget(refresh_widget)
 
         self.feed_content = QWidget()
@@ -169,7 +169,7 @@ class TaskModuleBaseUI(SearchOpenItemMixin, ModuleBaseUI):
         return scope_ids
 
     def load_next_batch(self):
-        return self.process_next_batch(retheme_func=self.retheme)
+        return self.process_next_batch()
 
     def _on_status_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
         self._refresh_filters(status_ids=ids)
@@ -193,11 +193,6 @@ class TaskModuleBaseUI(SearchOpenItemMixin, ModuleBaseUI):
             type_filter=self.type_filter,
             tags_filter=None,
         )
-
-    def retheme(self) -> None:
-        for card in self.scroll_area.findChildren(QFrame, "ModuleInfoCard"):
-            ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
-            styleExtras.apply_chip_shadow(card)
 
     def get_widget(self) -> QWidget:
         return self

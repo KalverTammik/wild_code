@@ -86,6 +86,7 @@ query Projects(
             endCursor
           }
           edges {
+            notes
             node {
               id
               displayName

@@ -46,6 +46,44 @@ QLabel#ModuleRowMeta {
     color: #4a5568;
 }
 
+QLabel#PriorityLabel {
+    background-color: transparent;
+    border: none;
+    padding: 0px;
+}
+
+QFrame#MainStatusRail {
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+QFrame#MainStatusCore {
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 7px;
+    border-bottom-right-radius: 7px;
+}
+
+QFrame#MainStatusGlow {
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+QLabel#LegacyStatusMarker {
+    background-color: rgba(107, 114, 128, 0.16);
+    color: rgb(107, 114, 128);
+    border: 1px solid rgba(107, 114, 128, 0.28);
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-weight: 600;
+    font-size: 9px;
+    letter-spacing: 0.4px;
+}
+
 
 
 

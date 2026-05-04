@@ -37,6 +37,7 @@ from ...modules.projects.project_preview_dialog import ProjectPreviewDialog
 from ...modules.projects.projects_feature_map_controller import ProjectsFeatureMapController
 from ...modules.works.works_reposition_controller import WorksRepositionController
 from ...widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
+from ...constants.file_paths import QssPaths
 
 
 
@@ -80,6 +81,7 @@ class CardActionButton(QPushButton):
         lang_manager,
     ) -> None:
         super().__init__("")
+        self._icon_name = icon_name
         self.setObjectName(object_name)
         self.setAutoDefault(False)
         self.setDefault(False)
@@ -90,6 +92,13 @@ class CardActionButton(QPushButton):
             self.setIcon(ThemeManager.get_qicon(icon_name))
         if tooltip_text:
             self.setToolTip(tooltip_text)
+
+    def retheme(self) -> None:
+        if self._icon_name:
+            self.setIcon(ThemeManager.get_qicon(self._icon_name))
+        menu = self.menu()
+        if menu is not None:
+            ThemeManager.apply_module_style(menu, [QssPaths.POPUP])
 
 
 class OpenFolderActionButton(CardActionButton):
@@ -150,6 +159,8 @@ class MoreActionsButton(CardActionButton):
         self._parent_window = self._resolve_parent_window()
 
         menu = QMenu(self)
+        menu.setObjectName("CardActionsMenu")
+        menu.setProperty("popupKind", "card-actions")
 
         if module == Module.PROJECT.value:
             action1 = QAction(
@@ -261,6 +272,7 @@ class MoreActionsButton(CardActionButton):
             lambda _, mod=module, data=item_data, lm=lang_manager: self._link_properties_from_map(mod, data, lm)
         )
         menu.addAction(action2)
+        ThemeManager.apply_module_style(menu, [QssPaths.POPUP])
         self.setMenu(menu)
     @staticmethod
     def _generate_project_folder(module, item_data, lang_manager):

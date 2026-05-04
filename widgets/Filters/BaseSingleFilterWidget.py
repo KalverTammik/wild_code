@@ -80,6 +80,13 @@ class BaseSingleFilterWidget(QWidget):
         if self._auto_load:
             QTimer.singleShot(0, self.reload)
 
+    def retheme(self) -> None:
+        ThemeManager.apply_checkable_combo_popup_style(self.combo)
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.all_cb.style().unpolish(self.all_cb)
+        self.all_cb.style().polish(self.all_cb)
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------

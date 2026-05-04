@@ -82,6 +82,7 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
         self._refresh_helper = FilterRefreshHelper(self)
         refresh_widget = self._refresh_helper.make_filter_refresh_button(self.toolbar_area)
+        self._filter_refresh_widget = refresh_widget
         self.toolbar_area.set_refresh_widget(refresh_widget)
 
 
@@ -100,8 +101,6 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.feed_content)
-        # Teema
-        self.retheme_projects()
 
         if self.feed_logic is None:
             self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
@@ -158,7 +157,7 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
     # --- Andmete laadimine ---
     def load_next_batch(self):
-        return self.process_next_batch(retheme_func=self.retheme_projects)
+        return self.process_next_batch()
 
     # --- Filtrid ---
     def _on_status_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
@@ -178,13 +177,6 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
         )
 
 
-
-    # --- Teema ---
-    def retheme_projects(self) -> None:
-
-        for card in self.scroll_area.findChildren(QFrame, "ModuleInfoCard"):
-            ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])
-            styleExtras.apply_chip_shadow(card)
 
     # --- Module contract ---
     def get_widget(self) -> QWidget:

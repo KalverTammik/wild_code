@@ -23,7 +23,7 @@ from ...constants.module_icons import ModuleIconPaths
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
 from ...widgets.DataDisplayWidgets.DatesWidget import DatesWidget
 from ...widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
-from ...widgets.DataDisplayWidgets.StatusWidget import StatusWidget
+from ...widgets.DataDisplayWidgets.MainStatusWidget import MainStatusWidget
 from ...module_manager import ModuleManager
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.DelayHelpers.LoadingSpinner import GradientSpinner
@@ -479,7 +479,7 @@ class ModuleConnectionRow(QFrame):
         )
         grid.addWidget(dates_widget, 0, 1, Qt.AlignRight | Qt.AlignTop)
 
-        status_widget = StatusWidget(
+        status_widget = MainStatusWidget(
             widget_payload,
             module_name=self.module_key,
             parent=self,

@@ -238,8 +238,6 @@ QFrame {
 
 /* Final spacing removal for all elements */
 * {
-  -qt-spacing: 0;
-  -qt-margin: 0;
 }
 
 /* Absolute positioning to eliminate any gaps */
@@ -322,8 +320,6 @@ QFrame#TagPill {
   border: none !important;
   outline: none !important;
   spacing: 0 !important;
-  -qt-spacing: 0 !important;
-  -qt-margin: 0 !important;
 }
 
 /* Absolute zero spacing for all QLabel elements */
@@ -348,8 +344,6 @@ QVBoxLayout {
   spacing: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
-  -qt-spacing: 0 !important;
-  -qt-margin: 0 !important;
 }
 
 /* Ultimate spacing elimination for all tag-related elements */
@@ -375,7 +369,4 @@ QFrame#TagPill * {
   border: none !important;
   outline: none !important;
   spacing: 0 !important;
-  -qt-spacing: 0 !important;
-  -qt-margin: 0 !important;
-  -qt-padding: 0 !important;
 }

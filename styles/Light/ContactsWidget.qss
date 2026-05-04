@@ -16,3 +16,9 @@ QLabel#ContactChip:hover {
   background-color: #e6edf5;
   border-color: #c9d4e2;
 }
+
+QLabel#ContactNote {
+  color: #5b6573;
+  padding: 0 4px 0 6px;
+  font-size: 11px;
+}
