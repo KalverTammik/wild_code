@@ -20,7 +20,7 @@ class SettingsBaseCard(QFrame):
         self._content = None
         self._build(title_text, icon_path)
         try:
-            ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
+            ThemeManager.apply_module_style(self, [QssPaths.BUTTONS, QssPaths.SETUP_CARD])
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -76,7 +76,7 @@ class SettingsBaseCard(QFrame):
         self.lay.addWidget(self._content)
 
     def retheme(self):
-        ThemeManager.apply_module_style(self, [QssPaths.SETUP_CARD])
+        ThemeManager.apply_module_style(self, [QssPaths.BUTTONS, QssPaths.SETUP_CARD])
         for combo in self.findChildren(QComboBox):
             if hasattr(combo, "checkedItemsChanged"):
                 ThemeManager.apply_checkable_combo_popup_style(combo)

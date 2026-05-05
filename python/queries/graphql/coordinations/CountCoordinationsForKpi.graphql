@@ -1,0 +1,25 @@
+query CoordinationsKpi(
+  $first: Int
+  $after: String
+  $where: QueryCoordinationsWhereWhereConditions
+  $hasTags: QueryCoordinationsHasTagsWhereHasConditions
+) {
+  coordinations(
+    first: $first
+    after: $after
+    where: $where
+    hasTags: $hasTags
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        id
+      }
+    }
+  }
+}

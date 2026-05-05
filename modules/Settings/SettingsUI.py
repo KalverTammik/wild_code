@@ -1,6 +1,6 @@
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QPushButton
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QTimer
 from ...utils.auth.user_utils import UserUtils
 from ...widgets.theme_manager import ThemeManager
 from .SettinsUtils.SettingsLogic import SettingsLogic
@@ -20,6 +20,7 @@ from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.mixins.token_mixin import TokenMixin
 from ...module_manager import ModuleManager
+from .scroll_helper import SettingsScrollHelper
 
 
 
@@ -58,6 +59,7 @@ class SettingsModule(TokenMixin, QWidget):
         self._user_fetch_thread = None
         self._user_fetch_worker = None
         self._settings_loaded_once = False
+        self._pending_focus_module = None
         self.user_payload = None
         self.setup_ui()
         # Centralized theming
@@ -228,6 +230,44 @@ class SettingsModule(TokenMixin, QWidget):
         self._user_card.set_preferred(preferred_module)
 
         self._ensure_module_cards(allowed_modules=allowed_modules)
+        self._resolve_pending_focus()
+
+    def request_focus_module(self, module_key: str | None) -> None:
+        key = (module_key or "").strip().lower()
+        if not key:
+            return
+        self._pending_focus_module = key
+        self._resolve_pending_focus()
+
+    def _resolve_pending_focus(self) -> None:
+        target_key = (self._pending_focus_module or "").strip().lower()
+        if not target_key or not self.is_token_active(None):
+            return
+
+        target_card = None
+        for name, card in (self._module_cards or {}).items():
+            if str(name).strip().lower() == target_key:
+                target_card = card
+                break
+
+        if target_card is None:
+            return
+
+        self._pending_focus_module = None
+
+        def _focus() -> None:
+            if not self.is_token_active(None):
+                return
+            try:
+                self.cards_container.updateGeometry()
+                self.cards_container.adjustSize()
+                self.scroll_area.widget().updateGeometry()
+                self.scroll_area.widget().adjustSize()
+            except Exception:
+                pass
+            SettingsScrollHelper.scroll_to_module(self, target_key)
+
+        QTimer.singleShot(0, _focus)
 
     def _update_user_header(self, user_data: dict):
         dash = self.lang_manager.translate(TranslationKeys.SETTINGS_UTILS_DASH)

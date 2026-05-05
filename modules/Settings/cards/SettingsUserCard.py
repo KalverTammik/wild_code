@@ -166,8 +166,17 @@ class UserSettingsCard(SettingsBaseCard):
         self._check_by_module.clear()
         self._reset_click_targets()
 
-        # Build new pills
+        module_items = [(Module.HOME.value, True)]
+        seen_modules = {Module.HOME.value}
         for module_name, has_access in (access_map or {}).items():
+            module_key = str(module_name or "").strip().lower()
+            if not module_key or module_key in seen_modules:
+                continue
+            seen_modules.add(module_key)
+            module_items.append((module_key, bool(has_access)))
+
+        # Build new pills
+        for module_name, has_access in module_items:
 
             pill = QFrame(self.access_container)
             pill.setObjectName("AccessPill")
@@ -216,10 +225,11 @@ class UserSettingsCard(SettingsBaseCard):
 
     def set_preferred(self, module_name):
         # Programmatic single-selection with checkboxes
+        preferred_key = str(module_name or "").strip().lower()
         for m, cb in self._check_by_module.items():
 
             cb.blockSignals(True)
-            cb.setChecked(m == module_name)
+            cb.setChecked(m == preferred_key)
             cb.blockSignals(False)
 
     def revert(self, preferred_module_name):

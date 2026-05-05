@@ -239,7 +239,6 @@ class ModuleLabelsWidget(QFrame):
     
     def retheme(self) -> None:
         ThemeManager.apply_module_style(self, [QssPaths.SETTING_MODULE_LABELS])
-        #styleExtras.apply_chip_shadow(self)
 
     def clear_data(self) -> None:
         """Clear label widgets to free memory; safe to call on deactivate."""

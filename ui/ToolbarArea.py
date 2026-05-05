@@ -123,7 +123,10 @@ class ModuleToolbarArea(QFrame):
 
     def retheme(self) -> None:
         """Re-apply toolbar QSS."""
-        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.MODULE_TOOLBAR])
+        ThemeManager.apply_module_style(
+            self,
+            [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.COMBOBOX, QssPaths.MODULE_TOOLBAR],
+        )
 
     @staticmethod
     def _clear_layout(layout: QLayout) -> None:

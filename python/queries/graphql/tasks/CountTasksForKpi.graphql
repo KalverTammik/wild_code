@@ -1,0 +1,23 @@
+query TasksKpi(
+  $first: Int
+  $after: String
+  $where: QueryTasksWhereWhereConditions
+) {
+  tasks(
+    first: $first
+    after: $after
+    where: $where
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        id
+      }
+    }
+  }
+}

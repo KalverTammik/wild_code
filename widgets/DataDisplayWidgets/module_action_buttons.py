@@ -35,6 +35,7 @@ from ...modules.easements.easement_attach_existing_controller import EasementAtt
 from ...modules.easements.easement_preview_dialog import EasementPreviewDialog
 from ...modules.projects.project_preview_dialog import ProjectPreviewDialog
 from ...modules.projects.projects_feature_map_controller import ProjectsFeatureMapController
+from ...modules.Settings.settings_setup_guard import SettingsSetupGuard
 from ...modules.works.works_reposition_controller import WorksRepositionController
 from ...widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
 from ...constants.file_paths import QssPaths
@@ -167,7 +168,14 @@ class MoreActionsButton(CardActionButton):
                 lang_manager.translate(ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER),
                 self,
             )
-            action1.triggered.connect(self._generate_project_folder(module, item_data, lang_manager))
+            action1.triggered.connect(
+                self._generate_project_folder(
+                    module,
+                    item_data,
+                    lang_manager,
+                    parent_window=self._get_safe_parent_window(),
+                )
+            )
             menu.addAction(action1)
 
             action_project_preview = QAction(
@@ -275,15 +283,15 @@ class MoreActionsButton(CardActionButton):
         ThemeManager.apply_module_style(menu, [QssPaths.POPUP])
         self.setMenu(menu)
     @staticmethod
-    def _generate_project_folder(module, item_data, lang_manager):
+    def _generate_project_folder(module, item_data, lang_manager, *, parent_window=None):
         def handler():            
-            svc = SettingsService()
-            folder_to_copy = svc.module_label_value(module, SettingDialogPlaceholders.PROJECTS_SOURCE_FOLDER)
-            target_folder = svc.module_label_value(module, SettingDialogPlaceholders.PROJECTS_TARGET_FOLDER)
-            if not folder_to_copy or not target_folder:
+            missing_requirements = SettingsSetupGuard.missing_requirements(module)
+            if missing_requirements:
+                title, message = SettingsSetupGuard.redirect_warning_text(lang_manager, module)
                 ModernMessageDialog.show_warning(
-                    lang_manager.translate(TranslationKeys.PROJECT_FOLDER_MISSING_TITLE),
-                    lang_manager.translate(TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE),
+                    title,
+                    message,
+                    parent=parent_window,
                 )
 
                 ModuleSwitchHelper.switch_module(
@@ -291,6 +299,9 @@ class MoreActionsButton(CardActionButton):
                     focus_module=module,
                 )
                 return
+            svc = SettingsService()
+            folder_to_copy = svc.module_label_value(module, SettingDialogPlaceholders.PROJECTS_SOURCE_FOLDER)
+            target_folder = svc.module_label_value(module, SettingDialogPlaceholders.PROJECTS_TARGET_FOLDER)
             FolderEngines.generate_project_folder_from_template(
                 DataDisplayExtractors.extract_item_id(item_data),
                 DataDisplayExtractors.extract_item_name(item_data),

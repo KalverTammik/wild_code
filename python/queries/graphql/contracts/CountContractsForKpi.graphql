@@ -1,0 +1,25 @@
+query ContractsKpi(
+  $first: Int
+  $after: String
+  $where: QueryContractsWhereWhereConditions
+  $hasTags: QueryContractsHasTagsWhereHasConditions
+) {
+  contracts(
+    first: $first
+    after: $after
+    where: $where
+    hasTags: $hasTags
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        id
+      }
+    }
+  }
+}

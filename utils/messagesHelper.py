@@ -55,9 +55,9 @@ class ModernMessageDialog:
         ModernMessageDialog.Info_messages_modern(title, message)
 
     @staticmethod
-    def show_warning(title: str, message: str, *, with_cancel: bool = False) -> bool:
+    def show_warning(title: str, message: str, *, with_cancel: bool = False, parent: QDialog | None = None) -> bool:
         dialog = ModernMessageDialog._create_dialog(
-            title, message, IconNames.WARNING, with_cancel=with_cancel
+            title, message, IconNames.WARNING, parent=parent, with_cancel=with_cancel
         )
         return bool(dialog.exec_())
 

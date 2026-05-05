@@ -1,0 +1,27 @@
+query PropertiesKpi(
+  $first: Int
+  $after: String
+  $where: QueryPropertiesWhereWhereConditions
+) {
+  properties(
+    first: $first
+    after: $after
+    where: $where
+  ) {
+    pageInfo {
+      count
+      currentPage
+      startCursor
+      endCursor
+      hasNextPage
+      hasPreviousPage
+      lastPage
+      total
+    }
+    edges {
+      node {
+        id
+      }
+    }
+  }
+}

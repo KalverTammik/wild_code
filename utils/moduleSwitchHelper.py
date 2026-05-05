@@ -4,6 +4,8 @@ from typing import Any, Callable, Protocol, TYPE_CHECKING, Optional
 from .url_manager import Module
 from ..module_manager import ModuleManager
 from ..Logs.switch_logger import SwitchLogger
+from ..modules.Settings.settings_setup_guard import SettingsSetupGuard
+from ..utils.messagesHelper import ModernMessageDialog
 
 
 class _HeaderWidgetProtocol(Protocol):
@@ -154,6 +156,50 @@ class ModuleSwitchHelper:
         return bool(ModuleSwitchHelper._confirm_unsaved_handler(previous_module_name or "", dlg))
 
     @staticmethod
+    def _redirect_to_settings_for_incomplete_setup(
+        *,
+        dlg: ModuleSwitchDialogProtocol,
+        module_manager: _ModuleManagerProtocol,
+        previous_module_name: str,
+        target_key: str,
+    ) -> bool:
+        if target_key in {Module.HOME.value, Module.SETTINGS.value}:
+            return False
+        if SettingsSetupGuard.is_ready(target_key, include_project_folder_labels=False):
+            return False
+
+        try:
+            title, message = SettingsSetupGuard.redirect_warning_text(getattr(dlg, "lang_manager", None), target_key)
+            ModernMessageDialog.show_warning(title, message, parent=dlg)
+        except Exception as exc:
+            SwitchLogger.log(
+                "settings_setup_warning_failed",
+                module=target_key,
+                extra={"error": str(exc)},
+            )
+
+        if (previous_module_name or "").strip().lower() == Module.SETTINGS.value:
+            instance = module_manager.getActiveModuleInstance(Module.SETTINGS.value)
+            if instance is not None and ModuleSwitchHelper._settings_focus_handler:
+                try:
+                    dlg.settingsModule = instance
+                except Exception:
+                    pass
+                ModuleSwitchHelper._settings_focus_handler(instance, target_key, dlg)
+            try:
+                dlg.sidebar.setActiveModuleOnSidebarButton(Module.SETTINGS.value)
+            except Exception:
+                pass
+            return True
+
+        ModuleSwitchHelper.switch_module(
+            Module.SETTINGS.name,
+            dialog=dlg,
+            focus_module=target_key,
+        )
+        return True
+
+    @staticmethod
     def _activate_target(
         module_manager: _ModuleManagerProtocol,
         *,
@@ -291,6 +337,14 @@ class ModuleSwitchHelper:
             dlg,
             target_key=target_key,
         )
+
+        if ModuleSwitchHelper._redirect_to_settings_for_incomplete_setup(
+            dlg=dlg,
+            module_manager=module_manager,
+            previous_module_name=previous_module_name,
+            target_key=target_key,
+        ):
+            return
 
         if not ModuleSwitchHelper._confirm_navigation(previous_module_name, dlg):
             return

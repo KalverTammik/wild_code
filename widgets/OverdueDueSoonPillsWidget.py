@@ -185,6 +185,9 @@ class OverdueDueSoonPillsUtils:
             # Copy to avoid mutating caller's list
             return [x for x in base_query if isinstance(x, dict)]
         if isinstance(base_query, dict):
+            and_list = base_query.get("AND")
+            if isinstance(and_list, list):
+                return [x for x in and_list if isinstance(x, dict)]
             return [base_query]
         # Unknown type; ignore to keep schema valid
         return []

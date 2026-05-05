@@ -1,0 +1,26 @@
+query ProjectsKpi(
+  $first: Int
+  $after: String
+  $where: QueryProjectsWhereWhereConditions
+  $hasTags: QueryProjectsHasTagsWhereHasConditions
+) {
+  projects(
+    first: $first
+    after: $after
+    where: $where
+    hasTags: $hasTags
+    trashed: WITHOUT
+  ) {
+    pageInfo {
+      currentPage
+      total
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        id
+      }
+    }
+  }
+}

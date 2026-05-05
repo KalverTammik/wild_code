@@ -40,6 +40,8 @@ class WorksModule(TaskModuleBaseUI):
         self._create_on_map_button.setProperty("btnSize", ButtonSize.SMALL)
         self._create_on_map_button.setAutoDefault(False)
         self._create_on_map_button.setDefault(False)
+        self._create_on_map_button.style().unpolish(self._create_on_map_button)
+        self._create_on_map_button.style().polish(self._create_on_map_button)
         self._create_on_map_button.clicked.connect(self._start_create_on_map)
         self.toolbar_area.add_right(self._create_on_map_button)
 
