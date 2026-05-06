@@ -17,6 +17,19 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_EVEL_LAYER_SETUP_ENABLED: "Mul on EVEL kihistus juba seadistatud",
         TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_DISABLED: "EVEL automaattuvastus on väljas. Saad kihid käsitsi määrata.",
         TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_EMPTY: "EVEL baaskihte pole veel seadistatud.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_MODE_VALUE: "Seadistusrežiim: {mode}",
+        TranslationKeys.SETTINGS_GEOSPATIAL_MODE_MANUAL: "Käsitsi seadistus",
+        TranslationKeys.SETTINGS_GEOSPATIAL_MODE_ACTIVE: "Geospatiali abiga seadistus",
+        TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_MANUAL: "Projekti baaskihtide käsitsi seadistus on aktiivne.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_ACTIVE: "Geospatiali abiga seadistus on aktiivne. Projekti baaskihtide käsitsi väljad on peidetud kuni naased käsitsi seadistusse.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_CONNECT_BUTTON: "Ühenda Geospatiali kaudu",
+        TranslationKeys.SETTINGS_GEOSPATIAL_MANAGE_BUTTON: "Vaata Geospatiali seadistust",
+        TranslationKeys.SETTINGS_GEOSPATIAL_RETURN_TO_MANUAL: "Kasuta käsitsi seadistust",
+        TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_TITLE: "Geospatiali abiga seadistus",
+        TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_BODY: "See voog hakkab hiljem seadistama projekti baaskihid ja seotud vaikimisi väärtused automaatselt nende klientide jaoks, kes kasutavad Geospatiali teenuseid. Praegu peidab selle režiimi sisselülitamine käsitsi projekti baaskihtide väljad ja reserveerib selle ala juhitud integratsioonivoo jaoks.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_SCOPE: "Praegune vahe-etapp ei kirjuta veel automaatseid kihiseadistusi. Käsitsi seadistusse saab igal ajal tagasi minna.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_TITLE: "Kas lülitada Geospatiali abiga seadistus välja?",
+        TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_BODY: "Kui lülitad Geospatiali abiga seadistuse välja, eemaldatakse kõik salvestatud Geospatiali seadistused. Pärast seda saad eelistatud väljad käsitsi seadistada või need ise Seadetes lähtestada.",
         TranslationKeys.SETTINGS_BASE_LAYER_WATERPIPES: "Veetorud",
         TranslationKeys.SETTINGS_BASE_LAYER_SEWERPIPES: "Kanalisatsioonitorud",
         TranslationKeys.SETTINGS_BASE_LAYER_PRESSURE_SEWERPIPES: "Survekanalisatsioonitorud",
@@ -512,6 +525,13 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED: "Töö {task_id} loodi ja lisati kaardile, kuid kinnistu seostamine ebaõnnestus tunnusele {cadastral}."
         ,TranslationKeys.WORKS_CREATE_FAILED: "Uue töö loomine ebaõnnestus."
         ,TranslationKeys.WORKS_SHOW_ITEM_ON_MAP_ACTION: "Näita tööd kaardil"
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ACTION: "Lisa punkt kaardile"
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_START_FAILED: "Olemasoleva töö kaardivalikut ei saanud käivitada."
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_TASK_LOAD_FAILED: "Tööd {task_id} ei õnnestunud enne kaardiobjekti loomist laadida."
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ALREADY_LINKED: "Tööl {task_id} on juba seotud kaardiobjekt olemas."
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SAVE_FAILED: "Töö {task_id} on Kavitros olemas, kuid selle kaardiobjekti ei saanud Tööde kihile salvestada. Detailid: {error}"
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_PROPERTY_LINK_FAILED: "Töö {task_id} lisati kaardile, kuid kinnistu seostamine ebaõnnestus tunnusele {cadastral}."
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SUCCESS: "Töö {task_id} lisati Tööde kihile."
         ,TranslationKeys.WORKS_REPOSITION_ACTION: "Muuda asukohta"
         ,TranslationKeys.EASEMENT_PREVIEW_ACTION: "Ava servituudi eelvaade"
         ,TranslationKeys.EASEMENT_DRAW_NEW_ACTION: "Joonista uus seotud objekt kaardile"
@@ -653,6 +673,30 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_TEMP_LAYER_NAME_REQUIRED: "Palun sisesta kihi nimi."
         ,TranslationKeys.WORKS_TEMP_LAYER_CREATE_FAILED: "Ajutise Tööde kihi '{name}' loomine/laadimine ebaõnnestus.\n\nDetailid: {error}"
         ,TranslationKeys.WORKS_TEMP_LAYER_READY: "Ajutine Tööde kiht '{name}' on valmis ja määrati Tööde põhikihiks."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_HELPER_TITLE: "Geospatiali kihi mapper"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_HELPER_DESCRIPTION: "Nähtav ainult Geospatiali režiimis. Avab migratsioonidialoogi, millega saab vanemast kihist andmed valitud Geospatiali põhikihile kaardistada, koos geomeetria ülekandega ja puuduolevate väljade vaikeväärtustega."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_OPEN_BUTTON: "Ava mapper"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_DIALOG_TITLE: "Kaardista vana kiht Geospatiali kihile"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_DIALOG_DESCRIPTION: "Sihtmoodul: {module}. Valitud Geospatiali kiht: {target}. Vali olemasolev lähtekiht, kontrolli väljade kaardistust ja kanna seejärel atribuudid ning geomeetria Geospatiali kihile üle."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SOURCE_LAYER: "Lähtekiht"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_TARGET_FIELD: "Geospatiali väli"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SOURCE_FIELD: "Lähteväli"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_DEFAULT_VALUE: "Vaikeväärtus"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NONE_OPTION: "Ära kaardista"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NO_DEFAULT: "Vaikeväärtus puudub"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_USE_DEFAULT: "Kasuta vaikeväärtust"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_OPTIONAL_DEFAULT: "Valikuline vaikeväärtus"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RUN_BUTTON: "Kanna andmed üle"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_TARGET_REQUIRED: "Vali sellele moodulile esmalt Geospatiali põhikiht."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SOURCE_REQUIRED: "Vali olemasolev lähtekiht, millest andmed üle kanda."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NO_TARGET_FIELDS: "Valitud Geospatiali kihil ei ole kaardistatavaid välju."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_CONFIRM_TITLE: "Kas kanda andmed Geospatiali kihile üle?"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_CONFIRM_BODY: "Lähtekiht: {source}\nSihtkiht: {target}\nTöödeldavaid objekte: {count}\n\nMapper kopeerib geomeetria ja kaardistatud väärtused Geospatiali kihile. Kui võimalik, uuendatakse sama välise id-ga olemasolevad sihtobjektid."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED: "Geospatiali sihtkihi muutmisrežiimi ei saanud käivitada."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED: "Migreeritud objekti lisamine Geospatiali sihtkihile ebaõnnestus."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_COMMIT_FAILED: "Migreeritud objektide salvestamine Geospatiali sihtkihile ebaõnnestus."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_SUCCESS: "Migratsioon lõpetati. Lisatud: {inserted}, uuendatud: {updated}, muutmata: {skipped}."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_WITH_ERRORS: "Migratsioon lõpetati vigadega. Lisatud: {inserted}, uuendatud: {updated}, muutmata: {skipped}.\n\nVead:\n{errors}"
         ,TranslationKeys.PROJECTS_TEMP_LAYER_HELPER_TITLE: "Ajutine Projektide kihi abiline"
         ,TranslationKeys.PROJECTS_TEMP_LAYER_HELPER_DESCRIPTION: "Ajutine arendusabiline. Loob või laeb polügoonpõhise Projektide kihi kas valitud viitekihi GeoPackage'i sisse või uude eraldiseisvasse GeoPackage-faili. Loodud kiht määratakse kohe aktiivseks Projektide põhikihiks."
         ,TranslationKeys.PROJECTS_TEMP_LAYER_CREATE_BUTTON: "Loo/lae ajutine Projektide GPKG kiht"

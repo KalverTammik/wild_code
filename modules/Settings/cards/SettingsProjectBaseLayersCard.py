@@ -17,6 +17,10 @@ from PyQt5.QtWidgets import (
 from qgis.core import Qgis, QgsMapLayer, QgsProject
 from qgis.gui import QgsFieldComboBox, QgsMapLayerComboBox
 
+from ....constants.button_props import ButtonSize, ButtonVariant
+from ....constants.settings_keys import SettingsService
+from ....utils.messagesHelper import ModernMessageDialog
+from .GeospatialSetupDialog import GeospatialSetupDialog
 from .SettingsBaseCard import SettingsBaseCard
 from ..settings_layer_helper import SettingsLayerHelper
 from ....languages.translation_keys import TranslationKeys
@@ -25,12 +29,15 @@ from ....utils.project_base_layers import ProjectBaseLayerKeys, ProjectBaseLayer
 
 class SettingsProjectBaseLayersCard(SettingsBaseCard):
     pendingChanged = pyqtSignal(bool)
+    geospatialModeChanged = pyqtSignal(bool)
     LABEL_WIDTH = 220
     INDENT_WIDTH = 228
     SHARED_SECTION_OFFSET = 24
     TYPE_FIELD_MAX_WIDTH = 360
     MAPPING_KIND_MAX_WIDTH = 420
     MAPPING_IDS_MAX_WIDTH = 140
+    SETUP_MODE_MANUAL = "manual"
+    SETUP_MODE_GEOSPATIAL = "geospatial"
 
     LAYER_KEY_TO_TRANSLATION = {
         ProjectBaseLayerKeys.WATERPIPES: TranslationKeys.SETTINGS_BASE_LAYER_WATERPIPES,
@@ -62,11 +69,14 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
             None,
         )
         self._service = ProjectBaseLayersService()
+        self._settings_service = SettingsService()
         self._layer_combos: Dict[str, QgsMapLayerComboBox] = {}
         self._layer_row_widgets: Dict[str, QWidget] = {}
         self._project_bound = False
         self._layer_signals_connected = False
 
+        self._orig_setup_mode = self.SETUP_MODE_MANUAL
+        self._pend_setup_mode = self.SETUP_MODE_MANUAL
         self._orig_enabled = False
         self._pend_enabled = False
         self._orig_layers = {key: "" for key in ProjectBaseLayerKeys.ORDER}
@@ -92,26 +102,47 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         description.setObjectName("SetupCardDescription")
         layout.addWidget(description)
 
-        toggle_row = QHBoxLayout()
+        self._geospatial_row = QWidget(content)
+        geospatial_row = QHBoxLayout(self._geospatial_row)
+        geospatial_row.setContentsMargins(0, 0, 0, 0)
+        geospatial_row.setSpacing(8)
+
+        self._geospatial_status_label = QLabel(self._geospatial_row)
+        self._geospatial_status_label.setWordWrap(True)
+        geospatial_row.addWidget(self._geospatial_status_label, 1)
+
+        self._geospatial_button = QPushButton(
+            self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_CONNECT_BUTTON),
+            self._geospatial_row,
+        )
+        self._geospatial_button.setProperty("variant", ButtonVariant.PRIMARY)
+        self._geospatial_button.setProperty("btnSize", ButtonSize.SMALL)
+        self._geospatial_button.clicked.connect(self._on_geospatial_button_clicked)
+        geospatial_row.addWidget(self._geospatial_button)
+
+        layout.addWidget(self._geospatial_row)
+
+        self._toggle_row_widget = QWidget(content)
+        toggle_row = QHBoxLayout(self._toggle_row_widget)
         toggle_row.setContentsMargins(0, 0, 0, 0)
         toggle_row.setSpacing(8)
         self._enabled_checkbox = QCheckBox(
             self.lang_manager.translate(TranslationKeys.SETTINGS_EVEL_LAYER_SETUP_ENABLED),
-            content,
+            self._toggle_row_widget,
         )
         self._enabled_checkbox.stateChanged.connect(self._on_enabled_changed)
         toggle_row.addWidget(self._enabled_checkbox)
         toggle_row.addStretch(1)
-        layout.addLayout(toggle_row)
+        layout.addWidget(self._toggle_row_widget)
 
-        layers_frame = QFrame(content)
-        layers_layout = QVBoxLayout(layers_frame)
+        self._layers_frame = QFrame(content)
+        layers_layout = QVBoxLayout(self._layers_frame)
         layers_layout.setContentsMargins(0, 0, 0, 0)
         layers_layout.setSpacing(6)
         self._layers_layout = layers_layout
 
         for key in ProjectBaseLayerKeys.ORDER:
-            row_widget = QWidget(layers_frame)
+            row_widget = QWidget(self._layers_frame)
             row = QHBoxLayout(row_widget)
             row.setContentsMargins(0, 0, 0, 0)
             row.setSpacing(8)
@@ -136,7 +167,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
 
             layers_layout.addWidget(row_widget)
 
-        self._shared_sewer_field_row = QWidget(layers_frame)
+        self._shared_sewer_field_row = QWidget(self._layers_frame)
         field_row = QHBoxLayout(self._shared_sewer_field_row)
         field_row.setContentsMargins(self.SHARED_SECTION_OFFSET, 0, 0, 0)
         field_row.setSpacing(8)
@@ -161,13 +192,13 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
 
         layers_layout.addWidget(self._shared_sewer_field_row)
 
-        self._mapping_rows_host = QWidget(layers_frame)
+        self._mapping_rows_host = QWidget(self._layers_frame)
         self._mapping_rows_layout = QVBoxLayout(self._mapping_rows_host)
         self._mapping_rows_layout.setContentsMargins(0, 0, 0, 0)
         self._mapping_rows_layout.setSpacing(6)
         layers_layout.addWidget(self._mapping_rows_host)
 
-        layout.addWidget(layers_frame)
+        layout.addWidget(self._layers_frame)
         layout.addStretch(1)
 
         reset_btn = self.reset_button()
@@ -196,6 +227,8 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
                 handler=self._on_project_layers_changed,
             )
 
+        self._orig_setup_mode = self._normalize_setup_mode(self._settings_service.geospatial_setup_mode())
+        self._pend_setup_mode = self._orig_setup_mode
         state = self._service.get_state()
         self._orig_enabled = bool(state.get("evel_enabled"))
         self._pend_enabled = self._orig_enabled
@@ -221,7 +254,8 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
 
     def has_pending_changes(self) -> bool:
         return (
-            self._pend_enabled != self._orig_enabled
+            self._pend_setup_mode != self._orig_setup_mode
+            or self._pend_enabled != self._orig_enabled
             or self._pend_layers != self._orig_layers
             or self._pend_sewer_mapping_enabled != self._orig_sewer_mapping_enabled
             or self._pend_sewer_mapping_field != self._orig_sewer_mapping_field
@@ -229,6 +263,10 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         )
 
     def apply(self) -> None:
+        if self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL:
+            self._settings_service.geospatial_setup_mode(value=self._pend_setup_mode)
+        else:
+            self._settings_service.geospatial_setup_mode(clear=True)
         self._service.save_state(
             evel_enabled=self._pend_enabled,
             layers=self._pend_layers,
@@ -238,6 +276,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
                 "rows": self._pend_sewer_mapping_rows,
             },
         )
+        self._orig_setup_mode = self._pend_setup_mode
         self._orig_enabled = self._pend_enabled
         self._orig_layers = dict(self._pend_layers)
         self._orig_sewer_mapping_enabled = self._pend_sewer_mapping_enabled
@@ -245,9 +284,11 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         self._orig_sewer_mapping_rows = [dict(row) for row in self._pend_sewer_mapping_rows]
         self._restore_state_to_ui()
         self._update_status()
+        self.geospatialModeChanged.emit(self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL)
         self.pendingChanged.emit(False)
 
     def revert(self) -> None:
+        self._pend_setup_mode = self._orig_setup_mode
         self._pend_enabled = self._orig_enabled
         self._pend_layers = dict(self._orig_layers)
         self._pend_sewer_mapping_enabled = self._orig_sewer_mapping_enabled
@@ -255,6 +296,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         self._pend_sewer_mapping_rows = [dict(row) for row in self._orig_sewer_mapping_rows]
         self._restore_state_to_ui()
         self._update_status()
+        self.geospatialModeChanged.emit(self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL)
         self.pendingChanged.emit(False)
 
     def _restore_state_to_ui(self) -> None:
@@ -280,23 +322,28 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         self._rebuild_mapping_rows_ui()
 
         self._update_controls_enabled()
+        self._update_geospatial_mode_ui()
 
     def _update_controls_enabled(self) -> None:
-        manual_layers_enabled = not bool(self._pend_enabled)
+        geospatial_active = self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL
+        manual_layers_enabled = not bool(self._pend_enabled) and not geospatial_active
         for key, combo in self._layer_combos.items():
             enabled = manual_layers_enabled
             combo.setEnabled(enabled)
 
+        self._toggle_row_widget.setVisible(not geospatial_active)
+        self._layers_frame.setVisible(not geospatial_active)
+
         self._layer_row_widgets[ProjectBaseLayerKeys.PRESSURE_SEWERPIPES].setVisible(
-            not self._pend_sewer_mapping_enabled
+            not geospatial_active and not self._pend_sewer_mapping_enabled
         )
         self._layer_row_widgets[ProjectBaseLayerKeys.RAINWATERPIPES].setVisible(
-            not self._pend_sewer_mapping_enabled
+            not geospatial_active and not self._pend_sewer_mapping_enabled
         )
 
         sewer_layer = self._current_or_resolved_layer(ProjectBaseLayerKeys.SEWERPIPES)
         has_sewer_layer = sewer_layer is not None
-        mapping_controls_enabled = self._pend_sewer_mapping_enabled and has_sewer_layer
+        mapping_controls_enabled = self._pend_sewer_mapping_enabled and has_sewer_layer and not geospatial_active
         available_kind_count = len(
             {
                 str(row.get("kind") or "").strip()
@@ -305,18 +352,56 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
             }
         ) < len(ProjectBaseLayerKeys.SEWER_MAPPING_KIND_ORDER)
 
-        self._shared_sewer_checkbox.setEnabled(has_sewer_layer)
-        self._add_mapping_button.setVisible(self._pend_sewer_mapping_enabled)
+        self._shared_sewer_checkbox.setEnabled(has_sewer_layer and not geospatial_active)
+        self._add_mapping_button.setVisible(self._pend_sewer_mapping_enabled and not geospatial_active)
         self._add_mapping_button.setEnabled(mapping_controls_enabled and available_kind_count)
-        self._shared_sewer_field_row.setVisible(self._pend_sewer_mapping_enabled)
+        self._shared_sewer_field_row.setVisible(self._pend_sewer_mapping_enabled and not geospatial_active)
         self._shared_sewer_field_combo.setEnabled(mapping_controls_enabled)
-        self._mapping_rows_host.setVisible(self._pend_sewer_mapping_enabled and bool(self._mapping_row_items))
+        self._mapping_rows_host.setVisible(
+            self._pend_sewer_mapping_enabled and not geospatial_active and bool(self._mapping_row_items)
+        )
 
         for row_item in self._mapping_row_items:
             combo = row_item["combo"]
             ids_input = row_item["ids_input"]
             combo.setEnabled(mapping_controls_enabled)
             self._update_mapping_row_input_state(row_item, enable_input=mapping_controls_enabled)
+
+    def _update_geospatial_mode_ui(self) -> None:
+        geospatial_active = self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL
+        mode_label = self.lang_manager.translate(
+            TranslationKeys.SETTINGS_GEOSPATIAL_MODE_ACTIVE
+            if geospatial_active
+            else TranslationKeys.SETTINGS_GEOSPATIAL_MODE_MANUAL
+        )
+        self._geospatial_status_label.setText(
+            self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_MODE_VALUE).format(mode=mode_label)
+        )
+        self._geospatial_status_label.setToolTip(
+            self.lang_manager.translate(
+                TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_ACTIVE
+                if geospatial_active
+                else TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_MANUAL
+            )
+        )
+        self._geospatial_button.setText(
+            self.lang_manager.translate(
+                TranslationKeys.SETTINGS_GEOSPATIAL_MANAGE_BUTTON
+                if geospatial_active
+                else TranslationKeys.SETTINGS_GEOSPATIAL_CONNECT_BUTTON
+            )
+        )
+        self._geospatial_button.setProperty(
+            "variant",
+            ButtonVariant.SUCCESS if geospatial_active else ButtonVariant.PRIMARY,
+        )
+        self._geospatial_button.style().unpolish(self._geospatial_button)
+        self._geospatial_button.style().polish(self._geospatial_button)
+        self._geospatial_button.update()
+
+    def _normalize_setup_mode(self, value: str) -> str:
+        normalized = str(value or "").strip().lower()
+        return self.SETUP_MODE_GEOSPATIAL if normalized == self.SETUP_MODE_GEOSPATIAL else self.SETUP_MODE_MANUAL
 
     def _sync_shared_sewer_field_combo(self) -> None:
         sewer_layer = self._current_or_resolved_layer(ProjectBaseLayerKeys.SEWERPIPES)
@@ -503,13 +588,45 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         self._restore_state_to_ui()
         self._update_status()
 
+    def _on_geospatial_button_clicked(self) -> None:
+        if self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL:
+            disable_geospatial = ModernMessageDialog.ask_yes_no(
+                self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_TITLE),
+                self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_BODY),
+                yes_label=self.lang_manager.translate(TranslationKeys.OK),
+                no_label=self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
+                default=self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
+            )
+            if not disable_geospatial:
+                return
+            self._pend_setup_mode = self.SETUP_MODE_MANUAL
+            self._update_geospatial_mode_ui()
+            self._update_controls_enabled()
+            self._update_status()
+            self.geospatialModeChanged.emit(False)
+            self.pendingChanged.emit(self.has_pending_changes())
+            return
+
+        dialog = GeospatialSetupDialog(lang_manager=self.lang_manager, parent=self)
+        if dialog.exec_() != dialog.Accepted:
+            return
+        self._pend_setup_mode = self.SETUP_MODE_GEOSPATIAL
+        self._update_geospatial_mode_ui()
+        self._update_controls_enabled()
+        self._update_status()
+        self.geospatialModeChanged.emit(True)
+        self.pendingChanged.emit(self.has_pending_changes())
+
     def _on_reset_settings(self) -> None:
+        self._pend_setup_mode = self.SETUP_MODE_MANUAL
         self._pend_enabled = False
         self._pend_layers = {key: "" for key in ProjectBaseLayerKeys.ORDER}
         self._pend_sewer_mapping_enabled = False
         self._pend_sewer_mapping_field = ""
         self._pend_sewer_mapping_rows = []
         self._service.clear()
+        self._settings_service.geospatial_setup_mode(clear=True)
+        self._orig_setup_mode = self.SETUP_MODE_MANUAL
         self._orig_enabled = False
         self._orig_layers = dict(self._pend_layers)
         self._orig_sewer_mapping_enabled = False
@@ -517,9 +634,17 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         self._orig_sewer_mapping_rows = []
         self._restore_state_to_ui()
         self._update_status()
+        self.geospatialModeChanged.emit(False)
         self.pendingChanged.emit(False)
 
     def _update_status(self) -> None:
+        if self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL:
+            self.set_status_text(
+                self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_ACTIVE),
+                True,
+            )
+            return
+
         state = {
             "evel_enabled": self._pend_enabled,
             "layers": self._pend_layers,

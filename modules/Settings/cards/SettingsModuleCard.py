@@ -8,6 +8,7 @@ from PyQt5.QtCore import pyqtSignal, QTimer, QEvent
 from .SettingsBaseCard import SettingsBaseCard
 from .SettingModuleFeatureCard import SettingsModuleFeatureCard
 from .ModuleLabelsWidget import ModuleLabelsWidget
+from ..GeospatialLayerMapperDialog import GeospatialLayerMapperDialog
 from ..SettinsUtils.SettingsLogic import SettingsLogic
 from ..settings_layer_helper import SettingsLayerHelper
 from ...works.works_temp_layer_helper import WorksTempLayerHelper
@@ -18,6 +19,7 @@ from ....widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from ....widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ....constants.module_icons import ModuleIconPaths
 from ....constants.button_props import ButtonVariant, ButtonSize
+from ....constants.settings_keys import SettingsService
 from ....utils.url_manager import Module
 from ....utils.MapTools.MapHelpers import MapHelpers
 from ....utils.FilterHelpers.FilterHelper import FilterHelper
@@ -69,6 +71,9 @@ class SettingsModuleCard(SettingsBaseCard):
         # Layer pickers
         self._layer_selector: QgsMapLayerComboBox | None = None
         self._archive_picker: QgsMapLayerComboBox | None = None
+        self._works_temp_group: QFrame | None = None
+        self._geospatial_mapper_group: QFrame | None = None
+        self._geospatial_mode_active = False
 
         self._module_labels = module_labels or []
         self._labels_widget: ModuleLabelsWidget | None = None
@@ -164,6 +169,18 @@ class SettingsModuleCard(SettingsBaseCard):
 
         cl.addWidget(layers_container)
 
+        geospatial_mapper_group, _geospatial_mapper_button = SettingsModuleFeatureCard.build_filter_group(
+            parent=cw,
+            title_text=self.lang_manager.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_HELPER_TITLE),
+            lang_manager=self.lang_manager,
+            description_text=self.lang_manager.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_HELPER_DESCRIPTION),
+            group_object_name="GeospatialLayerMapperGroup",
+            container_object_name="GeospatialLayerMapperContainer",
+            widget_factory=lambda container: self._create_geospatial_mapper_button(container),
+        )
+        self._geospatial_mapper_group = geospatial_mapper_group
+        cl.addWidget(geospatial_mapper_group)
+
         if self.module_key == Module.WORKS.value:
             works_temp_group, _works_temp_button = SettingsModuleFeatureCard.build_filter_group(
                 parent=cw,
@@ -174,6 +191,7 @@ class SettingsModuleCard(SettingsBaseCard):
                 container_object_name="WorksTempLayerHelperContainer",
                 widget_factory=lambda container: self._create_works_temp_layer_button(container),
             )
+            self._works_temp_group = works_temp_group
             cl.addWidget(works_temp_group)
 
         if self.module_key == Module.PROJECT.value:
@@ -355,6 +373,49 @@ class SettingsModuleCard(SettingsBaseCard):
         button.setDefault(False)
         button.clicked.connect(self._on_create_temp_projects_layer_clicked)
         return button
+
+    def _create_geospatial_mapper_button(self, parent: QWidget) -> QPushButton:
+        button = QPushButton(
+            self.lang_manager.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_OPEN_BUTTON),
+            parent,
+        )
+        button.setObjectName("GeospatialLayerMapperButton")
+        button.setProperty("variant", ButtonVariant.SUCCESS)
+        button.setProperty("btnSize", ButtonSize.SMALL)
+        button.setAutoDefault(False)
+        button.setDefault(False)
+        button.clicked.connect(self._on_open_geospatial_mapper_clicked)
+        return button
+
+    def set_geospatial_mode_active(self, active: bool) -> None:
+        self._geospatial_mode_active = bool(active)
+        self._apply_geospatial_visibility()
+
+    def _apply_geospatial_visibility(self) -> None:
+        if self._geospatial_mapper_group is not None:
+            self._geospatial_mapper_group.setVisible(self._geospatial_mode_active)
+        if self.module_key == Module.WORKS.value and self._works_temp_group is not None:
+            self._works_temp_group.setVisible(not self._geospatial_mode_active)
+
+    def _on_open_geospatial_mapper_clicked(self) -> None:
+        try:
+            target_layer = self._layer_selector.currentLayer() if self._layer_selector is not None else None
+            GeospatialLayerMapperDialog.open_for_module(
+                lang_manager=self.lang_manager,
+                module_name=self.module_key,
+                target_layer=target_layer,
+                parent=self,
+            )
+        except Exception as exc:
+            self._log_error(
+                "geospatial_layer_mapper_open_failed",
+                exc,
+                extra={"module": self.module_key},
+            )
+            ModernMessageDialog.show_warning(
+                self.lang_manager.translate(TranslationKeys.ERROR),
+                str(exc),
+            )
 
     def _on_create_temp_works_layer_clicked(self) -> None:
         try:
@@ -822,6 +883,7 @@ class SettingsModuleCard(SettingsBaseCard):
 
     # --- Lifecycle hooks (SettingsUI) ---
     def on_settings_activate(self, snapshot=None):
+        self._geospatial_mode_active = SettingsService().geospatial_setup_mode() == "geospatial"
         project = QgsProject.instance() if QgsProject else None
         if project is not None and not self._project_bound:
             SettingsLayerHelper.set_combo_project(self._layer_selector, project)
@@ -861,6 +923,7 @@ class SettingsModuleCard(SettingsBaseCard):
             archive_name=self._orig_archive_name,
         )
 
+        self._apply_geospatial_visibility()
         self._update_stored_values_display()
 
     def on_settings_deactivate(self):

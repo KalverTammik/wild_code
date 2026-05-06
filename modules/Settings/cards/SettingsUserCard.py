@@ -156,6 +156,10 @@ class UserSettingsCard(SettingsBaseCard):
             self.property_management = PropertyManagementUI(self.lang_manager)
             pm_layout.addWidget(self.property_management)
 
+    def set_geospatial_mode_active(self, active: bool) -> None:
+        if self.property_management is not None:
+            self.property_management.set_geospatial_mode_active(bool(active))
+
 
 
     def build_and_set_access_controls(self, access_map: dict):

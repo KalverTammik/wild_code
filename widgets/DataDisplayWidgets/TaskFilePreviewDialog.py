@@ -7,7 +7,7 @@ import tempfile
 from typing import Optional
 
 import requests
-from qgis.PyQt.QtCore import Qt, QSize, QUrl
+from qgis.PyQt.QtCore import Qt, QSize, QUrl, QTimer
 from qgis.PyQt.QtGui import QDesktopServices, QPixmap
 from qgis.PyQt.QtWidgets import (
     QApplication,
@@ -27,6 +27,7 @@ from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
+from ...python.workers import FunctionWorker, start_worker
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import loadWebpage
 from ..theme_manager import ThemeManager
@@ -58,7 +59,17 @@ class TaskFilePreviewDialog(QDialog):
     _EXTERNAL_TEMP_FILES: set[str] = set()
 
     @classmethod
-    def open_preview(cls, *, file_info: Optional[dict] = None, local_file_path: str = "", local_title: str = "", lang_manager=None, parent=None):
+    def open_preview(
+        cls,
+        *,
+        file_info: Optional[dict] = None,
+        local_file_path: str = "",
+        local_title: str = "",
+        lang_manager=None,
+        parent=None,
+        compact: bool = False,
+        lazy: bool = False,
+    ):
         resolved_lang = lang_manager or LanguageManager()
         mime_type, ext = cls._resolve_preview_identity(file_info=file_info, local_file_path=local_file_path)
 
@@ -100,7 +111,14 @@ class TaskFilePreviewDialog(QDialog):
             local_title=local_title,
             lang_manager=lang_manager,
             parent=parent,
+            compact=compact,
+            lazy=lazy,
         )
+
+    @classmethod
+    def is_image_preview_candidate(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> bool:
+        mime_type, ext = cls._resolve_preview_identity(file_info=file_info, local_file_path=local_file_path)
+        return mime_type.startswith("image/") or ext in cls.IMAGE_EXTENSIONS
 
     @classmethod
     def should_force_external_open(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> bool:
@@ -234,19 +252,37 @@ class TaskFilePreviewDialog(QDialog):
         ext = str(data.get("ext") or "").strip().lower().lstrip(".")
         return mime_type, ext
 
-    def __init__(self, *, file_info: Optional[dict] = None, local_file_path: str = "", local_title: str = "", lang_manager=None, parent=None) -> None:
+    def __init__(
+        self,
+        *,
+        file_info: Optional[dict] = None,
+        local_file_path: str = "",
+        local_title: str = "",
+        lang_manager=None,
+        parent=None,
+        compact: bool = False,
+        lazy: bool = False,
+    ) -> None:
         super().__init__(parent)
         self._lang = lang_manager or LanguageManager()
         self._file_info = dict(file_info or {})
         self._local_file_path = str(local_file_path or "").strip()
         self._local_title = str(local_title or "").strip()
+        self._compact_mode = bool(compact)
+        self._lazy_preview = bool(lazy)
         self._last_url: str = ""
         self._pdf_temp_path: str = ""
         self._web_view = None
+        self._preview_worker = None
+        self._preview_thread = None
 
         self.setModal(True)
         self.setObjectName("TaskFilePreviewDialog")
-        self.setMinimumSize(760, 520)
+        if self._compact_mode:
+            self.setMinimumSize(420, 320)
+            self.resize(520, 380)
+        else:
+            self.setMinimumSize(760, 520)
         self.setWindowTitle(
             self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_TITLE).format(
                 name=self._local_title or self._file_name()
@@ -302,7 +338,11 @@ class TaskFilePreviewDialog(QDialog):
         layout.addLayout(buttons)
 
         self._set_meta_text()
-        self._load_preview()
+        if self._should_lazy_load_image_preview():
+            self._show_placeholder(self._lang.translate(TranslationKeys.LOADING))
+            QTimer.singleShot(0, self._start_lazy_image_preview_load)
+        else:
+            self._load_preview()
 
     def _run_with_busy_cursor(self, callback):
         QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -394,6 +434,57 @@ class TaskFilePreviewDialog(QDialog):
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt override
         self._cleanup_pdf_temp_file()
         super().closeEvent(event)
+
+    def _should_lazy_load_image_preview(self) -> bool:
+        if not self._lazy_preview or self._local_file_path:
+            return False
+        return self._resolve_preview_kind() == "image"
+
+    def _start_lazy_image_preview_load(self) -> None:
+        file_uuid = self._file_uuid()
+        if not file_uuid:
+            self._show_placeholder(
+                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
+                    name=self._file_name()
+                )
+            )
+            return
+
+        if self._preview_thread is not None:
+            return
+
+        worker = FunctionWorker(self._fetch_image_preview_payload, file_uuid)
+        worker.finished.connect(self._handle_lazy_image_preview_loaded)
+        worker.error.connect(self._handle_lazy_image_preview_error)
+        self._preview_worker = worker
+        self._preview_thread = start_worker(worker, on_thread_finished=self._cleanup_preview_worker)
+
+    def _fetch_image_preview_payload(self, file_uuid: str):
+        return APIModuleActions.fetch_file_preview_payload(
+            file_uuid,
+            max_bytes=self.IMAGE_PREVIEW_MAX_BYTES,
+        )
+
+    def _handle_lazy_image_preview_loaded(self, payload: object) -> None:
+        if not isinstance(payload, dict):
+            self._show_placeholder(
+                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
+                    name=self._file_name()
+                )
+            )
+            return
+        self._apply_image_preview_payload(payload)
+
+    def _handle_lazy_image_preview_error(self, _message: str) -> None:
+        self._show_placeholder(
+            self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
+                name=self._file_name()
+            )
+        )
+
+    def _cleanup_preview_worker(self) -> None:
+        self._preview_worker = None
+        self._preview_thread = None
 
     def _load_preview(self) -> None:
         if self._local_file_path:
@@ -668,6 +759,17 @@ class TaskFilePreviewDialog(QDialog):
             )
             return
 
+        self._apply_image_preview_payload(payload)
+
+    def _apply_image_preview_payload(self, payload: dict) -> None:
+        if not isinstance(payload, dict):
+            self._show_placeholder(
+                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
+                    name=self._file_name()
+                )
+            )
+            return
+
         self._last_url = str(payload.get("url") or "").strip()
         if payload.get("truncated"):
             self._show_placeholder(
@@ -690,7 +792,9 @@ class TaskFilePreviewDialog(QDialog):
 
         image_label = QLabel(self._content_frame)
         image_label.setAlignment(Qt.AlignCenter)
-        scaled = pixmap.scaled(1280, 960, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        max_width = 640 if self._compact_mode else 1280
+        max_height = 420 if self._compact_mode else 960
+        scaled = pixmap.scaled(max_width, max_height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         image_label.setPixmap(scaled)
 
         container = QWidget(self._content_frame)

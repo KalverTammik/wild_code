@@ -91,6 +91,7 @@ class SettingsModule(TokenMixin, QWidget):
 
         self._project_base_layers_card = SettingsProjectBaseLayersCard(self.lang_manager)
         self._project_base_layers_card.pendingChanged.connect(self._update_dirty_state)
+        self._project_base_layers_card.geospatialModeChanged.connect(self._on_geospatial_mode_changed)
         self._cards.append(self._project_base_layers_card)
         self.cards_layout.insertWidget(1, self._project_base_layers_card)
 
@@ -204,6 +205,10 @@ class SettingsModule(TokenMixin, QWidget):
         _, can_create_property = UserUtils.has_property_rights(user_data)
 
         self._user_card.build_property_managment(can_create_property)
+        if self._project_base_layers_card is not None:
+            self._user_card.set_geospatial_mode_active(
+                self._project_base_layers_card._pend_setup_mode == self._project_base_layers_card.SETUP_MODE_GEOSPATIAL
+            )
 
         subjects = UserUtils.abilities_to_subjects(abilities)
 
@@ -320,6 +325,9 @@ class SettingsModule(TokenMixin, QWidget):
         if self._project_base_layers_card is not None:
             self._cards.append(self._project_base_layers_card)
         self._cards.extend(self._module_cards.values())
+
+        if self._project_base_layers_card is not None:
+            self._on_geospatial_mode_changed(self._project_base_layers_card._pend_setup_mode == self._project_base_layers_card.SETUP_MODE_GEOSPATIAL)
 
     def _clear_user_worker_refs(self):
         self._user_fetch_thread = None
@@ -439,6 +447,14 @@ class SettingsModule(TokenMixin, QWidget):
         # Combine user-card dirty with module cards dirty
         dirty = self.logic.has_unsaved_changes() or self._any_module_dirty()
         self._set_dirty(dirty)
+
+    def _on_geospatial_mode_changed(self, active: bool) -> None:
+        if self._user_card is not None:
+            self._user_card.set_geospatial_mode_active(bool(active))
+        for card in self._module_cards.values():
+            set_mode = getattr(card, "set_geospatial_mode_active", None)
+            if callable(set_mode):
+                set_mode(bool(active))
 
     def _set_dirty(self, dirty: bool):
         self._pending_changes = bool(dirty)

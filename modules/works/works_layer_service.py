@@ -19,6 +19,7 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsFeature,
     QgsFeatureRequest,
+    QgsField,
     QgsGeometry,
     QgsPointXY,
     QgsProject,
@@ -53,11 +54,29 @@ class WorksLayerService:
     FIELD_UPDATED_BY = "updated_by"
     FIELD_UPDATE_DATE = "update_date"
 
+    @classmethod
+    def CUSTOM_FIELDS(cls) -> tuple[tuple[str, object], ...]:
+        integer_type = getattr(QVariant, "LongLong", QVariant.Int)
+        return (
+            (cls.FIELD_EXT_JOB_ID, integer_type),
+            (cls.FIELD_EXT_JOB_NAME, QVariant.String),
+            (cls.FIELD_EXT_JOB_TYPE, integer_type),
+            (cls.FIELD_EXT_JOB_STATE, integer_type),
+            (cls.FIELD_DETAILED, QVariant.String),
+            (cls.FIELD_ACTIVE, QVariant.Bool),
+            (cls.FIELD_BEGIN_DATE, QVariant.DateTime),
+            (cls.FIELD_END_DATE, QVariant.DateTime),
+            (cls.FIELD_ADDED_BY, QVariant.String),
+            (cls.FIELD_ADDED_DATE, QVariant.DateTime),
+            (cls.FIELD_UPDATED_BY, QVariant.String),
+            (cls.FIELD_UPDATE_DATE, QVariant.DateTime),
+        )
+
     @staticmethod
     def build_canonical_feature_values(
         *,
         title: str,
-        type_label: str,
+        type_id: object = None,
         status_id: object = None,
         active: Optional[bool] = None,
         detailed: object = None,
@@ -74,7 +93,7 @@ class WorksLayerService:
         updater_name = str(updated_by or creator_name).strip()
         return {
             WorksLayerService.FIELD_EXT_JOB_NAME: str(title or "").strip(),
-            WorksLayerService.FIELD_EXT_JOB_TYPE: str(type_label or "").strip(),
+            WorksLayerService.FIELD_EXT_JOB_TYPE: WorksLayerService.coerce_optional_int(type_id),
             WorksLayerService.FIELD_EXT_JOB_STATE: WorksLayerService.coerce_optional_int(status_id),
             WorksLayerService.FIELD_BEGIN_DATE: begin_date,
             WorksLayerService.FIELD_END_DATE: end_date,
@@ -115,24 +134,146 @@ class WorksLayerService:
                 )
             return None
 
+        ok, message = WorksLayerService._prepare_required_fields(layer)
+        if not ok:
+            if not silent:
+                ModernMessageDialog.show_warning(
+                    lang.translate(TranslationKeys.ERROR),
+                    str(message or "Configured Works layer does not match the required schema."),
+                )
+            return None
+
         return layer
 
     @staticmethod
-    def resolve_task_id_field_name(layer: Optional[QgsVectorLayer]) -> Optional[str]:
+    def _field_map(layer: Optional[QgsVectorLayer]) -> dict[str, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return None
+            return {}
 
         try:
-            field_map = {field.name().lower(): field.name() for field in layer.fields()}
+            return {field.name().lower(): field.name() for field in layer.fields()}
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.WORKS.value,
                 event="works_layer_field_map_failed",
             )
-            return None
+            return {}
 
-        return field_map.get(WorksLayerService.FIELD_EXT_JOB_ID.lower())
+    @classmethod
+    def _prepare_required_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return False, "Invalid Works layer"
+
+        existing = cls._field_map(layer)
+        missing_fields = [QgsField(name, field_type) for name, field_type in cls.CUSTOM_FIELDS() if name.lower() not in existing]
+        incompatible_fields = cls._incompatible_required_fields(layer)
+
+        if incompatible_fields:
+            message = "Configured Works layer does not match the required Geospatial schema:\n\n"
+            message += "\n".join(f"- {entry}" for entry in incompatible_fields)
+            message += "\n\nPlease reselect or recreate the Works layer with the updated schema."
+            return False, message
+
+        if not missing_fields:
+            return True, ""
+
+        started_edit = False
+        already_editable = False
+        try:
+            already_editable = bool(layer.isEditable())
+            if not already_editable:
+                started_edit = bool(layer.startEditing())
+                if not started_edit:
+                    return False, "Could not start editing Works layer to add missing required fields"
+
+            provider = layer.dataProvider()
+            if provider is None or not provider.addAttributes(missing_fields):
+                if started_edit and layer.isEditable():
+                    layer.rollBack()
+                return False, "Could not add missing required fields to Works layer"
+
+            layer.updateFields()
+            if already_editable:
+                layer.triggerRepaint()
+                return True, ""
+
+            if started_edit and not layer.commitChanges():
+                errors = "; ".join(layer.commitErrors() or [])
+                layer.rollBack()
+                return False, errors or "Could not commit new Works layer fields"
+
+            return True, ""
+        except Exception as exc:
+            try:
+                if started_edit and layer.isEditable():
+                    layer.rollBack()
+            except Exception:
+                pass
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_layer_prepare_required_fields_failed",
+            )
+            return False, str(exc)
+
+    @classmethod
+    def _incompatible_required_fields(cls, layer: Optional[QgsVectorLayer]) -> list[str]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return []
+
+        field_map = cls._field_map(layer)
+        mismatches: list[str] = []
+        for name, expected_type in cls.CUSTOM_FIELDS():
+            actual_name = field_map.get(name.lower())
+            if not actual_name:
+                continue
+            field_index = layer.fields().indexFromName(actual_name)
+            if field_index < 0:
+                continue
+            field = layer.fields()[field_index]
+            if cls._field_type_matches(field.type(), expected_type):
+                continue
+            mismatches.append(
+                f"Field '{actual_name}' has type {cls._variant_type_label(field.type())}, expected {cls._variant_type_label(expected_type)}"
+            )
+        return mismatches
+
+    @staticmethod
+    def _field_type_matches(actual_type, expected_type) -> bool:
+        integer_types = {
+            QVariant.Int,
+            getattr(QVariant, "LongLong", QVariant.Int),
+            getattr(QVariant, "UInt", QVariant.Int),
+            getattr(QVariant, "ULongLong", QVariant.Int),
+        }
+        if expected_type in integer_types:
+            return actual_type in integer_types
+        return actual_type == expected_type
+
+    @staticmethod
+    def _variant_type_label(field_type) -> str:
+        integer_types = {
+            QVariant.Int,
+            getattr(QVariant, "LongLong", QVariant.Int),
+            getattr(QVariant, "UInt", QVariant.Int),
+            getattr(QVariant, "ULongLong", QVariant.Int),
+        }
+        if field_type in integer_types:
+            return "Integer"
+        if field_type == QVariant.String:
+            return "Text"
+        if field_type == QVariant.Bool:
+            return "Boolean"
+        if field_type == QVariant.DateTime:
+            return "DateTime"
+        if field_type == QVariant.Date:
+            return "Date"
+        return str(field_type)
+
+    @staticmethod
+    def resolve_task_id_field_name(layer: Optional[QgsVectorLayer]) -> Optional[str]:
+        return WorksLayerService._field_map(layer).get(WorksLayerService.FIELD_EXT_JOB_ID.lower())
 
     @staticmethod
     def current_username() -> str:
@@ -213,6 +354,15 @@ class WorksLayerService:
         if not isinstance(status_payload, dict):
             return None
         return WorksLayerService.coerce_optional_int(status_payload.get("id"))
+
+    @staticmethod
+    def type_id_from_task(task: Optional[dict]) -> Optional[int]:
+        if not isinstance(task, dict):
+            return None
+        type_payload = task.get("type") or {}
+        if not isinstance(type_payload, dict):
+            return None
+        return WorksLayerService.coerce_optional_int(type_payload.get("id"))
 
     @staticmethod
     def status_type_from_task(task: Optional[dict]) -> str:
@@ -409,7 +559,7 @@ class WorksLayerService:
         point: QgsPointXY,
         task_id: str,
         title: str,
-        type_label: str,
+        type_id: object = None,
         status_id: object = None,
         active: Optional[bool] = None,
         detailed: object = None,
@@ -434,7 +584,7 @@ class WorksLayerService:
         field_map = {field.name().lower(): field.name() for field in layer.fields()}
         field_values = WorksLayerService.build_canonical_feature_values(
             title=title,
-            type_label=type_label,
+            type_id=type_id,
             status_id=status_id,
             active=active,
             detailed=detailed,
@@ -533,6 +683,9 @@ class WorksLayerService:
             if text in ("false", "0", "no", "n"):
                 return False
             return value
+
+        if field_type in (QVariant.Int, getattr(QVariant, "LongLong", QVariant.Int), getattr(QVariant, "UInt", QVariant.Int), getattr(QVariant, "ULongLong", QVariant.Int)):
+            return WorksLayerService.coerce_optional_int(value)
 
         if field_type == QVariant.String and isinstance(value, (dict, list)):
             try:

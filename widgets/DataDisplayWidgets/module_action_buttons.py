@@ -36,8 +36,9 @@ from ...modules.easements.easement_preview_dialog import EasementPreviewDialog
 from ...modules.projects.project_preview_dialog import ProjectPreviewDialog
 from ...modules.projects.projects_feature_map_controller import ProjectsFeatureMapController
 from ...modules.Settings.settings_setup_guard import SettingsSetupGuard
+from ...modules.works.works_create_controller import WorksCreateController
+from ...modules.works.works_layer_service import WorksLayerService
 from ...modules.works.works_reposition_controller import WorksRepositionController
-from ...widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
 from ...constants.file_paths import QssPaths
 
 
@@ -147,6 +148,7 @@ class MoreActionsButton(CardActionButton):
         self.module = module  # Ensure module is passed correctly
         self._map_selection_orchestrator: Optional[MapSelectionOrchestrator] = None
         self._works_reposition_controller: Optional[WorksRepositionController] = None
+        self._works_create_controller: Optional[WorksCreateController] = None
         self._asbuilt_feature_map_controller: Optional[AsBuiltFeatureMapController] = None
         self._easement_feature_map_controller: Optional[EasementAttachExistingController] = None
         self._projects_feature_map_controller: Optional[ProjectsFeatureMapController] = None
@@ -215,7 +217,7 @@ class MoreActionsButton(CardActionButton):
             )
             menu.addAction(action_draw_new)
 
-        if module in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value, Module.EASEMENT.value):
+        if module == Module.EASEMENT.value:
             action_files = QAction(
                 lang_manager.translate(TranslationKeys.TASK_FILES_ACTION),
                 self,
@@ -226,6 +228,15 @@ class MoreActionsButton(CardActionButton):
             menu.addAction(action_files)
 
         if module == Module.WORKS.value:
+            action_add_point = QAction(
+                lang_manager.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ACTION),
+                self,
+            )
+            action_add_point.triggered.connect(
+                lambda _, data=item_data, lm=lang_manager: self._add_existing_work_point_on_map(data, lm)
+            )
+            menu.addAction(action_add_point)
+
             action_reposition = QAction(
                 lang_manager.translate(TranslationKeys.WORKS_REPOSITION_ACTION),
                 self,
@@ -321,9 +332,8 @@ class MoreActionsButton(CardActionButton):
             return
 
         item_name = DataDisplayExtractors.extract_item_name(item) or item_id
-        cached_description = DataDisplayExtractors.extract_description(item)
         opened_description = APIModuleActions.get_task_description(item_id)
-        source_description = opened_description if opened_description is not None else cached_description
+        source_description = opened_description if opened_description is not None else ""
 
         dialog = AsBuiltNotesEditorDialog(
             item_name=item_name,
@@ -371,6 +381,38 @@ class MoreActionsButton(CardActionButton):
 
         self._works_reposition_controller.start_reposition(
             task_id=item_id,
+            parent_window=self._get_safe_parent_window(),
+        )
+
+    def _add_existing_work_point_on_map(self, item_data, lang_manager) -> None:
+        lm = lang_manager or LanguageManager()
+        item = item_data if isinstance(item_data, dict) else {}
+
+        item_id = DataDisplayExtractors.extract_item_id(item)
+        if not item_id:
+            return
+
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=lm, silent=False)
+        if works_layer is None:
+            return
+
+        existing_feature = WorksLayerService.find_feature_by_task_id(works_layer, item_id)
+        if existing_feature is not None:
+            WorksLayerService.focus_feature_by_task_id(works_layer, item_id)
+            ModernMessageDialog.show_info(
+                lm.translate(TranslationKeys.INFO),
+                lm.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ALREADY_LINKED).format(
+                    task_id=item_id,
+                ),
+            )
+            return
+
+        if self._works_create_controller is None:
+            self._works_create_controller = WorksCreateController(lang_manager=lm)
+
+        self._works_create_controller.start_add_existing_to_map(
+            task_id=item_id,
+            task_payload=item,
             parent_window=self._get_safe_parent_window(),
         )
 
@@ -422,24 +464,6 @@ class MoreActionsButton(CardActionButton):
         dialog.show()
         dialog.raise_()
         dialog.activateWindow()
-
-    def _open_item_files(self, module_name, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-
-        item_id = DataDisplayExtractors.extract_item_id(item)
-        if not item_id:
-            return
-
-        item_name = DataDisplayExtractors.extract_item_name(item) or item_id
-        dialog = TaskFilesDialog(
-            item_id=item_id,
-            item_name=item_name,
-            module_name=str(module_name or Module.TASK.value),
-            lang_manager=lm,
-            parent=self._get_safe_parent_window(),
-        )
-        dialog.exec_()
 
     def _open_easement_preview(self, item_data, lang_manager) -> None:
         lm = lang_manager or LanguageManager()

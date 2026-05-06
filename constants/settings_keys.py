@@ -13,6 +13,7 @@ THEME = f"{PLUGIN}/theme"
 PREFERRED_MODULE = f"{PLUGIN}/preferred_module"
 MAIN_PROPERTY_LAYER_ID = f"{PLUGIN}/main_property_layer_id"
 PLUGIN_DIALOG_GEOMETRY = f"{PLUGIN}/plugin_dialog/geometry"
+GEOSPATIAL_SETUP_MODE = f"{PLUGIN}/geospatial/setup_mode"
 
 # Per-module suffix constants
 MODULE_SETTING_MAIN_LAYER = "element_layer_id"
@@ -90,6 +91,9 @@ class SettingsService:
 
     def main_property_layer_id(self, value=_UNSET, *, clear: bool = False, default: str = ""):
         return self.plugin_setting(MAIN_PROPERTY_LAYER_ID, value=value, clear=clear, default=default)
+
+    def geospatial_setup_mode(self, value=_UNSET, *, clear: bool = False, default: str = "manual"):
+        return self.plugin_setting(GEOSPATIAL_SETUP_MODE, value=value, clear=clear, default=default)
 
     def module_preferred_statuses(self, module_name: str, value=_UNSET, *, clear: bool = False):
         return self.module_setting(

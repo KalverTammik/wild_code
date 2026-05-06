@@ -192,7 +192,7 @@ class WorksTempLayerHelper:
 
         fields.append(QgsField("ext_job_id", integer_type))
         fields.append(QgsField("ext_job_name", QVariant.String))
-        fields.append(QgsField("ext_job_type", QVariant.String))
+        fields.append(QgsField("ext_job_type", integer_type))
         fields.append(QgsField("ext_job_state", integer_type))
         fields.append(QgsField("detailed", QVariant.String))
         fields.append(QgsField("active", QVariant.Bool))

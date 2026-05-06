@@ -60,7 +60,6 @@ query tasks(
           }
         }
         priority
-        description
       }
     }
   }

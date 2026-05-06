@@ -56,6 +56,9 @@ class APIModuleActions:
         owner = APIModuleActions._file_owner_module(module)
         query_map = {
             Module.TASK.value: "taskFiles.graphql",
+            Module.PROJECT.value: "projectFiles.graphql",
+            Module.CONTRACT.value: "contractFiles.graphql",
+            Module.COORDINATION.value: "coordinationFiles.graphql",
             Module.EASEMENT.value: "easementFiles.graphql",
         }
         return query_map.get(owner, "")

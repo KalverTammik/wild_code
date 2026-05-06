@@ -49,6 +49,8 @@ class WorksCreateController:
         self._parent_window = None
         self._allowed_type_ids: list[str] = []
         self._on_created: Optional[Callable[[str], None]] = None
+        self._existing_task_id: str = ""
+        self._existing_task_payload: dict[str, object] = {}
         self._preload_worker = None
         self._preload_thread = None
         self._preload_request_id = 0
@@ -73,13 +75,60 @@ class WorksCreateController:
         self._parent_window = parent_window
         self._allowed_type_ids = [str(item_id) for item_id in (allowed_type_ids or []) if item_id]
         self._on_created = on_created
+        self._existing_task_id = ""
+        self._existing_task_payload = {}
         self.preload_dialog_data()
+
+        return self._start_point_capture(
+            start_failed_key=TranslationKeys.WORKS_CREATE_START_FAILED,
+        )
+
+    def start_add_existing_to_map(
+        self,
+        *,
+        task_id: str,
+        task_payload: Optional[dict] = None,
+        parent_window=None,
+        on_created: Optional[Callable[[str], None]] = None,
+    ) -> bool:
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=False)
+        if works_layer is None:
+            return False
+
+        task_id_text = str(task_id or "").strip()
+        if not task_id_text:
+            return False
+
+        existing_feature = WorksLayerService.find_feature_by_task_id(works_layer, task_id_text)
+        if existing_feature is not None:
+            WorksLayerService.focus_feature_by_task_id(works_layer, task_id_text)
+            ModernMessageDialog.show_info(
+                self._lang.translate(TranslationKeys.INFO),
+                self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ALREADY_LINKED).format(
+                    task_id=task_id_text,
+                ),
+            )
+            return False
+
+        self.cancel(bring_front=False)
+
+        self._parent_window = parent_window
+        self._allowed_type_ids = []
+        self._on_created = on_created
+        self._existing_task_id = task_id_text
+        self._existing_task_payload = dict(task_payload or {})
+
+        return self._start_point_capture(
+            start_failed_key=TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_START_FAILED,
+        )
+
+    def _start_point_capture(self, *, start_failed_key: str) -> bool:
 
         canvas = iface.mapCanvas() if iface is not None else None
         if canvas is None:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
-                self._lang.translate(TranslationKeys.WORKS_CREATE_START_FAILED),
+                self._lang.translate(start_failed_key),
             )
             return False
 
@@ -117,6 +166,10 @@ class WorksCreateController:
         self._preload_thread = start_worker(worker, on_thread_finished=self._cleanup_preload_worker)
 
     def _handle_point_selected(self, point: QgsPointXY) -> None:
+        if self._existing_task_id:
+            self._handle_existing_task_point_selected(point)
+            return
+
         parent_window = self._parent_window
         self._clear_capture_tool(bring_front=True)
 
@@ -214,13 +267,12 @@ class WorksCreateController:
                 fallback=dialog.selected_responsible_label() or WorksLayerService.current_username(),
             )
             created_title = str(created_task.get("name") or dialog.title_text() or "").strip()
-            created_type = str(((created_task.get("type") or {}).get("name") or dialog.selected_type_label() or "")).strip()
             map_saved, map_error = WorksLayerService.insert_work_feature(
                 layer=works_layer,
                 point=point,
                 task_id=task_id,
                 title=created_title,
-                type_label=created_type,
+                type_id=WorksLayerService.type_id_from_task(created_task) or dialog.selected_type_id(),
                 status_id=WorksLayerService.status_id_from_task(created_task),
                 active=WorksLayerService.active_from_task(created_task),
                 detailed=WorksLayerService.detailed_from_task(created_task),
@@ -283,6 +335,165 @@ class WorksCreateController:
         ModernMessageDialog.show_info(
             self._lang.translate(TranslationKeys.SUCCESS),
             self._lang.translate(TranslationKeys.WORKS_CREATE_SUCCESS).format(task_id=task_id),
+        )
+
+    def _handle_existing_task_point_selected(self, point: QgsPointXY) -> None:
+        parent_window = self._parent_window
+        self._clear_capture_tool(bring_front=True)
+
+        task_id = str(self._existing_task_id or "").strip()
+        cached_payload = dict(self._existing_task_payload or {})
+        self._existing_task_id = ""
+        self._existing_task_payload = {}
+
+        if not task_id:
+            return
+
+        task_payload = APIModuleActions.get_task_data(task_id)
+        if not isinstance(task_payload, dict):
+            task_payload = cached_payload
+        if not isinstance(task_payload, dict) or not task_payload:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_TASK_LOAD_FAILED).format(
+                    task_id=task_id,
+                ),
+            )
+            return
+
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
+        if works_layer is None:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_LAYER_MISSING),
+                parent=parent_window,
+            )
+            return
+
+        existing_feature = WorksLayerService.find_feature_by_task_id(works_layer, task_id)
+        if existing_feature is not None:
+            WorksLayerService.focus_feature_by_task_id(works_layer, task_id)
+            ModernMessageDialog.show_info(
+                self._lang.translate(TranslationKeys.INFO),
+                self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ALREADY_LINKED).format(
+                    task_id=task_id,
+                ),
+            )
+            return
+
+        property_feature = WorksLayerService.find_property_feature_at_point(point)
+        created_at = WorksLayerService.created_date_from_task(task_payload) or datetime.now()
+        updated_at = WorksLayerService.updated_date_from_task(task_payload) or created_at
+        responsible_name = self._responsible_display_name(
+            task_payload,
+            fallback=WorksLayerService.current_username(),
+        )
+        title = str(task_payload.get("name") or "").strip() or task_id
+
+        map_saved, map_error = WorksLayerService.insert_work_feature(
+            layer=works_layer,
+            point=point,
+            task_id=task_id,
+            title=title,
+            type_id=WorksLayerService.type_id_from_task(task_payload),
+            status_id=WorksLayerService.status_id_from_task(task_payload),
+            active=WorksLayerService.active_from_task(task_payload),
+            detailed=WorksLayerService.detailed_from_task(task_payload),
+            begin_date=WorksLayerService.begin_date_from_task(task_payload) or created_at,
+            end_date=WorksLayerService.end_date_from_task(task_payload),
+            added_by=responsible_name,
+            added_date=created_at,
+            updated_by=responsible_name,
+            update_date=updated_at,
+        )
+
+        if not map_saved:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.WARNING),
+                self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SAVE_FAILED).format(
+                    task_id=task_id,
+                    error=map_error or self._lang.translate(TranslationKeys.ERROR),
+                ),
+            )
+            return
+
+        try:
+            latest_description = APIModuleActions.get_task_description(task_id)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_existing_task_description_load_failed",
+                extra={"task_id": task_id},
+            )
+            latest_description = task_payload.get("description") if isinstance(task_payload, dict) else None
+
+        updated_description = WorksDescriptionService.merge_metadata_into_description(
+            existing_html=latest_description,
+            layer=works_layer,
+            point=point,
+            lang_manager=self._lang,
+        )
+        if updated_description and updated_description != str(latest_description or "").strip():
+            try:
+                updated = APIModuleActions.update_task_description(task_id, updated_description)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.WORKS.value,
+                    event="works_existing_task_description_update_failed",
+                    extra={"task_id": task_id},
+                )
+            else:
+                if not updated:
+                    PythonFailLogger.log_exception(
+                        RuntimeError("Could not update works task metadata description after placing map point"),
+                        module=Module.WORKS.value,
+                        event="works_existing_task_description_update_failed",
+                        extra={"task_id": task_id},
+                    )
+
+        property_link_failed = False
+        cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
+        if cadastral_number:
+            try:
+                property_ids, _missing = APIModuleActions.resolve_property_ids_by_cadastral([cadastral_number])
+                if property_ids:
+                    APIModuleActions.associate_properties(Module.TASK.value, task_id, property_ids)
+                else:
+                    property_link_failed = True
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.WORKS.value,
+                    event="works_existing_property_link_failed",
+                    extra={"task_id": task_id, "cadastral": cadastral_number},
+                )
+                property_link_failed = True
+
+        if callable(self._on_created):
+            try:
+                self._on_created(task_id)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.WORKS.value,
+                    event="works_post_add_existing_callback_failed",
+                )
+
+        if property_link_failed:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.WARNING),
+                self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_PROPERTY_LINK_FAILED).format(
+                    task_id=task_id,
+                    cadastral=cadastral_number,
+                ),
+            )
+            return
+
+        ModernMessageDialog.show_info(
+            self._lang.translate(TranslationKeys.SUCCESS),
+            self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SUCCESS).format(task_id=task_id),
         )
 
     @staticmethod

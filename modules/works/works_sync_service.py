@@ -56,7 +56,7 @@ class WorksSyncService:
             return
 
         layer = self.attach()
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid() or layer.isEditable():
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return
 
         task_id_field = WorksLayerService.resolve_task_id_field_name(layer)
@@ -118,7 +118,7 @@ class WorksSyncService:
             return
 
         layer = self.attach()
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid() or layer.isEditable():
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return
 
         feature = WorksLayerService.find_feature_by_task_id(layer, task_id_text)
@@ -146,10 +146,12 @@ class WorksSyncService:
 
         self._syncing_from_backend = True
         started_edit = False
+        already_editable = False
         try:
             field_indices = {field.name().lower(): index for index, field in enumerate(layer.fields())}
 
-            if not layer.isEditable():
+            already_editable = bool(layer.isEditable())
+            if not already_editable:
                 started_edit = bool(layer.startEditing())
                 if not started_edit:
                     return
@@ -169,6 +171,11 @@ class WorksSyncService:
 
                     if layer.changeAttributeValue(feature_id, field_index, coerced_value):
                         changed = True
+
+            if already_editable:
+                if changed:
+                    layer.triggerRepaint()
+                return
 
             if not started_edit:
                 return
@@ -286,13 +293,12 @@ class WorksSyncService:
     @staticmethod
     def _build_layer_updates(task: dict) -> dict[str, object]:
         title = str(task.get("name") or task.get("title") or "").strip()
-        type_name = str(((task.get("type") or {}).get("name") or "")).strip()
         created_at = WorksLayerService.created_date_from_task(task)
         updated_at = WorksLayerService.updated_date_from_task(task)
 
         updates = {
             WorksLayerService.FIELD_EXT_JOB_NAME: title,
-            WorksLayerService.FIELD_EXT_JOB_TYPE: type_name,
+            WorksLayerService.FIELD_EXT_JOB_TYPE: WorksLayerService.type_id_from_task(task),
             WorksLayerService.FIELD_EXT_JOB_STATE: WorksLayerService.status_id_from_task(task),
             WorksLayerService.FIELD_ACTIVE: WorksLayerService.active_from_task(task),
             WorksLayerService.FIELD_DETAILED: WorksLayerService.detailed_from_task(task),

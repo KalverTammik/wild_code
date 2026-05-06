@@ -13,6 +13,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...modules.projects.project_board_overview_service import ProjectBoardOverviewService
 from ...modules.projects.project_board_widgets import ProjectBoardOverviewWidget
 from .EasementPropertiesWidget import EasementPropertiesWidget
+from .TaskDetailOverviewWidget import TaskDetailOverviewWidget
 
 
 class ModuleConfig:
@@ -87,19 +88,25 @@ class ModuleConfigFactory:
     def _create_task_description_config(
         module_type: str,
         item_data: Dict[str, Any],
+        *,
+        lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
+        lm = lang_manager or LanguageManager()
         config = ModuleConfig(module_type, title="")
-        description = DataDisplayExtractors.extract_description(item_data).strip()
-        if description:
-            config.set_detailed_content(description)
         config.set_detail_loader(
-            lambda payload=item_data: ModuleConfigFactory._load_single_item_description(
-                module_type=Module.TASK.value,
-                query_name="w_tasks_module_data_by_item_id.graphql",
-                root_field="task",
+            lambda payload=item_data, lang=lm, current_module=module_type: TaskDetailOverviewWidget(
                 item_data=payload,
+                description_html=ModuleConfigFactory._load_single_item_description(
+                    module_type=Module.TASK.value,
+                    query_name="w_tasks_module_data_by_item_id.graphql",
+                    root_field="task",
+                    item_data=payload,
+                ),
+                module_name=current_module,
+                lang_manager=lang,
             )
         )
+        config.set_show_detail_handle(True)
         return config
 
     @staticmethod
@@ -171,11 +178,16 @@ class ModuleConfigFactory:
             lm.translate(TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT)
         )
         config.set_detail_loader(
-            lambda payload=item_id, lang=lm: ProjectBoardOverviewWidget(
-                ProjectBoardOverviewService.build_project_board_data(
-                    payload,
-                    lang_manager=lang,
-                )
+            lambda payload=item_id, lang=lm: TaskDetailOverviewWidget(
+                item_data=payload,
+                detail_widget=ProjectBoardOverviewWidget(
+                    ProjectBoardOverviewService.build_project_board_data(
+                        payload,
+                        lang_manager=lang,
+                    )
+                ),
+                module_name=Module.PROJECT.value,
+                lang_manager=lang,
             )
         )
         config.set_show_detail_handle(True)
@@ -189,13 +201,19 @@ class ModuleConfigFactory:
         lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         """Create configuration for contract modules."""
+        lm = lang_manager or LanguageManager()
         config = ModuleConfig(Module.CONTRACT.value, title="")
         config.set_detail_loader(
-            lambda payload=item_id: ModuleConfigFactory._load_single_item_description(
-                module_type=Module.CONTRACT.value,
-                query_name="w_contracts_module_data_by_item_id.graphql",
-                root_field="contract",
+            lambda payload=item_id, lang=lm: TaskDetailOverviewWidget(
                 item_data=payload,
+                description_html=ModuleConfigFactory._load_single_item_description(
+                    module_type=Module.CONTRACT.value,
+                    query_name="w_contracts_module_data_by_item_id.graphql",
+                    root_field="contract",
+                    item_data=payload,
+                ),
+                module_name=Module.CONTRACT.value,
+                lang_manager=lang,
             )
         )
         config.set_show_detail_handle(True)
@@ -208,10 +226,16 @@ class ModuleConfigFactory:
         lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         """Create configuration for coordination modules."""
+        lm = lang_manager or LanguageManager()
         config = ModuleConfig(Module.COORDINATION.value, title="")
         config.set_detail_loader(
-            lambda payload=item_id: ModuleConfigFactory._load_single_item_coordination_detail(
+            lambda payload=item_id, lang=lm: TaskDetailOverviewWidget(
                 item_data=payload,
+                description_html=ModuleConfigFactory._load_single_item_coordination_detail(
+                    item_data=payload,
+                ),
+                module_name=Module.COORDINATION.value,
+                lang_manager=lang,
             )
         )
         config.set_show_detail_handle(True)
@@ -224,7 +248,11 @@ class ModuleConfigFactory:
         lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         """Create configuration for works modules."""
-        return ModuleConfigFactory._create_task_description_config(Module.WORKS.value, item_id)
+        return ModuleConfigFactory._create_task_description_config(
+            Module.WORKS.value,
+            item_id,
+            lang_manager=lang_manager,
+        )
 
     @staticmethod
     def _create_task_config(
@@ -232,7 +260,11 @@ class ModuleConfigFactory:
         *,
         lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
-        return ModuleConfigFactory._create_task_description_config(Module.TASK.value, item_id)
+        return ModuleConfigFactory._create_task_description_config(
+            Module.TASK.value,
+            item_id,
+            lang_manager=lang_manager,
+        )
 
     @staticmethod
     def _create_easement_config(
@@ -248,8 +280,13 @@ class ModuleConfigFactory:
             ),
         )
         config.set_detail_loader(
-            lambda payload=item_id, lang=lm: EasementPropertiesWidget(
+            lambda payload=item_id, lang=lm: TaskDetailOverviewWidget(
                 item_data=payload,
+                detail_widget=EasementPropertiesWidget(
+                    item_data=payload,
+                    lang_manager=lang,
+                ),
+                module_name=Module.EASEMENT.value,
                 lang_manager=lang,
             )
         )
@@ -266,5 +303,9 @@ class ModuleConfigFactory:
         lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         """Create configuration for asbuilt modules."""
-        return ModuleConfigFactory._create_task_description_config(Module.ASBUILT.value, item_id)
+        return ModuleConfigFactory._create_task_description_config(
+            Module.ASBUILT.value,
+            item_id,
+            lang_manager=lang_manager,
+        )
 

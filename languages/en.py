@@ -17,6 +17,19 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_EVEL_LAYER_SETUP_ENABLED: "I have EVEL layer setup",
         TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_DISABLED: "EVEL auto-detect is off. You can define the layers manually.",
         TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_EMPTY: "No EVEL base layers configured yet.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_MODE_VALUE: "Setup mode: {mode}",
+        TranslationKeys.SETTINGS_GEOSPATIAL_MODE_MANUAL: "Manual setup",
+        TranslationKeys.SETTINGS_GEOSPATIAL_MODE_ACTIVE: "Geospatial-assisted setup",
+        TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_MANUAL: "Manual project base layer setup is active.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_ACTIVE: "Geospatial-assisted setup is active. Manual project base layer controls are hidden until you return to manual setup.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_CONNECT_BUTTON: "Connect via Geospatial",
+        TranslationKeys.SETTINGS_GEOSPATIAL_MANAGE_BUTTON: "Review Geospatial setup",
+        TranslationKeys.SETTINGS_GEOSPATIAL_RETURN_TO_MANUAL: "Use manual setup",
+        TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_TITLE: "Geospatial-assisted setup",
+        TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_BODY: "This flow will later configure project base layers and related defaults automatically for customers using Geospatial services. For now, enabling this mode hides the manual project base layer controls and reserves this area for the guided integration flow.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_SCOPE: "The current placeholder step does not write automatic layer assignments yet. You can return to manual setup at any time.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_TITLE: "Disable Geospatial-assisted setup?",
+        TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_BODY: "If you disable Geospatial-assisted setup, all saved Geospatial settings will be removed. After that, you can configure the preferred fields manually or reset them yourself in Settings.",
         TranslationKeys.SETTINGS_BASE_LAYER_WATERPIPES: "Waterpipes",
         TranslationKeys.SETTINGS_BASE_LAYER_SEWERPIPES: "Sewerpipes",
         TranslationKeys.SETTINGS_BASE_LAYER_PRESSURE_SEWERPIPES: "Pressure sewerpipes",
@@ -517,6 +530,13 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED: "Task {task_id} was created and added to the map, but property linking failed for {cadastral}."
         ,TranslationKeys.WORKS_CREATE_FAILED: "Failed to create the new work item."
         ,TranslationKeys.WORKS_SHOW_ITEM_ON_MAP_ACTION: "Show work on map"
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ACTION: "Add point on map"
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_START_FAILED: "Could not start map capture for adding this work to the map."
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_TASK_LOAD_FAILED: "Could not load task {task_id} before creating its map feature."
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ALREADY_LINKED: "Work {task_id} already has a linked map feature."
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SAVE_FAILED: "Task {task_id} exists in Kavitro, but its map feature could not be saved to the Works layer. Details: {error}"
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_PROPERTY_LINK_FAILED: "Task {task_id} was added to the map, but property linking failed for {cadastral}."
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SUCCESS: "Task {task_id} was added to the Works layer."
         ,TranslationKeys.WORKS_REPOSITION_ACTION: "Reposition on map"
         ,TranslationKeys.EASEMENT_PREVIEW_ACTION: "Open easement preview"
         ,TranslationKeys.EASEMENT_DRAW_NEW_ACTION: "Draw new linked feature on map"
@@ -658,6 +678,30 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_TEMP_LAYER_NAME_REQUIRED: "Please enter a layer name."
         ,TranslationKeys.WORKS_TEMP_LAYER_CREATE_FAILED: "Failed to create/load temporary Works layer '{name}'.\n\nDetails: {error}"
         ,TranslationKeys.WORKS_TEMP_LAYER_READY: "Temporary Works layer '{name}' is ready and has been configured as the Works main layer."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_HELPER_TITLE: "Geospatial layer mapper"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_HELPER_DESCRIPTION: "Visible only in Geospatial mode. Opens a migration dialog that maps data from an older layer into the selected Geospatial main layer, including geometry transfer and missing-field defaults."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_OPEN_BUTTON: "Open mapper"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_DIALOG_TITLE: "Map legacy layer into Geospatial layer"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_DIALOG_DESCRIPTION: "Target module: {module}. Selected Geospatial layer: {target}. Choose an existing source layer, review field mappings, and then transfer attributes and geometry into the Geospatial layer."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SOURCE_LAYER: "Source layer"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_TARGET_FIELD: "Geospatial field"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SOURCE_FIELD: "Source field"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_DEFAULT_VALUE: "Default value"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NONE_OPTION: "Do not map"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NO_DEFAULT: "No default"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_USE_DEFAULT: "Use default"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_OPTIONAL_DEFAULT: "Optional default value"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RUN_BUTTON: "Transfer data"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_TARGET_REQUIRED: "Select the Geospatial main layer for this module first."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SOURCE_REQUIRED: "Select the existing source layer you want to migrate from."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NO_TARGET_FIELDS: "The selected Geospatial layer has no mappable fields."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_CONFIRM_TITLE: "Transfer data into Geospatial layer?"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_CONFIRM_BODY: "Source layer: {source}\nTarget layer: {target}\nFeatures to process: {count}\n\nThe mapper will copy geometry and mapped values into the Geospatial layer. Existing target features with the same external id will be updated when possible."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED: "Could not start editing the Geospatial target layer."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED: "Could not add a migrated feature to the Geospatial target layer."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_COMMIT_FAILED: "Could not commit migrated features to the Geospatial target layer."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_SUCCESS: "Migration finished. Inserted: {inserted}, updated: {updated}, unchanged: {skipped}."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_WITH_ERRORS: "Migration finished with errors. Inserted: {inserted}, updated: {updated}, unchanged: {skipped}.\n\nErrors:\n{errors}"
         ,TranslationKeys.PROJECTS_TEMP_LAYER_HELPER_TITLE: "Temporary Projects layer helper"
         ,TranslationKeys.PROJECTS_TEMP_LAYER_HELPER_DESCRIPTION: "Temporary development helper. Creates or loads a polygon-based Projects layer either inside the GeoPackage of the selected reference layer or in a new standalone GeoPackage file. The created layer is immediately configured as the active Projects main layer."
         ,TranslationKeys.PROJECTS_TEMP_LAYER_CREATE_BUTTON: "Create/load temp Projects GPKG layer"

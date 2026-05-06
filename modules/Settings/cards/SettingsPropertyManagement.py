@@ -1,6 +1,7 @@
 # PropertyManagement.py
 
 from ....constants.button_props import ButtonVariant
+from ....constants.settings_keys import SettingsService
 from qgis.utils import iface
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton
 from qgis.core import QgsProject
@@ -47,6 +48,7 @@ class PropertyManagementUI(SettingsBaseCard):
         }
         self._layer_signals_connected = False
         self._has_shown_once = False
+        self._geospatial_mode_active = SettingsService().geospatial_setup_mode() == "geospatial"
 
         cw = self.content_widget()
         main_layout = QVBoxLayout(cw)
@@ -112,6 +114,28 @@ class PropertyManagementUI(SettingsBaseCard):
         main_layout.addLayout(btn_row)
 
         # Initial state deferred until widget is shown
+        self._apply_geospatial_mode()
+
+    def set_geospatial_mode_active(self, active: bool) -> None:
+        self._geospatial_mode_active = bool(active)
+        self._apply_geospatial_mode()
+
+    def _apply_geospatial_mode(self) -> None:
+        if self._geospatial_mode_active:
+            self.btn_open_maa_amet.setEnabled(False)
+            self.btn_add_shp.setEnabled(False)
+            self.btn_add_property.setEnabled(True)
+            tooltip = self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_ACTIVE)
+            self.btn_open_maa_amet.setToolTip(tooltip)
+            self.btn_add_shp.setToolTip(tooltip)
+            self.btn_add_property.setToolTip("")
+            return
+
+        self.btn_open_maa_amet.setEnabled(True)
+        self.btn_open_maa_amet.setToolTip("")
+        self.btn_add_shp.setToolTip("")
+        self.btn_add_property.setToolTip("")
+        self._update_button_states()
 
     def _minimize_plugin_window_if_safe(self) -> None:
         self._enter_map_selection_mode()
@@ -270,6 +294,10 @@ class PropertyManagementUI(SettingsBaseCard):
         Internal logic that reads layers and applies the enabled/disabled states
         using the pure helper.
         """
+        if self._geospatial_mode_active:
+            self._apply_geospatial_mode()
+            return
+
         # 1) Discover layers
         main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=True)
         shp_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
