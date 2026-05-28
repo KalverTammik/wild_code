@@ -545,3 +545,8 @@ flowchart TD
 - Why: this creates a concrete first implementation model without requiring a full separate sync-state store before the ownership rules are proven
 - Files likely touched: `modules/works/works_sync_service.py`, `modules/works/works_layer_service.py`, Works UI load hooks, and later file/description update helpers
 - Open follow-up: decide exact dirty-flag schema, which date fields are allowed in stage 1 push, and whether stage 2 should monitor only active tasks or all tasks with different cadence
+
+
+
+## TODO
+If a task has been deleted (is trashed), then we need to trash the map element also

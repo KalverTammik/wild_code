@@ -67,7 +67,7 @@ Implementation checklist:
 2. Declare `FEED_LOGIC_CLS` (usually `UnifiedFeedLogic`) and a `QUERY_FILE`. Lazily instantiate `self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)` inside `activate()` or filter refresh paths, and call `configure_single_item_query(...)` if the module supports opening a single card from search.
 3. Build the toolbar in `__init__`: add whichever filter widgets the module supports, keep them in `self._filter_widgets`, and connect each `selectionChanged` signal to a `_refresh_filters()` helper.
 4. Implement `load_next_batch()` as `return self.process_next_batch(retheme_func=...)`. `ModuleBaseUI.activate()` ensures the shared `FeedLoadEngine` is initialized with `self.load_next_batch` and wires scroll handling.
-5. Inside `_refresh_filters`, read the widget selections (or fall back to `_get_saved_*_ids()`), translate them into a GraphQL `where` dict plus optional `hasTags` payload via `_build_has_tags_condition`, and pass both into `self.feed_logic.set_where(...)` / `set_extra_arguments(...)`. Always reset the feed UI via `self.clear_feed(...)` and schedule a load through `self.feed_load_engine.schedule_load()`.
+5. Inside `_refresh_filters`, read the widget selections (or fall back to `_get_saved_*_ids()`), translate them into a GraphQL `where` dict plus optional `whereHas` payload via `_build_has_tags_condition`, and pass both into `self.feed_logic.set_where(...)` / `set_extra_arguments(...)`. Always reset the feed UI via `self.clear_feed(...)` and schedule a load through `self.feed_load_engine.schedule_load()`.
 6. Store pills or secondary controls (overdue/due soon) on the toolbar’s right side, and reuse `_apply_where()` helpers to combine them with the current base filters.
 
 ### 2.3 Non-feed / bespoke modules
@@ -138,7 +138,7 @@ Before creating a new module, decide whether it should piggyback on `ModuleBaseU
 - All queries must be loaded via `GraphQLQueryLoader`.
 - Never hardcode URLs, tokens, or file paths—use constants and managers.
 - Follow the error and translation patterns established in `APIClient`.
-- When filtering feed data by tags, always define/extend the query to accept a `hasTags` variable (type `QueryProjectsHasTagsWhereHasConditions`), build its payload via `ModuleBaseUI._build_has_tags_condition()` (supports `ANY`/`ALL`), and pass it through `FeedLogic.set_extra_arguments(hasTags=payload)` so pagination honors the same filter.
+- When filtering feed data by tags, always define/extend the query to accept a `whereHas` variable (for example `[ProjectsWhereHasInput!]`), build its payload via `ModuleBaseUI._build_has_tags_condition()` (supports `ANY`/`ALL`), and pass it through `FeedLogic.set_extra_arguments(whereHas=payload)` so pagination honors the same filter.
 
 This ensures all API interactions are secure, maintainable, and consistent across the project.
 

@@ -2,13 +2,13 @@ query ProjectsKpi(
   $first: Int
   $after: String
   $where: QueryProjectsWhereWhereConditions
-  $hasTags: QueryProjectsHasTagsWhereHasConditions
+  $whereHas: [ProjectsWhereHasInput!]
 ) {
   projects(
     first: $first
     after: $after
     where: $where
-    hasTags: $hasTags
+    whereHas: $whereHas
     trashed: WITHOUT
   ) {
     pageInfo {

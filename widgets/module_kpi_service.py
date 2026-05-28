@@ -56,9 +56,9 @@ class ModuleKpiService:
 
         where = {"AND": and_conditions} if and_conditions else None
         extra_args: dict[str, Any] = {}
-        has_tags = FilterHelper.build_has_tags_condition(tag_ids)
-        if has_tags:
-            extra_args["hasTags"] = has_tags
+        where_has = FilterHelper.build_has_tags_condition(tag_ids)
+        if where_has:
+            extra_args["whereHas"] = where_has
 
         active_groups = sum(1 for ids in (status_ids, type_ids, tag_ids) if ids)
         return where, extra_args, active_groups

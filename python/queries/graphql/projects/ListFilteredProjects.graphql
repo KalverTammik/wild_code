@@ -2,7 +2,7 @@ query Projects(
   $first: Int
   $after: String
   $where: QueryProjectsWhereWhereConditions
-  $hasTags: QueryProjectsHasTagsWhereHasConditions
+  $whereHas: [ProjectsWhereHasInput!]
   $propertiesFirst: Int = 1
   $propertiesAfter: String
   $contactsFirst: Int = 5
@@ -12,7 +12,7 @@ query Projects(
     first: $first
     after: $after
     where: $where
-    hasTags: $hasTags
+    whereHas: $whereHas
   ) {
     pageInfo {
       currentPage

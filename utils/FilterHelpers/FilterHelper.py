@@ -168,22 +168,17 @@ class FilterHelper:
         *,
         match_mode: Optional[str] = None,
         default_mode: str = "ANY",
-    ) -> Optional[dict]:
-        """Map tag selections to Kavitro Query*HasTagsWhereHasConditions."""
+    ) -> Optional[List[dict]]:
+        """Map tag selections to a whereHas payload for the TAGS relation."""
         ids = [str(tag_id).strip() for tag_id in tag_ids if tag_id]
         if not ids:
             return None
 
         mode = (match_mode or default_mode or "ANY").upper()
-        if mode == "ALL":
-            return {
-                "AND": [
-                    {"column": "ID", "operator": "EQ", "value": tag_id}
-                    for tag_id in ids
-                ]
-            }
+        if mode not in {"ANY", "ALL"}:
+            mode = "ANY"
 
-        return {"column": "ID", "operator": "IN", "value": ids}
+        return [{"relation": "TAGS", "mode": mode, "ids": ids}]
 
 
 
@@ -309,14 +304,14 @@ class FilterRefreshService:
         if ids["tags"]:
             build_has_tags = getattr(module, "_build_has_tags_condition", None)
             if callable(build_has_tags):
-                has_tags_filter = build_has_tags(ids["tags"])
+                where_has_filter = build_has_tags(ids["tags"])
             else:
                 default_mode = getattr(module, "tags_match_mode", None)
-                has_tags_filter = FilterHelper.build_has_tags_condition(
+                where_has_filter = FilterHelper.build_has_tags_condition(
                     ids["tags"], match_mode=default_mode
                 )
         else:
-            has_tags_filter = None
+            where_has_filter = None
 
         feed_logic = getattr(module, "feed_logic", None)
         if feed_logic is None:
@@ -345,7 +340,7 @@ class FilterRefreshService:
                 set_where(where)
             set_extra = getattr(feed_logic, "set_extra_arguments", None)
             if callable(set_extra):
-                set_extra_arguments = {"hasTags": has_tags_filter}
+                set_extra_arguments = {"whereHas": where_has_filter}
                 set_extra(**set_extra_arguments)
 
         if hasattr(module, "_current_where"):

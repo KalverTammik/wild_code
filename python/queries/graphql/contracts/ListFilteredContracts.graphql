@@ -2,7 +2,7 @@ query contracts(
   $first: Int
   $after: String
   $where: QueryContractsWhereWhereConditions
-  $hasTags: QueryContractsHasTagsWhereHasConditions
+  $whereHas: [ContractsWhereHasInput!]
   $propertiesFirst: Int = 1
   $propertiesAfter: String
   $contactsFirst: Int = 5
@@ -12,7 +12,7 @@ query contracts(
     first: $first
     after: $after
     where: $where
-    hasTags: $hasTags
+    whereHas: $whereHas
   ) {
     pageInfo {
       currentPage

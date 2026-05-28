@@ -2,13 +2,13 @@ query CoordinationsKpi(
   $first: Int
   $after: String
   $where: QueryCoordinationsWhereWhereConditions
-  $hasTags: QueryCoordinationsHasTagsWhereHasConditions
+  $whereHas: [CoordinationsWhereHasInput!]
 ) {
   coordinations(
     first: $first
     after: $after
     where: $where
-    hasTags: $hasTags
+    whereHas: $whereHas
   ) {
     pageInfo {
       currentPage

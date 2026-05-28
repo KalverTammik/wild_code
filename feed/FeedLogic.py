@@ -81,7 +81,7 @@ class UnifiedFeedLogic:
         """
         self._single_item_mode = bool(enabled)
         self.reset()
-        # In single-item mode we must not leak list-mode extras (e.g. hasTags)
+        # In single-item mode we must not leak list-mode extras (e.g. whereHas)
         # into the by-id query variables. Always rebuild _extra_args from
         # scratch when toggling the mode.
         self._extra_args.clear()
@@ -108,7 +108,7 @@ class UnifiedFeedLogic:
         self.reset()
 
     def set_extra_arguments(self, **kwargs: Any) -> None:
-        """Store additional GraphQL arguments (e.g., hasTags) passed alongside where."""
+        """Store additional GraphQL arguments (e.g., whereHas) passed alongside where."""
         cleaned = {k: v for k, v in kwargs.items() if v is not None}
         if cleaned == self._extra_args:
             return

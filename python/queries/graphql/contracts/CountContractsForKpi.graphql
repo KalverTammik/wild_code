@@ -2,13 +2,13 @@ query ContractsKpi(
   $first: Int
   $after: String
   $where: QueryContractsWhereWhereConditions
-  $hasTags: QueryContractsHasTagsWhereHasConditions
+  $whereHas: [ContractsWhereHasInput!]
 ) {
   contracts(
     first: $first
     after: $after
     where: $where
-    hasTags: $hasTags
+    whereHas: $whereHas
   ) {
     pageInfo {
       currentPage

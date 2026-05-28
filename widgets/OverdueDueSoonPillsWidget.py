@@ -283,10 +283,10 @@ class OverdueDueSoonPillsActionHelper:
         tags_ids = FilterHelper.selected_ids(tags_filter) if tags_filter else []
         build_has_tags = getattr(module, "_build_has_tags_condition", None)
         if callable(build_has_tags):
-            has_tags_filter = build_has_tags(tags_ids)
+            where_has_filter = build_has_tags(tags_ids)
         else:
             default_mode = getattr(module, "tags_match_mode", None)
-            has_tags_filter = FilterHelper.build_has_tags_condition(
+            where_has_filter = FilterHelper.build_has_tags_condition(
                 tags_ids, match_mode=default_mode
             )
 
@@ -295,8 +295,8 @@ class OverdueDueSoonPillsActionHelper:
             feed_load_engine.buffer.clear()
 
         feed_logic.set_where(where if where and where.get("AND") else None)
-        if has_tags_filter is not None:
-            feed_logic.set_extra_arguments(hasTags=has_tags_filter)
+        if where_has_filter is not None:
+            feed_logic.set_extra_arguments(whereHas=where_has_filter)
 
         feed_layout = getattr(module, "feed_layout", None)
         empty_state = getattr(module, "_empty_state", None)

@@ -2,7 +2,7 @@ query coordinations(
   $first: Int
   $after: String
   $where: QueryCoordinationsWhereWhereConditions
-  $hasTags: QueryCoordinationsHasTagsWhereHasConditions
+  $whereHas: [CoordinationsWhereHasInput!]
   $propertiesFirst: Int = 1
   $propertiesAfter: String
   $contactsFirst: Int = 5
@@ -13,7 +13,7 @@ query coordinations(
     first: $first
     after: $after
     where: $where
-    hasTags: $hasTags
+    whereHas: $whereHas
   ) {
     pageInfo {
       currentPage
