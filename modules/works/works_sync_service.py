@@ -88,7 +88,6 @@ class WorksSyncService:
         if not tasks_by_id:
             return
 
-        field_indices = {field.name().lower(): index for index, field in enumerate(layer.fields())}
         pending_updates: list[tuple[int, dict[str, object], object]] = []
 
         for feature in features:
@@ -101,6 +100,10 @@ class WorksSyncService:
                 continue
 
             updates = self._build_layer_updates(task)
+            geometry = WorksLayerService.geometry_from_payload(task.get("geometry"))
+            if isinstance(geometry, QgsGeometry):
+                updates["__geometry"] = geometry
+
             if updates:
                 pending_updates.append((feature.id(), updates, feature))
 
@@ -130,6 +133,10 @@ class WorksSyncService:
             return
 
         updates = self._build_layer_updates(task_payload)
+        geometry = WorksLayerService.geometry_from_payload(task_payload.get("geometry"))
+        if isinstance(geometry, QgsGeometry):
+            updates["__geometry"] = geometry
+
         if not updates:
             return
 
@@ -158,6 +165,13 @@ class WorksSyncService:
 
             changed = False
             for feature_id, updates, feature in pending_updates:
+                geometry_update = updates.pop("__geometry", None)
+                if isinstance(geometry_update, QgsGeometry):
+                    current_geometry = feature.geometry() if hasattr(feature, "geometry") else None
+                    if not self._geometries_equal(current_geometry, geometry_update):
+                        if layer.changeGeometry(feature_id, geometry_update):
+                            changed = True
+
                 for canonical_name, new_value in updates.items():
                     field_index = field_indices.get(str(canonical_name).lower())
                     if field_index is None:
@@ -257,6 +271,24 @@ class WorksSyncService:
             return
 
         task = APIModuleActions.get_task_data(task_id)
+        status_color = WorksLayerService.status_color_from_task(task)
+
+        geometry_payload = WorksLayerService.backend_geometry_payload_from_geometry(geometry or feature.geometry())
+        geometry_payload = WorksLayerService.styled_backend_geometry_payload(
+            geometry_payload,
+            color=status_color,
+        )
+        if geometry_payload is not None:
+            try:
+                APIModuleActions.update_task_geometry(task_id, geometry_payload)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.WORKS.value,
+                    event="works_sync_update_geometry_failed",
+                    extra={"task_id": task_id},
+                )
+
         if not isinstance(task, dict):
             return
 
@@ -437,6 +469,17 @@ class WorksSyncService:
         if isinstance(parsed, datetime):
             return parsed.replace(microsecond=0, tzinfo=None)
         return None
+
+    @staticmethod
+    def _geometries_equal(existing_geometry: Optional[QgsGeometry], new_geometry: QgsGeometry) -> bool:
+        if not isinstance(existing_geometry, QgsGeometry) or existing_geometry.isEmpty():
+            return False
+        if not isinstance(new_geometry, QgsGeometry) or new_geometry.isEmpty():
+            return False
+        try:
+            return existing_geometry.equals(new_geometry)
+        except Exception:
+            return False
 
     @staticmethod
     def _geometry_point(geometry: Optional[QgsGeometry]):

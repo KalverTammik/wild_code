@@ -8,11 +8,10 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ...modules.projects.project_board_status_rules import ProjectBoardStatusRules
-from ...utils.url_manager import ModuleSupports
-from .BaseSingleFilterWidget import BaseSingleFilterWidget
+from .StatusFilterWidget import StatusFilterWidget
 
 
-class NotStartedStatusFilterWidget(BaseSingleFilterWidget):
+class NotStartedStatusFilterWidget(StatusFilterWidget):
     def __init__(
         self,
         module_name: Union[str, object],
@@ -25,12 +24,10 @@ class NotStartedStatusFilterWidget(BaseSingleFilterWidget):
         label_text = LanguageManager().translate(TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_TITLE)
         super().__init__(
             module_name,
-            label_text,
-            "NotStartedStatusFilterCombo",
-            ModuleSupports.STATUSES.value,
             parent=parent,
             auto_load=auto_load,
-            variant="status-filter",
             settings_logic=settings_logic,
+            label_text=label_text,
+            object_name="NotStartedStatusFilterCombo",
             selected_ids_loader=lambda: list(ProjectBoardStatusRules.load_not_started_status_ids(normalized_module)),
         )

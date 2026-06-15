@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WFS päring kinnistu andmete kohta</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 24px; background: #f9f9f9; color: #1a1a1a; }
+    .container { max-width: 760px; margin: auto; background: white; padding: 24px; border-radius: 10px; box-shadow: 0 16px 40px rgba(0,0,0,0.08); }
+    h1, h2 { color: #1f4e79; }
+    ul { margin-left: 1.2em; }
+    code { background: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-size: 0.95em; }
+    .note { background: #eef6ff; border-left: 4px solid #3a7ecf; padding: 12px 16px; margin: 16px 0; }
+    .warning { background: #fff4e5; border-left: 4px solid #d97706; padding: 12px 16px; margin: 16px 0; }
+    .diagram { border: 1px solid #d1d5db; border-radius: 12px; padding: 18px; background: #fafafa; margin: 20px 0; font-family: monospace; white-space: pre; }
+    .section-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .section-table th, .section-table td { border: 1px solid #d1d5db; padding: 10px; text-align: left; }
+    .section-table th { background: #eff6ff; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>WFS päring kinnistu andmete kohta</h1>
+    <p>Jah, MaRu pakub katastriüksuste andmeid ka <strong>WFS-iga</strong>. See tähendab, et avalikust ruumiandmete kihist saab pärida näitena katastriüksuse geomeetriat ja seotud atribuute.</p>
+
+    <h2>Lahenduse sammud</h2>
+    <ol>
+      <li>Leia MaRu WFS-teenuse URL ja soovitud layer. Tüüpiline teenus on <code>GetCapabilities</code> kaudu kirjeldatud.</li>
+      <li>Vali päringu tüüp: <code>GetFeature</code> katastriüksuse objekti ja atribuutide saamiseks.</li>
+      <li>Koosta filter: näiteks <code>tunnus</code>-põhine filter või <code>BBOX</code>-põhine ruumiline filter.</li>
+      <li>Palun järgi, kas teenus toetab vormingut <code>application/json</code>; kui jah, siis on vastus lihtsam QGIS-i ja Pythoniga töödelda.</li>
+      <li>Kui päring võib tagastada üle 5000 objekti, lisa paging: <code>startIndex</code>, <code>count</code> või muu teenusepoolne leheküljepäring.</li>
+      <li>Töötle vastus ära, eralda geomeetria ja atribuudid, ning kasuta neid pluginis kaardi sildistamiseks või kinnistu detailivaate täitmiseks.</li>
+    </ol>
+
+    <h2>Protsessi skeem</h2>
+    <div class="diagram">
+      1. Plugin või script
+         -> koostab WFS <code>GetFeature</code> päringu
+
+      2. Saadetakse WFS päring
+         -> teenus vastab GML või GeoJSON kujul
+
+      3. Vastusest eraldatakse
+         -> geomeetria ja atribuudid
+
+      4. Plugin kasutab
+         -> kaardi kuvamiseks, atribuutide kuvamiseks või andmete võrdlemiseks backendiga
+    </div>
+
+    <h2>Mida saab WFS-iga pärida</h2>
+    <ul>
+      <li>katastriüksuse ruumikuju (polügoon)</li>
+      <li>piiripunktid</li>
+      <li>atribuudid nagu <code>tunnus</code>, <code>l_aadress</code>, <code>mk_nimi</code>, <code>ov_nimi</code>, <code>muudet</code>, <code>siht1</code>/<code>siht2</code>/<code>siht3</code>, <code>pindala</code> jne</li>
+      <li>aadressi ja katastriüksuse metaandmed, kui need on WFS kihis kaasatud</li>
+    </ul>
+
+    <h2>Võimalik päringu näide</h2>
+    <p>Kui teenus toetab GeoJSON-väljundit, näeb URL välja umbes nii:</p>
+    <pre class="diagram">https://wfs.example.ee/service?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=katastri_uksus&OUTPUTFORMAT=application/json&FILTER=%3CFilter%3E%3CPropertyIsEqualTo%3E%3CValueReference%3Etunnus%3C/ValueReference%3E%3CLiteral%3E1234:567:890%3C/Literal%3E%3C/PropertyIsEqualTo%3E%3C/Filter%3E</pre>
+    <p>Alternatiiv, kui soovid <code>BBOX</code> järgi pärida:</p>
+    <pre class="diagram">...&FILTER=&lt;Filter&gt;&lt;BBOX&gt;&lt;ValueReference&gt;geom&lt;/ValueReference&gt;&lt;Envelope srsName="EPSG:3301"&gt;&lt;lowerCorner&gt;Xmin Ymin&lt;/lowerCorner&gt;&lt;upperCorner&gt;Xmax Ymax&lt;/upperCorner&gt;&lt;/Envelope&gt;&lt;/BBOX&gt;&lt;/Filter&gt;</pre>
+
+    <h2>WFS andmete struktuur</h2>
+    <p>WFS vastusest saab otse võtta järgmised osad:</p>
+    <table class="section-table">
+      <thead>
+        <tr><th>Väli</th><th>Kirjeldus</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>tunnus</code></td><td>katastriüksuse identifikaator, konkreetne aadress või plokk</td></tr>
+        <tr><td><code>l_aadress</code></td><td>aadress, mis võib olla seotud katastriüksusega</td></tr>
+        <tr><td><code>mk_nimi</code></td><td>maaüksuse nimi</td></tr>
+        <tr><td><code>ov_nimi</code></td><td>omaniku nimi või muu seotud informatsioon</td></tr>
+        <tr><td><code>pindala</code></td><td>katastriüksuse pindala ruumühikutes</td></tr>
+        <tr><td><code>muudet</code></td><td>andmete viimase muutmise aeg</td></tr>
+        <tr><td><code>siht1</code>, <code>siht2</code>, <code>siht3</code></td><td>maa sihtotstarve / kasutusotstarve</td></tr>
+        <tr><td><code>geom</code> / <code>the_geom</code></td><td>katastriüksuse geomeetria</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Peamised piirangud</h2>
+    <div class="warning">
+      <p><strong>Oluline:</strong> WFS on ruumiandmete teenus ja sellel on piirangud.</p>
+      <ul>
+        <li>tavaliselt on limiit <strong>5000 objekti päringu kohta</strong></li>
+        <li>vajalik on <strong>paging</strong> (osaandmete pärimine)</li>
+        <li>see ei ole sama kui detailne kinnistusregistri backend-API</li>
+        <li>andmed on tavaliselt aktuaalsed, kuid ei pruugi vastata otse backendisse tehtavale dünaamilisele päringule</li>
+      </ul>
+    </div>
+
+    <h2>Mida see tähendab sinu ülesande puhul</h2>
+    <ul>
+      <li>kui soovid saada katastriüksuse geometria ja atribuute avalikust MaRu andmestikust, siis WFS on sobiv</li>
+      <li>kui vajad spetsiifilisi kinnistusregistri/omaniku/detailseid backend-andmeid, siis WFS ei pruugi seda pakkuda</li>
+    </ul>
+
+    <h2>Kokkuvõte</h2>
+    <ul>
+      <li>✅ Katastriüksuste andmeid saab pärida WFS-iga</li>
+      <li>⚠️ tuleb arvestada paginguga ja 5000 objekti piiranguga</li>
+      <li>❌ see ei ole automaatselt samasugune kui teie pluginis kasutatav GraphQL backend</li>
+    </ul>
+
+    <div class="note">
+      <p>Kui soovid, saan nüüd täpsemalt välja tuua, kuidas WFS päringutega just <code>tunnus</code> või <code>BBOX</code> järgi katastriüksust küsida.</p>
+    </div>
+  </div>
+</body>
+</html>

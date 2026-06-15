@@ -4,14 +4,18 @@ Each module type can define its own status columns and activities.
 """
 
 from typing import List, Tuple, Dict, Any, Optional
+from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.api_client import APIClient
+from ...python.api_actions import APIModuleActions
 from ...python.responses import DataDisplayExtractors
 from ...utils.url_manager import Module
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...modules.projects.project_board_overview_service import ProjectBoardOverviewService
 from ...modules.projects.project_board_widgets import ProjectBoardOverviewWidget
+from ...widgets.theme_manager import ThemeManager
+from ...constants.file_paths import QssPaths
 from .EasementPropertiesWidget import EasementPropertiesWidget
 from .TaskDetailOverviewWidget import TaskDetailOverviewWidget
 
@@ -167,29 +171,34 @@ class ModuleConfigFactory:
     ) -> ModuleConfig:
         """Create configuration for project modules."""
         lm = lang_manager or LanguageManager()
-        config = ModuleConfig(
-            Module.PROJECT.value,
-            title=lm.translate(
-                TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE,
-            ),
-        )
+        config = ModuleConfig(Module.PROJECT.value, title="")
 
-        config.set_summary_text(
-            lm.translate(TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT)
-        )
-        config.set_detail_loader(
-            lambda payload=item_id, lang=lm: TaskDetailOverviewWidget(
-                item_data=payload,
-                detail_widget=ProjectBoardOverviewWidget(
-                    ProjectBoardOverviewService.build_project_board_data(
-                        payload,
-                        lang_manager=lang,
-                    )
-                ),
-                module_name=Module.PROJECT.value,
+        def _project_detail_widget(payload=item_id, lang=lm):
+            board_data = ProjectBoardOverviewService.build_project_board_data(
+                payload,
                 lang_manager=lang,
             )
-        )
+
+            wrapper = QWidget()
+            layout = QVBoxLayout(wrapper)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(10)
+
+            intro = QLabel(
+                lang.translate(TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT),
+                wrapper,
+            )
+            intro.setWordWrap(True)
+            intro.setObjectName("ProjectBoardDetailIntro")
+            layout.addWidget(intro)
+
+            board_widget = ProjectBoardOverviewWidget(board_data, wrapper)
+            layout.addWidget(board_widget)
+
+            ThemeManager.apply_module_style(wrapper, [QssPaths.MODULE_INFO])
+            return wrapper
+
+        config.set_detail_loader(_project_detail_widget)
         config.set_show_detail_handle(True)
 
         return config

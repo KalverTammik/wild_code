@@ -186,12 +186,12 @@ class FilterRefreshService:
     """Shared filter refresh pipeline for module UIs."""
 
     @staticmethod
-    def _selected_type_ids(type_filter) -> List[str]:
-        if type_filter is None:
+    def _selected_filter_ids(filter_widget) -> List[str]:
+        if filter_widget is None:
             return []
-        if hasattr(type_filter, "combo"):
-            return FilterHelper.selected_ids(type_filter)
-        selected = getattr(type_filter, "selected_ids", None)
+        if hasattr(filter_widget, "combo"):
+            return FilterHelper.selected_ids(filter_widget)
+        selected = getattr(filter_widget, "selected_ids", None)
         return list(selected()) if callable(selected) else []
 
     @staticmethod
@@ -225,13 +225,13 @@ class FilterRefreshService:
         resolved_tags = tags_ids
 
         if resolved_status is None and status_filter is not None:
-            resolved_status = FilterHelper.selected_ids(status_filter)
+            resolved_status = FilterRefreshService._selected_filter_ids(status_filter)
             if not resolved_status and not FilterRefreshService._is_filter_loaded(status_filter):
                 if callable(status_getter):
                     resolved_status = status_getter() or []
 
         if resolved_type is None and type_filter is not None:
-            resolved_type = FilterRefreshService._selected_type_ids(type_filter)
+            resolved_type = FilterRefreshService._selected_filter_ids(type_filter)
             if not resolved_type and not FilterRefreshService._is_filter_loaded(type_filter):
                 if callable(type_getter):
                     resolved_type = type_getter() or []

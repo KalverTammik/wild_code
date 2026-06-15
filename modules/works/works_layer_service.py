@@ -41,6 +41,10 @@ from ...Logs.python_fail_logger import PythonFailLogger
 
 
 class WorksLayerService:
+    BACKEND_GEOMETRY_ICON = "fa6-solid:person-digging"
+    BACKEND_GEOMETRY_DEFAULT_COLOR = "#D2042D"
+    BACKEND_GEOMETRY_BACKGROUND_COLOR = "transparent"
+
     FIELD_EXT_JOB_ID = "ext_job_id"
     FIELD_EXT_JOB_NAME = "ext_job_name"
     FIELD_EXT_JOB_TYPE = "ext_job_type"
@@ -248,7 +252,8 @@ class WorksLayerService:
             getattr(QVariant, "ULongLong", QVariant.Int),
         }
         if expected_type in integer_types:
-            return actual_type in integer_types
+            # Accept string fields for integer-backed properties in legacy or generic layers.
+            return actual_type in integer_types or actual_type == QVariant.String
         return actual_type == expected_type
 
     @staticmethod
@@ -354,6 +359,32 @@ class WorksLayerService:
         if not isinstance(status_payload, dict):
             return None
         return WorksLayerService.coerce_optional_int(status_payload.get("id"))
+
+    @staticmethod
+    def normalize_backend_color(value: object, *, fallback: str = "") -> str:
+        text = str(value or "").strip()
+        if not text:
+            text = str(fallback or "").strip()
+        if not text:
+            text = WorksLayerService.BACKEND_GEOMETRY_DEFAULT_COLOR
+
+        if not text.startswith("#"):
+            text = f"#{text}"
+        if re.fullmatch(r"#[0-9A-Fa-f]{6}", text):
+            return text.upper()
+        return WorksLayerService.BACKEND_GEOMETRY_DEFAULT_COLOR
+
+    @staticmethod
+    def status_color_from_task(task: Optional[dict], *, fallback: str = "") -> str:
+        if not isinstance(task, dict):
+            return WorksLayerService.normalize_backend_color(fallback)
+        status_payload = task.get("status") or {}
+        if not isinstance(status_payload, dict):
+            return WorksLayerService.normalize_backend_color(fallback)
+        return WorksLayerService.normalize_backend_color(
+            status_payload.get("color"),
+            fallback=fallback,
+        )
 
     @staticmethod
     def type_id_from_task(task: Optional[dict]) -> Optional[int]:
@@ -751,6 +782,84 @@ class WorksLayerService:
                 event="works_point_transform_failed",
             )
             return point
+
+    @staticmethod
+    def backend_geometry_payload_from_geometry(geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
+        if not isinstance(geometry, QgsGeometry) or geometry.isEmpty():
+            return None
+
+        try:
+            geometry_text = geometry.asJson()
+            if not geometry_text:
+                return None
+            payload = json.loads(str(geometry_text))
+            if not isinstance(payload, dict):
+                return None
+            return payload
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_geometry_to_payload_failed",
+            )
+            return None
+
+    @staticmethod
+    def styled_backend_geometry_payload(
+        geometry_payload: Optional[dict[str, object]],
+        *,
+        color: object = None,
+    ) -> Optional[dict[str, object]]:
+        if not isinstance(geometry_payload, dict):
+            return None
+
+        payload = dict(geometry_payload)
+        payload["icon"] = WorksLayerService.BACKEND_GEOMETRY_ICON
+        payload["color"] = WorksLayerService.BACKEND_GEOMETRY_BACKGROUND_COLOR
+        payload["iconColor"] = WorksLayerService.normalize_backend_color(color)
+        return payload
+
+    @staticmethod
+    def _geojson_geometry_only(payload: dict) -> dict:
+        geometry_type = str(payload.get("type") or "").strip()
+        if not geometry_type:
+            return payload
+
+        cleaned = {"type": geometry_type}
+        if "coordinates" in payload:
+            cleaned["coordinates"] = payload.get("coordinates")
+        return cleaned
+
+    @staticmethod
+    def geometry_from_payload(geometry_payload) -> Optional[QgsGeometry]:
+        if geometry_payload is None:
+            return None
+
+        payload = geometry_payload
+        if isinstance(payload, str):
+            try:
+                payload = json.loads(payload)
+            except Exception:
+                return None
+
+        if not isinstance(payload, dict):
+            return None
+
+        try:
+            payload_text = json.dumps(WorksLayerService._geojson_geometry_only(payload), ensure_ascii=False)
+            from PyQt5.QtCore import QByteArray
+
+            geometry = QgsGeometry.fromJson(QByteArray(payload_text.encode("utf-8")))
+            if not isinstance(geometry, QgsGeometry) or geometry.isEmpty():
+                return None
+            return geometry
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_geometry_from_payload_failed",
+            )
+            return None
 
 
 class WorksDescriptionService:

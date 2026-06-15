@@ -22,6 +22,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module, ModuleSupports
+from ...widgets.status_select_widget import StatusSelectWidget
 from ...widgets.theme_manager import ThemeManager
 from .works_layer_service import WorksLayerService
 
@@ -35,9 +36,11 @@ class WorksCreateDialog(QDialog):
         allowed_type_ids: Optional[Iterable[str]] = None,
         type_options: Optional[Iterable[dict]] = None,
         assignable_users: Optional[Iterable[dict]] = None,
+        status_options: Optional[Iterable[dict]] = None,
         priority_options: Optional[Iterable[dict]] = None,
         default_priority: str = "",
         default_responsible_id: str = "",
+        default_status_id: str = "",
         lang_manager=None,
         parent=None,
     ) -> None:
@@ -48,17 +51,21 @@ class WorksCreateDialog(QDialog):
         self._allowed_type_ids = {str(item_id) for item_id in (allowed_type_ids or []) if item_id}
         self._type_options = list(type_options or [])
         self._assignable_users = list(assignable_users or [])
+        self._status_options = list(status_options or [])
         self._priority_options = list(priority_options or [])
         self._default_priority = str(default_priority or "").strip().upper()
         self._default_responsible_id = str(default_responsible_id or "").strip()
+        self._default_status_id = str(default_status_id or "").strip()
+        self._status_by_id: dict[str, dict[str, object]] = {}
         self._title_touched = False
 
         self.setModal(True)
         self.setObjectName("WorksCreateDialog")
         self.setWindowTitle(self._lang.translate(TranslationKeys.WORKS_CREATE_DIALOG_TITLE))
-        self.resize(620, 420)
+        self.resize(620, 460)
 
         self._build_ui()
+        self._populate_statuses()
         self._populate_priorities()
         self._populate_types()
         self._populate_responsibles()
@@ -126,16 +133,25 @@ class WorksCreateDialog(QDialog):
         responsible_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_RESPONSIBLE_LABEL), self)
         self._responsible_combo = QComboBox(self)
 
+        status_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_STATUS_LABEL), self)
+        self._status_combo = StatusSelectWidget(
+            self,
+            placeholder=self._lang.translate(TranslationKeys.SELECT),
+            lang_manager=self._lang,
+        )
+
         form.addWidget(type_label, 0, 0)
         form.addWidget(self._type_combo, 0, 1)
         form.addWidget(title_label, 1, 0)
         form.addWidget(self._title_edit, 1, 1)
         form.addWidget(responsible_label, 2, 0)
         form.addWidget(self._responsible_combo, 2, 1)
-        form.addWidget(priority_label, 3, 0)
-        form.addWidget(self._priority_combo, 3, 1)
-        form.addWidget(description_label, 4, 0)
-        form.addWidget(self._description_edit, 4, 1)
+        form.addWidget(status_label, 3, 0)
+        form.addWidget(self._status_combo, 3, 1)
+        form.addWidget(priority_label, 4, 0)
+        form.addWidget(self._priority_combo, 4, 1)
+        form.addWidget(description_label, 5, 0)
+        form.addWidget(self._description_edit, 5, 1)
         root.addLayout(form)
 
         self._types_hint = QLabel("", self)
@@ -163,6 +179,37 @@ class WorksCreateDialog(QDialog):
             button.setDefault(False)
 
         root.addLayout(buttons)
+
+    def _populate_statuses(self) -> None:
+        self._status_by_id = {}
+        status_options = []
+
+        for option in self._status_options:
+            if not isinstance(option, dict):
+                continue
+
+            status_id = str(option.get("id") or "").strip()
+            label = str(option.get("name") or option.get("label") or "").strip()
+            if not status_id or not label:
+                continue
+
+            status_payload = dict(option)
+            status_payload["id"] = status_id
+            status_payload["name"] = label
+            status_payload["color"] = WorksLayerService.normalize_backend_color(option.get("color"))
+            status_payload["type"] = str(option.get("type") or "").strip().upper()
+            status_payload["description"] = str(option.get("description") or "").strip()
+            status_payload["isDefault"] = bool(option.get("isDefault"))
+            status_payload["sortOrder"] = option.get("sortOrder")
+            self._status_by_id[status_id] = status_payload
+            status_options.append(status_payload)
+
+        self._status_combo.set_options(status_options, selected_id=self._default_status_id)
+        if self._status_combo.count() <= 0:
+            self._status_combo.setEnabled(False)
+            return
+
+        self._status_combo.setEnabled(True)
 
     def _populate_priorities(self) -> None:
         self._priority_combo.clear()
@@ -307,3 +354,13 @@ class WorksCreateDialog(QDialog):
 
     def selected_responsible_label(self) -> str:
         return str(self._responsible_combo.currentText() or "").strip()
+
+    def selected_status_id(self) -> str:
+        return str(self._status_combo.currentData() or "").strip()
+
+    def selected_status_label(self) -> str:
+        return str(self._status_combo.currentText() or "").strip()
+
+    def selected_status_color(self) -> str:
+        color = self._status_combo.current_status_color()
+        return WorksLayerService.normalize_backend_color(color) if color else ""

@@ -1,3 +1,4 @@
+import json
 import os
 from typing import List, Optional, Set
 import requests
@@ -18,6 +19,51 @@ _PROPERTIES_PAGE_SIZE = 50
 class APIModuleActions:
     _TASK_PRIORITY_DEFAULTS = ("URGENT", "HIGH", "MEDIUM", "LOW")
     _task_priority_values_cache: Optional[List[str]] = None
+
+    @staticmethod
+    def _geometry_input_value(geometry: dict) -> str:
+        return json.dumps(geometry, ensure_ascii=False, separators=(",", ":"))
+
+    @staticmethod
+    def _is_unknown_input_field_error(message: str, field_name: str) -> bool:
+        text = str(message or "").lower()
+        field_text = str(field_name or "").strip().lower()
+        if not field_text or field_text not in text:
+            return False
+
+        unknown_field_markers = (
+            "unknown field",
+            "not defined",
+            "undefined field",
+            "field is not defined",
+            "does not exist on type",
+            "did you mean",
+        )
+        return any(marker in text for marker in unknown_field_markers)
+
+    @staticmethod
+    def _is_unknown_geometry_input_error(message: str) -> bool:
+        return APIModuleActions._is_unknown_input_field_error(message, "geometry")
+
+    @staticmethod
+    def _is_geometry_retryable_create_error(message: str) -> bool:
+        text = str(message or "").lower()
+        if APIModuleActions._is_unknown_geometry_input_error(message):
+            return True
+
+        retryable_markers = (
+            "internal server error",
+            "[wc-api][server]",
+            "http 500",
+            "http 502",
+            "http 503",
+            "http 504",
+            "geojson",
+            "json",
+            "icon",
+            "iconcolor",
+        )
+        return any(marker in text for marker in retryable_markers)
 
     @staticmethod
     def _property_owner_module(module: str) -> str:
@@ -858,6 +904,37 @@ class APIModuleActions:
             return False
 
     @staticmethod
+    def update_task_geometry(item_id: str, geometry: dict) -> bool:
+        """Update the task geometry field in the backend."""
+
+        task_id = str(item_id or "").strip()
+        if not task_id or not isinstance(geometry, dict):
+            return False
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.TASK.value, "updateTaskGeometry.graphql")
+        variables = {
+            "input": {
+                "id": task_id,
+                "geometry": APIModuleActions._geometry_input_value(geometry),
+            }
+        }
+
+        client = APIClient()
+        try:
+            data = client.send_query(query, variables=variables) or {}
+            updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
+            return bool(updated.get("id"))
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_update_geometry_failed",
+                extra={"item_id": task_id},
+            )
+            return False
+
+    @staticmethod
     def create_file_download_link(file_uuid: str) -> Optional[str]:
         resolved_uuid = str(file_uuid or "").strip()
         if not resolved_uuid:
@@ -1109,6 +1186,8 @@ class APIModuleActions:
         due_at: Optional[str] = None,
         member_ids: Optional[List[str]] = None,
         responsible_id: Optional[str] = None,
+        status_id: Optional[str] = None,
+        geometry: Optional[dict] = None,
     ) -> Optional[str]:
         task_title = str(title or "").strip()
         task_type_id = str(type_id or "").strip()
@@ -1145,7 +1224,15 @@ class APIModuleActions:
         loader = GraphQLQueryLoader()
         query = loader.load_query_by_module(Module.TASK.value, "createTask.graphql")
 
-        def _build_task_input(associate_payload: Optional[List[object]]) -> dict:
+        status_payload = str(status_id or "").strip()
+        geometry_payload = geometry if isinstance(geometry, dict) else None
+
+        def _build_task_input(
+            associate_payload: Optional[List[object]],
+            *,
+            include_geometry: bool = True,
+            include_status: bool = True,
+        ) -> dict:
             task_input = {
                 "title": task_title,
                 "typeId": task_type_id,
@@ -1158,34 +1245,94 @@ class APIModuleActions:
                 task_input["startAt"] = str(start_at)
             if due_at:
                 task_input["dueAt"] = str(due_at)
+            if include_status and status_payload:
+                task_input["status"] = status_payload
+            if include_geometry and geometry_payload is not None:
+                task_input["geometry"] = APIModuleActions._geometry_input_value(geometry_payload)
             if associate_payload:
                 task_input["members"] = {"associate": associate_payload}
             return task_input
 
+        def _is_status_retryable_create_error(message: str) -> bool:
+            return bool(status_payload) and APIModuleActions._is_unknown_input_field_error(message, "status")
+
+        def _send_create(
+            associate_payload: Optional[List[object]],
+            *,
+            include_geometry: bool,
+            include_status: bool,
+        ) -> dict:
+            return client.send_query(
+                query,
+                variables={
+                    "input": _build_task_input(
+                        associate_payload,
+                        include_geometry=include_geometry,
+                        include_status=include_status,
+                    )
+                },
+            ) or {}
+
         client = APIClient()
         try:
-            try:
-                data = client.send_query(query, variables={"input": _build_task_input(member_payload)}) or {}
-                used_fallback_payload = False
-            except Exception as create_exc:
-                message = str(create_exc or "")
-                should_retry_without_flag = (
-                    bool(member_payload)
-                    and member_payload != fallback_member_payload
-                    and "members.associate" in message
-                    and "isResponsible" in message
-                )
-                if not should_retry_without_flag:
-                    raise
+            associate_payload = member_payload
+            include_geometry = True
+            include_status = bool(status_payload)
+            used_fallback_payload = False
+            sent_status_in_create = False
+            attempted_states: set[tuple[str, bool, bool]] = set()
 
-                data = client.send_query(query, variables={"input": _build_task_input(fallback_member_payload)}) or {}
-                used_fallback_payload = True
+            while True:
+                payload_kind = "fallback_members" if used_fallback_payload else "members"
+                state = (payload_kind, include_geometry, include_status)
+                if state in attempted_states:
+                    raise RuntimeError("Create task retry loop exhausted")
+                attempted_states.add(state)
+
+                try:
+                    data = _send_create(
+                        associate_payload,
+                        include_geometry=include_geometry,
+                        include_status=include_status,
+                    )
+                    sent_status_in_create = bool(include_status and status_payload)
+                    break
+                except Exception as create_exc:
+                    message = str(create_exc or "")
+                    should_retry_without_status = include_status and _is_status_retryable_create_error(message)
+                    should_retry_without_flag = (
+                        bool(associate_payload)
+                        and associate_payload == member_payload
+                        and member_payload != fallback_member_payload
+                        and "members.associate" in message
+                        and "isResponsible" in message
+                    )
+                    should_retry_without_geometry = (
+                        include_geometry
+                        and geometry_payload is not None
+                        and APIModuleActions._is_geometry_retryable_create_error(message)
+                    )
+
+                    if should_retry_without_status:
+                        include_status = False
+                        continue
+                    if should_retry_without_flag:
+                        associate_payload = fallback_member_payload
+                        used_fallback_payload = True
+                        continue
+                    if should_retry_without_geometry:
+                        include_geometry = False
+                        continue
+                    raise
 
             created = (data.get("createTask") or {}) if isinstance(data, dict) else {}
             task_id = created.get("id")
             task_id_text = str(task_id) if task_id else None
             if task_id_text and used_fallback_payload and effective_responsible_id and member_payload:
                 APIModuleActions.update_task_members(task_id_text, member_payload)
+            if task_id_text and status_payload and not sent_status_in_create:
+                APIModuleActions.update_task_status(task_id_text, status_payload)
+
             return task_id_text
         except Exception as exc:
             PythonFailLogger.log_exception(

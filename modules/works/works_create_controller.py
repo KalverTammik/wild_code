@@ -56,8 +56,11 @@ class WorksCreateController:
         self._preload_request_id = 0
         self._cached_type_options: list[dict[str, str]] = []
         self._cached_assignable_users: list[dict[str, str]] = []
+        self._cached_status_options: list[dict[str, object]] = []
         self._cached_priority_options: list[dict[str, str]] = []
         self._cached_default_responsible_id = ""
+        self._cached_default_status_id = ""
+        self._cached_default_status_color = ""
 
     def start_capture(
         self,
@@ -177,6 +180,8 @@ class WorksCreateController:
         assignable_users = self._resolve_assignable_users()
         priority_options = self._resolve_priority_options()
         default_responsible_id = self._resolve_default_responsible_id()
+        status_options = self._resolve_status_options()
+        default_status_id = self._resolve_default_status_id(status_options)
         type_options = self._resolve_type_options()
         dialog = WorksCreateDialog(
             point=point,
@@ -184,8 +189,10 @@ class WorksCreateController:
             allowed_type_ids=self._allowed_type_ids,
             type_options=type_options,
             assignable_users=assignable_users,
+            status_options=status_options,
             priority_options=priority_options,
             default_responsible_id=default_responsible_id,
+            default_status_id=default_status_id,
             lang_manager=self._lang,
             parent=parent_window,
         )
@@ -203,6 +210,14 @@ class WorksCreateController:
         )
 
         task_id = None
+        selected_status_id = dialog.selected_status_id()
+        selected_status_color = dialog.selected_status_color()
+        initial_status_color = selected_status_color or self._resolve_default_status_color()
+        geometry_payload = self._backend_point_geometry_payload(
+            point,
+            works_layer,
+            status_color=initial_status_color,
+        )
         try:
             task_id = APIModuleActions.create_task(
                 title=dialog.title_text(),
@@ -212,6 +227,8 @@ class WorksCreateController:
                 start_at=now.strftime("%Y-%m-%d"),
                 due_at=(now + timedelta(days=7)).strftime("%Y-%m-%d"),
                 responsible_id=dialog.selected_responsible_id(),
+                status_id=selected_status_id,
+                geometry=geometry_payload,
             )
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -229,6 +246,40 @@ class WorksCreateController:
             return
 
         created_task = APIModuleActions.get_task_data(task_id) or {}
+        created_status_id = self._task_status_id_text(created_task)
+        if selected_status_id and created_status_id != selected_status_id:
+            updated_status_task = APIModuleActions.update_task_status(task_id, selected_status_id)
+            if updated_status_task:
+                created_task = APIModuleActions.get_task_data(task_id) or created_task
+            else:
+                PythonFailLogger.log_exception(
+                    RuntimeError("Could not update works task status after creation"),
+                    module=Module.WORKS.value,
+                    event="works_task_status_update_failed",
+                    extra={"task_id": task_id, "status_id": selected_status_id},
+                )
+
+        created_status_color = WorksLayerService.status_color_from_task(
+            created_task,
+            fallback=initial_status_color,
+        )
+        if created_status_color != WorksLayerService.normalize_backend_color(initial_status_color):
+            try:
+                APIModuleActions.update_task_geometry(
+                    task_id,
+                    self._backend_point_geometry_payload(
+                        point,
+                        works_layer,
+                        status_color=created_status_color,
+                    ),
+                )
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.WORKS.value,
+                    event="works_task_geometry_style_update_failed",
+                    extra={"task_id": task_id},
+                )
 
         final_backend_description = WorksDescriptionService.build_task_description(
             layer=works_layer,
@@ -417,6 +468,21 @@ class WorksCreateController:
             )
             return
 
+        geometry_payload = self._backend_point_geometry_payload(
+            point,
+            works_layer,
+            status_color=WorksLayerService.status_color_from_task(task_payload),
+        )
+        try:
+            APIModuleActions.update_task_geometry(task_id, geometry_payload)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_existing_task_geometry_update_failed",
+                extra={"task_id": task_id},
+            )
+
         try:
             latest_description = APIModuleActions.get_task_description(task_id)
         except Exception as exc:
@@ -497,6 +563,18 @@ class WorksCreateController:
         )
 
     @staticmethod
+    def _backend_point_geometry_payload(point: QgsPointXY, layer=None, *, status_color: object = None) -> dict[str, object]:
+        backend_point = point
+        if layer is not None:
+            backend_point = WorksLayerService._point_in_layer_crs(point, layer)
+        payload = {
+            "type": "Point",
+            "coordinates": [backend_point.x(), backend_point.y()],
+        }
+        payload = WorksLayerService.styled_backend_geometry_payload(payload, color=status_color) or payload
+        return payload
+
+    @staticmethod
     def _responsible_display_name(task_data: Optional[dict], *, fallback: str = "") -> str:
         task_payload = task_data if isinstance(task_data, dict) else {}
         edges = ((task_payload.get("members") or {}).get("edges") or [])
@@ -514,6 +592,14 @@ class WorksCreateController:
                 return display_name
 
         return str(fallback or "").strip()
+
+    @staticmethod
+    def _task_status_id_text(task_data: Optional[dict]) -> str:
+        task_payload = task_data if isinstance(task_data, dict) else {}
+        status_payload = task_payload.get("status") or {}
+        if not isinstance(status_payload, dict):
+            return ""
+        return str(status_payload.get("id") or "").strip()
 
     def _fetch_preload_payload(self) -> dict[str, object]:
         try:
@@ -535,6 +621,16 @@ class WorksCreateController:
             default_responsible_id = ""
 
         try:
+            status_options = self._normalize_status_options(
+                APIModuleActions.get_module_status_options(Module.WORKS.value)
+            )
+        except Exception:
+            status_options = []
+
+        default_status_id = self._default_status_id_from_options(status_options)
+        default_status_color = self._status_color_from_options(default_status_id, status_options)
+
+        try:
             APIModuleActions.get_task_priority_values()
         except Exception:
             pass
@@ -543,6 +639,9 @@ class WorksCreateController:
             "type_options": self._normalize_type_options(raw_types),
             "assignable_users": list(assignable_users or []),
             "default_responsible_id": str(default_responsible_id or "").strip(),
+            "status_options": status_options,
+            "default_status_id": str(default_status_id or "").strip(),
+            "default_status_color": str(default_status_color or "").strip(),
         }
 
     def _handle_preload_success(self, payload: object, request_id: int) -> None:
@@ -552,6 +651,15 @@ class WorksCreateController:
         self._cached_type_options = self._normalize_type_options(payload.get("type_options") or [])
         self._cached_assignable_users = self._normalize_assignable_users(payload.get("assignable_users") or [])
         self._cached_default_responsible_id = str(payload.get("default_responsible_id") or "").strip()
+        self._cached_status_options = self._normalize_status_options(payload.get("status_options") or [])
+        self._cached_default_status_id = (
+            str(payload.get("default_status_id") or "").strip()
+            or self._default_status_id_from_options(self._cached_status_options)
+        )
+        self._cached_default_status_color = (
+            str(payload.get("default_status_color") or "").strip()
+            or self._status_color_from_options(self._cached_default_status_id, self._cached_status_options)
+        )
         self._cached_priority_options = APIModuleActions.get_task_priority_options(
             lang_manager=self._lang,
             include_empty=True,
@@ -584,6 +692,33 @@ class WorksCreateController:
         if self._cached_default_responsible_id:
             return self._cached_default_responsible_id
         return APIModuleActions.get_current_user_id()
+
+    def _resolve_status_options(self) -> list[dict[str, object]]:
+        if self._cached_status_options:
+            return list(self._cached_status_options)
+        try:
+            self._cached_status_options = self._normalize_status_options(
+                APIModuleActions.get_module_status_options(Module.WORKS.value)
+            )
+        except Exception:
+            self._cached_status_options = []
+        return list(self._cached_status_options)
+
+    def _resolve_default_status_id(self, status_options: Optional[list[dict[str, object]]] = None) -> str:
+        if self._cached_default_status_id:
+            return self._cached_default_status_id
+
+        options = status_options if status_options is not None else self._resolve_status_options()
+        self._cached_default_status_id = self._default_status_id_from_options(options)
+        return self._cached_default_status_id
+
+    def _resolve_default_status_color(self) -> str:
+        if self._cached_default_status_color:
+            return WorksLayerService.normalize_backend_color(self._cached_default_status_color)
+        options = self._resolve_status_options()
+        default_status_id = self._resolve_default_status_id(options)
+        self._cached_default_status_color = self._status_color_from_options(default_status_id, options)
+        return WorksLayerService.normalize_backend_color(self._cached_default_status_color)
 
     def _resolve_type_options(self) -> list[dict[str, str]]:
         if self._cached_type_options:
@@ -626,6 +761,61 @@ class WorksCreateController:
                 continue
             normalized.append({"id": type_id, "label": label})
         return normalized
+
+    @staticmethod
+    def _normalize_status_options(options: object) -> list[dict[str, object]]:
+        normalized: list[dict[str, object]] = []
+        for option in options or []:
+            if not isinstance(option, dict):
+                continue
+
+            status_id = str(option.get("id") or "").strip()
+            label = str(option.get("name") or option.get("label") or "").strip()
+            if not status_id or not label:
+                continue
+
+            normalized.append(
+                {
+                    "id": status_id,
+                    "name": label,
+                    "label": label,
+                    "color": WorksLayerService.normalize_backend_color(option.get("color")),
+                    "type": str(option.get("type") or "").strip().upper(),
+                    "description": str(option.get("description") or "").strip(),
+                    "isDefault": bool(option.get("isDefault")),
+                    "sortOrder": option.get("sortOrder"),
+                }
+            )
+        return normalized
+
+    @staticmethod
+    def _default_status_id_from_options(options: object) -> str:
+        first_status_id = ""
+        for option in options or []:
+            if not isinstance(option, dict):
+                continue
+
+            status_id = str(option.get("id") or "").strip()
+            if status_id and not first_status_id:
+                first_status_id = status_id
+            if status_id and option.get("isDefault"):
+                return status_id
+        return first_status_id
+
+    @staticmethod
+    def _status_color_from_options(status_id: object, options: object) -> str:
+        status_id_text = str(status_id or "").strip()
+        first_color = ""
+        for option in options or []:
+            if not isinstance(option, dict):
+                continue
+
+            color = str(option.get("color") or "").strip()
+            if color and not first_color:
+                first_color = color
+            if status_id_text and str(option.get("id") or "").strip() == status_id_text and color:
+                return WorksLayerService.normalize_backend_color(color)
+        return WorksLayerService.normalize_backend_color(first_color)
 
     def _clear_capture_tool(self, *, bring_front: bool) -> None:
         canvas = iface.mapCanvas() if iface is not None else None
