@@ -924,13 +924,55 @@ class APIModuleActions:
         try:
             data = client.send_query(query, variables=variables) or {}
             updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
-            return bool(updated.get("id"))
+            if updated.get("id"):
+                return True
+            PythonFailLogger.log_exception(
+                RuntimeError("Task geometry update returned no task id"),
+                module=Module.TASK.value,
+                event="task_update_geometry_empty_response",
+                extra={
+                    "item_id": task_id,
+                    "geometry_type": str(geometry.get("type") or ""),
+                },
+            )
+            return False
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.TASK.value,
                 event="task_update_geometry_failed",
                 extra={"item_id": task_id},
+            )
+            return False
+
+    @staticmethod
+    def update_project_geometry(item_id: str, geometry: dict) -> bool:
+        """Update the project geometry field in the backend."""
+
+        project_id = str(item_id or "").strip()
+        if not project_id or not isinstance(geometry, dict):
+            return False
+
+        loader = GraphQLQueryLoader()
+        query = loader.load_query_by_module(Module.PROJECT.value, "updateProjectGeometry.graphql")
+        variables = {
+            "input": {
+                "id": project_id,
+                "geometry": APIModuleActions._geometry_input_value(geometry),
+            }
+        }
+
+        client = APIClient()
+        try:
+            data = client.send_query(query, variables=variables) or {}
+            updated = (data.get("updateProject") or {}) if isinstance(data, dict) else {}
+            return bool(updated.get("id"))
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROJECT.value,
+                event="project_update_geometry_failed",
+                extra={"item_id": project_id},
             )
             return False
 

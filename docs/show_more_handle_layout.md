@@ -99,12 +99,12 @@ The button is configured as:
 - widget type: `QToolButton`
 - parent: `handle_host` (normally the full card)
 - auto raise: `True`
-- fixed size: `42 x 12`
-- text: empty
+- fixed size: `56 x 16`
+- text: `...`
 - tooltip: resolved from `_detail_button_tooltip()`
 - cursor: `Qt.PointingHandCursor`
 
-There is no icon or label text. The visual appearance is entirely stylesheet-driven.
+There is no icon. The `...` text is intentionally visible so users can discover the handle more easily.
 
 ## Positioning logic
 
@@ -151,7 +151,7 @@ Formula:
 target_y = max(0, host.height() - handle.height() - 1)
 ```
 
-With the current fixed handle height of `12`, the handle sits exactly `1` px above the bottom edge of the host.
+With the current fixed handle height of `16`, the handle sits exactly `1` px above the bottom edge of the host.
 
 Practical effect:
 - the handle visually overlaps the lower card edge area
@@ -412,8 +412,8 @@ Implementation map:
 - `widgets/DataDisplayWidgets/ExtraInfoWidget.py :: ExtraInfoFrame._position_handle`
 - `widgets/theme_manager.py :: ThemeManager.apply_module_style`
 
-- The handle width is hard-coded to `42` px.
-- The handle height is hard-coded to `12` px.
+- The handle width is hard-coded to `56` px.
+- The handle height is hard-coded to `16` px.
 - The handle bottom offset is hard-coded to `1` px.
 - Horizontal centering is based on `ExtraInfoFrame.width()`, not card width.
 - The handle floats outside the layout flow, so unusual parent resizing can make it look detached until the next scheduled reposition.

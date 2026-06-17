@@ -26,6 +26,7 @@ query Projects(
         name
         number
         description
+        geometry
         status {
           id
           name

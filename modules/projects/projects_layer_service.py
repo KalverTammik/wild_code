@@ -433,6 +433,25 @@ class ProjectsLayerService:
             )
         return transformed
 
+    @staticmethod
+    def backend_geometry_payload_from_geometry(geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
+        if not isinstance(geometry, QgsGeometry) or geometry.isEmpty():
+            return None
+
+        try:
+            geometry_text = geometry.asJson()
+            if not geometry_text:
+                return None
+            payload = json.loads(str(geometry_text))
+            return payload if isinstance(payload, dict) else None
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROJECT.value,
+                event="project_geometry_to_payload_failed",
+            )
+            return None
+
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_number: str = "", item_name: str = ""):
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():

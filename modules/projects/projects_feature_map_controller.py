@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from typing import Optional
 
+from qgis.core import QgsVectorLayer
+
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...python.api_actions import APIModuleActions
 from ...utils.MapTools.module_feature_controllers import (
     ModuleFeatureAttachMessages,
     ModuleFeatureDrawMessages,
@@ -34,12 +38,7 @@ class ProjectsFeatureMapController:
             log_module="project",
             resolve_layer=lambda: ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, silent=False),
             find_feature_at_point=lambda point, layer: ProjectsLayerService.find_feature_at_point(point, layer=layer),
-            attach_handler=lambda layer, feature_id, current_item: ProjectsLayerService.attach_backend_item_to_feature(
-                layer=layer,
-                feature_id=feature_id,
-                item_id=str((current_item or {}).get("id") or "").strip(),
-                item_data=current_item,
-            ),
+            attach_handler=self._attach_project_area_and_sync_geometry,
             find_feature_for_item=lambda layer, current_item: ProjectsLayerService.find_feature(
                 layer,
                 item_id=str((current_item or {}).get("id") or "").strip(),
@@ -77,3 +76,55 @@ class ProjectsFeatureMapController:
             ),
             commit_edit_session_after_draw=True,
         )
+
+    @staticmethod
+    def _attach_project_area_and_sync_geometry(
+        layer: QgsVectorLayer,
+        feature_id: int,
+        current_item: dict,
+    ) -> tuple[bool, str]:
+        item_payload = current_item if isinstance(current_item, dict) else {}
+        item_id = str(item_payload.get("id") or "").strip()
+        success, message = ProjectsLayerService.attach_backend_item_to_feature(
+            layer=layer,
+            feature_id=feature_id,
+            item_id=item_id,
+            item_data=item_payload,
+        )
+        if not success:
+            return success, message
+
+        geometry_payload = ProjectsFeatureMapController._geometry_payload_for_item(layer, item_payload)
+        if geometry_payload is None:
+            return success, message
+
+        if APIModuleActions.update_project_geometry(item_id, geometry_payload):
+            return success, message
+
+        PythonFailLogger.log_exception(
+            RuntimeError("Could not update project geometry in backend"),
+            module="project",
+            event="project_geometry_backend_update_failed",
+            extra={"item_id": item_id, "feature_id": int(feature_id)},
+        )
+        return success, message
+
+    @staticmethod
+    def _geometry_payload_for_item(layer: QgsVectorLayer, item_payload: dict) -> Optional[dict[str, object]]:
+        try:
+            feature = ProjectsLayerService.find_feature(
+                layer,
+                item_id=str((item_payload or {}).get("id") or "").strip(),
+                item_number=str((item_payload or {}).get("projectNumber") or (item_payload or {}).get("number") or "").strip(),
+                item_name=str((item_payload or {}).get("name") or (item_payload or {}).get("title") or "").strip(),
+            )
+            geometry = feature.geometry() if feature is not None else None
+            return ProjectsLayerService.backend_geometry_payload_from_geometry(geometry)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="project",
+                event="project_geometry_payload_from_item_failed",
+                extra={"item_id": str((item_payload or {}).get("id") or "").strip()},
+            )
+            return None

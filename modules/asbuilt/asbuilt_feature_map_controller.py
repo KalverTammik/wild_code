@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from typing import Optional
 
+from qgis.core import QgsVectorLayer
+
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...python.api_actions import APIModuleActions
 from ...utils.MapTools.module_feature_controllers import (
     ModuleFeatureAttachMessages,
     ModuleFeatureDrawMessages,
@@ -11,6 +15,7 @@ from ...utils.MapTools.module_feature_controllers import (
     ModuleFeatureWorkflow,
     ModuleFeatureWorkflowConfig,
 )
+from .asbuilt_geometry_form_dialog import AsBuiltGeometryFormDialog
 from .asbuilt_layer_service import AsBuiltLayerService
 
 
@@ -34,12 +39,7 @@ class AsBuiltFeatureMapController:
             log_module="asbuilt",
             resolve_layer=lambda: AsBuiltLayerService.resolve_main_layer(lang_manager=self._lang, silent=False),
             find_feature_at_point=lambda point, layer: AsBuiltLayerService.find_feature_at_point(point, layer=layer),
-            attach_handler=lambda layer, feature_id, current_item: AsBuiltLayerService.attach_backend_item_to_feature(
-                layer=layer,
-                feature_id=feature_id,
-                item_id=str((current_item or {}).get("id") or "").strip(),
-                item_data=current_item,
-            ),
+            attach_handler=self._attach_asbuilt_feature_and_sync_geometry,
             find_feature_for_item=lambda layer, current_item: AsBuiltLayerService.find_feature(
                 layer,
                 item_id=str((current_item or {}).get("id") or "").strip(),
@@ -74,5 +74,87 @@ class AsBuiltFeatureMapController:
                 title_error=self._lang.translate(TranslationKeys.ERROR),
                 title_success=self._lang.translate(TranslationKeys.SUCCESS),
             ),
-            commit_edit_session_after_draw=False,
+            commit_edit_session_after_draw=True,
         )
+
+    @staticmethod
+    def _attach_asbuilt_feature_and_sync_geometry(
+        layer: QgsVectorLayer,
+        feature_id: int,
+        current_item: dict,
+    ) -> tuple[bool, str]:
+        item_payload = current_item if isinstance(current_item, dict) else {}
+        item_id = str(item_payload.get("id") or "").strip()
+        form_values = AsBuiltGeometryFormDialog.prompt(item_data=item_payload)
+        if form_values is None:
+            return False, "Teostusjoonise andmete sisestamine katkestati"
+
+        item_payload["_asbuilt_geometry_form"] = form_values
+        item_payload["_asbuilt_feature_id"] = int(feature_id)
+        success, message = AsBuiltLayerService.attach_backend_item_to_feature(
+            layer=layer,
+            feature_id=feature_id,
+            item_id=item_id,
+            item_data=item_payload,
+        )
+        if not success:
+            return success, message
+
+        geometry_payload = AsBuiltFeatureMapController._geometry_payload_for_item(layer, item_payload)
+        if geometry_payload is None:
+            PythonFailLogger.log(
+                "asbuilt_geometry_backend_sync_skipped_no_geometry",
+                module="asbuilt",
+                extra={"item_id": item_id, "feature_id": int(feature_id)},
+            )
+            return False, "Teostusjoonise geomeetriat ei leitud backendisse saatmiseks"
+
+        if APIModuleActions.update_task_geometry(item_id, geometry_payload):
+            PythonFailLogger.log(
+                "asbuilt_geometry_backend_sync_success",
+                module="asbuilt",
+                extra={"item_id": item_id, "feature_id": int(feature_id), "geometry_type": str(geometry_payload.get("type") or "")},
+            )
+            return success, message
+
+        PythonFailLogger.log_exception(
+            RuntimeError("Could not update As-built task geometry in backend"),
+            module="asbuilt",
+            event="asbuilt_geometry_backend_update_failed",
+            extra={"item_id": item_id, "feature_id": int(feature_id)},
+        )
+        return False, "Teostusjoonise geomeetria saatmine backendisse ebaõnnestus"
+
+    @staticmethod
+    def _geometry_payload_for_item(layer: QgsVectorLayer, item_payload: dict) -> Optional[dict[str, object]]:
+        try:
+            feature = None
+            feature_id = item_payload.get("_asbuilt_feature_id")
+            if feature_id is not None:
+                feature = AsBuiltLayerService._feature_by_id(layer, int(feature_id))
+            if feature is None:
+                feature = AsBuiltLayerService.find_feature(
+                    layer,
+                    item_id=str((item_payload or {}).get("id") or "").strip(),
+                    item_name=str((item_payload or {}).get("name") or (item_payload or {}).get("title") or "").strip(),
+                )
+            if feature is None:
+                PythonFailLogger.log(
+                    "asbuilt_geometry_payload_feature_not_found",
+                    module="asbuilt",
+                    extra={
+                        "item_id": str((item_payload or {}).get("id") or "").strip(),
+                        "feature_id": item_payload.get("_asbuilt_feature_id"),
+                    },
+                )
+                return None
+            geometry = feature.geometry()
+            return AsBuiltLayerService.backend_geometry_payload_from_geometry(geometry)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="asbuilt",
+                event="asbuilt_geometry_payload_from_item_failed",
+                extra={"item_id": str((item_payload or {}).get("id") or "").strip()},
+            )
+            return None

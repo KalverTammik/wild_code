@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Optional
 
-from qgis.PyQt.QtCore import QVariant, QDateTime
+from qgis.PyQt.QtCore import QVariant, QDate, QDateTime
 from qgis.core import (
     QgsCoordinateTransform,
     QgsFeature,
@@ -41,6 +42,28 @@ class AsBuiltLayerService:
     FIELD_ADDED_DATE = "added_date"
     FIELD_UPDATED_BY = "updated_by"
     FIELD_UPDATE_DATE = "update_date"
+
+    FIELD_WORK_NUMBER = "Töö nr"
+    FIELD_OBJECT = "Objekt"
+    FIELD_SURVEY_DATE = "Mõõdistamise kpv"
+    FIELD_SURVEYOR = "Mõõdistaja"
+    FIELD_CONTACT = "Kontakt"
+    FIELD_SURVEYOR_NOTES = "Mõõdistaja, märkused"
+    FIELD_DRAWING = "Joonis"
+    FIELD_SCALE = "Mõõtkava"
+    FIELD_COORDINATE_SYSTEM = "Koordinaatsüsteem"
+    FIELD_INPUT_USER = "Sisestaja"
+    FIELD_INPUT_DATE = "Sisetus kpv"
+    FIELD_MODIFIED_USER = "Muutja"
+    FIELD_MODIFIED_DATE = "Muutmis kpv"
+    FIELD_NETWORK_AREA = "Võrgu piirkond"
+    FIELD_WATER = "Vesi"
+    FIELD_SEWER = "Kanal"
+    FIELD_RAINWATER = "Sadevesi"
+    FIELD_ELECTRICITY = "Elekter ja tänavavalgustus"
+    FIELD_GAS = "Gaas"
+    FIELD_TELECOM = "Side"
+    FIELD_HEIGHT_SYSTEM = "Kõrgussüsteem"
 
     CUSTOM_FIELDS = (
         (FIELD_EXT_JOB_ID, QVariant.String),
@@ -278,6 +301,23 @@ class AsBuiltLayerService:
             except Exception:
                 return value
 
+        if field_type == QVariant.Bool:
+            if isinstance(value, bool):
+                return value
+            text = str(value or "").strip().lower()
+            if text in {"1", "true", "t", "yes", "y", "jah"}:
+                return True
+            if text in {"0", "false", "f", "no", "n", "ei"}:
+                return False
+            return bool(value)
+
+        if field_type == QVariant.Date:
+            if isinstance(value, QDate):
+                return value
+            text = str(value or "").strip()
+            parsed = QDate.fromString(text, "yyyy-MM-dd")
+            return parsed if parsed.isValid() else value
+
         if field_type == QVariant.DateTime:
             if isinstance(value, QDateTime):
                 return value
@@ -294,6 +334,80 @@ class AsBuiltLayerService:
         field_index = layer.fields().indexFromName(actual)
         field = layer.fields()[field_index] if field_index >= 0 else None
         feature.setAttribute(actual, cls.coerce_value_for_field(field, value))
+
+    @classmethod
+    def _feature_by_id(cls, layer: QgsVectorLayer, feature_id: int) -> Optional[QgsFeature]:
+        try:
+            feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
+            if feature is not None:
+                return feature
+        except Exception:
+            pass
+
+        try:
+            target_id = int(feature_id)
+            for candidate in layer.getFeatures():
+                if int(candidate.id()) == target_id:
+                    return candidate
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.ASBUILT.value,
+                event="asbuilt_feature_by_id_failed",
+                extra={"feature_id": int(feature_id)},
+            )
+        return None
+
+    @classmethod
+    def _apply_geometry_form_values(
+        cls,
+        feature: QgsFeature,
+        *,
+        layer: QgsVectorLayer,
+        values: Optional[dict],
+        item_payload: dict,
+        username: str,
+        created_date: datetime,
+        updated_date: datetime,
+    ) -> None:
+        form_values = values if isinstance(values, dict) else {}
+        item_name = str(item_payload.get("name") or item_payload.get("title") or "").strip()
+        work_number = str(
+            form_values.get(cls.FIELD_WORK_NUMBER)
+            or item_payload.get("number")
+            or item_payload.get("workNumber")
+            or item_payload.get("id")
+            or ""
+        ).strip()
+        object_name = str(form_values.get(cls.FIELD_OBJECT) or item_name).strip()
+
+        fields: dict[str, object] = {
+            cls.FIELD_WORK_NUMBER: work_number,
+            cls.FIELD_OBJECT: object_name,
+            cls.FIELD_SURVEY_DATE: form_values.get(cls.FIELD_SURVEY_DATE),
+            cls.FIELD_SURVEYOR: form_values.get(cls.FIELD_SURVEYOR),
+            cls.FIELD_CONTACT: form_values.get(cls.FIELD_CONTACT),
+            cls.FIELD_SURVEYOR_NOTES: form_values.get(cls.FIELD_SURVEYOR_NOTES),
+            cls.FIELD_DRAWING: form_values.get(cls.FIELD_DRAWING) or "TJ",
+            cls.FIELD_SCALE: form_values.get(cls.FIELD_SCALE) or "500",
+            cls.FIELD_COORDINATE_SYSTEM: form_values.get(cls.FIELD_COORDINATE_SYSTEM) or "L-EST97",
+            cls.FIELD_HEIGHT_SYSTEM: form_values.get(cls.FIELD_HEIGHT_SYSTEM) or "EH2000",
+            cls.FIELD_INPUT_USER: form_values.get(cls.FIELD_INPUT_USER) or username,
+            cls.FIELD_INPUT_DATE: form_values.get(cls.FIELD_INPUT_DATE) or created_date,
+            cls.FIELD_MODIFIED_USER: form_values.get(cls.FIELD_MODIFIED_USER) or username,
+            cls.FIELD_MODIFIED_DATE: form_values.get(cls.FIELD_MODIFIED_DATE) or updated_date,
+            cls.FIELD_WATER: form_values.get(cls.FIELD_WATER, False),
+            cls.FIELD_SEWER: form_values.get(cls.FIELD_SEWER, False),
+            cls.FIELD_RAINWATER: form_values.get(cls.FIELD_RAINWATER, False),
+            cls.FIELD_ELECTRICITY: form_values.get(cls.FIELD_ELECTRICITY, False),
+            cls.FIELD_GAS: form_values.get(cls.FIELD_GAS, False),
+            cls.FIELD_TELECOM: form_values.get(cls.FIELD_TELECOM, False),
+        }
+
+        for field_name, value in fields.items():
+            if value is None:
+                continue
+            cls._set_attr_if_present(feature, layer=layer, candidates=(field_name,), value=value)
 
     @staticmethod
     def _point_in_layer_crs(point: QgsPointXY, layer: QgsVectorLayer) -> QgsPointXY:
@@ -318,6 +432,38 @@ class AsBuiltLayerService:
                 event="asbuilt_point_transform_failed",
             )
             return point
+
+    @staticmethod
+    def backend_geometry_payload_from_geometry(geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
+        if not isinstance(geometry, QgsGeometry) or geometry.isEmpty():
+            return None
+
+        try:
+            geometry_text = geometry.asJson()
+            if not geometry_text:
+                return None
+            payload = json.loads(str(geometry_text))
+            if not isinstance(payload, dict):
+                return None
+            return AsBuiltLayerService._normalize_backend_geometry_payload(payload)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.ASBUILT.value,
+                event="asbuilt_geometry_to_payload_failed",
+            )
+            return None
+
+    @staticmethod
+    def _normalize_backend_geometry_payload(payload: dict[str, object]) -> dict[str, object]:
+        geometry_type = str(payload.get("type") or "").strip()
+        coordinates = payload.get("coordinates")
+        if geometry_type == "MultiPolygon" and isinstance(coordinates, list) and len(coordinates) == 1:
+            return {
+                "type": "Polygon",
+                "coordinates": coordinates[0],
+            }
+        return payload
 
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_name: str = ""):
@@ -425,16 +571,7 @@ class AsBuiltLayerService:
         if not item_id_text:
             return False, "Missing backend As-built id"
 
-        try:
-            feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.ASBUILT.value,
-                event="asbuilt_attach_feature_load_failed",
-                extra={"feature_id": int(feature_id)},
-            )
-            feature = None
+        feature = cls._feature_by_id(layer, int(feature_id))
 
         if feature is None:
             return False, "Selected As-built feature was not found"
@@ -453,6 +590,15 @@ class AsBuiltLayerService:
         cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXT_JOB_STATE,), value=item_status_id)
         cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_UPDATED_BY,), value=username)
         cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_UPDATE_DATE,), value=updated_date)
+        cls._apply_geometry_form_values(
+            feature,
+            layer=layer,
+            values=item_payload.get("_asbuilt_geometry_form"),
+            item_payload=item_payload,
+            username=username,
+            created_date=created_date,
+            updated_date=updated_date,
+        )
 
         added_by_field = cls._resolve_first_field_name(layer, (cls.FIELD_ADDED_BY,))
         added_date_field = cls._resolve_first_field_name(layer, (cls.FIELD_ADDED_DATE,))

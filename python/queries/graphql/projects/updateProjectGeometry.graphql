@@ -1,0 +1,7 @@
+mutation UpdateProjectGeometry($input: UpdateProjectInput!) {
+  updateProject(input: $input) {
+    __typename
+    id
+    geometry
+  }
+}

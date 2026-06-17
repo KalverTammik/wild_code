@@ -6,38 +6,34 @@ QWidget#ExtraInfoWidget QLabel#ExtraInfoTitle {
 
 QToolButton#ExtraInfoHandleButton {
   background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-      stop:0 rgba(78,91,103,0.98),
-      stop:0.18 rgba(49,58,68,0.99),
-      stop:0.46 rgba(82,94,108,0.98),
-      stop:0.72 rgba(111,123,136,0.96),
-      stop:1 rgba(24,30,37,1.0)
+      stop:0 rgba(68,80,94,0.98),
+      stop:0.42 rgba(43,52,62,0.98),
+      stop:1 rgba(28,35,43,0.98)
   );
-  color: #e0e0e6;
-  border-top: 1px solid rgba(184,197,210,0.42);
-  border-left: 1px solid rgba(139,151,166,0.34);
-  border-right: 1px solid rgba(10,14,19,0.72);
-  border-bottom: 1px solid rgba(6,10,14,0.88);
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
-  border-bottom-left-radius: 6px;
-  border-bottom-right-radius: 6px;
-  padding: 0;
-  font-size: 1px;
+  color: #cbd5e1;
+  border: 1px solid rgba(151,163,178,0.34);
+  border-bottom: 1px solid rgba(6,10,14,0.86);
+  border-radius: 7px;
+  padding: 0 0 4px 0;
+  font-size: 11px;
   font-weight: 700;
 }
 
 QToolButton#ExtraInfoHandleButton:hover {
   background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-      stop:0 rgba(57,97,96,0.99),
-      stop:0.18 rgba(28,62,62,1.0),
-      stop:0.46 rgba(61,103,103,0.98),
-      stop:0.72 rgba(116,146,146,0.98),
-      stop:1 rgba(10,28,28,1.0)
+      stop:0 rgba(81,101,125,1.0),
+      stop:0.40 rgba(53,72,94,1.0),
+      stop:1 rgba(31,48,67,1.0)
   );
-  border-top: 1px solid rgba(162,224,218,0.46);
-  border-left: 1px solid rgba(107,192,186,0.42);
-  border-right: 1px solid rgba(7,71,71,0.76);
-  border-bottom: 1px solid rgba(5,44,44,0.92);
+  color: #f8fafc;
+  border: 1px solid rgba(124,164,205,0.58);
+  border-bottom: 1px solid rgba(9,18,28,0.94);
+}
+
+QToolButton#ExtraInfoHandleButton:pressed {
+  background: #2f4358;
+  padding-top: 1px;
+  padding-bottom: 3px;
 }
 
 QWidget#ExtraInfoWidget QLabel#ExtraInfoColumnTitle {
