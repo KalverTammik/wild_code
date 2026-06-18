@@ -904,18 +904,25 @@ class APIModuleActions:
             return False
 
     @staticmethod
-    def update_task_geometry(item_id: str, geometry: dict) -> bool:
-        """Update the task geometry field in the backend."""
-
-        task_id = str(item_id or "").strip()
-        if not task_id or not isinstance(geometry, dict):
+    def _update_module_geometry(
+        *,
+        item_id: str,
+        geometry: dict,
+        module: str,
+        query_filename: str,
+        response_key: str,
+        failure_event: str,
+        empty_event: Optional[str] = None,
+    ) -> bool:
+        resolved_id = str(item_id or "").strip()
+        if not resolved_id or not isinstance(geometry, dict):
             return False
 
         loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(Module.TASK.value, "updateTaskGeometry.graphql")
+        query = loader.load_query_by_module(module, query_filename)
         variables = {
             "input": {
-                "id": task_id,
+                "id": resolved_id,
                 "geometry": APIModuleActions._geometry_input_value(geometry),
             }
         }
@@ -923,58 +930,68 @@ class APIModuleActions:
         client = APIClient()
         try:
             data = client.send_query(query, variables=variables) or {}
-            updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
+            updated = (data.get(response_key) or {}) if isinstance(data, dict) else {}
             if updated.get("id"):
                 return True
-            PythonFailLogger.log_exception(
-                RuntimeError("Task geometry update returned no task id"),
-                module=Module.TASK.value,
-                event="task_update_geometry_empty_response",
-                extra={
-                    "item_id": task_id,
-                    "geometry_type": str(geometry.get("type") or ""),
-                },
-            )
+            if empty_event:
+                PythonFailLogger.log_exception(
+                    RuntimeError(f"{response_key} geometry update returned no id"),
+                    module=module,
+                    event=empty_event,
+                    extra={
+                        "item_id": resolved_id,
+                        "geometry_type": str(geometry.get("type") or ""),
+                    },
+                )
             return False
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module=Module.TASK.value,
-                event="task_update_geometry_failed",
-                extra={"item_id": task_id},
+                module=module,
+                event=failure_event,
+                extra={"item_id": resolved_id},
             )
             return False
+
+    @staticmethod
+    def update_task_geometry(item_id: str, geometry: dict) -> bool:
+        """Update the task geometry field in the backend."""
+
+        return APIModuleActions._update_module_geometry(
+            item_id=item_id,
+            geometry=geometry,
+            module=Module.TASK.value,
+            query_filename="updateTaskGeometry.graphql",
+            response_key="updateTask",
+            failure_event="task_update_geometry_failed",
+            empty_event="task_update_geometry_empty_response",
+        )
 
     @staticmethod
     def update_project_geometry(item_id: str, geometry: dict) -> bool:
         """Update the project geometry field in the backend."""
 
-        project_id = str(item_id or "").strip()
-        if not project_id or not isinstance(geometry, dict):
-            return False
+        return APIModuleActions._update_module_geometry(
+            item_id=item_id,
+            geometry=geometry,
+            module=Module.PROJECT.value,
+            query_filename="updateProjectGeometry.graphql",
+            response_key="updateProject",
+            failure_event="project_update_geometry_failed",
+        )
 
-        loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(Module.PROJECT.value, "updateProjectGeometry.graphql")
-        variables = {
-            "input": {
-                "id": project_id,
-                "geometry": APIModuleActions._geometry_input_value(geometry),
-            }
-        }
+    @staticmethod
+    def update_easement_geometry(item_id: str, geometry: dict) -> bool:
+        """Update the easement geometry field in the backend."""
 
-        client = APIClient()
-        try:
-            data = client.send_query(query, variables=variables) or {}
-            updated = (data.get("updateProject") or {}) if isinstance(data, dict) else {}
-            return bool(updated.get("id"))
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_update_geometry_failed",
-                extra={"item_id": project_id},
-            )
-            return False
+        return APIModuleActions._update_module_geometry(
+            item_id=item_id,
+            geometry=geometry,
+            module=Module.EASEMENT.value,
+            query_filename="updateEasementGeometry.graphql",
+            response_key="updateEasement",
+            failure_event="easement_update_geometry_failed",
+        )
 
     @staticmethod
     def create_file_download_link(file_uuid: str) -> Optional[str]:

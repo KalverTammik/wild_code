@@ -50,6 +50,7 @@ from ...widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewD
 from ...widgets.EasementPropertyAreaCalculationWidget import EasementPropertyAreaCalculationWidget
 from ...widgets.PropertySummaryCard import PropertySummaryCard
 from ...widgets.theme_manager import ThemeManager
+from .easement_geometry_form_dialog import EasementGeometryFormDialog
 
 
 class EasementPreviewDialog(QDialog):
@@ -521,16 +522,101 @@ class EasementPreviewDialog(QDialog):
         if target_layer is None:
             return False, self._lang.translate(TranslationKeys.EASEMENT_LAYER_MISSING)
 
+        form_values = EasementGeometryFormDialog.prompt(
+            item_data=self._item,
+            initial_values=self._easement_form_initial_values(property_edges or []),
+            parent=self,
+        )
+        if form_values is None:
+            return False, "Servituudi ala andmete sisestamine katkestati"
+
         ok, message = EasementLayerService.upsert_final_cut_feature(
             layer=target_layer,
             final_layer=final_layer,
             item_id=self._item_id,
             item_data=self._item,
             property_edges=property_edges,
+            form_values=form_values,
         )
         if ok:
+            geometry_synced = self._sync_saved_easement_geometry_to_backend(target_layer)
+            if not geometry_synced:
+                return False, "Servituudi geomeetria saatmine backendisse ebaõnnestus"
             return True, self._lang.translate(TranslationKeys.EASEMENT_LAYER_SAVE_SUCCESS).format(layer=message)
         return False, self._lang.translate(TranslationKeys.EASEMENT_LAYER_SAVE_FAILED).format(error=message)
+
+    def _sync_saved_easement_geometry_to_backend(self, layer) -> bool:
+        item_id = str(self._item_id or "").strip()
+        if not item_id:
+            return False
+        try:
+            feature = EasementLayerService.find_feature(
+                layer,
+                item_id=item_id,
+                item_number=str(self._item_number or "").strip(),
+            )
+            geometry = feature.geometry() if feature is not None else None
+            geometry_payload = EasementLayerService.backend_geometry_payload_from_geometry(geometry)
+            if geometry_payload is None:
+                PythonFailLogger.log(
+                    "easement_final_geometry_backend_sync_skipped_no_geometry",
+                    module="easement",
+                    extra={"item_id": item_id},
+                )
+                return False
+
+            if APIModuleActions.update_easement_geometry(item_id, geometry_payload):
+                PythonFailLogger.log(
+                    "easement_final_geometry_backend_sync_success",
+                    module="easement",
+                    extra={"item_id": item_id, "geometry_type": str(geometry_payload.get("type") or "")},
+                )
+                return True
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="easement",
+                event="easement_final_geometry_backend_sync_failed",
+                extra={"item_id": item_id},
+            )
+            return False
+
+        PythonFailLogger.log_exception(
+            RuntimeError("Could not update final easement geometry in backend"),
+            module="easement",
+            event="easement_final_geometry_backend_update_failed",
+            extra={"item_id": item_id},
+        )
+        return False
+
+    def _easement_form_initial_values(self, property_edges: list[dict]) -> dict[str, object]:
+        edges = property_edges or self._property_edges or []
+        cadastral_numbers = [
+            str(edge.get("cadastralUnitNumber") or "").strip()
+            for edge in edges
+            if str(edge.get("cadastralUnitNumber") or "").strip()
+        ]
+
+        total_compensation = 0.0
+        has_compensation = False
+        for edge in edges:
+            total_price = edge.get("totalPrice") if isinstance(edge.get("totalPrice"), dict) else {}
+            amount = total_price.get("amount")
+            try:
+                if amount not in (None, ""):
+                    total_compensation += float(amount)
+                    has_compensation = True
+            except Exception:
+                continue
+
+        values: dict[str, object] = {}
+        if cadastral_numbers:
+            values[EasementGeometryFormDialog.FIELD_CADASTRAL] = ", ".join(cadastral_numbers)
+        if self._final_area_sqm > 0:
+            values["Kaitsevööndi pindala"] = round(float(self._final_area_sqm), 2)
+        if has_compensation:
+            values[EasementGeometryFormDialog.FIELD_COMPENSATION] = round(total_compensation, 2)
+        return values
 
     def _cleanup_generated_pdf(self) -> None:
         path = str(self._generated_pdf_path or "").strip()

@@ -37,6 +37,10 @@ class SettingsLogic:
         self._service = SettingsService()
         self._original_preferred: Optional[str] = None
         self._pending_preferred_module: Optional[str] = None
+        self._original_map_overlay_enabled: bool = True
+        self._pending_map_overlay_enabled: bool = True
+        self._original_map_search_enabled: bool = True
+        self._pending_map_search_enabled: bool = True
         
 
     def get_module_access_from_abilities(self, subjects) -> Dict[str, bool]:
@@ -75,6 +79,12 @@ class SettingsLogic:
         pref = self._service.preferred_module() or None
         self._original_preferred = pref
         self._pending_preferred_module = pref
+        overlay_enabled = self._service.map_canvas_glass_action_bar_enabled()
+        self._original_map_overlay_enabled = bool(overlay_enabled)
+        self._pending_map_overlay_enabled = bool(overlay_enabled)
+        search_enabled = self._service.map_canvas_search_bar_enabled()
+        self._original_map_search_enabled = bool(search_enabled)
+        self._pending_map_search_enabled = bool(search_enabled)
 
     def get_original_preferred(self) -> Optional[str]:
         return self._original_preferred
@@ -83,10 +93,29 @@ class SettingsLogic:
         # None means user prefers Welcome page
         self._pending_preferred_module = module_name or None
 
+    def get_original_map_overlay_enabled(self) -> bool:
+        return bool(self._original_map_overlay_enabled)
+
+    def get_pending_map_overlay_enabled(self) -> bool:
+        return bool(self._pending_map_overlay_enabled)
+
+    def set_map_overlay_enabled(self, enabled: bool) -> None:
+        self._pending_map_overlay_enabled = bool(enabled)
+
+    def get_original_map_search_enabled(self) -> bool:
+        return bool(self._original_map_search_enabled)
+
+    def get_pending_map_search_enabled(self) -> bool:
+        return bool(self._pending_map_search_enabled)
+
+    def set_map_search_enabled(self, enabled: bool) -> None:
+        self._pending_map_search_enabled = bool(enabled)
 
     def has_unsaved_changes(self) -> bool:
         has_preferred_module_changes = (self._pending_preferred_module or None) != (self._original_preferred or None)
-        return has_preferred_module_changes
+        has_map_overlay_changes = bool(self._pending_map_overlay_enabled) != bool(self._original_map_overlay_enabled)
+        has_map_search_changes = bool(self._pending_map_search_enabled) != bool(self._original_map_search_enabled)
+        return has_preferred_module_changes or has_map_overlay_changes or has_map_search_changes
 
     def apply_pending_changes(self):
         if self._pending_preferred_module:
@@ -94,12 +123,18 @@ class SettingsLogic:
         else:
             self._service.preferred_module(clear=True)
         self._original_preferred = self._pending_preferred_module
+        self._service.map_canvas_glass_action_bar_enabled(value=self._pending_map_overlay_enabled)
+        self._original_map_overlay_enabled = bool(self._pending_map_overlay_enabled)
+        self._service.map_canvas_search_bar_enabled(value=self._pending_map_search_enabled)
+        self._original_map_search_enabled = bool(self._pending_map_search_enabled)
 
         # Property layer persistence is handled via module cards
 
     def revert_pending_changes(self):
         # Reset pending selection back to the original
         self._pending_preferred_module = self._original_preferred
+        self._pending_map_overlay_enabled = bool(self._original_map_overlay_enabled)
+        self._pending_map_search_enabled = bool(self._original_map_search_enabled)
         # Property layer pending state managed by module cards
 
     # --- Module-layer helpers -------------------------------------------------

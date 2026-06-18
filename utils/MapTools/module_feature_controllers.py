@@ -417,7 +417,14 @@ class ModuleFeatureDrawController:
                     extra={"feature_id": int(feature_id), "item_id": self._item_id},
                 )
 
-        self.cancel(log_module=self._log_module)
+        title_error = self._title_error
+        title_success = self._title_success
+        save_failed_message = self._save_failed_message
+        success_message = self._success_message
+        item_id = self._item_id
+        log_module = self._log_module
+
+        self.cancel(log_module=log_module)
 
         try:
             if iface is not None:
@@ -427,14 +434,14 @@ class ModuleFeatureDrawController:
 
         if not success:
             ModernMessageDialog.show_warning(
-                self._title_error,
-                self._save_failed_message.format(item_id=self._item_id or "-", error=message or self._title_error),
+                title_error,
+                save_failed_message.format(item_id=item_id or "-", error=message or title_error),
             )
             return
 
         ModernMessageDialog.show_info(
-            self._title_success,
-            self._success_message.format(item_id=self._item_id or "-"),
+            title_success,
+            success_message.format(item_id=item_id or "-"),
         )
 
     @staticmethod

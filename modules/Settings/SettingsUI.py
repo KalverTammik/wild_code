@@ -16,6 +16,8 @@ from ...utils.url_manager import Module
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.theme_manager import styleExtras, ThemeShadowColors
 from ...utils.messagesHelper import ModernMessageDialog
+from ...utils.map_canvas_glass_action_bar import MapCanvasGlassActionBar
+from ...utils.map_canvas_search_bar import MapCanvasSearchBar
 from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.mixins.token_mixin import TokenMixin
@@ -132,6 +134,8 @@ class SettingsModule(TokenMixin, QWidget):
         card.setObjectName("SetupCard")
         card.setProperty("cardTone", "user")
         card.preferredModuleChanged.connect(self._user_preferred_module_changed)
+        card.mapOverlayChanged.connect(self._user_map_overlay_changed)
+        card.mapSearchChanged.connect(self._user_map_search_changed)
     
         self._user_card = card
         return card
@@ -233,6 +237,8 @@ class SettingsModule(TokenMixin, QWidget):
         self._ensure_original_settings_loaded()
         preferred_module = self.logic.get_original_preferred()
         self._user_card.set_preferred(preferred_module)
+        self._user_card.set_map_overlay_enabled(self.logic.get_original_map_overlay_enabled())
+        self._user_card.set_map_search_enabled(self.logic.get_original_map_search_enabled())
 
         self._ensure_module_cards(allowed_modules=allowed_modules)
         self._resolve_pending_focus()
@@ -423,6 +429,7 @@ class SettingsModule(TokenMixin, QWidget):
         for card in self._module_cards.values():
             card.apply()
         self.logic.apply_pending_changes()
+        self._sync_map_overlay_from_settings()
 
         # Recompute dirty state using both logic + cards
         self._set_dirty(self.has_unsaved_changes())
@@ -430,6 +437,8 @@ class SettingsModule(TokenMixin, QWidget):
     def revert_pending_changes(self):
         self.logic.revert_pending_changes()
         self._user_card.revert(self.logic.get_original_preferred())
+        self._user_card.revert_map_overlay(self.logic.get_original_map_overlay_enabled())
+        self._user_card.revert_map_search(self.logic.get_original_map_search_enabled())
         if self._project_base_layers_card is not None:
             self._project_base_layers_card.revert()
         for card in self._module_cards.values():
@@ -442,6 +451,23 @@ class SettingsModule(TokenMixin, QWidget):
         self.logic.set_user_preferred_module(module_name)
         self._update_dirty_state()
 
+    def _user_map_overlay_changed(self, enabled: bool):
+        self.logic.set_map_overlay_enabled(bool(enabled))
+        self._update_dirty_state()
+
+    def _user_map_search_changed(self, enabled: bool):
+        self.logic.set_map_search_enabled(bool(enabled))
+        self._update_dirty_state()
+
+    def _sync_map_overlay_from_settings(self) -> None:
+        if self.logic.get_original_map_overlay_enabled():
+            MapCanvasGlassActionBar.show_for_session()
+        else:
+            MapCanvasGlassActionBar.close_active()
+        if self.logic.get_original_map_search_enabled():
+            MapCanvasSearchBar.show_for_session()
+        else:
+            MapCanvasSearchBar.close_active()
 
     def _update_dirty_state(self):
         # Combine user-card dirty with module cards dirty

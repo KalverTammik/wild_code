@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from typing import Optional
 
@@ -25,6 +24,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.MapTools.MapHelpers import MapHelpers
 from ...utils.SessionManager import SessionManager
+from ...utils.geometry_payload import GeometryPayloadService
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -435,22 +435,11 @@ class ProjectsLayerService:
 
     @staticmethod
     def backend_geometry_payload_from_geometry(geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
-        if not isinstance(geometry, QgsGeometry) or geometry.isEmpty():
-            return None
-
-        try:
-            geometry_text = geometry.asJson()
-            if not geometry_text:
-                return None
-            payload = json.loads(str(geometry_text))
-            return payload if isinstance(payload, dict) else None
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_geometry_to_payload_failed",
-            )
-            return None
+        return GeometryPayloadService.from_qgs_geometry(
+            geometry,
+            module=Module.PROJECT.value,
+            error_event="project_geometry_to_payload_failed",
+        )
 
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_number: str = "", item_name: str = ""):

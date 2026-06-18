@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...Logs.python_fail_logger import PythonFailLogger
+from ...python.api_actions import APIModuleActions
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.MapTools.module_feature_controllers import (
     ModuleFeatureAttachMessages,
@@ -10,6 +14,7 @@ from ...utils.MapTools.module_feature_controllers import (
     ModuleFeatureWorkflow,
     ModuleFeatureWorkflowConfig,
 )
+from .easement_geometry_form_dialog import EasementGeometryFormDialog
 from .easement_layer_service import EasementLayerService
 
 
@@ -45,12 +50,7 @@ class EasementAttachExistingController:
             log_module="easement",
             resolve_layer=lambda: EasementLayerService.resolve_main_layer(lang_manager=self._lang, silent=False),
             find_feature_at_point=lambda point, layer: EasementLayerService.find_feature_at_point(point, layer=layer),
-            attach_handler=lambda layer, feature_id, current_item: EasementLayerService.attach_backend_item_to_feature(
-                layer=layer,
-                feature_id=feature_id,
-                item_id=str((current_item or {}).get("id") or "").strip(),
-                item_data=current_item,
-            ),
+            attach_handler=self._attach_easement_feature_with_form,
             find_feature_for_item=lambda layer, current_item: EasementLayerService.find_feature(
                 layer,
                 item_id=str((current_item or {}).get("id") or "").strip(),
@@ -88,6 +88,88 @@ class EasementAttachExistingController:
             before_attach=self._handle_attach_conflict,
             commit_edit_session_after_draw=True,
         )
+
+    def _attach_easement_feature_with_form(self, layer, feature_id: int, current_item: Optional[dict]) -> tuple[bool, str]:
+        item_payload = dict(current_item or {})
+        item_id = str(item_payload.get("id") or "").strip()
+        form_values = EasementGeometryFormDialog.prompt(item_data=item_payload)
+        if form_values is None:
+            return False, "Servituudi ala andmete sisestamine katkestati"
+
+        item_payload["_easement_geometry_form"] = form_values
+        item_payload["_easement_feature_id"] = int(feature_id)
+        return self._attach_and_sync_easement_geometry(
+            layer=layer,
+            feature_id=feature_id,
+            item_id=item_id,
+            item_payload=item_payload,
+        )
+
+    @staticmethod
+    def _attach_and_sync_easement_geometry(
+        *,
+        layer,
+        feature_id: int,
+        item_id: str,
+        item_payload: dict,
+    ) -> tuple[bool, str]:
+        success, message = EasementLayerService.attach_backend_item_to_feature(
+            layer=layer,
+            feature_id=feature_id,
+            item_id=item_id,
+            item_data=item_payload,
+        )
+        if not success:
+            return success, message
+
+        geometry_payload = EasementAttachExistingController._geometry_payload_for_item(layer, item_payload)
+        if geometry_payload is None:
+            PythonFailLogger.log(
+                "easement_geometry_backend_sync_skipped_no_geometry",
+                module="easement",
+                extra={"item_id": item_id, "feature_id": int(feature_id)},
+            )
+            return success, message
+
+        if APIModuleActions.update_easement_geometry(item_id, geometry_payload):
+            PythonFailLogger.log(
+                "easement_geometry_backend_sync_success",
+                module="easement",
+                extra={"item_id": item_id, "feature_id": int(feature_id), "geometry_type": str(geometry_payload.get("type") or "")},
+            )
+            return success, message
+
+        PythonFailLogger.log_exception(
+            RuntimeError("Could not update easement geometry in backend"),
+            module="easement",
+            event="easement_geometry_backend_update_failed",
+            extra={"item_id": item_id, "feature_id": int(feature_id)},
+        )
+        return False, "Servituudi geomeetria saatmine backendisse ebaõnnestus"
+
+    @staticmethod
+    def _geometry_payload_for_item(layer, item_payload: dict):
+        try:
+            feature = None
+            feature_id = item_payload.get("_easement_feature_id")
+            if feature_id is not None:
+                feature = EasementLayerService._feature_by_id(layer, int(feature_id))
+            if feature is None:
+                feature = EasementLayerService.find_feature(
+                    layer,
+                    item_id=str((item_payload or {}).get("id") or "").strip(),
+                    item_number=str((item_payload or {}).get("number") or "").strip(),
+                )
+            geometry = feature.geometry() if feature is not None else None
+            return EasementLayerService.backend_geometry_payload_from_geometry(geometry)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="easement",
+                event="easement_geometry_payload_from_item_failed",
+                extra={"item_id": str((item_payload or {}).get("id") or "").strip()},
+            )
+            return None
 
     def _handle_attach_conflict(self, layer, feature, item_data: dict) -> bool:
         item_id = str((item_data or {}).get("id") or "").strip()

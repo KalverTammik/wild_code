@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QListWidget, QListWidgetItem, QPushButton, QHBoxLayout, QApplication
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QListWidget, QListWidgetItem, QPushButton, QHBoxLayout, QApplication, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QEvent, QTimer
 from PyQt5.QtGui import QColor, QFont
 from ..widgets.theme_manager import ThemeManager, styleExtras, ThemeShadowColors
@@ -28,15 +28,23 @@ class SearchResultsWidget(QDialog):
         self.setAttribute(Qt.WA_ShowWithoutActivating, True)  # Keep focus on search field
         self.setModal(False)  # Non-modal dialog
         self.setObjectName("searchResultsWidget")
+        self.setProperty("mapCanvasGlass", False)
         self.setFocusPolicy(Qt.NoFocus)  # Never accept focus
         # Track expanded state for each module type
 
         self.expanded_modules = set()
 
         # Main layout
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)  # Standard margins
-        layout.setSpacing(0)
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(8, 8, 8, 8)
+        root_layout.setSpacing(0)
+
+        self.popup_frame = QFrame(self)
+        self.popup_frame.setObjectName("SearchResultsGlassFrame")
+        self.popup_frame.setProperty("mapCanvasGlass", False)
+        layout = QVBoxLayout(self.popup_frame)
+        layout.setContentsMargins(10, 8, 10, 10)
+        layout.setSpacing(4)
 
         # Header layout with close button
         header_layout = QHBoxLayout()
@@ -49,6 +57,7 @@ class SearchResultsWidget(QDialog):
         # Close button
         self.close_button = QPushButton("×")
         self.close_button.setObjectName("searchResultsCloseButton")
+        self.close_button.setProperty("mapCanvasGlass", False)
         self.close_button.setProperty("variant", ButtonVariant.ICON)
         self.close_button.setProperty("iconRole", "close")
         self.close_button.setFixedSize(24, 24)
@@ -61,6 +70,7 @@ class SearchResultsWidget(QDialog):
         # Results list
         self.resultsList = QListWidget()
         self.resultsList.setObjectName("searchResultsList")
+        self.resultsList.setProperty("mapCanvasGlass", False)
         self.resultsList.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.resultsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.resultsList.setFocusPolicy(Qt.NoFocus)
@@ -77,6 +87,7 @@ class SearchResultsWidget(QDialog):
         self.resultsList.itemClicked.connect(self._on_item_clicked)
 
         layout.addWidget(self.resultsList)
+        root_layout.addWidget(self.popup_frame)
         # This prevents crashes during early initialization
         self._event_filter_installed = False
         self._focus_connection_made = False
@@ -86,6 +97,14 @@ class SearchResultsWidget(QDialog):
 
         # Apply ThemeManager styling for consistent appearance
         self.retheme_search_results()
+
+    def set_glass_mode(self, enabled: bool) -> None:
+        enabled = bool(enabled)
+        for widget in (self, self.popup_frame, self.close_button, self.resultsList):
+            widget.setProperty("mapCanvasGlass", enabled)
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+            widget.update()
 
     def _setup_application_connections(self):
         """Safely setup QApplication event filter and focus connections."""

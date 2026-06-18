@@ -14,6 +14,8 @@ PREFERRED_MODULE = f"{PLUGIN}/preferred_module"
 MAIN_PROPERTY_LAYER_ID = f"{PLUGIN}/main_property_layer_id"
 PLUGIN_DIALOG_GEOMETRY = f"{PLUGIN}/plugin_dialog/geometry"
 GEOSPATIAL_SETUP_MODE = f"{PLUGIN}/geospatial/setup_mode"
+MAP_CANVAS_GLASS_ACTION_BAR_ENABLED = f"{PLUGIN}/map_canvas/glass_action_bar_enabled"
+MAP_CANVAS_SEARCH_BAR_ENABLED = f"{PLUGIN}/map_canvas/search_bar_enabled"
 
 # Per-module suffix constants
 MODULE_SETTING_MAIN_LAYER = "element_layer_id"
@@ -94,6 +96,44 @@ class SettingsService:
 
     def geospatial_setup_mode(self, value=_UNSET, *, clear: bool = False, default: str = "manual"):
         return self.plugin_setting(GEOSPATIAL_SETUP_MODE, value=value, clear=clear, default=default)
+
+    def map_canvas_glass_action_bar_enabled(self, value=_UNSET, *, clear: bool = False, default: bool = True) -> bool:
+        if clear:
+            self.clear_setting(MAP_CANVAS_GLASS_ACTION_BAR_ENABLED)
+            return bool(default)
+
+        if value is _UNSET:
+            stored = self.get_setting(MAP_CANVAS_GLASS_ACTION_BAR_ENABLED, default)
+            if isinstance(stored, bool):
+                return stored
+            if isinstance(stored, str):
+                return stored.strip().lower() in ("1", "true", "yes", "y", "on")
+            if isinstance(stored, (int, float)):
+                return bool(stored)
+            return bool(stored) if stored is not None else bool(default)
+
+        resolved = bool(value)
+        self.set_setting(MAP_CANVAS_GLASS_ACTION_BAR_ENABLED, resolved)
+        return resolved
+
+    def map_canvas_search_bar_enabled(self, value=_UNSET, *, clear: bool = False, default: bool = True) -> bool:
+        if clear:
+            self.clear_setting(MAP_CANVAS_SEARCH_BAR_ENABLED)
+            return bool(default)
+
+        if value is _UNSET:
+            stored = self.get_setting(MAP_CANVAS_SEARCH_BAR_ENABLED, default)
+            if isinstance(stored, bool):
+                return stored
+            if isinstance(stored, str):
+                return stored.strip().lower() in ("1", "true", "yes", "y", "on")
+            if isinstance(stored, (int, float)):
+                return bool(stored)
+            return bool(stored) if stored is not None else bool(default)
+
+        resolved = bool(value)
+        self.set_setting(MAP_CANVAS_SEARCH_BAR_ENABLED, resolved)
+        return resolved
 
     def module_preferred_statuses(self, module_name: str, value=_UNSET, *, clear: bool = False):
         return self.module_setting(

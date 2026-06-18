@@ -35,6 +35,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.SessionManager import SessionManager
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
+from ...utils.geometry_payload import GeometryPayloadService
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -785,24 +786,11 @@ class WorksLayerService:
 
     @staticmethod
     def backend_geometry_payload_from_geometry(geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
-        if not isinstance(geometry, QgsGeometry) or geometry.isEmpty():
-            return None
-
-        try:
-            geometry_text = geometry.asJson()
-            if not geometry_text:
-                return None
-            payload = json.loads(str(geometry_text))
-            if not isinstance(payload, dict):
-                return None
-            return payload
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_geometry_to_payload_failed",
-            )
-            return None
+        return GeometryPayloadService.from_qgs_geometry(
+            geometry,
+            module=Module.WORKS.value,
+            error_event="works_geometry_to_payload_failed",
+        )
 
     @staticmethod
     def styled_backend_geometry_payload(
@@ -810,56 +798,24 @@ class WorksLayerService:
         *,
         color: object = None,
     ) -> Optional[dict[str, object]]:
-        if not isinstance(geometry_payload, dict):
-            return None
-
-        payload = dict(geometry_payload)
-        payload["icon"] = WorksLayerService.BACKEND_GEOMETRY_ICON
-        payload["color"] = WorksLayerService.BACKEND_GEOMETRY_BACKGROUND_COLOR
-        payload["iconColor"] = WorksLayerService.normalize_backend_color(color)
-        return payload
+        return GeometryPayloadService.with_style(
+            geometry_payload,
+            icon=WorksLayerService.BACKEND_GEOMETRY_ICON,
+            color=WorksLayerService.BACKEND_GEOMETRY_BACKGROUND_COLOR,
+            icon_color=WorksLayerService.normalize_backend_color(color),
+        )
 
     @staticmethod
     def _geojson_geometry_only(payload: dict) -> dict:
-        geometry_type = str(payload.get("type") or "").strip()
-        if not geometry_type:
-            return payload
-
-        cleaned = {"type": geometry_type}
-        if "coordinates" in payload:
-            cleaned["coordinates"] = payload.get("coordinates")
-        return cleaned
+        return GeometryPayloadService.geometry_only(payload)
 
     @staticmethod
     def geometry_from_payload(geometry_payload) -> Optional[QgsGeometry]:
-        if geometry_payload is None:
-            return None
-
-        payload = geometry_payload
-        if isinstance(payload, str):
-            try:
-                payload = json.loads(payload)
-            except Exception:
-                return None
-
-        if not isinstance(payload, dict):
-            return None
-
-        try:
-            payload_text = json.dumps(WorksLayerService._geojson_geometry_only(payload), ensure_ascii=False)
-            from PyQt5.QtCore import QByteArray
-
-            geometry = QgsGeometry.fromJson(QByteArray(payload_text.encode("utf-8")))
-            if not isinstance(geometry, QgsGeometry) or geometry.isEmpty():
-                return None
-            return geometry
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_geometry_from_payload_failed",
-            )
-            return None
+        return GeometryPayloadService.to_qgs_geometry(
+            geometry_payload,
+            module=Module.WORKS.value,
+            error_event="works_geometry_from_payload_failed",
+        )
 
 
 class WorksDescriptionService:

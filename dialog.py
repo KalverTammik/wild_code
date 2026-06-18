@@ -28,12 +28,15 @@ from .ui.modules_registry import ModulesRegistry
 from .utils.url_manager import Module
 from .utils.moduleSwitchHelper import ModuleSwitchHelper
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QSizePolicy
 
 from .utils.search.searchHelpers import SearchUIController
+from .utils.map_canvas_glass_action_bar import MapCanvasGlassActionBar
+from .utils.map_canvas_search_bar import MapCanvasSearchBar
 from .modules.Settings.settings_ui_controller import SettingsUIController
 from .constants.file_paths import ConfigPaths
+from .constants.settings_keys import SettingsService
 
 
 
@@ -206,6 +209,8 @@ class PluginDialog(QDialog):
         super().mouseMoveEvent(event)
 
     def logout(self):
+        MapCanvasGlassActionBar.close_active()
+        MapCanvasSearchBar.close_active()
         SessionUIController.logout(self)
 
     def showEvent(self, event):
@@ -218,9 +223,19 @@ class PluginDialog(QDialog):
                 pass
         super().showEvent(event)
         SessionUIController.after_show(self)
+        if SettingsService().map_canvas_glass_action_bar_enabled():
+            QTimer.singleShot(0, MapCanvasGlassActionBar.show_for_session)
+        else:
+            MapCanvasGlassActionBar.close_active()
+        if SettingsService().map_canvas_search_bar_enabled():
+            QTimer.singleShot(0, MapCanvasSearchBar.show_for_session)
+        else:
+            MapCanvasSearchBar.close_active()
 
     def closeEvent(self, event):
         if getattr(self, "_force_close", False):
+            MapCanvasGlassActionBar.close_active()
+            MapCanvasSearchBar.close_active()
             event.accept()
             return
         if not SettingsUIController.can_close(self):

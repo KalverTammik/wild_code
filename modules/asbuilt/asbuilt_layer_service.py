@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from typing import Optional
 
@@ -25,6 +24,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.MapTools.MapHelpers import MapHelpers
 from ...utils.SessionManager import SessionManager
+from ...utils.geometry_payload import GeometryPayloadService
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -435,35 +435,15 @@ class AsBuiltLayerService:
 
     @staticmethod
     def backend_geometry_payload_from_geometry(geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
-        if not isinstance(geometry, QgsGeometry) or geometry.isEmpty():
-            return None
-
-        try:
-            geometry_text = geometry.asJson()
-            if not geometry_text:
-                return None
-            payload = json.loads(str(geometry_text))
-            if not isinstance(payload, dict):
-                return None
-            return AsBuiltLayerService._normalize_backend_geometry_payload(payload)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.ASBUILT.value,
-                event="asbuilt_geometry_to_payload_failed",
-            )
-            return None
+        return GeometryPayloadService.from_qgs_geometry(
+            geometry,
+            module=Module.ASBUILT.value,
+            error_event="asbuilt_geometry_to_payload_failed",
+        )
 
     @staticmethod
     def _normalize_backend_geometry_payload(payload: dict[str, object]) -> dict[str, object]:
-        geometry_type = str(payload.get("type") or "").strip()
-        coordinates = payload.get("coordinates")
-        if geometry_type == "MultiPolygon" and isinstance(coordinates, list) and len(coordinates) == 1:
-            return {
-                "type": "Polygon",
-                "coordinates": coordinates[0],
-            }
-        return payload
+        return GeometryPayloadService.normalize_backend_payload(payload)
 
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_name: str = ""):

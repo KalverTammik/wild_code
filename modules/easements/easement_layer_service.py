@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-import json
 from typing import Optional
 
 from qgis.PyQt.QtCore import QVariant, QDate, QDateTime
@@ -14,6 +13,7 @@ from ...languages.translation_keys import TranslationKeys
 from ..Settings.setting_keys import SettingDialogPlaceholders
 from ...utils.MapTools.MapHelpers import MapHelpers
 from ...utils.SessionManager import SessionManager
+from ...utils.geometry_payload import GeometryPayloadService
 from ...utils.url_manager import Module
 from ...utils.messagesHelper import ModernMessageDialog
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -37,6 +37,18 @@ class EasementLayerService:
     FIELD_UPDATE_DATE_CANDIDATES = ("Muutmis kpv", "muutmis kpv", "update_date")
     FIELD_FINAL_AREA_CANDIDATES = ("Kaitsevööndi pindala", "kaitsevööndi pindala", "pindala", "Pindala_serv")
     FIELD_COMPENSATION_CANDIDATES = ("Talumistasu", "talumistasu")
+    FIELD_NOTARY_NUMBER_CANDIDATES = ("Notari reg nr", "notari reg nr")
+    FIELD_LAND_OWNER_CANDIDATES = ("Maa omanik", "maa omanik")
+    FIELD_PHONE_CANDIDATES = ("Telefon", "telefon")
+    FIELD_EMAIL_CANDIDATES = ("E-kiri", "e-kiri", "email")
+    FIELD_NOTE_CANDIDATES = ("Märkus", "märkus", "markus")
+    FIELD_ESTABLISHED_DATE_CANDIDATES = ("Kehtestamise kuupäev", "kehtestamise kuupäev")
+    FIELD_REGION_CANDIDATES = ("Piirkond", "piirkond")
+    FIELD_ADDRESS_CANDIDATES = ("Aadress", "aadress")
+    FIELD_HOUSE_NUMBER_CANDIDATES = ("Maja nr", "maja nr")
+    FIELD_PROTECTION_WIDTH_CANDIDATES = ("Kaitsevööndi laius", "kaitsevööndi laius")
+    FIELD_NETWORK_CANDIDATES = ("Võrk", "võrk")
+    FIELD_MUNICIPALITY_CANDIDATES = ("Vald", "vald")
 
     @staticmethod
     def _configured_layers(identifier: str) -> list[QgsMapLayer]:
@@ -508,6 +520,65 @@ class EasementLayerService:
         field = layer.fields()[field_index] if field_index >= 0 else None
         feature.setAttribute(actual, cls.coerce_value_for_field(field, value))
 
+    @classmethod
+    def _feature_by_id(cls, layer: QgsVectorLayer, feature_id: int) -> Optional[QgsFeature]:
+        try:
+            feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
+            if feature is not None:
+                return feature
+        except Exception:
+            pass
+
+        try:
+            target_id = int(feature_id)
+            for candidate in layer.getFeatures():
+                if int(candidate.id()) == target_id:
+                    return candidate
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_feature_by_id_failed",
+                extra={"feature_id": int(feature_id)},
+            )
+        return None
+
+    @classmethod
+    def _apply_geometry_form_values(
+        cls,
+        feature: QgsFeature,
+        *,
+        layer: QgsVectorLayer,
+        values: Optional[dict],
+    ) -> None:
+        if not isinstance(values, dict):
+            return
+
+        mapping: tuple[tuple[tuple[str, ...], object], ...] = (
+            (cls.FIELD_TYPE_CANDIDATES, values.get("Liik")),
+            (cls.FIELD_STATUS_CANDIDATES, values.get("Staatus")),
+            (cls.FIELD_NOTARY_NUMBER_CANDIDATES, values.get("Notari reg nr")),
+            (cls.FIELD_LAND_OWNER_CANDIDATES, values.get("Maa omanik")),
+            (cls.FIELD_PROPERTY_CANDIDATES, values.get("Katastritunnus")),
+            (cls.FIELD_PHONE_CANDIDATES, values.get("Telefon")),
+            (cls.FIELD_EMAIL_CANDIDATES, values.get("E-kiri")),
+            (cls.FIELD_NOTE_CANDIDATES, values.get("Märkus")),
+            (cls.FIELD_ESTABLISHED_DATE_CANDIDATES, values.get("Kehtestamise kuupäev")),
+            (cls.FIELD_SYSTEM_CANDIDATES, values.get("Allikas")),
+            (cls.FIELD_NETWORK_CANDIDATES, values.get("Võrk")),
+            (cls.FIELD_PROTECTION_WIDTH_CANDIDATES, values.get("Kaitsevööndi laius")),
+            (cls.FIELD_COMPENSATION_CANDIDATES, values.get("Talumistasu")),
+            (cls.FIELD_MUNICIPALITY_CANDIDATES, values.get("Vald")),
+            (cls.FIELD_REGION_CANDIDATES, values.get("Piirkond")),
+            (cls.FIELD_ADDRESS_CANDIDATES, values.get("Aadress")),
+            (cls.FIELD_HOUSE_NUMBER_CANDIDATES, values.get("Maja nr")),
+        )
+
+        for candidates, value in mapping:
+            if value in (None, ""):
+                continue
+            cls._set_attr_if_present(feature, layer=layer, candidates=candidates, value=value)
+
     @staticmethod
     def _coerce_area_value(layer: QgsVectorLayer, candidates: tuple[str, ...], area_sqm: float):
         actual = EasementLayerService._resolve_first_field_name(layer, candidates)
@@ -541,6 +612,18 @@ class EasementLayerService:
                 event="easement_layer_geometry_transform_failed",
             )
         return transformed
+
+    @staticmethod
+    def backend_geometry_payload_from_geometry(geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
+        return GeometryPayloadService.from_qgs_geometry(
+            geometry,
+            module=Module.EASEMENT.value,
+            error_event="easement_geometry_to_payload_failed",
+        )
+
+    @staticmethod
+    def _normalize_backend_geometry_payload(payload: dict[str, object]) -> dict[str, object]:
+        return GeometryPayloadService.normalize_backend_payload(payload)
 
     @staticmethod
     def _point_in_layer_crs(point: QgsPointXY, layer: QgsVectorLayer) -> QgsPointXY:
@@ -637,16 +720,7 @@ class EasementLayerService:
         if not item_id_text:
             return False, "Missing backend easement id"
 
-        try:
-            feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_attach_feature_load_failed",
-                extra={"feature_id": int(feature_id)},
-            )
-            feature = None
+        feature = cls._feature_by_id(layer, int(feature_id))
 
         if feature is None:
             return False, "Selected easement feature was not found"
@@ -684,6 +758,12 @@ class EasementLayerService:
                 )
         except Exception:
             pass
+
+        cls._apply_geometry_form_values(
+            feature,
+            layer=layer,
+            values=item_payload.get("_easement_geometry_form"),
+        )
 
         started_edit = False
         try:
@@ -889,6 +969,7 @@ class EasementLayerService:
         item_id: str,
         item_data: Optional[dict] = None,
         property_edges: Optional[list[dict]] = None,
+        form_values: Optional[dict] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False, "Invalid easement main layer"
@@ -982,6 +1063,8 @@ class EasementLayerService:
         if existing_feature is None:
             cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ADDED_BY_CANDIDATES, value=username)
             cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ADDED_DATE_CANDIDATES, value=added_date)
+
+        cls._apply_geometry_form_values(feature, layer=layer, values=form_values)
 
         started_edit = False
         try:

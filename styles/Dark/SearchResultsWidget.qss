@@ -1,18 +1,37 @@
 /* ===== SearchResultsWidget (Dark) ===== */
 
+QFrame#SearchResultsGlassFrame {
+    background: #2e2f38;
+    border: 1px solid #4a5060;
+    border-radius: 7px;
+}
+
+QPushButton#searchResultsCloseButton {
+    background: #3a3f4b;
+    border: 1px solid #596070;
+    border-radius: 5px;
+    color: #e8edf5;
+    font-weight: 700;
+}
+
+QPushButton#searchResultsCloseButton:hover {
+    background: #475061;
+    border-color: #7890a8;
+}
+
 QListWidget#searchResultsList {
     background: #2e2f38;
     border: none;
-    border-radius: 3px;
-    padding: 4px;
+    border-radius: 6px;
+    padding: 6px;
     outline: none;
 }
 
 QListWidget#searchResultsList::item {
-    padding: 6px 12px;
-    border-radius: 3px;
+    padding: 7px 12px;
+    border-radius: 5px;
     margin: 1px 0;
-    color: #c5c5d2;
+    color: #d8dde8;
 }
 
 QListWidget#searchResultsList::item:hover {
@@ -24,5 +43,88 @@ QListWidget#searchResultsList::item:selected {
     color: #ffffff;
 }
 
-/* Header / show-more rows are styled dynamically in Python to avoid unsupported attribute selectors. */
+QListWidget#searchResultsList QScrollBar:vertical {
+    width: 10px;
+    margin: 3px 2px 3px 2px;
+    background: transparent;
+}
 
+QListWidget#searchResultsList QScrollBar::handle:vertical {
+    min-height: 34px;
+    border-radius: 5px;
+    background: #687384;
+}
+
+QListWidget#searchResultsList QScrollBar::handle:vertical:hover {
+    background: #8390a3;
+}
+
+QListWidget#searchResultsList QScrollBar::add-line:vertical,
+QListWidget#searchResultsList QScrollBar::sub-line:vertical,
+QListWidget#searchResultsList QScrollBar::add-page:vertical,
+QListWidget#searchResultsList QScrollBar::sub-page:vertical {
+    height: 0;
+    background: transparent;
+}
+
+QFrame#SearchResultsGlassFrame[mapCanvasGlass="true"] {
+    background: rgba(25, 30, 36, 206);
+    border: 1px solid rgba(105, 190, 220, 106);
+    border-radius: 8px;
+}
+
+QPushButton#searchResultsCloseButton[mapCanvasGlass="true"] {
+    background: rgba(255, 255, 255, 48);
+    border: 1px solid rgba(150, 220, 240, 96);
+    color: #d9f3ff;
+}
+
+QPushButton#searchResultsCloseButton[mapCanvasGlass="true"]:hover {
+    background: rgba(255, 255, 255, 84);
+    border-color: rgba(150, 220, 240, 160);
+}
+
+QListWidget#searchResultsList[mapCanvasGlass="true"] {
+    background: rgba(18, 22, 28, 176);
+    border: 1px solid rgba(150, 220, 240, 64);
+    border-radius: 7px;
+}
+
+QListWidget#searchResultsList[mapCanvasGlass="true"]::item {
+    color: #d9f3ff;
+}
+
+QListWidget#searchResultsList[mapCanvasGlass="true"]::item:hover {
+    background: rgba(60, 122, 145, 126);
+}
+
+QListWidget#searchResultsList[mapCanvasGlass="true"]::item:selected {
+    background: rgba(40, 155, 190, 188);
+    color: #ffffff;
+}
+
+QListWidget#searchResultsList[mapCanvasGlass="true"] QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 1px;
+}
+
+QListWidget#searchResultsList[mapCanvasGlass="true"] QScrollBar::handle:vertical {
+    background: rgba(9, 144, 143, 0.40);
+    border-radius: 2px;
+    min-height: 20px;
+    margin: 1px;
+    border: 1px solid rgba(9, 144, 143, 0.25);
+}
+
+QListWidget#searchResultsList[mapCanvasGlass="true"] QScrollBar::handle:vertical:hover {
+    background: rgba(9, 144, 143, 0.55);
+    border: 1px solid rgba(9, 144, 143, 0.35);
+}
+
+QListWidget#searchResultsList[mapCanvasGlass="true"] QScrollBar::add-page:vertical,
+QListWidget#searchResultsList[mapCanvasGlass="true"] QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+
+/* Header / show-more rows are styled dynamically in Python to avoid unsupported attribute selectors. */

@@ -16,6 +16,8 @@ class UserSettingsCard(SettingsBaseCard):
     Product-level user card displaying user info, module access,
     """
     preferredModuleChanged = pyqtSignal(object)
+    mapOverlayChanged = pyqtSignal(bool)
+    mapSearchChanged = pyqtSignal(bool)
 
     def __init__(self, lang_manager, payload=None):
         super().__init__(lang_manager, lang_manager.translate(TranslationKeys.USER), None)
@@ -123,6 +125,44 @@ class UserSettingsCard(SettingsBaseCard):
         # ---------- Lõpuks lisa kaart peamisse layout'i ----------
         cl.addWidget(module_access_frame)
         cl.addWidget(self.property_management_container)
+
+        # ---------- Map overlay tools ----------
+        self.map_overlay_frame = QFrame(cw)
+        self.map_overlay_frame.setObjectName("SetupCard")
+        map_overlay_layout = QVBoxLayout(self.map_overlay_frame)
+        map_overlay_layout.setContentsMargins(6, 6, 6, 6)
+        map_overlay_layout.setSpacing(6)
+
+        map_overlay_title = QLabel(
+            self.lang_manager.translate(TranslationKeys.SETTINGS_MAP_OVERLAY_TITLE),
+            self.map_overlay_frame,
+        )
+        map_overlay_title.setObjectName("SetupCardTitle")
+        map_overlay_layout.addWidget(map_overlay_title)
+
+        map_overlay_description = QLabel(
+            self.lang_manager.translate(TranslationKeys.SETTINGS_MAP_OVERLAY_DESCRIPTION),
+            self.map_overlay_frame,
+        )
+        map_overlay_description.setObjectName("SetupCardDescription")
+        map_overlay_description.setWordWrap(True)
+        map_overlay_layout.addWidget(map_overlay_description)
+
+        self.map_overlay_checkbox = QCheckBox(
+            self.lang_manager.translate(TranslationKeys.SETTINGS_MAP_OVERLAY_GLASS_BAR),
+            self.map_overlay_frame,
+        )
+        self.map_overlay_checkbox.toggled.connect(self.mapOverlayChanged.emit)
+        map_overlay_layout.addWidget(self.map_overlay_checkbox)
+
+        self.map_search_checkbox = QCheckBox(
+            self.lang_manager.translate(TranslationKeys.SETTINGS_MAP_OVERLAY_SEARCH_BAR),
+            self.map_overlay_frame,
+        )
+        self.map_search_checkbox.toggled.connect(self.mapSearchChanged.emit)
+        map_overlay_layout.addWidget(self.map_search_checkbox)
+
+        cl.addWidget(self.map_overlay_frame)
 
         # Internal state
         self._check_by_module = {}
@@ -236,9 +276,25 @@ class UserSettingsCard(SettingsBaseCard):
             cb.setChecked(m == preferred_key)
             cb.blockSignals(False)
 
+    def set_map_overlay_enabled(self, enabled: bool) -> None:
+        self.map_overlay_checkbox.blockSignals(True)
+        self.map_overlay_checkbox.setChecked(bool(enabled))
+        self.map_overlay_checkbox.blockSignals(False)
+
+    def set_map_search_enabled(self, enabled: bool) -> None:
+        self.map_search_checkbox.blockSignals(True)
+        self.map_search_checkbox.setChecked(bool(enabled))
+        self.map_search_checkbox.blockSignals(False)
+
     def revert(self, preferred_module_name):
         """Reset UI selection to original preferred module."""
         self.set_preferred(preferred_module_name)
+
+    def revert_map_overlay(self, enabled: bool) -> None:
+        self.set_map_overlay_enabled(bool(enabled))
+
+    def revert_map_search(self, enabled: bool) -> None:
+        self.set_map_search_enabled(bool(enabled))
 
     def retheme(self):
         super().retheme()
