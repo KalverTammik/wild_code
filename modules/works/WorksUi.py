@@ -42,8 +42,11 @@ class WorksModule(TaskModuleBaseUI):
         self._create_on_map_button.setDefault(False)
         self._create_on_map_button.style().unpolish(self._create_on_map_button)
         self._create_on_map_button.style().polish(self._create_on_map_button)
-        self._create_on_map_button.clicked.connect(self._start_create_on_map)
+        self._create_on_map_button.clicked.connect(self.start_create_on_map)
         self.toolbar_area.add_right(self._create_on_map_button)
+
+    def start_create_on_map(self) -> None:
+        self._start_create_on_map()
 
     def _start_create_on_map(self) -> None:
         self._create_controller.preload_dialog_data()

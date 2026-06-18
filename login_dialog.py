@@ -1,7 +1,4 @@
 
-import os
-
-
 from PyQt5.QtCore import pyqtSignal, Qt
 from .widgets.FooterWidget import FooterWidget
 from qgis.PyQt.QtWidgets import (
@@ -35,6 +32,7 @@ class LoginDialog(QDialog):
         super().__init__(parent)
         self.api_token = None
         self.user = None
+        self._authenticating = False
         self.setWindowTitle(title)
         self.setFixedSize(300, 400)
 
@@ -60,6 +58,7 @@ class LoginDialog(QDialog):
         layout.addWidget(self.username_label)
         self.username_input = QLineEdit()
         self.username_input.setObjectName("usernameInput")
+        self.username_input.textChanged.connect(self.clear_validation_state)
         layout.addWidget(self.username_input)
 
         self.password_label = QLabel(password_label)
@@ -69,11 +68,16 @@ class LoginDialog(QDialog):
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.setObjectName("passwordInput")
+        self.password_input.returnPressed.connect(self.authenticate_user)
+        self.password_input.textChanged.connect(self.clear_validation_state)
         password_row.addWidget(self.password_input)
         self.toggle_password_button = QPushButton()
         self.toggle_password_button.setObjectName("togglePasswordButton")
         self.toggle_password_button.setIcon(ThemeManager.get_qicon(icon_name=IconNames.ICON_EYE))
         self.toggle_password_button.setCheckable(True)
+        self.toggle_password_button.setAutoDefault(False)
+        self.toggle_password_button.setDefault(False)
+        self.toggle_password_button.setFocusPolicy(Qt.NoFocus)
         self.toggle_password_button.setToolTip(lang.translate(TranslationKeys.TOGGLE_PASSWORD))
         self.toggle_password_button.setProperty("variant", ButtonVariant.GHOST)
         self.toggle_password_button.setProperty("btnSize", ButtonSize.SMALL)
@@ -83,6 +87,7 @@ class LoginDialog(QDialog):
 
         self.errorLabel = QLabel("")
         self.errorLabel.setObjectName(TranslationKeys.ERROR)
+        self.errorLabel.setWordWrap(True)
         self.errorLabel.hide()
         layout.addWidget(self.errorLabel)
 
@@ -90,6 +95,8 @@ class LoginDialog(QDialog):
         self.login_button = QPushButton(button_text)
         self.login_button.setProperty("variant", ButtonVariant.PRIMARY)
         self.login_button.setProperty("btnSize", ButtonSize.LARGE)
+        self.login_button.setAutoDefault(True)
+        self.login_button.setDefault(True)
         self.login_button.clicked.connect(self.authenticate_user)
         layout.addWidget(self.login_button)
 
@@ -128,16 +135,89 @@ class LoginDialog(QDialog):
         else:
             self.password_input.setEchoMode(QLineEdit.Password)
 
+    def clear_validation_state(self):
+        self._set_field_error(self.username_input, False)
+        self._set_field_error(self.password_input, False)
+        self.errorLabel.hide()
+
+    def _set_field_error(self, field, is_error: bool) -> None:
+        field.setProperty("validationState", "error" if is_error else "")
+        field.style().unpolish(field)
+        field.style().polish(field)
+        field.update()
+
+    def _show_login_error(self, message: str, *, username=False, password=False) -> None:
+        self._set_field_error(self.username_input, username)
+        self._set_field_error(self.password_input, password)
+        self.errorLabel.setText(message)
+        self.errorLabel.show()
+
+    def _classify_login_error(self, error: Exception) -> tuple[str, bool, bool]:
+        raw = str(error or "")
+        lowered = raw.lower()
+
+        username_markers = (
+            "username",
+            "user name",
+            "email",
+            "e-mail",
+            "account",
+            "user not found",
+            "not found",
+            "unknown user",
+        )
+        password_markers = (
+            "password",
+            "parool",
+        )
+        credential_markers = (
+            "credential",
+            "credentials",
+            "email or password",
+            "username or password",
+            "user name or password",
+            "invalid login",
+            "invalid_grant",
+            "authentication",
+            "unauthorized",
+        )
+
+        if any(marker in lowered for marker in credential_markers):
+            return lang.translate(TranslationKeys.LOGIN_CREDENTIALS_INVALID), True, True
+        if any(marker in lowered for marker in username_markers):
+            return lang.translate(TranslationKeys.LOGIN_USERNAME_INVALID), True, False
+        if any(marker in lowered for marker in password_markers):
+            return lang.translate(TranslationKeys.LOGIN_PASSWORD_INVALID), False, True
+        return lang.translate(TranslationKeys.LOGIN_SERVER_UNAVAILABLE), False, False
+
     def authenticate_user(self):
         """Authenticate the user using the shared APIClient and show a concise server message on failure."""
+        if self._authenticating:
+            return
+        self.clear_validation_state()
 
-        # Always clear any existing session before attempting new login
-        # This ensures clean state regardless of previous login status
-        print("[DEBUG] Clearing any existing session before login")
+        # Always clear any existing session before attempting new login.
         SessionManager.clear()
 
-        username = self.username_input.text()
+        username = self.username_input.text().strip()
         password = self.password_input.text()
+        if not username:
+            self._show_login_error(
+                lang.translate(TranslationKeys.LOGIN_USERNAME_REQUIRED),
+                username=True,
+            )
+            self.username_input.setFocus()
+            return
+        if not password:
+            self._show_login_error(
+                lang.translate(TranslationKeys.LOGIN_PASSWORD_REQUIRED),
+                password=True,
+            )
+            self.password_input.setFocus()
+            return
+
+        self._authenticating = True
+        self.login_button.setEnabled(False)
 
         # Build GraphQL mutation (server accepts username/password in input)
         graphql = f'''
@@ -159,25 +239,28 @@ class LoginDialog(QDialog):
             if api_token:
                 self.api_token = api_token
                 self.user = {"name": username, "email": username}
-                #print(f"[DEBUG] Login successful - setting session with token: {api_token[:10]}...")
                 SessionManager().setSession(self.api_token, self.user)
                 SessionManager().save_credentials(username, password, api_token)
-                #print("[DEBUG] About to emit loginSuccessful signal")
                 self.loginSuccessful.emit(self.api_token, self.user)
-                #print("[DEBUG] loginSuccessful signal emitted")
-                self.close()  # Close the dialog
-                #print("[DEBUG] Dialog closed")
+                self.accept()
             else:
                 # One-shot diagnostic: show server-side response issue
-                self.errorLabel.setText(lang.translate(TranslationKeys.NO_API_TOKEN_RECEIVED))
-                self.errorLabel.show()
+                self._show_login_error(
+                    lang.translate(TranslationKeys.NO_API_TOKEN_RECEIVED),
+                    username=True,
+                    password=True,
+                )
+                self.login_button.setEnabled(True)
+                self._authenticating = False
         except Exception as e:
             # Clear session on any login failure to allow retry
             SessionManager.clear()
-            # One-shot diagnostic: surface the server's message body without logging secrets
-            msg = str(e)
-            if not msg:
-                msg = lang.translate(TranslationKeys.LOGIN_FAILED)
-            self.errorLabel.setText(msg)
-            self.errorLabel.show()
+            msg, username_error, password_error = self._classify_login_error(e)
+            self._show_login_error(
+                msg,
+                username=username_error,
+                password=password_error,
+            )
+            self.login_button.setEnabled(True)
+            self._authenticating = False
 

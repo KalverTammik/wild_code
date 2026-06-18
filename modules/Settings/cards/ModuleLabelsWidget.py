@@ -241,16 +241,19 @@ class ModuleLabelsWidget(QFrame):
         ThemeManager.apply_module_style(self, [QssPaths.SETTING_MODULE_LABELS])
 
     def clear_data(self) -> None:
-        """Clear label widgets to free memory; safe to call on deactivate."""
+        """Clear displayed label values without dropping widget registrations."""
         try:
-            for key, widget in list(self._label_widgets.items()):
+            for widget in list(self._label_widgets.values()):
                 if isinstance(widget, QCheckBox):
                     widget.blockSignals(True)
                     widget.setChecked(False)
                     widget.blockSignals(False)
                 elif isinstance(widget, QLabel):
                     widget.setText(self._not_defined_jet())
-            self._label_widgets.clear()
+                    widget.setProperty("modulelabelvalue", "false")
+                    widget.setProperty("rawValue", "")
+                    widget.style().unpolish(widget)
+                    widget.style().polish(widget)
         except Exception as exc:
             from ....Logs.python_fail_logger import PythonFailLogger
             from ....utils.url_manager import Module

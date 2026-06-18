@@ -60,7 +60,6 @@ class SettingsModule(TokenMixin, QWidget):
         self._allowed_modules = []
         self._user_fetch_thread = None
         self._user_fetch_worker = None
-        self._settings_loaded_once = False
         self._pending_focus_module = None
         self.user_payload = None
         self.setup_ui()
@@ -290,11 +289,8 @@ class SettingsModule(TokenMixin, QWidget):
         self._user_card.lbl_roles.setText(roles_text)
 
     def _ensure_original_settings_loaded(self):
-        if self._settings_loaded_once:
-            return
         self.logic.load_original_settings()
         self._set_dirty(False)
-        self._settings_loaded_once = True
 
     def _ensure_module_cards(self, *, allowed_modules):
         allowed = [name for name in (allowed_modules or []) if name]
@@ -311,7 +307,7 @@ class SettingsModule(TokenMixin, QWidget):
                 )
                 del self._module_cards[name]
 
-        SettingsCardBuildService.build_missing_cards(
+        created_cards = SettingsCardBuildService.build_missing_cards(
             allowed_modules=allowed,
             module_cards=self._module_cards,
             cards_container=self.cards_container,
@@ -322,6 +318,22 @@ class SettingsModule(TokenMixin, QWidget):
                 event_name,
                 module=Module.SETTINGS.value,
                 extra=extra,
+            ),
+            log_error=self._log_settings_exception,
+        )
+        created_card_ids = {id(card) for card in (created_cards or [])}
+        existing_allowed_cards = [
+            self._module_cards[name]
+            for name in allowed
+            if name in self._module_cards and id(self._module_cards[name]) not in created_card_ids
+        ]
+        SettingsCardBuildService.activate_cards_with_profile(
+            created_cards=existing_allowed_cards,
+            activate_card=lambda card: card.on_settings_activate(),
+            profile_log=lambda event_name, extra: SwitchLogger.log(
+                event_name,
+                module=Module.SETTINGS.value,
+                extra={**extra, "refresh_existing": True},
             ),
             log_error=self._log_settings_exception,
         )

@@ -22,7 +22,7 @@ from .module_manager import ModuleManager
 from .widgets.sidebar import Sidebar
 from .ui.window_state.dialog_geometry_watcher import DialogGeometryWatcher
 from .ui.window_state.dialog_helpers import DialogHelpers
-from .utils.SessionManager import SessionUIController
+from .utils.SessionManager import SessionManager, SessionUIController
 from .ui.modules_registry import ModulesRegistry
         
 from .utils.url_manager import Module
@@ -183,7 +183,6 @@ class PluginDialog(QDialog):
         return unsubscribe
 
     def _on_destroyed(self, obj):
-        print(f"[dialog] destroyed id={id(self)}")
         PluginDialog._instance = None
 
     def loadModules(self):
@@ -213,16 +212,11 @@ class PluginDialog(QDialog):
         MapCanvasSearchBar.close_active()
         SessionUIController.logout(self)
 
-    def showEvent(self, event):
-        if not SessionUIController.ensure_logged_in(self):
+    def _sync_map_canvas_overlays(self):
+        if not SessionManager.is_session_valid():
+            MapCanvasGlassActionBar.close_active()
+            MapCanvasSearchBar.close_active()
             return
-        if hasattr(self, "footer_widget") and self.footer_widget:
-            try:
-                self.footer_widget.refresh_versions()
-            except Exception:
-                pass
-        super().showEvent(event)
-        SessionUIController.after_show(self)
         if SettingsService().map_canvas_glass_action_bar_enabled():
             QTimer.singleShot(0, MapCanvasGlassActionBar.show_for_session)
         else:
@@ -232,10 +226,41 @@ class PluginDialog(QDialog):
         else:
             MapCanvasSearchBar.close_active()
 
+    def _refresh_session_dependent_ui(self):
+        if not SessionManager.is_session_valid():
+            self._sync_map_canvas_overlays()
+            return
+        if hasattr(self, "footer_widget") and self.footer_widget:
+            try:
+                self.footer_widget.refresh_versions()
+            except Exception:
+                pass
+        self._sync_map_canvas_overlays()
+
+    def showEvent(self, event):
+        if not SessionUIController.ensure_logged_in(self):
+            return
+        super().showEvent(event)
+        SessionUIController.after_show(self)
+        self._refresh_session_dependent_ui()
+
     def closeEvent(self, event):
         if getattr(self, "_force_close", False):
             MapCanvasGlassActionBar.close_active()
             MapCanvasSearchBar.close_active()
+            try:
+                listener = getattr(self, "_session_listener", None)
+                if listener is not None:
+                    SessionManager.unregister_listener(listener)
+                    delattr(self, "_session_listener")
+            except Exception as e:
+                SwitchLogger.log(
+                    "dialog_session_listener_unregister_failed",
+                    module=Module.HOME.value,
+                    extra={"error": str(e)},
+                )
+            if PluginDialog._instance is self:
+                PluginDialog._instance = None
             event.accept()
             return
         if not SettingsUIController.can_close(self):

@@ -37,6 +37,16 @@ QLineEdit:focus {
     background-color: #23272e;
 }
 
+QLineEdit[validationState="error"] {
+    border: 1.5px solid #ef5350;
+    background-color: #3a272b;
+}
+
+QLineEdit[validationState="error"]:focus {
+    border: 1.5px solid #ef5350;
+    background-color: #3a272b;
+}
+
 QPushButton#togglePasswordButton {
     padding: 0;
     min-width: 0;

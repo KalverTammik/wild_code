@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from PyQt5.QtCore import QEvent, QEasingCurve, QPoint, QPropertyAnimation, QSize, QTimer, Qt, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLineEdit, QPushButton, QWidget
-from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLineEdit, QPushButton, QWidget
 from qgis.utils import iface
 
 from ..constants.button_props import ButtonSize, ButtonVariant
 from ..constants.module_icons import IconNames
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
+from .map_canvas_glass_style import MapCanvasGlassStyle
 from ..utils.search.UnifiedSearchController import UnifiedSearchController
 from ..widgets.SearchResultsWidget import SearchResultsWidget
 from ..widgets.theme_manager import ThemeManager
@@ -73,43 +73,8 @@ class MapCanvasSearchBar(QWidget):
 
         frame = QFrame(self)
         frame.setObjectName("MapCanvasSearchBarFrame")
-        frame.setStyleSheet(
-            """
-            QFrame#MapCanvasSearchBarFrame {
-                background: rgba(248, 252, 255, 164);
-                border: 1px solid rgba(30, 126, 180, 120);
-                border-radius: 8px;
-            }
-            QLineEdit#MapCanvasSearchEdit {
-                height: 28px;
-                padding: 0 9px;
-                border-radius: 6px;
-                border: 1px solid rgba(22, 111, 151, 95);
-                background: rgba(255, 255, 255, 136);
-                color: #12394a;
-                selection-background-color: rgba(22, 111, 151, 90);
-            }
-            QLineEdit#MapCanvasSearchEdit:focus {
-                background: rgba(255, 255, 255, 210);
-                border-color: rgba(22, 111, 151, 180);
-            }
-            QPushButton#MapCanvasSearchButton {
-                border-radius: 6px;
-                border: 1px solid rgba(22, 111, 151, 90);
-                background: rgba(255, 255, 255, 118);
-            }
-            QPushButton#MapCanvasSearchButton:hover {
-                background: rgba(255, 255, 255, 190);
-                border-color: rgba(22, 111, 151, 170);
-            }
-            """
-        )
-
-        shadow = QGraphicsDropShadowEffect(frame)
-        shadow.setBlurRadius(22)
-        shadow.setOffset(0, 8)
-        shadow.setColor(QColor(0, 60, 80, 78))
-        frame.setGraphicsEffect(shadow)
+        frame.setStyleSheet(MapCanvasGlassStyle.search_bar_stylesheet())
+        MapCanvasGlassStyle.apply_shadow(frame)
 
         layout = QHBoxLayout(frame)
         layout.setContentsMargins(8, 8, 8, 8)

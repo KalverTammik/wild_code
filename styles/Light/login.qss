@@ -30,6 +30,16 @@ QLineEdit:focus {
     background: #f1f8ff;
 }
 
+QLineEdit[validationState="error"] {
+    border: 1.5px solid #d32f2f;
+    background: #fff5f5;
+}
+
+QLineEdit[validationState="error"]:focus {
+    border: 1.5px solid #d32f2f;
+    background: #fff5f5;
+}
+
 
 QComboBox {
     background: #fff;

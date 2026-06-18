@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from PyQt5.QtCore import QEvent, QEasingCurve, QPoint, QPropertyAnimation, Qt
-from PyQt5.QtWidgets import QFrame, QGraphicsDropShadowEffect, QPushButton, QVBoxLayout, QWidget
-from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import QFrame, QPushButton, QVBoxLayout, QWidget
 from qgis.utils import iface
 
+from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
+from ..Logs.python_fail_logger import PythonFailLogger
+from ..module_manager import ModuleManager
+from .moduleSwitchHelper import ModuleSwitchHelper
+from ..utils.url_manager import Module
+from .map_canvas_glass_style import MapCanvasGlassStyle
 from ..utils.messagesHelper import ModernMessageDialog
 
 
@@ -15,7 +21,7 @@ class MapCanvasGlassActionBar(QWidget):
 
     TARGET_OFFSET = QPoint(18, 18)
     START_OFFSET = QPoint(18, -144)
-    SIZE = (102, 132)
+    SIZE = (124, 132)
 
     def __init__(self, *, parent=None) -> None:
         canvas = iface.mapCanvas() if iface is not None else None
@@ -23,6 +29,7 @@ class MapCanvasGlassActionBar(QWidget):
         super().__init__(parent)
         self._canvas = canvas
         self._animation = None
+        self._lang = LanguageManager()
 
         self.setObjectName("MapCanvasGlassActionBar")
         self.setAttribute(Qt.WA_TranslucentBackground, True)
@@ -42,49 +49,25 @@ class MapCanvasGlassActionBar(QWidget):
 
         frame = QFrame(self)
         frame.setObjectName("MapCanvasGlassActionBarFrame")
-        frame.setStyleSheet(
-            """
-            QFrame#MapCanvasGlassActionBarFrame {
-                background: rgba(248, 252, 255, 164);
-                border: 1px solid rgba(30, 126, 180, 120);
-                border-radius: 8px;
-            }
-            QPushButton#MapCanvasGlassActionButton {
-                min-width: 76px;
-                height: 26px;
-                padding: 0 10px;
-                border-radius: 6px;
-                border: 1px solid rgba(22, 111, 151, 90);
-                background: rgba(255, 255, 255, 118);
-                color: #12394a;
-                font-weight: 600;
-            }
-            QPushButton#MapCanvasGlassActionButton:hover {
-                background: rgba(255, 255, 255, 190);
-                border-color: rgba(22, 111, 151, 170);
-            }
-            QPushButton#MapCanvasGlassActionButton:pressed {
-                background: rgba(203, 235, 247, 210);
-            }
-            """
-        )
-
-        shadow = QGraphicsDropShadowEffect(frame)
-        shadow.setBlurRadius(22)
-        shadow.setOffset(0, 8)
-        shadow.setColor(QColor(0, 60, 80, 78))
-        frame.setGraphicsEffect(shadow)
+        frame.setStyleSheet(MapCanvasGlassStyle.action_bar_stylesheet())
+        MapCanvasGlassStyle.apply_shadow(frame)
 
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(7)
 
-        for label in ("Vali", "Joonista", "Kinnita"):
+        actions = (
+            (self._lang.translate(TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON), self._start_new_work),
+            ("Joonista", lambda: self._show_test_dialog("Joonista")),
+            ("Kinnita", lambda: self._show_test_dialog("Kinnita")),
+        )
+
+        for label, handler in actions:
             button = QPushButton(label, frame)
             button.setObjectName("MapCanvasGlassActionButton")
             button.setAutoDefault(False)
             button.setDefault(False)
-            button.clicked.connect(lambda _checked=False, text=label: self._show_test_dialog(text))
+            button.clicked.connect(lambda _checked=False, callback=handler: callback())
             layout.addWidget(button)
 
         root.addWidget(frame)
@@ -112,6 +95,35 @@ class MapCanvasGlassActionBar(QWidget):
             f"Testnupp: {action}",
             parent=self,
         )
+
+    def _start_new_work(self) -> None:
+        try:
+            from ..dialog import PluginDialog
+
+            dialog = PluginDialog.get_instance()
+            ModuleSwitchHelper.switch_module(Module.WORKS.name, dialog=dialog)
+            works_module = ModuleManager().getActiveModuleInstance(Module.WORKS.value)
+            start_create = getattr(works_module, "start_create_on_map", None)
+            if callable(start_create):
+                start_create()
+                return
+
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_CREATE_START_FAILED),
+                parent=self,
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="map_canvas_action_bar_works_create_failed",
+            )
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_CREATE_START_FAILED),
+                parent=self,
+            )
 
     def show_animated(self) -> None:
         self._position_at(self.START_OFFSET)

@@ -249,7 +249,6 @@ class SessionManager:
         """Set the session data and reset expired dialog flag."""
         if not SessionManager._instance:  # Ensure the instance is initialized
             SessionManager()
-        #print(f"[DEBUG] Setting session with token: {apiToken[:10] if apiToken else None}...")
         SessionManager._instance.apiToken = apiToken
         SessionManager._instance.loggedInUser = user
         SessionManager._session_expired_shown = False
@@ -371,13 +370,6 @@ class SessionManager:
 
                 dlg = LoginDialog(parent=_resolve_parent())
                 result = dlg.exec_()
-                if result == 0:
-                    SessionManager._login_cancelled_for_reason = reason
-                    PythonFailLogger.log(
-                        "login_dialog_cancelled",
-                        module="auth",
-                        extra={"reason": str(reason or "")},
-                    )
                 if SessionManager.is_session_valid():
                     QTimer.singleShot(0, SessionManager._notify_session_changed)
                     PythonFailLogger.log(
@@ -385,13 +377,19 @@ class SessionManager:
                         module="auth",
                         extra={"reason": str(reason or "")},
                     )
+                elif result == 0:
+                    SessionManager._login_cancelled_for_reason = reason
+                    PythonFailLogger.log(
+                        "login_dialog_cancelled",
+                        module="auth",
+                        extra={"reason": str(reason or "")},
+                    )
                 else:
-                    if result != 0:
-                        PythonFailLogger.log(
-                            "login_dialog_no_session",
-                            module="auth",
-                            extra={"reason": str(reason or "")},
-                        )
+                    PythonFailLogger.log(
+                        "login_dialog_no_session",
+                        module="auth",
+                        extra={"reason": str(reason or "")},
+                    )
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,
@@ -460,7 +458,7 @@ class SessionUIController:
         from ..constants.settings_keys import SettingsService
         if not hasattr(dialog, "_session_listener"):
             def _listener():
-                SessionUIController.refresh_login_ui(dialog)
+                SessionUIController.handle_session_changed(dialog)
 
             dialog._session_listener = _listener
             SessionManager.register_listener(_listener)
@@ -495,6 +493,13 @@ class SessionUIController:
         else:
             ModuleSwitchHelper.switch_module(Module.HOME.name, dialog=dialog)
         dialog._has_shown = True
+
+    @staticmethod
+    def handle_session_changed(dialog: "SessionDialogProtocol") -> None:
+        SessionUIController.refresh_login_ui(dialog)
+        refresh = getattr(dialog, "_refresh_session_dependent_ui", None)
+        if callable(refresh):
+            refresh()
 
     @staticmethod
     def refresh_login_ui(dialog: "SessionDialogProtocol") -> None:

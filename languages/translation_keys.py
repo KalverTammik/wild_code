@@ -19,6 +19,12 @@ class TranslationKeys:
     LOGIN_BUTTON = "login_button"
     CANCEL_BUTTON = "cancel_button"
     TOGGLE_PASSWORD = "Show Password"
+    LOGIN_USERNAME_REQUIRED = "login_username_required"
+    LOGIN_PASSWORD_REQUIRED = "login_password_required"
+    LOGIN_USERNAME_INVALID = "login_username_invalid"
+    LOGIN_PASSWORD_INVALID = "login_password_invalid"
+    LOGIN_CREDENTIALS_INVALID = "login_credentials_invalid"
+    LOGIN_SERVER_UNAVAILABLE = "login_server_unavailable"
 
     # Plugin UI
     KAVITRO_PLUGIN_TITLE = "kavitro_plugin_title"

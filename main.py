@@ -78,12 +78,6 @@ class WildCodePlugin:
         gc.collect()
 
     def run(self):
-        # import universalStatusbar for message display
-        try:
-            import sip
-        except ImportError:
-            sip = None
-
         project = QgsProject.instance()
         if project.fileName() == '':
             heading = LanguageManager.translate_static(TranslationKeys.NO_PROJECT_LOADED_TITLE)
@@ -99,40 +93,91 @@ class WildCodePlugin:
         session.load()
         if not SessionManager.is_session_valid():
             self.pluginDialog = None
-            if not hasattr(self, "_pending_login_listener"):
-                def _on_session_valid():
-                    if SessionManager.is_session_valid():
-                        SessionManager.unregister_listener(_on_session_valid)
-                        if hasattr(self, "_pending_login_listener"):
-                            delattr(self, "_pending_login_listener")
-                        self._show_main_dialog()
-                        def _raise_dialog():
-                            dlg = self.pluginDialog or PluginDialog.get_instance()
-                            if dlg:
-                                coordinator = get_dialog_coordinator(self.iface)
-                                coordinator.bring_to_front(dlg, retries=1, delay_ms=200)
-                        QTimer.singleShot(0, _raise_dialog)
+            old_listener = getattr(self, "_pending_login_listener", None)
+            if old_listener is not None:
+                SessionManager.unregister_listener(old_listener)
 
-                self._pending_login_listener = _on_session_valid
-                SessionManager.register_listener(_on_session_valid)
+            def _on_session_valid():
+                if not SessionManager.is_session_valid():
+                    SwitchLogger.log("startup_login_listener_ignored_invalid_session")
+                    return
+                SwitchLogger.log("startup_login_listener_session_valid")
+                SessionManager.unregister_listener(_on_session_valid)
+                if getattr(self, "_pending_login_listener", None) is _on_session_valid:
+                    delattr(self, "_pending_login_listener")
+
+                def _show_after_login():
+                    if not SessionManager.is_session_valid():
+                        SwitchLogger.log("startup_login_show_aborted_invalid_session")
+                        return
+                    SwitchLogger.log("startup_login_show_main_dialog")
+                    self._show_main_dialog()
+                    dlg = self.pluginDialog or PluginDialog.get_instance()
+                    if dlg:
+                        coordinator = get_dialog_coordinator(self.iface)
+                        coordinator.bring_to_front(dlg, retries=2, delay_ms=200)
+                        SwitchLogger.log("startup_login_dialog_raise_requested")
+                    else:
+                        SwitchLogger.log("startup_login_dialog_missing_after_show")
+
+                QTimer.singleShot(0, _show_after_login)
+
+            self._pending_login_listener = _on_session_valid
+            SessionManager.register_listener(_on_session_valid)
             SessionManager.request_login(parent=self.iface.mainWindow(), reason="startup")
             return
 
         # Session looks valid; reuse dialog if alive, else create
         if self.pluginDialog is not None:
-            try:
-                if sip is None or not sip.isdeleted(self.pluginDialog):
-                    coordinator = get_dialog_coordinator(self.iface)
-                    coordinator.bring_to_front(self.pluginDialog, retries=1, delay_ms=200)
-                    return
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="ui",
-                    event="plugin_dialog_show_failed",
-                )
+            if self._is_dialog_usable(self.pluginDialog):
+                self._show_existing_dialog(self.pluginDialog)
+                return
+            SwitchLogger.log("plugin_dialog_cached_reference_discarded")
+            self.pluginDialog = None
 
         self._show_main_dialog()
+
+    @staticmethod
+    def _is_dialog_deleted(dialog):
+        if dialog is None:
+            return True
+        try:
+            return bool(sip.isdeleted(dialog))
+        except Exception:
+            return False
+
+    def _is_dialog_usable(self, dialog):
+        if dialog is None:
+            return False
+        if self._is_dialog_deleted(dialog):
+            return False
+        if getattr(dialog, "_force_close", False):
+            return False
+        return True
+
+    def _show_existing_dialog(self, dialog):
+        try:
+            if dialog.isMinimized():
+                dialog.showNormal()
+            else:
+                dialog.show()
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="plugin_dialog_show_failed",
+            )
+            return
+
+        coordinator = get_dialog_coordinator(self.iface)
+        coordinator.bring_to_front(dialog, retries=1, delay_ms=200)
+        SwitchLogger.log(
+            "plugin_dialog_show_requested",
+            extra={
+                "visible": str(dialog.isVisible()),
+                "minimized": str(dialog.isMinimized()),
+            },
+        )
 
     def _show_login_dialog(self):
         """Unified method to show login dialog with consistent setup."""
@@ -144,30 +189,32 @@ class WildCodePlugin:
     def _show_main_dialog(self):
         """Unified method to show main dialog."""
         dlg = PluginDialog.get_instance()
+        if not self._is_dialog_usable(dlg):
+            if dlg is not None:
+                SwitchLogger.log("plugin_dialog_singleton_discarded")
+                try:
+                    if PluginDialog._instance is dlg:
+                        PluginDialog._instance = None
+                except Exception:
+                    pass
+            dlg = None
+
         if dlg is None and self.pluginDialog is not None:
-            try:
-                import sip
-                if sip and not sip.isdeleted(self.pluginDialog):
-                    dlg = self.pluginDialog
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="ui",
-                    event="plugin_dialog_reuse_check_failed",
-                )
-                dlg = None
+            if self._is_dialog_usable(self.pluginDialog):
+                dlg = self.pluginDialog
+            else:
+                SwitchLogger.log("plugin_dialog_cached_reference_discarded")
+                self.pluginDialog = None
 
         if dlg is None:
             dlg = PluginDialog()
             self.pluginDialog = dlg
             dlg.finished.connect(self.reset_plugin_dialog)
-            dlg.show()
-            coordinator = get_dialog_coordinator(self.iface)
-            coordinator.bring_to_front(dlg, retries=1, delay_ms=200)
+            SwitchLogger.log("plugin_dialog_created")
+            self._show_existing_dialog(dlg)
         else:
             self.pluginDialog = dlg
-            coordinator = get_dialog_coordinator(self.iface)
-            coordinator.bring_to_front(dlg, retries=1, delay_ms=200)
+            self._show_existing_dialog(dlg)
 
     def reset_login_dialog(self):
         self.loginDialog = None
@@ -176,14 +223,7 @@ class WildCodePlugin:
         self.pluginDialog = None
 
     def handle_login_success(self, api_token, user):
-        try:
-            # Just set the flag - the run method will handle showing the dialog
-            self.login_successful = True
-
-        except Exception as e:
-            print(f"[WildCodePlugin] Error in handle_login_success: {e}")
-            import traceback
-            print(f"[WildCodePlugin] Full traceback: {traceback.format_exc()}")
+        self.login_successful = True
 
     def _create_plugin_dialog(self, api_token, user):
         # This method is no longer needed with the simplified approach

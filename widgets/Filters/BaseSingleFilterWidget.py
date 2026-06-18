@@ -170,6 +170,8 @@ class BaseSingleFilterWidget(QWidget):
         token: int | None,
         request_id: int,
     ) -> None:
+        if not self._is_widget_alive():
+            return
         if request_id != self._load_request_id:
             return
         if not self._is_token_active(token):
@@ -197,6 +199,8 @@ class BaseSingleFilterWidget(QWidget):
         self.loadFinished.emit(True)
 
     def _handle_load_error(self, message: str, token: int | None, request_id: int) -> None:
+        if not self._is_widget_alive():
+            return
         if request_id != self._load_request_id:
             return
         if not self._is_token_active(token):
@@ -209,6 +213,8 @@ class BaseSingleFilterWidget(QWidget):
         self.loadFinished.emit(False)
 
     def _cleanup_worker(self) -> None:
+        if not self._is_widget_alive():
+            return
         self._worker = None
         self._worker_thread = None
 
@@ -267,7 +273,12 @@ class BaseSingleFilterWidget(QWidget):
             self._suppress_all_cb = False
 
     def _current_token(self) -> int | None:
-        parent = self.parent()
+        if not self._is_widget_alive():
+            return None
+        try:
+            parent = self.parent()
+        except RuntimeError:
+            return None
         while parent is not None:
             if hasattr(parent, "_active_token"):
                 return getattr(parent, "_active_token", None)
@@ -275,9 +286,14 @@ class BaseSingleFilterWidget(QWidget):
         return None
 
     def _is_token_active(self, token: int | None) -> bool:
+        if not self._is_widget_alive():
+            return False
         if token is None:
             return True
-        parent = self.parent()
+        try:
+            parent = self.parent()
+        except RuntimeError:
+            return False
         while parent is not None:
             if hasattr(parent, "is_token_active"):
                 try:
@@ -288,6 +304,16 @@ class BaseSingleFilterWidget(QWidget):
                 return bool(getattr(parent, "_activated", False)) and token == getattr(parent, "_active_token", None)
             parent = parent.parent()
         return True
+
+    def _is_widget_alive(self) -> bool:
+        try:
+            import sip
+        except Exception:
+            sip = None
+        try:
+            return not bool(sip and sip.isdeleted(self))
+        except RuntimeError:
+            return False
 
 
 class SelectAllCheckBox(QCheckBox):

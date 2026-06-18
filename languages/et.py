@@ -167,6 +167,12 @@ TRANSLATIONS = {
     TranslationKeys.PASSWORD_LABEL: "Parool:",
     TranslationKeys.LOGIN_BUTTON: "Logi sisse",
     TranslationKeys.CANCEL_BUTTON: "Tühista",
+    TranslationKeys.LOGIN_USERNAME_REQUIRED: "Palun sisesta kasutajanimi.",
+    TranslationKeys.LOGIN_PASSWORD_REQUIRED: "Palun sisesta parool.",
+    TranslationKeys.LOGIN_USERNAME_INVALID: "Kontrolli kasutajanime.",
+    TranslationKeys.LOGIN_PASSWORD_INVALID: "Kontrolli parooli.",
+    TranslationKeys.LOGIN_CREDENTIALS_INVALID: "Kasutajanimi või parool ei klapi.",
+    TranslationKeys.LOGIN_SERVER_UNAVAILABLE: "Sisselogimine ebaõnnestus. Palun proovi uuesti.",
     TranslationKeys.KAVITRO_PLUGIN_TITLE: "Kavitro",
     TranslationKeys.MAILABL_LISTENER: "Mailabl Listener",
     TranslationKeys.UNKNOWN_MODULE: "Tundmatu moodul: {module}",
@@ -508,7 +514,7 @@ TRANSLATIONS = {
         ,TranslationKeys.ASBUILT_DRAW_NEW_SAVE_FAILED: "Uus kaardiobjekt loodi, kuid selle sidumine backendi teostusjoonise kirjega {item_id} ebaõnnestus. Detailid: {error}"
         ,TranslationKeys.ASBUILT_DRAW_NEW_SUCCESS: "Uus kaardiobjekt loodi ja seoti backendi teostusjoonise kirjega {item_id}."
         ,TranslationKeys.ASBUILT_LAYER_MISSING: "Teostusjooniste kiht on seadistamata või puudub projektist. Palun seadista kõigepealt Seadetes Teostusjooniste põhikiht."
-        ,TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON: "Lisa UUS töö"
+        ,TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON: "Lisa uus töö"
         ,TranslationKeys.WORKS_CREATE_DIALOG_TITLE: "Loo töö"
         ,TranslationKeys.WORKS_CREATE_DIALOG_INTRO: "Vali kaardilt asukoht ja loo sellele punktile uus töö. Kui klikitud asukohast leitakse kinnistu, proovitakse see võimalusel automaatselt siduda."
         ,TranslationKeys.WORKS_CREATE_PROPERTY_LABEL: "Kinnistu"
