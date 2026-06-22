@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtGui import QColor, QIcon, QPainter, QPixmap
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from ...constants.button_props import ButtonVariant
 from ...constants.module_icons import IconNames
@@ -16,17 +17,20 @@ from ...utils.FilterHelpers.FilterHelper import FilterRefreshService
 class FilterRefreshHelper:
     """Utility widget that provides a toolbar-friendly reset button."""
 
+    _clear_icon_cache: dict[str, QIcon] = {}
+
     def __init__(self, owner: QWidget):
         self._owner = owner
         self._lang = LanguageManager()
 
     def make_filter_refresh_button(self, parent: Optional[QWidget] = None) -> QWidget:
         container = QWidget(parent)
+        container.setObjectName("FilterActionsContainer")
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(2, 2, 2, 2)
-        layout.setSpacing(4)
+        layout.setContentsMargins(4, 3, 4, 3)
+        layout.setSpacing(2)
 
-        size_px = 28
+        size_px = 22
 
         refresh_btn = QPushButton("", container)
         refresh_btn.setObjectName("FeedRefreshButton")
@@ -35,7 +39,7 @@ class FilterRefreshHelper:
         refresh_btn.setDefault(False)
         refresh_btn.setFixedSize(size_px, size_px)
         refresh_btn.setIcon(ThemeManager.get_qicon(IconNames.ICON_REFRESH))
-        refresh_btn.setIconSize(QSize(16, 16))
+        refresh_btn.setIconSize(QSize(14, 14))
         refresh_btn.setToolTip(self._lang.translate(TranslationKeys.FILTERS_REFRESH))
         refresh_btn.clicked.connect(self._on_refresh_clicked)  # type: ignore[attr-defined]
         layout.addWidget(refresh_btn)
@@ -46,8 +50,8 @@ class FilterRefreshHelper:
         clear_btn.setAutoDefault(False)
         clear_btn.setDefault(False)
         clear_btn.setFixedSize(size_px, size_px)
-        clear_btn.setIcon(ThemeManager.get_qicon(IconNames.ICON_CLOSE_X))
-        clear_btn.setIconSize(QSize(20, 20))
+        clear_btn.setIcon(self._clear_icon())
+        clear_btn.setIconSize(QSize(14, 14))
         clear_btn.setToolTip(self._lang.translate(TranslationKeys.FILTERS_CLEAR))
         clear_btn.clicked.connect(self._on_clear_clicked)  # type: ignore[attr-defined]
         layout.addWidget(clear_btn)
@@ -62,9 +66,34 @@ class FilterRefreshHelper:
             refresh_btn.setIcon(ThemeManager.get_qicon(IconNames.ICON_REFRESH))
         clear_btn = container.findChild(QPushButton, "FeedClearButton")
         if clear_btn is not None:
-            clear_btn.setIcon(ThemeManager.get_qicon(IconNames.ICON_CLOSE_X))
+            clear_btn.setIcon(FilterRefreshHelper._clear_icon())
         container.style().unpolish(container)
         container.style().polish(container)
+
+    @staticmethod
+    def _clear_icon() -> QIcon:
+        theme = ThemeManager.effective_theme()
+        color = "#18b2a3" if theme == "dark" else "#0f9b8e"
+        cache_key = f"{theme}:{color}"
+        cached = FilterRefreshHelper._clear_icon_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        source = QPixmap(IconNames.get_icon(IconNames.ICON_CLOSE_X))
+        if source.isNull():
+            return ThemeManager.get_qicon(IconNames.ICON_CLOSE_X)
+
+        tinted = QPixmap(source.size())
+        tinted.fill(Qt.transparent)
+        painter = QPainter(tinted)
+        painter.drawPixmap(0, 0, source)
+        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+        painter.fillRect(tinted.rect(), QColor(color))
+        painter.end()
+
+        icon = QIcon(tinted)
+        FilterRefreshHelper._clear_icon_cache[cache_key] = icon
+        return icon
 
     def _on_refresh_clicked(self):
         owner = self._owner

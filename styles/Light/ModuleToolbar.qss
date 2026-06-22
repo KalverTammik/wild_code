@@ -7,6 +7,34 @@ QWidget#FilterWidgetContainer {
     background: transparent;
 }
 
+QWidget#FilterActionsContainer {
+    background: #ffffff;
+    border: 1px solid #d7dee5;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+QWidget#FilterActionsContainer:hover {
+    background: #f9fafb;
+    border-color: #2188ff;
+}
+
+QWidget#FilterActionsContainer QPushButton {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 0;
+}
+
+QWidget#FilterActionsContainer QPushButton:hover {
+    background: rgba(33,136,255,0.10);
+    border-color: rgba(33,136,255,0.35);
+}
+
+QWidget#FilterActionsContainer QPushButton:pressed {
+    background: rgba(33,136,255,0.18);
+}
+
 QLabel#FilterTitleLabel {
     color: #5f6a7d;
     font-size: 10px;

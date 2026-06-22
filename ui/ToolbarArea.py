@@ -45,17 +45,7 @@ class ModuleToolbarArea(QFrame):
         self._left_widgets: List[QWidget] = []
         self._left_preferred_width = 240  # px per widget before wrapping
         self._left_max_columns = 2
-
-        # Add a designated area for the refresh button next to the left grid.
-        self._refresh_slot = QWidget(self)
-        self._refresh_slot.setObjectName("ToolbarRefreshSlot")
-        self._refresh_slot.setFixedWidth(34)
-
-        self._refresh_layout = QVBoxLayout(self._refresh_slot)
-        self._refresh_layout.setContentsMargins(2, 2, 2, 2)
-        self._refresh_layout.setSpacing(0)
-
-
+        self._refresh_widget: QWidget | None = None
 
         # Right slot container
         self._right = QWidget(self)
@@ -66,14 +56,12 @@ class ModuleToolbarArea(QFrame):
 
         # Compose
         self._layout.addWidget(self._left, 0, 0, Qt.AlignTop)
-        self._layout.addWidget(self._refresh_slot, 0, 1, Qt.AlignTop)
-        self._layout.addWidget(self._right, 0, 3, Qt.AlignTop)
+        self._layout.addWidget(self._right, 0, 2, Qt.AlignTop)
 
         # Ensure right area absorbs remaining width
         self._layout.setColumnStretch(0, 0)
-        self._layout.setColumnStretch(1, 0)
-        self._layout.setColumnStretch(2, 1)
-        self._layout.setColumnStretch(3, 0)
+        self._layout.setColumnStretch(1, 1)
+        self._layout.setColumnStretch(2, 0)
 
 
         # Apply toolbar + centralized combo styling (includes ComboBox.qss)
@@ -100,23 +88,33 @@ class ModuleToolbarArea(QFrame):
             self._right_layout.addWidget(widget)
 
     def set_refresh_widget(self, widget: QWidget) -> None:
-        """Place a widget inside the fixed refresh slot (replaces any existing one)."""
-        self._clear_refresh_slot()
+        """Place filter actions inside the left filter grid."""
+        self.clear_refresh()
         if widget is not None:
-            widget.setParent(self._refresh_slot)
-            self._refresh_layout.addWidget(widget, 0, Qt.AlignTop)
-        self._refresh_layout.addStretch(1)
+            widget.setParent(self._left)
+            widget.setObjectName(widget.objectName() or "FilterActionsContainer")
+            self._refresh_widget = widget
+            self._reflow_left_widgets()
 
     def clear_left(self) -> None:
         for widget in self._left_widgets:
             widget.setParent(None)
             widget.deleteLater()
         self._left_widgets.clear()
+        if self._refresh_widget is not None:
+            self._refresh_widget.setParent(None)
+            self._refresh_widget.deleteLater()
+        self._refresh_widget = None
         self._purge_left_grid()
 
     def clear_refresh(self) -> None:
-        self._clear_refresh_slot()
-        self._refresh_layout.addStretch(1)
+        widget = self._refresh_widget
+        if widget is None:
+            return
+        self._refresh_widget = None
+        widget.setParent(None)
+        widget.deleteLater()
+        self._reflow_left_widgets()
 
     def clear_right(self) -> None:
         self._clear_layout(self._right_layout)
@@ -164,7 +162,7 @@ class ModuleToolbarArea(QFrame):
         """Place left widgets inside the grid, wrapping rows as needed."""
         self._purge_left_grid()
 
-        if not self._left_widgets:
+        if not self._left_widgets and self._refresh_widget is None:
             return
 
         columns = self._calculate_left_columns()
@@ -176,10 +174,15 @@ class ModuleToolbarArea(QFrame):
                 col = 0
                 row += 1
 
+        if self._refresh_widget is not None:
+            action_col = columns if self._left_widgets else 0
+            self._left_layout.addWidget(self._refresh_widget, 0, action_col, 1, 1, Qt.AlignTop)
+
         # Extra stretch column absorbs leftover horizontal room so widgets stay left-aligned.
-        for index in range(columns + 1):
+        extra_col = columns + (1 if self._refresh_widget is not None else 0)
+        for index in range(extra_col + 1):
             self._left_layout.setColumnStretch(index, 0)
-        self._left_layout.setColumnStretch(columns, 1)
+        self._left_layout.setColumnStretch(extra_col, 1)
 
     def _purge_left_grid(self) -> None:
         while self._left_layout.count():
@@ -193,14 +196,6 @@ class ModuleToolbarArea(QFrame):
         target_width = max(120, self._left_preferred_width)
         estimated = max(1, available // target_width)
         return max(1, min(self._left_max_columns, estimated))
-
-    def _clear_refresh_slot(self) -> None:
-        while self._refresh_layout.count():
-            item = self._refresh_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.setParent(None)
-                widget.deleteLater()
 
     def _wrap_filter_widget(self, widget: QWidget) -> QWidget:
         """Wrap filters with a title label when they expose filter_title."""

@@ -8,6 +8,34 @@ QWidget#FilterWidgetContainer {
 	background: transparent;
 }
 
+QWidget#FilterActionsContainer {
+	background: #303a42;
+	border: 1px solid #4d4d4d;
+	border-radius: 6px;
+	margin: 2px;
+}
+
+QWidget#FilterActionsContainer:hover {
+	background: #2e2f38;
+	border-color: #1f5d5c;
+}
+
+QWidget#FilterActionsContainer QPushButton {
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 5px;
+	padding: 0;
+}
+
+QWidget#FilterActionsContainer QPushButton:hover {
+	background: rgba(9, 144, 143, 0.18);
+	border-color: rgba(9, 144, 143, 0.50);
+}
+
+QWidget#FilterActionsContainer QPushButton:pressed {
+	background: rgba(9, 144, 143, 0.28);
+}
+
 QLabel#FilterTitleLabel {
 	color: #cbd5f5;
 	font-size: 10px;
