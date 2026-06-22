@@ -140,6 +140,82 @@ QComboBox QAbstractItemView::item:disabled {
     color: rgba(36,41,46,0.40);
 }
 
+/* Qt/QGIS may create combo popup views as top-level widgets, so they are not
+   always descendants of QComboBox. Keep these in sync with the scoped rules. */
+QAbstractItemView {
+    background: #f9fafb;
+    alternate-background-color: #f3f6f8;
+    color: #24292e;
+    selection-background-color: #0078d4;
+    selection-color: #ffffff;
+    border: 1px solid #2188ff;
+    border-radius: 3px;
+    padding: 1px;
+    outline: none;
+}
+QAbstractItemView::item {
+    min-height: 20px;
+    padding: 2px 6px;
+    margin: 0;
+    border-radius: 3px;
+    color: #24292e;
+}
+QAbstractItemView::item:selected,
+QAbstractItemView::item:selected:active,
+QAbstractItemView::item:selected:!active {
+    background: #0078d4;
+    color: #ffffff;
+}
+QAbstractItemView::item:hover {
+    background: #eaeef2;
+    color: #111416;
+}
+QAbstractItemView::item:disabled {
+    color: rgba(36,41,46,0.40);
+}
+
+/* QGIS attribute/editor forms can expose combo popups as standalone
+   QListView/QTreeView instances. Keep their palette explicit so layer forms
+   do not inherit unreadable platform popup colors. */
+QListView,
+QTreeView {
+    background: #f9fafb;
+    alternate-background-color: #f3f6f8;
+    color: #24292e;
+    selection-background-color: #0078d4;
+    selection-color: #ffffff;
+    border: 1px solid #2188ff;
+    border-radius: 3px;
+    padding: 1px;
+    outline: none;
+}
+QListView::item,
+QTreeView::item {
+    min-height: 20px;
+    padding: 2px 6px;
+    margin: 0;
+    border-radius: 3px;
+    color: #24292e;
+}
+QListView::item:selected,
+QTreeView::item:selected,
+QListView::item:selected:active,
+QTreeView::item:selected:active,
+QListView::item:selected:!active,
+QTreeView::item:selected:!active {
+    background: #0078d4;
+    color: #ffffff;
+}
+QListView::item:hover,
+QTreeView::item:hover {
+    background: #eaeef2;
+    color: #111416;
+}
+QListView::item:disabled,
+QTreeView::item:disabled {
+    color: rgba(36,41,46,0.40);
+}
+
 /* Scrollbar inside popup */
 QComboBox QAbstractItemView QScrollBar:vertical {
     background: transparent;
@@ -149,7 +225,10 @@ QComboBox QAbstractItemView QScrollBar:vertical {
 QComboBox QAbstractItemView QScrollBar::handle:vertical {
     min-height: 24px;
     border-radius: 5px;
-    background: rgba(0,0,0,0.15);
+    background: rgba(15,155,142,0.42);
+}
+QComboBox QAbstractItemView QScrollBar::handle:vertical:hover {
+    background: rgba(15,155,142,0.62);
 }
 QComboBox QAbstractItemView QScrollBar::add-line:vertical,
 QComboBox QAbstractItemView QScrollBar::sub-line:vertical {
@@ -157,6 +236,55 @@ QComboBox QAbstractItemView QScrollBar::sub-line:vertical {
 }
 QComboBox QAbstractItemView QScrollBar::add-page:vertical,
 QComboBox QAbstractItemView QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+QAbstractItemView QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 4px 2px 4px 0;
+}
+QAbstractItemView QScrollBar::handle:vertical {
+    min-height: 24px;
+    border-radius: 5px;
+    background: rgba(15,155,142,0.42);
+}
+QAbstractItemView QScrollBar::handle:vertical:hover {
+    background: rgba(15,155,142,0.62);
+}
+QAbstractItemView QScrollBar::add-line:vertical,
+QAbstractItemView QScrollBar::sub-line:vertical {
+    height: 0;
+}
+QAbstractItemView QScrollBar::add-page:vertical,
+QAbstractItemView QScrollBar::sub-page:vertical {
+    background: transparent;
+}
+QListView QScrollBar:vertical,
+QTreeView QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 4px 2px 4px 0;
+}
+QListView QScrollBar::handle:vertical,
+QTreeView QScrollBar::handle:vertical {
+    min-height: 24px;
+    border-radius: 5px;
+    background: rgba(15,155,142,0.42);
+}
+QListView QScrollBar::handle:vertical:hover,
+QTreeView QScrollBar::handle:vertical:hover {
+    background: rgba(15,155,142,0.62);
+}
+QListView QScrollBar::add-line:vertical,
+QListView QScrollBar::sub-line:vertical,
+QTreeView QScrollBar::add-line:vertical,
+QTreeView QScrollBar::sub-line:vertical {
+    height: 0;
+}
+QListView QScrollBar::add-page:vertical,
+QListView QScrollBar::sub-page:vertical,
+QTreeView QScrollBar::add-page:vertical,
+QTreeView QScrollBar::sub-page:vertical {
     background: transparent;
 }
 

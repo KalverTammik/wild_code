@@ -224,6 +224,7 @@ class TranslationKeys:
     TAGS_FILTER = "Tags Filter"
     TYPE_FILTER = "Type Filter"
     TYPE_GROUP_FILTER = "Type Group Filter"
+    TYPE_FILTER_ALL_GROUPS = "type_filter_all_groups"
     RESET = "Reset"
     FILTERS_REFRESH = "filters_refresh"
     FILTERS_CLEAR = "filters_clear"

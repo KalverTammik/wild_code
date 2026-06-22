@@ -413,6 +413,7 @@ TRANSLATIONS = {
     ,TranslationKeys.CLOSE: "Sulge"
     ,TranslationKeys.SELECT_ALL: "Vali kõik"
     ,TranslationKeys.CLEAR_SELECTION: "Tühjenda valik"
+    ,TranslationKeys.TYPE_FILTER_ALL_GROUPS: "Kõik grupid"
     ,TranslationKeys.STATUS_GROUP_OPEN: "AVATUD"
     ,TranslationKeys.STATUS_GROUP_CLOSED: "SULETUD"
     ,TranslationKeys.STATUS_GROUP_OTHER: "MUUD"

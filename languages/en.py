@@ -421,6 +421,7 @@ TRANSLATIONS = {
     ,TranslationKeys.CLOSE: "Close"
     ,TranslationKeys.SELECT_ALL: "Select All"
     ,TranslationKeys.CLEAR_SELECTION: "Clear Selection"
+    ,TranslationKeys.TYPE_FILTER_ALL_GROUPS: "All groups"
     ,TranslationKeys.STATUS_GROUP_OPEN: "OPEN"
     ,TranslationKeys.STATUS_GROUP_CLOSED: "CLOSED"
     ,TranslationKeys.STATUS_GROUP_OTHER: "OTHER"
