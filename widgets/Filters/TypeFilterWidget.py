@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Sequence
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QCheckBox, QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 from qgis.gui import QgsCheckableComboBox
 
 from ...languages.language_manager import LanguageManager
@@ -14,6 +14,7 @@ from ...utils.url_manager import ModuleSupports
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ..theme_manager import ThemeManager
+from .select_all_checkbox import SelectAllCheckBox
 
 
 class _TypePickerControl(QFrame):
@@ -883,13 +884,3 @@ class TypeFilterWidget(QWidget):
         except RuntimeError:
             return False
 
-
-class SelectAllCheckBox(QCheckBox):
-    """Tri-state checkbox that never allows user-clicked PartiallyChecked state."""
-
-    def nextCheckState(self) -> None:  # type: ignore[override]
-        current = self.checkState()
-        if current == Qt.Checked:
-            self.setCheckState(Qt.Unchecked)
-        else:
-            self.setCheckState(Qt.Checked)

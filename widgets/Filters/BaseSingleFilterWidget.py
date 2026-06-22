@@ -5,7 +5,6 @@ from typing import Callable, List, Optional, Sequence, Tuple, Union
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
-    QCheckBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -23,6 +22,7 @@ from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ..theme_manager import ThemeManager
+from .select_all_checkbox import SelectAllCheckBox
 
 
 class _SimplePickerControl(QFrame):
@@ -631,13 +631,3 @@ class BaseSingleFilterWidget(QWidget):
         except RuntimeError:
             return False
 
-
-class SelectAllCheckBox(QCheckBox):
-    """Tri-state checkbox that never allows user-clicked PartiallyChecked state."""
-
-    def nextCheckState(self) -> None:  # type: ignore[override]
-        current = self.checkState()
-        if current == Qt.Checked:
-            self.setCheckState(Qt.Unchecked)
-        else:
-            self.setCheckState(Qt.Checked)

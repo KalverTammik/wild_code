@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QComboBox, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from ....languages.language_manager import LanguageManager
 from ....widgets.theme_manager import ThemeManager
+from ....widgets.layer_tree_picker import LayerTreePicker
 from ....constants.file_paths import QssPaths
 from ....constants.button_props import ButtonVariant, ButtonSize
 from PyQt5.QtGui import  QPixmap
@@ -82,6 +83,8 @@ class SettingsBaseCard(QFrame):
                 ThemeManager.apply_checkable_combo_popup_style(combo)
             else:
                 ThemeManager.apply_combo_popup_style(combo)
+        for picker in self.findChildren(LayerTreePicker):
+            picker.retheme()
 
 
     def _build_footer_row(self):

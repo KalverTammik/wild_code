@@ -22,12 +22,12 @@ from PyQt5.QtWidgets import (
 )
 from qgis.PyQt.QtCore import QVariant
 from qgis.core import Qgis, QgsCoordinateTransform, QgsFeature, QgsProject, QgsVectorLayer
-from qgis.gui import QgsMapLayerComboBox
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.translation_keys import TranslationKeys
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
+from ...widgets.layer_tree_picker import LayerTreePicker
 
 
 class _DefaultValueEditor(QWidget):
@@ -124,7 +124,7 @@ class GeospatialLayerMapperDialog(QDialog):
         self._lang = lang_manager
         self._module_name = str(module_name or "").strip().lower()
         self._target_layer = target_layer
-        self._source_combo: Optional[QgsMapLayerComboBox] = None
+        self._source_combo: Optional[LayerTreePicker] = None
         self._table: Optional[QTableWidget] = None
         self._target_fields: list = []
         self._source_field_combos: dict[str, QComboBox] = {}
@@ -150,7 +150,8 @@ class GeospatialLayerMapperDialog(QDialog):
         source_row = QHBoxLayout()
         source_label = QLabel(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SOURCE_LAYER), self)
         source_row.addWidget(source_label)
-        source_combo = QgsMapLayerComboBox(self)
+        source_combo = LayerTreePicker(self)
+        source_combo.setProject(QgsProject.instance())
         source_combo.setAllowEmptyLayer(True, self._lang.translate(TranslationKeys.SELECT_LAYER))
         source_combo.setShowCrs(False)
         source_combo.setFilters(Qgis.LayerFilter.HasGeometry)

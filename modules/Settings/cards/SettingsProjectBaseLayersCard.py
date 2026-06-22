@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from qgis.core import Qgis, QgsMapLayer, QgsProject
-from qgis.gui import QgsFieldComboBox, QgsMapLayerComboBox
+from qgis.gui import QgsFieldComboBox
 
 from ....constants.button_props import ButtonSize, ButtonVariant
 from ....constants.settings_keys import SettingsService
@@ -25,6 +25,7 @@ from .SettingsBaseCard import SettingsBaseCard
 from ..settings_layer_helper import SettingsLayerHelper
 from ....languages.translation_keys import TranslationKeys
 from ....utils.project_base_layers import ProjectBaseLayerKeys, ProjectBaseLayersService
+from ....widgets.layer_tree_picker import LayerTreePicker
 
 
 class SettingsProjectBaseLayersCard(SettingsBaseCard):
@@ -70,7 +71,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         )
         self._service = ProjectBaseLayersService()
         self._settings_service = SettingsService()
-        self._layer_combos: Dict[str, QgsMapLayerComboBox] = {}
+        self._layer_combos: Dict[str, LayerTreePicker] = {}
         self._layer_row_widgets: Dict[str, QWidget] = {}
         self._project_bound = False
         self._layer_signals_connected = False
@@ -206,9 +207,8 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         reset_btn.setVisible(True)
         reset_btn.clicked.connect(self._on_reset_settings)
 
-    def _create_layer_combobox(self, parent: QWidget) -> QgsMapLayerComboBox:
-        combo = QgsMapLayerComboBox(parent)
-        combo.setObjectName("ModuleLayerCombo")
+    def _create_layer_combobox(self, parent: QWidget) -> LayerTreePicker:
+        combo = LayerTreePicker(parent)
         combo.setAllowEmptyLayer(True, self.lang_manager.translate(TranslationKeys.SELECT_LAYER))
         combo.setShowCrs(False)
         combo.setFilters(Qgis.LayerFilter.HasGeometry)

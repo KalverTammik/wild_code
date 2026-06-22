@@ -17,6 +17,7 @@ from ....widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from ....widgets.Filters.NotStartedStatusFilterWidget import NotStartedStatusFilterWidget
 from ....widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from ....widgets.Filters.TagsFilterWidget import TagsFilterWidget
+from ....widgets.layer_tree_picker import LayerTreePicker
 from ....constants.module_icons import ModuleIconPaths
 from ....constants.button_props import ButtonVariant, ButtonSize
 from ....constants.settings_keys import SettingsService
@@ -31,7 +32,6 @@ from ....utils.text_helpers import to_bool
 from ..setting_keys import SettingDialogPlaceholders
 from ...projects.project_board_status_rules import ProjectBoardStatusRules
 
-from qgis.gui import QgsMapLayerComboBox
 from qgis.core import QgsMapLayer, QgsProject, Qgis
 
 class SettingsModuleCard(SettingsBaseCard):
@@ -69,8 +69,8 @@ class SettingsModuleCard(SettingsBaseCard):
 
 
         # Layer pickers
-        self._layer_selector: QgsMapLayerComboBox | None = None
-        self._archive_picker: QgsMapLayerComboBox | None = None
+        self._layer_selector: LayerTreePicker | None = None
+        self._archive_picker: LayerTreePicker | None = None
         self._works_temp_group: QFrame | None = None
         self._geospatial_mapper_group: QFrame | None = None
         self._geospatial_mode_active = False
@@ -659,9 +659,8 @@ class SettingsModuleCard(SettingsBaseCard):
                 ),
             )
 
-    def _create_layer_combobox(self, parent: QWidget) -> QgsMapLayerComboBox:
-        combo = QgsMapLayerComboBox(parent)
-        combo.setObjectName("ModuleLayerCombo")
+    def _create_layer_combobox(self, parent: QWidget) -> LayerTreePicker:
+        combo = LayerTreePicker(parent)
         combo.setAllowEmptyLayer(True, self.placeholder_text)
         combo.setShowCrs(False)
         combo.setFilters(Qgis.LayerFilter.HasGeometry)

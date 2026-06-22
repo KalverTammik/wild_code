@@ -330,7 +330,7 @@ Components
   - API: `set_user()`, `set_roles()`, `set_access_map()`, `set_preferred()`, `revert()`, `retheme()`.
 
 - `modules/Settings/cards/ModuleCard.py` (per-module settings)
-  - Contains two layer selectors (Element/Archive) backed by `QgsMapLayerComboBox` widgets tied directly to the active project.
+  - Contains two layer selectors (Element/Archive) backed by Kavitro `LayerTreePicker` widgets that preserve QGIS project groups/subgroups while keeping the old layer selection API.
   - Signals `pendingChanged(bool)` to show/hide its own Confirm button.
   - API: `on_settings_activate()`, `on_settings_deactivate()`, `apply()`, `revert()`, `has_pending_changes()`.
 
@@ -441,13 +441,14 @@ This architecture ensures consistent settings management, easier testing, and ma
 
 ## 15. Layer Selection in SettingsModuleCard
 
-The Settings module now uses the stock `QgsMapLayerComboBox` widgets directly inside `SettingsModuleCard` for both the main and archive layer selectors. No custom snapshot builders or popup trees are involved anymore.
+The Settings module uses the custom `LayerTreePicker` widget for module, archive, project base-layer, and geospatial source layer selection. It displays the active QGIS project tree with groups/subgroups preserved while keeping a small `QgsMapLayerComboBox`-compatible API for existing settings logic.
 
 Key points
-- `SettingsModuleCard` instantiates two combos with `_create_layer_combobox()`.
-- `on_settings_activate()` assigns the active `QgsProject` instance to each combo (`setProject(project)`) so the built-in layer model stays live.
+- `SettingsModuleCard` instantiates two layer pickers with `_create_layer_combobox()`.
+- `on_settings_activate()` assigns the active `QgsProject` instance to each picker (`setProject(project)`) so the layer tree stays live.
 - Stored layer values are persisted as **layer names** via `SettingsLogic.set_module_layer_id()` and resolved back to IDs on activation using `MapHelpers.resolve_layer_id()` / `layer_name_from_id()`.
 - Archive selector is optional and only shown for modules with archive support (Property module today).
+- `LayerTreePicker` intentionally supports `setProject`, `project`, `setLayer`, `currentLayer`, `setAllowEmptyLayer`, `setShowCrs`, `setFilters`, and `layerChanged`.
 
 Usage pattern
 ```python
@@ -472,7 +473,7 @@ Restoring selections
 - `_restore_layer_selection(combo, stored_name)` pulls the previously saved layer name from `SettingsLogic`, resolves it to a current layer id, and calls `combo.setLayer(layer)` without emitting signals.
 - When combos change, `_on_element_selected()` / `_on_archive_selected()` convert the selected layer id back to a layer name via `MapHelpers.layer_name_from_id()` before marking pending state.
 
-The old `LayerTreePicker`/snapshot workflow is fully retired; do not reference it when building new Settings cards.
+Do not reintroduce flat `QgsMapLayerComboBox` selectors for Settings layer selection unless there is a specific QGIS editor-widget requirement. Prefer `LayerTreePicker` so users can navigate the same group/subgroup structure they see in the QGIS layer panel.
 
 ---
 

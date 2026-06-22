@@ -1,6 +1,4 @@
 from qgis.core import QgsProject
-from qgis.gui import QgsMapLayerComboBox
-
 from ...utils.MapTools.MapHelpers import MapHelpers
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.url_manager import Module
@@ -9,7 +7,7 @@ from ...utils.url_manager import Module
 class SettingsLayerHelper:
     @staticmethod
     def set_combo_project(
-        combo: QgsMapLayerComboBox | None,
+        combo,
         project,
     ) -> None:
         if combo is None:
@@ -28,7 +26,7 @@ class SettingsLayerHelper:
 
     @staticmethod
     def restore_combo_selection(
-        combo: QgsMapLayerComboBox | None,
+        combo,
         stored_name: str,
     ) -> None:
         if not combo:
@@ -60,7 +58,7 @@ class SettingsLayerHelper:
             combo.blockSignals(False)
 
     @staticmethod
-    def clear_combo_selection(combo: QgsMapLayerComboBox | None) -> None:
+    def clear_combo_selection(combo) -> None:
         if not combo:
             return
         try:

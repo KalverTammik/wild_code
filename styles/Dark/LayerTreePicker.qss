@@ -1,142 +1,86 @@
-/* =========================================================
-   LayerTreePicker.qss (DARK THEME) — ComboBox-style layout
-   Single source of truth for LayerTreePicker dropdown styling
-   Palette (dark) - matching ComboBox:
-     Surface base:  #303a42
-     Surface hover: #2e2f38
-     Border base:   #4d4d4d
-     Border focus:  #1f5d5c
-     Text:          #c5c5d2
-     Accent:        rgb(9,144,143)
-   ========================================================= */
+/* LayerTreePicker.qss (DARK THEME) */
 
-/* =========================================
-   CONTAINER FRAME — Fixed size combo box
-   ========================================= */
-LayerTreePicker QFrame#LayerTreePickerContainer {
-    background: transparent;
+QWidget#LayerTreePicker QFrame#LayerTreePickerContainer {
+    background: #303a42;
     border: 1px solid #4d4d4d;
     border-radius: 6px;
-    padding: 0;
-    min-width: 180px;
-    min-height: 20px;
-    max-width: 180px;
-    max-height: 20px;
-}
-
-LayerTreePicker QFrame#LayerTreePickerContainer:hover {
-    border: 1px solid;
-    border-color: #1f5d5c;
-}
-
-LayerTreePicker QFrame#LayerTreePickerContainer:focus {
-    border: 1px solid;
-    border-color: #1f5d5c;
-}
-
-/* =========================================
-   MAIN BUTTON AREA — Text frame (replaces QToolButton)
-   ========================================= */
-LayerTreePicker QFrame#LayerTreePickerContainer QFrame#ComboAreaTextFrame {
-    background: transparent;
-    color: #c5c5d2;
-    border: none;
-    border-radius: 0;
-    padding: 0;          /* No padding since layout handles margins */
-    padding-right: 22px;       /* reserve space for 22px arrow frame */
-    min-height: 20px;
-    min-width: 140px;          /* Layout handles sizing with stretch factors */
-    font-size: 12px;
-    margin: 0;
+    min-height: 22px;
+    min-width: 220px;
+    max-height: 26px;
     outline: none;
 }
 
-LayerTreePicker QFrame#LayerTreePickerContainer:hover QFrame#ComboAreaTextFrame {
-    background: transparent;
+QWidget#LayerTreePicker QFrame#LayerTreePickerContainer:hover,
+QWidget#LayerTreePicker QFrame#LayerTreePickerContainer:focus {
+    background: #2e2f38;
+    border-color: #1f5d5c;
 }
 
-LayerTreePicker QFrame#LayerTreePickerContainer:focus QFrame#ComboAreaTextFrame {
+QWidget#LayerTreePicker QFrame#LayerTreePickerContainer QFrame#ComboAreaTextFrame {
     background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    min-width: 160px;
 }
 
-/* Label inside the text frame */
-LayerTreePicker QFrame#LayerTreePickerContainer QFrame#ComboAreaTextFrame ComboBoxTextFrame {
+QWidget#LayerTreePicker QFrame#LayerTreePickerContainer QFrame#ComboAreaTextFrame QLabel#ComboBoxTextFrame {
     color: #c5c5d2;
     font-size: 12px;
+    font-weight: 600;
     padding: 0;
     margin: 0;
 }
 
-/* =========================================
-   DROPDOWN FRAME — Arrow area
-   ========================================= */
-LayerTreePicker QFrame#LayerTreePickerContainer QFrame#DropdownFrame {
+QWidget#LayerTreePicker QFrame#LayerTreePickerContainer QFrame#DropdownFrame {
     background: transparent;
     border: none;
-    border-left: 1px solid #4d4d4d;
     border-top-right-radius: 6px;
     border-bottom-right-radius: 6px;
     min-width: 22px;
     max-width: 22px;
 }
 
-LayerTreePicker QFrame#LayerTreePickerContainer:hover QFrame#DropdownFrame {
-    background: #2e2f38;
-    border-left-color: #1f5d5c;
-}
-
-LayerTreePicker QFrame#LayerTreePickerContainer:focus QFrame#DropdownFrame {
-    background: #2e2f38;
-    border-left-color: #1f5d5c;
-}
-
-/* =========================================
-   DROPDOWN ARROW — QToolButton (like QComboBox)
-   ========================================= */
-LayerTreePicker QFrame#LayerTreePickerContainer QFrame#DropdownFrame QToolButton {
-    color: #999;
+QWidget#LayerTreePicker QFrame#LayerTreePickerContainer QFrame#DropdownFrame QLabel#LayerTreePickerArrow {
+    color: #1f5d5c;
     border: none;
     background: transparent;
     padding: 0;
     margin: 0;
-    min-width: 16px;
-    min-height: 16px;
-    max-width: 16px;
-    max-height: 16px;
+    font-size: 12px;
+    font-weight: 700;
 }
 
-/* ---------------------- Popup container ---------------------- */
 QFrame#LayerTreePopup {
-    background: #2e2f38;
+    background: #252932;
     color: #c5c5d2;
     border: 1px solid #1f5d5c;
-    border-radius: 3px;
-    padding: 1px;
+    border-radius: 8px;
+    padding: 8px;
 }
 
-/* ---------------------- Tree widget ---------------------- */
 QFrame#LayerTreePopup QTreeWidget {
-    background: #2e2f38;
+    background: transparent;
     color: #c5c5d2;
     border: none;
-    border-radius: 3px;
-    padding: 1px;
     outline: none;
     font-size: 12px;
 }
 
-/* Tree items */
 QFrame#LayerTreePopup QTreeWidget::item {
-    height: 20px;
-    padding: 2px 6px;
-    margin: 0;
-    border-radius: 3px;
+    min-height: 22px;
+    padding: 5px 8px;
+    margin: 1px 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
     color: #c5c5d2;
+    font-weight: 600;
 }
 
 QFrame#LayerTreePopup QTreeWidget::item:selected {
-    background: rgb(9,144,143);
-    color: #ffffff;
+    background: rgba(9,144,143,0.28);
+    border-color: rgb(9,144,143);
+    color: #c5c5d2;
 }
 
 QFrame#LayerTreePopup QTreeWidget::item:hover {
@@ -145,18 +89,16 @@ QFrame#LayerTreePopup QTreeWidget::item:hover {
 }
 
 QFrame#LayerTreePopup QTreeWidget::item:disabled {
-    color: rgba(197,197,210,0.40);
+    color: rgba(197,197,210,0.42);
 }
 
-/* Branch indicators (expand/collapse arrows) */
 QFrame#LayerTreePopup QTreeWidget::branch {
     background: transparent;
     border: none;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
 }
 
-/* Scrollbar inside popup - matching ComboBox */
 QFrame#LayerTreePopup QTreeWidget QScrollBar:vertical {
     background: transparent;
     width: 10px;
@@ -166,7 +108,11 @@ QFrame#LayerTreePopup QTreeWidget QScrollBar:vertical {
 QFrame#LayerTreePopup QTreeWidget QScrollBar::handle:vertical {
     min-height: 24px;
     border-radius: 5px;
-    background: rgba(255,255,255,0.15);
+    background: rgba(9,144,143,0.55);
+}
+
+QFrame#LayerTreePopup QTreeWidget QScrollBar::handle:vertical:hover {
+    background: rgba(9,144,143,0.78);
 }
 
 QFrame#LayerTreePopup QTreeWidget QScrollBar::add-line:vertical,
@@ -178,16 +124,3 @@ QFrame#LayerTreePopup QTreeWidget QScrollBar::add-page:vertical,
 QFrame#LayerTreePopup QTreeWidget QScrollBar::sub-page:vertical {
     background: transparent;
 }
-
-/* ---------------------- Context scoping ---------------------- */
-/* Tighter look in toolbars */
-QToolBar QToolButton {
-    min-height: 18px;
-    padding: 1px 6px;
-    padding-right: 24px;
-    border-radius: 5px;
-    font-size: 11px;
-}
-
-/* ---------------------- Nice-to-haves ---------------------- */
-/* prevent native focus rect artifacts on some platforms */
