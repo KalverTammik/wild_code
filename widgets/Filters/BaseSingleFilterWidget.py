@@ -20,6 +20,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
+from ...utils.logger import error
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ..theme_manager import ThemeManager
 from .select_all_checkbox import SelectAllCheckBox
@@ -356,7 +357,7 @@ class BaseSingleFilterWidget(QWidget):
             self._loaded = False
             self._update_control_summary()
         except Exception as exc:
-            print(f"[{self.__class__.__name__}] clear_data failed: {exc}")
+            error(f"[{self.__class__.__name__}] clear_data failed: {exc}")
 
     # ------------------------------------------------------------------
     # Internal helpers

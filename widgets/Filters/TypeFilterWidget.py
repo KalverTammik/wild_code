@@ -12,6 +12,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...python.workers import FunctionWorker, start_worker
 from ...utils.url_manager import ModuleSupports
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
+from ...utils.logger import error
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ..theme_manager import ThemeManager
 from .select_all_checkbox import SelectAllCheckBox
@@ -751,7 +752,7 @@ class TypeFilterWidget(QWidget):
             self._update_control_summary()
             self._refresh_popup()
         except Exception as exc:
-            print(f"[TypeFilterWidget] clear_data failed: {exc}")
+            error(f"[TypeFilterWidget] clear_data failed: {exc}")
 
     def _rebuild_type_combo(
         self,
