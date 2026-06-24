@@ -25,3 +25,9 @@ The Kavitro Plugin is an experimental QGIS plugin designed to explore and expand
 - This is a learning and experimentation project. Code quality and best practices will improve over time.
 - Contributions and ideas are welcome!
 
+## Asset Attribution
+
+Some UI icons are sourced from or based on Icons8 assets. The plugin footer includes an Icons8 attribution link in accordance with Icons8 free-use attribution expectations.
+
+- Icons8: https://icons8.com
+

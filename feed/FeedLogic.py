@@ -173,15 +173,31 @@ class UnifiedFeedLogic:
                 #print(f"[FeedLogic] Single-item mode payload data: {data}")
                 single: Optional[Dict[str, Any]] = None
 
-                # Heuristic: look for common single-item roots by module
-                if "project" in data:
-                    single = data.get("project")
-                elif "contract" in data:
-                    single = data.get("contract")
-                elif "coordination" in data:
-                    single = data.get("coordination")
-                elif "easement" in data:
-                    single = data.get("easement")
+                # Heuristic: look for common single-item roots by module.
+                # Task-backed modules such as Works and As-built use task(id).
+                candidate_roots = [
+                    "project",
+                    "contract",
+                    "coordination",
+                    "easement",
+                    "task",
+                ]
+                module_root = str(self._module_name or "").strip().lower()
+                if module_root:
+                    candidate_roots.append(module_root[:-1] if module_root.endswith("s") else module_root)
+                if self.root_field:
+                    root = str(self.root_field or "").strip().lower()
+                    candidate_roots.append(root[:-1] if root.endswith("s") else root)
+
+                seen_roots: set[str] = set()
+                for root in candidate_roots:
+                    if not root or root in seen_roots:
+                        continue
+                    seen_roots.add(root)
+                    value = data.get(root)
+                    if isinstance(value, dict):
+                        single = value
+                        break
 
                 if isinstance(single, dict):
                     self.end_cursor = None

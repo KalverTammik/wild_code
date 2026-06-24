@@ -144,7 +144,10 @@ class MoreActionsButton(CardActionButton):
             tooltip,
             lang_manager,
         )
-        self._item_data = item_data
+        item_payload = dict(item_data or {})
+        module = getattr(module, "value", module)
+        module = str(module or "").strip().lower()
+        self._item_data = item_payload
         self.module = module  # Ensure module is passed correctly
         self._map_selection_orchestrator: Optional[MapSelectionOrchestrator] = None
         self._works_reposition_controller: Optional[WorksRepositionController] = None
@@ -173,7 +176,7 @@ class MoreActionsButton(CardActionButton):
             action1.triggered.connect(
                 self._generate_project_folder(
                     module,
-                    item_data,
+                    item_payload,
                     lang_manager,
                     parent_window=self._get_safe_parent_window(),
                 )
@@ -185,7 +188,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_project_preview.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._open_project_preview(data, lm)
+                lambda _, data=item_payload, lm=lang_manager: self._open_project_preview(data, lm)
             )
             menu.addAction(action_project_preview)
 
@@ -194,7 +197,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_draw_project_area.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._draw_new_project_area_on_map(data, lm)
+                lambda _, data=item_payload, lm=lang_manager: self._draw_new_project_area_on_map(data, lm)
             )
             menu.addAction(action_draw_project_area)
 
@@ -204,7 +207,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_notes.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._edit_asbuilt_notes(data, lm)
+                lambda _, data=item_payload, lm=lang_manager: self._edit_asbuilt_notes(data, lm)
             )
             menu.addAction(action_notes)
 
@@ -213,7 +216,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_draw_new.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._draw_new_asbuilt_on_map(data, lm)
+                lambda _, data=item_payload, lm=lang_manager: self._draw_new_asbuilt_on_map(data, lm)
             )
             menu.addAction(action_draw_new)
 
@@ -223,7 +226,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_files.triggered.connect(
-                lambda _, mod=module, data=item_data, lm=lang_manager: self._open_item_files(mod, data, lm)
+                lambda _, mod=module, data=item_payload, lm=lang_manager: self._open_item_files(mod, data, lm)
             )
             menu.addAction(action_files)
 
@@ -233,7 +236,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_add_point.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._add_existing_work_point_on_map(data, lm)
+                lambda _, data=item_payload, lm=lang_manager: self._add_existing_work_point_on_map(data, lm)
             )
             menu.addAction(action_add_point)
 
@@ -242,7 +245,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_reposition.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._reposition_work_on_map(data, lm)
+                lambda _, data=item_payload, lm=lang_manager: self._reposition_work_on_map(data, lm)
             )
             menu.addAction(action_reposition)
 
@@ -252,7 +255,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_draw_new.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._draw_new_easement_on_map(data, lm)
+                lambda _, data=item_payload, lm=lang_manager: self._draw_new_easement_on_map(data, lm)
             )
             menu.addAction(action_draw_new)
 
@@ -261,7 +264,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_attach_existing.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._attach_existing_easement_on_map(data, lm)
+                lambda _, data=item_payload, lm=lang_manager: self._attach_existing_easement_on_map(data, lm)
             )
             menu.addAction(action_attach_existing)
 
@@ -270,7 +273,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_edit_geometry.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._edit_easement_geometry_on_map(data, lm)
+                lambda _, data=item_payload, lm=lang_manager: self._edit_easement_geometry_on_map(data, lm)
             )
             menu.addAction(action_edit_geometry)
 
@@ -279,7 +282,7 @@ class MoreActionsButton(CardActionButton):
                 self,
             )
             action_easement_preview.triggered.connect(
-                lambda _, data=item_data, lm=lang_manager: self._open_easement_preview(data, lm)
+                lambda _, data=item_payload, lm=lang_manager: self._open_easement_preview(data, lm)
             )
             menu.addAction(action_easement_preview)
 
@@ -288,7 +291,7 @@ class MoreActionsButton(CardActionButton):
             self,
         )
         action2.triggered.connect(
-            lambda _, mod=module, data=item_data, lm=lang_manager: self._link_properties_from_map(mod, data, lm)
+            lambda _, mod=module, data=item_payload, lm=lang_manager: self._link_properties_from_map(mod, data, lm)
         )
         menu.addAction(action2)
         ThemeManager.apply_module_style(menu, [QssPaths.POPUP])

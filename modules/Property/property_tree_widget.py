@@ -487,10 +487,12 @@ class ModuleConnectionRow(QFrame):
         )
 
         file_path = self._extract_file_path()
-        actions_payload = {
-            "filesPath": file_path,
-            "properties": self.raw.get("properties"),
-        }
+        actions_payload = dict(self.raw or {})
+        actions_payload["id"] = self.item_id
+        if file_path:
+            actions_payload["filesPath"] = file_path
+        if "properties" not in actions_payload:
+            actions_payload["properties"] = self.raw.get("properties")
         actions_widget = ModuleConnectionActions(
             self.module_key,
             self.item_id,

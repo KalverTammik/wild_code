@@ -9,6 +9,12 @@ from .translation_keys import (
 )
 
 TRANSLATIONS = {
+        TranslationKeys.MAP_IDENTIFY_BUTTON: "What is this",
+        TranslationKeys.MAP_IDENTIFY_UNSUPPORTED_MODULE: "The active module {module} does not currently support map identification.",
+        TranslationKeys.MAP_IDENTIFY_LAYER_MISSING: "The main layer for module {module} is not configured or is missing from the project.",
+        TranslationKeys.MAP_IDENTIFY_ID_FIELD_MISSING: "Layer {layer} does not contain a field that can be used to open the Kavitro item.",
+        TranslationKeys.MAP_IDENTIFY_FEATURE_MISSING: "No active-module object was found at this location.",
+        TranslationKeys.MAP_IDENTIFY_OPEN_FAILED: "Could not open the object in the Kavitro module.",
         # Added from translation audit (UI literals)
         TranslationKeys.FOLDER_NAMING_RULE_DIALOG_TITLE: "Folder Naming Rule",
         TranslationKeys.SETTINGS_BASE_CARD_TEXT: "Settings",

@@ -4,7 +4,17 @@ from __future__ import annotations
 from typing import Dict, List, Optional, Sequence
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import (
+    QApplication,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 from qgis.gui import QgsCheckableComboBox
 
 from ...languages.language_manager import LanguageManager
@@ -95,6 +105,7 @@ class _TypePickerPopup(QWidget):
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self._owner = owner
         self._min_width = max(420, min_width)
+        self._max_body_height = 360
         self._root = QVBoxLayout(self)
         self._root.setContentsMargins(0, 0, 0, 0)
         self._root.setSpacing(0)
@@ -106,9 +117,11 @@ class _TypePickerPopup(QWidget):
         self._frame_layout.setSpacing(8)
         self._root.addWidget(self._frame)
         self._apply_style()
+        self._update_available_height()
         self.refresh()
 
     def refresh(self) -> None:
+        self._update_available_height()
         self._clear_layout(self._frame_layout)
         actions = QHBoxLayout()
         actions.setSpacing(6)
@@ -149,7 +162,7 @@ class _TypePickerPopup(QWidget):
 
         type_scroll = QScrollArea(type_panel)
         type_scroll.setObjectName("TypePickerScroll")
-        type_scroll.setMaximumHeight(320)
+        type_scroll.setMaximumHeight(self._max_body_height)
         type_scroll.setWidgetResizable(True)
         type_scroll.setFrameShape(QFrame.NoFrame)
         type_content = QWidget(type_scroll)
@@ -167,6 +180,21 @@ class _TypePickerPopup(QWidget):
         type_panel_layout.addWidget(type_scroll, 0, Qt.AlignTop)
         type_panel_layout.addStretch(1)
         body.addWidget(type_panel, 1, Qt.AlignTop)
+
+    def _update_available_height(self) -> None:
+        fallback = 520
+        try:
+            origin = self._owner._control.mapToGlobal(self._owner._control.rect().bottomLeft())
+            screen = QApplication.screenAt(origin) or QApplication.primaryScreen()
+            if screen is None:
+                self._max_body_height = fallback
+                return
+            available = screen.availableGeometry()
+            reserved_for_actions_and_margins = 64
+            available_below = available.bottom() - origin.y() - reserved_for_actions_and_margins
+            self._max_body_height = max(260, min(640, available_below))
+        except Exception:
+            self._max_body_height = fallback
 
     def _add_group_row(self, layout: QVBoxLayout, group_name: str | None) -> None:
         label = self._owner._group_row_label(group_name)
@@ -287,7 +315,6 @@ class TypeFilterWidget(QWidget):
         self._settings_logic = settings_logic or SettingsLogic()
         self._load_request_id = 0
         self._suppress_all_cb = False
-        self._active_group_filter: str | None = None
         self._show_all_groups = False
         self._popup: Optional[_TypePickerPopup] = None
 
@@ -358,7 +385,6 @@ class TypeFilterWidget(QWidget):
         self._load_request_id += 1
         self._all_types_payload = []
         self._selected_type_ids.clear()
-        self._active_group_filter = None
         self._show_all_groups = False
         self.group_combo.clear()
         self.type_combo.clear()
@@ -424,8 +450,7 @@ class TypeFilterWidget(QWidget):
     def _apply_type_selection(self, target_ids: Sequence[str], emit: bool, source: str = "programmatic") -> None:
         targets = {str(v) for v in target_ids or []}
         self._selected_type_ids = set(targets)
-        if targets:
-            self._show_all_groups = False
+        self._show_all_groups = not bool(targets)
         self._rebuild_type_combo(self._visible_groups(), preserve_selected_ids=self._selected_type_ids)
         self._suppress_type_emit = True
         try:
@@ -506,8 +531,6 @@ class TypeFilterWidget(QWidget):
                 self._popup = None
 
     def _visible_groups(self) -> Optional[set[str]]:
-        if self._active_group_filter:
-            return {self._active_group_filter}
         if self._show_all_groups:
             return None
         selected_groups = self._selected_groups()
@@ -534,24 +557,27 @@ class TypeFilterWidget(QWidget):
     def _is_group_filter_active(self, group_name: str | None) -> bool:
         if group_name is None:
             return self._show_all_groups or not self._visible_groups()
-        return group_name == self._active_group_filter
+        type_ids = self._group_map.get(group_name, [])
+        selected = set(self.selected_ids())
+        return any(str(type_id) in selected for type_id in type_ids)
 
     def _toggle_group_filter(self, group_name: str | None) -> None:
         selected_ids = set(self.selected_ids())
         if group_name is None:
-            self._active_group_filter = None
             self._show_all_groups = True
-        elif group_name == self._active_group_filter:
-            self._active_group_filter = None
-            self._show_all_groups = False
+            self._rebuild_type_combo(None, preserve_selected_ids=selected_ids)
+            self._sync_all_checkbox_state()
+            self._update_control_summary()
+            self._refresh_popup()
+            return
         else:
-            self._active_group_filter = group_name
+            group_type_ids = {str(type_id) for type_id in self._group_map.get(group_name, []) if type_id}
+            if group_type_ids and group_type_ids.issubset(selected_ids):
+                selected_ids.difference_update(group_type_ids)
+            else:
+                selected_ids.update(group_type_ids)
             self._show_all_groups = False
-        self._rebuild_type_combo(self._visible_groups(), preserve_selected_ids=selected_ids)
-        self._sync_groups_to_types()
-        self._sync_all_checkbox_state()
-        self._update_control_summary()
-        self._refresh_popup()
+        self._apply_type_selection(selected_ids, emit=True, source="type_picker_group")
 
     def _set_type_checked(self, type_id: str, checked: bool) -> None:
         if not type_id:
@@ -573,7 +599,6 @@ class TypeFilterWidget(QWidget):
         self._apply_type_selection(current, emit=True, source="type_picker_select_visible")
 
     def _clear_all_types(self) -> None:
-        self._active_group_filter = None
         self._show_all_groups = True
         self._apply_type_selection([], emit=True, source="type_picker_clear")
 
@@ -585,8 +610,7 @@ class TypeFilterWidget(QWidget):
         type_ids = self._group_map.get(group_name, [])
         selected = set(self.selected_ids())
         checked = sum(1 for type_id in type_ids if type_id in selected)
-        marker = "[x]" if checked == len(type_ids) and type_ids else "[~]" if checked else "[ ]"
-        return f"{marker} {group_name} ({checked}/{len(type_ids)})"
+        return f"{group_name} ({checked}/{len(type_ids)})"
 
     def _update_control_summary(self) -> None:
         if not hasattr(self, "_control"):
@@ -594,18 +618,23 @@ class TypeFilterWidget(QWidget):
         if not self._loaded:
             self._control.set_summary(self._lang.translate(TranslationKeys.LOADING))
             return
-        active_group = self._active_group_filter or ""
+        selected_groups = sorted(self._selected_groups(), key=str.lower)
+        group_prefix = ""
+        if len(selected_groups) == 1:
+            group_prefix = selected_groups[0]
+        elif len(selected_groups) > 1:
+            group_prefix = f"{len(selected_groups)} gruppi"
         selected = self.selected_texts()
         if not selected:
             base = self._lang.translate(TranslationKeys.TYPE_FILTER)
-            self._control.set_summary(f"{base}: {active_group}" if active_group else base)
+            self._control.set_summary(f"{base}: {group_prefix}" if group_prefix else base)
             return
         if len(selected) <= 2:
             text = ", ".join(selected)
-            self._control.set_summary(f"{active_group}: {text}" if active_group else text)
+            self._control.set_summary(f"{group_prefix}: {text}" if group_prefix else text)
             return
         count_text = f"{len(selected)} {self._lang.translate(TranslationKeys.TYPE_FILTER).lower()}"
-        self._control.set_summary(f"{active_group}: {count_text}" if active_group else count_text)
+        self._control.set_summary(f"{group_prefix}: {count_text}" if group_prefix else count_text)
 
     # Async helpers --------------------------------------------------
     def _show_loading_placeholder(self) -> None:
@@ -663,7 +692,6 @@ class TypeFilterWidget(QWidget):
         self._group_map.clear()
         self._all_types_payload = []
         self._selected_type_ids.clear()
-        self._active_group_filter = None
         self._show_all_groups = False
 
         for entry in payload:
@@ -745,7 +773,6 @@ class TypeFilterWidget(QWidget):
             self._group_map.clear()
             self._all_types_payload = []
             self._selected_type_ids.clear()
-            self._active_group_filter = None
             self._show_all_groups = False
             self._loaded = False
             self._pending_type_ids = []

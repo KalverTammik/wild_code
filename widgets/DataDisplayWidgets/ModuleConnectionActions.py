@@ -24,6 +24,11 @@ class ModuleConnectionActions(QWidget):
         parent: Optional[QWidget] = None,
     ):
         super().__init__(parent)
+        module_key = str(module_key or "").strip().lower()
+        action_payload = dict(item_data or {})
+        if item_id and not action_payload.get("id"):
+            action_payload["id"] = item_id
+
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self._layout = QGridLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -33,12 +38,12 @@ class ModuleConnectionActions(QWidget):
         folder_btn = None
         supports_folder_action = module_key not in (Module.ASBUILT.value, Module.WORKS.value)
         if supports_folder_action:
-            file_path = DataDisplayExtractors.extract_files_path(item_data)
+            file_path = DataDisplayExtractors.extract_files_path(action_payload)
             folder_btn = OpenFolderActionButton(file_path, lang_manager)
 
         web_btn = OpenWebActionButton(module_key, item_id, lang_manager)
 
-        has_connections = DataDisplayExtractors.extract_properties_connection_count(item_data)
+        has_connections = DataDisplayExtractors.extract_properties_connection_count(action_payload)
 
         map_btn = ShowOnMapActionButton(
             module_key,
@@ -53,7 +58,7 @@ class ModuleConnectionActions(QWidget):
 
         actions_btn = MoreActionsButton(
             lang_manager=lang_manager,
-            item_data=item_data,
+            item_data=action_payload,
             module=module_key,
             on_properties_linked=_enable_map_button,
         )

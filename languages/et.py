@@ -9,6 +9,12 @@ from .translation_keys import (
 )
 
 TRANSLATIONS = {
+        TranslationKeys.MAP_IDENTIFY_BUTTON: "Mis see on",
+        TranslationKeys.MAP_IDENTIFY_UNSUPPORTED_MODULE: "Aktiivne moodul {module} ei toeta praegu kaardilt tuvastamist.",
+        TranslationKeys.MAP_IDENTIFY_LAYER_MISSING: "Mooduli {module} pĆµhikiht on seadistamata vĆµi puudub projektist.",
+        TranslationKeys.MAP_IDENTIFY_ID_FIELD_MISSING: "Valitud kihilt {layer} ei leitud vĆ¤lja, mille jĆ¤rgi Kavitro elementi avada.",
+        TranslationKeys.MAP_IDENTIFY_FEATURE_MISSING: "Selles kohas ei leitud aktiivse mooduli objekti.",
+        TranslationKeys.MAP_IDENTIFY_OPEN_FAILED: "Objekti avamine Kavitro moodulis ebaĆµnnestus.",
         # Added from translation audit (UI literals)
         TranslationKeys.FOLDER_NAMING_RULE_DIALOG_TITLE: "Kausta nimetamise reegel",
         TranslationKeys.SETTINGS_BASE_CARD_TEXT: "Seaded",

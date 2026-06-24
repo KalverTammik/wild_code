@@ -1,12 +1,15 @@
 import datetime
 
-from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QLabel, QFrame, QSizePolicy
 from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QWidget
 from qgis.core import Qgis
 
+from ..constants.file_paths import ConfigPaths, QssPaths
 from ..utils.url_manager import OpenLink, loadWebpage
 from ..widgets.theme_manager import ThemeManager
-from ..constants.file_paths import QssPaths, ConfigPaths
+
+
+ICONS8_ATTRIBUTION_URL = "https://icons8.com"
 
 
 class FooterWidget(QWidget):
@@ -27,8 +30,14 @@ class FooterWidget(QWidget):
             wl = OpenLink()
 
             left_label = FooterLinksLabel(
-                [f"© {current_year} Tuloli OÜ/Kavito", "Koduleht", "Privaatsus", "Kasutustingimused"],
-                [None, wl.main, wl.privacy, wl.terms],
+                [
+                    f"(c) {current_year} Tuloli OU/Kavito",
+                    "Koduleht",
+                    "Privaatsus",
+                    "Kasutustingimused",
+                    "Icons8",
+                ],
+                [None, wl.main, wl.privacy, wl.terms, ICONS8_ATTRIBUTION_URL],
                 parent=frame,
             )
             left_label.setObjectName("footerLeftLabel")
@@ -81,16 +90,14 @@ class FooterLinksLabel(QLabel):
             raise ValueError("FooterLinksLabel: text_segments and urls length mismatch")
 
         html_parts = []
-        for seg, url in zip(text_segments, urls):
+        for segment, url in zip(text_segments, urls):
             if url:
-                html_parts.append(f'<a href="{url}">{seg}</a>')
+                html_parts.append(f'<a href="{url}">{segment}</a>')
             else:
-                html_parts.append(seg)
+                html_parts.append(segment)
 
         self.setText(" | ".join(html_parts))
         self.setTextFormat(Qt.RichText)
-
         self.setTextInteractionFlags(Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard)
-
         self.setOpenExternalLinks(False)
         self.linkActivated.connect(loadWebpage.open_webpage)

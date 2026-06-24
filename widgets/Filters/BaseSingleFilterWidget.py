@@ -521,7 +521,12 @@ class BaseSingleFilterWidget(QWidget):
             return
         if self.combo.itemData(row) is None:
             return
+        current_state = self.combo.itemCheckState(row)
+        target_state = Qt.Checked if checked else Qt.Unchecked
+        if current_state == target_state:
+            return
         self.combo.setItemCheckState(row, Qt.Checked if checked else Qt.Unchecked)
+        self._emit_selection_change()
 
     def _select_all_options(self) -> None:
         self._on_all_cb_state_changed(Qt.Checked)

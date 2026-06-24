@@ -40,9 +40,10 @@ class MapCanvasGlassStyle:
                 border-radius: {cls.FRAME_RADIUS}px;
             }}
             QPushButton#MapCanvasGlassActionButton {{
-                min-width: 98px;
+                min-width: 34px;
+                max-width: 34px;
                 height: 26px;
-                padding: 0 10px;
+                padding: 0;
                 border-radius: {cls.CONTROL_RADIUS}px;
                 border: 1px solid {cls.CONTROL_BORDER};
                 background: {cls.CONTROL_BACKGROUND};
