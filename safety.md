@@ -1,63 +1,39 @@
-🔐 Secure Storage Policy for QGIS Plugin Session Data
+# Secure Storage Policy
 
-This plugin handles user authentication securely by following QGIS best practices and leveraging the native Authentication Manager.
+Plugin handles login data through QGIS-supported storage instead of custom encryption.
 
-✅ 1. Credential Storage
+## Credential Storage
 
-Sensitive Data (password, API key):
+Sensitive data:
 
-Stored securely using QGIS Authentication Manager (QgsAuthManager).
+- password
+- API key or token-like secrets
 
-Encrypted and protected by the QGIS authentication system.
+These must be stored through QGIS Authentication Manager, not plain `QSettings`.
 
-Never stored in plain text or in QSettings.
+Non-sensitive convenience data:
 
-Non-sensitive Data (username, auth ID):
+- username
+- auth config id
 
-Stored in QSettings for convenience.
+These may be stored in `QSettings` because they are not secrets.
 
-No encryption required, as these do not contain secrets.
+## Session Responsibilities
 
-✅ 2. SessionManager Responsibilities
+The session layer should:
 
-Create a secure QgsAuthMethodConfig for each login session.
+- create or reuse a secure `QgsAuthMethodConfig`
+- store only the auth id and username in plugin settings
+- keep credentials in memory only for the active session
+- avoid logging credentials or raw authentication payloads
 
-Save the configuration into QGIS's encrypted authentication database.
+## Avoid
 
-Store only the auth_id and username in QSettings.
+- hardcoded credentials
+- plaintext passwords in settings files
+- custom encryption/decryption logic
+- credentials in logs, UI errors, or debug output
 
-Provide access to credentials for the current session in-memory only.
+## Future Option
 
-🛑 What We Avoid
-
-❌ No hardcoded credentials.
-
-❌ No use of third-party encryption libraries (cryptography, AES, scrypt).
-
-❌ No manual encryption/decryption logic.
-
-🔁 Optional Enhancements
-
-In the future, plugin could support multiple sessions by tagging and storing multiple auth_ids.
-
-UI should allow credential removal and clearing session data.
-
-📌 Summary Table
-
-Credential Storage Matrix
-
-Password➤ Storage: QGIS Authentication DB➤ Encrypted: ✅ Yes➤ Persisted: ✅ Yes
-
-API Key➤ Storage: QGIS Authentication DB➤ Encrypted: ✅ Yes➤ Persisted: ✅ Yes
-
-Username➤ Storage: QSettings➤ Encrypted: ❌ No➤ Persisted: ✅ Yes
-
-Auth ID➤ Storage: QSettings➤ Encrypted: ❌ No➤ Persisted: ✅ Yes
-
-📚 References
-
-QGIS Authentication Guide
-
-QgsAuthManager API
-
-Important: Always respect user privacy. Never expose credentials in logs, error messages, or UI.
+The plugin may later support multiple saved sessions by storing multiple QGIS auth config ids with user-friendly labels.

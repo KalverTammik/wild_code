@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Callable, Iterable, Optional
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QProgressBar, QProgressDialog
 from qgis.core import QgsPointXY
 from qgis.gui import QgsMapTool
 from qgis.utils import iface
@@ -19,6 +20,7 @@ from ...utils.url_manager import Module, ModuleSupports
 from ...Logs.python_fail_logger import PythonFailLogger
 from .works_create_dialog import WorksCreateDialog
 from .works_layer_service import WorksDescriptionService, WorksLayerService
+from .works_pending_gis_dialog import WorksPendingGisDialog
 
 
 class _WorksPointCaptureTool(QgsMapTool):
@@ -40,6 +42,72 @@ class _WorksPointCaptureTool(QgsMapTool):
     def keyPressEvent(self, event) -> None:  # noqa: N802
         if event.key() == Qt.Key_Escape:
             self._on_cancel()
+
+
+class _MapButtonProgressBubble(QFrame):
+    WIDTH = 286
+    HEIGHT = 44
+    GAP = 8
+
+    def __init__(self, *, text: str, anchor, parent=None) -> None:
+        super().__init__(parent, Qt.ToolTip | Qt.FramelessWindowHint)
+        self._anchor = anchor
+        self.setObjectName("MapButtonProgressBubble")
+        self.setFixedSize(self.WIDTH, self.HEIGHT)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setStyleSheet(
+            """
+            QFrame#MapButtonProgressBubble {
+                background: rgba(248, 252, 255, 220);
+                border: 1px solid rgba(30, 126, 180, 150);
+                border-radius: 8px;
+            }
+            QLabel#MapButtonProgressLabel {
+                color: #12394a;
+                font-weight: 600;
+            }
+            QProgressBar#MapButtonProgressBar {
+                min-width: 74px;
+                max-width: 74px;
+                height: 8px;
+                border: 1px solid rgba(22, 111, 151, 90);
+                border-radius: 4px;
+                background: rgba(255, 255, 255, 120);
+                text-align: center;
+            }
+            QProgressBar#MapButtonProgressBar::chunk {
+                border-radius: 3px;
+                background: rgba(15, 118, 110, 160);
+            }
+            """
+        )
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(10)
+
+        label = QLabel(text, self)
+        label.setObjectName("MapButtonProgressLabel")
+        label.setWordWrap(False)
+        layout.addWidget(label, 1)
+
+        progress = QProgressBar(self)
+        progress.setObjectName("MapButtonProgressBar")
+        progress.setRange(0, 0)
+        progress.setTextVisible(False)
+        layout.addWidget(progress)
+
+    def show_near_anchor(self) -> None:
+        anchor = self._anchor
+        if anchor is not None:
+            try:
+                top_left = anchor.mapToGlobal(QPoint(0, 0))
+                y_pos = top_left.y() + max(0, (anchor.height() - self.HEIGHT) // 2)
+                self.move(max(0, top_left.x() - self.WIDTH - self.GAP), max(0, y_pos))
+            except Exception:
+                pass
+        self.show()
+        self.raise_()
 
 
 class WorksCreateController:
@@ -125,6 +193,113 @@ class WorksCreateController:
             start_failed_key=TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_START_FAILED,
         )
 
+    def review_pending_gis_features(
+        self,
+        *,
+        parent_window=None,
+        allowed_type_ids: Optional[Iterable[str]] = None,
+        on_created: Optional[Callable[[str], None]] = None,
+        progress_anchor=None,
+    ) -> bool:
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=False)
+        if works_layer is None:
+            return False
+
+        self.cancel(bring_front=False)
+
+        self._parent_window = parent_window
+        self._allowed_type_ids = [str(item_id) for item_id in (allowed_type_ids or []) if item_id]
+        self._on_created = on_created
+        self._existing_task_id = ""
+        self._existing_task_payload = {}
+        self.preload_dialog_data()
+
+        pending_rows = self._scan_pending_gis_features_with_feedback(
+            works_layer,
+            parent_window=parent_window,
+            progress_anchor=progress_anchor,
+        )
+        if not pending_rows:
+            ModernMessageDialog.show_info(
+                self._lang.translate(TranslationKeys.INFO),
+                self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_NONE),
+            )
+            return False
+        pending_rows = self._decorate_pending_gis_rows(pending_rows)
+
+        dialog = WorksPendingGisDialog(
+            rows=pending_rows,
+            on_open=lambda feature_id, owner: self._open_pending_gis_feature(
+                works_layer,
+                feature_id,
+                parent_window=owner,
+            ),
+            lang_manager=self._lang,
+            parent=parent_window,
+        )
+        dialog.exec_()
+        return True
+
+    def _scan_pending_gis_features_with_feedback(
+        self,
+        works_layer,
+        *,
+        parent_window=None,
+        progress_anchor=None,
+    ) -> list[dict[str, object]]:
+        progress = self._make_scan_progress_widget(
+            parent_window=parent_window,
+            progress_anchor=progress_anchor,
+        )
+        if hasattr(progress, "show_near_anchor"):
+            progress.show_near_anchor()
+        else:
+            progress.show()
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        QApplication.processEvents()
+
+        try:
+            return WorksLayerService.pending_gis_work_features(works_layer)
+        finally:
+            QApplication.restoreOverrideCursor()
+            progress.close()
+            progress.deleteLater()
+            QApplication.processEvents()
+
+    def _make_scan_progress_widget(self, *, parent_window=None, progress_anchor=None):
+        text = self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_CHECKING)
+        if progress_anchor is not None:
+            return _MapButtonProgressBubble(text=text, anchor=progress_anchor)
+
+        progress = QProgressDialog(text, "", 0, 0, parent_window)
+        progress.setWindowTitle(self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_DIALOG_TITLE))
+        progress.setWindowModality(Qt.ApplicationModal)
+        progress.setMinimumDuration(0)
+        progress.setCancelButton(None)
+        return progress
+
+    def _decorate_pending_gis_rows(self, rows: list[dict[str, object]]) -> list[dict[str, object]]:
+        type_labels = {
+            str(option.get("id") or "").strip(): str(option.get("label") or "").strip()
+            for option in self._resolve_type_options()
+            if isinstance(option, dict) and str(option.get("id") or "").strip()
+        }
+        status_labels = {
+            str(option.get("id") or "").strip(): str(option.get("name") or option.get("label") or "").strip()
+            for option in self._resolve_status_options()
+            if isinstance(option, dict) and str(option.get("id") or "").strip()
+        }
+
+        decorated: list[dict[str, object]] = []
+        for row in rows:
+            payload = dict(row or {})
+            type_id = str(payload.get("type_id") or "").strip()
+            status_id = str(payload.get("status_id") or "").strip()
+            payload["type_label"] = type_labels.get(type_id) or type_id
+            payload["status_label"] = status_labels.get(status_id) or status_id
+            decorated.append(payload)
+        return decorated
+
     def _start_point_capture(self, *, start_failed_key: str) -> bool:
 
         canvas = iface.mapCanvas() if iface is not None else None
@@ -201,112 +376,17 @@ class WorksCreateController:
 
         now = datetime.now()
         works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
-        backend_description = WorksDescriptionService.build_task_description(
-            layer=works_layer,
+        task_result = self._create_backend_task_from_dialog(
             point=point,
-            description_text=dialog.description_text(),
+            works_layer=works_layer,
             property_feature=property_feature,
-            lang_manager=self._lang,
+            dialog=dialog,
+            now=now,
         )
-
-        task_id = None
-        selected_status_id = dialog.selected_status_id()
-        selected_status_color = dialog.selected_status_color()
-        initial_status_color = selected_status_color or self._resolve_default_status_color()
-        geometry_payload = self._backend_point_geometry_payload(
-            point,
-            works_layer,
-            status_color=initial_status_color,
-        )
-        try:
-            task_id = APIModuleActions.create_task(
-                title=dialog.title_text(),
-                type_id=dialog.selected_type_id(),
-                description=backend_description,
-                priority=dialog.priority_value(),
-                start_at=now.strftime("%Y-%m-%d"),
-                due_at=(now + timedelta(days=7)).strftime("%Y-%m-%d"),
-                responsible_id=dialog.selected_responsible_id(),
-                status_id=selected_status_id,
-                geometry=geometry_payload,
-            )
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_task_create_failed",
-            )
-            task_id = None
-
-        if not task_id:
-            ModernMessageDialog.show_warning(
-                self._lang.translate(TranslationKeys.ERROR),
-                self._lang.translate(TranslationKeys.WORKS_CREATE_FAILED),
-            )
+        if task_result is None:
             return
 
-        created_task = APIModuleActions.get_task_data(task_id) or {}
-        created_status_id = self._task_status_id_text(created_task)
-        if selected_status_id and created_status_id != selected_status_id:
-            updated_status_task = APIModuleActions.update_task_status(task_id, selected_status_id)
-            if updated_status_task:
-                created_task = APIModuleActions.get_task_data(task_id) or created_task
-            else:
-                PythonFailLogger.log_exception(
-                    RuntimeError("Could not update works task status after creation"),
-                    module=Module.WORKS.value,
-                    event="works_task_status_update_failed",
-                    extra={"task_id": task_id, "status_id": selected_status_id},
-                )
-
-        created_status_color = WorksLayerService.status_color_from_task(
-            created_task,
-            fallback=initial_status_color,
-        )
-        if created_status_color != WorksLayerService.normalize_backend_color(initial_status_color):
-            try:
-                APIModuleActions.update_task_geometry(
-                    task_id,
-                    self._backend_point_geometry_payload(
-                        point,
-                        works_layer,
-                        status_color=created_status_color,
-                    ),
-                )
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.WORKS.value,
-                    event="works_task_geometry_style_update_failed",
-                    extra={"task_id": task_id},
-                )
-
-        final_backend_description = WorksDescriptionService.build_task_description(
-            layer=works_layer,
-            point=point,
-            description_text=dialog.description_text(),
-            property_feature=property_feature,
-            task_id=task_id,
-            lang_manager=self._lang,
-        )
-        if final_backend_description and final_backend_description != backend_description:
-            try:
-                updated = APIModuleActions.update_task_description(task_id, final_backend_description)
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.WORKS.value,
-                    event="works_task_metadata_update_failed",
-                    extra={"task_id": task_id},
-                )
-            else:
-                if not updated:
-                    PythonFailLogger.log_exception(
-                        RuntimeError("Could not update works task metadata description"),
-                        module=Module.WORKS.value,
-                        event="works_task_metadata_update_failed",
-                        extra={"task_id": task_id},
-                    )
+        task_id, created_task = task_result
 
         map_saved = False
         map_error = ""
@@ -387,6 +467,260 @@ class WorksCreateController:
             self._lang.translate(TranslationKeys.SUCCESS),
             self._lang.translate(TranslationKeys.WORKS_CREATE_SUCCESS).format(task_id=task_id),
         )
+
+    def _open_pending_gis_feature(
+        self,
+        works_layer,
+        feature_id: int,
+        *,
+        parent_window=None,
+    ) -> bool:
+        feature = WorksLayerService.feature_by_id(works_layer, feature_id)
+        if feature is None:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_FEATURE_MISSING),
+                parent=parent_window,
+            )
+            return False
+
+        pending_payload = WorksLayerService.pending_gis_payload_from_feature(works_layer, feature)
+        if not pending_payload:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_FEATURE_MISSING),
+                parent=parent_window,
+            )
+            return False
+
+        WorksLayerService.focus_feature_by_id(works_layer, feature_id)
+        point = WorksLayerService.feature_point_in_canvas_crs(works_layer, feature)
+        if point is None:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_FEATURE_MISSING),
+                parent=parent_window,
+            )
+            return False
+
+        property_feature = WorksLayerService.find_property_feature_at_point(point)
+        assignable_users = self._resolve_assignable_users()
+        priority_options = self._resolve_priority_options()
+        default_responsible_id = self._resolve_default_responsible_id()
+        status_options = self._resolve_status_options()
+        default_status_id = self._resolve_default_status_id(status_options)
+        type_options = self._resolve_type_options()
+
+        dialog = WorksCreateDialog(
+            point=point,
+            property_feature=property_feature,
+            allowed_type_ids=self._allowed_type_ids,
+            type_options=type_options,
+            assignable_users=assignable_users,
+            status_options=status_options,
+            priority_options=priority_options,
+            default_responsible_id=default_responsible_id,
+            default_status_id=default_status_id,
+            initial_title=str(pending_payload.get("title") or ""),
+            initial_type_id=str(pending_payload.get("type_id") or ""),
+            initial_status_id=str(pending_payload.get("status_id") or ""),
+            lang_manager=self._lang,
+            parent=parent_window,
+        )
+        if dialog.exec_() != dialog.Accepted:
+            return False
+
+        now = datetime.now()
+        task_result = self._create_backend_task_from_dialog(
+            point=point,
+            works_layer=works_layer,
+            property_feature=property_feature,
+            dialog=dialog,
+            now=now,
+        )
+        if task_result is None:
+            return False
+
+        task_id, created_task = task_result
+        created_at = WorksLayerService.created_date_from_task(created_task) or now
+        updated_at = WorksLayerService.updated_date_from_task(created_task) or created_at
+        responsible_name = self._responsible_display_name(
+            created_task,
+            fallback=dialog.selected_responsible_label() or WorksLayerService.current_username(),
+        )
+        created_title = str(created_task.get("name") or dialog.title_text() or "").strip()
+        map_saved, map_error = WorksLayerService.update_existing_work_feature(
+            layer=works_layer,
+            feature_id=feature_id,
+            task_id=task_id,
+            title=created_title,
+            type_id=WorksLayerService.type_id_from_task(created_task) or dialog.selected_type_id(),
+            status_id=WorksLayerService.status_id_from_task(created_task),
+            active=WorksLayerService.active_from_task(created_task),
+            detailed=WorksLayerService.detailed_from_task(created_task),
+            begin_date=WorksLayerService.begin_date_from_task(created_task) or created_at,
+            end_date=WorksLayerService.end_date_from_task(created_task),
+            added_by=responsible_name,
+            added_date=created_at,
+            updated_by=responsible_name,
+            update_date=updated_at,
+        )
+
+        property_link_failed = self._link_property_to_task(
+            task_id,
+            property_feature,
+            event="works_pending_gis_property_link_failed",
+        )
+        cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
+
+        if callable(self._on_created):
+            try:
+                self._on_created(task_id)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.WORKS.value,
+                    event="works_pending_gis_post_create_callback_failed",
+                )
+
+        if not map_saved:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.WARNING),
+                self._lang.translate(TranslationKeys.WORKS_CREATE_MAP_SAVE_FAILED).format(
+                    task_id=task_id,
+                    error=map_error or self._lang.translate(TranslationKeys.ERROR),
+                ),
+                parent=parent_window,
+            )
+            return False
+
+        if property_link_failed:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.WARNING),
+                self._lang.translate(TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED).format(
+                    task_id=task_id,
+                    cadastral=cadastral_number,
+                ),
+                parent=parent_window,
+            )
+            return True
+
+        ModernMessageDialog.show_info(
+            self._lang.translate(TranslationKeys.SUCCESS),
+            self._lang.translate(TranslationKeys.WORKS_CREATE_SUCCESS).format(task_id=task_id),
+        )
+        return True
+
+    def _create_backend_task_from_dialog(
+        self,
+        *,
+        point: QgsPointXY,
+        works_layer,
+        property_feature,
+        dialog: WorksCreateDialog,
+        now: datetime,
+    ) -> Optional[tuple[str, dict]]:
+        backend_description = WorksDescriptionService.build_task_description(
+            layer=works_layer,
+            point=point,
+            description_text=dialog.description_text(),
+            property_feature=property_feature,
+            lang_manager=self._lang,
+        )
+
+        task_id = None
+        selected_status_id = dialog.selected_status_id()
+        selected_status_color = dialog.selected_status_color()
+        initial_status_color = selected_status_color or self._resolve_default_status_color()
+        geometry_payload = self._backend_point_geometry_payload(
+            point,
+            works_layer,
+            status_color=initial_status_color,
+        )
+        try:
+            task_id = APIModuleActions.create_task(
+                title=dialog.title_text(),
+                type_id=dialog.selected_type_id(),
+                description=backend_description,
+                priority=dialog.priority_value(),
+                start_at=now.strftime("%Y-%m-%d"),
+                due_at=(now + timedelta(days=7)).strftime("%Y-%m-%d"),
+                responsible_id=dialog.selected_responsible_id(),
+                status_id=selected_status_id,
+                geometry=geometry_payload,
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_task_create_failed",
+            )
+            task_id = None
+
+        if not task_id:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_CREATE_FAILED),
+            )
+            return None
+
+        created_task = APIModuleActions.get_task_data(task_id) or {}
+        created_status_id = self._task_status_id_text(created_task)
+        if selected_status_id and created_status_id != selected_status_id:
+            updated_status_task = APIModuleActions.update_task_status(task_id, selected_status_id)
+            if updated_status_task:
+                created_task = APIModuleActions.get_task_data(task_id) or created_task
+            else:
+                PythonFailLogger.log_exception(
+                    RuntimeError("Could not update works task status after creation"),
+                    module=Module.WORKS.value,
+                    event="works_task_status_update_failed",
+                    extra={"task_id": task_id, "status_id": selected_status_id},
+                )
+
+        created_status_color = WorksLayerService.status_color_from_task(
+            created_task,
+            fallback=initial_status_color,
+        )
+        if created_status_color != WorksLayerService.normalize_backend_color(initial_status_color):
+            try:
+                APIModuleActions.update_task_geometry(
+                    task_id,
+                    self._backend_point_geometry_payload(
+                        point,
+                        works_layer,
+                        status_color=created_status_color,
+                    ),
+                )
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.WORKS.value,
+                    event="works_task_geometry_style_update_failed",
+                    extra={"task_id": task_id},
+                )
+
+        return str(task_id), created_task
+
+    def _link_property_to_task(self, task_id: str, property_feature, *, event: str) -> bool:
+        cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
+        if not cadastral_number:
+            return False
+
+        try:
+            property_ids, _missing = APIModuleActions.resolve_property_ids_by_cadastral([cadastral_number])
+            if property_ids:
+                APIModuleActions.associate_properties(Module.TASK.value, task_id, property_ids)
+                return False
+            return True
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event=event,
+                extra={"task_id": task_id, "cadastral": cadastral_number},
+            )
+            return True
 
     def _handle_existing_task_point_selected(self, point: QgsPointXY) -> None:
         parent_window = self._parent_window
@@ -482,42 +816,6 @@ class WorksCreateController:
                 event="works_existing_task_geometry_update_failed",
                 extra={"task_id": task_id},
             )
-
-        try:
-            latest_description = APIModuleActions.get_task_description(task_id)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_existing_task_description_load_failed",
-                extra={"task_id": task_id},
-            )
-            latest_description = task_payload.get("description") if isinstance(task_payload, dict) else None
-
-        updated_description = WorksDescriptionService.merge_metadata_into_description(
-            existing_html=latest_description,
-            layer=works_layer,
-            point=point,
-            lang_manager=self._lang,
-        )
-        if updated_description and updated_description != str(latest_description or "").strip():
-            try:
-                updated = APIModuleActions.update_task_description(task_id, updated_description)
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.WORKS.value,
-                    event="works_existing_task_description_update_failed",
-                    extra={"task_id": task_id},
-                )
-            else:
-                if not updated:
-                    PythonFailLogger.log_exception(
-                        RuntimeError("Could not update works task metadata description after placing map point"),
-                        module=Module.WORKS.value,
-                        event="works_existing_task_description_update_failed",
-                        extra={"task_id": task_id},
-                    )
 
         property_link_failed = False
         cadastral_number = WorksLayerService.property_cadastral_number(property_feature)

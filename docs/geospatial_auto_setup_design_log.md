@@ -548,5 +548,6 @@ flowchart TD
 
 
 
-## TODO
-If a task has been deleted (is trashed), then we need to trash the map element also
+## Follow-Up
+
+- If a backend task is deleted or trashed, the linked map feature must be classified and handled explicitly instead of remaining as a normal active feature.

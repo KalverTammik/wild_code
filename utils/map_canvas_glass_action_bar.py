@@ -25,8 +25,8 @@ class MapCanvasGlassActionBar(QWidget):
     TARGET_MARGIN = QPoint(18, 18)
     SEARCH_BAR_SIZE = (300, 46)
     BELOW_SEARCH_GAP = 6
-    START_OFFSET = QPoint(18, -88)
-    SIZE = (54, 88)
+    START_OFFSET = QPoint(18, -118)
+    SIZE = (54, 121)
 
     def __init__(self, *, parent=None) -> None:
         canvas = iface.mapCanvas() if iface is not None else None
@@ -72,6 +72,11 @@ class MapCanvasGlassActionBar(QWidget):
                 self._start_identify_tool,
                 IconNames.ICON_MAP_IDENTIFY,
             ),
+            (
+                self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_ACTION),
+                self._start_pending_gis_review,
+                IconNames.ICON_WORKS_PENDING,
+            ),
         )
 
         for tooltip, handler, icon_name in actions:
@@ -82,7 +87,7 @@ class MapCanvasGlassActionBar(QWidget):
             button.setToolTip(tooltip)
             button.setIcon(ThemeManager.get_qicon(icon_name))
             button.setIconSize(QSize(24, 24))
-            button.clicked.connect(lambda _checked=False, callback=handler: callback())
+            button.clicked.connect(lambda _checked=False, callback=handler, source=button: callback(source))
             layout.addWidget(button)
 
         root.addWidget(frame)
@@ -117,7 +122,7 @@ class MapCanvasGlassActionBar(QWidget):
         target = self._target_pos()
         self.move(target.x(), self.START_OFFSET.y())
 
-    def _start_new_work(self) -> None:
+    def _start_new_work(self, _source_button=None) -> None:
         try:
             from ..dialog import PluginDialog
 
@@ -146,7 +151,7 @@ class MapCanvasGlassActionBar(QWidget):
                 parent=self,
             )
 
-    def _start_identify_tool(self) -> None:
+    def _start_identify_tool(self, _source_button=None) -> None:
         try:
             from ..dialog import PluginDialog
 
@@ -163,6 +168,35 @@ class MapCanvasGlassActionBar(QWidget):
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
                 self._lang.translate(TranslationKeys.MAP_IDENTIFY_OPEN_FAILED),
+                parent=self,
+            )
+
+    def _start_pending_gis_review(self, source_button=None) -> None:
+        try:
+            from ..dialog import PluginDialog
+
+            dialog = PluginDialog.get_instance()
+            ModuleSwitchHelper.switch_module(Module.WORKS.name, dialog=dialog)
+            works_module = ModuleManager().getActiveModuleInstance(Module.WORKS.value)
+            review_pending = getattr(works_module, "review_pending_gis_works", None)
+            if callable(review_pending):
+                review_pending(progress_anchor=source_button)
+                return
+
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_START_FAILED),
+                parent=self,
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="map_canvas_action_bar_pending_gis_failed",
+            )
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_START_FAILED),
                 parent=self,
             )
 

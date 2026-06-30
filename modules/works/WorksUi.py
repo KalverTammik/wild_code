@@ -48,6 +48,14 @@ class WorksModule(TaskModuleBaseUI):
     def start_create_on_map(self) -> None:
         self._start_create_on_map()
 
+    def review_pending_gis_works(self, *, progress_anchor=None) -> None:
+        self._create_controller.review_pending_gis_features(
+            parent_window=self.window(),
+            allowed_type_ids=self._module_scope_type_ids(),
+            on_created=lambda _task_id: self._refresh_filters(),
+            progress_anchor=progress_anchor,
+        )
+
     def _start_create_on_map(self) -> None:
         self._create_controller.preload_dialog_data()
         self._create_controller.start_capture(

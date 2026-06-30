@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Pending map works">
+  <defs>
+    <linearGradient id="sheet" x1="16" y1="8" x2="46" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e5f7f5"/>
+    </linearGradient>
+  </defs>
+  <path d="M18 9h24l8 8v36a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V13a4 4 0 0 1 4-4z" fill="url(#sheet)" stroke="#0e6f78" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M42 10v9h9" fill="none" stroke="#0e6f78" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M23 29h18M23 38h14" fill="none" stroke="#0e6f78" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="45" cy="45" r="10" fill="#9ccc65" stroke="#0e6f78" stroke-width="3"/>
+  <path d="M45 39v7l5 3" fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

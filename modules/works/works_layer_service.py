@@ -42,11 +42,14 @@ from ...Logs.python_fail_logger import PythonFailLogger
 
 
 class WorksLayerService:
+    EXT_SYSTEM_NAME = "Kavitro"
+
     BACKEND_GEOMETRY_ICON = "fa6-solid:person-digging"
     BACKEND_GEOMETRY_DEFAULT_COLOR = "#D2042D"
     BACKEND_GEOMETRY_BACKGROUND_COLOR = "transparent"
 
     FIELD_EXT_JOB_ID = "ext_job_id"
+    FIELD_EXT_SYSTEM = "ext_system"
     FIELD_EXT_JOB_NAME = "ext_job_name"
     FIELD_EXT_JOB_TYPE = "ext_job_type"
     FIELD_EXT_JOB_STATE = "ext_job_state"
@@ -97,6 +100,7 @@ class WorksLayerService:
         creator_name = str(added_by or WorksLayerService.current_username() or "").strip()
         updater_name = str(updated_by or creator_name).strip()
         return {
+            WorksLayerService.FIELD_EXT_SYSTEM: WorksLayerService.EXT_SYSTEM_NAME,
             WorksLayerService.FIELD_EXT_JOB_NAME: str(title or "").strip(),
             WorksLayerService.FIELD_EXT_JOB_TYPE: WorksLayerService.coerce_optional_int(type_id),
             WorksLayerService.FIELD_EXT_JOB_STATE: WorksLayerService.coerce_optional_int(status_id),
@@ -585,6 +589,255 @@ class WorksLayerService:
             return False
 
     @staticmethod
+    def feature_by_id(layer: Optional[QgsVectorLayer], feature_id: object):
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return None
+
+        try:
+            fid = int(feature_id)
+        except (TypeError, ValueError):
+            return None
+
+        try:
+            request = QgsFeatureRequest().setFilterFids([fid])
+            return next(layer.getFeatures(request), None)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_layer_feature_by_id_failed",
+                extra={"feature_id": str(feature_id or "")},
+            )
+            return None
+
+    @staticmethod
+    def focus_feature_by_id(layer: Optional[QgsVectorLayer], feature_id: object) -> bool:
+        feature = WorksLayerService.feature_by_id(layer, feature_id)
+        if feature is None:
+            return False
+
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return False
+
+        try:
+            MapHelpers.ensure_layer_visible(layer, make_active=True)
+            MapHelpers.select_features_by_ids(layer, [int(feature.id())], zoom=True)
+            return True
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_layer_focus_feature_by_id_failed",
+                extra={"feature_id": str(feature_id or "")},
+            )
+            return False
+
+    @classmethod
+    def pending_gis_work_features(cls, layer: Optional[QgsVectorLayer]) -> list[dict[str, object]]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return []
+
+        pending: list[dict[str, object]] = []
+        try:
+            for feature in layer.getFeatures():
+                payload = cls.pending_gis_payload_from_feature(layer, feature)
+                if payload:
+                    pending.append(payload)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_pending_gis_scan_failed",
+            )
+        return pending
+
+    @classmethod
+    def pending_gis_payload_from_feature(cls, layer: Optional[QgsVectorLayer], feature) -> dict[str, object]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid() or feature is None:
+            return {}
+
+        field_map = cls._field_map(layer)
+        task_id = cls._feature_attr_text(feature, field_map, cls.FIELD_EXT_JOB_ID)
+        ext_system = cls._feature_attr_text(feature, field_map, cls.FIELD_EXT_SYSTEM)
+        if task_id:
+            return {}
+        if ext_system:
+            return {}
+
+        try:
+            geometry = feature.geometry()
+            if geometry is None or geometry.isEmpty():
+                return {}
+        except Exception:
+            return {}
+
+        detailed = cls._feature_detailed_payload(feature, field_map)
+        status_payload = detailed.get("status") if isinstance(detailed, dict) else {}
+        if not isinstance(status_payload, dict):
+            status_payload = {}
+
+        title = cls._feature_attr_text(feature, field_map, cls.FIELD_EXT_JOB_NAME)
+        if not title:
+            title = f"GIS feature {feature.id()}"
+
+        type_id = cls._feature_attr_text(feature, field_map, cls.FIELD_EXT_JOB_TYPE)
+        status_id = (
+            cls._feature_attr_text(feature, field_map, cls.FIELD_EXT_JOB_STATE)
+            or str(status_payload.get("id") or "").strip()
+        )
+        updated_at = (
+            cls._feature_attr_text(feature, field_map, cls.FIELD_UPDATE_DATE)
+            or str(detailed.get("updatedAt") or "").strip()
+            if isinstance(detailed, dict)
+            else ""
+        )
+
+        return {
+            "feature_id": int(feature.id()),
+            "title": title,
+            "type_id": type_id,
+            "status_id": status_id,
+            "updated_at": updated_at,
+            "ext_system": ext_system,
+            "detailed": detailed,
+        }
+
+    @staticmethod
+    def feature_point_in_canvas_crs(layer: Optional[QgsVectorLayer], feature) -> Optional[QgsPointXY]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid() or feature is None:
+            return None
+
+        try:
+            geometry = feature.geometry()
+            if geometry is None or geometry.isEmpty():
+                return None
+            point = geometry.asPoint() if geometry.type() == QgsWkbTypes.PointGeometry else geometry.centroid().asPoint()
+            point_xy = QgsPointXY(point)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_pending_feature_point_failed",
+            )
+            return None
+
+        canvas = iface.mapCanvas() if iface is not None else None
+        if canvas is None:
+            return point_xy
+
+        try:
+            source_crs = layer.crs()
+            target_crs = canvas.mapSettings().destinationCrs()
+            if not source_crs.isValid() or not target_crs.isValid() or source_crs == target_crs:
+                return point_xy
+
+            transform = QgsCoordinateTransform(
+                source_crs,
+                target_crs,
+                QgsProject.instance().transformContext(),
+            )
+            return transform.transform(point_xy)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_pending_feature_point_transform_failed",
+            )
+            return point_xy
+
+    @staticmethod
+    def update_existing_work_feature(
+        *,
+        layer: QgsVectorLayer,
+        feature_id: object,
+        task_id: str,
+        title: str,
+        type_id: object = None,
+        status_id: object = None,
+        active: Optional[bool] = None,
+        detailed: object = None,
+        begin_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        added_by: Optional[str] = None,
+        added_date: Optional[datetime] = None,
+        updated_by: Optional[str] = None,
+        update_date: Optional[datetime] = None,
+    ) -> tuple[bool, str]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return False, "Invalid works layer"
+
+        task_id_field = WorksLayerService.resolve_task_id_field_name(layer)
+        if not task_id_field:
+            return False, "Task id field missing"
+
+        feature = WorksLayerService.feature_by_id(layer, feature_id)
+        if feature is None:
+            return False, "Feature not found"
+
+        field_map = WorksLayerService._field_map(layer)
+        field_values = WorksLayerService.build_canonical_feature_values(
+            title=title,
+            type_id=type_id,
+            status_id=status_id,
+            active=active,
+            detailed=detailed,
+            begin_date=begin_date,
+            end_date=end_date,
+            added_by=added_by,
+            added_date=added_date,
+            updated_by=updated_by,
+            update_date=update_date,
+        )
+
+        task_id_value = WorksLayerService.coerce_optional_int(task_id)
+        feature.setAttribute(task_id_field, task_id_value if task_id_value is not None else str(task_id or "").strip())
+        for canonical_name, value in field_values.items():
+            WorksLayerService._set_attr_if_present(
+                feature,
+                layer=layer,
+                field_map=field_map,
+                field_name=canonical_name,
+                value=value,
+            )
+
+        started_edit = False
+        try:
+            if not layer.isEditable():
+                started_edit = bool(layer.startEditing())
+                if not started_edit:
+                    return False, "Could not start editing works layer"
+
+            if not layer.updateFeature(feature):
+                if started_edit:
+                    layer.rollBack()
+                return False, "Could not update works layer feature"
+
+            if started_edit and not layer.commitChanges():
+                errors = "; ".join(layer.commitErrors() or [])
+                layer.rollBack()
+                return False, errors or "Could not commit works layer changes"
+
+            layer.triggerRepaint()
+            return True, ""
+        except Exception as exc:
+            try:
+                if started_edit and layer.isEditable():
+                    layer.rollBack()
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.WORKS.value,
+                    event="works_layer_update_rollback_failed",
+                )
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.WORKS.value,
+                event="works_layer_update_existing_failed",
+                extra={"feature_id": str(feature_id or ""), "task_id": str(task_id or "")},
+            )
+            return False, str(exc)
+
+    @staticmethod
     def insert_work_feature(
         *,
         layer: QgsVectorLayer,
@@ -674,6 +927,40 @@ class WorksLayerService:
                 event="works_layer_insert_failed",
             )
             return False, str(exc)
+
+    @staticmethod
+    def _feature_attr_text(feature, field_map: dict[str, str], field_name: str) -> str:
+        actual = field_map.get(str(field_name or "").lower())
+        if not actual:
+            return ""
+        try:
+            value = feature.attribute(actual)
+        except Exception:
+            return ""
+        if value is None:
+            return ""
+
+        is_null = getattr(value, "isNull", None)
+        if callable(is_null):
+            try:
+                if is_null():
+                    return ""
+            except Exception:
+                pass
+
+        text = str(value).strip()
+        return "" if text.upper() in ("NULL", "NONE", "NAN") else text
+
+    @staticmethod
+    def _feature_detailed_payload(feature, field_map: dict[str, str]) -> dict[str, object]:
+        raw_value = WorksLayerService._feature_attr_text(feature, field_map, WorksLayerService.FIELD_DETAILED)
+        if not raw_value:
+            return {}
+        try:
+            payload = json.loads(raw_value)
+        except Exception:
+            return {}
+        return payload if isinstance(payload, dict) else {}
 
     @staticmethod
     def _set_attr_if_present(
@@ -853,6 +1140,8 @@ class WorksDescriptionService:
         lang_manager=None,
         point_in_layer_crs: bool = False,
     ) -> str:
+        return cls._render_description_only(description_text)
+
         lang = lang_manager or LanguageManager()
         layer_point = (
             point

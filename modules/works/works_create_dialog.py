@@ -41,6 +41,11 @@ class WorksCreateDialog(QDialog):
         default_priority: str = "",
         default_responsible_id: str = "",
         default_status_id: str = "",
+        initial_title: str = "",
+        initial_description: str = "",
+        initial_type_id: str = "",
+        initial_status_id: str = "",
+        initial_priority: str = "",
         lang_manager=None,
         parent=None,
     ) -> None:
@@ -53,9 +58,14 @@ class WorksCreateDialog(QDialog):
         self._assignable_users = list(assignable_users or [])
         self._status_options = list(status_options or [])
         self._priority_options = list(priority_options or [])
-        self._default_priority = str(default_priority or "").strip().upper()
+        self._initial_title = str(initial_title or "").strip()
+        self._initial_description = str(initial_description or "").strip()
+        self._initial_type_id = str(initial_type_id or "").strip()
+        self._initial_status_id = str(initial_status_id or "").strip()
+        self._initial_priority = str(initial_priority or "").strip().upper()
+        self._default_priority = str(initial_priority or default_priority or "").strip().upper()
         self._default_responsible_id = str(default_responsible_id or "").strip()
-        self._default_status_id = str(default_status_id or "").strip()
+        self._default_status_id = str(initial_status_id or default_status_id or "").strip()
         self._status_by_id: dict[str, dict[str, object]] = {}
         self._title_touched = False
 
@@ -126,6 +136,8 @@ class WorksCreateDialog(QDialog):
         self._description_edit = QTextEdit(self)
         self._description_edit.setAcceptRichText(False)
         self._description_edit.setMinimumHeight(120)
+        if self._initial_description:
+            self._description_edit.setPlainText(self._initial_description)
 
         priority_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_PRIORITY_LABEL), self)
         self._priority_combo = QComboBox(self)
@@ -258,6 +270,11 @@ class WorksCreateDialog(QDialog):
         for label, type_id in visible_entries:
             self._type_combo.addItem(label, type_id)
 
+        if self._initial_type_id:
+            index = self._type_combo.findData(self._initial_type_id)
+            if index >= 0:
+                self._type_combo.setCurrentIndex(index)
+
         has_types = len(visible_entries) > 0
         self._create_btn.setEnabled(has_types)
         if has_types:
@@ -292,6 +309,10 @@ class WorksCreateDialog(QDialog):
                 self._responsible_combo.setCurrentIndex(index)
 
     def _apply_initial_title(self) -> None:
+        if self._initial_title:
+            self._title_edit.setText(self._initial_title)
+            self._title_touched = True
+            return
         self._update_suggested_title()
 
     def _mark_title_touched(self, _text: str) -> None:

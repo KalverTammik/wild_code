@@ -9,7 +9,7 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...python.api_actions import APIModuleActions
 from ...utils.url_manager import Module
-from .works_layer_service import WorksDescriptionService, WorksLayerService
+from .works_layer_service import WorksLayerService
 
 
 class WorksSyncService:
@@ -58,6 +58,8 @@ class WorksSyncService:
         layer = self.attach()
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return
+        if self._is_layer_editable(layer, event="works_sync_skipped_layer_editable"):
+            return
 
         task_id_field = WorksLayerService.resolve_task_id_field_name(layer)
         if not task_id_field:
@@ -76,15 +78,18 @@ class WorksSyncService:
         if not features:
             return
 
-        task_ids = [
-            str(feature.attribute(task_id_field) or "").strip()
-            for feature in features
-            if str(feature.attribute(task_id_field) or "").strip()
-        ]
+        feature_ids_by_task_id = self._feature_ids_by_task_id(features, task_id_field)
+        if not feature_ids_by_task_id:
+            return
+
+        self._log_duplicate_task_ids(feature_ids_by_task_id)
+
+        task_ids = list(feature_ids_by_task_id.keys())
         if not task_ids:
             return
 
         tasks_by_id = APIModuleActions.get_tasks_by_ids(task_ids)
+        self._log_missing_backend_tasks(task_ids, tasks_by_id)
         if not tasks_by_id:
             return
 
@@ -123,6 +128,8 @@ class WorksSyncService:
         layer = self.attach()
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return
+        if self._is_layer_editable(layer, event="works_sync_task_skipped_layer_editable", extra={"task_id": task_id_text}):
+            return
 
         feature = WorksLayerService.find_feature_by_task_id(layer, task_id_text)
         if feature is None:
@@ -151,17 +158,17 @@ class WorksSyncService:
         if not pending_updates:
             return
 
+        if self._is_layer_editable(layer, event="works_sync_apply_skipped_layer_editable"):
+            return
+
         self._syncing_from_backend = True
         started_edit = False
-        already_editable = False
         try:
             field_indices = {field.name().lower(): index for index, field in enumerate(layer.fields())}
 
-            already_editable = bool(layer.isEditable())
-            if not already_editable:
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return
+            started_edit = bool(layer.startEditing())
+            if not started_edit:
+                return
 
             changed = False
             for feature_id, updates, feature in pending_updates:
@@ -185,11 +192,6 @@ class WorksSyncService:
 
                     if layer.changeAttributeValue(feature_id, field_index, coerced_value):
                         changed = True
-
-            if already_editable:
-                if changed:
-                    layer.triggerRepaint()
-                return
 
             if not started_edit:
                 return
@@ -223,7 +225,7 @@ class WorksSyncService:
             self._syncing_from_backend = False
 
     def _on_committed_geometries_changes(self, _layer_id: str, changed_geometries: dict) -> None:
-        if self._syncing_geometry or not isinstance(changed_geometries, dict) or not changed_geometries:
+        if self._syncing_from_backend or self._syncing_geometry or not isinstance(changed_geometries, dict) or not changed_geometries:
             return
 
         layer = self._layer
@@ -266,10 +268,6 @@ class WorksSyncService:
         if not task_id:
             return
 
-        point = self._geometry_point(geometry or feature.geometry())
-        if point is None:
-            return
-
         task = APIModuleActions.get_task_data(task_id)
         status_color = WorksLayerService.status_color_from_task(task)
 
@@ -289,39 +287,6 @@ class WorksSyncService:
                     extra={"task_id": task_id},
                 )
 
-        if not isinstance(task, dict):
-            return
-
-        current_description = str(task.get("description") or "")
-        updated_description = WorksDescriptionService.merge_metadata_into_description(
-            existing_html=current_description,
-            layer=layer,
-            point=point,
-            lang_manager=self._lang,
-            point_in_layer_crs=True,
-        )
-        if updated_description == current_description:
-            return
-
-        try:
-            updated = APIModuleActions.update_task_description(task_id, updated_description)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_sync_geometry_push_failed",
-                extra={"task_id": task_id},
-            )
-            return
-
-        if not updated:
-            PythonFailLogger.log_exception(
-                RuntimeError("Could not update works task description after geometry change"),
-                module=Module.WORKS.value,
-                event="works_sync_geometry_push_failed",
-                extra={"task_id": task_id},
-            )
-
     @staticmethod
     def _build_layer_updates(task: dict) -> dict[str, object]:
         title = str(task.get("name") or task.get("title") or "").strip()
@@ -329,6 +294,7 @@ class WorksSyncService:
         updated_at = WorksLayerService.updated_date_from_task(task)
 
         updates = {
+            WorksLayerService.FIELD_EXT_SYSTEM: WorksLayerService.EXT_SYSTEM_NAME,
             WorksLayerService.FIELD_EXT_JOB_NAME: title,
             WorksLayerService.FIELD_EXT_JOB_TYPE: WorksLayerService.type_id_from_task(task),
             WorksLayerService.FIELD_EXT_JOB_STATE: WorksLayerService.status_id_from_task(task),
@@ -344,6 +310,91 @@ class WorksSyncService:
             updates[WorksLayerService.FIELD_UPDATE_DATE] = updated_at
 
         return updates
+
+    @staticmethod
+    def _feature_ids_by_task_id(features: list, task_id_field: str) -> dict[str, list[int]]:
+        feature_ids_by_task_id: dict[str, list[int]] = {}
+        for feature in features:
+            try:
+                task_id = str(feature.attribute(task_id_field) or "").strip()
+            except Exception:
+                continue
+            if not task_id:
+                continue
+            try:
+                feature_id = int(feature.id())
+            except Exception:
+                continue
+            feature_ids_by_task_id.setdefault(task_id, []).append(feature_id)
+        return feature_ids_by_task_id
+
+    @staticmethod
+    def _layer_name(layer: QgsVectorLayer) -> str:
+        try:
+            return str(layer.name() or "").strip()
+        except Exception:
+            return ""
+
+    def _is_layer_editable(self, layer: QgsVectorLayer, *, event: str, extra: Optional[dict] = None) -> bool:
+        try:
+            editable = bool(layer.isEditable())
+        except Exception:
+            return False
+        if not editable:
+            return False
+        payload = {
+            "layer": self._layer_name(layer),
+        }
+        if extra:
+            payload.update(extra)
+        PythonFailLogger.log(
+            event,
+            module=Module.WORKS.value,
+            extra=payload,
+        )
+        return True
+
+    def _log_duplicate_task_ids(self, feature_ids_by_task_id: dict[str, list[int]]) -> None:
+        duplicates = {
+            task_id: feature_ids
+            for task_id, feature_ids in feature_ids_by_task_id.items()
+            if len(feature_ids) > 1
+        }
+        if not duplicates:
+            return
+        for task_id, feature_ids in list(duplicates.items())[:20]:
+            PythonFailLogger.log(
+                "works_sync_duplicate_task_ids",
+                module=Module.WORKS.value,
+                extra={
+                    "task_id": task_id,
+                    "feature_ids": ",".join(str(feature_id) for feature_id in feature_ids[:20]),
+                    "count": len(feature_ids),
+                },
+            )
+        if len(duplicates) > 20:
+            PythonFailLogger.log(
+                "works_sync_duplicate_task_ids_truncated",
+                module=Module.WORKS.value,
+                extra={"count": len(duplicates)},
+            )
+
+    @staticmethod
+    def _log_missing_backend_tasks(task_ids: list[str], tasks_by_id: dict[str, dict]) -> None:
+        returned_ids = {str(task_id).strip() for task_id in (tasks_by_id or {}).keys() if str(task_id).strip()}
+        missing_ids = [str(task_id) for task_id in task_ids if str(task_id) not in returned_ids]
+        if not missing_ids:
+            return
+        PythonFailLogger.log(
+            "works_sync_missing_backend_tasks",
+            module=Module.WORKS.value,
+            extra={
+                "count": len(missing_ids),
+                "sample": ",".join(missing_ids[:20]),
+                "requested": len(task_ids),
+                "returned": len(returned_ids),
+            },
+        )
 
     def _stamp_geometry_audit_fields(self, *, layer: QgsVectorLayer, feature_ids: list[int]) -> None:
         if not feature_ids:

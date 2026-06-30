@@ -15,6 +15,7 @@ class IconNames:
     ICON_ADD = "Add.png"
     ICON_WORK_EMERGENCY = "work-emergency.svg"
     ICON_MAP_IDENTIFY = "map-identify.svg"
+    ICON_WORKS_PENDING = "works-pending.svg"
     ICON_REFRESH = "Reset2.png"
     LIGHTNESS_ICON = "Hele.png"
     DARKNESS_ICON = "Tume.png"
