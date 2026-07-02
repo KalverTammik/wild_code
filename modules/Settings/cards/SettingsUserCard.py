@@ -5,9 +5,7 @@ from PyQt5.QtWidgets import (
     QCheckBox, QButtonGroup
 )
 from ....languages.translation_keys import TranslationKeys
-from .SettingsPropertyManagement import PropertyManagementUI
 from .SettingsBaseCard import SettingsBaseCard  # assumes BaseCard provides: content_widget(), retheme(), etc.
-from ....Logs.python_fail_logger import PythonFailLogger
 from ....utils.url_manager import Module
 
 
@@ -115,16 +113,7 @@ class UserSettingsCard(SettingsBaseCard):
         self._preferred_group = QButtonGroup(self)
         self._preferred_group.setExclusive(True)
 
-        # ---------- Property Management Widget (inside same card) ----------
-        self.property_management_container = QFrame(module_access_frame)
-        pm_layout = QVBoxLayout(self.property_management_container)
-        pm_layout.setContentsMargins(0, 0, 0, 0)
-        pm_layout.setSpacing(4)
-        self.property_management = None
-
-        # ---------- Lõpuks lisa kaart peamisse layout'i ----------
         cl.addWidget(module_access_frame)
-        cl.addWidget(self.property_management_container)
 
         # ---------- Map overlay tools ----------
         self.map_overlay_frame = QFrame(cw)
@@ -170,36 +159,6 @@ class UserSettingsCard(SettingsBaseCard):
         self._update_permissions = {}
 
     # ---------- Public API (SettingsUI uses these) ----------
-
-
-    def build_property_managment(self, can_create_property: bool):
-        pm_layout = self.property_management_container.layout()
-        if pm_layout is None:
-            pm_layout = QVBoxLayout(self.property_management_container)
-            pm_layout.setContentsMargins(0, 0, 0, 0)
-            pm_layout.setSpacing(0)
-
-        # Clear existing widget if any
-        if self.property_management is not None:
-            try:
-                pm_layout.removeWidget(self.property_management)
-                self.property_management.setParent(None)
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.SETTINGS.value,
-                    event="settings_user_card_remove_property_management_failed",
-                )
-            self.property_management = None
-
-        if can_create_property:
-            self.property_management = PropertyManagementUI(self.lang_manager)
-            pm_layout.addWidget(self.property_management)
-
-    def set_geospatial_mode_active(self, active: bool) -> None:
-        if self.property_management is not None:
-            self.property_management.set_geospatial_mode_active(bool(active))
-
 
 
     def build_and_set_access_controls(self, access_map: dict):

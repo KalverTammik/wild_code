@@ -6,6 +6,7 @@ from ..module_manager import ModuleManager
 from ..Logs.switch_logger import SwitchLogger
 from ..modules.Settings.settings_setup_guard import SettingsSetupGuard
 from ..utils.messagesHelper import ModernMessageDialog
+from ..utils.SessionManager import SessionManager
 
 
 class _HeaderWidgetProtocol(Protocol):
@@ -55,6 +56,7 @@ class ModuleSwitchHelper:
     _dialog_resolver: Callable[[], ModuleSwitchDialogProtocol] | None = None
     _confirm_unsaved_handler: Callable[[str, ModuleSwitchDialogProtocol], bool] | None = None
     _settings_focus_handler: Callable[[Any, str | None, ModuleSwitchDialogProtocol], None] | None = None
+    _pending_login_listener: Callable[[], None] | None = None
 
     @staticmethod
     def _canonical_key(name: str | None) -> str:
@@ -154,6 +156,48 @@ class ModuleSwitchHelper:
         if not ModuleSwitchHelper._confirm_unsaved_handler:
             return True
         return bool(ModuleSwitchHelper._confirm_unsaved_handler(previous_module_name or "", dlg))
+
+    @staticmethod
+    def _ensure_session_for_switch(
+        *,
+        dlg: ModuleSwitchDialogProtocol,
+        target_key: str,
+        focus_module: str | None,
+    ) -> bool:
+        if SessionManager.is_session_valid():
+            return True
+
+        ModuleSwitchHelper._clear_pending_login_listener()
+
+        def _retry_after_login() -> None:
+            if not SessionManager.is_session_valid():
+                return
+            ModuleSwitchHelper._clear_pending_login_listener()
+            ModuleSwitchHelper.switch_module(
+                target_key,
+                dialog=dlg,
+                focus_module=focus_module,
+            )
+
+        ModuleSwitchHelper._pending_login_listener = _retry_after_login
+        SessionManager.register_listener(_retry_after_login)
+        SessionManager.request_login(parent=dlg, reason=f"module_switch:{target_key}")
+        return False
+
+    @staticmethod
+    def _clear_pending_login_listener() -> None:
+        listener = ModuleSwitchHelper._pending_login_listener
+        if listener is None:
+            return
+        try:
+            SessionManager.unregister_listener(listener)
+        except Exception as exc:
+            SwitchLogger.log(
+                "switch_login_listener_unregister_failed",
+                module=Module.SETTINGS.value,
+                extra={"error": str(exc)},
+            )
+        ModuleSwitchHelper._pending_login_listener = None
 
     @staticmethod
     def _redirect_to_settings_for_incomplete_setup(
@@ -330,6 +374,13 @@ class ModuleSwitchHelper:
         target_key = ModuleSwitchHelper._canonical_key(module_name)
         normalized_name = target_key
         dlg = ModuleSwitchHelper._resolve_dialog(target_key, dialog)
+
+        if not ModuleSwitchHelper._ensure_session_for_switch(
+            dlg=dlg,
+            target_key=target_key,
+            focus_module=focus_module,
+        ):
+            return
 
         module_manager: _ModuleManagerProtocol = ModuleManager()
         previous_module_name, _previous_instance, prev_widget, prev_key = ModuleSwitchHelper._collect_switch_context(

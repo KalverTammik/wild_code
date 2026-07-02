@@ -18,6 +18,7 @@ from ...widgets.theme_manager import styleExtras, ThemeShadowColors
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.map_canvas_glass_action_bar import MapCanvasGlassActionBar
 from ...utils.map_canvas_search_bar import MapCanvasSearchBar
+from ...utils.SessionManager import SessionManager
 from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.mixins.token_mixin import TokenMixin
@@ -58,6 +59,7 @@ class SettingsModule(TokenMixin, QWidget):
         self._module_cards = {}
         self._project_base_layers_card = None
         self._allowed_modules = []
+        self._can_create_property = False
         self._user_fetch_thread = None
         self._user_fetch_worker = None
         self._pending_focus_module = None
@@ -165,6 +167,9 @@ class SettingsModule(TokenMixin, QWidget):
 
     def activate(self):
         """Activates the Settings UI with fresh user data."""
+        if not SessionManager.is_session_valid():
+            SessionManager.request_login(parent=self.window(), reason="settings_activate")
+            return
         self.mark_activated(self._active_token)
         if self._project_base_layers_card is not None:
             self._project_base_layers_card.on_settings_activate()
@@ -189,12 +194,33 @@ class SettingsModule(TokenMixin, QWidget):
     def _handle_user_worker_error(self, message):
         if not self.is_token_active(getattr(self._user_fetch_worker, "active_token", None)):
             return
+        message_text = str(message or "")
         PythonFailLogger.log_exception(
-            Exception(str(message)),
+            Exception(message_text),
             module=Module.SETTINGS.value,
             event="settings_user_fetch_failed",
         )
+        if not SessionManager.is_session_valid() or self._is_session_error_message(message_text):
+            if SessionManager.is_session_valid():
+                SessionManager.invalidate_session(reason="settings_user_fetch_failed")
+            else:
+                SessionManager.request_login(parent=self.window(), reason="settings_user_fetch_failed")
+            return
         self._on_user_payload_ready({})
+
+    @staticmethod
+    def _is_session_error_message(message: str) -> bool:
+        lowered = str(message or "").lower()
+        return any(
+            marker in lowered
+            for marker in (
+                "401",
+                "unauthenticated",
+                "unauthorized",
+                "session expired",
+                "token expired",
+            )
+        )
 
 
     def _on_user_payload_ready(self, payload: dict):
@@ -206,12 +232,7 @@ class SettingsModule(TokenMixin, QWidget):
         abilities = UserUtils.parse_abilities(user_data.get("abilities", []))
 
         _, can_create_property = UserUtils.has_property_rights(user_data)
-
-        self._user_card.build_property_managment(can_create_property)
-        if self._project_base_layers_card is not None:
-            self._user_card.set_geospatial_mode_active(
-                self._project_base_layers_card._pend_setup_mode == self._project_base_layers_card.SETUP_MODE_GEOSPATIAL
-            )
+        self._can_create_property = bool(can_create_property)
 
         subjects = UserUtils.abilities_to_subjects(abilities)
 
@@ -240,6 +261,7 @@ class SettingsModule(TokenMixin, QWidget):
         self._user_card.set_map_search_enabled(self.logic.get_original_map_search_enabled())
 
         self._ensure_module_cards(allowed_modules=allowed_modules)
+        self._sync_property_management_card()
         self._resolve_pending_focus()
 
     def request_focus_module(self, module_key: str | None) -> None:
@@ -346,6 +368,7 @@ class SettingsModule(TokenMixin, QWidget):
 
         if self._project_base_layers_card is not None:
             self._on_geospatial_mode_changed(self._project_base_layers_card._pend_setup_mode == self._project_base_layers_card.SETUP_MODE_GEOSPATIAL)
+        self._sync_property_management_card()
 
     def _clear_user_worker_refs(self):
         self._user_fetch_thread = None
@@ -487,12 +510,22 @@ class SettingsModule(TokenMixin, QWidget):
         self._set_dirty(dirty)
 
     def _on_geospatial_mode_changed(self, active: bool) -> None:
-        if self._user_card is not None:
-            self._user_card.set_geospatial_mode_active(bool(active))
         for card in self._module_cards.values():
             set_mode = getattr(card, "set_geospatial_mode_active", None)
             if callable(set_mode):
                 set_mode(bool(active))
+
+    def _sync_property_management_card(self) -> None:
+        card = None
+        for module_name, module_card in (self._module_cards or {}).items():
+            if str(module_name or "").strip().lower() == Module.PROPERTY.value:
+                card = module_card
+                break
+        if card is None:
+            return
+        set_available = getattr(card, "set_property_management_available", None)
+        if callable(set_available):
+            set_available(bool(self._can_create_property))
 
     def _set_dirty(self, dirty: bool):
         self._pending_changes = bool(dirty)

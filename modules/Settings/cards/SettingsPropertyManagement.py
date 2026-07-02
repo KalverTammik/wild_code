@@ -20,6 +20,7 @@ from ....utils.url_manager import Module
 from ....utils.messagesHelper import ModernMessageDialog
 from ....utils.mapandproperties.property_action_service import PropertyActionService
 from ....utils.mapandproperties.property_action_service import PropertySelectionActionService
+from ....utils.mapandproperties.property_search_field_service import PropertySearchFieldService
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....ui.window_state.dialog_helpers import DialogHelpers
 from time import monotonic
@@ -84,24 +85,31 @@ class PropertyManagementUI(SettingsBaseCard):
             self.lang_manager.translate(TranslationKeys.DELETE_BY_ID),
             cw,
         )
+        self.btn_generate_search_field = QPushButton(
+            self.lang_manager.translate(TranslationKeys.PROPERTY_GENERATE_SEARCH_FIELD),
+            cw,
+        )
 
         self.btn_open_maa_amet.clicked.connect(self._handle_maa_amet_page)
         self.btn_add_shp.clicked.connect(self._handle_file_import)
         self.btn_add_property.clicked.connect(self._on_add_property_clicked)
         self.btn_remove_property.clicked.connect(self._on_remove_property_clicked)
         self.btn_remove_property_by_id.clicked.connect(self._on_remove_property_by_id_clicked)
+        self.btn_generate_search_field.clicked.connect(self._on_generate_search_field_clicked)
 
         self.btn_open_maa_amet.setObjectName("ConfirmButton")
         self.btn_add_shp.setObjectName("ConfirmButton")
         self.btn_add_property.setObjectName("ConfirmButton")
         self.btn_remove_property.setObjectName("ConfirmButton")
         self.btn_remove_property_by_id.setObjectName("ConfirmButton")
+        self.btn_generate_search_field.setObjectName("ConfirmButton")
 
         self.btn_open_maa_amet.setProperty("variant", ButtonVariant.WARNING)
         self.btn_add_shp.setProperty("variant", ButtonVariant.PRIMARY)
         self.btn_add_property.setProperty("variant", ButtonVariant.SUCCESS)
         self.btn_remove_property.setProperty("variant", ButtonVariant.DANGER)
         self.btn_remove_property_by_id.setProperty("variant", ButtonVariant.DANGER)
+        self.btn_generate_search_field.setProperty("variant", ButtonVariant.WARNING)
 
 
         btn_row.addWidget(self.btn_open_maa_amet)
@@ -109,6 +117,7 @@ class PropertyManagementUI(SettingsBaseCard):
         btn_row.addWidget(self.btn_add_property)
         btn_row.addWidget(self.btn_remove_property)
         btn_row.addWidget(self.btn_remove_property_by_id)
+        btn_row.addWidget(self.btn_generate_search_field)
         btn_row.addStretch(1)
 
         main_layout.addLayout(btn_row)
@@ -129,6 +138,7 @@ class PropertyManagementUI(SettingsBaseCard):
             self.btn_open_maa_amet.setToolTip(tooltip)
             self.btn_add_shp.setToolTip(tooltip)
             self.btn_add_property.setToolTip("")
+            self._update_search_field_button_state()
             return
 
         self.btn_open_maa_amet.setEnabled(True)
@@ -193,6 +203,7 @@ class PropertyManagementUI(SettingsBaseCard):
         if not self._has_shown_once:
             self._has_shown_once = True
             self._update_button_states()
+            self._warn_missing_search_field_if_needed()
 
     # ---------- Button Handlers ----------
     def _on_property_added(self, property_data):
@@ -285,6 +296,34 @@ class PropertyManagementUI(SettingsBaseCard):
                 self.lang_manager.translate(TranslationKeys.SHAPEFILE_LOAD_FAILED),
                 self.lang_manager.translate(TranslationKeys.SHAPEFILE_LOAD_FAILED_MESSAGE),
             )
+
+    def _on_generate_search_field_clicked(self):
+        main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
+        if not main_layer:
+            return
+
+        ok, error, changed_count = PropertySearchFieldService.ensure_search_field(
+            main_layer,
+            parent=self,
+            progress_title=self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_PROGRESS_TITLE),
+            progress_label=self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_PROGRESS_LABEL),
+        )
+        if ok:
+            self._update_search_field_button_state()
+            ModernMessageDialog.show_info(
+                self.lang_manager.translate(TranslationKeys.SUCCESS),
+                self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_CREATED_BODY).format(
+                    count=changed_count,
+                ),
+            )
+            return
+
+        ModernMessageDialog.show_warning(
+            self.lang_manager.translate(TranslationKeys.ERROR),
+            self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_FAILED_BODY).format(
+                error=error or self.lang_manager.translate(TranslationKeys.ERROR),
+            ),
+        )
             
 
     
@@ -319,6 +358,7 @@ class PropertyManagementUI(SettingsBaseCard):
         self.btn_add_property.setEnabled(add_en)
         # Primary delete depends on MAIN layer.
         self.btn_remove_property.setEnabled(rem_en)
+        self._update_search_field_button_state(main_layer=main_layer)
 
         # Emergency delete-by-id should stay available.
         self._best_effort_ui_call(
@@ -401,6 +441,37 @@ class PropertyManagementUI(SettingsBaseCard):
     def _on_layers_changed(self, *args) -> None:
         self._invalidate_shp_feature_cache()
         self._update_button_states()
+
+    def _update_search_field_button_state(self, *, main_layer=None) -> None:
+        if main_layer is None:
+            main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=True)
+        has_layer = main_layer is not None
+        has_search_field = PropertySearchFieldService.has_search_field(main_layer) if has_layer else False
+        self.btn_generate_search_field.setEnabled(has_layer)
+        if not has_layer:
+            self.btn_generate_search_field.setToolTip(
+                self.lang_manager.translate(TranslationKeys.NO_PROPERTY_LAYER_SELECTED)
+            )
+            return
+        if has_search_field:
+            self.btn_generate_search_field.setToolTip(
+                self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_EXISTS_TOOLTIP)
+            )
+        else:
+            self.btn_generate_search_field.setToolTip(
+                self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_MISSING_TOOLTIP)
+            )
+
+    def _warn_missing_search_field_if_needed(self) -> None:
+        main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=True)
+        if main_layer is None:
+            return
+        if PropertySearchFieldService.has_search_field(main_layer):
+            return
+        ModernMessageDialog.show_warning(
+            self.lang_manager.translate(TranslationKeys.WARNING),
+            self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_MISSING_BODY),
+        )
 
 
 class LayerChecker:    

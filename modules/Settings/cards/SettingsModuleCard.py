@@ -8,6 +8,7 @@ from PyQt5.QtCore import pyqtSignal, QTimer, QEvent
 from .SettingsBaseCard import SettingsBaseCard
 from .SettingModuleFeatureCard import SettingsModuleFeatureCard
 from .ModuleLabelsWidget import ModuleLabelsWidget
+from .SettingsPropertyManagement import PropertyManagementUI
 from ..GeospatialLayerMapperDialog import GeospatialLayerMapperDialog
 from ..SettinsUtils.SettingsLogic import SettingsLogic
 from ..settings_layer_helper import SettingsLayerHelper
@@ -73,6 +74,9 @@ class SettingsModuleCard(SettingsBaseCard):
         self._archive_picker: LayerTreePicker | None = None
         self._works_temp_group: QFrame | None = None
         self._geospatial_mapper_group: QFrame | None = None
+        self._property_management_container: QFrame | None = None
+        self._property_management_widget: PropertyManagementUI | None = None
+        self._can_manage_properties = False
         self._geospatial_mode_active = False
 
         self._module_labels = module_labels or []
@@ -168,6 +172,15 @@ class SettingsModuleCard(SettingsBaseCard):
             layers_layout.addWidget(archive_group)
 
         cl.addWidget(layers_container)
+
+        if self.module_key == Module.PROPERTY.value:
+            self._property_management_container = QFrame(cw)
+            self._property_management_container.setObjectName("PropertyManagementContainer")
+            property_management_layout = QVBoxLayout(self._property_management_container)
+            property_management_layout.setContentsMargins(0, 0, 0, 0)
+            property_management_layout.setSpacing(0)
+            self._property_management_container.setVisible(False)
+            cl.addWidget(self._property_management_container)
 
         geospatial_mapper_group, _geospatial_mapper_button = SettingsModuleFeatureCard.build_filter_group(
             parent=cw,
@@ -390,12 +403,48 @@ class SettingsModuleCard(SettingsBaseCard):
     def set_geospatial_mode_active(self, active: bool) -> None:
         self._geospatial_mode_active = bool(active)
         self._apply_geospatial_visibility()
+        if self._property_management_widget is not None:
+            self._property_management_widget.set_geospatial_mode_active(self._geospatial_mode_active)
 
     def _apply_geospatial_visibility(self) -> None:
         if self._geospatial_mapper_group is not None:
             self._geospatial_mapper_group.setVisible(self._geospatial_mode_active)
         if self.module_key == Module.WORKS.value and self._works_temp_group is not None:
             self._works_temp_group.setVisible(not self._geospatial_mode_active)
+
+    def set_property_management_available(self, available: bool) -> None:
+        if self.module_key != Module.PROPERTY.value:
+            return
+        self._can_manage_properties = bool(available)
+        self._sync_property_management_widget()
+
+    def _sync_property_management_widget(self) -> None:
+        container = self._property_management_container
+        if container is None:
+            return
+        layout = container.layout()
+        if layout is None:
+            layout = QVBoxLayout(container)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(0)
+
+        if not self._can_manage_properties:
+            if self._property_management_widget is not None:
+                try:
+                    layout.removeWidget(self._property_management_widget)
+                    self._property_management_widget.setParent(None)
+                    self._property_management_widget.deleteLater()
+                except Exception as exc:
+                    self._log_error("settings_property_card_remove_management_failed", exc)
+                self._property_management_widget = None
+            container.setVisible(False)
+            return
+
+        if self._property_management_widget is None:
+            self._property_management_widget = PropertyManagementUI(self.lang_manager)
+            self._property_management_widget.set_geospatial_mode_active(self._geospatial_mode_active)
+            layout.addWidget(self._property_management_widget)
+        container.setVisible(True)
 
     def _on_open_geospatial_mapper_clicked(self) -> None:
         try:
