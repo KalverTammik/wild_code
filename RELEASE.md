@@ -58,6 +58,20 @@ Then install/update the plugin from the **Not installed** tab.
 - Make sure the version in `metadata.txt` matches the `version` attribute in `plugins.xml` (the script keeps them in sync).
 - If you rename the plugin folder, you must also publish zips using the new folder name, otherwise QGIS will treat it as a different plugin.
 
+## Source repository vs release package
+
+Development and handoff material stays in Git, but it must not be shipped inside the installed QGIS plugin. The release workflow removes these items before either packaging path runs and fails if they reappear in the staged live plugin.
+
+Excluded from the live package:
+
+- documentation and handoff guides (`docs/`, `*.md`)
+- tests and developer tooling (`tests/`, `tools/`)
+- local environments, caches, logs, and temporary output
+- development-only configuration and metadata
+- local sample data and exploratory files
+
+Runtime packages, styles, UI files, GraphQL queries, production configuration, and the logging implementation remain included. `tools/qgis_repo_release.py` applies the same exclusions when it is run directly, so local and GitHub-built ZIP files follow the same policy.
+
 ## Publishing release notes to QGIS Plugin Manager
 
 QGIS shows plugin update notes from the `<changelog>` field in `plugins.xml`.

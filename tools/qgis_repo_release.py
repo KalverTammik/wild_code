@@ -149,6 +149,16 @@ def _should_exclude(rel_posix: str, exclude_dirs: Tuple[str, ...]) -> bool:
 
     # Exclude common junk
     lower = rel_posix.lower()
+    if lower.endswith(".md"):
+        return True
+    if lower in {
+        "avariitööd.gpkg",
+        "config/config_dev.json",
+        "metadata.dev.txt",
+        "metadata.release.txt",
+        "wfs-property-query.html",
+    }:
+        return True
     if lower.endswith((".pyc", ".pyo")):
         return True
     if lower.endswith((".log",)):
@@ -510,7 +520,12 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             "bpmn",
             "docs",
             "reports",
+            "tests",
             "tools",
+            "Temporary",
+            "tmp_release_repo",
+            "build",
+            "dist",
             "__pycache__",
             "Logs/CrashLogs",
             "Logs/PythonLogs",

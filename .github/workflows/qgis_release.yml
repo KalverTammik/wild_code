@@ -74,13 +74,33 @@ jobs:
           rsync -a ./ kavitro_live/ \
             --exclude '.git/' \
             --exclude '.github/' \
+            --exclude '.gitattributes' \
+            --exclude '.gitignore' \
             --exclude 'kavitro_live/' \
             --exclude '__pycache__/' \
             --exclude '*.pyc' \
+            --exclude '*.pyo' \
+            --exclude '*.log' \
             --exclude '.venv/' \
             --exclude '.pytest_cache/' \
+            --exclude '.zencoder/' \
+            --exclude '.zenflow/' \
+            --exclude 'build/' \
+            --exclude 'dist/' \
+            --exclude 'docs/' \
+            --exclude 'reports/' \
+            --exclude 'tests/' \
+            --exclude 'tools/' \
+            --exclude 'Temporary/' \
+            --exclude 'tmp_release_repo/' \
+            --exclude 'bpmn/' \
+            --exclude 'vs-code-bpmn-io/' \
+            --exclude '*.md' \
+            --exclude 'avariitööd.gpkg' \
+            --exclude 'wfs-property-query.html' \
             --exclude 'config/config_dev.json' \
-            --exclude 'metadata.dev.txt'
+            --exclude 'metadata.dev.txt' \
+            --exclude 'metadata.release.txt'
 
           python - <<'PY'
           from pathlib import Path
@@ -113,6 +133,44 @@ jobs:
           github_organization_slug: KalverTammik
           project_slug: wild_code
           EOF
+
+      - name: Validate live plugin contents
+        shell: bash
+        run: |
+          forbidden_dirs=(
+            .git .github .venv .pytest_cache .zencoder .zenflow
+            __pycache__ build dist docs reports tests tools Temporary
+            tmp_release_repo bpmn vs-code-bpmn-io
+          )
+          forbidden_files=(
+            .gitattributes .gitignore avariitööd.gpkg
+            metadata.dev.txt metadata.release.txt wfs-property-query.html
+          )
+
+          for path in "${forbidden_dirs[@]}"; do
+            if [ -e "kavitro_live/${path}" ]; then
+              echo "ERROR: development directory reached the live plugin: ${path}"
+              exit 1
+            fi
+          done
+
+          for path in "${forbidden_files[@]}"; do
+            if [ -e "kavitro_live/${path}" ]; then
+              echo "ERROR: development file reached the live plugin: ${path}"
+              exit 1
+            fi
+          done
+
+          forbidden_match="$(find kavitro_live -type f \( \
+            -name '*.md' -o -name '*.log' -o -name '*.pyc' -o -name '*.pyo' \
+          \) -print -quit)"
+          if [ -n "${forbidden_match}" ]; then
+            echo "ERROR: development artifact reached the live plugin: ${forbidden_match}"
+            exit 1
+          fi
+
+          echo "Validated live plugin staging directory."
+          du -sh kavitro_live
 
       - name: Stage generated release files
         run: |
