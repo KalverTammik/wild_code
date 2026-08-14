@@ -56,6 +56,30 @@ class PropertySearchFieldService:
         return [field_map[name.lower()] for name in cls.SOURCE_FIELDS if name.lower() in field_map]
 
     @classmethod
+    def build_search_value_from_feature(cls, feature) -> str:
+        if feature is None:
+            return ""
+        try:
+            field_map = {
+                str(field.name() or "").strip().lower(): str(field.name() or "").strip()
+                for field in feature.fields()
+            }
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_search_feature_fields_failed",
+            )
+            return ""
+
+        source_fields = [
+            field_map[name.lower()]
+            for name in cls.SOURCE_FIELDS
+            if name.lower() in field_map
+        ]
+        return cls._build_search_value(feature, source_fields)
+
+    @classmethod
     def ensure_search_field(
         cls,
         layer: Optional[QgsVectorLayer],

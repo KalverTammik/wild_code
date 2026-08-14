@@ -794,7 +794,12 @@ class MapHelpers:
 class FeatureActions:
 
     @staticmethod
-    def copy_feature_to_layer(source_feature: QgsFeature, target_layer: QgsVectorLayer):
+    def copy_feature_to_layer(
+        source_feature: QgsFeature,
+        target_layer: QgsVectorLayer,
+        *,
+        attribute_overrides: Optional[dict[str, object]] = None,
+    ):
         if not target_layer.isEditable():
             return False, "Target layer is not in edit mode."
 
@@ -847,6 +852,20 @@ class FeatureActions:
             if fid_idx >= 0:
                 free_fid = FeatureActions.next_free_fid_int_value(target_layer)
                 new_feat.setAttribute(fid_idx, free_fid)
+
+        search_idx = target_layer.fields().lookupField(Katastriyksus.search_field)
+        if search_idx >= 0 and not new_feat.attribute(search_idx):
+            from ..mapandproperties.property_search_field_service import PropertySearchFieldService
+
+            new_feat.setAttribute(
+                search_idx,
+                PropertySearchFieldService.build_search_value_from_feature(source_feature),
+            )
+
+        for field_name, value in (attribute_overrides or {}).items():
+            field_idx = target_layer.fields().lookupField(field_name)
+            if field_idx >= 0:
+                new_feat.setAttribute(field_idx, value)
 
         ok = target_layer.addFeature(new_feat)
 

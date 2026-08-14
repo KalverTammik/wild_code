@@ -1,9 +1,11 @@
 import gc
 import os
+from datetime import datetime
 from typing import Optional, Tuple
 
+from PyQt5.QtCore import QVariant
 from qgis.core import (
-    QgsFields, QgsVectorFileWriter, QgsWkbTypes,
+    QgsField, QgsFields, QgsVectorFileWriter, QgsWkbTypes,
     QgsCoordinateReferenceSystem, QgsProject, QgsVectorLayer
 )
 from osgeo import ogr
@@ -144,7 +146,18 @@ class GPKGHelpers:
             return False
 
         try:
-            ds.DeleteLayer(layer_name)
+            layer_index = next(
+                (
+                    index
+                    for index in range(ds.GetLayerCount())
+                    if ds.GetLayerByIndex(index).GetName() == layer_name
+                ),
+                -1,
+            )
+            if layer_index < 0:
+                print(f"❌ Layer '{layer_name}' was not found in the GeoPackage.")
+                return False
+            ds.DeleteLayer(layer_index)
             print(f"✅ Layer '{layer_name}' deleted from GeoPackage.")
             return True
         except Exception as e:
@@ -227,6 +240,26 @@ class GPKGHelpers:
 
 
 class ArchiveLayerHandler:
+    ARCHIVE_DATE_FIELD = "backup_date"
+
+    @staticmethod
+    def archive_fields_for_layer(source_layer: QgsVectorLayer) -> QgsFields:
+        fields, _geometry_type, _crs = LayerSchemas._extract_layer_schema(source_layer)
+        archive_fields = QgsFields()
+        for field in fields:
+            archive_fields.append(QgsField(field))
+
+        existing_names = {field.name().strip().lower() for field in archive_fields}
+        if ArchiveLayerHandler.ARCHIVE_DATE_FIELD.lower() not in existing_names:
+            archive_fields.append(
+                QgsField(ArchiveLayerHandler.ARCHIVE_DATE_FIELD, QVariant.String, len=16)
+            )
+        return archive_fields
+
+    @staticmethod
+    def current_archive_timestamp() -> str:
+        return datetime.now().astimezone().strftime("%Y-%m-%d %H:%M")
+
     @staticmethod
     def resolve_or_create_archive_layer(source_layer: QgsVectorLayer, archive_layer_name: str) -> Optional[QgsVectorLayer]:
         """
@@ -257,14 +290,14 @@ class ArchiveLayerHandler:
 
         # 3. Create new layer in GPKG
         print("⚠️ Archive layer not found — creating new one.")
-        fields, geometry_type, crs = LayerSchemas._extract_layer_schema(source_layer)
+        archive_fields = ArchiveLayerHandler.archive_fields_for_layer(source_layer)
 
         created = GPKGHelpers.create_empty_gpkg_layer(
             gpkg_path=gpkg_path,
             layer_name=archive_layer_name,
-            geometry_type=geometry_type,
-            crs=crs,
-            fields=fields,
+            geometry_type=source_layer.wkbType(),
+            crs=source_layer.crs(),
+            fields=archive_fields,
             overwrite=False
         )
 
@@ -440,6 +473,13 @@ class ArchiveLayerHandler:
                         new_feat.setAttribute(int(pk_idx), None)
                     except Exception:
                         continue
+
+                archive_date_idx = archive_fields.lookupField(ArchiveLayerHandler.ARCHIVE_DATE_FIELD)
+                if archive_date_idx >= 0:
+                    new_feat.setAttribute(
+                        archive_date_idx,
+                        ArchiveLayerHandler.current_archive_timestamp(),
+                    )
 
                 features_to_add.append(new_feat)
                 try:

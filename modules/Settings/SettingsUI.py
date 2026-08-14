@@ -149,19 +149,35 @@ class SettingsModule(TokenMixin, QWidget):
             on_pending_changed=self._update_dirty_state,
         )
 
-    def sync_module_archive_layer_dropdown(self, module_key: str, layer_name: str, *, force: bool = True) -> bool:
-        """Best-effort: update a module card's archive-layer dropdown to match persisted settings."""
+    def sync_module_layer_dropdown(
+        self,
+        module_key: str,
+        layer_name: str,
+        *,
+        kind: str,
+        force: bool = True,
+    ) -> bool:
+        """Update a module card's main/archive picker to match persisted settings."""
 
         key = (module_key or "").strip().lower()
-        if not key:
+        if not key or kind not in ("main", "archive"):
             return False
 
         for card in (self._module_cards or {}).values():
-            try:
-                if getattr(card, "module_key", "") == key:
-                    return bool(card.sync_archive_layer_selection(layer_name, force=force))
-            except Exception:
+            if card.module_key != key:
                 continue
+            try:
+                if kind == "archive":
+                    return bool(card.sync_archive_layer_selection(layer_name, force=force))
+                return bool(card.sync_main_layer_selection(layer_name, force=force))
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.SETTINGS.value,
+                    event="settings_module_layer_dropdown_sync_failed",
+                    extra={"module_key": key, "kind": kind, "layer": layer_name},
+                )
+                return False
 
         return False
 

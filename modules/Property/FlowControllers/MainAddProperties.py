@@ -596,7 +596,12 @@ class MainAddPropertiesFlow:
                     dlg = PluginDialog.get_instance() if PluginDialog else None
                     sm = getattr(dlg, "settingsModule", None) if dlg else None
                     if sm is not None:
-                        sm.sync_module_archive_layer_dropdown(Module.PROPERTY.value, layer_name, force=True)
+                        sm.sync_module_layer_dropdown(
+                            Module.PROPERTY.value,
+                            layer_name,
+                            kind="archive",
+                            force=True,
+                        )
                 except Exception as exc:
                     PythonFailLogger.log_exception(
                         exc,
@@ -692,7 +697,14 @@ class MainAddPropertiesFlow:
                 # Move map features into archive layer and remove from main layer.
                 moved_ids = []
                 for feat in matches:
-                    ok, msg = FeatureActions.copy_feature_to_layer(feat, archive_layer)
+                    ok, msg = FeatureActions.copy_feature_to_layer(
+                        feat,
+                        archive_layer,
+                        attribute_overrides={
+                            ArchiveLayerHandler.ARCHIVE_DATE_FIELD:
+                                ArchiveLayerHandler.current_archive_timestamp(),
+                        },
+                    )
                     if ok:
                         summary["moved_map"] += 1
                         moved_ids.append(feat.id())
@@ -1169,4 +1181,3 @@ class BackendPropertyVerifier:
                 extra={"tunnus": str(item or "")},
             )
             return {"exists": None, "property": None, "FirstRegistration": None, "LastUpdated": None, "tags": [], "error": str(e)}
-        

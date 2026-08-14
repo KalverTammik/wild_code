@@ -9,7 +9,7 @@ from qgis.core import QgsProject
 from .SettingsBaseCard import SettingsBaseCard
 from ..settings_layer_helper import SettingsLayerHelper
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
-from ....utils.SHPLayerLoader import SHPLayerLoader
+from ....utils.SHPLayerLoader import SHPLayerLoader, SHPLoadStatus
 from ....utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
 from ....widgets.AddUpdatePropertyDialog import AddPropertyDialog, PropertyDialogMode
 from ....modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
@@ -287,14 +287,48 @@ class PropertyManagementUI(SettingsBaseCard):
         """Handle file import for property data using existing SHPLayerLoader"""
         # Use the existing SHPLayerLoader for proper import functionality
         loader = SHPLayerLoader(self)
-        success = loader.load_shp_layer()
-        if success:
+        result = loader.load_shp_layer()
+        if result.success:
             self._invalidate_shp_feature_cache()
+            if result.bootstrap_created:
+                self._sync_bootstrapped_property_layers()
             self._update_button_states()
-        else:
+        elif result.status == SHPLoadStatus.FAILED:
             ModernMessageDialog.show_warning(
-                self.lang_manager.translate(TranslationKeys.SHAPEFILE_LOAD_FAILED),
-                self.lang_manager.translate(TranslationKeys.SHAPEFILE_LOAD_FAILED_MESSAGE),
+                result.error_title,
+                result.error_message,
+            )
+
+    @staticmethod
+    def _sync_bootstrapped_property_layers() -> None:
+        main_name = SettingsService().module_main_layer_name(Module.PROPERTY.value) or ""
+        archive_name = SettingsService().module_archive_layer_name(Module.PROPERTY.value) or ""
+        if not main_name or not archive_name:
+            return
+        try:
+            from ....dialog import PluginDialog
+
+            dialog = PluginDialog.get_instance() if PluginDialog else None
+            settings_module = getattr(dialog, "settingsModule", None) if dialog else None
+            if settings_module is None:
+                return
+            settings_module.sync_module_layer_dropdown(
+                Module.PROPERTY.value,
+                main_name,
+                kind="main",
+                force=True,
+            )
+            settings_module.sync_module_layer_dropdown(
+                Module.PROPERTY.value,
+                archive_name,
+                kind="archive",
+                force=True,
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_property_bootstrap_sync_failed",
             )
 
     def _on_generate_search_field_clicked(self):
