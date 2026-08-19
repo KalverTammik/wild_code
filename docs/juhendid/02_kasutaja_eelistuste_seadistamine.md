@@ -2,7 +2,7 @@
 
 Kavitro kasutaja seadetes saab valida vaikimisi avaneva mooduli ning määrata, millised Kavitro kiirtööriistad kuvatakse QGIS-i kaardil. Samal kaardil näeb kasutaja ka oma konto andmeid, rolle ja moodulite kasutusõigusi.
 
-Üldine ülevaade seadistuste salvestamisest ja lähtestamisest on juhendis [Kavitro seadistuste mooduli kasutamine](01_seadistuste_mooduli_kasutamine.md).
+Üldine ülevaade seadistuste salvestamisest ja lähtestamisest on juhendis [Kavitro seadistuste mooduli kasutamine](01_seadistuste_mooduli_kasutamine.md). Põhiakna üldotsingu ning QGIS-i kaardil kuvatavate otsingu- ja sisestuspaanide kasutamist kirjeldab [Kavitro põhiaken, otsing ja ühised töövõtted](17_kavitro_pohiaken_otsing_ja_uhised_toovotted.md).
 
 ## Kasutaja seadete avamine
 

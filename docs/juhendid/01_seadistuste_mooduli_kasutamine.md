@@ -2,7 +2,7 @@
 
 Kavitro seadistuste moodulis saab määrata, kuidas plugin kasutab QGIS-i kihte, milline moodul avaneb vaikimisi ning milliseid tööriistu ja moodulipõhiseid eelistusi kasutatakse.
 
-See juhend annab ülevaate seadistuste mooduli ülesehitusest, muudatuste salvestamisest ja seadete lähtestamisest. Üksikute moodulite täpsed seadistusjuhised avaldatakse eraldi juhendites.
+See juhend annab ülevaate seadistuste mooduli ülesehitusest, muudatuste salvestamisest ja seadete lähtestamisest. Üksikute moodulite täpsed seadistus- ja kasutusjuhised on eraldi juhendites. Kogu sarja sisukord on juhendis [Kavitro põhiaken, otsing ja ühised töövõtted](17_kavitro_pohiaken_otsing_ja_uhised_toovotted.md).
 
 ## Eeltingimused
 
@@ -44,7 +44,7 @@ Jaotis **Mooduli juurdepääs** ei anna kasutajale uusi õigusi ega eemalda olem
 
 Sellel kaardil määratakse käesoleva QGIS-i projekti vee-, kanalisatsiooni- ja muud tehnovõrkude baaskihid. Võimalik on kasutada käsitsi seadistamist või EVEL-i kihistuse tuvastamist.
 
-Baaskihtide täpne seadistamine on kirjeldatud eraldi juhendis **QGIS projekti baaskihtide seadistamine**.
+Baaskihtide täpne seadistamine on kirjeldatud juhendis [QGIS-i projekti baaskihtide seadistamine](03_qgis_projekti_baaskihtide_seadistamine.md).
 
 ### Moodulite seadistuskaardid
 
@@ -59,6 +59,8 @@ Igal kasutajale lubatud moodulil võib olla oma seadistuskaart. Sõltuvalt moodu
 - moodulipõhised lisaseaded.
 
 Kui mõne mooduli kaarti ei kuvata, kontrolli esmalt kasutaja õigusi. Osa haldustoiminguid kuvatakse ainult vastava muutmis- või loomisõigusega kasutajale.
+
+Kihtide ja eelistuste tähendus ning moodulite erinevused on kirjeldatud juhendis [Mooduli kihtide ja filtrieelistuste seadistamine](04_mooduli_kihtide_ja_filtrieelistuste_seadistamine.md).
 
 ## Seadete muutmine ja salvestamine
 
