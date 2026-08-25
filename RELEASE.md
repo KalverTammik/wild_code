@@ -72,6 +72,8 @@ Excluded from the live package:
 
 Runtime packages, styles, UI files, GraphQL queries, production configuration, and the logging implementation remain included. `tools/qgis_repo_release.py` applies the same exclusions when it is run directly, so local and GitHub-built ZIP files follow the same policy.
 
+The GitHub Pages workflow also stages `docs/` separately and excludes `docs/juhendid/`, so internal operating guides are neither shipped with the LIVE plugin nor published on the public documentation site.
+
 ## Publishing release notes to QGIS Plugin Manager
 
 QGIS shows plugin update notes from the `<changelog>` field in `plugins.xml`.

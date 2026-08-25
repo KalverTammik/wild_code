@@ -31,10 +31,21 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact (docs)
+      - name: Prepare public documentation
+        shell: bash
+        run: |
+          mkdir -p public_docs
+          rsync -a docs/ public_docs/ --exclude 'juhendid/'
+
+          if [ -e public_docs/juhendid ]; then
+            echo "ERROR: Internal docs/juhendid directory reached the public Pages artifact."
+            exit 1
+          fi
+
+      - name: Upload artifact (public docs)
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "docs"
+          path: "public_docs"
 
       - name: Deploy
         id: deployment
