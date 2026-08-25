@@ -71,6 +71,7 @@ jobs:
           rm -rf kavitro_live
           mkdir -p kavitro_live
 
+          # Internal operating guides are kept in Git, but must never ship in LIVE.
           rsync -a ./ kavitro_live/ \
             --exclude '.git/' \
             --exclude '.github/' \
@@ -87,6 +88,7 @@ jobs:
             --exclude '.zenflow/' \
             --exclude 'build/' \
             --exclude 'dist/' \
+            --exclude 'docs/juhendid/' \
             --exclude 'docs/' \
             --exclude 'reports/' \
             --exclude 'tests/' \
@@ -139,7 +141,7 @@ jobs:
         run: |
           forbidden_dirs=(
             .git .github .venv .pytest_cache .zencoder .zenflow
-            __pycache__ build dist docs reports tests tools Temporary
+            __pycache__ build dist docs/juhendid docs reports tests tools Temporary
             tmp_release_repo bpmn vs-code-bpmn-io
           )
           forbidden_files=(

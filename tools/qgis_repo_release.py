@@ -32,6 +32,26 @@ from typing import Dict, Iterable, Iterator, Optional, Tuple
 import xml.etree.ElementTree as ET
 
 
+DEFAULT_EXCLUDE_DIRS: Tuple[str, ...] = (
+    "bpmn",
+    # Internal operating guides are versioned in Git, but must never ship in LIVE.
+    "docs/juhendid",
+    "docs",
+    "reports",
+    "tests",
+    "tools",
+    "Temporary",
+    "tmp_release_repo",
+    "build",
+    "dist",
+    "__pycache__",
+    "Logs/CrashLogs",
+    "Logs/PythonLogs",
+    "Logs/SwitchLogs",
+    "vs-code-bpmn-io",
+)
+
+
 @dataclass(frozen=True)
 class PluginMeta:
     folder_name: str
@@ -515,25 +535,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         )
 
     # Default exclusions: keep runtime code/resources, drop dev/runtime noise.
-    exclude_dirs: Tuple[str, ...] = tuple(
-        [
-            "bpmn",
-            "docs",
-            "reports",
-            "tests",
-            "tools",
-            "Temporary",
-            "tmp_release_repo",
-            "build",
-            "dist",
-            "__pycache__",
-            "Logs/CrashLogs",
-            "Logs/PythonLogs",
-            "Logs/SwitchLogs",
-            "vs-code-bpmn-io",
-        ]
-        + list(args.exclude_dir)
-    )
+    exclude_dirs: Tuple[str, ...] = DEFAULT_EXCLUDE_DIRS + tuple(args.exclude_dir)
 
     zip_name = f"{meta.folder_name}.{meta.version}.zip"
     zip_path = out_dir / zip_name

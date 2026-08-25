@@ -64,7 +64,7 @@ Development and handoff material stays in Git, but it must not be shipped inside
 
 Excluded from the live package:
 
-- documentation and handoff guides (`docs/`, `*.md`)
+- internal operating guides (`docs/juhendid/`), all remaining repository documentation (`docs/`), and Markdown handoff files (`*.md`)
 - tests and developer tooling (`tests/`, `tools/`)
 - local environments, caches, logs, and temporary output
 - development-only configuration and metadata
