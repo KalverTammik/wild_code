@@ -117,6 +117,7 @@ Thumbs.db
 config/config_dev.json
 
 # Local release test artifacts
+release_repo/
 tmp_release_repo/
 tmp_prev_plugins.xml
 

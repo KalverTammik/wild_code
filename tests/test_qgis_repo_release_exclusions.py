@@ -20,6 +20,14 @@ class QgisRepoReleaseExclusionsTest(unittest.TestCase):
             )
         )
 
+    def test_local_release_output_is_not_packaged_into_itself(self) -> None:
+        self.assertTrue(
+            _should_exclude(
+                "release_repo/Kavitro_dev.2.00.05.zip",
+                exclude_dirs=DEFAULT_EXCLUDE_DIRS,
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

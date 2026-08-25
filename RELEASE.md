@@ -1,98 +1,50 @@
-# Release (Custom QGIS Plugin Repository)
+# Release (custom QGIS plugin repository)
 
-This plugin is distributed via a **custom QGIS plugin repository** (not the official plugins.qgis.org).
+This plugin is distributed from **GitHub Releases** through a custom QGIS plugin repository. GitHub Pages is not used.
 
-This follows the approach described here:
-https://medium.com/geospatial-team/publishing-qgis-plugins-fb410b958f6
+## Stable installation URL
 
-## What QGIS needs
+Add this repository URL to QGIS Plugin Manager:
 
-A custom repository must expose (via direct HTTP access):
+`https://github.com/KalverTammik/wild_code/releases/latest/download/plugins.xml`
 
-- `plugins.xml`
-- a zip archive for each plugin version (zip must contain a **root folder** equal to the plugin folder name)
+In QGIS, open **Plugins -> Manage and Install Plugins... -> Settings -> Plugin Repositories -> Add...**, paste the URL, and install the plugin from **Not installed**.
 
-QGIS Plugin Manager links the installed plugin to the repository by **folder name**.
+The `latest` URL always resolves to the `plugins.xml` asset of the GitHub Release marked as latest. That XML points to the matching versioned ZIP asset on the same release.
 
-## One-time GitHub setup
+## Publishing a release
 
-1. Push this repo to GitHub.
-2. Enable **GitHub Pages** for this repository.
-   - Recommended: **Source = Deploy from a branch**
-   - Branch: `main`
-   - Folder: `/docs`
-3. After Pages is enabled, your repository URL will look like:
-   - `https://<user>.github.io/<repo>/`
+1. Update the plugin version in [metadata.txt](metadata.txt).
+2. Commit and push the intended release state.
+3. Create and publish a GitHub Release with a matching tag, for example `v2.00.18`.
+4. The **Release QGIS Plugin** workflow builds the live plugin, creates `plugins.xml`, the versioned ZIP and icon, uploads them to the release, and marks the release as latest.
+5. Verify that the stable installation URL above downloads the newly generated `plugins.xml`.
 
-We host the QGIS plugin repo artifacts under `docs/qgis-repo/`, so the URL you add to QGIS is:
-
-- `https://<user>.github.io/<repo>/qgis-repo/plugins.xml`
-
-## Release steps (every version)
-
-1. Bump the plugin version in [metadata.txt](metadata.txt) (must match what you publish).
-2. Build repo artifacts:
-
-   - Windows PowerShell:
-     - `C:/Users/Kalver/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins/kavitro/.venv/Scripts/python.exe tools/qgis_repo_release.py --out docs/qgis-repo --repo-path qgis-repo`
-
-   If you want to pin the exact URL, pass `--base-url`, for example:
-
-   - `...python.exe tools/qgis_repo_release.py --out docs/qgis-repo --base-url https://<user>.github.io/<repo>/qgis-repo/`
-
-3. Commit the generated files in `docs/qgis-repo/` (at minimum `plugins.xml` + the version zip).
-4. Push to `main`.
-5. (Optional but recommended) Create a git tag and a GitHub Release for the same version.
-
-## Customer installation
-
-In QGIS:
-
-- Plugins → Manage and Install Plugins… → Settings → Plugin Repositories → **Add…**
-- URL: `https://<user>.github.io/<repo>/qgis-repo/plugins.xml`
-
-Then install/update the plugin from the **Not installed** tab.
-
-## Notes
-
-- Make sure the version in `metadata.txt` matches the `version` attribute in `plugins.xml` (the script keeps them in sync).
-- If you rename the plugin folder, you must also publish zips using the new folder name, otherwise QGIS will treat it as a different plugin.
+The workflow also copies the GitHub Release title and notes into the `<changelog>` field shown by QGIS Plugin Manager.
 
 ## Source repository vs release package
 
-Development and handoff material stays in Git, but it must not be shipped inside the installed QGIS plugin. The release workflow removes these items before either packaging path runs and fails if they reappear in the staged live plugin.
+Development and handoff material remains versioned in Git but is not included in the installed plugin. The release workflow validates this before packaging.
 
 Excluded from the live package:
 
-- internal operating guides (`docs/juhendid/`), all remaining repository documentation (`docs/`), and Markdown handoff files (`*.md`)
+- internal operating guides (`docs/juhendid/`), all other repository documentation (`docs/`), and Markdown handoff files (`*.md`)
 - tests and developer tooling (`tests/`, `tools/`)
 - local environments, caches, logs, and temporary output
 - development-only configuration and metadata
 - local sample data and exploratory files
 
-Runtime packages, styles, UI files, GraphQL queries, production configuration, and the logging implementation remain included. `tools/qgis_repo_release.py` applies the same exclusions when it is run directly, so local and GitHub-built ZIP files follow the same policy.
+Runtime packages, styles, UI files, GraphQL queries, production configuration, and logging implementation remain included. `tools/qgis_repo_release.py` applies the same exclusions when run directly.
 
-The GitHub Pages workflow also stages `docs/` separately and excludes `docs/juhendid/`, so internal operating guides are neither shipped with the LIVE plugin nor published on the public documentation site.
+## Optional local artifact build
 
-## Publishing release notes to QGIS Plugin Manager
+The release workflow is the canonical publishing path. To inspect the generated artifacts locally, provide the future tag-specific Release URL explicitly:
 
-QGIS shows plugin update notes from the `<changelog>` field in `plugins.xml`.
-The release script now supports writing this from your GitHub Release title/body.
+```powershell
+python tools/qgis_repo_release.py `
+  --out release_repo `
+  --base-url https://github.com/KalverTammik/wild_code/releases/download/v2.00.18/ `
+  --release-tag v2.00.18
+```
 
-### Option A (recommended): pull from GitHub release tag
-
-Run after creating the GitHub release (requires `gh` CLI logged in):
-
-`C:/Users/Kalver/AppData/Roaming/QGIS/QGIS3/profiles/default/python/plugins/kavitro/.venv/Scripts/python.exe tools/qgis_repo_release.py --out docs/qgis-repo --repo-path qgis-repo --release-tag v2.00.17`
-
-This reads release `name` + `body` and writes them into `plugins.xml` `<changelog>`.
-
-### Option B: pass title/notes explicitly
-
-`...python.exe tools/qgis_repo_release.py --out docs/qgis-repo --release-title "v2.00.17" --release-notes "Bug fixes and UI improvements"`
-
-### Option C: pass notes from file
-
-`...python.exe tools/qgis_repo_release.py --out docs/qgis-repo --release-title "v2.00.17" --release-notes-file release-notes.md`
-
-After running, commit and push updated `docs/qgis-repo/plugins.xml` so users see the notes in Plugin Manager.
+This creates `release_repo/plugins.xml`, a versioned ZIP and an optional icon. Local output is for validation only; the GitHub workflow uploads the public release assets.

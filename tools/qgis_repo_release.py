@@ -10,10 +10,12 @@ Designed to follow:
 https://medium.com/geospatial-team/publishing-qgis-plugins-fb410b958f6
 
 Usage (from plugin root folder):
-  python tools/qgis_repo_release.py --out docs/qgis-repo --base-url https://<user>.github.io/<repo>/qgis-repo/
+  python tools/qgis_repo_release.py --out release_repo \
+    --base-url https://github.com/<owner>/<repo>/releases/download/<tag>/
 
-Then enable GitHub Pages for /docs and add repository URL in QGIS:
-  https://<user>.github.io/<repo>/qgis-repo/plugins.xml
+The release workflow uploads these artifacts to GitHub Releases. The stable URL
+configured in QGIS is:
+  https://github.com/<owner>/<repo>/releases/latest/download/plugins.xml
 """
 
 from __future__ import annotations
@@ -41,6 +43,7 @@ DEFAULT_EXCLUDE_DIRS: Tuple[str, ...] = (
     "tests",
     "tools",
     "Temporary",
+    "release_repo",
     "tmp_release_repo",
     "build",
     "dist",
@@ -107,49 +110,6 @@ def _require(meta: Dict[str, str], key: str) -> str:
     if not val:
         raise ValueError(f"Missing required metadata key '{key}' in metadata.txt")
     return val
-
-
-def _infer_github_pages_base_url(git_remote: str, repo_path: str) -> Optional[str]:
-    """Infer https://<owner>.github.io/<repo>/<repo_path>/ from a git remote.
-
-    Supports:
-    - git@github.com:OWNER/REPO.git
-    - https://github.com/OWNER/REPO.git
-    """
-
-    owner_repo: Optional[Tuple[str, str]] = None
-
-    m = re.search(r"github\.com[:/](?P<owner>[^/]+)/(?P<repo>[^\s/]+?)(?:\.git)?$", git_remote.strip())
-    if m:
-        owner_repo = (m.group("owner"), m.group("repo"))
-
-    if not owner_repo:
-        return None
-
-    owner, repo = owner_repo
-    repo = repo.removesuffix(".git")
-
-    base = f"https://{owner.lower()}.github.io/{repo}/"
-    if repo_path:
-        base = base.rstrip("/") + "/" + repo_path.strip("/") + "/"
-    return base
-
-
-def _get_git_remote_origin() -> str:
-    # No subprocess dependency; use environment if present, otherwise best-effort.
-    # If git is available, user can pass --base-url explicitly.
-    try:
-        import subprocess
-
-        completed = subprocess.run(
-            ["git", "remote", "get-url", "origin"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        return completed.stdout.strip()
-    except Exception:
-        return ""
 
 
 def _should_exclude(rel_posix: str, exclude_dirs: Tuple[str, ...]) -> bool:
@@ -432,16 +392,14 @@ def _copy_repo_icon(plugin_root: Path, meta: PluginMeta, out_dir: Path, repo_ico
 def main(argv: Optional[Iterable[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Build QGIS custom plugin repository artifacts (plugins.xml + zip).")
     parser.add_argument("--plugin-dir", default=".", help="Path to plugin root folder (contains metadata.txt)")
-    parser.add_argument("--out", default="docs/qgis-repo", help="Output directory for plugins.xml and zip")
+    parser.add_argument("--out", default="release_repo", help="Output directory for plugins.xml and zip")
     parser.add_argument(
         "--base-url",
         default="",
-        help="Base URL where the output directory is hosted (must end with '/'). Example: https://user.github.io/repo/qgis-repo/",
-    )
-    parser.add_argument(
-        "--repo-path",
-        default="qgis-repo",
-        help="Used only when --base-url is not provided and origin remote is GitHub; appended to inferred Pages base.",
+        help=(
+            "Tag-specific GitHub Release URL where the artifacts are hosted (must end with '/'). "
+            "Example: https://github.com/owner/repo/releases/download/v2.0.0/"
+        ),
     )
     parser.add_argument(
         "--exclude-dir",
@@ -546,12 +504,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         base_url += "/"
 
     if not base_url:
-        origin = _get_git_remote_origin()
-        inferred = _infer_github_pages_base_url(origin, repo_path=args.repo_path)
-        base_url = inferred or ""
-
-    if not base_url:
-        print("ERROR: Could not infer base URL. Provide --base-url explicitly.", file=sys.stderr)
+        print("ERROR: Provide the tag-specific GitHub Release URL with --base-url.", file=sys.stderr)
         return 2
 
     download_url = base_url + zip_name
