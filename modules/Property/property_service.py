@@ -69,8 +69,7 @@ class PropertyDataService:
         return {"entries": [entry]}
 
     def _session_signature(self) -> str:
-        token = SessionManager().get_token_raw() or ""
-        return str(token)[-12:]
+        return SessionManager.session_signature()
 
     def _read_cache(self, key: tuple) -> Optional[Dict[str, object]]:
         with self._cache_lock:

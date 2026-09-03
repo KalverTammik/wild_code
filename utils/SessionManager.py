@@ -32,6 +32,12 @@ from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
 from ..languages.translation_keys import TranslationKeys
 from .messagesHelper import ModernMessageDialog
 from ..Logs.python_fail_logger import PythonFailLogger
+from .secure_session_store import (
+    AUTH_ID,
+    AUTH_USERNAME,
+    LEGACY_SESSION_TOKEN,
+    SecureSessionStore,
+)
 
 
 """Session persistence + UI session flow (single-file layout).
@@ -45,14 +51,14 @@ Sections:
 # ------------------------------------------------------------------
 # Session constants
 # ------------------------------------------------------------------
-SESSION_TOKEN = "session/token"
+SESSION_TOKEN = LEGACY_SESSION_TOKEN
 SESSION_ACTIVE_USER = "session/user"
 SESSION_NEEDS_LOGIN = "session/needs_login"
 
-
-# Authentication
-AUTH_ID = "myplugin/auth_id"
-AUTH_USERNAME = "myplugin/username"
+SESSION_STORAGE_PERSISTENT = "persistent"
+SESSION_STORAGE_MEMORY_ONLY = "memory_only"
+SESSION_STORAGE_MIGRATION_PENDING = "migration_pending"
+SESSION_STORAGE_CLEANUP_FAILED = "cleanup_failed"
 
 
 # ------------------------------------------------------------------
@@ -66,6 +72,7 @@ class SessionManager:
     _login_cancelled_for_reason: Optional[str] = None
     _last_login_reason: Optional[str] = None
     _listeners: list = []
+    _storage_warning_pending: Optional[str] = None
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -74,32 +81,104 @@ class SessionManager:
             cls._instance.loggedInUser = None
             cls._instance.settings = QgsSettings()
             cls._instance.auth_manager = QgsApplication.authManager()
+            cls._instance.secure_store = SecureSessionStore(
+                cls._instance.auth_manager,
+                cls._instance.settings,
+                QgsAuthMethodConfig,
+            )
             cls._instance.username = None
-            cls._instance.password = None
-            cls._instance.api_key = None
+            cls._instance.session_generation = 0
         return cls._instance
 
 
     @staticmethod
-    def load() -> None:
-        """Load session data from QgsSettings."""
+    def load() -> str:
+        """Restore a session from QGIS auth storage and migrate legacy data."""
         if not SessionManager._instance:
             SessionManager()
-        settings = SessionManager._instance.settings
-        SessionManager._instance.apiToken = settings.value(SESSION_TOKEN, None)
-        SessionManager._instance.loggedInUser = settings.value(SESSION_ACTIVE_USER, None)
-        
+        session = SessionManager._instance
+        settings = session.settings
+        session.apiToken = None
+        session.loggedInUser = settings.value(SESSION_ACTIVE_USER, None)
+        session.username = (
+            session.secure_store.username()
+            or SessionManager._username_from_user(session.loggedInUser)
+        )
+        SessionManager._storage_warning_pending = None
+
+        if SessionManager._get_bool_setting(SESSION_NEEDS_LOGIN, False):
+            session.secure_store.purge_legacy_token()
+            SessionManager._advance_session_generation()
+            return "login_required"
+
+        legacy_token = str(settings.value(SESSION_TOKEN, "") or "").strip()
+        if legacy_token:
+            username = session.username or SessionManager._username_from_user(session.loggedInUser)
+            stored = session.secure_store.save_token(username, legacy_token)
+            session.apiToken = legacy_token
+            SessionManager._advance_session_generation()
+            if stored.success:
+                if not stored.plaintext_purged:
+                    SessionManager._set_storage_warning(SESSION_STORAGE_CLEANUP_FAILED)
+                    return SESSION_STORAGE_CLEANUP_FAILED
+                if stored.cleanup_pending:
+                    SessionManager._set_storage_warning(SESSION_STORAGE_MIGRATION_PENDING)
+                    return SESSION_STORAGE_MIGRATION_PENDING
+                return SESSION_STORAGE_PERSISTENT
+
+            warning_status = (
+                SESSION_STORAGE_MEMORY_ONLY
+                if stored.plaintext_purged
+                else SESSION_STORAGE_CLEANUP_FAILED
+            )
+            SessionManager._set_storage_warning(warning_status)
+            PythonFailLogger.log(
+                "legacy_session_secure_store_failed",
+                module="auth",
+                extra={"reason": stored.reason},
+            )
+            return warning_status
+
+        loaded = session.secure_store.load_token()
+        if not loaded.success or not loaded.token:
+            SessionManager._advance_session_generation()
+            PythonFailLogger.log(
+                "secure_session_not_restored",
+                module="auth",
+                extra={"reason": loaded.reason},
+            )
+            return "login_required"
+
+        session.apiToken = loaded.token
+        SessionManager._advance_session_generation()
+        if loaded.requires_migration:
+            stored = session.secure_store.save_token(session.username, loaded.token)
+            if not stored.plaintext_purged:
+                warning_status = SESSION_STORAGE_CLEANUP_FAILED
+            elif not stored.success or stored.cleanup_pending:
+                warning_status = SESSION_STORAGE_MIGRATION_PENDING
+            else:
+                warning_status = ""
+            if warning_status:
+                SessionManager._set_storage_warning(warning_status)
+                PythonFailLogger.log(
+                    "secure_session_migration_pending",
+                    module="auth",
+                    extra={"reason": stored.reason},
+                )
+                return warning_status
+        elif session.secure_store.cleanup_stale_configs():
+            SessionManager._set_storage_warning(SESSION_STORAGE_MIGRATION_PENDING)
+            return SESSION_STORAGE_MIGRATION_PENDING
+        return SESSION_STORAGE_PERSISTENT
 
     @staticmethod
     def save_session() -> None:
-        """Save session data to QgsSettings."""
+        """Persist non-secret session metadata; the token stays out of settings."""
         if not SessionManager._instance:
             SessionManager()
         settings = SessionManager._instance.settings
-        if SessionManager._instance.apiToken:
-            settings.setValue(SESSION_TOKEN, SessionManager._instance.apiToken)
-        else:
-            settings.remove(SESSION_TOKEN)
+        SessionManager._instance.secure_store.purge_legacy_token()
         if SessionManager._instance.loggedInUser:
             settings.setValue(SESSION_ACTIVE_USER, SessionManager._instance.loggedInUser)
         else:
@@ -113,11 +192,12 @@ class SessionManager:
         if not SessionManager._instance:
             SessionManager()
         settings = SessionManager._instance.settings
-        settings.remove(SESSION_TOKEN)
+        SessionManager._instance.secure_store.purge_legacy_token()
         settings.remove(SESSION_ACTIVE_USER)
         settings.setValue(SESSION_NEEDS_LOGIN, True)
         SessionManager._instance.apiToken = None
         SessionManager._instance.loggedInUser = None
+        SessionManager._advance_session_generation()
         SessionManager._session_expired_shown = False
         SessionManager._login_cancelled_for_reason = None
         SessionManager.save_session()  # Ensure persistent storage is updated
@@ -127,57 +207,15 @@ class SessionManager:
             module="auth",
         )
     # --- Secure Credential Handling (QgsAuthenticationManager) ---
-    def save_credentials(self, username: str, password: str, api_key: str) -> None:
-        config = QgsAuthMethodConfig("Basic")
-        config.setName("myplugin_session")
-        config.setConfig("username", username)
-        config.setConfig("password", password)
-        config.setConfig("apikey", api_key)
-
-        if self.auth_manager.storeAuthenticationConfig(config):
-            self.settings.setValue(AUTH_ID, config.id())
-            self.settings.setValue(AUTH_USERNAME, username)
-            # Credentials securely stored.
-        else:
-            try:
-                from ..Logs.logger import error as log_error
-                log_error("Failed to store authentication config.")
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="auth",
-                    event="auth_store_log_failed",
-                )
-
-    def load_credentials(self) -> bool:
-        auth_id = self.settings.value(AUTH_ID, "")
-        self.username = self.settings.value(AUTH_USERNAME, "")
-
-        if not auth_id:
-            # No stored auth ID found.
-            return False
-
-        config = QgsAuthMethodConfig()
-        if self.auth_manager.loadAuthenticationConfig(auth_id, config):
-            self.password = config.config("password")
-            self.api_key = config.config("apikey")
-            return True
-        else:
-            try:
-                from ..Logs.logger import error as log_error
-                log_error("Failed to load authentication config.")
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="auth",
-                    event="auth_load_log_failed",
-                )
-            return False
+    def get_username(self) -> str:
+        self.username = (
+            self.secure_store.username()
+            or SessionManager._username_from_user(self.loggedInUser)
+        )
+        return str(self.username or "").strip()
 
     def clear_session(self) -> None:
         self.username = None
-        self.password = None
-        self.api_key = None
         # Session data cleared.
 
     def clear_credentials(self) -> None:
@@ -245,23 +283,52 @@ class SessionManager:
         return False
 
     @staticmethod
-    def setSession(apiToken: Optional[str], user: Optional[str]) -> None:
-        """Set the session data and reset expired dialog flag."""
+    def setSession(
+        apiToken: Optional[str],
+        user: Optional[object],
+        username: Optional[str] = None,
+    ) -> str:
+        """Securely persist a token when possible, then activate it in memory."""
         if not SessionManager._instance:  # Ensure the instance is initialized
             SessionManager()
-        SessionManager._instance.apiToken = apiToken
-        SessionManager._instance.loggedInUser = user
+        session = SessionManager._instance
+        token = str(apiToken or "").strip()
+        resolved_username = str(
+            username or SessionManager._username_from_user(user) or session.get_username()
+        ).strip()
+        stored = session.secure_store.save_token(resolved_username, token)
+        if not stored.plaintext_purged:
+            storage_status = SESSION_STORAGE_CLEANUP_FAILED
+        elif stored.success:
+            storage_status = (
+                SESSION_STORAGE_MIGRATION_PENDING
+                if stored.cleanup_pending
+                else SESSION_STORAGE_PERSISTENT
+            )
+        else:
+            storage_status = SESSION_STORAGE_MEMORY_ONLY
+            PythonFailLogger.log(
+                "login_secure_store_failed",
+                module="auth",
+                extra={"reason": stored.reason},
+            )
+
+        session.apiToken = token or None
+        session.loggedInUser = user
+        session.username = resolved_username or None
+        SessionManager._advance_session_generation()
         SessionManager._session_expired_shown = False
         SessionManager._login_cancelled_for_reason = None
         SessionManager._last_login_reason = None
-        SessionManager._instance.settings.setValue(SESSION_NEEDS_LOGIN, False)
+        session.settings.setValue(SESSION_NEEDS_LOGIN, False)
         SessionManager.save_session()  # Always save after setting
         SessionManager._notify_session_changed()
         PythonFailLogger.log(
             "login_session_set",
             module="auth",
-            extra={"user": str(user or "")},
+            extra={"user": resolved_username, "storage": storage_status},
         )
+        return storage_status
 
     @staticmethod
     def isSessionExpired() -> bool:
@@ -287,11 +354,49 @@ class SessionManager:
         return self.get_token_raw()
 
     def get_token_raw(self) -> Optional[str]:
-        """Return the current session's API token without validity checks."""
+        """Return the in-memory token without reading any persistent store."""
         if hasattr(self, "apiToken") and self.apiToken:
             return self.apiToken
-        token = self.settings.value(SESSION_TOKEN, None)
-        return token
+        return None
+
+    @staticmethod
+    def session_signature() -> str:
+        """Return a non-secret generation value for session-scoped caches."""
+        if not SessionManager._instance:
+            SessionManager()
+        return str(SessionManager._instance.session_generation)
+
+    @staticmethod
+    def show_storage_warning(status: str, parent=None, lang_manager=None) -> None:
+        if status not in (
+            SESSION_STORAGE_MEMORY_ONLY,
+            SESSION_STORAGE_MIGRATION_PENDING,
+            SESSION_STORAGE_CLEANUP_FAILED,
+        ):
+            return
+        manager = lang_manager
+        if manager is None:
+            from ..languages.language_manager import LanguageManager
+
+            manager = LanguageManager()
+        title = manager.translate(TranslationKeys.SESSION_STORAGE_WARNING_TITLE)
+        message_keys = {
+            SESSION_STORAGE_MEMORY_ONLY: TranslationKeys.SESSION_STORAGE_MEMORY_ONLY,
+            SESSION_STORAGE_MIGRATION_PENDING: TranslationKeys.SESSION_STORAGE_MIGRATION_PENDING,
+            SESSION_STORAGE_CLEANUP_FAILED: TranslationKeys.SESSION_STORAGE_CLEANUP_FAILED,
+        }
+        ModernMessageDialog.show_warning(
+            title,
+            manager.translate(message_keys[status]),
+            parent=parent,
+        )
+
+    @staticmethod
+    def show_pending_storage_warning(parent=None, lang_manager=None) -> None:
+        status = SessionManager._storage_warning_pending
+        SessionManager._storage_warning_pending = None
+        if status:
+            SessionManager.show_storage_warning(status, parent=parent, lang_manager=lang_manager)
 
     @staticmethod
     def register_listener(listener) -> None:
@@ -324,10 +429,11 @@ class SessionManager:
         already_invalid = SessionManager._get_bool_setting(SESSION_NEEDS_LOGIN, False)
         if not already_invalid:
             settings.setValue(SESSION_NEEDS_LOGIN, True)
-            settings.remove(SESSION_TOKEN)
+            SessionManager._instance.secure_store.purge_legacy_token()
             settings.remove(SESSION_ACTIVE_USER)
             SessionManager._instance.apiToken = None
             SessionManager._instance.loggedInUser = None
+            SessionManager._advance_session_generation()
             SessionManager.save_session()
             SessionManager._notify_session_changed()
         SessionManager.request_login(reason=reason)
@@ -400,6 +506,26 @@ class SessionManager:
                 SessionManager._login_dialog_open = False
 
         QTimer.singleShot(0, _open_dialog)
+
+    @staticmethod
+    def _set_storage_warning(status: str) -> None:
+        SessionManager._storage_warning_pending = status
+
+    @staticmethod
+    def _advance_session_generation() -> None:
+        if not SessionManager._instance:
+            SessionManager()
+        SessionManager._instance.session_generation += 1
+
+    @staticmethod
+    def _username_from_user(user: Optional[object]) -> str:
+        if isinstance(user, dict):
+            for key in ("name", "username", "email"):
+                value = str(user.get(key) or "").strip()
+                if value:
+                    return value
+            return ""
+        return str(user or "").strip()
 
     @staticmethod
     def _get_bool_setting(key: str, default: bool) -> bool:

@@ -190,6 +190,20 @@ Täieliku failide üleslaadimise ja kustutamise dialoogi klass on olemas ainult 
 
 Kui on vaja kontrollida, milline plugina versioon tegelikult QGIS-is töötab, vaata jaluse väärtust, mitte ainult repositooriumi haru või Git-ajalugu.
 
+## Sessiooni turvaline salvestamine
+
+Kavitro hoiab aktiivset juurdepääsutõendit töö ajal mälus ja kasutab püsiva sessiooni jaoks QGIS-i autentimishaldurit. Sisestatud Kavitro parooli ei salvestata. QGIS-i tavaseadetesse jäävad ainult autentimiskirje tunnus, kasutajanimi ja sessiooni olek.
+
+QGIS võib esimesel sisselogimisel paluda luua autentimishalduri master-parooli või olemasoleva master-parooli sisestada. Master-parool kuulub QGIS-ile ja võib kaitsta ka teiste ühenduste autentimisandmeid.
+
+Kui master-parooli küsimus katkestatakse või kaitstud salvestamine ebaõnnestub:
+
+- Kavitro ei salvesta juurdepääsutõendit avatekstina;
+- tööd saab jätkata praeguse QGIS-i käivituse lõpuni;
+- pärast QGIS-i sulgemist tuleb Kavitrosse uuesti sisse logida.
+
+Ära kustuta probleemi lahendamiseks omal käel faili `qgis-auth.db`, sest see võib eemaldada ka teiste QGIS-i ühenduste autentimisandmed. Unustatud või mittetöötava master-parooli korral pöördu enne autentimisandmebaasi lähtestamist toe poole.
+
 ## Akna sulgemine ja väljalogimine
 
 Tavaline akna sulgemine minimeerib Visuaali ning säilitab aktiivse sessiooni. Plugina saab uuesti ette tuua QGIS-i tööriistaribalt või menüüst.

@@ -28,6 +28,8 @@ Nupu vajutamisel:
 4. kehtiva kohaliku sessiooni korral avatakse või tuuakse ette olemasolev Visuaali aken;
 5. puuduva sessiooni korral avatakse sisselogimisaken ning põhiaken kuvatakse pärast edukat sisselogimist.
 
+Püsiv juurdepääsutõend laaditakse QGIS-i autentimishalduri kaitstud autentimiskirjest. QGIS-i tavaseadetes säilitatakse ainult autentimiskirje tunnus, kasutajanimi ja sessiooni olek. Kui autentimishaldur vajab kaitstud kirje avamiseks master-parooli, kuvab QGIS selle küsimuse enne sessiooni taastamist.
+
 Kui QGIS-i projekt pole veel failina salvestatud, kuvatakse hoiatus ja Visuaali põhiakent ei avata. Uus nimeta projekt tuleb esmalt salvestada.
 
 Kui Visuaali aken on juba olemas, ei looda uut akent. Minimeeritud aken taastatakse ja tuuakse ette. Põhiakna tavaline sulgemisrist minimeerib akna ning säilitab sessiooni; tööriistariba nupp taastab sama akna ja aktiivse mooduli. Kui **Seadistustes** on kinnitamata muudatusi, rakendub enne minimeerimist seadistuste salvestamise või hülgamise kontroll ning sulgemise saab katkestada.
@@ -61,10 +63,16 @@ Päringu ajal on **Logi sisse** passiivne, et sama toimingut ei saadetaks mitu k
 
 Eduka sisselogimise järel:
 
-- salvestatakse aktiivne juurdepääsutõend ja kasutaja sessioon QGIS-i seadetesse;
-- proovitakse salvestada kasutajanimi, parool ja API-võti QGIS-i autentimishaldurisse;
+- hoitakse aktiivset juurdepääsutõendit töö ajal mälus;
+- juurdepääsutõend salvestatakse püsiva sessiooni jaoks QGIS-i autentimishaldurisse;
+- QGIS-i tavaseadetesse salvestatakse ainult autentimiskirje tunnus, kasutajanimi ja sessiooni olek;
+- sisestatud Kavitro parooli ei salvestata;
 - sisselogimisaken suletakse;
 - avatakse Visuaali põhiaken.
+
+QGIS võib autentimishalduri esmakordsel kasutamisel paluda luua master-parooli või olemasoleva master-parooli sisestada. Kui kaitstud salvestamine katkestatakse või ebaõnnestub, ei kirjutata juurdepääsutõendit avatekstina kettale. Kasutaja võib jätkata tööd praeguse QGIS-i käivituse lõpuni, kuid pärast QGIS-i sulgemist tuleb uuesti sisse logida.
+
+Uuenduse järel teisendab Kavitro võimaluse korral vana kohaliku sessiooni automaatselt kaitstud autentimiskirjeks ning eemaldab vana avatekstis juurdepääsutõendi. Kui teisendamine ei õnnestu, kuvatakse hoiatus ja puhastamist proovitakse järgmisel sobival sisselogimisel uuesti.
 
 Ebaõnnestumisel jääb sisselogimisaken avatuks, veaga väli tõstetakse esile ja nupp aktiveeritakse uueks katseks. Teade eristab tühje välju, sobimatut kasutajanime või parooli ja üldist teenuseühenduse viga.
 

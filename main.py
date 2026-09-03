@@ -91,6 +91,7 @@ class WildCodePlugin:
         MapHelpers.cleanup_empty_import_layers(IMPORT_PROPERTY_TAG)
         session = SessionManager()
         session.load()
+        SessionManager.show_pending_storage_warning(parent=self.iface.mainWindow())
         if not SessionManager.is_session_valid():
             self.pluginDialog = None
             old_listener = getattr(self, "_pending_login_listener", None)

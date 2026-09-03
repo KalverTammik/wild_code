@@ -25,6 +25,10 @@ class TranslationKeys:
     LOGIN_PASSWORD_INVALID = "login_password_invalid"
     LOGIN_CREDENTIALS_INVALID = "login_credentials_invalid"
     LOGIN_SERVER_UNAVAILABLE = "login_server_unavailable"
+    SESSION_STORAGE_WARNING_TITLE = "session_storage_warning_title"
+    SESSION_STORAGE_MEMORY_ONLY = "session_storage_memory_only"
+    SESSION_STORAGE_MIGRATION_PENDING = "session_storage_migration_pending"
+    SESSION_STORAGE_CLEANUP_FAILED = "session_storage_cleanup_failed"
 
     # Plugin UI
     KAVITRO_PLUGIN_TITLE = "kavitro_plugin_title"

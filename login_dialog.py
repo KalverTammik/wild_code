@@ -239,8 +239,17 @@ class LoginDialog(QDialog):
             if api_token:
                 self.api_token = api_token
                 self.user = {"name": username, "email": username}
-                SessionManager().setSession(self.api_token, self.user)
-                SessionManager().save_credentials(username, password, api_token)
+                storage_status = SessionManager().setSession(
+                    self.api_token,
+                    self.user,
+                    username=username,
+                )
+                self.password_input.clear()
+                SessionManager.show_storage_warning(
+                    storage_status,
+                    parent=self,
+                    lang_manager=lang,
+                )
                 self.loginSuccessful.emit(self.api_token, self.user)
                 self.accept()
             else:

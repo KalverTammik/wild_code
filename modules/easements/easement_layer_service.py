@@ -416,8 +416,7 @@ class EasementLayerService:
             username = str(getattr(session, "username", "") or "").strip()
             if username:
                 return username
-            session.load_credentials()
-            return str(getattr(session, "username", "") or "").strip()
+            return session.get_username()
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
