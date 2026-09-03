@@ -14,6 +14,8 @@ from .utils.SessionManager import SessionManager
 #import tranlation keys
 from .languages.translation_keys import TranslationKeys, DialogLabels
 from .python.api_client import APIClient
+from .python.GraphQLQueryLoader import GraphQLQueryLoader
+from .utils.url_manager import Module
 
 lang = LanguageManager(language="et")
 
@@ -219,21 +221,25 @@ class LoginDialog(QDialog):
         self._authenticating = True
         self.login_button.setEnabled(False)
 
-        # Build GraphQL mutation (server accepts username/password in input)
-        graphql = f'''
-            mutation {{
-                login(input: {{ username: "{username}", password: "{password}" }}) {{
-                    accessToken
-                    refreshToken
-                    expiresIn
-                }}
-            }}
-        '''
-
         api = APIClient()
         try:
+            graphql = GraphQLQueryLoader().load_query_by_module(
+                Module.USER.value,
+                "login.graphql",
+            )
+            variables = {
+                "input": {
+                    "username": username,
+                    "password": password,
+                }
+            }
             # Use shared client for consistent headers and error handling; no auth required for login
-            data = api.send_query(graphql, variables=None, require_auth=False, timeout=10)
+            data = api.send_query(
+                graphql,
+                variables=variables,
+                require_auth=False,
+                timeout=10,
+            )
             login_data = (data or {}).get("login", {})
             api_token = login_data.get("accessToken")
             if api_token:

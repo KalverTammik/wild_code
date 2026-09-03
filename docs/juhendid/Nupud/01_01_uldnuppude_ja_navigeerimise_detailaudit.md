@@ -61,6 +61,8 @@ Enne teenusepäringut kontrollitakse välju:
 
 Päringu ajal on **Logi sisse** passiivne, et sama toimingut ei saadetaks mitu korda. Teenusepäringu ajalimiit on kümme sekundit.
 
+Sisselogimispäring laaditakse eraldi staatilisest GraphQL-failist. Kasutajanimi ja parool saadetakse GraphQL-i muutujate `input.username` ja `input.password` kaudu, mitte päringudokumenti liidetud tekstina. Nii säilib parool JSON-edastuses muutmata ka jutumärkide, kaldkriipsude, reavahetuste ja Unicode'i märkide korral ning päringudokument ise ei sisalda kasutaja autentimisandmeid.
+
 Eduka sisselogimise järel:
 
 - hoitakse aktiivset juurdepääsutõendit töö ajal mälus;

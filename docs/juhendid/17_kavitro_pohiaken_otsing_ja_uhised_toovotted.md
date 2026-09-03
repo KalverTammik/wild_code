@@ -194,6 +194,8 @@ Kui on vaja kontrollida, milline plugina versioon tegelikult QGIS-is töötab, v
 
 Kavitro hoiab aktiivset juurdepääsutõendit töö ajal mälus ja kasutab püsiva sessiooni jaoks QGIS-i autentimishaldurit. Sisestatud Kavitro parooli ei salvestata. QGIS-i tavaseadetesse jäävad ainult autentimiskirje tunnus, kasutajanimi ja sessiooni olek.
 
+Sisselogimisel edastatakse kasutajanimi ja parool teenusele GraphQL-i eraldi muutujatena. Neid ei lisata GraphQL-i päringudokumendi teksti. See võimaldab kasutada paroolis turvaliselt ka jutumärke, kaldkriipse, reavahetusi ja Unicode'i märke.
+
 QGIS võib esimesel sisselogimisel paluda luua autentimishalduri master-parooli või olemasoleva master-parooli sisestada. Master-parool kuulub QGIS-ile ja võib kaitsta ka teiste ühenduste autentimisandmeid.
 
 Kui master-parooli küsimus katkestatakse või kaitstud salvestamine ebaõnnestub:
