@@ -10,7 +10,7 @@ Filtrite, tähtajanuppude ja kirjekaardi üldise ülesehituse detailid on failis
 |---|---|---|
 | **… Detailne ülevaade** | Loeb Kavitrost seotud kirjeid ja kuvab need projektikaardil | Püsiandmeid ei muudeta |
 | **Ava kaust**, **Ava kirje brauseris** | Avab välise asukoha | Visuaal andmeid ei muuda |
-| **Näita kirjeid kaardil** | Muudab QGIS-i aktiivset kihti, objektivalikuid ja kaardi ulatust | Valikud saab QGIS-is eemaldada |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Seoseta olekus võib pärast ülevaate kinnitamist lisada Kavitro kinnistuseoseid; seosega olekus muudab QGIS-i aktiivset kihti, objektivalikuid ja kaardi ulatust | Seostamist selle töövooga tagasi võtta ei saa; QGIS-i valikud saab eemaldada |
 | **Genereeri projekti kaust** | Kopeerib failisüsteemi kausta ja võib muuta Kavitro projekti `filesPath` väärtust | Automaatset tagasivõtmist ei ole |
 | **Seosta kinnistuid** | Lisab Kavitros projektile kinnistuseoseid | Selle töövooga seoseid eemaldada ei saa |
 | Eelvaate loomine ja puhastamine | Lisab või eemaldab QGIS-i ajutisi mälukihte | Jah, kuni ala pole põhikihile salvestatud |
@@ -54,14 +54,14 @@ Detail luuakse kaardil esimesel avamisel ja sama detailvidinat uuesti avades ei 
 
 ## Ava kaust
 
-Ikoonnupp on aktiivne ainult siis, kui projektikaardi loomise ajal oli projekti `filesPath` väärtus mittetühi.
+Ikoonnupp on aktiivne, kui projekti `filesPath` väärtus on mittetühi. Projektikausta lingi lisamisel või uuendamisel rakendatakse teenuse kinnitatud uus tee kohe sama kaardi nupule.
 
 - Kohalik tee avatakse Windows Exploreris.
 - `http` algusega väärtus avatakse operatsioonisüsteemi kaudu veebiaadressina.
 - Tee olemasolu, ligipääsuõigust ega aadressi kehtivust enne avamist ei kontrollita.
 - Avamisviga kirjutatakse logisse, kuid kasutajale teadet ei kuvata.
 
-Nupu olek ei uuene pärast projektikausta genereerimist sama kaardi sees. Uue `filesPath` väärtuse nägemiseks tuleb projektide loend või kaart uuesti laadida.
+Kaustalingi eduka salvestamise järel ei asendata projektikaarti ega laadita filtreeritud loendit uuesti. Seetõttu säilivad filtrid ja kerimiskoht. Kui mutatsioon ebaõnnestub või kasutaja lingi lisamisest loobub, ei muudeta kaustanupu senist teed ega aktiivsust.
 
 ## Ava kirje brauseris
 
@@ -69,9 +69,14 @@ Nupp on aktiivne, kui kaardil on mooduli nimi ja projekti ID. See moodustab Kavi
 
 Nupp ei salvesta andmeid. Puuduva baasaadressi või avamisvea korral jääb toiming vaikseks või kirjutab vea logisse; kasutajale õnnestumise ega vea teadet ei kuvata.
 
-## Näita kirjeid kaardil
+## Seosta kinnistuid / Näita seotud kinnistuid kaardil
 
-Projektikaardil on nupp ID olemasolul aktiivne ka siis, kui projektil pole kinnistuseoseid, sest projektide moodul toetab projektiala otsest fokuseerimist.
+Projektikaardi toimingul on kaks olekut:
+
+- kui projektil ei ole kinnistuseoseid, kuvatakse seostamisikoon kohtspikriga **Kinnistuseos puudub – seosta kinnistuid**; klõps käivitab sama valiku- ja kinnitustöövoo nagu **Rohkem toiminguid → Seosta kinnistuid**;
+- vähemalt ühe kinnistuseose korral kuvatakse kaardiikoon kohtspikriga **Näita seotud kinnistuid kaardil**.
+
+Seostamisoleku klõps ei salvesta andmeid kohe. Kasutaja valib kinnistud kaardilt ja kinnitab need ülevaatedialoogis. Eduka kinnituse järel muutub ainult sama projektikaardi nupp kohe kaardiikooniks; loobumise või vea korral jääb see seostamisolekusse.
 
 Klõpsamisel tehakse kaks teineteisest sõltumatut sammu:
 
@@ -82,7 +87,7 @@ Projektiala otsitakse väljadest `ext_project_id`, `ext_id` või `external_id`. 
 
 Toiming võib seega anda osalise tulemuse: kuvada ainult kinnistud või ainult projektiala. Kui kihid, väljad või objektid puuduvad, ei kuvata kasutajale koondhoiatust. Samuti ei taastata varasemat aktiivset kihti, kaardi ulatust ega objektivalikuid.
 
-Kaardinupu kohtspikker jääb praeguses koodis tõlkimata võtme ingliskeelseks tekstiks **Show Items on Map**, kuigi eestikeelne tõlge on olemas.
+Projektiala otsene fokuseerimine jääb seotud kinnistute näitamise lisasammuks. Seoseta projekti puhul käivitab sama nupp seostamise ega luba eksitavalt projektiala või kinnistutele suumimist.
 
 ## Rohkem toiminguid
 
@@ -110,24 +115,32 @@ Kui mõni neist puudub, kuvatakse üldine seadistuse hoiatus ja kasutaja suunata
 
 ### Kinnitused ja failimõju
 
-Esimene **Jah / Ei** valik küsib, kas kasutaja on kontrollinud, et sama sisuga kausta pole varem loodud.
+Enne esimest **Jah / Ei** valikut kontrollitakse, et lähte- ja sihtkaust on olemas ning et sihtkaust ei paikne mallkausta sees. Reeglist arvutatud nimi normaliseeritakse üheks Windowsis sobivaks kaustakomponendiks: teeeraldajad, kontrollmärgid ja keelatud märgid asendatakse, lõpu punktid ning tühikud eemaldatakse ja reserveeritud seadmenimed tehakse ohutuks.
+
+Esimene kinnitus tuletab meelde, et töövoog on mõeldud eelkõige uutele projektidele, ning näitab nii lähtekausta kui ka täielikku normaliseeritud sihtteed. Vaike- ja tühistamisvalik on **Ei**, seega `Enter`, `Esc` või akna sulgemine kopeerimist ei käivita.
 
 **Jah** korral:
 
 1. moodustatakse kaustanimi salvestatud reeglist või vaikereeglist `PROJECT_NUMBER + PROJECT_NAME`;
-2. lähtekaust kopeeritakse koos kogu sisu ja alamkaustadega sihtkausta;
-3. kui sama nimega kaust on juba olemas, kuvatakse hoiatus ja midagi üle ei kirjutata;
-4. pärast edukat kopeerimist küsitakse teise **Jah / Ei** valikuga, kas kaustatee lisada Kavitro projektile.
+2. nimi normaliseeritakse ja kontrollitakse, et lahendatud sihttee on seadistatud sihtkausta vahetu alamkaust;
+3. kasutajale näidatakse tegelikku lähte- ja sihtteed;
+4. **Jah** korral kopeeritakse lähtekaust koos kogu sisu ja alamkaustadega sihtkausta;
+5. kui sama nimega kaust on juba olemas, ei kopeerita ega muudeta selle sisu; kasutajale näidatakse täielikku teed ja pakutakse vaikimisi eitava kinnitusega toimingut **Lisa või uuenda**;
+6. pärast edukat kopeerimist küsitakse teise **Jah / Ei** valikuga, kas kaustatee lisada Kavitro projektile.
 
 Teise valiku **Ei** jätab kausta kettale, kuid ei muuda projekti `filesPath` väärtust. Juba kopeeritud kausta ei kustutata ka hilisema lingivea korral.
 
-Seadistuskaardil salvestatud nime reeglit kasutatakse ainult siis, kui profiilis on sisse lülitatud pärandväärtus **Luba eelistatud kausta nime struktuur**. Praeguses seadistuskaardis seda lülitit ei kuvata. Ilma liputa kasutatakse vaikereeglit ning projekti number ja nimi ühendatakse ilma automaatse tühiku või eraldajata.
+Seadistuskaardil salvestatud nime reeglit kasutatakse sõltumata varasemast peidetud väärtusest **Luba eelistatud kausta nime struktuur**. Vaikereeglit kasutatakse ainult salvestatud reegli puudumisel ning see ühendab projekti numbri ja nime ilma automaatse tühiku või eraldajata. Projektinumber lahendatakse väljadest `projectNumber` või `number`; kui rakendatav reegel nõuab numbrit, kuid seda kirjel pole, peatatakse loomine hoiatusega.
 
-### Kaustalingi salvestamise koodiviga
+### Kaustalingi salvestamine
 
-Lingi uuendaja proovib laadida GraphQL-faili `updateProjectsProperties.graphql`, kuid repos oleva faili nimi on `updateProjectProperties.graphql`. Praeguses versioonis lõpeb teise kinnituse **Jah** seetõttu failipuudumise erindiga. Kasutajale kuvatakse ingliskeelne veahoiatus, kuid kopeeritud kaust jääb sihtkohta alles.
+Kaustalingi uuendamine kasutab eraldi väikest GraphQL-faili `updateProjectFilesPath.graphql`, mitte kinnistuseoste muutmiseks mõeldud `updateProjectProperties.graphql` mutatsiooni. Moodulipõhine uuendaja saadab projekti ID ja loodud kausta täieliku tee ning kontrollib vastuses `updateProject.id` ja `updateProject.filesPath` väärtusi.
 
-Ka pärast failinime parandamist ei kontrolli lingiuuendaja vastusest, kas `filesPath` tegelikult salvestus. Kausta nimi ei läbi Windowsi keelatud märkide ega reserveeritud nimede eelkontrolli; sobimatu projekti nimi või reeglisümbol võib kopeerimise katkestada.
+Valideeritud vastuses tagastatud `filesPath` edastatakse lokaalse tagasisidega ainult sama projektikaardi toiminguribale. **Ava kaust** nupp hakkab kasutama uut teed kohe; teisi kaarte, projektide päringut ega aktiivset filtrit see toiming ei värskenda.
+
+Olemasoleva arvutatud sihtkausta korral ei käivitata `copytree` toimingut. **Lisa või uuenda** seob ainult selle kontrollitud tee projektiga; kausta faile ja alamkaustu ei muudeta. `Enter`, `Esc`, **Ei** või dialoogi sulgemine jätab nii kausta sisu kui ka Kavitro `filesPath` väärtuse muutmata.
+
+Puuduva päringufaili, GraphQL-vea või vastuse lahknevuse korral ei kuvata lingi salvestamist õnnestununa. Kasutajale näidatakse, et kaust on failisüsteemis juba loodud, kuid Kavitro link jäi salvestamata. Kaustanime ja sihttee kontroll toimub enne kopeerimist ega sõltu kaustalingi hilisemast salvestamisest.
 
 ## Seosta kinnistuid projektikaardi menüüst
 
@@ -283,7 +296,6 @@ Joonistuskontroller kuulab kihi `featureAdded` signaali, kuid ei kuula eraldi QG
 | Kriitiline | Puhvri väljad on märgitud meetrites, kuid töötlus kasutab kinnistukihi CRS-i ühikuid | Geograafilises CRS-is võib `2 m` muutuda kaheks kraadiks ja tekitada väga vale projektiala | Teisenda töögeomeetria meetrilisse CRS-i või kuva ja valideeri tegelikud ühikud |
 | Kriitiline | Käsitsi joonistamise Kavitro uuendus toimub enne kihi commit'i ning selle ebaõnnestumist käsitletakse ikkagi eduna | QGIS ja Kavitro võivad lahkneda mõlemas suunas, samal ajal kui kasutaja näeb eduteadet | Seo tulemus mõlema sammu õnnestumisega ning lisa taastatav tehing või koondveateade |
 | Kriitiline | Katkestatud käsitsi joonistamine võib jätta `featureAdded` kuulaja aktiivseks | Hiljem lisatud kõrvaline polügoon võidakse siduda vale projektiga | Kuula kaarditööriista deaktiveerimist ja `Esc`-i ning tühista kontroller kindlalt |
-| Kõrge | Kaustalingi uuendaja viitab olematule `updateProjectsProperties.graphql` failile | **Jah** pärast kausta loomist ei saa praeguses versioonis projekti kaustateed salvestada | Kasuta õiget päringufaili, lisa spetsiaalne `filesPath` mutatsioonitest ja kontrolli vastust |
 | Kõrge | Seotud moodulite päring piirdub 30 kirjega ega kasuta `pageInfo` järgmist lehte | Suurte seostega tahvel on puudulik | Rakenda iga mooduli päringule paginatsioon või näita kärpimise hoiatust |
 | Kõrge | Moodulipäringu vead muudetakse tühjaks tulemuseks, kinnistu-ID viga võib avamise katkestada ja kogu laadimine blokeerib UI-lõime | Andmeviga näib puuduva tööna või detail ei avane ning aken võib hanguda | Laadi taustatöös, kuva edenemine ja käsitle kõik päringuvead ühtse nähtava tulemusena |
 | Kõrge | Projektiala otsing võib nime või numbri järgi leida varasema rea enne täpset ID-vastet | **Salvesta ala kihile** võib üle kirjutada vale projekti objekti | Otsi esmalt kogu kihilt ainult ID järgi; kasuta numbrit või nime alles üheselt kontrollitud varuvariandina |
@@ -293,11 +305,9 @@ Joonistuskontroller kuulab kihi `featureAdded` signaali, kuid ei kuula eraldi QG
 | Keskmine | Detailtahvel laaditakse ainult esimesel avamisel ja ei värskene pärast seoste lisamist | Avatud kaart kuvab aegunud tööde ja seoste seisu | Lisa tahvlile **Värskenda** või invalideeri detail pärast seosemuudatust |
 | Keskmine | Kinnistuseoste dialoogi **Kinnita** on lisav `associate`, mitte lõpliku loendi salvestus | Kasutaja võib eeldada, et valik asendab seosed või võimaldab neid eemaldada | Nimeta tegevus „Lisa valitud seosed“ ja loo eraldi eemaldamisvoog |
 | Keskmine | Projektikausta valmisolekukontroll nõuab ka kihte, filtreid ja tahvlistaatusi | Failikausta loomine võib olla blokeeritud kõrvalise seadistuse tõttu | Kontrolli kaustatoimingus ainult lähte-, siht- ja nimeseadeid |
-| Keskmine | Salvestatud kaustanime reegel rakendub ainult peidetud pärandlipu korral | Kasutaja kinnitatud nimi võib erineda tegelikult loodud kaustanimest | Kuva lubamislüliti või käsitle salvestatud reegli olemasolu automaatselt lubamisena |
 | Keskmine | Eelvaate vaikeseade ümardab ala raadiusega 2,0 | Kasutaja võib salvestada kinnistupiiridest erineva ala seda märkamata | Kasuta vaikimisi nullraadiust või nõua enne salvestamist nähtavat kinnitust |
 | Keskmine | Kaardivaliku `Esc`, paremklõps ja tööriistavahetus ei taasta alati Visuaali akent | Töövoog näib kinni jäänud | Lisa kontrollerile katkestussignaal ja kasutajaliidese taastamine |
 | Keskmine | Kihil juba avatud redigeerimisseansi korral kuvatakse salvestamise edu, kuigi muudatus jääb ootele | Kasutaja võib QGIS-i sulgedes projektiala kaotada | Erista „salvestatud“ ja „QGIS-is ootel“ teated |
-| Keskmine | Kaustanime ei puhastata Windowsi keelatud märkidest ning lingivastust ei valideerita | Kopeerimine võib ebaõnnestuda või link jääda märkamatult salvestamata | Valideeri nimi ja sihttee enne kopeerimist ning kontrolli mutatsiooni ID-d ja `filesPath` väärtust |
 | Madal | **Ava kaust** ja **Ava kirje brauseris** ei kuva avamisviga kasutajale | Nupp võib näida mittetöötav | Kuva vigase tee, URL-i või käivitamisvea korral hoiatus |
 | Madal | Kaardinupu kohtspikker on tõlkimata ning **Puhasta eelvaade** võib jätta vana olekuteksti | Kasutajaliidese seis ja keel on eksitavad | Rakenda kohtspikrile tõlge ning tühjenda olek alati pärast puhastamist |
 
@@ -309,7 +319,7 @@ Joonistuskontroller kuulab kihi `featureAdded` signaali, kuid ei kuula eraldi QG
 4. Lülita eelvaates ümardamine välja, kui soovid täpselt kinnistupiire järgivat ala.
 5. Enne **Salvesta ala kihile** vajutamist kontrolli `ext_project_id`, sama nime või numbriga objekte ja tee kihist varukoopia.
 6. Pärast käsitsi joonistamist kontrolli eraldi QGIS-i objekti, kihi salvestusolekut ja Kavitro geomeetriat.
-7. Projektikausta loomisel arvesta, et kaustalingi salvestamine on praeguses koodis vigane; kontrolli loodud kausta ja Kavitro `filesPath` väärtust eraldi.
+7. Pärast projektikausta lingi lisamist kontrolli sama kirjekaardi **Ava kaust** nuppu; see peab kasutama uut teed ilma projektide loendit uuesti laadimata.
 8. Kui kaardivalik või joonistamine katkestati, ära lisa samale kihile teist objekti enne projektitöövoo uuesti käivitamist või Visuaali taaskäivitamist.
 
 ## Seotud juhendid

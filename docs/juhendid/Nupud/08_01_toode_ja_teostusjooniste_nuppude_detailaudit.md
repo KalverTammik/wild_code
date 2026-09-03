@@ -11,7 +11,7 @@ Staatus- ja liigifiltri ning filtrite värskendamise ja tühjendamise täpne kä
 | **… Detailne ülevaade** | Laadib töö kirjelduse ja failide kokkuvõtte sama kirjekaardi sisse | Püsiandmeid ei muudeta |
 | **Staatuseriba** | Muudab Kavitro ülesande staatust ja proovib tööde põhikihti sünkroonida | Eraldi kinnitust ega automaatset tagasivõtmist ei ole |
 | **Ava kirje brauseris** | Avab töö või teostusjoonise Kavitro ülesande veebivaate | Visuaal andmeid ei muuda |
-| **Näita kirjeid kaardil** | Kuvab seotud kinnistud ja fokuseerib mooduli põhikihi objekti | Püsiandmeid ei muudeta |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Seoseta olekus võib pärast ülevaate kinnitamist lisada Kavitro kinnistuseoseid; seosega olekus kuvab seotud kinnistud ja fokuseerib mooduli põhikihi objekti | Seostamist selle töövooga tagasi võtta ei saa; kaardil näitamine püsiandmeid ei muuda |
 | Töö **Lisa uus töö** | Loob Kavitro ülesande, geomeetria ja QGIS-i tööpunkti ning proovib lisada kinnistuseose | Sammud ei ole ühine tehing |
 | Töö **Lisa punkt kaardile** | Lisab olemasolevale Kavitro tööle QGIS-i punkti ning saadab asukoha Kavitrosse | Sammud ei ole ühine tehing |
 | Töö **Muuda asukohta** | Salvestab tööpunkti uue asukoha QGIS-i kihile; taustakuulaja võib saata selle Kavitrosse | Kihi redigeerimisseanss kinnitatakse kohe |
@@ -68,9 +68,9 @@ Nupp on aktiivne kirje ID olemasolul. Puuduva veebibaasaadressi, vigase aadressi
 
 Veebivaadet on vaja ka täielikuks failihalduseks, sest tööde ja teostusjooniste **Rohkem toiminguid** menüüs eraldi **Failid** toimingut ei ole.
 
-## Näita kirjeid kaardil
+## Seosta kinnistuid / Näita seotud kinnistuid kaardil
 
-Nupp on aktiivne ka kinnistuseosteta kirjel, sest mõlemad moodulid toetavad põhikihi objekti otsest fokuseerimist.
+Toimingul on kaks olekut. Kinnistuseoseta kirjel kuvatakse seostamisikoon kohtspikriga **Kinnistuseos puudub – seosta kinnistuid** ja klõps käivitab olemasoleva kaardivaliku ning ülevaatedialoogi. Vähemalt ühe seose korral kuvatakse kaardiikoon kohtspikriga **Näita seotud kinnistuid kaardil**. Eduka seostamise järel vahetub ainult sama kaardi nupp kohe kaardiikooniks; tühistamine või viga jätab selle seostamisolekusse.
 
 Klõpsamisel tehakse kaks sõltumatut sammu:
 
@@ -81,7 +81,7 @@ Töö puhul proovitakse ID-välju `ext_works_id`, `ext_job_id`, `ext_id` ja `ext
 
 Toiming võib anda osalise tulemuse: näiteks kinnistud võivad avaneda, kuigi tööpunkti ei leita. Puuduv kiht, väli või objekt ei tekita koondhoiatust. Varasemat aktiivset kihti, objektivalikut ega kaardiulatust ei taastata.
 
-Kaardinupu kohtspikker jääb praeguses koodis tõlkimata tekstiks **Show Items on Map**.
+Töö või teostusjoonise põhikihi objekti fokuseerimine toimub seotud kinnistute näitamise lisasammuna. Seoseta kirje seostamisikoon käivitab selle asemel kinnistute seostamise.
 
 ## Tööde Rohkem toiminguid
 

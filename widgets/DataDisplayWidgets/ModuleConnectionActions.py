@@ -28,6 +28,7 @@ class ModuleConnectionActions(QWidget):
         action_payload = dict(item_data or {})
         if item_id and not action_payload.get("id"):
             action_payload["id"] = item_id
+        self._action_payload = action_payload
 
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self._layout = QGridLayout(self)
@@ -40,6 +41,7 @@ class ModuleConnectionActions(QWidget):
         if supports_folder_action:
             file_path = DataDisplayExtractors.extract_files_path(action_payload)
             folder_btn = OpenFolderActionButton(file_path, lang_manager)
+        self._folder_button = folder_btn
 
         web_btn = OpenWebActionButton(module_key, item_id, lang_manager)
 
@@ -51,23 +53,36 @@ class ModuleConnectionActions(QWidget):
             lang_manager,
             has_connections=has_connections,
         )
-
-        def _enable_map_button(refreshed_numbers: list[str]):
-            if refreshed_numbers:
-                map_btn.setEnabled(True)
+        self._map_button = map_btn
 
         actions_btn = MoreActionsButton(
             lang_manager=lang_manager,
             item_data=action_payload,
             module=module_key,
-            on_properties_linked=_enable_map_button,
+            on_properties_linked=self.set_connected_properties,
+            on_files_path_updated=self.set_files_path,
         )
+        self._more_actions_button = actions_btn
+        map_btn.set_link_properties_callback(actions_btn.start_property_linking)
 
         self._buttons = tuple(
             button for button in (folder_btn, web_btn, map_btn, actions_btn) if button is not None
         )
         self.setMinimumWidth(0)
         self._relayout_buttons()
+
+    def set_files_path(self, files_path: str) -> None:
+        """Update only this card's local folder action after a verified mutation."""
+        resolved_path = str(files_path or "").strip()
+        if not resolved_path:
+            return
+        self._action_payload["filesPath"] = resolved_path
+        if self._folder_button is not None:
+            self._folder_button.set_file_path(resolved_path)
+
+    def set_connected_properties(self, property_numbers: list[str]) -> None:
+        """Switch only this card from linking mode to map-display mode."""
+        self._map_button.set_connection_count(len(property_numbers or []))
 
     def _clear_layout(self):
         while self._layout.count():

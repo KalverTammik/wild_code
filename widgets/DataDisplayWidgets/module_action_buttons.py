@@ -112,10 +112,22 @@ class OpenFolderActionButton(CardActionButton):
             tooltip,
             lang_manager,
         )
-        enabled = bool(file_path)
-        self.setEnabled(enabled)
-        if enabled:
-            self.clicked.connect(lambda _, path=file_path: FolderHelpers.open_item_folder(path))
+        self._file_path = ""
+        self.clicked.connect(self._open_current_folder)
+        self.set_file_path(file_path)
+
+    def _open_current_folder(self, _checked: bool = False) -> None:
+        if self._file_path:
+            FolderHelpers.open_item_folder(self._file_path)
+
+    def set_file_path(self, file_path: Optional[str]) -> None:
+        """Apply the current item path without recreating its card."""
+        self._file_path = str(file_path or "").strip()
+        self.setEnabled(bool(self._file_path))
+
+    @property
+    def file_path(self) -> str:
+        return self._file_path
 
 
 class OpenWebActionButton(CardActionButton):
@@ -136,7 +148,14 @@ class OpenWebActionButton(CardActionButton):
 
 
 class MoreActionsButton(CardActionButton):
-    def __init__(self, lang_manager=None, item_data=None, module=None, on_properties_linked=None) -> None:
+    def __init__(
+        self,
+        lang_manager=None,
+        item_data=None,
+        module=None,
+        on_properties_linked=None,
+        on_files_path_updated=None,
+    ) -> None:
         tooltip = lang_manager.translate(ToolbarTranslationKeys.MORE_ACTIONS) if lang_manager else ""
         super().__init__(
             "MoreActionsButton",
@@ -158,6 +177,8 @@ class MoreActionsButton(CardActionButton):
         self._easement_preview_dialog: Optional[EasementPreviewDialog] = None
         self._project_preview_dialog: Optional[ProjectPreviewDialog] = None
         self._on_properties_linked = on_properties_linked
+        self._on_files_path_updated = on_files_path_updated
+        self._lang_manager = lang_manager
         self._parent_window: Optional[QDialog] = None
         self._restore_parent_on_close: bool = False
 
@@ -179,6 +200,7 @@ class MoreActionsButton(CardActionButton):
                     item_payload,
                     lang_manager,
                     parent_window=self._get_safe_parent_window(),
+                    on_files_path_updated=self._handle_files_path_updated,
                 )
             )
             menu.addAction(action1)
@@ -291,13 +313,37 @@ class MoreActionsButton(CardActionButton):
             self,
         )
         action2.triggered.connect(
-            lambda _, mod=module, data=item_payload, lm=lang_manager: self._link_properties_from_map(mod, data, lm)
+            lambda _: self.start_property_linking()
         )
         menu.addAction(action2)
         ThemeManager.apply_module_style(menu, [QssPaths.POPUP])
         self.setMenu(menu)
+
+    def _handle_files_path_updated(self, files_path: str) -> None:
+        resolved_path = str(files_path or "").strip()
+        if not resolved_path:
+            return
+        self._item_data["filesPath"] = resolved_path
+        if callable(self._on_files_path_updated):
+            self._on_files_path_updated(resolved_path)
+
+    def start_property_linking(self) -> None:
+        """Start the shared map-selection workflow from any card entry point."""
+        self._link_properties_from_map(
+            self.module,
+            self._item_data,
+            self._lang_manager,
+        )
+
     @staticmethod
-    def _generate_project_folder(module, item_data, lang_manager, *, parent_window=None):
+    def _generate_project_folder(
+        module,
+        item_data,
+        lang_manager,
+        *,
+        parent_window=None,
+        on_files_path_updated=None,
+    ):
         def handler():            
             missing_requirements = SettingsSetupGuard.missing_requirements(module)
             if missing_requirements:
@@ -322,6 +368,7 @@ class MoreActionsButton(CardActionButton):
                 DataDisplayExtractors.extract_project_number(item_data),
                 source_folder=folder_to_copy,
                 target_folder=target_folder,
+                on_files_path_updated=on_files_path_updated,
             )
 
         return handler
@@ -787,6 +834,9 @@ class MoreActionsButton(CardActionButton):
 
 
 class ShowOnMapActionButton(CardActionButton):
+    LINK_MODE = "link-properties"
+    SHOW_MODE = "show-properties"
+
     def __init__(
         self,
         module_name: Optional[str],
@@ -795,18 +845,73 @@ class ShowOnMapActionButton(CardActionButton):
         *,
         has_connections: Optional[int] = None,
     ) -> None:
+        tooltip = (
+            lang_manager.translate(ToolbarTranslationKeys.SHOW_CONNECTED_PROPERTIES_ON_MAP)
+            if lang_manager
+            else ToolbarTranslationKeys.SHOW_CONNECTED_PROPERTIES_ON_MAP
+        )
         super().__init__(
             "ShowOnMapButton",
             IconNames.ICON_SHOW_ON_MAP,
-            ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP,
+            tooltip,
             lang_manager,
         )
-        can_execute = bool(module_name and item_id)
-        can_focus_layer_item = ModuleItemFocusService.supports_layer_focus(module_name)
-        if has_connections is not None and int(has_connections) <= 0 and not can_focus_layer_item:
-            can_execute = False
+        self._module_name = str(module_name or "").strip().lower()
+        self._item_id = str(item_id or "").strip()
+        self._lang_manager = lang_manager
+        self._link_properties_callback = None
+        self._connection_count = 0
+        self.clicked.connect(self._handle_click)
+        self.set_connection_count(has_connections)
+
+    def _translate(self, key: str) -> str:
+        if self._lang_manager:
+            return self._lang_manager.translate(key)
+        return str(key or "")
+
+    def _apply_visual_state(self) -> None:
+        has_connections = self._connection_count > 0
+        if has_connections:
+            self._icon_name = IconNames.ICON_SHOW_ON_MAP
+            tooltip_key = ToolbarTranslationKeys.SHOW_CONNECTED_PROPERTIES_ON_MAP
+            mode = self.SHOW_MODE
+        else:
+            self._icon_name = IconNames.ICON_CONNECT_PROPERTIES
+            tooltip_key = ToolbarTranslationKeys.CONNECT_MISSING_PROPERTIES
+            mode = self.LINK_MODE
+
+        self.setIcon(ThemeManager.get_qicon(self._icon_name))
+        action_label = self._translate(tooltip_key)
+        self.setToolTip(action_label)
+        self.setAccessibleName(action_label)
+        self.setProperty("connectionMode", mode)
+        can_execute = bool(self._module_name and self._item_id)
+        if not has_connections:
+            can_execute = can_execute and callable(self._link_properties_callback)
         self.setEnabled(can_execute)
-        if module_name and item_id:
-            self.clicked.connect(
-                lambda _, module=module_name, mid=item_id, lm=lang_manager: show_items_on_map(module, mid, lm)
+
+    def set_connection_count(self, connection_count: Optional[int]) -> None:
+        try:
+            self._connection_count = max(0, int(connection_count or 0))
+        except (TypeError, ValueError):
+            self._connection_count = 0
+        self._apply_visual_state()
+
+    def set_link_properties_callback(self, callback) -> None:
+        self._link_properties_callback = callback if callable(callback) else None
+        self._apply_visual_state()
+
+    def _handle_click(self, _checked: bool = False) -> None:
+        if self._connection_count > 0:
+            show_items_on_map(
+                self._module_name,
+                self._item_id,
+                self._lang_manager,
             )
+            return
+        if callable(self._link_properties_callback):
+            self._link_properties_callback()
+
+    @property
+    def connection_mode(self) -> str:
+        return self.SHOW_MODE if self._connection_count > 0 else self.LINK_MODE

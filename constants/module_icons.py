@@ -23,6 +23,7 @@ class IconNames:
     ICON_SETTINGS = "Seaded.png"
     ICON_FOLDERICON = "Folder.png"
     ICON_CONTACTS = "Kontaktid.png"
+    ICON_CONNECT_PROPERTIES = "Kinnistute lisamine.png"
     ICON_SHOW_ON_MAP = "Mine kaardile.png"
     ICON_LIST = "down-arrow.png"
     ICON_TAGS = "tags-32.png"

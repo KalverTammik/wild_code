@@ -16,7 +16,7 @@ Eraldi nupuna ei kaardistata tekstivälju, rippmenüüsid, märkeruute, tabeliri
 
 ## Grupeerimise reegel
 
-Sama tehnilise ja kasutusliku tähendusega nupp kirjeldatakse üks kord. Näiteks kirjekaartidel korduvad **Ava kaust**, **Ava kirje brauseris**, **Näita kirjeid kaardil** ja **Rohkem toiminguid** on koondatud ühiste kirjekaardinuppude faili. Moodulipõhises failis näidatakse ainult seda, millised neist selles moodulis esinevad, ning kirjeldatakse mooduli enda lisatoiminguid.
+Sama tehnilise ja kasutusliku tähendusega nupp kirjeldatakse üks kord. Näiteks kirjekaartidel korduvad **Ava kaust**, **Ava kirje brauseris**, kahe olekuga **Seosta kinnistuid / Näita seotud kinnistuid kaardil** ja **Rohkem toiminguid** on koondatud ühiste kirjekaardinuppude faili. Moodulipõhises failis näidatakse ainult seda, millised neist selles moodulis esinevad, ning kirjeldatakse mooduli enda lisatoiminguid.
 
 ## Sisukord
 

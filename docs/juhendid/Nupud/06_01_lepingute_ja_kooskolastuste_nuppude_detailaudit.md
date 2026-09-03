@@ -11,7 +11,7 @@ Staatus-, liigi- ja tunnusefiltri, filtrite värskendamise ja tühjendamise ning
 | Filtrid ja tähtaja kiirnupud | Laadivad Kavitrost teistsuguse kirjete loendi | Ei |
 | **… Detailne ülevaade** ja failinupud | Laadivad kirjelduse, tingimused ja failid ning võivad faili eelvaateks alla laadida | Kavitro andmeid ei muudeta; väliseks avamiseks luuakse kohalik ajutine fail |
 | **Ava kaust**, **Ava kirje brauseris** | Avavad välise asukoha | Ei |
-| **Näita kirjeid kaardil** | Muudab QGIS-i aktiivset kihti, objektivalikut ja kaardi ulatust | Kavitro andmeid ei muudeta |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Seoseta olekus võib pärast ülevaate kinnitamist lisada Kavitro kinnistuseoseid; seosega olekus muudab QGIS-i aktiivset kihti, objektivalikut ja kaardi ulatust | Seostamine muudab Kavitro andmeid; kaardil näitamine mitte |
 | **Rohkem toiminguid** | Avab menüü | Ei |
 | **Seosta kinnistuid** | Lisab Kavitros lepingule või kooskõlastusele kinnistuseoseid | Jah; selle töövooga seoseid eemaldada ei saa |
 
@@ -70,14 +70,14 @@ Lepingute ja kooskõlastuste menüüs puudub eraldi täieliku faililoendi toimin
 
 ### Faili eelvaate nupud
 
-Eelvaade toetab pilte, teksti ja sobiva QGIS-i Qt WebEngine'i käitusaja korral PDF-e. Muude vormingute puhul kuvatakse eelvaates teade, kuid **Ava väliselt** jääb kasutatavaks.
+Eelvaade toetab pilte, teksti ja sobiva QGIS-i Qt WebEngine'i käitusaja korral PDF-e. Muude vormingute puhul kuvatakse eelvaates teade. **Ava väliselt** on kasutatav ainult siis, kui leitud laiend kuulub välise avamise lubatud tüüpide loendisse ning teenuse ja failinime laiendid nende mõlema olemasolul sobivad.
 
 | Nupp | Tegelik käitumine |
 |---|---|
-| **Ava väliselt** | Laadib kaugfaili täielikult kohaliku ajutise failina alla ja avab selle operatsioonisüsteemi vaikimisi rakenduses |
+| **Ava väliselt** | Kuvab vaikimisi eitava turvakinnituse ning laadib lubatud tüüpi kaugfaili alla ja avab selle vaikerakenduses alles valiku **Jah** järel |
 | **Sulge** | Sulgeb eelvaate; Kavitro faili ei muudeta |
 
-Tekstieelvaade loeb kuni 512 KB ja märgib kärbitud sisu. Pildieelvaate piir on 25 MB ning PDF-e proovitakse eelvaadata kuni 40 MB ulatuses. Faili väliselt avamisel eelvaate mahupiir ei kehti ning allalaadimine võib suure faili või aeglase ühenduse korral kasutajaliidest pikalt blokeerida.
+Tekstieelvaade loeb kuni 512 KB ja märgib kärbitud sisu. Pildieelvaate piir on 25 MB ning PDF-e proovitakse eelvaadata kuni 40 MB ulatuses. Faili väliselt avamisel eelvaate mahupiir ei kehti ning allalaadimine võib suure faili või aeglase ühenduse korral kasutajaliidest pikalt blokeerida. Lubatud failitüübid ja passiivse nupu kontrolljuhis on failis [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md).
 
 Kui QGIS-i käitusaeg ei toeta sisseehitatud PDF-vaadet, kuvatakse hoiatus enne eelvaatedialoogi loomist. Selles hoiatuses **Ava väliselt** nuppu ei ole, mistõttu tuleb PDF avada kausta või Kavitro veebivaate kaudu.
 
@@ -102,19 +102,21 @@ Nupp on aktiivne, kui kirjekaardil on mooduli nimi ja kirje ID. See koostab lepi
 
 Puuduva baasaadressi või avamisvea korral jääb toiming vaikseks või kirjutab vea logisse. Kasutajale eraldi veateadet ei kuvata.
 
-## Näita kirjeid kaardil
+## Seosta kinnistuid / Näita seotud kinnistuid kaardil
 
 Lepingute ja kooskõlastuste puhul näitab nupp ainult kirjega seotud kinnistuid. Moodulite enda QGIS-i põhikihi lepingu- või kooskõlastusobjekti see toiming ei otsi ega fokuseeri.
 
 Nupu algolek tuletatakse kirjekaardi päringus kaasas olevast kinnistuseoste arvust:
 
-- kui arv on suurem kui null, on nupp aktiivne;
-- nulli korral on nupp passiivne, sest lepingute ja kooskõlastuste põhikihi fookust ei toetata;
-- pärast edukat **Seosta kinnistuid** toimingut lülitatakse nupp aktiivseks, kui teenus tagastab vähemalt ühe seose.
+- nulli korral kuvatakse seostamisikoon kohtspikriga **Kinnistuseos puudub – seosta kinnistuid**; klõps käivitab olemasoleva kaardivaliku ja ülevaatedialoogi;
+- kui arv on suurem kui null, kuvatakse kaardiikoon kohtspikriga **Näita seotud kinnistuid kaardil**;
+- pärast edukat **Seosta kinnistuid** toimingut muutub ainult sama kirjekaardi seostamisikoon kohe kaardiikooniks.
+
+Seostamisoleku klõps ise andmeid ei muuda. Seosed salvestatakse alles ülevaatedialoogi kinnitamisel; tühistamise või vea korral nupu olek ei muutu.
 
 Klõpsamisel laaditakse Kavitrost kirjega seotud katastritunnused uuesti. Kinnistute põhikihilt leitud objektid valitakse, kiht tehakse aktiivseks ning kaart liigub nende ulatusse. Varasemat aktiivset kihti, objektivalikut ega kaardiulatust ei taastata.
 
-Kui teenus ei tagasta tunnuseid, kinnistukiht või objekt puudub või katastritunnuse väli ei sobi, ei kuvata kasutajale koondhoiatust. Nupp võib seega näida mittetöötavana. Kaardinupu kohtspikker jääb praeguses koodis tõlkimata tekstiks **Show Items on Map**.
+Kui kaardiikooni klõpsamisel teenus ei tagasta tunnuseid, kinnistukiht või objekt puudub või katastritunnuse väli ei sobi, ei kuvata kasutajale veel koondhoiatust. Nupp võib seega näida mittetöötavana.
 
 ## Rohkem toiminguid
 

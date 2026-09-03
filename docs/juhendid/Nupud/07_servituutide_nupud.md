@@ -9,7 +9,7 @@ Servituutide töövood on juhendis [Servituutide mooduli kaarditoimingud](../14_
 | **… Detailne ülevaade** | Servituudikaardi alumine serv | Laiendab või ahendab sama kaardi sees seotud kinnistute ja failide kokkuvõtte ning proovib kinnistuid kaardil näidata. |
 | **Ava kaust** | Servituudikaardi toimingurida | Avab servituudi kausta või veebitee. |
 | **Ava kirje brauseris** | Servituudikaardi toimingurida | Avab servituudi Kavitro veebirakenduses. |
-| **Näita kirjeid kaardil** | Servituudikaardi toimingurida | Näitab seotud kinnistuid ja proovib fokuseerida servituudi põhikihi objekti. |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Servituudikaardi toimingurida | Seoseta servituudil käivitab seostamisikoon kinnistute seostamise. Seosega servituudil näitab kaardiikoon seotud kinnistuid ja proovib fokuseerida servituudi põhikihi objekti. |
 | **Rohkem toiminguid** | Servituudikaardi toimingurida | Avab servituudi lisatoimingud. |
 
 ## Servituudi „Rohkem toiminguid“ menüü

@@ -12,7 +12,7 @@ Nuppude eeldused, täpne salvestusjärjekord, katkestamine ja veateed on alamfai
 | **… Detailne ülevaade** | Töö kirjekaardi alumine serv | Avab töö kirjelduse ja failide kokkuvõtte. |
 | **Staatuseriba** | Töö kirjekaardi vasak serv | Avab võimalike staatuste loendi ja lubab töö staatust muuta. |
 | **Ava kirje brauseris** | Töö kirjekaardi toimingurida | Avab töö Kavitro veebirakenduses. |
-| **Näita kirjeid kaardil** | Töö kirjekaardi toimingurida | Näitab seotud kinnistuid ja fokuseerib töö punkti tööde kihil. |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Töö kirjekaardi toimingurida | Seoseta tööl käivitab seostamisikoon kinnistute seostamise. Seosega tööl näitab kaardiikoon seotud kinnistuid ja fokuseerib töö punkti tööde kihil. |
 | **Rohkem toiminguid** | Töö kirjekaardi toimingurida | Avab töö kaardi- ja seostamistoimingud. |
 | **Lisa punkt kaardile** | Töö **Rohkem toiminguid** menüü | Lisab olemasolevale Kavitro tööle uue punkti tööde põhikihil. |
 | **Muuda asukohta** | Sama menüü | Lubab valida tööle uue kaardipunkti ja uuendab geomeetriat. |
@@ -41,7 +41,7 @@ Topeltklõps dialoogi tabelireal käitub samuti nagu **Ava valitud**.
 | **… Detailne ülevaade** | Teostusjoonise kirjekaardi alumine serv | Avab kirjelduse ja failide kokkuvõtte. |
 | **Staatuseriba** | Teostusjoonise kirjekaardi vasak serv | Avab staatuse valiku ja lubab kirje staatust muuta. |
 | **Ava kirje brauseris** | Kirjekaardi toimingurida | Avab teostusjoonise Kavitro ülesande veebivaate. |
-| **Näita kirjeid kaardil** | Kirjekaardi toimingurida | Näitab seotud kinnistuid ja fokuseerib teostusjoonise põhikihi objekti. |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Kirjekaardi toimingurida | Seoseta kirjel käivitab seostamisikoon kinnistute seostamise. Seosega kirjel näitab kaardiikoon seotud kinnistuid ja fokuseerib teostusjoonise põhikihi objekti. |
 | **Rohkem toiminguid** | Kirjekaardi toimingurida | Avab märkmete, geomeetria ja kinnistuseoste toimingud. |
 | **Lisa/uuenda märkmeid** | Teostusjoonise **Rohkem toiminguid** menüü | Avab struktureeritud märkmete muutmise dialoogi. |
 | **Joonista uus seotud objekt kaardile** | Sama menüü | Käivitab uue teostusjoonise geomeetria joonistamise. |

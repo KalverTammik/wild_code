@@ -170,13 +170,15 @@ Seetõttu kontrolli pärast eelvaate salvestamist, kas sinu tööprotsess nõuab
 1. Ava projekti **Rohkem toiminguid**.
 2. Vali **Genereeri projekti kaust**.
 3. Kui kaustaseaded puuduvad, suunab Kavitro seadistuste moodulisse.
-4. Kinnita hoiatus, et sama sisuga kausta ei ole varem loodud.
-5. Kavitro moodustab nime ja kopeerib kogu mallkausta sihtkohta.
-6. Pärast kopeerimist vali, kas lisada loodud kausta tee projektile.
+4. Kavitro kontrollib kaustateid ja muudab arvutatud nime üheks turvaliseks kaustanimeks.
+5. Kontrolli kinnituses näidatud täielikku lähte- ja sihtteed ning veendu, et samasisulist kausta pole juba loodud.
+6. Vali **Jah** ainult siis, kui sihtkoht on õige; vaikimisi on valitud **Ei**.
+7. Kavitro kopeerib kogu mallkausta sihtkohta.
+8. Pärast kopeerimist vali, kas lisada loodud kausta tee projektile.
 
-Kui sama nimega kaust on juba olemas, Kavitro seda üle ei kirjuta. Kui keeldud kaustalingi lisamisest või lingi salvestamine ebaõnnestub, jääb loodud kaust failisüsteemi alles.
+Kui sama nimega kaust on juba olemas, Kavitro seda üle ei kirjuta ega muuda. Pärast täieliku tee kontrollimist saad valida **Lisa või uuenda**, et siduda olemasolev kaust projektiga; vaikevalik on **Ei**. Kui keeldud kaustalingi lisamisest või lingi salvestamine ebaõnnestub, jääb kaust failisüsteemi alles.
 
-Praeguses koodiversioonis viitab kaustalingi uuendaja vale nimega GraphQL-failile. Pärast kausta kopeerimist valitud lingi lisamise **Jah** lõpeb seetõttu veahoiatusega ning `filesPath` jääb uuendamata. Kontrolli kausta ja projekti kaustateed eraldi.
+Kaustalingi lisamise **Jah** kasutab projektile mõeldud väikest `filesPath` mutatsiooni. Kavitro loeb vastusest tagasi projekti ID ja salvestatud kaustatee; toiming loetakse õnnestunuks ainult siis, kui mõlemad vastavad saadetud väärtustele. Edu korral aktiveeritakse või uuendatakse kohe sama projektikaardi **Ava kaust** nupp, ilma aktiivseid filtreid ja kogu projektide loendit uuesti laadimata. Kui lingi salvestamine ebaõnnestub, jääb juba loodud kaust failisüsteemi alles, kaardinupu senine olek säilib ja hoiatus näitab kausta asukohta.
 
 Kaustade lähte- ja sihtkoha ning nime reegli kohta vaata [Projektide mooduli seadistamine](07_projektide_mooduli_seadistamine.md#projektide-lähtekaust).
 

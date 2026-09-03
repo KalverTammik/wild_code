@@ -10,7 +10,7 @@ Staatus- ja liigifiltri ning filtrite värskendamise ja tühjendamise täpne kä
 |---|---|---|
 | **… Detailne ülevaade** | Kuvab kaardil kaasas olnud kinnistuandmed, laadib failid ja muudab QGIS-i kinnistuvalikut ning kaardi ulatust | Püsiandmeid ei muudeta; kaardivaate saab käsitsi taastada |
 | **Ava kaust**, **Ava kirje brauseris** | Avab välise asukoha | Visuaal andmeid ei muuda |
-| **Näita kirjeid kaardil** | Laadib seotud kinnistud ning fokuseerib võimaluse korral servituudi põhikihi objekti | Püsiandmeid ei muudeta |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Seoseta olekus võib pärast ülevaate kinnitamist lisada Kavitro kinnistuseoseid; seosega olekus laadib seotud kinnistud ja fokuseerib võimaluse korral servituudi põhikihi objekti | Seostamist selle töövooga tagasi võtta ei saa; kaardil näitamine püsiandmeid ei muuda |
 | **Failid** | Peaks avama failihalduse | Praeguses versioonis ei käivitu |
 | **Joonista uus seotud objekt kaardile** | Lisab QGIS-i objekti ja proovib saata geomeetria Kavitrosse | QGIS-i ja Kavitro muudatused ei ole ühine tehing |
 | **Seo olemasolev joonis kaardilt** | Kirjutab olemasolevale objektile servituudi väljad ja saadab geomeetria Kavitrosse | Automaatset ühist tagasivõtmist ei ole |
@@ -59,9 +59,9 @@ Nupp koostab servituudi Kavitro veebiaadressi mooduli baasaadressist ja kirje ID
 
 Veebivaade on praeguses versioonis vajalik ka täielikuks failihalduseks, sest kirjekaardi **Failid** toiming ei käivitu.
 
-## Näita kirjeid kaardil
+## Seosta kinnistuid / Näita seotud kinnistuid kaardil
 
-Nupp on servituudikaardil aktiivne ka kinnistuseosteta kirjel, sest servituutide moodul toetab põhikihi objekti otsest fokuseerimist.
+Servituudikaardi toimingul on kaks olekut. Kinnistuseoseta kirjel kuvatakse seostamisikoon kohtspikriga **Kinnistuseos puudub – seosta kinnistuid** ja klõps käivitab olemasoleva kaardivaliku ning ülevaatedialoogi. Vähemalt ühe seose korral kuvatakse kaardiikoon kohtspikriga **Näita seotud kinnistuid kaardil**. Eduka seostamise järel vahetub ainult sama kaardi nupp kohe kaardiikooniks; tühistamine või viga jätab selle seostamisolekusse.
 
 Klõpsamisel tehakse kaks teineteisest sõltumatut sammu:
 
@@ -70,7 +70,7 @@ Klõpsamisel tehakse kaks teineteisest sõltumatut sammu:
 
 Põhikihi fookus otsib välju `ext_easement_id`, `ext_id` või `external_id`. Seotud objekti või kinnistute puudumine ei tekita kasutajale koondhoiatust. Toiming võib anda osalise tulemuse ning ei taasta varasemat aktiivset kihti, objektivalikut ega ulatust.
 
-Kaardinupu kohtspikker jääb praeguses koodis tõlkimata tekstiks **Show Items on Map**.
+Servituudi põhikihi objekti fokuseerimine toimub seotud kinnistute näitamise lisasammuna. Seoseta kirje seostamisikoon käivitab selle asemel kinnistute seostamise.
 
 ## Rohkem toiminguid
 
@@ -89,7 +89,7 @@ Menüütoiminguid ei peideta puuduva kihi, seadistuse või õiguse järgi. Vajal
 
 Praeguses koodis ühendatakse menüütoiming kutsega `self._open_item_files(...)`, kuid klassis ega mujal repos sellist meetodit ei ole. Klõps lõpeb puuduva atribuudi veaga ja olemasolevat `TaskFilesDialog` dialoogi ei looda.
 
-Dialoogiklass ise toetaks kuni 200 faili laadimist, failide üleslaadimist, eelvaadet, väliselt avamist, kinnitusega kustutamist ja värskendamist. Kuni menüü käsitleja parandamiseni kasuta **Ava kirje brauseris** toimingut. Detailvaate kuni viis failirida jäävad lugemiseks ja eelvaateks kasutatavaks.
+Dialoogiklass ise toetaks kuni 200 faili laadimist, failide üleslaadimist, eelvaadet, lubatud tüüpi faili turvakinnitusega väliselt avamist, kinnitusega kustutamist ja värskendamist. Kuni menüü käsitleja parandamiseni kasuta **Ava kirje brauseris** toimingut. Detailvaate kuni viis failirida jäävad lugemiseks ja eelvaateks kasutatavaks.
 
 ## Joonista uus seotud objekt kaardile
 

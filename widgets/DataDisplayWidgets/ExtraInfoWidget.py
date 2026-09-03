@@ -123,7 +123,12 @@ class ExtraInfoFrame(QFrame):
         if isinstance(loaded, QWidget):
             detail_widget = loaded
         else:
-            detail_widget = HtmlDescriptionWidget(str(loaded or ""), self._detail_container, inline=True)
+            detail_widget = HtmlDescriptionWidget(
+                str(loaded or ""),
+                self._detail_container,
+                inline=True,
+                lang_manager=self._lang,
+            )
 
         detail_widget.setParent(self._detail_container)
         detail_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
@@ -389,7 +394,14 @@ class ExtraInfoWidget(QWidget):
                 except Exception:
                     pass
         else:
-            text_layout.addWidget(HtmlDescriptionWidget(str(content or ""), text_widget, inline=False))
+            text_layout.addWidget(
+                HtmlDescriptionWidget(
+                    str(content or ""),
+                    text_widget,
+                    inline=False,
+                    lang_manager=self._lang,
+                )
+            )
 
         scroll_area.setWidget(text_widget)
         layout.addWidget(scroll_area)

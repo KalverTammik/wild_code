@@ -215,6 +215,19 @@ TRANSLATIONS = {
     TranslationKeys.NO_PROJECT_LOADED_MESSAGE: "Kavitro plugnin nõuab QGIS projektifaili, et töötada. Palun ava või loo uus projekt.",
     TranslationKeys.PROJECT_FOLDER_MISSING_TITLE: "Projektikausta seadistus vajalik",
     TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE: "Projekti kaustad pole selle mooduli jaoks määratud. Avan Seaded...",
+    TranslationKeys.PROJECT_FOLDER_CREATE_CONFIRM: "Ettevalmistatud struktuuriga projektikausta loomine on mõeldud eelkõige uutele projektidele. Kontrolli, et samasisulist kausta pole juba loodud.\n\nMallkausta sisu kopeeritakse järgmisse asukohta.\n\nLähtekaust:\n{source}\n\nSihtkaust:\n{destination}\n\nKontrolli sihttee üle. Kas jätkata?",
+    TranslationKeys.PROJECT_FOLDER_SOURCE_INVALID: "Seadistatud lähtekaust puudub või ei ole kaust:\n{path}",
+    TranslationKeys.PROJECT_FOLDER_TARGET_INVALID: "Seadistatud sihtkaust puudub või ei ole kaust:\n{path}",
+    TranslationKeys.PROJECT_FOLDER_TARGET_INSIDE_SOURCE: "Sihtkaust ei tohi olla mallkaust ega paikneda mallkausta sees.\n\nLähtekaust:\n{source}\n\nSihtkaust:\n{target}",
+    TranslationKeys.PROJECT_FOLDER_DESTINATION_INVALID: "Projekti nimest ei õnnestunud moodustada turvalist sihtkausta.",
+    TranslationKeys.PROJECT_FOLDER_NUMBER_MISSING: "Valitud kaustanime reegel sisaldab projekti numbrit, kuid projekti kirjel number puudub. Kausta ei loodud.",
+    TranslationKeys.PROJECT_FOLDER_ALREADY_EXISTS: "Kaust on sihtkohas juba olemas:\n{path}",
+    TranslationKeys.PROJECT_FOLDER_COPY_FAILED: "Projektikausta loomine ebaõnnestus:\n{error}",
+    TranslationKeys.PROJECT_FOLDER_LINK_CONFIRM: "Kas soovid lisada genereeritud kausta tee Kavitro projektile?\n\nKaust:\n{path}",
+    TranslationKeys.PROJECT_FOLDER_LINK_UPDATE_FAILED: "Kaust on failisüsteemis olemas, kuid kaustatee salvestamine Kavitro projektile ebaõnnestus.\n\nKaust:\n{path}\n\nViga:\n{error}",
+    TranslationKeys.PROJECT_FOLDER_LINK_ACTION: "Lisa või uuenda",
+    TranslationKeys.PROJECT_FOLDER_EXISTING_LINK_CONFIRM: "Kaust on sihtkohas juba olemas. Kavitro ei kopeeri ega muuda selle sisu.\n\nOlemasolev kaust:\n{path}\n\nKas soovid lisada või uuendada selle kausta teekonna Kavitro projektis?",
+    TranslationKeys.PROJECT_FOLDER_EXISTING_LINK_SUCCESS: "Olemasoleva kausta teekond lisati või uuendati Kavitro projektis.\n\nKaust:\n{path}\n\nSelle projektikaardi Ava kaust nupp on kasutamiseks valmis.",
     TranslationKeys.SETTINGS_SETUP_MISSING_TITLE: "Mooduli seadistus puudub",
     TranslationKeys.SETTINGS_SETUP_MISSING_MESSAGE: "Mooduli {module} seadistused ei ole veel täielikult määratud. Järgmisena suunatakse sind selle mooduli seadete juurde.",
     TranslationKeys.SETTINGS_SETUP_MISSING_NOTE: "Nota bene:\nVaata palun üle ka teiste moodulite seadistused, et töövood oleksid terviklikult valmis.",
@@ -477,6 +490,8 @@ TRANSLATIONS = {
     ,ToolbarTranslationKeys.OPEN_FOLDER: "Ava kaust"
     ,ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER: "Ava kirje brauseris"
     ,ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP: "Näita kirjeid kaardil"
+    ,ToolbarTranslationKeys.SHOW_CONNECTED_PROPERTIES_ON_MAP: "Näita seotud kinnistuid kaardil"
+    ,ToolbarTranslationKeys.CONNECT_MISSING_PROPERTIES: "Kinnistuseos puudub – seosta kinnistuid"
     ,ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER: "Genereeri projekti kaust"
     ,TranslationKeys.PLEASE_SELECT_AT_LEAST_ONE_PROPERTY: "Palun valige vähemalt üks kinnistu."
     ,TranslationKeys.NO_PROPERTY_LAYER_SELECTED: "Kinnistute kihti pole valitud. Palun valige esmalt kinnistute kiht."
@@ -710,6 +725,16 @@ TRANSLATIONS = {
         ,TranslationKeys.TASK_FILES_PREVIEW_PAGE_LIMIT: "Eelvaates kuvatakse ainult esimesed {count} lehekülge."
         ,TranslationKeys.TASK_FILES_PDF_RUNTIME_UNSUPPORTED: "Sisseehitatud PDF eelvaade ei ole selles QGIS-i käitusajas saadaval. Praegune käitusaeg: Qt {qt_version}, PyQt {pyqt_version}.\n\nAinult eraldi PyQt6 paigaldamisest tavaliselt QGIS pluginate jaoks ei piisa. QGIS peab ise töötama uuema Qt/PyQt käitusajaga, kus on PDF-e toetav WebEngine.\n\nSoovitus: uuenda QGIS-i uuemale versioonile, mis sisaldab Qt6/PyQt6 ja Qt WebEngine PDF tuge."
         ,TranslationKeys.TASK_FILES_OPEN_FAILED: "Faili {name} ei saanud avada."
+        ,TranslationKeys.TASK_FILES_EXTERNAL_OPEN_CONFIRM: "Fail avatakse arvuti vaikimisi rakenduses.\n\nFail: {name}\nTüüp: .{extension}\n\nAva ainult siis, kui usaldad faili ja selle üleslaadijat. Kas jätkata?"
+        ,TranslationKeys.TASK_FILES_EXTERNAL_OPEN_BLOCKED: "Faili {name} ei saa turvakaalutlustel välise rakendusega avada."
+        ,TranslationKeys.DESCRIPTION_LINK_WEB_CONFIRM: "Veebiaadress avatakse arvuti vaikebrauseris.\n\nAadress: {url}{http_warning}\n\nKas jätkata?"
+        ,TranslationKeys.DESCRIPTION_LINK_HTTP_WARNING: "\n\nHoiatus: aadress kasutab krüpteerimata HTTP-ühendust."
+        ,TranslationKeys.DESCRIPTION_LINK_FOLDER_CONFIRM: "Kaust avatakse arvuti failihalduris.\n\nKaust: {path}\n\nKas jätkata?"
+        ,TranslationKeys.DESCRIPTION_LINK_NETWORK_CONFIRM: "See sihtkoht asub võrgus. Jätkamisel loob Windows ühenduse näidatud serveri või võrgukettaga.\n\nServer või võrguketas: {host}\nTee: {path}\n\nJätka ainult siis, kui tunned ja usaldad seda sihtkohta. Kas jätkata?"
+        ,TranslationKeys.DESCRIPTION_LINK_FILE_CONFIRM: "Fail avatakse arvuti vaikimisi rakenduses.\n\nFail: {path}\nTüüp: .{extension}\n\nAva ainult siis, kui usaldad faili. Kas jätkata?"
+        ,TranslationKeys.DESCRIPTION_LINK_BLOCKED: "Linki ei saa turvakaalutlustel avada. Lubatud on HTTP- ja HTTPS-aadressid ning absoluutsed kohaliku või kinnitatud võrgutee failid ja kaustad.\n\nSihtkoht: {target}"
+        ,TranslationKeys.DESCRIPTION_LINK_NOT_FOUND: "Lingi sihtkohta ei leitud või sellele puudub juurdepääs.\n\nSihtkoht: {target}"
+        ,TranslationKeys.DESCRIPTION_LINK_OPEN_FAILED: "Lingi sihtkohta ei saanud avada.\n\nSihtkoht: {target}"
         ,TranslationKeys.TASK_FILES_UPLOAD_DIALOG_TITLE: "Vali üleslaetavad failid"
         ,TranslationKeys.TASK_FILES_UPLOAD_DIALOG_FILTER: "Kõik failid (*.*)"
         ,TranslationKeys.TASK_FILES_UPLOAD_SUCCESS: "Üles laaditi {count} faili."

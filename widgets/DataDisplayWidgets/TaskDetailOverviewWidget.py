@@ -307,7 +307,12 @@ class TaskDetailOverviewWidget(QWidget):
             detail_widget.setParent(self)
             layout.addWidget(detail_widget)
         else:
-            description_widget = HtmlDescriptionWidget(str(description_html or ""), self, inline=True)
+            description_widget = HtmlDescriptionWidget(
+                str(description_html or ""),
+                self,
+                inline=True,
+                lang_manager=self._lang,
+            )
             layout.addWidget(description_widget)
 
         item_id = DataDisplayExtractors.extract_item_id(self._item_data)

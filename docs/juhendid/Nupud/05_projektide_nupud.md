@@ -7,16 +7,16 @@ See fail koondab projektikaardi ja projektiala töövoogude nupud. Nuppude eeldu
 | Nupp | Asukoht | Lühikirjeldus |
 |---|---|---|
 | **… Detailne ülevaade** | Projektikaardi alumine serv | Laiendab või ahendab projektikaardi sees seotud moodulite edenemise tahvli. |
-| **Ava kaust** | Projektikaardi toimingurida | Avab kaardi loomisel saadud `filesPath` kausta või veebiaadressi; tühja väärtuse korral on nupp passiivne. |
+| **Ava kaust** | Projektikaardi toimingurida | Avab projekti `filesPath` kausta või veebiaadressi; tühja väärtuse korral on nupp passiivne ning projektikausta lingi salvestamisel uuendatakse sama nuppu kohe. |
 | **Ava kirje brauseris** | Projektikaardi toimingurida | Avab projekti Kavitro veebirakenduses. |
-| **Näita kirjeid kaardil** | Projektikaardi toimingurida | Laeb Kavitrost seotud kinnistud, valib need kinnistute põhikihil ja proovib fokuseerida sama projekti ala projektide põhikihil. |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Projektikaardi toimingurida | Seoseta projektil käivitab seostamisikoon kinnistute seostamise. Seosega projektil valib kaardiikoon seotud kinnistud ja proovib fokuseerida sama projekti ala projektide põhikihil. |
 | **Rohkem toiminguid** | Projektikaardi toimingurida | Avab projekti lisatoimingute menüü. |
 
 ## Projekti „Rohkem toiminguid“ menüü
 
 | Toiming | Asukoht | Lühikirjeldus |
 |---|---|---|
-| **Genereeri projekti kaust** | Projektikaart → Rohkem toiminguid | Küsib kinnituse ja kopeerib seadistatud lähtekausta projektile arvutatud nimega sihtkaustaks; seejärel saab proovida kaustatee projektile salvestada. |
+| **Genereeri projekti kaust** | Projektikaart → Rohkem toiminguid | Kontrollib lähte- ja sihtkausta, muudab arvutatud nime üheks turvaliseks kaustanimeks ning näitab enne kopeerimist täielikku sihtteed vaikimisi eitavas kinnituses. |
 | **Ava projekti ala eelvaade** | Sama menüü | Avab seotud kinnistutest projektiala koostamise dialoogi ning loob võimaluse korral eelvaate automaatselt. |
 | **Joonista uus seotud ala kaardile** | Sama menüü | Käivitab uue polügooni käsitsi joonistamise projektide põhikihile ja seob loodud objekti projektiga. |
 | **Seosta kinnistuid** | Sama menüü | Käivitab uute kinnistuseoste kaardilt valimise ja Kavitrosse lisamise; olemasolevaid seoseid selle vooga ei eemaldata. |

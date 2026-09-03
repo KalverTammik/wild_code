@@ -19,7 +19,7 @@ Lepingute ja kooskõlastuste nupud on praeguses versioonis peaaegu samad. Moodul
 | **… Detailne ülevaade** | Lepingu või kooskõlastuse kaardi alumine serv | Laiendab või ahendab sama kaardi sees kirjelduse ja seotud failide kokkuvõtte; kooskõlastusel kuvatakse ka tingimused. |
 | **Ava kaust** | Kirjekaardi toimingurida | Avab kirje kausta või veebitee. |
 | **Ava kirje brauseris** | Kirjekaardi toimingurida | Avab kirje Kavitro veebirakenduses. |
-| **Näita kirjeid kaardil** | Kirjekaardi toimingurida | Näitab kirjega seotud kinnistuid; lepingu või kooskõlastuse põhikihi objekti ei fokuseeri. |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Kirjekaardi toimingurida | Seoseta kirjel käivitab seostamisikoon kinnistute seostamise. Seosega kirjel näitab kaardiikoon seotud kinnistuid; lepingu või kooskõlastuse põhikihi objekti ei fokuseeri. |
 | **Rohkem toiminguid** | Kirjekaardi toimingurida | Avab lisatoimingute menüü. |
 | **Seosta kinnistuid** | **Rohkem toiminguid** menüü | Lisab kaardilt valitud kinnistud lepingu või kooskõlastuse olemasolevatele seostele. |
 

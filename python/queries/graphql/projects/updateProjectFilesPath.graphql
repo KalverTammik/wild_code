@@ -1,0 +1,6 @@
+mutation UpdateProjectFilesPath($input: UpdateProjectInput!) {
+  updateProject(input: $input) {
+    id
+    filesPath
+  }
+}

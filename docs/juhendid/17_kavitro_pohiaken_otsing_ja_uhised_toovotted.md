@@ -135,12 +135,12 @@ Tööde ja teostusjooniste staatuseriba vajutamisel saab staatust muuta, kui kir
 |---|---|
 | **Ava kaust** | Avab `filesPath` asukoha; tööde ja teostusjooniste kaartidel seda nuppu ei ole |
 | **Ava kirje brauseris** | Avab sama kirje Kavitro veebirakenduses |
-| **Näita kaardil** | Kuvab seotud kinnistud ja toetatud moodulites fokuseerib ka mooduli põhikihi objekti |
+| **Seosta / Näita kaardil** | Seoseta kirjel käivitab seostamisikoon kinnistute seostamise; seosega kirjel kuvab kaardiikoon seotud kinnistud ja toetatud moodulites fokuseerib ka mooduli põhikihi objekti |
 | **Rohkem toiminguid** | Avab moodulipõhised kaardi-, faili- ja sidumistoimingud |
 
-Nupp võib olla passiivne, kui toiminguks vajalik ID, kaustatee või kinnistuseos puudub.
+Nupp võib olla passiivne, kui toiminguks vajalik ID või kaustatee puudub. Puuduv kinnistuseos ei muuda kaardirea toimingut passiivseks, vaid vahetab selle kinnistute seostamisikooniks.
 
-### „Näita kaardil“ moodulite lõikes
+### „Seosta / Näita kaardil“ moodulite lõikes
 
 | Moodul | Seotud kinnistud | Mooduli põhikihi objekti fookus |
 |---|---:|---:|
@@ -176,7 +176,9 @@ Detailse ülevaate sisu on mooduliti erinev:
 - servituut kuvab seotud kinnistute ülevaate ja failide kokkuvõtte;
 - töö ning teostusjoonis kuvavad kirjelduse ja failide kokkuvõtte.
 
-Failide kokkuvõttes kuvatakse kuni viis esimest faili. Faili vajutamisel proovib Visuaal avada sisemise eelvaate. Toetamata failitüübi korral saab avanenud eelvaatedialoogist kasutada **Ava väliselt** nuppu. Kui PDF-e toetav Qt WebEngine puudub, eelvaatedialoogi ja selle välise avamise nuppu ei looda; kasuta sel juhul Kavitro veebivaadet.
+Failide kokkuvõttes kuvatakse kuni viis esimest faili. Faili vajutamisel proovib Visuaal avada sisemise eelvaate. Eelvaatedialoogi **Ava väliselt** on aktiivne ainult lubatud ja failinimega kooskõlas oleva laiendi korral ning küsib enne allalaadimist vaikimisi eitava turvakinnituse. Käivitatavaid ja aktiivsisu sisaldavaid failitüüpe välisele rakendusele ei anta. Kui PDF-e toetav Qt WebEngine puudub, eelvaatedialoogi ja selle välise avamise nuppu ei looda; kasuta sel juhul Kavitro veebivaadet. Täpne failitüüpide loend ja abikeskuse kontrolljuhis on failis [Failide ja ühisdialoogide nupud](Nupud/09_failide_ja_uhisdialoogide_nupud.md).
+
+Kirjeldustes olevad lingid ei avane automaatselt. Veebilingi puhul näidatakse enne brauseri avamist täielikku aadressi; `http`-lingi kinnitus hoiatab lisaks krüpteerimata ühenduse eest. Kohalik toetatud fail avatakse esmalt Visuaali eelvaates, kust saab lubatud failitüübi eraldi kinnitusega anda arvuti vaikerakendusele. Kohaliku kausta avamine küsib samuti kinnitust. Võrgufaili või -kausta korral näidatakse eraldi, millise serveriga ühendus luuakse, ning faili olemasolu kontrollitakse alles pärast vaikimisi eitavat kinnitust. Tundmatud protokollid ja lubamata failitüübid blokeeritakse.
 
 Täieliku failide üleslaadimise ja kustutamise dialoogi klass on olemas ainult servituutide töövoo jaoks, kuid praeguses versioonis ei ava menüütoiming seda dialoogi. Kasuta failihalduseks Kavitro veebivaadet. Moodulite detailvaate failiosa on lugemiseks ja eelvaateks.
 

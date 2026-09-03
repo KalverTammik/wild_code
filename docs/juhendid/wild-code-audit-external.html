@@ -1,0 +1,599 @@
+<title>Kavitro Plugin Findings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+
+<style>
+:root{
+  --ground:#EEF1F4;
+  --surface:#FFFFFF;
+  --surface-2:#F6F8FA;
+  --line:#D3DAE1;
+  --line-soft:#E4E9ED;
+  --ink:#141A21;
+  --ink-2:#3B4753;
+  --muted:#66727F;
+  --accent:#2C6E8E;
+  --accent-soft:#DCEAF1;
+  --sev-crit:#A8241C;
+  --sev-high:#B45812;
+  --sev-med:#7C6416;
+  --sev-low:#41604A;
+  --sev-clean:#3F6B57;
+  --crit-wash:#F7E4E2;
+  --high-wash:#F9E9DC;
+  --med-wash:#F6F0DA;
+  --low-wash:#E6EDE7;
+  --code-bg:#F3F6F8;
+  --shadow:0 1px 2px rgba(20,26,33,.05),0 6px 20px -12px rgba(20,26,33,.22);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#10151B;
+    --surface:#181F27;
+    --surface-2:#1D2630;
+    --line:#2C3742;
+    --line-soft:#242E38;
+    --ink:#E3E9EF;
+    --ink-2:#B8C3CE;
+    --muted:#8593A1;
+    --accent:#69AECD;
+    --accent-soft:#1C3140;
+    --sev-crit:#F0847C;
+    --sev-high:#E8A365;
+    --sev-med:#D6C077;
+    --sev-low:#93BBA0;
+    --sev-clean:#8FC3A9;
+    --crit-wash:#2E1A19;
+    --high-wash:#2E2318;
+    --med-wash:#2B2718;
+    --low-wash:#1B2620;
+    --code-bg:#131A21;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#10151B;
+  --surface:#181F27;
+  --surface-2:#1D2630;
+  --line:#2C3742;
+  --line-soft:#242E38;
+  --ink:#E3E9EF;
+  --ink-2:#B8C3CE;
+  --muted:#8593A1;
+  --accent:#69AECD;
+  --accent-soft:#1C3140;
+  --sev-crit:#F0847C;
+  --sev-high:#E8A365;
+  --sev-med:#D6C077;
+  --sev-low:#93BBA0;
+  --sev-clean:#8FC3A9;
+  --crit-wash:#2E1A19;
+  --high-wash:#2E2318;
+  --med-wash:#2B2718;
+  --low-wash:#1B2620;
+  --code-bg:#131A21;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  font-size:15.5px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:40px 24px 96px;display:flex;flex-direction:column;gap:40px}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+.mast{display:flex;flex-direction:column;gap:18px;border-bottom:2px solid var(--ink);padding-bottom:22px}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;
+}
+.eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block}
+h1{
+  font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;
+  font-weight:700;font-size:clamp(2.1rem,5.2vw,3.1rem);line-height:1.04;
+  letter-spacing:-.015em;margin:0;text-wrap:balance;
+}
+h1 .sub{display:block;color:var(--muted);font-weight:500;font-size:.44em;letter-spacing:.01em;margin-top:10px}
+.standfirst{margin:0;max-width:66ch;color:var(--ink-2);font-size:1.02rem}
+
+.tally{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.tally div{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.tally .n{font-family:"IBM Plex Sans Condensed",sans-serif;font-size:2rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.tally .l{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tally .high .n{color:var(--sev-high)}
+.tally .med .n{color:var(--sev-med)}
+.tally .low .n{color:var(--sev-low)}
+.tally .clean .n{color:var(--sev-clean)}
+
+section{display:flex;flex-direction:column;gap:18px}
+h2{
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:600;
+  font-size:1.42rem;letter-spacing:-.005em;margin:0;
+  display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line);padding-bottom:9px;
+}
+h2 .count{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);letter-spacing:.1em;font-weight:400}
+.lede{margin:0;color:var(--ink-2);max-width:72ch;font-size:.96rem}
+
+.finding{
+  background:var(--surface);border:1px solid var(--line-soft);border-radius:3px;
+  box-shadow:var(--shadow);overflow:hidden;display:flex;
+}
+.stripe{width:5px;flex:0 0 5px;background:var(--muted)}
+.f-high .stripe{background:var(--sev-high)}
+.f-med  .stripe{background:var(--sev-med)}
+.f-low  .stripe{background:var(--sev-low)}
+.f-body{flex:1;min-width:0;padding:18px 22px 20px;display:flex;flex-direction:column;gap:12px}
+
+.f-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.sev{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;padding:3px 8px;border-radius:2px;white-space:nowrap;
+}
+.f-high .sev{background:var(--high-wash);color:var(--sev-high)}
+.f-med  .sev{background:var(--med-wash);color:var(--sev-med)}
+.f-low  .sev{background:var(--low-wash);color:var(--sev-low)}
+.fid{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);letter-spacing:.06em}
+.f-head h3{
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:600;font-size:1.14rem;
+  margin:0;flex:1 1 320px;min-width:0;letter-spacing:-.003em;text-wrap:balance;
+}
+.loc{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);
+  background:var(--accent-soft);padding:3px 8px;border-radius:2px;
+  overflow-x:auto;white-space:nowrap;max-width:100%;
+}
+.f-body p{margin:0;color:var(--ink-2);font-size:.95rem}
+.f-body p strong,.f-body p b{color:var(--ink);font-weight:600}
+pre{
+  margin:0;background:var(--code-bg);border:1px solid var(--line-soft);border-radius:2px;
+  padding:11px 13px;overflow-x:auto;font-size:12.5px;line-height:1.55;color:var(--ink);
+}
+.fix{
+  display:flex;gap:9px;align-items:baseline;padding-top:11px;border-top:1px dashed var(--line);
+  font-size:.92rem;color:var(--ink-2);flex-wrap:wrap;
+}
+.fix b{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--accent);white-space:nowrap;flex:0 0 auto;
+}
+.fix span{flex:1 1 260px;min-width:0}
+.note{
+  background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 2px 2px 0;
+  padding:13px 16px;font-size:.93rem;color:var(--ink-2);
+}
+.note b{color:var(--ink)}
+
+.clean{background:var(--surface);border:1px solid var(--line-soft);border-radius:3px;box-shadow:var(--shadow);padding:6px 0}
+.clean ul{list-style:none;margin:0;padding:0}
+.clean li{
+  display:flex;gap:12px;align-items:flex-start;padding:11px 20px;
+  border-bottom:1px solid var(--line-soft);font-size:.94rem;color:var(--ink-2);
+}
+.clean li:last-child{border-bottom:none}
+.clean li::before{
+  content:"OK";font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;letter-spacing:.1em;
+  color:var(--sev-clean);flex:0 0 auto;padding-top:3px;
+}
+.clean li b{color:var(--ink);font-weight:600}
+
+.scope{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.scope div{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:3px}
+.scope .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.scope .v{font-size:.94rem;color:var(--ink)}
+.scope .v code{font-size:12.5px}
+
+footer{border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:.87rem;max-width:72ch}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:560px){
+  .f-body{padding:16px 16px 18px}
+  .wrap{padding:28px 15px 64px;gap:34px}
+}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">
+    <span><span class="dot"></span> Security review</span>
+    <span>KalverTammik / wild_code</span>
+    <span>Kavitro QGIS plugin v2.00.05</span>
+    <span>26 Aug 2026</span>
+  </div>
+  <h1>Kavitro Plugin Findings
+    <span class="sub">244 Python files, 73 GraphQL documents, 286 commits of history</span>
+  </h1>
+  <p class="standfirst">Static review of the plugin source, its release pipeline and its full git history, commissioned by Mailabl as the operator of the API this plugin consumes. Nineteen issues, each traced from the value that carries it to the call that consumes it. Nothing was executed and no live endpoint was touched.</p>
+</header>
+
+<div class="tally">
+  <div class="high"><span class="n">6</span><span class="l">High</span></div>
+  <div class="med"><span class="n">8</span><span class="l">Medium</span></div>
+  <div class="low"><span class="n">5</span><span class="l">Low</span></div>
+  <div class="clean"><span class="n">9</span><span class="l">Verified clean</span></div>
+</div>
+
+<div class="note">
+  <b>The common thread.</b> The plugin treats every API response as trusted input. Filenames, file extensions, folder paths, project names and description HTML all arrive over GraphQL and flow into a shell, a filesystem path, an OS file handler or a rich-text renderer with no validation in between. Those values are authored by people: a filename comes from whoever uploaded the attachment, a project name from whoever typed it, a description from whoever wrote it. A desktop client has to treat them the way it would treat a downloaded file, regardless of what any server does with them on the way in. Most of the high findings are the same fix repeated at a different boundary.
+</div>
+
+<section>
+  <h2>API data reaching dangerous sinks <span class="count">5 findings</span></h2>
+  <p class="lede">Traced end to end, from the GraphQL field to the call that consumes it.</p>
+
+  <article class="finding f-high">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">High</span><span class="fid">WC-01</span>
+        <h3>A folder path from the API is passed to a shell</h3>
+      </div>
+      <span class="loc">utils/Folders/foldersHelpers.py:166-174</span>
+      <pre>target = file_path.replace("/", "\\")
+if target.lower().startswith("http"):
+    subprocess.Popen(["start", "", target], shell=True)
+else:
+    subprocess.Popen(["explorer", target], shell=True)</pre>
+      <p><b>Chain.</b> The GraphQL field <code>filesPath</code> (on projects, contracts, coordinations and easements) reaches <code>extract_files_path</code> in <code>python/responses.py:215</code>, becomes the payload of the folder button in <code>widgets/DataDisplayWidgets/module_action_buttons.py:118</code>, and goes straight to <code>open_item_folder</code> on click. Nothing filters, quotes or allowlists it.</p>
+      <p><b>Why the shell matters.</b> On Windows, <code>Popen(list, shell=True)</code> joins the list with <code>list2cmdline</code> and hands the result to <code>cmd.exe /c</code>. <code>list2cmdline</code> quotes for whitespace and embedded quotes only; it leaves <code>&amp; | &lt; &gt; ^</code> alone. A space-free value such as <code>C:\x&amp;calc.exe</code> survives unquoted into <code>cmd</code> and the part after the <code>&amp;</code> executes. On POSIX the extra list items become <code>$0</code> and <code>$1</code>, so this is Windows-only, which is also the only platform the function targets.</p>
+      <p><b>Worth noting</b> that the plugin writes this field back itself (<code>foldersHelpers.py:88-105</code> sends <code>{"filesPath": link}</code>), so the value round-trips through storage. A value set on one workstation is executed on another.</p>
+      <div class="fix"><b>Fix</b><span>Drop <code>shell=True</code> and use <code>os.startfile(path)</code> for directories, or <code>QDesktopServices.openUrl(QUrl.fromLocalFile(path))</code>. Reject anything that is not an existing local directory before opening it, and reject UNC paths unless you specifically intend to support them.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-high">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">High</span><span class="fid">WC-02</span>
+        <h3>The API picks the file extension, the OS picks what to run</h3>
+      </div>
+      <span class="loc">widgets/DataDisplayWidgets/TaskFilePreviewDialog.py:194-215, 170-176</span>
+      <pre>ext = str(data.get("ext") or "").strip().lower().lstrip(".")
+suffix = f".{ext}" if ext else os.path.splitext(file_name)[1]
+handle = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+...
+if hasattr(os, "startfile"):
+    os.startfile(normalized_path)</pre>
+      <p><b>Chain.</b> <code>ext</code>, <code>fileName</code> and <code>mimeType</code> come from <code>taskFiles.graphql:26-28</code>, attached to a task by an <code>uploader</code>. The attachment bytes are streamed into a temp file whose suffix is that extension, and the "open externally" button (<code>:864</code>) hands the file to the OS default handler. There is <strong>no extension allowlist anywhere in the file</strong> and no confirmation step. On Windows <code>os.startfile</code> executes <code>.exe</code>, <code>.bat</code>, <code>.cmd</code>, <code>.hta</code> and <code>.scr</code> directly.</p>
+      <p><b>The fallback is the sharper edge.</b> When <code>ext</code> is absent or null, line 196 falls back to <code>os.path.splitext(file_name)[1]</code>, and <code>fileName</code> is a user-supplied original filename. Treat both fields as attacker-controlled, and note that they fail differently: an allowlist on <code>ext</code> alone still leaves the <code>fileName</code> path open whenever <code>ext</code> comes back empty. Assume it will.</p>
+      <p><b>Partly dormant, worth knowing.</b> <code>open_preview</code> at <code>:96</code> can reach this <em>without</em> a click, but <code>FORCE_EXTERNAL_EXTENSIONS</code> and <code>FORCE_EXTERNAL_MIME_TYPES</code> are both empty sets (<code>:57-58</code>), so that branch is currently unreachable. Populating either set turns a click-gated issue into an automatic one, so please add the allowlist before adding entries there.</p>
+      <p>Beyond executables: <code>html</code> and <code>svg</code> extensions open attacker-authored content in the user's default browser, which is worth blocking too even though it is not code execution on the desktop.</p>
+      <div class="fix"><b>Fix</b><span>Allowlist previewable extensions, derive the suffix from that allowlist rather than from either API field, strip path separators from both <code>ext</code> and <code>fileName</code>, and confirm with the user before handing anything to the OS handler.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-high">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">High</span><span class="fid">WC-03</span>
+        <h3>A project name from the API becomes a copy destination, unchecked</h3>
+      </div>
+      <span class="loc">utils/Folders/foldersHelpers.py:44-53</span>
+      <pre>folder_name = FolderNameGenerator().folder_structure_name_order(project_name, project_number)
+dest_dir = os.path.join(target_folder, folder_name)
+if os.path.exists(dest_dir):
+    ...warn...
+else:
+    shutil.copytree(source_folder, dest_dir)</pre>
+      <p><b>Chain.</b> <code>project_name</code> and <code>project_number</code> come from <code>extract_item_name</code> and <code>extract_project_number</code> (<code>python/responses.py:264-275</code>), straight off the GraphQL node. <code>folder_structure_name_order</code> (<code>:108-155</code>) concatenates the parts with <code>"".join</code> and applies no filtering at all.</p>
+      <p>A <code>..</code> segment escapes the configured target folder. An <strong>absolute</strong> value is worse: <code>os.path.join</code> silently discards <code>target_folder</code> and <code>copytree</code> writes wherever the value points, for example a per-user Startup folder. The two Yes/No dialogs do not help, because the user confirms at line 33, before the name is generated at line 44, so the destination is never shown.</p>
+      <p>You already have the right helper for this elsewhere in the codebase: <code>_safe_file_name</code> in <code>modules/easements/easement_pdf_service.py:400</code> is a proper character allowlist that collapses <code>..</code> to a fallback.</p>
+      <div class="fix"><b>Fix</b><span>Sanitize <code>folder_name</code> to a single path component with that same helper, then assert the resolved <code>dest_dir</code> is still under <code>target_folder</code> before copying.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-high">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">High</span><span class="fid">WC-04</span>
+        <h3>Description HTML renders with external links enabled</h3>
+      </div>
+      <span class="loc">widgets/DataDisplayWidgets/HtmlDescriptionWidget.py:21-22</span>
+      <pre>self.setOpenExternalLinks(True)
+self.setOpenLinks(True)
+...
+self.setHtml(self.normalize_html(html or ""))</pre>
+      <p>This <code>QTextBrowser</code> is built directly from API description HTML at <code>TaskDetailOverviewWidget.py:310</code> and <code>ExtraInfoWidget.py:126, 392</code>. <code>normalize_html</code> (<code>:36-70</code>) only restyles <code>&lt;mark&gt;</code>, <code>&lt;table&gt;</code> and <code>&lt;blockquote&gt;</code>. It never inspects <code>href</code> and applies no tag or attribute allowlist.</p>
+      <p>Clicking a link therefore hands an author-chosen URI to Qt without an application-level decision. Local file and folder links are an intentional product feature, but the current implementation does not distinguish a local path from a Windows UNC or mapped network path and does not constrain registered custom schemes. A network path may initiate an SMB connection, while a custom scheme may invoke an operating-system handler. <code>QTextBrowser</code> has no JavaScript engine, so this stops short of script execution inside the description view.</p>
+      <p>Descriptions are authored by users, so the content should be treated as untrusted at render time regardless of what happens to it in transit or storage.</p>
+      <div class="fix"><b>Implemented remediation</b><span>Controlled local file and folder opening remains a supported feature. The widget uses <code>setOpenLinks(False)</code> and <code>setOpenExternalLinks(False)</code>, handles <code>anchorClicked</code>, and classifies every destination before filesystem access. It allows <code>http</code> and <code>https</code> after a destination confirmation. Supported local files open in the existing internal preview; only centrally allowlisted extensions can be handed to the operating system after a default-No confirmation. Local folders require confirmation. UNC, hosted <code>file://</code> URLs and mapped network drives are detected before probing, receive a stronger network warning, and continue only after confirmation. All other schemes and file types are blocked. The remaining, user-approved local and network file-opening risk is an intentional product trade-off.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-low">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Low</span><span class="fid">WC-15</span>
+        <h3>Download URL from the API is fetched without a scheme or host check</h3>
+      </div>
+      <span class="loc">python/api_actions.py:1027-1037 &middot; TaskFilePreviewDialog.py:203-207</span>
+      <p>The <code>createDownloadLink</code> mutation returns a <code>url</code> that goes straight into <code>requests.get(url, stream=True)</code> with redirects enabled. No scheme check, no host allowlist. <code>requests</code> refuses <code>file://</code>, so this is not a local file read, and no <code>Authorization</code> header is attached, so the session token does not leak. Listed as hardening rather than something to schedule.</p>
+      <div class="fix"><b>Fix</b><span>Require <code>https</code> and an expected host before fetching.</span></div>
+    </div>
+  </article>
+</section>
+
+<section>
+  <h2>Credential and session handling <span class="count">4 findings</span></h2>
+  <p class="lede">The repo ships a written policy in <code>safety.md</code>: token-like secrets must go through the QGIS Authentication Manager, never plain settings. The implementation inverts it. The password, which nothing reads, goes into the encrypted store. The bearer token, which is used on every request, goes into a plaintext file.</p>
+
+  <article class="finding f-high">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">High</span><span class="fid">WC-05</span>
+        <h3>Bearer token written to plaintext QgsSettings</h3>
+      </div>
+      <span class="loc">utils/SessionManager.py:100</span>
+      <pre>SESSION_TOKEN = "session/token"
+...
+settings.setValue(SESSION_TOKEN, SessionManager._instance.apiToken)</pre>
+      <p>This is the live credential sent as <code>Authorization: Bearer</code> on every API call (<code>api_client.py:82</code>). <code>QgsSettings</code> persists to <code>QGIS3.ini</code> on Linux and macOS and to <code>HKCU</code> on Windows, in the clear. Anything that reads the user profile (a backup, a sync client, a support bundle, another local account) walks away with a working session for as long as the token remains valid.</p>
+      <p>The encrypted store is already wired up two methods below (<code>save_credentials</code>, <code>:130</code>). The token is the one credential that does not use it.</p>
+      <div class="fix"><b>Fix</b><span>Store the token in the <code>QgsAuthMethodConfig</code> alongside the rest, keeping only the auth config id in settings, exactly as <code>safety.md</code> specifies.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-med">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Medium</span><span class="fid">WC-07</span>
+        <h3>Logging out never clears stored credentials</h3>
+      </div>
+      <span class="loc">utils/SessionManager.py:183</span>
+      <p><code>clear_credentials()</code> exists, removes the auth config and the settings keys, and is correct. It is also <strong>dead code</strong>, with zero callers anywhere in the tree.</p>
+      <p><code>SessionUIController.logout</code> calls <code>SessionManager.clear()</code>, which only removes the session keys and sets a needs-login flag. The <code>QgsAuthMethodConfig</code> holding username, password and API key survives logout indefinitely, on a shared workstation as much as a personal one.</p>
+      <div class="fix"><b>Fix</b><span>Call <code>clear_credentials()</code> from the logout path.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-med">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Medium</span><span class="fid">WC-08</span>
+        <h3>The password is stored, and then never used</h3>
+      </div>
+      <span class="loc">utils/SessionManager.py:134</span>
+      <p><code>save_credentials</code> writes <code>username</code>, <code>password</code> and <code>apikey</code>. Every caller of <code>load_credentials()</code> (<code>easement_layer_service.py:419</code>, <code>projects_layer_service.py:227</code>, <code>works_layer_service.py:296</code>, <code>asbuilt_layer_service.py:243</code>) reads only <code>.username</code>, which is already in settings under <code>AUTH_USERNAME</code>. <code>self.password</code> and <code>self.api_key</code> are never read by anything.</p>
+      <p>There is also no re-authentication path that could use them. The login mutation requests <code>refreshToken</code> and <code>expiresIn</code> (<code>login_dialog.py:227-228</code>) and discards both, so the token has no client-side expiry and is never renewed. It simply persists until a 401 comes back.</p>
+      <p>The API returns those two fields precisely so a client can renew without holding a password, and there is a <code>refreshToken</code> mutation for it. Adopting that path makes this finding disappear by deletion rather than by adding code.</p>
+      <div class="fix"><b>Fix</b><span>Stop storing the password. Store the token and its expiry, and renew through the existing refresh mutation.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-med">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Medium</span><span class="fid">WC-09</span>
+        <h3>The login mutation is built by string interpolation</h3>
+      </div>
+      <span class="loc">login_dialog.py:223-231</span>
+      <pre>graphql = f'''
+    mutation {{
+        login(input: {{ username: "{username}", password: "{password}" }}) {{
+            accessToken refreshToken expiresIn
+        }}
+    }}
+'''</pre>
+      <p>This is the only interpolated GraphQL document in the codebase. All 59 other call sites load a static <code>.graphql</code> file and pass runtime values through <code>variables</code>, which is the right pattern and is already available here: <code>send_query</code> is called with <code>variables=None</code>.</p>
+      <p><b>Why it matters, in order.</b> First, because the secret sits in the query <em>document</em> rather than in variables, the plaintext password is carried by anything that records GraphQL query text: APM, tracing, error reporting, proxies, WAFs, and any request logging at either end. Query documents are routinely logged on the assumption that they contain no secrets. That assumption is normally correct and it is what makes this pattern dangerous. Variables, being a parsed key-value map, can be redacted structurally by key; a free-form document can only be scrubbed by pattern matching, which is inherently fragile.</p>
+      <p>Second, a password containing <code>"</code> or a trailing backslash produces a malformed document. <code>_classify_login_error</code> (<code>:155-191</code>) reports the resulting parse failure as a generic "server unavailable", so affected users cannot log in and have no way to find out why.</p>
+      <p>The injection framing is weaker than it looks and worth stating plainly: the person typing into the dialog is the local user, who could already send arbitrary GraphQL to the same unauthenticated endpoint with <code>curl</code>. The injection grants them nothing new. The credential handling is the finding.</p>
+      <div class="fix"><b>Fix</b><span>Move the mutation into a <code>.graphql</code> file and pass the credentials via <code>variables</code>, matching every other call site in the plugin.</span></div>
+    </div>
+  </article>
+</section>
+
+<section>
+  <h2>Git history and repository contents <span class="count">2 findings</span></h2>
+  <p class="lede">The repository is public and clones without authentication. History was audited from a full clone of 286 commits. A shallow clone shows only one and hides everything below it.</p>
+
+  <article class="finding f-high">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">High</span><span class="fid">WC-06</span>
+        <h3>A credential file was committed and is still recoverable from history</h3>
+      </div>
+      <span class="loc">modules/GptAssistant/ &middot; dotenv file &middot; commits 34b3217 to 855764a, 5-7 Aug 2025</span>
+      <p>A dotenv credential file was committed alongside an OpenAI client module and later deleted with the rest of that directory. Deleting it from the working tree does not remove it from history. It remains fetchable by anyone who clones this public repository.</p>
+      <p><b>What is known.</b> The sibling <code>logic/Gpt4oClient.py</code> reads <code>os.environ.get("OPENAI_API_KEY")</code>, and the committed file matched an <code>OPENAI_API_KEY</code>-style assignment pattern. <b>What is not.</b> The file's contents were not read; the review tooling blocks reading credential files. As a partial signal, a scan of every blob across all 286 commits found <strong>zero</strong> matches for OpenAI, AWS, GitHub, Google or Slack key formats, or PEM private key headers, which suggests the stored value may have been a placeholder.</p>
+      <p>Also committed in that directory: <code>__pycache__/*.pyc</code> files, which preserve string literals independently of the source.</p>
+      <div class="fix"><b>Fix</b><span>Inspect that blob, rotate the key if it was ever live, then purge the path from history with <code>git filter-repo</code> and force-push. Treat it as compromised until verified otherwise.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-low">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Low</span><span class="fid">WC-16</span>
+        <h3>Operational GeoPackage committed to the repo</h3>
+      </div>
+      <span class="loc">avariitood.gpkg (96 KB, tracked at HEAD)</span>
+      <p>Layer <code>Avariitood</code>, 7 point features in EPSG:3301 with real Estonian coordinates, columns including <code>ext_job_name</code>, <code>added_by</code> and <code>updated_by</code> across three distinct attribution values. Named jobs and surveyed positions rather than synthetic fixtures, so this reads as a small extract of live operational data sitting in a public repository. Worth confirming with whoever supplied it whether it may be published.</p>
+      <p>The release pipeline handles it correctly and belt-and-braces (excluded at <code>qgis_release.yml:101</code>, affirmatively rejected at <code>:148</code>, excluded again at <code>qgis_repo_release.py:135</code>), so it does not ship to users. But <code>.gitignore</code> has no <code>*.gpkg</code> rule and the release denylist hardcodes this one filename, so the next sample GeoPackage dropped in the root repeats the pattern.</p>
+      <div class="fix"><b>Fix</b><span>Remove it from the tree and history, and add <code>*.gpkg</code> to <code>.gitignore</code>.</span></div>
+    </div>
+  </article>
+</section>
+
+<section>
+  <h2>Release pipeline <span class="count">3 findings</span></h2>
+  <p class="lede">One workflow, <code>.github/workflows/qgis_release.yml</code>. The trigger surface is sound: <code>release: published</code> and <code>workflow_dispatch</code> only, no <code>pull_request_target</code>, no untrusted PR checkout, and <code>permissions</code> scoped to <code>contents: write</code> rather than left at default. What follows are escalations from "can publish a release" to "can execute in the job that builds the artifact users install".</p>
+
+  <article class="finding f-med">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Medium</span><span class="fid">WC-10</span>
+        <h3>Release tag and inputs are interpolated straight into shell and Python</h3>
+      </div>
+      <span class="loc">.github/workflows/qgis_release.yml:40, 43, 44, 46, 111, 208</span>
+      <pre>RELEASE_TAG="${{ github.event.release.tag_name }}"     # :40
+RELEASE_VERSION="${{ inputs.release_version }}"        # :43
+
+python - &lt;&lt;'PY'
+release_version = "${{ steps.release_values.outputs.release_version }}".strip()   # :111</pre>
+      <p>Git tag names permit <code>$</code>, backticks, <code>;</code>, <code>|</code> and <code>&amp;</code>. Actions expands <code>${{ }}</code> before the shell ever sees the line, so the quoted heredoc at <code>:107</code> stops bash expansion but not template expansion, and a crafted value lands inside the Python source.</p>
+      <p>The version guard at <code>:60</code> does not close this. It runs <em>after</em> substitution, so it cannot protect the shell, and its own tail (<code>([.-].*)?</code>) permits arbitrary characters after a <code>.</code> or <code>-</code>. <code>release_tag</code> is never validated at all and flows unvalidated into <code>:195</code> and <code>:208</code>.</p>
+      <div class="fix"><b>Fix</b><span>Pass values through <code>env:</code> and reference them as quoted shell variables, the way <code>:203-205</code> already does correctly for the release body and title. Tighten the version regex tail and validate the tag. The same template is duplicated in <code>MAIN_PLUGIN_RELEASE_SETUP.md:107-283</code> and needs the same fix.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-med">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Medium</span><span class="fid">WC-11</span>
+        <h3>Published plugin zip carries no checksum or signature</h3>
+      </div>
+      <span class="loc">tools/qgis_repo_release.py:190-237</span>
+      <p><code>_write_plugins_xml</code> emits version, download URL, author, changelog and a dozen other elements, and no hash of any kind. <code>_build_zip</code> (<code>:162-173</code>) produces the archive without a digest, and nothing in the workflow generates or verifies one. QGIS Plugin Manager installs on TLS alone, so anyone who can replace a release asset can swap the plugin undetectably.</p>
+      <div class="fix"><b>Fix</b><span>Emit a SHA-256 of the zip into <code>plugins.xml</code> from <code>_write_plugins_xml</code>.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-med">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Medium</span><span class="fid">WC-12</span>
+        <h3>Unpinned build dependencies with credentials left on disk</h3>
+      </div>
+      <span class="loc">.github/workflows/qgis_release.yml:24-25, 28, 33</span>
+      <pre>run: python -m pip install --upgrade pip qgis-plugin-ci   # :33
+uses: actions/checkout@v5                                 # :25
+uses: actions/setup-python@v6                             # :28</pre>
+      <p><code>qgis-plugin-ci</code> is installed with no version, no lockfile and no hash pinning, into the job that produces the artifact users install. A compromised release of it, or of any transitive dependency, executes there. The two actions are mutable tag refs rather than commit SHAs, which is lower risk since both are first-party.</p>
+      <p>Amplifying this: <code>checkout</code> has no <code>with:</code> block, so <code>persist-credentials</code> defaults on and the <code>GITHUB_TOKEN</code> sits in <code>.git/config</code> on the runner for the whole job. Any code execution in the job reads it straight off disk.</p>
+      <div class="fix"><b>Fix</b><span>Pin <code>qgis-plugin-ci</code> to a version, pin the actions to commit SHAs, and set <code>persist-credentials: false</code>.</span></div>
+    </div>
+  </article>
+</section>
+
+<section>
+  <h2>Logging and temporary files <span class="count">5 findings</span></h2>
+
+  <article class="finding f-med">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Medium</span><span class="fid">WC-13</span>
+        <h3>Full HTTP error bodies are persisted to world-readable log files</h3>
+      </div>
+      <span class="loc">python/api_client.py:113-118, 331-336 &rarr; Logs/python_fail_logger.py:155</span>
+      <pre>body = response.text
+raise Exception(tag_message(ApiErrorKind.SERVER, template.format(error=body)))</pre>
+      <p>The entire non-200 response body is embedded in the exception message. Those exceptions are forwarded to <code>PythonFailLogger.log_exception</code> from a dozen call sites (<code>api_actions.py:466, 580, 710, 842, 898, 1012</code> among others), and <code>log_exception</code> writes <code>str(exc)</code> verbatim to disk. Whatever an error body happens to contain (session context, record data, echoed request payload, server-side stack traces) is persisted in plaintext on the user's machine.</p>
+      <p>Those logs land in <code>Logs/PythonLogs/</code> and <code>Logs/SwitchLogs/</code> inside the plugin directory. There is <strong>no <code>os.chmod</code>, no <code>os.umask</code> and no mode argument anywhere in the codebase</strong>, so files inherit the default umask, typically world-readable on Linux and macOS.</p>
+      <div class="fix"><b>Fix</b><span>Truncate or omit <code>response.text</code> before it enters an exception that gets persisted, and create the log directory with restrictive permissions.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-med">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Medium</span><span class="fid">WC-14</span>
+        <h3>Predictable crash log opened for truncation at import time</h3>
+      </div>
+      <span class="loc">main.py:28-33</span>
+      <pre>CRASH_LOG_PATH = os.path.join(tempfile.gettempdir(), "kavitro_crash.log")
+_CRASH_LOG_HANDLE = open(CRASH_LOG_PATH, "w", encoding="utf-8")
+faulthandler.enable(_CRASH_LOG_HANDLE, all_threads=True)</pre>
+      <p>Fixed name in a world-writable directory, opened <code>"w"</code> with no <code>O_EXCL</code> and no per-user subdirectory, at module import. On a shared Linux or macOS host another local user can pre-create the path as a symlink and have the plugin truncate a file the QGIS user owns. Modern kernels with <code>fs.protected_symlinks</code> block the classic version of this in sticky directories, which limits but does not eliminate it. Separately, faulthandler tracebacks land there readable by anyone.</p>
+      <div class="fix"><b>Fix</b><span>Write into a per-user directory created with mode <code>0700</code>, or use <code>tempfile.mkstemp</code>.</span></div>
+    </div>
+  </article>
+
+  <article class="finding f-low">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Low</span><span class="fid">WC-17</span>
+        <h3>Shared temp directory accepted regardless of who created it</h3>
+      </div>
+      <span class="loc">modules/easements/easement_pdf_service.py:394-397</span>
+      <p><code>Path(tempfile.gettempdir()) / "kavitro_easement_drawings"</code> with <code>mkdir(parents=True, exist_ok=True)</code>. <code>exist_ok=True</code> silently accepts a directory pre-created by another local user, into which generated easement PDFs are then written. The filename component itself is fine: <code>_safe_file_name</code> is a proper character allowlist with no traversal.</p>
+    </div>
+  </article>
+
+  <article class="finding f-low">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Low</span><span class="fid">WC-18</span>
+        <h3>Downloaded attachments are never deleted</h3>
+      </div>
+      <span class="loc">widgets/DataDisplayWidgets/TaskFilePreviewDialog.py:204</span>
+      <p><code>NamedTemporaryFile(delete=False)</code> with a secure random name and mode 0600, so there is no hijack risk. But <code>_cleanup_missing_temp_paths</code> (<code>:219-224</code>) only prunes the in-memory set down to paths that still exist; nothing ever removes the externally-opened files. Attachment contents accumulate in the temp directory past the session's lifetime.</p>
+    </div>
+  </article>
+
+  <article class="finding f-low">
+    <div class="stripe"></div>
+    <div class="f-body">
+      <div class="f-head">
+        <span class="sev">Low</span><span class="fid">WC-19</span>
+        <h3>Unconditional prints of API responses, and unescaped strings in labels</h3>
+      </div>
+      <span class="loc">UpdatePropertyData.py:435, 462 &middot; foldersHelpers.py:105 &middot; TaskFilePreviewDialog.py:384</span>
+      <p>Three <code>print()</code> calls dump complete GraphQL response bodies to the QGIS Python console, not debug-gated. Console disclosure rather than at-rest, but they should not be in a release build.</p>
+      <p>Separately, <code>_set_meta_text</code> interpolates the API-supplied <code>fileName</code> and uploader display name into a rich-text label as <code>f"&lt;b&gt;{name}&lt;/b&gt;&lt;br&gt;..."</code> with no escaping, so a crafted filename can restyle or fake the whole metadata line. Spoofing only, but it is the same missing-escape habit as WC-04.</p>
+    </div>
+  </article>
+</section>
+
+<section>
+  <h2>Checked and sound <span class="count">9 areas</span></h2>
+  <p class="lede">Recorded both so the review is auditable and because several of these are places the code got it right on purpose.</p>
+  <div class="clean">
+    <ul>
+      <li><b>No dynamic code execution.</b> Zero uses of <code>eval</code>, <code>exec</code>, <code>pickle</code>, <code>marshal</code>, <code>yaml.load</code> or dynamic imports across all 244 files.</li>
+      <li><b>TLS is never weakened.</b> No <code>verify=False</code>, no <code>_create_unverified_context</code>, no <code>CERT_NONE</code>. The endpoint is a hardcoded <code>https://</code> URL in bundled config, and every <code>http://</code> hit in the repo is an XML namespace or a QGIS DTD reference.</li>
+      <li><b>GraphQL is parameterized everywhere else.</b> 59 of 60 call sites load a static <code>.graphql</code> file and pass data via <code>variables</code>, including the user search bar. The <code>.graphql</code> files contain no templating placeholders at all.</li>
+      <li><b>No archive extraction anywhere.</b> No <code>extractall</code>, no <code>tarfile</code>. The only zip code is write-only in the release script, with every <code>arcname</code> derived from a <code>relative_to</code> call. No zip-slip surface.</li>
+      <li><b>Layer filter quoting is correct.</b> <code>MapHelpers._sql_quote</code> and <code>PropertyDataLoader._sql_quote</code> both double single quotes properly before values reach <code>setSubsetString</code> and <code>selectByExpression</code>. Backslashes are not escaped, which would matter on MySQL but not on the OGR, SQLite and GeoPackage providers actually in use.</li>
+      <li><b>No secret is ever logged.</b> Tokens, passwords, API keys and <code>Authorization</code> headers appear in no log file and no print. The one debug print in the auth path reports only the <em>absence</em> of a token.</li>
+      <li><b>Login errors do not leak server text.</b> <code>_classify_login_error</code> deliberately maps raw server messages onto generic translated strings before display.</li>
+      <li><b>CI trigger surface is safe.</b> No <code>pull_request_target</code>, no <code>workflow_run</code>, no untrusted PR checkout, and <code>permissions</code> narrowed to <code>contents: write</code> rather than left at default.</li>
+      <li><b>No hardcoded secrets in the working tree.</b> Clean against PEM headers and AWS, GitHub, Slack, Google and OpenAI key formats, and against high-entropy literals. Everything the keyword sweep surfaced is a settings key name, a UI translation string, or NASA's public <code>DEMO_KEY</code>.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Scope and method</h2>
+  <div class="scope">
+    <div><span class="k">Target</span><span class="v">KalverTammik/wild_code at <code>ff06207</code>, public, unauthenticated clone</span></div>
+    <div><span class="k">Surface</span><span class="v">244 Python, 73 GraphQL, 1 workflow, 535 files total</span></div>
+    <div><span class="k">History</span><span class="v">286 commits, full clone, all blobs pattern-scanned</span></div>
+    <div><span class="k">Method</span><span class="v">Static review only. Nothing executed, nothing modified, no live endpoint touched.</span></div>
+  </div>
+  <div class="note">
+    <b>Two limits worth stating.</b> The contents of the historical credential file in WC-06 were not read, so its severity rests on someone with access checking that one blob. And no dependency manifest exists (no <code>requirements.txt</code>, <code>pyproject.toml</code> or lockfile), so the plugin inherits whatever <code>requests</code> and <code>urllib3</code> the host QGIS ships, including versions with known CVEs, with no floor version declared. <code>metadata.txt</code> also declares <code>qgisMinimumVersion=3.0</code> while the code uses <code>int | None</code> unions that require Python 3.10 or later.
+  </div>
+</section>
+
+<footer>
+  Findings were traced from source to sink individually. Where a claim depends on platform behaviour (Windows <code>list2cmdline</code> quoting, <code>os.startfile</code> handler dispatch) that behaviour is stated explicitly so it can be checked independently. Severity reflects reachability, not just the shape of the pattern. Happy to walk through any of these or re-check fixes on request.
+</footer>
+
+</div>

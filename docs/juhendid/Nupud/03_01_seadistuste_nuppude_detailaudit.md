@@ -256,7 +256,9 @@ Dialoogis saab määrata kuni kolm järjestikust osa: projekti number, projekti 
 
 **OK** ei luba täiesti tühja reeglit ega tühja tekstiga sümboliosa. Pärast dialoogi tuleb vajutada üldist **Kinnita** nuppu.
 
-Praeguses versioonis kasutatakse salvestatud reeglit ainult siis, kui profiilis on eraldi varasem lipp **Luba eelistatud kausta nime struktuur** sisse lülitatud. Seda lülitit seadistuskaardil ei kuvata. Ilma liputa kasutab kausta loomine vaikereeglit „projekti number + projekti nimi”, isegi kui dialoogis salvestati muu reegel.
+Seadistusnupu sündmusekäsitleja kasutab lisaväärtuste ühist kolme argumendiga lepingut: moodul, seadistusvõti ja praegune väärtus. Dialoogi avajale antakse neist edasi praegune väärtus. Seetõttu avaneb dialoog ka väärtuse **Määramata** korral, **Cancel / Tühista** tagastab senise väärtuse ning **OK** saab anda seadistuskaardile uue ootel reegli.
+
+Salvestatud reegel rakendub sõltumata varasemast peidetud lipust **Luba eelistatud kausta nime struktuur**. Kui reegel puudub, kasutatakse vaikereeglit „projekti number + projekti nimi”. Projektinumber loetakse nii uuema `projectNumber` kui ka projektipäringu tegeliku `number` välja kaudu. Kui rakendatav reegel nõuab projektinumbrit, kuid kumbki väli ei sisalda väärtust, kausta loomine peatatakse ja kasutajale kuvatakse hoiatus.
 
 ## Servituudi staatuste vastendamise dialoog
 
@@ -304,7 +306,6 @@ Pärast **OK** vajutamist tuleb seos salvestada üldise **Kinnita** nupuga. Vali
 | Keskmine | Üldine **Kinnita** salvestab kaardid järjestikku, ilma ühise tehingu ja koondveateateta; mõned salvestusabilised logivad vea, kuid ei anna seda kutsujale tagasi | Vea korral võib osa seadeid salvestuda ja kasutajaliides siiski puhta oleku näidata | Kogu salvestustulemused, näita ebaõnnestunud kaardid ja jäta need ootel olekusse |
 | Keskmine | **Vaata Geospatiali seadistust** käivitab väljalülitamise ning dialoogi väide kõigi Geospatiali seadete eemaldamisest on tegelikust mõjust laiem | Kasutaja võib eeldada üksnes ülevaadet või andmete kustumist | Nimeta nupp **Lülita käsitsi seadistusele** ja täpsusta dialoogis, et kihid ning mapperiga kantud andmed säilivad |
 | Keskmine | Servituudi staatuste dialoog kasutab ainult salvestatud põhikihti ja laadib Kavitro staatused avamisvoos kaks korda | Uus ootel kiht näib vigane ning avamine teeb tarbetu topeltpäringu | Kasuta kaardil valitud kihti või selgita salvestusnõuet kasutajaliideses; anna juba laaditud staatused dialoogile kaasa |
-| Keskmine | Salvestatud projektikausta nimereegel ei rakendu ilma peidetud varasema lubamisliputa | Dialoogis kinnitatud reegel võib jääda kasutamata | Kuva lubamislüliti või käsitle kehtiva reegli olemasolu automaatselt lubamisena |
 | Madal | Ühiskanalisatsiooni üksikut kaardistusrida ei saa eemaldada | Ekslikku lisarida ei saa otse kustutada | Lisa igale reale eemaldamisnupp |
 | Madal | Lisaväärtuste hammasrattal puudub tekst ja kohtspikker; kaustavalija pealkiri on koodis ingliskeelne **Select folder** | Funktsiooni on raske avastada ning keelekasutus on ebaühtlane | Lisa rea tegevust kirjeldav kohtspikker ja tõlgitud kaustavalija pealkiri |
 

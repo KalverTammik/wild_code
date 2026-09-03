@@ -130,15 +130,31 @@ Koodis on deklareeritud kümne PDF-lehekülje piir ja vastav tõlketekst, kuid e
 
 Kaugfaili avamisel:
 
-1. küsitakse faili UUID põhjal ajutine allalaadimislink;
-2. kogu fail laaditakse sünkroonselt operatsioonisüsteemi ajutisse kataloogi, päringuajaga kuni 120 sekundit;
-3. fail avatakse Windowsis `startfile` abil või varuvariandina Qt vaikeavaga.
+1. kontrollitakse teenuse `ext` ja failinime laiendit; olemasolev väärtus peab olema lihtne ja lubatud tüüpide loendis ning mõlema olemasolul peavad need omavahel sobima;
+2. kuvatakse failinime ja kontrollitud laiendiga kinnitus, mille vaike- ja tühistamisvalik on **Ei**;
+3. alles valiku **Jah** järel küsitakse faili UUID põhjal ajutine allalaadimislink;
+4. kogu fail laaditakse sünkroonselt operatsioonisüsteemi ajutisse kataloogi, päringuajaga kuni 120 sekundit;
+5. fail avatakse Windowsis `startfile` abil või varuvariandina Qt vaikeavaga.
 
-Välisel allalaadimisel ei rakendata sisemise eelvaate 25, 40 ega 0,5 MiB piire. Failitüübi ohutust ega käivitatava sisu riski eraldi ei kinnitata, sest kasutaja vajutas juba **Ava väliselt**.
+Lubatud vormingute täielik loend ja abikeskuse kontrolljuhis on failis [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md). Tundmatu, käivitatava, aktiivsisu sisaldava või vastuoluliste laiendiandmetega faili korral on **Ava väliselt** passiivne. Automaatset välises rakenduses avamise haru enam ei ole. Sisemise eelvaate tugi ja välise avamise allowlist on erinevad: näiteks HTML-i või SVG sisu võib eelvaadata, kuid seda ei anta OS-i rakendusele avamiseks.
+
+Välisel allalaadimisel ei rakendata sisemise eelvaate 25, 40 ega 0,5 MiB mahupiire. Eraldi turvakinnitus kuvatakse enne allalaadimist, kuid suur lubatud tüüpi fail võib pärast kinnitamist kasutajaliidest endiselt pikalt blokeerida.
 
 Väliselt avamiseks loodud ajutiste failide teid hoitakse mälus, kuid olemasolevaid faile ei kustutata dialoogi sulgemisel ega plugina selles koodis. Puhastus eemaldab loendist ainult teed, mille fail on juba muul põhjusel kadunud. Tundlik fail võib seetõttu jääda kasutaja ajutisse kataloogi pärast Visuaali sulgemist.
 
 Kohaliku PDF-i korral avatakse algne fail ega looda koopiat. Avamisvea korral kuvatakse hoiatus.
+
+## Kirjelduse lingi avamisahel
+
+`HtmlDescriptionWidget` ei anna kirjeldusest pärinevat `href` väärtust enam automaatselt Qt-le või operatsioonisüsteemile. Klõpsu järel liigitatakse sihtkoht esmalt ainult tekstilise URL-i ja tee tunnuste põhjal:
+
+1. `http` ja `https` suunatakse pärast täieliku aadressiga kinnitust brauserisse; `http` kinnitus sisaldab krüpteerimata ühenduse hoiatust;
+2. kohaliku absoluutse failitee korral kontrollitakse pärast liigitamist faili olemasolu ja keskset failitüüpide loendit; eelvaadatav fail avatakse sisemiselt ning muu lubatud fail antakse pärast kinnitust vaikerakendusele;
+3. kohaliku absoluutse kaustatee korral küsitakse enne Exploreri avamist kinnitust;
+4. UNC, hosted `file://` ja Windowsi ühendatud võrguketas liigitatakse võrguteeks enne `exists`, `realpath` või muu failisüsteemipäringu tegemist; alles eraldi serveri ja täieliku teega kinnituse järel kontrollitakse sihtkohta ning jätkatakse faili- või kaustareeglitega;
+5. suhteline tee, tundmatu skeem, puuduv sihtkoht või välise avamise loendist puuduv failitüüp blokeeritakse.
+
+TipTapi editoripoolne lingivalideerimine ei ole QGIS-i usalduspiir: API-s võib olla varem salvestatud HTML-i, käsitsi sisestatud UNC-vorm või teise kliendi loodud link. Seetõttu rakendatakse avamisreegleid iga klõpsu ajal ka plugina poolel.
 
 ## Eelvaate Sulge
 
@@ -238,6 +254,8 @@ Edu lõpus ajastatakse dialoogi sulgemine 1,2 sekundi pärast, kuid meetodi `fin
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
+Välise avamise laiendikontrolli ja kinnituse puudumine on Etapp 1A ehk WC-02 raames lahendatud. Allolevasse tabelisse jäävad teised, sellest muudatusest sõltumatud tähelepanekud.
+
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
 | Kriitiline | Servituudi **Failid** menüü viitab olematule `_open_item_files` meetodile ja `TaskFilesDialog` klassi ei looda mujal | Täielikku faililoendit, üleslaadimist ega kustutamist ei saa Visuaalist kasutada | Lisa testitud avamiskäsitleja või eemalda katkine menüü kuni funktsiooni valmimiseni |
@@ -258,7 +276,7 @@ Edu lõpus ajastatakse dialoogi sulgemine 1,2 sekundi pärast, kuid meetodi `fin
 
 1. Kasuta detailvaate failinuppe eelkõige pildi-, teksti- ja toetatud PDF-failide lugemiseks.
 2. Kui PDF-i käitusaja hoiatus ilmub, ava kirje Kavitro veebivaates; selles harus Visuaal **Ava väliselt** nuppu ei paku.
-3. Ava tundmatu või käivitatav fail väliselt ainult siis, kui usaldad faili päritolu.
+3. Kinnita välise avamise dialoog ainult siis, kui usaldad faili ja selle üleslaadijat. Passiivse nupu korral ära proovi faili ümbernimetamisega turvakontrollist mööduda.
 4. Halda failide täielikku loendit, üleslaadimist ja kustutamist praegu Kavitro veebirakenduses.
 5. Kontrolli kinnistuseoste dialoogis eraldi juba seotud ja uute kinnistute loendit; **Kinnita** on ainult lisav toiming.
 6. Ära eelda, et dialoogi **Tühista** võtab tagasi enne dialoogi avamist tehtud Kavitro või QGIS-i muudatused.

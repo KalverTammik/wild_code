@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import requests
 from typing import Any, Dict, List, Mapping, Optional, Union
 from ..Logs.python_fail_logger import PythonFailLogger
+from ..utils.project_folder_rules import resolve_project_number
 
 Json = Mapping[str, Any]
 
@@ -262,10 +263,7 @@ class DataDisplayExtractors:
 
     @staticmethod
     def extract_project_number(item_data: Optional[Json]) -> Optional[str]:
-        if not isinstance(item_data, Mapping):
-            return None
-        value = item_data.get(GqlKeys.PROJECT_NUMBER)
-        return str(value) if value else None
+        return resolve_project_number(item_data)
 
     @staticmethod
     def extract_item_name(item_data: Optional[Json]) -> Optional[str]:

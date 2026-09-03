@@ -34,6 +34,7 @@ Nuppudel kuvatakse tekstisildi asemel kirjete arv. Aktiivne nupp on kujundusega 
 | **… Detailne ülevaade** | Kirjekaardi alumine serv | Avab või sulgeb moodulipõhise detailvaate. |
 | **Staatuseriba** | Kirjekaardi vasak serv | Näitab staatust; tööde ja teostusjooniste kaardil avab klõps staatuse muutmise valiku. |
 | **Staatuse valikurida** | Töö või teostusjoonise staatuse hüpik | Muudab kirje staatuse valitud väärtuseks ja värskendab kaarti. |
+| **Kirjelduse link** | Kirjekaardi detailvaate kirjeldus või tingimused | Avab kontrollitud veebiaadressi, kohaliku faili, kausta või kinnitatud võrgutee. Enne välist avamist kuvatakse sihtkoht ja vaikimisi eitav kinnitus. |
 | **Faili nimi** | Kirjekaardi detailvaate failide kokkuvõte | Avab valitud faili sisemise eelvaate. |
 | **Pildi eelvaate ikoon** | Pildifaili rea parem serv | Avab sama faili pildieelvaate. |
 
@@ -43,7 +44,7 @@ Nuppudel kuvatakse tekstisildi asemel kirjete arv. Aktiivne nupp on kujundusega 
 |---|---|---|
 | **Ava kaust** kaustaikoon | Kirjekaardi parempoolne toimingurida | Avab kirje `filesPath` kausta või veebiaadressi; nupp puudub töödel ja teostusjoonistel ning on passiivne tühja tee korral. |
 | **Ava kirje brauseris** Kavitro ikoon | Kirjekaardi toimingurida | Avab sama kirje Kavitro veebirakenduses. |
-| **Näita kirjeid kaardil** kaardiikoon | Kirjekaardi toimingurida | Valib seotud kinnistud ning toetatud moodulis proovib fokuseerida ka mooduli põhikihi objekti. |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Kirjekaardi toimingurida | Seoseta kirjel käivitab seostamisikoon kinnistute valimise ja kinnitamise töövoo. Vähemalt ühe seose korral valib kaardiikoon seotud kinnistud ning toetatud moodulis proovib fokuseerida ka mooduli põhikihi objekti. |
 | **Rohkem toiminguid** plussikoon | Kirjekaardi toimingurida | Avab moodulipõhiste lisatoimingute menüü. |
 | **Seosta kinnistuid** | Iga kirjekaardi **Rohkem toiminguid** menüü | Käivitab kinnistute kaardilt valimise ja seoste ülevaatamise. |
 

@@ -13,6 +13,15 @@ class DialogProtocol(Protocol):
     sidebar: "Sidebar"
 
 
+def _adapt_value_editor(value_editor):
+    """Adapt a single-value editor to the module-label callback contract."""
+
+    def handler(_module_key: str, _key: str, current_value: str):
+        return value_editor(current_value)
+
+    return handler
+
+
 class ModulesRegistry:
     @staticmethod
     def register_all(module_manager: "ModuleManager", dialog: "DialogProtocol") -> None:
@@ -51,12 +60,14 @@ class ModulesRegistry:
                 parent=dialog,
             )
 
-        open_folder_rule = partial(
-            DialogHelpers.open_folder_rule_dialog,
-            dialog.lang_manager,
-            dialog,
-            FolderNamingRuleDialog,
-            QDialog.Accepted,
+        open_folder_rule = _adapt_value_editor(
+            partial(
+                DialogHelpers.open_folder_rule_dialog,
+                dialog.lang_manager,
+                dialog,
+                FolderNamingRuleDialog,
+                QDialog.Accepted,
+            )
         )
 
         module_manager.registerModule(

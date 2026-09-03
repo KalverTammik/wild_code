@@ -82,7 +82,7 @@ Kavitro kopeerib kausta genereerimisel kogu lähtekausta sisu. Hoia mallkaustas 
 4. Kontrolli seadistuskaardil kuvatavat teed.
 5. Vajuta **Kinnita**.
 
-Kui sama nimega projekti kaust on sihtkohas juba olemas, Kavitro seda üle ei kirjuta ega ühenda olemasoleva kaustaga.
+Kui sama nimega projekti kaust on sihtkohas juba olemas, Kavitro seda üle ei kirjuta ega muuda. Selle asemel kuvatakse täielik tee ja pakutakse vaikimisi eitava kinnitusega võimalust **Lisa või uuenda** kaustatee Kavitro projektis.
 
 ## Projekti kausta nime reegel
 
@@ -110,19 +110,21 @@ Reegli määramiseks:
 5. Kinnita reegel.
 6. Vajuta seadistuste akna all **Kinnita**.
 
+Nimereegli dialoog avaneb ka siis, kui rea väärtus on **Määramata**. Dialoogi **Tühista** säilitab varasema väärtuse; dialoogis kinnitatud reegel jääb esmalt seadistuskaardil ootele ja salvestub alles seadistuste akna üldise **Kinnita** nupuga.
+
 Reegel peab sisaldama vähemalt üht osa. Tühja tekstiga sümbolit salvestada ei saa.
 
-### Praeguse versiooni piirang
+### Reegli rakendamine
 
-Koodi praeguses versioonis rakendatakse salvestatud nime reeglit ainult siis, kui kasutaja profiilis on varasem seadistus **Luba eelistatud kausta nime struktuur** sisse lülitatud. Praegusel seadistuskaardil seda lülitit ei kuvata.
+Kavitro rakendab seadistuskaardil salvestatud nimereeglit alati. Varasem peidetud seadistus **Luba eelistatud kausta nime struktuur** ei ole enam vajalik ega mõjuta reegli rakendamist.
 
-Kui lubamise väärtus puudub või on välja lülitatud, kasutab Kavitro salvestatud reegli asemel vaikereeglit:
+Kui salvestatud nimereegel puudub, kasutab Kavitro vaikereeglit:
 
 ```text
 Projekti number + projekti nimi
 ```
 
-Vaikereegel ei lisa numbri ja nime vahele automaatselt tühikut ega muud eraldajat. Seetõttu kontrolli loodava kausta nime enne kaustalingi lisamist projektile.
+Vaikereegel ei lisa numbri ja nime vahele automaatselt tühikut ega muud eraldajat. Kui valitud reegel sisaldab osa **Projekti number**, kuid projekti kirjel numbrit ei ole, kausta ei looda ja Kavitro kuvab puuduva projektinumbri hoiatuse. Seetõttu kontrolli loodava kausta nime enne kaustalingi lisamist projektile.
 
 ## Projektikausta genereerimine
 
@@ -130,15 +132,20 @@ Projektikausta loomine käivitatakse projektide moodulis konkreetse projekti toi
 
 1. Ava projektide moodulis soovitud projekt.
 2. Vali projekti lisatoimingutest kausta genereerimine.
-3. Kontrolli hoiatust, et sama sisuga kausta ei oleks juba loodud.
-4. Kinnita loomine.
-5. Kavitro moodustab projektinumbri, nime ja salvestatud reegli põhjal kaustanime.
-6. Kavitro kopeerib lähtekausta koos alamkaustade ja failidega sihtkausta alla.
-7. Pärast kopeerimist vali, kas lisada loodud kausta tee Kavitro projektile.
+3. Kavitro kontrollib, et lähte- ja sihtkaust on olemas ning sihtkaust ei paikne mallkausta sees.
+4. Kavitro moodustab projektinumbri, nime ja salvestatud reegli põhjal kaustanime ning asendab selles Windowsi tee jaoks keelatud märgid.
+5. Kontrolli kinnituses kuvatud täielikku lähte- ja sihtteed ning veendu, et samasisulist kausta pole juba loodud.
+6. Vali **Jah** ainult siis, kui sihttee on õige. Vaikevalik on **Ei**.
+7. Kavitro kopeerib lähtekausta koos alamkaustade ja failidega sihtkausta alla.
+8. Pärast kopeerimist vali, kas lisada loodud kausta tee Kavitro projektile.
 
 Kui loobud kaustalingi lisamisest, jääb loodud kaust failisüsteemi alles, kuid projekti `filesPath` väärtust Kavitro teenuses ei uuendata.
 
+Kui kinnitad kaustalingi lisamise, salvestab Kavitro tee projektile eraldi `filesPath` mutatsiooniga ja valideerib vastusest nii projekti ID kui ka tagastatud tee. Edu korral uuendatakse kohe ainult sama projektikaardi **Ava kaust** nuppu; projektide filtreid ega kogu loendit uuesti ei laadita. Lingi salvestamise viga ei kustuta juba loodud kausta; hoiatuses kuvatakse kausta asukoht ja kaardinupu senine olek ei muutu.
+
 Kausta genereerimine on kohene failitoiming. Seadistuste akna **Hülga** ei kustuta loodud kausta ega eemalda juba salvestatud projektilinki.
+
+Projektist või nimereegli sümbolist pärinev absoluutne tee, `..` osa või UNC-tee ei saa seadistatud sihtkausta asendada: kogu arvutatud nimi muudetakse üheks kaustakomponendiks ja lõplik tee peab olema sihtkausta vahetu alamkaust. Organisatsiooni teadlikult seadistatud sihtkaust võib ise olla võrguketas või UNC-kaust.
 
 ## Ajutise Projektide GeoPackage-kihi loomine
 
@@ -232,7 +239,7 @@ Praeguses versioonis ei pruugi nime reegel rakenduda, kui varasem lubamise seadi
 
 ### Sihtkaust on juba olemas
 
-Kavitro ei kirjuta sama nimega kausta üle. Kontrolli, kas kaust kuulub samale projektile, ning muuda vajaduse korral nime reeglit või korrasta sihtkaust käsitsi.
+Kavitro ei kirjuta sama nimega kausta üle ega muuda selle sisu. Kontrolli kuvatud täielikku teed. Kui kaust kuulub samale projektile, vali **Lisa või uuenda**, et salvestada olemasoleva kausta tee Kavitro projekti `filesPath` väljale. Vaikevalik on **Ei**. Kui kaust ei kuulu samale projektile, ära seda seo ning muuda nime reeglit või korrasta sihtkaust käsitsi.
 
 ### Ajutise kihi abiline ei leia viitekihti
 

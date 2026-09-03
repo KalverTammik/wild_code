@@ -214,6 +214,19 @@ TRANSLATIONS = {
     TranslationKeys.NO_PROJECT_LOADED_MESSAGE: "Please load a QGIS project before using this plugin.",
     TranslationKeys.PROJECT_FOLDER_MISSING_TITLE: "Project folder setup required",
     TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE: "Project folders are not set for this module. Opening Settings...",
+    TranslationKeys.PROJECT_FOLDER_CREATE_CONFIRM: "Generating a project folder from the prepared template is intended primarily for new projects. Check that a folder with the same contents has not already been created.\n\nThe template folder will be copied to the following location.\n\nSource folder:\n{source}\n\nDestination folder:\n{destination}\n\nCheck the destination path. Continue?",
+    TranslationKeys.PROJECT_FOLDER_SOURCE_INVALID: "The configured source folder is missing or is not a directory:\n{path}",
+    TranslationKeys.PROJECT_FOLDER_TARGET_INVALID: "The configured target folder is missing or is not a directory:\n{path}",
+    TranslationKeys.PROJECT_FOLDER_TARGET_INSIDE_SOURCE: "The target folder must not be the template folder or be located inside it.\n\nSource folder:\n{source}\n\nTarget folder:\n{target}",
+    TranslationKeys.PROJECT_FOLDER_DESTINATION_INVALID: "A safe destination folder could not be created from the project name.",
+    TranslationKeys.PROJECT_FOLDER_NUMBER_MISSING: "The selected folder naming rule includes the project number, but this project has no number. The folder was not created.",
+    TranslationKeys.PROJECT_FOLDER_ALREADY_EXISTS: "The destination folder already exists:\n{path}",
+    TranslationKeys.PROJECT_FOLDER_COPY_FAILED: "Could not create the project folder:\n{error}",
+    TranslationKeys.PROJECT_FOLDER_LINK_CONFIRM: "Do you want to add the generated folder path to the Kavitro project?\n\nFolder:\n{path}",
+    TranslationKeys.PROJECT_FOLDER_LINK_UPDATE_FAILED: "The folder exists in the file system, but its path could not be saved to the Kavitro project.\n\nFolder:\n{path}\n\nError:\n{error}",
+    TranslationKeys.PROJECT_FOLDER_LINK_ACTION: "Add or update",
+    TranslationKeys.PROJECT_FOLDER_EXISTING_LINK_CONFIRM: "The folder already exists at the destination. Kavitro will not copy or modify its contents.\n\nExisting folder:\n{path}\n\nDo you want to add or update this folder path on the Kavitro project?",
+    TranslationKeys.PROJECT_FOLDER_EXISTING_LINK_SUCCESS: "The existing folder path was added or updated on the Kavitro project.\n\nFolder:\n{path}\n\nThe Open folder button on this project card is ready to use.",
     TranslationKeys.SETTINGS_SETUP_MISSING_TITLE: "Module setup missing",
     TranslationKeys.SETTINGS_SETUP_MISSING_MESSAGE: "Settings for module {module} are not configured yet. Next, you will be redirected to that module's settings.",
     TranslationKeys.SETTINGS_SETUP_MISSING_NOTE: "Nota bene:\nPlease also review the other module settings while you are in Settings.",
@@ -715,6 +728,16 @@ TRANSLATIONS = {
         ,TranslationKeys.TASK_FILES_PREVIEW_PAGE_LIMIT: "Showing only the first {count} page(s) for preview."
         ,TranslationKeys.TASK_FILES_PDF_RUNTIME_UNSUPPORTED: "Embedded PDF preview is not available in this QGIS runtime. Current runtime: Qt {qt_version}, PyQt {pyqt_version}.\n\nInstalling standalone PyQt6 separately is usually not enough for QGIS plugins. The QGIS application itself must run on a newer Qt/PyQt runtime with PDF-capable WebEngine support.\n\nSuggested solution: upgrade QGIS to a newer build that ships with Qt6/PyQt6 and Qt WebEngine PDF support."
         ,TranslationKeys.TASK_FILES_OPEN_FAILED: "Could not open file {name}."
+        ,TranslationKeys.TASK_FILES_EXTERNAL_OPEN_CONFIRM: "The file will be opened in the computer's default application.\n\nFile: {name}\nType: .{extension}\n\nOnly open it if you trust the file and its uploader. Continue?"
+        ,TranslationKeys.TASK_FILES_EXTERNAL_OPEN_BLOCKED: "File {name} cannot be opened in an external application for security reasons."
+        ,TranslationKeys.DESCRIPTION_LINK_WEB_CONFIRM: "The web address will be opened in the computer's default browser.\n\nAddress: {url}{http_warning}\n\nContinue?"
+        ,TranslationKeys.DESCRIPTION_LINK_HTTP_WARNING: "\n\nWarning: this address uses an unencrypted HTTP connection."
+        ,TranslationKeys.DESCRIPTION_LINK_FOLDER_CONFIRM: "The folder will be opened in the computer's file manager.\n\nFolder: {path}\n\nContinue?"
+        ,TranslationKeys.DESCRIPTION_LINK_NETWORK_CONFIRM: "This target is on a network. Continuing will make Windows connect to the displayed server or mapped drive.\n\nServer or mapped drive: {host}\nPath: {path}\n\nContinue only if you recognize and trust this target. Continue?"
+        ,TranslationKeys.DESCRIPTION_LINK_FILE_CONFIRM: "The file will be opened in the computer's default application.\n\nFile: {path}\nType: .{extension}\n\nOnly open it if you trust the file. Continue?"
+        ,TranslationKeys.DESCRIPTION_LINK_BLOCKED: "The link cannot be opened for security reasons. Supported targets are HTTP and HTTPS addresses and absolute local or confirmed network files and folders.\n\nTarget: {target}"
+        ,TranslationKeys.DESCRIPTION_LINK_NOT_FOUND: "The link target was not found or cannot be accessed.\n\nTarget: {target}"
+        ,TranslationKeys.DESCRIPTION_LINK_OPEN_FAILED: "The link target could not be opened.\n\nTarget: {target}"
         ,TranslationKeys.TASK_FILES_UPLOAD_DIALOG_TITLE: "Select files to upload"
         ,TranslationKeys.TASK_FILES_UPLOAD_DIALOG_FILTER: "All files (*.*)"
         ,TranslationKeys.TASK_FILES_UPLOAD_SUCCESS: "Uploaded {count} file(s)."
@@ -796,6 +819,8 @@ TRANSLATIONS = {
     ,ToolbarTranslationKeys.OPEN_FOLDER: "Open folder"
     ,ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER: "Open item in browser"
     ,ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP: "Show items on map"
+    ,ToolbarTranslationKeys.SHOW_CONNECTED_PROPERTIES_ON_MAP: "Show connected properties on map"
+    ,ToolbarTranslationKeys.CONNECT_MISSING_PROPERTIES: "No linked properties – connect properties"
     ,ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER: "Generate project folder"
     ,RoleTranslationKeys.ADMINS: "Admins"
     ,RoleTranslationKeys.ADMINISTRATORS: "Administrators"

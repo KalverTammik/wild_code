@@ -29,7 +29,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...python.workers import FunctionWorker, start_worker
 from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import loadWebpage
+from ...utils.security_boundaries import resolve_allowed_external_extension
 from ..theme_manager import ThemeManager
 
 
@@ -54,8 +54,6 @@ class TaskFilePreviewDialog(QDialog):
         "image/svg+xml",
     }
     PDF_MIME_TYPES = {"application/pdf"}
-    FORCE_EXTERNAL_EXTENSIONS = set()
-    FORCE_EXTERNAL_MIME_TYPES = set()
     _EXTERNAL_TEMP_FILES: set[str] = set()
 
     @classmethod
@@ -93,18 +91,6 @@ class TaskFilePreviewDialog(QDialog):
                 parent=parent,
             )
 
-        if cls.should_force_external_open(file_info=file_info, local_file_path=local_file_path):
-            if cls.open_in_default_application(file_info=file_info, local_file_path=local_file_path):
-                return None
-
-            ModernMessageDialog.show_warning(
-                resolved_lang.translate(TranslationKeys.ERROR),
-                resolved_lang.translate(TranslationKeys.TASK_FILES_OPEN_FAILED).format(
-                    name=cls.resolve_file_name(file_info=file_info, local_file_path=local_file_path)
-                ),
-            )
-            return None
-
         return cls(
             file_info=file_info,
             local_file_path=local_file_path,
@@ -121,9 +107,24 @@ class TaskFilePreviewDialog(QDialog):
         return mime_type.startswith("image/") or ext in cls.IMAGE_EXTENSIONS
 
     @classmethod
-    def should_force_external_open(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> bool:
-        mime_type, ext = cls._resolve_preview_identity(file_info=file_info, local_file_path=local_file_path)
-        return mime_type in cls.FORCE_EXTERNAL_MIME_TYPES or ext in cls.FORCE_EXTERNAL_EXTENSIONS
+    def is_internal_preview_candidate(
+        cls,
+        *,
+        file_info: Optional[dict] = None,
+        local_file_path: str = "",
+    ) -> bool:
+        mime_type, ext = cls._resolve_preview_identity(
+            file_info=file_info,
+            local_file_path=local_file_path,
+        )
+        return bool(
+            mime_type.startswith(("image/", "text/"))
+            or mime_type in cls.PDF_MIME_TYPES
+            or mime_type in cls.TEXT_MIME_TYPES
+            or ext in cls.IMAGE_EXTENSIONS
+            or ext in cls.PDF_EXTENSIONS
+            or ext in cls.TEXT_EXTENSIONS
+        )
 
     @classmethod
     def embedded_pdf_runtime_support(cls) -> tuple[bool, dict[str, str]]:
@@ -152,13 +153,33 @@ class TaskFilePreviewDialog(QDialog):
             }
 
     @classmethod
-    def open_in_default_application(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> bool:
+    def open_in_default_application(
+        cls,
+        *,
+        file_info: Optional[dict] = None,
+        local_file_path: str = "",
+        user_confirmed: bool = False,
+    ) -> bool:
+        if not user_confirmed:
+            return False
+
         normalized_local_path = str(local_file_path or "").strip()
+        data = file_info if isinstance(file_info, dict) else {}
+        allowed_extension = resolve_allowed_external_extension(
+            api_extension=data.get("ext"),
+            file_name=data.get("fileName"),
+            local_file_path=normalized_local_path,
+        )
+        if not allowed_extension:
+            return False
+
         if normalized_local_path:
             return cls._open_local_path_in_default_application(normalized_local_path)
 
-        data = file_info if isinstance(file_info, dict) else {}
-        temp_path = cls._materialize_remote_file_to_temp(data)
+        temp_path = cls._materialize_remote_file_to_temp(
+            data,
+            allowed_extension=allowed_extension,
+        )
         if not temp_path:
             return False
         return cls._open_local_path_in_default_application(temp_path)
@@ -182,21 +203,29 @@ class TaskFilePreviewDialog(QDialog):
             return False
 
     @classmethod
-    def _materialize_remote_file_to_temp(cls, file_info: Optional[dict]) -> str:
+    def _materialize_remote_file_to_temp(
+        cls,
+        file_info: Optional[dict],
+        *,
+        allowed_extension: str = "",
+    ) -> str:
         data = file_info if isinstance(file_info, dict) else {}
         file_uuid = str(data.get("uuid") or "").strip()
         if not file_uuid:
+            return ""
+
+        resolved_extension = resolve_allowed_external_extension(
+            api_extension=data.get("ext"),
+            file_name=data.get("fileName"),
+        )
+        if not resolved_extension or resolved_extension != allowed_extension:
             return ""
 
         url = APIModuleActions.create_file_download_link(file_uuid) or ""
         if not url:
             return ""
 
-        file_name = cls.resolve_file_name(file_info=data)
-        ext = str(data.get("ext") or "").strip().lower().lstrip(".")
-        suffix = f".{ext}" if ext else os.path.splitext(file_name)[1]
-        if not suffix:
-            suffix = ".bin"
+        suffix = f".{resolved_extension}"
 
         cls._cleanup_missing_temp_paths()
 
@@ -275,6 +304,11 @@ class TaskFilePreviewDialog(QDialog):
         self._web_view = None
         self._preview_worker = None
         self._preview_thread = None
+        self._external_open_extension = resolve_allowed_external_extension(
+            api_extension=self._file_info.get("ext"),
+            file_name=self._file_info.get("fileName"),
+            local_file_path=self._local_file_path,
+        )
 
         self.setModal(True)
         self.setObjectName("TaskFilePreviewDialog")
@@ -326,6 +360,13 @@ class TaskFilePreviewDialog(QDialog):
         )
         self._open_external_button.setProperty("variant", ButtonVariant.GHOST)
         self._open_external_button.clicked.connect(self._open_externally)
+        self._open_external_button.setEnabled(bool(self._external_open_extension))
+        if not self._external_open_extension:
+            self._open_external_button.setToolTip(
+                self._lang.translate(TranslationKeys.TASK_FILES_EXTERNAL_OPEN_BLOCKED).format(
+                    name=self._local_title or self._file_name()
+                )
+            )
         buttons.addWidget(self._open_external_button)
 
         buttons.addStretch(1)
@@ -862,7 +903,42 @@ class TaskFilePreviewDialog(QDialog):
             return None
 
     def _open_externally(self) -> None:
-        if self.open_in_default_application(file_info=self._file_info, local_file_path=self._local_file_path):
+        extension = resolve_allowed_external_extension(
+            api_extension=self._file_info.get("ext"),
+            file_name=self._file_info.get("fileName"),
+            local_file_path=self._local_file_path,
+        )
+        if not extension:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.WARNING),
+                self._lang.translate(TranslationKeys.TASK_FILES_EXTERNAL_OPEN_BLOCKED).format(
+                    name=self._local_title or self._file_name()
+                ),
+                parent=self,
+            )
+            return
+
+        yes_label = self._lang.translate(TranslationKeys.YES)
+        no_label = self._lang.translate(TranslationKeys.NO)
+        choice = ModernMessageDialog.ask_choice_modern(
+            self._lang.translate(TranslationKeys.CONFIRM),
+            self._lang.translate(TranslationKeys.TASK_FILES_EXTERNAL_OPEN_CONFIRM).format(
+                name=self._local_title or self._file_name(),
+                extension=extension,
+            ),
+            buttons=[yes_label, no_label],
+            parent=self,
+            default=no_label,
+            cancel=no_label,
+        )
+        if choice != yes_label:
+            return
+
+        if self.open_in_default_application(
+            file_info=self._file_info,
+            local_file_path=self._local_file_path,
+            user_confirmed=True,
+        ):
             return
 
         ModernMessageDialog.show_warning(

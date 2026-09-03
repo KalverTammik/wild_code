@@ -287,7 +287,7 @@ Servituudi failihalduse dialoog on koodis olemas ja selles saab:
 - seotud failide loendit värskendada;
 - toetatud faili plugina sees eelvaadata;
 - faile üles laadida;
-- valitud faili väliselt avada;
+- lubatud tüüpi valitud faili pärast turvakinnitust väliselt avada;
 - faili pärast kinnitust kustutada.
 
 Praeguses versioonis ei ava **Rohkem toiminguid → Failid** seda dialoogi, sest nupu käsitleja puudub. Kasuta seni **Ava kirje brauseris** ja halda faile Kavitro veebirakenduses.
