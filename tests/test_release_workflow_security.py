@@ -228,6 +228,8 @@ class ReleaseWorkflowSourceTest(unittest.TestCase):
         self.assertIn("REMOTE_ASSET_COUNT", workflow)
         self.assertIn('"repos/${GITHUB_REPOSITORY}/git/refs"', workflow)
         self.assertIn('-f ref="${TAG_REF}"', workflow)
+        self.assertGreaterEqual(workflow.count('-f tag_name="${PLUGIN_RELEASE_TAG}"'), 2)
+        self.assertIn("Draft release did not retain the requested tag name", workflow)
         self.assertIn("Published release is not associated with the requested tag", workflow)
         self.assertIn("EXPECTED_DOWNLOAD_SEGMENT", workflow)
         self.assertNotIn("gh release upload", workflow)

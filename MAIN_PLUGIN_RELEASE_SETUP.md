@@ -216,8 +216,10 @@ jobs:
 
           gh api --method PATCH \
             "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -f tag_name="${PLUGIN_RELEASE_TAG}" \
             -f target_commitish="${GITHUB_SHA}" \
             > "${RELEASE_JSON_FILE}"
+          test "$(jq -r '.tag_name' "${RELEASE_JSON_FILE}")" = "${PLUGIN_RELEASE_TAG}"
           jq -r 'if (.name // "") == "" then .tag_name else .name end' \
             "${RELEASE_JSON_FILE}" > "${RELEASE_TITLE_FILE}"
           jq -r '.body // ""' "${RELEASE_JSON_FILE}" > "${RELEASE_NOTES_FILE}"
@@ -341,6 +343,8 @@ jobs:
           PUBLISHED_RELEASE_FILE="${RUNNER_TEMP}/plugin-published-release.json"
           gh api --method PATCH \
             "repos/${GITHUB_REPOSITORY}/releases/${PLUGIN_RELEASE_ID}" \
+            -f tag_name="${PLUGIN_RELEASE_TAG}" \
+            -f target_commitish="${GITHUB_SHA}" \
             -F draft=false \
             -F make_latest=true \
             -F prerelease=false \
