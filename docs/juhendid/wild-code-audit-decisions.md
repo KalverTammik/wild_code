@@ -74,7 +74,7 @@ GitHubi release `v2.02.16` osutab parandust sisaldavale commit’ile `6ac7bf7`. 
 ## WC-11 — avaldatud plugina ZIP-i terviklus
 
 **Otsuse kuupäev:** 2026-09-04
-**Staatus:** parandus koodis ette valmistatud; GitHubi release immutability seadistuse aktiveerimine ja esimene lukustatud release on veel tegemata
+**Staatus:** parandus teostatud ning esimese immutable release’iga `v2.02.17` valideeritud
 
 ### Kontrollitud tegelik käitumine
 
@@ -88,12 +88,12 @@ GitHubi release `v2.02.16` osutab parandust sisaldavale commit’ile `6ac7bf7`. 
 Release’i terviklus tagatakse GitHubi immutable release’i mehhanismiga, mitte QGIS-i poolt toetamata XML-elemendiga. Uus töövoog:
 
 1. nõuab ettevalmistatud tühja draft-release’i;
-2. seob tulevase tag’i täpselt workflow’ kontrollitud commit’iga;
+2. loob või valideerib päris Git-tag’i täpselt workflow’ kontrollitud commit’il;
 3. koostab `plugins.xml`, plugina ZIP-i ja ikooni enne avaldamist;
 4. keelab avaldatud varade ülekirjutamise ning ei kasuta `--clobber` valikut;
 5. võrdleb enne avaldamist iga kohaliku faili SHA-256 väärtust GitHubi vara digestiga;
 6. avaldab draft’i alles pärast kontrollide õnnestumist;
-7. katkestab veaga, kui avaldatud release ei ole `immutable: true`.
+7. kontrollib pärast avaldamist `immutable: true` väärtust, täpset tag’i nime, target-commit’i ja kõigi varade tag’ipõhiseid allalaadimis-URL-e.
 
 LIVE-metaandmete lähteks kasutatakse `metadata.release.txt` faili. See väldib DEV-metaandmetest vana ikooni pärimist ning määrab release’i ikooniks `resources/icons/Kavitro-favicon-96x96.png`.
 
@@ -105,6 +105,10 @@ Immutable release takistab juba avaldatud tag’i ja varade hilisemat muutmist. 
 
 QGIS Plugin Manager ei kontrolli GitHubi release-attestatsiooni ise. Kasutaja automaatse paigalduse usalduspiir jääb GitHubi HTTPS-ühendusele, repository õigustele ja release’i avaldamise protsessile.
 
-### Kasutuselevõtu tingimus
+### Kasutuselevõtu valideerimine
 
-Pärast workflow muudatuse jõudmist vaikimisi harusse tuleb GitHubi repository seadetes lubada **Enable release immutability**. Seadistust ei tohi aktiveerida enne draft-first workflow kasutuselevõttu, sest vana `release: published` voog ei saaks lukustatud release’ile enam faile lisada.
+GitHubi repository seadistus **Enable release immutability** aktiveeriti 2026-09-04 pärast draft-first workflow jõudmist `main` harusse.
+
+Esimese avaldamiskatse järelkontroll tuvastas GitHubi draft-release’i erijuhtumi: ilma päris Git-ref’i ja avaldamispäringus korratud `tag_name` väärtuseta võis GitHub lukustada release’i sisemise `untagged-*` nimega. Valesti märgistatud katserelease’id eemaldati ning kasutajatele mõeldud `v2.02.17` tag jäi vabaks. Workflow’d täiendati nii, et see loob Git-ref’i enne üleslaadimist, saadab avaldamisel `tag_name` ja `target_commitish` väärtused üheselt ning valideerib lõpliku release’i URL-id.
+
+Release `v2.02.17` avaldati commit’ilt `d77ac74e58fe80ee81c6afc7cef6eb9b29b29928`. GitHub kinnitas `immutable: true`, release sisaldab täpselt `plugins.xml`, `kavitro_live.2.02.17.zip` ja `kavitro_live.png` vara ning kõik sisaldavad SHA-256 digesti. Avalik `plugins.xml` viitab versioonile `2.02.17` ja sama tag’i varadele. Käsk `gh release verify v2.02.17` valideeris release-attestatsiooni edukalt.
