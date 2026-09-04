@@ -191,7 +191,16 @@ jobs:
 
           TAG_REF="refs/tags/${PLUGIN_RELEASE_TAG}"
           TAG_REFS="$(git ls-remote origin "${TAG_REF}" "${TAG_REF}^{}")"
-          if [ -n "${TAG_REFS}" ]; then
+          if [ -z "${TAG_REFS}" ]; then
+            CREATED_TAG_FILE="${RUNNER_TEMP}/plugin-created-tag.json"
+            gh api --method POST \
+              "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="${TAG_REF}" \
+              -f sha="${GITHUB_SHA}" \
+              > "${CREATED_TAG_FILE}"
+            test "$(jq -r '.ref' "${CREATED_TAG_FILE}")" = "${TAG_REF}"
+            test "$(jq -r '.object.sha' "${CREATED_TAG_FILE}")" = "${GITHUB_SHA}"
+          else
             TAG_COMMIT="$(printf '%s\n' "${TAG_REFS}" | awk '$2 ~ /\^\{\}$/ { print $1; exit }')"
             if [ -z "${TAG_COMMIT}" ]; then
               TAG_COMMIT="$(printf '%s\n' "${TAG_REFS}" | awk 'NR == 1 { print $1 }')"
@@ -326,6 +335,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PLUGIN_RELEASE_ID: ${{ steps.draft_release.outputs.release_id }}
+          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
         shell: bash
         run: |
           PUBLISHED_RELEASE_FILE="${RUNNER_TEMP}/plugin-published-release.json"
@@ -336,6 +346,12 @@ jobs:
             -F prerelease=false \
             > "${PUBLISHED_RELEASE_FILE}"
           test "$(jq -r '.immutable' "${PUBLISHED_RELEASE_FILE}")" = "true"
+          test "$(jq -r '.tag_name' "${PUBLISHED_RELEASE_FILE}")" = "${PLUGIN_RELEASE_TAG}"
+          test "$(jq -r '.target_commitish' "${PUBLISHED_RELEASE_FILE}")" = "${GITHUB_SHA}"
+          EXPECTED_DOWNLOAD_SEGMENT="/releases/download/${PLUGIN_RELEASE_TAG}/"
+          jq -e --arg segment "${EXPECTED_DOWNLOAD_SEGMENT}" \
+            'all(.assets[]; (.browser_download_url | contains($segment)))' \
+            "${PUBLISHED_RELEASE_FILE}" >/dev/null
 ```
 
 ---
@@ -344,10 +360,10 @@ jobs:
 
 1. Update and review `metadata.release.txt`; keep the approved LIVE icon there.
 2. Commit and push the intended release state.
-3. In GitHub, create and **save an empty draft release** with the intended tag, title, and release notes. Do not publish it manually and do not attach assets.
+3. In GitHub, create and **save an empty draft release** with the intended tag, title, and release notes. Do not publish it manually and do not attach assets. The workflow creates the Git tag at the exact checked-out commit if it does not already exist.
 4. Run **Release QGIS Plugin** from the Actions tab with the matching version and tag. Run it from the exact branch or commit intended for release.
-5. The workflow pins the tag target to its checked-out commit, builds the assets, compares their local SHA-256 values with GitHub's asset digests, and only then publishes the draft.
-6. Verify that the completed release is marked **Immutable** and includes:
+5. The workflow creates or validates the real Git tag at its checked-out commit, builds the assets, compares their local SHA-256 values with GitHub's asset digests, and only then publishes the draft.
+6. Verify that the completed release is marked **Immutable**, retains the requested tag name, and includes:
    - `plugins.xml`
    - `yourplugin_live.<version>.zip`
    - the repository icon PNG

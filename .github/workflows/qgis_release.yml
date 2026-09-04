@@ -184,7 +184,21 @@ jobs:
 
           TAG_REF="refs/tags/${PLUGIN_RELEASE_TAG}"
           TAG_REFS="$(git ls-remote origin "${TAG_REF}" "${TAG_REF}^{}")"
-          if [ -n "${TAG_REFS}" ]; then
+          if [ -z "${TAG_REFS}" ]; then
+            CREATED_TAG_FILE="${RUNNER_TEMP}/kavitro-created-tag.json"
+            gh api \
+              --method POST \
+              "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="${TAG_REF}" \
+              -f sha="${GITHUB_SHA}" \
+              > "${CREATED_TAG_FILE}"
+
+            if [ "$(jq -r '.ref' "${CREATED_TAG_FILE}")" != "${TAG_REF}" ] || \
+               [ "$(jq -r '.object.sha' "${CREATED_TAG_FILE}")" != "${GITHUB_SHA}" ]; then
+              echo "ERROR: GitHub did not create the requested release tag at the checked-out commit."
+              exit 1
+            fi
+          else
             TAG_COMMIT="$(printf '%s\n' "${TAG_REFS}" | awk '$2 ~ /\^\{\}$/ { print $1; exit }')"
             if [ -z "${TAG_COMMIT}" ]; then
               TAG_COMMIT="$(printf '%s\n' "${TAG_REFS}" | awk 'NR == 1 { print $1 }')"
@@ -338,6 +352,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PLUGIN_RELEASE_ID: ${{ steps.draft_release.outputs.release_id }}
+          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
         shell: bash
         run: |
           PUBLISHED_RELEASE_FILE="${RUNNER_TEMP}/kavitro-published-release.json"
@@ -352,5 +367,21 @@ jobs:
 
           if [ "$(jq -r '.immutable' "${PUBLISHED_RELEASE_FILE}")" != "true" ]; then
             echo "ERROR: Release was published but is not immutable. Enable release immutability in the repository settings before the next release."
+            exit 1
+          fi
+          if [ "$(jq -r '.tag_name' "${PUBLISHED_RELEASE_FILE}")" != "${PLUGIN_RELEASE_TAG}" ]; then
+            echo "ERROR: Published release is not associated with the requested tag."
+            exit 1
+          fi
+          if [ "$(jq -r '.target_commitish' "${PUBLISHED_RELEASE_FILE}")" != "${GITHUB_SHA}" ]; then
+            echo "ERROR: Published release target does not match the checked-out commit."
+            exit 1
+          fi
+
+          EXPECTED_DOWNLOAD_SEGMENT="/releases/download/${PLUGIN_RELEASE_TAG}/"
+          if ! jq -e --arg segment "${EXPECTED_DOWNLOAD_SEGMENT}" \
+            'all(.assets[]; (.browser_download_url | contains($segment)))' \
+            "${PUBLISHED_RELEASE_FILE}" >/dev/null; then
+            echo "ERROR: Published asset URLs do not use the requested release tag."
             exit 1
           fi
