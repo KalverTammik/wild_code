@@ -85,6 +85,8 @@ Also display active config in the dialog for fast verification:
 
 Create `.github/workflows/release.yaml` and adapt filenames to your plugin.
 
+The template expects `tools/resolve_release_values.py` from this repository. The resolver receives event data through environment variables, accepts only the documented version/tag format, and writes validated values to `GITHUB_OUTPUT`. Do not interpolate event data or step outputs directly into a `run:` script.
+
 ```yaml
 name: Release QGIS Plugin
 
@@ -122,35 +124,12 @@ jobs:
 
       - name: Resolve release values
         id: release_values
+        env:
+          PLUGIN_RELEASE_EVENT_TAG: ${{ github.event.release.tag_name }}
+          PLUGIN_INPUT_RELEASE_VERSION: ${{ inputs.release_version }}
+          PLUGIN_INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
         shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            RELEASE_TAG="${{ github.event.release.tag_name }}"
-            RELEASE_VERSION="${RELEASE_TAG#v}"
-          else
-            RELEASE_VERSION="${{ inputs.release_version }}"
-            if [ -n "${{ inputs.release_tag }}" ]; then
-              RELEASE_TAG="${{ inputs.release_tag }}"
-            else
-              RELEASE_TAG="v${RELEASE_VERSION}"
-            fi
-          fi
-
-          RELEASE_VERSION="${RELEASE_VERSION#.}"
-
-          if [[ "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+$ ]]; then
-            RELEASE_VERSION="${RELEASE_VERSION}.0"
-          elif [[ "${RELEASE_VERSION}" =~ ^[0-9]+$ ]]; then
-            RELEASE_VERSION="${RELEASE_VERSION}.0.0"
-          fi
-
-          if ! [[ "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
-            echo "Invalid release version '${RELEASE_VERSION}'. Use x.y.z (or vX.Y.Z as tag)."
-            exit 1
-          fi
-
-          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
-          echo "release_version=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+        run: python tools/resolve_release_values.py
 
       - name: Prepare live plugin directory
         run: |
@@ -187,16 +166,18 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
         run: |
-          TAG="${{ steps.release_values.outputs.release_tag }}"
-          gh release view "${TAG}" >/dev/null 2>&1 || gh release create "${TAG}" --target "${GITHUB_SHA}" --title "${TAG}" --notes "Manual release ${TAG}"
+          gh release view "${PLUGIN_RELEASE_TAG}" >/dev/null 2>&1 || gh release create "${PLUGIN_RELEASE_TAG}" --target "${GITHUB_SHA}" --title "${PLUGIN_RELEASE_TAG}" --notes "Manual release ${PLUGIN_RELEASE_TAG}"
 
       - name: Deploy plugin
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLUGIN_RELEASE_VERSION: ${{ steps.release_values.outputs.release_version }}
+          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
         run: |
-          qgis-plugin-ci release "${{ steps.release_values.outputs.release_version }}" \
-            --release-tag "${{ steps.release_values.outputs.release_tag }}" \
+          qgis-plugin-ci release "${PLUGIN_RELEASE_VERSION}" \
+            --release-tag "${PLUGIN_RELEASE_TAG}" \
             --github-token "${GITHUB_TOKEN}" \
             --create-plugin-repo \
             --allow-uncommitted-changes
@@ -204,38 +185,37 @@ jobs:
       - name: Build changelog-aware repository assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TITLE: ${{ github.event.release.name }}
-          RELEASE_BODY: ${{ github.event.release.body }}
-          EVENT_NAME: ${{ github.event_name }}
+          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
+          PLUGIN_RELEASE_TITLE: ${{ github.event.release.name }}
+          PLUGIN_RELEASE_BODY: ${{ github.event.release.body }}
         shell: bash
         run: |
-          TAG="${{ steps.release_values.outputs.release_tag }}"
           NOTES_FILE="release_notes.md"
           PREVIOUS_XML_FILE="previous_plugins.xml"
 
-          if [ -z "${RELEASE_TITLE}" ]; then
-            RELEASE_TITLE="${TAG}"
+          if [ -z "${PLUGIN_RELEASE_TITLE}" ]; then
+            PLUGIN_RELEASE_TITLE="${PLUGIN_RELEASE_TAG}"
           fi
 
-          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
-            API_PATH="repos/${{ github.repository }}/releases/tags/${TAG}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            API_PATH="repos/${GITHUB_REPOSITORY}/releases/tags/${PLUGIN_RELEASE_TAG}"
             API_TITLE="$(gh api "${API_PATH}" --jq '.name // .tag_name' 2>/dev/null || true)"
             API_BODY="$(gh api "${API_PATH}" --jq '.body // ""' 2>/dev/null || true)"
             if [ -n "${API_TITLE}" ]; then
-              RELEASE_TITLE="${API_TITLE}"
+              PLUGIN_RELEASE_TITLE="${API_TITLE}"
             fi
             if [ -n "${API_BODY}" ]; then
-              RELEASE_BODY="${API_BODY}"
+              PLUGIN_RELEASE_BODY="${API_BODY}"
             fi
           fi
 
-          if [ -n "${RELEASE_BODY}" ]; then
-            printf '%s\n' "${RELEASE_BODY}" > "${NOTES_FILE}"
+          if [ -n "${PLUGIN_RELEASE_BODY}" ]; then
+            printf '%s\n' "${PLUGIN_RELEASE_BODY}" > "${NOTES_FILE}"
           fi
 
-          PREV_TAG="$(gh api "repos/${{ github.repository }}/releases" --jq "[.[] | select(.tag_name != \"${TAG}\")][0].tag_name // \"\"" 2>/dev/null || true)"
+          PREV_TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --jq "[.[] | select(.tag_name != \"${PLUGIN_RELEASE_TAG}\")][0].tag_name // \"\"" 2>/dev/null || true)"
           if [ -n "${PREV_TAG}" ]; then
-            PREV_XML_URL="$(gh api "repos/${{ github.repository }}/releases/tags/${PREV_TAG}" --jq '.assets[] | select(.name=="plugins.xml") | .browser_download_url' 2>/dev/null || true)"
+            PREV_XML_URL="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${PREV_TAG}" --jq '.assets[] | select(.name=="plugins.xml") | .browser_download_url' 2>/dev/null || true)"
             if [ -n "${PREV_XML_URL}" ]; then
               curl -fsSL "${PREV_XML_URL}" -o "${PREVIOUS_XML_FILE}" || true
             fi
@@ -245,9 +225,9 @@ jobs:
             python tools/qgis_repo_release.py
             --plugin-dir yourplugin_live
             --out release_repo
-            --base-url "https://github.com/${{ github.repository }}/releases/download/${TAG}/"
-            --release-tag "${TAG}"
-            --release-title "${RELEASE_TITLE}"
+            --base-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${PLUGIN_RELEASE_TAG}/"
+            --release-tag "${PLUGIN_RELEASE_TAG}"
+            --release-title "${PLUGIN_RELEASE_TITLE}"
           )
           if [ -s "${NOTES_FILE}" ]; then
             CMD+=(--release-notes-file "${NOTES_FILE}")
@@ -269,10 +249,10 @@ jobs:
       - name: Upload repository assets to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
         shell: bash
         run: |
-          TAG="${{ steps.release_values.outputs.release_tag }}"
-          gh release upload "${TAG}" \
+          gh release upload "${PLUGIN_RELEASE_TAG}" \
             release_repo/plugins.xml \
             release_repo/*.zip \
             release_repo/*.png \

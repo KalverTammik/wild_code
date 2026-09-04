@@ -47,10 +47,24 @@ WC-07 tuleb uuesti hinnata, kui vähemalt üks järgmistest tingimustest muutub:
 ## WC-09 — sisselogimismutatsiooni stringinterpolatsioon
 
 **Otsuse kuupäev:** 2026-09-03  
-**Staatus:** parandus teostatud, automaattestid läbitud, käsitsi sisselogimine valideerimata
+**Staatus:** parandus teostatud ning automaatselt ja käsitsi valideeritud
+**Seotud parandus:** commit `2492b0f`
 
 Sisselogimismutatsioon viidi staatilisse faili `python/queries/graphql/user/login.graphql`. Kasutajanimi ja parool edastatakse nüüd GraphQL-i `LoginInput!` muutuja kaudu ning neid ei liideta päringudokumendi teksti.
 
 Parandus säilitab senise vastuseväljade ja veakäsitluse lepingu. `refreshToken` ja `expiresIn` küsitakse endiselt vastuses, kuid nende elutsüklit selles etapis ei muudeta.
 
 Automaattestid kontrollivad päringufaili lepingut, mandaatide puudumist päringudokumendist, erimärkide muutmata jõudmist JSON-muutujatesse ja autentimisheaderi puudumist login-päringul. Arenduskeskkonna GraphQL-endpoint kinnitas ilma resolverit käivitamata, et staatiline päring kasutab kehtivat `LoginInput!` sisendtüüpi.
+
+Käsitsi kontroll kinnitas pärast plugina uuesti laadimist, et sisselogimine ja väljalogimine töötavad ootuspäraselt.
+
+## WC-10 — release’i sisendite otsene interpolatsioon
+
+**Otsuse kuupäev:** 2026-09-04
+**Staatus:** parandus teostatud ja automaattestidega valideeritud; GitHubi käsitsi release-test on tegemata
+
+Release’i sündmuse tagi, manuaalse käivituse sisendeid ja valideeritud sammuväljundeid ei tohi lisada otse GitHub Actionsi `run:` skripti. Sisendid antakse keskkonnamuutujate kaudu testitavale resolverile, mis lubab ainult Kavitro release’i versiooni- ja tagivormingut. Järgmised sammud saavad kasutada ainult resolveri kontrollitud väljundeid ning samuti ainult keskkonnamuutujate kaudu.
+
+Sama turvapiir peab kajastuma nii tegelikus `.github/workflows/qgis_release.yml` failis kui ka `MAIN_PLUGIN_RELEASE_SETUP.md` mallis.
+
+Teostuses lahendab `tools/resolve_release_values.py` release’i sündmuse ja manuaalse käivituse väärtused, kontrollib need range lubatud vormingu järgi ning kirjutab ainult üherealised kontrollitud väärtused faili `GITHUB_OUTPUT`. Workflow’ `run:` plokkides ei ole pärast parandust GitHubi kontekstiavaldisi.
