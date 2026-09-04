@@ -19,6 +19,8 @@ from tools.resolve_release_values import (
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_PATH = ROOT / ".github" / "workflows" / "qgis_release.yml"
 SETUP_GUIDE_PATH = ROOT / "MAIN_PLUGIN_RELEASE_SETUP.md"
+RELEASE_METADATA_PATH = ROOT / "metadata.release.txt"
+APPROVED_RELEASE_ICON = "resources/icons/Kavitro-favicon-96x96.png"
 
 
 def _run_scripts(yaml_text: str) -> list[str]:
@@ -205,15 +207,48 @@ class ReleaseWorkflowSourceTest(unittest.TestCase):
     def test_workflow_uses_environment_boundary_and_resolver(self) -> None:
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
 
-        self.assertIn(
-            "PLUGIN_RELEASE_EVENT_TAG: ${{ github.event.release.tag_name }}",
-            workflow,
-        )
+        self.assertIn("PLUGIN_INPUT_RELEASE_VERSION: ${{ inputs.release_version }}", workflow)
+        self.assertIn("PLUGIN_INPUT_RELEASE_TAG: ${{ inputs.release_tag }}", workflow)
         self.assertIn("run: python tools/resolve_release_values.py", workflow)
         self.assertIn('os.environ["PLUGIN_RELEASE_VERSION"]', workflow)
         self.assertNotIn('RELEASE_TAG="${{', workflow)
         self.assertNotIn('release_version = "${{', workflow)
         self.assertNotIn('qgis-plugin-ci release "${{', workflow)
+
+    def test_workflow_publishes_only_a_verified_empty_draft(self) -> None:
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+        self.assertNotIn("types:\n      - published", workflow)
+        self.assertIn("Release ${PLUGIN_RELEASE_TAG} is already published", workflow)
+        self.assertIn(".assets | length", workflow)
+        self.assertIn("Verify uploaded release asset digests", workflow)
+        self.assertIn("sha256sum", workflow)
+        self.assertIn(".digest // empty", workflow)
+        self.assertIn("uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${PLUGIN_RELEASE_ID}/assets", workflow)
+        self.assertIn("REMOTE_ASSET_COUNT", workflow)
+        self.assertNotIn("gh release upload", workflow)
+        self.assertNotIn("--clobber", workflow)
+        self.assertNotIn("qgis-plugin-ci release", workflow)
+
+        upload_index = workflow.index("- name: Upload repository assets to release")
+        verify_index = workflow.index("- name: Verify uploaded release asset digests")
+        publish_index = workflow.index("- name: Publish and lock release")
+        immutable_index = workflow.index("'.immutable'", publish_index)
+        self.assertLess(upload_index, verify_index)
+        self.assertLess(verify_index, publish_index)
+        self.assertGreater(immutable_index, publish_index)
+
+    def test_release_metadata_is_live_icon_source_of_truth(self) -> None:
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        release_metadata = RELEASE_METADATA_PATH.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "cp metadata.release.txt kavitro_live/metadata.txt",
+            workflow,
+        )
+        self.assertIn(f"icon={APPROVED_RELEASE_ICON}", release_metadata)
+        self.assertIn(f"icon={APPROVED_RELEASE_ICON}", workflow)
+        self.assertTrue((ROOT / APPROVED_RELEASE_ICON).is_file())
 
     def test_documented_workflow_has_no_expressions_in_run_scripts(self) -> None:
         guide = SETUP_GUIDE_PATH.read_text(encoding="utf-8")
@@ -227,6 +262,9 @@ class ReleaseWorkflowSourceTest(unittest.TestCase):
             with self.subTest(script=script[:80]):
                 self.assertNotIn("${{", script)
         self.assertIn("run: python tools/resolve_release_values.py", documented_workflow)
+        self.assertNotIn("--clobber", documented_workflow)
+        self.assertIn("draft=false", documented_workflow)
+        self.assertIn(".immutable", documented_workflow)
 
 
 if __name__ == "__main__":

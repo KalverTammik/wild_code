@@ -14,13 +14,19 @@ The `latest` URL always resolves to the `plugins.xml` asset of the GitHub Releas
 
 ## Publishing a release
 
-1. Update the plugin version in [metadata.txt](metadata.txt).
+Before using this process, merge the draft-first workflow and enable **Settings -> General -> Releases -> Enable release immutability** in GitHub. Do not enable immutability while the old `release: published` workflow is still active because a published release is locked before that old workflow can attach its files.
+
+1. Review [metadata.release.txt](metadata.release.txt). It is the LIVE metadata source and declares the release icon `resources/icons/Kavitro-favicon-96x96.png`.
 2. Commit and push the intended release state.
-3. Create and publish a GitHub Release with a matching tag, for example `v2.00.18`.
-4. The **Release QGIS Plugin** workflow builds the live plugin, creates `plugins.xml`, the versioned ZIP and icon, uploads them to the release, and marks the release as latest.
-5. Verify that the stable installation URL above downloads the newly generated `plugins.xml`.
+3. In GitHub, create and **save an empty draft release** with the matching tag, title, and release notes, for example `v2.00.18`. Do not publish it manually and do not attach assets.
+4. Open **Actions -> Release QGIS Plugin -> Run workflow** on the intended release commit. Enter the matching version and tag.
+5. The workflow pins the future tag to its checked-out commit, builds `plugins.xml`, the versioned ZIP and icon, and uploads them to the draft without overwriting existing assets.
+6. The workflow compares every local SHA-256 value with the digest reported by GitHub. Only a successful check publishes the draft and marks it as latest.
+7. Verify that GitHub marks the release **Immutable** and that the stable installation URL above downloads the newly generated `plugins.xml`.
 
 The workflow also copies the GitHub Release title and notes into the `<changelog>` field shown by QGIS Plugin Manager.
+
+After the immutable process is enabled, published release assets are never corrected in place. If an immutable release is wrong, create a new version and tag. A failed run leaves the release as a draft; remove any assets uploaded by that failed run before retrying.
 
 ## Source repository vs release package
 

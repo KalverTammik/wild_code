@@ -1,16 +1,13 @@
 name: Release QGIS Plugin
 
 on:
-  release:
-    types:
-      - published
   workflow_dispatch:
     inputs:
       release_version:
-        description: Version to package for manual test run (e.g. 2.0.6)
+        description: Version to package from an existing draft release (e.g. 2.0.6)
         required: true
       release_tag:
-        description: Optional tag override for manual runs (e.g. v2.0.6)
+        description: Optional draft release tag override (e.g. v2.0.6)
         required: false
 
 permissions:
@@ -29,13 +26,9 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install qgis-plugin-ci
-        run: python -m pip install --upgrade pip qgis-plugin-ci
-
       - name: Resolve release values
         id: release_values
         env:
-          PLUGIN_RELEASE_EVENT_TAG: ${{ github.event.release.tag_name }}
           PLUGIN_INPUT_RELEASE_VERSION: ${{ inputs.release_version }}
           PLUGIN_INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
         shell: bash
@@ -82,6 +75,10 @@ jobs:
             --exclude 'metadata.dev.txt' \
             --exclude 'metadata.release.txt'
 
+          # LIVE metadata is an explicit source of truth. In particular, its
+          # icon must not inherit the visually distinct DEV metadata icon.
+          cp metadata.release.txt kavitro_live/metadata.txt
+
           python - <<'PY'
           import os
           from pathlib import Path
@@ -93,14 +90,6 @@ jobs:
 
           out = []
           for line in lines:
-              if line.startswith("name="):
-                  value = line.split("=", 1)[1]
-                  value = value.replace(" [DEV]", "").replace("[DEV]", "").strip()
-                  out.append(f"name={value}")
-                  continue
-              if line.startswith("experimental="):
-                  out.append("experimental=False")
-                  continue
               if line.startswith("version="):
                   out.append(f"version={release_version}")
                   continue
@@ -108,12 +97,6 @@ jobs:
 
           metadata_path.write_text("\n".join(out) + "\n", encoding="utf-8")
           PY
-
-          cat > .qgis-plugin-ci << 'EOF'
-          plugin_path: kavitro_live
-          github_organization_slug: KalverTammik
-          project_slug: wild_code
-          EOF
 
       - name: Validate live plugin contents
         shell: bash
@@ -150,68 +133,107 @@ jobs:
             exit 1
           fi
 
+          if ! grep -Fxq 'name=Kavitro' kavitro_live/metadata.txt; then
+            echo "ERROR: LIVE plugin metadata name is not Kavitro."
+            exit 1
+          fi
+          if ! grep -Fxq 'experimental=False' kavitro_live/metadata.txt; then
+            echo "ERROR: LIVE plugin metadata is not stable."
+            exit 1
+          fi
+          if ! grep -Fxq 'icon=resources/icons/Kavitro-favicon-96x96.png' kavitro_live/metadata.txt; then
+            echo "ERROR: LIVE plugin metadata does not use the approved Kavitro icon."
+            exit 1
+          fi
+          if [ ! -f kavitro_live/resources/icons/Kavitro-favicon-96x96.png ]; then
+            echo "ERROR: Approved Kavitro icon is missing from the LIVE plugin."
+            exit 1
+          fi
+
           echo "Validated live plugin staging directory."
           du -sh kavitro_live
 
-      - name: Stage generated release files
-        run: |
-          git add -A kavitro_live .qgis-plugin-ci
-
-      - name: Ensure GitHub release exists (manual dispatch)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Resolve draft release
+        id: draft_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
         shell: bash
         run: |
-          gh release view "${PLUGIN_RELEASE_TAG}" >/dev/null 2>&1 || gh release create "${PLUGIN_RELEASE_TAG}" --target "${GITHUB_SHA}" --title "${PLUGIN_RELEASE_TAG}" --notes "Manual release ${PLUGIN_RELEASE_TAG}"
+          RELEASE_JSON_FILE="${RUNNER_TEMP}/kavitro-draft-release.json"
+          RELEASE_TITLE_FILE="${RUNNER_TEMP}/kavitro-release-title.txt"
+          RELEASE_NOTES_FILE="${RUNNER_TEMP}/kavitro-release-notes.md"
 
-      - name: Deploy plugin
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PLUGIN_RELEASE_VERSION: ${{ steps.release_values.outputs.release_version }}
-          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
-        run: |
-          qgis-plugin-ci release "${PLUGIN_RELEASE_VERSION}" \
-            --release-tag "${PLUGIN_RELEASE_TAG}" \
-            --github-token "${GITHUB_TOKEN}" \
-            --create-plugin-repo \
-            --allow-uncommitted-changes
+          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            | jq --arg tag "${PLUGIN_RELEASE_TAG}" \
+                '[.[] | select(.tag_name == $tag)] | first' \
+            > "${RELEASE_JSON_FILE}"
+
+          if [ "$(jq -r 'if . == null then "missing" else "found" end' "${RELEASE_JSON_FILE}")" != "found" ]; then
+            echo "ERROR: Draft release ${PLUGIN_RELEASE_TAG} does not exist. Create and save the draft before running this workflow."
+            exit 1
+          fi
+          if [ "$(jq -r '.draft' "${RELEASE_JSON_FILE}")" != "true" ]; then
+            echo "ERROR: Release ${PLUGIN_RELEASE_TAG} is already published. Published release assets must not be replaced."
+            exit 1
+          fi
+          if [ "$(jq -r '.assets | length' "${RELEASE_JSON_FILE}")" != "0" ]; then
+            echo "ERROR: Draft release ${PLUGIN_RELEASE_TAG} already contains assets. Start from an empty draft so no unverified asset is published."
+            exit 1
+          fi
+
+          TAG_REF="refs/tags/${PLUGIN_RELEASE_TAG}"
+          TAG_REFS="$(git ls-remote origin "${TAG_REF}" "${TAG_REF}^{}")"
+          if [ -n "${TAG_REFS}" ]; then
+            TAG_COMMIT="$(printf '%s\n' "${TAG_REFS}" | awk '$2 ~ /\^\{\}$/ { print $1; exit }')"
+            if [ -z "${TAG_COMMIT}" ]; then
+              TAG_COMMIT="$(printf '%s\n' "${TAG_REFS}" | awk 'NR == 1 { print $1 }')"
+            fi
+            if [ "${TAG_COMMIT}" != "${GITHUB_SHA}" ]; then
+              echo "ERROR: Existing tag ${PLUGIN_RELEASE_TAG} does not point to the commit checked out by this workflow."
+              exit 1
+            fi
+          fi
+
+          RELEASE_ID="$(jq -r '.id' "${RELEASE_JSON_FILE}")"
+          if ! [[ "${RELEASE_ID}" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: Draft release id is invalid."
+            exit 1
+          fi
+
+          # Pin the future immutable tag to the exact commit checked out by this run.
+          gh api \
+            --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -f target_commitish="${GITHUB_SHA}" \
+            > "${RELEASE_JSON_FILE}"
+
+          jq -r 'if (.name // "") == "" then .tag_name else .name end' \
+            "${RELEASE_JSON_FILE}" > "${RELEASE_TITLE_FILE}"
+          jq -r '.body // ""' "${RELEASE_JSON_FILE}" > "${RELEASE_NOTES_FILE}"
+          printf 'release_id=%s\n' "${RELEASE_ID}" >> "${GITHUB_OUTPUT}"
 
       - name: Build changelog-aware repository assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
-          PLUGIN_RELEASE_TITLE: ${{ github.event.release.name }}
-          PLUGIN_RELEASE_BODY: ${{ github.event.release.body }}
         shell: bash
         run: |
-          NOTES_FILE="release_notes.md"
+          RELEASE_TITLE_FILE="${RUNNER_TEMP}/kavitro-release-title.txt"
+          NOTES_FILE="${RUNNER_TEMP}/kavitro-release-notes.md"
           PREVIOUS_XML_FILE="previous_plugins.xml"
+          RELEASES_FILE="${RUNNER_TEMP}/kavitro-published-releases.json"
+          PLUGIN_RELEASE_TITLE="$(cat "${RELEASE_TITLE_FILE}")"
 
           # Always have a visible changelog header in QGIS Plugin Manager.
           if [ -z "${PLUGIN_RELEASE_TITLE}" ]; then
             PLUGIN_RELEASE_TITLE="${PLUGIN_RELEASE_TAG}"
           fi
 
-          # For manual dispatch, fetch release title/body from GitHub API when available.
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            API_PATH="repos/${GITHUB_REPOSITORY}/releases/tags/${PLUGIN_RELEASE_TAG}"
-            API_TITLE="$(gh api "${API_PATH}" --jq '.name // .tag_name' 2>/dev/null || true)"
-            API_BODY="$(gh api "${API_PATH}" --jq '.body // ""' 2>/dev/null || true)"
-            if [ -n "${API_TITLE}" ]; then
-              PLUGIN_RELEASE_TITLE="${API_TITLE}"
-            fi
-            if [ -n "${API_BODY}" ]; then
-              PLUGIN_RELEASE_BODY="${API_BODY}"
-            fi
-          fi
-
-          if [ -n "${PLUGIN_RELEASE_BODY}" ]; then
-            printf '%s\n' "${PLUGIN_RELEASE_BODY}" > "${NOTES_FILE}"
-          fi
-
-          PREV_TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --jq "[.[] | select(.tag_name != \"${PLUGIN_RELEASE_TAG}\")][0].tag_name // \"\"" 2>/dev/null || true)"
+          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "${RELEASES_FILE}"
+          PREV_TAG="$(jq -r --arg tag "${PLUGIN_RELEASE_TAG}" \
+            '[.[] | select(.draft == false and .tag_name != $tag)] | sort_by(.published_at) | reverse | .[0].tag_name // ""' \
+            "${RELEASES_FILE}")"
           if [ -n "${PREV_TAG}" ]; then
             PREV_XML_URL="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${PREV_TAG}" --jq '.assets[] | select(.name=="plugins.xml") | .browser_download_url' 2>/dev/null || true)"
             if [ -n "${PREV_XML_URL}" ]; then
@@ -247,25 +269,88 @@ jobs:
       - name: Upload repository assets to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
+          PLUGIN_RELEASE_ID: ${{ steps.draft_release.outputs.release_id }}
         shell: bash
         run: |
-          gh release upload "${PLUGIN_RELEASE_TAG}" \
-            release_repo/plugins.xml \
-            release_repo/*.zip \
-            release_repo/*.png \
-            --clobber
+          shopt -s nullglob
+          ASSETS=(release_repo/plugins.xml release_repo/*.zip release_repo/*.png)
+          if [ "${#ASSETS[@]}" -ne 3 ]; then
+            echo "ERROR: Expected exactly plugins.xml, one plugin ZIP and one icon before upload."
+            exit 1
+          fi
 
-      - name: Mark release as latest
+          UPLOAD_BASE_URL="https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${PLUGIN_RELEASE_ID}/assets"
+          UPLOAD_INDEX=0
+          for ASSET_PATH in "${ASSETS[@]}"; do
+            ASSET_NAME="$(basename "${ASSET_PATH}")"
+            ENCODED_ASSET_NAME="$(jq -rn --arg value "${ASSET_NAME}" '$value | @uri')"
+            UPLOAD_RESPONSE="${RUNNER_TEMP}/kavitro-upload-${UPLOAD_INDEX}.json"
+
+            curl --fail-with-body --silent --show-error -L \
+              -X POST \
+              -H 'Accept: application/vnd.github+json' \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              -H 'Content-Type: application/octet-stream' \
+              "${UPLOAD_BASE_URL}?name=${ENCODED_ASSET_NAME}" \
+              --data-binary "@${ASSET_PATH}" \
+              > "${UPLOAD_RESPONSE}"
+
+            if ! jq -e --arg name "${ASSET_NAME}" \
+              '.name == $name and .state == "uploaded"' \
+              "${UPLOAD_RESPONSE}" >/dev/null; then
+              echo "ERROR: GitHub did not confirm a completed upload for ${ASSET_NAME}."
+              exit 1
+            fi
+            UPLOAD_INDEX=$((UPLOAD_INDEX + 1))
+          done
+
+      - name: Verify uploaded release asset digests
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
+          PLUGIN_RELEASE_ID: ${{ steps.draft_release.outputs.release_id }}
         shell: bash
         run: |
-          RELEASE_ID="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${PLUGIN_RELEASE_TAG}" --jq '.id')"
+          RELEASE_JSON_FILE="${RUNNER_TEMP}/kavitro-uploaded-release.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${PLUGIN_RELEASE_ID}" > "${RELEASE_JSON_FILE}"
+
+          shopt -s nullglob
+          ASSETS=(release_repo/plugins.xml release_repo/*.zip release_repo/*.png)
+          REMOTE_ASSET_COUNT="$(jq -r '.assets | length' "${RELEASE_JSON_FILE}")"
+          if [ "${REMOTE_ASSET_COUNT}" -ne "${#ASSETS[@]}" ]; then
+            echo "ERROR: GitHub draft contains an unexpected number of assets."
+            exit 1
+          fi
+
+          for ASSET_PATH in "${ASSETS[@]}"; do
+            ASSET_NAME="$(basename "${ASSET_PATH}")"
+            EXPECTED_DIGEST="sha256:$(sha256sum "${ASSET_PATH}" | awk '{print $1}')"
+            ACTUAL_DIGEST="$(jq -r --arg name "${ASSET_NAME}" \
+              '.assets[] | select(.name == $name and .state == "uploaded") | .digest // empty' \
+              "${RELEASE_JSON_FILE}")"
+            if [ "${ACTUAL_DIGEST}" != "${EXPECTED_DIGEST}" ]; then
+              echo "ERROR: GitHub asset digest mismatch for ${ASSET_NAME}."
+              exit 1
+            fi
+          done
+
+      - name: Publish and lock release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLUGIN_RELEASE_ID: ${{ steps.draft_release.outputs.release_id }}
+        shell: bash
+        run: |
+          PUBLISHED_RELEASE_FILE="${RUNNER_TEMP}/kavitro-published-release.json"
 
           gh api \
             --method PATCH \
-            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            "repos/${GITHUB_REPOSITORY}/releases/${PLUGIN_RELEASE_ID}" \
+            -F draft=false \
             -F make_latest=true \
-            -F prerelease=false
+            -F prerelease=false \
+            > "${PUBLISHED_RELEASE_FILE}"
+
+          if [ "$(jq -r '.immutable' "${PUBLISHED_RELEASE_FILE}")" != "true" ]; then
+            echo "ERROR: Release was published but is not immutable. Enable release immutability in the repository settings before the next release."
+            exit 1
+          fi

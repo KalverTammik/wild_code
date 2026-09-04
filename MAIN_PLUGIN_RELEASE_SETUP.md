@@ -85,22 +85,21 @@ Also display active config in the dialog for fast verification:
 
 Create `.github/workflows/release.yaml` and adapt filenames to your plugin.
 
-The template expects `tools/resolve_release_values.py` from this repository. The resolver receives event data through environment variables, accepts only the documented version/tag format, and writes validated values to `GITHUB_OUTPUT`. Do not interpolate event data or step outputs directly into a `run:` script.
+The template expects `tools/resolve_release_values.py` from this repository. The resolver receives workflow inputs through environment variables, accepts only the documented version/tag format, and writes validated values to `GITHUB_OUTPUT`. Do not interpolate inputs or step outputs directly into a `run:` script.
+
+Enable **Release immutability** in the GitHub repository settings only after this draft-first workflow is on the default branch. An immutable release locks its tag and assets when the draft is published, so assets must be built, uploaded, and verified first.
 
 ```yaml
 name: Release QGIS Plugin
 
 on:
-  release:
-    types:
-      - published
   workflow_dispatch:
     inputs:
       release_version:
-        description: Version to package for manual test run (e.g. 1.2.3)
+        description: Version to package from an existing draft release (e.g. 1.2.3)
         required: true
       release_tag:
-        description: Optional tag override for manual runs (e.g. v1.2.3)
+        description: Optional draft release tag override (e.g. v1.2.3)
         required: false
 
 permissions:
@@ -119,26 +118,25 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install qgis-plugin-ci
-        run: python -m pip install --upgrade pip qgis-plugin-ci
-
       - name: Resolve release values
         id: release_values
         env:
-          PLUGIN_RELEASE_EVENT_TAG: ${{ github.event.release.tag_name }}
           PLUGIN_INPUT_RELEASE_VERSION: ${{ inputs.release_version }}
           PLUGIN_INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
         shell: bash
         run: python tools/resolve_release_values.py
 
       - name: Prepare live plugin directory
+        env:
+          PLUGIN_RELEASE_VERSION: ${{ steps.release_values.outputs.release_version }}
+        shell: bash
         run: |
           rm -rf yourplugin_live
           mkdir -p yourplugin_live
 
           cp __init__.py yourplugin_live/
           cp icon.png yourplugin_live/
-          cp metadata.txt yourplugin_live/
+          cp metadata.release.txt yourplugin_live/metadata.txt
           cp <plugin_main>.py yourplugin_live/
           cp <dialog>.py yourplugin_live/
           cp <dialog>.ui yourplugin_live/
@@ -149,71 +147,93 @@ jobs:
           cp config/__init__.py yourplugin_live/config/
           cp config/config.json yourplugin_live/config/
 
-          sed -i 's/^name=Your Plugin \[DEV\]$/name=Your Plugin/' yourplugin_live/metadata.txt
-          sed -i 's/^experimental=True$/experimental=False/' yourplugin_live/metadata.txt
+          python - <<'PY'
+          import os
+          from pathlib import Path
 
-          cat > .qgis-plugin-ci << 'EOF'
-          plugin_path: yourplugin_live
-          github_organization_slug: <OWNER>
-          project_slug: <REPO>
-          EOF
+          path = Path("yourplugin_live/metadata.txt")
+          version = os.environ["PLUGIN_RELEASE_VERSION"]
+          lines = [
+              f"version={version}" if line.startswith("version=") else line
+              for line in path.read_text(encoding="utf-8").splitlines()
+          ]
+          path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
 
-      - name: Stage generated release files
-        run: |
-          git add -A yourplugin_live .qgis-plugin-ci
-
-      - name: Ensure GitHub release exists (manual dispatch)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Resolve empty draft release
+        id: draft_release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
+        shell: bash
         run: |
-          gh release view "${PLUGIN_RELEASE_TAG}" >/dev/null 2>&1 || gh release create "${PLUGIN_RELEASE_TAG}" --target "${GITHUB_SHA}" --title "${PLUGIN_RELEASE_TAG}" --notes "Manual release ${PLUGIN_RELEASE_TAG}"
+          RELEASE_JSON_FILE="${RUNNER_TEMP}/plugin-draft-release.json"
+          RELEASE_TITLE_FILE="${RUNNER_TEMP}/plugin-release-title.txt"
+          RELEASE_NOTES_FILE="${RUNNER_TEMP}/plugin-release-notes.md"
 
-      - name: Deploy plugin
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PLUGIN_RELEASE_VERSION: ${{ steps.release_values.outputs.release_version }}
-          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
-        run: |
-          qgis-plugin-ci release "${PLUGIN_RELEASE_VERSION}" \
-            --release-tag "${PLUGIN_RELEASE_TAG}" \
-            --github-token "${GITHUB_TOKEN}" \
-            --create-plugin-repo \
-            --allow-uncommitted-changes
+          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            | jq --arg tag "${PLUGIN_RELEASE_TAG}" \
+                '[.[] | select(.tag_name == $tag)] | first' \
+            > "${RELEASE_JSON_FILE}"
+
+          if [ "$(jq -r 'if . == null then "missing" else "found" end' "${RELEASE_JSON_FILE}")" != "found" ]; then
+            echo "ERROR: Create and save draft release ${PLUGIN_RELEASE_TAG} before running this workflow."
+            exit 1
+          fi
+          if [ "$(jq -r '.draft' "${RELEASE_JSON_FILE}")" != "true" ]; then
+            echo "ERROR: Published releases must not be modified."
+            exit 1
+          fi
+          if [ "$(jq -r '.assets | length' "${RELEASE_JSON_FILE}")" != "0" ]; then
+            echo "ERROR: The draft must not contain pre-existing assets."
+            exit 1
+          fi
+
+          TAG_REF="refs/tags/${PLUGIN_RELEASE_TAG}"
+          TAG_REFS="$(git ls-remote origin "${TAG_REF}" "${TAG_REF}^{}")"
+          if [ -n "${TAG_REFS}" ]; then
+            TAG_COMMIT="$(printf '%s\n' "${TAG_REFS}" | awk '$2 ~ /\^\{\}$/ { print $1; exit }')"
+            if [ -z "${TAG_COMMIT}" ]; then
+              TAG_COMMIT="$(printf '%s\n' "${TAG_REFS}" | awk 'NR == 1 { print $1 }')"
+            fi
+            test "${TAG_COMMIT}" = "${GITHUB_SHA}"
+          fi
+
+          RELEASE_ID="$(jq -r '.id' "${RELEASE_JSON_FILE}")"
+          if ! [[ "${RELEASE_ID}" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: Draft release id is invalid."
+            exit 1
+          fi
+
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+            -f target_commitish="${GITHUB_SHA}" \
+            > "${RELEASE_JSON_FILE}"
+          jq -r 'if (.name // "") == "" then .tag_name else .name end' \
+            "${RELEASE_JSON_FILE}" > "${RELEASE_TITLE_FILE}"
+          jq -r '.body // ""' "${RELEASE_JSON_FILE}" > "${RELEASE_NOTES_FILE}"
+          printf 'release_id=%s\n' "${RELEASE_ID}" >> "${GITHUB_OUTPUT}"
 
       - name: Build changelog-aware repository assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
-          PLUGIN_RELEASE_TITLE: ${{ github.event.release.name }}
-          PLUGIN_RELEASE_BODY: ${{ github.event.release.body }}
         shell: bash
         run: |
-          NOTES_FILE="release_notes.md"
+          RELEASE_TITLE_FILE="${RUNNER_TEMP}/plugin-release-title.txt"
+          NOTES_FILE="${RUNNER_TEMP}/plugin-release-notes.md"
           PREVIOUS_XML_FILE="previous_plugins.xml"
+          RELEASES_FILE="${RUNNER_TEMP}/plugin-published-releases.json"
+          PLUGIN_RELEASE_TITLE="$(cat "${RELEASE_TITLE_FILE}")"
 
           if [ -z "${PLUGIN_RELEASE_TITLE}" ]; then
             PLUGIN_RELEASE_TITLE="${PLUGIN_RELEASE_TAG}"
           fi
 
-          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
-            API_PATH="repos/${GITHUB_REPOSITORY}/releases/tags/${PLUGIN_RELEASE_TAG}"
-            API_TITLE="$(gh api "${API_PATH}" --jq '.name // .tag_name' 2>/dev/null || true)"
-            API_BODY="$(gh api "${API_PATH}" --jq '.body // ""' 2>/dev/null || true)"
-            if [ -n "${API_TITLE}" ]; then
-              PLUGIN_RELEASE_TITLE="${API_TITLE}"
-            fi
-            if [ -n "${API_BODY}" ]; then
-              PLUGIN_RELEASE_BODY="${API_BODY}"
-            fi
-          fi
-
-          if [ -n "${PLUGIN_RELEASE_BODY}" ]; then
-            printf '%s\n' "${PLUGIN_RELEASE_BODY}" > "${NOTES_FILE}"
-          fi
-
-          PREV_TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases" --jq "[.[] | select(.tag_name != \"${PLUGIN_RELEASE_TAG}\")][0].tag_name // \"\"" 2>/dev/null || true)"
+          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "${RELEASES_FILE}"
+          PREV_TAG="$(jq -r --arg tag "${PLUGIN_RELEASE_TAG}" \
+            '[.[] | select(.draft == false and .tag_name != $tag)] | sort_by(.published_at) | reverse | .[0].tag_name // ""' \
+            "${RELEASES_FILE}")"
           if [ -n "${PREV_TAG}" ]; then
             PREV_XML_URL="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${PREV_TAG}" --jq '.assets[] | select(.name=="plugins.xml") | .browser_download_url' 2>/dev/null || true)"
             if [ -n "${PREV_XML_URL}" ]; then
@@ -237,41 +257,102 @@ jobs:
           fi
           "${CMD[@]}"
 
-      - name: Validate changelog exists in plugins.xml
-        shell: bash
-        run: |
-          if ! grep -q "<changelog>" release_repo/plugins.xml; then
-            echo "ERROR: release_repo/plugins.xml is missing <changelog>."
-            cat release_repo/plugins.xml
-            exit 1
-          fi
-
       - name: Upload repository assets to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PLUGIN_RELEASE_TAG: ${{ steps.release_values.outputs.release_tag }}
+          PLUGIN_RELEASE_ID: ${{ steps.draft_release.outputs.release_id }}
         shell: bash
         run: |
-          gh release upload "${PLUGIN_RELEASE_TAG}" \
-            release_repo/plugins.xml \
-            release_repo/*.zip \
-            release_repo/*.png \
-            --clobber
+          shopt -s nullglob
+          ASSETS=(release_repo/plugins.xml release_repo/*.zip release_repo/*.png)
+          if [ "${#ASSETS[@]}" -ne 3 ]; then
+            echo "ERROR: Expected exactly plugins.xml, one plugin ZIP and one icon before upload."
+            exit 1
+          fi
+
+          UPLOAD_BASE_URL="https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/${PLUGIN_RELEASE_ID}/assets"
+          UPLOAD_INDEX=0
+          for ASSET_PATH in "${ASSETS[@]}"; do
+            ASSET_NAME="$(basename "${ASSET_PATH}")"
+            ENCODED_ASSET_NAME="$(jq -rn --arg value "${ASSET_NAME}" '$value | @uri')"
+            UPLOAD_RESPONSE="${RUNNER_TEMP}/plugin-upload-${UPLOAD_INDEX}.json"
+
+            curl --fail-with-body --silent --show-error -L \
+              -X POST \
+              -H 'Accept: application/vnd.github+json' \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              -H 'Content-Type: application/octet-stream' \
+              "${UPLOAD_BASE_URL}?name=${ENCODED_ASSET_NAME}" \
+              --data-binary "@${ASSET_PATH}" \
+              > "${UPLOAD_RESPONSE}"
+
+            if ! jq -e --arg name "${ASSET_NAME}" \
+              '.name == $name and .state == "uploaded"' \
+              "${UPLOAD_RESPONSE}" >/dev/null; then
+              echo "ERROR: GitHub did not confirm a completed upload for ${ASSET_NAME}."
+              exit 1
+            fi
+            UPLOAD_INDEX=$((UPLOAD_INDEX + 1))
+          done
+
+      - name: Verify uploaded release asset digests
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLUGIN_RELEASE_ID: ${{ steps.draft_release.outputs.release_id }}
+        shell: bash
+        run: |
+          RELEASE_JSON_FILE="${RUNNER_TEMP}/plugin-uploaded-release.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${PLUGIN_RELEASE_ID}" > "${RELEASE_JSON_FILE}"
+
+          shopt -s nullglob
+          ASSETS=(release_repo/plugins.xml release_repo/*.zip release_repo/*.png)
+          REMOTE_ASSET_COUNT="$(jq -r '.assets | length' "${RELEASE_JSON_FILE}")"
+          if [ "${REMOTE_ASSET_COUNT}" -ne "${#ASSETS[@]}" ]; then
+            echo "ERROR: GitHub draft contains an unexpected number of assets."
+            exit 1
+          fi
+
+          for ASSET_PATH in "${ASSETS[@]}"; do
+            ASSET_NAME="$(basename "${ASSET_PATH}")"
+            EXPECTED_DIGEST="sha256:$(sha256sum "${ASSET_PATH}" | awk '{print $1}')"
+            ACTUAL_DIGEST="$(jq -r --arg name "${ASSET_NAME}" \
+              '.assets[] | select(.name == $name and .state == "uploaded") | .digest // empty' \
+              "${RELEASE_JSON_FILE}")"
+            test "${ACTUAL_DIGEST}" = "${EXPECTED_DIGEST}"
+          done
+
+      - name: Publish and lock release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PLUGIN_RELEASE_ID: ${{ steps.draft_release.outputs.release_id }}
+        shell: bash
+        run: |
+          PUBLISHED_RELEASE_FILE="${RUNNER_TEMP}/plugin-published-release.json"
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/releases/${PLUGIN_RELEASE_ID}" \
+            -F draft=false \
+            -F make_latest=true \
+            -F prerelease=false \
+            > "${PUBLISHED_RELEASE_FILE}"
+          test "$(jq -r '.immutable' "${PUBLISHED_RELEASE_FILE}")" = "true"
 ```
 
 ---
 
 ## 5) Release Process (Operational)
 
-1. Update plugin version in `metadata.txt` (e.g. `1.2.3`)
-2. Commit + push
-3. Tag + push:
-   - `git tag v1.2.3`
-   - `git push origin refs/tags/v1.2.3`
-4. Publish release on GitHub for that tag
-5. Verify release assets include:
+1. Update and review `metadata.release.txt`; keep the approved LIVE icon there.
+2. Commit and push the intended release state.
+3. In GitHub, create and **save an empty draft release** with the intended tag, title, and release notes. Do not publish it manually and do not attach assets.
+4. Run **Release QGIS Plugin** from the Actions tab with the matching version and tag. Run it from the exact branch or commit intended for release.
+5. The workflow pins the tag target to its checked-out commit, builds the assets, compares their local SHA-256 values with GitHub's asset digests, and only then publishes the draft.
+6. Verify that the completed release is marked **Immutable** and includes:
    - `plugins.xml`
    - `yourplugin_live.<version>.zip`
+   - the repository icon PNG
+
+If any release asset or digest check fails, the draft remains unpublished. Remove the failed draft assets before retrying; never overwrite assets of a published release.
 
 ---
 
@@ -289,13 +370,13 @@ QGIS path:
 
 ## 7) Troubleshooting (Based on Real Failures)
 
-### Error: `qgis-plugin-ci package: ... release_version required`
-- Cause: package/release command missing version argument.
-- Fix: always pass resolved version.
+### Error: draft release does not exist or already contains assets
+- Cause: the workflow was started without first saving an empty GitHub draft for the requested tag.
+- Fix: create a draft with release notes but no attached files. If retrying a failed draft, remove its previous workflow assets first.
 
-### Error: `fatal: pathspec '<live_folder>' did not match any files`
-- Cause: generated live folder not staged for git archive.
-- Fix: `git add -A <live_folder> .qgis-plugin-ci` before release command.
+### Error: release was published but is not immutable
+- Cause: GitHub repository setting **Enable release immutability** is disabled.
+- Fix: enable the setting before creating the next release. Do not silently replace the already published release assets.
 
 ### Plugin not visible in QGIS repo list
 - Cause: published metadata has `experimental=True`.
@@ -315,6 +396,9 @@ QGIS path:
 - LIVE dialog shows `Config: config.json`
 - `releases/latest/download/plugins.xml` resolves and includes latest version
 - `plugins.xml` includes a `<changelog>` block containing GitHub release title + notes
+- release assets use the icon declared in `metadata.release.txt`
+- GitHub marks the release as `Immutable`
+- local and GitHub SHA-256 digests match before publication
 
 ---
 
@@ -322,4 +406,4 @@ QGIS path:
 
 - Keep tags in stable format: `vX.Y.Z`
 - Avoid odd formats like `v.1.0.5`
-- Do not reuse old tags for new release logic changes; create a new tag each time
+- Do not reuse old tags or replace published assets; create a new release version for every correction
