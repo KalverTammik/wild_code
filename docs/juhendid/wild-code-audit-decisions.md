@@ -112,3 +112,32 @@ GitHubi repository seadistus **Enable release immutability** aktiveeriti 2026-09
 Esimese avaldamiskatse järelkontroll tuvastas GitHubi draft-release’i erijuhtumi: ilma päris Git-ref’i ja avaldamispäringus korratud `tag_name` väärtuseta võis GitHub lukustada release’i sisemise `untagged-*` nimega. Valesti märgistatud katserelease’id eemaldati ning kasutajatele mõeldud `v2.02.17` tag jäi vabaks. Workflow’d täiendati nii, et see loob Git-ref’i enne üleslaadimist, saadab avaldamisel `tag_name` ja `target_commitish` väärtused üheselt ning valideerib lõpliku release’i URL-id.
 
 Release `v2.02.17` avaldati commit’ilt `d77ac74e58fe80ee81c6afc7cef6eb9b29b29928`. GitHub kinnitas `immutable: true`, release sisaldab täpselt `plugins.xml`, `kavitro_live.2.02.17.zip` ja `kavitro_live.png` vara ning kõik sisaldavad SHA-256 digesti. Avalik `plugins.xml` viitab versioonile `2.02.17` ja sama tag’i varadele. Käsk `gh release verify v2.02.17` valideeris release-attestatsiooni edukalt.
+
+## WC-12 — release-workflow’ sõltuvused ja autentimisandmed
+
+**Otsuse kuupäev:** 2026-09-05
+
+**Staatus:** parandus teostatud ja automaattestidega valideeritud; tegelik avaldamisvoog valideeritakse järgmise release’iga
+
+### Kontrollitud tegelik olukord
+
+- Auditis kirjeldatud piiranguta `qgis-plugin-ci` paigaldamine ei olnud enam aktuaalne. WC-11 käigus asendati see repository enda standardteegi põhise pakkimisloogikaga ning release-workflow ei paigalda enam Pythoni pakette.
+- `actions/checkout` ja `actions/setup-python` kasutasid endiselt muudetavaid major-versiooni viiteid `@v5` ja `@v6`.
+- Checkout-samm ei määranud `persist-credentials` väärtust. Vaikeväärtuse `true` tõttu paigutati töövoo `GITHUB_TOKEN` lokaalsesse Git-konfiguratsiooni kuni checkout-action’i järeltegevuseni.
+- Workflow vajab jätkuvalt `contents: write` õigust, sest loob Git-ref’i, laadib release’i varad üles ning avaldab kontrollitud draft-release’i.
+
+### Rakendusotsus
+
+- `actions/checkout` lukustati täispika commit SHA `fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09` külge, mis vastab versioonile `v5.1.0`.
+- `actions/setup-python` lukustati täispika commit SHA `ece7cb06caefa5fff74198d8649806c4678c61a1` külge, mis vastab versioonile `v6.3.0`.
+- Checkout-samm kasutab nüüd `persist-credentials: false`, sest hilisemad GitHub API toimingud saavad tokeni ainult neid vajavate sammude `GH_TOKEN` keskkonnamuutuja kaudu.
+- Sama piir rakendati tegelikule workflow’le ja `MAIN_PLUGIN_RELEASE_SETUP.md` näidisele.
+- Regressioonitest kontrollib mõlemas allikas lubatud SHA-sid, keelab major-tag’id, nõuab `persist-credentials: false` väärtust ning takistab `qgis-plugin-ci` või dünaamilise `pip install` sammu tagasitulekut.
+
+`contents: write` õigus jäeti alles, sest selle eemaldamine katkestaks praeguse release-protsessi. Build- ja publish-õiguste eraldamine eri job’ideks jääb võimalikuks hilisemaks kaitsekihiks, kuid ei ole WC-12 sulgemiseks vajalik.
+
+### Jääkrisk ja kasutuselevõtu kontroll
+
+Täispikk SHA muudab action’i lähtekoodi viite muutumatuks, kuid uuele action’i versioonile üleminek peab edaspidi toimuma teadliku SHA uuenduse ja testimise kaudu. Workflow käib jätkuvalt GitHubi majutatud `ubuntu-latest` runneril ning avaldamissammudel on tööks vajalik kirjutamisõigus.
+
+Staatilised regressioonitestid valideerivad usalduspiiri repository tasemel. Järgmise tavapärase release’i õnnestumisel tuleb siia lisada release’i versioon ja kinnitada, et SHA-dega lukustatud action’id läbisid täieliku immutable avaldamisvoo.

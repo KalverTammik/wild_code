@@ -21,6 +21,12 @@ WORKFLOW_PATH = ROOT / ".github" / "workflows" / "qgis_release.yml"
 SETUP_GUIDE_PATH = ROOT / "MAIN_PLUGIN_RELEASE_SETUP.md"
 RELEASE_METADATA_PATH = ROOT / "metadata.release.txt"
 APPROVED_RELEASE_ICON = "resources/icons/Kavitro-favicon-96x96.png"
+PINNED_CHECKOUT_ACTION = (
+    "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0"
+)
+PINNED_SETUP_PYTHON_ACTION = (
+    "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0"
+)
 
 
 def _run_scripts(yaml_text: str) -> list[str]:
@@ -195,6 +201,35 @@ class ReleaseValueResolverTest(unittest.TestCase):
 
 
 class ReleaseWorkflowSourceTest(unittest.TestCase):
+    def test_release_actions_are_pinned_and_checkout_does_not_persist_token(self) -> None:
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        guide = SETUP_GUIDE_PATH.read_text(encoding="utf-8")
+        workflow_start = guide.index("```yaml", guide.index("## 4) Release Workflow"))
+        workflow_end = guide.index("```", workflow_start + len("```yaml"))
+        documented_workflow = guide[workflow_start + len("```yaml"):workflow_end]
+
+        for source_name, source in (
+            ("release workflow", workflow),
+            ("documented workflow", documented_workflow),
+        ):
+            with self.subTest(source=source_name):
+                self.assertIn(PINNED_CHECKOUT_ACTION, source)
+                self.assertIn(PINNED_SETUP_PYTHON_ACTION, source)
+                self.assertNotRegex(
+                    source,
+                    r"uses:\s*actions/(?:checkout|setup-python)@v\d+",
+                )
+                checkout_step = re.search(
+                    r"- name: Checkout repository\s+uses: actions/checkout@.*?"
+                    r"(?=\n\s+- name:)",
+                    source,
+                    flags=re.DOTALL,
+                )
+                self.assertIsNotNone(checkout_step)
+                self.assertIn("persist-credentials: false", checkout_step.group(0))
+                self.assertNotIn("qgis-plugin-ci", source)
+                self.assertNotRegex(source, r"python\s+-m\s+pip\s+install")
+
     def test_workflow_run_scripts_have_no_github_expressions(self) -> None:
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
         scripts = _run_scripts(workflow)
