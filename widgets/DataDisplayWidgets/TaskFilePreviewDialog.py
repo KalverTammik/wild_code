@@ -1,6 +1,7 @@
 # pyright: reportMissingImports=false
 from __future__ import annotations
 
+import html
 import mimetypes
 import os
 import tempfile
@@ -334,11 +335,13 @@ class TaskFilePreviewDialog(QDialog):
 
         self._meta_label = QLabel(self)
         self._meta_label.setWordWrap(True)
+        self._meta_label.setTextFormat(Qt.RichText)
         self._meta_label.setObjectName("TaskFilePreviewMeta")
         layout.addWidget(self._meta_label)
 
         self._notice_label = QLabel(self)
         self._notice_label.setWordWrap(True)
+        self._notice_label.setTextFormat(Qt.PlainText)
         self._notice_label.setObjectName("TaskFilePreviewNotice")
         self._notice_label.hide()
         layout.addWidget(self._notice_label)
@@ -362,11 +365,12 @@ class TaskFilePreviewDialog(QDialog):
         self._open_external_button.clicked.connect(self._open_externally)
         self._open_external_button.setEnabled(bool(self._external_open_extension))
         if not self._external_open_extension:
-            self._open_external_button.setToolTip(
+            tooltip = (
                 self._lang.translate(TranslationKeys.TASK_FILES_EXTERNAL_OPEN_BLOCKED).format(
                     name=self._local_title or self._file_name()
                 )
             )
+            self._open_external_button.setToolTip(self._plain_text_as_rich_text(tooltip))
         buttons.addWidget(self._open_external_button)
 
         buttons.addStretch(1)
@@ -422,8 +426,19 @@ class TaskFilePreviewDialog(QDialog):
             uploader = APIModuleActions.user_display_name(self._file_info.get("uploader")) or "–"
         mime_type = self._file_mime() or self._file_ext() or "–"
         self._meta_label.setText(
-            f"<b>{name}</b><br>{mime_type} • {size} • {uploader}"
+            f"<b>{self._escape_rich_text(name)}</b><br>"
+            f"{self._escape_rich_text(mime_type)} • "
+            f"{self._escape_rich_text(size)} • "
+            f"{self._escape_rich_text(uploader)}"
         )
+
+    @staticmethod
+    def _escape_rich_text(value) -> str:
+        return html.escape(str(value or ""), quote=True)
+
+    @staticmethod
+    def _plain_text_as_rich_text(value) -> str:
+        return Qt.convertFromPlainText(str(value or ""), Qt.WhiteSpaceNormal)
 
     def _clear_content(self) -> None:
         while self._content_layout.count():
@@ -446,6 +461,7 @@ class TaskFilePreviewDialog(QDialog):
         self._clear_content()
         label = QLabel(message, self._content_frame)
         label.setWordWrap(True)
+        label.setTextFormat(Qt.PlainText)
         label.setAlignment(Qt.AlignCenter)
         self._content_layout.addWidget(label, 1, Qt.AlignCenter)
 
@@ -909,23 +925,29 @@ class TaskFilePreviewDialog(QDialog):
             local_file_path=self._local_file_path,
         )
         if not extension:
+            message = self._lang.translate(
+                TranslationKeys.TASK_FILES_EXTERNAL_OPEN_BLOCKED
+            ).format(
+                name=self._local_title or self._file_name()
+            )
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.WARNING),
-                self._lang.translate(TranslationKeys.TASK_FILES_EXTERNAL_OPEN_BLOCKED).format(
-                    name=self._local_title or self._file_name()
-                ),
+                self._plain_text_as_rich_text(message),
                 parent=self,
             )
             return
 
         yes_label = self._lang.translate(TranslationKeys.YES)
         no_label = self._lang.translate(TranslationKeys.NO)
+        confirmation = self._lang.translate(
+            TranslationKeys.TASK_FILES_EXTERNAL_OPEN_CONFIRM
+        ).format(
+            name=self._local_title or self._file_name(),
+            extension=extension,
+        )
         choice = ModernMessageDialog.ask_choice_modern(
             self._lang.translate(TranslationKeys.CONFIRM),
-            self._lang.translate(TranslationKeys.TASK_FILES_EXTERNAL_OPEN_CONFIRM).format(
-                name=self._local_title or self._file_name(),
-                extension=extension,
-            ),
+            self._plain_text_as_rich_text(confirmation),
             buttons=[yes_label, no_label],
             parent=self,
             default=no_label,
@@ -941,11 +963,12 @@ class TaskFilePreviewDialog(QDialog):
         ):
             return
 
+        message = self._lang.translate(TranslationKeys.TASK_FILES_OPEN_FAILED).format(
+            name=self._file_name()
+        )
         ModernMessageDialog.show_warning(
             self._lang.translate(TranslationKeys.ERROR),
-            self._lang.translate(TranslationKeys.TASK_FILES_OPEN_FAILED).format(
-                name=self._file_name()
-            ),
+            self._plain_text_as_rich_text(message),
         )
 
     @staticmethod

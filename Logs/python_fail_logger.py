@@ -4,6 +4,12 @@ import traceback
 from datetime import datetime
 from typing import Any
 
+from .secure_log_io import (
+    ensure_private_directory,
+    harden_private_file,
+    open_private_log,
+)
+
 
 class PythonFailLogger:
     """Per-module Python error logger (non-switch diagnostics)."""
@@ -44,7 +50,7 @@ class PythonFailLogger:
         """Reset per-module session paths."""
         PythonFailLogger._log_paths = {}
         try:
-            os.makedirs(PythonFailLogger._logs_dir(), exist_ok=True)
+            ensure_private_directory(PythonFailLogger._logs_dir())
         except Exception:
             print("[PythonFailLogger] Failed to create logs dir", file=sys.stderr)
         PythonFailLogger._install_excepthook()
@@ -95,9 +101,11 @@ class PythonFailLogger:
             elif mod == PythonFailLogger._Cfg.DEFAULT_MODULE:
                 folder_name = PythonFailLogger._Cfg.MODULE_FOLDER_DEFAULT
             folder_path = os.path.join(logs_dir, folder_name)
-            os.makedirs(folder_path, exist_ok=True)
+            ensure_private_directory(folder_path)
             prefix = PythonFailLogger._Cfg.PREFIX_TEMPLATE.format(module=mod)
             existing = [name for name in os.listdir(folder_path) if name.startswith(prefix) and name.endswith(".log")]
+            for name in existing:
+                harden_private_file(os.path.join(folder_path, name))
             if len(existing) >= PythonFailLogger._Cfg.MAX_LOG_FILES_PER_FOLDER:
                 existing.sort(key=lambda name: os.path.getmtime(os.path.join(folder_path, name)))
                 while len(existing) >= PythonFailLogger._Cfg.MAX_LOG_FILES_PER_FOLDER:
@@ -145,7 +153,7 @@ class PythonFailLogger:
             return
         try:
             line = PythonFailLogger._format_line(event, module=module, extra=extra, message=message)
-            with open(path, "a", encoding="utf-8") as fh:
+            with open_private_log(path) as fh:
                 fh.write(line + "\n")
         except Exception:
             print("[PythonFailLogger] Failed to write log", file=sys.stderr)

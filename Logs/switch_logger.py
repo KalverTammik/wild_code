@@ -5,6 +5,12 @@ import sys
 from datetime import datetime
 from typing import Any
 
+from .secure_log_io import (
+    ensure_private_directory,
+    harden_private_file,
+    open_private_log,
+)
+
 
 class SwitchLogger:
     """Lightweight session logger for module switching diagnostics."""
@@ -32,7 +38,7 @@ class SwitchLogger:
         if not os.path.isdir(legacy_dir):
             return
         try:
-            os.makedirs(SwitchLogger._crash_dir(), exist_ok=True)
+            ensure_private_directory(SwitchLogger._crash_dir())
         except Exception:
             print("[SwitchLogger] Failed to create crash logs dir", file=sys.stderr)
             return
@@ -46,10 +52,11 @@ class SwitchLogger:
                 else:
                     dst_dir = SwitchLogger._crash_dir()
                 try:
-                    os.makedirs(dst_dir, exist_ok=True)
+                    ensure_private_directory(dst_dir)
                     dst = os.path.join(dst_dir, name)
                     if not os.path.exists(dst):
                         shutil.move(src, dst)
+                    harden_private_file(dst)
                 except Exception:
                     print(f"[SwitchLogger] Failed to migrate legacy log {name}", file=sys.stderr)
                     continue
@@ -67,8 +74,10 @@ class SwitchLogger:
         try:
             SwitchLogger._migrate_legacy_logs()
             logs_dir = SwitchLogger._logs_dir()
-            os.makedirs(logs_dir, exist_ok=True)
+            ensure_private_directory(logs_dir)
             existing = [name for name in os.listdir(logs_dir) if name.startswith("switch_log_") and name.endswith(".log")]
+            for name in existing:
+                harden_private_file(os.path.join(logs_dir, name))
             if len(existing) >= 2:
                 existing.sort(key=lambda name: os.path.getmtime(os.path.join(logs_dir, name)))
                 while len(existing) >= 2:
@@ -175,7 +184,7 @@ class SwitchLogger:
             return
         try:
             line = SwitchLogger._format_line(event, module=module, extra=extra)
-            with open(path, "a", encoding="utf-8") as fh:
+            with open_private_log(path) as fh:
                 fh.write(line + "\n")
         except Exception:
             print("[SwitchLogger] write failed", file=sys.stderr)

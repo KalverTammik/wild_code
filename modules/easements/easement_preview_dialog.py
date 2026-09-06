@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 from typing import Iterable
 from typing import Optional
@@ -624,8 +623,7 @@ class EasementPreviewDialog(QDialog):
         if not path:
             return
         try:
-            if os.path.exists(path):
-                os.remove(path)
+            EasementPdfService.cleanup_output_pdf(path)
         except Exception:
             pass
 

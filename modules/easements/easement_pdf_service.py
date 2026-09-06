@@ -26,11 +26,13 @@ from ...python.responses import DataDisplayExtractors
 
 class EasementPdfService:
     TEMPLATE_RELATIVE_PATH = Path("QGIS_styles") / "Layouts" / "MailablEasementLayoutTemp.qpt"
+    OUTPUT_TEMP_PREFIX = "kavitro_easement_drawings_"
     MAP_ITEM_ID = "Map 1"
     AREA_ITEM_ID = "Area"
     SCALE_ITEM_ID = "Scale"
     PROPERTY_ITEM_ID = "Propertie"
     NUMBER_ITEM_ID = "EasementNr"
+    _owned_output_paths: set[Path] = set()
 
     @classmethod
     def export_final_cut_pdf(
@@ -43,6 +45,7 @@ class EasementPdfService:
         final_layer,
         property_layer=None,
     ) -> tuple[bool, str]:
+        pdf_path: Optional[Path] = None
         try:
             if final_layer is None or not getattr(final_layer, "isValid", lambda: False)():
                 return False, "Invalid final cut layer"
@@ -90,10 +93,13 @@ class EasementPdfService:
             settings = QgsLayoutExporter.PdfExportSettings()
             result = exporter.exportToPdf(str(pdf_path), settings)
             if result != QgsLayoutExporter.Success:
+                cls.cleanup_output_pdf(pdf_path)
                 return False, f"PDF export failed with code {result}"
 
             return True, str(pdf_path)
         except Exception as exc:
+            if pdf_path is not None:
+                cls.cleanup_output_pdf(pdf_path)
             PythonFailLogger.log_exception(
                 exc,
                 module="easement",
@@ -392,9 +398,61 @@ class EasementPdfService:
     @classmethod
     def _output_pdf_path(cls, *, item_number: str, item_id: str) -> Path:
         base_name = cls._safe_file_name(item_number or item_id or "easement_drawing")
-        temp_root = Path(tempfile.gettempdir()) / "kavitro_easement_drawings"
-        temp_root.mkdir(parents=True, exist_ok=True)
-        return temp_root / f"{base_name}.pdf"
+        system_temp_root = Path(tempfile.gettempdir()).resolve()
+        temp_root = Path(
+            tempfile.mkdtemp(
+                prefix=cls.OUTPUT_TEMP_PREFIX,
+                dir=str(system_temp_root),
+            )
+        ).resolve()
+        output_path = temp_root / f"{base_name}.pdf"
+        cls._owned_output_paths.add(output_path)
+        return output_path
+
+    @classmethod
+    def cleanup_output_pdf(cls, pdf_path: str | Path) -> bool:
+        """Remove one PDF created by this service without following links."""
+        if not pdf_path:
+            return False
+
+        try:
+            candidate = Path(pdf_path)
+        except (TypeError, ValueError):
+            return False
+
+        if candidate not in cls._owned_output_paths:
+            return False
+
+        parent = candidate.parent
+        try:
+            if parent.is_symlink():
+                cls._owned_output_paths.discard(candidate)
+                return False
+            if not parent.exists():
+                cls._owned_output_paths.discard(candidate)
+                return True
+            if parent.resolve(strict=True) != parent:
+                cls._owned_output_paths.discard(candidate)
+                return False
+
+            if candidate.is_symlink():
+                cls._owned_output_paths.discard(candidate)
+                return False
+            if candidate.exists():
+                if not candidate.is_file():
+                    cls._owned_output_paths.discard(candidate)
+                    return False
+                candidate.unlink()
+        except OSError:
+            return False
+
+        cls._owned_output_paths.discard(candidate)
+        try:
+            parent.rmdir()
+        except OSError:
+            # Never delete an unexpected sibling recursively.
+            pass
+        return True
 
     @staticmethod
     def _safe_file_name(value: str) -> str:

@@ -141,3 +141,163 @@ Release `v2.02.17` avaldati commit’ilt `d77ac74e58fe80ee81c6afc7cef6eb9b29b299
 Täispikk SHA muudab action’i lähtekoodi viite muutumatuks, kuid uuele action’i versioonile üleminek peab edaspidi toimuma teadliku SHA uuenduse ja testimise kaudu. Workflow käib jätkuvalt GitHubi majutatud `ubuntu-latest` runneril ning avaldamissammudel on tööks vajalik kirjutamisõigus.
 
 Staatilised regressioonitestid valideerivad usalduspiiri repository tasemel. Järgmise tavapärase release’i õnnestumisel tuleb siia lisada release’i versioon ja kinnitada, et SHA-dega lukustatud action’id läbisid täieliku immutable avaldamisvoo.
+
+## WC-13 — HTTP veavastuste sisu logimine
+
+**Otsuse kuupäev:** 2026-09-05
+
+**Staatus:** parandus teostatud ning QGIS 3.40 testikeskkonnas valideeritud
+
+### Kontrollitud tegelik olukord
+
+- `APIClient.send_query` ja `APIClient.send_multipart_query` lisasid 4xx HTTP vastuse kogu `response.text` sisu erindi sõnumisse. 401, 403 ja 5xx vastused olid juba piiratud üldise vealiigi või HTTP olekukoodiga.
+- API erindid võisid jõuda muutmata kujul nii `PythonFailLogger` logisse kui ka taustatöö `SwitchLogger` logisse.
+- Logikataloogid ja failid loodi vaikimisi õigustega. Tegelik ligipääs sõltus operatsioonisüsteemist, kasutajaprofiili ACL-ist ja POSIX-süsteemides protsessi `umask` väärtusest.
+- Kontrollitud Windowsi kasutajaprofiilis puudus üldine `Everyone` või `Users` lugemisõigus, kuid rakendus ei jõustanud ise sama kaitsepiiri kõigil toetatud platvormidel.
+
+### Rakendusotsus
+
+- Mittestandardse HTTP vastuse keha ei loeta enam veateate koostamiseks ega edastata kasutajaliidesesse, erindisse või logisse.
+- Diagnostikaks säilib ainult ohutu HTTP olekukood tõlgitavas teates `Serveri päring ebaõnnestus (HTTP {status_code})`.
+- Tavapärase HTTP 200 GraphQL-vastuse `errors` väljade senist käsitlust selles etapis ei muudetud. Need on rakendustaseme vead, mitte WC-13 kirjeldatud täieliku HTTP vastuse logimine.
+- Lisati ühine `Logs/secure_log_io.py` abimoodul. Uued logikataloogid luuakse õigusega `0700` ja logifailid õigusega `0600`; POSIX-süsteemides parandatakse ka olemasolevate kasutatavate kataloogide ja failide õigused.
+- Turvaline faili avamine kasutab append-režiimi ega kirjuta varasemat logi üle. Toetatud platvormil kasutatakse ka `O_NOFOLLOW` lippu, et logifaili avamisel mitte järgneda sümboolsele lingile.
+- `PythonFailLogger` ja `SwitchLogger` kasutavad mõlemad sama turvalise logifaili piiri. Windowsis rakendub uue kataloogi `0700` ACL Python 3.13-st; vanemates QGIS-i Pythoni versioonides päritakse kasutajaprofiili NTFS-õigused.
+
+### Valideerimine ja jääkrisk
+
+Regressioonitestid kontrollivad mõlemat API veateed 422 vastusega, mille keha sisaldab näilist juurdepääsutõendit. Nii tavalises kui ka failiga päringus säilib `HTTP 422`, kuid vastuse keha ega `accessToken` tekst ei jõua tagastatud veasse. Staatiline test takistab `response.text` kasutuse tagasitulekut ning kontrollib, et mõlemad faililogijad kasutaksid turvalist I/O abimoodulit.
+
+QGIS 3.40.13 Pythoni keskkonnas läbis kogu komplekt 103 testi; kaks platvormi- või keskkonnaspetsiifilist testi jäeti vahele. POSIX-i `0700` ja `0600` õiguste test käivitub Linuxi CI-s või muus POSIX-keskkonnas.
+
+Jääkriskina võivad tavapärased GraphQL-i rakendustaseme veateated endiselt logisse jõuda. Backend ei tohiks neisse lisada paroole, tokeneid ega muid saladusi. Crash-logi loomise viis failis `main.py` ei kuulu WC-13 parandusse ja hinnatakse eraldi WC-14 etapis.
+
+## WC-14 — crash-logi turvaline loomine ja elutsükkel
+
+**Otsuse kuupäev:** 2026-09-06
+
+**Staatus:** parandus teostatud ning QGIS 3.40 testikeskkonnas valideeritud
+
+### Kontrollitud tegelik olukord
+
+- `main.py` avas juba mooduli importimisel fikseeritud nimega `%TEMP%/kavitro_crash.log` faili kirjutusrežiimis. Iga import kärpis eelneva faili nullbaidiseks ning jagatud ajutises kataloogis võis fikseeritud nimi võimaldada sümboolse lingi kaudu teise faili kärpimist.
+- Moodul hoidis faili globaalses `_CRASH_LOG_HANDLE` muutujas, kuid ei kutsunud plugina mahalaadimisel `faulthandler.disable()` ega sulgenud käepidet.
+- QGIS-i testikomplekt kinnitas elutsüklivea `ResourceWarning: unclosed file` hoiatusega.
+- Kontrollitud Windowsi `%TEMP%/kavitro_crash.log` oli nullbaidine ning kasutajaprofiili ACL-iga piiratud. WC-14 üldine risk tulenes eelkõige plugina platvormiülesest käitumisest ja jagatud POSIX-i ajutistest kataloogidest.
+
+### Rakendusotsus
+
+- Mooduli impordi kõrvalmõju eemaldati `main.py` failist täielikult. Crash-logimine käivitub nüüd alles `WildCodePlugin.initGui()` lõpus ja lõpetatakse `unload()` käigus.
+- Lisati eraldiseisev `Logs/crash_logger.py`, mis loob sessioonipõhise juhusliku nimega faili turvalises `Logs/CrashLogs` kataloogis. Fail luuakse `tempfile.mkstemp()` abil atomaar­selt ja ainult loojale ligipääsetavana.
+- Crash-logger ei kirjuta üle QGIS-i või teise komponendi juba aktiveeritud `faulthandler` seadistust. Käivitamine on idempotentne ning logger lülitab välja ainult enda käivitatud handler’i.
+- `faulthandler` keelatakse enne faili sulgemist. Kui keelamine ebaõnnestub, jäävad omandiinfo ja avatud käepide alles, et vältida aktiivse handler’i suunamist suletud või hiljem taaskasutatud failideskriptorile.
+- Tavapärasel sulgemisel eemaldatakse nullbaidine sessioonifail. Sisuga crash-logi säilib ning logger hoiab alles kuni kolm viimast mittetühja faili.
+- `CrashLogger.latest_log_path()` võimaldab leida uusima säilinud faili selle sisu avamata. Failid jäävad kasutaja ja sama töökausta õigustes töötava diagnostika jaoks loetavaks.
+- Vana fikseeritud `%TEMP%/kavitro_crash.log` faili ei avata, kärbita, migreerita ega kustutata. Kontroll kinnitas, et selle muutmisaeg ei muutunud uute testide käigus.
+
+### Valideerimine ja jääkrisk
+
+Regressioonitestid kontrollivad juhuslikku sessioonifaili, idempotentset käivitamist, korrektset sulgemist, tühja faili eemaldamist, sisuga faili säilitamist, kolme faili rotatsiooni, uusima logi leidmist, olemasoleva host-handler’i austamist, keelamise tõrke korral käepideme säilitamist ning vana fikseeritud ajutise faili puutumatust.
+
+QGIS 3.40.13 Pythoni keskkonnas läbis kogu komplekt 110 testi; kaks platvormi- või keskkonnaspetsiifilist testi jäeti vahele. Varasem sulgemata `kavitro_crash.log` ressursihoiatus kadus.
+
+Jääkriskina on `faulthandler` protsessiülene ressurss ja sellel puudub avalik API aktiivse sihtfaili omaniku kontrollimiseks. Kavitro vähendab konflikti riski sellega, et ei aktiveeru, kui handler on juba kasutusel. Crash-logid sisaldavad failiteid, funktsiooninimesid ja reanumbreid ning neid tuleb käsitleda diagnostiliste andmetena. `Logs/CrashLogs` kataloog on release-paketist välistatud.
+
+## WC-17 — servituudi PDF-i turvaline ajutine fail
+
+**Otsuse kuupäev:** 2026-09-06
+
+**Staatus:** parandus teostatud ning QGIS 3.40 testikeskkonnas valideeritud
+
+### Kontrollitud tegelik olukord
+
+- Servituudi PDF kirjutati varem alati fikseeritud nimega `kavitro_easement_drawings` ajutisse kataloogi. `exist_ok=True` tõttu aktsepteeris rakendus kontrollimata ka juba olemasolevat kataloogi.
+- PDF-i failinimi põhines objekti numbril või ID-l. Failinime puhastamine takistas kataloogist väljumist, kuid sama objekti samaaegsed ekspordid kasutasid sama faili ja võisid üksteise tulemust üle kirjutada või kustutada.
+- Dialoog eemaldas loodud PDF-i sulgemisel, kuid ei eemaldanud kataloogi. Ebaõnnestunud või erindiga katkenud eksport võis jätta osalise faili alles.
+- Windowsi kasutajaprofiili `%TEMP%` vähendas kontrollitud keskkonnas teiste kohalike kasutajate ligipääsu. Jagatud ajutise kataloogiga platvormidel oli etteaimatava kataloogi ja failinime risk suurem.
+
+### Rakendusotsus
+
+- Iga eksport loob `tempfile.mkdtemp()` abil süsteemi ajutisse kataloogi uue juhusliku nimega `kavitro_easement_drawings_*` kataloogi. Loomine on atomaarne ning POSIX-süsteemis on kataloog vaikimisi ligipääsetav ainult loojale.
+- Inimloetav ja puhastatud PDF-i failinimi säilib, kuid sama objekti paralleelsed ekspordid asuvad nüüd erinevates kataloogides.
+- `EasementPdfService` registreerib protsessi mälus iga enda loodud väljundtee. Puhastus aktsepteerib ainult täpselt registreeritud teed, keeldub faili või emakataloogi sümbollingist ning ei järgi linke.
+- Puhastus eemaldab ainult registreeritud PDF-i ja proovib seejärel eemaldada tühja emakataloogi. Ootamatu naaberfaili korral ei kasutata rekursiivset kustutamist ja kataloog jäetakse alles.
+- Dialoogi olemasolev sulgemispuhastus kasutab nüüd teenuse turvalist puhastusmeetodit. Sama puhastus käivitub ka PDF-i ekspordi veakoodi või erindi korral.
+- Vana fikseeritud `kavitro_easement_drawings` kataloogi ei kasutata, migreerita ega kustutata automaatselt, sest selle päritolu ja omandit ei saa usaldusväärselt kinnitada.
+
+### Valideerimine ja jääkrisk
+
+Regressioonitestid kontrollivad unikaalseid privaatseid katalooge, sama objekti eraldatud väljundeid, vana fikseeritud kataloogi puutumatust, võõra tee tagasilükkamist, ainult registreeritud PDF-i eemaldamist ning osalise faili puhastamist nii ekspordi veakoodi kui ka erindi korral. Sümbollingi test on olemas, kuid kontrollitud Windowsi keskkonnas jäeti see operatsioonisüsteemi puuduva sümbollingi loomise õiguse tõttu vahele.
+
+QGIS 3.40.13 Pythoni keskkonnas läbis kogu komplekt 118 testi; kolm platvormi- või keskkonnaspetsiifilist testi jäeti vahele.
+
+Jääkriskina võib QGIS-i või operatsioonisüsteemi järsk katkestamine jätta privaatse ajutise kataloogi ja PDF-i kettale, sest protsessisisene omandiregister ei säili taaskäivitamisel. Rakendus ei korista järgmisel käivitamisel nimepõhise oletuse alusel vanu katalooge, kuna see taastaks ohu kustutada tundmatu päritoluga sisu. Tavapärase dialoogi sulgemise ja käsitletud ekspordivigade korral puhastus toimib.
+
+## WC-18 — välises rakenduses avatud manuste ajutised failid
+
+**Otsuse kuupäev:** 2026-09-06
+
+**Staatus:** madal jääkrisk aktsepteeritud; koodi ei muudeta
+
+Kaugmanuse välises rakenduses avamisel luuakse fail `tempfile.NamedTemporaryFile(delete=False)` abil juhusliku nimega. Kontrollitud Windowsi keskkonnas asub fail kasutaja enda `%LOCALAPPDATA%/Temp` kataloogis. Failinime kaaperdamise või kataloogist väljumise riski ei tuvastatud.
+
+Ajutine fail võib jääda kettale pärast QGIS-i sulgemist, sest rakendus ei tea usaldusväärselt, millal väline PDF-, Wordi- või CAD-rakendus faili enam ei kasuta. Riski mõju piirdub peamiselt kasutaja ajutise kataloogi kasvamise ja manuse pikema kohaliku säilimisega. Arvestades kasutajapõhist Windowsi ajutist kataloogi ning leiu madalat raskusastet, aktsepteeritakse jääkrisk ja automaatset kustutamist ei lisata.
+
+## WC-19A — API-vastuste ja projektiandmete konsooliväljund
+
+**Otsuse kuupäev:** 2026-09-06
+
+**Staatus:** parandus teostatud ning QGIS 3.40 testikeskkonnas valideeritud
+
+### Kontrollitud tegelik olukord
+
+- Auditi kolmest API-vastuse väljatrükist kaks olid endiselt aktiivsed kinnistu uuendamise voos. Esimene väljastas GraphQL-i `updateProperty` vastuse koos kinnistu ID ja aadressiväljadega; teine väljastas kasutusotstarbe mutatsiooni tagastatud ID.
+- Väljatrükid ei sisaldanud täielikku HTTP vastust, sessioonitokenit ega parooli. `APIClient.send_query()` tagastas neile GraphQL-i `data` osa koos päringus küsitud väljadega.
+- Auditis nimetatud projektikausta mutatsiooni `print(response)` oli varasema spetsiaalse `ModuleFilesPathUpdater` parandusega juba eemaldatud.
+- Projektikausta nime generaatoris olid alles viis tingimusteta arendusväljatrükki, mis sisaldasid projekti nime, numbrit, nimereeglit ja genereeritud kaustanime.
+- Repository runtime-koodis on veel arvukalt muid `print()`-kutseid. Nende üldine refaktoreerimine ei kuulu WC-19A piiratud API- ja projektiandmete lekke parandusse.
+
+### Rakendusotsus
+
+- Kinnistu uuendamise ja kasutusotstarbe eduka GraphQL-vastuse väljatrükid eemaldati. Vastuseid ei olnud töövoo jätkamiseks vaja.
+- Kinnistu uuendamise tõrke konsooliväljund asendati struktureeritud `PythonFailLogger.log_exception()` sündmusega `property_backend_update_failed`. Diagnostika säilib WC-13 käigus turvatud kasutajapõhises logis.
+- Projektikausta nime generaatorist eemaldati projekti nime, numbri, reegli ja tulemuse arendusväljatrükid. Kausta nime koostamise loogikat ei muudetud.
+- Ülejäänud mittetundlikke või muude moodulite `print()`-kutseid selles etapis ei muudetud, et vältida auditi leiust oluliselt laiema refaktoreerimise regressiooniriski.
+
+### Valideerimine ja jääkrisk
+
+Regressioonitestid kontrollivad mõlema kinnistumutatsiooni edukat käitumist ilma konsooliväljundita, tõrke suunamist turvalisse loggerisse, projektikausta nime loomist ilma projektiandmete väljatrükita ning auditis käsitletud failide tundlike aktiivsete `print()`-kutsete puudumist.
+
+QGIS 3.40.13 Pythoni keskkonnas läbis kogu komplekt 122 testi; kolm platvormi- või keskkonnaspetsiifilist testi jäeti vahele.
+
+Jääkriskina võivad teiste moodulite vanad diagnostilised `print()`-kutsed endiselt protsessi standardväljundisse jõuda. WC-19A sulgemine tähendab, et kontrollitud GraphQL-vastuseid ja projektikausta nime andmeid enam ei väljastata; kogu repository konsoolilogimise ümberkujundamist see otsus ei hõlma. Rich-text-sildi HTML-escaping on eraldi WC-19B etapp.
+
+## WC-19B — faili metaandmete turvaline rich-text-kuvamine
+
+**Otsuse kuupäev:** 2026-09-06
+
+**Staatus:** parandus teostatud ning QGIS 3.40 testikeskkonnas valideeritud
+
+### Kontrollitud tegelik olukord
+
+- Faili eelvaate metaandmete `QLabel` koostas HTML-i, millesse lisati kodeerimata failinimi, MIME-tüüp või laiend, inimloetav suurus ja üleslaadija kuvanimi.
+- `QLabel` kasutas vaikimisi `Qt.AutoText` režiimi. Kuna metaandmete tekst algas `<b>` märgendiga, tõlgendas Qt kogu väärtust rich-text’ina. Failinime või üleslaadija nime lisatud märgendid võimaldasid muuta teksti suurust, värvi ja paigutust ning lisada võltsitud teateridu.
+- Sama failinimi jõudis ka plain-text’ina mõeldud eelvaate veateadetesse, välise avamise tooltip’i ning kinnitus- ja veadialoogidesse. Need kasutasid samuti Qt automaatset rich-text’i tuvastust.
+- Kontrollitud QGIS 3.40.13 Qt keskkonnas tõlgendati ka tavalise lause keskel olevat HTML-märgendit rich-text’ina.
+- Sildid ei käivitanud JavaScripti ega süsteemikäske. Metaandmete sildi välislinkide automaatne avamine oli keelatud ja lingisignaal polnud toiminguga ühendatud, mistõttu jäi mõju visuaalse võltsimise tasemele.
+
+### Rakendusotsus
+
+- Metaandmete silt määrati teadlikult `Qt.RichText` režiimi ning kõik neli dünaamilist väärtust kodeeritakse standardteegi `html.escape()` abil. Failinime rasvane kiri, reavahetus ja ülejäänud kujundus säilivad.
+- Eelvaate teatesilt ja dünaamiliselt loodud kohatäitesilt kasutavad nüüd selgelt `Qt.PlainText` režiimi.
+- Tooltip’i ning välise avamise kinnitus- ja veateate lõpetatud tekst teisendatakse `Qt.convertFromPlainText()` abil turvaliseks rich-text-dokumendiks. Reavahetused säilivad, kuid failinime märgendeid ei tõlgendata.
+- Algset failinime ei puhastata ega nimetata ümber. HTML-i erimärgid kuvatakse kasutajale sõna-sõnalt, sest kaitse rakendub ainult kuvamise kontekstis.
+- Ühist `ModernMessageDialog` komponenti ei muudetud, et vältida mõju muudele dialoogidele. Kaitse on piiratud `TaskFilePreviewDialog` komponendi kontrollitud failimetaandmete vooga.
+
+### Valideerimine ja jääkrisk
+
+Regressioonitestid kontrollivad failinime, MIME-tüübi, suuruse ja üleslaadija nime HTML-kodeerimist, tavapärase metaandmete visuaalse teksti säilimist, eelvaate teate- ja kohatäitesildi plain-text-režiimi ning välise avamise kinnitusteksti puutumatust pahatahtliku failinime korral.
+
+QGIS 3.40.13 Pythoni keskkonnas läbis kogu komplekt 126 testi; kolm platvormi- või keskkonnaspetsiifilist testi jäeti vahele.
+
+Jääkriskina võivad sama API-andmevälja teised, selles etapis kontrollimata kuvamiskohad kasutada mujal rakenduses Qt automaatset rich-text’i tuvastust. WC-19B sulgeb auditis nimetatud faili eelvaate metaandmete ja sama dialoogi turvakinnituste voo; kogu rakenduse dünaamiliste `QLabel`-tekstide inventuur oleks eraldi kaitsesügavuse audit.

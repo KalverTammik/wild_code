@@ -1,7 +1,4 @@
 import gc
-import os
-import tempfile
-import faulthandler
 from qgis.PyQt.QtCore import QTimer
 from qgis.PyQt.QtWidgets import QAction
 from qgis.PyQt.QtGui import QIcon
@@ -18,20 +15,11 @@ from .widgets.theme_manager import ThemeManager
 from .utils.messagesHelper import ModernMessageDialog
 from .Logs.switch_logger import SwitchLogger
 from .Logs.python_fail_logger import PythonFailLogger
+from .Logs.crash_logger import CrashLogger
 from .utils.MapTools.MapHelpers import MapHelpers
 from .constants.layer_constants import IMPORT_PROPERTY_TAG
 from .ui.window_state.DialogCoordinator import get_dialog_coordinator
 from .constants.file_paths import ConfigPaths
-
-
-
-CRASH_LOG_PATH = os.path.join(tempfile.gettempdir(), "kavitro_crash.log")
-try:
-    _CRASH_LOG_HANDLE = open(CRASH_LOG_PATH, "w", encoding="utf-8")
-    faulthandler.enable(_CRASH_LOG_HANDLE, all_threads=True)
-except Exception:
-    _CRASH_LOG_HANDLE = None
-
 class WildCodePlugin:
     def __init__(self, iface):
         self.iface = iface
@@ -41,6 +29,7 @@ class WildCodePlugin:
         self.login_successful = False  # Flag to track login success
         self.pluginDialog = None  # Reference to PluginDialog
         self.loginDialog = None  # Reference to LoginDialog
+        self._crash_logger = CrashLogger()
         # Initialize ModuleManager and register all modules (metadata only)
 
 
@@ -54,11 +43,12 @@ class WildCodePlugin:
         self.action = QAction(ThemeManager.get_qicon(icon_path), plugin_title, self.iface.mainWindow())  # Set the icon for the action
         self.action.triggered.connect(self.run)
         self.iface.addToolBarIcon(self.action)
+        self._crash_logger.start()
 
     def unload(self):
-        self.iface.removeToolBarIcon(self.action)
-        self.action = None
         try:
+            self.iface.removeToolBarIcon(self.action)
+            self.action = None
             dlg = self.pluginDialog or PluginDialog.get_instance()
             if dlg is not None:
                 try:
@@ -75,7 +65,10 @@ class WildCodePlugin:
                     pass
         finally:
             self.pluginDialog = None
-        gc.collect()
+            try:
+                self._crash_logger.stop()
+            finally:
+                gc.collect()
 
     def run(self):
         project = QgsProject.instance()

@@ -170,6 +170,7 @@ TRANSLATIONS = {
     TranslationKeys.LOGIN_FAILED: "Sisselogimine ebaõnnestus: {error}",
     TranslationKeys.NO_API_TOKEN_RECEIVED: "API võtit ei saadud.",
     TranslationKeys.LOGIN_FAILED_RESPONSE: "Sisselogimine ebaõnnestus: {error}",
+    TranslationKeys.SERVER_REQUEST_FAILED: "Serveri päring ebaõnnestus (HTTP {status_code}).",
     TranslationKeys.NETWORK_ERROR: "Võrgu viga: {error}",
     TranslationKeys.LOGIN_TITLE: "Logi sisse",
     TranslationKeys.LANGUAGE_LABEL: "Keel:",

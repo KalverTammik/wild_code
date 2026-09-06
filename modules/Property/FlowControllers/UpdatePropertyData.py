@@ -431,14 +431,18 @@ class UpdatePropertyData:
         variables = {"input": payload}
         try:
             client = APIClient()
-            response = client.send_query(query, variables)
-            print(f"Updated property response: {response}")
+            client.send_query(query, variables)
 
             # Reuse the existing intended-uses update flow
             UpdatePropertyData.add_additional_property_data(input_id, uses_input)
             return True
-        except Exception as e:
-            print(f"Failed to update property {input_id}: {e}")
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_backend_update_failed",
+                extra={"item_id": str(input_id or "")},
+            )
             return False
 
     @staticmethod
@@ -458,8 +462,7 @@ class UpdatePropertyData:
         }
         # Send the POST request to the GraphQL endpoint
         client = APIClient()
-        response = client.send_query(query, variables)
-        print(f"Added intended use data response: {response}")
+        client.send_query(query, variables)
 
 
 

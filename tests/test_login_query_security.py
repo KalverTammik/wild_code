@@ -5,6 +5,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 
@@ -63,6 +64,11 @@ class FakeResponse:
     @staticmethod
     def json():
         return {"data": {"login": {"accessToken": "test-access-token"}}}
+
+
+class FakeHttpErrorResponse:
+    status_code = 422
+    text = 'secret-response-body={"accessToken":"must-not-be-persisted"}'
 
 
 class LoginQuerySecurityTest(unittest.TestCase):
@@ -144,6 +150,49 @@ class LoginQuerySecurityTest(unittest.TestCase):
         self.assertEqual(payload["variables"], variables)
         self.assertNotIn(variables["input"]["password"], payload["query"])
         self.assertNotIn("Authorization", headers)
+
+    def test_api_client_omits_http_error_body_from_result(self) -> None:
+        client = api_client_module.APIClient(session_manager=object())
+
+        with patch.object(
+            api_client_module.requests,
+            "post",
+            return_value=FakeHttpErrorResponse(),
+        ):
+            result = client.send_query(
+                "query Test { test }",
+                require_auth=False,
+                with_success=True,
+            )
+
+        self.assertFalse(result["success"])
+        self.assertIn("HTTP 422", result["error"])
+        self.assertNotIn(FakeHttpErrorResponse.text, result["error"])
+        self.assertNotIn("accessToken", result["error"])
+
+    def test_multipart_api_client_omits_http_error_body_from_exception(self) -> None:
+        client = api_client_module.APIClient(session_manager=object())
+
+        with TemporaryDirectory() as temp_dir:
+            upload_path = Path(temp_dir) / "upload.txt"
+            upload_path.write_text("test upload", encoding="utf-8")
+            with patch.object(
+                api_client_module.requests,
+                "post",
+                return_value=FakeHttpErrorResponse(),
+            ):
+                with self.assertRaises(Exception) as raised:
+                    client.send_multipart_query(
+                        "mutation Upload($file: Upload!) { upload(file: $file) { id } }",
+                        variables={"file": None},
+                        file_variables={"file": str(upload_path)},
+                        require_auth=False,
+                    )
+
+        message = str(raised.exception)
+        self.assertIn("HTTP 422", message)
+        self.assertNotIn(FakeHttpErrorResponse.text, message)
+        self.assertNotIn("accessToken", message)
 
     def test_login_dialog_source_has_no_interpolated_credentials(self) -> None:
         source = (PLUGIN_ROOT / "login_dialog.py").read_text(encoding="utf-8")

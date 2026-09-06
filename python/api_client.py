@@ -26,6 +26,16 @@ class APIClient:
         if not hasattr(APIClient, '_login_dialog_open'):
             APIClient._login_dialog_open = False
 
+    def _http_status_error(self, status_code: int) -> str:
+        template = self.lang.translate(
+            TranslationKeys.SERVER_REQUEST_FAILED,
+            fallback="Server request failed (HTTP {status_code}).",
+        )
+        return tag_message(
+            ApiErrorKind.SERVER,
+            template.format(status_code=int(status_code)),
+        )
+
 
     def send_query(
         self,
@@ -109,13 +119,8 @@ class APIClient:
                         return _wrap_success(data)
                     return data if return_raw else data.get("data", {})
 
-                # Non-200 HTTP response
-                try:
-                    body = response.text
-                except Exception:
-                    body = f"HTTP {response.status_code}"
-                template = self.lang.translate(TranslationKeys.LOGIN_FAILED_RESPONSE) or "Login failed: {error}"
-                raise Exception(tag_message(ApiErrorKind.SERVER, template.format(error=body)))
+                # Never carry an untrusted response body into UI or persistent logs.
+                raise Exception(self._http_status_error(response.status_code))
 
             except requests_exceptions.RequestException as exc:
                 if attempt < network_attempts:
@@ -328,12 +333,8 @@ class APIClient:
                         raise Exception(message)
                     return data if return_raw else data.get("data", {})
 
-                try:
-                    body = response.text
-                except Exception:
-                    body = f"HTTP {response.status_code}"
-                template = self.lang.translate(TranslationKeys.LOGIN_FAILED_RESPONSE) or "Login failed: {error}"
-                raise Exception(tag_message(ApiErrorKind.SERVER, template.format(error=body)))
+                # Never carry an untrusted response body into UI or persistent logs.
+                raise Exception(self._http_status_error(response.status_code))
 
             except requests_exceptions.RequestException as exc:
                 if attempt < network_attempts:

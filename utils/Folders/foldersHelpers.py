@@ -214,27 +214,21 @@ class FolderNameGenerator:
     def folder_structure_name_order(self, project_name, project_number):
         service = SettingsService()
 
-        print("[folder_name] start", {"project_name": project_name, "project_number": project_number})
-
         rule_raw = service.module_label_value(
             Module.PROJECT.value,
             SettingDialogPlaceholders.PROJECTS_PREFERED_FOLDER_NAME_STRUCTURE_RULE,
         ) or ""
-        print("[folder_name] rule_raw", rule_raw)
 
         rule = str(rule_raw).strip()
-        print("[folder_name] normalized", {"rule": rule})
 
         if not rule:
             rule = DEFAULT_PROJECT_FOLDER_RULE
-            print("[folder_name] fallback rule", rule)
 
         folder_name = build_project_folder_name(
             rule,
             project_name=project_name,
             project_number=project_number,
         )
-        print("[folder_name] result", folder_name)
         return folder_name
 
 class FolderHelpers:

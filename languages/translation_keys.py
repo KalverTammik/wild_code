@@ -9,6 +9,7 @@ class TranslationKeys:
     LOGIN_FAILED = "Login failed: {error}"
     NO_API_TOKEN_RECEIVED = "No API token received"
     LOGIN_FAILED_RESPONSE = "Login failed: {error}"
+    SERVER_REQUEST_FAILED = "server_request_failed"
     NETWORK_ERROR = "Network error: {error}"
 
     # Login dialog

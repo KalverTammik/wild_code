@@ -168,6 +168,7 @@ TRANSLATIONS = {
     TranslationKeys.LOGIN_FAILED: "Login failed: {error}",
     TranslationKeys.NO_API_TOKEN_RECEIVED: "No API token received.",
     TranslationKeys.LOGIN_FAILED_RESPONSE: "Login failed: {error}",
+    TranslationKeys.SERVER_REQUEST_FAILED: "Server request failed (HTTP {status_code}).",
     TranslationKeys.NETWORK_ERROR: "Network error: {error}",
     TranslationKeys.KAVITRO_PLUGIN_TITLE: "Kavitro Plugin",
     TranslationKeys.USERNAME_LABEL: "Username:",
