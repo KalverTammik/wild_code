@@ -314,6 +314,12 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             self.assertFalse(dialog.location_filter_widget.isEnabled())
             self.assertFalse(dialog.properties_table.isEnabled())
             runner = dialog._add_runner
+            dialog._on_add_progress(0, 2, 'processing', '1')
+            runner.waiting.emit(37.0, 'rate_limit')
+            self.assertIn('37', dialog.add_progress_label.text())
+            self.assertIn('1', dialog.add_progress_label.text())
+            self.assertEqual(runner._done, 0)
+            self.assertFalse(dialog.add_button.isEnabled())
             runner._in_flight = True
             dialog.reject()
             self.assertTrue(dialog.isVisible())
@@ -329,6 +335,11 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             self.assertIn('1/2', dialog.add_progress_label.text())
             self.assertEqual(dialog._add_errors_view.toPlainText(), '1: Offline test error')
             self.assertTrue(dialog._add_errors_view.isVisible())
+            dialog._on_add_finished({'canceled': True, 'done': 0, 'total': 2, 'succeeded': 0,
+                                     'failed': 0, 'pending': 2, 'errors': [],
+                                     'unfinished': {'tunnus': '1', 'message': 'Intended uses unfinished'}})
+            self.assertEqual(dialog._add_errors_view.toPlainText(), '1: Intended uses unfinished')
+            self.assertIn('0/2', dialog.add_progress_label.text())
         finally:
             dialog.reject()
             self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)

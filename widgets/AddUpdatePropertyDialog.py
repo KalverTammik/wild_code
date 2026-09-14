@@ -199,6 +199,8 @@ class AddPropertyDialog(QDialog):
         self._add_errors_view = None
         self._add_in_progress = False
         self._add_mode = None  # "with_checks" | "without_checks"
+        self._add_last_tunnus = ''
+        self._add_last_progress = (0, 0)
 
         # Track whether the table is currently filtered down to attention-only rows.
         self._table_filtered_to_attention = False
@@ -602,6 +604,8 @@ class AddPropertyDialog(QDialog):
 
         runner.progress.connect(self._on_add_progress)
         runner.finished.connect(self._on_add_finished)
+        if isinstance(runner, CheckedAddBatchRunner):
+            runner.waiting.connect(self._on_add_waiting)
 
         if self.add_progress_label is not None:
             label_prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX)
@@ -648,6 +652,8 @@ class AddPropertyDialog(QDialog):
         self.reject()
 
     def _on_add_progress(self, done: int, total: int, phase: str, last_tunnus: str) -> None:
+        self._add_last_tunnus = last_tunnus
+        self._add_last_progress = (done, total)
         label = self.add_progress_label
         if label is None:
             return
@@ -663,6 +669,20 @@ class AddPropertyDialog(QDialog):
             prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX_NO_CHECKS)
         template = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_TEMPLATE)
         label.setText(template.format(prefix=prefix, done=done, total=total))
+
+    def _on_add_waiting(self, seconds: float, reason: str) -> None:
+        if not self._add_in_progress:
+            return
+        if seconds <= 0:
+            self._on_add_progress(*self._add_last_progress, 'processing', self._add_last_tunnus)
+            return
+        from math import ceil
+        key = (TranslationKeys.PROPERTY_ADD_RATE_WAIT if reason == 'rate_limit'
+               else TranslationKeys.PROPERTY_ADD_PACING_WAIT)
+        self.add_progress_label.setWordWrap(True)
+        self.add_progress_label.setText(self.lang_manager.translate(key).format(
+            tunnus=self._add_last_tunnus, seconds=ceil(seconds)))
+        self.add_progress_label.show()
 
     def _on_add_finished(self, summary: dict) -> None:
         try:
@@ -717,18 +737,24 @@ class AddPropertyDialog(QDialog):
             self._checks_completed_for_scope = False
             self._update_add_button_state()
             result_key = TranslationKeys.PROPERTY_ADD_CANCELLED_RESULT if canceled else TranslationKeys.PROPERTY_ADD_RESULT
+            if summary.get('stopped') and not canceled:
+                result_key = TranslationKeys.PROPERTY_ADD_STOPPED_RESULT
             self.add_progress_label.setText(self.lang_manager.translate(result_key).format(
-                done=done, total=total, succeeded=summary['succeeded'], failed=summary['failed']))
+                done=done, total=total, succeeded=summary['succeeded'], failed=summary['failed'],
+                pending=summary.get('pending', total - done)))
             self.add_progress_label.setWordWrap(True)
             self.add_progress_label.show()
-            if summary.get('errors'):
+            details = list(summary.get('errors') or [])
+            if summary.get('unfinished'):
+                details.append(summary['unfinished'])
+            if details:
                 if self._add_errors_view is None:
                     self._add_errors_view = QPlainTextEdit(self)
                     self._add_errors_view.setReadOnly(True)
                     self._add_errors_view.setMaximumHeight(110)
                     self.layout().addWidget(self._add_errors_view)
                 self._add_errors_view.setPlainText('\n'.join(
-                    f"{item['tunnus']}: {item['message']}" for item in summary['errors']))
+                    f"{item['tunnus']}: {item['message']}" for item in details))
                 self._add_errors_view.show()
         self._add_mode = None
 

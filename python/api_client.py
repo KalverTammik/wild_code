@@ -15,6 +15,8 @@ from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.api_error_handling import ApiErrorKind, summarize_connection_error, tag_message
 from ..Logs.python_fail_logger import PythonFailLogger
+from . import api_rate_limit
+from .api_rate_limit import ApiRateLimitError, RequestCancelled
 
 class APIClient:
     def __init__(self, session_manager=None, config_path=None):
@@ -95,7 +97,11 @@ class APIClient:
                     print("[DEBUG] No auth token available!")
 
             try:
-                response = requests.post(api_url, json=payload, headers=headers, timeout=timeout)
+                response = api_rate_limit.PROCESS_RATE_LIMITER.send(
+                    lambda: requests.post(api_url, json=payload, headers=headers, timeout=timeout),
+                    endpoint=api_url, authorization=headers.get('Authorization'),
+                    cost=api_rate_limit.mutation_cost(query), is_main_thread=is_main_thread,
+                )
 
                 if response.status_code in (401, 403):
                     raise Exception(tag_message(ApiErrorKind.AUTH, "Unauthenticated"))
@@ -122,6 +128,9 @@ class APIClient:
 
                 # Never carry an untrusted response body into UI or persistent logs.
                 raise Exception(self._http_status_error(response.status_code))
+
+            except (ApiRateLimitError, RequestCancelled):
+                raise
 
             except requests_exceptions.RequestException as exc:
                 if attempt < network_attempts:
@@ -306,11 +315,15 @@ class APIClient:
 
                 files_payload["map"] = (None, json.dumps(map_payload), "application/json")
 
-                response = requests.post(
-                    api_url,
-                    files=files_payload,
-                    headers=headers,
-                    timeout=timeout,
+                def send_files():
+                    # Each HTTP 429 attempt resends the complete upload.
+                    for handle in file_handles:
+                        handle.seek(0)
+                    return requests.post(api_url, files=files_payload, headers=headers, timeout=timeout)
+
+                response = api_rate_limit.PROCESS_RATE_LIMITER.send(
+                    send_files, endpoint=api_url, authorization=headers.get('Authorization'),
+                    cost=api_rate_limit.mutation_cost(query), is_main_thread=is_main_thread,
                 )
 
                 if response.status_code in (401, 403):
@@ -336,6 +349,9 @@ class APIClient:
 
                 # Never carry an untrusted response body into UI or persistent logs.
                 raise Exception(self._http_status_error(response.status_code))
+
+            except (ApiRateLimitError, RequestCancelled):
+                raise
 
             except requests_exceptions.RequestException as exc:
                 if attempt < network_attempts:

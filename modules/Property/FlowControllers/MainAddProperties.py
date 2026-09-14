@@ -4,6 +4,7 @@ from typing import Optional
 from PyQt5.QtCore import QCoreApplication
 
 from ....python.api_client import APIClient
+from ....python.api_rate_limit import ApiRateLimitError, RequestCancelled
 from ....languages.translation_keys import TranslationKeys
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....constants.settings_keys import SettingsService
@@ -830,7 +831,7 @@ class MainAddPropertiesFlow:
     
 
     @staticmethod
-    def add_single_property_item(item, siht_data):
+    def add_single_property_item(item, siht_data, *, raise_on_error=False):
 
         module = Module.PROPERTY.name
 
@@ -840,26 +841,40 @@ class MainAddPropertiesFlow:
         variables = {
             "input": item
         }
+        stage = "createProperty"
+        property_id = None
         try:
             client = APIClient()
             # A lost response may still mean the create succeeded; never blindly create again.
             data = client.send_query(query, variables=variables, retry_network=False)
 
-            created = data.get("createProperty") 
+            created = data.get("createProperty") or {}
             property_id = created.get("id")
             if not property_id:
-                return None
-            if property_id:
-                UpdatePropertyData.add_additional_property_data(property_id, siht_data)
+                raise RuntimeError(LanguageManager().translate(TranslationKeys.PROPERTY_ADD_RESPONSE_INVALID))
+            stage = "updatePropertyIntendedUses"
+            UpdatePropertyData.add_additional_property_data(property_id, siht_data)
 
             return property_id
         
+        except RequestCancelled as exc:
+            stage_key = (TranslationKeys.PROPERTY_ADD_STAGE_CREATE if stage == "createProperty"
+                         else TranslationKeys.PROPERTY_ADD_STAGE_USES)
+            message = LanguageManager().translate(TranslationKeys.PROPERTY_ADD_STAGE_CANCELLED).format(
+                stage=LanguageManager().translate(stage_key))
+            raise RequestCancelled(message) from exc
         except Exception as e:
             PythonFailLogger.log_exception(
                 e,
                 module=Module.PROPERTY.value,
                 event="add_property_create_failed",
+                extra={"tunnus": (item.get("cadastralUnit") or {}).get("number"),
+                       "stage": stage, "item_id": property_id},
             )
+            if raise_on_error or isinstance(e, ApiRateLimitError):
+                stage_key = (TranslationKeys.PROPERTY_ADD_STAGE_CREATE if stage == "createProperty"
+                             else TranslationKeys.PROPERTY_ADD_STAGE_USES)
+                raise RuntimeError(f"{LanguageManager().translate(stage_key)}: {e}") from e
             return None
 
 
@@ -963,6 +978,8 @@ class BackendPropertyVerifier:
                     sid = node.get("id")
                     cls._status_cache[name.upper()] = str(sid) if sid else None
                     return cls._status_cache[name.upper()]
+        except (ApiRateLimitError, RequestCancelled):
+            raise
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -1229,6 +1246,8 @@ class BackendPropertyVerifier:
             }
         
         
+        except (ApiRateLimitError, RequestCancelled):
+            raise
         except Exception as e:
             PythonFailLogger.log_exception(
                 e,

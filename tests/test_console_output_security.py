@@ -58,7 +58,8 @@ class ConsoleOutputSecurityTest(unittest.TestCase):
         print_mock.assert_not_called()
         log_exception.assert_called_once()
         self.assertEqual(log_exception.call_args.kwargs["event"], "property_backend_update_failed")
-        self.assertEqual(log_exception.call_args.kwargs["extra"], {"item_id": "property-1"})
+        self.assertEqual(log_exception.call_args.kwargs["extra"],
+                         {"item_id": "property-1", "stage": "updateProperty", "tunnus": None})
 
     def test_folder_name_generation_does_not_print_project_data(self) -> None:
         with (

@@ -59,6 +59,7 @@ class StubApiClient:
 
 class FakeResponse:
     status_code = 200
+    headers = {}
     text = ""
 
     @staticmethod
@@ -68,6 +69,7 @@ class FakeResponse:
 
 class FakeHttpErrorResponse:
     status_code = 422
+    headers = {}
     text = 'secret-response-body={"accessToken":"must-not-be-persisted"}'
 
 

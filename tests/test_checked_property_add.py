@@ -104,19 +104,22 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.create.assert_not_called()
         self.assertEqual(self.target.featureCount(), 0)
 
-    def test_create_failure_does_not_copy_and_batch_continues(self):
+    def test_permanent_create_failure_stops_batch_without_copying_or_skipping(self):
         self.create.side_effect = [None, 'second-id']
         result = self.run_batch(self.features)
-        self.assertEqual((result['done'], result['succeeded'], result['failed']), (2, 1, 1))
+        self.assertEqual((result['done'], result['succeeded'], result['failed']), (1, 0, 1))
+        self.assertEqual(result['pending'], 1)
+        self.assertTrue(result['stopped'])
         self.assertEqual(result['errors'][0]['tunnus'], '1')
-        self.assertEqual([f['tunnus'] for f in self.target.getFeatures()], ['2'])
+        self.assertEqual(self.target.featureCount(), 0)
+        self.create.assert_called_once()
 
     def test_existing_backend_updates_instead_of_duplicate_create(self):
         self.lookup.return_value = {'exists': True, 'property': {
             'id': 'known', 'cadastralUnitNumber': '1', 'displayAddress': 'Example'}}
         module.apply_reviewed_backend(self.data, [], None, None)
         self.create.assert_not_called()
-        self.update.assert_called_once_with('known', self.data, [])
+        self.update.assert_called_once_with('known', self.data, [], raise_on_error=True)
 
     def test_update_failure_is_reported(self):
         self.lookup.return_value = {'exists': True, 'property': {
@@ -124,6 +127,22 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.update.return_value = False
         self.assertEqual(self.run_batch()['failed'], 1)
         self.assertEqual(self.target.featureCount(), 0)
+
+    def test_partial_save_with_house_number_and_equal_dates_retries_intended_uses(self):
+        self.data['address']['houseNumber'] = '12'
+        self.lookup.return_value = {'exists': True, 'LastUpdated': '2026-01-01', 'property': {
+            'id': 'known', 'cadastralUnitNumber': '1', 'displayAddress': 'Example 12'}}
+        module.apply_reviewed_backend(self.data, [], '2026-01-01', None)
+        self.update.assert_called_once_with('known', self.data, [], raise_on_error=True)
+        self.create.assert_not_called()
+
+    def test_different_newer_backend_is_not_reported_as_fully_saved(self):
+        self.lookup.return_value = {'exists': True, 'LastUpdated': '2026-01-01', 'property': {
+            'id': 'known', 'cadastralUnitNumber': '1', 'displayAddress': 'Changed by user'}}
+        with self.assertRaises(RuntimeError):
+            module.apply_reviewed_backend(self.data, [], '2025-01-01', None)
+        self.update.assert_not_called()
+        self.create.assert_not_called()
 
     def test_archived_and_duplicate_records_require_separate_review(self):
         for info in ({'exists': False, 'archived_only': True}, {'exists': True, 'active_count': 2}):
@@ -160,7 +179,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
     def test_cancel_waits_for_active_mutation_and_keeps_gui_responsive(self):
         entered, release = threading.Event(), threading.Event()
         threads, pulses = [], []
-        def slow_create(*args):
+        def slow_create(*args, **kwargs):
             threads.append(QThread.currentThread())
             entered.set()
             release.wait(3)
@@ -185,6 +204,32 @@ class CheckedPropertyAddTest(unittest.TestCase):
                          (True, 1, 1))
         self.create.assert_called_once()
         self.assertEqual(self.target.featureCount(), 1)
+
+    def test_cancelling_retry_wait_leaves_current_and_following_properties_unfinished(self):
+        waits, pulses = [], []
+        self.runner.waiting.connect(lambda seconds, reason: waits.append((seconds, reason)))
+        def waiting_backend(*args):
+            self.runner.waiting.emit(30.0, 'rate_limit')
+            self.runner._cancel_event.wait(3)
+            raise module.RequestCancelled()
+        with patch.object(module, 'apply_reviewed_backend', side_effect=waiting_backend):
+            self.runner._queue = list(self.features)
+            self.runner._total = 2
+            self.runner._tick()
+            self.wait_until(lambda: bool(waits))
+            self.assertEqual(self.runner._done, 0)
+            self.assertEqual(self.results, [])
+            QTimer.singleShot(0, lambda: pulses.append(True))
+            self.wait_until(lambda: bool(pulses))
+            self.runner.cancel()
+            self.wait_until(lambda: bool(self.results))
+        result = self.results[0]
+        self.assertEqual((result['done'], result['succeeded'], result['failed'], result['pending']), (0, 0, 0, 2))
+        self.assertTrue(result['canceled'])
+        self.assertEqual(result['unfinished']['tunnus'], '1')
+        self.assertTrue(result['unfinished']['message'])
+        self.create.assert_not_called()
+        self.assertEqual(self.target.featureCount(), 0)
 
 
 if __name__ == '__main__':

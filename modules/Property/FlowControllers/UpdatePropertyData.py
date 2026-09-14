@@ -4,6 +4,9 @@
 from ....utils.url_manager import Module, ModuleSupports
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from ....python.api_client import APIClient
+from ....python.api_rate_limit import ApiRateLimitError, RequestCancelled
+from ....languages.language_manager import LanguageManager
+from ....languages.translation_keys import TranslationKeys
 
 from ....utils.TagsEngines import TagsEngines
 from ....Logs.python_fail_logger import PythonFailLogger
@@ -448,7 +451,7 @@ class UpdatePropertyData:
 
 
     @staticmethod
-    def update_single_property_item(input_id, data, uses_input):
+    def update_single_property_item(input_id, data, uses_input, *, raise_on_error=False):
         """Update an existing backend property with import data + intended uses.
 
         Similar pattern to add_additional_property_data:
@@ -468,20 +471,35 @@ class UpdatePropertyData:
         payload["id"] = input_id
 
         variables = {"input": payload}
+        stage = "updateProperty"
         try:
             client = APIClient()
-            client.send_query(query, variables)
+            response = client.send_query(query, variables)
+            if str((response.get("updateProperty") or {}).get("id") or '') != str(input_id):
+                raise RuntimeError(LanguageManager().translate(TranslationKeys.PROPERTY_ADD_RESPONSE_INVALID))
 
             # Reuse the existing intended-uses update flow
+            stage = "updatePropertyIntendedUses"
             UpdatePropertyData.add_additional_property_data(input_id, uses_input)
             return True
+        except RequestCancelled as exc:
+            stage_key = (TranslationKeys.PROPERTY_ADD_STAGE_UPDATE if stage == "updateProperty"
+                         else TranslationKeys.PROPERTY_ADD_STAGE_USES)
+            message = LanguageManager().translate(TranslationKeys.PROPERTY_ADD_STAGE_CANCELLED).format(
+                stage=LanguageManager().translate(stage_key))
+            raise RequestCancelled(message) from exc
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.PROPERTY.value,
                 event="property_backend_update_failed",
-                extra={"item_id": str(input_id or "")},
+                extra={"item_id": str(input_id or ""), "stage": stage,
+                       "tunnus": (payload.get("cadastralUnit") or {}).get("number")},
             )
+            if raise_on_error or isinstance(exc, ApiRateLimitError):
+                stage_key = (TranslationKeys.PROPERTY_ADD_STAGE_UPDATE if stage == "updateProperty"
+                             else TranslationKeys.PROPERTY_ADD_STAGE_USES)
+                raise RuntimeError(f"{LanguageManager().translate(stage_key)}: {exc}") from exc
             return False
 
     @staticmethod
@@ -501,7 +519,9 @@ class UpdatePropertyData:
         }
         # Send the POST request to the GraphQL endpoint
         client = APIClient()
-        client.send_query(query, variables)
+        response = client.send_query(query, variables)
+        if str((response.get("updatePropertyIntendedUses") or {}).get("id") or '') != str(input_id):
+            raise RuntimeError(LanguageManager().translate(TranslationKeys.PROPERTY_ADD_RESPONSE_INVALID))
 
 
 

@@ -1,6 +1,7 @@
 """Apply reviewed additions without per-property dialogs; keep network IO off Qt's GUI thread."""
 from PyQt5 import sip
-from PyQt5.QtCore import pyqtSlot
+from threading import Event
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from qgis.core import QgsFeatureRequest
 
 from .AddBatchRunner import AddBatchRunner
@@ -11,6 +12,7 @@ from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....languages.language_manager import LanguageManager
 from ....languages.translation_keys import TranslationKeys as K
 from ....python.workers import FunctionWorker, start_worker
+from ....python.api_rate_limit import api_request_context, RequestCancelled
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions, ActiveLayersHelper
 from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from ....Logs.python_fail_logger import PythonFailLogger
@@ -26,20 +28,36 @@ def apply_reviewed_backend(data, uses, import_date, main_date):
     if info.get('archived_only') or int(info.get('active_count') or 0) > 1:
         raise RuntimeError(lang.translate(K.PROPERTY_ADD_AMBIGUOUS))
     if info['exists'] is False:
-        if not MainAddPropertiesFlow.add_single_property_item(data, uses):
+        if not MainAddPropertiesFlow.add_single_property_item(data, uses, raise_on_error=True):
             raise RuntimeError(lang.translate(K.PROPERTY_ADD_WRITE_FAILED))
         return
     item = info.get('property') or {}
     if not item.get('id'):
         raise RuntimeError(lang.translate(K.PROPERTY_ADD_LOOKUP_FAILED))
+    address = data['address']
+    street = str(address.get('street') or '').strip()
+    full_street = ' '.join(part for part in (street, str(address.get('houseNumber') or '').strip()) if part)
     same = (str(item.get('cadastralUnitNumber')) == str(tunnus)
-            and str(item.get('displayAddress') or '').strip() == str(data['address'].get('street') or '').strip())
+            and str(item.get('displayAddress') or '').strip() in (street, full_street))
     if same or MainAddPropertiesFlow._is_import_newer(import_date, info.get('LastUpdated'), main_date):
-        if not UpdatePropertyData.update_single_property_item(item['id'], data, uses):
+        if not UpdatePropertyData.update_single_property_item(item['id'], data, uses, raise_on_error=True):
             raise RuntimeError(lang.translate(K.PROPERTY_ADD_WRITE_FAILED))
+    else:
+        raise RuntimeError(lang.translate(K.PROPERTY_ADD_BACKEND_DIFFERS))
+
+
+def _run_reviewed_backend(data, uses, import_date, main_date, cancel_event, on_wait):
+    with api_request_context(cancel_event=cancel_event, on_wait=on_wait):
+        try:
+            apply_reviewed_backend(data, uses, import_date, main_date)
+        except RequestCancelled as exc:
+            # A cancelled wait leaves the current property unfinished, never successful.
+            return {'cancelled': True, 'message': str(exc) or LanguageManager().translate(K.PROPERTY_ADD_UNFINISHED)}
 
 
 class CheckedAddBatchRunner(AddBatchRunner):
+    waiting = pyqtSignal(float, str)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._in_flight = False
@@ -48,11 +66,14 @@ class CheckedAddBatchRunner(AddBatchRunner):
         self._errors = []
         self._current = None
         self._worker = None
+        self._cancel_event = Event()
+        self._unfinished = None
 
     def cancel(self):
         if self._finished:
             return
         self._stop_requested = True
+        self._cancel_event.set()
         self._queue.clear()
         self._timer.stop()
         # An in-flight mutation cannot be undone. Account for it before finishing.
@@ -65,7 +86,9 @@ class CheckedAddBatchRunner(AddBatchRunner):
         self._finished = True
         self._dispose_timer()
         self.finished.emit({'canceled': self._stop_requested, 'done': self._done, 'total': self._total,
-                            'succeeded': self._succeeded, 'failed': len(self._errors), 'errors': self._errors})
+                            'succeeded': self._succeeded, 'failed': len(self._errors), 'errors': self._errors,
+                            'pending': self._total - self._done, 'stopped': bool(self._errors),
+                            'unfinished': self._unfinished})
 
     def _tick(self):
         if self._finished or self._in_flight or self._paused:
@@ -95,7 +118,8 @@ class CheckedAddBatchRunner(AddBatchRunner):
             self._current.update(source=source, target=target, feature=feature,
                                  source_uri=source.source(), target_uri=target.source())
             self._in_flight = True
-            self._worker = FunctionWorker(apply_reviewed_backend, data, uses, updated, main_date)
+            self._worker = FunctionWorker(_run_reviewed_backend, data, uses, updated, main_date,
+                                          self._cancel_event, self.waiting.emit)
             self._worker.finished.connect(self._backend_done)
             self._worker.error.connect(self._backend_failed)
             start_worker(self._worker)
@@ -109,6 +133,11 @@ class CheckedAddBatchRunner(AddBatchRunner):
 
     @pyqtSlot(object)
     def _backend_done(self, _result):
+        if _result and _result.get('cancelled'):
+            self._in_flight = False
+            self._unfinished = {'tunnus': self._current['tunnus'], 'message': _result['message']}
+            self._finish()
+            return
         try:
             current = self._current
             source, target = current['source'], current['target']
@@ -148,7 +177,8 @@ class CheckedAddBatchRunner(AddBatchRunner):
             self._succeeded += 1
         self._done += 1
         self.progress.emit(self._done, self._total, 'processing', tunnus)
-        if self._stop_requested or not self._queue:
+        if error or self._stop_requested or not self._queue:
             self._finish()
         elif not self._paused:
-            self._timer.start(self._rest_ms if self._done % self._rest_every == 0 else 0)
+            # Physical HTTP requests are paced centrally, not by property-count batches.
+            self._timer.start(0)
