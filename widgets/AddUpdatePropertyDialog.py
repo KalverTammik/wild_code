@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QCheckBox,
     QProgressBar,
+    QPlainTextEdit,
 )
 
 from qgis.core import QgsFeatureRequest
@@ -22,6 +23,7 @@ from ..modules.Property.FlowControllers.MainAddProperties import (
 from ..modules.Property.FlowControllers.BackendVerifyController import BackendVerifyController
 from ..modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
 from ..modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+from ..modules.Property.FlowControllers.checked_add_runner import CheckedAddBatchRunner
 from ..modules.Property.FlowControllers.AttentionDisplayRules import AttentionDisplayRules
 from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager, PropertyTableWidget
 from ..utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
@@ -194,6 +196,7 @@ class AddPropertyDialog(QDialog):
 
         # Add batches
         self._add_runner = None
+        self._add_errors_view = None
         self._add_in_progress = False
         self._add_mode = None  # "with_checks" | "without_checks"
 
@@ -215,6 +218,8 @@ class AddPropertyDialog(QDialog):
 
 
     def _on_dialog_finished(self, _result: int) -> None:
+        if self._add_runner is not None:
+            self._add_runner.cancel()
         self._stop_attention_checks()
         try:
             if self._import_selection_orchestrator is not None:
@@ -578,10 +583,13 @@ class AddPropertyDialog(QDialog):
             return
 
         if mode == "with_checks":
+            if self._checks_running or not self._checks_completed_for_scope:
+                return
             if not self._run_missing_cleanup_if_any():
                 return
 
-        runner = AddBatchRunner(
+        runner_class = CheckedAddBatchRunner if mode == 'with_checks' else AddBatchRunner
+        runner = runner_class(
             table,
             parent=self,
             use_filtered_rows=self._use_filtered_row_scope(),
@@ -589,6 +597,8 @@ class AddPropertyDialog(QDialog):
         self._add_runner = runner
         self._add_in_progress = True
         self._add_mode = mode
+        if self._add_errors_view is not None:
+            self._add_errors_view.hide()
 
         runner.progress.connect(self._on_add_progress)
         runner.finished.connect(self._on_add_finished)
@@ -604,11 +614,26 @@ class AddPropertyDialog(QDialog):
         self._set_add_ui_state(active=True)
         runner.start()
 
+    def reject(self) -> None:
+        if isinstance(self._add_runner, CheckedAddBatchRunner) and self._add_in_progress:
+            self._on_cancel_clicked()
+            return
+        super().reject()
+
+    def closeEvent(self, event) -> None:
+        if isinstance(self._add_runner, CheckedAddBatchRunner) and self._add_in_progress:
+            event.ignore()
+            self._on_cancel_clicked()
+            return
+        super().closeEvent(event)
+
     def _on_cancel_clicked(self) -> None:
         # Always stop attention checks when cancelling so backend lookups don't keep running.
         self._stop_attention_checks(clear_attention=False)
 
         if self._add_runner is not None:
+            self.add_progress_label.setVisible(True)
+            self.add_progress_label.setText(self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROPERTY_DIALOG_CANCELLING))
             try:
                 self._add_runner.cancel()
             except Exception as exc:
@@ -618,8 +643,6 @@ class AddPropertyDialog(QDialog):
                     event="add_property_cancel_runner_failed",
                 )
 
-            self.add_progress_label.setVisible(True)
-            self.add_progress_label.setText(self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROPERTY_DIALOG_CANCELLING))
             return
 
         self.reject()
@@ -671,10 +694,11 @@ class AddPropertyDialog(QDialog):
             if canceled:
                 template = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_CANCELLED_TEMPLATE)
                 self.add_progress_label.setText(template.format(prefix=prefix, done=done, total=total))
-                # Auto-close dialog after a cancel completes so user doesn't need to click Cancel again.
+                # Reviewed runs keep their results visible, including any completed writes.
                 try:
-                    self.reject()
-                    return
+                    if 'succeeded' not in summary:
+                        self.reject()
+                        return
                 except Exception as exc:
                     PythonFailLogger.log_exception(
                         exc,
@@ -689,6 +713,23 @@ class AddPropertyDialog(QDialog):
             self.add_progress_label.setVisible(False)
 
         self._set_add_ui_state(active=False)
+        if 'succeeded' in summary:
+            self._checks_completed_for_scope = False
+            self._update_add_button_state()
+            result_key = TranslationKeys.PROPERTY_ADD_CANCELLED_RESULT if canceled else TranslationKeys.PROPERTY_ADD_RESULT
+            self.add_progress_label.setText(self.lang_manager.translate(result_key).format(
+                done=done, total=total, succeeded=summary['succeeded'], failed=summary['failed']))
+            self.add_progress_label.setWordWrap(True)
+            self.add_progress_label.show()
+            if summary.get('errors'):
+                if self._add_errors_view is None:
+                    self._add_errors_view = QPlainTextEdit(self)
+                    self._add_errors_view.setReadOnly(True)
+                    self._add_errors_view.setMaximumHeight(110)
+                    self.layout().addWidget(self._add_errors_view)
+                self._add_errors_view.setPlainText('\n'.join(
+                    f"{item['tunnus']}: {item['message']}" for item in summary['errors']))
+                self._add_errors_view.show()
         self._add_mode = None
 
     def _set_add_ui_state(self, *, active: bool) -> None:
@@ -698,6 +739,9 @@ class AddPropertyDialog(QDialog):
         self.select_all_btn.setEnabled(not active)
         self.clear_selection_btn.setEnabled(not active)
         self.attention_only_checkbox.setEnabled(not active)
+        self.properties_table.setEnabled(not active)
+        if self.location_filter_widget is not None:
+            self.location_filter_widget.setEnabled(not active)
 
         if self.add_without_checks_button is not None:
             self.add_without_checks_button.setEnabled(not active)

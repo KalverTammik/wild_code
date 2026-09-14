@@ -842,7 +842,8 @@ class MainAddPropertiesFlow:
         }
         try:
             client = APIClient()
-            data = client.send_query(query, variables=variables)
+            # A lost response may still mean the create succeeded; never blindly create again.
+            data = client.send_query(query, variables=variables, retry_network=False)
 
             created = data.get("createProperty") 
             property_id = created.get("id")

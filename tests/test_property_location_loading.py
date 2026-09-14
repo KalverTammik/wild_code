@@ -293,6 +293,47 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         self.assertGreaterEqual(len(threads), 3)
         self.assertTrue(all(thread == self.app.thread() for thread in threads))
 
+    def test_checked_add_dialog_uses_background_runner_and_shows_failures(self):
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers.checked_add_runner import CheckedAddBatchRunner
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+        try:
+            self.wait_until(lambda: dialog.county_combo.isEnabled())
+            with patch.object(CheckedAddBatchRunner, 'start') as start, \
+                    patch.object(dialog, '_run_missing_cleanup_if_any', return_value=True):
+                dialog._on_add_clicked()
+                start.assert_not_called()
+                dialog._checks_completed_for_scope = True
+                dialog._on_add_clicked()
+                start.assert_called_once()
+            self.assertIsInstance(dialog._add_runner, CheckedAddBatchRunner)
+            self.assertFalse(dialog.location_filter_widget.isEnabled())
+            self.assertFalse(dialog.properties_table.isEnabled())
+            runner = dialog._add_runner
+            runner._in_flight = True
+            dialog.reject()
+            self.assertTrue(dialog.isVisible())
+            self.assertTrue(runner._stop_requested)
+            runner._in_flight = False
+            runner._done, runner._total = 1, 2
+            runner._errors = [{'tunnus': '1', 'message': 'Offline test error'}]
+            runner._finish()
+            self.assertIsNone(dialog._add_runner)
+            self.assertFalse(dialog._checks_completed_for_scope)
+            self.assertTrue(dialog.location_filter_widget.isEnabled())
+            self.assertTrue(dialog.properties_table.isEnabled())
+            self.assertIn('1/2', dialog.add_progress_label.text())
+            self.assertEqual(dialog._add_errors_view.toPlainText(), '1: Offline test error')
+            self.assertTrue(dialog._add_errors_view.isVisible())
+        finally:
+            dialog.reject()
+            self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
+            dialog.deleteLater()
+
     def test_real_dialog_captures_archive_scope_only_after_current_village_load(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         for name in (F.hkood, F.registr, F.muudet):

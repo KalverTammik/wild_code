@@ -46,6 +46,7 @@ class APIClient:
         timeout: int = 30,
         return_raw: bool = False,
         with_success: bool = False,
+        retry_network: bool = True,
     ):
         def _wrap_success(raw_json: dict):
             if return_raw:
@@ -74,7 +75,7 @@ class APIClient:
 
         auth_attempts = 2 if require_auth else 1
         # Avoid blocking the UI thread with network retries.
-        network_attempts = 3 if not is_main_thread else 1
+        network_attempts = 3 if retry_network and not is_main_thread else 1
         attempts = max(auth_attempts, network_attempts)
         last_error = None
 

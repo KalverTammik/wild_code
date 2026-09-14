@@ -1,5 +1,7 @@
 # Refactor Checklist (quick reference)
 
+- 2026-09-14: Reviewed property additions now use `checked_add_runner.py` to run backend checks and writes in a worker, retaining GUI-thread layer access and the existing create/update helpers. `AddUpdatePropertyDialog.py` starts this path only after completed checks, prevents selection changes while running, waits for in-flight writes on cancellation, and displays success/failure counts with per-property errors. Existing map objects are preserved; archived/ambiguous backend matches require separate review. `MainAddProperties.py` disables blind create retries through `APIClient.send_query(retry_network=False)` to avoid duplicates after lost responses. Translations: languages/{translation_keys,en,et}.py. Offline validation: tests/test_checked_property_add.py and tests/test_property_location_loading.py; no live backend changes.
+
 
 Use this checklist as a canonical pointer when planning or reviewing refactors (project-specific terminology):
 
