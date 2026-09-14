@@ -42,10 +42,7 @@ class PropertyTableManager:
                 model = PropertyTableModel(headers, parent=properties_table)
                 properties_table.setModel(model)
 
-            # Let queued UI work (e.g. map scope updates) run before heavy model reset.
-            QCoreApplication.processEvents()
             model.set_rows(properties)
-            QCoreApplication.processEvents()
 
             if self.add_button is not None:
                 self.add_button.setEnabled(bool(properties))
@@ -133,6 +130,15 @@ class PropertyTableManager:
                 selected_features.add(feature)
 
         return list(selected_features)
+
+    @staticmethod
+    def get_cadastral_ids(table) -> set[str]:
+        if table is None:
+            return set()
+        if isinstance(table, QTableView) and isinstance(table.model(), PropertyTableModel):
+            return table.model().cadastral_ids()
+        return {value for row in range(PropertyTableManager.row_count(table))
+                if (value := PropertyTableManager.get_cell_text(table, row, 0))}
 
     @staticmethod
     def get_all_features(table=None):

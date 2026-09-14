@@ -14,45 +14,51 @@ class BackendPropertyActions:
         *,
         archive_tag_name: str,
         module_name: str,
-    ) -> None:
+    ) -> dict:
+        summary = {"total": len(tunnused or []), "succeeded": 0, "skipped": 0, "failed": 0}
         if not tunnused:
-            return
+            return summary
 
         tag_id = TagsHelpers.check_if_tag_exists(tag_name=archive_tag_name, module=module_name)
 
         for tunnus in tunnused:
             backend_info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
             if not isinstance(backend_info, dict) or backend_info.get("exists") is None:
-                print({"archive_backend": {"tunnus": tunnus, "ok": False, "reason": "backend_lookup_failed", "backend_info": backend_info}})
+                summary["failed"] += 1
                 continue
 
             if not backend_info.get("exists"):
-                print({"archive_backend": {"tunnus": tunnus, "ok": False, "reason": "no_active_backend_property"}})
+                summary["skipped"] += 1
                 continue
 
             active_count = backend_info.get("active_count")
             if isinstance(active_count, int) and active_count > 1:
-                print({"archive_backend": {"tunnus": tunnus, "ok": False, "reason": "multiple_active_backend_matches", "active_count": active_count}})
+                summary["failed"] += 1
                 continue
 
             prop = backend_info.get("property") if isinstance(backend_info.get("property"), dict) else None
             prop_id = (prop.get("id") if isinstance(prop, dict) else None) if prop else None
             if not prop_id:
-                print({"archive_backend": {"tunnus": tunnus, "ok": False, "reason": "missing_property_id"}})
+                summary["failed"] += 1
                 continue
 
             ok = UpdatePropertyData._archive_a_propertie(item_id=str(prop_id), archive_tag=tag_id)
-            print({"archive_backend": {"tunnus": tunnus, "property_id": str(prop_id), "ok": bool(ok)}})
+            if ok:
+                summary["succeeded"] += 1
+            else:
+                summary["failed"] += 1
+        return summary
 
     @staticmethod
-    def unarchive_properties_by_tunnused(tunnused: list[str]) -> None:
+    def unarchive_properties_by_tunnused(tunnused: list[str]) -> dict:
+        summary = {"total": len(tunnused or []), "succeeded": 0, "skipped": 0, "failed": 0}
         if not tunnused:
-            return
+            return summary
 
         for tunnus in tunnused:
             backend_info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
             if not isinstance(backend_info, dict) or backend_info.get("exists") is None:
-                print({"unarchive_backend": {"tunnus": tunnus, "ok": False, "reason": "backend_lookup_failed", "backend_info": backend_info}})
+                summary["failed"] += 1
                 continue
 
             archived_ids = backend_info.get("archived_ids") or []
@@ -62,15 +68,19 @@ class BackendPropertyActions:
                 archived_ids = []
 
             if len(archived_ids) == 0:
-                print({"unarchive_backend": {"tunnus": tunnus, "ok": False, "reason": "no_archived_backend_match"}})
+                summary["skipped"] += 1
                 continue
             if len(archived_ids) > 1:
-                print({"unarchive_backend": {"tunnus": tunnus, "ok": False, "reason": "multiple_archived_backend_matches", "archived_ids": archived_ids}})
+                summary["failed"] += 1
                 continue
 
             prop_id = archived_ids[0]
             ok = UpdatePropertyData._unarchive_property_data(item_id=prop_id)
-            print({"unarchive_backend": {"tunnus": tunnus, "property_id": prop_id, "ok": bool(ok)}})
+            if ok:
+                summary["succeeded"] += 1
+            else:
+                summary["failed"] += 1
+        return summary
 
     @staticmethod
     def delete_properties_by_tunnused(tunnused: list[str]) -> None:

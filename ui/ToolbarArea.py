@@ -87,6 +87,12 @@ class ModuleToolbarArea(QFrame):
         if widget is not None:
             self._right_layout.addWidget(widget)
 
+    def add_after_filters(self, widget: QWidget) -> None:
+        """Place view controls outside the filter box, directly beside it."""
+        if widget is not None:
+            self._layout.setHorizontalSpacing(8)
+            self._layout.addWidget(widget, 0, 1, Qt.AlignLeft | Qt.AlignTop)
+
     def set_refresh_widget(self, widget: QWidget) -> None:
         """Place filter actions inside the left filter grid."""
         self.clear_refresh()

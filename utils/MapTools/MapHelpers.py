@@ -1,6 +1,6 @@
 from typing import Iterable, List, Optional, Sequence, Union
 from ...languages.translation_keys import TranslationKeys
-from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer, QgsFeatureRequest
+from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer, QgsFeatureRequest, QgsCoordinateTransform
 from PyQt5.QtCore import QCoreApplication
 from qgis.utils import iface
 from ...utils.url_manager import Module
@@ -12,6 +12,25 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.cadastral_fields import Katastriyksus
 
 class MapHelpers:
+
+    @staticmethod
+    def apply_scope_preview(layer, feature_ids, extent, *, select=False):
+        """Apply precomputed scope results without scanning the layer again."""
+        if not feature_ids or layer is None or not layer.isValid():
+            return
+        MapHelpers.ensure_layer_visible(layer, make_active=True)
+        if select:
+            layer.selectByIds(feature_ids)
+        else:
+            layer.removeSelection()
+        canvas = iface.mapCanvas() if iface is not None else None
+        if canvas is None or extent.isNull() or extent.isEmpty():
+            return
+        transform = QgsCoordinateTransform(layer.crs(), canvas.mapSettings().destinationCrs(), QgsProject.instance())
+        canvas_extent = transform.transformBoundingBox(extent)
+        canvas_extent.scale(1.12)
+        canvas.setExtent(canvas_extent)
+        canvas.refresh()
 
     _scope_zoom_cache: dict[tuple[str, str], tuple[QgsRectangle, int]] = {}
     _scope_zoom_cache_limit: int = 64

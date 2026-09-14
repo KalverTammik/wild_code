@@ -878,7 +878,7 @@ class WorksCreateController:
         edges = ((task_payload.get("members") or {}).get("edges") or [])
         for edge in edges:
             edge_payload = edge if isinstance(edge, dict) else {}
-            if not edge_payload.get("isResponsible"):
+            if not edge_payload.get("responsible"):
                 continue
 
             node = edge_payload.get("node") or {}

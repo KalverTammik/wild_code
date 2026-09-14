@@ -14,7 +14,7 @@ QToolButton#ExtraInfoHandleButton {
   border: 1px solid rgba(151,163,178,0.34);
   border-bottom: 1px solid rgba(6,10,14,0.86);
   border-radius: 7px;
-  padding: 0 0 4px 0;
+  padding: 0;
   font-size: 11px;
   font-weight: 700;
 }
@@ -33,7 +33,13 @@ QToolButton#ExtraInfoHandleButton:hover {
 QToolButton#ExtraInfoHandleButton:pressed {
   background: #2f4358;
   padding-top: 1px;
-  padding-bottom: 3px;
+  padding-bottom: 0px;
+}
+
+QToolButton#ExtraInfoHandleButton:checked,
+QToolButton#ExtraInfoHandleButton:focus {
+  background: #344c66;
+  border: 1px solid #8cb5df;
 }
 
 QWidget#ExtraInfoWidget QLabel#ExtraInfoColumnTitle {

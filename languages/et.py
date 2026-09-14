@@ -9,6 +9,52 @@ from .translation_keys import (
 )
 
 TRANSLATIONS = {
+        TranslationKeys.LIST_SORT: "Sordi",
+        TranslationKeys.LIST_GROUP: "Grupeeri",
+        TranslationKeys.LIST_SORT_DEFAULT: "Vaikimisi järjekord",
+        TranslationKeys.LIST_GROUP_NONE: "Grupeerimata",
+        TranslationKeys.LIST_SORT_GLOBAL: "Kogu filtreeritud tulemus",
+        TranslationKeys.LIST_SORT_LOCAL: "Laaditud kannetes",
+        TranslationKeys.LIST_SORT_TITLE: "Pealkiri",
+        TranslationKeys.LIST_SORT_DUE: "Tähtaeg",
+        TranslationKeys.LIST_SORT_START: "Algusaeg",
+        TranslationKeys.LIST_SORT_CREATED: "Loomise aeg",
+        TranslationKeys.LIST_SORT_UPDATED: "Muutmise aeg",
+        TranslationKeys.LIST_SORT_STATUS: "Staatus",
+        TranslationKeys.LIST_SORT_TYPE: "Liik",
+        TranslationKeys.LIST_SORT_PRIORITY: "Prioriteet",
+        TranslationKeys.LIST_SORT_RESPONSIBLE: "Vastutaja",
+        TranslationKeys.LIST_SORT_ASC_TEXT: "A–Z",
+        TranslationKeys.LIST_SORT_DESC_TEXT: "Z–A",
+        TranslationKeys.LIST_SORT_ASC_DATE: "Varasem ees",
+        TranslationKeys.LIST_SORT_DESC_DATE: "Hilisem ees",
+        TranslationKeys.LIST_SORT_ASC_PRIORITY: "Kõrgem ees",
+        TranslationKeys.LIST_SORT_DESC_PRIORITY: "Madalam ees",
+        TranslationKeys.LIST_GROUP_DEADLINE: "Tähtaja seis",
+        TranslationKeys.LIST_GROUP_SCOPE: "Grupid põhinevad laaditud kannetel. Arvud täienevad laadimisel.",
+        TranslationKeys.LIST_GROUP_COUNT: "{name} · {count} laaditud",
+        TranslationKeys.LIST_VALUE_MISSING: "Määramata",
+        TranslationKeys.LIST_DEADLINE_OVERDUE: "Üle tähtaja",
+        TranslationKeys.LIST_DEADLINE_TODAY: "Täna",
+        TranslationKeys.LIST_DEADLINE_TOMORROW: "Homme",
+        TranslationKeys.LIST_DEADLINE_WEEK: "Sel nädalal",
+        TranslationKeys.LIST_DEADLINE_NEXT_WEEK: "Järgmisel nädalal",
+        TranslationKeys.LIST_DEADLINE_LATER: "Hiljem",
+        TranslationKeys.LIST_DEADLINE_CLOSED: "Lõpetatud",
+        TranslationKeys.LIST_DEADLINE_NONE: "Tähtajata",
+        TranslationKeys.LIST_GROUP_EXPAND_ALL: "Ava kõik grupid",
+        TranslationKeys.LIST_GROUP_COLLAPSE_ALL: "Sulge kõik grupid",
+        TranslationKeys.LIST_LOCAL_NOTICE: "Sortimine: laaditud kannetes",
+        TranslationKeys.LIST_GROUP_NOTICE: "Grupid: laaditud kanded",
+        TranslationKeys.LIST_UNIQUE_COUNT: "{count} unikaalset kannet laaditud",
+        TranslationKeys.CARD_LOAD_RETRY: "Proovi uuesti",
+        TranslationKeys.CARD_DETAIL_LOAD_FAILED: "Detailide laadimine ebaõnnestus.",
+        TranslationKeys.CARD_DETAIL_OPEN: "Ava detailid",
+        TranslationKeys.CARD_DETAIL_CLOSE: "Sule detailid",
+        TranslationKeys.CARD_RESPONSIBLE_UNASSIGNED: "Vastutaja määramata",
+        TranslationKeys.CARD_MEMBERS_OPEN: "Vaata liikmeid",
+        TranslationKeys.CARD_MEMBERS_EMPTY: "Liikmeid pole lisatud.",
+        TranslationKeys.CARD_FILES_VIEW_ALL: "Vaata kõiki faile ({count})",
         TranslationKeys.MAP_IDENTIFY_BUTTON: "Mis see on",
         TranslationKeys.MAP_IDENTIFY_UNSUPPORTED_MODULE: "Aktiivne moodul {module} ei toeta praegu kaardilt tuvastamist.",
         TranslationKeys.MAP_IDENTIFY_LAYER_MISSING: "Mooduli {module} pĆµhikiht on seadistamata vĆµi puudub projektist.",
@@ -144,6 +190,13 @@ TRANSLATIONS = {
         TranslationKeys.NO_ASBUILT_FOUND: "Teostusjooniseid ei leitud",
         TranslationKeys.NO_VALUES_FOUND: "Väärtusi ei leitud!",
         TranslationKeys.LOADING: "Laadimine…",
+        TranslationKeys.LOCATION_LOADING_CHOICES: "Laen maakondade, omavalitsuste ja külade valikuid…",
+        TranslationKeys.LOCATION_LOADING_PROPERTIES: "Laen kinnistuid ja kaardivaadet…",
+        TranslationKeys.LOCATION_LOADING_MAP: "Uuendan kaardivaadet…",
+        TranslationKeys.LOCATION_PROPERTIES_READY: "Laaditud {count} kinnistut.",
+        TranslationKeys.LOCATION_NO_CHOICES: "Impordikihis puuduvad asukohavalikud.",
+        TranslationKeys.LOCATION_LOAD_FAILED: "Asukohaandmete laadimine ebaõnnestus. Proovi uuesti.",
+        TranslationKeys.LOCATION_MAP_FAILED: "Kaardivaate uuendamine ebaõnnestus. Proovi uuesti.",
         TranslationKeys.CLEAR_VALUE: "Tühjenda väärtus",
         TranslationKeys.PROPERTY_ID_PLACEHOLDER: "Kinnistu ID",
         TranslationKeys.MISSING_PROPERTY_ID_TITLE: "ID puudub",
@@ -515,7 +568,29 @@ TRANSLATIONS = {
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_START: "Arhiveerin puuduvaid ({count}) enne lisamist..."
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_RESULT: "Puuduvad arhiveeritud: taustasüsteem {archived}/{total}, kaardile liigutatud {moved}{errors_suffix}"
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR: "Puuduvate arhiveerimisel ({count}) tekkis viga"
-        ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX: " (vigadega)"
+    ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX: " (vigadega)"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_TITLE: "Arhiveerimisplaani ülevaade"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_SCOPE: "Piirkond: {county} / {municipality} / {settlements}"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_INTRO: "Valitud asustusüksuste täielikust impordist puudub {count} kinnistut. Kontrolli enne jätkamist kaardi- ja taustasüsteemi toiminguid."
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_COLUMN_TUNNUS: "Katastritunnus"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_COLUMN_SETTLEMENT: "Asustusüksus"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_COLUMN_MAP: "Kaart"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_COLUMN_BACKEND: "Taustasüsteem"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_COLUMN_NOTE: "Märkus"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_MAP_MOVE: "Liiguta arhiivi"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_ARCHIVE: "Arhiveeri"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MISSING: "Aktiivne kirje puudub — jäta vahele"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED: "Kontroll ebaõnnestus — jäta vahele"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MULTIPLE: "Mitu aktiivset kirjet — jäta vahele"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_CONFIRM: "Kinnita ja jätka"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_CANCEL: "Loobu"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_COMPLETENESS_CONFIRM: "Kinnitan, et import sisaldab valitud asustusüksuste täielikke kehtivaid andmeid."
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_STALE_TITLE: "Arhiveerimisplaan ei ole enam kehtiv"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_STALE_BODY: "Valitud piirkond või impordikiht muutus pärast kontrolli. Enne muudatuste rakendamist käivita kontroll uuesti."
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_PARTIAL_TITLE: "Arhiveerimine lõpetati puudustega"
+    ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_PARTIAL_BODY: "Kaardil arhiveeritud: {moved}. Taustasüsteemis arhiveeritud: {archived}. Ebaõnnestunud või vahele jäetud toiminguid: {failed}."
+    ,TranslationKeys.PROPERTY_ARCHIVE_SCOPE_SKIPPED: "Puuduvate kinnistute arhiveerimine on sellel korral välja lülitatud. Vali vähemalt üks asustusüksus ja laadi selle täielikud, mittetühjad impordiandmed."
+    ,TranslationKeys.PROPERTY_ARCHIVE_MOVED_EXCLUDED: "{count} puuduvat katastritunnust leiti impordist teise asustusüksuse alt ja jäeti automaatsest arhiveerimisest välja."
     ,TranslationKeys.SELECT_PROPERTY_FIRST: "Palun valige esmalt kaardilt kinnisvara objekt."
     ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Viga kinnisvara valimisel"
     ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Vali üks kinnisvara"

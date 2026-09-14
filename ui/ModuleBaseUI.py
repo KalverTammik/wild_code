@@ -304,7 +304,14 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         feed_logic = self.active_feed_logic
         if feed_logic is None:
             return []
+        if feed_logic.is_loading:
+            return []
         items = feed_logic.fetch_next_batch() or []
+        return self.accept_batch_result(items, insert_at_top=insert_at_top)
+
+    def accept_batch_result(self, items, *, insert_at_top=False):
+        """Handle a completed fetch on the UI thread, including asynchronous feeds."""
+        feed_logic = self.active_feed_logic
         try:
             module_key = getattr(self, "module_key", None) or getattr(self, "name", None) or ""
             SwitchLogger.log(
@@ -321,7 +328,13 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
 
         if not items:
             message = feed_logic.last_error_message
-            self._show_empty_state(message or "No values found!")
+            if message:
+                self._show_empty_state(message)
+            elif self._compute_loaded_cards() or (self.feed_load_engine and self.feed_load_engine.has_buffer()):
+                self._hide_loading_placeholder()
+            elif not feed_logic.has_more:
+                self._show_empty_state()
+            self._update_counter_snapshot()
             return []
 
         engine = self.feed_load_engine

@@ -54,7 +54,7 @@ query property(
                 displayName
                 deletedAt
               }
-              isResponsible
+              responsible
             }
           }
           filesPath

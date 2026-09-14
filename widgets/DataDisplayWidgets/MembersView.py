@@ -1,14 +1,16 @@
 import hashlib
 from functools import lru_cache
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QPainter, QPen
 from PyQt5.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame
+    QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame, QScrollArea
 )
 from ..theme_manager import ThemeManager, IntensityLevels, styleExtras, ThemeShadowColors
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.responses import DataDisplayExtractors
 from ...ui.window_state.popup_helpers import PopupHelpers
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 
 
 class AvatarUtils:
@@ -57,11 +59,26 @@ class AvatarUtils:
         return f"rgba({r},{g},{b},{a})"
 
 
+class _MembersClickPopup(QFrame):
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.hide()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+
 class AvatarBubble(QLabel):
     MAX_POPUP_PARTICIPANTS = 11
 
-    def __init__(self, fullname: str, salt: str = "", popup_members=None, parent=None):
+    def __init__(self, fullname: str, salt: str = "", popup_members=None, parent=None,
+                 *, unassigned=False, responsible_members=None, lang_manager=None):
         super().__init__(parent)
+        self._lang = lang_manager or LanguageManager()
+        self.setObjectName("MemberAvatarBubble")
+        self._unassigned = unassigned
+        self._responsible_members = list(responsible_members or [])
+        self._click_popup = None
         self.fullname = (fullname or "-").strip()
         self.base_size = 26
         # Optional list of member nodes to display on hover (for responsible avatars)
@@ -80,19 +97,27 @@ class AvatarBubble(QLabel):
         )
 
         self.setText(AvatarUtils.initials(self.fullname))
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFocusPolicy(Qt.StrongFocus)
+        label = self._lang.translate(TranslationKeys.CARD_RESPONSIBLE_UNASSIGNED) if unassigned else self.fullname
+        action = self._lang.translate(TranslationKeys.CARD_MEMBERS_OPEN)
+        self.setAccessibleName(f"{label}. {action}")
+        if unassigned:
+            self.setText("")
+            self.setToolTip(f"{label}\n{action}")
         self.setAlignment(Qt.AlignCenter)
         
         # Only set tooltip for non-assignee avatars to avoid duplicate info
-        if not popup_members:
+        if not popup_members and not unassigned:
             self.setToolTip(self.fullname)
         self.setFixedSize(self.base_size, self.base_size)
 
-        bg = AvatarUtils.color_for_name(self.fullname, salt=salt)
+        bg = QColor("#9ca3af") if unassigned else AvatarUtils.color_for_name(self.fullname, salt=salt)
         fg_hex = AvatarUtils.fg_for_bg(bg)
         border = AvatarUtils.border_for_bg(bg)
 
         self.setStyleSheet(
-            "QLabel {"
+            "QLabel#MemberAvatarBubble {"
             f" margin:0px;"  # No margins, overlap handled by layout
             f" background-color: {AvatarUtils.rgb_css(bg, alpha=0.6)};"  # Semi-transparent background
             f" color: {fg_hex};"
@@ -103,9 +128,10 @@ class AvatarBubble(QLabel):
             f" letter-spacing: -0.3px;"  # Slightly less tight spacing
             f" padding: 3px;"  # Responsive padding (increased slightly)
             "} "
-            "QLabel:hover {"
+            "QLabel#MemberAvatarBubble:hover {"
             f" opacity: 0.1;"  # Subtle opacity change instead of scale
             "}"
+            "QLabel#MemberAvatarBubble:focus { border: 2px solid #0078d4; }"
         )
 
         # Add subtle drop shadow effect
@@ -120,18 +146,86 @@ class AvatarBubble(QLabel):
 
 
     def eventFilter(self, obj, event):
+        if self._click_popup is not None and self._click_popup.isVisible():
+            return super().eventFilter(obj, event)
         PopupHelpers.handle_popup_hover_event(
             obj,
             event,
             popup_widget=self._members_popup,
             timer=self._hide_timer,
             anchor_matcher=lambda widget: widget is self,
-            on_anchor_enter=lambda _widget: self._show_members_popup(),
+            on_anchor_enter=lambda _widget: None if self._unassigned else self._show_members_popup(),
             delay_ms=PopupHelpers.popup_delay("members"),
             close_on_deactivate=PopupHelpers.popup_close_on_deactivate("members"),
             on_popup_deactivate=lambda: PopupHelpers.hide_popup_attr(self, "_members_popup", self._hide_timer, self),
         )
         return super().eventFilter(obj, event)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self._unassigned:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setPen(QPen(self.palette().text().color(), 1.3))
+            painter.drawEllipse(9, 5, 8, 8)
+            painter.drawArc(5, 14, 16, 12, 0, 180 * 16)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._open_members_list()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+            self._open_members_list()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def _open_members_list(self):
+        if self._click_popup is not None and self._click_popup.isVisible():
+            self._click_popup.hide()
+            return
+        PopupHelpers.hide_popup_attr(self, "_members_popup", self._hide_timer, self)
+        if self._click_popup is None:
+            popup = _MembersClickPopup(self, Qt.Popup)
+            popup.setObjectName("PopupFrame")
+            popup.setProperty("popupKind", "members")
+            layout = QVBoxLayout(popup)
+            layout.setContentsMargins(8, 8, 8, 8)
+            body = QWidget(popup)
+            body_layout = QVBoxLayout(body)
+            body_layout.setContentsMargins(0, 0, 0, 0)
+            body_layout.setSpacing(6)
+            names = []
+            if self._unassigned:
+                names.append((self._lang.translate(TranslationKeys.CARD_RESPONSIBLE_UNASSIGNED), "Value"))
+            for node in self._responsible_members:
+                names.append((f"★ {DataDisplayExtractors.extract_member_display_name(node)}", "Value"))
+            for node in self._popup_members:
+                names.append((DataDisplayExtractors.extract_member_display_name(node), "Label"))
+            if not self._responsible_members and not self._popup_members:
+                names.append((self._lang.translate(TranslationKeys.CARD_MEMBERS_EMPTY), "Label"))
+            for text, role in names:
+                label = QLabel(text, body)
+                label.setTextFormat(Qt.PlainText)
+                label.setObjectName(role)
+                label.setWordWrap(True)
+                body_layout.addWidget(label)
+            scroll = QScrollArea(popup)
+            scroll.setFrameShape(QFrame.NoFrame)
+            scroll.setWidgetResizable(True)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            scroll.setWidget(body)
+            scroll.setFixedSize(250, min(280, max(45, body.sizeHint().height() + 8)))
+            layout.addWidget(scroll)
+            self._click_popup = popup
+        PopupHelpers.apply_popup_style(self._click_popup, "members")
+        self._click_popup.show()
+        PopupHelpers.position_popup(self._click_popup, self)
+        self._click_popup.setFocus()
 
     def _show_members_popup(self):
         """Create and show a tooltip-like popup with member names in a vertical list."""
@@ -143,7 +237,7 @@ class AvatarBubble(QLabel):
                 return
 
 
-            popup = QFrame(None, Qt.ToolTip)
+            popup = QFrame(self, Qt.ToolTip)
             popup.setObjectName('PopupFrame')
             popup.setProperty("popupKind", "members")
             popup.setWindowFlags(Qt.ToolTip)
@@ -190,8 +284,9 @@ class MembersView(QWidget):
     AVATAR_SPACING = 2
     SIDE_PADDING = 10
 
-    def __init__(self, item_data: dict, parent=None):
+    def __init__(self, item_data: dict, parent=None, lang_manager=None):
         super().__init__(parent)
+        self._lang = lang_manager or LanguageManager()
         self._build(item_data)
 
     def _build(self, item_data: dict):
@@ -212,7 +307,8 @@ class MembersView(QWidget):
             for node in responsible_nodes[:3]:  # Limit to 3 responsible members
                 full = DataDisplayExtractors.extract_member_display_name(node)
                 # Attach participant nodes as popup members when hovering this responsible avatar
-                bubble = AvatarBubble(full, salt="responsible-v1", popup_members=participant_nodes)
+                bubble = AvatarBubble(full, salt="responsible-v1", popup_members=participant_nodes,
+                                      responsible_members=responsible_nodes, lang_manager=self._lang)
                 resp_layout.addWidget(bubble)
 
             layout.addLayout(resp_layout)
@@ -222,8 +318,15 @@ class MembersView(QWidget):
                 + self.SIDE_PADDING
             )
             self.setFixedWidth(content_width)
-
-    # Participants are now shown only on hover of responsible avatars (popup_members passed above).
+        else:
+            bubble = AvatarBubble("", popup_members=participant_nodes, unassigned=True,
+                                  lang_manager=self._lang, parent=self)
+            layout.addWidget(bubble, 0, Qt.AlignRight | Qt.AlignTop)
+            self.setFixedWidth(self.AVATAR_SIZE + self.SIDE_PADDING)
 
     def retheme(self):
-        return None
+        for bubble in self.findChildren(AvatarBubble):
+            for popup in (bubble._click_popup, bubble._members_popup):
+                if popup is not None:
+                    PopupHelpers.apply_popup_style(popup, "members")
+            bubble.update()

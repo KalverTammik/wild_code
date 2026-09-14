@@ -271,17 +271,21 @@ class UpdatePropertyData:
 
     @staticmethod
     def _archive_a_propertie(item_id: str, archive_tag=None, recovery_name: str = None) -> bool:
-
-
-        # Best-effort: mark backend status
+        # Status is the backend's canonical active/archive state. Do not report a
+        # successful archive when this mutation was rejected.
         try:
-            UpdatePropertyData._set_backend_property_status(item_id, status_name="ARCHIVED")
+            if not UpdatePropertyData._set_backend_property_status(
+                item_id,
+                status_name="ARCHIVED",
+            ):
+                return False
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.PROPERTY.value,
                 event="property_backend_archive_status_failed",
             )
+            return False
 
         #print(f"✔️ Final item_id to use: {item_id} ({type(item_id)})")
         module= Module.PROPERTY.name
@@ -299,23 +303,41 @@ class UpdatePropertyData:
         if not tag_id:
             return False
 
-        if not UpdatePropertyData._update_property_tags(property_id=item_id, module=module, tag_id=tag_id):
-            return False
+        try:
+            if not UpdatePropertyData._update_property_tags(
+                property_id=item_id,
+                module=module,
+                tag_id=tag_id,
+            ):
+                return False
 
-        
-        prefix = TagsEngines.ARHIVEERITUD_NAME_ADDITION + " - "
-
-        current_name = str(UpdatePropertyData._get_properties_street_name_to_achived(property_id=item_id) or "")
-        if recovery_name:
-            new_name = recovery_name
-        else:
-            if current_name.startswith(prefix):
-                new_name = current_name  # Already prefixed
+            prefix = TagsEngines.ARHIVEERITUD_NAME_ADDITION + " - "
+            current_name = str(
+                UpdatePropertyData._get_properties_street_name_to_achived(
+                    property_id=item_id
+                )
+                or ""
+            )
+            if recovery_name:
+                new_name = recovery_name
+            elif current_name.startswith(prefix):
+                new_name = current_name
             else:
                 new_name = prefix + current_name
-        
-        UpdatePropertyData._update_property_street_name(propertie_id=item_id, new_name=new_name, module=module)
-        return True
+
+            UpdatePropertyData._update_property_street_name(
+                propertie_id=item_id,
+                new_name=new_name,
+                module=module,
+            )
+            return True
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_backend_archive_metadata_failed",
+            )
+            return False
 
     @staticmethod
     def _unarchive_property_data(item_id: str) -> bool:
@@ -354,31 +376,48 @@ class UpdatePropertyData:
             # If tags cannot be fetched, fall back to prefix-only behavior.
             tag_present = False
 
-        if not tag_present and not had_prefix:
-            # Already active (not archived) -> nothing to do.
-            return False
-
-        # Best-effort: mark backend status
+        # Status is canonical. This also supports older archived records that have
+        # no legacy tag or name prefix.
         try:
-            UpdatePropertyData._set_backend_property_status(item_id, status_name="ACTIVE")
+            if not UpdatePropertyData._set_backend_property_status(
+                item_id,
+                status_name="ACTIVE",
+            ):
+                return False
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.PROPERTY.value,
                 event="property_backend_activate_status_failed",
             )
+            return False
 
         # Remove archive tag (no need to create if missing!)
         tag_id = TagsEngines.get_modules_tag_id_by_name(tag_name=tag_name, module=module)
-        if tag_id and tag_present:
-            UpdatePropertyData._remove_property_tag(property_id=item_id, module=module, tag_id=tag_id)
+        try:
+            if tag_id and tag_present:
+                UpdatePropertyData._remove_property_tag(
+                    property_id=item_id,
+                    module=module,
+                    tag_id=tag_id,
+                )
 
-        # Restore original name (remove prefix if it exists)
-        if had_prefix:
-            new_name = current_name.replace(prefix, "", 1)
-            UpdatePropertyData._update_property_street_name(propertie_id=item_id, new_name=new_name, module=module)
-
-        return True
+            # Restore the legacy name marker when it exists.
+            if had_prefix:
+                new_name = current_name.replace(prefix, "", 1)
+                UpdatePropertyData._update_property_street_name(
+                    propertie_id=item_id,
+                    new_name=new_name,
+                    module=module,
+                )
+            return True
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_backend_unarchive_metadata_failed",
+            )
+            return False
 
 
 

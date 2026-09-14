@@ -1,163 +1,221 @@
-from typing import Callable, Optional
-
-from PyQt5.QtCore import QObject, QTimer
+from PyQt5 import sip
+from PyQt5.QtCore import QObject, QTimer, QSignalBlocker, Qt, pyqtSlot
 from PyQt5.QtWidgets import (
     QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
     QVBoxLayout,
+    QProgressBar,
+    QPushButton,
 )
 from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.mapandproperties.PropertyUpdateFlowCoordinator import PropertyUpdateFlowCoordinator
+from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager
+from ..utils.MapTools.MapHelpers import MapHelpers
+from ..constants.layer_constants import IMPORT_PROPERTY_TAG
 from ..Logs.python_fail_logger import PythonFailLogger
 from .theme_manager import ThemeManager
 
 
 class LocationFilterHelper(QObject):
-    """Owns the location filter behavior (county/municipality/settlement) for a dialog.
+    """Keep hierarchical choices responsive and publish only complete, current results."""
 
-    Keeps the dialog focused on building UI and non-location flows.
-    """
-
-    def __init__(
-        self,
-        *,
-        county_combo: QComboBox,
-        municipality_combo: QComboBox,
-        city_combo: QgsCheckableComboBox,
-        properties_table,
-        after_table_update: Callable,
-        stop_checks: Callable[[bool], None],
-        update_add_button_state: Callable[[int], None],
-        zoom_map: Callable[[], None],
-        parent=None,
-    ):
+    def __init__(self, *, county_combo, municipality_combo, city_combo, properties_table,
+                 after_table_update, stop_checks, invalidate_archive_scope,
+                 update_add_button_state, stop_map_update, status_widget, parent=None):
         super().__init__(parent)
-
         self.county_combo = county_combo
         self.municipality_combo = municipality_combo
         self.city_combo = city_combo
         self.properties_table = properties_table
-
         self._after_table_update = after_table_update
         self._stop_checks = stop_checks
+        self._invalidate_archive_scope = invalidate_archive_scope
         self._update_add_button_state = update_add_button_state
-        self._zoom_map = zoom_map
-
-        self._zoom_after_table_update = False
-        self._suppress_empty_city_updates = True
-
+        self._stop_map_update = stop_map_update
+        self._status = status_widget
+        self._locations = {}
+        self._layer = None
+        self._closed = False
+        self._signals_connected = False
+        self._loader = PropertyUpdateFlowCoordinator(self)
+        self._loader.loaded.connect(self._on_loaded)
+        self._loader.failed.connect(self._on_failed)
         self._city_reload_timer = QTimer(self)
         self._city_reload_timer.setSingleShot(True)
         self._city_reload_timer.setInterval(250)
-        self._city_reload_timer.timeout.connect(self._apply_city_filter_update)
+        self._city_reload_timer.timeout.connect(self._load_current_scope)
+        self._status.retry_button.clicked.connect(self._retry)
 
-        self._signals_connected = False
-
-    def connect_signals(self) -> None:
+    def connect_signals(self):
         if self._signals_connected:
             return
-        self.county_combo.currentTextChanged.connect(self._on_county_combo_changed)
-        self.municipality_combo.currentTextChanged.connect(self._on_municipality_combo_changed)
+        self.county_combo.currentIndexChanged.connect(self._on_county_combo_changed)
+        self.municipality_combo.currentIndexChanged.connect(self._on_municipality_combo_changed)
         self.city_combo.checkedItemsChanged.connect(self._on_city_checked_items_changed)
         self._signals_connected = True
 
-    def load_counties(self, property_layer) -> None:
-        PropertyUpdateFlowCoordinator.load_county_combo(self.county_combo, property_layer)
+    def _fill_combo(self, combo, values, placeholder_key):
+        blocker = QSignalBlocker(combo)
+        combo.clear()
+        combo.addItem(self._status.lang_manager.translate(placeholder_key), '')
+        for value in sorted(values):
+            combo.addItem(value, value)
+        combo.setEnabled(bool(values))
+        del blocker
 
-    def stop_pending_city_reload(self) -> None:
+    def _clear_cities(self):
+        blocker = QSignalBlocker(self.city_combo)
+        self.city_combo.clear()
+        self.city_combo.setEnabled(False)
+        del blocker
+
+    def _clear_table(self):
         self._city_reload_timer.stop()
-
-    def request_zoom_after_next_table_update(self) -> None:
-        self._zoom_after_table_update = True
-
-    def handle_after_table_update(self) -> None:
-        if self._zoom_after_table_update:
-            self._zoom_after_table_update = False
-            try:
-                self._zoom_map()
-            except Exception as exc:
-                # Zoom is best-effort; don't break the UI flow.
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="ui",
-                    event="location_filter_zoom_failed",
-                )
-
-    def reload_current_table_from_filters(self, *, zoom: bool = False) -> None:
-        self._stop_checks(True)
-
-        if zoom:
-            self.request_zoom_after_next_table_update()
-
-        # Prefer reloading via city handler: if no cities are checked, it loads all municipality properties.
-        if self.city_combo is not None and bool(self.city_combo.isEnabled()):
-            self._city_reload_timer.start()
-            return
-
-        # Fallback: reload via municipality handler.
-        self._on_municipality_combo_changed(self.municipality_combo.currentText())
-
-    # ------------------------------------------------------------------
-    # Internal handlers
-    # ------------------------------------------------------------------
-    def _on_county_combo_changed(self, text: str) -> None:
-        self.stop_pending_city_reload()
-        self._suppress_empty_city_updates = True
-        PropertyUpdateFlowCoordinator.on_county_changed(
-            text,
-            self.municipality_combo,
-            self.city_combo,
-            self.properties_table,
-            after_table_update=self._after_table_update,
-        )
-
-    def _on_municipality_combo_changed(self, text: str) -> None:
-        self.stop_pending_city_reload()
-        self._suppress_empty_city_updates = True
-        PropertyUpdateFlowCoordinator.on_municipality_changed(
-            text,
-            self.county_combo,
-            self.municipality_combo,
-            self.city_combo,
-            self.properties_table,
-            after_table_update=self._after_table_update,
-        )
-
-    def _on_city_checked_items_changed(self) -> None:
-        checked_items = self.city_combo.checkedItems() if self.city_combo is not None else []
-        if not checked_items and self._suppress_empty_city_updates:
-            return
-        if checked_items:
-            self._suppress_empty_city_updates = False
-
-        # Stop checks immediately (results would be stale once the table reloads).
+        self._loader.cancel()
+        self._invalidate_archive_scope()
+        PropertyTableManager().populate_properties_table([], self.properties_table)
+        self._stop_map_update()
         self._stop_checks(False)
-        try:
-            self._update_add_button_state(0)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="location_filter_update_add_button_failed",
-            )
+        self._update_add_button_state(0)
 
-        self.request_zoom_after_next_table_update()
+    def load_counties(self, layer):
+        if self._closed:
+            return
+        self._disconnect_layer()
+        self._layer = layer
+        if layer is not None and not sip.isdeleted(layer):
+            layer.dataChanged.connect(self._on_layer_changed)
+            layer.dataSourceChanged.connect(self._on_layer_changed)
+            layer.updatedFields.connect(self._on_layer_changed)
+            layer.willBeDeleted.connect(self._on_layer_removed)
+        self._locations = {}
+        self._clear_table()
+        self._fill_combo(self.county_combo, [], TranslationKeys.SELECT_COUNTY)
+        self._fill_combo(self.municipality_combo, [], TranslationKeys.SELECT_MUNICIPALITY)
+        self._clear_cities()
+        self._status.set_status(TranslationKeys.LOCATION_LOADING_CHOICES, busy=True)
+        self._loader.load_index(layer)
+
+    def _disconnect_layer(self):
+        layer = self._layer
+        if layer is None or sip.isdeleted(layer):
+            return
+        layer.dataChanged.disconnect(self._on_layer_changed)
+        layer.dataSourceChanged.disconnect(self._on_layer_changed)
+        layer.updatedFields.disconnect(self._on_layer_changed)
+        layer.willBeDeleted.disconnect(self._on_layer_removed)
+        self._layer = None
+
+    def _on_layer_changed(self):
+        self.load_counties(MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG))
+
+    def _on_layer_removed(self):
+        self._disconnect_layer()
+        self._clear_table()
+        self._locations = {}
+        self._fill_combo(self.county_combo, [], TranslationKeys.SELECT_COUNTY)
+        self._fill_combo(self.municipality_combo, [], TranslationKeys.SELECT_MUNICIPALITY)
+        self._clear_cities()
+        self._on_failed('The import layer was removed')
+
+    def close(self):
+        self._closed = True
+        self._city_reload_timer.stop()
+        self._loader.cancel()
+        self._stop_map_update()
+        self._disconnect_layer()
+
+    def _scope(self):
+        return (str(self.county_combo.currentData() or ''),
+                str(self.municipality_combo.currentData() or ''),
+                tuple(sorted(self.city_combo.checkedItems())))
+
+    def _on_county_combo_changed(self, _index):
+        self._clear_table()
+        county = self.county_combo.currentData()
+        self._fill_combo(self.municipality_combo, self._locations.get(county, {}), TranslationKeys.SELECT_MUNICIPALITY)
+        self._clear_cities()
+        self._load_current_scope()
+
+    def _on_municipality_combo_changed(self, _index):
+        self._clear_table()
+        county, municipality, _ = self._scope()
+        settlements = self._locations.get(county, {}).get(municipality, [])
+        blocker = QSignalBlocker(self.city_combo)
+        self.city_combo.clear()
+        self.city_combo.addItems(settlements)
+        self.city_combo.setEnabled(bool(settlements))
+        del blocker
+        self._load_current_scope()
+
+    def _on_city_checked_items_changed(self):
+        self._clear_table()
+        self._status.set_status(TranslationKeys.LOCATION_LOADING_PROPERTIES, busy=True)
         self._city_reload_timer.start()
 
-    def _apply_city_filter_update(self) -> None:
-        PropertyUpdateFlowCoordinator.on_city_changed(
-            self.properties_table,
-            self.county_combo,
-            self.municipality_combo,
-            self.city_combo,
-            after_table_update=self._after_table_update,
-            update_map=True,
-        )
+    def reload_current_table_from_filters(self):
+        self._clear_table()
+        self._load_current_scope()
+
+    def _load_current_scope(self):
+        if self._closed:
+            return
+        scope = self._scope()
+        if not scope[0]:
+            self._status.set_status(TranslationKeys.SELECT_COUNTY)
+            return
+        include_properties = bool(scope[1])
+        key = TranslationKeys.LOCATION_LOADING_PROPERTIES if include_properties else TranslationKeys.LOCATION_LOADING_MAP
+        self._status.set_status(key, busy=True)
+        self._loader.load_scope(self._layer, scope, include_properties=include_properties)
+
+    @pyqtSlot(str, object)
+    def _on_loaded(self, kind, result):
+        if self._closed:
+            return
+        current = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        if (current is None or not current.isValid()
+                or (current.id(), current.source()) != self._loader.layer_identity):
+            self._on_failed('The import layer changed during loading')
+            return
+        if kind == 'index':
+            self._locations = result
+            self._fill_combo(self.county_combo, result, TranslationKeys.SELECT_COUNTY)
+            key = TranslationKeys.SELECT_COUNTY if result else TranslationKeys.LOCATION_NO_CHOICES
+            self._status.set_status(key)
+            return
+        if result['scope'] != self._scope():
+            return
+        if result['include_properties']:
+            PropertyTableManager().populate_properties_table(result['rows'], self.properties_table)
+            self._after_table_update(self.properties_table)
+            self._status.set_status(TranslationKeys.LOCATION_PROPERTIES_READY, count=len(result['rows']))
+        else:
+            self._status.set_status(TranslationKeys.SELECT_MUNICIPALITY)
+        try:
+            MapHelpers.apply_scope_preview(current, result['feature_ids'], result['extent'], select=bool(result['scope'][2]))
+        except Exception as exc:
+            PythonFailLogger.log_exception(exc, module='property', event='property_location_map_failed')
+            self._status.set_status(TranslationKeys.LOCATION_MAP_FAILED, error=str(exc))
+
+    @pyqtSlot(str)
+    def _on_failed(self, message):
+        if self._closed:
+            return
+        self._invalidate_archive_scope()
+        self._status.set_status(TranslationKeys.LOCATION_LOAD_FAILED, error=message)
+
+    def _retry(self):
+        layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        if not self._locations or layer is not self._layer:
+            self.load_counties(layer)
+        else:
+            self.reload_current_table_from_filters()
 
 
 class LocationFilterWidget(QFrame):
@@ -221,3 +279,27 @@ class LocationFilterWidget(QFrame):
 
         location_layout.addStretch()
         filter_layout.addLayout(location_layout)
+
+        status_layout = QHBoxLayout()
+        self.loading_indicator = QProgressBar(self)
+        self.loading_indicator.setRange(0, 0)
+        self.loading_indicator.setTextVisible(False)
+        self.loading_indicator.setFixedSize(50, 6)
+        self.loading_indicator.hide()
+        self.status_label = QLabel(self.lang_manager.translate(TranslationKeys.SELECT_COUNTY), self)
+        self.status_label.setTextFormat(Qt.PlainText)
+        self.status_label.setWordWrap(True)
+        self.retry_button = QPushButton(self.lang_manager.translate(TranslationKeys.CARD_LOAD_RETRY), self)
+        self.retry_button.setAutoDefault(False)
+        self.retry_button.hide()
+        status_layout.addWidget(self.loading_indicator)
+        status_layout.addWidget(self.status_label, 1)
+        status_layout.addWidget(self.retry_button)
+        filter_layout.addLayout(status_layout)
+
+    def set_status(self, key, *, busy=False, count=None, error=None):
+        text = self.lang_manager.translate(key)
+        self.status_label.setText(text.format(count=count) if count is not None else text)
+        self.status_label.setToolTip(error or '')
+        self.loading_indicator.setVisible(busy)
+        self.retry_button.setVisible(error is not None)

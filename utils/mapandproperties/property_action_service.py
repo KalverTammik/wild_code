@@ -53,25 +53,37 @@ class PropertyActionService:
 
         try:
             if normalized_action == "archive":
-                BackendPropertyActions.archive_properties_by_tunnused(
+                summary = BackendPropertyActions.archive_properties_by_tunnused(
                     list(tunnused),
                     archive_tag_name=archive_tag_name,
                     module_name=module_name,
                 )
+                succeeded = int(summary.get("succeeded") or 0)
+                skipped = int(summary.get("skipped") or 0)
+                failed = int(summary.get("failed") or 0)
                 return PropertyActionResult(
-                    ok=True,
-                    title="Backend action",
-                    message=f"Archived in backend: {len(tunnused)}",
+                    ok=bool(succeeded > 0 and failed == 0),
+                    title="Backend archive" if failed == 0 else "Backend archive (partial)",
+                    message=(
+                        f"Backend archived: {succeeded}; skipped: {skipped}; failed: {failed}"
+                    ),
                     action=normalized_action,
+                    error=(f"{failed} backend archive operations failed" if failed else None),
                 )
 
             if normalized_action == "unarchive":
-                BackendPropertyActions.unarchive_properties_by_tunnused(list(tunnused))
+                summary = BackendPropertyActions.unarchive_properties_by_tunnused(list(tunnused))
+                succeeded = int(summary.get("succeeded") or 0)
+                skipped = int(summary.get("skipped") or 0)
+                failed = int(summary.get("failed") or 0)
                 return PropertyActionResult(
-                    ok=True,
-                    title="Backend action",
-                    message=f"Unarchived in backend: {len(tunnused)}",
+                    ok=bool(succeeded > 0 and failed == 0),
+                    title="Backend unarchive" if failed == 0 else "Backend unarchive (partial)",
+                    message=(
+                        f"Backend unarchived: {succeeded}; skipped: {skipped}; failed: {failed}"
+                    ),
                     action=normalized_action,
+                    error=(f"{failed} backend unarchive operations failed" if failed else None),
                 )
 
             if normalized_action == "delete":

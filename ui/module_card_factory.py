@@ -245,7 +245,7 @@ class ModuleCardFactory:
             lang_manager=lang_manager,
         )
 
-        members_view = MembersView(item_data)
+        members_view = MembersView(item_data, lang_manager=lang_manager)
 
         corner_widget_controller = ResponsiveCornerWidget(
             dates_widget,

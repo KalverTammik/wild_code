@@ -100,11 +100,14 @@ The button is configured as:
 - parent: `handle_host` (normally the full card)
 - auto raise: `True`
 - fixed size: `56 x 16`
-- text: `...`
-- tooltip: resolved from `_detail_button_tooltip()`
+- arrow: down when closed, up when expanded
+- tooltip and accessible name: localized `Show details` / `Hide details`
+- checked state: follows the expanded state, including automatic collapse
 - cursor: `Qt.PointingHandCursor`
 
-There is no icon. The `...` text is intentionally visible so users can discover the handle more easily.
+The arrow replaces the previous ellipsis (2026-09-12). The position and 56 x 16 px size remain unchanged. The checked and keyboard-focus states have a visible border in both themes.
+
+Detail descriptions and project board data now load through `AsyncContentWidget`: the worker fetches data, while widgets are built on the GUI thread. Files have an independent loading state and retry. `ExtraInfoFrame` observes layout requests so newly loaded content receives its natural height. A late result does not reopen a collapsed card; reopening reuses the loaded content.
 
 ## Positioning logic
 

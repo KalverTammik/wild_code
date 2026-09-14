@@ -32,7 +32,7 @@ query property(
                 displayName
                 deletedAt
               }
-              isResponsible
+              responsible
             }
           }
           status {

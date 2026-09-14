@@ -12,15 +12,23 @@ from PyQt5.QtWidgets import (
     QProgressBar,
 )
 
+from qgis.core import QgsFeatureRequest
 from qgis.utils import iface
 
-from ..modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
+from ..modules.Property.FlowControllers.MainAddProperties import (
+    BackendPropertyVerifier,
+    MainAddPropertiesFlow,
+)
 from ..modules.Property.FlowControllers.BackendVerifyController import BackendVerifyController
 from ..modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
 from ..modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
 from ..modules.Property.FlowControllers.AttentionDisplayRules import AttentionDisplayRules
 from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager, PropertyTableWidget
 from ..utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
+from ..utils.mapandproperties.property_archive_plan import (
+    PropertyArchiveScope,
+    classify_archive_candidates,
+)
 from ..utils.mapandproperties.property_row_builder import PropertyRowBuilder
 from .theme_manager import ThemeManager
 
@@ -31,9 +39,11 @@ from ..languages.translation_keys import TranslationKeys
 from ..utils.MapTools.item_selector_tools import PropertiesSelectors
 from ..constants.layer_constants import IMPORT_PROPERTY_TAG
 from ..utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
+from ..utils.messagesHelper import ModernMessageDialog
 from ..utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ..constants.cadastral_fields import Katastriyksus
 from ..widgets.DateHelpers import DateHelpers
+from ..widgets.PropertyArchivePlanDialog import PropertyArchivePlanDialog
 
 from .LocationFilterWidget import LocationFilterWidget, LocationFilterHelper
 from ..Logs.python_fail_logger import PythonFailLogger
@@ -68,6 +78,12 @@ class AddPropertyDialog(QDialog):
         self.municipality_combo = None
         self.city_combo = None
         self._location_filter_helper: Optional[LocationFilterHelper] = None
+        self._archive_scope_snapshot: Optional[PropertyArchiveScope] = None
+        self._checks_completed_for_scope = False
+        self._archive_scope_blocked_reason = ""
+        self._archive_moved_elsewhere: set[str] = set()
+        self._archive_preliminary_missing: set[str] = set()
+        self._archive_candidate_settlement: dict[str, str] = {}
 
         # Minimize parent window while this dialog is open (location mode only)
         self._parent_window = None
@@ -138,11 +154,12 @@ class AddPropertyDialog(QDialog):
                 properties_table=self.properties_table,
                 after_table_update=self._after_table_update,
                 stop_checks=lambda clear_attention: self._stop_attention_checks(clear_attention=clear_attention),
+                invalidate_archive_scope=self._invalidate_archive_scope,
                 update_add_button_state=lambda count: self._update_add_button_state(selected_count=count),
-                zoom_map=self._map_update_timer.start,
+                stop_map_update=self._map_update_timer.stop,
+                status_widget=self.location_filter_widget,
                 parent=self,
             )
-            self._location_filter_helper.load_counties(self.property_layer)
         else:
             self._location_filter_helper = None
 
@@ -193,6 +210,7 @@ class AddPropertyDialog(QDialog):
             return
 
         # Block until done (location mode)
+        self._location_filter_helper.load_counties(self.property_layer)
         self.exec_()
 
 
@@ -209,7 +227,7 @@ class AddPropertyDialog(QDialog):
             )
         self._import_selection_orchestrator = None
         if self._location_filter_helper is not None:
-            self._location_filter_helper.stop_pending_city_reload()
+            self._location_filter_helper.close()
         import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if import_layer:
             MapHelpers.clear_layer_filter(import_layer)
@@ -541,7 +559,8 @@ class AddPropertyDialog(QDialog):
         # If the user already ran checks and archive plans exist, apply that plan first
         # before resetting check state for the add run.
         if not self._checks_running and bool(self._missing_from_import):
-            self._run_missing_cleanup_if_any()
+            if not self._run_missing_cleanup_if_any():
+                return
 
         self._stop_attention_checks(clear_attention=True)
         self._update_add_button_state(selected_count=selected_count)
@@ -559,7 +578,8 @@ class AddPropertyDialog(QDialog):
             return
 
         if mode == "with_checks":
-            self._run_missing_cleanup_if_any()
+            if not self._run_missing_cleanup_if_any():
+                return
 
         runner = AddBatchRunner(
             table,
@@ -700,7 +720,7 @@ class AddPropertyDialog(QDialog):
             if self._table_filtered_to_attention:
                 self._table_filtered_to_attention = False
                 if self._location_filter_helper is not None:
-                    self._location_filter_helper.reload_current_table_from_filters(zoom=True)
+                    self._location_filter_helper.reload_current_table_from_filters()
             return
 
         # If checks already finished, apply immediately.
@@ -791,10 +811,252 @@ class AddPropertyDialog(QDialog):
     # Attention checks + status
     # ---------------------------------------------------------------------
 
-    def _after_table_update(self, _table) -> None:
-        """Called after PropertyUpdateFlowCoordinator repopulates + selects the table."""
+    def _invalidate_archive_scope(self) -> None:
+        self._checks_completed_for_scope = False
+        self._archive_scope_snapshot = None
+        self._archive_scope_blocked_reason = ""
+        self._archive_moved_elsewhere = set()
+        self._archive_preliminary_missing = set()
+        self._archive_candidate_settlement = {}
+        self._missing_from_import = set()
+        self._archive_backend_plan = {}
+        self._archive_map_plan = {}
 
-        self._stop_attention_checks(clear_attention=True)
+    @staticmethod
+    def _layer_identity(layer) -> tuple[str, str]:
+        if layer is None:
+            return ("", "")
+        try:
+            layer_id = str(layer.id() or "")
+        except Exception:
+            layer_id = ""
+        try:
+            source = str(layer.source() or "")
+        except Exception:
+            source = ""
+        return (layer_id, source)
+
+    def _current_location_scope(self) -> tuple[str, str, tuple[str, ...]]:
+        if self._dialog_mode != PropertyDialogMode.BY_LOCATION:
+            return ("", "", tuple())
+        county = str(self.county_combo.currentData() or "").strip() if self.county_combo else ""
+        municipality = (
+            str(self.municipality_combo.currentData() or "").strip()
+            if self.municipality_combo
+            else ""
+        )
+        settlements = tuple(
+            sorted(
+                {
+                    str(value).strip()
+                    for value in (self.city_combo.checkedItems() if self.city_combo else [])
+                    if str(value).strip()
+                }
+            )
+        )
+        return (county, municipality, settlements)
+
+    def _table_tunnused(self) -> set[str]:
+        return PropertyTableManager.get_cadastral_ids(self.properties_table)
+
+    def _capture_archive_scope_snapshot(self, *, load_succeeded: bool) -> None:
+        county, municipality, settlements = self._current_location_scope()
+        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        layer_id, layer_source = self._layer_identity(import_layer)
+        self._archive_scope_snapshot = PropertyArchiveScope.create(
+            county=county,
+            municipality=municipality,
+            settlements=settlements,
+            import_tunnused=self._table_tunnused(),
+            import_layer_id=layer_id,
+            import_layer_source=layer_source,
+            load_succeeded=load_succeeded,
+        )
+        self._archive_scope_blocked_reason = self._archive_scope_snapshot.blocked_reason
+
+    @staticmethod
+    def _scope_features(layer, scope: PropertyArchiveScope) -> dict[str, object]:
+        if layer is None or not layer.isValid():
+            raise RuntimeError("scope layer is missing or invalid")
+        required = (
+            Katastriyksus.tunnus,
+            Katastriyksus.mk_nimi,
+            Katastriyksus.ov_nimi,
+            Katastriyksus.ay_nimi,
+        )
+        missing_fields = [name for name in required if layer.fields().lookupField(name) < 0]
+        if missing_fields:
+            raise RuntimeError(f"scope fields missing: {', '.join(missing_fields)}")
+
+        expression = PropertyDataLoader.build_scope_expression(
+            county_name=scope.county,
+            municipality_name=scope.municipality,
+            settlements=scope.settlements,
+        )
+        request = QgsFeatureRequest()
+        request.setFilterExpression(expression)
+        request.setFlags(QgsFeatureRequest.NoGeometry)
+        result: dict[str, object] = {}
+        for feature in layer.getFeatures(request):
+            tunnus = str(feature.attribute(Katastriyksus.tunnus) or "").strip()
+            if tunnus and tunnus not in result:
+                result[tunnus] = feature
+        return result
+
+    @staticmethod
+    def _find_import_tunnused(import_layer, tunnused: set[str]) -> set[str]:
+        if not tunnused:
+            return set()
+        if import_layer is None or not import_layer.isValid():
+            raise RuntimeError("import layer is missing or invalid")
+        if import_layer.fields().lookupField(Katastriyksus.tunnus) < 0:
+            raise RuntimeError(f"import field missing: {Katastriyksus.tunnus}")
+
+        expression = PropertyDataLoader._in_expr(Katastriyksus.tunnus, sorted(tunnused))
+        request = QgsFeatureRequest()
+        request.setFilterExpression(expression)
+        request.setFlags(QgsFeatureRequest.NoGeometry)
+        found = set()
+        for feature in import_layer.getFeatures(request):
+            tunnus = str(feature.attribute(Katastriyksus.tunnus) or "").strip()
+            if tunnus in tunnused:
+                found.add(tunnus)
+        return found
+
+    def _compute_scoped_archive_plan(self) -> set[str]:
+        scope = self._archive_scope_snapshot
+        if scope is None or not scope.complete:
+            self._archive_scope_blocked_reason = (
+                scope.blocked_reason if scope is not None else "scope_not_loaded"
+            )
+            return set()
+
+        main_layer = self._main_layer_for_verify or self._resolve_main_layer_cached()
+        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        try:
+            main_features = self._scope_features(main_layer, scope)
+            preliminary = set(main_features).difference(scope.import_tunnused)
+            found_elsewhere = self._find_import_tunnused(import_layer, preliminary)
+            classification = classify_archive_candidates(
+                scope=scope,
+                main_scope_tunnused=main_features,
+                import_tunnused_found_elsewhere=found_elsewhere,
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="property_archive_scope_plan_failed",
+            )
+            self._archive_scope_blocked_reason = "scope_read_failed"
+            return set()
+
+        self._archive_scope_blocked_reason = classification.blocked_reason
+        self._archive_preliminary_missing = set(preliminary)
+        self._archive_moved_elsewhere = set(classification.moved_elsewhere)
+        self._archive_candidate_settlement = {
+            tunnus: str(main_features[tunnus].attribute(Katastriyksus.ay_nimi) or "").strip()
+            for tunnus in classification.candidates
+            if tunnus in main_features
+        }
+        return set(classification.candidates)
+
+    def _archive_scope_is_current(self) -> bool:
+        scope = self._archive_scope_snapshot
+        if scope is None or not scope.complete or self._current_location_scope() != scope.key:
+            return False
+        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        if self._layer_identity(import_layer) != (scope.import_layer_id, scope.import_layer_source):
+            return False
+        try:
+            current_features = self._scope_features(import_layer, scope)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="property_archive_scope_revalidate_failed",
+            )
+            return False
+        if frozenset(current_features) != scope.import_tunnused:
+            return False
+        try:
+            current_elsewhere = self._find_import_tunnused(
+                import_layer,
+                self._archive_preliminary_missing,
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="property_archive_candidate_revalidate_failed",
+            )
+            return False
+        return current_elsewhere == self._archive_moved_elsewhere
+
+    def _build_archive_candidate_rows(self, missing: list[str]) -> list[dict]:
+        rows = []
+        for index, tunnus in enumerate(missing, start=1):
+            backend_allowed = False
+            note = ""
+            backend_label = self.lang_manager.translate(
+                TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED
+            )
+            try:
+                backend_info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
+                if not isinstance(backend_info, dict) or backend_info.get("exists") is None:
+                    note = self.lang_manager.translate(
+                        TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED
+                    )
+                else:
+                    active_ids = [
+                        str(value).strip()
+                        for value in (backend_info.get("active_ids") or [])
+                        if str(value).strip()
+                    ]
+                    active_count = backend_info.get("active_count")
+                    if (isinstance(active_count, int) and active_count > 1) or len(active_ids) > 1:
+                        backend_label = self.lang_manager.translate(
+                            TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MULTIPLE
+                        )
+                    elif len(active_ids) == 1:
+                        backend_allowed = True
+                        backend_label = self.lang_manager.translate(
+                            TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_ARCHIVE
+                        )
+                    else:
+                        backend_label = self.lang_manager.translate(
+                            TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MISSING
+                        )
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="property",
+                    event="property_archive_candidate_backend_check_failed",
+                    extra={"tunnus": tunnus},
+                )
+                note = self.lang_manager.translate(
+                    TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED
+                )
+
+            rows.append(
+                {
+                    "tunnus": tunnus,
+                    "settlement": self._archive_candidate_settlement.get(tunnus, ""),
+                    "backend_allowed": backend_allowed,
+                    "backend_label": backend_label,
+                    "note": note,
+                }
+            )
+            if index % 5 == 0:
+                QCoreApplication.processEvents()
+        return rows
+
+    def _after_table_update(self, _table) -> None:
+        """Publish the completed table's scope after a location or map-selection load."""
+
+        # Newly populated rows already have pending attention states.
+        self._stop_attention_checks(clear_attention=False)
+        self._capture_archive_scope_snapshot(load_succeeded=True)
 
         table = self.properties_table
         if table is None:
@@ -810,9 +1072,6 @@ class AddPropertyDialog(QDialog):
 
         self._update_run_checks_button()
 
-        if self._location_filter_helper is not None:
-            self._location_filter_helper.handle_after_table_update()
-
         # Do not auto-run attention checks; user can trigger manually.
         self._update_run_checks_button()
 
@@ -824,6 +1083,7 @@ class AddPropertyDialog(QDialog):
         self._main_check_controller.stop()
 
         self._checks_running = False
+        self._checks_completed_for_scope = False
         self._rows_for_verify_by_row = {}
         self._backend_compare_causes_by_row = {}
         self._main_compare_causes_by_row = {}
@@ -1107,6 +1367,7 @@ class AddPropertyDialog(QDialog):
         total = int(self._total_rows_for_checks or 0)
         if total <= 0:
             self._checks_running = False
+            self._checks_completed_for_scope = False
             self._update_add_button_state()
             self._set_check_progress(0, 0)
             return
@@ -1121,31 +1382,30 @@ class AddPropertyDialog(QDialog):
             return
 
         self._checks_running = False
+        self._checks_completed_for_scope = True
         self._update_add_button_state()
         self._update_run_checks_button()
 
         self._set_check_progress(total, total)
 
         self._missing_from_import = self._compute_missing_from_import_set()
-
-        # Build archive plans per row/tunnus using known causes.
-        archive_map_plan: dict[str, bool] = {}
-        archive_backend_plan: dict[str, bool] = {}
-
-        for row_idx, (tunnus, _muudet) in self._rows_for_verify_by_row.items():
-            t = (tunnus or "").strip()
-            in_missing = t in self._missing_from_import
-
-            backend_causes = [c.lower() for c in (self._backend_compare_causes_by_row.get(row_idx) or [])]
-            backend_missing = any("missing in backend" in c for c in backend_causes)
-            backend_lookup_failed = any("backend lookup failed" in c for c in backend_causes)
-
-            archive_map_plan[t] = bool(in_missing)
-            # Only archive in backend if we plan map-archive AND backend exists/was reachable.
-            archive_backend_plan[t] = bool(in_missing and not backend_missing and not backend_lookup_failed)
-
-        self._archive_map_plan = archive_map_plan
-        self._archive_backend_plan = archive_backend_plan
+        self._archive_map_plan = {tunnus: True for tunnus in self._missing_from_import}
+        # Candidate backend records are checked separately immediately before the
+        # user reviews the archive plan. Missing properties have no import-table
+        # row, so the regular row checks cannot safely decide this value.
+        self._archive_backend_plan = {tunnus: False for tunnus in self._missing_from_import}
+        if self._archive_scope_blocked_reason and self.add_progress_label is not None:
+            self.add_progress_label.setText(
+                self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_SCOPE_SKIPPED)
+            )
+            self.add_progress_label.setVisible(True)
+        elif self._archive_moved_elsewhere and self.add_progress_label is not None:
+            self.add_progress_label.setText(
+                self.lang_manager.translate(
+                    TranslationKeys.PROPERTY_ARCHIVE_MOVED_EXCLUDED
+                ).format(count=len(self._archive_moved_elsewhere))
+            )
+            self.add_progress_label.setVisible(True)
 
         # Summarize attention count.
         attention = 0
@@ -1286,7 +1546,13 @@ class AddPropertyDialog(QDialog):
         if selected_count is None:
             selected_count = self._current_target_count()
 
-        can_add = bool(selected_count and int(selected_count) > 0 and not self._checks_running and not self._add_in_progress)
+        can_add = bool(
+            selected_count
+            and int(selected_count) > 0
+            and self._checks_completed_for_scope
+            and not self._checks_running
+            and not self._add_in_progress
+        )
         self.add_button.setEnabled(can_add)
 
         if self.add_without_checks_button is not None:
@@ -1352,48 +1618,34 @@ class AddPropertyDialog(QDialog):
         self._set_icon_cell(row_idx, PropertyTableWidget._COL_ARCHIVE_MAP, map_plan_state)
 
     def _compute_missing_from_import_set(self) -> set[str]:
-        try:
-            import_set = {str(t).strip() for (_r, (t, _m)) in self._rows_for_verify_by_row.items() if str(t).strip()}
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="property",
-                event="add_property_import_set_failed",
-            )
-            import_set = set()
+        return self._compute_scoped_archive_plan()
 
-        main_layer = self._main_layer_for_verify or self._resolve_main_layer_cached()
-        if not main_layer or not import_set:
-            return set()
-
-        missing: set[str] = set()
-        counter = 0
-        try:
-            for feat in main_layer.getFeatures():
-                val = feat.attribute(Katastriyksus.tunnus)
-                tunnus = str(val).strip() if val is not None else ""
-                if not tunnus:
-                    continue
-                if tunnus not in import_set:
-                    missing.add(tunnus)
-                counter += 1
-                if counter % 200 == 0:
-                    QCoreApplication.processEvents()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="property",
-                event="add_property_missing_scan_failed",
-            )
-            return missing
-        return missing
-
-    def _run_missing_cleanup_if_any(self) -> None:
+    def _run_missing_cleanup_if_any(self) -> bool:
         missing = sorted({str(t).strip() for t in (self._missing_from_import or set()) if str(t).strip()})
         if not missing:
-            return
+            return True
 
-        backend_allowed = {t for t in missing if bool(self._archive_backend_plan.get(t, True))}
+        if not self._archive_scope_is_current():
+            self._invalidate_archive_scope()
+            ModernMessageDialog.Warning_messages_modern(
+                self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_STALE_TITLE),
+                self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_STALE_BODY),
+            )
+            return False
+
+        candidate_rows = self._build_archive_candidate_rows(missing)
+        self._archive_backend_plan = {
+            row["tunnus"]: bool(row.get("backend_allowed")) for row in candidate_rows
+        }
+        if not PropertyArchivePlanDialog.confirm(
+            scope=self._archive_scope_snapshot,
+            candidates=candidate_rows,
+            parent=self,
+            lang_manager=self.lang_manager,
+        ):
+            return False
+
+        backend_allowed = {t for t in missing if bool(self._archive_backend_plan.get(t, False))}
 
         label = self.add_progress_label
         if label is not None:
@@ -1421,6 +1673,17 @@ class AddPropertyDialog(QDialog):
                         errors_suffix=errors_suffix,
                     )
                 )
+            if errors:
+                ModernMessageDialog.Warning_messages_modern(
+                    self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_PARTIAL_TITLE),
+                    self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_PARTIAL_BODY).format(
+                        moved=moved,
+                        archived=archived,
+                        failed=len(errors),
+                    ),
+                )
+                self._invalidate_archive_scope()
+                return False
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -1430,7 +1693,12 @@ class AddPropertyDialog(QDialog):
             if label is not None:
                 template = self.lang_manager.translate(TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR)
                 label.setText(template.format(count=len(missing)))
+            self._invalidate_archive_scope()
+            return False
 
         # Run once per check cycle.
         self._missing_from_import = set()
+        self._archive_backend_plan = {}
+        self._archive_map_plan = {}
+        return True
 

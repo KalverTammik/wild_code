@@ -44,3 +44,34 @@ QLabel#FilterTitleLabel {
 	padding-right: 2px;
 }
 
+QToolButton#FeedSortButton, QToolButton#FeedGroupButton {
+    background: #232b33;
+    color: #e2e8f0;
+    border: 1px solid #425263;
+    border-radius: 5px;
+    padding: 3px 14px 3px 6px;
+    min-height: 16px;
+}
+QToolButton#FeedSortButton[active="true"], QToolButton#FeedGroupButton[active="true"] {
+    background: #344c66;
+    border-color: #2188ff;
+}
+QToolButton#FeedSortButton:hover, QToolButton#FeedGroupButton:hover,
+QToolButton#FeedSortButton:focus, QToolButton#FeedGroupButton:focus {
+    background: #2d3e50;
+    border-color: #2188ff;
+}
+QToolButton#FeedGroupHeader {
+    background: #2d3e50;
+    color: #e2e8f0;
+    border: 0;
+    border-bottom: 1px solid #425263;
+    border-radius: 3px;
+    padding: 3px 5px;
+    min-height: 18px;
+    text-align: left;
+    font-weight: 600;
+}
+QToolButton#FeedGroupHeader:hover, QToolButton#FeedGroupHeader:focus {
+    background: #344c66;
+}

@@ -150,3 +150,7 @@ class PropertyTableModel(QAbstractTableModel):
         if row < 0 or row >= len(self._rows):
             return None
         return self._rows[row]
+
+    def cadastral_ids(self) -> set[str]:
+        """Read loaded row identities without creating a Qt index for every cell."""
+        return {value for row in self._rows if (value := str(row.get('cadastral_id') or '').strip())}

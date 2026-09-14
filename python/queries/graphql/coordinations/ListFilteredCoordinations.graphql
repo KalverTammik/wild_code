@@ -53,7 +53,7 @@ query coordinations(
               displayName
               deletedAt
             }
-            isResponsible
+            responsible
           }
         }
         contacts(first: $contactsFirst, after: $contactsAfter) {

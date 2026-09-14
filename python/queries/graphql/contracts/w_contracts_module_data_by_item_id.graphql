@@ -26,7 +26,7 @@ query contractModuleDataById(
           displayName
           deletedAt
         }
-        isResponsible
+        responsible
       }
     }
     status {

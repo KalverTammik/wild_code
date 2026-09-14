@@ -716,7 +716,7 @@ class APIModuleActions:
             return None
 
     @staticmethod
-    def get_module_files(module_name: str, item_id: str, *, limit: int = 200) -> Optional[List[dict]]:
+    def get_module_files(module_name: str, item_id: str, *, limit: Optional[int] = None) -> Optional[List[dict]]:
         owner = APIModuleActions._file_owner_module(module_name)
         query_name = APIModuleActions._file_query_name(module_name)
         record_id = str(item_id or "").strip()
@@ -729,13 +729,15 @@ class APIModuleActions:
         query = loader.load_query_by_module(owner, query_name)
         client = APIClient()
 
-        max_items = max(1, int(limit or 0))
+        # The file dialog promises the full list. Only cap it when a caller asks.
+        max_items = max(1, int(limit)) if limit is not None else None
         after: Optional[str] = None
+        seen_cursors: set[str] = set()
         files_by_uuid: dict[str, dict] = {}
 
         try:
-            while len(files_by_uuid) < max_items:
-                remaining = max_items - len(files_by_uuid)
+            while max_items is None or len(files_by_uuid) < max_items:
+                remaining = max_items - len(files_by_uuid) if max_items is not None else 50
                 variables = {
                     "id": record_id,
                     "first": min(50, remaining),
@@ -749,11 +751,15 @@ class APIModuleActions:
                         }
                     ]
                 data = client.send_query(query, variables=variables) or {}
-                root_payload = (data.get(owner) or {}) if isinstance(data, dict) else {}
-                connection = (root_payload.get("files") or {}) if isinstance(root_payload, dict) else {}
-                edges = connection.get("edges") or []
-
-                if not isinstance(edges, list) or not edges:
+                root_payload = data.get(owner) if isinstance(data, dict) else None
+                connection = root_payload.get("files") if isinstance(root_payload, dict) else None
+                if not isinstance(connection, dict) or not isinstance(connection.get("edges"), list):
+                    raise RuntimeError("File response is missing the requested connection")
+                edges = connection["edges"]
+                page_info = connection.get("pageInfo") or {}
+                if not edges:
+                    if page_info.get("hasNextPage"):
+                        raise RuntimeError("File pagination returned an empty intermediate page")
                     break
 
                 for edge in edges:
@@ -783,13 +789,17 @@ class APIModuleActions:
                         "updatedAt": node.get("updatedAt"),
                         "deletedAt": node.get("deletedAt"),
                     }
-                    if len(files_by_uuid) >= max_items:
+                    if max_items is not None and len(files_by_uuid) >= max_items:
                         break
 
-                page_info = connection.get("pageInfo") or {}
-                after = str(page_info.get("endCursor") or "").strip()
-                if not page_info.get("hasNextPage") or not after:
+                if max_items is not None and len(files_by_uuid) >= max_items:
                     break
+                after = str(page_info.get("endCursor") or "").strip()
+                if not page_info.get("hasNextPage"):
+                    break
+                if not after or after in seen_cursors:
+                    raise RuntimeError("File pagination did not advance")
+                seen_cursors.add(after)
 
             return list(files_by_uuid.values())
         except Exception as exc:
@@ -1229,7 +1239,7 @@ class APIModuleActions:
         for member_id in cleaned_member_ids:
             member_payload: dict[str, object] = {"id": member_id}
             if include_responsible_flag and selected_responsible_id:
-                member_payload["isResponsible"] = member_id == selected_responsible_id
+                member_payload["responsible"] = member_id == selected_responsible_id
             payload.append(member_payload)
 
         return payload
@@ -1364,7 +1374,7 @@ class APIModuleActions:
                         and associate_payload == member_payload
                         and member_payload != fallback_member_payload
                         and "members.associate" in message
-                        and "isResponsible" in message
+                        and "responsible" in message
                     )
                     should_retry_without_geometry = (
                         include_geometry

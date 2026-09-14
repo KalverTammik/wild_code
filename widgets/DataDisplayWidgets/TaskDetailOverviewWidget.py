@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import os
+from PyQt5 import sip
 from typing import Optional
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
@@ -16,6 +17,7 @@ from ...python.responses import DataDisplayExtractors
 from ..theme_manager import ThemeManager
 from .HtmlDescriptionWidget import HtmlDescriptionWidget
 from .TaskFilePreviewDialog import TaskFilePreviewDialog
+from .TaskFilesDialog import TaskFilesDialog
 
 
 class _FilePreviewSquareButton(QPushButton):
@@ -141,6 +143,9 @@ class TaskFilesSummaryWidget(QWidget):
         self._item_name = str(item_name or self._item_id).strip()
         self._module_name = str(module_name or "task").strip().lower() or "task"
         self._files: list[dict] = []
+        self._loading = False
+        self._worker = None
+        self._thread = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 10, 0, 0)
@@ -166,6 +171,21 @@ class TaskFilesSummaryWidget(QWidget):
         self._status_label.setWordWrap(True)
         layout.addWidget(self._status_label)
 
+        self._retry_button = QPushButton(self._lang.translate(TranslationKeys.CARD_LOAD_RETRY), self)
+        self._retry_button.setProperty("variant", "ghost")
+        self._retry_button.setAutoDefault(False)
+        self._retry_button.clicked.connect(self._load_files)
+        self._retry_button.hide()
+        layout.addWidget(self._retry_button, 0, Qt.AlignLeft)
+
+        self._all_files_button = QPushButton(self)
+        self._all_files_button.setObjectName("TaskFilesSummaryViewAll")
+        self._all_files_button.setProperty("variant", "ghost")
+        self._all_files_button.setAutoDefault(False)
+        self._all_files_button.clicked.connect(self._open_all_files)
+        self._all_files_button.hide()
+        layout.addWidget(self._all_files_button, 0, Qt.AlignLeft)
+
         self._load_files()
         self.retheme()
 
@@ -173,23 +193,46 @@ class TaskFilesSummaryWidget(QWidget):
         ThemeManager.apply_module_style(self, [QssPaths.MODULE_INFO, QssPaths.BUTTONS])
 
     def _load_files(self) -> None:
+        if self._loading:
+            return
         if not APIModuleActions._file_query_name(self._module_name):
             self.hide()
             return
+        self._loading = True
+        self._status_label.setText(self._lang.translate(TranslationKeys.LOADING))
+        self._status_label.show()
+        self._count_label.setVisible(bool(self._files))
+        self._retry_button.hide()
+        self._all_files_button.setEnabled(False)
+        worker = FunctionWorker(APIModuleActions.get_module_files, self._module_name, self._item_id)
+        worker.finished.connect(self._files_loaded)
+        worker.error.connect(self._files_failed)
+        self._worker = worker
+        self._thread = start_worker(worker)
 
-        files = APIModuleActions.get_module_files(self._module_name, self._item_id)
+    @pyqtSlot(str)
+    def _files_failed(self, _message: str) -> None:
+        self._files_loaded(None)
+
+    @pyqtSlot(object)
+    def _files_loaded(self, files) -> None:
+        self._loading = False
         if files is None:
             self._files = []
             self._count_label.setText("")
+            self._count_label.hide()
             self._status_label.setText(
                 self._lang.translate(TranslationKeys.TASK_FILES_LOAD_FAILED).format(
                     name=self._item_name or self._item_id,
                 )
             )
+            self._all_files_button.hide()
+            self._retry_button.show()
             self._rebuild_file_rows()
             return
 
         self._files = list(files)
+        self._count_label.show()
         count = len(self._files)
         if count <= 0:
             self._count_label.setText(self._lang.translate(TranslationKeys.TASK_FILES_EMPTY))
@@ -198,13 +241,12 @@ class TaskFilesSummaryWidget(QWidget):
                 self._lang.translate(TranslationKeys.TASK_FILES_COUNT).format(count=count)
             )
 
-        hidden_count = max(0, count - self.MAX_VISIBLE_FILES)
-        if hidden_count > 0:
-            self._status_label.setText(
-                self._lang.translate(TranslationKeys.MORE_COUNT_SUFFIX).format(count=hidden_count).strip()
-            )
-        else:
-            self._status_label.setText("")
+        self._status_label.setText("")
+        self._status_label.hide()
+        self._retry_button.hide()
+        self._all_files_button.setText(self._lang.translate(TranslationKeys.CARD_FILES_VIEW_ALL).format(count=count))
+        self._all_files_button.setEnabled(True)
+        self._all_files_button.setVisible(count > 0)
 
         self._rebuild_file_rows()
 
@@ -224,26 +266,6 @@ class TaskFilesSummaryWidget(QWidget):
             row_layout.setContentsMargins(0, 0, 0, 0)
             row_layout.setSpacing(8)
 
-            icon_label = QLabel(row)
-            icon_label.setObjectName("TaskFilesSummaryIcon")
-            icon = QIcon(self._icon_path_for_file(file_info))
-            pixmap = icon.pixmap(18, 18)
-            icon_label.setPixmap(pixmap)
-            icon_label.setFixedSize(18, 18)
-            row_layout.addWidget(icon_label, 0, Qt.AlignTop)
-
-            file_name = TaskFilePreviewDialog.resolve_file_name(file_info=file_info)
-            button = QPushButton(file_name or "-", row)
-            button.setObjectName("TaskFilesSummaryButton")
-            button.setProperty("variant", "ghost")
-            button.setCursor(Qt.PointingHandCursor)
-            button.setFlat(True)
-            button.setStyleSheet("text-align: left; padding: 0;")
-            button.clicked.connect(
-                lambda _checked=False, payload=dict(file_info): self._open_preview(payload)
-            )
-            row_layout.addWidget(button, 1)
-
             if TaskFilePreviewDialog.is_image_preview_candidate(file_info=file_info):
                 preview_button = _FilePreviewSquareButton(
                     file_info=file_info,
@@ -251,14 +273,50 @@ class TaskFilesSummaryWidget(QWidget):
                     lang_manager=self._lang,
                     parent=row,
                 )
+                preview_button.setToolTip(TaskFilePreviewDialog.resolve_file_name(file_info=file_info))
                 preview_button.clicked.connect(
                     lambda _checked=False, payload=dict(file_info): self._open_preview(payload)
                 )
-                row_layout.addWidget(preview_button, 0, Qt.AlignTop)
+                row_layout.addWidget(preview_button, 0, Qt.AlignVCenter)
+            else:
+                icon_label = QLabel(row)
+                icon_label.setObjectName("TaskFilesSummaryIcon")
+                icon = QIcon(self._icon_path_for_file(file_info))
+                icon_label.setPixmap(icon.pixmap(18, 18))
+                icon_label.setFixedSize(25, 25)
+                icon_label.setAlignment(Qt.AlignCenter)
+                row_layout.addWidget(icon_label, 0, Qt.AlignVCenter)
+
+            file_name = TaskFilePreviewDialog.resolve_file_name(file_info=file_info)
+            button = QPushButton(file_name or "-", row)
+            button.setObjectName("TaskFilesSummaryButton")
+            button.setProperty("variant", "ghost")
+            button.setCursor(Qt.PointingHandCursor)
+            button.setFlat(True)
+            button.setAutoDefault(False)
+            button.setToolTip(file_name)
+            button.setStyleSheet("text-align: left; padding: 0;")
+            button.clicked.connect(
+                lambda _checked=False, payload=dict(file_info): self._open_preview(payload)
+            )
+            row_layout.addWidget(button, 1)
 
             self._list_layout.addWidget(row)
 
         self._list_layout.addStretch(1)
+
+    def _open_all_files(self) -> None:
+        dialog = TaskFilesDialog(
+            item_id=self._item_id,
+            item_name=self._item_name,
+            module_name=self._module_name,
+            lang_manager=self._lang,
+            parent=self.window(),
+            initial_files=self._files,
+        )
+        dialog.exec_()
+        if not sip.isdeleted(self):
+            self._load_files()
 
     def _icon_path_for_file(self, file_info: dict) -> str:
         file_name = TaskFilePreviewDialog.resolve_file_name(file_info=file_info)

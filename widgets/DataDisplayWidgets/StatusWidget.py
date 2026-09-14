@@ -334,6 +334,12 @@ class StatusWidget(QWidget):
         if self._is_deleted(card):
             return
 
+        # Managed lists update all occurrences and recalculate grouping/order.
+        update_handler = getattr(card, "_item_update_handler", None)
+        if callable(update_handler):
+            update_handler(item_data)
+            return
+
         container = card.parentWidget()
         if self._is_deleted(container):
             return

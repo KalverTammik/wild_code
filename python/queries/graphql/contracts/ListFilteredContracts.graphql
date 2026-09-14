@@ -42,7 +42,7 @@ query contracts(
               displayName
               deletedAt
             }
-            isResponsible
+            responsible
           }
         }
         status {

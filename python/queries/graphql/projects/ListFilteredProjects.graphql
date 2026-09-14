@@ -45,7 +45,7 @@ query Projects(
               displayName
               deletedAt
             }
-            isResponsible
+            responsible
           }
         }
         client {

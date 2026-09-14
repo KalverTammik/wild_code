@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="et">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kinnistute külapõhine uuendamine — arutelukava</title>
+  <style>
+    :root{--ink:#18343d;--muted:#526b73;--line:#d6e3e6;--teal:#087f83;--pale:#eaf6f5;--amber:#98610c;--paper:#fff;--bg:#f1f5f5}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}main{max-width:1080px;margin:32px auto;background:var(--paper);border:1px solid var(--line);border-radius:18px;overflow:hidden}header{padding:48px 54px 38px;background:linear-gradient(120deg,#153e48,#096f73);color:#fff}.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#bde7e6}h1{font-size:38px;line-height:1.15;letter-spacing:-.025em;margin:16px 0 20px;max-width:780px}header p{max-width:760px;color:#e0eeee;font-size:18px;margin:0}.meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:25px;font-size:13px}.meta span{padding:5px 12px;background:#ffffff15;border:1px solid #ffffff35;border-radius:30px}.toolbar{max-width:1080px;margin:20px auto -12px;display:flex;justify-content:flex-end}button{font:inherit;background:white;border:1px solid var(--line);border-radius:9px;padding:9px 17px;color:var(--ink);cursor:pointer}button:hover{background:var(--pale)}section{padding:30px 54px;border-top:1px solid var(--line)}h2{font-size:25px;line-height:1.3;letter-spacing:-.015em;margin:0 0 17px}h3{font-size:17px;margin:0 0 8px}p{margin:0 0 14px}p:last-child{margin-bottom:0}.lead{font-size:20px;line-height:1.5}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.box{padding:22px;border:1px solid var(--line);border-radius:12px}.box.good{background:var(--pale);border-color:#b4dcda}.box.attention{background:#fff8e9;border-color:#ead3a6}.label{display:block;text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:750;color:var(--muted);margin-bottom:8px}.formula{margin:18px 0;padding:20px;border-left:4px solid var(--teal);background:var(--pale);font-size:18px;font-weight:650}.note{font-size:14px;color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:15px;margin:15px 0}th,td{text-align:left;vertical-align:top;padding:13px 14px;border-bottom:1px solid var(--line)}th{background:#edf4f5;font-weight:650}tbody tr:last-child td{border-bottom:0}ul,ol{padding-left:23px;margin:10px 0}li{margin:7px 0}.steps{counter-reset:steps;display:grid;gap:14px}.step{position:relative;padding:17px 20px 17px 64px;border:1px solid var(--line);border-radius:10px}.step:before{counter-increment:steps;content:counter(steps);position:absolute;left:18px;top:18px;background:var(--teal);color:white;border-radius:50%;width:28px;height:28px;text-align:center;line-height:28px;font-weight:700}.step p{font-size:15px;color:var(--muted)}.diagram{margin:22px 0 10px;padding:16px;background:#f8fbfb;border:1px solid var(--line);border-radius:12px;overflow-x:auto}.diagram svg{display:block;width:100%;min-width:660px;height:auto}.example{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}.stat{padding:18px;border-radius:10px;background:#edf4f5}.stat strong{font-size:30px;display:block;line-height:1.2;margin-bottom:8px}.stat span{font-size:14px;color:var(--muted)}.discussion{list-style:none;padding:0}.discussion li{padding:13px 0 13px 30px;position:relative;border-bottom:1px solid var(--line)}.discussion li:before{content:'☐';position:absolute;left:0;color:var(--teal);font-size:20px;line-height:1.4}.discussion small{display:block;color:var(--muted);font-size:14px}.decision{padding:18px 22px;background:var(--pale);border-radius:10px;margin-top:22px}footer{padding:23px 54px;background:#edf4f5;color:var(--muted);font-size:13px}a{color:var(--teal)}
+    @media(max-width:720px){main{margin:15px;border-radius:12px}.toolbar{margin:14px 15px 0}header{padding:30px 24px}h1{font-size:30px}section{padding:26px 24px}.grid,.example{grid-template-columns:1fr}footer{padding:22px 24px}th,td{padding:10px 8px;font-size:14px}.lead{font-size:18px}}
+    @media print{@page{size:A4;margin:14mm}body{background:white;font-size:10pt;line-height:1.45;print-color-adjust:exact;-webkit-print-color-adjust:exact}.toolbar{display:none}main{margin:0;max-width:none;border:0;border-radius:0}header{padding:23px 26px}h1{font-size:26pt}header p{font-size:12pt}section{padding:20px 4px}h2{font-size:17pt;break-after:avoid}h3{break-after:avoid}.box,.step,.example,.decision,tr{break-inside:avoid}.diagram{break-inside:avoid;padding:8px}.diagram svg{min-width:0}.flow-section{break-before:page}p,li{orphans:3;widows:3}table{font-size:10pt}th,td{padding:8px}.lead{font-size:13pt}footer{padding:15px 4px}.meta{margin-top:15px}}
+  </style>
+</head>
+<body>
+<div class="toolbar"><button type="button" onclick="window.print()">Prindi / salvesta PDF-ina</button></div>
+<main>
+  <header>
+    <div class="eyebrow">Kavitro · kinnistute haldus</div>
+    <h1>Kinnistute uuendamine ja arhiveerimine külade kaupa</h1>
+    <p>Kavandatud lahendus, mis säilitab väikese töötlusmahu ja piirab puudumise tõttu arhiveerimise valitud küladega.</p>
+    <div class="meta"><span>Teostus- ja vastuvõtudokument · versioon 1.1</span><span>8. september 2026</span><span>Reeglid kokku lepitud · rakendus kontrollimisel</span></div>
+  </header>
+
+  <section>
+    <h2>1. Eesmärk ja kokkulepitav põhimõte</h2>
+    <p class="lead">Kasutaja valib ühe või mitu küla ning uuendab nende kinnistuid. Teiste külade olemasolevad kinnistud jäävad selle töötluse ulatusest välja.</p>
+    <p>Tabel jääb igapäevase töö keskseks vaateks. Kogu suurt impordiala ei laadita tabelisse ega kontrollita korraga serveris. Arhiveerimise jaoks võrreldakse valitud külade senist seisu sama piirkonna täieliku uue impordi seisuga.</p>
+    <div class="grid">
+      <div class="box good"><span class="label">Uuendamine</span><h3>Mida kasutaja soovib töödelda?</h3><p>Valitud külade kinnistud või neist kasutaja valitud read. See määrab lisamise ja uuendamise mahu.</p></div>
+      <div class="box"><span class="label">Puudumise kontroll</span><h3>Millised senised kinnistud on kadunud?</h3><p>Võrdlus kasutab valitud külade täielikku uut tunnuste hulka. Valimata või peidetud rida ei tähenda kadunud kinnistut.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Miks on muudatust vaja?</h2>
+    <p>Praeguses loogikas võrreldakse kontrollitava tabeli tunnuseid põhikihi kõigi tagastatud kinnistutega. Kui tabel sisaldab ainult üht küla, võidakse teiste külade kinnistud lugeda ekslikult impordist puuduvaks.</p>
+    <div class="grid">
+      <div class="box attention"><span class="label">Praegune probleem</span><h3>Küla tabel ↔ kogu põhikiht</h3><p>Teise küla kinnistu puudub valitud küla tabelist. Seda puudumist võidakse tõlgendada arhiveerimise põhjusena.</p></div>
+      <div class="box good"><span class="label">Kavandatud muudatus</span><h3>Valitud külad ↔ samad valitud külad</h3><p>Esialgsed kandidaadid leitakse ainult valitud külade põhikihi kannete seast. Muud külad ei kuulu sellesse valikusse.</p></div>
+    </div>
+    <p class="note" style="margin-top:14px">Kirjeldus põhineb plugina koodianalüüsil. See ei ole väide, et konkreetseid kliendiandmeid on ekslikult arhiveeritud.</p>
+  </section>
+
+  <section class="flow-section">
+    <h2>3. Kavandatud protsess</h2>
+    <p>Uuendatavad read ja arhiveerimise võrdlusalus on eraldi. Skeem kirjeldab kavandatud kasutusloogikat; kaart ja server vajavad täitmisel eraldi tulemuse kontrolli.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 900 910" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="flow-title flow-desc">
+        <title id="flow-title">Külapõhise uuendamise ja arhiveerimise protsess</title>
+        <desc id="flow-desc">Vali külad ja fikseeri ulatus. Kui küla import ei ole täielik, saab lisada ja uuendada, kuid puudumise tõttu ei arhiveerita. Täieliku impordi korral võrreldakse samade külade tunnuseid, kontrollitakse puuduvaid tunnuseid kogu impordis ning koostatakse ülevaadatav tegevusplaan. Pärast kinnitamist rakendatakse tegevused ja näidatakse tulemusi.</desc>
+        <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#52767d"/></marker></defs>
+        <g fill="none" stroke="#52767d" stroke-width="2" marker-end="url(#arrow)">
+          <path d="M425 84V108"/><path d="M425 180V207"/>
+          <path d="M425 303V339"/><path d="M603 255H688V339"/>
+          <path d="M425 421V461"/><path d="M425 543V583"/>
+          <path d="M688 421V737H610"/><path d="M425 665V701"/><path d="M425 777V815"/>
+        </g>
+        <g font-family="system-ui,Segoe UI,sans-serif" text-anchor="middle" fill="#18343d">
+          <rect x="180" y="14" width="490" height="70" rx="12" fill="#153e48"/>
+          <text x="425" y="42" font-size="18" font-weight="700" fill="white">1. Vali maakond, omavalitsus ja külad</text>
+          <text x="425" y="66" font-size="14" fill="#deeeee">Tabelisse laaditakse ainult valitud külade andmed</text>
+          <rect x="180" y="108" width="490" height="72" rx="12" fill="#eaf6f5" stroke="#8ec8c5"/>
+          <text x="425" y="138" font-size="18" font-weight="650">2. Fikseeri kontrollipiirkond ja impordi alus</text>
+          <text x="425" y="161" font-size="14">Reavalik ja tabelifilter ei muuda puudumise võrdlusbaasi</text>
+          <path d="M425 207L603 255L425 303L247 255Z" fill="#fff5dd" stroke="#c69847"/>
+          <text x="425" y="251" font-size="16" font-weight="650">Kas valitud külade</text>
+          <text x="425" y="273" font-size="16" font-weight="650">uus seis on täielik?</text>
+          <text x="448" y="325" font-size="14" fill="#087f83">Jah</text><text x="641" y="243" font-size="14" fill="#98610c">Ei / teadmata</text>
+          <rect x="180" y="339" width="390" height="82" rx="12" fill="#eaf6f5" stroke="#8ec8c5"/>
+          <text x="375" y="366" font-size="18" font-weight="650">3. Võrdle samade külade tunnuseid</text>
+          <text x="375" y="389" font-size="14">Põhikihi tunnused − uue impordi tunnused</text>
+          <text x="375" y="409" font-size="14">Tulemus: esialgsed arhiveerimiskandidaadid</text>
+          <rect x="607" y="339" width="268" height="82" rx="12" fill="#fff5dd" stroke="#c69847"/>
+          <text x="741" y="367" font-size="16" font-weight="650">Ainult lisamine / uuendamine</text>
+          <text x="741" y="391" font-size="14">Puudumise tõttu ei arhiveerita</text>
+          <rect x="180" y="461" width="490" height="82" rx="12" fill="#eaf6f5" stroke="#8ec8c5"/>
+          <text x="425" y="489" font-size="18" font-weight="650">4. Kontrolli ainult kandidaatide erijuhte</text>
+          <text x="425" y="513" font-size="14">Tunnus leidub mujal impordis → jäta arhiveerimisest välja</text>
+          <text x="425" y="533" font-size="14">Kontrollimata või ebaselge vaste → suuna ülevaatusele</text>
+          <rect x="180" y="583" width="490" height="82" rx="12" fill="#eaf6f5" stroke="#8ec8c5"/>
+          <text x="425" y="612" font-size="18" font-weight="650">5. Koosta ja vaata üle tegevusplaan</text>
+          <text x="425" y="636" font-size="14">Külad · uuendatavad read · arhiveeritavad tunnused</text>
+          <text x="425" y="656" font-size="14">Kaardi- ja serveritoimingud on eraldi nähtavad</text>
+          <rect x="240" y="701" width="370" height="76" rx="12" fill="#153e48"/>
+          <text x="425" y="732" font-size="18" font-weight="650" fill="white">6. Kinnita ja rakenda tegevused</text>
+          <text x="425" y="756" font-size="14" fill="#deeeee">Töödeldakse ainult plaanis olevaid kandeid</text>
+          <rect x="180" y="815" width="490" height="76" rx="12" fill="#eaf6f5" stroke="#8ec8c5"/>
+          <text x="425" y="846" font-size="18" font-weight="650">7. Vaata tulemuste kokkuvõtet</text>
+          <text x="425" y="870" font-size="14">Õnnestunud · vahele jäetud · ebaõnnestunud · osalised</text>
+        </g>
+      </svg>
+    </div>
+    <p class="note">Kui kandidaate ei leita, on arhiveeritavate loend tühi ja jätkatakse lisamise/uuendamise plaaniga. Skeemi kinnitusetapp on ettepanek kliendiga kokkuleppimiseks.</p>
+  </section>
+
+  <section>
+    <h2>4. Näide ühe küla töötlusest</h2>
+    <p><strong>Näidisandmed.</strong> Kasutaja valib küla A. Küla B kinnistud asuvad samuti põhikihil, kuid ei kuulu praegusesse töötlusse.</p>
+    <div class="example"><div class="stat"><strong>105</strong><span>Küla A senist tunnust põhikihil</span></div><div class="stat"><strong>103</strong><span>Küla A tunnust uues impordis</span></div><div class="stat"><strong>3</strong><span>Senist tunnust puudub küla A uuest loendist</span></div></div>
+    <p>Uues loendis on 102 senist tunnust ja 1 uus tunnus. Seetõttu puudub 3 vana tunnust, kuigi kirjete arvude vahe on ainult 2. Otsus tehakse tunnuste, mitte arvude vahe alusel.</p>
+    <table><thead><tr><th>Kandidaat</th><th>Täiendava kontrolli tulemus</th><th>Kavandatud otsus</th></tr></thead><tbody>
+      <tr><td>Vana tunnus A</td><td>Leidub uues impordis küla B all.</td><td>Ei arhiveerita; piirkonnamuutus tuuakse eraldi välja.</td></tr>
+      <tr><td>Vana tunnus B</td><td>Puudub täielikust võrdlusandmestikust; kontrollid õnnestusid.</td><td>Lisatakse arhiveerimisplaani.</td></tr>
+      <tr><td>Vana tunnus C</td><td>Puudub täielikust võrdlusandmestikust; kontrollid õnnestusid.</td><td>Lisatakse arhiveerimisplaani.</td></tr>
+    </tbody></table>
+    <div class="decision"><strong>Kasutajale nähtav kokkuvõte:</strong> valitud küla A; lisamiseks/uuendamiseks kuni 103 impordikannet vastavalt reavalikule; arhiveerimiseks 2 senist tunnust; 1 piirkonnamuutus vajab ülevaatust. Küla B seniseid kinnistuid selle plaani alusel ei muudeta.</div>
+  </section>
+
+  <section>
+    <h2>5. Reeglid, mis hoiavad töötluse õiges ulatuses</h2>
+    <table><thead><tr><th>Olukord</th><th>Kavandatud käitumine</th></tr></thead><tbody>
+      <tr><td>Valitud on üks või mitu küla.</td><td>Põhikihi kandidaadid pärinevad ainult samadest küladest. Piirkond määratakse maakonna, omavalitsuse ja küla kombinatsiooniga või usaldusväärse piirkonnakoodiga.</td></tr>
+      <tr><td>Kasutaja peidab ridu või valib neist ainult osa.</td><td>Uuendamise valik võib muutuda. Arhiveerimise võrdlusaluseks jääb külade täielik uus tunnuste hulk.</td></tr>
+      <tr><td>Sisend on suvaline kaardivalik või üksikud tunnused.</td><td>Võimaldab lisada ja uuendada. Sellest valikust puudumine ei anna alust arhiveerimiseks.</td></tr>
+      <tr><td>Impordi katvus või lugemise õnnestumine on teadmata.</td><td>Puudumispõhist arhiveerimisplaani ei rakendata. Põhjus kuvatakse kasutajale.</td></tr>
+      <tr><td>Puuduv tunnus leidub impordis teise küla all.</td><td>Ei arhiveerita. Kogu teist küla ei laadita tabelisse; kontrollitakse ainult konkreetset tunnust.</td></tr>
+      <tr><td>Serverikontroll ebaõnnestub või vaste on mitmetähenduslik.</td><td>Serveritoimingut ei loeta lubatuks vaikimisi. Kandidaat suunatakse ülevaatusele; kaardi eraldi töötlemise reegel tuleb kokku leppida.</td></tr>
+      <tr><td>Kasutaja muudab külasid või impordikihti.</td><td>Vana plaan kaotab kehtivuse. Enne rakendamist tuleb võrdlus uuesti teha.</td></tr>
+    </tbody></table>
+    <p class="note">Täielikkus tähendab, et impordi allikas sisaldab valitud küla kõiki selle väljavõtte hetke kinnistuid. Seda ei tõenda üksnes tabeli ridade arv. Impordi katvuse määramise viis on üks arutelu põhiküsimusi.</p>
+  </section>
+
+  <section>
+    <h2>6. Teostamise etapid ja vastuvõtukriteeriumid</h2>
+    <div class="steps">
+      <div class="step"><h3>Ühine kontrollipiirkond</h3><p>Siduda tabeli laadimine ja põhikihi võrdlus sama piirkonnamääratlusega. Vastuvõtt: küla A kontroll ei lisa küla B seniseid kinnistuid arhiveerimisplaani.</p></div>
+      <div class="step"><h3>Võrdlusbaas eraldi reavalikust</h3><p>Säilitada kontrollitsükli jaoks valitud külade täielik imporditunnuste hulk. Vastuvõtt: tabelifilter ja üksikute ridade valimine ei tekita uusi arhiveerimiskandidaate.</p></div>
+      <div class="step"><h3>Kandidaatide sihitud kontroll ja plaan</h3><p>Otsida üksnes puuduvate tunnuste olemasolu ülejäänud impordist ning kontrollida kandidaatide serverivasteid. Vastuvõtt: teise küla alla liikunud tunnust ei arhiveerita ning ebaselget vastet ei käsitleta automaatselt heakskiidetuna.</p></div>
+      <div class="step"><h3>Ülevaade ja plaani kehtivus</h3><p>Näidata piirkonda, konkreetseid kandidaate ja kavandatud toiminguid. Vastuvõtt: impordi või piirkonna muutmisel pole võimalik vana plaani rakendada.</p></div>
+      <div class="step"><h3>Tervikvoo kontroll</h3><p>Katsetada täielikku külaimporti, osalist sisendit, tühja tulemust ja lugemisviga. Vastuvõtt: puudulik sisend ei käivita puudumispõhist arhiveerimist ning tulemus eristab tegelikult õnnestunud ja ebaõnnestunud toiminguid.</p></div>
+    </div>
+    <div class="box attention" style="margin-top:20px"><h3>Eraldi teostussõltuvus: arhiivi salvestamine</h3><p>See kava keskendub sellele, <strong>millised kinnistud</strong> võivad arhiveerimisse jõuda. Koodianalüüsis leitud eraldi salvestamisjärjekorra probleem vajab samuti parandamist: põhikihilt kustutamist ei tohi kinnitada enne arhiivikoopia edukat salvestamist. Ulatusloogika parandamine üksi seda probleemi ei lahenda.</p></div>
+  </section>
+
+  <section>
+    <h2>7. Küsimused kliendiga kokkuleppimiseks</h2>
+    <ul class="discussion">
+      <li><strong>Kuidas kinnitatakse, et valitud küla import on täielik?</strong><small>Kas seda tagab alati kasutatav andmeallikas või peab kasutaja impordi katvuse eraldi määrama?</small></li>
+      <li><strong>Kas arhiveerimisplaan kinnitatakse enne käivitamist eraldi ülevaates?</strong><small>Ettepanek: näidata kandidaatide tunnuseid ja põhjuseid ning lubada üksikuid kandidaate välja jätta.</small></li>
+      <li><strong>Kas küla arhiveerimisplaani võib rakendada ka osalise uuendamise reavaliku korral?</strong><small>Võrdlusbaas jääb igal juhul kogu külaks. Ettepanek: teha kogu küla arhiveerimise ulatus kasutajale eraldi nähtavaks ja kinnitatavaks.</small></li>
+      <li><strong>Mis saab kinnistust, mis on liikunud teise küla alla?</strong><small>Ettepanek: puudumise tõttu ei arhiveerita; piirkonnamuutus kuvatakse eraldi. Selle automaatne uuendamine tuleb eraldi kokku leppida.</small></li>
+      <li><strong>Kas serverivea korral jäetakse kogu kandidaat ootele?</strong><small>Ettepanek: jätta kandidaat ülevaatusele. Kui lubatakse ainult kaardil arhiveerimist, peab osaline tulemus olema selgelt nähtav.</small></li>
+      <li><strong>Kuidas käsitleda küla, mille uus tulemus on tühi?</strong><small>Ettepanek: mitte tõlgendada tühja tabelit automaatselt kõigi seniste kinnistute kadumisena; kontrollida esmalt katvust ja laadimise õnnestumist.</small></li>
+    </ul>
+    <div class="decision"><strong>Otsuse ettepanek:</strong> säilitame külapõhise töötluse. Piirame arhiveerimiskandidaatide leidmise sama piirkonnaga, hoiame täieliku võrdlusbaasi reavalikust eraldi ja rakendame ainult ülevaadatud tegevusplaani.</div>
+  </section>
+  <footer>Kavitro · teostus- ja vastuvõtumaterjal · versioon 1.1<br>Dokument kirjeldab kokkulepitud sihtkäitumist. Teostus loetakse valminuks pärast QGIS-i kasutajavoo ja testkeskkonna vastuvõtukatseid. Olemasoleva põhikihi geomeetria uuendamise, serveri kuupäevareeglite ja üldise taastamisloogika muudatused vajavad eraldi ulatuse määratlemist.</footer>
+</main>
+</body>
+</html>

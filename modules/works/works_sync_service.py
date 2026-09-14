@@ -3,21 +3,30 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
+from PyQt5 import sip
+from PyQt5.QtCore import QObject, pyqtSlot
 from qgis.core import QgsFeatureRequest, QgsGeometry, QgsVectorLayer
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...python.api_actions import APIModuleActions
+from ...python.latest_request import LatestRequest
+from ...utils.SessionManager import SessionManager
 from ...utils.url_manager import Module
 from .works_layer_service import WorksLayerService
 
 
-class WorksSyncService:
-    def __init__(self, *, lang_manager=None) -> None:
+class WorksSyncService(QObject):
+    def __init__(self, *, lang_manager=None, parent=None) -> None:
+        super().__init__(parent)
         self._lang = lang_manager or LanguageManager()
         self._layer: Optional[QgsVectorLayer] = None
         self._syncing_from_backend = False
         self._syncing_geometry = False
+        self._request = LatestRequest(self)
+        self._request.finished.connect(self._on_backend_tasks)
+        self._request.error.connect(self._on_backend_error)
+        self._sync_snapshot = None
 
     def attach(self) -> Optional[QgsVectorLayer]:
         layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
@@ -42,6 +51,8 @@ class WorksSyncService:
         return layer
 
     def detach(self) -> None:
+        self._request.invalidate()
+        self._sync_snapshot = None
         layer = self._layer
         self._layer = None
         if not isinstance(layer, QgsVectorLayer):
@@ -88,7 +99,29 @@ class WorksSyncService:
         if not task_ids:
             return
 
-        tasks_by_id = APIModuleActions.get_tasks_by_ids(task_ids)
+        # Only plain IDs cross into the worker. All QGIS reads/writes stay here.
+        self._sync_snapshot = (layer, task_id_field, features, task_ids, SessionManager.session_signature())
+        self._request.submit(APIModuleActions.get_tasks_by_ids, task_ids)
+
+    @pyqtSlot(str)
+    def _on_backend_error(self, message):
+        self._sync_snapshot = None
+        PythonFailLogger.log_exception(
+            RuntimeError(message), module=Module.WORKS.value, event="works_sync_backend_read_failed")
+
+    @pyqtSlot(object)
+    def _on_backend_tasks(self, tasks_by_id):
+        snapshot = self._sync_snapshot
+        self._sync_snapshot = None
+        if snapshot is None:
+            return
+        layer, task_id_field, features, task_ids, session = snapshot
+        if (session != SessionManager.session_signature() or layer is not self._layer
+                or sip.isdeleted(layer) or not layer.isValid()
+                or WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True) is not layer):
+            return
+        if self._is_layer_editable(layer, event="works_sync_apply_skipped_layer_editable"):
+            return
         self._log_missing_backend_tasks(task_ids, tasks_by_id)
         if not tasks_by_id:
             return
@@ -96,6 +129,10 @@ class WorksSyncService:
         pending_updates: list[tuple[int, dict[str, object], object]] = []
 
         for feature in features:
+            # An edit committed while the request was running must not be overwritten.
+            current = layer.getFeature(feature.id())
+            if not current.isValid() or current != feature:
+                continue
             task_id = str(feature.attribute(task_id_field) or "").strip()
             if not task_id:
                 continue

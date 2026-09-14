@@ -2,10 +2,11 @@ query tasks(
   $first: Int
   $after: String
   $where: QueryTasksWhereWhereConditions
+  $orderBy: [QueryTasksOrderByOrderByClause!]
   $propertiesFirst: Int = 1
   $propertiesAfter: String
 ) {
-  tasks(first: $first, after: $after, where: $where) {
+  tasks(first: $first, after: $after, where: $where, orderBy: $orderBy) {
     pageInfo {
       currentPage
       total
@@ -28,7 +29,7 @@ query tasks(
               displayName
               deletedAt
             }
-            isResponsible
+            responsible
           }
         }
         status {

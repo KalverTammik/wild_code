@@ -18,6 +18,7 @@ from ...widgets.theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
 from .EasementPropertiesWidget import EasementPropertiesWidget
 from .TaskDetailOverviewWidget import TaskDetailOverviewWidget
+from .AsyncContentWidget import AsyncContentWidget
 
 
 class ModuleConfig:
@@ -85,7 +86,7 @@ class ModuleConfigFactory:
         data = APIClient().send_query(query, {"id": item_id}) or {}
         root = data.get(root_field) if isinstance(data, dict) else None
         if not isinstance(root, dict):
-            return ""
+            raise RuntimeError("Detail response is missing the requested item")
         return DataDisplayExtractors.extract_description(root)
 
     @staticmethod
@@ -98,15 +99,19 @@ class ModuleConfigFactory:
         lm = lang_manager or LanguageManager()
         config = ModuleConfig(module_type, title="")
         config.set_detail_loader(
-            lambda payload=item_data, lang=lm, current_module=module_type: TaskDetailOverviewWidget(
-                item_data=payload,
-                description_html=ModuleConfigFactory._load_single_item_description(
+            lambda payload=item_data, lang=lm, current_module=module_type: AsyncContentWidget(
+                lambda: ModuleConfigFactory._load_single_item_description(
                     module_type=Module.TASK.value,
                     query_name="w_tasks_module_data_by_item_id.graphql",
                     root_field="task",
                     item_data=payload,
                 ),
-                module_name=current_module,
+                lambda description: TaskDetailOverviewWidget(
+                    item_data=payload,
+                    description_html=description,
+                    module_name=current_module,
+                    lang_manager=lang,
+                ),
                 lang_manager=lang,
             )
         )
@@ -126,7 +131,7 @@ class ModuleConfigFactory:
         data = APIClient().send_query(query, {"id": item_id}) or {}
         root = data.get("coordination") if isinstance(data, dict) else None
         if not isinstance(root, dict):
-            return ""
+            raise RuntimeError("Detail response is missing the requested coordination")
 
         description = DataDisplayExtractors.extract_description(root).strip()
         terms = str(root.get("terms") or "").strip()
@@ -173,12 +178,7 @@ class ModuleConfigFactory:
         lm = lang_manager or LanguageManager()
         config = ModuleConfig(Module.PROJECT.value, title="")
 
-        def _project_detail_widget(payload=item_id, lang=lm):
-            board_data = ProjectBoardOverviewService.build_project_board_data(
-                payload,
-                lang_manager=lang,
-            )
-
+        def _project_detail_widget(board_data, lang=lm):
             wrapper = QWidget()
             layout = QVBoxLayout(wrapper)
             layout.setContentsMargins(0, 0, 0, 0)
@@ -198,7 +198,13 @@ class ModuleConfigFactory:
             ThemeManager.apply_module_style(wrapper, [QssPaths.MODULE_INFO])
             return wrapper
 
-        config.set_detail_loader(_project_detail_widget)
+        config.set_detail_loader(
+            lambda: AsyncContentWidget(
+                lambda: ProjectBoardOverviewService.build_project_board_data(item_id, lang_manager=lm),
+                _project_detail_widget,
+                lang_manager=lm,
+            )
+        )
         config.set_show_detail_handle(True)
 
         return config
@@ -213,15 +219,19 @@ class ModuleConfigFactory:
         lm = lang_manager or LanguageManager()
         config = ModuleConfig(Module.CONTRACT.value, title="")
         config.set_detail_loader(
-            lambda payload=item_id, lang=lm: TaskDetailOverviewWidget(
-                item_data=payload,
-                description_html=ModuleConfigFactory._load_single_item_description(
+            lambda payload=item_id, lang=lm: AsyncContentWidget(
+                lambda: ModuleConfigFactory._load_single_item_description(
                     module_type=Module.CONTRACT.value,
                     query_name="w_contracts_module_data_by_item_id.graphql",
                     root_field="contract",
                     item_data=payload,
                 ),
-                module_name=Module.CONTRACT.value,
+                lambda description: TaskDetailOverviewWidget(
+                    item_data=payload,
+                    description_html=description,
+                    module_name=Module.CONTRACT.value,
+                    lang_manager=lang,
+                ),
                 lang_manager=lang,
             )
         )
@@ -238,12 +248,16 @@ class ModuleConfigFactory:
         lm = lang_manager or LanguageManager()
         config = ModuleConfig(Module.COORDINATION.value, title="")
         config.set_detail_loader(
-            lambda payload=item_id, lang=lm: TaskDetailOverviewWidget(
-                item_data=payload,
-                description_html=ModuleConfigFactory._load_single_item_coordination_detail(
+            lambda payload=item_id, lang=lm: AsyncContentWidget(
+                lambda: ModuleConfigFactory._load_single_item_coordination_detail(
                     item_data=payload,
                 ),
-                module_name=Module.COORDINATION.value,
+                lambda description: TaskDetailOverviewWidget(
+                    item_data=payload,
+                    description_html=description,
+                    module_name=Module.COORDINATION.value,
+                    lang_manager=lang,
+                ),
                 lang_manager=lang,
             )
         )

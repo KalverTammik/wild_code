@@ -123,3 +123,9 @@ tmp_prev_plugins.xml
 
 # Local exploratory assets and sample GeoPackages
 Temporary/
+*.gpkg
+
+# Local environment and credential files
+.env
+.env.*
+!.env.example

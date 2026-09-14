@@ -319,6 +319,21 @@ class MoreActionsButton(CardActionButton):
         ThemeManager.apply_module_style(menu, [QssPaths.POPUP])
         self.setMenu(menu)
 
+    def _open_item_files(self, module, item_data, lang_manager) -> None:
+        from .TaskFilesDialog import TaskFilesDialog
+
+        item_id = DataDisplayExtractors.extract_item_id(item_data)
+        if not item_id:
+            return
+        dialog = TaskFilesDialog(
+            item_id=item_id,
+            item_name=DataDisplayExtractors.extract_item_name(item_data) or item_id,
+            module_name=module,
+            lang_manager=lang_manager,
+            parent=self.window(),
+        )
+        dialog.exec_()
+
     def _handle_files_path_updated(self, files_path: str) -> None:
         resolved_path = str(files_path or "").strip()
         if not resolved_path:

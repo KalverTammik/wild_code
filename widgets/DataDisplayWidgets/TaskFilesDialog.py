@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from PyQt5.QtCore import QLocale, Qt
+from PyQt5.QtCore import QLocale, Qt, pyqtSlot
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -23,6 +23,7 @@ from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
+from ...python.workers import FunctionWorker, start_worker
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ..DateHelpers import DateHelpers
@@ -39,6 +40,7 @@ class TaskFilesDialog(QDialog):
         module_name: str = Module.TASK.value,
         lang_manager=None,
         parent=None,
+        initial_files: Optional[list[dict]] = None,
     ) -> None:
         super().__init__(parent)
         self._lang = lang_manager or LanguageManager()
@@ -46,6 +48,9 @@ class TaskFilesDialog(QDialog):
         self._item_name = str(item_name or "").strip()
         self._module_name = str(module_name or Module.TASK.value).strip().lower() or Module.TASK.value
         self._files: list[dict] = []
+        self._loading = False
+        self._load_worker = None
+        self._load_thread = None
 
         self.setModal(True)
         self.setObjectName("TaskFilesDialog")
@@ -130,7 +135,12 @@ class TaskFilesDialog(QDialog):
 
         layout.addLayout(button_row)
         self._update_button_states()
-        self._load_files()
+        if initial_files is None:
+            self._load_files()
+        else:
+            self._files = [dict(file_info) for file_info in initial_files]
+            self._populate_table()
+            self._update_button_states()
 
     def _run_with_busy_cursor(self, callback):
         QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -141,18 +151,38 @@ class TaskFilesDialog(QDialog):
             QApplication.restoreOverrideCursor()
 
     def _load_files(self) -> None:
-        files = self._run_with_busy_cursor(
-            lambda: APIModuleActions.get_module_files(self._module_name, self._item_id)
-        )
+        if self._loading:
+            return
+        self._loading = True
+        self._count_label.setText(self._lang.translate(TranslationKeys.LOADING))
+        self._refresh_button.setEnabled(False)
+        self._upload_button.setEnabled(False)
+        self._update_button_states()
+        worker = FunctionWorker(APIModuleActions.get_module_files, self._module_name, self._item_id)
+        worker.finished.connect(self._files_loaded)
+        worker.error.connect(self._files_failed)
+        self._load_worker = worker
+        self._load_thread = start_worker(worker)
+
+    @pyqtSlot(str)
+    def _files_failed(self, _message: str) -> None:
+        self._files_loaded(None)
+
+    @pyqtSlot(object)
+    def _files_loaded(self, files) -> None:
+        self._loading = False
+        self._refresh_button.setEnabled(True)
+        self._upload_button.setEnabled(True)
         if files is None:
-            ModernMessageDialog.show_warning(
-                self._lang.translate(TranslationKeys.ERROR),
+            self._count_label.setText(
                 self._lang.translate(TranslationKeys.TASK_FILES_LOAD_FAILED).format(
                     name=self._item_name or self._item_id
-                ),
+                )
             )
+            self._refresh_button.setText(self._lang.translate(TranslationKeys.CARD_LOAD_RETRY))
+            self._update_button_states()
             return
-
+        self._refresh_button.setText(self._lang.translate(TranslationKeys.TASK_FILES_REFRESH))
         self._files = list(files)
         self._populate_table()
         self._update_button_states()
@@ -228,7 +258,7 @@ class TaskFilesDialog(QDialog):
         return dict(payload or {}) if isinstance(payload, dict) else None
 
     def _update_button_states(self) -> None:
-        has_selection = self._selected_file() is not None
+        has_selection = not self._loading and self._selected_file() is not None
         self._open_button.setEnabled(has_selection)
         self._delete_button.setEnabled(has_selection)
 

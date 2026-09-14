@@ -38,7 +38,7 @@ class GqlKeys:
     IS_PUBLIC = "isPublic"
 
     # members edge fields
-    IS_RESPONSIBLE = "isResponsible"
+    RESPONSIBLE = "responsible"
 
     # dates
     START_AT = "startAt"
@@ -195,7 +195,7 @@ class DataDisplayExtractors:
             active = node.get(GqlKeys.ACTIVE, True)
             if active is False:
                 continue
-            if edge_dict.get(GqlKeys.IS_RESPONSIBLE):
+            if edge_dict.get(GqlKeys.RESPONSIBLE):
                 responsible_nodes.append(node)
             else:
                 participant_nodes.append(node)

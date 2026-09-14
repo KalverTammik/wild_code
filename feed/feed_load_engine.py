@@ -135,10 +135,15 @@ class FeedLoadEngine:
         new_items = self.load_next_batch() or []
         SwitchLogger.log("feed_load_guarded_done", extra={"count": len(new_items)})
     # Debug print removed
-        if new_items:
-            self.buffer.extend(new_items)
-        self._start_progressive_insert(token=token)
+        self.accept_batch(new_items, token=token)
         self._is_loading = False
+
+    def accept_batch(self, items, *, token=None):
+        """Accept a completed page on the UI thread, only for the current feed."""
+        if not self._is_token_active(token):
+            return
+        self.buffer.extend(items)
+        self._start_progressive_insert(token=token)
 
     # -------------------- Buffer API --------------------
     def has_buffer(self) -> bool:

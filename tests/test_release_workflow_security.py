@@ -201,6 +201,12 @@ class ReleaseValueResolverTest(unittest.TestCase):
 
 
 class ReleaseWorkflowSourceTest(unittest.TestCase):
+    def test_workflow_excludes_and_rejects_all_geopackages(self) -> None:
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+        self.assertIn("--exclude '*.gpkg'", workflow)
+        self.assertIn("-name '*.gpkg'", workflow)
+
     def test_release_actions_are_pinned_and_checkout_does_not_persist_token(self) -> None:
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
         guide = SETUP_GUIDE_PATH.read_text(encoding="utf-8")

@@ -131,8 +131,9 @@ def _should_exclude(rel_posix: str, exclude_dirs: Tuple[str, ...]) -> bool:
     lower = rel_posix.lower()
     if lower.endswith(".md"):
         return True
+    if lower.endswith(".gpkg"):
+        return True
     if lower in {
-        "avariitööd.gpkg",
         "config/config_dev.json",
         "metadata.dev.txt",
         "metadata.release.txt",

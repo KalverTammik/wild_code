@@ -616,13 +616,11 @@ class MainAddPropertiesFlow:
 
     @staticmethod
     def _prepare_layers() -> tuple[object, object, object]:
-        # 1) Import layer filtering (optional but explicit)
+        # 1) Resolve the import layer without changing its provider subset. The
+        # selected feature payloads are passed directly to the add flow. Leaving
+        # a village-specific subset behind would make the next village load look
+        # incomplete and could invalidate archive decisions.
         import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
-        #set import layer and active layer 
-        if import_layer:
-            # Choose ONE behavior:
-            # A) filter by explicit ids (recommended, deterministic)
-            MapHelpers.set_layer_filter_to_selected_features(import_layer)
 
         # 2) Activate main target layer
         target_layer_name = SettingsService().module_main_layer_name(Module.PROPERTY.value)
@@ -652,10 +650,12 @@ class MainAddPropertiesFlow:
         eligible (legacy behavior).
         """
 
-        unique_tunnus = [t for t in {str(t).strip() for t in (tunnus_iterable or [])} if t]
+        unique_tunnus = sorted({str(t).strip() for t in (tunnus_iterable or []) if str(t).strip()})
         summary = {
             "total": len(unique_tunnus),
             "archived_backend": 0,
+            "backend_failed": 0,
+            "backend_skipped": 0,
             "moved_map": 0,
             "errors": [],
         }
@@ -673,12 +673,20 @@ class MainAddPropertiesFlow:
             summary["errors"].append("Missing target or archive layer")
             return summary
 
-        if not target_layer.isEditable():
-            target_layer.startEditing()
-        if not archive_layer.isEditable():
-            archive_layer.startEditing()
+        # Never commit or roll back edit buffers that may belong to the user.
+        if target_layer.isEditable() or archive_layer.isEditable():
+            summary["errors"].append(
+                "Main or archive layer is already in edit mode; archive plan was not applied"
+            )
+            return summary
 
         try:
+            if not archive_layer.startEditing():
+                summary["errors"].append("Archive layer could not enter edit mode")
+                return summary
+
+            source_ids = []
+            moved_tunnused = set()
             for tunnus in unique_tunnus:
                 try:
                     matches = MapHelpers.find_features_by_fields_and_values(target_layer, Katastriyksus.tunnus, [tunnus])
@@ -692,10 +700,11 @@ class MainAddPropertiesFlow:
                     matches = []
 
                 if not matches:
-                    continue
+                    summary["errors"].append(f"Main feature {tunnus} was not found")
+                    break
 
-                # Move map features into archive layer and remove from main layer.
-                moved_ids = []
+                # Stage every archive copy first. No MAIN deletion starts until all
+                # copies have been committed successfully.
                 for feat in matches:
                     ok, msg = FeatureActions.copy_feature_to_layer(
                         feat,
@@ -706,50 +715,96 @@ class MainAddPropertiesFlow:
                         },
                     )
                     if ok:
-                        summary["moved_map"] += 1
-                        moved_ids.append(feat.id())
+                        source_ids.append(feat.id())
+                        moved_tunnused.add(tunnus)
                     else:
                         summary["errors"].append(f"Copy {tunnus} failed: {msg}")
+                        break
 
-                if moved_ids:
-                    try:
-                        target_layer.deleteFeatures(moved_ids)
-                    except Exception as e:
-                        summary["errors"].append(f"Delete {tunnus} failed: {e}")
+                if summary["errors"]:
+                    break
 
-                # Archive backend property best-effort.
-                # Backend archive is optional per tunnus when backend_allowed is provided.
-                backend_ok = (backend_allowed is None) or (tunnus in backend_allowed)
-                if backend_ok:
-                    try:
-                        backend_info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
-                    except Exception as e:
-                        backend_info = None
-                        summary["errors"].append(f"Backend lookup {tunnus} failed: {e}")
+            if summary["errors"]:
+                archive_layer.rollBack()
+                return summary
 
-                    ids = []
-                    if isinstance(backend_info, dict):
-                        ids = backend_info.get("active_ids") or []
-                        # If already archived, skip; only archive active ones.
-                    for pid in ids:
-                        ok = False
-                        try:
-                            ok = UpdatePropertyData._archive_a_propertie(pid)
-                        except Exception as e:
-                            summary["errors"].append(f"Archive backend {tunnus}/{pid} failed: {e}")
-                        if ok:
-                            summary["archived_backend"] += 1
+            if not archive_layer.commitChanges():
+                msg = "; ".join(archive_layer.commitErrors() or [])
+                archive_layer.rollBack()
+                summary["errors"].append(f"Archive layer commit failed: {msg}")
+                return summary
 
-            if archive_layer.isEditable():
-                if not archive_layer.commitChanges():
-                    msg = "; ".join(archive_layer.commitErrors() or [])
-                    archive_layer.rollBack()
-                    summary["errors"].append(f"Archive layer commit failed: {msg}")
-            if target_layer.isEditable():
-                if not target_layer.commitChanges():
-                    msg = "; ".join(target_layer.commitErrors() or [])
-                    target_layer.rollBack()
-                    summary["errors"].append(f"Main layer commit failed: {msg}")
+            # Archive copies are durable. Only now begin deleting their originals.
+            if not target_layer.startEditing():
+                summary["errors"].append(
+                    "Main layer could not enter edit mode; committed archive copies were retained"
+                )
+                return summary
+            if not target_layer.deleteFeatures(source_ids):
+                target_layer.rollBack()
+                summary["errors"].append(
+                    "Main layer delete failed; committed archive copies were retained"
+                )
+                return summary
+            if not target_layer.commitChanges():
+                msg = "; ".join(target_layer.commitErrors() or [])
+                target_layer.rollBack()
+                summary["errors"].append(
+                    f"Main layer commit failed; committed archive copies were retained: {msg}"
+                )
+                return summary
+
+            summary["moved_map"] = len(source_ids)
+
+            # Apply backend actions only after the corresponding map move is durable.
+            for tunnus in sorted(moved_tunnused):
+                if backend_allowed is not None and tunnus not in backend_allowed:
+                    summary["backend_skipped"] += 1
+                    continue
+
+                try:
+                    backend_info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
+                except Exception as exc:
+                    backend_info = None
+                    summary["backend_failed"] += 1
+                    summary["errors"].append(f"Backend lookup {tunnus} failed: {exc}")
+                    continue
+
+                if not isinstance(backend_info, dict) or backend_info.get("exists") is None:
+                    summary["backend_failed"] += 1
+                    summary["errors"].append(f"Backend lookup {tunnus} failed")
+                    continue
+
+                active_ids = [
+                    str(value).strip()
+                    for value in (backend_info.get("active_ids") or [])
+                    if str(value).strip()
+                ]
+                if len(active_ids) == 0:
+                    summary["backend_skipped"] += 1
+                    continue
+                if len(active_ids) > 1:
+                    summary["backend_failed"] += 1
+                    summary["errors"].append(
+                        f"Backend archive {tunnus} skipped: multiple active matches"
+                    )
+                    continue
+
+                property_id = active_ids[0]
+                try:
+                    archived = bool(UpdatePropertyData._archive_a_propertie(property_id))
+                except Exception as exc:
+                    archived = False
+                    summary["errors"].append(
+                        f"Archive backend {tunnus}/{property_id} failed: {exc}"
+                    )
+                if archived:
+                    summary["archived_backend"] += 1
+                else:
+                    summary["backend_failed"] += 1
+                    summary["errors"].append(
+                        f"Archive backend {tunnus}/{property_id} failed"
+                    )
         except Exception as e:
             try:
                 if target_layer.isEditable():

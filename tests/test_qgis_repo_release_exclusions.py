@@ -14,6 +14,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class QgisRepoReleaseExclusionsTest(unittest.TestCase):
+    def test_sensitive_local_artifacts_have_ignore_rules(self) -> None:
+        rules = {
+            line.strip()
+            for line in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        }
+
+        self.assertTrue({"*.gpkg", ".env", ".env.*", "!.env.example"} <= rules)
+
     def test_internal_guides_are_excluded_from_live_package(self) -> None:
         self.assertTrue(
             _should_exclude(
@@ -34,6 +43,14 @@ class QgisRepoReleaseExclusionsTest(unittest.TestCase):
         self.assertTrue(
             _should_exclude(
                 "release_repo/Kavitro_dev.2.00.05.zip",
+                exclude_dirs=DEFAULT_EXCLUDE_DIRS,
+            )
+        )
+
+    def test_geopackages_are_excluded_from_live_package(self) -> None:
+        self.assertTrue(
+            _should_exclude(
+                "samples/operational-data.gpkg",
                 exclude_dirs=DEFAULT_EXCLUDE_DIRS,
             )
         )

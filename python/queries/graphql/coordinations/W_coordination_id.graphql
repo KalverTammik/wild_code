@@ -40,7 +40,7 @@ query coordinationModuleDataById(
           displayName
           deletedAt
         }
-        isResponsible
+        responsible
       }
     }
     contacts(first: $contactsFirst, after: $contactsAfter) {

@@ -6,7 +6,7 @@ from ...constants.layer_constants import IMPORT_PROPERTY_TAG
 from ...constants.cadastral_fields import Katastriyksus, AreaUnit
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from qgis.core import QgsFeatureRequest
+from qgis.core import QgsFeatureRequest, QgsRectangle, QgsVariantUtils
 from PyQt5.QtCore import QCoreApplication
 from ...widgets.DateHelpers import DateHelpers
 from .property_row_builder import PropertyRowBuilder
@@ -126,6 +126,77 @@ class PropertyDataLoader:
                 self._ensure_field(f)
 
     # --- Laadijad ----------------------------------------------------------
+
+    @staticmethod
+    def read_location_index(source, cancelled):
+        """Read the hierarchy once from a feature-source snapshot, off the GUI thread."""
+        fields = [Katastriyksus.mk_nimi, Katastriyksus.ov_nimi, Katastriyksus.ay_nimi]
+        request = PropertyDataLoader.snapshot_request(source, fields)
+        request.setFlags(request.flags() | QgsFeatureRequest.NoGeometry)
+        locations = {}
+        iterator = source.getFeatures(request)
+        try:
+            for feature in iterator:
+                if cancelled.is_set():
+                    return None
+                values = [feature.attribute(name) for name in fields]
+                county, municipality, settlement = [
+                    '' if QgsVariantUtils.isNull(value) else str(value).strip() for value in values
+                ]
+                if not county:
+                    continue
+                municipalities = locations.setdefault(county, {})
+                if municipality:
+                    settlements = municipalities.setdefault(municipality, set())
+                    if settlement:
+                        settlements.add(settlement)
+        finally:
+            iterator.close()
+        return {county: {municipality: sorted(settlements) for municipality, settlements in municipalities.items()}
+                for county, municipalities in locations.items()}
+
+    @staticmethod
+    def snapshot_request(source, fields, expression=None):
+        indices = [source.fields().lookupField(name) for name in fields]
+        if -1 in indices:
+            missing = fields[indices.index(-1)]
+            raise ValueError(LanguageManager().translate(TranslationKeys.PROPERTY_LAYER_FIELD_NOT_FOUND).format(field_name=missing))
+        request = QgsFeatureRequest()
+        request.setSubsetOfAttributes(indices)
+        if expression:
+            request.setFilterExpression(expression)
+        return request
+
+    @staticmethod
+    def read_location_scope(source, cancelled, scope, include_properties):
+        """Build rows, selection IDs and map bounds in one cancellable scan."""
+        county, municipality, settlements = scope
+        expression = PropertyDataLoader.build_scope_expression(
+            county_name=county or None, municipality_name=municipality or None, settlements=settlements)
+        if not county or not expression:
+            raise ValueError('A county is required for a location read')
+        fields = [Katastriyksus.mk_nimi, Katastriyksus.ov_nimi, Katastriyksus.ay_nimi]
+        if include_properties:
+            fields += [Katastriyksus.tunnus, Katastriyksus.l_aadress, Katastriyksus.pindala]
+        request = PropertyDataLoader.snapshot_request(source, fields, expression)
+        rows, feature_ids = [], []
+        extent = QgsRectangle()
+        extent.setNull()
+        iterator = source.getFeatures(request)
+        try:
+            for feature in iterator:
+                if cancelled.is_set():
+                    return None
+                feature_ids.append(feature.id())
+                if feature.hasGeometry():
+                    extent.combineExtentWith(feature.geometry().boundingBox())
+                if include_properties:
+                    feature.clearGeometry()
+                    rows.append(PropertyRowBuilder.row_from_feature(feature))
+        finally:
+            iterator.close()
+        return {'scope': scope, 'rows': rows, 'feature_ids': feature_ids, 'extent': extent,
+                'include_properties': include_properties}
 
     def load_counties(self, layer):
         """Tagasta unikaalsed maakonnad."""
