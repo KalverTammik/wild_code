@@ -729,5 +729,19 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             dialog.deleteLater()
 
 
+    def test_property_table_headers_come_from_translations_in_both_languages(self):
+        from Kavitro_dev.languages import en as en_module
+        from Kavitro_dev.languages import et as et_module
+        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+
+        keys = (K.CADASTRAL_ID, K.ADDRESS, K.AREA, K.SETTLEMENT, K.PROPERTY_COLUMN_BACKEND,
+                K.PROPERTY_COLUMN_MAIN_LAYER, K.PROPERTY_COLUMN_ARCHIVE_BACKEND, K.PROPERTY_COLUMN_ARCHIVE_MAP)
+        lang = LanguageManager()
+        self.assertEqual(PropertyTableWidget._headers(), [lang.translate(key) for key in keys])
+        # Strict lookup raises on a missing key, so every language must carry all of them.
+        for translations in (et_module.TRANSLATIONS, en_module.TRANSLATIONS):
+            self.assertEqual([key for key in keys if key not in translations], [])
+
+
 if __name__ == '__main__':
     unittest.main()

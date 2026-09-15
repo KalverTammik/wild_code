@@ -1315,11 +1315,11 @@ class AddPropertyDialog(QDialog):
         self._table_filtered_to_attention = False
 
         if clear_attention:
-            table = self.properties_table
-            if table is not None:
-                for row_idx in range(PropertyTableManager.row_count(table)):
-                    tunnus = self._rows_for_verify_by_row.get(row_idx, ("", ""))[0]
-                    self._set_attention_row(row_idx, tunnus=tunnus, main_causes=[], backend_causes=[], main_done=False, backend_done=False, text="")
+            columns = (PropertyTableWidget._COL_BACKEND_ATTENTION, PropertyTableWidget._COL_MAIN_ATTENTION,
+                       PropertyTableWidget._COL_ARCHIVE_BACKEND, PropertyTableWidget._COL_ARCHIVE_MAP)
+            for row_idx in range(PropertyTableManager.row_count(self.properties_table)):
+                for col in columns:
+                    self._set_icon_cell(row_idx, col, "pending")
 
         self._update_add_button_state()
         self._update_run_checks_button()

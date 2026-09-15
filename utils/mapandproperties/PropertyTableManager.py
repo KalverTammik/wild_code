@@ -492,10 +492,10 @@ class PropertyTableWidget:
             lang_manager.translate(TranslationKeys.ADDRESS),
             lang_manager.translate(TranslationKeys.AREA),
             lang_manager.translate(TranslationKeys.SETTLEMENT),
-            "Backend",
-            "Main",
-            "Archive backend",
-            "Archive map",
+            lang_manager.translate(TranslationKeys.PROPERTY_COLUMN_BACKEND),
+            lang_manager.translate(TranslationKeys.PROPERTY_COLUMN_MAIN_LAYER),
+            lang_manager.translate(TranslationKeys.PROPERTY_COLUMN_ARCHIVE_BACKEND),
+            lang_manager.translate(TranslationKeys.PROPERTY_COLUMN_ARCHIVE_MAP),
         ]
 
     @staticmethod
