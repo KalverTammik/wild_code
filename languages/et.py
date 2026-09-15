@@ -232,6 +232,7 @@ TRANSLATIONS = {
         TranslationKeys.API_RATE_LIMIT_REQUEST_TOO_LARGE: "Päring ületab muutmistoimingute piiri (HTTP 429). Päring tuleb jagada väiksemateks osadeks; ootamine seda viga ei lahenda.",
         TranslationKeys.PROPERTY_ADD_RATE_WAIT: "Kinnistu {tunnus}: serveri päringupiirang. Jätkan automaatselt {seconds} s pärast sama salvestusega.",
         TranslationKeys.PROPERTY_ADD_PACING_WAIT: "Kinnistu {tunnus}: salvestamine jätkub {seconds} s pärast.",
+        TranslationKeys.PROPERTY_CHECK_CANCELLED: "Kontroll katkestati. Kontrollitud {done}/{total} kinnistut. Valitud kinnistute lisamiseks käivita kontroll uuesti.",
         TranslationKeys.PROPERTY_ADD_STOPPED_RESULT: "Töö peatus vea tõttu. Töödeldud {done}/{total}. Õnnestus: {succeeded}. Ebaõnnestus: {failed}. Töötlemata: {pending}.",
         TranslationKeys.PROPERTY_ADD_RESPONSE_INVALID: "Serveri vastus ei kinnitanud kinnistu salvestamist.",
         TranslationKeys.PROPERTY_ADD_STAGE_CREATE: "Kinnistu loomine",
@@ -534,7 +535,7 @@ TRANSLATIONS = {
     ,TranslationKeys.ADDRESS: "Aadress"
     ,TranslationKeys.AREA: "Pindala (m²)"
     ,TranslationKeys.SETTLEMENT: "Linn/Asustusüksus"
-    ,TranslationKeys.PROPERTY_COLUMN_BACKEND: "KAvitro"
+    ,TranslationKeys.PROPERTY_COLUMN_BACKEND: "Kavitro"
     ,TranslationKeys.PROPERTY_COLUMN_MAIN_LAYER: "Kaardil"
     ,TranslationKeys.PROPERTY_COLUMN_ARCHIVE_BACKEND: "Arhiiv"
     ,TranslationKeys.PROPERTY_COLUMN_ARCHIVE_MAP: "Arhiiv: kaart"

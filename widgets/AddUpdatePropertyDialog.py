@@ -176,6 +176,7 @@ class AddPropertyDialog(QDialog):
         # --- Progressive Attention checks (borrowed from SignalTest patterns) ---
         self._backend_verify_controller = BackendVerifyController(self)
         self._backend_verify_controller.rowResult.connect(self._on_backend_verify_row_result)
+        self._backend_verify_controller.waiting.connect(self._on_backend_verify_waiting)
         self._backend_verify_controller.finished.connect(self._on_backend_verify_finished)
 
         self._main_check_controller = MainLayerCheckController(self)
@@ -673,6 +674,11 @@ class AddPropertyDialog(QDialog):
         super().closeEvent(event)
 
     def _on_cancel_clicked(self) -> None:
+        # A running check is cancelled in place, like an add; only an idle dialog closes.
+        if self._checks_running:
+            self._cancel_attention_checks()
+            return
+
         # Always stop attention checks when cancelling so backend lookups don't keep running.
         self._stop_attention_checks(clear_attention=False)
 
@@ -1030,11 +1036,14 @@ class AddPropertyDialog(QDialog):
         self._add_last_progress = (0, 0)
         self.add_progress_label.clear()
         self.add_progress_label.hide()
-        self.add_detail_label.clear()
-        self.add_detail_label.hide()
+        self._hide_detail_label()
         if self._add_errors_view is not None:
             self._add_errors_view.clear()
             self._add_errors_view.hide()
+
+    def _hide_detail_label(self) -> None:
+        self.add_detail_label.clear()
+        self.add_detail_label.hide()
 
     @staticmethod
     def _layer_identity(layer) -> tuple[str, str]:
@@ -1292,6 +1301,13 @@ class AddPropertyDialog(QDialog):
     def _on_run_checks_clicked(self) -> None:
         self._start_attention_checks(source="manual_button")
 
+    def _cancel_attention_checks(self) -> None:
+        done, total = self._checks_done_count(), self._total_rows_for_checks
+        self._stop_attention_checks(clear_attention=False)
+        self.add_progress_label.setText(self.lang_manager.translate(
+            TranslationKeys.PROPERTY_CHECK_CANCELLED).format(done=done, total=total))
+        self.add_progress_label.show()
+
     def _stop_attention_checks(self, *, clear_attention: bool = False) -> None:
         self._backend_verify_controller.stop()
         self._main_check_controller.stop()
@@ -1311,6 +1327,8 @@ class AddPropertyDialog(QDialog):
         self._archive_map_plan = {}
 
         self._set_check_progress(0, 0)
+        if not self._add_in_progress:
+            self._hide_detail_label()
 
         self._table_filtered_to_attention = False
 
@@ -1524,6 +1542,18 @@ class AddPropertyDialog(QDialog):
         self._update_row_attention_display(row_idx)
         self._update_check_status_label()
 
+    def _on_backend_verify_waiting(self, seconds: float, reason: str) -> None:
+        # The progress bar keeps the checked count; the pause is shown beneath it.
+        if not self._checks_running:
+            return
+        if seconds <= 0:
+            self._hide_detail_label()
+            return
+        key = (TranslationKeys.API_REQUEST_RATE_WAIT if reason == 'rate_limit'
+               else TranslationKeys.API_REQUEST_PACING_WAIT)
+        self.add_detail_label.setText(self.lang_manager.translate(key).format(seconds=ceil(seconds)))
+        self.add_detail_label.show()
+
     def _on_backend_verify_finished(self, _summary: dict) -> None:
         # Ensure remaining MAIN rows finish in batches.
         try:
@@ -1598,13 +1628,7 @@ class AddPropertyDialog(QDialog):
             self._set_check_progress(0, 0)
             return
 
-        # Consider a row "done" only when both backend + MAIN finished for that row.
-        done_rows = 0
-        for row_idx in self._rows_for_verify_by_row.keys():
-            if row_idx in self._backend_checked_rows and row_idx in self._main_checked_rows:
-                done_rows += 1
-
-        if done_rows < total:
+        if self._checks_done_count() < total:
             return
 
         self._checks_running = False
@@ -1719,13 +1743,13 @@ class AddPropertyDialog(QDialog):
             self._set_check_progress(0, 0)
             return
 
-        done_rows = 0
-        for row_idx in self._rows_for_verify_by_row.keys():
-            if row_idx in self._backend_checked_rows and row_idx in self._main_checked_rows:
-                done_rows += 1
-
-        self._set_check_progress(done_rows, total)
+        self._set_check_progress(self._checks_done_count(), total)
         self._update_run_checks_button()
+
+    def _checks_done_count(self) -> int:
+        """A row counts as checked only when both the backend and MAIN checks finished."""
+        return sum(1 for row_idx in self._rows_for_verify_by_row
+                   if row_idx in self._backend_checked_rows and row_idx in self._main_checked_rows)
 
     def _set_check_progress(self, done: int, total: int) -> None:
         bar = self.check_progress_bar

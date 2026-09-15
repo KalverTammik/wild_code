@@ -230,6 +230,7 @@ TRANSLATIONS = {
         TranslationKeys.API_RATE_LIMIT_REQUEST_TOO_LARGE: "The request exceeds the mutation limit (HTTP 429). Split it into smaller requests; waiting will not resolve this error.",
         TranslationKeys.PROPERTY_ADD_RATE_WAIT: "Property {tunnus}: server rate limit. The same save will retry automatically in {seconds} s.",
         TranslationKeys.PROPERTY_ADD_PACING_WAIT: "Property {tunnus}: saving will continue in {seconds} s.",
+        TranslationKeys.PROPERTY_CHECK_CANCELLED: "Check cancelled. {done}/{total} properties checked. Run the check again before adding the selected properties.",
         TranslationKeys.PROPERTY_ADD_STOPPED_RESULT: "Stopped due to an error. Processed {done}/{total}. Succeeded: {succeeded}. Failed: {failed}. Not processed: {pending}.",
         TranslationKeys.PROPERTY_ADD_RESPONSE_INVALID: "The server response did not confirm that the property was saved.",
         TranslationKeys.PROPERTY_ADD_STAGE_CREATE: "Creating the property",

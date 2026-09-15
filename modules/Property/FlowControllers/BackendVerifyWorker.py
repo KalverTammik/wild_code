@@ -1,22 +1,25 @@
 from __future__ import annotations
 
-import time
+from threading import Event
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from .MainAddProperties import BackendPropertyVerifier
 from .property_import_decisions import classify_property_import
 from ....languages.translation_keys import TranslationKeys as K
-from ....Logs.python_fail_logger import PythonFailLogger
+from ....python.api_rate_limit import RequestCancelled, api_request_context
 
 
 class BackendVerifyWorker(QObject):
     """Background worker for verifying backend state per cadastral tunnus.
 
-    Emits row-by-row results so UI can update progressively.
+    Emits row-by-row results so UI can update progressively. Requests are paced by
+    the shared process rate limiter; stop() also interrupts its waits, so a cancelled
+    run releases the request budget at once instead of after the pause.
     """
 
     rowResult = pyqtSignal(int, str, dict)
+    waiting = pyqtSignal(float, str)
     finished = pyqtSignal(dict)
 
     def __init__(
@@ -30,22 +33,10 @@ class BackendVerifyWorker(QObject):
         self._rows = rows
         self._source = source
         self._import_context_by_tunnus = import_context_by_tunnus
-        self._stop = False
-
-        total = len(rows or [])
-        if total <= 50:
-            self._sleep_every = 0
-            self._sleep_secs = 0.0
-        elif total <= 150:
-            self._sleep_every = 20
-            self._sleep_secs = 0.03
-        else:
-            self._sleep_every = 25
-            self._sleep_secs = 0.05
-        self._no_sleep_until = 50  # process first chunk quickly
+        self._cancel = Event()
 
     def stop(self) -> None:
-        self._stop = True
+        self._cancel.set()
 
     @pyqtSlot()
     def run(self) -> None:
@@ -55,72 +46,62 @@ class BackendVerifyWorker(QObject):
         outdated_backend: list[str] = []
         errors: list[dict] = []
 
-        call_count = 0
+        with api_request_context(cancel_event=self._cancel, on_wait=self.waiting.emit):
+            for row, tunnus, import_muudet in self._rows:
+                if self._cancel.is_set():
+                    break
 
-        for row, tunnus, import_muudet in self._rows:
-            if self._stop:
-                break
+                try:
+                    backend_info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
+                except RequestCancelled:
+                    # The row was never checked; it is unfinished, not a failed lookup.
+                    break
+                except Exception as e:
+                    errors.append({"tunnus": tunnus, "error": str(e)})
+                    self.rowResult.emit(
+                        row,
+                        tunnus,
+                        {
+                            "attention": True,
+                            "causes": ["backend lookup failed"],
+                            "backend_info": None,
+                        },
+                    )
+                    continue
 
-            try:
-                backend_info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
-            except Exception as e:
-                errors.append({"tunnus": tunnus, "error": str(e)})
+                # A response that arrives after stop() belongs to a discarded run.
+                if self._cancel.is_set():
+                    break
+
+                context = self._import_context_by_tunnus[tunnus]
+                decision = classify_property_import(context['data'], import_muudet, context['main_date'],
+                                                    backend_info or {})
+                attention_causes: list[str] = []
+                if decision['action'] == 'error':
+                    attention_causes.append(K.ATTENTION_CAUSE_BACKEND_LOOKUP_FAILED)
+                elif decision['action'] == 'needs_decision':
+                    attention_causes.append(decision['reason'])
+                    if backend_info.get('archived_only'):
+                        archived_only_backend.append(tunnus)
+                elif decision['action'] == 'create':
+                    missing_backend.append(tunnus)
+                    attention_causes.append(K.ATTENTION_CAUSE_MISSING_BACKEND)
+                elif decision['import_newer']:
+                    outdated_backend.append(tunnus)
+                    attention_causes.append(K.ATTENTION_CAUSE_IMPORT_NEWER)
+                else:
+                    ok_fresh.append(tunnus)
+
                 self.rowResult.emit(
                     row,
                     tunnus,
                     {
-                        "attention": True,
-                        "causes": ["backend lookup failed"],
-                        "backend_info": None,
+                        "attention": bool(attention_causes),
+                        "causes": attention_causes,
+                        "decision": decision,
+                        "backend_info": backend_info if isinstance(backend_info, dict) else None,
                     },
                 )
-                continue
-
-            context = self._import_context_by_tunnus[tunnus]
-            decision = classify_property_import(context['data'], import_muudet, context['main_date'],
-                                                backend_info or {})
-            attention_causes: list[str] = []
-            if decision['action'] == 'error':
-                attention_causes.append(K.ATTENTION_CAUSE_BACKEND_LOOKUP_FAILED)
-            elif decision['action'] == 'needs_decision':
-                attention_causes.append(decision['reason'])
-                if backend_info.get('archived_only'):
-                    archived_only_backend.append(tunnus)
-            elif decision['action'] == 'create':
-                missing_backend.append(tunnus)
-                attention_causes.append(K.ATTENTION_CAUSE_MISSING_BACKEND)
-            elif decision['import_newer']:
-                outdated_backend.append(tunnus)
-                attention_causes.append(K.ATTENTION_CAUSE_IMPORT_NEWER)
-            else:
-                ok_fresh.append(tunnus)
-
-            self.rowResult.emit(
-                row,
-                tunnus,
-                {
-                    "attention": bool(attention_causes),
-                    "causes": attention_causes,
-                    "decision": decision,
-                    "backend_info": backend_info if isinstance(backend_info, dict) else None,
-                },
-            )
-
-            call_count += 1
-            if (
-                not self._stop
-                and self._sleep_every
-                and call_count > self._no_sleep_until
-                and call_count % self._sleep_every == 0
-            ):
-                try:
-                    time.sleep(self._sleep_secs)
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module="property",
-                        event="backend_verify_sleep_failed",
-                    )
 
         self.finished.emit(
             {
@@ -130,6 +111,6 @@ class BackendVerifyWorker(QObject):
                 "archived_only": archived_only_backend,
                 "outdated_backend": outdated_backend,
                 "errors": errors,
-                "stopped": bool(self._stop),
+                "stopped": self._cancel.is_set(),
             }
         )

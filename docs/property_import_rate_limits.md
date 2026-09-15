@@ -80,6 +80,14 @@ Automaattestid asendavad HTTP vastused ja aja; päris backend'i ei muudeta. Kaet
 
 Kasutajakatses tuleb pärast arendusplugina uuesti laadimist proovida mõlemat lisamisnuppu väikese ülevaadatud valikuga: paus peab olema nähtav, õnnestumiste arv peab kasvama alles pärast kinnistu kõigi etappide lõppu ja ebaõnnestunud toiming ei tohi jääda märkamatult vahele. Katkestamist saab proovida oote ajal. LIVE-paketti tuleb parandus avaldada eraldi versioonina.
 
+### Kinnistute kontrolli pausid ja katkestamine
+
+„Käivita kontroll” teeb iga kinnistu kohta kaks lugemispäringut. Suurema küla puhul jõuab see tokeni minutipiirini ja ühine piiraja peatab kontrolli kuni järgmise lubatud päringuni. Varem ei olnud pausi näha ning taustatöö ootas selle lõpuni ka pärast peatamist.
+
+Kontrolli taustatöö kasutab nüüd sama katkestus- ja ooteteavituse konteksti nagu lisamine. Edenemisriba näitab edasi kontrollitud kinnistute arvu ja selle all kuvatakse järelejäänud ooteaeg. „Tühista” katkestab käimasoleva kontrolli, jätab haldusakna avatuks ja näitab, mitu kinnistut jõuti kontrollida. Katkestatud kontrolli järel „Lisa valitud” ei aktiveeru, sest see nõuab täielikku kontrolli. Akna sulgemine risti või Esc-klahviga sulgeb akna nagu varem. Taustatöö enda lisaviivitused eemaldati, sest päringute tempo määrab ühine piiraja.
+
+Katkestamine lõpetab ootamise kohe. Juba saadetud lugemispäringu vastus oodatakse taustal ära, kuid seda ei rakendata. Kui kontroll käivitatakse uuesti või piirkond vahetub, arvestatakse ainult viimati käivitatud kontrolli tulemusi. Varem võis asendatud kontrolli hilinenud lõputeade eemaldada viite uuele kontrollile, mistõttu uut kontrolli ei saanud enam peatada.
+
 ### 15.09.2026 laiendatud kontroll
 
 - QGIS 3.40.13 Python: 276 testi, 273 õnnestunud, 3 vahele jäetud; päris backend'i ei muudetud.

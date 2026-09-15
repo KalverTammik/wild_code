@@ -989,6 +989,7 @@ class TranslationKeys:
     API_RATE_LIMIT_REQUEST_TOO_LARGE = "api_rate_limit_request_too_large"
     PROPERTY_ADD_RATE_WAIT = "property_add_rate_wait"
     PROPERTY_ADD_PACING_WAIT = "property_add_pacing_wait"
+    PROPERTY_CHECK_CANCELLED = "property_check_cancelled"
     PROPERTY_ADD_STOPPED_RESULT = "property_add_stopped_result"
     PROPERTY_ADD_RESPONSE_INVALID = "property_add_response_invalid"
     PROPERTY_ADD_STAGE_CREATE = "property_add_stage_create"

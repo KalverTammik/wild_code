@@ -269,6 +269,75 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.assertEqual(self.create.call_count, 81)
         self.update.assert_not_called()
 
+    def test_check_controller_interrupts_rate_limit_wait_and_ignores_a_replaced_run(self):
+        from PyQt5 import sip
+        from Kavitro_dev.modules.Property.FlowControllers.BackendVerifyController import BackendVerifyController
+        from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
+        in_flight, release = threading.Event(), threading.Event()
+
+        def lookup(number):
+            if number == 'wait':
+                PROCESS_RATE_LIMITER._wait(30, 'rate_limit')
+            elif number == 'flight':
+                in_flight.set()
+                release.wait(5)
+            return {'exists': False}
+
+        self.lookup.side_effect = lookup
+        context = {'data': self.data, 'main_date': None}
+        controller = BackendVerifyController()
+        rows, waits, finished, guard_on_main = [], [], [], []
+        forward = controller._forward
+        controller._forward = lambda *args: (
+            guard_on_main.append(threading.current_thread() is threading.main_thread()), forward(*args))
+        controller.rowResult.connect(lambda row, number, result: rows.append(number))
+        controller.waiting.connect(lambda seconds, reason: waits.append((seconds, reason)))
+        controller.finished.connect(finished.append)
+        stopped = lambda thread: sip.isdeleted(thread) or thread.isFinished()
+        try:
+            # A normal run forwards every row; the stale-run guard itself runs on the GUI thread.
+            controller.start([(0, '1', ''), (1, '2', '')], source='test',
+                             import_context_by_tunnus={'1': context, '2': context})
+            self.wait_until(lambda: bool(finished))
+            self.assertEqual(rows, ['1', '2'])
+            self.assertFalse(finished[0]['stopped'])
+            self.assertTrue(guard_on_main and all(guard_on_main))
+            self.assertIsNone(controller._worker)
+
+            # Stopping interrupts a 30 s server pause instead of waiting it out.
+            rows.clear()
+            finished.clear()
+            controller.start([(0, 'wait', '')], source='test', import_context_by_tunnus={'wait': context})
+            self.wait_until(lambda: bool(waits))
+            self.assertGreater(waits[0][0], 29)
+            self.assertEqual(waits[0][1], 'rate_limit')
+            thread = controller._thread
+            controller.stop()
+            self.wait_until(lambda: stopped(thread))
+            QTest.qWait(50)
+            self.assertEqual((len(waits), rows, finished), (1, [], []))
+
+            # A replaced run's late response is neither shown nor able to detach its replacement.
+            waits.clear()
+            controller.start([(0, 'flight', '')], source='test', import_context_by_tunnus={'flight': context})
+            self.assertTrue(in_flight.wait(5))
+            old_thread = controller._thread
+            controller.stop()
+            controller.start([(0, 'wait', '')], source='test', import_context_by_tunnus={'wait': context})
+            replacement = controller._worker
+            release.set()
+            self.wait_until(lambda: stopped(old_thread))
+            QTest.qWait(50)
+            self.assertIs(controller._worker, replacement)
+            self.assertEqual((rows, finished), ([], []))
+        finally:
+            release.set()
+            thread = controller._thread
+            controller.stop()
+            if thread is not None:
+                self.wait_until(lambda: stopped(thread))
+            controller.deleteLater()
+
     def test_archived_and_ambiguous_matches_do_not_stop_following_properties(self):
         self.lookup.side_effect = [{'exists': False, 'archived_only': True},
                                    {'exists': True, 'active_count': 2}]

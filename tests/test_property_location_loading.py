@@ -729,6 +729,58 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             dialog.deleteLater()
 
 
+    def test_real_dialog_shows_check_rate_limit_wait_and_cancel_keeps_the_dialog_open(self):
+        from PyQt5 import sip
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
+        from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        main = QgsVectorLayer('Polygon?crs=EPSG:3301&field=tunnus:string', 'Main', 'memory')
+        # Every lookup hits a real 30 s rate-limit wait in the shared limiter.
+        lookup = lambda number: PROCESS_RATE_LIMITER._wait(30, 'rate_limit') or {'exists': False}
+        with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                          side_effect=lookup), \
+                patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
+                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+            try:
+                self.wait_until(lambda: dialog.county_combo.isEnabled())
+                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
+                combo = dialog.municipality_combo
+                combo.setCurrentIndex(combo.findData('Shared municipality'))
+                self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
+                translate = dialog.lang_manager.translate
+
+                dialog._on_run_checks_clicked()
+                self.wait_until(lambda: dialog.add_detail_label.isVisible())
+                self.assertIn(dialog.add_detail_label.text(),
+                              {translate(K.API_REQUEST_RATE_WAIT).format(seconds=s) for s in (29, 30)})
+                self.assertTrue(dialog.check_progress_bar.isVisible())
+                self.assertFalse(dialog.run_checks_button.isEnabled())
+                thread = dialog._backend_verify_controller._thread
+
+                dialog._on_cancel_clicked()
+                self.assertTrue(dialog.isVisible())
+                self.assertFalse(dialog._checks_running)
+                self.assertTrue(dialog.run_checks_button.isEnabled())
+                self.assertFalse(dialog.add_button.isEnabled())
+                self.assertFalse(dialog.check_progress_bar.isVisible())
+                self.assertFalse(dialog.add_detail_label.isVisible())
+                self.assertEqual(dialog.add_progress_label.text(),
+                                 translate(K.PROPERTY_CHECK_CANCELLED).format(done=0, total=2))
+                # The interrupted pause ends at once instead of holding the request budget for 30 s.
+                self.wait_until(lambda: sip.isdeleted(thread) or thread.isFinished())
+                QTest.qWait(50)
+                self.assertFalse(dialog.add_detail_label.isVisible())
+                self.assertFalse(dialog._checks_running)
+            finally:
+                dialog.reject()
+                self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
+                dialog.deleteLater()
+
     def test_property_table_headers_come_from_translations_in_both_languages(self):
         from Kavitro_dev.languages import en as en_module
         from Kavitro_dev.languages import et as et_module
