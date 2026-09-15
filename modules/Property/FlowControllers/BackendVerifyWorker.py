@@ -4,7 +4,9 @@ import time
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
-from .MainAddProperties import BackendPropertyVerifier, MainAddPropertiesFlow
+from .MainAddProperties import BackendPropertyVerifier
+from .property_import_decisions import classify_property_import
+from ....languages.translation_keys import TranslationKeys as K
 from ....Logs.python_fail_logger import PythonFailLogger
 
 
@@ -22,12 +24,12 @@ class BackendVerifyWorker(QObject):
         rows: list[tuple[int, str, str]],
         *,
         source: str,
-        backend_last_updated_override_by_tunnus: dict[str, str] | None = None,
+        import_context_by_tunnus: dict,
     ):
         super().__init__()
         self._rows = rows
         self._source = source
-        self._backend_last_updated_override_by_tunnus = backend_last_updated_override_by_tunnus or {}
+        self._import_context_by_tunnus = import_context_by_tunnus
         self._stop = False
 
         total = len(rows or [])
@@ -74,64 +76,32 @@ class BackendVerifyWorker(QObject):
                 )
                 continue
 
-            exists_backend_any = False
-            archived_only_val = None
-            backend_last_updated = ""
-
-            if isinstance(backend_info, dict):
-                exists_val = backend_info.get("exists")
-                archived_only_val = backend_info.get("archived_only")
-                backend_last_updated = str(backend_info.get("LastUpdated") or "")
-
-                active_count = backend_info.get("active_count")
-                archived_count = backend_info.get("archived_count")
-                prop = backend_info.get("property")
-
-                if exists_val is not None:
-                    exists_backend_any = bool(exists_val or archived_only_val)
-                else:
-                    try:
-                        exists_backend_any = bool((int(active_count or 0) + int(archived_count or 0)) > 0)
-                    except Exception:
-                        exists_backend_any = bool(prop)
-
-            attention = False
+            context = self._import_context_by_tunnus[tunnus]
+            decision = classify_property_import(context['data'], import_muudet, context['main_date'],
+                                                backend_info or {})
             attention_causes: list[str] = []
-
-            if isinstance(backend_info, dict) and backend_info.get("exists") is None:
-                attention = True
-                attention_causes.append("backend lookup failed")
-            elif not exists_backend_any:
-                attention = True
+            if decision['action'] == 'error':
+                attention_causes.append(K.ATTENTION_CAUSE_BACKEND_LOOKUP_FAILED)
+            elif decision['action'] == 'needs_decision':
+                attention_causes.append(decision['reason'])
+                if backend_info.get('archived_only'):
+                    archived_only_backend.append(tunnus)
+            elif decision['action'] == 'create':
                 missing_backend.append(tunnus)
-                attention_causes.append("missing in backend")
-            elif archived_only_val:
-                attention = True
-                archived_only_backend.append(tunnus)
-                attention_causes.append("archived only")
+                attention_causes.append(K.ATTENTION_CAUSE_MISSING_BACKEND)
+            elif decision['import_newer']:
+                outdated_backend.append(tunnus)
+                attention_causes.append(K.ATTENTION_CAUSE_IMPORT_NEWER)
             else:
-                import_newer = False
-                try:
-                    effective_backend_last_updated = self._backend_last_updated_override_by_tunnus.get(tunnus, "") or backend_last_updated
-                    import_newer = bool(
-                        MainAddPropertiesFlow._is_import_newer(import_muudet, effective_backend_last_updated, None)
-                    )
-                except Exception:
-                    import_newer = False
-
-                if import_newer:
-                    attention = True
-                    outdated_backend.append(tunnus)
-                    attention_causes.append("import newer")
-                else:
-                    ok_fresh.append(tunnus)
+                ok_fresh.append(tunnus)
 
             self.rowResult.emit(
                 row,
                 tunnus,
                 {
-                    "attention": attention,
+                    "attention": bool(attention_causes),
                     "causes": attention_causes,
+                    "decision": decision,
                     "backend_info": backend_info if isinstance(backend_info, dict) else None,
                 },
             )

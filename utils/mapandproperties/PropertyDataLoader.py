@@ -178,6 +178,8 @@ class PropertyDataLoader:
         fields = [Katastriyksus.mk_nimi, Katastriyksus.ov_nimi, Katastriyksus.ay_nimi]
         if include_properties:
             fields += [Katastriyksus.tunnus, Katastriyksus.l_aadress, Katastriyksus.pindala]
+            if source.fields().lookupField(Katastriyksus.muudet) >= 0:
+                fields.append(Katastriyksus.muudet)
         request = PropertyDataLoader.snapshot_request(source, fields, expression)
         rows, feature_ids = [], []
         extent = QgsRectangle()

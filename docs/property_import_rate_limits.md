@@ -44,6 +44,26 @@ Osaliselt lõpetatud tegevus ei ole tervikuna tagasipööratav tehing. Näiteks 
 
 ## Kontrollimine
 
+### Otsust vajavate kinnistute käsitlus
+
+Aadressikonflikt, ainult arhiveeritud vaste ja mitu aktiivset vastet on eraldi `needs_decision` tulemused. Need tuvastatakse enne salvestamist: taustasüsteemi ega põhikihti selle kinnistu jaoks ei muudeta ja jooksutaja jätkab järgmise kinnistuga. Päringu ebaõnnestumine, ebaselge salvestustulemus ja kehtetu kiht jäävad peatavateks vigadeks.
+
+„Käivita kontroll” ja import kasutavad sama `classify_property_import()` funktsiooni. Asukohapõhise tabeli andmetes säilitatakse `muudet` väli; kontroll arvestab aadressi, backend'i katastriandmete kuupäeva ning põhikihi kuupäeva. Võrdlus toimub kalendrikuupäevades, sest impordi API-sisend on samuti kuupäev; ajavööndiga backend'i ajatempel ei tekita enam võrreldamatute kuupäevade viga. Puuduvat või loetamatut kuupäeva ei esitata kasutajale tõendina, et import on vanem. Värske backend'i kontroll enne iga salvestamist säilib.
+
+Automaatse töö lõpus kuvab haldusaken eraldi õnnestumised, tehnilised vead ja otsust ootavate kinnistute arvu. Nupp „Vaata otsust ootavaid kinnistuid” avab aadresside ja kuupäevade võrdluse. Valikud:
+
+- **Jäta hilisemaks**: kirje säilib otsuste loendis selle haldusakna sulgemiseni. Püsivat kettale salvestamist ei ole.
+- **Säilita olemasolev**: kirje eemaldatakse otsuste loendist; selle kinnistu backend'i ja põhikihi andmeid ei muudeta. Loendatakse eraldi, mitte salvestusena.
+- **Rakenda impordi andmed**: pakutakse aadressikonflikti korral. Uuendatakse sama backend'i kirje kinnistu numbrit, katastriandmeid, aadressi, pindala ja sihtotstarbeid. Olemasolev põhikihi objekt jääb alles; puuduv kopeeritakse importkihist. Arhiveeritud või mitme aktiivse vastega kirjetele ülekirjutamise valikut ei pakuta.
+
+Rakendatakse ainult valitud ootel kirjed, mitte algset impordivalikut uuesti. Enne ülekirjutamist võrreldakse uuesti backend'i verifitseerimistulemust ning lähte- ja põhikihi identiteeti ja objekte. Muutunud andmed jäävad värske võrdlusega otsust ootama. Backend'i kontroll hõlmab olemasoleva verifitseerimispäringu tagastatud välju (sh ID, aadress, katastriandmete kuupäev, aktiivsed/arhiveeritud vasted ja sildid); see ei ole serveripoolne atomaarne tingimuslik kirjutamine.
+
+Kuni eelmise impordi otsused on ootel, suunavad lisamisnupud nende ülevaatesse, et edukalt imporditud valikut kogemata uuesti mitte töödelda. Tehnilise vea või katkestamise järel säilivad juba kogutud otsused ja tegelikud tulemused. Automaatses osas tähendab 100% kogu valiku läbivaatamist, mitte kõigi kinnistute salvestamist.
+
+Regressioonikatsed kontrollivad „Käivita kontroll” → import töövoogu, kuupäeva säilimist tabelis, 82 kinnistu valikut ühe esimese aadressikonflikti ja 81 eduka impordiga, arhiivi/mitme vaste edasilükkamist, eraldi otsuste rakendamist, muutunud backend'i ja geomeetriat, säilitamist, katkestamist ning koondloendureid. Kõik päringud on asendatud; päris backend'i ei muudeta.
+
+15.09.2026 lõppkontroll QGIS 3.40.15 keskkonnas: **291 testi, neist 288 edukad ja 3 vahele jäetud**. Otsuste dialoogi paigutust vaadati üle ka renderdatud 850 × 680 ja 700 × 600 eelvaates. Päris LIVE-importi ei tehtud.
+
 ### Lisamise edenemine
 
 Mõlema lisamisviisi ajal on eraldi nähtavad töödeldud kinnistute arv, kogu käivitatud valiku maht, järelejäänud arv ning protsendiga edenemisriba. Katastritunnus ja päringupausi teade kuvatakse nende all; paus ei asenda loendurit. Töödeldud kinnistute arv muutub jooksutaja tulemuse põhjal, mitte päringu saatmisel. Vea või katkestamise korral jäävad alles tegelik edenemine ja lõpptulemuse eraldi õnnestumiste, ebaõnnestumiste ning töötlemata kannete arvud.

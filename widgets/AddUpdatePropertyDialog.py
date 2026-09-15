@@ -49,6 +49,7 @@ from ..utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ..constants.cadastral_fields import Katastriyksus
 from ..widgets.DateHelpers import DateHelpers
 from ..widgets.PropertyArchivePlanDialog import PropertyArchivePlanDialog
+from .property_import_review_dialog import PropertyImportReviewDialog
 
 from .LocationFilterWidget import LocationFilterWidget, LocationFilterHelper
 from ..Logs.python_fail_logger import PythonFailLogger
@@ -85,6 +86,8 @@ class AddPropertyDialog(QDialog):
         self._location_filter_helper: Optional[LocationFilterHelper] = None
         self._archive_scope_snapshot: Optional[PropertyArchiveScope] = None
         self._checks_completed_for_scope = False
+        self._deferred_additions = []
+        self._add_summary = None
         self._archive_scope_blocked_reason = ""
         self._archive_moved_elsewhere: set[str] = set()
         self._archive_preliminary_missing: set[str] = set()
@@ -373,6 +376,12 @@ class AddPropertyDialog(QDialog):
         self.add_detail_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
         self.add_detail_label.hide()
         parent_layout.addWidget(self.add_detail_label)
+        self.review_additions_button = QPushButton(self.lang_manager.translate(
+            TranslationKeys.PROPERTY_IMPORT_REVIEW).format(count=0))
+        self.review_additions_button.setAutoDefault(False)
+        self.review_additions_button.hide()
+        self.review_additions_button.clicked.connect(self._on_review_additions)
+        parent_layout.addWidget(self.review_additions_button)
 
         # Footer with main actions
         footer_layout = QHBoxLayout()
@@ -574,6 +583,9 @@ class AddPropertyDialog(QDialog):
         self._after_table_update(self.properties_table)
 
     def _on_add_without_checks(self) -> None:
+        if self._deferred_additions:
+            self._on_review_additions()
+            return
         table = self.properties_table
         if table is None:
             return
@@ -600,11 +612,15 @@ class AddPropertyDialog(QDialog):
     def _on_add_clicked(self) -> None:
         self._start_batch_add(self.properties_table, mode="with_checks")
 
-    def _start_batch_add(self, table, *, mode: str) -> None:
+    def _start_batch_add(self, table, *, mode: str, review_decisions=None) -> None:
         if self._add_in_progress:
             return
 
         if table is None:
+            return
+
+        if self._deferred_additions and mode != 'review':
+            self._on_review_additions()
             return
 
         if mode == "with_checks":
@@ -617,6 +633,7 @@ class AddPropertyDialog(QDialog):
             table,
             parent=self,
             use_filtered_rows=self._use_filtered_row_scope(),
+            review_decisions=review_decisions,
         )
         self._add_runner = runner
         self._add_in_progress = True
@@ -731,6 +748,21 @@ class AddPropertyDialog(QDialog):
         self.add_detail_label.setVisible(bool(detail))
 
     def _on_add_finished(self, summary: dict) -> None:
+        if self._add_mode == 'review' and self._add_summary is not None:
+            previous = self._add_summary
+            replaced = set(summary.get('applied', [])) | {item['tunnus'] for item in summary['errors']}
+            refreshed = {item['tunnus']: item for item in summary.get('deferred', [])}
+            self._deferred_additions = [refreshed.pop(item['tunnus'], item)
+                                       for item in self._deferred_additions if item['tunnus'] not in replaced]
+            self._deferred_additions.extend(refreshed.values())
+            summary = dict(previous, succeeded=previous['succeeded'] + summary['succeeded'],
+                           failed=previous['failed'] + summary['failed'],
+                           errors=previous['errors'] + summary['errors'],
+                           canceled=summary['canceled'], stopped=previous['stopped'] or summary['stopped'],
+                           unfinished=summary.get('unfinished'), deferred=self._deferred_additions)
+        else:
+            self._deferred_additions = list(summary.get('deferred') or [])
+        self._add_summary = summary
         try:
             canceled = bool(summary.get("canceled")) if isinstance(summary, dict) else False
             done = int(summary.get("done") or 0) if isinstance(summary, dict) else 0
@@ -789,30 +821,64 @@ class AddPropertyDialog(QDialog):
         if 'succeeded' in summary:
             self._checks_completed_for_scope = False
             self._update_add_button_state()
-            result_key = TranslationKeys.PROPERTY_ADD_CANCELLED_RESULT if canceled else TranslationKeys.PROPERTY_ADD_RESULT
-            if summary.get('stopped') and not canceled:
-                result_key = TranslationKeys.PROPERTY_ADD_STOPPED_RESULT
-            self.add_progress_label.setText(self.lang_manager.translate(result_key).format(
-                done=done, total=total, succeeded=summary['succeeded'], failed=summary['failed'],
-                pending=summary.get('pending', total - done)))
-            self.add_progress_label.setWordWrap(True)
-            self.add_progress_label.show()
-            details = list(summary.get('errors') or [])
-            if summary.get('unfinished'):
-                details.append(summary['unfinished'])
-            if details:
-                if self._add_errors_view is None:
-                    self._add_errors_view = QPlainTextEdit(self)
-                    self._add_errors_view.setReadOnly(True)
-                    self._add_errors_view.setMaximumHeight(110)
-                    self.layout().addWidget(self._add_errors_view)
-                self._add_errors_view.setPlainText('\n'.join(
-                    f"{item['tunnus']}: {item['message']}" for item in details))
-                self._add_errors_view.show()
+            self._show_add_summary()
         self._add_mode = None
+
+    def _show_add_summary(self):
+        summary = self._add_summary
+        canceled = summary.get('canceled', False)
+        done, total = summary['done'], summary['total']
+        result_key = TranslationKeys.PROPERTY_ADD_CANCELLED_RESULT if canceled else TranslationKeys.PROPERTY_ADD_RESULT
+        if summary.get('stopped') and not canceled:
+            result_key = TranslationKeys.PROPERTY_ADD_STOPPED_RESULT
+        self.add_progress_label.setText(self.lang_manager.translate(result_key).format(
+            done=done, total=total, succeeded=summary['succeeded'], failed=summary['failed'],
+            pending=summary.get('pending', total - done)) + '\n' + self.lang_manager.translate(
+                TranslationKeys.PROPERTY_IMPORT_SUMMARY).format(
+                    deferred=len(self._deferred_additions), kept=summary.get('kept', 0)))
+        self.add_progress_label.setWordWrap(True)
+        self.add_progress_label.show()
+        details = list(summary.get('errors') or [])
+        if summary.get('unfinished'):
+            details.append(summary['unfinished'])
+        if details:
+            if self._add_errors_view is None:
+                self._add_errors_view = QPlainTextEdit(self)
+                self._add_errors_view.setReadOnly(True)
+                self._add_errors_view.setMaximumHeight(110)
+                self.layout().addWidget(self._add_errors_view)
+            self._add_errors_view.setPlainText('\n'.join(
+                f"{item['tunnus']}: {item['message']}" for item in details))
+            self._add_errors_view.show()
+        elif self._add_errors_view is not None:
+            self._add_errors_view.hide()
+        count = len(self._deferred_additions)
+        self.review_additions_button.setText(self.lang_manager.translate(
+            TranslationKeys.PROPERTY_IMPORT_REVIEW).format(count=count))
+        self.review_additions_button.setVisible(count > 0)
+
+    def _on_review_additions(self):
+        if self._add_in_progress or not self._deferred_additions:
+            return
+        dialog = PropertyImportReviewDialog(self._deferred_additions, lang_manager=self.lang_manager, parent=self)
+        try:
+            if dialog.exec_() != QDialog.Accepted:
+                return
+            choices = dialog.selected_decisions()
+        finally:
+            dialog.deleteLater()
+        kept = {tunnus for tunnus, action in choices.items() if action == 'keep'}
+        self._deferred_additions = [item for item in self._deferred_additions if item['tunnus'] not in kept]
+        self._add_summary['kept'] = self._add_summary.get('kept', 0) + len(kept)
+        self._add_summary['deferred'] = self._deferred_additions
+        self._show_add_summary()
+        apply = [item for item in self._deferred_additions if choices.get(item['tunnus']) == 'apply']
+        if apply:
+            self._start_batch_add(self.properties_table, mode='review', review_decisions=apply)
 
     def _set_add_ui_state(self, *, active: bool) -> None:
         self._add_in_progress = bool(active)
+        self.review_additions_button.setEnabled(not active)
 
         # Lock down selection + add buttons while batch is running.
         self.select_all_btn.setEnabled(not active)
@@ -1340,6 +1406,18 @@ class AddPropertyDialog(QDialog):
         self._main_layer_for_verify = self._resolve_main_layer_cached()
         tunnus_set = {t for (_row_idx, t, _muudet) in rows}
         self._main_layer_lookup = self._build_main_layer_lookup(self._main_layer_for_verify, tunnus_set)
+        import_context = {}
+        for row_idx, tunnus, _import_date in rows:
+            street = PropertyTableManager.get_cell_text(table, row_idx, PropertyTableWidget._COL_ADDRESS)
+            address = PropertyDataLoader.get_address_details_from_street(street)
+            main = self._main_layer_lookup.get(tunnus)
+            main_date = (date_helpers.date_to_iso_string(main[Katastriyksus.muudet])
+                         if main is not None and main.fields().lookupField(Katastriyksus.muudet) >= 0 else None)
+            import_context[tunnus] = {
+                'data': {'cadastralUnit': {'number': tunnus},
+                         'address': {'street': address['street'], 'houseNumber': address.get('house', '')}},
+                'main_date': main_date,
+            }
 
         batch_size, interval_ms = self._main_check_batch_params(len(rows))
 
@@ -1388,7 +1466,7 @@ class AddPropertyDialog(QDialog):
         self._update_check_status_label()
 
         try:
-            self._backend_verify_controller.start(rows, source=source)
+            self._backend_verify_controller.start(rows, source=source, import_context_by_tunnus=import_context)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,

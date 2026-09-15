@@ -2,6 +2,21 @@
 class TranslationKeys:
     """Centralized translation keys to avoid duplication and maintain consistency"""
 
+    PROPERTY_IMPORT_CHANGED = "property_import_changed"
+    PROPERTY_IMPORT_REVIEW = "property_import_review"
+    PROPERTY_IMPORT_REVIEW_TITLE = "property_import_review_title"
+    PROPERTY_IMPORT_REVIEW_INTRO = "property_import_review_intro"
+    PROPERTY_IMPORT_LATER = "property_import_later"
+    PROPERTY_IMPORT_KEEP = "property_import_keep"
+    PROPERTY_IMPORT_APPLY = "property_import_apply"
+    PROPERTY_IMPORT_CONFIRM = "property_import_confirm"
+    PROPERTY_IMPORT_ACTION = "property_import_action"
+    PROPERTY_IMPORT_REASON = "property_import_reason"
+    PROPERTY_IMPORT_DETAILS = "property_import_details"
+    PROPERTY_IMPORT_WRITE_SCOPE = "property_import_write_scope"
+    PROPERTY_IMPORT_UNKNOWN = "property_import_unknown"
+    PROPERTY_IMPORT_SUMMARY = "property_import_summary"
+    PROPERTY_IMPORT_MATCHES = "property_import_matches"
     # Module loading and API
     LIST_SORT = "list_sort"
     LIST_GROUP = "list_group"

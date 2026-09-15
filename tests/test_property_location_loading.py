@@ -423,6 +423,110 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
             dialog.deleteLater()
 
+    def test_real_precheck_and_import_defer_conflict_then_keep_without_reimporting_successes(self):
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
+        from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as runner_module
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        self.layer.dataProvider().changeAttributeValues({feature.id(): {
+            self.layer.fields().lookupField(F.muudet): '2025-01-01'} for feature in self.layer.getFeatures()})
+        main = QgsVectorLayer('Polygon?crs=EPSG:3301&field=tunnus:string', 'Main', 'memory')
+        lookup = lambda number: ({'exists': True, 'active_count': 1, 'LastUpdated': '2026-01-01',
+            'property': {'id': 'known', 'cadastralUnitNumber': number, 'displayAddress': 'Different'}}
+            if number == '1' else {'exists': False})
+        with patch.object(runner_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number', side_effect=lookup), \
+                patch.object(runner_module.ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
+                patch.object(runner_module.MainAddPropertiesFlow, 'add_single_property_item', return_value='created') as create, \
+                patch.object(runner_module.UpdatePropertyData, 'update_single_property_item') as update, \
+                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+            try:
+                self.wait_until(lambda: dialog.county_combo.isEnabled())
+                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
+                combo = dialog.municipality_combo
+                combo.setCurrentIndex(combo.findData('Shared municipality'))
+                self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
+                self.assertEqual(PropertyTableManager.get_payload_field_text(dialog.properties_table, 0, 0, F.muudet),
+                                 '2025-01-01')
+                dialog._on_run_checks_clicked()
+                self.wait_until(lambda: dialog._checks_completed_for_scope)
+                self.assertIn(K.PROPERTY_ADD_BACKEND_DIFFERS, dialog._backend_compare_causes_by_row[0])
+                with patch.object(dialog, '_run_missing_cleanup_if_any', return_value=True), \
+                        patch.object(PropertyDataLoader, 'prepare_data_for_import_stage1', side_effect=lambda feature: (
+                            {'cadastralUnit': {'number': feature[F.tunnus]}, 'address': {'street': 'Address',
+                             'houseNumber': feature[F.tunnus]}}, feature[F.tunnus], [], '2025-01-01')):
+                    dialog._on_add_clicked()
+                    self.wait_until(lambda: dialog._add_runner is None)
+                self.assertEqual((dialog._add_summary['done'], dialog._add_summary['succeeded'],
+                                  dialog._add_summary['failed']), (2, 1, 0))
+                self.assertEqual(len(dialog._deferred_additions), 1)
+                self.assertTrue(dialog.review_additions_button.isVisible())
+                self.assertIn('Otsust ootab: 1', dialog.add_progress_label.text())
+                create.assert_called_once()
+                update.assert_not_called()
+                with patch.object(PropertyImportReviewDialog, 'exec_', return_value=0):
+                    dialog._on_review_additions()
+                self.assertEqual(len(dialog._deferred_additions), 1)
+                with patch.object(PropertyImportReviewDialog, 'exec_', return_value=1), \
+                        patch.object(PropertyImportReviewDialog, 'selected_decisions', return_value={'1': 'keep'}):
+                    dialog._on_review_additions()
+                self.assertEqual(dialog._deferred_additions, [])
+                self.assertEqual(dialog._add_summary['kept'], 1)
+                self.assertEqual(dialog._add_summary['succeeded'], 1)
+                self.assertIn('Säilitati olemasolev: 1', dialog.add_progress_label.text())
+                self.assertFalse(dialog.review_additions_button.isVisible())
+                create.assert_called_once()
+                update.assert_not_called()
+                self.assertEqual(main.featureCount(), 1)
+            finally:
+                dialog.reject()
+                self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
+                dialog.deleteLater()
+
+    def test_review_results_merge_into_original_counts_and_only_retry_deferred_property(self):
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
+        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+        decision = {'tunnus': '1', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {},
+                    'feature': next(self.layer.getFeatures())}
+        try:
+            self.wait_until(lambda: dialog.county_combo.isEnabled())
+            for outcome in ('success', 'changed', 'error', 'cancelled'):
+                with self.subTest(outcome=outcome):
+                    initial = {'done': 82, 'total': 82, 'succeeded': 81, 'failed': 0, 'pending': 0,
+                               'errors': [], 'canceled': False, 'stopped': False, 'deferred': [decision]}
+                    dialog._on_add_finished(initial)
+                    with patch.object(PropertyImportReviewDialog, 'exec_', return_value=1), \
+                            patch.object(PropertyImportReviewDialog, 'selected_decisions', return_value={'1': 'apply'}), \
+                            patch.object(AddBatchRunner, 'start'):
+                        dialog._on_review_additions()
+                    runner = dialog._add_runner
+                    self.assertEqual(set(runner._review_decisions), {'1'})
+                    result = {'done': 1, 'total': 1, 'succeeded': int(outcome == 'success'),
+                              'failed': int(outcome == 'error'), 'pending': 0,
+                              'errors': [{'tunnus': '1', 'message': 'Write failed'}] if outcome == 'error' else [],
+                              'canceled': outcome == 'cancelled', 'stopped': outcome == 'error',
+                              'deferred': [dict(decision, changed=True)] if outcome == 'changed' else [],
+                              'applied': ['1'] if outcome == 'success' else []}
+                    runner._dispose_timer()
+                    runner.finished.emit(result)
+                    self.assertEqual(dialog._add_summary['total'], 82)
+                    self.assertEqual(dialog._add_summary['succeeded'], 82 if outcome == 'success' else 81)
+                    self.assertEqual(len(dialog._deferred_additions), int(outcome in ('changed', 'cancelled')))
+                    self.assertEqual(dialog._add_summary['failed'], int(outcome == 'error'))
+                    self.assertIsNone(dialog._add_runner)
+        finally:
+            dialog.reject()
+            self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
+            dialog.deleteLater()
+
     def test_add_progress_stays_visible_during_pauses_and_resets_between_runs(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner

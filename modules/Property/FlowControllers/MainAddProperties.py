@@ -488,7 +488,10 @@ class MainAddPropertiesFlow:
         if not candidates:
             return False
 
-        return import_dt > max(candidates)
+        # These are cadastral dates (the import payload also uses YYYY-MM-DD).
+        # Backend ISO timestamps may include a timezone; compare calendar dates
+        # consistently instead of mixing timezone-aware and naive datetimes.
+        return import_dt.date() > max(dt.date() for dt in candidates)
 
 
 class BackendPropertyVerifier:

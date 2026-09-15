@@ -7,6 +7,7 @@ from qgis.core import QgsFeatureRequest
 from ....utils.mapandproperties.PropertyTableManager import PropertyTableManager
 from .MainAddProperties import MainAddPropertiesFlow, BackendPropertyVerifier
 from .UpdatePropertyData import UpdatePropertyData
+from .property_import_decisions import classify_property_import
 from ....constants.cadastral_fields import Katastriyksus as F
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....languages.language_manager import LanguageManager
@@ -18,38 +19,39 @@ from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from ....Logs.python_fail_logger import PythonFailLogger
 
 
-def apply_reviewed_backend(data, uses, import_date, main_date):
+def apply_reviewed_backend(data, uses, import_date, main_date, *, review=None, source_changed=False):
     """Recheck existence to avoid duplicates, then apply the reviewed ordinary action."""
     lang = LanguageManager()
     tunnus = data['cadastralUnit']['number']
     info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
-    if info.get('exists') is None:
-        raise RuntimeError(lang.translate(K.PROPERTY_ADD_LOOKUP_FAILED))
-    if info.get('archived_only') or int(info.get('active_count') or 0) > 1:
-        raise RuntimeError(lang.translate(K.PROPERTY_ADD_AMBIGUOUS))
-    if info['exists'] is False:
+    decision = classify_property_import(data, import_date, main_date, info)
+    if decision['action'] == 'error':
+        raise RuntimeError(lang.translate(decision['reason']))
+    if review is not None:
+        if source_changed or info != review['backend_info']:
+            decision['changed'] = True
+            if decision['action'] != 'needs_decision':
+                decision.update(action='needs_decision', reason=K.PROPERTY_IMPORT_CHANGED)
+            return decision
+        # Explicit approval applies only to this unchanged address conflict.
+        if (review['reason'] == K.PROPERTY_ADD_BACKEND_DIFFERS
+                and decision['reason'] == K.PROPERTY_ADD_BACKEND_DIFFERS):
+            decision['action'] = 'update'
+    if decision['action'] == 'needs_decision':
+        return decision
+    if decision['action'] == 'create':
         if not MainAddPropertiesFlow.add_single_property_item(data, uses, raise_on_error=True):
             raise RuntimeError(lang.translate(K.PROPERTY_ADD_WRITE_FAILED))
         return
-    item = info.get('property') or {}
-    if not item.get('id'):
-        raise RuntimeError(lang.translate(K.PROPERTY_ADD_LOOKUP_FAILED))
-    address = data['address']
-    street = str(address.get('street') or '').strip()
-    full_street = ' '.join(part for part in (street, str(address.get('houseNumber') or '').strip()) if part)
-    same = (str(item.get('cadastralUnitNumber')) == str(tunnus)
-            and str(item.get('displayAddress') or '').strip() in (street, full_street))
-    if same or MainAddPropertiesFlow._is_import_newer(import_date, info.get('LastUpdated'), main_date):
-        if not UpdatePropertyData.update_single_property_item(item['id'], data, uses, raise_on_error=True):
-            raise RuntimeError(lang.translate(K.PROPERTY_ADD_WRITE_FAILED))
-    else:
-        raise RuntimeError(lang.translate(K.PROPERTY_ADD_BACKEND_DIFFERS))
+    if not UpdatePropertyData.update_single_property_item(info['property']['id'], data, uses, raise_on_error=True):
+        raise RuntimeError(lang.translate(K.PROPERTY_ADD_WRITE_FAILED))
 
 
-def _run_reviewed_backend(data, uses, import_date, main_date, cancel_event, on_wait):
+def _run_reviewed_backend(data, uses, import_date, main_date, cancel_event, on_wait, review, source_changed):
     with api_request_context(cancel_event=cancel_event, on_wait=on_wait):
         try:
-            apply_reviewed_backend(data, uses, import_date, main_date)
+            return apply_reviewed_backend(data, uses, import_date, main_date,
+                                          review=review, source_changed=source_changed)
         except RequestCancelled as exc:
             # A cancelled wait leaves the current property unfinished, never successful.
             return {'cancelled': True, 'message': str(exc) or LanguageManager().translate(K.PROPERTY_ADD_UNFINISHED)}
@@ -60,7 +62,7 @@ class AddBatchRunner(QObject):
     finished = pyqtSignal(dict)
     waiting = pyqtSignal(float, str)
 
-    def __init__(self, table, *, use_filtered_rows=False, parent=None):
+    def __init__(self, table, *, use_filtered_rows=False, review_decisions=None, parent=None):
         super().__init__(parent)
         self._table = table
         self._use_filtered_rows = use_filtered_rows
@@ -78,6 +80,9 @@ class AddBatchRunner(QObject):
         self._worker = None
         self._cancel_event = Event()
         self._unfinished = None
+        self._deferred = []
+        self._applied = []
+        self._review_decisions = {item['tunnus']: item for item in (review_decisions or [])}
 
     def _dispose_timer(self):
         self._timer.stop()
@@ -87,7 +92,9 @@ class AddBatchRunner(QObject):
     def start(self) -> None:
         mgr = PropertyTableManager()
         try:
-            if self._use_filtered_rows:
+            if self._review_decisions:
+                self._queue = [item['feature'] for item in self._review_decisions.values()]
+            elif self._use_filtered_rows:
                 self._queue = list(mgr.get_all_features(self._table) or [])
             else:
                 self._queue = list(mgr.get_selected_features(self._table) or [])
@@ -140,7 +147,8 @@ class AddBatchRunner(QObject):
         self.finished.emit({'canceled': self._stop_requested, 'done': self._done, 'total': self._total,
                             'succeeded': self._succeeded, 'failed': len(self._errors), 'errors': self._errors,
                             'pending': self._total - self._done, 'stopped': bool(self._errors),
-                            'unfinished': self._unfinished})
+                            'unfinished': self._unfinished, 'deferred': self._deferred,
+                            'applied': self._applied})
 
     def _tick(self):
         if self._finished or self._in_flight or self._paused:
@@ -168,10 +176,16 @@ class AddBatchRunner(QObject):
             matches = self._matches(target, tunnus)
             main_date = matches[0].attribute(F.muudet) if matches and target.fields().lookupField(F.muudet) >= 0 else None
             self._current.update(source=source, target=target, feature=feature,
-                                 source_uri=source.source(), target_uri=target.source())
+                                 source_uri=source.source(), target_uri=target.source(),
+                                 main_features=matches)
+            review = self._review_decisions.get(tunnus)
+            source_changed = bool(review and (
+                review['source_id'] != source.id() or review['source_uri'] != source.source()
+                or review['target_id'] != target.id() or review['target_uri'] != target.source()
+                or review['feature'] != feature or review['main_features'] != matches))
             self._in_flight = True
             self._worker = FunctionWorker(_run_reviewed_backend, data, uses, updated, main_date,
-                                          self._cancel_event, self.waiting.emit)
+                                          self._cancel_event, self.waiting.emit, review, source_changed)
             self._worker.finished.connect(self._backend_done)
             self._worker.error.connect(self._backend_failed)
             start_worker(self._worker)
@@ -198,6 +212,17 @@ class AddBatchRunner(QObject):
                     or target is not ActiveLayersHelper.resolve_main_property_layer(silent=True)
                     or source.source() != current['source_uri'] or target.source() != current['target_uri']):
                 raise RuntimeError(LanguageManager().translate(K.PROPERTY_ADD_LAYER_CHANGED))
+            if _result and _result.get('action') == 'needs_decision':
+                matches = current['main_features']
+                main = matches[0] if matches else None
+                _result.update(feature=current['feature'], main_features=matches,
+                               source_id=source.id(), source_uri=current['source_uri'],
+                               target_id=target.id(), target_uri=current['target_uri'],
+                               main_address=(str(main[F.l_aadress]) if main is not None
+                                             and main.fields().lookupField(F.l_aadress) >= 0 else ''))
+                self._deferred.append(_result)
+                self._complete_item(deferred=True)
+                return
             # Existing map objects remain unchanged when filling a missing backend record.
             if not self._matches(target, current['tunnus']):
                 if source.getFeature(current['feature'].id()) != current['feature']:
@@ -219,14 +244,15 @@ class AddBatchRunner(QObject):
     def _backend_failed(self, message):
         self._complete_item(message)
 
-    def _complete_item(self, error=None):
+    def _complete_item(self, error=None, *, deferred=False):
         self._in_flight = False
         tunnus = self._current['tunnus']
         if error:
             self._errors.append({'tunnus': tunnus, 'message': error})
             PythonFailLogger.log_exception(RuntimeError(error), module='property', event='checked_property_add_failed', extra={'tunnus': tunnus})
-        else:
+        elif not deferred:
             self._succeeded += 1
+            self._applied.append(tunnus)
         self._done += 1
         self.progress.emit(self._done, self._total, 'processing', tunnus)
         if error or self._stop_requested or not self._queue:

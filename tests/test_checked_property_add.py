@@ -139,8 +139,8 @@ class CheckedPropertyAddTest(unittest.TestCase):
     def test_different_newer_backend_is_not_reported_as_fully_saved(self):
         self.lookup.return_value = {'exists': True, 'LastUpdated': '2026-01-01', 'property': {
             'id': 'known', 'cadastralUnitNumber': '1', 'displayAddress': 'Changed by user'}}
-        with self.assertRaises(RuntimeError):
-            module.apply_reviewed_backend(self.data, [], '2025-01-01', None)
+        decision = module.apply_reviewed_backend(self.data, [], '2025-01-01', None)
+        self.assertEqual(decision['action'], 'needs_decision')
         self.update.assert_not_called()
         self.create.assert_not_called()
 
@@ -148,8 +148,8 @@ class CheckedPropertyAddTest(unittest.TestCase):
         for info in ({'exists': False, 'archived_only': True}, {'exists': True, 'active_count': 2}):
             with self.subTest(info=info):
                 self.lookup.return_value = info
-                with self.assertRaises(RuntimeError):
-                    module.apply_reviewed_backend(self.data, [], None, None)
+                self.assertEqual(module.apply_reviewed_backend(self.data, [], None, None)['action'],
+                                 'needs_decision')
         self.create.assert_not_called()
         self.update.assert_not_called()
 
@@ -208,7 +208,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
     def test_cancelling_retry_wait_leaves_current_and_following_properties_unfinished(self):
         waits, pulses = [], []
         self.runner.waiting.connect(lambda seconds, reason: waits.append((seconds, reason)))
-        def waiting_backend(*args):
+        def waiting_backend(*args, **kwargs):
             self.runner.waiting.emit(30.0, 'rate_limit')
             self.runner._cancel_event.wait(3)
             raise module.RequestCancelled()
@@ -230,6 +230,127 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.assertTrue(result['unfinished']['message'])
         self.create.assert_not_called()
         self.assertEqual(self.target.featureCount(), 0)
+
+    def conflict_info(self, address='Changed by user'):
+        return {'exists': True, 'active_count': 1, 'LastUpdated': '2026-01-01', 'property': {
+            'id': 'known', 'cadastralUnitNumber': '1', 'displayAddress': address}}
+
+    def review_batch(self, decisions):
+        self.runner.deleteLater()
+        self.results.clear()
+        self.runner = module.AddBatchRunner(None, review_decisions=decisions)
+        self.runner.finished.connect(self.results.append)
+        self.runner.start()
+        self.wait_until(lambda: bool(self.results))
+        return self.results[0]
+
+    def test_prechecked_conflict_is_deferred_and_remaining_81_properties_import(self):
+        from Kavitro_dev.modules.Property.FlowControllers.BackendVerifyWorker import BackendVerifyWorker
+        from Kavitro_dev.languages.translation_keys import TranslationKeys as K
+        for number in range(3, 83):
+            feature = QgsFeature(self.source.fields())
+            feature.setAttributes([str(number)])
+            feature.setGeometry(QgsGeometry.fromWkt('POINT(10 20)'))
+            self.source.dataProvider().addFeatures([feature])
+        self.lookup.side_effect = lambda number: self.conflict_info() if number == '1' else {'exists': False}
+        check = BackendVerifyWorker([(0, '1', '2025-01-01')], source='test',
+            import_context_by_tunnus={'1': {'data': self.data, 'main_date': None}})
+        checked = []
+        check.rowResult.connect(lambda row, number, result: checked.append(result))
+        check.run()
+        self.assertEqual(checked[0]['decision']['action'], 'needs_decision')
+        self.assertIn(K.PROPERTY_ADD_BACKEND_DIFFERS, checked[0]['causes'])
+        result = self.run_batch(list(self.source.getFeatures()))
+        self.assertEqual((result['done'], result['total'], result['succeeded'], result['failed'],
+                          result['pending']), (82, 82, 81, 0, 0))
+        self.assertFalse(result['stopped'])
+        self.assertEqual([item['tunnus'] for item in result['deferred']], ['1'])
+        self.assertEqual(self.target.featureCount(), 81)
+        self.assertEqual(self.create.call_count, 81)
+        self.update.assert_not_called()
+
+    def test_archived_and_ambiguous_matches_do_not_stop_following_properties(self):
+        self.lookup.side_effect = [{'exists': False, 'archived_only': True},
+                                   {'exists': True, 'active_count': 2}]
+        result = self.run_batch(self.features)
+        self.assertEqual((result['done'], result['failed'], len(result['deferred'])), (2, 0, 2))
+        self.assertFalse(result['stopped'])
+        self.create.assert_not_called()
+        self.update.assert_not_called()
+        self.assertEqual(self.target.featureCount(), 0)
+
+    def test_technical_error_after_conflict_stops_and_retains_decision(self):
+        self.lookup.side_effect = [self.conflict_info(), {'exists': None}]
+        result = self.run_batch(self.features)
+        self.assertEqual((len(result['deferred']), result['failed']), (1, 1))
+        self.assertTrue(result['stopped'])
+        self.assertEqual(self.target.featureCount(), 0)
+
+    def test_only_explicitly_reviewed_conflict_is_updated_and_copied(self):
+        self.lookup.return_value = self.conflict_info()
+        initial = self.run_batch()
+        self.update.assert_not_called()
+        result = self.review_batch(initial['deferred'])
+        self.update.assert_called_once()
+        self.assertEqual((result['succeeded'], result['failed'], result['deferred']), (1, 0, []))
+        self.assertEqual(self.target.featureCount(), 1)
+
+    def test_changed_backend_requires_new_decision_without_writing(self):
+        self.lookup.return_value = self.conflict_info()
+        initial = self.run_batch()
+        self.lookup.return_value = self.conflict_info('Changed again')
+        result = self.review_batch(initial['deferred'])
+        self.update.assert_not_called()
+        self.assertEqual(result['succeeded'], 0)
+        self.assertTrue(result['deferred'][0]['changed'])
+        self.assertEqual(result['deferred'][0]['backend_address'], 'Changed again')
+        self.assertEqual(self.target.featureCount(), 0)
+
+    def test_changed_source_geometry_requires_new_decision(self):
+        self.lookup.return_value = self.conflict_info()
+        initial = self.run_batch()
+        self.source.dataProvider().changeGeometryValues({self.features[0].id(): QgsGeometry.fromWkt('POINT(30 40)')})
+        result = self.review_batch(initial['deferred'])
+        self.assertTrue(result['deferred'][0]['changed'])
+        self.update.assert_not_called()
+        self.assertEqual(self.target.featureCount(), 0)
+
+    def test_precheck_uses_main_date_as_well_as_backend_date(self):
+        from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
+        decision = classify_property_import(self.data, '2026-02-01', '2026-03-01', self.conflict_info())
+        self.assertEqual(decision['action'], 'needs_decision')
+        self.assertFalse(decision['import_newer'])
+
+    def test_unknown_and_timezone_dates_do_not_turn_conflicts_into_technical_failures(self):
+        from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
+        info = self.conflict_info()
+        info['LastUpdated'] = '2026-01-01T10:00:00Z'
+        for date in (None, '', 'unreadable', '2026-01-01'):
+            with self.subTest(date=date):
+                self.assertEqual(classify_property_import(self.data, date, None, info)['action'], 'needs_decision')
+        self.assertEqual(classify_property_import(self.data, '2026-01-02', None, info)['action'], 'update')
+
+    def test_review_dialog_defaults_to_later_and_never_offers_ambiguous_overwrite(self):
+        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
+        from Kavitro_dev.languages.language_manager import LanguageManager
+        self.lookup.side_effect = [self.conflict_info(), {'exists': True, 'active_count': 2}]
+        result = self.run_batch(self.features)
+        dialog = PropertyImportReviewDialog(result['deferred'], lang_manager=LanguageManager('et'))
+        try:
+            dialog.show()
+            self.app.processEvents()
+            self.assertFalse(dialog.confirm.isEnabled())
+            self.assertEqual(dialog.selected_decisions(), {})
+            self.assertEqual(dialog.choices[0].findData('apply'), 2)
+            self.assertEqual(dialog.choices[1].findData('apply'), -1)
+            self.assertIn('Changed by user', dialog.details.toPlainText())
+            self.assertIn('Puudub või teadmata', dialog.details.toPlainText())
+            dialog.choices[0].setCurrentIndex(2)
+            self.assertTrue(dialog.confirm.isEnabled())
+            self.assertEqual(dialog.selected_decisions(), {'1': 'apply'})
+        finally:
+            dialog.close()
+            dialog.deleteLater()
 
 
 if __name__ == '__main__':

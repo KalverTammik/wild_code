@@ -49,7 +49,7 @@ class BackendVerifyController(QObject):
         rows: list[tuple[int, str, str]],
         *,
         source: str,
-        backend_last_updated_override_by_tunnus: dict[str, str] | None = None,
+        import_context_by_tunnus: dict,
     ) -> None:
         self.stop()
 
@@ -57,7 +57,7 @@ class BackendVerifyController(QObject):
         worker = BackendVerifyWorker(
             rows,
             source=source,
-            backend_last_updated_override_by_tunnus=backend_last_updated_override_by_tunnus or {},
+            import_context_by_tunnus=import_context_by_tunnus,
         )
         worker.moveToThread(thread)
 
