@@ -182,6 +182,68 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         self.assertEqual(self.ids(), set())
         self.wait_until(lambda: self.ids() == {'1', '2'})
 
+    def test_keyboard_village_check_updates_table(self):
+        self.load_index()
+        self.choose_municipality()
+        self.wait_until(lambda: self.ids() == {'1', '2'})
+        combo = self.widget.city_combo
+        combo.showPopup()
+        view = combo.view()
+        view.setCurrentIndex(view.model().index(0, 0))
+        QTest.keyClick(view, Qt.Key_Space)
+        self.assertEqual(combo.checkedItems(), ['First village'])
+        combo.hidePopup()
+        self.wait_until(lambda: self.ids() == {'1'})
+        combo.showPopup()
+        view.setCurrentIndex(view.model().index(0, 0))
+        QTest.keyClick(view, Qt.Key_Space)
+        self.assertEqual(combo.checkedItems(), [])
+        combo.hidePopup()
+        self.wait_until(lambda: self.ids() == {'1', '2'})
+
+    def test_refresh_keeps_scope_and_reads_new_rows_without_rebuilding_whole_index(self):
+        self.load_index()
+        self.choose_municipality()
+        self.widget.city_combo.setCheckedItems(['First village'])
+        self.wait_until(lambda: self.ids() == {'1'})
+        scope = self.helper._scope()
+        feature = QgsFeature(self.layer.fields())
+        feature.setAttributes(['A', 'Shared municipality', 'First village', '4', 'New address', '100'])
+        feature.setGeometry(QgsGeometry.fromWkt('POLYGON((400 0,410 0,410 10,400 10,400 0))'))
+        self.layer.dataProvider().addFeatures([feature])
+        self.assertEqual(self.ids(), {'1'})
+        before = self.invalidated.call_count
+        with patch.object(PropertyDataLoader, 'read_location_index') as index_read:
+            self.widget.refresh_button.click()
+            self.assertEqual(self.ids(), set())
+            self.assertEqual(self.helper._scope(), scope)
+            self.wait_until(lambda: self.ids() == {'1', '4'})
+            index_read.assert_not_called()
+        self.assertGreater(self.invalidated.call_count, before)
+        self.assertFalse(self.widget.refresh_button.icon().isNull())
+        self.assertTrue(self.widget.refresh_button.accessibleName())
+
+    def test_refresh_replaces_in_flight_read_with_current_scope(self):
+        self.load_index()
+        self.choose_municipality()
+        self.wait_until(lambda: self.ids() == {'1', '2'})
+        entered = threading.Event()
+        read = PropertyDataLoader.read_location_scope
+        calls = []
+        def delayed(source, cancelled, scope, include_properties):
+            calls.append(scope)
+            if len(calls) == 1:
+                entered.set()
+                cancelled.wait(2)
+            return read(source, cancelled, scope, include_properties)
+        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=delayed):
+            self.widget.city_combo.setCheckedItems(['First village'])
+            self.wait_until(entered.is_set)
+            self.widget.refresh_button.click()
+            self.assertTrue(self.widget.loading_indicator.isVisible())
+            self.wait_until(lambda: self.ids() == {'1'})
+        self.assertEqual(calls, [self.helper._scope(), self.helper._scope()])
+
     def test_data_changes_invalidate_index_table_and_archive_scope(self):
         self.load_index()
         self.choose_municipality()
@@ -316,8 +378,12 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             runner = dialog._add_runner
             dialog._on_add_progress(0, 2, 'processing', '1')
             runner.waiting.emit(37.0, 'rate_limit')
-            self.assertIn('37', dialog.add_progress_label.text())
-            self.assertIn('1', dialog.add_progress_label.text())
+            self.assertIn('37', dialog.add_detail_label.text())
+            self.assertIn('1', dialog.add_detail_label.text())
+            self.assertIn('0/2', dialog.add_progress_label.text())
+            self.assertTrue(dialog.add_progress_bar.isVisible())
+            self.assertEqual(dialog.add_progress_bar.value(), 0)
+            self.assertEqual(dialog.add_progress_bar.maximum(), 2)
             self.assertEqual(runner._done, 0)
             self.assertFalse(dialog.add_button.isEnabled())
             runner._in_flight = True
@@ -333,6 +399,9 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             self.assertTrue(dialog.location_filter_widget.isEnabled())
             self.assertTrue(dialog.properties_table.isEnabled())
             self.assertIn('1/2', dialog.add_progress_label.text())
+            self.assertEqual(dialog.add_progress_bar.value(), 1)
+            self.assertFalse(dialog._add_progress_timer.isActive())
+            self.assertFalse(dialog.add_detail_label.isVisible())
             self.assertEqual(dialog._add_errors_view.toPlainText(), '1: Offline test error')
             self.assertTrue(dialog._add_errors_view.isVisible())
             dialog._on_add_finished({'canceled': True, 'done': 0, 'total': 2, 'succeeded': 0,
@@ -340,6 +409,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
                                      'unfinished': {'tunnus': '1', 'message': 'Intended uses unfinished'}})
             self.assertEqual(dialog._add_errors_view.toPlainText(), '1: Intended uses unfinished')
             self.assertIn('0/2', dialog.add_progress_label.text())
+            self.assertEqual(dialog.add_progress_bar.value(), 0)
             # Skipping the preflight must not bypass the protected add runner.
             self.assertFalse(dialog._checks_completed_for_scope)
             with patch.object(AddBatchRunner, 'start') as start:
@@ -348,6 +418,92 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             self.assertIsInstance(dialog._add_runner, AddBatchRunner)
             dialog._add_runner.cancel()
             self.assertIsNone(dialog._add_runner)
+        finally:
+            dialog.reject()
+            self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
+            dialog.deleteLater()
+
+    def test_add_progress_stays_visible_during_pauses_and_resets_between_runs(self):
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+        try:
+            self.wait_until(lambda: dialog.county_combo.isEnabled())
+            dialog.lang_manager = LanguageManager('et')
+            translate = dialog.lang_manager.translate
+            with patch('Kavitro_dev.widgets.AddUpdatePropertyDialog.monotonic', return_value=100.0) as clock, \
+                    patch.object(AddBatchRunner, 'start'), \
+                    patch.object(dialog, '_run_missing_cleanup_if_any', return_value=True):
+                for mode in ('with_checks', 'without_checks'):
+                    with self.subTest(mode=mode):
+                        clock.return_value = 100.0
+                        dialog._checks_completed_for_scope = True
+                        dialog._start_batch_add(dialog.properties_table, mode=mode)
+                        runner = dialog._add_runner
+                        runner.progress.emit(0, 172, 'starting', '')
+                        self.assertIn('0/172', dialog.add_progress_label.text())
+                        self.assertIn(translate(K.ADD_UPDATE_PROGRESS_ESTIMATING), dialog.add_progress_label.text())
+                        self.assertEqual(dialog.add_progress_bar.value(), 0)
+                        self.assertFalse(dialog.add_detail_label.isVisible())
+                        self.assertTrue(dialog._add_progress_timer.isActive())
+
+                        clock.return_value = 170.0
+                        runner.progress.emit(35, 172, 'processing', '34201:001:0462')
+                        counts = translate(K.ADD_UPDATE_PROGRESS_COUNTS).format(done=35, total=172, remaining=137)
+                        self.assertIn(counts, dialog.add_progress_label.text())
+                        self.assertIn(translate(K.ADD_UPDATE_PROGRESS_ESTIMATE).format(duration='0:04:34'), dialog.add_progress_label.text())
+                        runner.waiting.emit(2, 'pacing')
+                        self.assertIn(counts, dialog.add_progress_label.text())
+                        self.assertIn('34201:001:0462', dialog.add_detail_label.text())
+                        self.assertEqual(dialog.add_progress_bar.value(), 35)
+                        self.assertEqual(dialog.add_progress_bar.maximum(), 172)
+
+                        # A long known server pause must remain visible and bound the ETA.
+                        runner.waiting.emit(600, 'rate_limit')
+                        self.assertIn(translate(K.ADD_UPDATE_PROGRESS_ESTIMATE).format(duration='0:10:00'), dialog.add_progress_label.text())
+                        clock.return_value = 180.0
+                        dialog._add_progress_timer.setInterval(20)
+                        self.wait_until(lambda: '590' in dialog.add_detail_label.text())
+                        self.assertIn(translate(K.ADD_UPDATE_PROGRESS_ELAPSED).format(duration='0:01:20'), dialog.add_progress_label.text())
+                        self.assertIn(counts, dialog.add_progress_label.text())
+
+                        # Wrapped messages must fit above the actions at the minimum size.
+                        dialog.resize(650, 420)
+                        QTest.qWait(30)
+                        for label in (dialog.add_progress_label, dialog.add_detail_label):
+                            self.assertGreaterEqual(label.height(), label.heightForWidth(label.width()))
+                            self.assertLess(label.geometry().bottom(), dialog.cancel_button.geometry().top())
+                        self.assertTrue(dialog.add_progress_bar.isVisible())
+
+                        runner.waiting.emit(0, 'rate_limit')
+                        self.assertEqual(dialog.add_detail_label.text(), translate(K.ADD_UPDATE_PROGRESS_CURRENT).format(tunnus='34201:001:0462'))
+                        runner._in_flight = True
+                        dialog._on_cancel_clicked()
+                        runner.waiting.emit(10, 'rate_limit')
+                        dialog._add_progress_timer.timeout.emit()
+                        self.assertIn(counts, dialog.add_progress_label.text())
+                        self.assertEqual(dialog.add_detail_label.text(), translate(K.ADD_UPDATE_PROPERTY_DIALOG_CANCELLING))
+                        runner._in_flight = False
+                        runner._done, runner._total, runner._succeeded = 35, 172, 35
+                        runner._finish()
+                        final_text = dialog.add_progress_label.text()
+                        self.assertIn('35/172', final_text)
+                        self.assertIn('137', final_text)
+                        self.assertEqual(dialog.add_progress_bar.value(), 35)
+                        self.assertFalse(dialog._add_progress_timer.isActive())
+                        self.assertFalse(dialog.add_detail_label.isVisible())
+                        dialog._on_add_waiting(15, 'rate_limit')
+                        dialog._add_progress_timer.timeout.emit()
+                        self.assertEqual(dialog.add_progress_label.text(), final_text)
+
+                # Only a fully processed batch reaches 100%; cancellation stays partial.
+                dialog._on_add_finished({'canceled': False, 'done': 172, 'total': 172,
+                                         'succeeded': 172, 'failed': 0, 'pending': 0, 'errors': []})
+                self.assertEqual(dialog.add_progress_bar.value(), dialog.add_progress_bar.maximum())
         finally:
             dialog.reject()
             self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)

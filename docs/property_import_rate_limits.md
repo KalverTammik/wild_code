@@ -44,6 +44,16 @@ Osaliselt lõpetatud tegevus ei ole tervikuna tagasipööratav tehing. Näiteks 
 
 ## Kontrollimine
 
+### Lisamise edenemine
+
+Mõlema lisamisviisi ajal on eraldi nähtavad töödeldud kinnistute arv, kogu käivitatud valiku maht, järelejäänud arv ning protsendiga edenemisriba. Katastritunnus ja päringupausi teade kuvatakse nende all; paus ei asenda loendurit. Töödeldud kinnistute arv muutub jooksutaja tulemuse põhjal, mitte päringu saatmisel. Vea või katkestamise korral jäävad alles tegelik edenemine ja lõpptulemuse eraldi õnnestumiste, ebaõnnestumiste ning töötlemata kannete arvud.
+
+Kulunud aeg uueneb kord sekundis ka päringu ja pausi ajal. Järelejäänud aja ligikaudne hinnang tekib pärast esimese kinnistu töötlemist: senine kulunud aeg jagatakse töödeldud kinnistute arvuga ja korrutatakse järelejäänud arvuga. Kulunud aja sisse jäävad päringupausid; hinnang ei ole lühem teadaolevast aktiivsest ooteajast. See on kohanduv hinnang, mitte lubatud lõpetamisaeg. Katkestamise ajal hinnang peidetakse. Uus lisamine alustab loendust ja ajamõõtmist uuesti.
+
+Käsitsi kontroll: mõlema lisamisnupuga peavad arvud, riba ja aeg jääma nähtavale nii tavalise salvestuspausi kui ka serveri piirangu ajal. Katkestamisel ei tohi osaline töö muutuda 100% edenemiseks. Tekst peab mahtuma tegevusnuppude kohale ka kitsamas aknas. Automaatkontrollis kasutatakse asendatud kellaaega, jooksutaja signaale ja mälukihte; võrku päringuid ei saadeta.
+
+15.09.2026 kontroll pärast edenemisnäidu ja külavaliku parandusi: QGIS 3.40.13 keskkonnas 280 testi, neist 277 edukad ja 3 vahele jäetud. Kontrolliti mõlemat lisamisviisi, ooteaja taimerit, arvude püsimist pauside ajal, katkestamist, korduva käivituse lähtestamist ning teksti mahutamist 650 × 420 aknas. Lisaks vaadati üle dialoogi renderdatud eelvaade. Päris LIVE-import selle kontrolli käigus ei toimunud.
+
 Automaattestid asendavad HTTP vastused ja aja; päris backend'i ei muudeta. Kaetud on kasutaja- ja kontolimiidid, vastusepäised, järjestikused 429 vastused, sama etapi kordamine, vastuse ID kontroll, katkestamine ning Qt edenemine. Õnnestumise aluseks on serveri edukas mutatsioonivastus õige kirje ID-ga, mitte eraldi hilisem andmete tagasilugemine.
 
 Kasutajakatses tuleb pärast arendusplugina uuesti laadimist proovida mõlemat lisamisnuppu väikese ülevaadatud valikuga: paus peab olema nähtav, õnnestumiste arv peab kasvama alles pärast kinnistu kõigi etappide lõppu ja ebaõnnestunud toiming ei tohi jääda märkamatult vahele. Katkestamist saab proovida oote ajal. LIVE-paketti tuleb parandus avaldada eraldi versioonina.

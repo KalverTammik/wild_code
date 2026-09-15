@@ -1,5 +1,5 @@
 from PyQt5 import sip
-from PyQt5.QtCore import QObject, QTimer, QSignalBlocker, Qt, pyqtSlot
+from PyQt5.QtCore import QObject, QTimer, QSignalBlocker, QSize, Qt, pyqtSlot
 from PyQt5.QtWidgets import (
     QComboBox,
     QFrame,
@@ -17,7 +17,10 @@ from ..utils.mapandproperties.PropertyUpdateFlowCoordinator import PropertyUpdat
 from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager
 from ..utils.MapTools.MapHelpers import MapHelpers
 from ..constants.layer_constants import IMPORT_PROPERTY_TAG
+from ..constants.button_props import ButtonVariant
+from ..constants.module_icons import IconNames
 from ..Logs.python_fail_logger import PythonFailLogger
+from ..Logs.switch_logger import SwitchLogger
 from .theme_manager import ThemeManager
 
 
@@ -42,6 +45,7 @@ class LocationFilterHelper(QObject):
         self._layer = None
         self._closed = False
         self._signals_connected = False
+        self._last_city_selection = ()
         self._loader = PropertyUpdateFlowCoordinator(self)
         self._loader.loaded.connect(self._on_loaded)
         self._loader.failed.connect(self._on_failed)
@@ -50,6 +54,7 @@ class LocationFilterHelper(QObject):
         self._city_reload_timer.setInterval(250)
         self._city_reload_timer.timeout.connect(self._load_current_scope)
         self._status.retry_button.clicked.connect(self._retry)
+        self._status.refresh_button.clicked.connect(self._retry)
 
     def connect_signals(self):
         if self._signals_connected:
@@ -57,6 +62,9 @@ class LocationFilterHelper(QObject):
         self.county_combo.currentIndexChanged.connect(self._on_county_combo_changed)
         self.municipality_combo.currentIndexChanged.connect(self._on_municipality_combo_changed)
         self.city_combo.checkedItemsChanged.connect(self._on_city_checked_items_changed)
+        # QgsCheckableComboBox updates its text on model changes, but keyboard
+        # check-state changes do not emit checkedItemsChanged in QGIS 3.40.
+        self.city_combo.model().dataChanged.connect(self._on_city_model_changed)
         self._signals_connected = True
 
     def _fill_combo(self, combo, values, placeholder_key):
@@ -72,6 +80,7 @@ class LocationFilterHelper(QObject):
         blocker = QSignalBlocker(self.city_combo)
         self.city_combo.clear()
         self.city_combo.setEnabled(False)
+        self._last_city_selection = ()
         del blocker
 
     def _clear_table(self):
@@ -150,10 +159,21 @@ class LocationFilterHelper(QObject):
         self.city_combo.clear()
         self.city_combo.addItems(settlements)
         self.city_combo.setEnabled(bool(settlements))
+        self._last_city_selection = ()
         del blocker
         self._load_current_scope()
 
+    def _on_city_model_changed(self, _first, _last, roles):
+        if not roles or Qt.CheckStateRole in roles or Qt.DisplayRole in roles:
+            self._on_city_checked_items_changed()
+
     def _on_city_checked_items_changed(self):
+        if self._closed or self.city_combo.signalsBlocked():
+            return
+        selection = self._scope()[2]
+        if selection == self._last_city_selection:
+            return
+        self._last_city_selection = selection
         self._clear_table()
         self._status.set_status(TranslationKeys.LOCATION_LOADING_PROPERTIES, busy=True)
         self._city_reload_timer.start()
@@ -172,6 +192,7 @@ class LocationFilterHelper(QObject):
         include_properties = bool(scope[1])
         key = TranslationKeys.LOCATION_LOADING_PROPERTIES if include_properties else TranslationKeys.LOCATION_LOADING_MAP
         self._status.set_status(key, busy=True)
+        SwitchLogger.log('property_location_scope_requested', module='property', extra={'scope': scope})
         self._loader.load_scope(self._layer, scope, include_properties=include_properties)
 
     @pyqtSlot(str, object)
@@ -190,11 +211,15 @@ class LocationFilterHelper(QObject):
             self._status.set_status(key)
             return
         if result['scope'] != self._scope():
+            SwitchLogger.log('property_location_scope_discarded', module='property', extra={
+                'loaded_scope': result['scope'], 'current_scope': self._scope()})
             return
         if result['include_properties']:
             PropertyTableManager().populate_properties_table(result['rows'], self.properties_table)
             self._after_table_update(self.properties_table)
             self._status.set_status(TranslationKeys.LOCATION_PROPERTIES_READY, count=len(result['rows']))
+            SwitchLogger.log('property_location_table_ready', module='property', extra={
+                'scope': result['scope'], 'rows': len(result['rows'])})
         else:
             self._status.set_status(TranslationKeys.SELECT_MUNICIPALITY)
         try:
@@ -211,6 +236,8 @@ class LocationFilterHelper(QObject):
         self._status.set_status(TranslationKeys.LOCATION_LOAD_FAILED, error=message)
 
     def _retry(self):
+        if self._closed:
+            return
         layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if not self._locations or layer is not self._layer:
             self.load_counties(layer)
@@ -276,6 +303,19 @@ class LocationFilterWidget(QFrame):
         ThemeManager.apply_checkable_combo_popup_style(self.city_combo)
         city_layout.addWidget(self.city_combo)
         location_layout.addLayout(city_layout)
+
+        self.refresh_button = QPushButton('', self)
+        self.refresh_button.setObjectName('LocationRefreshButton')
+        self.refresh_button.setProperty('variant', ButtonVariant.ICON)
+        self.refresh_button.setAutoDefault(False)
+        self.refresh_button.setDefault(False)
+        self.refresh_button.setFixedSize(22, 22)
+        self.refresh_button.setIcon(ThemeManager.get_qicon(IconNames.ICON_REFRESH))
+        self.refresh_button.setIconSize(QSize(14, 14))
+        refresh_label = self.lang_manager.translate(TranslationKeys.LOCATION_REFRESH)
+        self.refresh_button.setToolTip(refresh_label)
+        self.refresh_button.setAccessibleName(refresh_label)
+        location_layout.addWidget(self.refresh_button, 0, Qt.AlignBottom)
 
         location_layout.addStretch()
         filter_layout.addLayout(location_layout)

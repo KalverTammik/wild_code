@@ -1,4 +1,7 @@
 import os
+from datetime import timedelta
+from math import ceil
+from time import monotonic
 from typing import Optional
 
 from PyQt5.QtCore import pyqtSignal, Qt, QTimer, QCoreApplication, QSignalBlocker
@@ -11,6 +14,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QProgressBar,
     QPlainTextEdit,
+    QSizePolicy,
 )
 
 from qgis.core import QgsFeatureRequest
@@ -200,6 +204,12 @@ class AddPropertyDialog(QDialog):
         self._add_mode = None  # "with_checks" | "without_checks"
         self._add_last_tunnus = ''
         self._add_last_progress = (0, 0)
+        self._add_started_at = None
+        self._add_wait_until = 0.0
+        self._add_wait_reason = None
+        self._add_progress_timer = QTimer(self)
+        self._add_progress_timer.setInterval(1000)
+        self._add_progress_timer.timeout.connect(self._render_add_progress)
 
         # Track whether the table is currently filtered down to attention-only rows.
         self._table_filtered_to_attention = False
@@ -219,6 +229,7 @@ class AddPropertyDialog(QDialog):
 
 
     def _on_dialog_finished(self, _result: int) -> None:
+        self._add_progress_timer.stop()
         if self._add_runner is not None:
             self._add_runner.cancel()
         self._stop_attention_checks()
@@ -334,21 +345,34 @@ class AddPropertyDialog(QDialog):
             controls_row.addWidget(self.reselect_from_map_btn)
         parent_layout.addLayout(controls_row)
 
-        # Progress widget row (checks/add progress)
-        progress_row = QHBoxLayout()
-        progress_row.setSpacing(8)
+        # Give wrapped status text the full width and its required height.
         self.check_progress_bar = QProgressBar()
         self.check_progress_bar.setObjectName("CheckProgressBar")
         self.check_progress_bar.setTextVisible(True)
         self.check_progress_bar.setRange(0, 1)
         self.check_progress_bar.setValue(0)
         self.check_progress_bar.setVisible(False)
-        progress_row.addWidget(self.check_progress_bar, 1)
+        parent_layout.addWidget(self.check_progress_bar)
         self.add_progress_label = QLabel("")
         self.add_progress_label.setObjectName("AddProgressLabel")
+        self.add_progress_label.setWordWrap(True)
+        self.add_progress_label.setTextFormat(Qt.PlainText)
+        self.add_progress_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
         self.add_progress_label.setVisible(False)
-        progress_row.addWidget(self.add_progress_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        parent_layout.addLayout(progress_row)
+        parent_layout.addWidget(self.add_progress_label)
+        self.add_progress_bar = QProgressBar()
+        self.add_progress_bar.setObjectName("AddProgressBar")
+        self.add_progress_bar.setRange(0, 1)
+        self.add_progress_bar.setValue(0)
+        self.add_progress_bar.setFormat("%p%")
+        self.add_progress_bar.hide()
+        parent_layout.addWidget(self.add_progress_bar)
+        self.add_detail_label = QLabel("")
+        self.add_detail_label.setWordWrap(True)
+        self.add_detail_label.setTextFormat(Qt.PlainText)
+        self.add_detail_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        self.add_detail_label.hide()
+        parent_layout.addWidget(self.add_detail_label)
 
         # Footer with main actions
         footer_layout = QHBoxLayout()
@@ -597,6 +621,11 @@ class AddPropertyDialog(QDialog):
         self._add_runner = runner
         self._add_in_progress = True
         self._add_mode = mode
+        self._add_started_at = monotonic()
+        self._add_last_progress = (0, 0)
+        self._add_last_tunnus = ''
+        self._add_wait_until = 0.0
+        self._add_wait_reason = None
         if self._add_errors_view is not None:
             self._add_errors_view.hide()
 
@@ -604,14 +633,12 @@ class AddPropertyDialog(QDialog):
         runner.finished.connect(self._on_add_finished)
         runner.waiting.connect(self._on_add_waiting)
 
-        if self.add_progress_label is not None:
-            label_prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX)
-            if mode == "without_checks":
-                label_prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX_NO_CHECKS)
-            template = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_TEMPLATE)
-            self.add_progress_label.setVisible(True)
-            self.add_progress_label.setText(template.format(prefix=label_prefix, done=0, total=0))
-
+        self.check_progress_bar.hide()
+        prefix_key = (TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX_NO_CHECKS if mode == 'without_checks'
+                      else TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX)
+        self.add_progress_bar.setAccessibleName(self.lang_manager.translate(prefix_key))
+        self._render_add_progress()
+        self._add_progress_timer.start()
         self._set_add_ui_state(active=True)
         runner.start()
 
@@ -633,8 +660,8 @@ class AddPropertyDialog(QDialog):
         self._stop_attention_checks(clear_attention=False)
 
         if self._add_runner is not None:
-            self.add_progress_label.setVisible(True)
-            self.add_progress_label.setText(self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROPERTY_DIALOG_CANCELLING))
+            self._add_wait_reason = 'cancelling'
+            self._render_add_progress()
             try:
                 self._add_runner.cancel()
             except Exception as exc:
@@ -651,35 +678,57 @@ class AddPropertyDialog(QDialog):
     def _on_add_progress(self, done: int, total: int, phase: str, last_tunnus: str) -> None:
         self._add_last_tunnus = last_tunnus
         self._add_last_progress = (done, total)
-        label = self.add_progress_label
-        if label is None:
-            return
-
-        label.setVisible(True)
-
-        if total <= 0:
-            label.clear()
-            return
-
-        prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX)
-        if self._add_mode == "without_checks":
-            prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX_NO_CHECKS)
-        template = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_TEMPLATE)
-        label.setText(template.format(prefix=prefix, done=done, total=total))
+        if self._add_wait_reason != 'cancelling':
+            self._add_wait_reason = None
+            self._add_wait_until = 0.0
+        self._render_add_progress()
 
     def _on_add_waiting(self, seconds: float, reason: str) -> None:
+        if not self._add_in_progress or self._add_wait_reason == 'cancelling':
+            return
+        self._add_wait_reason = reason if seconds > 0 else None
+        self._add_wait_until = monotonic() + max(0.0, seconds)
+        self._render_add_progress()
+
+    def _render_add_progress(self) -> None:
         if not self._add_in_progress:
             return
-        if seconds <= 0:
-            self._on_add_progress(*self._add_last_progress, 'processing', self._add_last_tunnus)
-            return
-        from math import ceil
-        key = (TranslationKeys.PROPERTY_ADD_RATE_WAIT if reason == 'rate_limit'
-               else TranslationKeys.PROPERTY_ADD_PACING_WAIT)
-        self.add_progress_label.setWordWrap(True)
-        self.add_progress_label.setText(self.lang_manager.translate(key).format(
-            tunnus=self._add_last_tunnus, seconds=ceil(seconds)))
+        done, total = self._add_last_progress
+        remaining = max(0, total - done)
+        now = monotonic()
+        elapsed = max(0.0, now - self._add_started_at)
+        wait_seconds = max(0, ceil(self._add_wait_until - now))
+        translate = self.lang_manager.translate
+        estimate = translate(TranslationKeys.ADD_UPDATE_PROGRESS_ESTIMATING)
+        if done > 0:
+            # Wall time includes completed request pauses, so the estimate follows
+            # actual throughput. Never predict finishing before a known cooldown.
+            seconds = max(ceil(elapsed / done * remaining), wait_seconds) if remaining else 0
+            estimate = translate(TranslationKeys.ADD_UPDATE_PROGRESS_ESTIMATE).format(
+                duration=str(timedelta(seconds=seconds)))
+        if self._add_wait_reason == 'cancelling':
+            estimate = ''
+        counts = translate(TranslationKeys.ADD_UPDATE_PROGRESS_COUNTS).format(
+            done=done, total=total, remaining=remaining)
+        timing = translate(TranslationKeys.ADD_UPDATE_PROGRESS_ELAPSED).format(
+            duration=str(timedelta(seconds=int(elapsed))))
+        self.add_progress_label.setText(counts + '\n' + timing + (' · ' + estimate if estimate else ''))
         self.add_progress_label.show()
+        self.add_progress_bar.setRange(0, max(1, total))
+        self.add_progress_bar.setValue(done)
+        self.add_progress_bar.show()
+
+        detail = ''
+        if self._add_wait_reason == 'cancelling':
+            detail = translate(TranslationKeys.ADD_UPDATE_PROPERTY_DIALOG_CANCELLING)
+        elif wait_seconds > 0:
+            key = (TranslationKeys.PROPERTY_ADD_RATE_WAIT if self._add_wait_reason == 'rate_limit'
+                   else TranslationKeys.PROPERTY_ADD_PACING_WAIT)
+            detail = translate(key).format(tunnus=self._add_last_tunnus, seconds=wait_seconds)
+        elif self._add_last_tunnus:
+            detail = translate(TranslationKeys.ADD_UPDATE_PROGRESS_CURRENT).format(tunnus=self._add_last_tunnus)
+        self.add_detail_label.setText(detail)
+        self.add_detail_label.setVisible(bool(detail))
 
     def _on_add_finished(self, summary: dict) -> None:
         try:
@@ -702,6 +751,13 @@ class AddPropertyDialog(QDialog):
                 )
         self._add_runner = None
         self._add_in_progress = False
+        self._add_progress_timer.stop()
+        self._add_wait_reason = None
+        self._add_last_progress = (done, total)
+        self.add_detail_label.hide()
+        self.add_progress_bar.setRange(0, max(1, total))
+        self.add_progress_bar.setValue(done)
+        self.add_progress_bar.setVisible(total > 0)
 
         if total > 0:
             prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_FINISHED)
@@ -879,6 +935,8 @@ class AddPropertyDialog(QDialog):
     # ---------------------------------------------------------------------
 
     def _invalidate_archive_scope(self) -> None:
+        if not self._add_in_progress:
+            self.add_progress_bar.hide()
         self._checks_completed_for_scope = False
         self._archive_scope_snapshot = None
         self._archive_scope_blocked_reason = ""
@@ -1585,6 +1643,7 @@ class AddPropertyDialog(QDialog):
             self._last_progress_done = -1
             return
 
+        self.add_progress_bar.hide()
         if done_i < 0:
             done_i = 0
         if done_i > total_i:

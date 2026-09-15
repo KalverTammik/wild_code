@@ -54,3 +54,19 @@ Käsitsi korduskatse pärast plugina uuesti laadimist:
 ## QGIS-i lõimede käsitlus
 
 Elusat projektikihti ja vidinaid kasutatakse ainult kasutajaliidese lõimes. Taustatöö saab seal loodud `QgsVectorLayerFeatureSource` andmeallika hetkeseisu. See järgib [QGIS-i taustatöö juhise](https://docs.qgis.org/3.40/en/docs/pyqgis_developer_cookbook/tasks.html) piiranguid; andmeallika hetkeseisu kirjeldab [QGIS 3.40 API](https://api.qgis.org/api/3.40/classQgsVectorLayerFeatureSource.html).
+
+## 15.09.2026: külavaliku teavitus ja käsitsi värskendamine
+
+Live-versiooni 2.02.22 logis `switch_log_09_15_072257.log` lõppes asukohanimekirja lugemine 07:24:36 ja sellele järgnesid piirkondade lugemised. Algse, 07:25:13 lõppeva lõigu järel uut külavaliku lugemist ei alanud. Hiljem lisandus kasutamise käigus uusi lugemisi. Senine logi ei sisaldanud valitud piirkonda ega sisestusviisi, mistõttu konkreetse Live-kliki põhjust ei saa ainult logi põhjal lõplikult kinnitada.
+
+QGIS 3.40.13-ga taasesitati sama nähtav viga tühikuklahviga küla linnukest muutes: linnuke ja kuvatav külanimi muutusid, tabelisse jäid kogu omavalitsuse read. [QGIS-i valikukasti lähtekoodis](https://github.com/qgis/QGIS/blob/final-3_40_13/src/gui/qgscheckablecombobox.cpp) uuendab mudeli `dataChanged` kuvatavat teksti, kuid `checkedItemsChanged` väljastatakse eraldi meetodist. Senine plugin kuulas ainult viimast signaali.
+
+Parandus kuulab ka linnukeste mudeli muutumist. Maakonna või omavalitsuse täitmisel tehtavaid sisemisi lähtestamisi eiratakse ja sama valiku korduvad signaalid ühendatakse üheks laadimiseks. Kiirete muudatuste senine 250 ms viide ja aegunud tulemuste tühistamine säilivad.
+
+Külavaliku kõrval on 22 px värskendusikoon. Vajutamine loeb praeguse piirkonna tabeli ja kaardivaate uuesti, säilitades sama impordikihi korral maakonna, omavalitsuse ja külade valiku. Kogu asukohanimekirja uuesti ei loeta, kui see on juba olemas; puuduva nimistu või vahetunud kihi puhul käivitatakse nimistu laadimine. Nupp on kasutatav ka poolelioleva lugemise asendamiseks. Kinnistute lisamise ajal lukustub nupp koos teiste asukohavalikutega.
+
+Värskendamisel tühistatakse vanad kontrollitulemused ja arhiveerimise võrdlusbaas. Uus baas tekib alles täieliku tabeli laadimise järel. Logisse lisanduvad `property_location_scope_requested`, `property_location_table_ready` ja `property_location_scope_discarded` koos piirkonna ning rakendatud tabeli reaarvuga.
+
+Lisatud katsed kontrollivad tühikuklahviga valimist ja viimase küla eemaldamist, sama piirkonna värskendamist pärast uue lähterea lisandumist ning poolelioleva lugemise asendamist värskendusnupuga. Enne parandust ebaõnnestus klaviatuurikatse, sest tabel jäi muutumatuks. Käsitsi Live-katse uue paketiga on veel vajalik.
+
+Lõppkontroll QGIS 3.40.13-ga: **279 testi, neist 276 edukat ja 3 vahele jäetud**. Värskendusnupu paigutust kontrolliti ka renderdatud asukohavalikute vidinas. Live-projekti andmeid ja backend'i ei muudetud.
