@@ -32,9 +32,13 @@ class deleteProperty:
             }
 
         client = APIClient()
-        result = client.send_query(query, variables=variables, return_raw=True, with_success=True)
+        try:
+            result = client.send_query(query, variables=variables, return_raw=True, with_success=True)
+        except Exception as exc:
+            return False, str(exc)
 
-        if result.get("success") is True:
+        deleted = (((result.get("raw") or {}).get("data") or {}).get("deleteProperty") or {})
+        if result.get("success") is True and str(deleted.get("id") or "") == str(item):
             return True, ""
 
         err = result.get("error")

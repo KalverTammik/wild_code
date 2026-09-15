@@ -4,11 +4,12 @@ from datetime import datetime
 from typing import Optional
 
 from PyQt5 import sip
-from PyQt5.QtCore import QObject, pyqtSlot
+from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
 from qgis.core import QgsFeatureRequest, QgsGeometry, QgsVectorLayer
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...python.latest_request import LatestRequest
 from ...utils.SessionManager import SessionManager
@@ -17,6 +18,8 @@ from .works_layer_service import WorksLayerService
 
 
 class WorksSyncService(QObject):
+    geometry_sync_failed = pyqtSignal(str)
+
     def __init__(self, *, lang_manager=None, parent=None) -> None:
         super().__init__(parent)
         self._lang = lang_manager or LanguageManager()
@@ -276,15 +279,22 @@ class WorksSyncService(QObject):
         self._syncing_geometry = True
         try:
             changed_feature_ids: list[int] = []
-            for feature_id, geometry in changed_geometries.items():
+            for index, (feature_id, geometry) in enumerate(changed_geometries.items()):
                 current_feature_id = int(feature_id)
-                changed_feature_ids.append(current_feature_id)
-                self._sync_feature_geometry_to_backend(
+                result = self._sync_feature_geometry_to_backend(
                     layer=layer,
                     feature_id=current_feature_id,
                     geometry=geometry,
                     task_id_field=task_id_field,
                 )
+                if result is False:
+                    self.geometry_sync_failed.emit(self._lang.translate(
+                        TranslationKeys.WORKS_GEOMETRY_SYNC_STOPPED).format(
+                            feature_id=current_feature_id,
+                            pending=len(changed_geometries) - index - 1))
+                    break
+                if result is True:
+                    changed_feature_ids.append(current_feature_id)
             self._stamp_geometry_audit_fields(layer=layer, feature_ids=changed_feature_ids)
         finally:
             self._syncing_geometry = False
@@ -296,7 +306,7 @@ class WorksSyncService(QObject):
         feature_id: int,
         geometry: QgsGeometry,
         task_id_field: str,
-    ) -> None:
+    ) -> bool | None:
         feature = next(layer.getFeatures(QgsFeatureRequest(feature_id)), None)
         if feature is None:
             return
@@ -305,24 +315,23 @@ class WorksSyncService(QObject):
         if not task_id:
             return
 
-        task = APIModuleActions.get_task_data(task_id)
-        status_color = WorksLayerService.status_color_from_task(task)
-
-        geometry_payload = WorksLayerService.backend_geometry_payload_from_geometry(geometry or feature.geometry())
-        geometry_payload = WorksLayerService.styled_backend_geometry_payload(
-            geometry_payload,
-            color=status_color,
-        )
-        if geometry_payload is not None:
-            try:
-                APIModuleActions.update_task_geometry(task_id, geometry_payload)
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.WORKS.value,
-                    event="works_sync_update_geometry_failed",
-                    extra={"task_id": task_id},
-                )
+        try:
+            task = APIModuleActions.get_task_data(task_id)
+            if not task:
+                raise RuntimeError(f"Task {task_id} could not be read before geometry sync")
+            status_color = WorksLayerService.status_color_from_task(task)
+            geometry_payload = WorksLayerService.backend_geometry_payload_from_geometry(geometry or feature.geometry())
+            geometry_payload = WorksLayerService.styled_backend_geometry_payload(
+                geometry_payload, color=status_color)
+            if geometry_payload is None or not APIModuleActions.update_task_geometry(task_id, geometry_payload):
+                raise RuntimeError(f"Task {task_id} geometry was not confirmed saved")
+            return True
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc, module=Module.WORKS.value, event="works_sync_update_geometry_failed",
+                extra={"task_id": task_id},
+            )
+            return False
 
     @staticmethod
     def _build_layer_updates(task: dict) -> dict[str, object]:

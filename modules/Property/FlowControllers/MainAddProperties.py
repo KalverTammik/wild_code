@@ -9,8 +9,6 @@ from ....languages.translation_keys import TranslationKeys
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....constants.settings_keys import SettingsService
 from ....constants.cadastral_fields import Katastriyksus
-from ....utils.mapandproperties.PropertyTableManager import PropertyTableManager
-from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from ....languages.language_manager import LanguageManager 
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions
 from ....utils.url_manager import Module, ModuleSupports
@@ -29,427 +27,6 @@ class MainAddPropertiesFlow:
     Handles user interaction events and coordinates between data loading and UI updates.
     Separated for better maintainability.
     """
-
-    # Cooperative cancel flag for in-flight add operations (set by AddBatchRunner.cancel()).
-    _cancel_requested: bool = False
-    # Persist "yes to all" choice across batch invocations.
-    _yes_to_all_copy_missing_map: bool = False
-
-    @staticmethod
-    def request_cancel() -> None:
-        MainAddPropertiesFlow._cancel_requested = True
-
-    @staticmethod
-    def reset_cancel() -> None:
-        MainAddPropertiesFlow._cancel_requested = False
-
-    @staticmethod
-    def reset_yes_to_all_flags() -> None:
-        MainAddPropertiesFlow._yes_to_all_copy_missing_map = False
-    
-
-    @staticmethod
-    def start_adding_properties(table=None, *, selected_features=None):
-        """
-        Goals:
-        1) Add selected properties from the import layer to:
-                - the main property layer;
-                - the backend database via GraphQL API (when needed).
-
-        2) Avoid duplicates by cadastral number (per property):
-                We always check BOTH:
-                - backend existence (GraphQL) by cadastral number
-                - main-layer existence (map) by cadastral number
-
-                Decision rules (per cadastral number):
-                - Not in backend AND not in main layer:
-                    - create in backend; copy feature import -> main layer.
-                - In backend AND in main layer:
-                    - default: skip;
-                    - if import has newer version: offer ARCHIVE/REPLACE flow.
-                - In backend BUT missing in main layer:
-                    - ask user what to do (recommended):
-                        - copy feature import -> main layer (no backend create), OR skip.
-                - In main layer BUT missing in backend:
-                    - ask user what to do (recommended):
-                        - create backend record from main/import data, OR skip.
-
-        3) Archive/replace when import is newer:
-                “Newer version” definition:
-                - compare timestamps: import feature `Katastriyksus.muudet`
-                    against backend `lastUpdated` (and optionally main-layer `muudet`).
-                - treat import as newer if:
-                    import_muudet > max(backend_lastUpdated, main_layer_muudet).
-
-
-                - transfer existing feature from main layer -> archive layer
-                    - Archive layer is identified by user in Settings;
-                    - if not set, show error and advise user to configure it by prompting the layer 
-                    configurer in the pop-up.
-                    - if user skips archiving abort session and warn user that no properties were added. 
-                    and full loop was aborted as archiving properties is essential to avoid duplicates and 
-                    data loss.
-                - update backend database to mark existing property as "archived"
-                    "archived" meaning: 
-                        - setting a tag in backend "Arhiveeritud".
-                            - if no tags exist, create new tag;
-                        - Updating Addres field to append " (archived on YYYY-MM-DD)".
-                - create new property in backend from import data
-                - delete existing feature from main layer
-                - copy feature from import layer -> main layer
-
-
-
-        Returns: bool - success status
-
-        """
-        if selected_features is None:
-            table_manager = PropertyTableManager()
-            selected_features = table_manager.get_selected_features(table)
-
-        if not selected_features:
-            return False
-
-        layers = MainAddPropertiesFlow._prepare_layers()
-        if layers:
-            import_layer, target_layer, archive_layer = layers
-            if not import_layer or not target_layer or not archive_layer:
-                return False
-
-            # Reset cooperative cancel at the start of each call.
-            MainAddPropertiesFlow.reset_cancel()
-            # Do not reset yes-to-all here; batch runner handles it so choice persists across invocations within a run.
-
-            # Preload backend status ids once for this run to avoid repeating GraphQL calls per property.
-            BackendPropertyVerifier.warm_status_cache()
-
-            lm = LanguageManager()
-
-            if not target_layer.isEditable():
-                target_layer.startEditing()
-
-            if archive_layer and not archive_layer.isEditable():
-                archive_layer.startEditing()
-
-            try:
-                for feature in selected_features:
-                    if MainAddPropertiesFlow._cancel_requested:
-                        if target_layer.isEditable():
-                            target_layer.rollBack()
-                        if archive_layer and archive_layer.isEditable():
-                            archive_layer.rollBack()
-                        return False
-
-                    QCoreApplication.processEvents()
-                    data, tunnus, siht_data, last_updated_str = PropertyDataLoader().prepare_data_for_import_stage1(feature)
-                    # last updated str is iso format string
-                    #check if property with tunnus already exists in Kavtro
-                    backend_info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
-                    exists_backend = backend_info.get("exists")
-                    backend_prop = backend_info.get("property") or {}
-                    backend_id = backend_prop.get("id")
-                    backend_cadastral = backend_prop.get("cadastralUnitNumber")
-                    backend_name = (backend_prop.get("displayAddress") or "").strip()
-                    import_name = (data.get("address") or {}).get("street")
-                    identifiers_unchanged = bool(
-                        exists_backend
-                        and backend_id
-                        and str(tunnus) == str(backend_cadastral)
-                        and (import_name or "").strip() == backend_name
-                    )
-                    archived_only_backend = bool(backend_info.get("archived_only"))
-                    backend_last_updated = backend_info.get("LastUpdated") #is iso format string
-
-                    if MainAddPropertiesFlow._cancel_requested:
-                        if target_layer.isEditable():
-                            target_layer.rollBack()
-                        if archive_layer and archive_layer.isEditable():
-                            archive_layer.rollBack()
-                        return False
-
-                    matches = MapHelpers.find_features_by_fields_and_values(target_layer, Katastriyksus.tunnus, [tunnus])
-                    exists_map = bool(matches)
-                    existing_map_feature = matches[0] if matches else None
-                    main_layer_muudet = None
-                    if existing_map_feature:
-                        try:
-                            main_layer_muudet = existing_map_feature.attribute(Katastriyksus.muudet)
-                        except Exception:
-                            main_layer_muudet = None
-
-                    if exists_backend is None:
-                        # Backend lookup failed; don't accidentally create duplicates.
-                        err = backend_info.get("error")
-                        PythonFailLogger.log(
-                            "add_property_backend_lookup_failed_skip",
-                            module=Module.PROPERTY.value,
-                            extra={"tunnus": str(tunnus or ""), "error": str(err or "")},
-                        )
-                        continue
-
-                    is_import_newer = MainAddPropertiesFlow._is_import_newer(
-                        last_updated_str,
-                        backend_last_updated,
-                        main_layer_muudet,
-                    )
-
-                    # If identifiers are unchanged, prefer in-place backend update and skip archive/replace.
-                    updated_in_place = False
-                    if identifiers_unchanged:
-                        if backend_id:
-                            ok = UpdatePropertyData.update_single_property_item(backend_id, data, siht_data)
-                            if ok:
-                                updated_in_place = True
-                            else:
-                                PythonFailLogger.log(
-                                    "add_property_backend_update_failed",
-                                    module=Module.PROPERTY.value,
-                                    extra={
-                                        "tunnus": str(tunnus or ""),
-                                        "backend_id": str(backend_id or ""),
-                                        "path": "identifiers_unchanged",
-                                    },
-                                )
-                        # When only backend is updated, still allow map handling below.
-
-                    # Step 2: decision matrix 
-                    # A) Backend missing => create backend; copy import -> main if missing on map
-                    if exists_backend is False:
-                        archived_backend_id = None
-                        try:
-                            archived_backend_id = ((backend_info.get("property") or {}).get("id"))
-                        except Exception:
-                            archived_backend_id = None
-
-                        if archived_only_backend and archived_backend_id:
-                            btn_unarchive = lm.translate(TranslationKeys.UNARCHIVE_EXISTING)
-                            btn_create_new = lm.translate(TranslationKeys.CREATE_NEW)
-                            btn_skip = lm.translate(TranslationKeys.SKIP)
-
-                            choice = ModernMessageDialog.ask_choice_modern(
-                                lm.translate(TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_TITLE),
-                                lm.translate(TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_BODY).format(
-                                    tunnus=tunnus
-                                ),
-                                buttons=[btn_unarchive, btn_create_new, btn_skip],
-                                default=btn_unarchive,
-                                cancel=btn_skip,
-                            )
-
-                            if choice == btn_skip or choice is None:
-                                continue
-
-                            if choice == btn_unarchive:
-                                if not UpdatePropertyData._unarchive_property_data(item_id=archived_backend_id):
-                                    ModernMessageDialog.Error_messages_modern(
-                                        lm.translate(TranslationKeys.PROPERTY_UNARCHIVE_FAILED_TITLE),
-                                        lm.translate(TranslationKeys.PROPERTY_UNARCHIVE_FAILED_BODY).format(
-                                            backend_id=archived_backend_id,
-                                            tunnus=tunnus,
-                                        ),
-                                    )
-                                    continue
-
-                                ok = UpdatePropertyData.update_single_property_item(
-                                    archived_backend_id,
-                                    data,
-                                    siht_data,
-                                )
-                                if not ok:
-                                    ModernMessageDialog.Warning_messages_modern(
-                                        lm.translate(TranslationKeys.PROPERTY_BACKEND_UPDATE_FAILED_TITLE),
-                                        lm.translate(TranslationKeys.PROPERTY_BACKEND_UPDATE_FAILED_BODY).format(
-                                            tunnus=tunnus
-                                        ),
-                                    )
-
-                                # Now treat it as backend-existing for map decisions.
-                                if not exists_map:
-                                    title = lm.translate(TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_TITLE)
-                                    text = lm.translate(TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_BODY).format(
-                                        tunnus=tunnus
-                                    )
-                                    reply = ModernMessageDialog.ask_choice_modern(
-                                        title,
-                                        text,
-                                        buttons=[lm.translate(TranslationKeys.YES), lm.translate(TranslationKeys.NO)],
-                                        default=lm.translate(TranslationKeys.YES),
-                                        cancel=lm.translate(TranslationKeys.NO),
-                                    )
-                                    if reply == lm.translate(TranslationKeys.YES):
-                                        ok2, msg2 = FeatureActions.copy_feature_to_layer(feature, target_layer)
-                                        if not ok2:
-                                            ModernMessageDialog.Error_messages_modern(
-                                                lm.translate(TranslationKeys.PROPERTY_COPY_FAILED_TITLE),
-                                                msg2,
-                                            )
-
-                                # If main already has feature, nothing to do on map here.
-                                continue
-
-                            # If user chose Create new, fall through to existing creation logic.
-
-                        if exists_map:
-                            title = lm.translate(TranslationKeys.PROPERTY_BACKEND_MISSING_TITLE)
-                            if archived_only_backend:
-                                text = lm.translate(TranslationKeys.PROPERTY_BACKEND_MISSING_ARCHIVED_BODY).format(
-                                    tunnus=tunnus
-                                )
-                            else:
-                                text = lm.translate(TranslationKeys.PROPERTY_BACKEND_MISSING_BODY).format(
-                                    tunnus=tunnus
-                                )
-                            reply = ModernMessageDialog.ask_choice_modern(
-                                title,
-                                text,
-                                buttons=[lm.translate(TranslationKeys.YES), lm.translate(TranslationKeys.NO)],
-                                default=lm.translate(TranslationKeys.YES),
-                                cancel=lm.translate(TranslationKeys.NO),
-                            )
-                            if reply != (lm.translate(TranslationKeys.YES)):
-                                continue
-
-                        MainAddPropertiesFlow.add_single_property_item(data, siht_data)
-
-                        if not exists_map:
-                            ok, msg = FeatureActions.copy_feature_to_layer(feature, target_layer)
-                            if not ok:
-                                PythonFailLogger.log(
-                                    "add_property_copy_to_main_failed",
-                                    module=Module.PROPERTY.value,
-                                    extra={"tunnus": str(tunnus or ""), "error": str(msg or "")},
-                                )
-                        continue
-
-                    # B) Backend exists
-                    if exists_backend is True and not exists_map:
-                        if is_import_newer and not updated_in_place:
-                            backend_prop = backend_info.get("property") or {}
-                            backend_id = backend_prop.get("id")
-                            if backend_id:
-                                ok = UpdatePropertyData.update_single_property_item(backend_id, data, siht_data)
-                                if not ok:
-                                    PythonFailLogger.log(
-                                        "add_property_backend_update_failed",
-                                        module=Module.PROPERTY.value,
-                                        extra={
-                                            "tunnus": str(tunnus or ""),
-                                            "backend_id": str(backend_id or ""),
-                                            "path": "backend_exists_map_missing",
-                                        },
-                                    )
-                            else:
-                                PythonFailLogger.log(
-                                    "add_property_backend_id_missing",
-                                    module=Module.PROPERTY.value,
-                                    extra={"tunnus": str(tunnus or "")},
-                                )
-
-                        # Step 3: ask user what to do when backend exists but map is missing
-                        title = lm.translate(TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_TITLE)
-                        text = lm.translate(TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_BODY).format(
-                            tunnus=tunnus
-                        )
-                        reply = None
-                        if MainAddPropertiesFlow._yes_to_all_copy_missing_map:
-                            reply = lm.translate(TranslationKeys.YES)
-                        else:
-                            btn_yes = lm.translate(TranslationKeys.YES)
-                            btn_no = lm.translate(TranslationKeys.NO)
-                            btn_yes_all = lm.translate(TranslationKeys.YES_TO_ALL)
-
-                            reply = ModernMessageDialog.ask_choice_modern(
-                                title,
-                                text,
-                                buttons=[btn_yes, btn_no, btn_yes_all],
-                                default=btn_yes,
-                                cancel=btn_no,
-                            )
-
-                            if reply == btn_yes_all:
-                                MainAddPropertiesFlow._yes_to_all_copy_missing_map = True
-                                reply = btn_yes
-                        if reply == lm.translate(TranslationKeys.YES):
-                            ok, msg = FeatureActions.copy_feature_to_layer(feature, target_layer)
-                            if not ok:
-                                ModernMessageDialog.Error_messages_modern(
-                                    lm.translate(TranslationKeys.PROPERTY_COPY_FAILED_TITLE),
-                                    msg,
-                                )
-                        continue
-
-                    # C) Backend exists and map exists
-                    if exists_backend is True and exists_map:
-                        # Identifiers unchanged: only update when newer; no archiving here.
-                        if identifiers_unchanged:
-                            if is_import_newer and not updated_in_place and backend_id:
-                                ok = UpdatePropertyData.update_single_property_item(backend_id, data, siht_data)
-                                if not ok:
-                                    PythonFailLogger.log(
-                                        "add_property_backend_update_failed",
-                                        module=Module.PROPERTY.value,
-                                        extra={
-                                            "tunnus": str(tunnus or ""),
-                                            "backend_id": str(backend_id or ""),
-                                            "path": "backend_exists_map_exists_identifiers_unchanged",
-                                        },
-                                    )
-                            continue
-
-                        # Identifiers differ: update backend if import is newer; do not archive in this flow.
-                        if is_import_newer and backend_id:
-                            ok = UpdatePropertyData.update_single_property_item(backend_id, data, siht_data)
-                            if not ok:
-                                PythonFailLogger.log(
-                                    "add_property_backend_update_failed",
-                                    module=Module.PROPERTY.value,
-                                    extra={
-                                        "tunnus": str(tunnus or ""),
-                                        "backend_id": str(backend_id or ""),
-                                        "path": "backend_exists_map_exists_identifiers_differ",
-                                    },
-                                )
-                        continue
-
-                if archive_layer and archive_layer.isEditable():
-                    if not archive_layer.commitChanges():
-                        msg = "; ".join(archive_layer.commitErrors() or [])
-                        archive_layer.rollBack()
-                        if target_layer.isEditable():
-                            target_layer.rollBack()
-                        PythonFailLogger.log(
-                            "add_property_archive_layer_commit_failed",
-                            module=Module.PROPERTY.value,
-                            extra={"error": str(msg or "")},
-                        )
-                        return False
-
-                if not target_layer.commitChanges():
-                    msg = "; ".join(target_layer.commitErrors() or [])
-                    target_layer.rollBack()
-                    if archive_layer and archive_layer.isEditable():
-                        archive_layer.rollBack()
-                    PythonFailLogger.log(
-                        "add_property_main_layer_commit_failed",
-                        module=Module.PROPERTY.value,
-                        extra={"error": str(msg or "")},
-                    )
-                    return False
-                
-                return True
-            except Exception as e:
-                if target_layer.isEditable():
-                    target_layer.rollBack()
-                if archive_layer and archive_layer.isEditable():
-                    archive_layer.rollBack()
-                PythonFailLogger.log_exception(
-                    e,
-                    module=Module.PROPERTY.value,
-                    event="add_property_start_failed",
-                )
-                return False
-
-        return False
 
     @staticmethod
     def preflight_archive_layer_before_dialog() -> bool:
@@ -657,6 +234,7 @@ class MainAddPropertiesFlow:
             "archived_backend": 0,
             "backend_failed": 0,
             "backend_skipped": 0,
+            "backend_pending": [],
             "moved_map": 0,
             "errors": [],
         }
@@ -758,10 +336,11 @@ class MainAddPropertiesFlow:
             summary["moved_map"] = len(source_ids)
 
             # Apply backend actions only after the corresponding map move is durable.
-            for tunnus in sorted(moved_tunnused):
-                if backend_allowed is not None and tunnus not in backend_allowed:
-                    summary["backend_skipped"] += 1
-                    continue
+            backend_tunnused = sorted(t for t in moved_tunnused
+                                      if backend_allowed is None or t in backend_allowed)
+            summary["backend_skipped"] = len(moved_tunnused) - len(backend_tunnused)
+            for index, tunnus in enumerate(backend_tunnused):
+                summary["backend_pending"] = backend_tunnused[index + 1:]
 
                 try:
                     backend_info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
@@ -769,12 +348,12 @@ class MainAddPropertiesFlow:
                     backend_info = None
                     summary["backend_failed"] += 1
                     summary["errors"].append(f"Backend lookup {tunnus} failed: {exc}")
-                    continue
+                    break
 
                 if not isinstance(backend_info, dict) or backend_info.get("exists") is None:
                     summary["backend_failed"] += 1
                     summary["errors"].append(f"Backend lookup {tunnus} failed")
-                    continue
+                    break
 
                 active_ids = [
                     str(value).strip()
@@ -789,7 +368,7 @@ class MainAddPropertiesFlow:
                     summary["errors"].append(
                         f"Backend archive {tunnus} skipped: multiple active matches"
                     )
-                    continue
+                    break
 
                 property_id = active_ids[0]
                 try:
@@ -806,6 +385,11 @@ class MainAddPropertiesFlow:
                     summary["errors"].append(
                         f"Archive backend {tunnus}/{property_id} failed"
                     )
+                    break
+            if summary["backend_pending"]:
+                summary["errors"].append(LanguageManager().translate(
+                    TranslationKeys.PROPERTY_ARCHIVE_PENDING).format(
+                        tunnused=", ".join(summary["backend_pending"])))
         except Exception as e:
             try:
                 if target_layer.isEditable():
@@ -886,9 +470,6 @@ class MainAddPropertiesFlow:
         Accepts ISO-like strings, QDate/QDateTime, or other values for `main_layer_muudet`.
         Non-parseable dates return False.
         """
-        if MainAddPropertiesFlow._cancel_requested:
-            return False
-
         import_dt = DateHelpers.parse_iso(str(import_date_str) if import_date_str is not None else "")
         backend_dt = DateHelpers.parse_iso(str(backend_date_str) if backend_date_str is not None else "")
 
@@ -913,25 +494,6 @@ class MainAddPropertiesFlow:
 class BackendPropertyVerifier:
     # Cache status ids for the process; statuses do not change at runtime for this plugin.
     _status_cache: dict[str, Optional[str]] = {}
-
-    @classmethod
-    def warm_status_cache(cls) -> dict[str, Optional[str]]:
-        """Resolve ACTIVE/ARCHIVED status ids once and cache them."""
-        try:
-            client = APIClient()
-            # Populate cache only if missing; keep existing values to avoid extra calls.
-            if "ACTIVE" not in cls._status_cache:
-                cls._status_cache["ACTIVE"] = cls._resolve_property_status_id_by_name("ACTIVE", client)
-            if "ARCHIVED" not in cls._status_cache:
-                cls._status_cache["ARCHIVED"] = cls._resolve_property_status_id_by_name("ARCHIVED", client)
-        except Exception as exc:
-            # Best-effort; fall back to per-call resolution if warm-up fails.
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="property_status_cache_warm_failed",
-            )
-        return cls._status_cache
 
     @classmethod
     def _unwrap_data(cls, payload: dict) -> dict:

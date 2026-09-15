@@ -53,9 +53,9 @@ class ApiRateLimitTest(unittest.TestCase):
         self.client = api_client.APIClient(session_manager=Mock(get_token=Mock(return_value='private-token')))
         self.worker = self.enterContext(patch.object(api_client.QThread, 'currentThread', return_value=object()))
 
-    def send(self, response=None, *, cost=1, authorization='Bearer private-token', is_main_thread=False):
+    def send(self, response=None, *, cost=1, authorization='Bearer private-token'):
         return self.limiter.send(lambda: response or FakeResponse(), endpoint='https://example.test/graphql',
-            authorization=authorization, cost=cost, is_main_thread=is_main_thread)
+            authorization=authorization, cost=cost)
 
     def test_counts_root_aliases_fragments_and_multiple_operations(self):
         query = '''
@@ -119,7 +119,7 @@ class ApiRateLimitTest(unittest.TestCase):
             return FakeResponse(headers={'X-RateLimit-Limit': '500', 'X-RateLimit-Remaining': '499'})
         def first_thread():
             try:
-                self.limiter.send(first_request, endpoint='test', authorization='token', cost=0, is_main_thread=False)
+                self.limiter.send(first_request, endpoint='test', authorization='token', cost=0)
             except Exception as exc:
                 errors.append(exc)
         thread = threading.Thread(target=first_thread)
@@ -128,7 +128,7 @@ class ApiRateLimitTest(unittest.TestCase):
             self.assertTrue(entered.wait(2))
             self.limiter.send(lambda: FakeResponse(headers={
                 'X-RateLimit-Limit': '500', 'X-RateLimit-Remaining': '480'}),
-                endpoint='test', authorization='token', cost=0, is_main_thread=False)
+                endpoint='test', authorization='token', cost=0)
         finally:
             release.set()
             thread.join(2)
@@ -146,7 +146,7 @@ class ApiRateLimitTest(unittest.TestCase):
             return FakeResponse()
         def run():
             try:
-                self.limiter.send(send_request, endpoint='test', authorization='token', cost=1, is_main_thread=False)
+                self.limiter.send(send_request, endpoint='test', authorization='token', cost=1)
             except Exception as exc:
                 errors.append(exc)
         threads = [threading.Thread(target=run) for _ in range(3)]
@@ -177,22 +177,20 @@ class ApiRateLimitTest(unittest.TestCase):
         self.assertFalse(raised.exception.retryable)
 
     def test_mutation_cooldown_does_not_block_read_queries(self):
-        self.worker.return_value = self.app.thread()
         responses = [FakeResponse(429, {'Retry-After': '37'},
             {'errors': [{'extensions': {'category': 'TOO_MANY_MUTATIONS'}}]}), FakeResponse()]
         with patch.object(api_client.requests, 'post', side_effect=responses) as post:
-            with self.assertRaises(module.ApiRateLimitError):
+            with module.api_request_context(retry_rate_limits=False), self.assertRaises(module.ApiRateLimitError):
                 self.client.send_query('mutation { update { id } }')
             self.client.send_query('query { properties { id } }')
         self.assertEqual(post.call_count, 2)
         self.assertFalse(self.clock.waits)
 
     def test_request_cooldown_is_not_shared_across_different_tokens(self):
-        self.worker.return_value = self.app.thread()
         other = api_client.APIClient(session_manager=Mock(get_token=Mock(return_value='another-token')))
         with patch.object(api_client.requests, 'post', side_effect=[
                 FakeResponse(429, {'Retry-After': '37'}, {}), FakeResponse()]) as post:
-            with self.assertRaises(module.ApiRateLimitError):
+            with module.api_request_context(retry_rate_limits=False), self.assertRaises(module.ApiRateLimitError):
                 self.client.send_query('query { properties { id } }')
             other.send_query('mutation { update { id } }')
         self.assertEqual(post.call_count, 2)
@@ -242,12 +240,12 @@ class ApiRateLimitTest(unittest.TestCase):
     def test_retry_after_http_date_is_honoured_case_insensitively(self):
         retry_date = formatdate(self.clock.wall() + 12, usegmt=True)
         send = Mock(side_effect=[FakeResponse(429, {'rEtRy-AfTeR': retry_date}, {}), FakeResponse()])
-        self.limiter.send(send, endpoint='test', authorization=None, cost=0, is_main_thread=False)
+        self.limiter.send(send, endpoint='test', authorization=None, cost=0)
         self.assertAlmostEqual(self.clock.now(), 112.0)
 
     def test_plain_429_without_retry_after_uses_backoff(self):
         send = Mock(side_effect=[FakeResponse(429, body={}), FakeResponse(429, body={}), FakeResponse()])
-        self.limiter.send(send, endpoint='test', authorization=None, cost=0, is_main_thread=False)
+        self.limiter.send(send, endpoint='test', authorization=None, cost=0)
         self.assertAlmostEqual(self.clock.now(), 106.0)
 
     def test_permanent_oversized_mutation_is_not_retried(self):
@@ -261,22 +259,22 @@ class ApiRateLimitTest(unittest.TestCase):
         self.assertEqual(post.call_count, 1)
         self.assertFalse(self.clock.waits)
 
-    def test_main_thread_never_waits_on_429(self):
+    def test_gui_request_retries_429_in_background(self):
         self.worker.return_value = self.app.thread()
-        with patch.object(api_client.requests, 'post', return_value=FakeResponse(429, {'Retry-After': '37'}, {})) as post:
-            with self.assertRaises(module.ApiRateLimitError) as raised:
-                self.client.send_query('mutation { update { id } }')
-        self.assertEqual(raised.exception.delay, 37.0)
-        self.assertEqual(post.call_count, 1)
-        self.assertFalse(self.clock.waits)
+        responses = [FakeResponse(429, {'Retry-After': '37'}, {}), FakeResponse()]
+        with patch.object(api_client.requests, 'post', side_effect=responses) as post:
+            result = self.client.send_query('mutation { update { id } }')
+        self.assertEqual(result, {'id': 'saved'})
+        self.assertEqual(post.call_count, 2)
+        self.assertAlmostEqual(self.clock.now(), 137.0)
 
-    def test_legacy_main_thread_writes_do_not_fail_due_to_proactive_pacing(self):
+    def test_gui_writes_obey_same_proactive_pacing(self):
         self.worker.return_value = self.app.thread()
         with patch.object(api_client.requests, 'post', return_value=FakeResponse()) as post:
             self.client.send_query('mutation { createProperty { id } }')
             self.client.send_query('mutation { updatePropertyIntendedUses { id } }')
         self.assertEqual(post.call_count, 2)
-        self.assertFalse(self.clock.waits)
+        self.assertAlmostEqual(self.clock.now(), 102.0)
 
     def test_context_retries_more_than_five_rejections_until_success(self):
         response = FakeResponse(429, {'Retry-After': '1'}, {})
@@ -288,11 +286,12 @@ class ApiRateLimitTest(unittest.TestCase):
         self.assertTrue(any(reason == 'rate_limit' for seconds, reason in waiting))
         self.assertEqual(waiting[-1][0], 0)
 
-    def test_without_context_repeated_429_is_bounded(self):
-        with patch.object(api_client.requests, 'post', return_value=FakeResponse(429, {'Retry-After': '1'}, {})) as post:
-            with self.assertRaises(module.ApiRateLimitError):
-                self.client.send_query('query { properties { id } }')
-        self.assertEqual(post.call_count, 5)
+    def test_all_callers_keep_same_request_after_repeated_429(self):
+        responses = [FakeResponse(429, {'Retry-After': '1'}, {})] * 7 + [FakeResponse()]
+        with patch.object(api_client.requests, 'post', side_effect=responses) as post:
+            result = self.client.send_query('query { properties { id } }')
+        self.assertEqual(post.call_count, 8)
+        self.assertEqual(result, {'id': 'saved'})
 
     def test_cancellation_during_wait_sends_no_retry(self):
         cancelled = threading.Event()

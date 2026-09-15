@@ -11,6 +11,7 @@ from ...utils.MapTools.MapHelpers import FeatureActions
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ...languages.translation_keys import TranslationKeys
+from ...languages.language_manager import LanguageManager
 from .property_prompt_helpers import PropertyPromptHelpers
 from .property_row_builder import PropertyRowBuilder
 
@@ -66,6 +67,7 @@ class PropertyActionService:
                     title="Backend archive" if failed == 0 else "Backend archive (partial)",
                     message=(
                         f"Backend archived: {succeeded}; skipped: {skipped}; failed: {failed}"
+                        + "\n" + LanguageManager().translate(TranslationKeys.PROPERTY_BACKEND_PENDING).format(tunnused=", ".join(summary.get("pending") or []))
                     ),
                     action=normalized_action,
                     error=(f"{failed} backend archive operations failed" if failed else None),
@@ -81,6 +83,7 @@ class PropertyActionService:
                     title="Backend unarchive" if failed == 0 else "Backend unarchive (partial)",
                     message=(
                         f"Backend unarchived: {succeeded}; skipped: {skipped}; failed: {failed}"
+                        + "\n" + LanguageManager().translate(TranslationKeys.PROPERTY_BACKEND_PENDING).format(tunnused=", ".join(summary.get("pending") or []))
                     ),
                     action=normalized_action,
                     error=(f"{failed} backend unarchive operations failed" if failed else None),

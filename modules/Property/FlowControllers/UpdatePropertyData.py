@@ -181,6 +181,8 @@ class UpdatePropertyData:
                 if (node.get("name") or "").strip().lower() == name.lower():
                     sid = node.get("id")
                     return str(sid) if sid else None
+        except (ApiRateLimitError, RequestCancelled):
+            raise
         except Exception:
             # Fall back to module-only fetch + local match.
             pass
@@ -198,6 +200,8 @@ class UpdatePropertyData:
                 if (node.get("name") or "").strip().lower() == name.lower():
                     sid = node.get("id")
                     return str(sid) if sid else None
+        except (ApiRateLimitError, RequestCancelled):
+            raise
         except Exception:
             return None
 
@@ -238,6 +242,8 @@ class UpdatePropertyData:
             try:
                 client.send_query(mutation, {"input": input_payload})
                 return True
+            except (ApiRateLimitError, RequestCancelled):
+                raise
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,
@@ -260,6 +266,8 @@ class UpdatePropertyData:
             try:
                 client.send_query(mutation, {"input": input_payload})
                 return True
+            except (ApiRateLimitError, RequestCancelled):
+                raise
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,

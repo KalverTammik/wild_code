@@ -15,7 +15,7 @@ if os.environ.get('QGIS_PREFIX_PATH'):
 from PyQt5.QtGui import QFont, QFontDatabase
 from qgis.core import QgsApplication
 
-from Kavitro_dev.modules.Property.FlowControllers import checked_add_runner as property_flow
+from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as property_flow
 from Kavitro_dev.python import api_client, api_rate_limit
 
 
@@ -127,6 +127,30 @@ class PropertyRateRetryTest(unittest.TestCase):
         self.assertTrue(any(remaining > 0 and reason == 'rate_limit'
                             for remaining, reason in self.waits))
         self.assertGreaterEqual(self.sent_at[2] - self.sent_at[1], 3.0)
+
+    def test_fifty_properties_complete_across_multiple_rate_windows(self):
+        created, uses_saved, attempts = [], [], []
+        rejected = set()
+        def send(*args, **kwargs):
+            payload = kwargs['json']
+            field = 'updatePropertyIntendedUses' if 'updatePropertyIntendedUses' in payload['query'] else 'createProperty'
+            data = payload['variables']['input']
+            identifier = data['id'] if field == 'updatePropertyIntendedUses' else data['cadastralUnit']['number']
+            key = (field, identifier)
+            attempts.append(self.clock.now())
+            if int(identifier) % 7 == 0 and key not in rejected:
+                rejected.add(key)
+                return self.throttled()
+            (created if field == 'createProperty' else uses_saved).append(identifier)
+            return self.saved(field, identifier)
+        self.post.side_effect = send
+        for index in range(50):
+            data = {**self.data, 'cadastralUnit': {'number': str(index)}}
+            property_flow.apply_reviewed_backend(data, self.uses, None, None)
+        self.assertEqual(created, [str(index) for index in range(50)])
+        self.assertEqual(uses_saved, created)
+        self.assertEqual(len(attempts), 116)
+        self.assertTrue(all(b - a >= 1.999 for a, b in zip(attempts, attempts[1:])))
 
     def test_six_rate_rejections_keep_current_property_until_server_accepts_it(self):
         calls = self.run_reviewed([

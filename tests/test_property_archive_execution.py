@@ -62,6 +62,24 @@ class _Layer:
 
 
 class PropertyArchiveExecutionTest(unittest.TestCase):
+    def test_backend_failure_stops_remaining_archives_with_explicit_pending_list(self):
+        target, archive = _Layer(), _Layer()
+        with patch.object(MainAddPropertiesFlow, '_prepare_layers', return_value=(object(), target, archive)), \
+                patch.object(flow_module.MapHelpers, 'find_features_by_fields_and_values', return_value=[_Feature(41)]), \
+                patch.object(flow_module.FeatureActions, 'copy_feature_to_layer', return_value=(True, '')), \
+                patch.object(flow_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                             return_value={'exists': True, 'active_ids': ['backend-1']}) as verify, \
+                patch.object(UpdatePropertyData, '_archive_a_propertie', side_effect=[True, False, True]) as save:
+            result = MainAddPropertiesFlow.archive_missing_from_import(['T1', 'T2', 'T3'])
+        self.assertEqual(save.call_count, 2)
+        self.assertEqual(verify.call_count, 2)
+        self.assertEqual(result['archived_backend'], 1)
+        self.assertEqual(result['backend_failed'], 1)
+        self.assertEqual(result['backend_pending'], ['T3'])
+        self.assertTrue(any('T3' in message for message in result['errors']))
+        self.assertEqual(archive.commit_calls, 1)
+        self.assertEqual(archive.rollback_calls, 0)
+
     def _run(self, target, archive, *, backend_allowed=None, backend_result=None):
         backend_info = backend_result or {
             "exists": True,

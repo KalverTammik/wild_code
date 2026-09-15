@@ -14,7 +14,7 @@ from PyQt5.QtCore import QThread, QTimer
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.QtTest import QTest
 from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsVectorLayer
-from Kavitro_dev.modules.Property.FlowControllers import checked_add_runner as module
+from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as module
 from Kavitro_dev.python.workers import _ACTIVE_THREADS
 
 
@@ -51,7 +51,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
         loader.return_value.prepare_data_for_import_stage1.side_effect = lambda feature: (
             {'cadastralUnit': {'number': feature['tunnus']}, 'address': {'street': 'Example'}},
             feature['tunnus'], [], None)
-        self.runner = module.CheckedAddBatchRunner(None, rest_ms=0)
+        self.runner = module.AddBatchRunner(None)
         self.results = []
         self.runner.finished.connect(self.results.append)
 

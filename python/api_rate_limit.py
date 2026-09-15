@@ -21,6 +21,9 @@ from ..languages.translation_keys import TranslationKeys
 class RequestCancelled(Exception):
     """Cancellation before a physical request was sent, never during a write."""
 
+    def __init__(self, message=None):
+        super().__init__(message or LanguageManager().translate(TranslationKeys.API_REQUEST_CANCELLED))
+
 
 class ApiRateLimitError(Exception):
     def __init__(self, delay=0.0, *, retryable=True, reason='rate_limit'):
@@ -184,9 +187,7 @@ class RateLimitCoordinator:
         return [(self._budgets.setdefault(key, _Budget(limit, ceiling)), amount, key[1])
                 for key, limit, ceiling, amount in specs]
 
-    def _wait(self, delay, reason, is_main_thread):
-        if is_main_thread:
-            raise ApiRateLimitError(delay, reason=reason)
+    def _wait(self, delay, reason):
         context = getattr(_REQUEST_CONTEXT, 'current', None)
         cancel, callback, _ = context or (None, None, False)
         deadline = self._clock() + delay
@@ -205,7 +206,7 @@ class RateLimitCoordinator:
             if callback and reported_at is not None:
                 callback(0.0, reason)
 
-    def _acquire(self, endpoint, authorization, cost, is_main_thread):
+    def _acquire(self, endpoint, authorization, cost):
         while True:
             context = getattr(_REQUEST_CONTEXT, 'current', None)
             if context and context[0] is not None and context[0].is_set():
@@ -214,7 +215,6 @@ class RateLimitCoordinator:
                 now = self._clock()
                 states = self._states(endpoint, authorization, cost)
                 delay, reason = 0.0, 'pacing'
-                legacy_gui = is_main_thread and context is None
                 for state, amount, kind in states:
                     while state.recent and state.recent[0][0] <= now - 60:
                         state.recent.popleft()
@@ -230,11 +230,6 @@ class RateLimitCoordinator:
                         wait = max(wait, state.recent[0][0] + 60 - now)
                     if state.remaining is not None and state.remaining < amount:
                         wait = max(wait, state.remaining_until - now)
-                    # Existing synchronous single-item dialogs can send several
-                    # mutations. Their known server cooldowns still apply, but
-                    # proactive pacing must not turn normal UI actions into errors.
-                    if legacy_gui:
-                        wait = max(0.0, state.blocked_until - now)
                     if wait > delay:
                         delay = wait
                     if state.blocked_until > now:
@@ -250,7 +245,7 @@ class RateLimitCoordinator:
                         if kind == 'mutation':
                             state.next_at = now + 60.0 * amount / state.limit
                     return permit
-            self._wait(delay, reason, is_main_thread)
+            self._wait(delay, reason)
 
     def _record(self, permit, headers, block_for=None, mutation_rejection=False):
         prefixes = {'request': 'x-ratelimit', 'mutation': 'x-ratelimit-mutation',
@@ -285,10 +280,10 @@ class RateLimitCoordinator:
                     # Retry-After is more precise than the conservative header window.
                     state.remaining_until = state.blocked_until
 
-    def send(self, send_request, *, endpoint, authorization, cost, is_main_thread):
+    def send(self, send_request, *, endpoint, authorization, cost):
         rejected = 0
         while True:
-            permit = self._acquire(endpoint, authorization, cost, is_main_thread)
+            permit = self._acquire(endpoint, authorization, cost)
             response = send_request()
             headers = _headers(response)
             if response.status_code != 429:
@@ -308,11 +303,11 @@ class RateLimitCoordinator:
                          mutation_rejection=mutation_rejection)
             rejected += 1
             context = getattr(_REQUEST_CONTEXT, 'current', None)
-            if not (context and context[2]) and rejected >= 5:
+            if context and not context[2]:
                 raise ApiRateLimitError(delay)
             # The rejected request was never executed. Retrying it is independent
             # of retry_network=False, which protects writes with uncertain results.
-            self._wait(delay, 'rate_limit', is_main_thread)
+            self._wait(delay, 'rate_limit')
 
 
 PROCESS_RATE_LIMITER = RateLimitCoordinator()

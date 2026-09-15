@@ -19,6 +19,7 @@ from ...constants.file_paths import GraphQLSettings
 from ...utils.SessionManager import SessionManager
 from ...python.latest_request import LatestRequest
 from ...widgets.works_list_widgets import WorksListControls, WorksListView
+from ...utils.messagesHelper import ModernMessageDialog
 
 
 class WorksModule(TaskModuleBaseUI):
@@ -62,6 +63,7 @@ class WorksModule(TaskModuleBaseUI):
 
         self._create_controller = WorksCreateController(lang_manager=self.lang_manager)
         self._sync_service = WorksSyncService(lang_manager=self.lang_manager, parent=self)
+        self._sync_service.geometry_sync_failed.connect(self._on_geometry_sync_failed)
         self._create_on_map_button = QPushButton(
             self.lang_manager.translate(TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON)
         )
@@ -74,6 +76,9 @@ class WorksModule(TaskModuleBaseUI):
         self._create_on_map_button.style().polish(self._create_on_map_button)
         self._create_on_map_button.clicked.connect(self.start_create_on_map)
         self.toolbar_area.add_right(self._create_on_map_button)
+
+    def _on_geometry_sync_failed(self, message: str) -> None:
+        ModernMessageDialog.show_warning(self.lang_manager.translate(TranslationKeys.WARNING), message)
 
     def start_create_on_map(self) -> None:
         self._start_create_on_map()

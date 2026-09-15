@@ -23,7 +23,6 @@ from ..modules.Property.FlowControllers.MainAddProperties import (
 from ..modules.Property.FlowControllers.BackendVerifyController import BackendVerifyController
 from ..modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
 from ..modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
-from ..modules.Property.FlowControllers.checked_add_runner import CheckedAddBatchRunner
 from ..modules.Property.FlowControllers.AttentionDisplayRules import AttentionDisplayRules
 from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager, PropertyTableWidget
 from ..utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
@@ -590,8 +589,7 @@ class AddPropertyDialog(QDialog):
             if not self._run_missing_cleanup_if_any():
                 return
 
-        runner_class = CheckedAddBatchRunner if mode == 'with_checks' else AddBatchRunner
-        runner = runner_class(
+        runner = AddBatchRunner(
             table,
             parent=self,
             use_filtered_rows=self._use_filtered_row_scope(),
@@ -604,8 +602,7 @@ class AddPropertyDialog(QDialog):
 
         runner.progress.connect(self._on_add_progress)
         runner.finished.connect(self._on_add_finished)
-        if isinstance(runner, CheckedAddBatchRunner):
-            runner.waiting.connect(self._on_add_waiting)
+        runner.waiting.connect(self._on_add_waiting)
 
         if self.add_progress_label is not None:
             label_prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX)
@@ -619,13 +616,13 @@ class AddPropertyDialog(QDialog):
         runner.start()
 
     def reject(self) -> None:
-        if isinstance(self._add_runner, CheckedAddBatchRunner) and self._add_in_progress:
+        if isinstance(self._add_runner, AddBatchRunner) and self._add_in_progress:
             self._on_cancel_clicked()
             return
         super().reject()
 
     def closeEvent(self, event) -> None:
-        if isinstance(self._add_runner, CheckedAddBatchRunner) and self._add_in_progress:
+        if isinstance(self._add_runner, AddBatchRunner) and self._add_in_progress:
             event.ignore()
             self._on_cancel_clicked()
             return
@@ -1749,8 +1746,8 @@ class AddPropertyDialog(QDialog):
                     self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_PARTIAL_BODY).format(
                         moved=moved,
                         archived=archived,
-                        failed=len(errors),
-                    ),
+                        failed=int(summary.get("backend_failed") or len(errors)),
+                    ) + "\n\n" + "\n".join(str(error) for error in errors),
                 )
                 self._invalidate_archive_scope()
                 return False

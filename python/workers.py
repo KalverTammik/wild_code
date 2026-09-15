@@ -2,10 +2,12 @@
 
 from typing import Any, Callable, Optional
 import sys
+from threading import Event
 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from ..Logs.switch_logger import SwitchLogger
 from ..Logs.python_fail_logger import PythonFailLogger
+from .api_rate_limit import api_request_context, RequestCancelled
 
 _ACTIVE_THREADS: set[QThread] = set()
 
@@ -26,18 +28,27 @@ class FunctionWorker(QObject):
 
     finished = pyqtSignal(object)
     error = pyqtSignal(str)
+    waiting = pyqtSignal(float, str)
 
     def __init__(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         super().__init__()
         self._func = func
         self._args = args
         self._kwargs = kwargs
+        self._cancel_event = Event()
+
+    def cancel(self) -> None:
+        self._cancel_event.set()
 
     @pyqtSlot()
     def run(self) -> None:
         try:
             SwitchLogger.log("worker_run_start", extra={"func": getattr(self._func, "__name__", "callable")})
-            result = self._func(*self._args, **self._kwargs)
+            with api_request_context(cancel_event=self._cancel_event, on_wait=self.waiting.emit):
+                result = self._func(*self._args, **self._kwargs)
+        except RequestCancelled as exc:
+            self.error.emit(str(exc))
+            return
         except Exception as exc:  # noqa: BLE001 - propagate as text
             SwitchLogger.log("worker_run_error", extra={"func": getattr(self._func, "__name__", "callable"), "error": str(exc)})
             try:

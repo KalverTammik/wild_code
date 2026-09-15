@@ -17,6 +17,7 @@ from ..utils.api_error_handling import ApiErrorKind, summarize_connection_error,
 from ..Logs.python_fail_logger import PythonFailLogger
 from . import api_rate_limit
 from .api_rate_limit import ApiRateLimitError, RequestCancelled
+from .api_request_task import send_api_request
 
 class APIClient:
     def __init__(self, session_manager=None, config_path=None):
@@ -48,7 +49,7 @@ class APIClient:
         timeout: int = 30,
         return_raw: bool = False,
         with_success: bool = False,
-        retry_network: bool = True,
+        retry_network: bool | None = None,
     ):
         def _wrap_success(raw_json: dict):
             if return_raw:
@@ -76,6 +77,9 @@ class APIClient:
             is_main_thread = True
 
         auth_attempts = 2 if require_auth else 1
+        # Unknown write outcomes require reconciliation, not blind repetition.
+        if retry_network is None:
+            retry_network = api_rate_limit.mutation_cost(query) == 0
         # Avoid blocking the UI thread with network retries.
         network_attempts = 3 if retry_network and not is_main_thread else 1
         attempts = max(auth_attempts, network_attempts)
@@ -97,7 +101,7 @@ class APIClient:
                     print("[DEBUG] No auth token available!")
 
             try:
-                response = api_rate_limit.PROCESS_RATE_LIMITER.send(
+                response = send_api_request(
                     lambda: requests.post(api_url, json=payload, headers=headers, timeout=timeout),
                     endpoint=api_url, authorization=headers.get('Authorization'),
                     cost=api_rate_limit.mutation_cost(query), is_main_thread=is_main_thread,
@@ -277,7 +281,9 @@ class APIClient:
             is_main_thread = True
 
         auth_attempts = 2 if require_auth else 1
-        network_attempts = 3 if not is_main_thread else 1
+        # A lost upload response can already have created a file. Only a known
+        # pre-execution HTTP 429 rejection is safe to retry automatically.
+        network_attempts = 1
         attempts = max(auth_attempts, network_attempts)
         last_error = None
 
@@ -321,7 +327,7 @@ class APIClient:
                         handle.seek(0)
                     return requests.post(api_url, files=files_payload, headers=headers, timeout=timeout)
 
-                response = api_rate_limit.PROCESS_RATE_LIMITER.send(
+                response = send_api_request(
                     send_files, endpoint=api_url, authorization=headers.get('Authorization'),
                     cost=api_rate_limit.mutation_cost(query), is_main_thread=is_main_thread,
                 )

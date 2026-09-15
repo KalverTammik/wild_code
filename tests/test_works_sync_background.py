@@ -90,6 +90,30 @@ class WorksSyncBackgroundTest(unittest.TestCase):
         self.assertNotEqual(self.worker_threads[0], self.app.thread())
         self.assertEqual(apply_threads, [self.app.thread()])
 
+    def test_failed_geometry_stops_batch_and_only_successes_get_audit_fields(self):
+        self.service.attach()
+        warnings = []
+        self.service.geometry_sync_failed.connect(warnings.append)
+        with patch.object(self.service, '_sync_feature_geometry_to_backend', side_effect=[True, False, True]) as sync, \
+                patch.object(self.service, '_stamp_geometry_audit_fields') as stamp:
+            self.service._on_committed_geometries_changes('offline', {1: None, 2: None, 3: None})
+        self.assertEqual(sync.call_count, 2)
+        stamp.assert_called_once_with(layer=self.layer, feature_ids=[1])
+        self.assertEqual(len(warnings), 1)
+        self.assertFalse(self.service._syncing_geometry)
+
+    def test_geometry_helper_propagates_negative_save_response(self):
+        from qgis.core import QgsGeometry
+        from Kavitro_dev.modules.works import works_sync_service as module
+        with patch.object(APIModuleActions, 'get_task_data', return_value={'id': '1'}), \
+                patch.object(APIModuleActions, 'update_task_geometry', return_value=False), \
+                patch.object(module.PythonFailLogger, 'log_exception') as log:
+            result = self.service._sync_feature_geometry_to_backend(
+                layer=self.layer, feature_id=self.feature_id,
+                geometry=QgsGeometry.fromWkt('POINT(10 20)'), task_id_field='ext_job_id')
+        self.assertIs(result, False)
+        log.assert_called_once()
+
     def test_edit_committed_during_request_is_preserved(self):
         self.start_sync()
         self.layer.startEditing()

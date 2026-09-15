@@ -313,11 +313,11 @@ class TaskFilesDialog(QDialog):
 
         uploaded_names: list[str] = []
         failed_names: list[str] = []
+        pending_names: list[str] = []
 
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        QApplication.processEvents()
         try:
-            for path in paths:
+            for index, path in enumerate(paths):
                 normalized_path = str(path or "").strip()
                 if not normalized_path:
                     continue
@@ -327,38 +327,25 @@ class TaskFilesDialog(QDialog):
                     uploaded_names.append(target_name)
                 else:
                     failed_names.append(target_name)
-                QApplication.processEvents()
+                    pending_names = [os.path.basename(value) for value in paths[index + 1:]]
+                    break
         finally:
             QApplication.restoreOverrideCursor()
 
-        if uploaded_names:
-            self._load_files()
-
-        if uploaded_names and not failed_names:
-            ModernMessageDialog.show_info(
-                self._lang.translate(TranslationKeys.SUCCESS),
-                self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_SUCCESS).format(
-                    count=len(uploaded_names)
-                ),
-            )
-            return
-
-        if uploaded_names and failed_names:
-            failed_preview = ", ".join(failed_names[:5])
+        # Refresh also after an uncertain response: the last file may be saved.
+        self._load_files()
+        if failed_names:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.WARNING),
-                self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_PARTIAL).format(
-                    uploaded=len(uploaded_names),
-                    failed=len(failed_names),
-                    failed_preview=failed_preview,
-                ),
+                self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_STOPPED).format(
+                    uploaded=len(uploaded_names), failed=failed_names[0],
+                    pending=len(pending_names), pending_names=", ".join(pending_names)),
             )
-            return
-
-        ModernMessageDialog.show_warning(
-            self._lang.translate(TranslationKeys.ERROR),
-            self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_FAILED),
-        )
+        else:
+            ModernMessageDialog.show_info(
+                self._lang.translate(TranslationKeys.SUCCESS),
+                self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_SUCCESS).format(count=len(uploaded_names)),
+            )
 
     def _delete_selected(self) -> None:
         file_info = self._require_selected_file()

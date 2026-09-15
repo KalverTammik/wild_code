@@ -22,6 +22,8 @@ class LatestRequest(QObject):
     def invalidate(self):
         self._revision += 1
         self._pending = None
+        if self._worker is not None:
+            self._worker.cancel()
 
     def submit(self, function, *args):
         self.invalidate()

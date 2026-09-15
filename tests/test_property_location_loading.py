@@ -295,7 +295,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
 
     def test_checked_add_dialog_uses_background_runner_and_shows_failures(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.modules.Property.FlowControllers.checked_add_runner import CheckedAddBatchRunner
+        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
         for name in (F.hkood, F.registr, F.muudet):
             self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
         self.layer.updateFields()
@@ -303,14 +303,14 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             dialog = AddPropertyDialog()
         try:
             self.wait_until(lambda: dialog.county_combo.isEnabled())
-            with patch.object(CheckedAddBatchRunner, 'start') as start, \
+            with patch.object(AddBatchRunner, 'start') as start, \
                     patch.object(dialog, '_run_missing_cleanup_if_any', return_value=True):
                 dialog._on_add_clicked()
                 start.assert_not_called()
                 dialog._checks_completed_for_scope = True
                 dialog._on_add_clicked()
                 start.assert_called_once()
-            self.assertIsInstance(dialog._add_runner, CheckedAddBatchRunner)
+            self.assertIsInstance(dialog._add_runner, AddBatchRunner)
             self.assertFalse(dialog.location_filter_widget.isEnabled())
             self.assertFalse(dialog.properties_table.isEnabled())
             runner = dialog._add_runner
@@ -340,6 +340,14 @@ class PropertyLocationLoadingTest(unittest.TestCase):
                                      'unfinished': {'tunnus': '1', 'message': 'Intended uses unfinished'}})
             self.assertEqual(dialog._add_errors_view.toPlainText(), '1: Intended uses unfinished')
             self.assertIn('0/2', dialog.add_progress_label.text())
+            # Skipping the preflight must not bypass the protected add runner.
+            self.assertFalse(dialog._checks_completed_for_scope)
+            with patch.object(AddBatchRunner, 'start') as start:
+                dialog._start_batch_add(dialog.properties_table, mode='without_checks')
+                start.assert_called_once()
+            self.assertIsInstance(dialog._add_runner, AddBatchRunner)
+            dialog._add_runner.cancel()
+            self.assertIsNone(dialog._add_runner)
         finally:
             dialog.reject()
             self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
