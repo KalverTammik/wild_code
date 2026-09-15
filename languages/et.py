@@ -233,6 +233,8 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_ADD_RATE_WAIT: "Kinnistu {tunnus}: serveri päringupiirang. Jätkan automaatselt {seconds} s pärast sama salvestusega.",
         TranslationKeys.PROPERTY_ADD_PACING_WAIT: "Kinnistu {tunnus}: salvestamine jätkub {seconds} s pärast.",
         TranslationKeys.PROPERTY_CHECK_CANCELLED: "Kontroll katkestati. Kontrollitud {done}/{total} kinnistut. Valitud kinnistute lisamiseks käivita kontroll uuesti.",
+        TranslationKeys.PROPERTY_ARCHIVE_LOOKUP_PROGRESS: "Kontrollin impordist puuduvate kinnistute seisu taustasüsteemis: {done}/{total}. Arhiveerimiskava avaneb pärast kontrolli.",
+        TranslationKeys.PROPERTY_ARCHIVE_LOOKUP_CANCELLED: "Arhiveerimiskava koostamine katkestati. Kinnistuid ei arhiveeritud ega lisatud.",
         TranslationKeys.PROPERTY_ADD_STOPPED_RESULT: "Töö peatus vea tõttu. Töödeldud {done}/{total}. Õnnestus: {succeeded}. Ebaõnnestus: {failed}. Töötlemata: {pending}.",
         TranslationKeys.PROPERTY_ADD_RESPONSE_INVALID: "Serveri vastus ei kinnitanud kinnistu salvestamist.",
         TranslationKeys.PROPERTY_ADD_STAGE_CREATE: "Kinnistu loomine",

@@ -20,10 +20,7 @@ from PyQt5.QtWidgets import (
 from qgis.core import QgsFeatureRequest
 from qgis.utils import iface
 
-from ..modules.Property.FlowControllers.MainAddProperties import (
-    BackendPropertyVerifier,
-    MainAddPropertiesFlow,
-)
+from ..modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
 from ..modules.Property.FlowControllers.BackendVerifyController import BackendVerifyController
 from ..modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
 from ..modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
@@ -179,6 +176,13 @@ class AddPropertyDialog(QDialog):
         self._backend_verify_controller.waiting.connect(self._on_backend_verify_waiting)
         self._backend_verify_controller.finished.connect(self._on_backend_verify_finished)
 
+        # Backend status of properties missing from the import, read before the archive plan opens.
+        self._archive_lookup_controller = BackendVerifyController(self)
+        self._archive_lookup_controller.rowResult.connect(self._on_archive_lookup_row)
+        self._archive_lookup_controller.waiting.connect(self._on_archive_lookup_waiting)
+        self._archive_lookup_controller.finished.connect(self._on_archive_lookup_finished)
+        self._archive_lookup = None
+
         self._main_check_controller = MainLayerCheckController(self)
         self._main_check_controller.rowResult.connect(self._on_main_check_row_result)
         self._main_check_controller.finished.connect(self._on_main_check_finished)
@@ -218,9 +222,6 @@ class AddPropertyDialog(QDialog):
         # Track whether the table is currently filtered down to attention-only rows.
         self._table_filtered_to_attention = False
 
-        # Add-without-checks button reference
-        self.add_without_checks_button = None
-
         self.show()
 
         if self._dialog_mode == PropertyDialogMode.FROM_MAP:
@@ -236,6 +237,8 @@ class AddPropertyDialog(QDialog):
         self._add_progress_timer.stop()
         if self._add_runner is not None:
             self._add_runner.cancel()
+        self._archive_lookup = None
+        self._archive_lookup_controller.stop()
         self._stop_attention_checks()
         try:
             if self._import_selection_orchestrator is not None:
@@ -599,19 +602,23 @@ class AddPropertyDialog(QDialog):
         if selected_count <= 0:
             return
 
+        def start_add() -> None:
+            self._stop_attention_checks(clear_attention=True)
+            self._update_add_button_state(selected_count=selected_count)
+            self._start_batch_add(table, mode="without_checks")
+
         # If the user already ran checks and archive plans exist, apply that plan first
-        # before resetting check state for the add run.
-        if not self._checks_running and bool(self._missing_from_import):
-            if not self._run_missing_cleanup_if_any():
-                return
-
-        self._stop_attention_checks(clear_attention=True)
-        self._update_add_button_state(selected_count=selected_count)
-
-        self._start_batch_add(table, mode="without_checks")
+        # before resetting check state for the add run. A running check has no plan yet.
+        self._run_missing_cleanup_if_any(start_add)
 
     def _on_add_clicked(self) -> None:
-        self._start_batch_add(self.properties_table, mode="with_checks")
+        if self._deferred_additions:
+            self._on_review_additions()
+            return
+        if self._add_in_progress or self._checks_running or not self._checks_completed_for_scope:
+            return
+        self._run_missing_cleanup_if_any(
+            lambda: self._start_batch_add(self.properties_table, mode="with_checks"))
 
     def _start_batch_add(self, table, *, mode: str, review_decisions=None) -> None:
         if self._add_in_progress:
@@ -624,11 +631,8 @@ class AddPropertyDialog(QDialog):
             self._on_review_additions()
             return
 
-        if mode == "with_checks":
-            if self._checks_running or not self._checks_completed_for_scope:
-                return
-            if not self._run_missing_cleanup_if_any():
-                return
+        if mode == "with_checks" and (self._checks_running or not self._checks_completed_for_scope):
+            return
 
         runner = AddBatchRunner(
             table,
@@ -674,7 +678,10 @@ class AddPropertyDialog(QDialog):
         super().closeEvent(event)
 
     def _on_cancel_clicked(self) -> None:
-        # A running check is cancelled in place, like an add; only an idle dialog closes.
+        # Running work is cancelled in place, like an add; only an idle dialog closes.
+        if self._archive_lookup is not None:
+            self._cancel_archive_lookup()
+            return
         if self._checks_running:
             self._cancel_attention_checks()
             return
@@ -1216,63 +1223,34 @@ class AddPropertyDialog(QDialog):
             return False
         return current_elsewhere == self._archive_moved_elsewhere
 
-    def _build_archive_candidate_rows(self, missing: list[str]) -> list[dict]:
-        rows = []
-        for index, tunnus in enumerate(missing, start=1):
-            backend_allowed = False
-            note = ""
-            backend_label = self.lang_manager.translate(
-                TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED
-            )
-            try:
-                backend_info = BackendPropertyVerifier.verify_properties_by_cadastral_number(tunnus)
-                if not isinstance(backend_info, dict) or backend_info.get("exists") is None:
-                    note = self.lang_manager.translate(
-                        TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED
-                    )
-                else:
-                    active_ids = [
-                        str(value).strip()
-                        for value in (backend_info.get("active_ids") or [])
-                        if str(value).strip()
-                    ]
-                    active_count = backend_info.get("active_count")
-                    if (isinstance(active_count, int) and active_count > 1) or len(active_ids) > 1:
-                        backend_label = self.lang_manager.translate(
-                            TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MULTIPLE
-                        )
-                    elif len(active_ids) == 1:
-                        backend_allowed = True
-                        backend_label = self.lang_manager.translate(
-                            TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_ARCHIVE
-                        )
-                    else:
-                        backend_label = self.lang_manager.translate(
-                            TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MISSING
-                        )
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="property",
-                    event="property_archive_candidate_backend_check_failed",
-                    extra={"tunnus": tunnus},
-                )
-                note = self.lang_manager.translate(
-                    TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED
-                )
+    def _archive_candidate_row(self, tunnus: str, backend_info) -> dict:
+        """Map one background lookup result to a plan row; only one active match may be archived."""
+        translate = self.lang_manager.translate
+        row = {
+            "tunnus": tunnus,
+            "settlement": self._archive_candidate_settlement.get(tunnus, ""),
+            "backend_allowed": False,
+            "backend_label": translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED),
+            "note": "",
+        }
+        if not isinstance(backend_info, dict) or backend_info.get("exists") is None:
+            row["note"] = translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED)
+            return row
 
-            rows.append(
-                {
-                    "tunnus": tunnus,
-                    "settlement": self._archive_candidate_settlement.get(tunnus, ""),
-                    "backend_allowed": backend_allowed,
-                    "backend_label": backend_label,
-                    "note": note,
-                }
-            )
-            if index % 5 == 0:
-                QCoreApplication.processEvents()
-        return rows
+        active_ids = [
+            str(value).strip()
+            for value in (backend_info.get("active_ids") or [])
+            if str(value).strip()
+        ]
+        active_count = backend_info.get("active_count")
+        if (isinstance(active_count, int) and active_count > 1) or len(active_ids) > 1:
+            row["backend_label"] = translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MULTIPLE)
+        elif len(active_ids) == 1:
+            row["backend_allowed"] = True
+            row["backend_label"] = translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_ARCHIVE)
+        else:
+            row["backend_label"] = translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MISSING)
+        return row
 
     def _after_table_update(self, _table) -> None:
         """Publish the completed table's scope after a location or map-selection load."""
@@ -1543,9 +1521,11 @@ class AddPropertyDialog(QDialog):
         self._update_check_status_label()
 
     def _on_backend_verify_waiting(self, seconds: float, reason: str) -> None:
-        # The progress bar keeps the checked count; the pause is shown beneath it.
-        if not self._checks_running:
-            return
+        if self._checks_running:
+            self._show_request_wait(seconds, reason)
+
+    def _show_request_wait(self, seconds: float, reason: str) -> None:
+        # The progress bar keeps its count; the pause is shown beneath it.
         if seconds <= 0:
             self._hide_detail_label()
             return
@@ -1871,20 +1851,99 @@ class AddPropertyDialog(QDialog):
     def _compute_missing_from_import_set(self) -> set[str]:
         return self._compute_scoped_archive_plan()
 
-    def _run_missing_cleanup_if_any(self) -> bool:
+    def _run_missing_cleanup_if_any(self, then) -> None:
+        """Archive properties missing from the import, then continue with ``then``.
+
+        Backend lookups for the plan run in a worker, so the dialog stays responsive and
+        the whole lookup is cancellable; plan review and layer edits stay on the GUI
+        thread. ``then`` runs only when nothing is missing or the confirmed plan was
+        applied without errors.
+        """
+
         missing = sorted({str(t).strip() for t in (self._missing_from_import or set()) if str(t).strip()})
         if not missing:
-            return True
+            then()
+            return
 
         if not self._archive_scope_is_current():
-            self._reset_archive_plan_state()
-            ModernMessageDialog.Warning_messages_modern(
-                self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_STALE_TITLE),
-                self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_STALE_BODY),
-            )
-            return False
+            self._warn_archive_plan_stale()
+            return
 
-        candidate_rows = self._build_archive_candidate_rows(missing)
+        self._archive_lookup = {"missing": missing, "backend_info": {}, "then": then}
+        self._set_add_ui_state(active=True)
+        self._show_archive_lookup_progress()
+        # Missing properties have no import row; the lookup only needs the cadastral number.
+        self._archive_lookup_controller.start(
+            [(index, tunnus, "") for index, tunnus in enumerate(missing)],
+            source="archive_plan",
+            import_context_by_tunnus={
+                tunnus: {"data": {"cadastralUnit": {"number": tunnus}, "address": {}}, "main_date": None}
+                for tunnus in missing
+            },
+        )
+
+    def _warn_archive_plan_stale(self) -> None:
+        self._reset_archive_plan_state()
+        ModernMessageDialog.Warning_messages_modern(
+            self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_STALE_TITLE),
+            self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_STALE_BODY),
+        )
+
+    def _show_archive_lookup_progress(self) -> None:
+        lookup = self._archive_lookup
+        done, total = len(lookup["backend_info"]), len(lookup["missing"])
+        self.check_progress_bar.hide()
+        self.add_progress_label.setText(self.lang_manager.translate(
+            TranslationKeys.PROPERTY_ARCHIVE_LOOKUP_PROGRESS).format(done=done, total=total))
+        self.add_progress_label.show()
+        self.add_progress_bar.setRange(0, max(1, total))
+        self.add_progress_bar.setValue(done)
+        self.add_progress_bar.show()
+
+    def _on_archive_lookup_row(self, _row: int, tunnus: str, result: dict) -> None:
+        if self._archive_lookup is None:
+            return
+        self._archive_lookup["backend_info"][tunnus] = result.get("backend_info")
+        self._show_archive_lookup_progress()
+
+    def _on_archive_lookup_waiting(self, seconds: float, reason: str) -> None:
+        if self._archive_lookup is not None:
+            self._show_request_wait(seconds, reason)
+
+    def _on_archive_lookup_finished(self, summary: dict) -> None:
+        lookup, self._archive_lookup = self._archive_lookup, None
+        if lookup is None:
+            return
+        for error in summary.get("errors") or []:
+            PythonFailLogger.log_exception(
+                RuntimeError(error.get("error")),
+                module="property",
+                event="property_archive_candidate_backend_check_failed",
+                extra={"tunnus": error.get("tunnus")},
+            )
+        self._set_add_ui_state(active=False)
+        self._hide_detail_label()
+        self.add_progress_bar.hide()
+        self._apply_archive_plan(lookup["missing"], lookup["backend_info"], lookup["then"])
+
+    def _cancel_archive_lookup(self) -> None:
+        # Only reads were made: the plan stays intact and the same add can be retried.
+        self._archive_lookup = None
+        self._archive_lookup_controller.stop()
+        self._set_add_ui_state(active=False)
+        self._hide_detail_label()
+        self.add_progress_bar.hide()
+        self.add_progress_label.setText(
+            self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_LOOKUP_CANCELLED))
+        self.add_progress_label.show()
+
+    def _apply_archive_plan(self, missing: list[str], backend_info: dict, then) -> None:
+        # The dialog stayed usable during the lookups, so the import may have changed meanwhile.
+        if not self._archive_scope_is_current():
+            self._warn_archive_plan_stale()
+            return
+
+        candidate_rows = [self._archive_candidate_row(tunnus, backend_info.get(tunnus)) for tunnus in missing]
         self._archive_backend_plan = {
             row["tunnus"]: bool(row.get("backend_allowed")) for row in candidate_rows
         }
@@ -1894,7 +1953,7 @@ class AddPropertyDialog(QDialog):
             parent=self,
             lang_manager=self.lang_manager,
         ):
-            return False
+            return
 
         backend_allowed = {t for t in missing if bool(self._archive_backend_plan.get(t, False))}
 
@@ -1934,7 +1993,7 @@ class AddPropertyDialog(QDialog):
                     ) + "\n\n" + "\n".join(str(error) for error in errors),
                 )
                 self._reset_archive_plan_state()
-                return False
+                return
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -1945,11 +2004,11 @@ class AddPropertyDialog(QDialog):
                 template = self.lang_manager.translate(TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR)
                 label.setText(template.format(count=len(missing)))
             self._reset_archive_plan_state()
-            return False
+            return
 
         # Run once per check cycle.
         self._missing_from_import = set()
         self._archive_backend_plan = {}
         self._archive_map_plan = {}
-        return True
+        then()
 

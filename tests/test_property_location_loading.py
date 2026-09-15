@@ -366,7 +366,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         try:
             self.wait_until(lambda: dialog.county_combo.isEnabled())
             with patch.object(AddBatchRunner, 'start') as start, \
-                    patch.object(dialog, '_run_missing_cleanup_if_any', return_value=True):
+                    patch.object(dialog, '_run_missing_cleanup_if_any', side_effect=lambda then: then()):
                 dialog._on_add_clicked()
                 start.assert_not_called()
                 dialog._checks_completed_for_scope = True
@@ -453,7 +453,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
                 dialog._on_run_checks_clicked()
                 self.wait_until(lambda: dialog._checks_completed_for_scope)
                 self.assertIn(K.PROPERTY_ADD_BACKEND_DIFFERS, dialog._backend_compare_causes_by_row[0])
-                with patch.object(dialog, '_run_missing_cleanup_if_any', return_value=True), \
+                with patch.object(dialog, '_run_missing_cleanup_if_any', side_effect=lambda then: then()), \
                         patch.object(PropertyDataLoader, 'prepare_data_for_import_stage1', side_effect=lambda feature: (
                             {'cadastralUnit': {'number': feature[F.tunnus]}, 'address': {'street': 'Address',
                              'houseNumber': feature[F.tunnus]}}, feature[F.tunnus], [], '2025-01-01')):
@@ -541,7 +541,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             translate = dialog.lang_manager.translate
             with patch('Kavitro_dev.widgets.AddUpdatePropertyDialog.monotonic', return_value=100.0) as clock, \
                     patch.object(AddBatchRunner, 'start'), \
-                    patch.object(dialog, '_run_missing_cleanup_if_any', return_value=True):
+                    patch.object(dialog, '_run_missing_cleanup_if_any', side_effect=lambda then: then()):
                 for mode in ('with_checks', 'without_checks'):
                     with self.subTest(mode=mode):
                         clock.return_value = 100.0
@@ -686,47 +686,153 @@ class PropertyLocationLoadingTest(unittest.TestCase):
                 self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
                 dialog.deleteLater()
 
-    def test_real_dialog_keeps_the_archive_failure_message_while_dropping_the_stale_plan(self):
-        from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
+    def open_dialog_with_village_scope(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         for name in (F.hkood, F.registr, F.muudet):
             self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
         self.layer.updateFields()
         with patch.object(AddPropertyDialog, 'exec_', return_value=0):
             dialog = AddPropertyDialog()
+        self.wait_until(lambda: dialog.county_combo.isEnabled())
+        dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
+        dialog.municipality_combo.setCurrentIndex(dialog.municipality_combo.findData('Shared municipality'))
+        dialog.city_combo.setCheckedItems(['First village'])
+        self.wait_until(lambda: dialog._archive_scope_snapshot is not None)
+        return dialog
+
+    def close_dialog(self, dialog):
+        dialog.reject()
+        self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
+        dialog.deleteLater()
+
+    def test_real_dialog_archive_plan_uses_background_lookup_and_continues_only_after_clean_apply(self):
+        from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        dialog = self.open_dialog_with_village_scope()
+        infos = {'7': {'exists': True, 'active_count': 1, 'active_ids': ['p7']},
+                 '8': {'exists': False},
+                 '9': {'exists': None}}
+        then = Mock()
+        translate = dialog.lang_manager.translate
         try:
-            self.wait_until(lambda: dialog.county_combo.isEnabled())
-            dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
-            combo = dialog.municipality_combo
-            combo.setCurrentIndex(combo.findData('Shared municipality'))
-            dialog.city_combo.setCheckedItems(['First village'])
-            self.wait_until(lambda: dialog._archive_scope_snapshot is not None)
-
-            dialog._missing_from_import = {'9'}
-            summary = {'archived_backend': 0, 'moved_map': 0, 'backend_failed': 1, 'errors': ['boom']}
-            with patch.object(dialog, '_archive_scope_is_current', return_value=True), \
-                    patch.object(dialog, '_build_archive_candidate_rows', return_value=[
-                        {'tunnus': '9', 'settlement': '', 'backend_allowed': True,
-                         'backend_label': '', 'note': ''}]), \
-                    patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm', return_value=True), \
-                    patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import',
-                                 return_value=summary), \
+            with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                              side_effect=lambda number: infos[number]), \
+                    patch.object(dialog, '_archive_scope_is_current', return_value=True), \
+                    patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm', return_value=True) as confirm, \
+                    patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import') as archive, \
                     patch.object(dialog_module.ModernMessageDialog, 'Warning_messages_modern'):
-                self.assertFalse(dialog._run_missing_cleanup_if_any())
+                # A clean apply archives only what the lookup allowed, then continues the add.
+                archive.return_value = {'archived_backend': 1, 'moved_map': 3, 'errors': []}
+                dialog._missing_from_import = {'7', '8', '9'}
+                dialog._run_missing_cleanup_if_any(then)
+                self.wait_until(lambda: then.called)
+                rows = {row['tunnus']: row for row in confirm.call_args.kwargs['candidates']}
+                self.assertEqual({tunnus: row['backend_allowed'] for tunnus, row in rows.items()},
+                                 {'7': True, '8': False, '9': False})
+                self.assertEqual(rows['8']['backend_label'], translate(K.PROPERTY_ARCHIVE_PLAN_BACKEND_MISSING))
+                self.assertEqual(rows['9']['note'], translate(K.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED))
+                archive.assert_called_once_with(['7', '8', '9'], backend_allowed={'7'})
+                self.assertEqual(dialog._missing_from_import, set())
+                self.assertFalse(dialog._add_in_progress)
 
-            translate = dialog.lang_manager.translate
+                # A failed apply keeps its own message, drops the stale plan and does not continue.
+                then.reset_mock()
+                archive.return_value = {'archived_backend': 0, 'moved_map': 0, 'backend_failed': 1,
+                                        'errors': ['boom']}
+                dialog._missing_from_import = {'9'}
+                dialog._run_missing_cleanup_if_any(then)
+                self.wait_until(lambda: archive.call_count == 2)
             self.assertEqual(dialog.add_progress_label.text(), translate(
                 K.ARCHIVE_MISSING_PROGRESS_RESULT).format(
                     archived=0, total=1, moved=0,
                     errors_suffix=translate(K.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX)))
             self.assertTrue(dialog.add_progress_label.isVisible())
-            # The plan itself is stale and must be recomputed before the next add.
             self.assertIsNone(dialog._archive_scope_snapshot)
             self.assertEqual(dialog._missing_from_import, set())
+            then.assert_not_called()
         finally:
-            dialog.reject()
-            self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
-            dialog.deleteLater()
+            self.close_dialog(dialog)
+
+    def test_real_dialog_archive_lookup_shows_progress_and_cancel_changes_nothing(self):
+        from PyQt5 import sip
+        from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
+        dialog = self.open_dialog_with_village_scope()
+        then = Mock()
+        translate = dialog.lang_manager.translate
+
+        def lookup(number):
+            if number == '9':
+                PROCESS_RATE_LIMITER._wait(30, 'rate_limit')
+            return {'exists': False}
+
+        try:
+            with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                              side_effect=lookup), \
+                    patch.object(dialog, '_archive_scope_is_current', return_value=True), \
+                    patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm') as confirm, \
+                    patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import') as archive:
+                dialog._missing_from_import = {'8', '9'}
+                dialog._run_missing_cleanup_if_any(then)
+                # The call returns at once; lookups continue in the background with the add locked.
+                self.assertTrue(dialog._add_in_progress)
+                self.assertFalse(dialog.location_filter_widget.isEnabled())
+                self.assertFalse(dialog.add_without_checks_button.isEnabled())
+                self.assertTrue(dialog.cancel_button.isEnabled())
+                self.wait_until(lambda: dialog.add_detail_label.isVisible())
+                self.assertIn(dialog.add_detail_label.text(),
+                              {translate(K.API_REQUEST_RATE_WAIT).format(seconds=s) for s in (29, 30)})
+                self.assertEqual(dialog.add_progress_label.text(),
+                                 translate(K.PROPERTY_ARCHIVE_LOOKUP_PROGRESS).format(done=1, total=2))
+                self.assertEqual((dialog.add_progress_bar.value(), dialog.add_progress_bar.maximum()), (1, 2))
+                thread = dialog._archive_lookup_controller._thread
+
+                dialog._on_cancel_clicked()
+                self.assertTrue(dialog.isVisible())
+                self.assertIsNone(dialog._archive_lookup)
+                self.assertFalse(dialog._add_in_progress)
+                self.assertTrue(dialog.location_filter_widget.isEnabled())
+                self.assertFalse(dialog.add_detail_label.isVisible())
+                self.assertFalse(dialog.add_progress_bar.isVisible())
+                self.assertEqual(dialog.add_progress_label.text(), translate(K.PROPERTY_ARCHIVE_LOOKUP_CANCELLED))
+                # The interrupted pause ends at once instead of holding the request budget for 30 s.
+                self.wait_until(lambda: sip.isdeleted(thread) or thread.isFinished())
+                QTest.qWait(50)
+            # Nothing was reviewed, archived or added; the plan stays available for another try.
+            confirm.assert_not_called()
+            archive.assert_not_called()
+            then.assert_not_called()
+            self.assertEqual(dialog._missing_from_import, {'8', '9'})
+            self.assertIsNotNone(dialog._archive_scope_snapshot)
+        finally:
+            self.close_dialog(dialog)
+
+    def test_real_dialog_rechecks_the_archive_scope_after_the_background_lookup(self):
+        from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        dialog = self.open_dialog_with_village_scope()
+        then = Mock()
+        try:
+            with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                              return_value={'exists': False}), \
+                    patch.object(dialog, '_archive_scope_is_current', side_effect=[True, False]), \
+                    patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm') as confirm, \
+                    patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import') as archive, \
+                    patch.object(dialog_module.ModernMessageDialog, 'Warning_messages_modern') as warning:
+                dialog._missing_from_import = {'9'}
+                dialog._run_missing_cleanup_if_any(then)
+                self.wait_until(lambda: warning.called)
+            # The import changed while the dialog was usable: warn instead of reviewing an old plan.
+            self.assertEqual(warning.call_args.args[0],
+                             dialog.lang_manager.translate(K.PROPERTY_ARCHIVE_PLAN_STALE_TITLE))
+            confirm.assert_not_called()
+            archive.assert_not_called()
+            then.assert_not_called()
+            self.assertIsNone(dialog._archive_scope_snapshot)
+            self.assertFalse(dialog._add_in_progress)
+        finally:
+            self.close_dialog(dialog)
 
 
     def test_real_dialog_shows_check_rate_limit_wait_and_cancel_keeps_the_dialog_open(self):

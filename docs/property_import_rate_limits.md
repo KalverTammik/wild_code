@@ -88,6 +88,14 @@ Kontrolli taustatöö kasutab nüüd sama katkestus- ja ooteteavituse konteksti 
 
 Katkestamine lõpetab ootamise kohe. Juba saadetud lugemispäringu vastus oodatakse taustal ära, kuid seda ei rakendata. Kui kontroll käivitatakse uuesti või piirkond vahetub, arvestatakse ainult viimati käivitatud kontrolli tulemusi. Varem võis asendatud kontrolli hilinenud lõputeade eemaldada viite uuele kontrollile, mistõttu uut kontrolli ei saanud enam peatada.
 
+### Arhiveerimiskava koostamine
+
+Kui kontrollitud piirkonna põhikihis on kinnistuid, mida impordis enam ei ole, küsitakse enne lisamist nende seis taustasüsteemist ja koostatakse arhiveerimiskava. Varem tehti need päringud ükshaaval kasutajaliidese lõimes. Pikema päringu ajal avanes iga kinnistu jaoks eraldi ooteaken ning selle katkestamine jättis vahele ainult ühe kinnistu.
+
+Päringud tehakse nüüd taustal sama kontrollitöö ja ühise piirajaga. Haldusaken kuvab kontrollitud kinnistute arvu, edenemisriba ja vajadusel päringupausi; asukohavalikud, tabel ja lisamisnupud on selle aja lukus. „Tühista” lõpetab päringud kohe. Midagi ei arhiveerita ega lisata ning sama lisamist saab uuesti alustada. Akna sulgemine katkestab päringud samuti.
+
+Kuna aken on päringute ajal kasutatav, kontrollitakse enne kava avamist uuesti, et piirkond ja impordikiht vastavad endiselt kavale. Kui need muutusid, kuvatakse aegunud kava hoiatus. Kava ülevaade, kaardikihtide muutmine ja arhiveerimine ise toimuvad endiselt kasutajaliidese lõimes pärast kinnitust.
+
 ### 15.09.2026 laiendatud kontroll
 
 - QGIS 3.40.13 Python: 276 testi, 273 õnnestunud, 3 vahele jäetud; päris backend'i ei muudetud.

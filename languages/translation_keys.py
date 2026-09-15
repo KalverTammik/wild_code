@@ -990,6 +990,8 @@ class TranslationKeys:
     PROPERTY_ADD_RATE_WAIT = "property_add_rate_wait"
     PROPERTY_ADD_PACING_WAIT = "property_add_pacing_wait"
     PROPERTY_CHECK_CANCELLED = "property_check_cancelled"
+    PROPERTY_ARCHIVE_LOOKUP_PROGRESS = "property_archive_lookup_progress"
+    PROPERTY_ARCHIVE_LOOKUP_CANCELLED = "property_archive_lookup_cancelled"
     PROPERTY_ADD_STOPPED_RESULT = "property_add_stopped_result"
     PROPERTY_ADD_RESPONSE_INVALID = "property_add_response_invalid"
     PROPERTY_ADD_STAGE_CREATE = "property_add_stage_create"

@@ -231,6 +231,8 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_ADD_RATE_WAIT: "Property {tunnus}: server rate limit. The same save will retry automatically in {seconds} s.",
         TranslationKeys.PROPERTY_ADD_PACING_WAIT: "Property {tunnus}: saving will continue in {seconds} s.",
         TranslationKeys.PROPERTY_CHECK_CANCELLED: "Check cancelled. {done}/{total} properties checked. Run the check again before adding the selected properties.",
+        TranslationKeys.PROPERTY_ARCHIVE_LOOKUP_PROGRESS: "Checking backend status of properties missing from the import: {done}/{total}. The archive plan opens afterwards.",
+        TranslationKeys.PROPERTY_ARCHIVE_LOOKUP_CANCELLED: "Archive plan preparation cancelled. No properties were archived or added.",
         TranslationKeys.PROPERTY_ADD_STOPPED_RESULT: "Stopped due to an error. Processed {done}/{total}. Succeeded: {succeeded}. Failed: {failed}. Not processed: {pending}.",
         TranslationKeys.PROPERTY_ADD_RESPONSE_INVALID: "The server response did not confirm that the property was saved.",
         TranslationKeys.PROPERTY_ADD_STAGE_CREATE: "Creating the property",
