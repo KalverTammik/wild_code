@@ -640,5 +640,94 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             dialog.deleteLater()
 
 
+    def test_real_dialog_clears_a_finished_import_result_when_the_location_scope_changes(self):
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as runner_module
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        main = QgsVectorLayer('Polygon?crs=EPSG:3301&field=tunnus:string', 'Main', 'memory')
+        created = lambda data, uses, raise_on_error=False: (
+            'created' if data['cadastralUnit']['number'] == '1' else None)
+        with patch.object(runner_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                          return_value={'exists': False}), \
+                patch.object(runner_module.ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
+                patch.object(runner_module.MainAddPropertiesFlow, 'add_single_property_item', side_effect=created), \
+                patch.object(PropertyDataLoader, 'prepare_data_for_import_stage1', side_effect=lambda feature: (
+                    {'cadastralUnit': {'number': feature[F.tunnus]}, 'address': {'street': 'Address',
+                     'houseNumber': feature[F.tunnus]}}, feature[F.tunnus], [], '2025-01-01')), \
+                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+            try:
+                self.wait_until(lambda: dialog.county_combo.isEnabled())
+                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
+                combo = dialog.municipality_combo
+                combo.setCurrentIndex(combo.findData('Shared municipality'))
+                self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
+
+                dialog._on_add_without_checks()
+                self.wait_until(lambda: dialog._add_runner is None)
+                self.assertEqual((dialog._add_summary['succeeded'], dialog._add_summary['failed']), (1, 1))
+                self.assertTrue(dialog.add_progress_label.text())
+                self.assertTrue(dialog.add_progress_label.isVisible())
+                self.assertIn('2: ', dialog._add_errors_view.toPlainText())
+                self.assertTrue(dialog._add_errors_view.isVisible())
+
+                # A different county means the finished run no longer describes the table.
+                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('B'))
+                self.assertEqual(dialog.add_progress_label.text(), '')
+                self.assertFalse(dialog.add_progress_label.isVisible())
+                self.assertEqual(dialog.add_detail_label.text(), '')
+                self.assertFalse(dialog.add_detail_label.isVisible())
+                self.assertFalse(dialog._add_errors_view.isVisible())
+                self.assertFalse(dialog.add_progress_bar.isVisible())
+            finally:
+                dialog.reject()
+                self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
+                dialog.deleteLater()
+
+    def test_real_dialog_keeps_the_archive_failure_message_while_dropping_the_stale_plan(self):
+        from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+        try:
+            self.wait_until(lambda: dialog.county_combo.isEnabled())
+            dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
+            combo = dialog.municipality_combo
+            combo.setCurrentIndex(combo.findData('Shared municipality'))
+            dialog.city_combo.setCheckedItems(['First village'])
+            self.wait_until(lambda: dialog._archive_scope_snapshot is not None)
+
+            dialog._missing_from_import = {'9'}
+            summary = {'archived_backend': 0, 'moved_map': 0, 'backend_failed': 1, 'errors': ['boom']}
+            with patch.object(dialog, '_archive_scope_is_current', return_value=True), \
+                    patch.object(dialog, '_build_archive_candidate_rows', return_value=[
+                        {'tunnus': '9', 'settlement': '', 'backend_allowed': True,
+                         'backend_label': '', 'note': ''}]), \
+                    patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm', return_value=True), \
+                    patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import',
+                                 return_value=summary), \
+                    patch.object(dialog_module.ModernMessageDialog, 'Warning_messages_modern'):
+                self.assertFalse(dialog._run_missing_cleanup_if_any())
+
+            translate = dialog.lang_manager.translate
+            self.assertEqual(dialog.add_progress_label.text(), translate(
+                K.ARCHIVE_MISSING_PROGRESS_RESULT).format(
+                    archived=0, total=1, moved=0,
+                    errors_suffix=translate(K.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX)))
+            self.assertTrue(dialog.add_progress_label.isVisible())
+            # The plan itself is stale and must be recomputed before the next add.
+            self.assertIsNone(dialog._archive_scope_snapshot)
+            self.assertEqual(dialog._missing_from_import, set())
+        finally:
+            dialog.reject()
+            self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
+            dialog.deleteLater()
+
+
 if __name__ == '__main__':
     unittest.main()

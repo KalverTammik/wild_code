@@ -1001,8 +1001,11 @@ class AddPropertyDialog(QDialog):
     # ---------------------------------------------------------------------
 
     def _invalidate_archive_scope(self) -> None:
-        if not self._add_in_progress:
-            self.add_progress_bar.hide()
+        """A new table scope invalidates the archive plan and the previous run's result."""
+        self._reset_archive_plan_state()
+        self._clear_add_result()
+
+    def _reset_archive_plan_state(self) -> None:
         self._checks_completed_for_scope = False
         self._archive_scope_snapshot = None
         self._archive_scope_blocked_reason = ""
@@ -1012,6 +1015,26 @@ class AddPropertyDialog(QDialog):
         self._missing_from_import = set()
         self._archive_backend_plan = {}
         self._archive_map_plan = {}
+
+    def _clear_add_result(self) -> None:
+        """Drop the finished run's counts, errors and detail; they describe the old scope.
+
+        Deferred decisions deliberately survive here: they stay reviewable until the
+        dialog closes, so the review button keeps its own count.
+        """
+
+        if self._add_in_progress:
+            return
+
+        self.add_progress_bar.hide()
+        self._add_last_progress = (0, 0)
+        self.add_progress_label.clear()
+        self.add_progress_label.hide()
+        self.add_detail_label.clear()
+        self.add_detail_label.hide()
+        if self._add_errors_view is not None:
+            self._add_errors_view.clear()
+            self._add_errors_view.hide()
 
     @staticmethod
     def _layer_identity(layer) -> tuple[str, str]:
@@ -1830,7 +1853,7 @@ class AddPropertyDialog(QDialog):
             return True
 
         if not self._archive_scope_is_current():
-            self._invalidate_archive_scope()
+            self._reset_archive_plan_state()
             ModernMessageDialog.Warning_messages_modern(
                 self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_STALE_TITLE),
                 self.lang_manager.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_STALE_BODY),
@@ -1886,7 +1909,7 @@ class AddPropertyDialog(QDialog):
                         failed=int(summary.get("backend_failed") or len(errors)),
                     ) + "\n\n" + "\n".join(str(error) for error in errors),
                 )
-                self._invalidate_archive_scope()
+                self._reset_archive_plan_state()
                 return False
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -1897,7 +1920,7 @@ class AddPropertyDialog(QDialog):
             if label is not None:
                 template = self.lang_manager.translate(TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR)
                 label.setText(template.format(count=len(missing)))
-            self._invalidate_archive_scope()
+            self._reset_archive_plan_state()
             return False
 
         # Run once per check cycle.

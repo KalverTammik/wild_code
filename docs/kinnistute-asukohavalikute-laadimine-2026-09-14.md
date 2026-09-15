@@ -25,6 +25,10 @@ Senine ulatuse käitumine on säilitatud: **omavalitsuse valimine kuvab selle k�
 
 Arhiveerimise võrdlusbaas muutub piirkonna vahetamisel kohe kehtetuks. Uus baas salvestatakse alles täieliku, endiselt õigele piirkonnale ja impordikihile vastava laadimise järel. Tabeli hilisem valik või filtreerimine ei muuda juba salvestatud baasi. Tunnused loetakse tabeli mudeli andmetest, ilma iga lahtri jaoks Qt indeksit loomata.
 
+Sama vahetus kustutab ka eelmise lisamise lõpptulemuse: töödeldud ja õnnestunud kinnistute arvud, edenemisriba, katastritunnuse rea ja kinnistupõhiste vigade loendi. Need kirjeldasid eelmist piirkonda ja uue tabeli kõrval oleksid nad eksitavad. Otsust ootavad kinnistud seda ei puuduta; need jäävad koos oma nupu ja loenduriga alles kuni haldusakna sulgemiseni, nagu seni. Lisamise ajal ei kustutata midagi.
+
+Piirkonna vahetus ja arhiveerimiskava ebaõnnestumine on eri asjad. Kava ebaõnnestumine tühistab ainult kava enda ja jätab oma teate ekraanile; ainult tabeli ulatuse muutumine kustutab lisaks ka lisamise tulemuse.
+
 ## Kontroll
 
 QGIS 3.40.13 Pythoni keskkonnas lisandus 13 testi. Kaetud on hierarhia eraldamine, samanimelised omavalitsused ja külad eri maakondades, aeglane lugemine, kasutajaliidese sündmused lugemise ajal, kiire valikuvahetus, tegelik rippmenüü klikk, viimase küla eemaldamine, viga ja korduskatse, sulgemine, impordikihi muutumine ning arhiveerimise võrdlusbaas tegelikus haldusdialoogis.
