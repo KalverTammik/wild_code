@@ -26,9 +26,6 @@ class PropertyUpdateFlowCoordinator(QObject):
         self._cancelled.set()
         self._request.invalidate()
 
-    def load_index(self, layer):
-        self._submit(layer, 'index', PropertyDataLoader.read_location_index)
-
     def load_scope(self, layer, scope, *, include_properties):
         self._submit(layer, 'scope', PropertyDataLoader.read_location_scope, scope, include_properties)
 

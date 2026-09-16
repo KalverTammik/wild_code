@@ -93,10 +93,14 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         self.helper.load_counties(self.layer)
         self.wait_until(lambda: self.widget.county_combo.isEnabled())
 
+    def pick(self, owner, county='A', municipality='Shared municipality'):
+        owner.county_combo.setCurrentIndex(owner.county_combo.findData(county))
+        # A county's municipalities arrive with its background read.
+        self.wait_until(lambda: owner.municipality_combo.findData(municipality) >= 0)
+        owner.municipality_combo.setCurrentIndex(owner.municipality_combo.findData(municipality))
+
     def choose_municipality(self, county='A'):
-        self.widget.county_combo.setCurrentIndex(self.widget.county_combo.findData(county))
-        combo = self.widget.municipality_combo
-        combo.setCurrentIndex(combo.findData('Shared municipality'))
+        self.pick(self.widget, county)
 
     def ids(self):
         return {PropertyTableManager.get_cell_text(self.table, row, 0)
@@ -111,7 +115,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         combo.hidePopup()
 
     def test_hierarchy_is_scoped_and_cached_between_choices(self):
-        with patch.object(PropertyDataLoader, 'read_location_index', wraps=PropertyDataLoader.read_location_index) as read:
+        with patch.object(PropertyDataLoader, 'read_counties', wraps=PropertyDataLoader.read_counties) as counties:
             self.load_index()
             self.choose_municipality()
             self.wait_until(lambda: self.ids() == {'1', '2'})
@@ -119,32 +123,67 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             self.choose_municipality('B')
             self.wait_until(lambda: self.ids() == {'3'})
             self.assertEqual(self.widget.city_combo.count(), 1)
-        self.assertEqual(read.call_count, 1)
+            # A county that was already read offers its municipalities at once.
+            self.widget.county_combo.setCurrentIndex(self.widget.county_combo.findData('A'))
+            self.assertGreaterEqual(self.widget.municipality_combo.findData('Shared municipality'), 0)
+        self.assertEqual(counties.call_count, 1)
 
-    def test_slow_index_keeps_gui_running_and_shows_busy_state(self):
+    def test_counties_come_from_distinct_values_without_a_background_read(self):
+        with patch.object(PropertyDataLoader, 'read_location_scope') as scope_read:
+            self.load_index()
+        combo = self.widget.county_combo
+        self.assertEqual([combo.itemData(index) for index in range(1, combo.count())], ['A', 'B'])
+        self.assertFalse(self.widget.municipality_combo.isEnabled())
+        scope_read.assert_not_called()
+
+    def test_slow_county_choices_keep_gui_running_and_show_busy_state(self):
         entered, release = threading.Event(), threading.Event()
-        read = PropertyDataLoader.read_location_index
+        read = PropertyDataLoader.read_location_scope
         threads, pulses = [], []
-        def delayed(source, cancelled):
-            threads.append(QThread.currentThread())
-            entered.set()
-            release.wait(2)
-            return read(source, cancelled)
-        with patch.object(PropertyDataLoader, 'read_location_index', side_effect=delayed):
+
+        def delayed(source, cancelled, scope, include_properties):
+            if not scope[1]:
+                threads.append(QThread.currentThread())
+                entered.set()
+                release.wait(2)
+            return read(source, cancelled, scope, include_properties)
+
+        self.load_index()
+        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=delayed):
             try:
-                self.helper.load_counties(self.layer)
+                self.widget.county_combo.setCurrentIndex(self.widget.county_combo.findData('A'))
                 self.wait_until(entered.is_set)
                 QTimer.singleShot(0, lambda: pulses.append(True))
                 QTest.qWait(40)
                 self.assertEqual(pulses, [True])
-                self.assertFalse(self.widget.county_combo.isEnabled())
+                self.assertFalse(self.widget.municipality_combo.isEnabled())
                 self.assertTrue(self.widget.loading_indicator.isVisible())
                 self.assertIn('valikuid', self.widget.status_label.text())
                 self.assertNotEqual(threads[0], self.app.thread())
             finally:
                 release.set()
-            self.wait_until(lambda: self.widget.county_combo.isEnabled())
+            self.wait_until(lambda: self.widget.municipality_combo.isEnabled())
+        self.assertGreaterEqual(self.widget.municipality_combo.findData('Shared municipality'), 0)
         self.assertTrue(self.widget.loading_indicator.isHidden())
+
+    def test_failed_county_choices_show_retry_and_retry_loads_them(self):
+        self.load_index()
+        original = PropertyDataLoader.read_location_scope
+        attempts = []
+
+        def failing_once(source, cancelled, scope, include_properties):
+            if not scope[1] and not attempts:
+                attempts.append(scope)
+                raise RuntimeError('Cannot read source')
+            return original(source, cancelled, scope, include_properties)
+
+        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=failing_once):
+            self.widget.county_combo.setCurrentIndex(self.widget.county_combo.findData('A'))
+            self.wait_until(lambda: self.widget.retry_button.isVisible())
+            self.assertFalse(self.widget.municipality_combo.isEnabled())
+            self.widget.retry_button.click()
+            self.wait_until(lambda: self.widget.municipality_combo.findData('Shared municipality') >= 0)
+        self.assertTrue(self.widget.municipality_combo.isEnabled())
 
     def test_village_results_keep_full_scope_and_map_uses_precomputed_ids_and_bounds(self):
         self.load_index()
@@ -201,7 +240,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         combo.hidePopup()
         self.wait_until(lambda: self.ids() == {'1', '2'})
 
-    def test_refresh_keeps_scope_and_reads_new_rows_without_rebuilding_whole_index(self):
+    def test_refresh_keeps_scope_and_reads_new_rows_without_reloading_counties(self):
         self.load_index()
         self.choose_municipality()
         self.widget.city_combo.setCheckedItems(['First village'])
@@ -213,12 +252,12 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         self.layer.dataProvider().addFeatures([feature])
         self.assertEqual(self.ids(), {'1'})
         before = self.invalidated.call_count
-        with patch.object(PropertyDataLoader, 'read_location_index') as index_read:
+        with patch.object(PropertyDataLoader, 'read_counties') as counties_read:
             self.widget.refresh_button.click()
             self.assertEqual(self.ids(), set())
             self.assertEqual(self.helper._scope(), scope)
             self.wait_until(lambda: self.ids() == {'1', '4'})
-            index_read.assert_not_called()
+            counties_read.assert_not_called()
         self.assertGreater(self.invalidated.call_count, before)
         self.assertFalse(self.widget.refresh_button.icon().isNull())
         self.assertTrue(self.widget.refresh_button.accessibleName())
@@ -260,7 +299,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         entered = threading.Event()
         original = PropertyDataLoader.read_location_scope
         def slow(source, cancelled, scope, include_properties):
-            if scope[0] == 'A':
+            if scope[0] == 'A' and scope[1]:
                 entered.set()
                 cancelled.wait(2)
             return original(source, cancelled, scope, include_properties)
@@ -288,7 +327,14 @@ class PropertyLocationLoadingTest(unittest.TestCase):
 
     def test_loading_error_is_visible_and_retry_works(self):
         self.load_index()
-        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=RuntimeError('Cannot read source')):
+        original = PropertyDataLoader.read_location_scope
+
+        def failing(source, cancelled, scope, include_properties):
+            if scope[1]:
+                raise RuntimeError('Cannot read source')
+            return original(source, cancelled, scope, include_properties)
+
+        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=failing):
             self.choose_municipality()
             self.wait_until(lambda: self.widget.retry_button.isVisible())
         self.assertEqual(self.ids(), set())
@@ -304,25 +350,29 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         entered = threading.Event()
         original = PropertyDataLoader.read_location_scope
         def slow(source, cancelled, scope, include_properties):
-            entered.set()
-            cancelled.wait(2)
+            if scope[1]:
+                entered.set()
+                cancelled.wait(2)
             return original(source, cancelled, scope, include_properties)
         with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=slow):
             self.choose_municipality()
             self.wait_until(entered.is_set)
+            # The county preview already ran before the municipality read; only that read is in flight.
+            previews = self.preview_mock.call_count
             self.helper.close()
             self.wait_until(lambda: not self.helper._loader._request.busy)
         self.assertEqual(self.ids(), set())
         self.completed.assert_not_called()
-        self.preview_mock.assert_not_called()
+        self.assertEqual(self.preview_mock.call_count, previews)
 
     def test_replaced_import_layer_cannot_receive_old_result(self):
         self.load_index()
         entered, release = threading.Event(), threading.Event()
         original = PropertyDataLoader.read_location_scope
         def slow(source, cancelled, scope, include_properties):
-            entered.set()
-            release.wait(2)
+            if scope[1]:
+                entered.set()
+                release.wait(2)
             return original(source, cancelled, scope, include_properties)
         with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=slow):
             try:
@@ -444,9 +494,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
-                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
-                combo = dialog.municipality_combo
-                combo.setCurrentIndex(combo.findData('Shared municipality'))
+                self.pick(dialog)
                 self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
                 self.assertEqual(PropertyTableManager.get_payload_field_text(dialog.properties_table, 0, 0, F.muudet),
                                  '2025-01-01')
@@ -622,8 +670,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             dialog = AddPropertyDialog()
         try:
             self.wait_until(lambda: dialog.county_combo.isEnabled())
-            dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
-            dialog.municipality_combo.setCurrentIndex(dialog.municipality_combo.findData('Shared municipality'))
+            self.pick(dialog)
             dialog.city_combo.setCheckedItems(['First village'])
             self.assertIsNone(dialog._archive_scope_snapshot)
             self.assertFalse(dialog.run_checks_button.isEnabled())
@@ -660,9 +707,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
-                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
-                combo = dialog.municipality_combo
-                combo.setCurrentIndex(combo.findData('Shared municipality'))
+                self.pick(dialog)
                 self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
 
                 dialog._on_add_without_checks()
@@ -694,8 +739,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         with patch.object(AddPropertyDialog, 'exec_', return_value=0):
             dialog = AddPropertyDialog()
         self.wait_until(lambda: dialog.county_combo.isEnabled())
-        dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
-        dialog.municipality_combo.setCurrentIndex(dialog.municipality_combo.findData('Shared municipality'))
+        self.pick(dialog)
         dialog.city_combo.setCheckedItems(['First village'])
         self.wait_until(lambda: dialog._archive_scope_snapshot is not None)
         return dialog
@@ -854,9 +898,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
-                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
-                combo = dialog.municipality_combo
-                combo.setCurrentIndex(combo.findData('Shared municipality'))
+                self.pick(dialog)
                 self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
                 translate = dialog.lang_manager.translate
 
@@ -929,9 +971,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
-                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
-                combo = dialog.municipality_combo
-                combo.setCurrentIndex(combo.findData('Shared municipality'))
+                self.pick(dialog)
                 self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
 
                 dialog._on_run_checks_clicked()
@@ -976,9 +1016,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
-                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
-                combo = dialog.municipality_combo
-                combo.setCurrentIndex(combo.findData('Shared municipality'))
+                self.pick(dialog)
                 self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
                 translate = dialog.lang_manager.translate
 

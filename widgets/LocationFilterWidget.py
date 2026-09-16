@@ -13,6 +13,7 @@ from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
+from ..utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from ..utils.mapandproperties.PropertyUpdateFlowCoordinator import PropertyUpdateFlowCoordinator
 from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager
 from ..utils.MapTools.MapHelpers import MapHelpers
@@ -41,7 +42,9 @@ class LocationFilterHelper(QObject):
         self._update_add_button_state = update_add_button_state
         self._stop_map_update = stop_map_update
         self._status = status_widget
+        # Counties load at once; each county's municipalities and settlements load when it is picked.
         self._locations = {}
+        self._counties_loaded = False
         self._layer = None
         self._closed = False
         self._signals_connected = False
@@ -103,12 +106,22 @@ class LocationFilterHelper(QObject):
             layer.updatedFields.connect(self._on_layer_changed)
             layer.willBeDeleted.connect(self._on_layer_removed)
         self._locations = {}
+        self._counties_loaded = False
         self._clear_table()
         self._fill_combo(self.county_combo, [], TranslationKeys.SELECT_COUNTY)
         self._fill_combo(self.municipality_combo, [], TranslationKeys.SELECT_MUNICIPALITY)
         self._clear_cities()
-        self._status.set_status(TranslationKeys.LOCATION_LOADING_CHOICES, busy=True)
-        self._loader.load_index(layer)
+        try:
+            if layer is None or sip.isdeleted(layer) or not layer.isValid():
+                raise ValueError('The property import layer is missing or invalid')
+            counties = PropertyDataLoader.read_counties(layer)
+        except Exception as exc:
+            PythonFailLogger.log_exception(exc, module='property', event='property_location_load_failed')
+            self._on_failed(str(exc))
+            return
+        self._fill_combo(self.county_combo, counties, TranslationKeys.SELECT_COUNTY)
+        self._counties_loaded = True
+        self._status.set_status(TranslationKeys.SELECT_COUNTY if counties else TranslationKeys.LOCATION_NO_CHOICES)
 
     def _disconnect_layer(self):
         layer = self._layer
@@ -127,6 +140,7 @@ class LocationFilterHelper(QObject):
         self._disconnect_layer()
         self._clear_table()
         self._locations = {}
+        self._counties_loaded = False
         self._fill_combo(self.county_combo, [], TranslationKeys.SELECT_COUNTY)
         self._fill_combo(self.municipality_combo, [], TranslationKeys.SELECT_MUNICIPALITY)
         self._clear_cities()
@@ -190,13 +204,18 @@ class LocationFilterHelper(QObject):
             self._status.set_status(TranslationKeys.SELECT_COUNTY)
             return
         include_properties = bool(scope[1])
-        key = TranslationKeys.LOCATION_LOADING_PROPERTIES if include_properties else TranslationKeys.LOCATION_LOADING_MAP
+        if include_properties:
+            key = TranslationKeys.LOCATION_LOADING_PROPERTIES
+        elif scope[0] not in self._locations:
+            key = TranslationKeys.LOCATION_LOADING_CHOICES
+        else:
+            key = TranslationKeys.LOCATION_LOADING_MAP
         self._status.set_status(key, busy=True)
         SwitchLogger.log('property_location_scope_requested', module='property', extra={'scope': scope})
         self._loader.load_scope(self._layer, scope, include_properties=include_properties)
 
     @pyqtSlot(str, object)
-    def _on_loaded(self, kind, result):
+    def _on_loaded(self, _kind, result):
         if self._closed:
             return
         current = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
@@ -204,12 +223,13 @@ class LocationFilterHelper(QObject):
                 or (current.id(), current.source()) != self._loader.layer_identity):
             self._on_failed('The import layer changed during loading')
             return
-        if kind == 'index':
-            self._locations = result
-            self._fill_combo(self.county_combo, result, TranslationKeys.SELECT_COUNTY)
-            key = TranslationKeys.SELECT_COUNTY if result else TranslationKeys.LOCATION_NO_CHOICES
-            self._status.set_status(key)
-            return
+        tree = result.get('tree')
+        if tree is not None:
+            county = result['scope'][0]
+            # A county read holds that county's complete choices; keep them even if the user moved on.
+            self._locations[county] = tree
+            if self._scope()[0] == county and self.municipality_combo.count() <= 1:
+                self._fill_combo(self.municipality_combo, tree, TranslationKeys.SELECT_MUNICIPALITY)
         if result['scope'] != self._scope():
             SwitchLogger.log('property_location_scope_discarded', module='property', extra={
                 'loaded_scope': result['scope'], 'current_scope': self._scope()})
@@ -239,7 +259,7 @@ class LocationFilterHelper(QObject):
         if self._closed:
             return
         layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
-        if not self._locations or layer is not self._layer:
+        if not self._counties_loaded or layer is not self._layer:
             self.load_counties(layer)
         else:
             self.reload_current_table_from_filters()

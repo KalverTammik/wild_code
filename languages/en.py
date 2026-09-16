@@ -188,7 +188,7 @@ TRANSLATIONS = {
         TranslationKeys.NO_ASBUILT_FOUND: "No as-built items found",
         TranslationKeys.NO_VALUES_FOUND: "No values found!",
         TranslationKeys.LOADING: "Loading…",
-        TranslationKeys.LOCATION_LOADING_CHOICES: "Loading counties, municipalities and settlements…",
+        TranslationKeys.LOCATION_LOADING_CHOICES: "Loading the county's municipalities and settlements…",
         TranslationKeys.LOCATION_LOADING_PROPERTIES: "Loading properties and map view…",
         TranslationKeys.LOCATION_LOADING_MAP: "Updating map view…",
         TranslationKeys.LOCATION_PROPERTIES_READY: "Loaded {count} properties.",

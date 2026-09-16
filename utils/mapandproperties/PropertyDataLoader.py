@@ -128,32 +128,20 @@ class PropertyDataLoader:
     # --- Laadijad ----------------------------------------------------------
 
     @staticmethod
-    def read_location_index(source, cancelled):
-        """Read the hierarchy once from a feature-source snapshot, off the GUI thread."""
-        fields = [Katastriyksus.mk_nimi, Katastriyksus.ov_nimi, Katastriyksus.ay_nimi]
-        request = PropertyDataLoader.snapshot_request(source, fields)
-        request.setFlags(request.flags() | QgsFeatureRequest.NoGeometry)
-        locations = {}
-        iterator = source.getFeatures(request)
-        try:
-            for feature in iterator:
-                if cancelled.is_set():
-                    return None
-                values = [feature.attribute(name) for name in fields]
-                county, municipality, settlement = [
-                    '' if QgsVariantUtils.isNull(value) else str(value).strip() for value in values
-                ]
-                if not county:
-                    continue
-                municipalities = locations.setdefault(county, {})
-                if municipality:
-                    settlements = municipalities.setdefault(municipality, set())
-                    if settlement:
-                        settlements.add(settlement)
-        finally:
-            iterator.close()
-        return {county: {municipality: sorted(settlements) for municipality, settlements in municipalities.items()}
-                for county, municipalities in locations.items()}
+    def read_counties(layer):
+        """County names from the layer's distinct-value lookup.
+
+        QGIS answers this inside its own engine instead of a Python loop over every
+        feature; on the Estonia file (778 480 units) it takes well under a second, so it
+        runs on the GUI thread. Municipalities and settlements load later, per county,
+        from the background scope read.
+        """
+        index = layer.fields().lookupField(Katastriyksus.mk_nimi)
+        if index < 0:
+            raise ValueError(LanguageManager().translate(TranslationKeys.PROPERTY_LAYER_FIELD_NOT_FOUND).format(
+                field_name=Katastriyksus.mk_nimi))
+        names = {'' if QgsVariantUtils.isNull(value) else str(value).strip() for value in layer.uniqueValues(index)}
+        return sorted(name for name in names if name)
 
     @staticmethod
     def snapshot_request(source, fields, expression=None):
@@ -169,8 +157,13 @@ class PropertyDataLoader:
 
     @staticmethod
     def read_location_scope(source, cancelled, scope, include_properties):
-        """Build rows, selection IDs and map bounds in one cancellable scan."""
+        """Build rows, selection IDs and map bounds in one cancellable scan.
+
+        A county-only scope also returns that county's municipality and settlement
+        choices from the same pass, so the choices never need a scan of the whole layer.
+        """
         county, municipality, settlements = scope
+        tree = {} if not municipality and not settlements else None
         expression = PropertyDataLoader.build_scope_expression(
             county_name=county or None, municipality_name=municipality or None, settlements=settlements)
         if not county or not expression:
@@ -190,6 +183,16 @@ class PropertyDataLoader:
                 if cancelled.is_set():
                     return None
                 feature_ids.append(feature.id())
+                if tree is not None:
+                    name, settlement = [
+                        '' if QgsVariantUtils.isNull(value) else str(value).strip()
+                        for value in (feature.attribute(Katastriyksus.ov_nimi),
+                                      feature.attribute(Katastriyksus.ay_nimi))
+                    ]
+                    if name:
+                        names = tree.setdefault(name, set())
+                        if settlement:
+                            names.add(settlement)
                 if feature.hasGeometry():
                     extent.combineExtentWith(feature.geometry().boundingBox())
                 if include_properties:
@@ -198,19 +201,8 @@ class PropertyDataLoader:
         finally:
             iterator.close()
         return {'scope': scope, 'rows': rows, 'feature_ids': feature_ids, 'extent': extent,
-                'include_properties': include_properties}
-
-    def load_counties(self, layer):
-        """Tagasta unikaalsed maakonnad."""
-        try:
-            idx = self._ensure_field(self.county_field)
-            # uniqueValues on QGIS-is optimeeritud ja kasutab vajadusel DB poolset DISTINCT-i
-            values = layer.uniqueValues(idx)
-            counties = {str(v).strip() for v in values if v is not None and str(v).strip()}
-            return sorted(counties)
-        except Exception as e:
-            print(f"Error loading counties: {e}")
-            raise
+                'include_properties': include_properties,
+                'tree': None if tree is None else {name: sorted(values) for name, values in tree.items()}}
 
     def load_municipalities_for_county(self, county_name):
         """Tagasta valla/linna nimed valitud maakonnas (unikaalsed, sorditud)."""

@@ -190,7 +190,7 @@ TRANSLATIONS = {
         TranslationKeys.NO_ASBUILT_FOUND: "Teostusjooniseid ei leitud",
         TranslationKeys.NO_VALUES_FOUND: "Väärtusi ei leitud!",
         TranslationKeys.LOADING: "Laadimine…",
-        TranslationKeys.LOCATION_LOADING_CHOICES: "Laen maakondade, omavalitsuste ja külade valikuid…",
+        TranslationKeys.LOCATION_LOADING_CHOICES: "Laen maakonna omavalitsuste ja külade valikuid…",
         TranslationKeys.LOCATION_LOADING_PROPERTIES: "Laen kinnistuid ja kaardivaadet…",
         TranslationKeys.LOCATION_LOADING_MAP: "Uuendan kaardivaadet…",
         TranslationKeys.LOCATION_PROPERTIES_READY: "Laaditud {count} kinnistut.",

@@ -13,7 +13,7 @@
 
 ## Käitumine pärast parandusi
 
-Maakondade, omavalitsuste ja külade nimistu loetakse taustal ühe korraga, ilma geomeetriata. Järgmised alamvalikud leitakse sellest nimistust. Impordikihi muutumisel nimistu ja varem laaditud võrdlusbaas tühistatakse.
+Asukohavalikud laaditakse etapiviisiliselt; vaata jaotist „16.09.2026: etapiviisiline laadimine". Impordikihi muutumisel valikud ja varem laaditud võrdlusbaas tühistatakse.
 
 Piirkonna kinnistud, objektide ID-d ja kaardivaate ulatus loetakse ühe taustatöö käigus. Kaardile rakendatakse juba arvutatud tulemus, ilma piirkonda uuesti läbi vaatamata.
 
@@ -74,3 +74,31 @@ Värskendamisel tühistatakse vanad kontrollitulemused ja arhiveerimise võrdlus
 Lisatud katsed kontrollivad tühikuklahviga valimist ja viimase küla eemaldamist, sama piirkonna värskendamist pärast uue lähterea lisandumist ning poolelioleva lugemise asendamist värskendusnupuga. Enne parandust ebaõnnestus klaviatuurikatse, sest tabel jäi muutumatuks. Käsitsi Live-katse uue paketiga on veel vajalik.
 
 Lõppkontroll QGIS 3.40.13-ga: **279 testi, neist 276 edukat ja 3 vahele jäetud**. Värskendusnupu paigutust kontrolliti ka renderdatud asukohavalikute vidinas. Live-projekti andmeid ja backend'i ei muudetud.
+
+## 16.09.2026: etapiviisiline laadimine
+
+14.09 lahendus luges dialoogi avamisel kogu impordikihi Pythonis läbi, et koostada maakondade, omavalitsuste ja külade nimistu. 20 000 objektiga proovikihil võttis see alla sekundi. Maa-ameti Eesti failil, 778 480 katastriüksust, võttis sama lugemine peata QGIS-is 13–28 sekundit ja Live QGIS-is umbes 64 sekundit, iga kord kui dialoog avati. Erinevaid asukohakombinatsioone on failis ainult 4 715.
+
+Impordikiht on „Lisa SHP fail" loodud mälukiht. See võib olla olemas ka siis, kui selles seansis SHP-d ei laaditud, seega ei saa valikute ettevalmistamist siduda SHP laadimise hetkega.
+
+Laadimine käib nüüd kahes etapis.
+
+1. Dialoogi avamisel tulevad maakonnad kihi eristuvate väärtuste päringust. Selle teeb QGIS oma mootoris, ilma Pythoni tsüklita üle kõigi objektide, ja see töötab kasutajaliidese lõimes.
+2. Maakonna valimisel loeb taustatöö selle maakonna omavalitsused ja külad samast piirkonnalugemisest, mis arvutab kaardi eelvaate ulatuse. Lisalugemist ei tule. Tulemus jääb dialoogi eluajaks meelde, nii et sama maakonna uuesti valimine täidab omavalitsuste valiku kohe.
+
+| Mõõtmine Eesti failil, peata QGIS | Enne | Nüüd |
+|---|---:|---:|
+| Valikute laadimine dialoogi avamisel | 13–28 s | 0,4–1,7 s maakonnad |
+| Lääne maakonna omavalitsused ja külad koos kaardiulatusega | kogu nimistus eos | 1,8 s |
+| Harju maakonna omavalitsused ja külad koos kaardiulatusega | kogu nimistus eos | 5,8 s |
+
+Maakonna lugemine koos kaardiulatusega toimus ka varem kaardi eelvaate jaoks; uus on ainult see, et omavalitsuste valik ootab selle ära. Live QGIS-is on ajad kaardi joonistamise tõttu eeldatavalt pikemad, Live logi järgi võttis Lääne maakonna lugemine umbes 3 sekundit.
+
+Kaalutud ja kõrvale jäetud võimalused, samuti mõõdetud Eesti failil:
+
+- QGIS-i unikaalsete väärtuste algoritm võttis 11,1 sekundit, sest see käib objektid läbi samuti Pythoni tsüklis.
+- Kolme välja unikaalne liitmine QGIS-i mootoris võttis 8,7 sekundit, aga vajab elavat kihti ja jooksuks kasutajaliidese lõimes, mis hangutaks akna.
+- Asustusüksuse kood `hkood` vastab nimedele üks-ühele, kui kood normaliseerida neljakohaliseks: üheksal linnal või linnaosal esineb kood nii eesnulliga kui ilma. Koodipõhine nimistu oleks alla sekundi, kuid vajaks pluginasse koodide ja nimede tabelit ning selle hooldust.
+- GeoPackage impordikihina andis nimistu 0,3 sekundiga, kuid ühekordne teisendus võttis 109 sekundit ja muudaks impordikihi elutsüklit.
+
+Maakonna valiku ajal on omavalitsuste valik lukus ja olekurida ütleb, et valikuid laaditakse. Lugemise viga näitab korduse nuppu; kordus loeb sama maakonna uuesti.
