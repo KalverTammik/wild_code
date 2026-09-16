@@ -207,6 +207,63 @@ class PropertyArchiveExecutionTest(unittest.TestCase):
         verify.assert_not_called()
         archive_backend.assert_not_called()
 
+    def _verify(self, nodes: list[dict]):
+        client = Mock()
+        client.send_query.return_value = {
+            "properties": {"pageInfo": {}, "edges": [{"node": node} for node in nodes]}}
+        with (
+            patch.object(flow_module, "APIClient", return_value=client),
+            patch.object(flow_module, "QCoreApplication", Mock()),
+            patch.object(flow_module.GraphQLQueryLoader, "load_query_by_module", return_value="query"),
+        ):
+            return flow_module.BackendPropertyVerifier.verify_properties_by_cadastral_number("T1"), client
+
+    def test_verify_splits_records_by_status_with_one_query(self) -> None:
+        info, client = self._verify([
+            {"id": "1", "status": "ARCHIVED", "cadastralUnitNumber": "T1", "displayAddress": "Vana"},
+            {"id": "2", "status": "ACTIVE", "cadastralUnitNumber": "T1", "displayAddress": "Uus"},
+        ])
+
+        self.assertEqual((info["exists"], info["active_count"], info["archived_count"]), (True, 1, 1))
+        self.assertEqual((info["active_ids"], info["archived_ids"]), (["2"], ["1"]))
+        self.assertEqual(info["property"]["id"], "2")
+        self.assertFalse(info["archived_only"])
+        # One read per cadastral number; the separate status lookups are gone.
+        self.assertEqual(client.send_query.call_count, 1)
+
+    def test_verify_reports_an_archived_only_record(self) -> None:
+        info, _client = self._verify([
+            {"id": "1", "status": "ARCHIVED", "cadastralUnitNumber": "T1", "displayAddress": "Vana"}])
+
+        self.assertEqual((info["exists"], info["archived_only"], info["archived_count"]), (False, True, 1))
+
+    def test_verify_falls_back_to_the_archive_tag_without_a_status(self) -> None:
+        from Kavitro_dev.utils.TagsEngines import TagsEngines
+
+        info, _client = self._verify([
+            {"id": "1", "status": None, "cadastralUnitNumber": "T1", "displayAddress": "Vana",
+             "tags": {"edges": [{"node": {"name": TagsEngines.ARHIVEERITUD_TAG_NAME}}]}}])
+
+        self.assertEqual((info["exists"], info["archived_only"]), (False, True))
+
+    def test_archive_status_uses_the_documented_status_field(self) -> None:
+        from Kavitro_dev.modules.Property.FlowControllers import UpdatePropertyData as update_module
+
+        client = Mock()
+        with (
+            patch.object(update_module, "APIClient", return_value=client),
+            patch.object(update_module.GraphQLQueryLoader, "load_query_by_module", return_value="mutation"),
+            patch.object(update_module.PythonFailLogger, "log_exception"),
+        ):
+            self.assertTrue(UpdatePropertyData._set_backend_property_status("861", status_name="archived"))
+            client.send_query.assert_called_once_with("mutation", {"input": {"id": "861", "status": "ARCHIVED"}})
+
+            # A rejected mutation is a failure, not a reason to guess another input shape.
+            client.send_query.reset_mock()
+            client.send_query.side_effect = RuntimeError("rejected")
+            self.assertFalse(UpdatePropertyData._set_backend_property_status("861", status_name="ACTIVE"))
+            self.assertEqual(client.send_query.call_count, 1)
+
     def test_backend_status_failure_makes_archive_fail_before_metadata_changes(self) -> None:
         with (
             patch.object(

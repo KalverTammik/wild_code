@@ -1,7 +1,7 @@
 
 
 
-from ....utils.url_manager import Module, ModuleSupports
+from ....utils.url_manager import Module
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from ....python.api_client import APIClient
 from ....python.api_rate_limit import ApiRateLimitError, RequestCancelled
@@ -141,89 +141,17 @@ class UpdatePropertyData:
 
 
     @staticmethod
-    def _resolve_property_status_id_by_name(status_name: str) -> str | None:
-        """Resolve backend STATUS id (from module statuses) by name.
-
-        This is used for archiving/unarchiving. If the backend doesn't support
-        statuses for properties, returns None.
-        """
-
-        name = ("" if status_name is None else str(status_name)).strip()
-        if not name:
-            return None
-
-        try:
-            query_file = "ListModuleStatuses.graphql"
-            query = GraphQLQueryLoader().load_query_by_module(module=ModuleSupports.STATUSES.value, query_filename=query_file)
-        except Exception:
-            return None
-
-        # Properties module uses MODULE=PROPERTIES in filter helpers.
-        module_value = "PROPERTIES"
-
-        # Try to filter by module + name in one go.
-        variables = {
-            "first": 50,
-            "after": None,
-            "where": {
-                "AND": [
-                    {"column": "MODULE", "operator": "EQ", "value": module_value},
-                    {"column": "NAME", "operator": "EQ", "value": name},
-                ]
-            },
-        }
-
-        try:
-            payload = APIClient().send_query(query, variables=variables, return_raw=True) or {}
-            edges = (((payload.get("data") or payload).get("statuses") or {}).get("edges") or [])
-            for edge in edges:
-                node = (edge or {}).get("node") or {}
-                if (node.get("name") or "").strip().lower() == name.lower():
-                    sid = node.get("id")
-                    return str(sid) if sid else None
-        except (ApiRateLimitError, RequestCancelled):
-            raise
-        except Exception:
-            # Fall back to module-only fetch + local match.
-            pass
-
-        variables = {
-            "first": 50,
-            "after": None,
-            "where": {"column": "MODULE", "operator": "EQ", "value": module_value},
-        }
-        try:
-            payload = APIClient().send_query(query, variables=variables, return_raw=True) or {}
-            edges = (((payload.get("data") or payload).get("statuses") or {}).get("edges") or [])
-            for edge in edges:
-                node = (edge or {}).get("node") or {}
-                if (node.get("name") or "").strip().lower() == name.lower():
-                    sid = node.get("id")
-                    return str(sid) if sid else None
-        except (ApiRateLimitError, RequestCancelled):
-            raise
-        except Exception:
-            return None
-
-        return None
-
-
-    @staticmethod
     def _set_backend_property_status(item_id: str, *, status_name: str) -> bool:
-        """Best-effort: update backend property status.
-
-        Backend recently introduced status=ACTIVE/ARCHIVED for properties.
-        We try a few input shapes to stay compatible with schema variations.
-        """
+        """Set the property's own status field (PropertyStatus: ACTIVE or ARCHIVED)."""
 
         item_id = ("" if item_id is None else str(item_id)).strip()
         status_name = ("" if status_name is None else str(status_name)).strip().upper()
         if not item_id or not status_name:
             return False
 
-        mutation_file = "UpdateProperty.graphql"
         try:
-            mutation = GraphQLQueryLoader().load_query_by_module(module=Module.PROPERTY.name, query_filename=mutation_file)
+            mutation = GraphQLQueryLoader().load_query_by_module(
+                module=Module.PROPERTY.name, query_filename="UpdateProperty.graphql")
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -232,51 +160,19 @@ class UpdatePropertyData:
             )
             return False
 
-        client = APIClient()
-
-        # 1) Try enum/string status directly
-        for input_payload in (
-            {"id": item_id, "status": status_name},
-            {"id": item_id, "status": status_name.lower()},
-        ):
-            try:
-                client.send_query(mutation, {"input": input_payload})
-                return True
-            except (ApiRateLimitError, RequestCancelled):
-                raise
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="property_status_update_failed",
-                    extra={"input": input_payload},
-                )
-
-        # 2) Try status relation via STATUS id
-        status_id = UpdatePropertyData._resolve_property_status_id_by_name(status_name)
-        if not status_id:
+        try:
+            APIClient().send_query(mutation, {"input": {"id": item_id, "status": status_name}})
+            return True
+        except (ApiRateLimitError, RequestCancelled):
+            raise
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_status_update_failed",
+                extra={"item_id": item_id, "status": status_name},
+            )
             return False
-
-        for input_payload in (
-            {"id": item_id, "status": status_id},
-            {"id": item_id, "statusId": status_id},
-            {"id": item_id, "status": {"connect": status_id}},
-            {"id": item_id, "status": {"connect": [status_id]}},
-        ):
-            try:
-                client.send_query(mutation, {"input": input_payload})
-                return True
-            except (ApiRateLimitError, RequestCancelled):
-                raise
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="property_status_update_failed",
-                    extra={"input": input_payload},
-                )
-
-        return False
 
 
 

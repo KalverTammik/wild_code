@@ -11,7 +11,7 @@ from ....constants.settings_keys import SettingsService
 from ....constants.cadastral_fields import Katastriyksus
 from ....languages.language_manager import LanguageManager 
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions
-from ....utils.url_manager import Module, ModuleSupports
+from ....utils.url_manager import Module
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from .UpdatePropertyData import UpdatePropertyData
 from ....widgets.DateHelpers import DateHelpers
@@ -495,66 +495,84 @@ class MainAddPropertiesFlow:
 
 
 class BackendPropertyVerifier:
-    # Cache status ids for the process; statuses do not change at runtime for this plugin.
-    _status_cache: dict[str, Optional[str]] = {}
+    """Reads the backend records of one cadastral number and splits them by state.
 
-    @classmethod
-    def _unwrap_data(cls, payload: dict) -> dict:
-        if isinstance(payload, dict) and "data" in payload and isinstance(payload.get("data"), dict):
-            return payload.get("data")
-        return payload if isinstance(payload, dict) else {}
+    The backend keeps the active/archived state in the property's own ``status`` field
+    (PropertyStatus: ACTIVE or ARCHIVED), so one query per cadastral number is enough.
+    A record saved before that field existed falls back to the archive tag rule.
+    """
 
-    @classmethod
-    def _resolve_property_status_id_by_name(cls, status_name: str, client: APIClient) -> Optional[str]:
-        name = ("" if status_name is None else str(status_name)).strip()
-        if not name:
-            return None
+    @staticmethod
+    def _is_archived(node: dict) -> bool:
+        status = str((node or {}).get("status") or "").strip().upper()
+        if status:
+            return status == "ARCHIVED"
+        return BackendPropertyVerifier._is_archived_by_tag(node)
 
-        # Serve from cache when present (even if None was cached from a previous failed lookup).
-        if name.upper() in cls._status_cache:
-            return cls._status_cache.get(name.upper())
+    @staticmethod
+    def _is_archived_by_tag(node: dict) -> bool:
+        if not isinstance(node, dict):
+            return False
 
-        try:
-            statuses_query = GraphQLQueryLoader().load_query_by_module(
-                ModuleSupports.STATUSES.value,
-                "ListModuleStatuses.graphql",
-            )
-        except Exception:
-            return None
+        tag_name = (TagsEngines.ARHIVEERITUD_TAG_NAME or "").strip().lower()
+        for edge in ((node.get("tags") or {}).get("edges") or []):
+            tag_node = (edge or {}).get("node")
+            if not isinstance(tag_node, dict):
+                continue
+            if tag_name and (tag_node.get("name") or "").strip().lower() == tag_name:
+                return True
 
-        variables_local = {
-            "first": 50,
-            "after": None,
-            "where": {
-                "AND": [
-                    {"column": "MODULE", "operator": "EQ", "value": "PROPERTIES"},
-                    {"column": "NAME", "operator": "EQ", "value": name},
-                ]
-            },
+        prefix = (TagsEngines.ARHIVEERITUD_NAME_ADDITION or "").strip().lower()
+        display = (node.get("displayAddress") or "").strip().lower()
+        return bool(prefix and display.startswith(prefix))
+
+    @staticmethod
+    def _compact(node: dict) -> dict:
+        return {
+            "id": node.get("id"),
+            "cadastralUnitNumber": node.get("cadastralUnitNumber"),
+            "displayAddress": node.get("displayAddress"),
         }
 
-        try:
-            raw = client.send_query(statuses_query, variables=variables_local, return_raw=True) or {}
-            data_local = cls._unwrap_data(raw)
-            edges_local = ((data_local.get("statuses") or {}).get("edges") or [])
-            for edge in edges_local:
-                node = (edge or {}).get("node") or {}
-                if (node.get("name") or "").strip().lower() == name.lower():
-                    sid = node.get("id")
-                    cls._status_cache[name.upper()] = str(sid) if sid else None
-                    return cls._status_cache[name.upper()]
-        except (ApiRateLimitError, RequestCancelled):
-            raise
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="property_status_lookup_failed",
-                extra={"status": name},
-            )
+    @staticmethod
+    def _summary(active_nodes: list, archived_nodes: list) -> dict:
+        if not active_nodes and not archived_nodes:
+            return {
+                "exists": False,
+                "archived_only": False,
+                "active_count": 0,
+                "archived_count": 0,
+                "property": None,
+                "tags": [],
+                "error": None,
+            }
 
-        cls._status_cache[name.upper()] = None
-        return None
+        chosen = active_nodes[0] if active_nodes else archived_nodes[0]
+        tags = []
+        for edge in ((chosen.get("tags") or {}).get("edges") or []):
+            tag_node = (edge or {}).get("node")
+            if isinstance(tag_node, dict) and tag_node:
+                tags.append(tag_node)
+
+        active_props = [BackendPropertyVerifier._compact(node) for node in active_nodes]
+        archived_props = [BackendPropertyVerifier._compact(node) for node in archived_nodes]
+
+        # `exists` stays backwards compatible: True only when an ACTIVE record exists.
+        return {
+            "exists": bool(active_nodes),
+            "archived_only": not active_nodes and bool(archived_nodes),
+            "active_count": len(active_nodes),
+            "archived_count": len(archived_nodes),
+            "active_ids": [prop.get("id") for prop in active_props if prop.get("id")],
+            "archived_ids": [prop.get("id") for prop in archived_props if prop.get("id")],
+            "active_properties": active_props,
+            "archived_properties": archived_props,
+            "property": BackendPropertyVerifier._compact(chosen),
+            "FirstRegistration": chosen.get("cadastralUnitFirstRegistration"),
+            "LastUpdated": chosen.get("cadastralUnitLastUpdated"),
+            "tags": tags,
+            "error": None,
+        }
 
     @staticmethod
     def verify_properties_by_cadastral_number(item):
@@ -563,23 +581,13 @@ class BackendPropertyVerifier:
         if not item:
             return {"exists": False, "property": None, "tags": [], "error": None}
 
-        module = Module.PROPERTY.name
+        query = GraphQLQueryLoader().load_query_by_module(Module.PROPERTY.name, "id_number.graphql")
 
-        file =  "id_number.graphql"
-        query = GraphQLQueryLoader().load_query_by_module(module, file)
-
-
-        end_cursor = None
-
-        # NOTE:
-        # - This query is `properties(...)` (see python/queries/graphql/properties/id_number.graphql)
-        # - For operator `IN`, backend typically expects an array.
-        # - For a single cadastral number, `EQ` is the safest.
+        # The backend can hold both an active and an archived record for one cadastral
+        # number, so read every match and split them by their status field.
         variables = {
-            # IMPORTANT: backend can contain both archived and active records for the same cadastral number.
-            # Fetch enough rows (and paginate if needed) so we can correctly classify.
             "first": 50,
-            "after": end_cursor,
+            "after": None,
             "search": None,
             "where": {
                 "AND": [
@@ -594,221 +602,24 @@ class BackendPropertyVerifier:
 
         try:
             client = APIClient()
-
-            def _fetch_nodes_for_where(where_obj: dict) -> list[dict]:
-                nodes_local: list[dict] = []
-                end_cursor_local = None
-                safety_cap_local = 200
-                vars_local = {
-                    "first": 50,
-                    "after": None,
-                    "search": None,
-                    "where": where_obj,
-                }
-
-                while True:
-                    QCoreApplication.processEvents()
-                    vars_local["after"] = end_cursor_local
-                    payload = client.send_query(query, variables=vars_local)
-                    props = (payload or {}).get("properties") or {}
-                    page_info = props.get("pageInfo") or {}
-                    edges = props.get("edges") or []
-                    for e in edges:
-                        n = (e or {}).get("node")
-                        if isinstance(n, dict) and n:
-                            nodes_local.append(n)
-
-                    has_next = bool(page_info.get("hasNextPage"))
-                    end_cursor_local = page_info.get("endCursor")
-                    if not has_next or not end_cursor_local:
-                        break
-                    if len(nodes_local) >= safety_cap_local:
-                        break
-
-                return nodes_local
-
-            # Preferred (new backend): classify by STATUS
-            active_status_id = BackendPropertyVerifier._resolve_property_status_id_by_name("ACTIVE", client)
-            archived_status_id = BackendPropertyVerifier._resolve_property_status_id_by_name("ARCHIVED", client)
-
-            if active_status_id and archived_status_id:
-                base_conditions = [
-                    {"column": "CADASTRAL_UNIT_NUMBER", "operator": "EQ", "value": item},
-                ]
-                active_where = {"AND": base_conditions + [{"column": "STATUS", "operator": "IN", "value": [active_status_id]}]}
-                archived_where = {"AND": base_conditions + [{"column": "STATUS", "operator": "IN", "value": [archived_status_id]}]}
-
-                active_nodes = _fetch_nodes_for_where(active_where)
-                archived_nodes = _fetch_nodes_for_where(archived_where)
-
-                active_count = len(active_nodes)
-                archived_count = len(archived_nodes)
-                archived_only = (active_count == 0 and archived_count > 0)
-
-                if active_count == 0 and archived_count == 0:
-                    return {
-                        "exists": False,
-                        "archived_only": False,
-                        "active_count": 0,
-                        "archived_count": 0,
-                        "property": None,
-                        "tags": [],
-                        "error": None,
-                    }
-
-                chosen = (active_nodes[0] if active_nodes else (archived_nodes[0] if archived_nodes else {}))
-                tags_edges = ((chosen.get("tags") or {}).get("edges") or [])
-                tags = []
-                for edge in tags_edges:
-                    tag_node = (edge or {}).get("node")
-                    if isinstance(tag_node, dict) and tag_node:
-                        tags.append(tag_node)
-
-                def _compact(n: dict) -> dict:
-                    return {
-                        "id": n.get("id"),
-                        "cadastralUnitNumber": n.get("cadastralUnitNumber"),
-                        "displayAddress": n.get("displayAddress"),
-                    }
-
-                active_props = [_compact(n) for n in active_nodes if isinstance(n, dict)]
-                archived_props = [_compact(n) for n in archived_nodes if isinstance(n, dict)]
-
-                return {
-                    "exists": active_count > 0,
-                    "archived_only": archived_only,
-                    "active_count": active_count,
-                    "archived_count": archived_count,
-                    "active_ids": [p.get("id") for p in active_props if p.get("id")],
-                    "archived_ids": [p.get("id") for p in archived_props if p.get("id")],
-                    "active_properties": active_props,
-                    "archived_properties": archived_props,
-                    "property": {
-                        "id": chosen.get("id"),
-                        "cadastralUnitNumber": chosen.get("cadastralUnitNumber"),
-                        "displayAddress": chosen.get("displayAddress"),
-                    },
-                    "FirstRegistration": chosen.get("cadastralUnitFirstRegistration"),
-                    "LastUpdated": chosen.get("cadastralUnitLastUpdated"),
-                    "tags": tags,
-                    "error": None,
-                }
-
-            # Legacy fallback: fetch everything and classify by archived tag/prefix
-            nodes = []
-            safety_cap = 200
+            nodes: list[dict] = []
             while True:
                 QCoreApplication.processEvents()
-                variables["after"] = end_cursor
-                data = client.send_query(query, variables=variables)
-
-                props = data.get("properties") or {}
+                payload = client.send_query(query, variables=variables)
+                props = (payload or {}).get("properties") or {}
                 page_info = props.get("pageInfo") or {}
-                edges = props.get("edges") or []
-                if edges:
-                    for e in edges:
-                        n = (e or {}).get("node")
-                        if isinstance(n, dict) and n:
-                            nodes.append(n)
+                for edge in (props.get("edges") or []):
+                    node = (edge or {}).get("node")
+                    if isinstance(node, dict) and node:
+                        nodes.append(node)
 
-                has_next = bool(page_info.get("hasNextPage"))
-                end_cursor = page_info.get("endCursor")
-                if not has_next:
-                    break
-                if not end_cursor:
-                    break
-                if len(nodes) >= safety_cap:
+                variables["after"] = page_info.get("endCursor")
+                if not page_info.get("hasNextPage") or not variables["after"] or len(nodes) >= 200:
                     break
 
-            if not nodes:
-                return {
-                    "exists": False,
-                    "archived_only": False,
-                    "active_count": 0,
-                    "archived_count": 0,
-                    "property": None,
-                    "tags": [],
-                    "error": None,
-                }
-
-            def _is_archived_property(node_dict: dict) -> bool:
-                if not isinstance(node_dict, dict):
-                    return False
-                tag_name = (TagsEngines.ARHIVEERITUD_TAG_NAME or "").strip().lower()
-
-                tags_edges_local = ((node_dict.get("tags") or {}).get("edges") or [])
-                for te in tags_edges_local:
-                    tag_node = (te or {}).get("node")
-                    if not isinstance(tag_node, dict):
-                        continue
-                    name = (tag_node.get("name") or "").strip().lower()
-                    if name == tag_name and tag_name:
-                        return True
-
-                display = (node_dict.get("displayAddress") or "").strip().lower()
-                prefix = (TagsEngines.ARHIVEERITUD_NAME_ADDITION or "").strip().lower()
-                if prefix and display.startswith(prefix):
-                    return True
-                return False
-
-            archived_nodes = [n for n in nodes if _is_archived_property(n)]
-            active_nodes = [n for n in nodes if n not in archived_nodes]
-
-            active_props = []
-            for n in active_nodes:
-                if isinstance(n, dict):
-                    active_props.append(
-                        {
-                            "id": n.get("id"),
-                            "cadastralUnitNumber": n.get("cadastralUnitNumber"),
-                            "displayAddress": n.get("displayAddress"),
-                        }
-                    )
-
-            archived_props = []
-            for n in archived_nodes:
-                if isinstance(n, dict):
-                    archived_props.append(
-                        {
-                            "id": n.get("id"),
-                            "cadastralUnitNumber": n.get("cadastralUnitNumber"),
-                            "displayAddress": n.get("displayAddress"),
-                        }
-                    )
-
-            chosen = (active_nodes[0] if active_nodes else (archived_nodes[0] if archived_nodes else {}))
-
-            tags_edges = ((chosen.get("tags") or {}).get("edges") or [])
-            tags = []
-            for edge in tags_edges:
-                tag_node = (edge or {}).get("node")
-                if isinstance(tag_node, dict) and tag_node:
-                    tags.append(tag_node)
-
-            active_count = len(active_nodes)
-            archived_count = len(archived_nodes)
-            archived_only = (active_count == 0 and archived_count > 0)
-
-            # Backwards-compatible `exists`: True only if an ACTIVE backend property exists.
-            return {
-                "exists": active_count > 0,
-                "archived_only": archived_only,
-                "active_count": active_count,
-                "archived_count": archived_count,
-                "active_ids": [p.get("id") for p in active_props if p.get("id")],
-                "archived_ids": [p.get("id") for p in archived_props if p.get("id")],
-                "active_properties": active_props,
-                "archived_properties": archived_props,
-                "property": {
-                    "id": chosen.get("id"),
-                    "cadastralUnitNumber": chosen.get("cadastralUnitNumber"),
-                    "displayAddress": chosen.get("displayAddress"),
-                },
-                "FirstRegistration": chosen.get("cadastralUnitFirstRegistration"),
-                "LastUpdated": chosen.get("cadastralUnitLastUpdated"),
-                "tags": tags,
-                "error": None,
-            }
+            archived_nodes = [node for node in nodes if BackendPropertyVerifier._is_archived(node)]
+            active_nodes = [node for node in nodes if node not in archived_nodes]
+            return BackendPropertyVerifier._summary(active_nodes, archived_nodes)
         
         
         except (ApiRateLimitError, RequestCancelled):

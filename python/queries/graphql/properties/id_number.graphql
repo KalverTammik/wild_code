@@ -29,6 +29,7 @@ query properties(
             edges {
                 node {
                     id
+                    status
                     displayAddress
                     cadastralUnitNumber
                     cadastralUnitFirstRegistration
