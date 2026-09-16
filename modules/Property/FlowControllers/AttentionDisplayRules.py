@@ -56,23 +56,9 @@ class AttentionDisplayRules:
         return translated or text
 
     @staticmethod
-    def build_attention_text(
-        main_causes: Sequence[object] | None,
-        backend_causes: Sequence[object] | None,
-        *,
-        main_done: bool,
-        backend_done: bool,
-        in_progress_text: str = "Võrdlen andmeid...",
-        translate=None,
-    ) -> str:
-        combined_raw = AttentionDisplayRules._normalize_causes(main_causes, backend_causes)
-        combined = [AttentionDisplayRules._translate_cause_text(c, translate=translate) for c in combined_raw]
-        combined = [c for c in combined if c]
-        all_done = bool(main_done and backend_done)
+    def causes_text(causes: Sequence[object] | None, translate=None) -> str:
+        """Translated reasons of one column, for that column's tooltip."""
+        parts = [AttentionDisplayRules._translate_cause_text(cause, translate=translate)
+                 for cause in AttentionDisplayRules._normalize_causes(causes)]
+        return "; ".join(part for part in parts if part)
 
-        if not all_done:
-            if combined:
-                return f"{in_progress_text}; " + "; ".join(combined)
-            return in_progress_text
-
-        return "; ".join(combined) if combined else ""

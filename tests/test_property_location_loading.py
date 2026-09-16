@@ -956,6 +956,56 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             finally:
                 self.close_dialog(dialog)
 
+    def test_each_status_column_explains_itself_on_hover(self):
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
+        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        main = QgsVectorLayer('Polygon?crs=EPSG:3301&field=tunnus:string', 'Main', 'memory')
+        lookup = lambda number: {
+            'exists': True, 'active_count': 1, 'LastUpdated': '2026-01-01',
+            'property': {'id': 'known', 'cadastralUnitNumber': number,
+                         'displayAddress': 'Muudetud' if number == '1' else 'Address ' + number}}
+        with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                          side_effect=lookup), \
+                patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
+                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+            try:
+                self.wait_until(lambda: dialog.county_combo.isEnabled())
+                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
+                combo = dialog.municipality_combo
+                combo.setCurrentIndex(combo.findData('Shared municipality'))
+                self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
+                translate = dialog.lang_manager.translate
+
+                dialog._on_run_checks_clicked()
+                self.wait_until(lambda: dialog._checks_completed_for_scope)
+
+                def tip(row, column):
+                    return PropertyTableManager.get_cell_data(
+                        dialog.properties_table, row, column, role=Qt.ToolTipRole)
+
+                # Each column names only its own reason instead of one shared list.
+                self.assertEqual(tip(0, PropertyTableWidget._COL_BACKEND_ATTENTION),
+                                 translate(K.PROPERTY_TOOLTIP_BACKEND_ISSUES).format(
+                                     causes=translate(K.PROPERTY_ADD_BACKEND_DIFFERS)))
+                self.assertEqual(tip(0, PropertyTableWidget._COL_MAIN_ATTENTION),
+                                 translate(K.PROPERTY_TOOLTIP_MAIN_ISSUES).format(
+                                     causes=translate(K.ATTENTION_CAUSE_MISSING_MAIN_LAYER)))
+                self.assertEqual(tip(1, PropertyTableWidget._COL_BACKEND_ATTENTION),
+                                 translate(K.PROPERTY_TOOLTIP_BACKEND_OK))
+                # The archive columns say why they stay green for a row that is in the import.
+                self.assertEqual(tip(0, PropertyTableWidget._COL_ARCHIVE_BACKEND),
+                                 translate(K.PROPERTY_TOOLTIP_ARCHIVE_NONE))
+                self.assertEqual(tip(0, PropertyTableWidget._COL_ARCHIVE_MAP),
+                                 translate(K.PROPERTY_TOOLTIP_ARCHIVE_NONE))
+            finally:
+                self.close_dialog(dialog)
+
     def test_import_review_sets_the_same_decision_for_every_property(self):
         from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
         decisions = [{'tunnus': '1', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {}},

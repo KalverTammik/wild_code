@@ -178,6 +178,17 @@ Kontroll võrdleb iga katastritunnust:
 
 Kontroll ise andmeid ei muuda. Kontrolli ajal on lisamisnupud blokeeritud ja edenemist kuvatakse loendurina; serveri päringupausi korral kuvatakse selle all ooteaeg. Dialoogi **Tühista** katkestab kontrolli kohe, ka pausi ajal, jätab dialoogi avatuks ja näitab kontrollitud kinnistute arvu.
 
+Tulemust näitavad tabeli neli ikooniveergu ja igal neist on oma kohtspiker, mille saab hiirt ikooni peal hoides lahti lugeda.
+
+| Veerg | Roheline | Kollane | Kohtspiker |
+|---|---|---|---|
+| **Kavitro** | kirje on olemas ja andmed kattuvad | kirje puudub, aadress erineb, vaste on mitmene või päring ebaõnnestus | ainult selle veeru põhjused |
+| **Kaardil** | kinnistu on põhikihil ja kuupäev ei ole vanem | puudub põhikihis või põhikiht on vanem | ainult selle veeru põhjused |
+| **Arhiiv** | selle rea kohta kava ei ole | lisamisel arhiveeritakse Kavitro kirje | selgitab, miks kava ei ole |
+| **Arhiiv: kaart** | selle rea kohta kava ei ole | lisamisel viiakse objekt arhiivikihti | selgitab, miks kava ei ole |
+
+Arhiiviveerud puudutavad ainult kinnistuid, mida impordis enam ei ole. Tabelis olevad read on impordis olemas, seega on need veerud neil alati rohelised. Enne kontrolli on kõigil neljal veerul ootel ikoon ja kohtspiker ütleb, et tulemus puudub.
+
 ### Kriitiline arhiiviplaani käitumine
 
 Kontroll arvutab lisaks `põhikihi kõik tunnused – tabelis olevad tunnused`. Kõik saadud tunnused märgitakse impordist puuduvaks. Järgmine **Lisa valitud** või ka pärast kontrolli vajutatud **Lisa ilma kontrollita** käivitab enne lisamist nende automaatse arhiveerimise:

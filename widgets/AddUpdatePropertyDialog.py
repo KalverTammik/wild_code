@@ -1529,7 +1529,6 @@ class AddPropertyDialog(QDialog):
  
         # Mark in-progress in the Attention column.
         table.setUpdatesEnabled(False)
-        in_progress_text = self.lang_manager.translate(TranslationKeys.PROCESSING_FEATURES)
         for row_idx, tunnus, _import_muudet in rows:
             self._set_attention_row(
                 row_idx,
@@ -1538,7 +1537,6 @@ class AddPropertyDialog(QDialog):
                 backend_causes=[],
                 main_done=False,
                 backend_done=False,
-                text=in_progress_text,
             )
         table.setUpdatesEnabled(True)
  
@@ -1639,22 +1637,13 @@ class AddPropertyDialog(QDialog):
         main_done = row_idx in self._main_checked_rows
         backend_done = row_idx in self._backend_checked_rows
 
-        text = AttentionDisplayRules.build_attention_text(
-            main_causes,
-            backend_causes,
-            main_done=main_done,
-            backend_done=backend_done,
-            translate=self.lang_manager.translate,
-        )
-        tunnus = self._rows_for_verify_by_row.get(row_idx, ("", ""))[0]
         self._set_attention_row(
             row_idx,
-            tunnus=tunnus,
+            tunnus=self._rows_for_verify_by_row.get(row_idx, ("", ""))[0],
             main_causes=main_causes,
             backend_causes=backend_causes,
             main_done=main_done,
             backend_done=backend_done,
-            text=text,
         )
 
     def _maybe_finish_checks(self) -> None:
@@ -1877,11 +1866,29 @@ class AddPropertyDialog(QDialog):
             return "error"
         return "ok"
 
-    def _set_attention_row(self, row_idx: int, *, tunnus: str, main_causes: list, backend_causes: list, main_done: bool, backend_done: bool, text: str) -> None:
-        backend_state = self._attention_state(backend_causes, backend_done)
-        main_state = self._attention_state(main_causes, main_done)
-        self._set_icon_cell(row_idx, PropertyTableWidget._COL_BACKEND_ATTENTION, backend_state, tooltip=text)
-        self._set_icon_cell(row_idx, PropertyTableWidget._COL_MAIN_ATTENTION, main_state, tooltip=text)
+    def _column_tooltip(self, causes: list, done: bool, ok_key: str, issues_key: str) -> str:
+        """Each column explains itself: only its own reasons, or why it has none."""
+        translate = self.lang_manager.translate
+        if not done:
+            return translate(TranslationKeys.PROPERTY_TOOLTIP_PENDING)
+        reasons = AttentionDisplayRules.causes_text(causes, translate=translate)
+        return translate(issues_key).format(causes=reasons) if reasons else translate(ok_key)
+
+    def _set_attention_row(self, row_idx: int, *, tunnus: str, main_causes: list, backend_causes: list,
+                           main_done: bool, backend_done: bool) -> None:
+        translate = self.lang_manager.translate
+        self._set_icon_cell(
+            row_idx, PropertyTableWidget._COL_BACKEND_ATTENTION,
+            self._attention_state(backend_causes, backend_done),
+            tooltip=self._column_tooltip(backend_causes, backend_done,
+                                         TranslationKeys.PROPERTY_TOOLTIP_BACKEND_OK,
+                                         TranslationKeys.PROPERTY_TOOLTIP_BACKEND_ISSUES))
+        self._set_icon_cell(
+            row_idx, PropertyTableWidget._COL_MAIN_ATTENTION,
+            self._attention_state(main_causes, main_done),
+            tooltip=self._column_tooltip(main_causes, main_done,
+                                         TranslationKeys.PROPERTY_TOOLTIP_MAIN_OK,
+                                         TranslationKeys.PROPERTY_TOOLTIP_MAIN_ISSUES))
 
         # Archive plans per tunnus (set after checks finish).
         t = (tunnus or "").strip()
@@ -1892,18 +1899,26 @@ class AddPropertyDialog(QDialog):
         backend_missing = any("missing in backend" in c for c in backend_causes_lower)
         backend_lookup_failed = any("backend lookup failed" in c for c in backend_causes_lower)
 
-        if main_done and backend_done:
+        if not (main_done and backend_done):
+            backend_plan_state = map_plan_state = "pending"
+            backend_plan_tip = map_plan_tip = translate(TranslationKeys.PROPERTY_TOOLTIP_PENDING)
+        else:
             if backend_missing or backend_lookup_failed:
                 backend_plan_state = "skip"
+                backend_plan_tip = translate(TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_SKIP)
+            elif archive_backend:
+                backend_plan_state = "warning"
+                backend_plan_tip = translate(TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_PLANNED)
             else:
-                backend_plan_state = "warning" if archive_backend else "ok"
+                backend_plan_state = "ok"
+                backend_plan_tip = translate(TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_NONE)
             map_plan_state = "warning" if archive_map else "ok"
-        else:
-            backend_plan_state = "pending"
-            map_plan_state = "pending"
+            map_plan_tip = translate(TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_MAP_PLANNED if archive_map
+                                     else TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_NONE)
 
-        self._set_icon_cell(row_idx, PropertyTableWidget._COL_ARCHIVE_BACKEND, backend_plan_state)
-        self._set_icon_cell(row_idx, PropertyTableWidget._COL_ARCHIVE_MAP, map_plan_state)
+        self._set_icon_cell(row_idx, PropertyTableWidget._COL_ARCHIVE_BACKEND, backend_plan_state,
+                            tooltip=backend_plan_tip)
+        self._set_icon_cell(row_idx, PropertyTableWidget._COL_ARCHIVE_MAP, map_plan_state, tooltip=map_plan_tip)
 
     def _compute_missing_from_import_set(self) -> set[str]:
         return self._compute_scoped_archive_plan()
