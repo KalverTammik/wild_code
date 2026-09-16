@@ -247,6 +247,7 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_PLANNED: "Lisamisel arhiveeritakse Kavitro kirje.",
         TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_SKIP: "Kavitro kirjet ei leitud, seega seda ei arhiveerita.",
         TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_MAP_PLANNED: "Lisamisel viiakse põhikihi objekt arhiivikihti.",
+        TranslationKeys.PROPERTY_IMPORT_ADDRESS_MISSING: "Impordis aadress puudub, taustasüsteemis on aadress olemas. Vajab otsust; taustasüsteemi aadressi ei kirjutata automaatselt üle.",
         TranslationKeys.PROPERTY_ADD_STOPPED_RESULT: "Töö peatus vea tõttu. Töödeldud {done}/{total}. Õnnestus: {succeeded}. Ebaõnnestus: {failed}. Töötlemata: {pending}.",
         TranslationKeys.PROPERTY_ADD_RESPONSE_INVALID: "Serveri vastus ei kinnitanud kinnistu salvestamist.",
         TranslationKeys.PROPERTY_ADD_STAGE_CREATE: "Kinnistu loomine",

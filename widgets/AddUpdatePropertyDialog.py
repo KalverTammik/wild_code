@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
 )
 
-from qgis.core import QgsFeatureRequest
+from qgis.core import QgsFeatureRequest, QgsVariantUtils
 from qgis.utils import iface
 
 from ..modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
@@ -901,8 +901,9 @@ class AddPropertyDialog(QDialog):
             decisions.append(dict(
                 decision,
                 fid=feature.id() if feature is not None else None,
-                main_address=(str(main[Katastriyksus.l_aadress]) if main is not None
-                              and main.fields().lookupField(Katastriyksus.l_aadress) >= 0 else ''),
+                main_address=('' if main is None or main.fields().lookupField(Katastriyksus.l_aadress) < 0
+                              or QgsVariantUtils.isNull(main[Katastriyksus.l_aadress])
+                              else str(main[Katastriyksus.l_aadress])),
             ))
         return decisions
 
@@ -1431,6 +1432,25 @@ class AddPropertyDialog(QDialog):
             return (50, 0)
         return (30, 0)
 
+    @staticmethod
+    def _check_location_parts(table, row_idx: int) -> dict:
+        """Settlement, municipality and county of the row, from the same fields the import sends.
+
+        A property without an address is shown by the backend from these parts only, so the
+        check needs them to tell such a record apart from a changed address.
+        """
+        feature = PropertyTableManager.get_cell_data(table, row_idx, 0, role=Qt.UserRole)
+        parts = {}
+        for key, field in (('city', Katastriyksus.ay_nimi), ('state', Katastriyksus.ov_nimi),
+                           ('county', Katastriyksus.mk_nimi)):
+            value = None
+            if feature is not None and feature.fields().lookupField(field) >= 0:
+                value = feature.attribute(field)
+            parts[key] = '' if value is None or QgsVariantUtils.isNull(value) else str(value).strip()
+        if not parts['city'] and feature is None:
+            parts['city'] = PropertyTableManager.get_cell_text(table, row_idx, PropertyTableWidget._COL_SETTLEMENT)
+        return parts
+
     def _start_attention_checks(self, *, source: str) -> None:
         table = self.properties_table
         if table is None:
@@ -1494,7 +1514,8 @@ class AddPropertyDialog(QDialog):
                          if main is not None and main.fields().lookupField(Katastriyksus.muudet) >= 0 else None)
             import_context[tunnus] = {
                 'data': {'cadastralUnit': {'number': tunnus},
-                         'address': {'street': address['street'], 'houseNumber': address.get('house', '')}},
+                         'address': {'street': address['street'], 'houseNumber': address.get('house', ''),
+                                     **self._check_location_parts(table, row_idx)}},
                 'main_date': main_date,
             }
 

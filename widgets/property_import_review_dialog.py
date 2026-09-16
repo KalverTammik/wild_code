@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QHBoxLayout,
                              QVBoxLayout)
 
 from ..constants.file_paths import QssPaths
+from ..modules.Property.FlowControllers.property_import_decisions import ADDRESS_REASONS
 from ..languages.translation_keys import TranslationKeys as K
 from .theme_manager import ThemeManager
 from .DateHelpers import DateHelpers
@@ -39,7 +40,7 @@ class PropertyImportReviewDialog(QDialog):
             choice = QComboBox()
             choice.addItem(tr(K.PROPERTY_IMPORT_LATER), 'later')
             choice.addItem(tr(K.PROPERTY_IMPORT_KEEP), 'keep')
-            if item['reason'] == K.PROPERTY_ADD_BACKEND_DIFFERS:
+            if item['reason'] in ADDRESS_REASONS:
                 choice.addItem(tr(K.PROPERTY_IMPORT_APPLY), 'apply')
             choice.currentIndexChanged.connect(self._update_confirm)
             self.choices.append(choice)
@@ -57,7 +58,7 @@ class PropertyImportReviewDialog(QDialog):
         self.bulk_choice = QComboBox()
         self.bulk_choice.addItem(tr(K.PROPERTY_IMPORT_LATER), 'later')
         self.bulk_choice.addItem(tr(K.PROPERTY_IMPORT_KEEP), 'keep')
-        if any(item['reason'] == K.PROPERTY_ADD_BACKEND_DIFFERS for item in decisions):
+        if any(item['reason'] in ADDRESS_REASONS for item in decisions):
             self.bulk_choice.addItem(tr(K.PROPERTY_IMPORT_APPLY), 'apply')
         bulk_row.addWidget(self.bulk_choice)
         bulk_button = QPushButton(tr(K.PROPERTY_IMPORT_BULK_SET))

@@ -2,12 +2,12 @@
 from PyQt5 import sip
 from threading import Event
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
-from qgis.core import QgsFeatureRequest
+from qgis.core import QgsFeatureRequest, QgsVariantUtils
 
 from ....utils.mapandproperties.PropertyTableManager import PropertyTableManager
 from .MainAddProperties import MainAddPropertiesFlow, BackendPropertyVerifier
 from .UpdatePropertyData import UpdatePropertyData
-from .property_import_decisions import classify_property_import
+from .property_import_decisions import ADDRESS_REASONS, classify_property_import
 from ....constants.cadastral_fields import Katastriyksus as F
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....languages.language_manager import LanguageManager
@@ -34,8 +34,7 @@ def apply_reviewed_backend(data, uses, import_date, main_date, *, review=None, s
                 decision.update(action='needs_decision', reason=K.PROPERTY_IMPORT_CHANGED)
             return decision
         # Explicit approval applies only to this unchanged address conflict.
-        if (review['reason'] == K.PROPERTY_ADD_BACKEND_DIFFERS
-                and decision['reason'] == K.PROPERTY_ADD_BACKEND_DIFFERS):
+        if review['reason'] in ADDRESS_REASONS and decision['reason'] == review['reason']:
             decision['action'] = 'update'
     if decision['action'] == 'needs_decision':
         return decision
@@ -218,8 +217,9 @@ class AddBatchRunner(QObject):
                 _result.update(feature=current['feature'], main_features=matches,
                                source_id=source.id(), source_uri=current['source_uri'],
                                target_id=target.id(), target_uri=current['target_uri'],
-                               main_address=(str(main[F.l_aadress]) if main is not None
-                                             and main.fields().lookupField(F.l_aadress) >= 0 else ''))
+                               main_address=('' if main is None or main.fields().lookupField(F.l_aadress) < 0
+                                             or QgsVariantUtils.isNull(main[F.l_aadress])
+                                             else str(main[F.l_aadress])))
                 self._deferred.append(_result)
                 self._complete_item(deferred=True)
                 return

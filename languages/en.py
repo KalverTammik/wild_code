@@ -245,6 +245,7 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_PLANNED: "Adding will archive the backend record.",
         TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_SKIP: "No backend record was found, so nothing will be archived.",
         TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_MAP_PLANNED: "Adding will move the main layer feature to the archive layer.",
+        TranslationKeys.PROPERTY_IMPORT_ADDRESS_MISSING: "The import has no address, but the backend record has one. Needs a decision; the backend address is not overwritten automatically.",
         TranslationKeys.PROPERTY_ADD_STOPPED_RESULT: "Stopped due to an error. Processed {done}/{total}. Succeeded: {succeeded}. Failed: {failed}. Not processed: {pending}.",
         TranslationKeys.PROPERTY_ADD_RESPONSE_INVALID: "The server response did not confirm that the property was saved.",
         TranslationKeys.PROPERTY_ADD_STAGE_CREATE: "Creating the property",

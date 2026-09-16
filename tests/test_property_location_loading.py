@@ -996,6 +996,58 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             finally:
                 self.close_dialog(dialog)
 
+    def test_check_treats_a_missing_cadastral_address_as_agreement_with_the_settlement(self):
+        from qgis.core import NULL
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
+        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        address_index = self.layer.fields().lookupField(F.l_aadress)
+        self.layer.dataProvider().changeAttributeValues(
+            {feature.id(): {address_index: NULL} for feature in self.layer.getFeatures()})
+        main = QgsVectorLayer(f'Polygon?crs=EPSG:3301&field={F.tunnus}:string&field={F.l_aadress}:string',
+                              'Main', 'memory')
+        kept = QgsFeature(main.fields())
+        kept.setAttributes(['2', NULL])
+        kept.setGeometry(QgsGeometry.fromWkt('POLYGON((200 0,210 0,210 10,200 10,200 0))'))
+        main.dataProvider().addFeatures([kept])
+        # Property 1 has no street on either side; property 2 got a street in the backend.
+        shown = {'1': 'First village, Shared municipality, A', '2': 'Metsa tee 5, Second village, Shared municipality'}
+        lookup = lambda number: {
+            'exists': True, 'active_count': 1, 'LastUpdated': '2026-01-01',
+            'property': {'id': 'p' + number, 'cadastralUnitNumber': number, 'displayAddress': shown[number]}}
+        with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                          side_effect=lookup), \
+                patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
+                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+            try:
+                self.wait_until(lambda: dialog.county_combo.isEnabled())
+                self.pick(dialog)
+                self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
+                translate = dialog.lang_manager.translate
+
+                dialog._on_run_checks_clicked()
+                self.wait_until(lambda: dialog._checks_completed_for_scope)
+                self.assertEqual([item['tunnus'] for item in dialog._deferred_additions], ['2'])
+                decision = dialog._deferred_additions[0]
+                self.assertEqual(decision['reason'], K.PROPERTY_IMPORT_ADDRESS_MISSING)
+                # An empty main layer address is not shown as the text NULL.
+                self.assertEqual(decision['main_address'], '')
+
+                def tip(row):
+                    return PropertyTableManager.get_cell_data(
+                        dialog.properties_table, row, PropertyTableWidget._COL_BACKEND_ATTENTION, role=Qt.ToolTipRole)
+
+                self.assertEqual(tip(0), translate(K.PROPERTY_TOOLTIP_BACKEND_OK))
+                self.assertEqual(tip(1), translate(K.PROPERTY_TOOLTIP_BACKEND_ISSUES).format(
+                    causes=translate(K.PROPERTY_IMPORT_ADDRESS_MISSING)))
+            finally:
+                self.close_dialog(dialog)
+
     def test_each_status_column_explains_itself_on_hover(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module

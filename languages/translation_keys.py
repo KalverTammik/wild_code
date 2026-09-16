@@ -1005,6 +1005,7 @@ class TranslationKeys:
     PROPERTY_TOOLTIP_ARCHIVE_BACKEND_PLANNED = "property_tooltip_archive_backend_planned"
     PROPERTY_TOOLTIP_ARCHIVE_BACKEND_SKIP = "property_tooltip_archive_backend_skip"
     PROPERTY_TOOLTIP_ARCHIVE_MAP_PLANNED = "property_tooltip_archive_map_planned"
+    PROPERTY_IMPORT_ADDRESS_MISSING = "property_import_address_missing"
     PROPERTY_ADD_STOPPED_RESULT = "property_add_stopped_result"
     PROPERTY_ADD_RESPONSE_INVALID = "property_add_response_invalid"
     PROPERTY_ADD_STAGE_CREATE = "property_add_stage_create"

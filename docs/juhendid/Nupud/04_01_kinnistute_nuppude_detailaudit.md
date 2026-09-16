@@ -182,7 +182,7 @@ Tulemust näitavad tabeli neli ikooniveergu ja igal neist on oma kohtspiker, mil
 
 | Veerg | Roheline | Kollane | Kohtspiker |
 |---|---|---|---|
-| **Kavitro** | kirje on olemas ja andmed kattuvad | kirje puudub, aadress erineb, vaste on mitmene või päring ebaõnnestus | ainult selle veeru põhjused |
+| **Kavitro** | kirje on olemas ja andmed kattuvad; aadressita kinnistu, mille Kavitro aadress algab asukohanimega, loetakse kattuvaks | kirje puudub, aadress erineb, impordis aadress puudub aga Kavitros on tänav, vaste on mitmene või päring ebaõnnestus | ainult selle veeru põhjused |
 | **Kaardil** | kinnistu on põhikihil ja kuupäev ei ole vanem | puudub põhikihis või põhikiht on vanem | ainult selle veeru põhjused |
 | **Arhiiv** | selle rea kohta kava ei ole | lisamisel arhiveeritakse Kavitro kirje | selgitab, miks kava ei ole |
 | **Arhiiv: kaart** | selle rea kohta kava ei ole | lisamisel viiakse objekt arhiivikihti | selgitab, miks kava ei ole |

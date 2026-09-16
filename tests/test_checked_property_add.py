@@ -366,6 +366,56 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.assertEqual((decision['action'], decision['reason']),
                          ('needs_decision', K.PROPERTY_ADD_BACKEND_DIFFERS))
 
+    def test_missing_cadastral_address_is_agreement_unless_the_backend_has_a_street(self):
+        from Kavitro_dev.languages.translation_keys import TranslationKeys as K
+        from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
+
+        def info(address):
+            return {'exists': True, 'active_count': 1, 'LastUpdated': '2024-04-05',
+                    'property': {'id': '861', 'cadastralUnitNumber': '1', 'displayAddress': address}}
+
+        def classify(address, display_address):
+            data = {'cadastralUnit': {'number': '1'}, 'address': dict(street='', houseNumber='', **address)}
+            decision = classify_property_import(data, '2024-04-05', '2024-04-05', info(display_address))
+            return decision['action'], decision['reason']
+
+        village = {'city': 'Rõude küla', 'state': 'Lääne-Nigula vald', 'county': 'Lääne maakond'}
+        # The backend line starts with the settlement: both sides have no address.
+        self.assertEqual(classify(village, 'Rõude küla, Lääne-Nigula vald, Lääne maakond'), ('update', None))
+        # Without a settlement the line starts with the municipality; a NULL settlement counts as none.
+        self.assertEqual(classify({'city': 'NULL', 'state': 'Tallinn', 'county': 'Harju maakond'},
+                                  'Tallinn, Harju maakond'), ('update', None))
+        self.assertEqual(classify(village, ''), ('update', None))
+
+        # A street that exists only in the backend would be erased, so it needs its own decision.
+        self.assertEqual(classify(village, 'Kullamaa metskond, 157, Rõude küla, Lääne-Nigula vald'),
+                         ('needs_decision', K.PROPERTY_IMPORT_ADDRESS_MISSING))
+
+    def test_missing_address_decision_offers_and_applies_the_import_only_when_approved(self):
+        from Kavitro_dev.languages.translation_keys import TranslationKeys as K
+        from Kavitro_dev.languages.language_manager import LanguageManager
+        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
+        self.data['address'] = {'street': '', 'houseNumber': '', 'city': 'Rõude küla'}
+        self.lookup.return_value = self.conflict_info('Kullamaa metskond, 157, Rõude küla')
+        decision = module.apply_reviewed_backend(self.data, [], '2025-01-01', None)
+        self.assertEqual(decision['reason'], K.PROPERTY_IMPORT_ADDRESS_MISSING)
+        self.update.assert_not_called()
+
+        dialog = PropertyImportReviewDialog([dict(decision, main_address='')], lang_manager=LanguageManager('et'))
+        try:
+            self.assertEqual(dialog.choices[0].findData('apply'), 2)
+            self.assertGreaterEqual(dialog.bulk_choice.findData('apply'), 0)
+        finally:
+            dialog.deleteLater()
+
+        # An approval given for another reason does not cover this one.
+        other = dict(decision, reason=K.PROPERTY_ADD_BACKEND_DIFFERS)
+        self.assertEqual(module.apply_reviewed_backend(self.data, [], '2025-01-01', None, review=other)['action'],
+                         'needs_decision')
+        self.update.assert_not_called()
+        self.assertIsNone(module.apply_reviewed_backend(self.data, [], '2025-01-01', None, review=decision))
+        self.update.assert_called_once_with('known', self.data, [], raise_on_error=True)
+
     def test_check_controller_survives_owner_deletion_during_a_request_or_a_pause(self):
         from PyQt5 import sip
         from PyQt5.QtCore import QObject, Qt
