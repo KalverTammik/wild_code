@@ -338,6 +338,54 @@ class CheckedPropertyAddTest(unittest.TestCase):
                 self.wait_until(lambda: stopped(thread))
             controller.deleteLater()
 
+    def test_check_controller_survives_owner_deletion_during_a_request_or_a_pause(self):
+        from PyQt5 import sip
+        from PyQt5.QtCore import QObject, Qt
+        from Kavitro_dev.modules.Property.FlowControllers.BackendVerifyController import BackendVerifyController
+        from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
+        gate, busy, release = threading.Event(), threading.Event(), threading.Event()
+        requested = []
+
+        def lookup(number):
+            requested.append(number)
+            if number == 'pause':
+                gate.wait(5)
+                PROCESS_RATE_LIMITER._wait(30, 'rate_limit')
+            else:
+                busy.set()
+                release.wait(5)
+            return {'exists': False}
+
+        self.lookup.side_effect = lookup
+        context = {'data': self.data, 'main_date': None}
+        for first in ('request', 'pause'):
+            with self.subTest(first=first):
+                for event in (gate, busy, release):
+                    event.clear()
+                requested.clear()
+                owner = QObject()
+                controller = BackendVerifyController(owner)
+                controller.start([(0, first, ''), (1, 'next', '')], source='test',
+                                 import_context_by_tunnus={first: context, 'next': context})
+                thread = controller._thread
+                if first == 'pause':
+                    # Proceed only once the pause was reported, so its notices reach a deleted controller.
+                    controller._worker.waiting.connect(lambda *_: busy.set(), type=Qt.DirectConnection)
+                    gate.set()
+                try:
+                    self.assertTrue(busy.wait(5))
+                    # A deleted dialog or reloaded plugin removes the owner mid-request or mid-pause.
+                    sip.delete(owner)
+                    self.assertTrue(sip.isdeleted(controller))
+                    self.assertFalse(sip.isdeleted(thread))
+                finally:
+                    gate.set()
+                    release.set()
+                self.wait_until(lambda: thread not in _ACTIVE_THREADS)
+                QTest.qWait(50)
+                # Deleting the owner also cancelled the run: the next property was never requested.
+                self.assertEqual(requested, [first])
+
     def test_archived_and_ambiguous_matches_do_not_stop_following_properties(self):
         self.lookup.side_effect = [{'exists': False, 'archived_only': True},
                                    {'exists': True, 'active_count': 2}]

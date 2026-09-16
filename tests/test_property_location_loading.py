@@ -887,6 +887,27 @@ class PropertyLocationLoadingTest(unittest.TestCase):
                 self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
                 dialog.deleteLater()
 
+    def test_location_mode_counts_table_rows_without_selection_controls(self):
+        dialog = self.open_dialog_with_village_scope()
+        count_text = dialog.lang_manager.translate(K.PROPERTY_TABLE_COUNT_TEMPLATE)
+        try:
+            # Every row is always added, so there is nothing to select.
+            self.assertIsNone(dialog.select_all_btn)
+            self.assertIsNone(dialog.clear_selection_btn)
+            self.assertEqual(dialog.properties_table.selectionMode(), QTableView.NoSelection)
+            self.assertEqual(dialog.selection_info.text(), count_text.format(count=1))
+            self.assertTrue(dialog.add_without_checks_button.isEnabled())
+
+            # While a new scope loads, the label and add button follow the cleared table.
+            dialog.city_combo.setCheckedItems(['First village', 'Second village'])
+            self.assertEqual(dialog.selection_info.text(), count_text.format(count=0))
+            self.assertFalse(dialog.add_without_checks_button.isEnabled())
+            self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
+            self.assertEqual(dialog.selection_info.text(), count_text.format(count=2))
+            self.assertTrue(dialog.add_without_checks_button.isEnabled())
+        finally:
+            self.close_dialog(dialog)
+
     def test_property_table_headers_come_from_translations_in_both_languages(self):
         from Kavitro_dev.languages import en as en_module
         from Kavitro_dev.languages import et as et_module

@@ -6,6 +6,7 @@ from typing import Optional
 
 from PyQt5.QtCore import pyqtSignal, Qt, QTimer, QCoreApplication, QSignalBlocker
 from PyQt5.QtWidgets import (
+    QAbstractItemView,
     QDialog,
     QVBoxLayout,
     QLabel,
@@ -160,7 +161,8 @@ class AddPropertyDialog(QDialog):
                 after_table_update=self._after_table_update,
                 stop_checks=lambda clear_attention: self._stop_attention_checks(clear_attention=clear_attention),
                 invalidate_archive_scope=self._invalidate_archive_scope,
-                update_add_button_state=lambda count: self._update_add_button_state(selected_count=count),
+                # Also refreshes the row count label, so a cleared table never shows the old count.
+                update_add_button_state=lambda _count: self._refresh_selection_info(update_map=False),
                 stop_map_update=self._map_update_timer.stop,
                 status_widget=self.location_filter_widget,
                 parent=self,
@@ -331,20 +333,28 @@ class AddPropertyDialog(QDialog):
         # Table controls row (selection info + selection helpers)
         controls_row = QHBoxLayout()
         controls_row.setSpacing(10)
-        self.selection_info = QLabel(self.lang_manager.translate(TranslationKeys.SELECTED_PROPERTIES_COUNT))
+        self.selection_info = QLabel("")
         self.selection_info.setObjectName("SelectionInfo")
         controls_row.addWidget(self.selection_info)
         controls_row.addStretch()
-        self.select_all_btn = QPushButton(self.lang_manager.translate(TranslationKeys.SELECT_ALL))
-        self.select_all_btn.setObjectName("SelectAllButton")
-        self.select_all_btn.setProperty("btnSize", ButtonSize.SMALL)
-        controls_row.addWidget(self.select_all_btn)
-        self.clear_selection_btn = QPushButton(self.lang_manager.translate(TranslationKeys.CLEAR_SELECTION))
-        self.clear_selection_btn.setObjectName("ClearSelectionButton")
-        self.clear_selection_btn.setProperty("btnSize", ButtonSize.SMALL)
-        controls_row.addWidget(self.clear_selection_btn)
+        # Location mode always adds every row in the table, so it offers no row selection.
+        self.select_all_btn = None
+        self.clear_selection_btn = None
         self.reselect_from_map_btn = None
-        if self._dialog_mode == PropertyDialogMode.FROM_MAP:
+        if self._dialog_mode != PropertyDialogMode.FROM_MAP:
+            self.properties_table.setSelectionMode(QAbstractItemView.NoSelection)
+            self.selection_info.setText(
+                self.lang_manager.translate(TranslationKeys.PROPERTY_TABLE_COUNT_TEMPLATE).format(count=0))
+        else:
+            self.selection_info.setText(self.lang_manager.translate(TranslationKeys.SELECTED_PROPERTIES_COUNT))
+            self.select_all_btn = QPushButton(self.lang_manager.translate(TranslationKeys.SELECT_ALL))
+            self.select_all_btn.setObjectName("SelectAllButton")
+            self.select_all_btn.setProperty("btnSize", ButtonSize.SMALL)
+            controls_row.addWidget(self.select_all_btn)
+            self.clear_selection_btn = QPushButton(self.lang_manager.translate(TranslationKeys.CLEAR_SELECTION))
+            self.clear_selection_btn.setObjectName("ClearSelectionButton")
+            self.clear_selection_btn.setProperty("btnSize", ButtonSize.SMALL)
+            controls_row.addWidget(self.clear_selection_btn)
             self.reselect_from_map_btn = QPushButton(self.lang_manager.translate(TranslationKeys.RESELECT_FROM_MAP))
             self.reselect_from_map_btn.setObjectName("ConfirmButton")
             self.reselect_from_map_btn.setProperty("variant", ButtonVariant.PRIMARY)
@@ -434,12 +444,12 @@ class AddPropertyDialog(QDialog):
         self.run_checks_button.clicked.connect(self._on_run_checks_clicked)
 
     
-        # Button connections
-        self.select_all_btn.clicked.connect(
-            lambda: self.table_manager.select_all(self.properties_table))
-        self.clear_selection_btn.clicked.connect(
-            lambda: self.table_manager.clear_selection(self.properties_table))
-        if self.reselect_from_map_btn is not None:
+        # Button connections; selection buttons exist only in map mode.
+        if self._dialog_mode == PropertyDialogMode.FROM_MAP:
+            self.select_all_btn.clicked.connect(
+                lambda: self.table_manager.select_all(self.properties_table))
+            self.clear_selection_btn.clicked.connect(
+                lambda: self.table_manager.clear_selection(self.properties_table))
             self.reselect_from_map_btn.clicked.connect(self._start_import_layer_map_selector)
         self.cancel_button.clicked.connect(self._on_cancel_clicked)
         if self.add_without_checks_button is not None:
@@ -894,8 +904,9 @@ class AddPropertyDialog(QDialog):
         self.review_additions_button.setEnabled(not active)
 
         # Lock down selection + add buttons while batch is running.
-        self.select_all_btn.setEnabled(not active)
-        self.clear_selection_btn.setEnabled(not active)
+        for button in (self.select_all_btn, self.clear_selection_btn):
+            if button is not None:
+                button.setEnabled(not active)
         self.attention_only_checkbox.setEnabled(not active)
         self.properties_table.setEnabled(not active)
         if self.location_filter_widget is not None:
@@ -967,7 +978,7 @@ class AddPropertyDialog(QDialog):
         if self._use_filtered_row_scope():
             count = PropertyTableManager.row_count(table)
             self.selection_info.setText(
-                self.lang_manager.translate(TranslationKeys.SELECTED_COUNT_TEMPLATE).format(count=count)
+                self.lang_manager.translate(TranslationKeys.PROPERTY_TABLE_COUNT_TEMPLATE).format(count=count)
             )
             self._update_add_button_state(selected_count=count)
             self._update_run_checks_button()
@@ -1259,22 +1270,12 @@ class AddPropertyDialog(QDialog):
         self._stop_attention_checks(clear_attention=False)
         self._capture_archive_scope_snapshot(load_succeeded=True)
 
-        table = self.properties_table
-        if table is None:
+        if self.properties_table is None:
             return
 
-        if PropertyTableManager.row_count(table) <= 0:
-            self._update_add_button_state()
-            self._update_run_checks_button()
-            return
-
-        # Keep the selection count correct after programmatic reload/selection.
+        # Keep the count and buttons correct after programmatic reloads, including an empty
+        # result. Attention checks are never started automatically.
         self._refresh_selection_info(update_map=False)
-
-        self._update_run_checks_button()
-
-        # Do not auto-run attention checks; user can trigger manually.
-        self._update_run_checks_button()
 
     def _on_run_checks_clicked(self) -> None:
         self._start_attention_checks(source="manual_button")

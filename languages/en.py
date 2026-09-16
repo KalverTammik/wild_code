@@ -629,6 +629,7 @@ TRANSLATIONS = {
     ,TranslationKeys.FILTER_BY_LOCATION: "Filter by Location"
     ,TranslationKeys.SELECTED_PROPERTIES_COUNT: "Selected: 0 properties"
     ,TranslationKeys.SELECTED_COUNT_TEMPLATE: "Selected: {count} properties"
+    ,TranslationKeys.PROPERTY_TABLE_COUNT_TEMPLATE: "In table: {count} properties"
     ,TranslationKeys.SELECT_PROPERTIES_MAP_INSTRUCTION: "Select one or more properties on the map from the MAIN property layer.\n\nThen choose an action (Archive/Unarchive/Delete)."
     ,TranslationKeys.NO_SELECTION: "No Selection"
     ,TranslationKeys.MISSING_TUNNUS_TITLE: "Missing tunnus"

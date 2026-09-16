@@ -47,11 +47,11 @@ Puuduva arhiivikihi korral võib enne lisamisdialoogi avaneda valik **Ava Seaded
 
 | Nupp | Asukoht | Lühikirjeldus |
 |---|---|---|
-| **Vali kõik** | Kinnistute lisamise dialoogi tabeli kohal | Valib kõik parajasti tabelis kuvatud read. Asukohaloendi režiimis ei muuda see lisamise ulatust. |
-| **Tühjenda valik** | Sama rida | Eemaldab visuaalse tabelivaliku. Asukohaloendi režiimis jäävad kõik tabeliread siiski lisamise sihiks. |
+| **Vali kõik** | Kaardilt lisamise režiimi tabeli kohal | Valib kõik tabeliread lisamise sihiks. Asukohaloendi režiimis nuppu ei ole, sest seal lisatakse alati kõik tabeliread. |
+| **Tühjenda valik** | Sama rida | Eemaldab tabelivaliku. Asukohaloendi režiimis nuppu ei ole. |
 | **Vali uuesti kaardilt** | Kaardilt lisamise režiimi tabeli kohal | Sulgeb valikuringi ajutiselt ja laseb kinnistud kaardilt uuesti määrata. |
-| **Tühista** | Dialoogi jalus | Katkestab lisamise. |
-| **Lisa ilma kontrollita** | Dialoogi jalus | Alustab lisamist uut tähelepanukontrolli käivitamata. Kui kontroll on juba tehtud, võib enne lisamist rakenduda selle arhiiviplaan. |
+| **Tühista** | Dialoogi jalus | Katkestab käimasoleva kontrolli, arhiveerimiskava päringud või lisamise ja jätab dialoogi avatuks. Kui midagi ei käi, sulgeb dialoogi. |
+| **Lisa ilma kontrollita** | Dialoogi jalus | Alustab lisamist uut tähelepanukontrolli käivitamata. Kui kontroll on juba tehtud, võib enne lisamist rakenduda selle arhiiviplaan. Tühja tabeli korral ning lisamise ajal on nupp lukus. |
 | **Käivita kontroll** | Dialoogi jalus | Kontrollib kõiki tabeliridu ning koostab ka põhikihilt puuduva impordi põhjal arhiiviplaani. |
 | **Lisa valitud** | Dialoogi jalus | Alustab lisamist; kontrolli eelnev läbimine ei ole tehniliselt kohustuslik. Kaardirežiimis kasutatakse valitud ridu, asukoharežiimis kõiki tabeliridu. |
 | **Sulge** | Veaseisundis, kui kinnistute impordikihti ei leitud | Sulgeb dialoogi ilma töövoogu jätkamata. |

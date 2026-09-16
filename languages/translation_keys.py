@@ -494,6 +494,7 @@ class TranslationKeys:
     # Property state messaging
     SELECTED_PROPERTIES_COUNT = "Selected: 0 properties"
     SELECTED_COUNT_TEMPLATE = "Selected: {count} properties"
+    PROPERTY_TABLE_COUNT_TEMPLATE = "property_table_count_template"
     SELECT_PROPERTIES_MAP_INSTRUCTION = "Select one or more properties on the map from the MAIN property layer.\n\nThen choose an action (Archive/Unarchive/Delete)."
     SELECTED_PROPERTIES_ADDED = "Selected properties have been added."
     PROPERTIES_ADDED = "Properties Added"

@@ -150,17 +150,15 @@ Geospatiali režiimis on **Lisa kinnistuid** alati aktiivne, isegi kui impordiki
 
 ## Lisamisdialoogi tabelinupud
 
+Asukohaloendi režiimis nuppe **Vali kõik** ja **Tühjenda valik** ei ole ning tabeliridu ei saa valida. Lisamise sihiks on alati kõik parajasti tabelis olevad read; tähelepanufiltri järel ainult filtris nähtavad read. Tabeli kohal kuvatakse „Tabelis: N kinnistut”, ja see arv järgib tabelit ka uue piirkonna laadimise ajal.
+
 ### Vali kõik
 
-Kaardilt valimise režiimis valib nupp kõik tabeliread ja need muutuvad lisamise sihiks. Tabelivalik sünkroonitakse kuni 1500 rea korral tagasi impordikihi kaardivalikuks.
-
-Asukohaloendi režiimis on lisamise sihiks alati kõik parajasti tabelis olevad filtreeritud read, mitte ainult tabelis siniseks valitud read. **Vali kõik** muudab seal ainult visuaalset valikut.
+Nupp esineb ainult kaardilt valimise režiimis. See valib kõik tabeliread ja need muutuvad lisamise sihiks. Tabelivalik sünkroonitakse kuni 1500 rea korral tagasi impordikihi kaardivalikuks.
 
 ### Tühjenda valik
 
-Kaardirežiimis eemaldab nupp valiku ja blokeerib lisamisnupud, kuni mõni rida uuesti valitakse.
-
-Asukohaloendi režiimis tühjendab nupp ainult visuaalse valiku. Lisamisnuppude loendur kasutab endiselt tabeli ridade arvu ning lisamisel töödeldakse kõiki tabeliridu. Seega ei saa asukoharežiimis selle nupuga kinnistuid lisamisest välja jätta.
+Nupp esineb ainult kaardirežiimis. See eemaldab valiku ja blokeerib lisamisnupud, kuni mõni rida uuesti valitakse.
 
 ### Vali uuesti kaardilt
 
@@ -178,7 +176,7 @@ Kontroll võrdleb iga katastritunnust:
 - Kavitro aktiivsete ja arhiveeritud kinnistukirjetega;
 - impordi ja olemasolevate kirjete muutmiskuupäevadega.
 
-Kontroll ise andmeid ei muuda. Kontrolli ajal on lisamisnupud blokeeritud ja edenemist kuvatakse loendurina. Dialoogi **Tühista** peatab kontrollitööd.
+Kontroll ise andmeid ei muuda. Kontrolli ajal on lisamisnupud blokeeritud ja edenemist kuvatakse loendurina; serveri päringupausi korral kuvatakse selle all ooteaeg. Dialoogi **Tühista** katkestab kontrolli kohe, ka pausi ajal, jätab dialoogi avatuks ja näitab kontrollitud kinnistute arvu.
 
 ### Kriitiline arhiiviplaani käitumine
 
@@ -194,7 +192,7 @@ Kaardi- või asukohavalik esindab tavaliselt ainult väikest alamhulka, mitte t�
 
 ## Lisa ilma kontrollita
 
-Nupp on aktiivne, kui lisamise sihis on vähemalt üks rida.
+Nupp on aktiivne, kui lisamise sihis on vähemalt üks rida. Lisamise ja arhiveerimiskava päringute ajal on nupp lukus.
 
 - Kaardirežiimis töödeldakse valitud ridu.
 - Asukoharežiimis töödeldakse kõiki tabeliridu.
@@ -208,7 +206,7 @@ Lisamise käigus kontrollib põhiloogika iga kinnistut taustateenuse ja põhikih
 Nupu nimi ei kirjelda mõlema režiimi ulatust ühtemoodi:
 
 - kaardirežiimis lisatakse valitud read;
-- asukoharežiimis lisatakse kõik tabelis olevad read, ka pärast **Tühjenda valik** vajutamist.
+- asukoharežiimis lisatakse kõik tabelis olevad read.
 
 Nupp ei nõua, et **Käivita kontroll** oleks varem edukalt lõpetatud. Tehniliselt saab selle vajutada kohe, kui sihis on vähemalt üks rida. Kui kontroll on tehtud, rakendatakse enne lisamist selle automaatne arhiiviplaan.
 
@@ -365,7 +363,6 @@ Kui mõne objekti atribuudi muutmine tagastab `False`, ei lisata seda muudetud k
 | Kriitiline | Eemaldamise **Kustuta** ei arvesta Kavitro kustutuspäringute üksiktulemusi enne põhikihi objektide kustutamist | Kavitro kirje võib jääda alles, kuid kaardiobjekt kustutatakse ja toiming näib edukas | Tagasta iga Kavitro toimingu tulemus, kustuta kaardilt ainult edukad vasted ja kuva koondraport |
 | Kõrge | Uue Kavitro kirje loomise tagastusväärtust ei kontrollita enne impordiobjekti põhikihti kopeerimist | Kihile võib tekkida objekt ilma Kavitro kirjeta | Kopeeri objekt alles kinnitatud teenuse-ID järel või märgi osaline tulemus taastatavaks veaks |
 | Kõrge | Juba redigeerimisrežiimis põhi- ja arhiivikihtide lisamis-, arhiivimis- ja kustutamisvood kutsuvad `commitChanges()` | Tööriist võib salvestada ka kasutaja varasemad, selle toiminguga mitteseotud muudatused | Jälgi, milline voog redigeerimise alustas, ja salvesta ainult enda alustatud seanss |
-| Kõrge | Asukohaloendi **Vali kõik** ja **Tühjenda valik** ei mõjuta lisamise ulatust; kõik tabeliread töödeldakse | Kasutaja võib arvata, et tühjendas osa või kogu valiku, kuid andmed lisatakse ikkagi | Eemalda selles režiimis eksitavad valikunupud või kasuta lisamisel tegelikku tabelivalikut |
 | Kõrge | **Lisa valitud** ei nõua tähelepanukontrolli läbimist ning **Lisa ilma kontrollita** rakendab juba loodud arhiiviplaani | Nuppude nimed ei vasta tegelikule kontrolli- ja andmemõjule | Seo kontrollitud lisamine kehtiva kontrollitulemusega ning lisa arhiiviplaani eraldi kinnitamine |
 | Kõrge | Lisamisjärjekord neelab üksuse erandid ja loendab töödeldud üksuse tehtuks sõltumata tulemusest | Lõpu edenemisnäit võib jätta vale mulje täielikust õnnestumisest | Kogu iga tunnuse olek, kuva edukate, vahele jäetud ja vigaste kirjete koond ning paku vigaste eksporti |
 | Kõrge | Arhiveerimise ja taastamise üksiktulemusi ei tagastata tegevusteenusele; kasutajale kuvatakse üldine edu ka ebaõnnestumiste korral | Kasutaja ei tea, millised kirjed tegelikult muutusid | Tagasta struktureeritud tulemused ja kuva tunnuste kaupa koondraport |

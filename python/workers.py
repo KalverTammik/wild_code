@@ -67,19 +67,26 @@ class FunctionWorker(QObject):
 
 
 def start_worker(
-    worker: FunctionWorker,
+    worker: QObject,
     *,
     auto_delete: bool = True,
     on_thread_finished: Optional[Callable[[], None]] = None,
 ) -> QThread:
-    """Move worker into a managed QThread and start it."""
+    """Move worker into a managed QThread and start it.
 
+    Accepts a FunctionWorker or any QObject with a ``run`` slot and a ``finished``
+    signal. The thread has no parent and stays referenced until it finishes, so
+    deleting the owner of a running worker never destroys its thread.
+    """
+
+    func = getattr(worker, "_func", None)
+    name = getattr(func, "__name__", "callable") if func is not None else type(worker).__name__
     thread = QThread()
     worker.moveToThread(thread)
     _ACTIVE_THREADS.add(thread)
 
     def cleanup() -> None:
-        SwitchLogger.log("worker_thread_finished", extra={"func": getattr(worker._func, "__name__", "callable")})
+        SwitchLogger.log("worker_thread_finished", extra={"func": name})
         if auto_delete:
             worker.deleteLater()
             thread.deleteLater()
@@ -88,9 +95,11 @@ def start_worker(
         _ACTIVE_THREADS.discard(thread)
 
     worker.finished.connect(thread.quit)
-    worker.error.connect(thread.quit)
+    error = getattr(worker, "error", None)
+    if error is not None:
+        error.connect(thread.quit)
     thread.finished.connect(cleanup)
-    thread.started.connect(lambda: SwitchLogger.log("worker_thread_started", extra={"func": getattr(worker._func, "__name__", "callable")}))
+    thread.started.connect(lambda: SwitchLogger.log("worker_thread_started", extra={"func": name}))
     thread.started.connect(worker.run)
     thread.start()
     return thread
