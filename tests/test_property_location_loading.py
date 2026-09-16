@@ -908,6 +908,30 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         finally:
             self.close_dialog(dialog)
 
+    def test_import_review_sets_the_same_decision_for_every_property(self):
+        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
+        decisions = [{'tunnus': '1', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {}},
+                     {'tunnus': '2', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {}},
+                     {'tunnus': '3', 'reason': K.ATTENTION_CAUSE_ARCHIVED_ONLY, 'backend_info': {}}]
+        dialog = PropertyImportReviewDialog(decisions, lang_manager=LanguageManager('et'))
+        try:
+            self.assertFalse(dialog.confirm.isEnabled())
+
+            # Overwriting is offered only for address conflicts; the archived match keeps its choice.
+            dialog.bulk_choice.setCurrentIndex(dialog.bulk_choice.findData('apply'))
+            dialog._set_all()
+            self.assertEqual(dialog.selected_decisions(), {'1': 'apply', '2': 'apply'})
+            self.assertTrue(dialog.confirm.isEnabled())
+            self.assertIn('1', dialog.bulk_note.text())
+
+            # Keeping the existing record is available for every row.
+            dialog.bulk_choice.setCurrentIndex(dialog.bulk_choice.findData('keep'))
+            dialog._set_all()
+            self.assertEqual(dialog.selected_decisions(), {'1': 'keep', '2': 'keep', '3': 'keep'})
+            self.assertEqual(dialog.bulk_note.text(), '')
+        finally:
+            dialog.deleteLater()
+
     def test_property_table_headers_come_from_translations_in_both_languages(self):
         from Kavitro_dev.languages import en as en_module
         from Kavitro_dev.languages import et as et_module

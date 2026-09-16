@@ -58,6 +58,8 @@ Automaatse töö lõpus kuvab haldusaken eraldi õnnestumised, tehnilised vead j
 - **Säilita olemasolev**: kirje eemaldatakse otsuste loendist; selle kinnistu backend'i ja põhikihi andmeid ei muudeta. Loendatakse eraldi, mitte salvestusena.
 - **Rakenda impordi andmed**: pakutakse aadressikonflikti korral. Uuendatakse sama backend'i kirje kinnistu numbrit, katastriandmeid, aadressi, pindala ja sihtotstarbeid. Olemasolev põhikihi objekt jääb alles; puuduv kopeeritakse importkihist. Arhiveeritud või mitme aktiivse vastega kirjetele ülekirjutamise valikut ei pakuta.
 
+Suure loendi jaoks on tabeli all valik „Määra kõigile”. See paneb sama tegevuse kõigile ridadele korraga. Kinnistud, millele valitud tegevus ei ole lubatud, näiteks arhiveeritud või mitme aktiivse vastega kirjed „Rakenda impordi andmed” korral, jäävad endise valikuga ja nende arv kuvatakse valiku kõrval. Iga rea valikut saab pärast seda eraldi muuta.
+
 Rakendatakse ainult valitud ootel kirjed, mitte algset impordivalikut uuesti. Enne ülekirjutamist võrreldakse uuesti backend'i verifitseerimistulemust ning lähte- ja põhikihi identiteeti ja objekte. Muutunud andmed jäävad värske võrdlusega otsust ootama. Backend'i kontroll hõlmab olemasoleva verifitseerimispäringu tagastatud välju (sh ID, aadress, katastriandmete kuupäev, aktiivsed/arhiveeritud vasted ja sildid); see ei ole serveripoolne atomaarne tingimuslik kirjutamine.
 
 Kuni eelmise impordi otsused on ootel, suunavad lisamisnupud nende ülevaatesse, et edukalt imporditud valikut kogemata uuesti mitte töödelda. Tehnilise vea või katkestamise järel säilivad juba kogutud otsused ja tegelikud tulemused. Automaatses osas tähendab 100% kogu valiku läbivaatamist, mitte kõigi kinnistute salvestamist.

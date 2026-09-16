@@ -50,6 +50,25 @@ class PropertyImportReviewDialog(QDialog):
         header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.table.resizeRowsToContents()
         layout.addWidget(self.table, 1)
+
+        # One decision for the whole list; a row that cannot take it keeps its own.
+        bulk_row = QHBoxLayout()
+        bulk_row.addWidget(QLabel(tr(K.PROPERTY_IMPORT_BULK_LABEL)))
+        self.bulk_choice = QComboBox()
+        self.bulk_choice.addItem(tr(K.PROPERTY_IMPORT_LATER), 'later')
+        self.bulk_choice.addItem(tr(K.PROPERTY_IMPORT_KEEP), 'keep')
+        if any(item['reason'] == K.PROPERTY_ADD_BACKEND_DIFFERS for item in decisions):
+            self.bulk_choice.addItem(tr(K.PROPERTY_IMPORT_APPLY), 'apply')
+        bulk_row.addWidget(self.bulk_choice)
+        bulk_button = QPushButton(tr(K.PROPERTY_IMPORT_BULK_SET))
+        bulk_button.setAutoDefault(False)
+        bulk_button.clicked.connect(self._set_all)
+        bulk_row.addWidget(bulk_button)
+        self.bulk_note = QLabel('')
+        self.bulk_note.setWordWrap(True)
+        bulk_row.addWidget(self.bulk_note, 1)
+        layout.addLayout(bulk_row)
+
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
         layout.addWidget(self.details, 1)
@@ -72,6 +91,20 @@ class PropertyImportReviewDialog(QDialog):
         if decisions:
             self.table.selectRow(0)
         ThemeManager.apply_app_style(self, [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.COMBOBOX])
+
+    def _set_all(self):
+        action = self.bulk_choice.currentData()
+        applied = 0
+        for choice in self.choices:
+            index = choice.findData(action)
+            if index < 0:
+                continue
+            choice.setCurrentIndex(index)
+            applied += 1
+        skipped = len(self.choices) - applied
+        self.bulk_note.setText(self.lang.translate(
+            K.PROPERTY_IMPORT_BULK_SKIPPED).format(count=skipped) if skipped else '')
+        self._update_confirm()
 
     def _update_confirm(self):
         self.confirm.setEnabled(any(choice.currentData() != 'later' for choice in self.choices))
