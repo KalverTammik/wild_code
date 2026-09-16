@@ -85,6 +85,8 @@ class AddPropertyDialog(QDialog):
         self._archive_scope_snapshot: Optional[PropertyArchiveScope] = None
         self._checks_completed_for_scope = False
         self._deferred_additions = []
+        # Decisions found by a check may be added over; decisions left by an import may not.
+        self._decisions_from_import = False
         self._add_summary = None
         self._archive_scope_blocked_reason = ""
         self._archive_moved_elsewhere: set[str] = set()
@@ -191,6 +193,7 @@ class AddPropertyDialog(QDialog):
 
         self._checks_running = False
         self._rows_for_verify_by_row = {}
+        self._backend_decisions_by_row = {}
         self._backend_compare_causes_by_row = {}
         self._main_compare_causes_by_row = {}
         self._backend_checked_rows = set()
@@ -597,7 +600,7 @@ class AddPropertyDialog(QDialog):
         self._after_table_update(self.properties_table)
 
     def _on_add_without_checks(self) -> None:
-        if self._deferred_additions:
+        if self._decisions_from_import and self._deferred_additions:
             self._on_review_additions()
             return
         table = self.properties_table
@@ -622,7 +625,7 @@ class AddPropertyDialog(QDialog):
         self._run_missing_cleanup_if_any(start_add)
 
     def _on_add_clicked(self) -> None:
-        if self._deferred_additions:
+        if self._decisions_from_import and self._deferred_additions:
             self._on_review_additions()
             return
         if self._add_in_progress or self._checks_running or not self._checks_completed_for_scope:
@@ -637,7 +640,7 @@ class AddPropertyDialog(QDialog):
         if table is None:
             return
 
-        if self._deferred_additions and mode != 'review':
+        if self._decisions_from_import and self._deferred_additions and mode != 'review':
             self._on_review_additions()
             return
 
@@ -771,20 +774,23 @@ class AddPropertyDialog(QDialog):
         self.add_detail_label.setVisible(bool(detail))
 
     def _on_add_finished(self, summary: dict) -> None:
-        if self._add_mode == 'review' and self._add_summary is not None:
+        if self._add_mode == 'review':
             previous = self._add_summary
             replaced = set(summary.get('applied', [])) | {item['tunnus'] for item in summary['errors']}
             refreshed = {item['tunnus']: item for item in summary.get('deferred', [])}
             self._deferred_additions = [refreshed.pop(item['tunnus'], item)
                                        for item in self._deferred_additions if item['tunnus'] not in replaced]
             self._deferred_additions.extend(refreshed.values())
-            summary = dict(previous, succeeded=previous['succeeded'] + summary['succeeded'],
-                           failed=previous['failed'] + summary['failed'],
-                           errors=previous['errors'] + summary['errors'],
-                           canceled=summary['canceled'], stopped=previous['stopped'] or summary['stopped'],
-                           unfinished=summary.get('unfinished'), deferred=self._deferred_additions)
+            # A review started from a check has no earlier run to merge counts into.
+            if previous is not None:
+                summary = dict(previous, succeeded=previous['succeeded'] + summary['succeeded'],
+                               failed=previous['failed'] + summary['failed'],
+                               errors=previous['errors'] + summary['errors'],
+                               canceled=summary['canceled'], stopped=previous['stopped'] or summary['stopped'],
+                               unfinished=summary.get('unfinished'), deferred=self._deferred_additions)
         else:
             self._deferred_additions = list(summary.get('deferred') or [])
+        self._decisions_from_import = True
         self._add_summary = summary
         try:
             canceled = bool(summary.get("canceled")) if isinstance(summary, dict) else False
@@ -875,10 +881,55 @@ class AddPropertyDialog(QDialog):
             self._add_errors_view.show()
         elif self._add_errors_view is not None:
             self._add_errors_view.hide()
+        self._refresh_review_button()
+
+    def _refresh_review_button(self) -> None:
         count = len(self._deferred_additions)
         self.review_additions_button.setText(self.lang_manager.translate(
             TranslationKeys.PROPERTY_IMPORT_REVIEW).format(count=count))
         self.review_additions_button.setVisible(count > 0)
+
+    def _collect_check_decisions(self) -> list:
+        """Undecided rows of the finished check, in the shape the review dialog expects."""
+        decisions = []
+        for row_idx, decision in sorted(self._backend_decisions_by_row.items()):
+            if not isinstance(decision, dict) or decision.get('action') != 'needs_decision':
+                continue
+            tunnus = str(decision.get('tunnus') or '')
+            feature = PropertyTableManager.get_cell_data(self.properties_table, row_idx, 0, role=Qt.UserRole)
+            main = self._main_layer_lookup.get(tunnus)
+            decisions.append(dict(
+                decision,
+                fid=feature.id() if feature is not None else None,
+                main_address=(str(main[Katastriyksus.l_aadress]) if main is not None
+                              and main.fields().lookupField(Katastriyksus.l_aadress) >= 0 else ''),
+            ))
+        return decisions
+
+    def _review_items_for_apply(self, decisions: list) -> list:
+        """A check result carries no layer snapshot yet; take the current one before writing."""
+        ready = [item for item in decisions if item.get('feature') is not None]
+        pending = [item for item in decisions if item.get('feature') is None]
+        if not pending:
+            return ready
+
+        source = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
+        target = ActiveLayersHelper.resolve_main_property_layer(silent=True)
+        if source is None or target is None or not source.isValid() or not target.isValid():
+            return ready
+
+        for item in pending:
+            feature = source.getFeature(item['fid']) if item.get('fid') is not None else None
+            if feature is None or not feature.isValid():
+                continue
+            ready.append(dict(
+                item,
+                feature=feature,
+                main_features=AddBatchRunner._matches(target, item['tunnus']),
+                source_id=source.id(), source_uri=source.source(),
+                target_id=target.id(), target_uri=target.source(),
+            ))
+        return ready
 
     def _on_review_additions(self):
         if self._add_in_progress or not self._deferred_additions:
@@ -892,12 +943,16 @@ class AddPropertyDialog(QDialog):
             dialog.deleteLater()
         kept = {tunnus for tunnus, action in choices.items() if action == 'keep'}
         self._deferred_additions = [item for item in self._deferred_additions if item['tunnus'] not in kept]
-        self._add_summary['kept'] = self._add_summary.get('kept', 0) + len(kept)
-        self._add_summary['deferred'] = self._deferred_additions
-        self._show_add_summary()
+        if self._add_summary is not None:
+            self._add_summary['kept'] = self._add_summary.get('kept', 0) + len(kept)
+            self._add_summary['deferred'] = self._deferred_additions
+            self._show_add_summary()
+        else:
+            self._refresh_review_button()
         apply = [item for item in self._deferred_additions if choices.get(item['tunnus']) == 'apply']
         if apply:
-            self._start_batch_add(self.properties_table, mode='review', review_decisions=apply)
+            self._start_batch_add(self.properties_table, mode='review',
+                                  review_decisions=self._review_items_for_apply(apply))
 
     def _set_add_ui_state(self, *, active: bool) -> None:
         self._add_in_progress = bool(active)
@@ -1294,6 +1349,10 @@ class AddPropertyDialog(QDialog):
         self._checks_running = False
         self._checks_completed_for_scope = False
         self._rows_for_verify_by_row = {}
+        self._backend_decisions_by_row = {}
+        if not self._decisions_from_import:
+            self._deferred_additions = []
+            self._refresh_review_button()
         self._backend_compare_causes_by_row = {}
         self._main_compare_causes_by_row = {}
         self._backend_checked_rows = set()
@@ -1513,6 +1572,7 @@ class AddPropertyDialog(QDialog):
             causes = []
 
         self._backend_compare_causes_by_row[row_idx] = causes
+        self._backend_decisions_by_row[row_idx] = result.get("decision") if isinstance(result, dict) else None
         self._backend_checked_rows.add(row_idx)
 
         # Run MAIN check for this row now (keeps UI responsive).
@@ -1638,15 +1698,11 @@ class AddPropertyDialog(QDialog):
             )
             self.add_progress_label.setVisible(True)
 
-        # Summarize attention count.
-        attention = 0
-        for row_idx in self._rows_for_verify_by_row.keys():
-            combined = AttentionDisplayRules.combined_causes(
-                self._main_compare_causes_by_row.get(row_idx) or [],
-                self._backend_compare_causes_by_row.get(row_idx) or [],
-            )
-            if combined:
-                attention += 1
+        # Offer the undecided properties now, before anything is written. Row indices are
+        # still the checked ones here; the attention filter below may drop rows.
+        self._deferred_additions = self._collect_check_decisions()
+        self._decisions_from_import = False
+        self._refresh_review_button()
 
         # Hide the progress bar once finished.
         self._set_check_progress(0, 0)

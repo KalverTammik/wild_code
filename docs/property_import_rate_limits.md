@@ -52,6 +52,10 @@ Aadressikonflikt, ainult arhiveeritud vaste ja mitu aktiivset vastet on eraldi `
 
 Aadresse võrreldakse samal kujul. Backend hoiab aadressi ühel real ja liidab sellesse impordi saadetud väljad: tänav, majanumber, asustusüksus, omavalitsus ja maakond. Import teab ainult katastriaadressi, seega võrreldakse seda backend'i aadressi esimese ühe või kahe komaosaga; tühikud ja tõst normaliseeritakse. „Kullamaa metskond 157” ja „Kullamaa metskond, 157, Rõude küla, Lääne-Nigula vald, Lääne maakond” on seega vaste. Varem võrreldi kogu liidetud rida katastriaadressiga, mistõttu iga juba imporditud kinnistu jäi püsivalt otsust ootama. Backend'is päriselt muudetud aadress ei lange endiselt kokku ja jääb otsust ootama. Võrdlus toimub kalendrikuupäevades, sest impordi API-sisend on samuti kuupäev; ajavööndiga backend'i ajatempel ei tekita enam võrreldamatute kuupäevade viga. Puuduvat või loetamatut kuupäeva ei esitata kasutajale tõendina, et import on vanem. Värske backend'i kontroll enne iga salvestamist säilib.
 
+Otsust vajavad kinnistud kogutakse juba „Käivita kontroll” lõpus ja nupp „Vaata otsust ootavaid kinnistuid” avaneb kohe, ilma et midagi oleks salvestatud. Kontrolli tulemus ei suuna lisamisnuppe ülevaatesse: lisamist saab tavapäraselt käivitada ja see hindab need kinnistud uuesti. Lisamise järel asendab lisamise enda tulemus kontrolli loendi, nii et ka salvestamisel tekkinud otsused ja vead jäävad samasse vaatesse alles. Piirkonna vahetamine tühjendab kontrollist pärit loendi; lisamisest jäänud otsused säilivad kuni haldusakna sulgemiseni.
+
+Kontrollist pärit kirjel ei ole veel kihtide hetkeseisu. „Rakenda impordi andmed” loeb selle vahetult enne salvestamist ja salvestamise eel võrreldakse backend'i vastust kontrolli ajal saadud vastusega, nii et vahepeal muutunud kirje jääb uuesti otsust ootama.
+
 Automaatse töö lõpus kuvab haldusaken eraldi õnnestumised, tehnilised vead ja otsust ootavate kinnistute arvu. Nupp „Vaata otsust ootavaid kinnistuid” avab aadresside ja kuupäevade võrdluse. Valikud:
 
 - **Jäta hilisemaks**: kirje säilib otsuste loendis selle haldusakna sulgemiseni. Püsivat kettale salvestamist ei ole.

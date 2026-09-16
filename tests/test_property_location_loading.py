@@ -908,6 +908,54 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         finally:
             self.close_dialog(dialog)
 
+    def test_check_offers_decisions_before_adding_and_apply_takes_the_current_layers(self):
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
+        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        main = QgsVectorLayer('Polygon?crs=EPSG:3301&field=tunnus:string', 'Main', 'memory')
+        lookup = lambda number: {
+            'exists': True, 'active_count': 1, 'LastUpdated': '2026-01-01',
+            'property': {'id': 'known', 'cadastralUnitNumber': number,
+                         'displayAddress': 'Muudetud' if number == '1' else 'Address ' + number}}
+        with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                          side_effect=lookup), \
+                patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
+                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+            try:
+                self.wait_until(lambda: dialog.county_combo.isEnabled())
+                dialog.county_combo.setCurrentIndex(dialog.county_combo.findData('A'))
+                combo = dialog.municipality_combo
+                combo.setCurrentIndex(combo.findData('Shared municipality'))
+                self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
+
+                dialog._on_run_checks_clicked()
+                self.wait_until(lambda: dialog._checks_completed_for_scope)
+                # The check alone offers the decision, before anything is written.
+                self.assertEqual([item['tunnus'] for item in dialog._deferred_additions], ['1'])
+                self.assertEqual(dialog._deferred_additions[0]['reason'], K.PROPERTY_ADD_BACKEND_DIFFERS)
+                self.assertTrue(dialog.review_additions_button.isVisible())
+                # A check result must not send the add buttons into the review.
+                self.assertFalse(dialog._decisions_from_import)
+
+                with patch.object(PropertyImportReviewDialog, 'exec_', return_value=1), \
+                        patch.object(PropertyImportReviewDialog, 'selected_decisions', return_value={'1': 'apply'}), \
+                        patch.object(AddBatchRunner, 'start'):
+                    dialog._on_review_additions()
+                item = dialog._add_runner._review_decisions['1']
+                # The write needs the layer snapshot the check itself does not keep.
+                self.assertEqual((item['source_id'], item['target_id']), (self.layer.id(), main.id()))
+                self.assertTrue(item['feature'].isValid())
+                dialog._add_runner.cancel()
+                self.wait_until(lambda: dialog._add_runner is None)
+            finally:
+                self.close_dialog(dialog)
+
     def test_import_review_sets_the_same_decision_for_every_property(self):
         from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
         decisions = [{'tunnus': '1', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {}},
