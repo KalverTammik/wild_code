@@ -321,21 +321,27 @@ class PropertyDataLoader:
             settlements=settlement_names,
         )
 
+    # A house number: digits, an optional single letter, and further parts after / or -.
+    _HOUSE_NUMBER = re.compile(r'^\d+[^\W\d_]?(?:[-/]\d+[^\W\d_]?)*$')
+
     @staticmethod
     def get_address_details_from_street(street):
-        data = {}
-        
-        # Find the position of the first digit in the street address
-        number_match = re.search(r'\d', street)
+        """Split a cadastral address into a name and a house number.
 
-        # If at least one digit is found
-        if number_match:
-            number_index = number_match.start()
-            data['street'] = street[:number_index].strip()
-            data['house'] = street[number_index:].strip()
-        else:
-            data['street'] = street.strip()
-        return data
+        Only a trailing house number is separated; everything else stays in the name,
+        including road markers like "L2" and leading road numbers. In Estonian addresses
+        `//` joins several equivalent addresses of one object, so such a value is a list,
+        not one address, and is never split.
+        """
+
+        text = ' '.join(str(street or '').split())
+        if text.upper() == 'NULL':
+            text = ''
+
+        parts = text.split(' ')
+        if '//' not in text and len(parts) > 1 and PropertyDataLoader._HOUSE_NUMBER.match(parts[-1]):
+            return {'street': ' '.join(parts[:-1]), 'house': parts[-1]}
+        return {'street': text, 'house': ''}
 
 
 

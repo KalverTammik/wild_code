@@ -980,6 +980,34 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         finally:
             dialog.deleteLater()
 
+    def test_address_split_separates_only_a_trailing_house_number(self):
+        cases = {
+            # A plain name and a real street address keep working as before.
+            'Kuusemäe': ('Kuusemäe', ''),
+            'Viljandi tee 31a': ('Viljandi tee', '31a'),
+            'Kivi tn 16': ('Kivi tn', '16'),
+            'Pärna 5-2': ('Pärna', '5-2'),
+            'Kivi  tn   16': ('Kivi tn', '16'),
+            # The number ends a name; the words before it stay untouched.
+            'Jäärja metskond 66': ('Jäärja metskond', '66'),
+            # A road marker and a leading road number belong to the name.
+            'Põhja tänav L2': ('Põhja tänav L2', ''),
+            'Jaama tänav T1': ('Jaama tänav T1', ''),
+            '24226 Kamara-Peraküla tee': ('24226 Kamara-Peraküla tee', ''),
+            # `//` joins several addresses of one object, so nothing is separated.
+            'Nurme tn 2 // Kangrumäe': ('Nurme tn 2 // Kangrumäe', ''),
+            'Pärnu mnt 9 // 11': ('Pärnu mnt 9 // 11', ''),
+            'Allika tn 7 // Tartu mnt 23 // 23a // 23b': ('Allika tn 7 // Tartu mnt 23 // 23a // 23b', ''),
+            # A lone token is a name, and an empty address never becomes the text NULL.
+            '12': ('12', ''),
+            'NULL': ('', ''),
+            '': ('', ''),
+        }
+        for value, expected in cases.items():
+            with self.subTest(value=value):
+                result = PropertyDataLoader.get_address_details_from_street(value)
+                self.assertEqual((result['street'], result.get('house', '')), expected)
+
     def test_property_table_headers_come_from_translations_in_both_languages(self):
         from Kavitro_dev.languages import en as en_module
         from Kavitro_dev.languages import et as et_module
