@@ -338,6 +338,34 @@ class CheckedPropertyAddTest(unittest.TestCase):
                 self.wait_until(lambda: stopped(thread))
             controller.deleteLater()
 
+    def test_composed_backend_address_matches_the_cadastral_address(self):
+        from Kavitro_dev.languages.translation_keys import TranslationKeys as K
+        from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
+
+        def info(address):
+            return {'exists': True, 'active_count': 1, 'LastUpdated': '2024-04-05',
+                    'property': {'id': '861', 'cadastralUnitNumber': '1', 'displayAddress': address}}
+
+        # The backend shows the same address with settlement, municipality and county added.
+        numbered = {'cadastralUnit': {'number': '1'},
+                    'address': {'street': 'Kullamaa metskond', 'houseNumber': '157'}}
+        decision = classify_property_import(
+            numbered, '2024-04-05', '2024-04-05',
+            info('Kullamaa metskond, 157, Rõude küla, Lääne-Nigula vald, Lääne maakond'))
+        self.assertEqual((decision['action'], decision['reason']), ('update', None))
+
+        # A property without a house number keeps only its name in front of the settlement.
+        plain = {'cadastralUnit': {'number': '1'}, 'address': {'street': 'Paju', 'houseNumber': ''}}
+        decision = classify_property_import(plain, '2024-04-05', '2024-04-05',
+                                            info('Paju, Martna küla, Lääne maakond'))
+        self.assertEqual((decision['action'], decision['reason']), ('update', None))
+
+        # An address that was really changed in the backend still needs a decision.
+        decision = classify_property_import(numbered, '2024-04-05', '2024-04-05',
+                                            info('Muudetud nimi, 157, Rõude küla'))
+        self.assertEqual((decision['action'], decision['reason']),
+                         ('needs_decision', K.PROPERTY_ADD_BACKEND_DIFFERS))
+
     def test_check_controller_survives_owner_deletion_during_a_request_or_a_pause(self):
         from PyQt5 import sip
         from PyQt5.QtCore import QObject, Qt
