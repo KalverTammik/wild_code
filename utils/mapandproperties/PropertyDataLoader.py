@@ -228,21 +228,35 @@ class PropertyDataLoader:
 
 
 
+    @staticmethod
+    def build_import_address(feature) -> dict:
+        """Street/house/settlement/municipality/county for the import payload, from one feature.
+
+        Used by both the import (`prepare_data_for_import_stage1`) and the pre-write check
+        (`AddUpdatePropertyDialog._start_attention_checks`), so the two must build the same
+        payload. Only the street/house split is normalized; a missing settlement, municipality
+        or county is returned exactly as QGIS reports it (QGIS NULL, not ''), because that is
+        the value the import actually sends to the backend.
+        """
+        street_data = PropertyDataLoader.get_address_details_from_street(
+            feature.attribute(Katastriyksus.l_aadress) or '')
+        return {
+            "street": street_data['street'],
+            "houseNumber": street_data.get('house', ''),
+            "city": feature.attribute(Katastriyksus.ay_nimi),
+            "state": feature.attribute(Katastriyksus.ov_nimi),
+            "county": feature.attribute(Katastriyksus.mk_nimi),
+        }
+
     def prepare_data_for_import_stage1(self, feature):
         """Lae kinnistute andmed impordiks (ilma geomeetriata)."""
-        
-        street_full = feature.attribute(self.address_field) or ''
-        street_data = self.get_address_details_from_street(street_full)
-        house_number = street_data.get('house', '')
 
         first_registration = feature.attribute(self.firstr_reg_date_field)
-        print(f"First registration raw value: {first_registration}")
         firest_reg_date_str = DateHelpers().date_to_iso_string(first_registration)
 
         last_updated = feature.attribute(self.last_upd_date_field)
-        print(f"Last updated raw value: {last_updated}")
         last_updated_str = DateHelpers().date_to_iso_string(last_updated)
-        
+
         tunnus = feature.attribute(self.tunnus_field)
 
         property_data = {
@@ -252,23 +266,17 @@ class PropertyDataLoader:
                 "firstRegistration": firest_reg_date_str,
                 "lastUpdated": last_updated_str
             },
-            "address": {
-                "street": street_data['street'],
-                "houseNumber": house_number, 
-                "city": feature.attribute(self.settlement_field),
-                "state": feature.attribute(self.municipality_field),
-                "county": feature.attribute(self.county_field)
-                },    
+            "address": self.build_import_address(feature),
             "area": {
                 "size": feature.attribute(self.area_field),
                 "unit": AreaUnit.M
             }
         }
-        
+
         siht_data = propertyUsages.extract_intendedUse_data(feature, num_siht_items=3)
 
         return property_data, tunnus, siht_data,  last_updated_str
-    
+
 
 
 class propertyUsages:

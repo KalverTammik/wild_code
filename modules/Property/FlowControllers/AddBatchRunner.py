@@ -16,6 +16,7 @@ from ....python.workers import FunctionWorker, start_worker
 from ....python.api_rate_limit import api_request_context, RequestCancelled
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions, ActiveLayersHelper
 from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
+from ....widgets.DateHelpers import DateHelpers
 from ....Logs.python_fail_logger import PythonFailLogger
 
 
@@ -173,7 +174,8 @@ class AddBatchRunner(QObject):
             # Table features deliberately omit dates/uses/geometry: read the complete source feature.
             data, tunnus, uses, updated = PropertyDataLoader().prepare_data_for_import_stage1(feature)
             matches = self._matches(target, tunnus)
-            main_date = matches[0].attribute(F.muudet) if matches and target.fields().lookupField(F.muudet) >= 0 else None
+            main_date = (DateHelpers().date_to_iso_string(matches[0].attribute(F.muudet))
+                         if matches and target.fields().lookupField(F.muudet) >= 0 else None)
             self._current.update(source=source, target=target, feature=feature,
                                  source_uri=source.source(), target_uri=target.source(),
                                  main_features=matches)

@@ -14,7 +14,6 @@ from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions
 from ....utils.url_manager import Module
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from .UpdatePropertyData import UpdatePropertyData
-from ....widgets.DateHelpers import DateHelpers
 from ....utils.TagsEngines import TagsEngines
 from ....utils.moduleSwitchHelper import ModuleSwitchHelper
 from ....Logs.python_fail_logger import PythonFailLogger
@@ -37,7 +36,7 @@ class MainAddPropertiesFlow:
         """
 
         target_layer_name = SettingsService().module_main_layer_name(Module.PROPERTY.value)
-        active_layer = MapHelpers.find_layer_by_name(target_layer_name)
+        active_layer = MapHelpers.resolve_layer(target_layer_name)
         if not active_layer or not active_layer.isValid():
             lm = LanguageManager()
             ModernMessageDialog.Warning_messages_modern(
@@ -61,7 +60,7 @@ class MainAddPropertiesFlow:
 
         settings = SettingsService()
         archive_layer_name = (settings.module_archive_layer_name(Module.PROPERTY.value) or "").strip()
-        archive_layer = MapHelpers.find_layer_by_name(archive_layer_name) if archive_layer_name else None
+        archive_layer = MapHelpers.resolve_layer(archive_layer_name) if archive_layer_name else None
 
         if not active_layer:
             return None
@@ -202,7 +201,7 @@ class MainAddPropertiesFlow:
 
         # 2) Activate main target layer
         target_layer_name = SettingsService().module_main_layer_name(Module.PROPERTY.value)
-        active_layer = MapHelpers.find_layer_by_name(target_layer_name)
+        active_layer = MapHelpers.resolve_layer(target_layer_name)
 
         # 3) Ensure archive layer exists/valid (may prompt user)
         archive_layer = MainAddPropertiesFlow._ensure_archive_layer_ready(active_layer) if active_layer else None
@@ -460,38 +459,6 @@ class MainAddPropertiesFlow:
                              else TranslationKeys.PROPERTY_ADD_STAGE_USES)
                 raise RuntimeError(f"{LanguageManager().translate(stage_key)}: {e}") from e
             return None
-
-
-
-    @staticmethod
-    def _is_import_newer(import_date_str: str, backend_date_str: str, main_layer_muudet=None) -> bool:
-        """Return True if import is newer than max(backend, main-layer).
-
-        Accepts ISO-like strings, QDate/QDateTime, or other values for `main_layer_muudet`.
-        Non-parseable dates return False.
-        """
-        import_dt = DateHelpers.parse_iso(str(import_date_str) if import_date_str is not None else "")
-        backend_dt = DateHelpers.parse_iso(str(backend_date_str) if backend_date_str is not None else "")
-
-        main_s = None
-        if main_layer_muudet is not None:
-            if isinstance(main_layer_muudet, str):
-                main_s = DateHelpers().date_to_iso_string(main_layer_muudet)
-            else:
-                main_s = DateHelpers().date_to_iso_string(main_layer_muudet)
-        main_dt = DateHelpers.parse_iso(str(main_s) if main_s else "")
-
-        if not import_dt:
-            return False
-
-        candidates = [dt for dt in [backend_dt, main_dt] if dt]
-        if not candidates:
-            return False
-
-        # These are cadastral dates (the import payload also uses YYYY-MM-DD).
-        # Backend ISO timestamps may include a timezone; compare calendar dates
-        # consistently instead of mixing timezone-aware and naive datetimes.
-        return import_dt.date() > max(dt.date() for dt in candidates)
 
 
 class BackendPropertyVerifier:

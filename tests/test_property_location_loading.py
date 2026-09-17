@@ -16,7 +16,8 @@ from PyQt5.QtCore import QCoreApplication, QEvent, QThread, QTimer, Qt, QVariant
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QTableView, QVBoxLayout, QWidget
-from qgis.core import QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsVectorLayer, QgsVectorLayerFeatureSource
+from qgis.core import (QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsVariantUtils, QgsVectorLayer,
+                       QgsVectorLayerFeatureSource)
 
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
 from Kavitro_dev.languages.language_manager import LanguageManager
@@ -1147,6 +1148,129 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             with self.subTest(value=value):
                 result = PropertyDataLoader.get_address_details_from_street(value)
                 self.assertEqual((result['street'], result.get('house', '')), expected)
+
+    def test_check_and_import_share_the_same_missing_settlement_value(self):
+        """The pre-write check (AddUpdatePropertyDialog._start_attention_checks) and the
+        import (PropertyDataLoader.prepare_data_for_import_stage1) both build the address
+        through the shared PropertyDataLoader.build_import_address now, so a row with a
+        missing settlement must reach the backend check with the exact same unnormalized
+        value (QGIS NULL) that the import itself would send -- never a normalized ''.
+        This is the regression guard for the mismatch the two previous production fixes
+        (v2.12.27, v2.12.30) were about. Mirrors each site's own feature retrieval
+        (table UserRole vs the source feature) instead of driving the whole dialog."""
+        from PyQt5.QtGui import QStandardItemModel
+
+        # `self.layer` is what PropertyDataLoader() resolves to here (MapHelpers is patched
+        # in setUp), so the extra fields it validates on construction must live on it too.
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        feature = QgsFeature(self.layer.fields())
+        # ay_nimi (settlement) is left unset, so it reads back as QGIS NULL.
+        feature.setAttributes(['A', 'Shared municipality', None, '9', 'Address 9', '100',
+                                '10', '2024-01-01', '2024-01-01'])
+        self.layer.dataProvider().addFeatures([feature])
+        stored = list(self.layer.getFeatures())[-1]
+
+        # The check's own retrieval: AddUpdatePropertyDialog._start_attention_checks reads
+        # the feature from the table's UserRole cell, then calls build_import_address.
+        table = QTableView()
+        model = QStandardItemModel(1, 1)
+        model.setData(model.index(0, 0), stored, Qt.UserRole)
+        table.setModel(model)
+        row_feature = PropertyTableManager.get_cell_data(table, 0, 0, role=Qt.UserRole)
+        check_city = PropertyDataLoader.build_import_address(row_feature)['city']
+
+        # The import's own retrieval: AddBatchRunner reads the complete source feature and
+        # calls prepare_data_for_import_stage1, which delegates to the same helper.
+        import_data, *_ = PropertyDataLoader().prepare_data_for_import_stage1(stored)
+
+        self.assertTrue(QgsVariantUtils.isNull(check_city))
+        self.assertEqual(check_city, import_data['address']['city'])
+        self.assertNotEqual(check_city, '')
+
+    def test_date_typed_main_muudet_still_gives_the_same_decision_in_both_paths(self):
+        """AddBatchRunner now normalizes the main layer's `muudet` value with
+        date_to_iso_string before it reaches classify_property_import, the same way the
+        check already did (AddUpdatePropertyDialog._start_attention_checks). _is_import_newer
+        also converts either representation internally, so both a raw QDate and its
+        normalized ISO string must still steer classify_property_import to the same
+        decision -- this is the safety net behind that internal conversion."""
+        from PyQt5.QtCore import QDate
+        from Kavitro_dev.widgets.DateHelpers import DateHelpers
+        from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
+
+        main_layer = QgsVectorLayer(f'Point?crs=EPSG:3301&field={F.tunnus}:string', 'Main', 'memory')
+        main_layer.dataProvider().addAttributes([QgsField(F.muudet, QVariant.Date)])
+        main_layer.updateFields()
+        main_feature = QgsFeature(main_layer.fields())
+        main_feature.setAttributes(['1', QDate(2026, 1, 1)])
+        main_layer.dataProvider().addFeatures([main_feature])
+        main_row = next(main_layer.getFeatures())
+
+        raw_main_date = main_row.attribute(F.muudet)                                # AddBatchRunner's way
+        normalized_main_date = DateHelpers().date_to_iso_string(main_row[F.muudet])  # the check's way
+        self.assertIsInstance(raw_main_date, QDate)
+        self.assertEqual(normalized_main_date, '2026-01-01')
+
+        data = {'cadastralUnit': {'number': '1'}, 'address': {'street': 'Uus tn 5', 'houseNumber': ''}}
+        info = {'exists': True, 'active_count': 1, 'LastUpdated': '2025-06-01',
+                'property': {'id': '861', 'cadastralUnitNumber': '1', 'displayAddress': 'Vana tn 3'}}
+
+        via_import = classify_property_import(data, '2025-12-01', raw_main_date, info)
+        via_check = classify_property_import(data, '2025-12-01', normalized_main_date, info)
+        self.assertEqual(via_import['import_newer'], via_check['import_newer'])
+        self.assertFalse(via_import['import_newer'])
+        self.assertEqual((via_import['action'], via_import['reason']), (via_check['action'], via_check['reason']))
+        self.assertEqual(via_import['action'], 'needs_decision')
+
+    def test_check_and_import_reach_the_same_decision_for_the_same_object(self):
+        """End-to-end regression guard for this refactor: given one cadastral feature, the
+        check's own construction (AddUpdatePropertyDialog._start_attention_checks) and the
+        import's own construction (AddBatchRunner._tick / prepare_data_for_import_stage1)
+        must steer classify_property_import to the same decision. Additional to, not a
+        replacement for, the existing import-builder test
+        (test_address_split_separates_only_a_trailing_house_number) or the missing-settlement
+        and date-type regression guards above."""
+        from Kavitro_dev.widgets.DateHelpers import DateHelpers
+        from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
+
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        feature = QgsFeature(self.layer.fields())
+        feature.setAttributes(['A', 'Shared municipality', 'Uus küla', '11', 'Kase tn 7', '250',
+                                '20', '2024-01-01', '2025-03-10'])
+        self.layer.dataProvider().addFeatures([feature])
+        stored = next(f for f in self.layer.getFeatures() if f[F.tunnus] == '11')
+
+        main_layer = QgsVectorLayer(f'Polygon?crs=EPSG:3301&field={F.tunnus}:string', 'Main', 'memory')
+        main_layer.dataProvider().addAttributes([QgsField(F.muudet, QVariant.String)])
+        main_layer.updateFields()
+        main_feature = QgsFeature(main_layer.fields())
+        main_feature.setAttributes(['11', '2025-01-01'])
+        main_layer.dataProvider().addFeatures([main_feature])
+        main_row = next(main_layer.getFeatures())
+
+        info = {'exists': True, 'active_count': 1, 'LastUpdated': '2025-02-01',
+                'property': {'id': '900', 'cadastralUnitNumber': '11',
+                              'displayAddress': 'Kase tn 7, Uus küla, Shared municipality, A'}}
+
+        # The check's own construction (AddUpdatePropertyDialog._start_attention_checks).
+        check_data = {'cadastralUnit': {'number': '11'},
+                      'address': PropertyDataLoader.build_import_address(stored)}
+        check_import_date = DateHelpers().date_to_iso_string(stored[F.muudet])
+        check_main_date = DateHelpers().date_to_iso_string(main_row[F.muudet])
+        check_decision = classify_property_import(check_data, check_import_date, check_main_date, info)
+
+        # The import's own construction (AddBatchRunner._tick / prepare_data_for_import_stage1).
+        import_data, _tunnus, _uses, import_date = PropertyDataLoader().prepare_data_for_import_stage1(stored)
+        import_main_date = DateHelpers().date_to_iso_string(main_row.attribute(F.muudet))
+        import_decision = classify_property_import(import_data, import_date, import_main_date, info)
+
+        self.assertEqual((check_decision['action'], check_decision['reason'], check_decision['import_newer']),
+                          (import_decision['action'], import_decision['reason'], import_decision['import_newer']))
+        self.assertEqual(check_decision['action'], 'update')
 
     def test_property_table_headers_come_from_translations_in_both_languages(self):
         from Kavitro_dev.languages import en as en_module

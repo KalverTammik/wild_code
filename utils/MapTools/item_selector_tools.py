@@ -56,7 +56,7 @@ class PropertiesSelectors:
 
         settings = SettingsService()
         property_layer_name = settings.module_main_layer_name(Module.PROPERTY.value)
-        layer = MapHelpers.find_layer_by_name(property_layer_name)
+        layer = MapHelpers.resolve_layer(property_layer_name)
         return layer
 
     @staticmethod

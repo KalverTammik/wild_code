@@ -516,6 +516,34 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.assertEqual(decision['action'], 'needs_decision')
         self.assertFalse(decision['import_newer'])
 
+    def test_main_layer_date_typed_muudet_reaches_the_decision_as_an_iso_string(self):
+        """AddBatchRunner._tick reads the main layer's own `muudet` value and must normalize
+        it with date_to_iso_string before it reaches classify_property_import -- the same way
+        the check already does (AddUpdatePropertyDialog._start_attention_checks) -- so a real
+        QDate-typed field must arrive there as an ISO string, never as the raw QDate object."""
+        from PyQt5.QtCore import QDate, QVariant
+        from qgis.core import QgsField
+        from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
+
+        self.target.dataProvider().addAttributes([QgsField(F.muudet, QVariant.Date)])
+        self.target.updateFields()
+        main_feature = QgsFeature(self.target.fields())
+        main_feature.setAttributes(['1', QDate(2025, 6, 1)])
+        main_feature.setGeometry(QgsGeometry.fromWkt('POINT(10 20)'))
+        self.target.dataProvider().addFeatures([main_feature])
+
+        captured = {}
+        original = module.classify_property_import
+
+        def capture(data, import_date, main_date, info):
+            captured['main_date'] = main_date
+            return original(data, import_date, main_date, info)
+
+        with patch.object(module, 'classify_property_import', side_effect=capture):
+            self.run_batch()
+
+        self.assertEqual(captured['main_date'], '2025-06-01')
+
     def test_unknown_and_timezone_dates_do_not_turn_conflicts_into_technical_failures(self):
         from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
         info = self.conflict_info()

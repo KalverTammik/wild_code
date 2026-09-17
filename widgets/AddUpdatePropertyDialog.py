@@ -1432,25 +1432,6 @@ class AddPropertyDialog(QDialog):
             return (50, 0)
         return (30, 0)
 
-    @staticmethod
-    def _check_location_parts(table, row_idx: int) -> dict:
-        """Settlement, municipality and county of the row, from the same fields the import sends.
-
-        A property without an address is shown by the backend from these parts only, so the
-        check needs them to tell such a record apart from a changed address.
-        """
-        feature = PropertyTableManager.get_cell_data(table, row_idx, 0, role=Qt.UserRole)
-        parts = {}
-        for key, field in (('city', Katastriyksus.ay_nimi), ('state', Katastriyksus.ov_nimi),
-                           ('county', Katastriyksus.mk_nimi)):
-            value = None
-            if feature is not None and feature.fields().lookupField(field) >= 0:
-                value = feature.attribute(field)
-            parts[key] = '' if value is None or QgsVariantUtils.isNull(value) else str(value).strip()
-        if not parts['city'] and feature is None:
-            parts['city'] = PropertyTableManager.get_cell_text(table, row_idx, PropertyTableWidget._COL_SETTLEMENT)
-        return parts
-
     def _start_attention_checks(self, *, source: str) -> None:
         table = self.properties_table
         if table is None:
@@ -1507,15 +1488,13 @@ class AddPropertyDialog(QDialog):
         self._main_layer_lookup = self._build_main_layer_lookup(self._main_layer_for_verify, tunnus_set)
         import_context = {}
         for row_idx, tunnus, _import_date in rows:
-            street = PropertyTableManager.get_cell_text(table, row_idx, PropertyTableWidget._COL_ADDRESS)
-            address = PropertyDataLoader.get_address_details_from_street(street)
+            feature = PropertyTableManager.get_cell_data(table, row_idx, 0, role=Qt.UserRole)
             main = self._main_layer_lookup.get(tunnus)
             main_date = (date_helpers.date_to_iso_string(main[Katastriyksus.muudet])
                          if main is not None and main.fields().lookupField(Katastriyksus.muudet) >= 0 else None)
             import_context[tunnus] = {
                 'data': {'cadastralUnit': {'number': tunnus},
-                         'address': {'street': address['street'], 'houseNumber': address.get('house', ''),
-                                     **self._check_location_parts(table, row_idx)}},
+                         'address': PropertyDataLoader.build_import_address(feature)},
                 'main_date': main_date,
             }
 

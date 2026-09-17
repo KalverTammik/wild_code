@@ -1,12 +1,42 @@
 """The same pre-write decision rules for property checks and import execution."""
 from copy import deepcopy
 
-from .MainAddProperties import MainAddPropertiesFlow
 from ....languages.translation_keys import TranslationKeys as K
+from ....widgets.DateHelpers import DateHelpers
 
 
 # Address conflicts a reviewer may resolve by writing the import data over the backend record.
 ADDRESS_REASONS = (K.PROPERTY_ADD_BACKEND_DIFFERS, K.PROPERTY_IMPORT_ADDRESS_MISSING)
+
+
+def is_import_newer(import_date_str: str, backend_date_str: str, main_layer_muudet=None) -> bool:
+    """Return True if import is newer than max(backend, main-layer).
+
+    Accepts ISO-like strings, QDate/QDateTime, or other values for `main_layer_muudet`.
+    Non-parseable dates return False.
+    """
+    import_dt = DateHelpers.parse_iso(str(import_date_str) if import_date_str is not None else "")
+    backend_dt = DateHelpers.parse_iso(str(backend_date_str) if backend_date_str is not None else "")
+
+    main_s = None
+    if main_layer_muudet is not None:
+        if isinstance(main_layer_muudet, str):
+            main_s = DateHelpers().date_to_iso_string(main_layer_muudet)
+        else:
+            main_s = DateHelpers().date_to_iso_string(main_layer_muudet)
+    main_dt = DateHelpers.parse_iso(str(main_s) if main_s else "")
+
+    if not import_dt:
+        return False
+
+    candidates = [dt for dt in [backend_dt, main_dt] if dt]
+    if not candidates:
+        return False
+
+    # These are cadastral dates (the import payload also uses YYYY-MM-DD).
+    # Backend ISO timestamps may include a timezone; compare calendar dates
+    # consistently instead of mixing timezone-aware and naive datetimes.
+    return import_dt.date() > max(dt.date() for dt in candidates)
 
 
 def _normalize(text):
@@ -54,7 +84,7 @@ def classify_property_import(data, import_date, main_date, info):
     full_street = ' '.join(part for part in (street, str(address.get('houseNumber') or '').strip()) if part)
     location = _first_location(address)
     item = info.get('property') or {}
-    newer = MainAddPropertiesFlow._is_import_newer(import_date, info.get('LastUpdated'), main_date)
+    newer = is_import_newer(import_date, info.get('LastUpdated'), main_date)
     result = {
         'tunnus': tunnus, 'action': 'update', 'reason': None, 'import_newer': newer,
         'import_address': full_street, 'backend_address': item.get('displayAddress') or '',
