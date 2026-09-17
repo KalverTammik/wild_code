@@ -1,15 +1,14 @@
 from typing import Any, Callable, Optional
 
-from PyQt5.QtCore import QCoreApplication, Qt
-from PyQt5.QtWidgets import QTableWidgetItem, QTableView
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (
+    QVBoxLayout,
+    QFrame,
+    QHeaderView, QTableView
+)
 
 from ...languages.translation_keys import TranslationKeys
 from ...languages.language_manager import LanguageManager
-from PyQt5.QtWidgets import (
-    QVBoxLayout, QLabel,
-    QFrame,
-    QTableWidget, QHeaderView, QTableView
-)
 
 from .property_table_model import PropertyTableModel
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -26,71 +25,24 @@ class PropertyTableManager:
         self.add_button = None
 
 
-    def set_add_button(self, button):
-        """Optionally wire the add button to toggle when data loads."""
-        self.add_button = button
-
     def populate_properties_table(self, properties, properties_table=None):
         """Populate the properties table with data"""
         if not properties_table:
             return False
 
-        if isinstance(properties_table, QTableView):
-            model = properties_table.model()
-            if not isinstance(model, PropertyTableModel):
-                headers = PropertyTableWidget._headers()
-                model = PropertyTableModel(headers, parent=properties_table)
-                properties_table.setModel(model)
+        model = properties_table.model()
+        if not isinstance(model, PropertyTableModel):
+            headers = PropertyTableWidget._headers()
+            model = PropertyTableModel(headers, parent=properties_table)
+            properties_table.setModel(model)
 
-            model.set_rows(properties)
+        model.set_rows(properties)
 
-            if self.add_button is not None:
-                self.add_button.setEnabled(bool(properties))
-
-            return True
-
-        properties_table.setRowCount(len(properties))
-
-        # Enable/disable add button based on data availability
         if self.add_button is not None:
             self.add_button.setEnabled(bool(properties))
 
-        cadastral_ids = []
+        return True
 
-        for row, property_data in enumerate(properties):
-            # Cadastral ID
-            cadastral_id = str(property_data.get('cadastral_id', ""))
-            cadastral_ids.append(cadastral_id)
-            cadastral_item = QTableWidgetItem(cadastral_id)
-            properties_table.setItem(row, 0, cadastral_item)
-
-            # Address
-            address_item = QTableWidgetItem(str(property_data['address']))
-            properties_table.setItem(row, 1, address_item)
-            # Area
-            area_item = QTableWidgetItem(str(property_data['area']))
-            properties_table.setItem(row, 2, area_item)
-
-            # Settlement
-            settlement_item = QTableWidgetItem(str(property_data['settlement']))
-            properties_table.setItem(row, 3, settlement_item)
-
-            # Store feature data in the row
-            feature = property_data['feature']
-
-            # Store feature on all cells so selectedItems() always yields feature payloads.
-            cadastral_item.setData(Qt.UserRole, feature)
-            address_item.setData(Qt.UserRole, feature)
-            area_item.setData(Qt.UserRole, feature)
-            settlement_item.setData(Qt.UserRole, feature)
-    
-
-            # Process events periodically to keep UI responsive during table population
-            if row % 50 == 0:
-                QCoreApplication.processEvents()
-
-        return True            
-        
     @staticmethod
     def select_all(table=None):
         """Select all properties in the table"""
@@ -109,36 +61,20 @@ class PropertyTableManager:
         if not table:
             return []
 
-        if isinstance(table, QTableView):
-            selected_rows = table.selectionModel().selectedRows() if table.selectionModel() else []
-            selected_features = set()
-            for index in selected_rows:
-                feature = PropertyTableManager.get_cell_data(table, index.row(), 0, role=Qt.UserRole)
-                if feature:
-                    selected_features.add(feature)
-            return list(selected_features)
-            
-        selected_items = table.selectedItems()
-        if not selected_items:
-            return []
-
-        # Get unique selected features
+        selected_rows = table.selectionModel().selectedRows() if table.selectionModel() else []
         selected_features = set()
-        for item in selected_items:
-            feature = item.data(Qt.UserRole)
+        for index in selected_rows:
+            feature = PropertyTableManager.get_cell_data(table, index.row(), 0, role=Qt.UserRole)
             if feature:
                 selected_features.add(feature)
-
         return list(selected_features)
 
     @staticmethod
     def get_cadastral_ids(table) -> set[str]:
         if table is None:
             return set()
-        if isinstance(table, QTableView) and isinstance(table.model(), PropertyTableModel):
-            return table.model().cadastral_ids()
-        return {value for row in range(PropertyTableManager.row_count(table))
-                if (value := PropertyTableManager.get_cell_text(table, row, 0))}
+        model = table.model()
+        return model.cadastral_ids() if isinstance(model, PropertyTableModel) else set()
 
     @staticmethod
     def get_all_features(table=None):
@@ -168,101 +104,26 @@ class PropertyTableManager:
         return features
 
     @staticmethod
-    def get_selected_row_indices(table) -> list[int]:
-        """Return unique selected row indices in ascending order."""
-
-        if table is None:
-            return []
-
-        if isinstance(table, QTableView):
-            try:
-                rows = {int(index.row()) for index in (table.selectionModel().selectedRows() or [])}
-                return sorted(rows)
-            except Exception:
-                return []
-
-        try:
-            rows_set: set[int] = set()
-            for item in table.selectedItems() or []:
-                rows_set.add(int(item.row()))
-            return sorted(rows_set)
-        except Exception:
-            return []
-
-    @staticmethod
-    def get_first_selected_row_index(table) -> Optional[int]:
-        """Return the first selected row index, or None if nothing selected."""
-
-        rows = PropertyTableManager.get_selected_row_indices(table)
-        return rows[0] if rows else None
-
-    @staticmethod
     def get_cell_text(table, row: int, col: int) -> str:
         if table is None:
             return ""
-        if isinstance(table, QTableView):
-            try:
-                model = table.model()
-                if model is None:
-                    return ""
-                return str(model.data(model.index(int(row), int(col)), Qt.DisplayRole) or "").strip()
-            except Exception:
-                return ""
         try:
-            item = table.item(int(row), int(col))
-            return (item.text() if item is not None else "").strip()
+            model = table.model()
+            if model is None:
+                return ""
+            return str(model.data(model.index(int(row), int(col)), Qt.DisplayRole) or "").strip()
         except Exception:
             return ""
-
-    @staticmethod
-    def set_cell_text(table, row: int, col: int, text: str) -> bool:
-        """Ensure a cell exists and set its text.
-
-        Returns True when the cell was updated, False otherwise.
-        """
-
-        if table is None:
-            return False
-
-        if isinstance(table, QTableView):
-            try:
-                model = table.model()
-                if isinstance(model, PropertyTableModel):
-                    return bool(model.set_cell_text(int(row), int(col), text))
-            except Exception:
-                return False
-
-        try:
-            row_i = int(row)
-            col_i = int(col)
-        except (TypeError, ValueError):
-            return False
-
-        try:
-            item = table.item(row_i, col_i)
-            if item is None:
-                item = QTableWidgetItem("")
-                table.setItem(row_i, col_i, item)
-            item.setText(str(text or ""))
-            return True
-        except Exception:
-            return False
 
     @staticmethod
     def get_cell_data(table, row: int, col: int, *, role=Qt.UserRole) -> Any:
         if table is None:
             return None
-        if isinstance(table, QTableView):
-            try:
-                model = table.model()
-                if model is None:
-                    return None
-                return model.data(model.index(int(row), int(col)), role)
-            except Exception:
-                return None
         try:
-            item = table.item(int(row), int(col))
-            return item.data(role) if item is not None else None
+            model = table.model()
+            if model is None:
+                return None
+            return model.data(model.index(int(row), int(col)), role)
         except Exception:
             return None
 
@@ -271,27 +132,21 @@ class PropertyTableManager:
         if table is None:
             return False
 
-        if isinstance(table, QTableView):
-            try:
-                model = table.model()
-                if isinstance(model, PropertyTableModel):
-                    return bool(model.set_status(int(row), int(col), state=state, tooltip=tooltip))
-            except Exception:
-                return False
+        try:
+            model = table.model()
+            if isinstance(model, PropertyTableModel):
+                return bool(model.set_status(int(row), int(col), state=state, tooltip=tooltip))
+        except Exception:
+            return False
         return False
 
     @staticmethod
     def row_count(table) -> int:
         if table is None:
             return 0
-        if isinstance(table, QTableView):
-            try:
-                model = table.model()
-                return int(model.rowCount()) if model is not None else 0
-            except Exception:
-                return 0
         try:
-            return int(table.rowCount())
+            model = table.model()
+            return int(model.rowCount()) if model is not None else 0
         except Exception:
             return 0
 
@@ -339,97 +194,6 @@ class PropertyTableManager:
             return default
 
     @staticmethod
-    def get_selected_column_values(
-        table,
-        col: int,
-        *,
-        unique: bool = True,
-        include_empty: bool = False,
-    ) -> list[str]:
-        """Return values from `col` for selected rows.
-
-        Uses `get_selected_row_indices()` so it works regardless of which cells are selected.
-        """
-
-        if table is None:
-            return []
-
-        values: list[str] = []
-        for row in PropertyTableManager.get_selected_row_indices(table):
-            value = PropertyTableManager.get_cell_text(table, row, col)
-            if not value and not include_empty:
-                continue
-            values.append(value)
-
-        if not unique:
-            return values
-
-        seen: set[str] = set()
-        unique_values: list[str] = []
-        for value in values:
-            if value in seen:
-                continue
-            seen.add(value)
-            unique_values.append(value)
-        return unique_values
-
-    @staticmethod
-    def create_snapshot_table_from_rows(source_table, rows: list[int], *, table_factory=None):
-        """Create a read-only snapshot table for the given source rows.
-
-        `table_factory` should return `(frame, table)` (e.g. `PropertyTableWidget._create_properties_table`).
-        """
-
-        if source_table is None:
-            return None, None
-
-        if table_factory is None:
-            table_factory = PropertyTableWidget._create_properties_table
-
-        frame, snapshot_table = table_factory()
-
-        if isinstance(source_table, QTableView):
-            rows_payload: list[dict[str, Any]] = []
-            for src_row_idx in rows:
-                rows_payload.append(
-                    {
-                        "cadastral_id": PropertyTableManager.get_cell_text(source_table, src_row_idx, 0),
-                        "address": PropertyTableManager.get_cell_text(source_table, src_row_idx, 1),
-                        "area": PropertyTableManager.get_cell_text(source_table, src_row_idx, 2),
-                        "settlement": PropertyTableManager.get_cell_text(source_table, src_row_idx, 3),
-                        "feature": PropertyTableManager.get_cell_data(source_table, src_row_idx, 0, role=Qt.UserRole),
-                    }
-                )
-
-            PropertyTableManager.reset_and_populate_properties_table(snapshot_table, rows_payload)
-            snapshot_table.setSelectionMode(QTableView.NoSelection)
-            snapshot_table.setFocusPolicy(Qt.NoFocus)
-            return frame, snapshot_table
-
-        headers: list[str] = []
-        for c in range(source_table.columnCount()):
-            try:
-                h = source_table.horizontalHeaderItem(c)
-                headers.append(h.text() if h else "")
-            except Exception:
-                headers.append("")
-
-        snapshot_table.setColumnCount(len(headers))
-        snapshot_table.setHorizontalHeaderLabels(headers)
-
-        snapshot_table.setRowCount(len(rows))
-        for out_row_idx, src_row_idx in enumerate(rows):
-            for col in range(source_table.columnCount()):
-                src_item = source_table.item(src_row_idx, col)
-                text = src_item.text() if src_item is not None else ""
-                snapshot_table.setItem(out_row_idx, col, QTableWidgetItem(text))
-
-        snapshot_table.setSelectionMode(QTableWidget.NoSelection)
-        snapshot_table.setFocusPolicy(Qt.NoFocus)
-
-        return frame, snapshot_table
-
-    @staticmethod
     def reset_and_populate_properties_table(table, rows, *, after_populate=None) -> bool:
         """Reset table contents and repopulate via the shared PropertyTableManager."""
 
@@ -438,11 +202,6 @@ class PropertyTableManager:
 
         table.setUpdatesEnabled(False)
         table.clearSelection()
-        if isinstance(table, QTableView):
-            pass
-        else:
-            table.clearContents()
-            table.setRowCount(0)
 
         try:
             ok = bool(PropertyTableManager().populate_properties_table(rows, table))

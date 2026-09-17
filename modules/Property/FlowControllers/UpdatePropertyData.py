@@ -20,17 +20,6 @@ class UpdatePropertyData:
         return response if isinstance(response, dict) else {}
         
     @staticmethod
-    def _update_property_address_details(module, variables):
-        
-
-        file =  'UpdateProperty.graphql'
-        query = GraphQLQueryLoader().load_query_by_module(module, file)
-
-        client = APIClient()
-        client.send_query(query, variables)
-
-        
-    @staticmethod
     def _update_property_street_name(propertie_id, new_name, module: str = None):
         
         mutation_file =  'UpdateStreetName.graphql'
@@ -114,30 +103,6 @@ class UpdatePropertyData:
             if isinstance(n, dict) and n:
                 tags.append(n)
         return tags
-
-
-    @staticmethod
-    def is_property_archived(property_id: str) -> bool:
-        module = Module.PROPERTY.name
-        tag_name = (TagsEngines.ARHIVEERITUD_TAG_NAME or "").strip().lower()
-
-        try:
-            tags = UpdatePropertyData._get_property_tags(property_id=property_id, module=module)
-            for t in tags:
-                name = (t.get("name") or "").strip().lower()
-                if name == tag_name and tag_name:
-                    return True
-        except Exception:
-            # fall back to name-prefix check
-            pass
-
-        try:
-            current_name = str(UpdatePropertyData._get_properties_street_name_to_achived(property_id=property_id) or "")
-        except Exception:
-            current_name = ""
-
-        prefix = (TagsEngines.ARHIVEERITUD_NAME_ADDITION or "") + " - "
-        return bool(prefix and current_name.startswith(prefix))
 
 
     @staticmethod
