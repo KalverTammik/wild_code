@@ -858,6 +858,32 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         finally:
             self.close_dialog(dialog)
 
+    def test_the_visible_count_matches_the_visible_rows_without_walking_them(self):
+        """The count is read off the header now, so it must not drift from the rows."""
+
+        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        frame, table = PropertyTableWidget.create_properties_table()
+        frame.setParent(self.window)
+        manager = PropertyTableManager()
+
+        def agrees(expected):
+            self.assertEqual(PropertyTableManager.visible_row_count(table),
+                             len(PropertyTableManager.visible_rows(table)))
+            self.assertEqual(PropertyTableManager.visible_row_count(table), expected)
+
+        manager.populate_properties_table([{'cadastral_id': str(n)} for n in range(50)], table)
+        agrees(50)
+
+        PropertyTableManager.show_only_rows(table, range(0, 50, 5))
+        agrees(10)
+
+        # A smaller table replacing a filtered one must not inherit its hidden rows.
+        manager.populate_properties_table([{'cadastral_id': str(n)} for n in range(3)], table)
+        agrees(3)
+
+        PropertyTableManager.show_all_rows(table)
+        agrees(3)
+
     def test_select_all_takes_the_rows_the_table_shows(self):
         """Selection mode is off in location mode, so this is where the rule is checked."""
 

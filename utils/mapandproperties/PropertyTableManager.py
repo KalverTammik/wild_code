@@ -191,7 +191,23 @@ class PropertyTableManager:
 
     @staticmethod
     def visible_row_count(table) -> int:
-        return len(PropertyTableManager.visible_rows(table))
+        """How many rows the table shows, without walking every row.
+
+        A finished check asks for this once per painted row, so counting by hand cost
+        one `isRowHidden` call per row per row. The header keeps the hidden count, and
+        the walk is kept only for the case where it cannot be trusted.
+        """
+
+        if table is None:
+            return 0
+        try:
+            header = table.verticalHeader()
+            rows = PropertyTableManager.row_count(table)
+            if header is None or header.count() != rows:
+                return len(PropertyTableManager.visible_rows(table))
+            return max(0, rows - int(header.hiddenSectionCount()))
+        except Exception:
+            return len(PropertyTableManager.visible_rows(table))
 
     @staticmethod
     def show_only_rows(table, rows) -> None:

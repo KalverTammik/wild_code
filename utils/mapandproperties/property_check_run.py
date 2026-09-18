@@ -59,6 +59,9 @@ class PropertyCheckRun:
         # MAIN-layer context, resolved once per run on the UI thread.
         self.main_layer: Any = None
         self.main_layer_lookup: Dict[str, Any] = {}
+        # Whether that one read covered every tunnus in this run. When it did, a miss
+        # in the lookup is itself the answer; when it never happened, it says nothing.
+        self.lookup_is_complete: bool = False
 
         # Results.
         self.backend_causes: Dict[Any, List[str]] = {}

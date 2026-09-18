@@ -195,5 +195,52 @@ class MainLayerCheckTimerTest(_QtTestCase):
         pumped.assert_not_called()
 
 
+class MainLayerLookupTest(_QtTestCase):
+    """A lookup that covered the whole run answers a miss without scanning the layer again."""
+
+    def controller(self, *, lookup, complete):
+        from Kavitro_dev.modules.Property.FlowControllers import MainLayerCheckController as module
+        controller = MainLayerCheckController()
+        self.addCleanup(controller.deleteLater)
+        self.addCleanup(controller.stop)
+        controller.configure(
+            rows_for_verify_by_row={0: ('T0', '')},
+            main_layer=object(),
+            main_layer_lookup=lookup,
+            lookup_is_complete=complete,
+        )
+        return controller, module
+
+    def causes_for_row_zero(self, controller):
+        causes = []
+        controller.rowResult.connect(lambda _row, found: causes.append(found))
+        controller.ensure_row(0)
+        return causes[0]
+
+    def test_a_complete_lookup_reports_a_miss_without_a_full_layer_scan(self):
+        controller, module = self.controller(lookup={'other': object()}, complete=True)
+        with patch.object(module.MapHelpers, 'find_features_by_fields_and_values') as scan:
+            self.assertEqual(self.causes_for_row_zero(controller), ['missing in main layer'])
+        scan.assert_not_called()
+
+    def test_a_lookup_that_never_happened_still_falls_back_to_the_scan(self):
+        controller, module = self.controller(lookup={}, complete=False)
+        with patch.object(module.MapHelpers, 'find_features_by_fields_and_values',
+                          return_value=[]) as scan:
+            self.assertEqual(self.causes_for_row_zero(controller), ['missing in main layer'])
+        scan.assert_called_once()
+
+    def test_both_paths_agree_on_a_property_the_layer_does_not_have(self):
+        """The saved scan may not change the answer, only the work done to reach it."""
+
+        scanned, _module = self.controller(lookup={}, complete=False)
+        from Kavitro_dev.modules.Property.FlowControllers import MainLayerCheckController as module
+        with patch.object(module.MapHelpers, 'find_features_by_fields_and_values', return_value=[]):
+            from_scan = self.causes_for_row_zero(scanned)
+        trusted, _module = self.controller(lookup={}, complete=True)
+        from_lookup = self.causes_for_row_zero(trusted)
+        self.assertEqual(from_scan, from_lookup)
+
+
 if __name__ == '__main__':
     unittest.main()

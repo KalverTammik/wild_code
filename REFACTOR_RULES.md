@@ -1,5 +1,39 @@
 # Refactor Checklist (quick reference)
 
+- 2026-09-18: The property check stopped scanning the whole MAIN layer once per missing
+  property, and the visible-row count stopped walking every row. Both came out of profiling one
+  check cycle (1 767 rows, 30.6 s) after the previous entry recorded a guess instead of a
+  measurement. (1) `MainLayerCheckController._compute_causes_for_row` fell back to
+  `MapHelpers.find_features_by_fields_and_values` -- an unfiltered scan of the entire MAIN layer
+  -- for every tunnus missing from `_main_layer_lookup`. But that lookup is built once per run
+  by `PropertyDataLoader.read_features_by_field_values` for the run's whole tunnus set, so a
+  miss is already the answer and the scan cannot find what the batched read did not. It was 19.3
+  s of those 30.6 s, 355 scans of 15 456 features, and the cost grows with the scope squared.
+  `configure` now takes `lookup_is_complete` and returns "missing in main layer" straight away
+  when the run's read covered every tunnus; `_build_main_layer_lookup` returns None (the read
+  never happened) rather than an empty dict (the layer holds none of them), so the one-at-a-time
+  fallback still runs when there is nothing to trust. The two paths were checked for
+  disagreement before the scan was dropped, not after: both compare the same string-quoted `IN
+  (...)` form, both skip NULL and blank keys, and neither matches a padded or numerically-typed
+  value the other would. The one real divergence is a MAIN layer edited while a check runs,
+  where the run's own snapshot now wins -- which is what b5 asked for anyway. (2)
+  `PropertyTableManager.visible_row_count` counted by calling `isRowHidden` for every row, and a
+  finished check asks for the count once per painted row: 3 543 calls, 6.3 million
+  `isRowHidden`, 4.8 s -- this one was maintenance step 8's own doing. It now subtracts
+  `verticalHeader().hiddenSectionCount()`, falling back to the walk if the header count ever
+  disagrees with the model. `hiddenSectionCount` was probed across model resets in both
+  directions first, because a stale hidden section would silently under-count the add scope.
+  Files: modules/Property/FlowControllers/MainLayerCheckController.py,
+  widgets/AddUpdatePropertyDialog.py, utils/mapandproperties/property_check_run.py,
+  utils/mapandproperties/PropertyTableManager.py, tests/test_background_work_reliability.py,
+  tests/test_property_location_dialog_flow.py. Validation: 384 tests, the same 3 pre-existing
+  failures, 3 skipped. Measured on Harju maakond / Saue vald: one cycle over 1 767 rows went
+  30.6 s -> 12.0 s; 5 108 rows went 218.7/234.8/208.2 s -> 25.0 s; and the whole municipality,
+  19 320 rows, which did not finish inside ten minutes on any earlier tree, now finishes in 146
+  s with all 19 320 verdicts surviving five filter toggles. The win grows with the scope because
+  the removed cost was quadratic. Not measured against real production data, and not reviewed by
+  an independent reviewer.
+
 - 2026-09-18: The tests' common ground moved into one module (maintenance step 9), and the
   negative-checks runner was recovered into the repo. Nothing the suite asserts changed; this is
   organisation only, and every phase was run against a frozen baseline to prove it. Six copies of

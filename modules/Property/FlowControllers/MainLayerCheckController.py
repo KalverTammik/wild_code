@@ -31,6 +31,7 @@ class MainLayerCheckController(QObject):
         self._main_layer = None
         self._main_muudet_override_by_tunnus: Dict[str, str] = {}
         self._main_layer_lookup: Dict[str, Any] = {}
+        self._lookup_is_complete: bool = False
         self._process_events_counter: int = 0
         self._process_events_every: int = 12
 
@@ -45,6 +46,7 @@ class MainLayerCheckController(QObject):
         main_muudet_override_by_tunnus: Optional[Dict[str, str]] = None,
         checked_rows: Optional[set[int]] = None,
         main_layer_lookup: Optional[Dict[str, Any]] = None,
+        lookup_is_complete: bool = False,
     ) -> None:
         self.stop()
         self._rows_for_verify_by_row = dict(rows_for_verify_by_row or {})
@@ -52,6 +54,7 @@ class MainLayerCheckController(QObject):
         self._main_muudet_override_by_tunnus = dict(main_muudet_override_by_tunnus or {})
         self._checked_rows = set(checked_rows or set())
         self._main_layer_lookup = dict(main_layer_lookup or {})
+        self._lookup_is_complete = bool(lookup_is_complete)
 
     def is_checked(self, row: int) -> bool:
         return int(row) in self._checked_rows
@@ -152,6 +155,13 @@ class MainLayerCheckController(QObject):
 
         causes: List[str] = []
         if feature is None:
+            if self._lookup_is_complete:
+                # One batched read already asked the layer about every tunnus in this
+                # run, so a miss is the answer. Scanning the whole layer again cannot
+                # find what that read did not, and it is a full scan per missing row.
+                causes.append("missing in main layer")
+                return causes
+
             try:
                 matches = MapHelpers.find_features_by_fields_and_values(main_layer, Katastriyksus.tunnus, [tunnus])
             except Exception:

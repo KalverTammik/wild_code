@@ -1492,9 +1492,16 @@ class AddPropertyDialog(QDialog):
         run = self._check_run
         return (run.main_layer if run is not None else None) or self._resolve_main_layer_cached()
 
-    def _build_main_layer_lookup(self, layer, tunnus_set: set[str]) -> dict:
+    def _build_main_layer_lookup(self, layer, tunnus_set: set[str]) -> Optional[dict]:
+        """The run's one read of the MAIN layer, or None when that read never happened.
+
+        None is not an empty result. An empty result means the layer was asked about
+        every tunnus and holds none of them; None means nothing can be concluded, and
+        the check has to look rows up one at a time after all.
+        """
+
         if not layer or not tunnus_set:
-            return {}
+            return None
         try:
             return PropertyDataLoader.read_features_by_field_values(layer, Katastriyksus.tunnus, tunnus_set)
         except Exception as exc:
@@ -1503,7 +1510,7 @@ class AddPropertyDialog(QDialog):
                 module="property",
                 event="add_property_build_lookup_failed",
             )
-            return {}
+            return None
 
     def _main_check_batch_params(self, total_rows: int) -> tuple[int, int]:
         if total_rows >= 200:
@@ -1570,7 +1577,9 @@ class AddPropertyDialog(QDialog):
 
         # Cache MAIN layer once per run (UI-thread access).
         run.main_layer = self._resolve_main_layer_cached()
-        run.main_layer_lookup = self._build_main_layer_lookup(run.main_layer, run.tunnused())
+        lookup = self._build_main_layer_lookup(run.main_layer, run.tunnused())
+        run.main_layer_lookup = lookup or {}
+        run.lookup_is_complete = lookup is not None
         import_context = {}
         for entry in run.rows:
             main = run.main_layer_lookup.get(entry.tunnus)
@@ -1589,6 +1598,7 @@ class AddPropertyDialog(QDialog):
             rows_for_verify_by_row=run.rows_for_verify_by_row(),
             main_layer=run.main_layer,
             main_layer_lookup=run.main_layer_lookup,
+            lookup_is_complete=run.lookup_is_complete,
         )
 
         # Kick off a small synchronous batch to surface early results while backend checks spin up.
