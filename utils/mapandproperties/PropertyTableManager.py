@@ -37,6 +37,9 @@ class PropertyTableManager:
             properties_table.setModel(model)
 
         model.set_rows(properties)
+        # A freshly filled table shows everything it holds; a previous filter's
+        # hidden rows are about rows that no longer exist.
+        PropertyTableManager.show_all_rows(properties_table)
 
         if self.add_button is not None:
             self.add_button.setEnabled(bool(properties))
@@ -45,9 +48,17 @@ class PropertyTableManager:
 
     @staticmethod
     def select_all(table=None):
-        """Select all properties in the table"""
-        if table:
-            table.selectAll()
+        """Select every property the table is currently showing.
+
+        A row the attention filter hid is not offered to the user, so selecting it
+        would put a property into the add scope that the table never showed.
+        """
+
+        if not table:
+            return
+        table.clearSelection()
+        for row in PropertyTableManager.visible_rows(table):
+            table.selectRow(row)
 
     @staticmethod
     def clear_selection(table=None):
@@ -78,7 +89,23 @@ class PropertyTableManager:
 
     @staticmethod
     def get_all_features(table=None):
-        """Get all feature payloads currently visible in the table."""
+        """Every feature payload the table holds, hidden rows included."""
+        return PropertyTableManager._features_in_rows(
+            table, range(PropertyTableManager.row_count(table)))
+
+    @staticmethod
+    def get_visible_features(table=None):
+        """Every feature payload the table is currently showing.
+
+        This is the add scope wherever the whole table is the scope: the attention
+        filter narrows what is added by hiding rows, and a hidden row is not offered.
+        """
+
+        return PropertyTableManager._features_in_rows(
+            table, PropertyTableManager.visible_rows(table))
+
+    @staticmethod
+    def _features_in_rows(table, rows):
         if not table:
             return []
 
@@ -91,7 +118,7 @@ class PropertyTableManager:
             except Exception:
                 return ("obj", id(feature))
 
-        for row in range(PropertyTableManager.row_count(table)):
+        for row in rows:
             feature = PropertyTableManager.get_cell_data(table, row, 0, role=Qt.UserRole)
             if not feature:
                 continue
@@ -142,6 +169,7 @@ class PropertyTableManager:
 
     @staticmethod
     def row_count(table) -> int:
+        """Every row the table holds, whether or not it is currently shown."""
         if table is None:
             return 0
         try:
@@ -149,6 +177,42 @@ class PropertyTableManager:
             return int(model.rowCount()) if model is not None else 0
         except Exception:
             return 0
+
+    @staticmethod
+    def visible_rows(table) -> list[int]:
+        """The rows the table is currently showing, in table order."""
+        if table is None:
+            return []
+        try:
+            return [row for row in range(PropertyTableManager.row_count(table))
+                    if not table.isRowHidden(row)]
+        except Exception:
+            return list(range(PropertyTableManager.row_count(table)))
+
+    @staticmethod
+    def visible_row_count(table) -> int:
+        return len(PropertyTableManager.visible_rows(table))
+
+    @staticmethod
+    def show_only_rows(table, rows) -> None:
+        """Show exactly these rows and hide the rest, keeping every row in the model.
+
+        Removing the other rows would take their check results with them, and those
+        results are what the user is about to decide on.
+        """
+
+        if table is None:
+            return
+        keep = {int(row) for row in (rows or [])}
+        for row in range(PropertyTableManager.row_count(table)):
+            table.setRowHidden(row, row not in keep)
+
+    @staticmethod
+    def show_all_rows(table) -> None:
+        if table is None:
+            return
+        for row in range(PropertyTableManager.row_count(table)):
+            table.setRowHidden(row, False)
 
     @staticmethod
     def get_payload_field_value(table, row: int, payload_col: int, field_key: object, *, role=Qt.UserRole) -> Any:

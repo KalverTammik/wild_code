@@ -96,7 +96,7 @@ class AddBatchRunner(QObject):
             if self._review_decisions:
                 self._queue = [item['feature'] for item in self._review_decisions.values()]
             elif self._use_filtered_rows:
-                self._queue = list(mgr.get_all_features(self._table) or [])
+                self._queue = list(mgr.get_visible_features(self._table) or [])
             else:
                 self._queue = list(mgr.get_selected_features(self._table) or [])
         except Exception as exc:

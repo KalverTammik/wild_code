@@ -1064,10 +1064,11 @@ class AddPropertyDialog(QDialog):
         checked = bool(self.attention_only_checkbox.isChecked())
 
         if not checked:
+            # Showing the hidden rows again is all this takes. Reloading the table
+            # instead used to throw away the finished check and its decisions (b6).
             if self._table_filtered_to_attention:
-                self._table_filtered_to_attention = False
-                if self._location_filter_helper is not None:
-                    self._location_filter_helper.reload_current_table_from_filters()
+                self._clear_attention_filter()
+                self._on_table_selection_changed()
             return
 
         # If checks already finished, apply immediately.
@@ -1086,7 +1087,7 @@ class AddPropertyDialog(QDialog):
             return 0
 
         if self._use_filtered_row_scope():
-            return PropertyTableManager.row_count(table)
+            return PropertyTableManager.visible_row_count(table)
 
         try:
             return len(table.selectionModel().selectedRows() or [])
@@ -1110,7 +1111,7 @@ class AddPropertyDialog(QDialog):
             return 0
 
         if self._use_filtered_row_scope():
-            count = PropertyTableManager.row_count(table)
+            count = PropertyTableManager.visible_row_count(table)
             self.selection_info.setText(
                 self.lang_manager.translate(TranslationKeys.PROPERTY_TABLE_COUNT_TEMPLATE).format(count=count)
             )
@@ -1448,7 +1449,7 @@ class AddPropertyDialog(QDialog):
         if not self._add_in_progress:
             self._hide_detail_label()
 
-        self._table_filtered_to_attention = False
+        self._clear_attention_filter()
 
         if clear_attention:
             columns = (PropertyTableWidget._COL_BACKEND_ATTENTION, PropertyTableWidget._COL_MAIN_ATTENTION,
@@ -1799,6 +1800,11 @@ class AddPropertyDialog(QDialog):
 
         self._apply_attention_only_filter(attention_rows)
 
+    def _clear_attention_filter(self) -> None:
+        """Show every row again. The filter is a view, so this decides nothing."""
+        PropertyTableManager.show_all_rows(self.properties_table)
+        self._table_filtered_to_attention = False
+
     def _get_attention_row_indices(self) -> list[int]:
         run = self._check_run
         if run is None:
@@ -1820,17 +1826,12 @@ class AddPropertyDialog(QDialog):
         if not keep:
             return
 
-        # Remove non-attention rows (from bottom up so indices stay valid).
+        # Hide the other rows rather than removing them: a removed row takes its
+        # check result with it, and the result is what the user came here to act on.
         table.setUpdatesEnabled(False)
         table.blockSignals(True)
         table.clearSelection()
-
-        model = table.model() if table is not None else None
-        for row_idx in range(PropertyTableManager.row_count(table) - 1, -1, -1):
-            if row_idx not in keep:
-                if model is not None:
-                    model.removeRow(row_idx)
-
+        PropertyTableManager.show_only_rows(table, keep)
         table.blockSignals(False)
         table.setUpdatesEnabled(True)
 

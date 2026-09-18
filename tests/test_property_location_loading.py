@@ -1191,8 +1191,9 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         return dialog
 
     def table_ids(self, dialog):
+        """What the table is showing, which is not the same as what it holds."""
         return [PropertyTableManager.get_cell_text(dialog.properties_table, row, 0)
-                for row in range(PropertyTableManager.row_count(dialog.properties_table))]
+                for row in PropertyTableManager.visible_rows(dialog.properties_table)]
 
     def backend_tip(self, dialog, tunnus):
         """The backend column's tooltip for a property, found by identity rather than by row."""
@@ -1201,14 +1202,12 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         return PropertyTableManager.get_cell_data(
             dialog.properties_table, row, PropertyTableWidget._COL_BACKEND_ATTENTION, role=Qt.ToolTipRole)
 
-    @unittest.expectedFailure
     def test_turning_the_attention_filter_off_keeps_the_finished_check_result(self):
         """b6: unticking "only needs attention" must not throw the finished check away.
 
-        The filter removes rows from the model, and every check result is stored under a
-        table row number, so the reload that brings the rows back drops the result and the
-        decisions that came with it. Expected to fail until the run is keyed by identity
-        and the filter stops deleting rows.
+        The filter used to remove rows from the model and every result was stored under a
+        table row number, so the reload that brought the rows back dropped the finished
+        check and the decisions that came with it.
         """
 
         dialog = self.check_dialog_with_one_attention_row()
@@ -1226,10 +1225,13 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             self.assertEqual(self.backend_tip(dialog, '1'), differs)
             self.assertTrue(dialog.add_button.isEnabled())
 
-            # Unticking the box only widens what is shown; it decides nothing.
+            # The clean property was only hidden, so it is still there to show again.
+            self.assertEqual(PropertyTableManager.row_count(dialog.properties_table), 2)
+
+            # Unticking the box only widens what is shown; it decides nothing, and it
+            # needs no reload, so it happens at once.
             dialog.attention_only_checkbox.setChecked(False)
-            self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
-            self.assertEqual(sorted(self.table_ids(dialog)), ['1', '2'])
+            self.assertEqual(self.table_ids(dialog), ['1', '2'])
 
             # Everything the check established is still there, for both rows.
             self.assertEqual(self.backend_tip(dialog, '1'), differs)
@@ -1239,6 +1241,53 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             self.assertTrue(dialog.add_button.isEnabled())
         finally:
             self.close_dialog(dialog)
+
+    def test_the_attention_filter_narrows_what_gets_added(self):
+        """A hidden row is not offered, so it must not quietly end up in the add scope.
+
+        The filter used to delete rows, which narrowed the add scope as a side effect.
+        Hiding them has to narrow it on purpose instead.
+        """
+
+        dialog = self.check_dialog_with_one_attention_row()
+        table = dialog.properties_table
+        count_text = dialog.lang_manager.translate(K.PROPERTY_TABLE_COUNT_TEMPLATE)
+
+        def visible_tunnused():
+            return [feature[F.tunnus] for feature in PropertyTableManager.get_visible_features(table)]
+
+        try:
+            dialog._on_run_checks_clicked()
+            self.wait_until(lambda: dialog._checks_completed_for_scope)
+
+            # Both rows are still in the table, but only the filtered one is on offer.
+            self.assertEqual(PropertyTableManager.row_count(table), 2)
+            self.assertEqual(visible_tunnused(), ['1'])
+            self.assertEqual(dialog._current_target_count(), 1)
+            self.assertEqual(dialog.selection_info.text(), count_text.format(count=1))
+
+            dialog.attention_only_checkbox.setChecked(False)
+            self.assertEqual(visible_tunnused(), ['1', '2'])
+            self.assertEqual(dialog._current_target_count(), 2)
+            self.assertEqual(dialog.selection_info.text(), count_text.format(count=2))
+        finally:
+            self.close_dialog(dialog)
+
+    def test_select_all_takes_the_rows_the_table_shows(self):
+        """Selection mode is off in location mode, so this is where the rule is checked."""
+
+        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        frame, table = PropertyTableWidget.create_properties_table()
+        # Parented to the fixture window so it dies with it; a stray top-level widget
+        # still pending deletion at interpreter shutdown crashes the run.
+        frame.setParent(self.window)
+        PropertyTableManager().populate_properties_table(
+            [{'cadastral_id': str(number)} for number in (1, 2, 3)], table)
+        PropertyTableManager.show_only_rows(table, [0, 2])
+
+        PropertyTableManager.select_all(table)
+
+        self.assertEqual(sorted(index.row() for index in table.selectionModel().selectedRows()), [0, 2])
 
     def test_check_treats_a_missing_cadastral_address_as_agreement_with_the_settlement(self):
         from qgis.core import NULL
