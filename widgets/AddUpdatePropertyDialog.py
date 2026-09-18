@@ -33,6 +33,7 @@ from ..utils.mapandproperties.property_archive_plan import (
     PropertyArchiveScope,
     classify_archive_candidates,
 )
+from ..utils.mapandproperties.property_check_run import CheckRow, PropertyCheckRun
 from ..utils.mapandproperties.property_dialog_phase import (AddAction, AddMode, CancelTarget,
                                                             PropertyDialogState)
 from ..utils.mapandproperties.property_row_builder import PropertyRowBuilder
@@ -232,15 +233,13 @@ class AddPropertyDialog(QDialog):
         self._main_check_controller.finished.connect(self._on_main_check_finished)
 
         self._checks_running = False
-        self._rows_for_verify_by_row = {}
-        self._backend_decisions_by_row = {}
-        self._backend_compare_causes_by_row = {}
-        self._main_compare_causes_by_row = {}
-        self._backend_checked_rows = set()
-        self._main_checked_rows = set()
-        self._total_rows_for_checks = 0
+        # One press of "Run checks" is one PropertyCheckRun: its scope, its per-row
+        # results, its MAIN-layer context and its completion accounting. None means
+        # no run, and stopping a run is dropping it rather than clearing a field list.
+        self._check_run: Optional[PropertyCheckRun] = None
+        self._check_run_seq = 0
+        # Survives a run on purpose: resolving the MAIN layer is the expensive part.
         self._main_layer_cached = None
-        self._main_layer_for_verify = None
         self._progress_update_every = 8
         self._last_progress_total = 0
         self._last_progress_done = -1
@@ -973,13 +972,16 @@ class AddPropertyDialog(QDialog):
 
     def _collect_check_decisions(self) -> list:
         """Undecided rows of the finished check, in the shape the review dialog expects."""
+        run = self._check_run
+        if run is None:
+            return []
+
         decisions = []
-        for row_idx, decision in sorted(self._backend_decisions_by_row.items()):
+        for _row_idx, decision, feature in run.decisions_in_row_order():
             if not isinstance(decision, dict) or decision.get('action') != 'needs_decision':
                 continue
             tunnus = str(decision.get('tunnus') or '')
-            feature = PropertyTableManager.get_cell_data(self.properties_table, row_idx, 0, role=Qt.UserRole)
-            main = self._main_layer_lookup.get(tunnus)
+            main = run.main_layer_lookup.get(tunnus)
             decisions.append(dict(
                 decision,
                 fid=feature.id() if feature is not None else None,
@@ -1304,7 +1306,7 @@ class AddPropertyDialog(QDialog):
             )
             return set()
 
-        main_layer = self._main_layer_for_verify or self._resolve_main_layer_cached()
+        main_layer = self._plan_main_layer()
         import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         try:
             main_features = self._scope_features(main_layer, scope)
@@ -1413,7 +1415,8 @@ class AddPropertyDialog(QDialog):
         self._start_attention_checks(source="manual_button")
 
     def _cancel_attention_checks(self) -> None:
-        done, total = self._checks_done_count(), self._total_rows_for_checks
+        run = self._check_run
+        done, total = self._checks_done_count(), (run.total if run is not None else 0)
         self._stop_attention_checks(clear_attention=False)
         self.add_progress_label.setText(self.lang_manager.translate(
             TranslationKeys.PROPERTY_CHECK_CANCELLED).format(done=done, total=total))
@@ -1426,20 +1429,17 @@ class AddPropertyDialog(QDialog):
     def _stop_attention_checks(self, *, clear_attention: bool = False) -> None:
         self._stop_check_controllers()
 
+        # The run is cancelled before it is dropped, so a controller signal that was
+        # already queued cannot record anything on its way out.
+        run, self._check_run = self._check_run, None
+        if run is not None:
+            run.cancel()
+
         self._checks_running = False
         self._checks_completed_for_scope = False
-        self._rows_for_verify_by_row = {}
-        self._backend_decisions_by_row = {}
         if not self._decisions_from_import:
             self._deferred_additions = []
             self._refresh_review_button()
-        self._backend_compare_causes_by_row = {}
-        self._main_compare_causes_by_row = {}
-        self._backend_checked_rows = set()
-        self._main_checked_rows = set()
-        self._total_rows_for_checks = 0
-        self._main_layer_for_verify = None
-        self._main_layer_lookup = {}
         self._missing_from_import = set()
         self._archive_backend_plan = {}
         self._archive_map_plan = {}
@@ -1479,8 +1479,17 @@ class AddPropertyDialog(QDialog):
             layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
             self._main_layer_cached = layer
 
-        self._main_layer_for_verify = layer
         return layer
+
+    def _plan_main_layer(self):
+        """The layer the current run was computed against, or the cached one.
+
+        The archive plan is applied after the run that produced it is already gone,
+        and must not resolve the MAIN layer a second time by name (b5).
+        """
+
+        run = self._check_run
+        return (run.main_layer if run is not None else None) or self._resolve_main_layer_cached()
 
     def _build_main_layer_lookup(self, layer, tunnus_set: set[str]) -> dict:
         if not layer or not tunnus_set:
@@ -1511,8 +1520,7 @@ class AddPropertyDialog(QDialog):
             return
 
         date_helpers = DateHelpers()
-        rows = []
-        rows_for_verify_by_row = {}
+        entries = []
         event_counter = 0
         for row_idx in range(PropertyTableManager.row_count(table)):
             tunnus = PropertyTableManager.get_cell_text(table, row_idx, PropertyTableWidget._COL_CADASTRAL_ID)
@@ -1527,8 +1535,14 @@ class AddPropertyDialog(QDialog):
                 normalizer=date_helpers.date_to_iso_string,
             )
 
-            rows.append((row_idx, tunnus, import_muudet))
-            rows_for_verify_by_row[int(row_idx)] = (tunnus, import_muudet)
+            entries.append(CheckRow(
+                row=int(row_idx),
+                tunnus=tunnus,
+                import_muudet=import_muudet,
+                # The run keeps the payload itself: the decisions it offers are
+                # collected once the attention filter may already have changed the table.
+                feature=PropertyTableManager.get_cell_data(table, row_idx, 0, role=Qt.UserRole),
+            ))
             event_counter += 1
             if event_counter % self._rows_process_events_every == 0:
                 QCoreApplication.processEvents()
@@ -1537,49 +1551,47 @@ class AddPropertyDialog(QDialog):
 
         self._stop_attention_checks(clear_attention=False)
 
-        self._rows_for_verify_by_row = rows_for_verify_by_row
-        self._total_rows_for_checks = len(rows)
-        self._checks_running = bool(rows)
+        self._check_run_seq += 1
+        run = PropertyCheckRun(entries, run_id=self._check_run_seq)
+        self._check_run = run
+        self._checks_running = bool(entries)
 
         self._update_run_checks_button()
 
-        self._set_check_progress(0, self._total_rows_for_checks)
+        self._set_check_progress(0, run.total)
 
         # Gate Add button while checks are running.
         self._update_add_button_state()
 
-        if not rows:
+        if not entries:
             self._set_check_progress(0, 0)
             return
 
         # Cache MAIN layer once per run (UI-thread access).
-        self._main_layer_for_verify = self._resolve_main_layer_cached()
-        tunnus_set = {t for (_row_idx, t, _muudet) in rows}
-        self._main_layer_lookup = self._build_main_layer_lookup(self._main_layer_for_verify, tunnus_set)
+        run.main_layer = self._resolve_main_layer_cached()
+        run.main_layer_lookup = self._build_main_layer_lookup(run.main_layer, run.tunnused())
         import_context = {}
-        for row_idx, tunnus, _import_date in rows:
-            feature = PropertyTableManager.get_cell_data(table, row_idx, 0, role=Qt.UserRole)
-            main = self._main_layer_lookup.get(tunnus)
+        for entry in run.rows:
+            main = run.main_layer_lookup.get(entry.tunnus)
             main_date = (date_helpers.date_to_iso_string(main[Katastriyksus.muudet])
                          if main is not None and main.fields().lookupField(Katastriyksus.muudet) >= 0 else None)
-            import_context[tunnus] = {
-                'data': {'cadastralUnit': {'number': tunnus},
-                         'address': PropertyDataLoader.build_import_address(feature)},
+            import_context[entry.tunnus] = {
+                'data': {'cadastralUnit': {'number': entry.tunnus},
+                         'address': PropertyDataLoader.build_import_address(entry.feature)},
                 'main_date': main_date,
             }
 
-        batch_size, interval_ms = self._main_check_batch_params(len(rows))
+        batch_size, interval_ms = self._main_check_batch_params(run.total)
 
+        # A fresh run has nothing checked yet, so the controller starts from empty.
         self._main_check_controller.configure(
-            rows_for_verify_by_row=self._rows_for_verify_by_row,
-            main_layer=self._main_layer_for_verify,
-            checked_rows=self._main_checked_rows,
-            main_layer_lookup=self._main_layer_lookup,
+            rows_for_verify_by_row=run.rows_for_verify_by_row(),
+            main_layer=run.main_layer,
+            main_layer_lookup=run.main_layer_lookup,
         )
 
         # Kick off a small synchronous batch to surface early results while backend checks spin up.
-        initial_rows = list(self._rows_for_verify_by_row.keys())[: min(10, len(self._rows_for_verify_by_row))]
-        for r in initial_rows:
+        for r in run.row_indices()[:10]:
             try:
                 self._main_check_controller.ensure_row(r)
             except Exception as exc:
@@ -1591,17 +1603,17 @@ class AddPropertyDialog(QDialog):
 
         self._update_run_checks_button()
         self._main_check_controller.start_pending(
-            self._rows_for_verify_by_row.keys(),
+            run.row_indices(),
             batch_size=batch_size,
             interval_ms=interval_ms,
         )
  
         # Mark in-progress in the Attention column.
         table.setUpdatesEnabled(False)
-        for row_idx, tunnus, _import_muudet in rows:
+        for entry in run.rows:
             self._set_attention_row(
-                row_idx,
-                tunnus=tunnus,
+                entry.row,
+                tunnus=entry.tunnus,
                 main_causes=[],
                 backend_causes=[],
                 main_done=False,
@@ -1612,7 +1624,8 @@ class AddPropertyDialog(QDialog):
         self._update_check_status_label()
 
         try:
-            self._backend_verify_controller.start(rows, source=source, import_context_by_tunnus=import_context)
+            self._backend_verify_controller.start(run.controller_rows(), source=source,
+                                                 import_context_by_tunnus=import_context)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -1621,8 +1634,8 @@ class AddPropertyDialog(QDialog):
             )
             # If backend verify cannot start, fall back to running MAIN checks only.
             # Mark backend as "done" for all rows so completion is driven by MAIN checks.
-            self._backend_checked_rows = set(self._rows_for_verify_by_row.keys())
-            remaining = list(self._rows_for_verify_by_row.keys())
+            run.mark_backend_all_checked()
+            remaining = run.unchecked_main_rows()
             batch_size, interval_ms = self._main_check_batch_params(len(remaining))
             self._main_check_controller.start_pending(remaining, batch_size=batch_size, interval_ms=interval_ms)
 
@@ -1638,9 +1651,10 @@ class AddPropertyDialog(QDialog):
         except Exception:
             causes = []
 
-        self._backend_compare_causes_by_row[row_idx] = causes
-        self._backend_decisions_by_row[row_idx] = result.get("decision") if isinstance(result, dict) else None
-        self._backend_checked_rows.add(row_idx)
+        decision = result.get("decision") if isinstance(result, dict) else None
+        run = self._check_run
+        if run is None or not run.record_backend(row_idx, causes, decision):
+            return
 
         # Run MAIN check for this row now (keeps UI responsive).
         self._main_check_controller.ensure_row(row_idx)
@@ -1675,9 +1689,10 @@ class AddPropertyDialog(QDialog):
     def _on_main_check_row_result(self, row: int, causes: list) -> None:
         row_idx = int(row)
 
-        self._main_compare_causes_by_row[row_idx] = [str(c).strip() for c in (causes or []) if str(c).strip()]
+        run = self._check_run
+        if run is None or not run.record_main(row_idx, causes):
+            return
 
-        self._main_checked_rows.add(row_idx)
         self._update_row_attention_display(row_idx)
         self._update_check_status_label()
         self._maybe_finish_checks()
@@ -1690,15 +1705,16 @@ class AddPropertyDialog(QDialog):
         if table is None:
             return
 
-        main_causes = self._main_compare_causes_by_row.get(row_idx) or []
-        backend_causes = self._backend_compare_causes_by_row.get(row_idx) or []
+        run = self._check_run
+        if run is None:
+            return
 
-        main_done = row_idx in self._main_checked_rows
-        backend_done = row_idx in self._backend_checked_rows
+        main_causes, backend_causes = run.causes_for_row(row_idx)
+        main_done, backend_done = run.done_for_row(row_idx)
 
         self._set_attention_row(
             row_idx,
-            tunnus=self._rows_for_verify_by_row.get(row_idx, ("", ""))[0],
+            tunnus=run.tunnus_for_row(row_idx),
             main_causes=main_causes,
             backend_causes=backend_causes,
             main_done=main_done,
@@ -1709,7 +1725,8 @@ class AddPropertyDialog(QDialog):
         if not self._checks_running:
             return
 
-        total = int(self._total_rows_for_checks or 0)
+        run = self._check_run
+        total = run.total if run is not None else 0
         if total <= 0:
             self._checks_running = False
             self._checks_completed_for_scope = False
@@ -1717,7 +1734,11 @@ class AddPropertyDialog(QDialog):
             self._set_check_progress(0, 0)
             return
 
-        if self._checks_done_count() < total:
+        if not run.is_complete:
+            return
+
+        # Exactly one call gets to announce this run as finished.
+        if not run.mark_finished():
             return
 
         self._checks_running = False
@@ -1746,8 +1767,8 @@ class AddPropertyDialog(QDialog):
             )
             self.add_progress_label.setVisible(True)
 
-        # Offer the undecided properties now, before anything is written. Row indices are
-        # still the checked ones here; the attention filter below may drop rows.
+        # Offer the undecided properties now, before anything is written. The run carries
+        # its own payloads, so the attention filter below cannot take them away.
         self._deferred_additions = self._collect_check_decisions()
         self._decisions_from_import = False
         self._refresh_review_button()
@@ -1763,7 +1784,8 @@ class AddPropertyDialog(QDialog):
             return
 
         # Only apply after at least one completed run.
-        if int(self._total_rows_for_checks or 0) <= 0:
+        run = self._check_run
+        if run is None or run.total <= 0:
             return
 
         # Only filter when there is something to focus on.
@@ -1778,13 +1800,13 @@ class AddPropertyDialog(QDialog):
         self._apply_attention_only_filter(attention_rows)
 
     def _get_attention_row_indices(self) -> list[int]:
+        run = self._check_run
+        if run is None:
+            return []
+
         rows: list[int] = []
-        for row_idx in self._rows_for_verify_by_row.keys():
-            combined = AttentionDisplayRules.combined_causes(
-                self._main_compare_causes_by_row.get(row_idx) or [],
-                self._backend_compare_causes_by_row.get(row_idx) or [],
-            )
-            if combined:
+        for row_idx in run.row_indices():
+            if AttentionDisplayRules.combined_causes(*run.causes_for_row(row_idx)):
                 rows.append(int(row_idx))
 
         return sorted(set(rows))
@@ -1823,7 +1845,8 @@ class AddPropertyDialog(QDialog):
         self._on_table_selection_changed()
 
     def _update_check_status_label(self) -> None:
-        total = int(self._total_rows_for_checks or 0)
+        run = self._check_run
+        total = run.total if run is not None else 0
         if not self._checks_running or total <= 0:
             self._set_check_progress(0, 0)
             return
@@ -1832,9 +1855,8 @@ class AddPropertyDialog(QDialog):
         self._update_run_checks_button()
 
     def _checks_done_count(self) -> int:
-        """A row counts as checked only when both the backend and MAIN checks finished."""
-        return sum(1 for row_idx in self._rows_for_verify_by_row
-                   if row_idx in self._backend_checked_rows and row_idx in self._main_checked_rows)
+        run = self._check_run
+        return run.done_count() if run is not None else 0
 
     def _set_check_progress(self, done: int, total: int) -> None:
         bar = self.check_progress_bar
@@ -2082,7 +2104,7 @@ class AddPropertyDialog(QDialog):
             label.setText(template.format(count=len(missing)))
 
         try:
-            main_layer = self._main_layer_for_verify or self._resolve_main_layer_cached()
+            main_layer = self._plan_main_layer()
             summary = MainAddPropertiesFlow.archive_missing_from_import(
                 missing, backend_allowed=backend_allowed, main_layer=main_layer)
             archived = int(summary.get("archived_backend") or 0)

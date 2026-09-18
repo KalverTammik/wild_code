@@ -520,7 +520,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
                                  '2025-01-01')
                 dialog._on_run_checks_clicked()
                 self.wait_until(lambda: dialog._checks_completed_for_scope)
-                self.assertIn(K.PROPERTY_ADD_BACKEND_DIFFERS, dialog._backend_compare_causes_by_row[0])
+                self.assertIn(K.PROPERTY_ADD_BACKEND_DIFFERS, dialog._check_run.causes_for_row(0)[1])
                 with patch.object(dialog, '_run_missing_cleanup_if_any', side_effect=lambda then: then()), \
                         patch.object(PropertyDataLoader, 'prepare_data_for_import_stage1', side_effect=lambda feature: (
                             {'cadastralUnit': {'number': feature[F.tunnus]}, 'address': {'street': 'Address',
