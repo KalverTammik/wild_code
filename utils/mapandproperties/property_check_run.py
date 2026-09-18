@@ -57,7 +57,6 @@ class PropertyCheckRun:
         # MAIN-layer context, resolved once per run on the UI thread.
         self.main_layer: Any = None
         self.main_layer_lookup: Dict[str, Any] = {}
-        self.main_checks_started: bool = False
 
         # Results.
         self.backend_causes: Dict[Any, List[str]] = {}

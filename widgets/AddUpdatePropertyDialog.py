@@ -241,7 +241,6 @@ class AddPropertyDialog(QDialog):
         self._total_rows_for_checks = 0
         self._main_layer_cached = None
         self._main_layer_for_verify = None
-        self._main_checks_started = False
         self._progress_update_every = 8
         self._last_progress_total = 0
         self._last_progress_done = -1
@@ -1590,7 +1589,6 @@ class AddPropertyDialog(QDialog):
                     event="add_property_main_check_row_failed",
                 )
 
-        self._main_checks_started = True
         self._update_run_checks_button()
         self._main_check_controller.start_pending(
             self._rows_for_verify_by_row.keys(),
@@ -1665,23 +1663,13 @@ class AddPropertyDialog(QDialog):
         self.add_detail_label.show()
 
     def _on_backend_verify_finished(self, _summary: dict) -> None:
-        # Ensure remaining MAIN rows finish in batches.
-        try:
-            remaining = [r for r in self._rows_for_verify_by_row.keys() if r not in self._main_checked_rows]
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="property",
-                event="add_property_remaining_rows_failed",
-            )
-            remaining = []
+        """The backend run ended; only MAIN can still be outstanding.
 
-        if remaining and not self._main_checks_started:
-            self._main_checks_started = True
-            batch_size, interval_ms = self._main_check_batch_params(len(remaining))
-            self._main_check_controller.start_pending(remaining, batch_size=batch_size, interval_ms=interval_ms)
+        Every MAIN row is already queued by the time the backend run starts, so there is
+        nothing left to kick off here: the backend finishing can only mean that the whole
+        check is now done, or that MAIN is still working through its batches.
+        """
 
-        # If MAIN is already done, finalize now.
         self._maybe_finish_checks()
 
     def _on_main_check_row_result(self, row: int, causes: list) -> None:
