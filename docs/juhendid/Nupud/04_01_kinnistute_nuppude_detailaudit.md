@@ -152,6 +152,8 @@ Geospatiali režiimis on **Lisa kinnistuid** alati aktiivne, isegi kui impordiki
 
 Asukohaloendi režiimis nuppe **Vali kõik** ja **Tühjenda valik** ei ole ning tabeliridu ei saa valida. Lisamise sihiks on alati kõik parajasti tabelis olevad read; tähelepanufiltri järel ainult filtris nähtavad read. Tabeli kohal kuvatakse „Tabelis: N kinnistut”, ja see arv järgib tabelit ka uue piirkonna laadimise ajal.
 
+Märkeruut **Näita ainult tähelepanu vajavaid** on vaade, mitte otsus: lõpetatud kontrolli järel peidab ta ülejäänud read ja linnukese eemaldamine näitab neid uuesti. Read jäävad kogu aeg tabelisse alles, tabelit ei laadita uuesti ja kontrolli tulemus ning sellest tulenevad otsused jäävad kehtima. Varem kustutas filter read ja linnukese eemaldamine laadis tabeli uuesti, mille käigus kontrolli tulemus kadus ja kontroll tuli uuesti teha. Lisamine ja **Vali kõik** puudutavad ainult nähtavaid ridu; uus tähelepanukontroll seevastu katab kõik tabeli read, ka peidetud.
+
 ### Vali kõik
 
 Nupp esineb ainult kaardilt valimise režiimis. See valib kõik tabeliread ja need muutuvad lisamise sihiks. Tabelivalik sünkroonitakse kuni 1500 rea korral tagasi impordikihi kaardivalikuks.

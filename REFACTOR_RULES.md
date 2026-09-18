@@ -1,5 +1,62 @@
 # Refactor Checklist (quick reference)
 
+- 2026-09-18: One check run of the property add dialog is now one object, and the "only needs
+  attention" filter stopped throwing that run away (maintenance step 8, bug b6). NOT REVIEWED BY
+  AN INDEPENDENT REVIEWER: the design rests on reading the code only, and this is the most used
+  flow in the module, so it was done as five separate commits rather than one. Unticking the
+  filter reloaded the table, which goes through `_after_table_update` ->
+  `_stop_attention_checks` and dropped the finished check together with the decisions it had
+  offered; the user had to run the check again. The root cause was two things at once: about
+  fifteen dialog fields carried one run and were reset by hand in up to three places each, and
+  every result was filed under a table row number, which stops meaning anything the moment the
+  filter removes a row. A Qt-free `PropertyCheckRun` in
+  `utils/mapandproperties/property_check_run.py` now holds one run's scope, per-row results,
+  MAIN-layer context and completion accounting; starting a run creates one, stopping a run drops
+  it. The run also owns two rules a plain field could not enforce: a replaced or cancelled run
+  refuses every further result (so a controller signal already queued cannot paint onto the run
+  that replaced it), and `mark_finished` answers true exactly once and never for a cancelled
+  run. Results are keyed by cadastral number, so two rows of the same property are one thing to
+  check and share one result — `total` counts distinct properties, because counting rows would
+  leave it one ahead of anything reachable and the check would never finish. The filter now
+  hides rows (`PropertyTableManager.show_only_rows`) instead of deleting them, and unticking
+  only shows them again. Because deleting rows used to narrow the add scope as a side effect,
+  the scope readers were made to follow the visible rows on purpose:
+  `visible_rows`/`visible_row_count`/`get_visible_features` are new, `AddBatchRunner`'s whole-
+  table scope and `select_all` use them, and a freshly populated table always shows every row it
+  holds. Also removed a branch in `_on_backend_verify_finished` that could never run
+  (`_main_checks_started` was already true before the backend run started and was never reset),
+  together with the flag itself; a probe placed in that branch never fired across the whole
+  suite. Deliberate non-changes: the three archive-plan fields stay on the dialog, because the
+  plan outlives the run that produced it and is reset from paths that have nothing to do with a
+  check; the progress-bar repaint throttle stays on the dialog as a widget concern; and a new
+  check still covers every row in the table rather than only the visible ones, which the
+  deleted-rows filter used to narrow as a side effect. Files:
+  utils/mapandproperties/property_check_run.py, utils/mapandproperties/PropertyTableManager.py,
+  widgets/AddUpdatePropertyDialog.py, modules/Property/FlowControllers/AddBatchRunner.py,
+  tests/test_property_check_run.py, tests/test_property_location_loading.py,
+  docs/juhendid/Nupud/04_01_kinnistute_nuppude_detailaudit.md. Validation: 376 tests, 3 pre-
+  existing failures (test_background_work_reliability, MainLayerCheckController timers) that
+  reproduce identically on a clean main worktree, 3 skipped; the suite was run eight times in a
+  row because an intermittent shutdown crash appeared while writing these tests (a stray top-
+  level widget in a new test, since parented to the fixture window). The b6 regression test was
+  written first and failed against the unchanged code exactly where the bug is, then passed
+  unaltered after the fix. Measured on the Maa-amet data (Harju maakond / Saue vald, 19 320
+  properties), against a clean main worktree with the same script, three paired runs each. The
+  check itself was measured on the three largest settlements (5 108 rows), because a whole-
+  municipality check does not finish inside ten minutes on either tree. Unticking the filter
+  used to leave 0 of 5 108 rows with a verdict, `checks_completed_for_scope` false and Add
+  disabled -- the finished check was gone and had to be run again, and the table blanked while
+  it reloaded. It now leaves all 5 108 rows with their verdict, the check still complete and Add
+  still enabled, and reticking narrows back to the same 986 rows, unchanged over five rounds. A
+  toggle costs 0.4-0.7 s either way, which is this measurement's floor. The check cycle itself
+  is slower on this branch in all three pairs -- 218.7/234.8/208.2 s against 204.3/224.3/174.9
+  s, about 10 percent on the mean, with the ranges overlapping. The cause was not isolated:
+  `done_count` is O(rows) per row on both trees, and making it incremental is left as a separate
+  change. One more deliberate difference, found while measuring: unticking the filter no longer
+  restores the map preview, because it no longer reloads the scope; while the filter is on the
+  map has no selection either way. In map-selection mode the old untick was worse than that --
+  there is no location filter to reload from, so the deleted rows never came back at all.
+
 - 2026-09-18: Wired the archive plan's backend lookup to `BackendVerifyWorker.MODE_LOOKUP`
   (maintenance step 8). `MODE_LOOKUP` was added to `BackendVerifyWorker`/`BackendVerifyController`
   specifically so the archive plan would not need to invent an import row just to get a
