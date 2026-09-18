@@ -1153,6 +1153,93 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             finally:
                 self.close_dialog(dialog)
 
+    def check_dialog_with_one_attention_row(self):
+        """Two loaded rows, of which only '1' needs attention: the backend address differs
+        and it is missing from the main layer. '2' agrees with both, so the attention
+        filter is the only thing that can drop it."""
+
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
+        for name in (F.hkood, F.registr, F.muudet):
+            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
+        self.layer.updateFields()
+        main = QgsVectorLayer(f'Polygon?crs=EPSG:3301&field={F.tunnus}:string&field={F.l_aadress}:string',
+                              'Main', 'memory')
+        kept = QgsFeature(main.fields())
+        kept.setAttributes(['2', 'Address 2'])
+        kept.setGeometry(QgsGeometry.fromWkt('POLYGON((200 0,210 0,210 10,200 10,200 0))'))
+        main.dataProvider().addFeatures([kept])
+        lookup = lambda number: {
+            'exists': True, 'active_count': 1, 'LastUpdated': '2026-01-01',
+            'property': {'id': 'p' + number, 'cadastralUnitNumber': number,
+                         'displayAddress': 'Muudetud' if number == '1' else 'Address ' + number}}
+        patches = [
+            patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                         side_effect=lookup),
+            patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main),
+            patch.object(AddPropertyDialog, 'exec_', return_value=0),
+        ]
+        for started in patches:
+            started.start()
+            self.addCleanup(started.stop)
+
+        dialog = AddPropertyDialog()
+        self.wait_until(lambda: dialog.county_combo.isEnabled())
+        self.pick(dialog)
+        self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
+        return dialog
+
+    def table_ids(self, dialog):
+        return [PropertyTableManager.get_cell_text(dialog.properties_table, row, 0)
+                for row in range(PropertyTableManager.row_count(dialog.properties_table))]
+
+    def backend_tip(self, dialog, tunnus):
+        """The backend column's tooltip for a property, found by identity rather than by row."""
+        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        row = self.table_ids(dialog).index(tunnus)
+        return PropertyTableManager.get_cell_data(
+            dialog.properties_table, row, PropertyTableWidget._COL_BACKEND_ATTENTION, role=Qt.ToolTipRole)
+
+    @unittest.expectedFailure
+    def test_turning_the_attention_filter_off_keeps_the_finished_check_result(self):
+        """b6: unticking "only needs attention" must not throw the finished check away.
+
+        The filter removes rows from the model, and every check result is stored under a
+        table row number, so the reload that brings the rows back drops the result and the
+        decisions that came with it. Expected to fail until the run is keyed by identity
+        and the filter stops deleting rows.
+        """
+
+        dialog = self.check_dialog_with_one_attention_row()
+        translate = dialog.lang_manager.translate
+        differs = translate(K.PROPERTY_TOOLTIP_BACKEND_ISSUES).format(
+            causes=translate(K.PROPERTY_ADD_BACKEND_DIFFERS))
+        try:
+            dialog._on_run_checks_clicked()
+            self.wait_until(lambda: dialog._checks_completed_for_scope)
+
+            # The finished check filtered the clean property away and offered a decision.
+            self.assertEqual(self.table_ids(dialog), ['1'])
+            self.assertTrue(dialog._table_filtered_to_attention)
+            self.assertEqual([item['tunnus'] for item in dialog._deferred_additions], ['1'])
+            self.assertEqual(self.backend_tip(dialog, '1'), differs)
+            self.assertTrue(dialog.add_button.isEnabled())
+
+            # Unticking the box only widens what is shown; it decides nothing.
+            dialog.attention_only_checkbox.setChecked(False)
+            self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
+            self.assertEqual(sorted(self.table_ids(dialog)), ['1', '2'])
+
+            # Everything the check established is still there, for both rows.
+            self.assertEqual(self.backend_tip(dialog, '1'), differs)
+            self.assertEqual(self.backend_tip(dialog, '2'), translate(K.PROPERTY_TOOLTIP_BACKEND_OK))
+            self.assertEqual([item['tunnus'] for item in dialog._deferred_additions], ['1'])
+            self.assertTrue(dialog._checks_completed_for_scope)
+            self.assertTrue(dialog.add_button.isEnabled())
+        finally:
+            self.close_dialog(dialog)
+
     def test_check_treats_a_missing_cadastral_address_as_agreement_with_the_settlement(self):
         from qgis.core import NULL
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
