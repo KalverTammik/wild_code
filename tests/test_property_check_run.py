@@ -105,6 +105,28 @@ class PropertyCheckRunTest(unittest.TestCase):
         self.assertFalse(run.record_main(0, ['main layer older']))
         self.assertEqual(run.causes_for_row(0), ([], []))
 
+    def test_the_same_property_on_two_rows_is_one_thing_to_check(self):
+        """Counting rows here would leave `total` one ahead of anything reachable."""
+
+        run = PropertyCheckRun([CheckRow(row=0, tunnus='1'), CheckRow(row=1, tunnus='1'),
+                                CheckRow(row=2, tunnus='2')])
+        self.assertEqual(run.total, 2)
+
+        run.record_backend(0, ['missing in backend'], None)
+        run.record_main(0, [])
+        run.record_backend(2, [], None)
+        run.record_main(2, [])
+
+        # The second row of property 1 was answered by the first one.
+        self.assertEqual(run.causes_for_row(1), ([], ['missing in backend']))
+        self.assertEqual(run.done_for_row(1), (True, True))
+        self.assertTrue(run.is_complete)
+
+    def test_a_row_without_a_cadastral_number_is_not_part_of_the_run(self):
+        run = PropertyCheckRun([CheckRow(row=0, tunnus='1'), CheckRow(row=1, tunnus='')])
+        self.assertEqual((run.total, run.row_indices()), (1, (0,)))
+        self.assertFalse(run.record_main(1, []))
+
     def test_a_row_outside_the_run_is_refused(self):
         run = make_run('1')
         self.assertFalse(run.record_backend(7, ['missing in backend'], None))

@@ -42,7 +42,9 @@ class PropertyCheckRun:
 
     def __init__(self, rows: Sequence[CheckRow], *, run_id: int = 0) -> None:
         self.run_id = int(run_id)
-        self.rows: Tuple[CheckRow, ...] = tuple(rows or ())
+        # A row without a cadastral number cannot be checked and has no identity to file
+        # a result under, so it is not part of the run at all.
+        self.rows: Tuple[CheckRow, ...] = tuple(entry for entry in (rows or ()) if entry.tunnus)
 
         self._tunnus_by_row: Dict[int, str] = {int(r.row): r.tunnus for r in self.rows}
         self._keys: Set[Any] = set()
@@ -73,8 +75,15 @@ class PropertyCheckRun:
     # Identity
     # ------------------------------------------------------------------
     def _key(self, row: int) -> Any:
-        """What a result is filed under: the table row this run started from."""
-        return int(row)
+        """What a result is filed under: the property, not the table row it sat on.
+
+        A row number stops meaning anything the moment the table changes underneath the
+        run, which is exactly what the "only needs attention" filter does. The cadastral
+        number does not change, so a result found for it stays found (b6). Two rows of the
+        same property are therefore one thing to check, and share one result.
+        """
+
+        return self._tunnus_by_row.get(int(row), "")
 
     def tunnus_for_row(self, row: int) -> str:
         return self._tunnus_by_row.get(int(row), "")
