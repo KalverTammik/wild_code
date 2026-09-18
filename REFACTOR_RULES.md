@@ -125,15 +125,19 @@
   still enabled, and reticking narrows back to the same 986 rows, unchanged over five rounds. A
   toggle costs 0.4-0.7 s either way, which is this measurement's floor. The check cycle itself
   is slower on this branch in all three pairs -- 218.7/234.8/208.2 s against 204.3/224.3/174.9
-  s, about 10 percent on the mean, with the ranges overlapping. The cause was not isolated:
-  `done_count` is O(rows) per row on both trees, and making it incremental is left as a separate
-  change. One more deliberate difference, found while measuring: unticking the filter no longer
+  s, about 10 percent on the mean, with the ranges overlapping. A profile of one cycle (1 767
+  rows, 30.6 s) located it afterwards and corrected a guess recorded here first: `done_count`
+  is not the cost (0.39 s), `visible_row_count` is (4.8 s, 3 543 calls walking every row
+  through `isRowHidden`, 6.3 million calls), and it is this change's own doing. The profile's
+  real headline is older than this change: 19.3 s of those 30.6 s are
+  `MapHelpers.find_features_by_fields_and_values`, a full main-layer scan run once for every
+  property that the batched lookup already proved is missing. One more deliberate difference, found while measuring: unticking the filter no longer
   restores the map preview, because it no longer reloads the scope; while the filter is on the
   map has no selection either way. In map-selection mode the old untick was worse than that --
   there is no location filter to reload from, so the deleted rows never came back at all.
 
-- 2026-09-18: Wired the archive plan's backend lookup to `BackendVerifyWorker.MODE_LOOKUP`
-  (maintenance step 8). `MODE_LOOKUP` was added to `BackendVerifyWorker`/`BackendVerifyController`
+- 2026-09-18: Wired the archive plan's backend lookup to `BackendVerifyWorker.MODE_LOOKUP`.
+  `MODE_LOOKUP` was added to `BackendVerifyWorker`/`BackendVerifyController`
   specifically so the archive plan would not need to invent an import row just to get a
   backend answer (see `tests/test_background_work_reliability.py`), but the one call site
   it was built for — `AddPropertyDialog`'s `_archive_lookup_controller.start` — was never
