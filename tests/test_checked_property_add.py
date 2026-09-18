@@ -7,8 +7,11 @@ from unittest.mock import Mock, patch
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 if os.environ.get('QGIS_PREFIX_PATH'):
     sys.path.append(str(Path(os.environ['QGIS_PREFIX_PATH']) / 'python' / 'plugins'))
+
+from property_fixtures import backend_info, missing_info, unknown_info, wait_until
 
 from PyQt5.QtCore import QThread, QTimer
 from PyQt5.QtGui import QFont, QFontDatabase
@@ -30,7 +33,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
     def setUp(self):
         self.data = {'cadastralUnit': {'number': '1'}, 'address': {'street': 'Example'}}
         self.lookup = self.enterContext(patch.object(module.BackendPropertyVerifier,
-            'verify_properties_by_cadastral_number', return_value={'exists': False}))
+            'verify_properties_by_cadastral_number', return_value=missing_info()))
         self.create = self.enterContext(patch.object(module.MainAddPropertiesFlow,
             'add_single_property_item', return_value='backend-id'))
         self.update = self.enterContext(patch.object(module.UpdatePropertyData,
@@ -62,11 +65,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.app.processEvents()
 
     def wait_until(self, condition):
-        for _ in range(500):
-            if condition():
-                return
-            QTest.qWait(10)
-        self.fail('Timed out waiting for worker')
+        wait_until(self, condition, attempts=500, message='Timed out waiting for worker')
 
     def run_batch(self, features=None):
         self.runner._queue = list(features if features is not None else self.features[:1])
@@ -98,7 +97,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.assertEqual(next(self.target.getFeatures()).geometry().asWkt(), 'Point (10 20)')
 
     def test_lookup_failure_does_not_create_or_copy(self):
-        self.lookup.return_value = {'exists': None, 'error': 'offline'}
+        self.lookup.return_value = unknown_info()
         result = self.run_batch()
         self.assertEqual((result['succeeded'], result['failed']), (0, 1))
         self.create.assert_not_called()
@@ -115,37 +114,33 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.create.assert_called_once()
 
     def test_existing_backend_updates_instead_of_duplicate_create(self):
-        self.lookup.return_value = {'exists': True, 'property': {
-            'id': 'known', 'cadastralUnitNumber': '1', 'displayAddress': 'Example'}}
+        self.lookup.return_value = backend_info(active_count=None, last_updated=None)
         module.apply_reviewed_backend(self.data, [], None, None)
         self.create.assert_not_called()
         self.update.assert_called_once_with('known', self.data, [], raise_on_error=True)
 
     def test_update_failure_is_reported(self):
-        self.lookup.return_value = {'exists': True, 'property': {
-            'id': 'known', 'cadastralUnitNumber': '1', 'displayAddress': 'Example'}}
+        self.lookup.return_value = backend_info(active_count=None, last_updated=None)
         self.update.return_value = False
         self.assertEqual(self.run_batch()['failed'], 1)
         self.assertEqual(self.target.featureCount(), 0)
 
     def test_partial_save_with_house_number_and_equal_dates_retries_intended_uses(self):
         self.data['address']['houseNumber'] = '12'
-        self.lookup.return_value = {'exists': True, 'LastUpdated': '2026-01-01', 'property': {
-            'id': 'known', 'cadastralUnitNumber': '1', 'displayAddress': 'Example 12'}}
+        self.lookup.return_value = backend_info(address='Example 12', active_count=None)
         module.apply_reviewed_backend(self.data, [], '2026-01-01', None)
         self.update.assert_called_once_with('known', self.data, [], raise_on_error=True)
         self.create.assert_not_called()
 
     def test_different_newer_backend_is_not_reported_as_fully_saved(self):
-        self.lookup.return_value = {'exists': True, 'LastUpdated': '2026-01-01', 'property': {
-            'id': 'known', 'cadastralUnitNumber': '1', 'displayAddress': 'Changed by user'}}
+        self.lookup.return_value = backend_info(address='Changed by user', active_count=None)
         decision = module.apply_reviewed_backend(self.data, [], '2025-01-01', None)
         self.assertEqual(decision['action'], 'needs_decision')
         self.update.assert_not_called()
         self.create.assert_not_called()
 
     def test_archived_and_duplicate_records_require_separate_review(self):
-        for info in ({'exists': False, 'archived_only': True}, {'exists': True, 'active_count': 2}):
+        for info in (missing_info(archived_only=True), {'exists': True, 'active_count': 2}):
             with self.subTest(info=info):
                 self.lookup.return_value = info
                 self.assertEqual(module.apply_reviewed_backend(self.data, [], None, None)['action'],
@@ -232,8 +227,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.assertEqual(self.target.featureCount(), 0)
 
     def conflict_info(self, address='Changed by user'):
-        return {'exists': True, 'active_count': 1, 'LastUpdated': '2026-01-01', 'property': {
-            'id': 'known', 'cadastralUnitNumber': '1', 'displayAddress': address}}
+        return backend_info(address=address)
 
     def review_batch(self, decisions):
         self.runner.deleteLater()
@@ -252,7 +246,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
             feature.setAttributes([str(number)])
             feature.setGeometry(QgsGeometry.fromWkt('POINT(10 20)'))
             self.source.dataProvider().addFeatures([feature])
-        self.lookup.side_effect = lambda number: self.conflict_info() if number == '1' else {'exists': False}
+        self.lookup.side_effect = lambda number: self.conflict_info() if number == '1' else missing_info()
         check = BackendVerifyWorker([(0, '1', '2025-01-01')], source='test',
             import_context_by_tunnus={'1': {'data': self.data, 'main_date': None}})
         checked = []

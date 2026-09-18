@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
@@ -17,6 +18,8 @@ from PyQt5.QtCore import QCoreApplication, QEvent, QTimer, QThread
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QFrame, QLabel, QVBoxLayout
+
+from property_fixtures import wait_until
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.modules.works.works_list_service import (
     ListChoices, WorksFeedLogic, WorksListPreferences, group_loaded_items, sort_loaded_items,
@@ -321,11 +324,7 @@ class WorksListWidgetTest(unittest.TestCase):
         return self.ui.feed_logic.api_client
 
     def wait_until(self, condition):
-        for _ in range(150):
-            if condition():
-                return
-            QTest.qWait(10)
-        self.fail('Background result was not delivered')
+        wait_until(self, condition, attempts=150, message='Background result was not delivered')
 
     def test_terminal_empty_page_after_ungrouping_keeps_cards_without_empty_message(self):
         client = self.prepare_loading()

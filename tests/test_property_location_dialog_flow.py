@@ -29,392 +29,20 @@ from Kavitro_dev.utils.mapandproperties.property_dialog_phase import (AddAction,
                                                                       PropertyDialogPhase as P,
                                                                       PropertyDialogState)
 from Kavitro_dev.widgets.LocationFilterWidget import LocationFilterHelper, LocationFilterWidget
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from property_fixtures import (LocationFilterTestCase, add_fields, add_import_fields,
+                               backend_info, close_dialog, dialog_open, make_main_layer,
+                               missing_info, open_dialog, unknown_info)
 
 
-class PropertyLocationLoadingTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app = QgsApplication.instance() or QgsApplication([], False)
-        QgsApplication.initQgis()
-        if not QFontDatabase().families():
-            QFontDatabase.addApplicationFont('C:/Windows/Fonts/segoeui.ttf')
-            cls.app.setFont(QFont('Segoe UI', 9))
-
-    def setUp(self):
-        fields = [F.mk_nimi, F.ov_nimi, F.ay_nimi, F.tunnus, F.l_aadress, F.pindala]
-        uri = 'Polygon?crs=EPSG:3301' + ''.join('&field=' + field + ':string' for field in fields)
-        self.layer = QgsVectorLayer(uri, 'Offline location test', 'memory')
-        self.assertTrue(self.layer.isValid())
-        entries = [('A', 'Shared municipality', 'First village', '1'),
-                   ('A', 'Shared municipality', 'Second village', '2'),
-                   ('B', 'Shared municipality', 'First village', '3')]
-        features = []
-        for county, municipality, village, cadastral in entries:
-            feature = QgsFeature(self.layer.fields())
-            feature.setAttributes([county, municipality, village, cadastral, 'Address ' + cadastral, '100'])
-            offset = int(cadastral) * 100
-            feature.setGeometry(QgsGeometry.fromWkt(f'POLYGON(({offset} 0,{offset + 10} 0,{offset + 10} 10,{offset} 10,{offset} 0))'))
-            features.append(feature)
-        self.layer.dataProvider().addFeatures(features)
-        self.window = QWidget()
-        layout = QVBoxLayout(self.window)
-        self.widget = LocationFilterWidget(LanguageManager('et'))
-        layout.addWidget(self.widget)
-        self.table = QTableView()
-        layout.addWidget(self.table)
-        self.completed, self.invalidated, self.stopped = Mock(), Mock(), Mock()
-        self.helper = LocationFilterHelper(
-            county_combo=self.widget.county_combo, municipality_combo=self.widget.municipality_combo,
-            city_combo=self.widget.city_combo, properties_table=self.table,
-            after_table_update=self.completed, stop_checks=self.stopped,
-            invalidate_archive_scope=self.invalidated, update_add_button_state=Mock(),
-            stop_map_update=Mock(), status_widget=self.widget, parent=self.window)
-        self.helper.connect_signals()
-        self.resolve = patch.object(MapHelpers, 'get_layer_by_tag', return_value=self.layer)
-        self.resolve_mock = self.resolve.start()
-        self.preview = patch.object(MapHelpers, 'apply_scope_preview')
-        self.preview_mock = self.preview.start()
-        self.window.resize(700, 450)
-        self.window.show()
-
-    def tearDown(self):
-        self.helper.close()
-        self.wait_until(lambda: not self.helper._loader._request.busy)
-        self.window.close()
-        self.window.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
-        self.preview.stop()
-        self.resolve.stop()
-
-    def wait_until(self, condition):
-        for _ in range(200):
-            if condition():
-                return
-            QTest.qWait(10)
-        self.fail('Location read did not complete')
-
-    def load_index(self):
-        self.helper.load_counties(self.layer)
-        self.wait_until(lambda: self.widget.county_combo.isEnabled())
-
-    def pick(self, owner, county='A', municipality='Shared municipality'):
-        owner.county_combo.setCurrentIndex(owner.county_combo.findData(county))
-        # A county's municipalities arrive with its background read.
-        self.wait_until(lambda: owner.municipality_combo.findData(municipality) >= 0)
-        owner.municipality_combo.setCurrentIndex(owner.municipality_combo.findData(municipality))
-
-    def choose_municipality(self, county='A'):
-        self.pick(self.widget, county)
-
-    def ids(self):
-        return {PropertyTableManager.get_cell_text(self.table, row, 0)
-                for row in range(PropertyTableManager.row_count(self.table))}
-
-    def click_village(self, row):
-        combo = self.widget.city_combo
-        combo.showPopup()
-        QTest.qWait(10)
-        view = combo.view()
-        QTest.mouseClick(view.viewport(), Qt.LeftButton, pos=view.visualRect(view.model().index(row, 0)).center())
-        combo.hidePopup()
-
-    def test_hierarchy_is_scoped_and_cached_between_choices(self):
-        with patch.object(PropertyDataLoader, 'read_counties', wraps=PropertyDataLoader.read_counties) as counties:
-            self.load_index()
-            self.choose_municipality()
-            self.wait_until(lambda: self.ids() == {'1', '2'})
-            self.assertEqual(self.widget.city_combo.count(), 2)
-            self.choose_municipality('B')
-            self.wait_until(lambda: self.ids() == {'3'})
-            self.assertEqual(self.widget.city_combo.count(), 1)
-            # A county that was already read offers its municipalities at once.
-            self.widget.county_combo.setCurrentIndex(self.widget.county_combo.findData('A'))
-            self.assertGreaterEqual(self.widget.municipality_combo.findData('Shared municipality'), 0)
-        self.assertEqual(counties.call_count, 1)
-
-    def test_counties_come_from_distinct_values_without_a_background_read(self):
-        with patch.object(PropertyDataLoader, 'read_location_scope') as scope_read:
-            self.load_index()
-        combo = self.widget.county_combo
-        self.assertEqual([combo.itemData(index) for index in range(1, combo.count())], ['A', 'B'])
-        self.assertFalse(self.widget.municipality_combo.isEnabled())
-        scope_read.assert_not_called()
-
-    def test_slow_county_choices_keep_gui_running_and_show_busy_state(self):
-        entered, release = threading.Event(), threading.Event()
-        read = PropertyDataLoader.read_location_scope
-        threads, pulses = [], []
-
-        def delayed(source, cancelled, scope, include_properties):
-            if not scope[1]:
-                threads.append(QThread.currentThread())
-                entered.set()
-                release.wait(2)
-            return read(source, cancelled, scope, include_properties)
-
-        self.load_index()
-        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=delayed):
-            try:
-                self.widget.county_combo.setCurrentIndex(self.widget.county_combo.findData('A'))
-                self.wait_until(entered.is_set)
-                QTimer.singleShot(0, lambda: pulses.append(True))
-                QTest.qWait(40)
-                self.assertEqual(pulses, [True])
-                self.assertFalse(self.widget.municipality_combo.isEnabled())
-                self.assertTrue(self.widget.loading_indicator.isVisible())
-                self.assertIn('valikuid', self.widget.status_label.text())
-                self.assertNotEqual(threads[0], self.app.thread())
-            finally:
-                release.set()
-            self.wait_until(lambda: self.widget.municipality_combo.isEnabled())
-        self.assertGreaterEqual(self.widget.municipality_combo.findData('Shared municipality'), 0)
-        self.assertTrue(self.widget.loading_indicator.isHidden())
-
-    def test_failed_county_choices_show_retry_and_retry_loads_them(self):
-        self.load_index()
-        original = PropertyDataLoader.read_location_scope
-        attempts = []
-
-        def failing_once(source, cancelled, scope, include_properties):
-            if not scope[1] and not attempts:
-                attempts.append(scope)
-                raise RuntimeError('Cannot read source')
-            return original(source, cancelled, scope, include_properties)
-
-        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=failing_once):
-            self.widget.county_combo.setCurrentIndex(self.widget.county_combo.findData('A'))
-            self.wait_until(lambda: self.widget.retry_button.isVisible())
-            self.assertFalse(self.widget.municipality_combo.isEnabled())
-            self.widget.retry_button.click()
-            self.wait_until(lambda: self.widget.municipality_combo.findData('Shared municipality') >= 0)
-        self.assertTrue(self.widget.municipality_combo.isEnabled())
-
-    def test_village_results_keep_full_scope_and_map_uses_precomputed_ids_and_bounds(self):
-        self.load_index()
-        self.choose_municipality()
-        self.widget.city_combo.setCheckedItems(['First village'])
-        self.wait_until(lambda: self.ids() == {'1'})
-        self.assertEqual(self.preview_mock.call_args.kwargs, {'select': True})
-        layer, ids, extent = self.preview_mock.call_args.args
-        self.assertIs(layer, self.layer)
-        self.assertEqual(len(ids), 1)
-        self.assertEqual((extent.xMinimum(), extent.xMaximum()), (100, 110))
-        feature = PropertyTableManager.get_all_features(self.table)[0]
-        self.assertFalse(feature.hasGeometry())
-        self.assertEqual(feature[F.mk_nimi], 'A')
-        self.assertIn('1', self.widget.status_label.text())
-
-    def test_fast_village_changes_are_debounced(self):
-        self.load_index()
-        self.choose_municipality()
-        self.wait_until(lambda: self.ids() == {'1', '2'})
-        with patch.object(PropertyDataLoader, 'read_location_scope', wraps=PropertyDataLoader.read_location_scope) as read:
-            self.widget.city_combo.setCheckedItems(['First village'])
-            self.widget.city_combo.setCheckedItems(['First village', 'Second village'])
-            self.click_village(0)
-            self.assertEqual(self.ids(), set())
-            self.wait_until(lambda: self.ids() == {'2'})
-            self.assertEqual(read.call_count, 1)
-
-    def test_unchecking_last_village_reloads_municipality_with_current_behavior(self):
-        self.load_index()
-        self.choose_municipality()
-        self.widget.city_combo.setCheckedItems(['First village'])
-        self.wait_until(lambda: self.ids() == {'1'})
-        self.click_village(0)
-        self.assertEqual(self.ids(), set())
-        self.wait_until(lambda: self.ids() == {'1', '2'})
-
-    def test_keyboard_village_check_updates_table(self):
-        self.load_index()
-        self.choose_municipality()
-        self.wait_until(lambda: self.ids() == {'1', '2'})
-        combo = self.widget.city_combo
-        combo.showPopup()
-        view = combo.view()
-        view.setCurrentIndex(view.model().index(0, 0))
-        QTest.keyClick(view, Qt.Key_Space)
-        self.assertEqual(combo.checkedItems(), ['First village'])
-        combo.hidePopup()
-        self.wait_until(lambda: self.ids() == {'1'})
-        combo.showPopup()
-        view.setCurrentIndex(view.model().index(0, 0))
-        QTest.keyClick(view, Qt.Key_Space)
-        self.assertEqual(combo.checkedItems(), [])
-        combo.hidePopup()
-        self.wait_until(lambda: self.ids() == {'1', '2'})
-
-    def test_refresh_keeps_scope_and_reads_new_rows_without_reloading_counties(self):
-        self.load_index()
-        self.choose_municipality()
-        self.widget.city_combo.setCheckedItems(['First village'])
-        self.wait_until(lambda: self.ids() == {'1'})
-        scope = self.helper._scope()
-        feature = QgsFeature(self.layer.fields())
-        feature.setAttributes(['A', 'Shared municipality', 'First village', '4', 'New address', '100'])
-        feature.setGeometry(QgsGeometry.fromWkt('POLYGON((400 0,410 0,410 10,400 10,400 0))'))
-        self.layer.dataProvider().addFeatures([feature])
-        self.assertEqual(self.ids(), {'1'})
-        before = self.invalidated.call_count
-        with patch.object(PropertyDataLoader, 'read_counties') as counties_read:
-            self.widget.refresh_button.click()
-            self.assertEqual(self.ids(), set())
-            self.assertEqual(self.helper._scope(), scope)
-            self.wait_until(lambda: self.ids() == {'1', '4'})
-            counties_read.assert_not_called()
-        self.assertGreater(self.invalidated.call_count, before)
-        self.assertFalse(self.widget.refresh_button.icon().isNull())
-        self.assertTrue(self.widget.refresh_button.accessibleName())
-
-    def test_refresh_replaces_in_flight_read_with_current_scope(self):
-        self.load_index()
-        self.choose_municipality()
-        self.wait_until(lambda: self.ids() == {'1', '2'})
-        entered = threading.Event()
-        read = PropertyDataLoader.read_location_scope
-        calls = []
-        def delayed(source, cancelled, scope, include_properties):
-            calls.append(scope)
-            if len(calls) == 1:
-                entered.set()
-                cancelled.wait(2)
-            return read(source, cancelled, scope, include_properties)
-        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=delayed):
-            self.widget.city_combo.setCheckedItems(['First village'])
-            self.wait_until(entered.is_set)
-            self.widget.refresh_button.click()
-            self.assertTrue(self.widget.loading_indicator.isVisible())
-            self.wait_until(lambda: self.ids() == {'1'})
-        self.assertEqual(calls, [self.helper._scope(), self.helper._scope()])
-
-    def test_data_changes_invalidate_index_table_and_archive_scope(self):
-        self.load_index()
-        self.choose_municipality()
-        self.wait_until(lambda: bool(self.ids()))
-        previous = self.invalidated.call_count
-        self.layer.dataChanged.emit()
-        self.assertEqual(self.ids(), set())
-        self.assertGreater(self.invalidated.call_count, previous)
-        self.wait_until(lambda: self.widget.county_combo.isEnabled())
-        self.assertEqual(self.widget.county_combo.currentData(), '')
-
-    def test_new_scope_cancels_slow_read_and_never_publishes_partial_rows(self):
-        self.load_index()
-        entered = threading.Event()
-        original = PropertyDataLoader.read_location_scope
-        def slow(source, cancelled, scope, include_properties):
-            if scope[0] == 'A' and scope[1]:
-                entered.set()
-                cancelled.wait(2)
-            return original(source, cancelled, scope, include_properties)
-        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=slow):
-            self.choose_municipality()
-            self.wait_until(entered.is_set)
-            self.assertEqual(self.ids(), set())
-            self.completed.assert_not_called()
-            self.choose_municipality('B')
-            self.wait_until(lambda: self.ids() == {'3'})
-        self.assertEqual(self.completed.call_count, 1)
-        self.assertTrue(self.invalidated.called)
-
-    def test_reset_county_clears_descendants_and_invalidates_completed_scope(self):
-        self.load_index()
-        self.choose_municipality()
-        self.wait_until(lambda: bool(self.ids()))
-        before = self.completed.call_count
-        self.widget.county_combo.setCurrentIndex(0)
-        QTest.qWait(30)
-        self.assertEqual(self.ids(), set())
-        self.assertFalse(self.widget.municipality_combo.isEnabled())
-        self.assertFalse(self.widget.city_combo.isEnabled())
-        self.assertEqual(self.completed.call_count, before)
-
-    def test_loading_error_is_visible_and_retry_works(self):
-        self.load_index()
-        original = PropertyDataLoader.read_location_scope
-
-        def failing(source, cancelled, scope, include_properties):
-            if scope[1]:
-                raise RuntimeError('Cannot read source')
-            return original(source, cancelled, scope, include_properties)
-
-        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=failing):
-            self.choose_municipality()
-            self.wait_until(lambda: self.widget.retry_button.isVisible())
-        self.assertEqual(self.ids(), set())
-        self.completed.assert_not_called()
-        self.assertTrue(self.widget.loading_indicator.isHidden())
-        self.assertEqual(self.widget.status_label.text(), self.widget.lang_manager.translate(K.LOCATION_LOAD_FAILED))
-        self.widget.retry_button.click()
-        self.wait_until(lambda: self.ids() == {'1', '2'})
-        self.assertFalse(self.widget.retry_button.isVisible())
-
-    def test_close_while_loading_cancels_result(self):
-        self.load_index()
-        entered = threading.Event()
-        original = PropertyDataLoader.read_location_scope
-        def slow(source, cancelled, scope, include_properties):
-            if scope[1]:
-                entered.set()
-                cancelled.wait(2)
-            return original(source, cancelled, scope, include_properties)
-        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=slow):
-            self.choose_municipality()
-            self.wait_until(entered.is_set)
-            # The county preview already ran before the municipality read; only that read is in flight.
-            previews = self.preview_mock.call_count
-            self.helper.close()
-            self.wait_until(lambda: not self.helper._loader._request.busy)
-        self.assertEqual(self.ids(), set())
-        self.completed.assert_not_called()
-        self.assertEqual(self.preview_mock.call_count, previews)
-
-    def test_replaced_import_layer_cannot_receive_old_result(self):
-        self.load_index()
-        entered, release = threading.Event(), threading.Event()
-        original = PropertyDataLoader.read_location_scope
-        def slow(source, cancelled, scope, include_properties):
-            if scope[1]:
-                entered.set()
-                release.wait(2)
-            return original(source, cancelled, scope, include_properties)
-        with patch.object(PropertyDataLoader, 'read_location_scope', side_effect=slow):
-            try:
-                self.choose_municipality()
-                self.wait_until(entered.is_set)
-                self.resolve_mock.return_value = None
-            finally:
-                release.set()
-            self.wait_until(lambda: self.widget.retry_button.isVisible())
-        self.assertEqual(self.ids(), set())
-        self.completed.assert_not_called()
-        replacement = self.layer.clone()
-        self.resolve_mock.return_value = replacement
-        self.widget.retry_button.click()
-        self.wait_until(lambda: self.widget.county_combo.isEnabled())
-        self.assertIs(self.helper._layer, replacement)
-        self.assertEqual(self.widget.county_combo.currentData(), '')
-
-    def test_snapshot_is_created_on_gui_and_result_applied_on_gui(self):
-        original = QgsVectorLayerFeatureSource
-        threads = []
-        def snapshot(layer):
-            threads.append(QThread.currentThread())
-            return original(layer)
-        self.completed.side_effect = lambda _table: threads.append(QThread.currentThread())
-        with patch('Kavitro_dev.utils.mapandproperties.PropertyUpdateFlowCoordinator.QgsVectorLayerFeatureSource', side_effect=snapshot):
-            self.load_index()
-            self.choose_municipality()
-            self.wait_until(lambda: bool(self.ids()))
-        self.assertGreaterEqual(len(threads), 3)
-        self.assertTrue(all(thread == self.app.thread() for thread in threads))
+class PropertyLocationDialogFlowTest(LocationFilterTestCase):
+    """The add dialog end to end: opening, checks, add and archive flows, cancelling."""
 
     def test_add_dialog_missing_import_layer_shows_close_only(self):
         """b1: no import layer loaded must not crash the dialog with AttributeError."""
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         self.resolve_mock.return_value = None
-        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
-            dialog = AddPropertyDialog()
+        dialog = open_dialog(AddPropertyDialog)
         try:
             self.assertIsNone(dialog.property_layer)
             self.assertIsNone(dialog.properties_table)
@@ -428,11 +56,8 @@ class PropertyLocationLoadingTest(unittest.TestCase):
     def test_checked_add_dialog_uses_background_runner_and_shows_failures(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
-            dialog = AddPropertyDialog()
+        self.add_import_fields()
+        dialog = open_dialog(AddPropertyDialog)
         try:
             self.wait_until(lambda: dialog.county_combo.isEnabled())
             with patch.object(AddBatchRunner, 'start') as start, \
@@ -497,15 +122,12 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
         from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as runner_module
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
+        self.add_import_fields()
         self.layer.dataProvider().changeAttributeValues({feature.id(): {
             self.layer.fields().lookupField(F.muudet): '2025-01-01'} for feature in self.layer.getFeatures()})
-        main = QgsVectorLayer('Polygon?crs=EPSG:3301&field=tunnus:string', 'Main', 'memory')
-        lookup = lambda number: ({'exists': True, 'active_count': 1, 'LastUpdated': '2026-01-01',
-            'property': {'id': 'known', 'cadastralUnitNumber': number, 'displayAddress': 'Different'}}
-            if number == '1' else {'exists': False})
+        main = make_main_layer()
+        lookup = lambda number: (backend_info(number, address='Different')
+                                 if number == '1' else missing_info())
         with patch.object(runner_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number', side_effect=lookup), \
                 patch.object(runner_module.ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
                 patch.object(runner_module.MainAddPropertiesFlow, 'add_single_property_item', return_value='created') as create, \
@@ -557,11 +179,8 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
         from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
-            dialog = AddPropertyDialog()
+        self.add_import_fields()
+        dialog = open_dialog(AddPropertyDialog)
         decision = {'tunnus': '1', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {},
                     'feature': next(self.layer.getFeatures())}
         try:
@@ -598,11 +217,8 @@ class PropertyLocationLoadingTest(unittest.TestCase):
     def test_add_progress_stays_visible_during_pauses_and_resets_between_runs(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
-            dialog = AddPropertyDialog()
+        self.add_import_fields()
+        dialog = open_dialog(AddPropertyDialog)
         try:
             self.wait_until(lambda: dialog.county_combo.isEnabled())
             dialog.lang_manager = LanguageManager('et')
@@ -683,11 +299,8 @@ class PropertyLocationLoadingTest(unittest.TestCase):
 
     def test_real_dialog_captures_archive_scope_only_after_current_village_load(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
-            dialog = AddPropertyDialog()
+        self.add_import_fields()
+        dialog = open_dialog(AddPropertyDialog)
         try:
             self.wait_until(lambda: dialog.county_combo.isEnabled())
             self.pick(dialog)
@@ -710,10 +323,8 @@ class PropertyLocationLoadingTest(unittest.TestCase):
     def test_real_dialog_clears_a_finished_import_result_when_the_location_scope_changes(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as runner_module
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        main = QgsVectorLayer('Polygon?crs=EPSG:3301&field=tunnus:string', 'Main', 'memory')
+        self.add_import_fields()
+        main = make_main_layer()
         created = lambda data, uses, raise_on_error=False: (
             'created' if data['cadastralUnit']['number'] == '1' else None)
         with patch.object(runner_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
@@ -751,30 +362,12 @@ class PropertyLocationLoadingTest(unittest.TestCase):
                 self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
                 dialog.deleteLater()
 
-    def open_dialog_with_village_scope(self):
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
-            dialog = AddPropertyDialog()
-        self.wait_until(lambda: dialog.county_combo.isEnabled())
-        self.pick(dialog)
-        dialog.city_combo.setCheckedItems(['First village'])
-        self.wait_until(lambda: dialog._archive_scope_snapshot is not None)
-        return dialog
-
-    def close_dialog(self, dialog):
-        dialog.reject()
-        self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)
-        dialog.deleteLater()
-
     def test_real_dialog_archive_plan_uses_background_lookup_and_continues_only_after_clean_apply(self):
         from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
         from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
         dialog = self.open_dialog_with_village_scope()
         infos = {'7': {'exists': True, 'active_count': 1, 'active_ids': ['p7']},
-                 '8': {'exists': False},
+                 '8': missing_info(),
                  '9': {'exists': None}}
         then = Mock()
         translate = dialog.lang_manager.translate
@@ -829,7 +422,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         def lookup(number):
             if number == '9':
                 PROCESS_RATE_LIMITER._wait(30, 'rate_limit')
-            return {'exists': False}
+            return missing_info()
 
         try:
             with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
@@ -905,12 +498,10 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
         from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        main = QgsVectorLayer('Polygon?crs=EPSG:3301&field=tunnus:string', 'Main', 'memory')
+        self.add_import_fields()
+        main = make_main_layer()
         # Every lookup hits a real 30 s rate-limit wait in the shared limiter.
-        lookup = lambda number: PROCESS_RATE_LIMITER._wait(30, 'rate_limit') or {'exists': False}
+        lookup = lambda number: PROCESS_RATE_LIMITER._wait(30, 'rate_limit') or missing_info()
         with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                           side_effect=lookup), \
                 patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
@@ -1113,14 +704,10 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
         from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        main = QgsVectorLayer('Polygon?crs=EPSG:3301&field=tunnus:string', 'Main', 'memory')
-        lookup = lambda number: {
-            'exists': True, 'active_count': 1, 'LastUpdated': '2026-01-01',
-            'property': {'id': 'known', 'cadastralUnitNumber': number,
-                         'displayAddress': 'Muudetud' if number == '1' else 'Address ' + number}}
+        self.add_import_fields()
+        main = make_main_layer()
+        lookup = lambda number: backend_info(
+            number, address='Muudetud' if number == '1' else 'Address ' + number)
         with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                           side_effect=lookup), \
                 patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
@@ -1161,9 +748,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
+        self.add_import_fields()
         main = QgsVectorLayer(f'Polygon?crs=EPSG:3301&field={F.tunnus}:string&field={F.l_aadress}:string',
                               'Main', 'memory')
         kept = QgsFeature(main.fields())
@@ -1295,9 +880,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
         from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
+        self.add_import_fields()
         address_index = self.layer.fields().lookupField(F.l_aadress)
         self.layer.dataProvider().changeAttributeValues(
             {feature.id(): {address_index: NULL} for feature in self.layer.getFeatures()})
@@ -1346,14 +929,10 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
         from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        main = QgsVectorLayer('Polygon?crs=EPSG:3301&field=tunnus:string', 'Main', 'memory')
-        lookup = lambda number: {
-            'exists': True, 'active_count': 1, 'LastUpdated': '2026-01-01',
-            'property': {'id': 'known', 'cadastralUnitNumber': number,
-                         'displayAddress': 'Muudetud' if number == '1' else 'Address ' + number}}
+        self.add_import_fields()
+        main = make_main_layer()
+        lookup = lambda number: backend_info(
+            number, address='Muudetud' if number == '1' else 'Address ' + number)
         with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                           side_effect=lookup), \
                 patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
@@ -1388,310 +967,6 @@ class PropertyLocationLoadingTest(unittest.TestCase):
                                  translate(K.PROPERTY_TOOLTIP_ARCHIVE_NONE))
             finally:
                 self.close_dialog(dialog)
-
-    def test_import_review_sets_the_same_decision_for_every_property(self):
-        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
-        decisions = [{'tunnus': '1', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {}},
-                     {'tunnus': '2', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {}},
-                     {'tunnus': '3', 'reason': K.ATTENTION_CAUSE_ARCHIVED_ONLY, 'backend_info': {}}]
-        dialog = PropertyImportReviewDialog(decisions, lang_manager=LanguageManager('et'))
-        try:
-            self.assertFalse(dialog.confirm.isEnabled())
-
-            # Overwriting is offered only for address conflicts; the archived match keeps its choice.
-            dialog.bulk_choice.setCurrentIndex(dialog.bulk_choice.findData('apply'))
-            dialog._set_all()
-            self.assertEqual(dialog.selected_decisions(), {'1': 'apply', '2': 'apply'})
-            self.assertTrue(dialog.confirm.isEnabled())
-            self.assertIn('1', dialog.bulk_note.text())
-
-            # Keeping the existing record is available for every row.
-            dialog.bulk_choice.setCurrentIndex(dialog.bulk_choice.findData('keep'))
-            dialog._set_all()
-            self.assertEqual(dialog.selected_decisions(), {'1': 'keep', '2': 'keep', '3': 'keep'})
-            self.assertEqual(dialog.bulk_note.text(), '')
-        finally:
-            dialog.deleteLater()
-
-    def test_address_split_separates_only_a_trailing_house_number(self):
-        cases = {
-            # A plain name and a real street address keep working as before.
-            'Kuusemäe': ('Kuusemäe', ''),
-            'Viljandi tee 31a': ('Viljandi tee', '31a'),
-            'Kivi tn 16': ('Kivi tn', '16'),
-            'Pärna 5-2': ('Pärna', '5-2'),
-            'Kivi  tn   16': ('Kivi tn', '16'),
-            # The number ends a name; the words before it stay untouched.
-            'Jäärja metskond 66': ('Jäärja metskond', '66'),
-            # A road marker and a leading road number belong to the name.
-            'Põhja tänav L2': ('Põhja tänav L2', ''),
-            'Jaama tänav T1': ('Jaama tänav T1', ''),
-            '24226 Kamara-Peraküla tee': ('24226 Kamara-Peraküla tee', ''),
-            # `//` joins several addresses of one object, so nothing is separated.
-            'Nurme tn 2 // Kangrumäe': ('Nurme tn 2 // Kangrumäe', ''),
-            'Pärnu mnt 9 // 11': ('Pärnu mnt 9 // 11', ''),
-            'Allika tn 7 // Tartu mnt 23 // 23a // 23b': ('Allika tn 7 // Tartu mnt 23 // 23a // 23b', ''),
-            # A lone token is a name, and an empty address never becomes the text NULL.
-            '12': ('12', ''),
-            'NULL': ('', ''),
-            '': ('', ''),
-        }
-        for value, expected in cases.items():
-            with self.subTest(value=value):
-                result = PropertyDataLoader.get_address_details_from_street(value)
-                self.assertEqual((result['street'], result.get('house', '')), expected)
-
-    def test_check_and_import_share_the_same_missing_settlement_value(self):
-        """The pre-write check (AddUpdatePropertyDialog._start_attention_checks) and the
-        import (PropertyDataLoader.prepare_data_for_import_stage1) both build the address
-        through the shared PropertyDataLoader.build_import_address now, so a row with a
-        missing settlement must reach the backend check with the exact same unnormalized
-        value (QGIS NULL) that the import itself would send -- never a normalized ''.
-        This is the regression guard for the mismatch the two previous production fixes
-        (v2.12.27, v2.12.30) were about. Mirrors each site's own feature retrieval
-        (table UserRole vs the source feature) instead of driving the whole dialog."""
-        from PyQt5.QtGui import QStandardItemModel
-
-        # `self.layer` is what PropertyDataLoader() resolves to here (MapHelpers is patched
-        # in setUp), so the extra fields it validates on construction must live on it too.
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        feature = QgsFeature(self.layer.fields())
-        # ay_nimi (settlement) is left unset, so it reads back as QGIS NULL.
-        feature.setAttributes(['A', 'Shared municipality', None, '9', 'Address 9', '100',
-                                '10', '2024-01-01', '2024-01-01'])
-        self.layer.dataProvider().addFeatures([feature])
-        stored = list(self.layer.getFeatures())[-1]
-
-        # The check's own retrieval: AddUpdatePropertyDialog._start_attention_checks reads
-        # the feature from the table's UserRole cell, then calls build_import_address.
-        table = QTableView()
-        model = QStandardItemModel(1, 1)
-        model.setData(model.index(0, 0), stored, Qt.UserRole)
-        table.setModel(model)
-        row_feature = PropertyTableManager.get_cell_data(table, 0, 0, role=Qt.UserRole)
-        check_city = PropertyDataLoader.build_import_address(row_feature)['city']
-
-        # The import's own retrieval: AddBatchRunner reads the complete source feature and
-        # calls prepare_data_for_import_stage1, which delegates to the same helper.
-        import_data, *_ = PropertyDataLoader().prepare_data_for_import_stage1(stored)
-
-        self.assertTrue(QgsVariantUtils.isNull(check_city))
-        self.assertEqual(check_city, import_data['address']['city'])
-        self.assertNotEqual(check_city, '')
-
-    def test_date_typed_main_muudet_still_gives_the_same_decision_in_both_paths(self):
-        """AddBatchRunner now normalizes the main layer's `muudet` value with
-        date_to_iso_string before it reaches classify_property_import, the same way the
-        check already did (AddUpdatePropertyDialog._start_attention_checks). _is_import_newer
-        also converts either representation internally, so both a raw QDate and its
-        normalized ISO string must still steer classify_property_import to the same
-        decision -- this is the safety net behind that internal conversion."""
-        from PyQt5.QtCore import QDate
-        from Kavitro_dev.widgets.DateHelpers import DateHelpers
-        from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
-
-        main_layer = QgsVectorLayer(f'Point?crs=EPSG:3301&field={F.tunnus}:string', 'Main', 'memory')
-        main_layer.dataProvider().addAttributes([QgsField(F.muudet, QVariant.Date)])
-        main_layer.updateFields()
-        main_feature = QgsFeature(main_layer.fields())
-        main_feature.setAttributes(['1', QDate(2026, 1, 1)])
-        main_layer.dataProvider().addFeatures([main_feature])
-        main_row = next(main_layer.getFeatures())
-
-        raw_main_date = main_row.attribute(F.muudet)                                # AddBatchRunner's way
-        normalized_main_date = DateHelpers().date_to_iso_string(main_row[F.muudet])  # the check's way
-        self.assertIsInstance(raw_main_date, QDate)
-        self.assertEqual(normalized_main_date, '2026-01-01')
-
-        data = {'cadastralUnit': {'number': '1'}, 'address': {'street': 'Uus tn 5', 'houseNumber': ''}}
-        info = {'exists': True, 'active_count': 1, 'LastUpdated': '2025-06-01',
-                'property': {'id': '861', 'cadastralUnitNumber': '1', 'displayAddress': 'Vana tn 3'}}
-
-        via_import = classify_property_import(data, '2025-12-01', raw_main_date, info)
-        via_check = classify_property_import(data, '2025-12-01', normalized_main_date, info)
-        self.assertEqual(via_import['import_newer'], via_check['import_newer'])
-        self.assertFalse(via_import['import_newer'])
-        self.assertEqual((via_import['action'], via_import['reason']), (via_check['action'], via_check['reason']))
-        self.assertEqual(via_import['action'], 'needs_decision')
-
-    def test_check_and_import_reach_the_same_decision_for_the_same_object(self):
-        """End-to-end regression guard for this refactor: given one cadastral feature, the
-        check's own construction (AddUpdatePropertyDialog._start_attention_checks) and the
-        import's own construction (AddBatchRunner._tick / prepare_data_for_import_stage1)
-        must steer classify_property_import to the same decision. Additional to, not a
-        replacement for, the existing import-builder test
-        (test_address_split_separates_only_a_trailing_house_number) or the missing-settlement
-        and date-type regression guards above."""
-        from Kavitro_dev.widgets.DateHelpers import DateHelpers
-        from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
-
-        for name in (F.hkood, F.registr, F.muudet):
-            self.layer.dataProvider().addAttributes([QgsField(name, QVariant.String)])
-        self.layer.updateFields()
-        feature = QgsFeature(self.layer.fields())
-        feature.setAttributes(['A', 'Shared municipality', 'Uus küla', '11', 'Kase tn 7', '250',
-                                '20', '2024-01-01', '2025-03-10'])
-        self.layer.dataProvider().addFeatures([feature])
-        stored = next(f for f in self.layer.getFeatures() if f[F.tunnus] == '11')
-
-        main_layer = QgsVectorLayer(f'Polygon?crs=EPSG:3301&field={F.tunnus}:string', 'Main', 'memory')
-        main_layer.dataProvider().addAttributes([QgsField(F.muudet, QVariant.String)])
-        main_layer.updateFields()
-        main_feature = QgsFeature(main_layer.fields())
-        main_feature.setAttributes(['11', '2025-01-01'])
-        main_layer.dataProvider().addFeatures([main_feature])
-        main_row = next(main_layer.getFeatures())
-
-        info = {'exists': True, 'active_count': 1, 'LastUpdated': '2025-02-01',
-                'property': {'id': '900', 'cadastralUnitNumber': '11',
-                              'displayAddress': 'Kase tn 7, Uus küla, Shared municipality, A'}}
-
-        # The check's own construction (AddUpdatePropertyDialog._start_attention_checks).
-        check_data = {'cadastralUnit': {'number': '11'},
-                      'address': PropertyDataLoader.build_import_address(stored)}
-        check_import_date = DateHelpers().date_to_iso_string(stored[F.muudet])
-        check_main_date = DateHelpers().date_to_iso_string(main_row[F.muudet])
-        check_decision = classify_property_import(check_data, check_import_date, check_main_date, info)
-
-        # The import's own construction (AddBatchRunner._tick / prepare_data_for_import_stage1).
-        import_data, _tunnus, _uses, import_date = PropertyDataLoader().prepare_data_for_import_stage1(stored)
-        import_main_date = DateHelpers().date_to_iso_string(main_row.attribute(F.muudet))
-        import_decision = classify_property_import(import_data, import_date, import_main_date, info)
-
-        self.assertEqual((check_decision['action'], check_decision['reason'], check_decision['import_newer']),
-                          (import_decision['action'], import_decision['reason'], import_decision['import_newer']))
-        self.assertEqual(check_decision['action'], 'update')
-
-    def test_property_table_headers_come_from_translations_in_both_languages(self):
-        from Kavitro_dev.languages import en as en_module
-        from Kavitro_dev.languages import et as et_module
-        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
-
-        keys = (K.CADASTRAL_ID, K.ADDRESS, K.AREA, K.SETTLEMENT, K.PROPERTY_COLUMN_BACKEND,
-                K.PROPERTY_COLUMN_MAIN_LAYER, K.PROPERTY_COLUMN_ARCHIVE_BACKEND, K.PROPERTY_COLUMN_ARCHIVE_MAP)
-        lang = LanguageManager()
-        self.assertEqual(PropertyTableWidget._headers(), [lang.translate(key) for key in keys])
-        # Strict lookup raises on a missing key, so every language must carry all of them.
-        for translations in (et_module.TRANSLATIONS, en_module.TRANSLATIONS):
-            self.assertEqual([key for key in keys if key not in translations], [])
-
-
-class PropertyDialogStateTest(unittest.TestCase):
-    """The dialog's button rules, read straight off the state object without Qt."""
-
-    def state(self, **overrides):
-        base = dict(row_count=1, selected_count=1)
-        base.update(overrides)
-        return PropertyDialogState(**base)
-
-    def test_each_phase_is_named_by_the_first_matching_flag(self):
-        cases = {
-            (): P.IDLE,
-            ('checks_completed_for_scope',): P.CHECKED,
-            ('checks_running',): P.CHECKING,
-            ('checks_running', 'checks_completed_for_scope'): P.CHECKING,
-            ('add_in_progress',): P.ADDING,
-            ('add_in_progress', 'checks_completed_for_scope'): P.ADDING,
-            ('add_in_progress', 'checks_running'): P.ADDING,
-            ('add_in_progress', 'checks_running', 'checks_completed_for_scope'): P.ADDING,
-        }
-        for flags, expected in cases.items():
-            self.assertEqual(self.state(**{flag: True for flag in flags}).phase, expected,
-                             msg=str(flags))
-
-    def test_buttons_follow_the_phase_and_the_scope_size(self):
-        # phase -> (add, add_without_checks, run_checks, review, scope_controls)
-        expected = {
-            P.IDLE: (False, True, True, True, True),
-            P.CHECKING: (False, True, False, True, True),
-            P.CHECKED: (True, True, True, True, True),
-            P.ADDING: (False, False, False, False, False),
-        }
-        flags = {P.IDLE: {}, P.CHECKING: {'checks_running': True},
-                 P.CHECKED: {'checks_completed_for_scope': True},
-                 P.ADDING: {'add_in_progress': True}}
-        for phase, buttons in expected.items():
-            state = self.state(deferred_count=1, **flags[phase])
-            self.assertEqual(
-                (state.can_add_with_checks, state.can_add_without_checks, state.can_run_checks,
-                 state.can_review_additions, state.scope_controls_enabled), buttons, msg=phase)
-
-            # An empty scope takes every add and check away, whatever the phase.
-            empty = self.state(row_count=0, selected_count=0, deferred_count=1, **flags[phase])
-            self.assertEqual(
-                (empty.can_add_with_checks, empty.can_add_without_checks, empty.can_run_checks),
-                (False, False, False), msg='empty ' + phase)
-
-            # Nothing deferred means nothing to review, in every phase.
-            self.assertFalse(self.state(**flags[phase]).can_review_additions, msg='none ' + phase)
-
-    def test_import_decisions_pending_is_the_only_thing_that_redirects_an_add(self):
-        pending = dict(decisions_from_import=True, deferred_count=1)
-        for phase_flags in ({}, {'checks_running': True}, {'checks_completed_for_scope': True},
-                            {'add_in_progress': True}):
-            state = self.state(**pending, **phase_flags)
-            self.assertEqual(state.add_action(with_checks=True), AddAction.REVIEW, msg=str(phase_flags))
-            self.assertEqual(state.add_action(with_checks=False), AddAction.REVIEW, msg=str(phase_flags))
-            self.assertEqual(state.batch_add_action(mode=AddMode.WITH_CHECKS), AddAction.REVIEW
-                             if not phase_flags.get('add_in_progress') else AddAction.IGNORE,
-                             msg=str(phase_flags))
-
-        # A check's own decisions stay where they are.
-        from_check = self.state(decisions_from_import=False, deferred_count=1,
-                                checks_completed_for_scope=True)
-        self.assertEqual(from_check.add_action(with_checks=True), AddAction.START)
-        self.assertEqual(from_check.add_action(with_checks=False), AddAction.START)
-
-    def test_add_routing_per_phase(self):
-        # phase -> (add_action with_checks, add_action without_checks)
-        expected = {
-            P.IDLE: (AddAction.IGNORE, AddAction.START),
-            P.CHECKING: (AddAction.IGNORE, AddAction.START),
-            P.CHECKED: (AddAction.START, AddAction.START),
-            P.ADDING: (AddAction.IGNORE, AddAction.IGNORE),
-        }
-        flags = {P.IDLE: {}, P.CHECKING: {'checks_running': True},
-                 P.CHECKED: {'checks_completed_for_scope': True},
-                 P.ADDING: {'add_in_progress': True}}
-        for phase, actions in expected.items():
-            state = self.state(**flags[phase])
-            self.assertEqual((state.add_action(with_checks=True),
-                              state.add_action(with_checks=False)), actions, msg=phase)
-
-        # The unchecked add refuses an empty scope by itself; the checked one never gets there.
-        empty = self.state(row_count=0, selected_count=0, checks_completed_for_scope=True)
-        self.assertEqual(empty.add_action(with_checks=False), AddAction.IGNORE)
-
-    def test_the_review_run_is_the_one_batch_mode_that_passes_a_pending_review(self):
-        pending = self.state(decisions_from_import=True, deferred_count=1,
-                             checks_completed_for_scope=True)
-        self.assertEqual(pending.batch_add_action(mode=AddMode.REVIEW), AddAction.START)
-        self.assertEqual(pending.batch_add_action(mode=AddMode.WITHOUT_CHECKS), AddAction.REVIEW)
-        # A checked batch still needs a finished check behind it.
-        unchecked = self.state()
-        self.assertEqual(unchecked.batch_add_action(mode=AddMode.WITH_CHECKS), AddAction.IGNORE)
-        self.assertEqual(unchecked.batch_add_action(mode=AddMode.WITHOUT_CHECKS), AddAction.START)
-        # Nothing starts on top of a running add.
-        adding = self.state(add_in_progress=True, checks_completed_for_scope=True)
-        for mode in (AddMode.WITH_CHECKS, AddMode.WITHOUT_CHECKS, AddMode.REVIEW):
-            self.assertEqual(adding.batch_add_action(mode=mode), AddAction.IGNORE, msg=mode)
-
-    def test_cancel_stops_the_innermost_running_work(self):
-        cases = [
-            (dict(archive_lookup_active=True, checks_running=True, has_add_runner=True),
-             CancelTarget.ARCHIVE_LOOKUP),
-            (dict(checks_running=True, has_add_runner=True), CancelTarget.CHECKS),
-            (dict(has_add_runner=True), CancelTarget.ADD_RUN),
-            (dict(), CancelTarget.CLOSE),
-        ]
-        for flags, expected in cases:
-            self.assertEqual(self.state(**flags).cancel_target, expected, msg=str(flags))
-
-        # A finished run clears the flag before the runner, and cancel follows the runner.
-        self.assertEqual(self.state(add_in_progress=True, has_add_runner=False).cancel_target,
-                         CancelTarget.CLOSE)
 
 
 if __name__ == '__main__':

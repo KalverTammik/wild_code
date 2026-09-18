@@ -377,7 +377,6 @@ class TranslationKeys:
     FEATURES_IMPORTED = "features imported"
     FEATURE_IMPORTED = "feature imported"
     INITIALIZING = "Initializing..."
-    CANCEL = "Cancel"
 
     ADD_NEW_PROPERTY = PROPERTY_MANAGEMENT
     SELECT_PROPERTY_TEMPLATE = "Select a property template to add:"
@@ -395,7 +394,6 @@ class TranslationKeys:
     ADDITIONAL_INFORMATION = "Additional Information"
     PROPERTY_NAME_LABEL = "Property Name:"
     PROPERTY_TYPE_LABEL = "Property Type:"
-    AREA_LABEL = "Area (m²):"
     AREA_M2 = "common.area_m2"
     VALUE_LABEL = "Value (€):"
     RESIDENTIAL = "Residential"
@@ -407,7 +405,6 @@ class TranslationKeys:
     ENTER_AREA = "Enter area in m²"
     ENTER_PROPERTY_VALUE = "Enter property value"
     ENTER_PROPERTY_ADDRESS = "Enter property address"
-    ENTER_ADDITIONAL_NOTES = "Enter additional notes or description"
     ENTER_ADDITIONAL_NOTES_OR_DESCRIPTION = "common.enter_additional_notes_or_description"
     ADD_PROPERTY_BUTTON = "Add Property"
     PROPERTY_NAME_REQUIRED = "Property name is required."
@@ -429,7 +426,6 @@ class TranslationKeys:
     SELECT = "Select"
     SEARCH = "Search"
     SEARCHING = "Searching"
-    FIELD_REQUIRED = "This field is required"
     THIS_FIELD_IS_REQUIRED = "common.this_field_is_required"
     INVALID_VALUE = "Invalid value"
     VALUE_MUST_BE_GREATER_THAN_MIN = "Value must be greater than {min}"
@@ -813,7 +809,6 @@ class TranslationKeys:
     VALUE_MUST_BE_GREATER_THAN_0 = "Value must be greater than 0."
     VALUE_TOO_SMALL = "Value must be greater than {min}"
     VALUE_TOO_LARGE = "Value must be less than {max}"
-    REQUIRED_FIELD = "This field is required"
     PLEASE_SELECT_AT_LEAST_ONE_PROPERTY = "Please select at least one property."
 
     # Status messages

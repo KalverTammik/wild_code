@@ -1,5 +1,80 @@
 # Refactor Checklist (quick reference)
 
+- 2026-09-18: The tests' common ground moved into one module (maintenance step 9), and the
+  negative-checks runner was recovered into the repo. Nothing the suite asserts changed; this is
+  organisation only, and every phase was run against a frozen baseline to prove it. Six copies of
+  the same "pump the event loop until it is true" helper had drifted apart: `wait_until` in
+  `test_works_sync_background` (150 rounds, "Background sync did not complete"),
+  `test_works_list_presentation` (150, "Background result was not delivered"),
+  `test_background_work_reliability` (200, caller-supplied message), `test_checked_property_add`
+  (500, "Timed out waiting for worker") and `test_property_location_loading` (200, "Location read
+  did not complete"), plus `wait_for` in `test_module_card_interactions`, which bounds the wait by
+  `time.monotonic` and asserts the predicate once more instead of failing outright. The round
+  count and the message are parameters of the shared `wait_until` rather than a majority verdict,
+  and `wait_for` stays a second function because its exit condition genuinely differs; collapsing
+  it into the first would have changed what that file waits for. Alongside it: the
+  `addAttributes`/`updateFields` field block appeared fourteen times in the location tests and
+  silently reported the old field list whenever the second call was forgotten; the backend verify
+  answer (`{'exists': True, 'active_count': ..., 'LastUpdated': ..., 'property': {...}}`) was
+  written out by hand in both the checked-add and location tests; and opening a dialog with
+  `exec_` patched away and closing it again — reject, wait for the location read, delete — was
+  repeated at every dialog call site, where forgetting the wait destroys a live worker and aborts
+  Qt. `tests/property_fixtures.py` now holds all of it: `wait_until`/`wait_for`, `add_fields`/
+  `add_import_fields`/`make_import_layer`/`make_main_layer`, `backend_info`/`missing_info`/
+  `unknown_info`, `open_dialog`/`close_dialog`/`dialog_open`, and the `LocationFilterTestCase`
+  fixture the location tests share. It is Qt-aware scaffolding with no business logic, and the
+  test modules put the `tests` directory on `sys.path` themselves so it imports the same way under
+  `unittest discover`, under a single-file run and under the mutation runner, which loads a test
+  module straight from its path. `tests/test_property_location_loading.py`, 1 698 lines and 51
+  tests in one class, became `test_property_location_filter.py` (17 tests: what a county,
+  municipality or settlement choice loads, caches and cancels), `test_property_location_dialog_
+  flow.py` (22: opening, check runs, add and archive flows, cancelling, backend lookups) and
+  `test_property_location_rules.py` (12: address matching and splitting, classification, tooltip
+  text, and the Qt-free `PropertyDialogStateTest`). Nothing had to be untangled first — the file
+  carried no module-level mutable state and no test called another — but the shared `setUp` was
+  the reason it had stayed one file, so it moved to the fixture module rather than being copied
+  three times. `tests/negative_checks.py` was recovered from a temporary scratchpad directory
+  outside the repo, where it was one cleanup away from being lost: it is the only record of which
+  regression tests actually guard their fix, and it cannot be reconstructed from the tests
+  themselves. It now computes the plugin path from its own location instead of hardcoding the
+  profile directory, so it tests whatever checkout it is run from, and it is deliberately not
+  named `test_*.py` because it is an argv-driven runner, not a test module. Its twenty-three
+  existing scenarios were repointed at the split files and all re-run; two of them had gone stale
+  against code that step 8 replaced (`_check_location_parts` no longer exists, and
+  `_backend_decisions_by_row` gave way to `PropertyCheckRun`) and were rewritten against the
+  current seams. Ten scenarios were added,
+  each confirmed to print FAILED_AS_EXPECTED: three for step 3 (`session_worker_thread_not_
+  invalidated`, `session_cancel_silences_user_login`, `session_error_by_english_substring`),
+  `dialog_without_missing_layer_bailout` for step 4's b1, `attribute_read_leaks_null_text` for
+  step 5, `archive_reresolves_main_layer_by_name` for step 6's b5, `add_without_checks_not_busy_
+  gated` for step 7, and `filter_untick_drops_the_check`, `check_run_replaced_still_accepts` and
+  `check_run_finishes_more_than_once` for step 8's b6. Step 1 and the MODE_LOOKUP addendum got
+  none, and on purpose: step 1 deleted unreachable code and no test asserts the deletion, so a
+  mutant would have to re-add code nothing observes, and the MODE_LOOKUP wiring was recorded as
+  having no functional difference — the only test touching that mode exercises the worker
+  directly, never the dialog's call site, so a mutant reverting it passes and would have to be
+  thrown away. `tests/test_translation_completeness.py` asks whether every `TranslationKeys`
+  constant is answered by both `languages/et.py` and `languages/en.py`, and whether any key is
+  answered by exactly one of them; it is complementary to the header-key check already in the
+  location rules, which covers four keys. It found five real gaps, pinned by equality so the list
+  can neither grow nor shrink unnoticed: `MODULE_SETTINGS` ("settings") is answered in Estonian
+  and not in English, which a strict lookup turns into a crash rather than a fallback, and
+  `CANCEL`, `AREA_LABEL`, `ENTER_ADDITIONAL_NOTES` and `FIELD_REQUIRED`/`REQUIRED_FIELD` (two
+  names for one value) are legacy keys whose key is its own English text and which neither
+  language answers. They are recorded, not fixed, because fixing them is a translation decision.
+  Files: tests/property_fixtures.py, tests/negative_checks.py, tests/test_translation_
+  completeness.py, tests/test_property_location_filter.py, tests/test_property_location_dialog_
+  flow.py, tests/test_property_location_rules.py, tests/test_property_location_loading.py
+  (deleted), tests/test_checked_property_add.py, tests/test_background_work_reliability.py,
+  tests/test_works_sync_background.py, tests/test_works_list_presentation.py,
+  tests/test_module_card_interactions.py, REFACTOR_RULES.md. Offline validation: 380 tests, 374
+  passed, the same 3 pre-existing failures (test_background_work_reliability,
+  MainLayerCheckController timers) and 3 skipped as before the change; 376 of those tests are the
+  frozen baseline, unchanged in count and in outcome through every phase, and 4 are the new
+  translation test. The suite was run after each migrated file and after the split, and six times
+  at the end because of the known intermittent shutdown crash — it appeared once, mid-refactor,
+  as a truncated run with no summary line, and did not reproduce.
+
 - 2026-09-18: One check run of the property add dialog is now one object, and the "only needs
   attention" filter stopped throwing that run away (maintenance step 8, bug b6). NOT REVIEWED BY
   AN INDEPENDENT REVIEWER: the design rests on reading the code only, and this is the most used

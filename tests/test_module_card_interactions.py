@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 qgis_prefix = os.environ.get("QGIS_PREFIX_PATH")
 if qgis_prefix:
     sys.path.append(str(Path(qgis_prefix) / "python" / "plugins"))
@@ -18,6 +19,8 @@ from PyQt5.QtCore import QCoreApplication, QEvent, QThread, Qt
 from PyQt5.QtTest import QTest
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QWidget
+
+from property_fixtures import wait_for
 
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.python.api_actions import APIModuleActions
@@ -66,10 +69,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
         self.file_patch.stop()
 
     def wait_for(self, predicate, timeout=3):
-        deadline = time.monotonic() + timeout
-        while not predicate() and time.monotonic() < deadline:
-            QTest.qWait(10)
-        self.assertTrue(predicate(), "Timed out waiting for UI state")
+        wait_for(self, predicate, timeout=timeout, message="Timed out waiting for UI state")
 
     def show(self, widget):
         self.widgets.append(widget)

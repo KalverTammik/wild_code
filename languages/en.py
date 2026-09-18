@@ -604,6 +604,7 @@ TRANSLATIONS = {
     ,TranslationKeys.MODULE_CONTRACT: "Contracts"
     ,TranslationKeys.MODULE_PROJECT: "Projects"
     ,TranslationKeys.MODULE_HOME: "Home"
+    ,TranslationKeys.MODULE_SETTINGS: "Settings"
     ,TranslationKeys.MODULE_COORDINATION: "Coordination"
     ,TranslationKeys.MODULE_LETTER: "Letters"
     ,TranslationKeys.MODULE_SPECIFICATION: "Specifications"

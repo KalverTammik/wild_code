@@ -8,12 +8,15 @@ from unittest.mock import patch
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 if os.environ.get('QGIS_PREFIX_PATH'):
     sys.path.append(str(Path(os.environ['QGIS_PREFIX_PATH']) / 'python' / 'plugins'))
 
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtTest import QTest
 from qgis.core import QgsApplication
+
+from property_fixtures import wait_until as _wait_until
 
 from Kavitro_dev.languages.translation_keys import TranslationKeys as K
 from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
@@ -28,11 +31,7 @@ class _QtTestCase(unittest.TestCase):
         QgsApplication.initQgis()
 
     def wait_until(self, condition, *, message='background work did not complete'):
-        for _ in range(200):
-            if condition():
-                return
-            QTest.qWait(10)
-        self.fail(message)
+        _wait_until(self, condition, attempts=200, message=message)
 
 
 class BackendVerifyWorkerFinishTest(_QtTestCase):
