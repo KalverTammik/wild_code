@@ -18,6 +18,7 @@ from ....utils.TagsEngines import TagsEngines
 from ....utils.moduleSwitchHelper import ModuleSwitchHelper
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....utils.mapandproperties.ArchiveLayerHandler import ArchiveLayerHandler
+from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from ....utils.messagesHelper import ModernMessageDialog
 
 
@@ -192,16 +193,22 @@ class MainAddPropertiesFlow:
         return archive_layer
 
     @staticmethod
-    def _prepare_layers() -> tuple[object, object, object]:
+    def _prepare_layers(main_layer=None) -> tuple[object, object, object]:
         # 1) Resolve the import layer without changing its provider subset. The
         # selected feature payloads are passed directly to the add flow. Leaving
         # a village-specific subset behind would make the next village load look
         # incomplete and could invalidate archive decisions.
         import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
 
-        # 2) Activate main target layer
-        target_layer_name = SettingsService().module_main_layer_name(Module.PROPERTY.value)
-        active_layer = MapHelpers.resolve_layer(target_layer_name)
+        # 2) Activate main target layer. A caller that already resolved and pinned a
+        # specific layer instance (e.g. the archive plan) passes it as `main_layer`, so
+        # a second, independent name-based lookup here can never land on a different
+        # layer than the one the plan was built against when two layers share that name.
+        if main_layer is not None and getattr(main_layer, "isValid", lambda: True)():
+            active_layer = main_layer
+        else:
+            target_layer_name = SettingsService().module_main_layer_name(Module.PROPERTY.value)
+            active_layer = MapHelpers.resolve_layer(target_layer_name)
 
         # 3) Ensure archive layer exists/valid (may prompt user)
         archive_layer = MainAddPropertiesFlow._ensure_archive_layer_ready(active_layer) if active_layer else None
@@ -218,13 +225,16 @@ class MainAddPropertiesFlow:
 
 
     @staticmethod
-    def archive_missing_from_import(tunnus_iterable, *, backend_allowed: Optional[set[str]] = None) -> dict:
+    def archive_missing_from_import(tunnus_iterable, *, backend_allowed: Optional[set[str]] = None,
+                                     main_layer=None) -> dict:
         """Archive properties that are absent from the current import.
 
         Moves matching MAIN-layer features to the archive layer and archives
         matching backend records. `backend_allowed` limits which tunnus values
         are eligible for backend archiving; when None, all provided tunnus are
-        eligible (legacy behavior).
+        eligible (legacy behavior). `main_layer`, when given, is the exact layer
+        instance the archive plan was computed against, and is used as-is instead
+        of a fresh name-based lookup (see `_prepare_layers`).
         """
 
         unique_tunnus = sorted({str(t).strip() for t in (tunnus_iterable or []) if str(t).strip()})
@@ -241,7 +251,7 @@ class MainAddPropertiesFlow:
         if not unique_tunnus:
             return summary
 
-        layers = MainAddPropertiesFlow._prepare_layers()
+        layers = MainAddPropertiesFlow._prepare_layers(main_layer)
         if not layers:
             summary["errors"].append("Layer preparation failed")
             return summary
@@ -265,17 +275,19 @@ class MainAddPropertiesFlow:
 
             source_ids = []
             moved_tunnused = set()
+            try:
+                matches_by_tunnus = PropertyDataLoader.read_features_by_field_values(
+                    target_layer, Katastriyksus.tunnus, unique_tunnus, include_geometry=True, group=True)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="archive_find_matches_failed",
+                )
+                matches_by_tunnus = {}
+
             for tunnus in unique_tunnus:
-                try:
-                    matches = MapHelpers.find_features_by_fields_and_values(target_layer, Katastriyksus.tunnus, [tunnus])
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module=Module.PROPERTY.value,
-                        event="archive_find_matches_failed",
-                        extra={"tunnus": tunnus},
-                    )
-                    matches = []
+                matches = matches_by_tunnus.get(tunnus, [])
 
                 if not matches:
                     summary["errors"].append(f"Main feature {tunnus} was not found")

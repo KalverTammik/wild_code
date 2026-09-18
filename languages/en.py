@@ -484,7 +484,6 @@ TRANSLATIONS = {
     TranslationKeys.DEV_DBG_TOOLTIP: "Toggle developer logs (print) on/off",
     TranslationKeys.DEV_FRAMES_TOOLTIP: "Show/Hide FRAME labels on the home page",
     TranslationKeys.SESSION_EXPIRED: "Your session has expired. Please sign in again.",
-    TranslationKeys.SESSION_EXPIRED_TITLE: "Session Expired",
     TranslationKeys.URGENT_GROUP_TITLE: "Urgent!"
     ,TranslationKeys.URGENT_TOOLTIP: "What needs fast attention"
     ,TranslationKeys.STATUS_FILTER: "Filter by Status"

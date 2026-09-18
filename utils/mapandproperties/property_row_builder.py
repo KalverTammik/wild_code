@@ -1,5 +1,7 @@
 from typing import Iterable, List, Dict, Any
 
+from qgis.core import QgsVariantUtils
+
 from ...Logs.logger import warn
 from ...constants.cadastral_fields import Katastriyksus
 
@@ -8,21 +10,27 @@ class PropertyRowBuilder:
     """Build UI-ready property rows from QgsFeature payloads."""
 
     @staticmethod
-    def _safe_attr(feature, field_key, *, log_prefix: str) -> str:
+    def read_value(value) -> str:
+        """Normalize a raw attribute value to text, never the word "NULL".
+
+        Covers the three shapes a cadastral field arrives in: Python `None`, the QGIS
+        NULL sentinel (`str()` of it reads as the literal word "NULL"), and the same
+        literal text carried as real data by a source file. All three mean "no value".
+        """
+        if value is None or QgsVariantUtils.isNull(value):
+            return ""
+        text = str(value).strip()
+        return "" if text.upper() == "NULL" else text
+
+    @staticmethod
+    def read_field_text(obj, field_key, *, log_prefix: str = "PropertyRowBuilder") -> str:
+        """Read one field of a QgsFeature (or feature-like mapping) as null-safe text."""
         try:
-            value = feature[field_key]
+            value = obj[field_key]
         except Exception as exc:
             warn(f"{log_prefix}: missing field '{field_key}' on feature: {exc}")
             return ""
-
-        if value is None:
-            return ""
-
-        try:
-            return str(value)
-        except Exception as exc:
-            warn(f"{log_prefix}: failed to stringify field '{field_key}': {exc}")
-            return ""
+        return PropertyRowBuilder.read_value(value)
 
     @staticmethod
     def row_from_feature(feature, *, log_prefix: str = "PropertyRowBuilder") -> Dict[str, Any]:
@@ -36,10 +44,10 @@ class PropertyRowBuilder:
             }
 
         return {
-            "cadastral_id": PropertyRowBuilder._safe_attr(feature, Katastriyksus.tunnus, log_prefix=log_prefix),
-            "address": PropertyRowBuilder._safe_attr(feature, Katastriyksus.l_aadress, log_prefix=log_prefix),
-            "area": PropertyRowBuilder._safe_attr(feature, Katastriyksus.pindala, log_prefix=log_prefix),
-            "settlement": PropertyRowBuilder._safe_attr(feature, Katastriyksus.ay_nimi, log_prefix=log_prefix),
+            "cadastral_id": PropertyRowBuilder.read_field_text(feature, Katastriyksus.tunnus, log_prefix=log_prefix),
+            "address": PropertyRowBuilder.read_field_text(feature, Katastriyksus.l_aadress, log_prefix=log_prefix),
+            "area": PropertyRowBuilder.read_field_text(feature, Katastriyksus.pindala, log_prefix=log_prefix),
+            "settlement": PropertyRowBuilder.read_field_text(feature, Katastriyksus.ay_nimi, log_prefix=log_prefix),
             "feature": feature,
         }
 

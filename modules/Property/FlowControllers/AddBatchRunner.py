@@ -2,9 +2,10 @@
 from PyQt5 import sip
 from threading import Event
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
-from qgis.core import QgsFeatureRequest, QgsVariantUtils
+from qgis.core import QgsFeatureRequest
 
 from ....utils.mapandproperties.PropertyTableManager import PropertyTableManager
+from ....utils.mapandproperties.property_row_builder import PropertyRowBuilder
 from .MainAddProperties import MainAddPropertiesFlow, BackendPropertyVerifier
 from .UpdatePropertyData import UpdatePropertyData
 from .property_import_decisions import ADDRESS_REASONS, classify_property_import
@@ -159,7 +160,7 @@ class AddBatchRunner(QObject):
         selected = self._queue.pop(0)
         self._current = {'tunnus': ''}
         try:
-            tunnus = str(selected.attribute(F.tunnus) or '')
+            tunnus = PropertyRowBuilder.read_field_text(selected, F.tunnus)
             self._current['tunnus'] = tunnus
             self.progress.emit(self._done, self._total, 'processing', tunnus)
             source = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
@@ -169,7 +170,7 @@ class AddBatchRunner(QObject):
                     or target.fields().lookupField(F.tunnus) < 0):
                 raise RuntimeError(LanguageManager().translate(K.PROPERTY_ADD_LAYER_CHANGED))
             feature = source.getFeature(selected.id())
-            if not feature.isValid() or str(feature.attribute(F.tunnus)) != tunnus:
+            if not feature.isValid() or PropertyRowBuilder.read_field_text(feature, F.tunnus) != tunnus:
                 raise RuntimeError(LanguageManager().translate(K.PROPERTY_ADD_LAYER_CHANGED))
             # Table features deliberately omit dates/uses/geometry: read the complete source feature.
             data, tunnus, uses, updated = PropertyDataLoader().prepare_data_for_import_stage1(feature)
@@ -220,8 +221,7 @@ class AddBatchRunner(QObject):
                                source_id=source.id(), source_uri=current['source_uri'],
                                target_id=target.id(), target_uri=current['target_uri'],
                                main_address=('' if main is None or main.fields().lookupField(F.l_aadress) < 0
-                                             or QgsVariantUtils.isNull(main[F.l_aadress])
-                                             else str(main[F.l_aadress])))
+                                             else PropertyRowBuilder.read_field_text(main, F.l_aadress)))
                 self._deferred.append(_result)
                 self._complete_item(deferred=True)
                 return

@@ -155,6 +155,47 @@ class PropertyDataLoader:
             request.setFilterExpression(expression)
         return request
 
+    _LOOKUP_BATCH_SIZE = 200
+
+    @staticmethod
+    def read_features_by_field_values(layer, field_name, values, *, include_geometry=False, group=False,
+                                       batch_size=_LOOKUP_BATCH_SIZE):
+        """Return {value: feature} (or {value: [features]} if `group`) for a layer, matched by one attribute.
+
+        Values are compared with the same string-quoted `IN (...)` expression as everywhere else in this
+        module, so a numeric-looking tunnus ("123") matches the same way it would in a manual filter, never
+        by numeric coercion. Large candidate sets are split into `batch_size`-sized IN-clauses instead of one
+        request per value (a single expression with thousands of literals is its own kind of slow query) or
+        one giant clause. Geometry is left out by default; pass `include_geometry=True` when the caller will
+        copy the feature (e.g. into an archive layer) and needs it. `group=True` collects every matching
+        feature per value instead of only the first, for callers that must not silently drop duplicates.
+        """
+        result: dict[str, object] = {}
+        if layer is None:
+            return result
+        cleaned = sorted({str(v).strip() for v in (values or []) if str(v).strip()})
+        if not cleaned:
+            return result
+        if layer.fields().lookupField(field_name) == -1:
+            raise ValueError(LanguageManager().translate(TranslationKeys.PROPERTY_LAYER_FIELD_NOT_FOUND).format(
+                field_name=field_name))
+
+        for start in range(0, len(cleaned), batch_size):
+            chunk = cleaned[start:start + batch_size]
+            request = QgsFeatureRequest()
+            request.setFilterExpression(PropertyDataLoader._in_expr(field_name, chunk))
+            if not include_geometry:
+                request.setFlags(QgsFeatureRequest.NoGeometry)
+            for feature in layer.getFeatures(request):
+                key = str(feature.attribute(field_name) or "").strip()
+                if not key:
+                    continue
+                if group:
+                    result.setdefault(key, []).append(feature)
+                elif key not in result:
+                    result[key] = feature
+        return result
+
     @staticmethod
     def read_location_scope(source, cancelled, scope, include_properties):
         """Build rows, selection IDs and map bounds in one cancellable scan.

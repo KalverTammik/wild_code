@@ -21,6 +21,10 @@ class BackendVerifyController(QObject):
     running thread. Deleting the controller also stops its current run.
     """
 
+    # Callers pick the run mode without importing the worker themselves.
+    MODE_VERIFY = BackendVerifyWorker.MODE_VERIFY
+    MODE_LOOKUP = BackendVerifyWorker.MODE_LOOKUP
+
     rowResult = pyqtSignal(int, str, dict)
     waiting = pyqtSignal(float, str)
     finished = pyqtSignal(dict)
@@ -64,7 +68,8 @@ class BackendVerifyController(QObject):
         rows: list[tuple[int, str, str]],
         *,
         source: str,
-        import_context_by_tunnus: dict,
+        import_context_by_tunnus: dict | None = None,
+        mode: str = BackendVerifyWorker.MODE_VERIFY,
     ) -> None:
         self.stop()
 
@@ -72,6 +77,7 @@ class BackendVerifyController(QObject):
             rows,
             source=source,
             import_context_by_tunnus=import_context_by_tunnus,
+            mode=mode,
         )
 
         # Connect before starting. Each connection remembers its own worker and is

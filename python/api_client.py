@@ -9,7 +9,7 @@ from qgis.core import Qgis
 from qgis.PyQt.QtCore import QVariant
 from qgis.PyQt.QtCore import QThread
 from qgis.PyQt.QtWidgets import QApplication
-from ..utils.SessionManager import SessionManager
+from ..utils.SessionManager import SESSION_REASON_UNAUTHENTICATED, SessionManager
 from ..constants.file_paths import ConfigPaths, GraphQLSettings
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
@@ -24,10 +24,6 @@ class APIClient:
         self.lang = LanguageManager()
         self.session_manager = session_manager or SessionManager()
         self.config_path = ConfigPaths.CONFIG
-       
-        # Guard to prevent opening multiple login dialogs simultaneously
-        if not hasattr(APIClient, '_login_dialog_open'):
-            APIClient._login_dialog_open = False
 
     def _http_status_error(self, status_code: int) -> str:
         template = self.lang.translate(
@@ -76,16 +72,14 @@ class APIClient:
         except Exception:
             is_main_thread = True
 
-        auth_attempts = 2 if require_auth else 1
         # Unknown write outcomes require reconciliation, not blind repetition.
         if retry_network is None:
             retry_network = api_rate_limit.mutation_cost(query) == 0
         # Avoid blocking the UI thread with network retries.
         network_attempts = 3 if retry_network and not is_main_thread else 1
-        attempts = max(auth_attempts, network_attempts)
         last_error = None
 
-        for attempt in range(1, attempts + 1):
+        for attempt in range(1, network_attempts + 1):
             headers = {
                 "Content-Type": "application/json",
                 "Accept": "application/json",
@@ -159,11 +153,12 @@ class APIClient:
                     kind = ApiErrorKind.UNKNOWN
 
                 if require_auth and kind == ApiErrorKind.AUTH:
-                    if is_main_thread and attempt < auth_attempts and self._handle_unauthenticated():
-                        continue
-
-                    session_text = self.lang.translate(TranslationKeys.SESSION_EXPIRED) or "Session expired"
-                    msg2 = tag_message(ApiErrorKind.AUTH, session_text)
+                    # Runs on worker threads too; SessionManager hands the UI part to the GUI thread.
+                    SessionManager.invalidate_session(reason=SESSION_REASON_UNAUTHENTICATED)
+                    msg2 = tag_message(
+                        ApiErrorKind.AUTH,
+                        self.lang.translate(TranslationKeys.SESSION_EXPIRED),
+                    )
                     if with_success:
                         return _wrap_error(msg2)
                     raise Exception(msg2)
@@ -280,14 +275,12 @@ class APIClient:
         except Exception:
             is_main_thread = True
 
-        auth_attempts = 2 if require_auth else 1
         # A lost upload response can already have created a file. Only a known
         # pre-execution HTTP 429 rejection is safe to retry automatically.
         network_attempts = 1
-        attempts = max(auth_attempts, network_attempts)
         last_error = None
 
-        for attempt in range(1, attempts + 1):
+        for attempt in range(1, network_attempts + 1):
             headers = {
                 "Accept": "application/json",
                 "X-Requested-With": "XMLHttpRequest",
@@ -381,11 +374,12 @@ class APIClient:
                     kind = ApiErrorKind.UNKNOWN
 
                 if require_auth and kind == ApiErrorKind.AUTH:
-                    if is_main_thread and attempt < auth_attempts and self._handle_unauthenticated():
-                        continue
-
-                    session_text = self.lang.translate(TranslationKeys.SESSION_EXPIRED) or "Session expired"
-                    raise Exception(tag_message(ApiErrorKind.AUTH, session_text))
+                    # Runs on worker threads too; SessionManager hands the UI part to the GUI thread.
+                    SessionManager.invalidate_session(reason=SESSION_REASON_UNAUTHENTICATED)
+                    raise Exception(tag_message(
+                        ApiErrorKind.AUTH,
+                        self.lang.translate(TranslationKeys.SESSION_EXPIRED),
+                    ))
 
                 if msg:
                     raise Exception(msg)
@@ -427,15 +421,6 @@ class APIClient:
             if msg and "Unauthenticated" in msg:
                 return True
         return False
-
-    def _handle_unauthenticated(self) -> bool:
-        """Handle unauthenticated response by invalidating the session."""
-        SessionManager.invalidate_session(reason="401")
-        return False
-
-    def open_login_dialog(self):
-        """Open login dialog via SessionManager (guarded)."""
-        SessionManager.request_login(reason="401")
 
 
 class requestBuilder:

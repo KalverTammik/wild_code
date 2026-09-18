@@ -6,38 +6,28 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from .widgets.theme_manager import ThemeManager
-from .constants.file_paths import QssPaths
 from .constants.module_icons import IconNames
 from .constants.button_props import ButtonVariant, ButtonSize
-from .languages.language_manager import LanguageManager
+from .languages.language_manager import SUPPORTED_LANGUAGES, LanguageManager
 from .utils.SessionManager import SessionManager
 #import tranlation keys
 from .languages.translation_keys import TranslationKeys, DialogLabels
 from .python.api_client import APIClient
 from .python.GraphQLQueryLoader import GraphQLQueryLoader
+from .utils.api_error_handling import ApiErrorKind, parse_tagged_message
 from .utils.url_manager import Module
-
-lang = LanguageManager(language="et")
 
 class LoginDialog(QDialog):
     loginSuccessful = pyqtSignal(str, dict)
 
-    def __init__(
-        self,
-        title=LanguageManager().translate(TranslationKeys.LOGIN_BUTTON),
-        username_label=LanguageManager().translate(DialogLabels.USERNAME_LABEL),
-        password_label=LanguageManager().translate(DialogLabels.PASSWORD_LABEL),
-        button_text=LanguageManager().translate(DialogLabels.LOGIN_BUTTON),
-        theme_path=None,
-        parent=None
-    ):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.api_token = None
         self.user = None
         self._authenticating = False
-        self.setWindowTitle(title)
-        self.setFixedSize(300, 400)
-
+        self.lang = LanguageManager()
+        # The window must grow with a wrapped error message, not clip it.
+        self.setMinimumSize(300, 400)
 
         ThemeManager.set_initial_theme(
             self,
@@ -47,15 +37,16 @@ class LoginDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        self.language_label = QLabel(DialogLabels.LANGUAGE_LABEL)
+        self.language_label = QLabel()
         layout.addWidget(self.language_label)
 
         self.language_switch = QComboBox()
-        self.language_switch.addItems(["et", "en", "fr"])
+        self.language_switch.addItems(SUPPORTED_LANGUAGES)
+        self.language_switch.setCurrentText(self.lang.language)
         self.language_switch.currentTextChanged.connect(self.change_language)
         layout.addWidget(self.language_switch)
 
-        self.username_label = QLabel(username_label)
+        self.username_label = QLabel()
         self.username_label.setObjectName(DialogLabels.USERNAME_LABEL)
         layout.addWidget(self.username_label)
         self.username_input = QLineEdit()
@@ -63,7 +54,7 @@ class LoginDialog(QDialog):
         self.username_input.textChanged.connect(self.clear_validation_state)
         layout.addWidget(self.username_input)
 
-        self.password_label = QLabel(password_label)
+        self.password_label = QLabel()
         self.password_label.setObjectName(DialogLabels.PASSWORD_LABEL)
         layout.addWidget(self.password_label)
         password_row = QHBoxLayout()
@@ -80,7 +71,7 @@ class LoginDialog(QDialog):
         self.toggle_password_button.setAutoDefault(False)
         self.toggle_password_button.setDefault(False)
         self.toggle_password_button.setFocusPolicy(Qt.NoFocus)
-        self.toggle_password_button.setToolTip(lang.translate(TranslationKeys.TOGGLE_PASSWORD))
+        self.toggle_password_button.setToolTip(self.lang.translate(TranslationKeys.TOGGLE_PASSWORD))
         self.toggle_password_button.setProperty("variant", ButtonVariant.GHOST)
         self.toggle_password_button.setProperty("btnSize", ButtonSize.SMALL)
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
@@ -94,13 +85,12 @@ class LoginDialog(QDialog):
         layout.addWidget(self.errorLabel)
 
 
-        self.login_button = QPushButton(button_text)
+        self.login_button = QPushButton()
         self.login_button.setProperty("variant", ButtonVariant.PRIMARY)
         self.login_button.setProperty("btnSize", ButtonSize.LARGE)
         self.login_button.setAutoDefault(True)
         self.login_button.setDefault(True)
         self.login_button.clicked.connect(self.authenticate_user)
-        layout.addWidget(self.login_button)
 
         button_layout = QHBoxLayout()
         button_layout.addStretch()
@@ -114,22 +104,20 @@ class LoginDialog(QDialog):
         self.login_button.setStyleSheet("")
 
         self.setLayout(layout)
+        self._retranslate()
 
-        self.setWindowTitle(title)
-        self.language_label.setText(lang.translate(DialogLabels.LANGUAGE_LABEL))
-        self.username_label.setText(username_label)
-        self.password_label.setText(password_label)
-        self.login_button.setText(button_text)
 
+    def _retranslate(self) -> None:
+        self.setWindowTitle(self.lang.translate(TranslationKeys.LOGIN_BUTTON))
+        self.language_label.setText(self.lang.translate(DialogLabels.LANGUAGE_LABEL))
+        self.username_label.setText(self.lang.translate(DialogLabels.USERNAME_LABEL))
+        self.password_label.setText(self.lang.translate(DialogLabels.PASSWORD_LABEL))
+        self.login_button.setText(self.lang.translate(TranslationKeys.LOGIN_BUTTON))
+        self.toggle_password_button.setToolTip(self.lang.translate(TranslationKeys.TOGGLE_PASSWORD))
 
     def change_language(self, language):
-        lang.set_language(language)
-        lang.save_language_preference()
-        self.setWindowTitle(LanguageManager().translate(TranslationKeys.LOGIN_BUTTON))
-        self.language_label.setText(LanguageManager().translate(DialogLabels.LANGUAGE_LABEL))
-        self.username_label.setText(LanguageManager().translate(DialogLabels.USERNAME_LABEL))
-        self.password_label.setText(LanguageManager().translate(DialogLabels.PASSWORD_LABEL))
-        self.login_button.setText(LanguageManager().translate(DialogLabels.LOGIN_BUTTON))
+        self.lang.set_language(language)
+        self._retranslate()
 
     def toggle_password_visibility(self):
         if self.toggle_password_button.isChecked():
@@ -155,9 +143,15 @@ class LoginDialog(QDialog):
         self.errorLabel.show()
 
     def _classify_login_error(self, error: Exception) -> tuple[str, bool, bool]:
-        raw = str(error or "")
-        lowered = raw.lower()
+        """Trust the error's own kind first; only a server message is guessed at."""
+        kind, text = parse_tagged_message(error)
+        if kind in (ApiErrorKind.NETWORK, ApiErrorKind.SERVER):
+            return self.lang.translate(TranslationKeys.LOGIN_SERVER_UNAVAILABLE), False, False
+        # The client tags a rejected login as AUTH, and its text never says "invalid password".
+        if kind == ApiErrorKind.AUTH:
+            return self.lang.translate(TranslationKeys.LOGIN_CREDENTIALS_INVALID), True, True
 
+        lowered = text.lower()
         username_markers = (
             "username",
             "user name",
@@ -181,16 +175,17 @@ class LoginDialog(QDialog):
             "invalid login",
             "invalid_grant",
             "authentication",
+            "unauthenticated",
             "unauthorized",
         )
 
         if any(marker in lowered for marker in credential_markers):
-            return lang.translate(TranslationKeys.LOGIN_CREDENTIALS_INVALID), True, True
+            return self.lang.translate(TranslationKeys.LOGIN_CREDENTIALS_INVALID), True, True
         if any(marker in lowered for marker in username_markers):
-            return lang.translate(TranslationKeys.LOGIN_USERNAME_INVALID), True, False
+            return self.lang.translate(TranslationKeys.LOGIN_USERNAME_INVALID), True, False
         if any(marker in lowered for marker in password_markers):
-            return lang.translate(TranslationKeys.LOGIN_PASSWORD_INVALID), False, True
-        return lang.translate(TranslationKeys.LOGIN_SERVER_UNAVAILABLE), False, False
+            return self.lang.translate(TranslationKeys.LOGIN_PASSWORD_INVALID), False, True
+        return self.lang.translate(TranslationKeys.LOGIN_SERVER_UNAVAILABLE), False, False
 
     def authenticate_user(self):
         """Authenticate the user using the shared APIClient and show a concise server message on failure."""
@@ -198,26 +193,25 @@ class LoginDialog(QDialog):
             return
         self.clear_validation_state()
 
-        # Always clear any existing session before attempting new login.
-        SessionManager.clear()
-
         username = self.username_input.text().strip()
         password = self.password_input.text()
         if not username:
             self._show_login_error(
-                lang.translate(TranslationKeys.LOGIN_USERNAME_REQUIRED),
+                self.lang.translate(TranslationKeys.LOGIN_USERNAME_REQUIRED),
                 username=True,
             )
             self.username_input.setFocus()
             return
         if not password:
             self._show_login_error(
-                lang.translate(TranslationKeys.LOGIN_PASSWORD_REQUIRED),
+                self.lang.translate(TranslationKeys.LOGIN_PASSWORD_REQUIRED),
                 password=True,
             )
             self.password_input.setFocus()
             return
 
+        # Only drop the old session once the attempt is actually going out.
+        SessionManager.clear()
         self._authenticating = True
         self.login_button.setEnabled(False)
 
@@ -254,22 +248,20 @@ class LoginDialog(QDialog):
                 SessionManager.show_storage_warning(
                     storage_status,
                     parent=self,
-                    lang_manager=lang,
+                    lang_manager=self.lang,
                 )
                 self.loginSuccessful.emit(self.api_token, self.user)
                 self.accept()
             else:
                 # One-shot diagnostic: show server-side response issue
                 self._show_login_error(
-                    lang.translate(TranslationKeys.NO_API_TOKEN_RECEIVED),
+                    self.lang.translate(TranslationKeys.NO_API_TOKEN_RECEIVED),
                     username=True,
                     password=True,
                 )
                 self.login_button.setEnabled(True)
                 self._authenticating = False
         except Exception as e:
-            # Clear session on any login failure to allow retry
-            SessionManager.clear()
             msg, username_error, password_error = self._classify_login_error(e)
             self._show_login_error(
                 msg,

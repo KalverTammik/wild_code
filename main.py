@@ -6,7 +6,6 @@ from qgis.core import QgsProject
 
 from .dialog import PluginDialog
 import sip  # Add this import at the top
-from .login_dialog import LoginDialog  # Import the login dialog class
 from .constants.module_icons import IconNames
 from .utils.SessionManager import SessionManager  # Import the SessionManager
 from .languages.language_manager import LanguageManager
@@ -24,11 +23,7 @@ class WildCodePlugin:
     def __init__(self, iface):
         self.iface = iface
         self.action = None
-        self.loginDialog = None
-        self.pluginDialog = None
-        self.login_successful = False  # Flag to track login success
         self.pluginDialog = None  # Reference to PluginDialog
-        self.loginDialog = None  # Reference to LoginDialog
         self._crash_logger = CrashLogger()
         # Initialize ModuleManager and register all modules (metadata only)
 
@@ -118,7 +113,9 @@ class WildCodePlugin:
 
             self._pending_login_listener = _on_session_valid
             SessionManager.register_listener(_on_session_valid)
-            SessionManager.request_login(parent=self.iface.mainWindow(), reason="startup")
+            SessionManager.request_login(
+                parent=self.iface.mainWindow(), reason="startup", user_initiated=True
+            )
             return
 
         # Session looks valid; reuse dialog if alive, else create
@@ -173,13 +170,6 @@ class WildCodePlugin:
             },
         )
 
-    def _show_login_dialog(self):
-        """Unified method to show login dialog with consistent setup."""
-        self.loginDialog = LoginDialog()
-        self.loginDialog.loginSuccessful.connect(self.handle_login_success)
-        self.loginDialog.finished.connect(self.reset_login_dialog)
-        self.loginDialog.exec_()
-
     def _show_main_dialog(self):
         """Unified method to show main dialog."""
         dlg = PluginDialog.get_instance()
@@ -210,15 +200,5 @@ class WildCodePlugin:
             self.pluginDialog = dlg
             self._show_existing_dialog(dlg)
 
-    def reset_login_dialog(self):
-        self.loginDialog = None
-
     def reset_plugin_dialog(self):
         self.pluginDialog = None
-
-    def handle_login_success(self, api_token, user):
-        self.login_successful = True
-
-    def _create_plugin_dialog(self, api_token, user):
-        # This method is no longer needed with the simplified approach
-        pass

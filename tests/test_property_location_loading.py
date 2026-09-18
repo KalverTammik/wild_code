@@ -15,7 +15,7 @@ if os.environ.get('QGIS_PREFIX_PATH'):
 from PyQt5.QtCore import QCoreApplication, QEvent, QThread, QTimer, Qt, QVariant
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QTableView, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QDialog, QPushButton, QTableView, QVBoxLayout, QWidget
 from qgis.core import (QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsVariantUtils, QgsVectorLayer,
                        QgsVectorLayerFeatureSource)
 
@@ -25,6 +25,9 @@ from Kavitro_dev.languages.translation_keys import TranslationKeys as K
 from Kavitro_dev.utils.MapTools.MapHelpers import MapHelpers
 from Kavitro_dev.utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableManager
+from Kavitro_dev.utils.mapandproperties.property_dialog_phase import (AddAction, AddMode, CancelTarget,
+                                                                      PropertyDialogPhase as P,
+                                                                      PropertyDialogState)
 from Kavitro_dev.widgets.LocationFilterWidget import LocationFilterHelper, LocationFilterWidget
 
 
@@ -406,6 +409,22 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         self.assertGreaterEqual(len(threads), 3)
         self.assertTrue(all(thread == self.app.thread() for thread in threads))
 
+    def test_add_dialog_missing_import_layer_shows_close_only(self):
+        """b1: no import layer loaded must not crash the dialog with AttributeError."""
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        self.resolve_mock.return_value = None
+        with patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+        try:
+            self.assertIsNone(dialog.property_layer)
+            self.assertIsNone(dialog.properties_table)
+            close_buttons = [b for b in dialog.findChildren(QPushButton)]
+            self.assertEqual(len(close_buttons), 1)
+            close_buttons[0].click()
+            self.assertEqual(dialog.result(), QDialog.Rejected)
+        finally:
+            dialog.deleteLater()
+
     def test_checked_add_dialog_uses_background_runner_and_shows_failures(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
@@ -776,7 +795,7 @@ class PropertyLocationLoadingTest(unittest.TestCase):
                                  {'7': True, '8': False, '9': False})
                 self.assertEqual(rows['8']['backend_label'], translate(K.PROPERTY_ARCHIVE_PLAN_BACKEND_MISSING))
                 self.assertEqual(rows['9']['note'], translate(K.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED))
-                archive.assert_called_once_with(['7', '8', '9'], backend_allowed={'7'})
+                archive.assert_called_once_with(['7', '8', '9'], backend_allowed={'7'}, main_layer=None)
                 self.assertEqual(dialog._missing_from_import, set())
                 self.assertFalse(dialog._add_in_progress)
 
@@ -949,6 +968,143 @@ class PropertyLocationLoadingTest(unittest.TestCase):
             self.assertEqual(dialog.selection_info.text(), count_text.format(count=2))
             self.assertTrue(dialog.add_without_checks_button.isEnabled())
         finally:
+            self.close_dialog(dialog)
+
+    # ------------------------------------------------------------------
+    # Button rules, captured as they are before they move into one owner
+    # ------------------------------------------------------------------
+
+    # (add_in_progress, checks_running, checks_completed) -> (add, add_without_checks, run_checks)
+    PHASE_BUTTONS = {
+        (False, False, False): (False, True, True),
+        (False, False, True): (True, True, True),
+        (False, True, False): (False, True, False),
+        (False, True, True): (False, True, False),
+        (True, False, False): (False, False, False),
+        (True, False, True): (False, False, False),
+        (True, True, False): (False, False, False),
+        (True, True, True): (False, False, False),
+    }
+
+    def button_states(self, dialog, *, adding=False, checking=False, checked=False):
+        """Put the dialog in one phase and read back what the three action buttons allow."""
+        dialog._add_in_progress = adding
+        dialog._checks_running = checking
+        dialog._checks_completed_for_scope = checked
+        dialog._update_add_button_state()
+        dialog._update_run_checks_button()
+        return (dialog.add_button.isEnabled(),
+                dialog.add_without_checks_button.isEnabled(),
+                dialog.run_checks_button.isEnabled())
+
+    def test_button_rules_hold_for_every_phase_with_and_without_rows(self):
+        dialog = self.open_dialog_with_village_scope()
+        try:
+            self.assertEqual(PropertyTableManager.row_count(dialog.properties_table), 1)
+            for phase, expected in self.PHASE_BUTTONS.items():
+                adding, checking, checked = phase
+                self.assertEqual(
+                    self.button_states(dialog, adding=adding, checking=checking, checked=checked),
+                    expected, msg='rows=1 phase=' + str(phase))
+
+            # An empty table leaves nothing to check and nothing to add, in every phase.
+            with patch.object(PropertyTableManager, 'row_count', return_value=0):
+                for phase in self.PHASE_BUTTONS:
+                    adding, checking, checked = phase
+                    self.assertEqual(
+                        self.button_states(dialog, adding=adding, checking=checking, checked=checked),
+                        (False, False, False), msg='rows=0 phase=' + str(phase))
+        finally:
+            self.close_dialog(dialog)
+
+    def test_import_decisions_send_every_add_path_into_the_review_first(self):
+        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        dialog = self.open_dialog_with_village_scope()
+        try:
+            dialog._deferred_additions = [{'tunnus': '1'}]
+            dialog._decisions_from_import = True
+            dialog._checks_completed_for_scope = True
+            with patch.object(dialog, '_on_review_additions') as review, \
+                    patch.object(AddBatchRunner, 'start') as start:
+                dialog._on_add_clicked()
+                dialog._on_add_without_checks()
+                dialog._start_batch_add(dialog.properties_table, mode='without_checks')
+                self.assertEqual(review.call_count, 3)
+                start.assert_not_called()
+                # The review's own run is the one path allowed past the redirect.
+                dialog._start_batch_add(dialog.properties_table, mode='review', review_decisions=[])
+                self.assertEqual(review.call_count, 3)
+                start.assert_called_once()
+            dialog._add_runner.cancel()
+            self.wait_until(lambda: dialog._add_runner is None)
+
+            # Decisions left by a check, not by an import, never redirect.
+            dialog._deferred_additions = [{'tunnus': '1'}]
+            dialog._decisions_from_import = False
+            dialog._checks_completed_for_scope = True
+            with patch.object(dialog, '_on_review_additions') as review, \
+                    patch.object(AddBatchRunner, 'start') as start, \
+                    patch.object(dialog, '_run_missing_cleanup_if_any', side_effect=lambda then: then()):
+                dialog._on_add_clicked()
+                review.assert_not_called()
+                start.assert_called_once()
+            dialog._add_runner.cancel()
+            self.wait_until(lambda: dialog._add_runner is None)
+        finally:
+            self.close_dialog(dialog)
+
+    def test_add_without_checks_needs_rows_but_not_a_finished_check(self):
+        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        dialog = self.open_dialog_with_village_scope()
+        try:
+            with patch.object(AddBatchRunner, 'start') as start, \
+                    patch.object(dialog, '_run_missing_cleanup_if_any', side_effect=lambda then: then()):
+                # No finished check: the checked add is refused, the unchecked one is not.
+                dialog._checks_completed_for_scope = False
+                dialog._on_add_clicked()
+                start.assert_not_called()
+                dialog._on_add_without_checks()
+                start.assert_called_once()
+            dialog._add_runner.cancel()
+            self.wait_until(lambda: dialog._add_runner is None)
+
+            with patch.object(AddBatchRunner, 'start') as start, \
+                    patch.object(PropertyTableManager, 'row_count', return_value=0), \
+                    patch.object(dialog, '_run_missing_cleanup_if_any', side_effect=lambda then: then()):
+                # An empty table refuses the add even when a check has finished.
+                dialog._checks_completed_for_scope = True
+                dialog._on_add_without_checks()
+                start.assert_not_called()
+        finally:
+            dialog._checks_completed_for_scope = False
+            self.close_dialog(dialog)
+
+    def test_cancel_stops_the_innermost_running_work_first(self):
+        dialog = self.open_dialog_with_village_scope()
+        runner = Mock()
+        try:
+            with patch.object(dialog, '_cancel_archive_lookup') as archive, \
+                    patch.object(dialog, '_cancel_attention_checks') as checks, \
+                    patch.object(dialog, 'reject') as close:
+                counts = lambda: (archive.call_count, checks.call_count,
+                                  runner.cancel.call_count, close.call_count)
+                dialog._archive_lookup = {'missing': [], 'backend_info': {}, 'then': None}
+                dialog._checks_running = True
+                dialog._add_runner = runner
+
+                dialog._on_cancel_clicked()
+                self.assertEqual(counts(), (1, 0, 0, 0))
+                dialog._archive_lookup = None
+                dialog._on_cancel_clicked()
+                self.assertEqual(counts(), (1, 1, 0, 0))
+                dialog._checks_running = False
+                dialog._on_cancel_clicked()
+                self.assertEqual(counts(), (1, 1, 1, 0))
+                dialog._add_runner = None
+                dialog._on_cancel_clicked()
+                self.assertEqual(counts(), (1, 1, 1, 1))
+        finally:
+            dialog._add_runner = None
             self.close_dialog(dialog)
 
     def test_check_offers_decisions_before_adding_and_apply_takes_the_current_layers(self):
@@ -1284,6 +1440,122 @@ class PropertyLocationLoadingTest(unittest.TestCase):
         # Strict lookup raises on a missing key, so every language must carry all of them.
         for translations in (et_module.TRANSLATIONS, en_module.TRANSLATIONS):
             self.assertEqual([key for key in keys if key not in translations], [])
+
+
+class PropertyDialogStateTest(unittest.TestCase):
+    """The dialog's button rules, read straight off the state object without Qt."""
+
+    def state(self, **overrides):
+        base = dict(row_count=1, selected_count=1)
+        base.update(overrides)
+        return PropertyDialogState(**base)
+
+    def test_each_phase_is_named_by_the_first_matching_flag(self):
+        cases = {
+            (): P.IDLE,
+            ('checks_completed_for_scope',): P.CHECKED,
+            ('checks_running',): P.CHECKING,
+            ('checks_running', 'checks_completed_for_scope'): P.CHECKING,
+            ('add_in_progress',): P.ADDING,
+            ('add_in_progress', 'checks_completed_for_scope'): P.ADDING,
+            ('add_in_progress', 'checks_running'): P.ADDING,
+            ('add_in_progress', 'checks_running', 'checks_completed_for_scope'): P.ADDING,
+        }
+        for flags, expected in cases.items():
+            self.assertEqual(self.state(**{flag: True for flag in flags}).phase, expected,
+                             msg=str(flags))
+
+    def test_buttons_follow_the_phase_and_the_scope_size(self):
+        # phase -> (add, add_without_checks, run_checks, review, scope_controls)
+        expected = {
+            P.IDLE: (False, True, True, True, True),
+            P.CHECKING: (False, True, False, True, True),
+            P.CHECKED: (True, True, True, True, True),
+            P.ADDING: (False, False, False, False, False),
+        }
+        flags = {P.IDLE: {}, P.CHECKING: {'checks_running': True},
+                 P.CHECKED: {'checks_completed_for_scope': True},
+                 P.ADDING: {'add_in_progress': True}}
+        for phase, buttons in expected.items():
+            state = self.state(deferred_count=1, **flags[phase])
+            self.assertEqual(
+                (state.can_add_with_checks, state.can_add_without_checks, state.can_run_checks,
+                 state.can_review_additions, state.scope_controls_enabled), buttons, msg=phase)
+
+            # An empty scope takes every add and check away, whatever the phase.
+            empty = self.state(row_count=0, selected_count=0, deferred_count=1, **flags[phase])
+            self.assertEqual(
+                (empty.can_add_with_checks, empty.can_add_without_checks, empty.can_run_checks),
+                (False, False, False), msg='empty ' + phase)
+
+            # Nothing deferred means nothing to review, in every phase.
+            self.assertFalse(self.state(**flags[phase]).can_review_additions, msg='none ' + phase)
+
+    def test_import_decisions_pending_is_the_only_thing_that_redirects_an_add(self):
+        pending = dict(decisions_from_import=True, deferred_count=1)
+        for phase_flags in ({}, {'checks_running': True}, {'checks_completed_for_scope': True},
+                            {'add_in_progress': True}):
+            state = self.state(**pending, **phase_flags)
+            self.assertEqual(state.add_action(with_checks=True), AddAction.REVIEW, msg=str(phase_flags))
+            self.assertEqual(state.add_action(with_checks=False), AddAction.REVIEW, msg=str(phase_flags))
+            self.assertEqual(state.batch_add_action(mode=AddMode.WITH_CHECKS), AddAction.REVIEW
+                             if not phase_flags.get('add_in_progress') else AddAction.IGNORE,
+                             msg=str(phase_flags))
+
+        # A check's own decisions stay where they are.
+        from_check = self.state(decisions_from_import=False, deferred_count=1,
+                                checks_completed_for_scope=True)
+        self.assertEqual(from_check.add_action(with_checks=True), AddAction.START)
+        self.assertEqual(from_check.add_action(with_checks=False), AddAction.START)
+
+    def test_add_routing_per_phase(self):
+        # phase -> (add_action with_checks, add_action without_checks)
+        expected = {
+            P.IDLE: (AddAction.IGNORE, AddAction.START),
+            P.CHECKING: (AddAction.IGNORE, AddAction.START),
+            P.CHECKED: (AddAction.START, AddAction.START),
+            P.ADDING: (AddAction.IGNORE, AddAction.IGNORE),
+        }
+        flags = {P.IDLE: {}, P.CHECKING: {'checks_running': True},
+                 P.CHECKED: {'checks_completed_for_scope': True},
+                 P.ADDING: {'add_in_progress': True}}
+        for phase, actions in expected.items():
+            state = self.state(**flags[phase])
+            self.assertEqual((state.add_action(with_checks=True),
+                              state.add_action(with_checks=False)), actions, msg=phase)
+
+        # The unchecked add refuses an empty scope by itself; the checked one never gets there.
+        empty = self.state(row_count=0, selected_count=0, checks_completed_for_scope=True)
+        self.assertEqual(empty.add_action(with_checks=False), AddAction.IGNORE)
+
+    def test_the_review_run_is_the_one_batch_mode_that_passes_a_pending_review(self):
+        pending = self.state(decisions_from_import=True, deferred_count=1,
+                             checks_completed_for_scope=True)
+        self.assertEqual(pending.batch_add_action(mode=AddMode.REVIEW), AddAction.START)
+        self.assertEqual(pending.batch_add_action(mode=AddMode.WITHOUT_CHECKS), AddAction.REVIEW)
+        # A checked batch still needs a finished check behind it.
+        unchecked = self.state()
+        self.assertEqual(unchecked.batch_add_action(mode=AddMode.WITH_CHECKS), AddAction.IGNORE)
+        self.assertEqual(unchecked.batch_add_action(mode=AddMode.WITHOUT_CHECKS), AddAction.START)
+        # Nothing starts on top of a running add.
+        adding = self.state(add_in_progress=True, checks_completed_for_scope=True)
+        for mode in (AddMode.WITH_CHECKS, AddMode.WITHOUT_CHECKS, AddMode.REVIEW):
+            self.assertEqual(adding.batch_add_action(mode=mode), AddAction.IGNORE, msg=mode)
+
+    def test_cancel_stops_the_innermost_running_work(self):
+        cases = [
+            (dict(archive_lookup_active=True, checks_running=True, has_add_runner=True),
+             CancelTarget.ARCHIVE_LOOKUP),
+            (dict(checks_running=True, has_add_runner=True), CancelTarget.CHECKS),
+            (dict(has_add_runner=True), CancelTarget.ADD_RUN),
+            (dict(), CancelTarget.CLOSE),
+        ]
+        for flags, expected in cases:
+            self.assertEqual(self.state(**flags).cancel_target, expected, msg=str(flags))
+
+        # A finished run clears the flag before the runner, and cancel follows the runner.
+        self.assertEqual(self.state(add_in_progress=True, has_add_runner=False).cancel_target,
+                         CancelTarget.CLOSE)
 
 
 if __name__ == '__main__':

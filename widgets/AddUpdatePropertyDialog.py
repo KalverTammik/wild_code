@@ -1,4 +1,5 @@
 import os
+from dataclasses import replace
 from datetime import timedelta
 from math import ceil
 from time import monotonic
@@ -18,7 +19,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
 )
 
-from qgis.core import QgsFeatureRequest, QgsVariantUtils
+from qgis.core import QgsFeatureRequest
 from qgis.utils import iface
 
 from ..modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
@@ -32,6 +33,8 @@ from ..utils.mapandproperties.property_archive_plan import (
     PropertyArchiveScope,
     classify_archive_candidates,
 )
+from ..utils.mapandproperties.property_dialog_phase import (AddAction, AddMode, CancelTarget,
+                                                            PropertyDialogState)
 from ..utils.mapandproperties.property_row_builder import PropertyRowBuilder
 from .theme_manager import ThemeManager
 
@@ -71,6 +74,11 @@ class AddPropertyDialog(QDialog):
         super().__init__(parent)
 
         self._dialog_mode = mode
+
+        # Every button rule and every add/cancel routing decision is read off this one
+        # object; the private flags below are now views into it, so it must exist before
+        # anything assigns to them.
+        self._state = PropertyDialogState()
 
         # Always define these so we can use direct `self.` access everywhere.
         self.properties_table_widget = None
@@ -122,6 +130,10 @@ class AddPropertyDialog(QDialog):
         self.data_loader = PropertyDataLoader() #in file #PropertyDataLoader.py
         self.table_manager = PropertyTableManager()
 
+        # Controllers and their state must exist before the UI is built (and before any
+        # early return below), because `finished` is already connected to
+        # `_on_dialog_finished`, which reaches into them unconditionally.
+        self._init_check_controllers_and_state()
 
         # Set up dialog properties
         if self._dialog_mode == PropertyDialogMode.FROM_MAP:
@@ -140,6 +152,17 @@ class AddPropertyDialog(QDialog):
             None,  # No theme switch button for popup dialogs
             qss_files=[QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.BUTTONS]
         )
+
+        # The import layer backs every row shown here; without it there is nothing to
+        # build a full dialog around.
+        self.property_layer = self.data_loader.property_layer
+        if self.property_layer is None:
+            self._build_missing_import_layer_ui()
+            self.show()
+            if self._dialog_mode == PropertyDialogMode.BY_LOCATION:
+                self.exec_()
+            return
+        MapHelpers.clear_layer_filter(self.property_layer)
 
         self._create_ui()
 
@@ -173,6 +196,23 @@ class AddPropertyDialog(QDialog):
             self._location_filter_helper = None
 
         self._setup_connections()
+
+        self.show()
+
+        if self._dialog_mode == PropertyDialogMode.FROM_MAP:
+            QTimer.singleShot(0, self._start_import_layer_map_selector)
+            return
+
+        # Block until done (location mode)
+        self._location_filter_helper.load_counties(self.property_layer)
+        self.exec_()
+
+    def _init_check_controllers_and_state(self) -> None:
+        """Create attention-check controllers and their state fields.
+
+        Must run before the UI (and before any early return in `__init__`), since
+        `_on_dialog_finished` is already connected and reaches into all of this.
+        """
 
         # --- Progressive Attention checks (borrowed from SignalTest patterns) ---
         self._backend_verify_controller = BackendVerifyController(self)
@@ -214,7 +254,7 @@ class AddPropertyDialog(QDialog):
         self._add_runner = None
         self._add_errors_view = None
         self._add_in_progress = False
-        self._add_mode = None  # "with_checks" | "without_checks"
+        self._add_mode = None  # one of AddMode, or None between runs
         self._add_last_tunnus = ''
         self._add_last_progress = (0, 0)
         self._add_started_at = None
@@ -227,16 +267,79 @@ class AddPropertyDialog(QDialog):
         # Track whether the table is currently filtered down to attention-only rows.
         self._table_filtered_to_attention = False
 
-        self.show()
+    def _build_missing_import_layer_ui(self) -> None:
+        """Minimal dialog shown when the import layer is not loaded (b1)."""
 
-        if self._dialog_mode == PropertyDialogMode.FROM_MAP:
-            QTimer.singleShot(0, self._start_import_layer_map_selector)
-            return
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
-        # Block until done (location mode)
-        self._location_filter_helper.load_counties(self.property_layer)
-        self.exec_()
+        error_label = QLabel(self.lang_manager.translate(TranslationKeys.NO_PROPERTY_LAYER_SELECTED))
+        error_label.setObjectName("ErrorLabel")
+        error_label.setWordWrap(True)
+        layout.addWidget(error_label)
 
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch()
+        close_button = QPushButton(self.lang_manager.translate(TranslationKeys.CLOSE))
+        close_button.clicked.connect(self.reject)
+        buttons_layout.addWidget(close_button)
+        layout.addLayout(buttons_layout)
+
+
+    # ------------------------------------------------------------------
+    # Dialog state: the stored flags are views into `_state`, the counts are read live
+    # ------------------------------------------------------------------
+
+    @property
+    def _add_in_progress(self) -> bool:
+        return self._state.add_in_progress
+
+    @_add_in_progress.setter
+    def _add_in_progress(self, value) -> None:
+        self._state = replace(self._state, add_in_progress=bool(value))
+
+    @property
+    def _checks_running(self) -> bool:
+        return self._state.checks_running
+
+    @_checks_running.setter
+    def _checks_running(self, value) -> None:
+        self._state = replace(self._state, checks_running=bool(value))
+
+    @property
+    def _checks_completed_for_scope(self) -> bool:
+        return self._state.checks_completed_for_scope
+
+    @_checks_completed_for_scope.setter
+    def _checks_completed_for_scope(self, value) -> None:
+        self._state = replace(self._state, checks_completed_for_scope=bool(value))
+
+    @property
+    def _decisions_from_import(self) -> bool:
+        return self._state.decisions_from_import
+
+    @_decisions_from_import.setter
+    def _decisions_from_import(self, value) -> None:
+        self._state = replace(self._state, decisions_from_import=bool(value))
+
+    def _phase_state(self, *, selected_count: Optional[int] = None) -> PropertyDialogState:
+        """The stored flags plus everything that has to be counted at decision time.
+
+        The deferred list is mutated in place elsewhere and the add runner is cleared a
+        moment after its flag, so neither may be cached into `_state`.
+        """
+
+        if selected_count is None:
+            selected_count = self._current_target_count()
+        return replace(
+            self._state,
+            deferred_count=len(self._deferred_additions),
+            archive_lookup_active=self._archive_lookup is not None,
+            has_add_runner=self._add_runner is not None,
+            row_count=PropertyTableManager.row_count(self.properties_table),
+            selected_count=int(selected_count or 0),
+        )
 
     def _on_dialog_finished(self, _result: int) -> None:
         self._add_progress_timer.stop()
@@ -244,7 +347,13 @@ class AddPropertyDialog(QDialog):
             self._add_runner.cancel()
         self._archive_lookup = None
         self._archive_lookup_controller.stop()
-        self._stop_attention_checks()
+        # The minimal missing-import-layer dialog never built the check UI, so the full
+        # cleanup below (which touches those widgets) would fail; only the controllers
+        # need stopping in that case.
+        if self.properties_table is not None:
+            self._stop_attention_checks()
+        else:
+            self._stop_check_controllers()
         try:
             if self._import_selection_orchestrator is not None:
                 self._import_selection_orchestrator.cancel()
@@ -270,27 +379,6 @@ class AddPropertyDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
-
-        import_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
-        if import_layer:
-            MapHelpers.clear_layer_filter(import_layer)
-        # Check if we have a property layer
-        self.property_layer = self.data_loader.property_layer
-        MapHelpers.clear_layer_filter(self.property_layer)
-        if not self.property_layer:
-            error_label = QLabel(self.lang_manager.translate(TranslationKeys.NO_PROPERTY_LAYER_SELECTED))
-            error_label.setObjectName("ErrorLabel")
-            error_label.setWordWrap(True)
-            layout.addWidget(error_label)
-
-            # Add close button
-            buttons_layout = QHBoxLayout()
-            buttons_layout.addStretch()
-            close_button = QPushButton(self.lang_manager.translate(TranslationKeys.CLOSE))
-            close_button.clicked.connect(self.reject)
-            buttons_layout.addWidget(close_button)
-            layout.addLayout(buttons_layout)
-            return
 
         if self._dialog_mode == PropertyDialogMode.FROM_MAP:
             self.header_label = QLabel(
@@ -600,51 +688,45 @@ class AddPropertyDialog(QDialog):
         self._after_table_update(self.properties_table)
 
     def _on_add_without_checks(self) -> None:
-        if self._decisions_from_import and self._deferred_additions:
+        selected_count = self._current_target_count()
+        action = self._phase_state(selected_count=selected_count).add_action(with_checks=False)
+        if action == AddAction.REVIEW:
             self._on_review_additions()
             return
+
         table = self.properties_table
-        if table is None:
-            return
-
-        if self._add_in_progress:
-            return
-
-        selected_count = self._current_target_count()
-
-        if selected_count <= 0:
+        if action != AddAction.START or table is None:
             return
 
         def start_add() -> None:
             self._stop_attention_checks(clear_attention=True)
             self._update_add_button_state(selected_count=selected_count)
-            self._start_batch_add(table, mode="without_checks")
+            self._start_batch_add(table, mode=AddMode.WITHOUT_CHECKS)
 
         # If the user already ran checks and archive plans exist, apply that plan first
         # before resetting check state for the add run. A running check has no plan yet.
         self._run_missing_cleanup_if_any(start_add)
 
     def _on_add_clicked(self) -> None:
-        if self._decisions_from_import and self._deferred_additions:
+        action = self._phase_state().add_action(with_checks=True)
+        if action == AddAction.REVIEW:
             self._on_review_additions()
             return
-        if self._add_in_progress or self._checks_running or not self._checks_completed_for_scope:
+        if action != AddAction.START:
             return
         self._run_missing_cleanup_if_any(
-            lambda: self._start_batch_add(self.properties_table, mode="with_checks"))
+            lambda: self._start_batch_add(self.properties_table, mode=AddMode.WITH_CHECKS))
 
     def _start_batch_add(self, table, *, mode: str, review_decisions=None) -> None:
-        if self._add_in_progress:
-            return
-
         if table is None:
             return
 
-        if self._decisions_from_import and self._deferred_additions and mode != 'review':
+        action = self._phase_state().batch_add_action(mode=mode)
+        if action == AddAction.REVIEW:
             self._on_review_additions()
             return
 
-        if mode == "with_checks" and (self._checks_running or not self._checks_completed_for_scope):
+        if action != AddAction.START:
             return
 
         runner = AddBatchRunner(
@@ -669,7 +751,7 @@ class AddPropertyDialog(QDialog):
         runner.waiting.connect(self._on_add_waiting)
 
         self.check_progress_bar.hide()
-        prefix_key = (TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX_NO_CHECKS if mode == 'without_checks'
+        prefix_key = (TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX_NO_CHECKS if mode == AddMode.WITHOUT_CHECKS
                       else TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX)
         self.add_progress_bar.setAccessibleName(self.lang_manager.translate(prefix_key))
         self._render_add_progress()
@@ -692,17 +774,18 @@ class AddPropertyDialog(QDialog):
 
     def _on_cancel_clicked(self) -> None:
         # Running work is cancelled in place, like an add; only an idle dialog closes.
-        if self._archive_lookup is not None:
+        target = self._phase_state().cancel_target
+        if target == CancelTarget.ARCHIVE_LOOKUP:
             self._cancel_archive_lookup()
             return
-        if self._checks_running:
+        if target == CancelTarget.CHECKS:
             self._cancel_attention_checks()
             return
 
         # Always stop attention checks when cancelling so backend lookups don't keep running.
         self._stop_attention_checks(clear_attention=False)
 
-        if self._add_runner is not None:
+        if target == CancelTarget.ADD_RUN:
             self._add_wait_reason = 'cancelling'
             self._render_add_progress()
             try:
@@ -774,7 +857,7 @@ class AddPropertyDialog(QDialog):
         self.add_detail_label.setVisible(bool(detail))
 
     def _on_add_finished(self, summary: dict) -> None:
-        if self._add_mode == 'review':
+        if self._add_mode == AddMode.REVIEW:
             previous = self._add_summary
             replaced = set(summary.get('applied', [])) | {item['tunnus'] for item in summary['errors']}
             refreshed = {item['tunnus']: item for item in summary.get('deferred', [])}
@@ -822,7 +905,7 @@ class AddPropertyDialog(QDialog):
 
         if total > 0:
             prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_FINISHED)
-            if self._add_mode == "without_checks":
+            if self._add_mode == AddMode.WITHOUT_CHECKS:
                 prefix = self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROGRESS_FINISHED_NO_CHECKS)
 
             if canceled:
@@ -902,8 +985,7 @@ class AddPropertyDialog(QDialog):
                 decision,
                 fid=feature.id() if feature is not None else None,
                 main_address=('' if main is None or main.fields().lookupField(Katastriyksus.l_aadress) < 0
-                              or QgsVariantUtils.isNull(main[Katastriyksus.l_aadress])
-                              else str(main[Katastriyksus.l_aadress])),
+                              else PropertyRowBuilder.read_field_text(main, Katastriyksus.l_aadress)),
             ))
         return decisions
 
@@ -933,7 +1015,7 @@ class AddPropertyDialog(QDialog):
         return ready
 
     def _on_review_additions(self):
-        if self._add_in_progress or not self._deferred_additions:
+        if not self._phase_state().can_review_additions:
             return
         dialog = PropertyImportReviewDialog(self._deferred_additions, lang_manager=self.lang_manager, parent=self)
         try:
@@ -952,29 +1034,24 @@ class AddPropertyDialog(QDialog):
             self._refresh_review_button()
         apply = [item for item in self._deferred_additions if choices.get(item['tunnus']) == 'apply']
         if apply:
-            self._start_batch_add(self.properties_table, mode='review',
+            self._start_batch_add(self.properties_table, mode=AddMode.REVIEW,
                                   review_decisions=self._review_items_for_apply(apply))
 
     def _set_add_ui_state(self, *, active: bool) -> None:
         self._add_in_progress = bool(active)
-        self.review_additions_button.setEnabled(not active)
+        state = self._phase_state()
 
-        # Lock down selection + add buttons while batch is running.
+        # Everything that picks or changes the scope is frozen while a batch runs.
+        self.review_additions_button.setEnabled(state.scope_controls_enabled)
         for button in (self.select_all_btn, self.clear_selection_btn):
             if button is not None:
-                button.setEnabled(not active)
-        self.attention_only_checkbox.setEnabled(not active)
-        self.properties_table.setEnabled(not active)
+                button.setEnabled(state.scope_controls_enabled)
+        self.attention_only_checkbox.setEnabled(state.scope_controls_enabled)
+        self.properties_table.setEnabled(state.scope_controls_enabled)
         if self.location_filter_widget is not None:
-            self.location_filter_widget.setEnabled(not active)
+            self.location_filter_widget.setEnabled(state.scope_controls_enabled)
 
-        if self.add_without_checks_button is not None:
-            self.add_without_checks_button.setEnabled(not active)
-
-        if not active:
-            self._update_add_button_state()
-        else:
-            self.add_button.setEnabled(False)
+        self._update_add_button_state()
 
         if self.add_progress_label is not None:
             self.add_progress_label.setVisible(active or bool(self.add_progress_label.text()))
@@ -1343,9 +1420,12 @@ class AddPropertyDialog(QDialog):
             TranslationKeys.PROPERTY_CHECK_CANCELLED).format(done=done, total=total))
         self.add_progress_label.show()
 
-    def _stop_attention_checks(self, *, clear_attention: bool = False) -> None:
+    def _stop_check_controllers(self) -> None:
         self._backend_verify_controller.stop()
         self._main_check_controller.stop()
+
+    def _stop_attention_checks(self, *, clear_attention: bool = False) -> None:
+        self._stop_check_controllers()
 
         self._checks_running = False
         self._checks_completed_for_scope = False
@@ -1404,26 +1484,17 @@ class AddPropertyDialog(QDialog):
         return layer
 
     def _build_main_layer_lookup(self, layer, tunnus_set: set[str]) -> dict:
-        lookup = {}
         if not layer or not tunnus_set:
-            return lookup
+            return {}
         try:
-            for feat in layer.getFeatures():
-                val = feat.attribute(Katastriyksus.tunnus)
-                key = str(val).strip() if val is not None else ""
-                if not key:
-                    continue
-                if key in tunnus_set and key not in lookup:
-                    lookup[key] = feat
-                    if len(lookup) == len(tunnus_set):
-                        break
+            return PropertyDataLoader.read_features_by_field_values(layer, Katastriyksus.tunnus, tunnus_set)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module="property",
                 event="add_property_build_lookup_failed",
             )
-        return lookup
+            return {}
 
     def _main_check_batch_params(self, total_rows: int) -> tuple[int, int]:
         if total_rows >= 200:
@@ -1820,28 +1891,17 @@ class AddPropertyDialog(QDialog):
 
 
     def _update_add_button_state(self, *, selected_count: Optional[int] = None) -> None:
-        if selected_count is None:
-            selected_count = self._current_target_count()
-
-        can_add = bool(
-            selected_count
-            and int(selected_count) > 0
-            and self._checks_completed_for_scope
-            and not self._checks_running
-            and not self._add_in_progress
-        )
-        self.add_button.setEnabled(can_add)
+        state = self._phase_state(selected_count=selected_count)
+        self.add_button.setEnabled(state.can_add_with_checks)
 
         if self.add_without_checks_button is not None:
-            self.add_without_checks_button.setEnabled(bool(selected_count and int(selected_count) > 0 and not self._add_in_progress))
+            self.add_without_checks_button.setEnabled(state.can_add_without_checks)
 
     def _update_run_checks_button(self) -> None:
         if not hasattr(self, "run_checks_button") or self.run_checks_button is None:
             return
 
-        table = self.properties_table
-        row_count = PropertyTableManager.row_count(table)
-        self.run_checks_button.setEnabled(bool(row_count > 0 and not self._checks_running and not self._add_in_progress))
+        self.run_checks_button.setEnabled(self._phase_state().can_run_checks)
 
     # ------------------------------------------------------------------
     # Attention rendering helpers (icons)
@@ -1944,14 +2004,12 @@ class AddPropertyDialog(QDialog):
         self._archive_lookup = {"missing": missing, "backend_info": {}, "then": then}
         self._set_add_ui_state(active=True)
         self._show_archive_lookup_progress()
-        # Missing properties have no import row; the lookup only needs the cadastral number.
+        # Missing properties have no import row; the lookup only needs the cadastral number,
+        # so it runs in lookup mode instead of inventing an import row to satisfy verify mode.
         self._archive_lookup_controller.start(
             [(index, tunnus, "") for index, tunnus in enumerate(missing)],
             source="archive_plan",
-            import_context_by_tunnus={
-                tunnus: {"data": {"cadastralUnit": {"number": tunnus}, "address": {}}, "main_date": None}
-                for tunnus in missing
-            },
+            mode=BackendVerifyController.MODE_LOOKUP,
         )
 
     def _warn_archive_plan_stale(self) -> None:
@@ -2036,7 +2094,9 @@ class AddPropertyDialog(QDialog):
             label.setText(template.format(count=len(missing)))
 
         try:
-            summary = MainAddPropertiesFlow.archive_missing_from_import(missing, backend_allowed=backend_allowed)
+            main_layer = self._main_layer_for_verify or self._resolve_main_layer_cached()
+            summary = MainAddPropertiesFlow.archive_missing_from_import(
+                missing, backend_allowed=backend_allowed, main_layer=main_layer)
             archived = int(summary.get("archived_backend") or 0)
             moved = int(summary.get("moved_map") or 0)
             errors = summary.get("errors") or []

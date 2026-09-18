@@ -1,6 +1,7 @@
+from threading import RLock
 from typing import Optional, Protocol, TYPE_CHECKING
 
-from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
     from typing import Any
@@ -18,16 +19,30 @@ if TYPE_CHECKING:
 
     class ModuleStackProtocol(Protocol):
         def setCurrentWidget(self, widget: ModuleWidgetProtocol) -> None: ...
+        def setEnabled(self, enabled: bool) -> None: ...
 
     class SidebarProtocol(Protocol):
         def setActiveModuleOnSidebarButton(self, moduleName: str) -> None: ...
+        def setEnabled(self, enabled: bool) -> None: ...
+
+    class LogoutButtonProtocol(Protocol):
+        def setEnabled(self, enabled: bool) -> None: ...
+
+    class HeaderProtocol(Protocol):
+        logoutButton: LogoutButtonProtocol
+
+    class FooterProtocol(Protocol):
+        def setEnabled(self, enabled: bool) -> None: ...
 
     class SessionDialogProtocol(Protocol):
         _has_shown: bool
         moduleManager: ModuleManagerProtocol
         moduleStack: ModuleStackProtocol
         sidebar: SidebarProtocol
+        header_widget: HeaderProtocol
+        footer_widget: FooterProtocol
         def close(self) -> None: ...
+        def hide(self) -> None: ...
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
 from ..languages.translation_keys import TranslationKeys
 from .messagesHelper import ModernMessageDialog
@@ -44,6 +59,7 @@ from .secure_session_store import (
 
 Sections:
 - Session constants
+- SessionGuiBridge (worker thread -> GUI thread hand-off)
 - SessionManager (persistence/auth)
 - SessionUIController (UI lifecycle helpers)
 """
@@ -60,6 +76,36 @@ SESSION_STORAGE_MEMORY_ONLY = "memory_only"
 SESSION_STORAGE_MIGRATION_PENDING = "migration_pending"
 SESSION_STORAGE_CLEANUP_FAILED = "cleanup_failed"
 
+SESSION_REASON_UNAUTHENTICATED = "unauthenticated"
+
+
+# ------------------------------------------------------------------
+# SessionGuiBridge (worker thread -> GUI thread hand-off)
+# ------------------------------------------------------------------
+class SessionGuiBridge(QObject):
+    """Carries session invalidation from any thread onto the GUI thread.
+
+    Worker threads started by ``start_worker`` run their own event loop, so a
+    QTimer or a login dialog created there would live outside the GUI thread.
+    This object is pinned to the application thread; the default AutoConnection
+    stays direct for GUI-thread emitters and queues for worker threads.
+    """
+
+    sessionInvalidated = pyqtSignal(bool, str)
+
+    def __init__(self) -> None:
+        super().__init__()
+        app = QCoreApplication.instance()
+        if app is not None:
+            self.moveToThread(app.thread())
+        self.sessionInvalidated.connect(self._on_session_invalidated)
+
+    @pyqtSlot(bool, str)
+    def _on_session_invalidated(self, notify: bool, reason: str) -> None:
+        if notify:
+            SessionManager._notify_session_changed()
+        SessionManager.request_login(reason=reason or None)
+
 
 # ------------------------------------------------------------------
 # SessionManager (persistence/auth)
@@ -67,12 +113,12 @@ SESSION_STORAGE_CLEANUP_FAILED = "cleanup_failed"
 class SessionManager:
 
     _instance = None
-    _session_expired_shown = False
     _login_dialog_open = False
     _login_cancelled_for_reason: Optional[str] = None
-    _last_login_reason: Optional[str] = None
     _listeners: list = []
     _storage_warning_pending: Optional[str] = None
+    _state_lock = RLock()
+    _gui_bridge_instance: Optional[SessionGuiBridge] = None
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -188,19 +234,19 @@ class SessionManager:
 
     @staticmethod
     def clear() -> None:
-        """Clear session data from QgsSettings (logout without auto-login)."""
+        """Clear the session and forget the stored token (logout, no auto-login)."""
         if not SessionManager._instance:
             SessionManager()
-        settings = SessionManager._instance.settings
-        SessionManager._instance.secure_store.purge_legacy_token()
-        settings.remove(SESSION_ACTIVE_USER)
-        settings.setValue(SESSION_NEEDS_LOGIN, True)
-        SessionManager._instance.apiToken = None
-        SessionManager._instance.loggedInUser = None
-        SessionManager._advance_session_generation()
-        SessionManager._session_expired_shown = False
-        SessionManager._login_cancelled_for_reason = None
-        SessionManager.save_session()  # Ensure persistent storage is updated
+        with SessionManager._state_lock:
+            session = SessionManager._instance
+            session.settings.setValue(SESSION_NEEDS_LOGIN, True)
+            session.apiToken = None
+            session.loggedInUser = None
+            # Leaving the token at rest would let a flipped needs_login flag restore it.
+            session.clear_credentials()
+            SessionManager._advance_session_generation()
+            SessionManager._login_cancelled_for_reason = None
+            SessionManager.save_session()  # purges the legacy token and syncs
         SessionManager._notify_session_changed()
         PythonFailLogger.log(
             "logout_session_cleared",
@@ -241,17 +287,6 @@ class SessionManager:
             )
 
     @staticmethod
-    def isLoggedIn() -> bool:
-        """Check if the user is logged in (strict)."""
-        return SessionManager.is_session_valid()
-
-    @staticmethod
-    def needs_login() -> bool:
-        if not SessionManager._instance:
-            SessionManager()
-        return SessionManager._get_bool_setting(SESSION_NEEDS_LOGIN, False)
-
-    @staticmethod
     def is_session_valid() -> bool:
         if not SessionManager._instance:
             SessionManager()
@@ -259,28 +294,6 @@ class SessionManager:
         token = SessionManager._instance.apiToken
         token_str = str(token).strip() if token is not None else ""
         return bool(token_str) and not needs_login
-
-    @staticmethod
-    def show_session_expired_dialog(parent=None, lang_manager=None) -> bool | str:
-        """Show a styled info dialog with Log in and Cancel options. Persist needs_login flag if canceled."""
-        if SessionManager._session_expired_shown:
-            return "shown"
-        SessionManager._session_expired_shown = True
-        title = lang_manager.translate(TranslationKeys.SESSION_EXPIRED_TITLE) if lang_manager else "Session expired"
-        text = lang_manager.translate(TranslationKeys.SESSION_EXPIRED) if lang_manager else "Session expired. Please log in again."
-        login_label = lang_manager.translate(TranslationKeys.LOGIN_BUTTON) if lang_manager else "Login"
-        cancel_label = lang_manager.translate(TranslationKeys.CANCEL_BUTTON) if lang_manager else "Cancel"
-        choice = ModernMessageDialog.ask_choice_modern(
-            title,
-            text,
-            buttons=[login_label, cancel_label],
-            default=login_label,
-            cancel=cancel_label,
-        )
-        if choice == login_label:
-            return True
-        SessionManager.clear()
-        return False
 
     @staticmethod
     def setSession(
@@ -317,9 +330,7 @@ class SessionManager:
         session.loggedInUser = user
         session.username = resolved_username or None
         SessionManager._advance_session_generation()
-        SessionManager._session_expired_shown = False
         SessionManager._login_cancelled_for_reason = None
-        SessionManager._last_login_reason = None
         session.settings.setValue(SESSION_NEEDS_LOGIN, False)
         SessionManager.save_session()  # Always save after setting
         SessionManager._notify_session_changed()
@@ -330,34 +341,11 @@ class SessionManager:
         )
         return storage_status
 
-    @staticmethod
-    def isSessionExpired() -> bool:
-        """Check if the session is expired."""
-        if not SessionManager._instance:
-            SessionManager()
-        needs_login = SessionManager._get_bool_setting(SESSION_NEEDS_LOGIN, False)
-        token_missing = not bool(SessionManager._instance.apiToken)
-
-        return needs_login or token_missing
-
-    @staticmethod
-    def revalidateSession() -> bool:
-        """Revalidate the session if expired."""
-        if not SessionManager._instance:  # Ensure the instance is initialized
-            SessionManager()
-        return SessionManager.is_session_valid()
-
     def get_token(self) -> Optional[str]:
-        """Return the current session's API token only if session is valid."""
+        """Return the in-memory API token only while the session is valid."""
         if not SessionManager.is_session_valid():
             return None
-        return self.get_token_raw()
-
-    def get_token_raw(self) -> Optional[str]:
-        """Return the in-memory token without reading any persistent store."""
-        if hasattr(self, "apiToken") and self.apiToken:
-            return self.apiToken
-        return None
+        return self.apiToken or None
 
     @staticmethod
     def session_signature() -> str:
@@ -423,29 +411,45 @@ class SessionManager:
 
     @staticmethod
     def invalidate_session(reason: Optional[str] = None) -> None:
+        """Drop the active session from any thread.
+
+        The token is cleared synchronously so an in-flight worker cannot send it
+        again, while the listener notification and the login dialog are handed to
+        the GUI thread by :class:`SessionGuiBridge`.
+        """
         if not SessionManager._instance:
             SessionManager()
-        settings = SessionManager._instance.settings
-        already_invalid = SessionManager._get_bool_setting(SESSION_NEEDS_LOGIN, False)
-        if not already_invalid:
-            settings.setValue(SESSION_NEEDS_LOGIN, True)
-            SessionManager._instance.secure_store.purge_legacy_token()
-            settings.remove(SESSION_ACTIVE_USER)
-            SessionManager._instance.apiToken = None
-            SessionManager._instance.loggedInUser = None
-            SessionManager._advance_session_generation()
-            SessionManager.save_session()
-            SessionManager._notify_session_changed()
-        SessionManager.request_login(reason=reason)
+        with SessionManager._state_lock:
+            became_invalid = not SessionManager._get_bool_setting(SESSION_NEEDS_LOGIN, False)
+            if became_invalid:
+                session = SessionManager._instance
+                session.settings.setValue(SESSION_NEEDS_LOGIN, True)
+                session.apiToken = None
+                session.loggedInUser = None
+                SessionManager._advance_session_generation()
+                SessionManager.save_session()  # purges the legacy token and syncs
+        SessionManager._gui_bridge().sessionInvalidated.emit(became_invalid, str(reason or ""))
 
     @staticmethod
-    def request_login(parent=None, reason: Optional[str] = None) -> None:
+    def _gui_bridge() -> SessionGuiBridge:
+        with SessionManager._state_lock:
+            if SessionManager._gui_bridge_instance is None:
+                SessionManager._gui_bridge_instance = SessionGuiBridge()
+            return SessionManager._gui_bridge_instance
+
+    @staticmethod
+    def request_login(parent=None, reason: Optional[str] = None, user_initiated: bool = False) -> None:
+        """Open the login dialog.
+
+        A cancelled prompt silences only the automatic retries that share its
+        reason; anything the user asked for is always shown, so a cancel can
+        never leave the plugin without a way back in.
+        """
         if SessionManager._login_dialog_open:
             return
-        if reason and SessionManager._login_cancelled_for_reason == reason and reason not in ("startup", "manual"):
+        if not user_initiated and reason and SessionManager._login_cancelled_for_reason == reason:
             return
         SessionManager._login_dialog_open = True
-        SessionManager._last_login_reason = reason
         PythonFailLogger.log(
             "login_dialog_requested",
             module="auth",
@@ -571,10 +575,16 @@ class SessionUIController:
 
     @staticmethod
     def ensure_logged_in(dialog: "SessionDialogProtocol") -> bool:
-        if not SessionManager().isLoggedIn():
-            dialog.close()
-            return False
-        return True
+        """Refuse to show an unusable window; ask for a login instead.
+
+        ``close()`` only minimises this dialog, so returning without a prompt
+        used to leave a blank window and no explanation.
+        """
+        if SessionManager.is_session_valid():
+            return True
+        dialog.hide()
+        SessionManager.request_login(reason="dialog_show", user_initiated=True)
+        return False
 
     @staticmethod
     def after_show(dialog: "SessionDialogProtocol") -> None:
@@ -629,17 +639,13 @@ class SessionUIController:
 
     @staticmethod
     def refresh_login_ui(dialog: "SessionDialogProtocol") -> None:
-        """Update UI state based on session validity (no dialog opening here)."""
+        """Gate session-scoped UI on session validity (no dialog opening here).
+
+        Logout stays enabled on purpose: it is the only action that resets a
+        session stuck behind a cancelled login prompt.
+        """
         is_valid = SessionManager.is_session_valid()
-        try:
-            if hasattr(dialog, "sidebar"):
-                dialog.sidebar.setEnabled(is_valid)
-            if hasattr(dialog, "moduleStack"):
-                dialog.moduleStack.setEnabled(is_valid)
-            if hasattr(dialog, "footer_widget"):
-                dialog.footer_widget.setEnabled(is_valid)
-            header = getattr(dialog, "header_widget", None)
-            if header and hasattr(header, "logoutButton"):
-                header.logoutButton.setEnabled(is_valid)
-        except Exception:
-            pass
+        dialog.sidebar.setEnabled(is_valid)
+        dialog.moduleStack.setEnabled(is_valid)
+        dialog.footer_widget.setEnabled(is_valid)
+        dialog.header_widget.logoutButton.setEnabled(True)

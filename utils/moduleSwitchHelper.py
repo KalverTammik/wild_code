@@ -181,7 +181,9 @@ class ModuleSwitchHelper:
 
         ModuleSwitchHelper._pending_login_listener = _retry_after_login
         SessionManager.register_listener(_retry_after_login)
-        SessionManager.request_login(parent=dlg, reason=f"module_switch:{target_key}")
+        SessionManager.request_login(
+            parent=dlg, reason=f"module_switch:{target_key}", user_initiated=True
+        )
         return False
 
     @staticmethod

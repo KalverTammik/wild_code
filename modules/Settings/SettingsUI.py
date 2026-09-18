@@ -19,6 +19,7 @@ from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.map_canvas_glass_action_bar import MapCanvasGlassActionBar
 from ...utils.map_canvas_search_bar import MapCanvasSearchBar
 from ...utils.SessionManager import SessionManager
+from ...utils.api_error_handling import ApiErrorKind, parse_tagged_message
 from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.mixins.token_mixin import TokenMixin
@@ -184,7 +185,9 @@ class SettingsModule(TokenMixin, QWidget):
     def activate(self):
         """Activates the Settings UI with fresh user data."""
         if not SessionManager.is_session_valid():
-            SessionManager.request_login(parent=self.window(), reason="settings_activate")
+            SessionManager.request_login(
+                parent=self.window(), reason="settings_activate", user_initiated=True
+            )
             return
         self.mark_activated(self._active_token)
         if self._project_base_layers_card is not None:
@@ -226,17 +229,8 @@ class SettingsModule(TokenMixin, QWidget):
 
     @staticmethod
     def _is_session_error_message(message: str) -> bool:
-        lowered = str(message or "").lower()
-        return any(
-            marker in lowered
-            for marker in (
-                "401",
-                "unauthenticated",
-                "unauthorized",
-                "session expired",
-                "token expired",
-            )
-        )
+        """Read the error's own kind; the visible text is translated and cannot be matched."""
+        return parse_tagged_message(message)[0] == ApiErrorKind.AUTH
 
 
     def _on_user_payload_ready(self, payload: dict):

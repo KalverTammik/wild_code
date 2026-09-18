@@ -1,5 +1,127 @@
 # Refactor Checklist (quick reference)
 
+- 2026-09-18: Wired the archive plan's backend lookup to `BackendVerifyWorker.MODE_LOOKUP`
+  (maintenance step 8). `MODE_LOOKUP` was added to `BackendVerifyWorker`/`BackendVerifyController`
+  specifically so the archive plan would not need to invent an import row just to get a
+  backend answer (see `tests/test_background_work_reliability.py`), but the one call site
+  it was built for — `AddPropertyDialog`'s `_archive_lookup_controller.start` — was never
+  switched over, and `REFACTOR_RULES.md` never recorded the mode's addition. It still ran
+  in `MODE_VERIFY`, building a fabricated `import_context_by_tunnus` per tunnus and
+  computing (then discarding) a `classify_property_import` decision that
+  `_on_archive_lookup_row` never reads. No functional bug — `_on_archive_lookup_row` only
+  ever used `result["backend_info"]` — but a second, undocumented code path doing the same
+  job as the one already covered by tests. Now passes `mode=BackendVerifyController.MODE_LOOKUP`
+  and no `import_context_by_tunnus`. Files: widgets/AddUpdatePropertyDialog.py.
+
+- 2026-09-17: The add dialog's button rules now live in one place (maintenance step 7).
+  Two rules were written out by hand in three methods each: "decisions left by an import
+  go to the review before anything is added" (`_on_add_without_checks`, `_on_add_clicked`,
+  `_start_batch_add`) and "the checked add needs a finished check" (`_on_add_clicked`,
+  `_start_batch_add`, `_update_add_button_state`), with the same busy-gating repeated once
+  more in `_update_run_checks_button`, `_set_add_ui_state` and `_on_review_additions`. A
+  new phase had to be added to every copy by hand, and a missed copy left a button quietly
+  in the wrong state rather than failing. A Qt-free `PropertyDialogState` in
+  `utils/mapandproperties/property_dialog_phase.py` now derives the phase (`adding` ->
+  `checking` -> `checked` -> `idle`, first match wins) and answers every button, add-routing
+  and cancel-routing question; `_add_in_progress`, `_checks_running`,
+  `_checks_completed_for_scope` and `_decisions_from_import` became properties over that
+  object, so tests reading those private fields are unchanged. The deferred-decision count,
+  the archive lookup, the add runner and the row/selection counts are read live in
+  `_phase_state` rather than cached, because the deferred list is mutated in place and the
+  runner is cleared a moment after its flag. The add-run modes became `AddMode` constants.
+  NOT REVIEWED BY AN INDEPENDENT REVIEWER: the design rests on reading the code only.
+  Two deliberate non-changes are recorded here rather than fixed: button states are still
+  not refreshed while the archive lookup runs (the lookup precedes `_add_in_progress`, so
+  buttons keep their previous state), and the checked add still does not refuse an empty
+  scope by itself the way the unchecked add does — both are now written down once, in
+  `PropertyDialogState.add_action`, instead of being implicit in three methods. Files:
+  widgets/AddUpdatePropertyDialog.py, utils/mapandproperties/property_dialog_phase.py,
+  tests/test_property_location_loading.py. Validation: 361 tests, 355 passed, 3 skipped,
+  3 pre-existing failures in the untracked tests/test_background_work_reliability.py
+  (MainLayerCheckController timers, unrelated to this change). Four characterization tests
+  were written against the unchanged code first and still pass unaltered afterwards, which
+  is the evidence that external behaviour did not move.
+
+- 2026-09-17: The property archive plan and its execution now identify the main layer the
+  same way (maintenance step 6, bug b5). The archive plan is built against one specific,
+  cached `QgsMapLayer` instance (`AddUpdatePropertyDialog._resolve_main_layer_cached`),
+  but `MainAddPropertiesFlow.archive_missing_from_import` re-resolved the main layer by
+  the settings-configured name on every call, through `MapHelpers.resolve_layer` ->
+  `find_layer_by_name`, which returns the first layer with that name in an unordered
+  project dict. With two layers sharing the configured main-layer name, the plan's
+  "missing from import" decision and the archive's actual feature move could silently
+  land on two different layers. `archive_missing_from_import`/`_prepare_layers` now take
+  an explicit `main_layer`, and the dialog passes the exact layer instance the plan was
+  computed against, removing the second, independent lookup. Also replaced two
+  full-layer-scan reads with one attribute-filtered, batched read:
+  `PropertyDataLoader.read_features_by_field_values` (an `IN (...)` expression per
+  `batch_size` chunk, `QgsFeatureRequest.NoGeometry` unless `include_geometry=True`,
+  `group=True` to keep every match instead of only the first) now builds the main-layer
+  lookup used before every check (`AddUpdatePropertyDialog._build_main_layer_lookup`, was
+  `layer.getFeatures()` over the whole layer) and finds every archive candidate in one
+  request instead of the previous one-request-per-candidate loop
+  (`MainAddPropertiesFlow.archive_missing_from_import`, was
+  `MapHelpers.find_features_by_fields_and_values` called once per tunnus, each itself an
+  unfiltered full-layer scan). Files: utils/mapandproperties/PropertyDataLoader.py,
+  modules/Property/FlowControllers/MainAddProperties.py,
+  widgets/AddUpdatePropertyDialog.py, tests/test_property_archive_execution.py,
+  tests/test_property_layer_attribute_lookup.py, tests/test_property_location_loading.py.
+  Offline validation: 361 tests, 357 passed, 3 skipped; the new regression test fails when
+  `archive_missing_from_import` is called without the plan's own `main_layer` (the pre-fix
+  signature does not even accept it). The one remaining failure
+  (`test_add_dialog_missing_import_layer_shows_close_only`, "b1") and the three
+  `test_background_work_reliability` failures are pre-existing, unrelated to this step,
+  and reproduce identically on a clean checkout without this change.
+
+- 2026-09-17: Centralized NULL-safe reading of QGIS feature attributes (maintenance step
+  5). `PropertyRowBuilder._safe_attr` forwarded the QGIS NULL sentinel through `str()`
+  unchanged, so an empty cadastral field showed up as the literal text "NULL" in the
+  property table; two further copies of a similar guard (`main_address` in the review
+  decisions) already worked around the sentinel with `QgsVariantUtils.isNull`, but not
+  the same literal text arriving as real data. `PropertyRowBuilder` now exposes
+  `read_value`/`read_field_text`, treating `None`, the QGIS NULL sentinel and the literal
+  text "NULL" alike as empty text, and `row_from_feature`, both `main_address` copies
+  (widgets/AddUpdatePropertyDialog.py, AddBatchRunner.py) and AddBatchRunner's two
+  `tunnus` reads all go through it. Left unchanged, each for its own reason: the MaaAmet
+  field formatter and two `_is_not_null` display predicates (different output contract —
+  a "---" placeholder or a bool, not text); `property_import_decisions._first_location`
+  (a backend GraphQL address dict, not a QGIS feature); three PropertyDataLoader
+  address/percentage guards embedded in their own parsing logic with their own tests; two
+  intentional SQL-literal `NULL` emitters; the Works module's own copy of the same
+  feature-reading pattern (a different module, left for a future pass); and the property
+  `search_field` generator's guard, left untouched by design because it protects search
+  matching against text a user types, which is not this problem. Files:
+  utils/mapandproperties/property_row_builder.py,
+  modules/Property/FlowControllers/AddBatchRunner.py, widgets/AddUpdatePropertyDialog.py,
+  tests/test_property_row_builder_null_handling.py. Offline validation: 334 tests, 1
+  pre-existing failure unrelated to this change (an in-progress `archive_missing_from_import`
+  signature change elsewhere in the working tree), 3 skipped; the 5 new characterization
+  tests for None, the QGIS NULL sentinel and a whitespace-padded value all pass.
+
+- 2026-09-17: Fixed b1 (maintenance step 4): opening the property add dialog with no
+  import layer loaded crashed with `AttributeError` instead of showing a message.
+  `AddPropertyDialog.__init__` built the full UI, wired signals and kept going even when
+  `_create_ui` had bailed out into its minimal error branch, so `_setup_connections`
+  reached into widgets (`properties_table`, `attention_only_checkbox`, ...) that were
+  never created. The constructor now checks the import layer (`self.data_loader.property_layer`,
+  which is `PropertyDataLoader`'s import-layer lookup despite its name) before building
+  anything, and shows only the message + Close button when it is missing, skipping the
+  rest of setup entirely. The same recurring order bug also existed in `_on_dialog_finished`
+  (already connected to `finished` before the check), which called `_stop_attention_checks`
+  unconditionally; that reached into `check_progress_bar`/`add_detail_label`, which the
+  minimal dialog never creates, and reproduced as a hang closing the minimal dialog in
+  tests. `_on_dialog_finished` now only stops the check controllers when the full UI
+  (`properties_table`) was never built. Controllers and their check/add-batch state
+  (`_backend_verify_controller`, `_archive_lookup_controller`, `_main_check_controller`
+  and the state fields around them) are now created before the UI is built, in a new
+  `_init_check_controllers_and_state`, since `_on_dialog_finished` can reach them before
+  the old code would have created them. Files: widgets/AddUpdatePropertyDialog.py,
+  tests/test_property_location_loading.py. Offline validation: 329 tests, 326 passed,
+  3 skipped; the new test fails with `AttributeError` when the import-layer check or the
+  reordered controller setup is reverted.
+
+- 2026-09-17: Session expiry is now detected, reported and recovered from on every thread. `APIClient.send_query`/`send_multipart_query` guarded their 401 handling with `is_main_thread`, and Python's short-circuit meant `_handle_unauthenticated` was never called from a worker: the roughly twenty `start_worker` call sites (KPI cards, filters, search, file lists, property lookup, batch add) showed "session expired" while `SessionManager` still held the token and reported the session valid, so the sidebar stayed live, no login opened and every following request repeated the same error. Both paths now call `invalidate_session` unconditionally. `invalidate_session` clears the token synchronously under an `RLock`, so an in-flight worker cannot send it again, and hands the listener notification plus the login dialog to the new `SessionGuiBridge`, a QObject pinned to the application thread whose AutoConnection stays direct for GUI-thread emitters and queues for workers — a worker-thread `QTimer.singleShot` would otherwise have built a `LoginDialog` outside the GUI thread. `_handle_unauthenticated` always returned `False`, so the `auth_attempts = 2` retry could never run; both it and `open_login_dialog`, `APIClient._login_dialog_open` and the `attempts = max(...)` bookkeeping are gone, leaving the network retry count alone. `SettingsUI._is_session_error_message` matched English substrings against a message built from `TranslationKeys.SESSION_EXPIRED`, which in Estonian contains none of them; it now reads `parse_tagged_message(...)` kind, so the Settings page no longer renders empty user data without a prompt. A cancelled login used to silence `request_login` for that exact reason string forever, and the only reset (`clear`) sat behind a logout button that `refresh_login_ui` disabled precisely when the session was invalid: `request_login` takes `user_initiated`, set at the startup, module-switch, settings-activate and dialog-show call sites, and logout is never gated. Logout now also calls `clear_credentials`, because the token stayed in the QGIS auth database and a hand-edited `session/needs_login` flag would have restored it. `ensure_logged_in` asks for a login instead of calling `close()`, which only minimised the dialog and left a blank window. In the login dialog the language switch rewrote labels through a fresh `LanguageManager()` that is always `DEFAULT_LANGUAGE`, so only error text ever changed; it now retranslates through the dialog's own instance, offers only `SUPPORTED_LANGUAGES` (the untranslated "fr" silently fell back to Estonian) and no longer writes a preference file that nothing read. Making the switch work exposed that `DialogLabels.LOGIN_BUTTON`/`TranslationKeys.LOGIN_TITLE` duplicated `TranslationKeys.LOGIN_BUTTON` and had no English entry, so switching to English would have raised `KeyError`; both dead keys and the orphaned Estonian translation are gone. `_classify_login_error` matched substrings on an already-tagged message and its list lacked "unauthenticated", the exact token the client emits for 401/403, so a wrong password read as "server unavailable"; it now branches on the error kind first. The dialog also dropped `setFixedSize` (a wrapped error was clipped), a `login_button` added to two layouts, translation keys shown as raw label text, and the `SessionManager.clear()` that ran before the empty-field checks. Removed dead `show_session_expired_dialog` (whose truthy `"shown"` string would have read as "user chose log in"), `isSessionExpired`, `revalidateSession`, `needs_login`, `isLoggedIn`, `get_token_raw`, the write-only `_session_expired_shown`/`_last_login_reason`, `main._show_login_dialog`/`handle_login_success`/`reset_login_dialog`/`_create_plugin_dialog`, and `LanguageManager.save_language_preference`/`load_language_preference`. Files: utils/SessionManager.py, python/api_client.py, login_dialog.py, main.py, modules/Settings/SettingsUI.py, utils/moduleSwitchHelper.py, languages/{language_manager,translation_keys,en,et}.py, tests/test_session_expiry.py. Offline validation: 328 tests, 325 passed, 3 skipped (was 318); the two threading tests fail when the `is_main_thread` guard is patched back in, and a live check confirmed a worker-thread emit runs `request_login` on the GUI thread.
+
 - 2026-09-17: Unified the property check and import address/date construction into one
   shared path (step 2 of the maintenance plan). Rationale, touched files and validation
   results are in the commit description, not here.

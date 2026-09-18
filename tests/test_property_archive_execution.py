@@ -65,7 +65,8 @@ class PropertyArchiveExecutionTest(unittest.TestCase):
     def test_backend_failure_stops_remaining_archives_with_explicit_pending_list(self):
         target, archive = _Layer(), _Layer()
         with patch.object(MainAddPropertiesFlow, '_prepare_layers', return_value=(object(), target, archive)), \
-                patch.object(flow_module.MapHelpers, 'find_features_by_fields_and_values', return_value=[_Feature(41)]), \
+                patch.object(flow_module.PropertyDataLoader, 'read_features_by_field_values',
+                             return_value={'T1': [_Feature(41)], 'T2': [_Feature(41)], 'T3': [_Feature(41)]}), \
                 patch.object(flow_module.FeatureActions, 'copy_feature_to_layer', return_value=(True, '')), \
                 patch.object(flow_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                              return_value={'exists': True, 'active_ids': ['backend-1']}) as verify, \
@@ -92,9 +93,9 @@ class PropertyArchiveExecutionTest(unittest.TestCase):
                 return_value=(object(), target, archive),
             ),
             patch.object(
-                flow_module.MapHelpers,
-                "find_features_by_fields_and_values",
-                return_value=[_Feature(41)],
+                flow_module.PropertyDataLoader,
+                "read_features_by_field_values",
+                return_value={"T1": [_Feature(41)]},
             ),
             patch.object(
                 flow_module.FeatureActions,
@@ -151,9 +152,9 @@ class PropertyArchiveExecutionTest(unittest.TestCase):
                     return_value=(object(), target, archive),
                 ),
                 patch.object(
-                    flow_module.MapHelpers,
-                    "find_features_by_fields_and_values",
-                    return_value=[_Feature(41)],
+                    flow_module.PropertyDataLoader,
+                    "read_features_by_field_values",
+                    return_value={"T1": [_Feature(41)]},
                 ),
                 patch.object(
                     flow_module.FeatureActions,
@@ -206,6 +207,42 @@ class PropertyArchiveExecutionTest(unittest.TestCase):
         self.assertTrue(result["errors"])
         verify.assert_not_called()
         archive_backend.assert_not_called()
+
+    def test_archive_uses_the_exact_main_layer_the_plan_was_built_on(self) -> None:
+        """Regression for b5: the plan and the archive must agree on which layer is "main".
+
+        `_compute_scoped_archive_plan` pins one specific layer instance (cached by the
+        dialog once resolved) to decide which tunnus values are missing. Before this fix,
+        `archive_missing_from_import` re-resolved the main layer from settings by name on
+        every call, through `MapHelpers.resolve_layer`; with two layers sharing that
+        configured name, that fresh lookup can return a different layer instance than the
+        one the plan was built against. Passing `main_layer` explicitly, as the dialog now
+        does, removes the second, independent lookup entirely.
+        """
+        pinned_layer = _Layer()  # the layer instance the plan was computed against
+        layer_by_name = _Layer()  # a different layer that merely shares the configured name
+        archive_layer = _Layer()
+        seen_layers = []
+
+        def fake_lookup(layer, field_name, values, **kwargs):
+            seen_layers.append(layer)
+            return {"T1": [_Feature(41)]}
+
+        with (
+            patch.object(flow_module.MapHelpers, "resolve_layer", return_value=layer_by_name),
+            patch.object(flow_module.MapHelpers, "get_layer_by_tag", return_value=None),
+            patch.object(flow_module.MapHelpers, "ensure_layer_visible"),
+            patch.object(MainAddPropertiesFlow, "_ensure_archive_layer_ready", return_value=archive_layer),
+            patch.object(flow_module.PropertyDataLoader, "read_features_by_field_values", side_effect=fake_lookup),
+            patch.object(flow_module.FeatureActions, "copy_feature_to_layer", return_value=(True, "")),
+            patch.object(flow_module.BackendPropertyVerifier, "verify_properties_by_cadastral_number",
+                         return_value={"exists": True, "active_ids": ["backend-1"]}),
+            patch.object(flow_module.UpdatePropertyData, "_archive_a_propertie", return_value=True),
+        ):
+            MainAddPropertiesFlow.archive_missing_from_import(["T1"], main_layer=pinned_layer)
+
+        self.assertEqual(seen_layers, [pinned_layer])
+        self.assertNotIn(layer_by_name, seen_layers)
 
     def _verify(self, nodes: list[dict]):
         client = Mock()

@@ -74,7 +74,6 @@ class TranslationKeys:
     NETWORK_ERROR = "Network error: {error}"
 
     # Login dialog
-    LOGIN_TITLE = "Login"
     LANGUAGE_LABEL = "Language:"
     USERNAME_LABEL = "Username:"
     PASSWORD_LABEL = "Password:"
@@ -304,7 +303,6 @@ class TranslationKeys:
     DEV_DBG_TOOLTIP = "dev_dbg_tooltip"
     DEV_FRAMES_TOOLTIP = "dev_frames_tooltip"
     SESSION_EXPIRED = "session_expired"
-    SESSION_EXPIRED_TITLE = "session_expired_title"
     URGENT_GROUP_TITLE = "urgent_group_title"
     URGENT_TOOLTIP = "urgent_tooltip"
     HOME_KPI_TOTAL_LABEL = "home_kpi_total_label"
@@ -1048,16 +1046,15 @@ class TranslationKeys:
 
 class DialogLabels:
 
-    LOGIN_TITLE = TranslationKeys.LOGIN_BUTTON
     SETTINGS_TITLE = TranslationKeys.SETTINGS_BASE_CARD_TEXT
     LOGIN_SECTION = "User Authentication"
     SETTINGS_SECTION = "Application Preferences"
 
-    # Login dialog labels
+    # Login dialog labels. The button itself uses TranslationKeys.LOGIN_BUTTON,
+    # which is the one key translated in every language table.
     LANGUAGE_LABEL = "Language:"
     USERNAME_LABEL = "Username:"
     PASSWORD_LABEL = "Password:"
-    LOGIN_BUTTON = "Login"
     SESSION_EXPIRED_ERROR = "Session expired. Please log in again."
     INVALID_CREDENTIALS_ERROR = "Invalid email or password."
 

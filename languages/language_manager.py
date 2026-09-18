@@ -1,8 +1,10 @@
 # ...existing code...
 DEFAULT_LANGUAGE = "et"  # Set Estonian as the default language
 
-import os
-import json
+# Languages that actually carry a translation table. Offering more would only
+# fall back to Estonian silently.
+SUPPORTED_LANGUAGES = ("et", "en")
+
 from .et import TRANSLATIONS as ET_TRANSLATIONS
 from .en import TRANSLATIONS as EN_TRANSLATIONS
 from .translation_keys import TranslationKeys
@@ -71,17 +73,3 @@ class LanguageManager:
 
     def set_language(self, language):
         self.language = language
-
-    def save_language_preference(self):
-        settings_file = os.path.join(os.path.dirname(__file__), "user_settings.json")
-        with open(settings_file, "w", encoding="utf-8") as file:
-            json.dump({"preferred_language": self.language}, file)
-
-    @staticmethod
-    def load_language_preference():
-        settings_file = os.path.join(os.path.dirname(__file__), "user_settings.json")
-        if os.path.exists(settings_file):
-            with open(settings_file, "r", encoding="utf-8") as file:
-                data = json.load(file)
-                return data.get("preferred_language", DEFAULT_LANGUAGE)
-        return DEFAULT_LANGUAGE
