@@ -191,17 +191,18 @@ Tulemust näitavad tabeli neli ikooniveergu ja igal neist on oma kohtspiker, mil
 
 Arhiiviveerud puudutavad ainult kinnistuid, mida impordis enam ei ole. Tabelis olevad read on impordis olemas, seega on need veerud neil alati rohelised. Enne kontrolli on kõigil neljal veerul ootel ikoon ja kohtspiker ütleb, et tulemus puudub.
 
-### Kriitiline arhiiviplaani käitumine
+### Arhiiviplaani käitumine
 
-Kontroll arvutab lisaks `põhikihi kõik tunnused – tabelis olevad tunnused`. Kõik saadud tunnused märgitakse impordist puuduvaks. Järgmine **Lisa valitud** või ka pärast kontrolli vajutatud **Lisa ilma kontrollita** käivitab enne lisamist nende automaatse arhiveerimise:
+Kontroll arvutab lisaks `põhikihi kõik tunnused – tabelis olevad tunnused`. Kõik saadud tunnused märgitakse impordist puuduvaks. Järgmine **Lisa valitud** või ka pärast kontrolli vajutatud **Lisa ilma kontrollita** avab enne lisamist kava ülevaatedialoogi **Arhiveerimisplaani ülevaade** (`PropertyArchivePlanDialog`):
 
-- põhikihi objekt kopeeritakse arhiivikihti ja eemaldatakse põhikihist;
-- vastav aktiivne Kavitro kirje proovitakse arhiveerida;
-- eraldi kinnitust kogu selle loendi kohta ei küsita.
+- dialoog näitab piirkonda (maakond/omavalitsus/asustusüksused) ja tabelit iga puuduva tunnusega, selle asustusüksuse, kavandatava kaardiliigutuse, taustasüsteemi sildi ja märkusega;
+- nupp **Kinnita ja jätka** on lukus, kuni kasutaja märgib kinnisruudu „Kinnitan, et import sisaldab valitud asustusüksuste täielikke kehtivaid andmeid.";
+- **Loobu** sulgeb dialoogi ilma midagi arhiveerimata ja lisamine ei jätku;
+- alles kinnitamise järel kopeeritakse põhikihi objektid arhiivikihti, eemaldatakse põhikihist ja vastavad aktiivsed Kavitro kirjed proovitakse arhiveerida.
 
-Kaardi- või asukohavalik esindab tavaliselt ainult väikest alamhulka, mitte täielikku autoritatiivset kinnisturegistrit. Sellisel juhul võidakse kõik ülejäänud põhikihi kinnistud ekslikult arhiveerimisplaani lisada.
+Enne kava avamist kontrollitakse uuesti, kas tabeli piirkond ja impordikiht vastavad endiselt kavale, mille jaoks päringud tehti; kui need vahepeal muutusid, kuvatakse aegunud kava hoiatus kava avamise asemel.
 
-**Ohutu töövõte praeguses versioonis:** ära vajuta piiratud kaardi- või asukohavaliku puhul **Käivita kontroll**. Kui kontroll on juba lõpetatud, sulge dialoog nupuga **Tühista** ja alusta lisamist uuesti; ära vajuta kumbagi lisamisnuppu. Kasuta kontrolli ainult siis, kui tabel sisaldab teadlikult kogu võrdluse aluseks olevat autoritatiivset impordikogumit ja puuduvate arhiveerimine on soovitud.
+Kaardi- või asukohavalik esindab tavaliselt ainult väikest alamhulka, mitte täielikku autoritatiivset kinnisturegistrit. Sellisel juhul võib kava sisaldada suurt hulka põhikihi kinnistuid, mis ei kuulu tegelikult arhiveerimisele. **Turvaline töövõte:** loe kava tabel ja piirkonna rida enne kinnisruudu märkimist läbi; kui valik ei esinda teadlikult tervet autoritatiivset impordikogumit, vajuta **Loobu** ja ära märgi täielikkuse kinnitust.
 
 ## Lisa ilma kontrollita
 
@@ -210,9 +211,9 @@ Nupp on aktiivne, kui lisamise sihis on vähemalt üks rida. Lisamise ja arhivee
 - Kaardirežiimis töödeldakse valitud ridu.
 - Asukoharežiimis töödeldakse kõiki tabeliridu.
 - Uut tähelepanukontrolli ei käivitata.
-- Kui kontroll on samas dialoogis juba lõpetatud, rakendatakse olemasolev puuduva impordi arhiiviplaan siiski enne lisamist.
+- Kui kontroll on samas dialoogis juba lõpetatud, avatakse olemasoleva puuduva impordi arhiiviplaani kinnitusdialoog (vt „Arhiiviplaani käitumine") siiski enne lisamist.
 
-Lisamise käigus kontrollib põhiloogika iga kinnistut taustateenuse ja põhikihi suhtes ka siis, kui tähelepanukontroll jäeti vahele. Vajaduse korral võivad avaneda üksiku kinnistu otsustusdialoogid.
+Lisamise käigus kontrollib põhiloogika iga kinnistut taustateenuse ja põhikihi suhtes ka siis, kui tähelepanukontroll jäeti vahele. Otsust vajavad tunnused kogutakse ka sel juhul lisamise lõpus avanevasse ülevaatedialoogi (vt „Otsust vajavate kinnistute ülevaatedialoog" allpool „Lisa valitud" all).
 
 ## Lisa valitud
 
@@ -221,37 +222,33 @@ Nupu nimi ei kirjelda mõlema režiimi ulatust ühtemoodi:
 - kaardirežiimis lisatakse valitud read;
 - asukoharežiimis lisatakse kõik tabelis olevad read.
 
-Nupp ei nõua, et **Käivita kontroll** oleks varem edukalt lõpetatud. Tehniliselt saab selle vajutada kohe, kui sihis on vähemalt üks rida. Kui kontroll on tehtud, rakendatakse enne lisamist selle automaatne arhiiviplaan.
+Nupp ei nõua, et **Käivita kontroll** oleks varem edukalt lõpetatud. Tehniliselt saab selle vajutada kohe, kui sihis on vähemalt üks rida. Kui kontroll on tehtud, avatakse enne lisamist selle arhiiviplaani kinnitusdialoog (vt „Arhiiviplaani käitumine").
 
 ### Ühe kinnistu lisamise otsustusloogika
 
-Iga töödeldava tunnuse puhul võrreldakse Kavitro kirjet ja põhikihti.
+Iga töödeldava tunnuse puhul võrreldakse Kavitro kirjet, põhikihti ja taustasüsteemi vastust `classify_property_import()` kaudu. Enamik olukordi lahendatakse automaatselt ilma kasutaja sekkumiseta; kasutaja otsust vajavad ainult aadressikonflikt, ainult arhiveeritud vaste ja mitme aktiivse vastega read (`needs_decision`). Need kogutakse lisamise ajal edasilükatud otsuste loendisse, mitte ei küsita ükshaaval kohe.
 
 | Olemasolu | Põhikäitumine |
 |---|---|
 | Puudub Kavitros ja põhikihis | Luuakse Kavitro kirje ja kopeeritakse impordiobjekt põhikihti |
-| Olemas Kavitros, puudub põhikihis | Vajaduse korral uuendatakse Kavitro kirjet ning küsitakse, kas objekt põhikihti kopeerida |
-| Puudub aktiivsena Kavitros, kuid arhiveeritud kirje on olemas | Pakutakse **Taasta olemasolev**, **Loo uus** või **Jäta vahele** |
-| Olemas põhikihis, puudub Kavitros | Küsitakse, kas luua Kavitro kirje |
-| Olemas mõlemas | Kavitro kirjet võidakse impordiandmetega uuendada; uut kaardiobjekti ei lisata |
-| Kavitro kontroll ebaõnnestub | Tunnus jäetakse vahele, et vältida pimedat duplikaati |
+| Olemas Kavitros, puudub põhikihis | Kavitro kirjet uuendatakse vajadusel ja impordiobjekt kopeeritakse põhikihti automaatselt |
+| Puudub aktiivsena Kavitros, kuid arhiveeritud kirje on olemas | Tunnus jääb otsust vajavaks (vt allpool) |
+| Olemas põhikihis, puudub Kavitros | Luuakse puuduv Kavitro kirje automaatselt |
+| Olemas mõlemas, aadress kattub | Kavitro kirjet võidakse impordiandmetega uuendada; uut kaardiobjekti ei lisata |
+| Olemas mõlemas, aadressikonflikt või impordis aadress puudub, kuid taustasüsteemis on aadress | Tunnus jääb otsust vajavaks |
+| Päring ebaõnnestub või tulemus on ebaselge | Tunnus jäetakse vahele/loetakse peatavaks veaks, et vältida pimedat duplikaati |
 
-Korduva valiku puhul võib nupp pakkuda ka **Jah kõigile**, millega kopeeritakse kõik sama jooksu Kavitros olemas, kuid kaardilt puuduvad objektid põhikihti ilma iga järgneva küsimuseta.
+### Otsust vajavate kinnistute ülevaatedialoog
 
-### Lisamise käigus avanevad otsustusnupud
+Lisamise lõpus kogub `_on_review_additions` kõik edasilükatud tunnused ühte modaalsesse dialoogi **Otsust ootavad kinnistud** (`PropertyImportReviewDialog`). Iga rida saab eraldi valikuvälja väärtusega:
 
-| Olukord | Nupp | Tulemus |
-|---|---|---|
-| Tunnus on ainult Kavitro arhiivis | **Taasta olemasolev** | Aktiveerib arhiveeritud kirje, uuendab seda impordiandmetega ja võib seejärel küsida põhikihti kopeerimist |
-| Sama | **Loo uus** | Jätkab uue Kavitro kirje loomise haruga |
-| Sama | **Jäta vahele** | Ei muuda ega lisa seda tunnust |
-| Kavitro kirje puudub, kuid põhikihi objekt on olemas | **Jah** | Lubab luua puuduva Kavitro kirje |
-| Sama | **Ei** | Jätab tunnuse selles jooksus vahele |
-| Kavitro kirje on olemas, kuid põhikihi objekt puudub | **Jah** | Kopeerib impordiobjekti põhikihti |
-| Sama | **Ei** | Ei kopeeri objekti põhikihti; võimalik varasem Kavitro uuendus jääb alles |
-| Sama kordub mitme tunnusega | **Jah kõigile** | Kopeerib käimasoleva jooksu kõik järgmised samas olukorras objektid põhikihti uut kinnitust küsimata |
+| Valik | Tulemus |
+|---|---|
+| **Jäta hilisemaks** (vaikeväärtus) | Tunnus jääb otsuste loendisse; midagi ei muudeta |
+| **Säilita olemasolev** | Tunnus eemaldatakse otsuste loendist; backend'i ega põhikihti selle kinnistu jaoks ei muudeta |
+| **Rakenda impordi andmed** | Pakutakse ainult aadressikonflikti ja puuduva impordiaadressi korral; uuendab sama backend'i kirje andmed impordiga ja kopeerib puuduva põhikihi objekti importkihist |
 
-Dialoogi sulgemist või **Ei** valikut käsitletakse vastava küsimuse tühistava vastusena. Otsused rakenduvad jooksvalt; hilisem lisamisdialoogi **Tühista** ei võta juba tehtud muudatusi tagasi.
+Tabeli all olev **Määra**-nupp rakendab valitud valiku korraga kõigile ridadele, mis seda valikut lubavad; read, mille jaoks valik ei kehti, jäävad oma senise valikuga ja nende arv kuvatakse teate all. Iga rea valikut saab pärast bulk-määramist ikka eraldi muuta. Alumine nupp **Rakenda valitud otsused** kinnitab tabelis tehtud valikud; dialoogi sulgemine käsitletakse kõigi ridade jätmisena hilisemaks. Enne rakendamist võrreldakse uuesti taustasüsteemi ja lähte-/põhikihi seisu; vahepeal muutunud kirjed jäävad uuesti otsust ootama.
 
 ### Salvestamine, osaline õnnestumine ja katkestamine
 
@@ -371,12 +368,11 @@ Kui mõne objekti atribuudi muutmine tagastab `False`, ei lisata seda muudetud k
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kriitiline | Tähelepanukontroll käsitleb kõiki põhikihi, kuid parajasti tabelist puuduvaid tunnuseid arhiveeritavana ning järgmine lisamisnupp rakendab plaani ilma eraldi kinnituseta | Piiratud kaardi- või asukohavalik võib arhiveerida peaaegu kogu ülejäänud kinnistukihi ja Kavitro andmestiku | Arvuta puuduvad ainult selgelt määratud täieliku impordikogumi suhtes; näita täielik arhiiviloend ja nõua eraldi kinnitust |
 | Kriitiline | Automaatse arhiivimise käigus proovitakse esmalt salvestada arhiivikiht ja seejärel põhikihi kustutused; arhiivikihi salvestusvea järel jätkub põhikihi salvestamine | Objekt võib põhikihist kaduda, kuigi koopiat arhiivikihti ei salvestatud | Peata põhikihi kustutuse salvestamine arhiivikihi vea korral või kasuta ühist taastatavat tehingut |
 | Kriitiline | Eemaldamise **Kustuta** ei arvesta Kavitro kustutuspäringute üksiktulemusi enne põhikihi objektide kustutamist | Kavitro kirje võib jääda alles, kuid kaardiobjekt kustutatakse ja toiming näib edukas | Tagasta iga Kavitro toimingu tulemus, kustuta kaardilt ainult edukad vasted ja kuva koondraport |
 | Kõrge | Uue Kavitro kirje loomise tagastusväärtust ei kontrollita enne impordiobjekti põhikihti kopeerimist | Kihile võib tekkida objekt ilma Kavitro kirjeta | Kopeeri objekt alles kinnitatud teenuse-ID järel või märgi osaline tulemus taastatavaks veaks |
 | Kõrge | Juba redigeerimisrežiimis põhi- ja arhiivikihtide lisamis-, arhiivimis- ja kustutamisvood kutsuvad `commitChanges()` | Tööriist võib salvestada ka kasutaja varasemad, selle toiminguga mitteseotud muudatused | Jälgi, milline voog redigeerimise alustas, ja salvesta ainult enda alustatud seanss |
-| Kõrge | **Lisa valitud** ei nõua tähelepanukontrolli läbimist ning **Lisa ilma kontrollita** rakendab juba loodud arhiiviplaani | Nuppude nimed ei vasta tegelikule kontrolli- ja andmemõjule | Seo kontrollitud lisamine kehtiva kontrollitulemusega ning lisa arhiiviplaani eraldi kinnitamine |
+| Keskmine | **Lisa valitud** ei nõua tähelepanukontrolli läbimist ning **Lisa ilma kontrollita** avab juba loodud arhiiviplaani kinnitusdialoogi, kui kontroll on tehtud | Nuppude nimed ei vasta tehniliselt kontrollikohustuse tegelikkusele, kuigi arhiveerimine ise nõuab nüüd eraldi kinnitust | Seo kontrollitud lisamine kehtiva kontrollitulemusega või selgita nupu juhendis nimetuse ja tegeliku käitumise erinevust |
 | Kõrge | Lisamisjärjekord neelab üksuse erandid ja loendab töödeldud üksuse tehtuks sõltumata tulemusest | Lõpu edenemisnäit võib jätta vale mulje täielikust õnnestumisest | Kogu iga tunnuse olek, kuva edukate, vahele jäetud ja vigaste kirjete koond ning paku vigaste eksporti |
 | Kõrge | Arhiveerimise ja taastamise üksiktulemusi ei tagastata tegevusteenusele; kasutajale kuvatakse üldine edu ka ebaõnnestumiste korral | Kasutaja ei tea, millised kirjed tegelikult muutusid | Tagasta struktureeritud tulemused ja kuva tunnuste kaupa koondraport |
 | Keskmine | Geospatiali režiimis lubatakse **Lisa kinnistuid** ilma impordikihita ning veavaate järel jätkub dialoogi initsialiseerimine puuduvate juhtelementidega | Nupuvajutus võib põhjustada programmivea | Arvuta nupu olek impordikihi järgi ka Geospatiali režiimis ja lõpeta konstruktor puuduva kihi veavaates ohutult |
@@ -394,7 +390,7 @@ Kui mõne objekti atribuudi muutmine tagastab `False`, ei lisata seda muudetud k
 1. Hoia QGIS-i põhi- ja arhiivikiht enne massitoimingut redigeerimisrežiimist väljas ning tee andmetest varukoopia.
 2. Veendu, et projektis oleks ainult üks soovitud impordimärgendiga kiht.
 3. Kontrolli kaardi- või asukohavaliku järel tabeli tegelikku ridade arvu.
-4. Ära käivita piiratud valikul tähelepanukontrolli enne kriitilise arhiiviplaani vea parandamist.
+4. Loe arhiiviplaani ülevaatedialoogi tabel ja piirkonna rida enne täielikkuse kinnisruudu märkimist läbi; piiratud valikul jäta ruut märkimata ja vajuta **Loobu**.
 5. Lisa esmalt väike proovikogum ilma varasema kontrolliplaanita.
 6. Võrdle pärast lisamist eraldi Kavitro kirjeid, põhikihti ja arhiivikihti.
 7. Kasuta **Kustuta ID järgi** ainult siis, kui sisemine Kavitro ID on sõltumatult kontrollitud.

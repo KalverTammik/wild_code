@@ -70,15 +70,13 @@ Automaatse töö lõpus kuvab haldusaken eraldi õnnestumised, tehnilised vead j
 - **Säilita olemasolev**: kirje eemaldatakse otsuste loendist; selle kinnistu backend'i ja põhikihi andmeid ei muudeta. Loendatakse eraldi, mitte salvestusena.
 - **Rakenda impordi andmed**: pakutakse aadressikonflikti ja puuduva impordiaadressi korral. Uuendatakse sama backend'i kirje kinnistu numbrit, katastriandmeid, aadressi, pindala ja sihtotstarbeid. Olemasolev põhikihi objekt jääb alles; puuduv kopeeritakse importkihist. Arhiveeritud või mitme aktiivse vastega kirjetele ülekirjutamise valikut ei pakuta.
 
-Suure loendi jaoks on tabeli all valik „Määra kõigile”. See paneb sama tegevuse kõigile ridadele korraga. Kinnistud, millele valitud tegevus ei ole lubatud, näiteks arhiveeritud või mitme aktiivse vastega kirjed „Rakenda impordi andmed” korral, jäävad endise valikuga ja nende arv kuvatakse valiku kõrval. Iga rea valikut saab pärast seda eraldi muuta.
+Suure loendi jaoks on tabeli all rippmenüü ja nupp „Määra”. See paneb valitud tegevuse kõigile ridadele korraga. Kinnistud, millele valitud tegevus ei ole lubatud, näiteks arhiveeritud või mitme aktiivse vastega kirjed „Rakenda impordi andmed” korral, jäävad endise valikuga ja nende arv kuvatakse valiku kõrval. Iga rea valikut saab pärast seda eraldi muuta.
 
 Rakendatakse ainult valitud ootel kirjed, mitte algset impordivalikut uuesti. Enne ülekirjutamist võrreldakse uuesti backend'i verifitseerimistulemust ning lähte- ja põhikihi identiteeti ja objekte. Muutunud andmed jäävad värske võrdlusega otsust ootama. Backend'i kontroll hõlmab olemasoleva verifitseerimispäringu tagastatud välju (sh ID, aadress, katastriandmete kuupäev, aktiivsed/arhiveeritud vasted ja sildid); see ei ole serveripoolne atomaarne tingimuslik kirjutamine.
 
 Kuni eelmise impordi otsused on ootel, suunavad lisamisnupud nende ülevaatesse, et edukalt imporditud valikut kogemata uuesti mitte töödelda. Tehnilise vea või katkestamise järel säilivad juba kogutud otsused ja tegelikud tulemused. Automaatses osas tähendab 100% kogu valiku läbivaatamist, mitte kõigi kinnistute salvestamist.
 
-Regressioonikatsed kontrollivad „Käivita kontroll” → import töövoogu, kuupäeva säilimist tabelis, 82 kinnistu valikut ühe esimese aadressikonflikti ja 81 eduka impordiga, arhiivi/mitme vaste edasilükkamist, eraldi otsuste rakendamist, muutunud backend'i ja geomeetriat, säilitamist, katkestamist ning koondloendureid. Kõik päringud on asendatud; päris backend'i ei muudeta.
-
-15.09.2026 lõppkontroll QGIS 3.40.15 keskkonnas: **291 testi, neist 288 edukad ja 3 vahele jäetud**. Otsuste dialoogi paigutust vaadati üle ka renderdatud 850 × 680 ja 700 × 600 eelvaates. Päris LIVE-importi ei tehtud.
+Regressioonikatsed kontrollivad „Käivita kontroll” → import töövoogu, kuupäeva säilimist tabelis, ühe esimese aadressikonflikti ja ülejäänud eduka impordiga valikut, arhiivi/mitme vaste edasilükkamist, eraldi otsuste rakendamist, muutunud backend'i ja geomeetriat, säilitamist, katkestamist ning koondloendureid. Kõik päringud on asendatud; päris backend'i ei muudeta. Otsuste dialoogi paigutust on vaadatud üle ka renderdatud 850 × 680 ja 700 × 600 eelvaates.
 
 ### Lisamise edenemine
 
@@ -88,11 +86,9 @@ Lõpptulemus jääb nähtavale seni, kuni tabel kirjeldab sama valikut. Piirkonn
 
 Kulunud aeg uueneb kord sekundis ka päringu ja pausi ajal. Järelejäänud aja ligikaudne hinnang tekib pärast esimese kinnistu töötlemist: senine kulunud aeg jagatakse töödeldud kinnistute arvuga ja korrutatakse järelejäänud arvuga. Kulunud aja sisse jäävad päringupausid; hinnang ei ole lühem teadaolevast aktiivsest ooteajast. See on kohanduv hinnang, mitte lubatud lõpetamisaeg. Katkestamise ajal hinnang peidetakse. Uus lisamine alustab loendust ja ajamõõtmist uuesti.
 
-Käsitsi kontroll: mõlema lisamisnupuga peavad arvud, riba ja aeg jääma nähtavale nii tavalise salvestuspausi kui ka serveri piirangu ajal. Katkestamisel ei tohi osaline töö muutuda 100% edenemiseks. Tekst peab mahtuma tegevusnuppude kohale ka kitsamas aknas. Automaatkontrollis kasutatakse asendatud kellaaega, jooksutaja signaale ja mälukihte; võrku päringuid ei saadeta.
+Käsitsi kontroll: mõlema lisamisnupuga peavad arvud, riba ja aeg jääma nähtavale nii tavalise salvestuspausi kui ka serveri piirangu ajal. Katkestamisel ei tohi osaline töö muutuda 100% edenemiseks. Tekst peab mahtuma tegevusnuppude kohale ka kitsamas aknas (kontrollitud 650 × 420 aknas). Automaatkontrollis kasutatakse asendatud kellaaega, jooksutaja signaale ja mälukihte; võrku päringuid ei saadeta. Kaetud on mõlemad lisamisviisid, ooteaja taimer, arvude püsimine pauside ajal, katkestamine, korduva käivituse lähtestamine ning dialoogi renderdatud eelvaade.
 
-15.09.2026 kontroll pärast edenemisnäidu ja külavaliku parandusi: QGIS 3.40.13 keskkonnas 280 testi, neist 277 edukad ja 3 vahele jäetud. Kontrolliti mõlemat lisamisviisi, ooteaja taimerit, arvude püsimist pauside ajal, katkestamist, korduva käivituse lähtestamist ning teksti mahutamist 650 × 420 aknas. Lisaks vaadati üle dialoogi renderdatud eelvaade. Päris LIVE-import selle kontrolli käigus ei toimunud.
-
-Automaattestid asendavad HTTP vastused ja aja; päris backend'i ei muudeta. Kaetud on kasutaja- ja kontolimiidid, vastusepäised, järjestikused 429 vastused, sama etapi kordamine, vastuse ID kontroll, katkestamine ning Qt edenemine. Õnnestumise aluseks on serveri edukas mutatsioonivastus õige kirje ID-ga, mitte eraldi hilisem andmete tagasilugemine.
+Automaattestid asendavad HTTP vastused ja aja; päris backend'i ei muudeta. Kaetud on kasutaja- ja kontolimiidid, vastusepäised, järjestikused 429 vastused, sama etapi kordamine, vastuse ID kontroll, katkestamine ning Qt edenemine. Õnnestumise aluseks on serveri edukas mutatsioonivastus õige kirje ID-ga, mitte eraldi hilisem andmete tagasilugemine. Simuleeritud partiitestis, kus osa muutmistoiminguid vastab korduvalt ajutise 429-ga, loodi iga kinnistu täpselt üks kord.
 
 Kasutajakatses tuleb pärast arendusplugina uuesti laadimist proovida mõlemat lisamisnuppu väikese ülevaadatud valikuga: paus peab olema nähtav, õnnestumiste arv peab kasvama alles pärast kinnistu kõigi etappide lõppu ja ebaõnnestunud toiming ei tohi jääda märkamatult vahele. Katkestamist saab proovida oote ajal. LIVE-paketti tuleb parandus avaldada eraldi versioonina.
 
@@ -112,11 +108,10 @@ Päringud tehakse nüüd taustal sama kontrollitöö ja ühise piirajaga. Haldus
 
 Kuna aken on päringute ajal kasutatav, kontrollitakse enne kava avamist uuesti, et piirkond ja impordikiht vastavad endiselt kavale. Kui need muutusid, kuvatakse aegunud kava hoiatus. Kava ülevaade, kaardikihtide muutmine ja arhiveerimine ise toimuvad endiselt kasutajaliidese lõimes pärast kinnitust.
 
-### 15.09.2026 laiendatud kontroll
+### Laiendatud automaatkontrolli ulatus
 
-- QGIS 3.40.13 Python: 276 testi, 273 õnnestunud, 3 vahele jäetud; päris backend'i ei muudetud.
-- 50 kinnistut ja nende sihtotstarbed: 100 edukat muutmist, 16 simuleeritud ajutist 429 vastust, kokku 116 füüsilist katset; kõik 50 kinnistut loodi täpselt üks kord.
 - JSON ja multipart kasutavad sama pausi; üleslaadimisel kontrolliti kogu faili kordussaatmist.
 - Qt taimer jätkas tööd aeglase HTTP päringu ajal; kontrolliti ka ooteakent, katkestamist 429 pausi ajal ja juba saadetud kirjutamise vastuse äraootamist.
 - Arhiveerimise, taastamise, kustutamise, failiüleslaadimise ja geomeetriate vea korral kontrolliti järgmiste kannete peatamist ning tõestamata tulemuse õnnestunuks mittelugemist.
-- Järgmine käsitsi katse avaldatud LIVE-paketiga: väike valik mõlema lisamisnupuga; pausi ja katkestamise jälgimine; lõpptulemuse võrdlus põhikihi ja backend'iga. See katse on veel tegemata.
+
+Käsitsi katse avaldatud LIVE-paketiga (väike valik mõlema lisamisnupuga; pausi ja katkestamise jälgimine; lõpptulemuse võrdlus põhikihi ja backend'iga) on seni tegemata.

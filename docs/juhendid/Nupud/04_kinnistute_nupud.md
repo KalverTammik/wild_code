@@ -51,12 +51,12 @@ Puuduva arhiivikihi korral võib enne lisamisdialoogi avaneda valik **Ava Seaded
 | **Tühjenda valik** | Sama rida | Eemaldab tabelivaliku. Asukohaloendi režiimis nuppu ei ole. |
 | **Vali uuesti kaardilt** | Kaardilt lisamise režiimi tabeli kohal | Sulgeb valikuringi ajutiselt ja laseb kinnistud kaardilt uuesti määrata. |
 | **Tühista** | Dialoogi jalus | Katkestab käimasoleva kontrolli, arhiveerimiskava päringud või lisamise ja jätab dialoogi avatuks. Kui midagi ei käi, sulgeb dialoogi. |
-| **Lisa ilma kontrollita** | Dialoogi jalus | Alustab lisamist uut tähelepanukontrolli käivitamata. Kui kontroll on juba tehtud, võib enne lisamist rakenduda selle arhiiviplaan. Tühja tabeli korral ning lisamise ajal on nupp lukus. |
-| **Käivita kontroll** | Dialoogi jalus | Kontrollib kõiki tabeliridu ning koostab ka põhikihilt puuduva impordi põhjal arhiiviplaani. |
+| **Lisa ilma kontrollita** | Dialoogi jalus | Alustab lisamist uut tähelepanukontrolli käivitamata. Kui kontroll on juba tehtud, avaneb enne lisamist selle arhiiviplaani kinnitusdialoog. Tühja tabeli korral ning lisamise ajal on nupp lukus. |
+| **Käivita kontroll** | Dialoogi jalus | Kontrollib kõiki tabeliridu ning koostab ka põhikihilt puuduva impordi põhjal arhiiviplaani, mis kuvatakse hiljem lisamisel eraldi kinnitusdialoogis. |
 | **Lisa valitud** | Dialoogi jalus | Alustab lisamist; kontrolli eelnev läbimine ei ole tehniliselt kohustuslik. Kaardirežiimis kasutatakse valitud ridu, asukoharežiimis kõiki tabeliridu. |
 | **Sulge** | Veaseisundis, kui kinnistute impordikihti ei leitud | Sulgeb dialoogi ilma töövoogu jätkamata. |
 
-Lisamise ajal võivad avaneda ka ühe kinnistu otsustusnupud **Jah**, **Ei**, **Jah kõigile**, **Taasta olemasolev**, **Loo uus** ja **Jäta vahele**. Nende täpne tähendus sõltub sellest, kas tunnus on Kavitros, põhikihis või ainult Kavitro arhiivis; vaata detailauditit.
+Kui kontroll on tuvastanud otsust vajavaid tunnuseid (aadressikonflikt, ainult arhiveeritud vaste või mitu aktiivset vastet), avaneb lisamise lõpus ülevaatedialoog **Otsust ootavad kinnistud**, kus iga rea juures saab valida **Jäta hilisemaks**, **Säilita olemasolev** või **Rakenda impordi andmed** (viimane ainult aadressiga seotud põhjuste korral). Kui kontroll on koostanud arhiiviplaani, avaneb enne selle rakendamist eraldi dialoog **Arhiveerimisplaani ülevaade**, kus kinnitusnupp on lukus, kuni kasutaja märgib täielikkuse kinnisruudu. Vaata täpsemalt detailauditit.
 
 ## Kinnistu eemaldamise tegevuse valik
 
