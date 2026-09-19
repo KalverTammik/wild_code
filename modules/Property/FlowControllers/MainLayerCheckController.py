@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from PyQt5.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
+from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
 from ....constants.cadastral_fields import Katastriyksus
 from ....utils.MapTools.MapHelpers import MapHelpers
@@ -22,9 +22,12 @@ class MainLayerCheckController(QObject):
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
-        self._timer: Optional[QTimer] = None
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(False)
+        self._timer.timeout.connect(self._tick)
         self._pending_rows: List[int] = []
         self._batch_size: int = 25
+        self._run_id: int = 0
 
         self._checked_rows: set[int] = set()
         self._rows_for_verify_by_row: Dict[int, Tuple[str, str]] = {}
@@ -32,8 +35,6 @@ class MainLayerCheckController(QObject):
         self._main_muudet_override_by_tunnus: Dict[str, str] = {}
         self._main_layer_lookup: Dict[str, Any] = {}
         self._lookup_is_complete: bool = False
-        self._process_events_counter: int = 0
-        self._process_events_every: int = 12
 
     # ------------------------------------------------------------------
     # Configuration
@@ -79,6 +80,7 @@ class MainLayerCheckController(QObject):
         interval_ms: int = 0,
     ) -> None:
         self.stop()
+        self._run_id += 1
 
         self._batch_size = max(1, int(batch_size or 1))
         self._pending_rows = [int(r) for r in (rows or []) if int(r) not in self._checked_rows]
@@ -87,34 +89,25 @@ class MainLayerCheckController(QObject):
             self.finished.emit()
             return
 
-        timer = QTimer(self)
-        timer.setSingleShot(False)
-        timer.timeout.connect(self._tick)
-        self._timer = timer
-
-        try:
-            QTimer.singleShot(0, lambda: timer.start(max(0, int(interval_ms))))
-        except Exception:
-            timer.start(max(0, int(interval_ms)))
+        self._timer.start(max(0, int(interval_ms)))
 
     def stop(self) -> None:
         try:
-            if self._timer is not None:
-                self._timer.stop()
+            self._timer.stop()
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module="property",
                 event="main_layer_check_timer_stop_failed",
             )
-        self._timer = None
         self._pending_rows = []
-        self._process_events_counter = 0
 
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
     def _tick(self) -> None:
+        run_id = self._run_id
+
         if not self._pending_rows:
             self.stop()
             self.finished.emit()
@@ -132,10 +125,10 @@ class MainLayerCheckController(QObject):
             self._checked_rows.add(row_idx)
             self.rowResult.emit(row_idx, causes)
 
-        self._process_events_counter += processed
-        if self._process_events_counter >= self._process_events_every:
-            QCoreApplication.processEvents()
-            self._process_events_counter = 0
+            if run_id != self._run_id:
+                # A row's own signal handler restarted the cycle from underneath us;
+                # that newer run owns the timer now, so stop acting on its behalf.
+                return
 
     def _compute_causes_for_row(self, row_idx: int) -> List[str]:
         tunnus, import_muudet = self._rows_for_verify_by_row.get(int(row_idx), ("", ""))

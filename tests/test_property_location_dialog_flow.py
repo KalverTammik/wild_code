@@ -410,6 +410,45 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         finally:
             self.close_dialog(dialog)
 
+    def test_real_dialog_stays_locked_through_the_archive_confirm_and_apply(self):
+        # b4: the dialog used to unlock the instant the background lookup finished --
+        # before the user even saw the confirmation dialog, and before the archive call
+        # that follows it. Both must still see the dialog locked.
+        from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        dialog = self.open_dialog_with_village_scope()
+        then = Mock()
+        locked_at_confirm = []
+        locked_at_archive = []
+
+        def confirm_side_effect(**_kwargs):
+            locked_at_confirm.append(dialog._add_in_progress and not dialog.location_filter_widget.isEnabled())
+            return True
+
+        def archive_side_effect(*_args, **_kwargs):
+            locked_at_archive.append(dialog._add_in_progress and not dialog.location_filter_widget.isEnabled())
+            return {'archived_backend': 0, 'moved_map': 0, 'errors': []}
+
+        try:
+            with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                              return_value=missing_info()), \
+                    patch.object(dialog, '_archive_scope_is_current', return_value=True), \
+                    patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm',
+                                 side_effect=confirm_side_effect), \
+                    patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import',
+                                 side_effect=archive_side_effect), \
+                    patch.object(dialog_module.ModernMessageDialog, 'Warning_messages_modern'):
+                dialog._missing_from_import = {'8'}
+                dialog._run_missing_cleanup_if_any(then)
+                self.wait_until(lambda: then.called)
+
+            self.assertEqual(locked_at_confirm, [True])
+            self.assertEqual(locked_at_archive, [True])
+            self.assertFalse(dialog._add_in_progress)
+            self.assertTrue(dialog.location_filter_widget.isEnabled())
+        finally:
+            self.close_dialog(dialog)
+
     def test_real_dialog_archive_lookup_shows_progress_and_cancel_changes_nothing(self):
         from PyQt5 import sip
         from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
@@ -991,6 +1030,50 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                                  translate(K.PROPERTY_TOOLTIP_ARCHIVE_NONE))
                 self.assertEqual(tip(0, PropertyTableWidget._COL_ARCHIVE_MAP),
                                  translate(K.PROPERTY_TOOLTIP_ARCHIVE_NONE))
+            finally:
+                self.close_dialog(dialog)
+
+    def test_archive_plan_tooltips_render_when_a_row_is_flagged(self):
+        # _archive_backend_plan/_archive_map_plan and their PLANNED translation keys looked
+        # like dead code to an early "step 1" scan; they are read by _set_attention_row and
+        # do produce the right icon/tooltip once a tunnus is flagged. This locks that in
+        # directly on a row, because the properties table itself never shows a row for an
+        # actual archive candidate -- those tunnus values are, by construction, always
+        # absent from the import (see _compute_scoped_archive_plan), so nothing end-to-end
+        # currently drives a real row through the PLANNED branch.
+        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
+        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        self.add_import_fields()
+        main = make_main_layer()
+        with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
+                          return_value=backend_info('1')), \
+                patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
+                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+            dialog = AddPropertyDialog()
+            try:
+                self.wait_until(lambda: dialog.county_combo.isEnabled())
+                self.pick(dialog)
+                self.wait_until(lambda: PropertyTableManager.row_count(dialog.properties_table) == 2)
+                translate = dialog.lang_manager.translate
+
+                dialog._on_run_checks_clicked()
+                self.wait_until(lambda: dialog._checks_completed_for_scope)
+
+                tunnus = PropertyTableManager.get_cell_text(dialog.properties_table, 0, 0)
+                dialog._archive_backend_plan = {tunnus: True}
+                dialog._archive_map_plan = {tunnus: True}
+                dialog._update_row_attention_display(0)
+
+                def tip(column):
+                    return PropertyTableManager.get_cell_data(
+                        dialog.properties_table, 0, column, role=Qt.ToolTipRole)
+
+                self.assertEqual(tip(PropertyTableWidget._COL_ARCHIVE_BACKEND),
+                                 translate(K.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_PLANNED))
+                self.assertEqual(tip(PropertyTableWidget._COL_ARCHIVE_MAP),
+                                 translate(K.PROPERTY_TOOLTIP_ARCHIVE_MAP_PLANNED))
             finally:
                 self.close_dialog(dialog)
 

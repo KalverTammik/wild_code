@@ -2072,10 +2072,14 @@ class AddPropertyDialog(QDialog):
                 event="property_archive_candidate_backend_check_failed",
                 extra={"tunnus": error.get("tunnus")},
             )
-        self._set_add_ui_state(active=False)
         self._hide_detail_label()
         self.add_progress_bar.hide()
-        self._apply_archive_plan(lookup["missing"], lookup["backend_info"], lookup["then"])
+        # Stays locked (b4) through the confirmation dialog and the archive call itself,
+        # not just through the background backend lookup that precedes them.
+        try:
+            self._apply_archive_plan(lookup["missing"], lookup["backend_info"], lookup["then"])
+        finally:
+            self._set_add_ui_state(active=False)
 
     def _cancel_archive_lookup(self) -> None:
         # Only reads were made: the plan stays intact and the same add can be retried.

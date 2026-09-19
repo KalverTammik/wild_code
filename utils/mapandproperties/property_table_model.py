@@ -105,18 +105,6 @@ class PropertyTableModel(QAbstractTableModel):
             normalized.setdefault(key, {"state": "pending", "tooltip": ""})
         return normalized
 
-    def set_cell_text(self, row: int, col: int, text: str) -> bool:
-        if row < 0 or row >= len(self._rows):
-            return False
-        if col < 0 or col > 3:
-            return False
-
-        key = ["cadastral_id", "address", "area", "settlement"][col]
-        self._rows[row][key] = str(text or "")
-        idx = self.index(row, col)
-        self.dataChanged.emit(idx, idx, [Qt.DisplayRole])
-        return True
-
     def set_status(self, row: int, col: int, *, state: str, tooltip: str = "") -> bool:
         if row < 0 or row >= len(self._rows):
             return False
