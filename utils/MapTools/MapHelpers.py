@@ -1,7 +1,6 @@
 from typing import Iterable, List, Optional, Sequence, Union
 from ...languages.translation_keys import TranslationKeys
 from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer, QgsFeatureRequest, QgsCoordinateTransform
-from PyQt5.QtCore import QCoreApplication
 from qgis.utils import iface
 from ...utils.url_manager import Module
 from ...constants.settings_keys import SettingsService
@@ -31,10 +30,6 @@ class MapHelpers:
         canvas_extent.scale(1.12)
         canvas.setExtent(canvas_extent)
         canvas.refresh()
-
-    _scope_zoom_cache: dict[tuple[str, str], tuple[QgsRectangle, int]] = {}
-    _scope_zoom_cache_limit: int = 64
-    _scope_zoom_process_every: int = 500
 
     @staticmethod
     def _sql_quote(value: object) -> str:
@@ -295,233 +290,6 @@ class MapHelpers:
         canvas.refresh()
 
     @staticmethod
-    def select_and_zoom_to_expression_scope(
-        layer: QgsVectorLayer,
-        expression: str,
-        *,
-        padding_factor: float = 1.12,
-        make_active: bool = True,
-        clear_existing: bool = True,
-    ) -> int:
-        """Select features matching expression and zoom to selected extent.
-
-        Keeps resulting layer selection active and returns selected feature count.
-        """
-        if not layer or not layer.isValid():
-            return 0
-
-        expr = str(expression or "").strip()
-        if not expr:
-            return 0
-
-        try:
-            MapHelpers.ensure_layer_visible(layer, make_active=make_active)
-
-            if clear_existing:
-                try:
-                    layer.removeSelection()
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module=Module.PROPERTY.value,
-                        event="maphelpers_scope_select_clear_failed",
-                    )
-
-            QCoreApplication.processEvents()
-            layer.selectByExpression(expr)
-            QCoreApplication.processEvents()
-            try:
-                match_count = int(layer.selectedFeatureCount() or 0)
-            except Exception:
-                match_count = 0
-
-            if match_count <= 0:
-                return 0
-
-            extent = None
-            try:
-                extent = layer.boundingBoxOfSelected()
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="maphelpers_scope_select_bbox_failed",
-                )
-
-            if extent is None or extent.isEmpty():
-                return match_count
-
-            if padding_factor and padding_factor > 0:
-                extent.scale(padding_factor)
-
-            canvas = iface.mapCanvas() if iface is not None else None
-            if canvas is not None:
-                canvas.setExtent(extent)
-                canvas.refresh()
-                QCoreApplication.processEvents()
-
-            return match_count
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="maphelpers_scope_select_zoom_failed",
-            )
-            return 0
-
-    @staticmethod
-    def zoom_to_expression_scope(
-        layer: QgsVectorLayer,
-        expression: str,
-        *,
-        padding_factor: float = 1.12,
-        make_active: bool = True,
-        clear_selection: bool = True,
-    ) -> int:
-        """Zoom map canvas to extent of features matching expression.
-
-        Returns match count used for extent creation.
-        """
-        if not layer or not layer.isValid():
-            return 0
-
-        expr = str(expression or "").strip()
-        if not expr:
-            return 0
-
-        try:
-            layer_id = ""
-            try:
-                layer_id = str(layer.id() or "")
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="maphelpers_scope_zoom_layer_id_failed",
-                )
-            cache_key = (layer_id, expr)
-
-            cached = MapHelpers._scope_zoom_cache.get(cache_key)
-            extent: Optional[QgsRectangle] = None
-            match_count = 0
-            if cached is not None:
-                cached_extent, cached_count = cached
-                if cached_extent is not None and not cached_extent.isEmpty() and int(cached_count or 0) > 0:
-                    extent = QgsRectangle(cached_extent)
-                    match_count = int(cached_count)
-
-            if extent is None or match_count <= 0:
-                if clear_selection:
-                    signals_were_blocked = False
-                    try:
-                        signals_were_blocked = bool(layer.signalsBlocked())
-                    except Exception:
-                        signals_were_blocked = False
-
-                    try:
-                        layer.blockSignals(True)
-                    except Exception as exc:
-                        PythonFailLogger.log_exception(
-                            exc,
-                            module=Module.PROPERTY.value,
-                            event="maphelpers_scope_zoom_block_signals_failed",
-                        )
-
-                    try:
-                        QCoreApplication.processEvents()
-                        layer.selectByExpression(expr)
-                        QCoreApplication.processEvents()
-                        try:
-                            match_count = int(layer.selectedFeatureCount() or 0)
-                        except Exception:
-                            match_count = 0
-                        if match_count > 0:
-                            try:
-                                extent = layer.boundingBoxOfSelected()
-                            except Exception as exc:
-                                PythonFailLogger.log_exception(
-                                    exc,
-                                    module=Module.PROPERTY.value,
-                                    event="maphelpers_scope_zoom_selected_bbox_failed",
-                                )
-                                extent = None
-                    finally:
-                        try:
-                            layer.removeSelection()
-                        except Exception as exc:
-                            PythonFailLogger.log_exception(
-                                exc,
-                                module=Module.PROPERTY.value,
-                                event="maphelpers_scope_zoom_clear_selection_failed",
-                            )
-                        try:
-                            layer.blockSignals(signals_were_blocked)
-                        except Exception as exc:
-                            PythonFailLogger.log_exception(
-                                exc,
-                                module=Module.PROPERTY.value,
-                                event="maphelpers_scope_zoom_unblock_signals_failed",
-                            )
-
-                if extent is None or extent.isEmpty() or match_count <= 0:
-                    request = QgsFeatureRequest()
-                    request.setFilterExpression(expr)
-                    try:
-                        request.setSubsetOfAttributes([])
-                    except Exception:
-                        pass
-
-                    extent = None
-                    match_count = 0
-                    scanned = 0
-                    for feat in layer.getFeatures(request):
-                        geom = feat.geometry()
-                        if geom is None or geom.isEmpty():
-                            continue
-                        bbox = geom.boundingBox()
-                        if extent is None:
-                            extent = QgsRectangle(bbox)
-                        else:
-                            extent.combineExtentWith(bbox)
-                        match_count += 1
-                        scanned += 1
-                        if scanned % MapHelpers._scope_zoom_process_every == 0:
-                            QCoreApplication.processEvents()
-
-                if extent is not None and not extent.isEmpty() and match_count > 0 and cache_key[0]:
-                    MapHelpers._scope_zoom_cache[cache_key] = (QgsRectangle(extent), int(match_count))
-                    if len(MapHelpers._scope_zoom_cache) > MapHelpers._scope_zoom_cache_limit:
-                        try:
-                            oldest_key = next(iter(MapHelpers._scope_zoom_cache))
-                            MapHelpers._scope_zoom_cache.pop(oldest_key, None)
-                        except Exception:
-                            pass
-
-            if extent is None or extent.isEmpty() or match_count <= 0:
-                return 0
-
-            MapHelpers.ensure_layer_visible(layer, make_active=make_active)
-
-            if padding_factor and padding_factor > 0:
-                extent.scale(padding_factor)
-
-            canvas = iface.mapCanvas() if iface is not None else None
-            if canvas is not None:
-                canvas.setExtent(extent)
-                canvas.refresh()
-                QCoreApplication.processEvents()
-
-            return match_count
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="maphelpers_scope_zoom_failed",
-            )
-            return 0
-
-
-    @staticmethod
     def zoom_to_layer(layer: QgsVectorLayer) -> None:
         """Zoom to the full extent of a layer."""
         if layer and layer.isValid():
@@ -720,6 +488,12 @@ class MapHelpers:
 
     @staticmethod
     def find_features_by_fields_and_values(layer: QgsVectorLayer, field_name: str, values: List[str]) -> List[QgsFeature]:
+        """Look up features by attribute value, pushing the filter to the provider.
+
+        Geometry is kept (not NoGeometry) because callers such as
+        `item_selector_tools.show_connected_properties_on_map` zoom to the returned
+        features' geometry.
+        """
         if not layer or not layer.isValid() or not values:
             return []
         try:
@@ -748,15 +522,17 @@ class MapHelpers:
             except Exception as log_exc:
                 print(f"[MapHelpers] Failed to log field check error: {log_exc}")
             return []
-        lookup = set(values)
+
+        clause = MapHelpers.build_subset_in_clause(field_name, values)
+        if not clause:
+            return []
+
         matches: List[QgsFeature] = []
         try:
-            for feature in layer.getFeatures():
-                try:
-                    if feature[field_name] in lookup:
-                        matches.append(feature)
-                except KeyError:
-                    continue
+            request = QgsFeatureRequest()
+            request.setFilterExpression(clause)
+            for feature in layer.getFeatures(request):
+                matches.append(feature)
         except Exception as exc:
             try:
                 PythonFailLogger.log_exception(
@@ -768,47 +544,6 @@ class MapHelpers:
                 print(f"[MapHelpers] Failed to log feature iter error: {log_exc}")
             return []
         return matches
-    
-    @staticmethod
-    def if_feature_exists_in_layer(layer: QgsVectorLayer, field_name: str, value: str) -> bool:
-        if not layer or not layer.isValid() or not value:
-            return False
-        for feature in layer.getFeatures():
-            try:
-                if feature[field_name] == value:
-                    return True
-            except KeyError:
-                continue
-        return False
-    @staticmethod
-    def feature_comparer_between_layers(
-        source_layer: QgsVectorLayer,
-        target_layer: QgsVectorLayer,
-        field_name: str
-    ) -> List[QgsFeature]:
-        """Compare features between two layers based on a field value."""
-        if not source_layer or not source_layer.isValid():
-            return []
-        if not target_layer or not target_layer.isValid():
-            return []
-
-        source_values = set()
-        for feature in source_layer.getFeatures():
-            try:
-                source_values.add(feature[field_name])
-            except KeyError:
-                continue
-
-        matching_features: List[QgsFeature] = []
-        for feature in target_layer.getFeatures():
-            try:
-                if feature[field_name] in source_values:
-                    matching_features.append(feature)
-            except KeyError:
-                continue
-
-        return matching_features
-
 
 class FeatureActions:
 
@@ -957,114 +692,6 @@ class FeatureActions:
                     event="featureactions_rollback_failed",
                 )
             return False, feature_ids, str(e)
-
-    @staticmethod
-    def update_feature_attribute_by_field_value(
-        layer: QgsVectorLayer,
-        field_name: str,
-        value: object,
-        attribute_name: str,
-        new_value: object,
-    ):
-        """Update a single matching feature attribute and commit.
-
-        Returns: (ok_commit: bool, feature_id: Optional[int], error: str)
-        """
-
-        if not layer or not layer.isValid() or not value:
-            return False, None, ""
-
-        try:
-            matches = MapHelpers.find_features_by_fields_and_values(layer, field_name, [value])
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="featureactions_find_match_failed",
-            )
-            matches = []
-
-        if not matches:
-            return False, None, "not_found"
-
-        feature = matches[0]
-        feature_id = None
-        try:
-            feature_id = feature.id()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="featureactions_feature_id_failed",
-            )
-            feature_id = None
-
-        try:
-            if not layer.isEditable():
-                layer.startEditing()
-
-            feature.setAttribute(attribute_name, new_value)
-            ok_update = bool(layer.updateFeature(feature))
-            ok_commit = bool(layer.commitChanges()) if ok_update else False
-            if not ok_commit:
-                err = "; ".join(layer.commitErrors() or [])
-                try:
-                    layer.rollBack()
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module=Module.PROPERTY.value,
-                        event="featureactions_update_rollback_failed",
-                    )
-                return False, feature_id, err
-
-            return True, feature_id, ""
-        except Exception as e:
-            try:
-                layer.rollBack()
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="featureactions_update_rollback_failed",
-                )
-            return False, feature_id, str(e)
-
-    @staticmethod
-    def get_first_feature_by_field_value(layer: QgsVectorLayer, field_name: str, value: object) -> Optional[QgsFeature]:
-        if not layer or not layer.isValid() or value is None or value == "":
-            return None
-        try:
-            matches = MapHelpers.find_features_by_fields_and_values(layer, field_name, [value])
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="featureactions_get_first_match_failed",
-            )
-            matches = []
-        return matches[0] if matches else None
-
-    @staticmethod
-    def get_first_attribute_by_field_value(
-        layer: QgsVectorLayer,
-        field_name: str,
-        value: object,
-        attribute_name: str,
-    ) -> object:
-        feature = FeatureActions.get_first_feature_by_field_value(layer, field_name, value)
-        if feature is None:
-            return None
-        try:
-            return feature.attribute(attribute_name)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="featureactions_get_attribute_failed",
-            )
-            return None
-
 
 
 class ActiveLayersHelper:
