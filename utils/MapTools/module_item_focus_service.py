@@ -68,12 +68,8 @@ class ModuleItemFocusService:
             return False
 
         try:
-            target_feature = None
-            for feature in layer.getFeatures():
-                current_id = str(feature.attribute(identity_field) or "").strip()
-                if current_id == item_id_text:
-                    target_feature = feature
-                    break
+            matches = MapHelpers.find_features_by_fields_and_values(layer, identity_field, [item_id_text])
+            target_feature = matches[0] if matches else None
             if target_feature is None:
                 return False
 

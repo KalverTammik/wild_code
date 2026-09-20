@@ -3,14 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import QTimer
 from qgis.core import QgsEditFormConfig, QgsFeature, QgsVectorLayer, QgsWkbTypes
-from qgis.gui import QgsMapTool
 from qgis.utils import iface
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.window_state.dialog_helpers import DialogHelpers
 from ..messagesHelper import ModernMessageDialog
+from .canvas_click_tool import SingleClickMapTool
 from .MapHelpers import MapHelpers
 
 LayerResolver = Callable[[], Optional[QgsVectorLayer]]
@@ -63,30 +63,9 @@ class ModuleFeatureWorkflowConfig:
     commit_edit_session_after_draw: bool = True
 
 
-class _CanvasClickCaptureTool(QgsMapTool):
-    def __init__(self, canvas, on_selected: Callable[[object], None], on_cancel: Callable[[], None]):
-        super().__init__(canvas)
-        self.canvas = canvas
-        self._on_selected = on_selected
-        self._on_cancel = on_cancel
-        self.setCursor(Qt.CrossCursor)
-
-    def canvasReleaseEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton:
-            point = self.canvas.getCoordinateTransform().toMapCoordinates(event.pos())
-            self._on_selected(point)
-            return
-        if event.button() == Qt.RightButton:
-            self._on_cancel()
-
-    def keyPressEvent(self, event) -> None:  # noqa: N802
-        if event.key() == Qt.Key_Escape:
-            self._on_cancel()
-
-
 class ModuleFeatureAttachController:
     def __init__(self) -> None:
-        self._capture_tool: Optional[_CanvasClickCaptureTool] = None
+        self._capture_tool: Optional[SingleClickMapTool] = None
         self._parent_window = None
         self._layer: Optional[QgsVectorLayer] = None
         self._item_data: dict = {}
@@ -153,7 +132,7 @@ class ModuleFeatureAttachController:
                 log_module=log_module,
             )
 
-        self._capture_tool = _CanvasClickCaptureTool(
+        self._capture_tool = SingleClickMapTool(
             canvas,
             on_selected=_on_selected,
             on_cancel=lambda: self.cancel(log_module=log_module),

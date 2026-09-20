@@ -27,7 +27,7 @@ class MapHelpers:
             return
         transform = QgsCoordinateTransform(layer.crs(), canvas.mapSettings().destinationCrs(), QgsProject.instance())
         canvas_extent = transform.transformBoundingBox(extent)
-        canvas_extent.scale(1.12)
+        canvas_extent.scale(1.2)
         canvas.setExtent(canvas_extent)
         canvas.refresh()
 
@@ -461,7 +461,7 @@ class MapHelpers:
 
                 if extent is not None and not extent.isEmpty() and iface is not None and iface.mapCanvas() is not None:
                     try:
-                        extent.scale(1.12)
+                        extent.scale(1.2)
                     except Exception:
                         pass
                     iface.mapCanvas().setExtent(extent)

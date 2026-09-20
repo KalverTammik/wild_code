@@ -7,12 +7,10 @@ try:
 except ImportError:
     sip = None
 from qgis.core import QgsProject
-from qgis.utils import iface
 
 from ...constants.settings_keys import SettingsService
 from ...constants.cadastral_fields import Katastriyksus
 from ...constants.layer_constants import IMPORT_PROPERTY_TAG
-from ...utils.MapTools.MapHelpers import MapHelpers
 from ...utils.mapandproperties.PropertyTableManager import PropertyTableManager
 
 from ...utils.url_manager import Module
@@ -172,16 +170,7 @@ class PropertiesSelectors:
                 return layer
 
             MapHelpers.ensure_layer_visible(layer, make_active=True)
-            layer.removeSelection()
-            layer.selectByIds(feature_ids)
-
-            extent = layer.boundingBoxOfSelected()
-            if extent is not None and not extent.isEmpty() and iface is not None:
-                extent.scale(1.2)
-                canvas = iface.mapCanvas()
-                if canvas is not None:
-                    canvas.setExtent(extent)
-                    canvas.refresh()
+            MapHelpers.select_features_by_ids(layer, feature_ids, zoom=True)
 
             try:
                 PythonFailLogger.log(

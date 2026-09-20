@@ -14,7 +14,6 @@ from qgis.core import (
     QgsVectorLayer,
     QgsWkbTypes,
 )
-from qgis.gui import QgsMapTool
 from qgis.utils import iface
 
 from ...constants.settings_keys import SettingsService
@@ -26,28 +25,9 @@ from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.moduleSwitchHelper import ModuleSwitchHelper
 from ...utils.url_manager import Module
+from .canvas_click_tool import SingleClickMapTool
 from .MapHelpers import MapHelpers
 from .module_item_focus_service import ModuleItemFocusService
-
-
-class _ModuleIdentifyClickTool(QgsMapTool):
-    def __init__(self, canvas, controller: "ModuleIdentifyToolController") -> None:
-        super().__init__(canvas)
-        self.canvas = canvas
-        self._controller = controller
-        self.setCursor(Qt.WhatsThisCursor)
-
-    def canvasReleaseEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton:
-            point = self.canvas.getCoordinateTransform().toMapCoordinates(event.pos())
-            self._controller.handle_map_click(point)
-            return
-        if event.button() == Qt.RightButton:
-            self._controller.cancel()
-
-    def keyPressEvent(self, event) -> None:  # noqa: N802
-        if event.key() == Qt.Key_Escape:
-            self._controller.cancel()
 
 
 class ModuleIdentifyToolController:
@@ -68,7 +48,7 @@ class ModuleIdentifyToolController:
         self._lang = lang_manager or LanguageManager()
         self._module_key = ""
         self._layer: Optional[QgsVectorLayer] = None
-        self._tool: Optional[_ModuleIdentifyClickTool] = None
+        self._tool: Optional[SingleClickMapTool] = None
 
     @classmethod
     def start_for_active_module(cls, *, parent_window=None, lang_manager=None) -> bool:
@@ -116,7 +96,12 @@ class ModuleIdentifyToolController:
 
         DialogHelpers.enter_map_selection_mode(iface_obj=iface, parent_window=self._parent_window)
 
-        self._tool = _ModuleIdentifyClickTool(canvas, self)
+        self._tool = SingleClickMapTool(
+            canvas,
+            on_selected=self.handle_map_click,
+            on_cancel=self.cancel,
+            cursor=Qt.WhatsThisCursor,
+        )
         canvas.setMapTool(self._tool)
         return True
 
@@ -186,6 +171,12 @@ class ModuleIdentifyToolController:
             return ""
 
     @staticmethod
+    def _plugin_dialog_instance():
+        from ...dialog import PluginDialog
+
+        return PluginDialog.get_instance()
+
+    @staticmethod
     def _safe_parent_window(parent_window):
         try:
             qgis_main = iface.mainWindow() if iface is not None else None
@@ -196,9 +187,7 @@ class ModuleIdentifyToolController:
             return parent_window
 
         try:
-            from ...dialog import PluginDialog
-
-            dialog = PluginDialog.get_instance()
+            dialog = ModuleIdentifyToolController._plugin_dialog_instance()
             if dialog is not qgis_main:
                 return dialog
         except Exception:
@@ -215,9 +204,12 @@ class ModuleIdentifyToolController:
     @classmethod
     def _identity_field_candidates(cls, module_key: str) -> tuple[str, ...]:
         normalized = str(module_key or "").strip().lower()
-        base = list(ModuleItemFocusService.layer_id_field_candidates(normalized))
         if normalized == Module.PROPERTY.value:
+            # The property layer identifies by cadastral/internal id, not the
+            # ext_*_id fields ModuleItemFocusService uses for other modules.
             base = ["id", "ext_property_id", "property_id", "ext_id", "external_id", "tunnus"]
+        else:
+            base = list(ModuleItemFocusService.layer_id_field_candidates(normalized))
         deduped: list[str] = []
         seen: set[str] = set()
         for candidate in base:
@@ -276,6 +268,7 @@ class ModuleIdentifyToolController:
         try:
             request = QgsFeatureRequest().setFilterRect(search_rect)
             point_geometry = QgsGeometry.fromPointXY(layer_point)
+            is_point_layer = layer.geometryType() == QgsWkbTypes.PointGeometry
             closest_feature = None
             closest_distance = float("inf")
 
@@ -283,7 +276,7 @@ class ModuleIdentifyToolController:
                 geometry = feature.geometry()
                 if geometry is None or geometry.isEmpty():
                     continue
-                if layer.geometryType() == QgsWkbTypes.PointGeometry:
+                if is_point_layer:
                     try:
                         distance = geometry.distance(point_geometry)
                     except Exception:
@@ -317,9 +310,7 @@ class ModuleIdentifyToolController:
 
     def _open_item(self, module_key: str, item_id: str, title: str) -> None:
         try:
-            from ...dialog import PluginDialog
-
-            dialog = PluginDialog.get_instance()
+            dialog = self._plugin_dialog_instance()
             ModuleSwitchHelper.switch_module(module_key, dialog=dialog)
             module = ModuleManager().getActiveModuleInstance(module_key)
             opener = getattr(module, "open_item_from_search", None)
