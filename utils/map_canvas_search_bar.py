@@ -1,45 +1,30 @@
 from __future__ import annotations
 
-from PyQt5.QtCore import QEvent, QEasingCurve, QPoint, QPropertyAnimation, QSize, QTimer, Qt, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLineEdit, QPushButton, QWidget
-from qgis.utils import iface
+from PyQt5.QtCore import QPoint, QSize, QTimer, pyqtSignal
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLineEdit, QPushButton
 
 from ..constants.button_props import ButtonSize, ButtonVariant
 from ..constants.module_icons import IconNames
-from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
+from .map_canvas_glass_overlay import MapCanvasGlassOverlayBase
 from .map_canvas_glass_style import MapCanvasGlassStyle
 from ..utils.search.UnifiedSearchController import UnifiedSearchController
 from ..widgets.SearchResultsWidget import SearchResultsWidget
 from ..widgets.theme_manager import ThemeManager
 
 
-class MapCanvasSearchBar(QWidget):
+class MapCanvasSearchBar(MapCanvasGlassOverlayBase):
     """Unified-search overlay fixed to the top-right of the QGIS map canvas."""
 
     resultClicked = pyqtSignal(str, str, str)
-    _active_instance = None
 
-    TARGET_MARGIN = QPoint(18, 18)
-    START_Y = -58
     SIZE = (300, 46)
+    START_Y = -58
 
     def __init__(self, *, parent=None) -> None:
-        canvas = iface.mapCanvas() if iface is not None else None
-        parent = parent or canvas
-        super().__init__(parent)
-        self._canvas = canvas
-        self._animation = None
+        super().__init__(object_name="MapCanvasSearchBar", parent=parent)
         self._active_token = None
         self._activated = True
-        self._lang = LanguageManager()
-
-        self.setObjectName("MapCanvasSearchBar")
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
-        if parent is None:
-            self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool)
-        self.setFixedSize(*self.SIZE)
 
         self._search_timer = QTimer(self)
         self._search_timer.setSingleShot(True)
@@ -52,10 +37,7 @@ class MapCanvasSearchBar(QWidget):
         self._search_results = None
         self.resultClicked.connect(self._open_result_in_plugin)
 
-        self._build_ui()
-        self._position_at_start()
-        if self._canvas is not None:
-            self._canvas.installEventFilter(self)
+        self._finish_init()
 
     @property
     def search_results_widget(self):
@@ -114,18 +96,6 @@ class MapCanvasSearchBar(QWidget):
             geometry.top() + self.TARGET_MARGIN.y(),
         )
 
-    def _position_at_start(self) -> None:
-        target = self._target_pos()
-        self.move(target.x(), self.START_Y)
-
-    def eventFilter(self, watched, event) -> bool:
-        if watched is self._canvas and event.type() in (QEvent.Resize, QEvent.Show):
-            if self.isVisible():
-                self.move(self._target_pos())
-            else:
-                self._position_at_start()
-        return super().eventFilter(watched, event)
-
     def is_token_active(self, token) -> bool:
         if token is None:
             return True
@@ -171,44 +141,19 @@ class MapCanvasSearchBar(QWidget):
         except Exception:
             pass
 
-    def show_animated(self) -> None:
-        self._position_at_start()
-        self.show()
-        self.raise_()
-
-        self._animation = QPropertyAnimation(self, b"pos", self)
-        self._animation.setDuration(240)
-        self._animation.setStartValue(self.pos())
-        self._animation.setEndValue(self._target_pos())
-        self._animation.setEasingCurve(QEasingCurve.OutCubic)
-        self._animation.start()
-
     @classmethod
     def show_for_session(cls, *, result_handler=None) -> None:
-        if cls._active_instance is not None:
-            try:
-                if callable(result_handler):
-                    cls._active_instance.resultClicked.connect(result_handler)
-                cls._active_instance.raise_()
-                cls._active_instance.move(cls._active_instance._target_pos())
-                return
-            except Exception:
-                cls._active_instance = None
+        def _wire(bar: "MapCanvasSearchBar") -> None:
+            if callable(result_handler):
+                bar.resultClicked.connect(result_handler)
 
-        bar = cls()
-        if callable(result_handler):
-            bar.resultClicked.connect(result_handler)
-        cls._active_instance = bar
-        bar.destroyed.connect(lambda *_: setattr(cls, "_active_instance", None))
-        bar.show_animated()
+        super().show_for_session(on_ready=_wire)
 
     @classmethod
     def close_active(cls) -> None:
-        if cls._active_instance is None:
-            return
-        try:
-            cls._active_instance.search_results_widget.hide_results()
-            cls._active_instance.close()
-        except Exception:
-            pass
-        cls._active_instance = None
+        if cls._active_instance is not None:
+            try:
+                cls._active_instance.search_results_widget.hide_results()
+            except Exception:
+                pass
+        super().close_active()
