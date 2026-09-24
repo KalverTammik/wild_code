@@ -15,6 +15,7 @@ class PythonFailLogger:
     """Per-module Python error logger (non-switch diagnostics)."""
 
     LOG_MODULE_UI = "ui"
+    EVENT_MFA_NOTIFICATION_FAILED = "mfa_notification_failed"
     EVENT_OPEN_WEBPAGE_FAILED = "open_webpage_failed"
     EVENT_OPEN_WEBPAGE_INVALID_URL = "open_webpage_invalid_url"
 

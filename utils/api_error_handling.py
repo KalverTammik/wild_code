@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from threading import RLock
 from time import monotonic
 from typing import Optional, Tuple, Union
+from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class ApiErrorKind(str, Enum):
     AUTH = "auth"
+    MFA_SETUP_REQUIRED = "mfa_setup_required"
     NETWORK = "network"
     SERVER = "server"
     GRAPHQL = "graphql"
@@ -97,15 +100,91 @@ class DedupeNotifier:
     """Process-wide deduping for UI warnings/errors."""
 
     _last_shown_at: dict[str, float] = {}
+    _lock = RLock()
 
     @classmethod
     def should_show(cls, key: str, *, interval_s: float = 30.0) -> bool:
         now = monotonic()
-        last = cls._last_shown_at.get(key, 0.0)
-        if (now - last) < float(interval_s):
+        with cls._lock:
+            last = cls._last_shown_at.get(key)
+            if last is not None and (now - last) < float(interval_s):
+                return False
+            cls._last_shown_at[key] = now
+            return True
+
+
+class _MfaSetupNotificationBridge(QObject):
+    showRequested = pyqtSignal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.showRequested.connect(self._show_notification)
+
+    @pyqtSlot()
+    def _show_notification(self) -> None:
+        try:
+            from ..constants.module_icons import IconNames
+            from ..languages.language_manager import LanguageManager
+            from ..languages.translation_keys import TranslationKeys
+            from .messagesHelper import ModernMessageDialog
+            from .url_manager import OpenLink, loadWebpage
+
+            lang = LanguageManager()
+            open_label = lang.translate(TranslationKeys.MFA_OPEN_WEB_APP)
+            close_label = lang.translate(TranslationKeys.OK)
+            choice = ModernMessageDialog.ask_choice_modern(
+                lang.translate(TranslationKeys.WARNING),
+                lang.translate(TranslationKeys.MFA_SETUP_REQUIRED),
+                buttons=[open_label, close_label],
+                default=open_label,
+                cancel=close_label,
+                icon_name=IconNames.WARNING,
+            )
+            if choice == open_label:
+                loadWebpage.open_webpage(OpenLink().main)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=PythonFailLogger.LOG_MODULE_UI,
+                event=PythonFailLogger.EVENT_MFA_NOTIFICATION_FAILED,
+            )
+
+
+class MfaSetupNotifier:
+    """Show the MFA setup notice at most once per dedupe window."""
+
+    _bridge: Optional[_MfaSetupNotificationBridge] = None
+    _lock = RLock()
+    _dedupe_key = "mfa_setup_required"
+
+    @classmethod
+    def _get_bridge(cls) -> Optional[_MfaSetupNotificationBridge]:
+        app = QCoreApplication.instance()
+        if app is None:
+            return None
+        with cls._lock:
+            if cls._bridge is None:
+                bridge = _MfaSetupNotificationBridge()
+                if bridge.thread() != app.thread():
+                    bridge.moveToThread(app.thread())
+                cls._bridge = bridge
+            return cls._bridge
+
+    @classmethod
+    def notify(cls) -> bool:
+        try:
+            bridge = cls._get_bridge()
+            if bridge is None or not DedupeNotifier.should_show(cls._dedupe_key):
+                return False
+            bridge.showRequested.emit()
+            return True
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=PythonFailLogger.LOG_MODULE_UI,
+                event=PythonFailLogger.EVENT_MFA_NOTIFICATION_FAILED,
+            )
             return False
-        cls._last_shown_at[key] = now
-        return True
 
 
 @dataclass(frozen=True)

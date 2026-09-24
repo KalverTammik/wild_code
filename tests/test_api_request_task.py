@@ -70,6 +70,23 @@ class ApiRequestTaskTest(unittest.TestCase):
         self.assertEqual(post.call_count, 1)
         self.assertTrue(labels)
 
+    def test_rate_limit_retry_can_be_disabled_for_login(self):
+        with patch.object(
+            api_client.requests,
+            'post',
+            return_value=FakeResponse(429, {'Retry-After': '30'}, {}),
+        ) as post:
+            with self.assertRaises(api_rate_limit.ApiRateLimitError):
+                self.client.send_query(
+                    'mutation Login($input: LoginInput!) { login(input: $input) { accessToken } }',
+                    variables={'input': {'username': 'user', 'password': 'password'}},
+                    require_auth=False,
+                    retry_network=False,
+                    retry_rate_limits=False,
+                )
+
+        self.assertEqual(post.call_count, 1)
+
     def test_cancel_waits_for_already_sent_write_and_preserves_its_success(self):
         original_exec = api_request_task._RequestDialog.exec_
         def cancel_dialog(dialog):

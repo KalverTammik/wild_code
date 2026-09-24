@@ -1,0 +1,8 @@
+mutation LoginWithCode($input: LoginInput!) {
+  login(input: $input) {
+    accessToken
+    refreshToken
+    expiresIn
+    requiresMfa
+  }
+}

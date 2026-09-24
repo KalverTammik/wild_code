@@ -13,7 +13,12 @@ from ..utils.SessionManager import SESSION_REASON_UNAUTHENTICATED, SessionManage
 from ..constants.file_paths import ConfigPaths, GraphQLSettings
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
-from ..utils.api_error_handling import ApiErrorKind, summarize_connection_error, tag_message
+from ..utils.api_error_handling import (
+    ApiErrorKind,
+    MfaSetupNotifier,
+    summarize_connection_error,
+    tag_message,
+)
 from ..Logs.python_fail_logger import PythonFailLogger
 from . import api_rate_limit
 from .api_rate_limit import ApiRateLimitError, RequestCancelled
@@ -46,6 +51,7 @@ class APIClient:
         return_raw: bool = False,
         with_success: bool = False,
         retry_network: bool | None = None,
+        retry_rate_limits: bool = True,
     ):
         def _wrap_success(raw_json: dict):
             if return_raw:
@@ -99,6 +105,7 @@ class APIClient:
                     lambda: requests.post(api_url, json=payload, headers=headers, timeout=timeout),
                     endpoint=api_url, authorization=headers.get('Authorization'),
                     cost=api_rate_limit.mutation_cost(query), is_main_thread=is_main_thread,
+                    retry_rate_limits=retry_rate_limits,
                 )
 
                 if response.status_code in (401, 403):
@@ -114,12 +121,7 @@ class APIClient:
                     data = response.json()
                     errors = data.get("errors")
                     if errors:
-                        message = self._extract_error_message(errors)
-                        if self._errors_include_unauthenticated(errors):
-                            message = tag_message(ApiErrorKind.AUTH, "Unauthenticated")
-                        else:
-                            message = tag_message(ApiErrorKind.GRAPHQL, message or "GraphQL error")
-                        raise Exception(message)
+                        raise Exception(self._tagged_graphql_error(errors))
                     if with_success:
                         return _wrap_success(data)
                     return data if return_raw else data.get("data", {})
@@ -338,12 +340,7 @@ class APIClient:
                     data = response.json()
                     errors = data.get("errors")
                     if errors:
-                        message = self._extract_error_message(errors)
-                        if self._errors_include_unauthenticated(errors):
-                            message = tag_message(ApiErrorKind.AUTH, "Unauthenticated")
-                        else:
-                            message = tag_message(ApiErrorKind.GRAPHQL, message or "GraphQL error")
-                        raise Exception(message)
+                        raise Exception(self._tagged_graphql_error(errors))
                     return data if return_raw else data.get("data", {})
 
                 # Never carry an untrusted response body into UI or persistent logs.
@@ -411,6 +408,18 @@ class APIClient:
             except Exception:
                 return self.lang.translate("network_error").format(error="")
 
+    def _tagged_graphql_error(self, errors) -> str:
+        if self._errors_include_category(errors, "MFA_SETUP_REQUIRED"):
+            MfaSetupNotifier.notify()
+            return tag_message(
+                ApiErrorKind.MFA_SETUP_REQUIRED,
+                self.lang.translate(TranslationKeys.MFA_SETUP_REQUIRED),
+            )
+        if self._errors_include_unauthenticated(errors):
+            return tag_message(ApiErrorKind.AUTH, "Unauthenticated")
+        message = self._extract_error_message(errors)
+        return tag_message(ApiErrorKind.GRAPHQL, message or "GraphQL error")
+
     @staticmethod
     def _errors_include_unauthenticated(errors) -> bool:
         for err in errors or []:
@@ -419,6 +428,16 @@ class APIClient:
             else:
                 msg = str(err)
             if msg and "Unauthenticated" in msg:
+                return True
+        return False
+
+    @staticmethod
+    def _errors_include_category(errors, category: str) -> bool:
+        for err in errors or []:
+            if not isinstance(err, dict):
+                continue
+            extensions = err.get("extensions")
+            if isinstance(extensions, dict) and extensions.get("category") == category:
                 return True
         return False
 

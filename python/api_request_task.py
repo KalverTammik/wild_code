@@ -19,16 +19,18 @@ from ..languages.translation_keys import TranslationKeys as K
 class _RequestThread(QThread):
     waiting = pyqtSignal(float, str)
 
-    def __init__(self, send, kwargs, parent):
+    def __init__(self, send, kwargs, parent, *, retry_rate_limits=True):
         super().__init__(parent)
         self.send, self.kwargs = send, kwargs
+        self.retry_rate_limits = bool(retry_rate_limits)
         self.cancel_event = Event()
         self.response = self.error = None
 
     def run(self):
         try:
             with api_rate_limit.api_request_context(
-                    cancel_event=self.cancel_event, on_wait=self.waiting.emit):
+                    cancel_event=self.cancel_event, on_wait=self.waiting.emit,
+                    retry_rate_limits=self.retry_rate_limits):
                 self.response = api_rate_limit.PROCESS_RATE_LIMITER.send(self.send, **self.kwargs)
         except Exception as exc:
             # Preserve exception type: an uncertain write must never become a 429 retry.
@@ -74,13 +76,29 @@ class _RequestDialog(QDialog):
         self.reject()
 
 
-def send_api_request(send, *, endpoint, authorization, cost, is_main_thread):
+def send_api_request(
+    send,
+    *,
+    endpoint,
+    authorization,
+    cost,
+    is_main_thread,
+    retry_rate_limits=True,
+):
     kwargs = dict(endpoint=endpoint, authorization=authorization, cost=cost)
     if not is_main_thread or QApplication.instance() is None:
+        if not retry_rate_limits:
+            with api_rate_limit.api_request_context(retry_rate_limits=False):
+                return api_rate_limit.PROCESS_RATE_LIMITER.send(send, **kwargs)
         return api_rate_limit.PROCESS_RATE_LIMITER.send(send, **kwargs)
 
     dialog = _RequestDialog()
-    thread = _RequestThread(send, kwargs, dialog)
+    thread = _RequestThread(
+        send,
+        kwargs,
+        dialog,
+        retry_rate_limits=retry_rate_limits,
+    )
     dialog.thread = thread
     thread.waiting.connect(dialog.show_wait)
     thread.finished.connect(dialog.accept)
