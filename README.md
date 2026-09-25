@@ -15,16 +15,17 @@ Kavitro plugin seob QGIS-i kaarditöö Kavitro backendiga. Plugin koondab moodul
 
 ## Arendusmärkmed
 
-Olulisemad arendusotsused ja hiljutised muudatused on kirjas failis `REFACTOR_RULES.md`.
-
-Spetsiifilisemad disainimärkmed asuvad `docs/` kaustas. Ühekordsed auditiaruanded asuvad `reports/` kaustas.
+Kehtivad refaktoreerimisreeglid on failis [REFACTOR_RULES.md](REFACTOR_RULES.md).
+Dokumentatsiooni jaotus ning säilitamisreeglid on kirjas failis
+[docs/README.md](docs/README.md).
 
 ## Release
 
 Release'i juhendid:
 
-- `RELEASE.md`
-- `MAIN_PLUGIN_RELEASE_SETUP.md`
+- [RELEASE.md](RELEASE.md) – kasutatav avaldamisprotsess
+- [release_setup_reference.md](docs/development/release_setup_reference.md) – detailne
+  DEV/LIVE seadistuse referents
 
 ## Asset Attribution
 

@@ -65,7 +65,7 @@ Käsitsi kontroll kinnitas pärast plugina uuesti laadimist, et sisselogimine ja
 
 Release’i sündmuse tagi, manuaalse käivituse sisendeid ja valideeritud sammuväljundeid ei tohi lisada otse GitHub Actionsi `run:` skripti. Sisendid antakse keskkonnamuutujate kaudu testitavale resolverile, mis lubab ainult Kavitro release’i versiooni- ja tagivormingut. Järgmised sammud saavad kasutada ainult resolveri kontrollitud väljundeid ning samuti ainult keskkonnamuutujate kaudu.
 
-Sama turvapiir peab kajastuma nii tegelikus `.github/workflows/qgis_release.yml` failis kui ka `MAIN_PLUGIN_RELEASE_SETUP.md` mallis.
+Sama turvapiir peab kajastuma nii tegelikus `.github/workflows/qgis_release.yml` failis kui ka `docs/development/release_setup_reference.md` mallis.
 
 Teostuses lahendab `tools/resolve_release_values.py` release’i sündmuse ja manuaalse käivituse väärtused, kontrollib need range lubatud vormingu järgi ning kirjutab ainult üherealised kontrollitud väärtused faili `GITHUB_OUTPUT`. Workflow’ `run:` plokkides ei ole pärast parandust GitHubi kontekstiavaldisi.
 
@@ -131,7 +131,7 @@ Release `v2.02.17` avaldati commit’ilt `d77ac74e58fe80ee81c6afc7cef6eb9b29b299
 - `actions/checkout` lukustati täispika commit SHA `fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09` külge, mis vastab versioonile `v5.1.0`.
 - `actions/setup-python` lukustati täispika commit SHA `ece7cb06caefa5fff74198d8649806c4678c61a1` külge, mis vastab versioonile `v6.3.0`.
 - Checkout-samm kasutab nüüd `persist-credentials: false`, sest hilisemad GitHub API toimingud saavad tokeni ainult neid vajavate sammude `GH_TOKEN` keskkonnamuutuja kaudu.
-- Sama piir rakendati tegelikule workflow’le ja `MAIN_PLUGIN_RELEASE_SETUP.md` näidisele.
+- Sama piir rakendati tegelikule workflow’le ja `docs/development/release_setup_reference.md` näidisele.
 - Regressioonitest kontrollib mõlemas allikas lubatud SHA-sid, keelab major-tag’id, nõuab `persist-credentials: false` väärtust ning takistab `qgis-plugin-ci` või dünaamilise `pip install` sammu tagasitulekut.
 
 `contents: write` õigus jäeti alles, sest selle eemaldamine katkestaks praeguse release-protsessi. Build- ja publish-õiguste eraldamine eri job’ideks jääb võimalikuks hilisemaks kaitsekihiks, kuid ei ole WC-12 sulgemiseks vajalik.

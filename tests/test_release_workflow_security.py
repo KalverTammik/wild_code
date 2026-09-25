@@ -18,7 +18,7 @@ from tools.resolve_release_values import (
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW_PATH = ROOT / ".github" / "workflows" / "qgis_release.yml"
-SETUP_GUIDE_PATH = ROOT / "MAIN_PLUGIN_RELEASE_SETUP.md"
+SETUP_GUIDE_PATH = ROOT / "docs" / "development" / "release_setup_reference.md"
 RELEASE_METADATA_PATH = ROOT / "metadata.release.txt"
 APPROVED_RELEASE_ICON = "resources/icons/Kavitro-favicon-96x96.png"
 PINNED_CHECKOUT_ACTION = (

@@ -1,99 +1,147 @@
-# Refactor Checklist (quick reference)
+# Refaktoreerimise püsireeglid
 
-**Logireegel:** iga muudatuse põhjendus ja puudutatud failide loend käib edaspidi ainult
-commiti kirjeldusse (PR kirjelduse jaoks kasuta jaotist `REFACTOR_NOTE: <summary>`), MITTE
-sellesse faili. See fail hoiab ainult kehtivaid reegleid. Varasemad, siit eemaldatud logikirjed
-on failis [REFACTOR_LOG_ARCHIVE.md](REFACTOR_LOG_ARCHIVE.md).
+See fail on koodimuudatuste kavandamise ja ülevaatuse kontrollnimekiri. Siin hoitakse
+ainult praegu kehtivaid reegleid, mitte muudatuste ajalugu.
 
-Use this checklist as a canonical pointer when planning or reviewing refactors (project-specific terminology):
+Reeglid kehtivad uuele ja sisuliselt puudutatud koodile. Olemasolev kõrvalekalle ei ole
+põhjus laiendada fokuseeritud muudatust kogu repo ümbertegemiseks; suurem migratsioon
+vajab eraldi ulatust, tõendatud kasu ja kontrolliplaani.
 
-## Simplicity-first policy (default)
+Muudatuse põhjendus, puudutatud failid ja kontrollitulemused kuuluvad commit'i või PR-i
+kirjeldusse. PR-is kasuta leitavuse jaoks rida `REFACTOR_NOTE: <kokkuvõte>`. Varasem
+projektiajalugu on failis [docs/archive/refactor_log.md](docs/archive/refactor_log.md).
 
-When multiple valid refactor options exist, choose the one with fewer moving parts.
+## 1. Lihtsus ja muudatuse ulatus
 
-- **Prefer deletion over abstraction:** remove dead code and duplicate branches before introducing new helpers/classes.
-- **One new concept at a time:** avoid combining renames, architecture moves, and behavior changes in one PR.
-- **No wrapper chains:** do not add pass-through methods that only call another method with same args.
-- **No speculative extensibility:** avoid adding optional flags, strategy hooks, or config knobs unless a real current caller needs them.
-- **Early-return flow:** flatten nested `if/else` logic; prefer guard clauses and one clear happy path.
-- **Keep local until reused:** keep logic in-place until it is reused in at least 2 places or clearly blocks readability.
-- **Extract only meaningful units:** create a helper only if it has a clear domain name and reduces cognitive load.
-- **Minimize file churn:** prefer improving existing files/classes over creating new ones unless separation is necessary.
-- **UI composition, not orchestration:** UI should assemble widgets and delegate actions; avoid embedding branching business flows.
-- **Exception handling must be explicit and minimal:** catch only where recovery is possible; otherwise log and surface failure.
+- Eelista surnud või dubleeriva koodi eemaldamist uuele abstraktsioonile.
+- Tee üks sisuline muudatus korraga; ära ühenda samasse muudatusse ümbernimetamist,
+  arhitektuuri kolimist ja varjatud käitumismuutust.
+- Eelista väikest fokuseeritud diff'i. Kasuta olemasolevat omanikku, kui vastutus sinna
+  päriselt kuulub; loo eraldi fail, kui see annab olekule ühe omaniku, selge lepingu või
+  Qt-st sõltumatu testitava üksuse. Ära kasvata monoliiti ainult failimuudatuste arvu
+  vähendamiseks.
+- Hoia loogika kohalikuna, kuni sellel on vähemalt kaks tegelikku kasutuskohta või see
+  takistab selgelt loetavust.
+- Kasuta varajasi tagastusi ning vähenda harude ja pesastuse hulka.
+- Ära lisa oletuslikke lippe, strateegiaid ega seadistusi ilma praeguse kasutuskohata.
+- Kommentaar peab kirjeldama põhjust või kompromissi, mitte kordama koodi.
 
-## Conciseness guardrails
+## 2. Üks omanik ja üks avalik kasutusviis
 
-- Target smaller diffs: prefer a focused change set over broad rewrites.
-- If a function grows, first try simplification (remove branches/duplication) before splitting.
-- Avoid duplicate state (no parallel booleans/fields representing the same thing).
-- Prefer direct expressions over temporary variables when readability is not reduced.
-- Avoid comments that describe obvious code; keep comments for intent/tradeoffs only.
+- Otsi enne uue meetodi, klassi või konstandi loomist olemasolevat lahendust kogu repost.
+- Igal samal semantilisel lepingul peab olema üks kanooniline avalik sisenemispunkt.
+  Sarnase kujuga, kuid erineva lõppemis-, vea- või elutsüklilepinguga toiminguid ei tohi
+  ainult koodikuju pärast kokku suruda.
+- Korduv loogika tõsta sobivasse olemasolevasse `utils/` või `modules/` omanikku; ära
+  jäta paralleelseid teostusi eri kihtidesse.
+- Ära loo läbiviik-meetodeid, mis edastavad samad argumendid muutmata edasi. Ühilduvuskiht
+  peab olema ajutine, märgistatud ja pärast kasutuskohtade migreerimist eemaldatud.
+- Korduvad moodulinimed, sündmusevõtmed, kaustanimed ja logimisvõtmed pärinevad ühest
+  konstantide omanikust.
+- Impordi sümbol selle defineerivast moodulist. Väldi innukaid paketitaseme re-eksporte.
+- Uute failide nimed on `snake_case` ja uute klasside nimed `CamelCase`. Legacy-faili
+  ümbernimetamine toimub ainult eraldi kontrollitud migratsioonis, sest see muudab kõiki
+  importe ja võib olla failisüsteemi tõstutundlikkuse tõttu platvormirisk.
+- Üldine headless-abilloogika kuulub `utils/`-i ja domeeniloogika `modules/`-isse. UI
+  komponente ei nimetata utiliitideks ega lisata mugavuse pärast `utils/` alla.
 
-## Centralization and API consistency
+## 3. Sõltuvused ja käivitusaeg
 
-- **One public entrypoint per concern:** expose one canonical API for each concern (e.g., URL opening), and use it everywhere.
-- **Reuse-first is mandatory:** before adding any new method/class, search for similar existing implementations and reuse them when possible.
-- **Relocate instead of duplicate:** if similar logic exists but is not in a proper shared location (`utils/`/`modules/` service/helper), propose a refactor plan to move/centralize it before adding another implementation.
-- **No mixed call styles:** do not use both low-level helper functions and wrapper classes for the same behavior at call sites.
-- **Keep internals private:** if a low-level helper is needed, keep it private and never import/use it from feature/UI files.
-- **Centralize reusable literals:** move repeated module names, event keys, folder names, and prefixes into shared constants.
-- **Log keys from one source:** logging module/event identifiers must come from a central constants owner, not inline strings in feature code.
-- **Strict translations only:** UI translation lookups must use strict key resolution (no fallback text/key arguments) so missing keys fail fast during development.
-- **Avoid pass-through wrappers:** do not keep methods that only forward arguments unless required for compatibility.
-- **Prefer direct signal wiring:** if a signal can connect directly to the canonical callable, do that instead of adding local one-line handlers.
-- **Normalize naming to project style:** classes use CamelCase, files use snake_case; avoid introducing new lowercase class names.
-- **Import only canonical symbols:** feature modules should import the canonical public API symbol, not alternative aliases.
-- **Compatibility shims are temporary:** if a shim is needed, mark and remove it after call sites migrate.
-- **Remove obsolete UI flags early:** during widget refactors, verify constructor params and `setProperty(...)` flags are still consumed by call sites/QSS/selectors; delete dead params/properties and update all callers.
-- **Theme only at the right scope:** apply the narrowest stylesheet bundle that matches the widget's real scope; root containers may use app/module bundles, but leaf widgets should use exact QSS files or inherited theme selectors instead of broad bundle application.
-- **One retheme lifecycle only:** keep a single canonical retheme engine and route dynamic widget/card restyling through the owning base lifecycle instead of per-feature/manual retheme loops.
+- UI võib sõltuda headless-teenustest ja domeeniloogikast, kuid need ei impordi dialooge
+  ega widget'eid. Reegel käib komponendi tegeliku rolli, mitte ainult praeguse kaustanime
+  kohta; vales kihis oleva komponendi liigutamine vajab eraldi migratsiooniplaani.
+- Dialoog ja widget koostavad UI ning delegeerivad tegevuse; hargnev äriloogika ei ela
+  UI-klassis.
+- Mooduli importimisel ei tehta võrgu-, andmebaasi- ega rasket arvutustööd. Algväärtusta
+  laisalt või konstruktori/teenuse kaudu.
+- Pika elueaga, olekut hoidvad või eraldi testitavad teenused võtavad IO-kliendi sõltuvuse
+  väljast. Ühekordse kanoonilise kliendi loomise ümber ei lisata ainult süstimise nimel
+  tehaseid ega läbiviikkihte.
+- Abifunktsioonid hoitakse võimalusel puhtad.
+- Äri-, andme- ja turvaviga püütakse ainult kohas, kus on tegelik taastumisviis; see ei
+  tohi vaikides kaduda ega muutuda näiliseks õnnestumiseks. Qt cleanup võib ignoreerida
+  ainult kitsalt määratud ja ootuspärast kustutatud-objekti viga, mitte üldist
+  `Exception`-it.
+- Kohustusliku liidese puhul ära kasuta `hasattr`/`getattr` varuteed; paranda leping või
+  kasutuskoht.
 
-## Refactor acceptance gate (quick check)
+## 4. UI, tõlked ja QGIS
 
-Before merging, verify all are true:
+- Tõlkevõtmed lahendatakse rangelt. Ära lisa UI-sse fallback-teksti ega võtme kuvamist
+  tekstina.
+- Kasuta olemasolevat ühist teema- ja retheme-elutsüklit. Rakenda widget'ile kitsaim
+  vajalik QSS-skoop.
+- Eemalda kasutamata konstruktoriargumendid, olekulipud ja `setProperty(...)` väärtused,
+  millel pole enam tarbijat.
+- Ühenda signaal otse kanoonilise callable'iga, kui eraldi ühe rea handler pole vajalik.
+- Ära käivita API- või reload-tööd widget'i `__init__`-is. Kasuta aktiveerimist või
+  vajadusel `QTimer.singleShot(0, ...)` edasilükkamist.
+- Ära muuda `resizeEvent`-is teksti ilma re-entry kaitse või järjekorda pandud uuenduseta.
+- Ära märgi moodulit aktiivseks enne eduka `activate()` lõppu.
+- Ära käsitle „Vali kõik” valikut võltsandmereana; kasuta eraldi kontrolli või menüüd.
+- Enne kihi objektide lugemist kontrolli kihi kehtivust ja nõutud välju. Tühja vaste
+  korral ära muuda valikut ega nähtavust; tagasta ja kuva kasutajale teade.
+- Jagatud dialoogikäitumise jaoks eelista
+  [`DialogHelpers`](ui/window_state/dialog_helpers.py)-it kohalikele lambdadele.
 
-1. **Less complexity:** branch count and nesting are same or lower than before.
-2. **Less surface area:** no unnecessary new classes/files/public methods.
-3. **Clearer flow:** main path is readable top-to-bottom without jumping across many helpers.
-4. **No hidden behavior changes:** behavior changes are intentional and documented.
-5. **No silent fallback masking:** failures are either handled explicitly or logged and returned.
-6. **Single call pattern:** one canonical API usage style is applied across all touched call sites.
-7. **Centralized constants:** newly introduced repeated literals are extracted to shared constants.
-8. **Reuse scan done first:** existing similar methods/classes were searched before creating new ones.
-9. **Refactor plan when misplaced:** if reusable logic exists in the wrong layer/location, a move-to-shared-location plan is proposed instead of duplicating code.
-10. **Strict i18n compliance:** touched UI code does not introduce translation fallbacks that can mask missing keys or show mixed-language text.
-11. **No dead widget API/state:** touched widgets do not keep unused constructor arguments or orphaned dynamic properties without active consumers.
+## 5. Asünkroonne elutsükkel ja lõimed
 
-- Prefer explicit submodule imports: import symbols from their defining module (no eager package-level re-exports).
-- Avoid work at import time: no network, DB, or heavy CPU in module scope — initialize lazily or via constructors.
-- Make helpers pure or `@staticmethod`/module functions where appropriate; inject clients (GraphQL/DB) rather than import them globally.
-- **Keep UI thin:** Move business logic out of dialogs and widgets (see `dialog.py`, `login_dialog.py`, `widgets/`). Place business logic in `utils/` or `modules/` as appropriate.
-- **Enforce one-way dependencies:** UI (dialogs, widgets) may depend on `utils/` or `modules/`, but never the reverse. Helpers and business logic must not import UI code.
-- Replace fragile `__all__`/top-level re-exports with explicit imports or a lazy `__getattr__` shim only when compatibility is required.
-- When changing public symbols, update call sites across the repo and run a targeted import-sanity pass (compile and validate the main import path; grep for removed symbols).
-- Add/update tests for any changed helper or business logic boundary; prefer unit tests that mock IO.
-- Document the change's rationale and the files touched in the commit description, not in this file (see the logireegel at the top).
-- Never mask exceptions in helpers or business logic (no try/except that silently passes). If you must handle errors, log and return an explicit failure.
-- Avoid `hasattr`/`getattr` fallback checks for required methods or properties; prefer explicit interfaces/contracts and fix the caller/implementation rather than masking missing API.
-- Avoid UI fallback paths that bypass business logic contexts (e.g., required context objects must be enforced, not optional). UI must not implement alternate code paths that “still work” when context is missing.
-- Avoid translation fallback paths in UI (`translate(..., fallback=...)`, hardcoded language fallback strings, or key-as-text fallbacks). Missing keys must surface immediately via strict translation lookup.
-- Never mark modules active before calling `activate()`; activation must initialize feed/UI and set activation flags afterward.
-- Avoid calling `setText()` inside `resizeEvent` without reentry guards or queued updates; use scheduled eliding to prevent recursion.
-- Never touch map layers (selection/visibility/feature iteration) when lookup yields no matches; return early and show a user message instead.
-- Validate layer fields before feature scans; log and return if the field is missing or the layer is invalid.
-- Avoid starting reload/API work in widget `__init__`. If auto-load is required, defer with `QTimer.singleShot(0, ...)`; prefer explicit load on activate/user action.
-- Never implement “Select all” as a fake data row. Use a control (checkbox) or native widget context menu.
+- Igal timeril, worker'il ja taustakäivitusel on üks selge omanik, mis hoiab viidet kuni
+  töö tegeliku lõppemiseni ning peatab töö sulgemisel, tühistamisel ja plugina reload'il.
+- Uus käivitus tühistab või asendab vana käivituse ühes kohas. Kasuta `run_id`-d,
+  päringutokenit või samaväärset põlvkonnatunnust, et hilinenud callback ei saaks muuta
+  uuema käivituse olekut.
+- Lõpetamise signaal ja lõpptulemuse rakendamine toimuvad ühe käivituse kohta kõige rohkem
+  ühe korra. Tühistatud käivitus ei teata õnnestumist.
+- QObject'i kustutamisel ühendatakse ohtlikud signaalid lahti või kontrollitakse omaniku
+  ja käivituse kehtivust enne callback'i edastamist.
+- Qt widget'eid, dialooge ja muid GUI-objekte luuakse ning muudetakse ainult GUI-lõimes.
+- Elavat `QgsMapLayer` objekti ei kasutata vabalt taustalõimes. Taustatööks eelista
+  immutable sisendit või selleks sobivat `QgsFeatureSource` hetktõmmist; projekti, kihi ja
+  UI muudatus rakendatakse GUI-lõimes.
+- `processEvents()` ei ole taustatöötluse asendus. Seda võib kasutada ainult lühikeses,
+  mõõdetud ja re-entry eest kaitstud voos; pika töö jaoks kasuta worker'it või etapiviisilist
+  timerit.
+- `QTimer.singleShot(...)` closure ei tohi olla ainus tühistamis- ega omandimehhanism.
+  Korduvkäivitusega töö kasutab omatud timerit või kontrollitavat põlvkonnatunnust.
 
-**Naming and file/class patterns:**
-- When extracting business logic from UI, prefer placing new logic in `utils/` (for general helpers) or `modules/` (for domain-specific logic).
-- Use naming patterns like `*Helper`, `*Manager`, or `*Service` for new classes or files in `utils/` or `modules/` (e.g., `SessionHelper`, `PropertyManager`).
-- For new files, use lowercase with underscores (e.g., `session_helper.py`, `property_manager.py`).
-- For new classes, use CamelCase (e.g., `SessionHelper`).
-- Before creating a new file or class, **search for suitable candidates in existing files and classes** in `utils/` and `modules/` to avoid duplication and promote reuse.
-- Prefer using `DialogHelpers` in [ui/window_state/dialog_helpers.py](ui/window_state/dialog_helpers.py) for shared dialog callbacks instead of creating new inline lambdas in UI code.
-- If a suitable existing candidate is found during refactoring, propose moving the logic there rather than creating a new helper.
-- When reorganizing related code, it is acceptable (and sometimes preferred) to keep related classes/methods in a single file with clear section headers, as long as responsibilities are separated and searchable (e.g., `SessionManager` + `SessionUIController` in one file). Prefer consolidating in one place over duplicating across files.
+## 6. Jõudlus ja andmemahu eeldused
 
-Tag edits by adding `REFACTOR_NOTE: <summary>` at the top of the PR description so reviewers can find this checklist.
+- Ära nimeta jõudlusprobleemi põhjust oletuse põhjal. Mõõda enne muudatust representatiivse
+  andmemahu ja sama kasutusstsenaariumiga ning profileeri piisavalt, et leida tegelik kuum tee.
+- Kihi- ja tabelitsüklite puhul hinda algoritmilist kasvu. Väldi kogu kihi või tabeli
+  korduvat läbimist rea, tunnuse, värvimise või callback'i kohta.
+- Eelista provideripoolset filtrit, batched-päringut ja ühe käivituse lookup'i üksikutele
+  täisskaneeringutele, kui nende tulemuste semantiline samaväärsus on enne kontrollitud.
+- Pärast jõudlust või andmevoogu muutvat refaktorit korda sama mõõtmist. Salvesta commit'i
+  või PR-i kirjeldusse andmemaht, stsenaarium, enne/pärast tulemus ja teadaolevad piirid.
+- Testi eraldi tühja, väikest ja realistlikult suurt ulatust. Üksnes unit-testide roheline
+  tulemus ei tõesta QGIS-i UI reageerimisvõimet ega lõimeohutust.
 
+## 7. Muudatuse vastuvõtukontroll
+
+Enne ühendamist kontrolli:
+
+1. Harude, pesastuse ja avaliku API hulk ei kasvanud põhjendamatult.
+2. Sarnase olemasoleva lahenduse otsing tehti enne uue üksuse loomist.
+3. Muudetud vastutusalal jäi alles üks omanik ja üks kasutusviis.
+4. Käitumismuutus on tahtlik ning commit'i või PR-i kirjelduses nähtav.
+5. Veateed logivad või tagastavad selge ebaõnnestumise; vaikivat fallback'i pole.
+6. UI-s pole uut äriloogikat, tõlkefallback'i ega surnud olekut.
+7. Avaliku sümboli muutmisel uuendati kõik kasutuskohad ja tehti impordi-/kompileerimiskontroll.
+8. Muutunud äriloogika või teenusepiir on kaetud sihitud testiga.
+9. Asünkroonse muudatuse test katab vähemalt taaskäivituse, tühistamise või omaniku
+   sulgemise ning tõestab, et aegunud callback tulemust ei muuda.
+10. Jõudlustundliku muudatuse põhjus ja tulemus on mõõdetud sama stsenaariumiga; mõõtmata
+    oletust ei esitata põhjusena.
+11. UI- või lõimemuudatuse korral tehti võimalusel QGIS-i runtime-suitsukontroll, mitte
+    ainult mock'idel põhinev unit-test.
+12. Käivitati puudutatud ala testid ning tulemus ja teadlikult tegemata kontrollid märgiti
+    commit'i või PR-i kirjeldusse.
+
+## 8. Dokumentatsiooni piir
+
+- Kehtiv arhitektuuri- või käitumislepe kuulub `docs/development/` alla.
+- Lõpetatud teostusetapi arutelu kuulub `docs/archive/` alla ega ole spetsifikatsioon.
+- Kohalikud prompt'id, ideede töölauad ja ajutised katsemärkmed reposse ei kuulu.
+- Dokumentatsiooni täielik jaotus on failis [docs/README.md](docs/README.md).
