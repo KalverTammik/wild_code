@@ -3,14 +3,14 @@ from .base_paths import PLUGIN_ROOT, RESOURCE, ICON_FOLDER
 from ..utils.url_manager import Module
 
 class IconNames:
-    RANDOM_ICON_NAME = "Valisee_s.png"
     VALISEE_V_ICON_NAME = "Valisee_v.png"
 
     KAVITRO_ICON_LARGE = "Kavitro-300x300.png"
     KAVITRO_ICON = "Kavitro-favicon-96x96.png"
 
     ICON_LOGOUT = "Logout.png"
-    ICON_HELP = "Otsing.png"
+    ICON_HELP = "Abi.png"
+    ICON_SEARCH = "Otsing.png"
     ICON_INFO = "Abikeskus1.png"
     ICON_ADD = "Add.png"
     ICON_WORK_EMERGENCY = "work-emergency.svg"

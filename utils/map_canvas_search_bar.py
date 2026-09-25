@@ -74,7 +74,7 @@ class MapCanvasSearchBar(MapCanvasGlassOverlayBase):
         button.setObjectName("MapCanvasSearchButton")
         button.setProperty("variant", ButtonVariant.ICON)
         button.setProperty("btnSize", ButtonSize.SMALL)
-        button.setIcon(ThemeManager.get_qicon(IconNames.ICON_HELP))
+        button.setIcon(ThemeManager.get_qicon(IconNames.ICON_SEARCH))
         button.setIconSize(QSize(16, 16))
         button.clicked.connect(self._perform_search)
         layout.addWidget(button, 0)

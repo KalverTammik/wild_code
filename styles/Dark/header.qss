@@ -33,6 +33,15 @@ QLabel#headerTitleLabel:hover {
     box-shadow: 0px 0px 8px rgba(9,144,143,0.4);
 }
 
+/* Help button — sits next to the title chip, so it needs to match its
+   scale instead of the compact icon-variant default (padding: 2px 4px). */
+QPushButton#headerHelpButton {
+    padding: 4px 10px;
+    min-height: 22px;
+    font-size: 12px;
+    border-radius: 8px;
+}
+
 
 /* Search */
 QLineEdit#headerSearchEdit {
