@@ -91,12 +91,12 @@ class GlowProgressBar(QProgressBar):
         track_path.addRoundedRect(track, radius, radius)
         painter.fillPath(track_path, self._track)
 
-        inner = track.adjusted(1.5, 1.5, -1.5, -1.5)
-        fill_width = inner.width() * self._fraction()
+        # The fill meets the border line; the border is stroked over it afterwards.
+        fill_width = track.width() * self._fraction()
         fill_path = QPainterPath()
         if fill_width > 0:
             # Keep the rounded caps intact for tiny values.
-            fill = QRectF(inner.left(), inner.top(), max(fill_width, inner.height()), inner.height())
+            fill = QRectF(track.left(), track.top(), max(fill_width, track.height()), track.height())
             fill_path.addRoundedRect(fill, fill.height() / 2, fill.height() / 2)
             painter.setClipPath(track_path)
             self._paint_fill(painter, fill, fill_path)
