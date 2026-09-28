@@ -193,15 +193,19 @@ class RateLimitCoordinator:
         deadline = self._clock() + delay
         reported_at = None
         try:
-            while self._clock() < deadline:
+            while True:
+                # One clock read per pass: a second read after the deadline check
+                # can land past it and yield a negative sleep.
+                now = self._clock()
+                remaining = deadline - now
+                if remaining <= 0:
+                    break
                 if cancel is not None and cancel.is_set():
                     raise RequestCancelled()
-                remaining = deadline - self._clock()
-                if callback and (reported_at is None or self._clock() - reported_at >= 1.0):
+                if callback and (reported_at is None or now - reported_at >= 1.0):
                     callback(remaining, reason)
                     reported_at = self._clock()
-                step = min(0.2, remaining)
-                self._sleep(step)
+                self._sleep(min(0.2, remaining))
         finally:
             if callback and reported_at is not None:
                 callback(0.0, reason)

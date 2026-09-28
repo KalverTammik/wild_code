@@ -88,6 +88,21 @@ class ApiRateLimitTest(unittest.TestCase):
         self.assertGreaterEqual(starts[30] - starts[0], 60.0)
         self.assertNotIn('private-token', repr(self.limiter._budgets))
 
+    def test_wait_never_sleeps_negative_when_clock_moves_between_reads(self):
+        # Another thread can run between clock reads and push time past the deadline.
+        def drifting_now():
+            self.clock.value += 0.07
+            return self.clock.value
+        def strict_sleep(delay):
+            if delay < 0:
+                raise ValueError('sleep length must be non-negative')
+            self.clock.sleep(delay)
+        limiter = module.RateLimitCoordinator(
+            clock=drifting_now, wall_clock=self.clock.wall, sleep=strict_sleep)
+        for delay in (0.05, 0.1, 0.13, 0.2, 0.25, 2.0):
+            limiter._wait(delay, 'pacing')
+        self.assertTrue(all(delay > 0 for delay in self.clock.waits))
+
     def test_multi_field_mutation_spends_all_fields(self):
         self.send(cost=3)
         self.send(cost=1)
