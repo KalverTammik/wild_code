@@ -141,10 +141,11 @@ class AddPropertyDialog(QDialog):
             self.setWindowTitle(self.lang_manager.translate(TranslationKeys.SELECT_FROM_MAP))
             self.setModal(False)
         else:
-            self.setWindowTitle(self.lang_manager.translate(TranslationKeys.PROPERTY_MANAGEMENT))
+            self.setWindowTitle(self.lang_manager.translate(TranslationKeys.PROPERTY_MANAGEMENT_BY_LOCATION_TITLE))
             self.setModal(True)
         self.setMinimumSize(650, 420)
-        self.resize(700, 520)
+        # Eight 100 px table columns, the scrollbar and the frame margins fit without scrolling.
+        self.resize(860, 520)
         self.setSizeGripEnabled(True)
 
         # Apply theme

@@ -280,10 +280,6 @@ class LocationFilterWidget(QFrame):
         filter_layout.setContentsMargins(6, 6, 6, 6)
         filter_layout.setSpacing(6)
 
-        filter_title = QLabel(self.lang_manager.translate(TranslationKeys.FILTER_BY_LOCATION))
-        filter_title.setObjectName("FilterTitle")
-        filter_layout.addWidget(filter_title)
-
         location_layout = QHBoxLayout()
         location_layout.setSpacing(6)
 

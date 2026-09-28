@@ -492,7 +492,7 @@ class TranslationKeys:
     SELECT_COUNTY = "Select County"
     SELECT_MUNICIPALITY = "Select Municipality"
     SELECT_SETTLEMENTS = "Select Settlements"
-    FILTER_BY_LOCATION = "Filter by Location"
+    PROPERTY_MANAGEMENT_BY_LOCATION_TITLE = "property_management_by_location_title"
 
     # Property state messaging
     SELECTED_PROPERTIES_COUNT = "Selected: 0 properties"

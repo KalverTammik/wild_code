@@ -648,7 +648,7 @@ TRANSLATIONS = {
     ,TranslationKeys.SELECT_MUNICIPALITY: "Select Municipality"
     ,TranslationKeys.ATTENTION: "Attention"
     ,TranslationKeys.SHOW_ONLY_ATTENTION: "Show only attention"
-    ,TranslationKeys.FILTER_BY_LOCATION: "Filter by Location"
+    ,TranslationKeys.PROPERTY_MANAGEMENT_BY_LOCATION_TITLE: "Property management – filter by location"
     ,TranslationKeys.SELECTED_PROPERTIES_COUNT: "Selected: 0 properties"
     ,TranslationKeys.SELECTED_COUNT_TEMPLATE: "Selected: {count} properties"
     ,TranslationKeys.PROPERTY_TABLE_COUNT_TEMPLATE: "In table: {count} properties"

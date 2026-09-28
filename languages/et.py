@@ -614,7 +614,7 @@ TRANSLATIONS = {
     ,TranslationKeys.CREATE_LOAD_IN_GPKG: "Loo/lae GPKG-s…"
     ,TranslationKeys.SELECT_COUNTY: "Vali maakond"
     ,TranslationKeys.SELECT_MUNICIPALITY: "Vali omavalitsus"
-    ,TranslationKeys.FILTER_BY_LOCATION: "Filtreeri asukoha järgi"
+    ,TranslationKeys.PROPERTY_MANAGEMENT_BY_LOCATION_TITLE: "Kinnistute haldus – asukoha järgi filtreerimine"
     ,TranslationKeys.SELECTED_PROPERTIES_COUNT: "Valitud: 0 kinnistut"
     ,TranslationKeys.SELECTED_COUNT_TEMPLATE: "Valitud: {count} kinnistut"
     ,TranslationKeys.PROPERTY_TABLE_COUNT_TEMPLATE: "Tabelis: {count} kinnistut"
