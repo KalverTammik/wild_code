@@ -217,6 +217,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
     def test_add_progress_stays_visible_during_pauses_and_resets_between_runs(self):
         from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        from Kavitro_dev.widgets.DelayHelpers.glow_progress_bar import GlowProgressBar
         self.add_import_fields()
         dialog = open_dialog(AddPropertyDialog)
         try:
@@ -236,6 +237,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                         self.assertIn('0/172', dialog.add_progress_label.text())
                         self.assertIn(translate(K.ADD_UPDATE_PROGRESS_ESTIMATING), dialog.add_progress_label.text())
                         self.assertEqual(dialog.add_progress_bar.value(), 0)
+                        self.assertEqual(dialog.add_progress_bar.state(), GlowProgressBar.RUNNING)
                         self.assertFalse(dialog.add_detail_label.isVisible())
                         self.assertTrue(dialog._add_progress_timer.isActive())
 
@@ -282,6 +284,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                         self.assertIn('35/172', final_text)
                         self.assertIn('137', final_text)
                         self.assertEqual(dialog.add_progress_bar.value(), 35)
+                        self.assertEqual(dialog.add_progress_bar.state(), GlowProgressBar.IDLE)
                         self.assertFalse(dialog._add_progress_timer.isActive())
                         self.assertFalse(dialog.add_detail_label.isVisible())
                         dialog._on_add_waiting(15, 'rate_limit')
@@ -292,6 +295,14 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                 dialog._on_add_finished({'canceled': False, 'done': 172, 'total': 172,
                                          'succeeded': 172, 'failed': 0, 'pending': 0, 'errors': []})
                 self.assertEqual(dialog.add_progress_bar.value(), dialog.add_progress_bar.maximum())
+                self.assertEqual(dialog.add_progress_bar.state(), GlowProgressBar.IDLE)
+
+                # A batch stopped by an error shows it on the bar too.
+                dialog._on_add_finished({'canceled': False, 'done': 205, 'total': 710, 'succeeded': 204,
+                                         'failed': 1, 'pending': 505, 'stopped': True,
+                                         'errors': [{'tunnus': '41201:001:0140', 'message': 'failed'}]})
+                self.assertEqual(dialog.add_progress_bar.state(), GlowProgressBar.ERROR)
+                self.assertFalse(dialog.add_progress_bar.isAnimating())
         finally:
             dialog.reject()
             self.wait_until(lambda: not dialog._location_filter_helper._loader._request.busy)

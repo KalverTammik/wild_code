@@ -245,3 +245,14 @@ QLabel a {
 QLabel a:hover { color: #ffffff; text-decoration: underline; }
 QLabel a:active { color: #a8f1ef; }
 
+
+/* ---------- GlowProgressBar ---------- */
+GlowProgressBar {
+    qproperty-trackColor: #253038;
+    qproperty-borderColor: rgba(9,144,143,0.55);
+    qproperty-chunkColor: #09908f;
+    qproperty-chunkAccentColor: #5eead4;
+    qproperty-errorColor: #ef4444;
+    qproperty-textColor: #e8e9ef;
+    qproperty-chunkTextColor: #ffffff;
+}

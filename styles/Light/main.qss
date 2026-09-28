@@ -251,3 +251,14 @@ QScrollBar::sub-page:horizontal {
     background: transparent;
 }
 
+
+/* ---------- GlowProgressBar (teal track stands out from the #f6f7f8 dialog) ---------- */
+GlowProgressBar {
+    qproperty-trackColor: #e2eeec;
+    qproperty-borderColor: rgba(15,118,110,0.35);
+    qproperty-chunkColor: #0f766e;
+    qproperty-chunkAccentColor: #2dd4bf;
+    qproperty-errorColor: #dc2626;
+    qproperty-textColor: #0f3d3a;
+    qproperty-chunkTextColor: #ffffff;
+}

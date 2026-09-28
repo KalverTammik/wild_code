@@ -14,7 +14,6 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QHBoxLayout,
     QCheckBox,
-    QProgressBar,
     QPlainTextEdit,
     QSizePolicy,
 )
@@ -38,6 +37,7 @@ from ..utils.mapandproperties.property_dialog_phase import (AddAction, AddMode, 
                                                             PropertyDialogState)
 from ..utils.mapandproperties.property_row_builder import PropertyRowBuilder
 from .theme_manager import ThemeManager
+from .DelayHelpers.glow_progress_bar import GlowProgressBar
 
 from ..constants.button_props import ButtonVariant, ButtonSize
 from ..constants.file_paths import QssPaths
@@ -452,7 +452,7 @@ class AddPropertyDialog(QDialog):
         parent_layout.addLayout(controls_row)
 
         # Give wrapped status text the full width and its required height.
-        self.check_progress_bar = QProgressBar()
+        self.check_progress_bar = GlowProgressBar()
         self.check_progress_bar.setObjectName("CheckProgressBar")
         self.check_progress_bar.setTextVisible(True)
         self.check_progress_bar.setRange(0, 1)
@@ -466,7 +466,7 @@ class AddPropertyDialog(QDialog):
         self.add_progress_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
         self.add_progress_label.setVisible(False)
         parent_layout.addWidget(self.add_progress_label)
-        self.add_progress_bar = QProgressBar()
+        self.add_progress_bar = GlowProgressBar()
         self.add_progress_bar.setObjectName("AddProgressBar")
         self.add_progress_bar.setRange(0, 1)
         self.add_progress_bar.setValue(0)
@@ -752,6 +752,7 @@ class AddPropertyDialog(QDialog):
         prefix_key = (TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX_NO_CHECKS if mode == AddMode.WITHOUT_CHECKS
                       else TranslationKeys.ADD_UPDATE_PROGRESS_PREFIX)
         self.add_progress_bar.setAccessibleName(self.lang_manager.translate(prefix_key))
+        self.add_progress_bar.setState(GlowProgressBar.RUNNING)
         self._render_add_progress()
         self._add_progress_timer.start()
         self._set_add_ui_state(active=True)
@@ -899,6 +900,8 @@ class AddPropertyDialog(QDialog):
         self.add_detail_label.hide()
         self.add_progress_bar.setRange(0, max(1, total))
         self.add_progress_bar.setValue(done)
+        self.add_progress_bar.setState(GlowProgressBar.ERROR if summary.get('stopped') and not canceled
+                                       else GlowProgressBar.IDLE)
         self.add_progress_bar.setVisible(total > 0)
 
         if total > 0:
@@ -1907,6 +1910,7 @@ class AddPropertyDialog(QDialog):
         bar.setRange(0, total_i)
         bar.setValue(done_i)
         bar.setFormat("%v/%m")
+        bar.setState(GlowProgressBar.RUNNING if done_i < total_i else GlowProgressBar.IDLE)
         self._last_progress_total = total_i
         self._last_progress_done = done_i
 
@@ -2049,6 +2053,7 @@ class AddPropertyDialog(QDialog):
         self.add_progress_label.show()
         self.add_progress_bar.setRange(0, max(1, total))
         self.add_progress_bar.setValue(done)
+        self.add_progress_bar.setState(GlowProgressBar.RUNNING)
         self.add_progress_bar.show()
 
     def _on_archive_lookup_row(self, _row: int, tunnus: str, result: dict) -> None:
