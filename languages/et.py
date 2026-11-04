@@ -115,7 +115,6 @@ TRANSLATIONS = {
         TranslationKeys.OVERDUE_DUE_SOON_PILLS_ELLIPSIS: "…",
         TranslationKeys.PROGRESS_DIALOG_MODERN_PERCENT: "0%",
         TranslationKeys.SEARCH_RESULTS_WIDGET_CLOSE_TOOLTIP: "Sulge otsingutulemused",
-        TranslationKeys.ATTENTION: "Tähelepanu",
         TranslationKeys.SHOW_ONLY_ATTENTION: "Näita ainult tähelepanu vajavaid",
         TranslationKeys.SIDEBAR_LEFT_ARROW: "«",
         TranslationKeys.SIDEBAR_RIGHT_ARROW: "»",

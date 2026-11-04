@@ -110,7 +110,6 @@ class QssPaths:
     TOOLTIP = "tooltip.qss"
     LAYER_TREE_PICKER = "LayerTreePicker.qss"
     SEARCH_RESULTS_WIDGET = "SearchResultsWidget.qss"
-    UNIVERSAL_STATUS_BAR = "UniversalStatusBar.qss"
     PROGRESS_DIALOG = "ProgressDialogModern.qss"
     PROPERTIES_UI = "PropertysUIMain.qss"
     DATES = "dates.qss"
