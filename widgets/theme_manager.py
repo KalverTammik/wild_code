@@ -3,6 +3,7 @@ from functools import lru_cache
 from typing import Any, Callable
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIcon
+from qgis.PyQt import sip
 from qgis.core import QgsSettings
 import os
 import re
@@ -334,6 +335,8 @@ class RethemeEngine:
     def retheme_all(self):
         theme = ThemeManager.effective_theme()
         theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
+        # A closed dialog leaves its widgets registered; this is where their deletion is noticed.
+        self._registrations = [reg for reg in self._registrations if not sip.isdeleted(reg["widget"])]
         for reg in list(self._registrations):
             widget = reg.get("widget")
             if widget is None:

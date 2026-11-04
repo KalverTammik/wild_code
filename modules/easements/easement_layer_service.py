@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import date, datetime
 from typing import Optional
 
@@ -175,7 +176,12 @@ class EasementLayerService:
                 return []
             try:
                 payload = json.loads(text)
-            except Exception:
+            except ValueError as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.EASEMENT.value,
+                    event="easement_status_mapping_invalid",
+                )
                 return []
 
         rows_payload = payload

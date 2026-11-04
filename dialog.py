@@ -249,6 +249,15 @@ class PluginDialog(QDialog):
             MapCanvasGlassActionBar.close_active()
             MapCanvasSearchBar.close_active()
             try:
+                self.moduleManager.shutdownModules()
+            except Exception as e:
+                # A module that fails to stop must not keep logout or unload from closing the dialog.
+                SwitchLogger.log(
+                    "dialog_module_shutdown_failed",
+                    module=Module.HOME.value,
+                    extra={"error": str(e)},
+                )
+            try:
                 listener = getattr(self, "_session_listener", None)
                 if listener is not None:
                     SessionManager.unregister_listener(listener)

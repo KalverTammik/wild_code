@@ -58,7 +58,8 @@ class ModuleManager:
         if module_name.capitalize() == Module.SETTINGS.value.capitalize() or \
            module_name.capitalize() == Module.HOME.value.capitalize():
             return
-        MODULES_LIST_BY_NAME.append(module_name.capitalize())
+        if module_name.capitalize() not in MODULES_LIST_BY_NAME:
+            MODULES_LIST_BY_NAME.append(module_name.capitalize())
         #print(f"[ModuleManager.registerModule] Registered module names in MODULES_LIST_BY_NAME: {MODULES_LIST_BY_NAME}")
 
     def activateModule(self, moduleName):
@@ -81,20 +82,7 @@ class ModuleManager:
 
         # Deactivate whatever is currently active
         if self.activeModule and self.activeModule is not module_data:
-            current_instance = self.activeModule.get("instance")
-            if current_instance:
-                try:
-                    SwitchLogger.log("module_deactivate_start", module=self.activeModule.get("name"))
-                    current_instance.mark_deactivated(bump_token=True)
-                    current_instance.deactivate()
-                    SwitchLogger.log("module_deactivate_done", module=self.activeModule.get("name"))
-                except Exception as exc:
-                    SwitchLogger.log(
-                        "module_deactivate_error",
-                        module=self.activeModule.get("name"),
-                        extra={"error": str(exc)},
-                    )
-                    raise
+            self._deactivate_active_module()
 
         # Lazily instantiate the target module (only once)
         if target_instance is None:
@@ -124,6 +112,33 @@ class ModuleManager:
         except Exception as exc:
             SwitchLogger.log("module_activate_error", module=key, extra={"error": str(exc)})
             raise
+
+    def _deactivate_active_module(self):
+        current_instance = self.activeModule.get("instance")
+        if not current_instance:
+            return
+        try:
+            SwitchLogger.log("module_deactivate_start", module=self.activeModule.get("name"))
+            current_instance.mark_deactivated(bump_token=True)
+            current_instance.deactivate()
+            SwitchLogger.log("module_deactivate_done", module=self.activeModule.get("name"))
+        except Exception as exc:
+            SwitchLogger.log(
+                "module_deactivate_error",
+                module=self.activeModule.get("name"),
+                extra={"error": str(exc)},
+            )
+            raise
+
+    def shutdownModules(self):
+        """End the module session of a closing dialog while its widgets are still alive."""
+        try:
+            if self.activeModule:
+                self._deactivate_active_module()
+        finally:
+            # The instances die with their dialog; the next dialog registers its own.
+            self.activeModule = None
+            self.modules.clear()
 
     def getActiveModuleInstance(self, moduleName):
         """Return the instance of the specified active module, or None if not instantiated."""

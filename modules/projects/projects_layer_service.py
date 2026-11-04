@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Optional
 
@@ -326,7 +327,7 @@ class ProjectsLayerService:
         if field_type == QVariant.String and isinstance(value, (dict, list)):
             try:
                 return json.dumps(value, ensure_ascii=False)
-            except Exception:
+            except (TypeError, ValueError):
                 return str(value)
 
         if field_type == QVariant.DateTime:

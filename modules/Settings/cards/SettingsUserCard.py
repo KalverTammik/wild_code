@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (
     QCheckBox, QButtonGroup
 )
 from ....languages.translation_keys import TranslationKeys
+from ....Logs.python_fail_logger import PythonFailLogger
 from .SettingsBaseCard import SettingsBaseCard  # assumes BaseCard provides: content_widget(), retheme(), etc.
 from ....utils.url_manager import Module
 
