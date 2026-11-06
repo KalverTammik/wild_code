@@ -386,6 +386,8 @@ TRANSLATIONS = {
     TranslationKeys.SETTINGS_SETUP_MISSING_TITLE: "Module setup missing",
     TranslationKeys.SETTINGS_SETUP_MISSING_MESSAGE: "Settings for module {module} are not configured yet. Next, you will be redirected to that module's settings.",
     TranslationKeys.SETTINGS_SETUP_MISSING_NOTE: "Nota bene:\nPlease also review the other module settings while you are in Settings.",
+    TranslationKeys.MODULE_SWITCH_FAILED_TITLE: "Module could not be opened",
+    TranslationKeys.MODULE_SWITCH_FAILED_MESSAGE: "Module {module} could not be opened. Try again. If the error repeats, restart QGIS.\n\nError details are in the plugin folder log Logs/SwitchLogs.",
     TranslationKeys.HOME_KPI_TOTAL_LABEL: "Filtered total",
     TranslationKeys.HOME_KPI_OTHER_LABEL: "Other",
     TranslationKeys.HOME_KPI_OTHER_TOOLTIP: "Filtered items not overdue or due soon",

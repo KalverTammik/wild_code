@@ -363,6 +363,8 @@ TRANSLATIONS = {
     TranslationKeys.SETTINGS_SETUP_MISSING_TITLE: "Mooduli seadistus puudub",
     TranslationKeys.SETTINGS_SETUP_MISSING_MESSAGE: "Mooduli {module} seadistused ei ole veel täielikult määratud. Järgmisena suunatakse sind selle mooduli seadete juurde.",
     TranslationKeys.SETTINGS_SETUP_MISSING_NOTE: "Nota bene:\nVaata palun üle ka teiste moodulite seadistused, et töövood oleksid terviklikult valmis.",
+    TranslationKeys.MODULE_SWITCH_FAILED_TITLE: "Moodulit ei saanud avada",
+    TranslationKeys.MODULE_SWITCH_FAILED_MESSAGE: "Mooduli {module} avamine ebaõnnestus. Proovi uuesti. Kui viga kordub, taaskäivita QGIS.\n\nVea üksikasjad on pluginakausta logis Logs/SwitchLogs.",
     TranslationKeys.HOME_KPI_TOTAL_LABEL: "Filtreeritud kokku",
     TranslationKeys.HOME_KPI_OTHER_LABEL: "Muu",
     TranslationKeys.HOME_KPI_OTHER_TOOLTIP: "Filtreeritud kirjed, mis ei ole hilinenud ega peagi tähtajaga",

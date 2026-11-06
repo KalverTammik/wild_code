@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Protocol, TYPE_CHECKING, Optional
 from .url_manager import Module
+from ..languages.translation_keys import TranslationKeys
 from ..module_manager import ModuleManager
 from ..Logs.switch_logger import SwitchLogger
 from ..modules.Settings.settings_setup_guard import SettingsSetupGuard
@@ -360,6 +361,22 @@ class ModuleSwitchHelper:
         return active_after_fail, current_widget
 
     @staticmethod
+    def _notify_switch_failed(dlg: ModuleSwitchDialogProtocol, target_key: str) -> None:
+        # Without it the pane stays empty or unchanged and only the log says why.
+        try:
+            lang_manager = dlg.lang_manager
+            module = lang_manager.translate_module_name(target_key)
+            title = lang_manager.translate(TranslationKeys.MODULE_SWITCH_FAILED_TITLE)
+            message = lang_manager.translate(TranslationKeys.MODULE_SWITCH_FAILED_MESSAGE).format(module=module)
+            ModernMessageDialog.show_warning(title, message, parent=dlg)
+        except Exception as exc:
+            SwitchLogger.log(
+                "switch_failed_notice_failed",
+                module=target_key,
+                extra={"error": str(exc)},
+            )
+
+    @staticmethod
     def switch_module(
         module_name: str,
         *,
@@ -403,6 +420,7 @@ class ModuleSwitchHelper:
             return
 
         ModuleSwitchHelper._is_switching = True
+        failed = False
         try:
             instance = ModuleSwitchHelper._activate_target(module_manager, target_key=target_key)
             ModuleSwitchHelper._bind_switch_ui(
@@ -415,6 +433,7 @@ class ModuleSwitchHelper:
 
 
         except Exception:
+            failed = True
             active_after_fail, current_widget = ModuleSwitchHelper._rollback_switch(
                 module_manager=module_manager,
                 dlg=dlg,
@@ -441,3 +460,6 @@ class ModuleSwitchHelper:
             traceback.print_exc(file=sys.stderr)
         finally:
             ModuleSwitchHelper._is_switching = False
+
+        if failed:
+            ModuleSwitchHelper._notify_switch_failed(dlg, target_key)

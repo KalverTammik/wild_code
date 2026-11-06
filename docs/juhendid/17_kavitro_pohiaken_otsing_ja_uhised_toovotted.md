@@ -36,6 +36,8 @@ Avalehe avamisel värskendatakse kaarte. KPI-kaart on ülevaade, mitte mooduli a
 
 Mooduli avamiseks vajuta külgribal selle nime. Mooduli vahetamisel lõpetatakse eelmise vaate pooleliolevad laadimised ning aktiivseks muutub uue mooduli sisu.
 
+Kui moodul ei avane, kuvab Visuaal teate **Moodulit ei saanud avada**. Kui enne oli mõni moodul avatud, jääb see avatuks. Proovi uuesti. Kui viga kordub, taaskäivita QGIS. Vea üksikasjad on pluginakausta logis `Logs/SwitchLogs`.
+
 Mõni toiming suunab automaatselt teise moodulisse:
 
 - üldotsingu toetatud tulemus avab sobiva mooduli ja kirje;

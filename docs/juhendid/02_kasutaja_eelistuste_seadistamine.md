@@ -120,6 +120,8 @@ Kontrolli, et vajutasid pärast valiku tegemist nuppu **Kinnita**. Arvesta ka se
 
 Kui valitud mooduli kohustuslikud kihid või eelistused on seadistamata, võib Kavitro suunata sind esmalt selle mooduli seadistuskaardile.
 
+Kui kuvatakse teade **Moodulit ei saanud avada**, tekkis mooduli avamisel viga. Proovi uuesti. Kui viga kordub, taaskäivita QGIS. Vea üksikasjad on pluginakausta logis `Logs/SwitchLogs`.
+
 ### Sisestus- või Otsingupaani ei kuvata
 
 Kontrolli, et:

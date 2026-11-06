@@ -191,6 +191,8 @@ class TranslationKeys:
     SETTINGS_SETUP_MISSING_TITLE = "settings_setup_missing_title"
     SETTINGS_SETUP_MISSING_MESSAGE = "settings_setup_missing_message"
     SETTINGS_SETUP_MISSING_NOTE = "settings_setup_missing_note"
+    MODULE_SWITCH_FAILED_TITLE = "module_switch_failed_title"
+    MODULE_SWITCH_FAILED_MESSAGE = "module_switch_failed_message"
     HOW_SELECT_PROPERTIES = "How do you want to select properties?"
     PROPERTY_BACKEND_ACTION_PROMPT_TITLE = "property_backend_action_prompt_title"
     PROPERTY_ARCHIVED_BACKEND_MATCH_TITLE = "property_archived_backend_match_title"
