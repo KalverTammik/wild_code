@@ -246,17 +246,3 @@ class SettingsService:
 
 
 # Utility-specific settings ----------------------------------------------------
-class UtilitySettings:
-    """Settings keys for utility classes and tools that still use raw paths."""
-
-    @staticmethod
-    def shp_last_file_path(target_group: str) -> str:
-        return f"kavitro/last_shp_file_{target_group}"
-
-    @staticmethod
-    def shp_layer_name_mapping(layer_name: str) -> str:
-        return f"kavitro/layer_name_{layer_name}"
-
-
-
-

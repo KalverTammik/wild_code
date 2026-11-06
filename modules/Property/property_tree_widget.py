@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 try:
     import sip
@@ -109,13 +108,6 @@ class PropertyTreeWidget(QFrame):
                 )
 
         self._replace_cards(widgets)
-
-    def refresh_tree_data(self):
-        if not self._current_entries:
-            no_data = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_NO_DATA)
-            self.show_message(no_data)
-            return
-        self.load_connections(self._current_entries)
 
     # --- Internal helpers -------------------------------------------------
 
@@ -519,16 +511,6 @@ class ModuleConnectionRow(QFrame):
                 return candidate
         return None
 
-    def _has_property_connections(self) -> Optional[bool]:
-        properties_block = self.raw.get("properties")
-        if not properties_block:
-            return None
-        page_info = properties_block.get("pageInfo") or {}
-        count = page_info.get("count")
-        if count is None:
-            return None
-        return bool(count)
-
     @staticmethod
     def _safe_text(*values, fallback: str = "") -> str:
         for value in values:
@@ -536,12 +518,6 @@ class ModuleConnectionRow(QFrame):
             if text:
                 return text
         return fallback
-
-    def _extract_status_name(self) -> str:
-        status = self.raw.get("status") or {}
-        if isinstance(status, dict):
-            return str(status.get("name") or "").strip()
-        return ""
 
     def _extract_type_name(self) -> str:
         type_payload = self.raw.get("type") or {}
@@ -591,16 +567,3 @@ class ModuleConnectionRow(QFrame):
             payload["updatedAt"] = self.summary.get("updatedAt") or payload.get("modifiedAt") or payload.get("createdAt")
 
         return payload
-
-    def _format_updated_text(self) -> str:
-        raw_value = self.summary.get("updatedAt") or self.raw.get("updatedAt") or self.raw.get("createdAt")
-        text = str(raw_value or "").strip()
-        if not text:
-            return ""
-        normalized = text.replace("Z", "+00:00")
-        try:
-            dt = datetime.fromisoformat(normalized)
-            return dt.strftime("%Y-%m-%d %H:%M")
-        except Exception:
-            return text[:16] if len(text) > 16 else text
-

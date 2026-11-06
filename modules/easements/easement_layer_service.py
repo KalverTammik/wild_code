@@ -278,7 +278,8 @@ class EasementLayerService:
         for row in rows:
             if upper_name and str(row.get("statusName") or "").strip().upper() == upper_name:
                 return str(row.get("layerStatus") or "").strip()
-        return status_name
+        # „Ära kirjuta“ saves no row, so it ends here like a status nobody mapped: nothing goes to the layer.
+        return ""
 
     @classmethod
     def layer_status_value_options(cls, layer: Optional[QgsVectorLayer]) -> list[str]:
@@ -526,6 +527,13 @@ class EasementLayerService:
         feature.setAttribute(actual, cls.coerce_value_for_field(field, value))
 
     @classmethod
+    def _set_mapped_status(cls, feature: QgsFeature, *, layer: QgsVectorLayer, status_payload) -> None:
+        # Without a mapped value the field keeps what it has: an empty value would clear it.
+        layer_status = cls.map_backend_status_to_layer_value(status_payload or {})
+        if layer_status:
+            cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_STATUS_CANDIDATES, value=layer_status)
+
+    @classmethod
     def _feature_by_id(cls, layer: QgsVectorLayer, feature_id: int) -> Optional[QgsFeature]:
         try:
             feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
@@ -625,10 +633,6 @@ class EasementLayerService:
             module=Module.EASEMENT.value,
             error_event="easement_geometry_to_payload_failed",
         )
-
-    @staticmethod
-    def _normalize_backend_geometry_payload(payload: dict[str, object]) -> dict[str, object]:
-        return GeometryPayloadService.normalize_backend_payload(payload)
 
     @staticmethod
     def _point_in_layer_crs(point: QgsPointXY, layer: QgsVectorLayer) -> QgsPointXY:
@@ -741,12 +745,7 @@ class EasementLayerService:
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ID_CANDIDATES, value=item_id_text)
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_NUMBER_CANDIDATES, value=item_number)
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_TYPE_CANDIDATES, value=item_type_name)
-        cls._set_attr_if_present(
-            feature,
-            layer=layer,
-            candidates=cls.FIELD_STATUS_CANDIDATES,
-            value=cls.map_backend_status_to_layer_value(item_payload.get("status") or {}),
-        )
+        cls._set_mapped_status(feature, layer=layer, status_payload=item_payload.get("status"))
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_SYSTEM_CANDIDATES, value=cls.EXT_SYSTEM_NAME)
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATED_BY_CANDIDATES, value=username)
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATE_DATE_CANDIDATES, value=updated_date)
@@ -1042,12 +1041,7 @@ class EasementLayerService:
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ID_CANDIDATES, value=item_id_text)
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_NUMBER_CANDIDATES, value=item_number)
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_TYPE_CANDIDATES, value=item_type_name)
-        cls._set_attr_if_present(
-            feature,
-            layer=layer,
-            candidates=cls.FIELD_STATUS_CANDIDATES,
-            value=cls.map_backend_status_to_layer_value(item_payload.get("status") or {}),
-        )
+        cls._set_mapped_status(feature, layer=layer, status_payload=item_payload.get("status"))
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_SYSTEM_CANDIDATES, value=cls.EXT_SYSTEM_NAME)
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_PROPERTY_CANDIDATES, value=primary_cadastral)
         cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATED_BY_CANDIDATES, value=username)

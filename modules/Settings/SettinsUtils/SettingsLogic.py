@@ -96,17 +96,11 @@ class SettingsLogic:
     def get_original_map_overlay_enabled(self) -> bool:
         return bool(self._original_map_overlay_enabled)
 
-    def get_pending_map_overlay_enabled(self) -> bool:
-        return bool(self._pending_map_overlay_enabled)
-
     def set_map_overlay_enabled(self, enabled: bool) -> None:
         self._pending_map_overlay_enabled = bool(enabled)
 
     def get_original_map_search_enabled(self) -> bool:
         return bool(self._original_map_search_enabled)
-
-    def get_pending_map_search_enabled(self) -> bool:
-        return bool(self._pending_map_search_enabled)
 
     def set_map_search_enabled(self, enabled: bool) -> None:
         self._pending_map_search_enabled = bool(enabled)

@@ -1,4 +1,4 @@
-from typing import Iterable, List, Optional, Sequence, Union
+from typing import List, Optional, Sequence
 from ...languages.translation_keys import TranslationKeys
 from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer, QgsFeatureRequest, QgsCoordinateTransform
 from qgis.utils import iface
@@ -75,55 +75,6 @@ class MapHelpers:
             literals = ",".join(MapHelpers._sql_quote(v) for v in segment)
             parts.append(f"{field} IN ({literals})")
         return " OR ".join(parts)
-
-    @staticmethod
-    def _find_best_id_field(layer: QgsVectorLayer) -> Optional[str]:
-        """Try to find a usable id field for subsetString filters."""
-        if not layer or not layer.isValid():
-            return None
-
-        # Prefer provider primary key if it's a single attribute.
-        try:
-            provider = layer.dataProvider()
-            pk_indexes = []
-            if provider is not None and callable(getattr(provider, "pkAttributeIndexes", None)):
-                pk_indexes = list(provider.pkAttributeIndexes() or [])
-            if len(pk_indexes) == 1:
-                idx = int(pk_indexes[0])
-                field = layer.fields().field(idx)
-                if field is not None:
-                    return field.name()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="maphelpers_pk_field_failed",
-            )
-
-        # Common id field names across providers
-        candidates = [
-            "fid",
-            "FID",
-            "ogc_fid",
-            "OGC_FID",
-            "objectid",
-            "OBJECTID",
-            "id",
-            "ID",
-        ]
-        try:
-            fields = layer.fields()
-            for name in candidates:
-                if fields.indexOf(name) != -1:
-                    return name
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="maphelpers_find_id_field_failed",
-            )
-
-        return None
 
     @staticmethod
     def find_layer_by_id(layer_id: Optional[str]) -> Optional[QgsMapLayer]:
@@ -290,146 +241,11 @@ class MapHelpers:
         canvas.refresh()
 
     @staticmethod
-    def zoom_to_layer(layer: QgsVectorLayer) -> None:
-        """Zoom to the full extent of a layer."""
-        if layer and layer.isValid():
-            iface.mapCanvas().setExtent(layer.extent())
-            iface.mapCanvas().refresh()
-
-    @staticmethod
     def clear_layer_filter(layer: QgsVectorLayer) -> None:
         """Clear any filter applied to a layer."""
         if layer and layer.isValid():
             layer.setSubsetString("")
             print(f"🔍 Cleared filter from layer '{layer.name()}'")
-
-    @staticmethod
-    def set_layer_filter_by_field_values(
-        layer: QgsVectorLayer,
-        field_name: str,
-        values: Sequence[object],
-        *,
-        clear_if_empty: bool = True,
-        chunk_size: int = 500,
-    ) -> None:
-        """Set subset string to keep only rows where field is in values."""
-        if not layer or not layer.isValid():
-            return
-        clause = MapHelpers.build_subset_in_clause(field_name, values, chunk_size=chunk_size)
-        if not clause:
-            if clear_if_empty:
-                MapHelpers.clear_layer_filter(layer)
-            return
-        layer.setSubsetString(clause)
-
-    @staticmethod
-    def set_layer_filter_by_features(
-        layer: QgsVectorLayer,
-        field_name: str,
-        features: Union[Sequence[QgsFeature], Iterable[QgsFeature]],
-        *,
-        clear_if_empty: bool = True,
-        chunk_size: int = 500,
-    ) -> None:
-        """Set subset string based on a field extracted from provided features."""
-        if not layer or not layer.isValid():
-            return
-        extracted: List[object] = []
-        for f in features or []:
-            try:
-                extracted.append(f[field_name])
-            except Exception:
-                continue
-        MapHelpers.set_layer_filter_by_field_values(
-            layer,
-            field_name,
-            extracted,
-            clear_if_empty=clear_if_empty,
-            chunk_size=chunk_size,
-        )
-
-    @staticmethod
-    def set_layer_filter_to_features(
-        layer: QgsVectorLayer,
-        features: Union[Sequence[QgsFeature], Iterable[QgsFeature]],
-        *,
-        field_name: Optional[str] = None,
-        clear_if_empty: bool = True,
-        chunk_size: int = 500,
-    ) -> None:
-        """Set subset string from a list of QgsFeature objects.
-
-        - If `field_name` is provided: uses that attribute from features.
-        - Else: tries provider PK / common id fields; falls back to feature.id() when possible.
-        """
-        if not layer or not layer.isValid():
-            return
-
-        feats = list(features or [])
-        if not feats:
-            if clear_if_empty:
-                MapHelpers.clear_layer_filter(layer)
-            return
-
-        if field_name:
-            MapHelpers.set_layer_filter_by_features(
-                layer,
-                field_name,
-                feats,
-                clear_if_empty=clear_if_empty,
-                chunk_size=chunk_size,
-            )
-            return
-
-        best_field = MapHelpers._find_best_id_field(layer)
-        if best_field:
-            MapHelpers.set_layer_filter_by_features(
-                layer,
-                best_field,
-                feats,
-                clear_if_empty=clear_if_empty,
-                chunk_size=chunk_size,
-            )
-            return
-
-        # Last-resort: attempt to filter by feature ids using a guessed fid field.
-        # Not all providers expose an id column for subsetString; if this doesn't work,
-        # caller should prefer selection APIs.
-        ids = [f.id() for f in feats if f is not None]
-        if not ids:
-            if clear_if_empty:
-                MapHelpers.clear_layer_filter(layer)
-            return
-        clause = MapHelpers.build_subset_in_clause("fid", ids, chunk_size=chunk_size)
-        layer.setSubsetString(clause)
-
-    @staticmethod
-    def set_layer_filter_to_selected_features(
-        layer: QgsVectorLayer,
-        *,
-        field_name: Optional[str] = None,
-        clear_if_empty: bool = True,
-        chunk_size: int = 500,
-    ) -> None:
-        """Convenience: subsetString from `layer.selectedFeatures()`."""
-        if not layer or not layer.isValid():
-            return
-        try:
-            feats = layer.selectedFeatures() or []
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROPERTY.value,
-                event="maphelpers_selected_features_failed",
-            )
-            feats = []
-        MapHelpers.set_layer_filter_to_features(
-            layer,
-            feats,
-            field_name=field_name,
-            clear_if_empty=clear_if_empty,
-            chunk_size=chunk_size,
-        )
 
     @staticmethod
     def select_features_by_ids(layer: QgsVectorLayer, feature_ids: List[int], zoom: bool = False) -> None:

@@ -3,7 +3,6 @@ import shutil
 import time
 import sys
 from datetime import datetime
-from typing import Any
 
 from .secure_log_io import (
     ensure_private_directory,
@@ -17,7 +16,6 @@ class SwitchLogger:
 
     _log_path: str | None = None
     _session_id: int | None = None
-    _last_py_bytes: int | None = None
 
     @staticmethod
     def _base_dir() -> str:
@@ -119,54 +117,6 @@ class SwitchLogger:
             print("[SwitchLogger] Failed to start tracemalloc", file=sys.stderr)
 
     @staticmethod
-    def _bytes_to_mb(value: int | None) -> float | None:
-        if value is None:
-            return None
-        return round(value / (1024 * 1024), 2)
-
-    @staticmethod
-    @staticmethod
-    def _get_qgis_layer_stats() -> dict[str, Any]:
-        try:
-            from qgis.core import QgsProject
-
-            layers = QgsProject.instance().mapLayers().values()
-            total_layers = 0
-            memory_layers = 0
-            for layer in layers:
-                total_layers += 1
-                try:
-                    if layer.providerType() == "memory":
-                        memory_layers += 1
-                except Exception:
-                    print("[SwitchLogger] layer providerType failed", file=sys.stderr)
-                    continue
-            return {"layers": total_layers, "memory_layers": memory_layers}
-        except Exception:
-            print("[SwitchLogger] layer stats failed", file=sys.stderr)
-            return {}
-
-    @staticmethod
-    def _collect_memory_stats() -> dict[str, Any]:
-        stats: dict[str, Any] = {}
-
-        try:
-            import tracemalloc
-
-            if tracemalloc.is_tracing():
-                current, peak = tracemalloc.get_traced_memory()
-                stats["py_mb"] = SwitchLogger._bytes_to_mb(current)
-                stats["py_peak_mb"] = SwitchLogger._bytes_to_mb(peak)
-                if SwitchLogger._last_py_bytes is not None:
-                    stats["py_delta_mb"] = SwitchLogger._bytes_to_mb(current - SwitchLogger._last_py_bytes)
-                SwitchLogger._last_py_bytes = current
-        except Exception:
-            print("[SwitchLogger] tracemalloc stats failed", file=sys.stderr)
-
-        stats.update(SwitchLogger._get_qgis_layer_stats())
-        return stats
-
-    @staticmethod
     def _format_line(event: str, *, module: str | None = None, extra: dict | None = None) -> str:
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         parts = [f"[{ts}]", event]
@@ -188,11 +138,3 @@ class SwitchLogger:
                 fh.write(line + "\n")
         except Exception:
             print("[SwitchLogger] write failed", file=sys.stderr)
-
-    @staticmethod
-    def log_memory_snapshot(*, module: str | None = None, label: str = "after_switch") -> None:
-        stats = SwitchLogger._collect_memory_stats()
-        if not stats:
-            return
-        stats["label"] = label
-        SwitchLogger.log("memory_snapshot", module=module, extra=stats)

@@ -119,10 +119,6 @@ class SettingsModuleCard(SettingsBaseCard):
         )
 
 
-    def set_module_label_value(self, key: str, value: str):
-        if self._labels_widget:
-            self._labels_widget.set_label_value(key, value)
-
     # --- UI ---
     def _build_ui(self):
         cw = self.content_widget()

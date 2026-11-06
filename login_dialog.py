@@ -47,6 +47,7 @@ class LoginDialog(QDialog):
         self.language_switch.addItems(SUPPORTED_LANGUAGES)
         self.language_switch.setCurrentText(self.lang.language)
         self.language_switch.currentTextChanged.connect(self.change_language)
+        ThemeManager.apply_form_combo_popup_style(self.language_switch)
         layout.addWidget(self.language_switch)
 
         self.username_label = QLabel()

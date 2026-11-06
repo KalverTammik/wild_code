@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout, Q
 
 from ..constants.cadastral_fields import AreaUnit
 from ..languages.translation_keys import TranslationKeys
+from .theme_manager import ThemeManager
 
 
 class EasementPropertyAreaCalculationWidget(QWidget):
@@ -162,6 +163,7 @@ class EasementPropertyAreaCalculationWidget(QWidget):
             for unit_option, unit_label_text in self._area_unit_labels.items():
                 self.unit_combo.addItem(unit_label_text, unit_option)
             self.unit_combo.setCurrentIndex(max(0, self.unit_combo.findData(unit_value)))
+            ThemeManager.apply_form_combo_popup_style(self.unit_combo)
             layout.addWidget(self.unit_combo, 0, 8)
 
             currency_label = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_CURRENCY), self)
@@ -173,6 +175,7 @@ class EasementPropertyAreaCalculationWidget(QWidget):
             if currency_code != self._default_currency:
                 self.currency_combo.addItem(self._default_currency, self._default_currency)
             self.currency_combo.setCurrentIndex(max(0, self.currency_combo.findData(currency_code)))
+            ThemeManager.apply_form_combo_popup_style(self.currency_combo)
             layout.addWidget(self.currency_combo, 1, 4)
 
         self.price_spin.valueChanged.connect(self.totalsChanged.emit)

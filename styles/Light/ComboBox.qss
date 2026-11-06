@@ -463,3 +463,32 @@ QCheckBox#SelectAllCheckbox[kavitroSelectAll="true"][variant="type-filter"]::ind
 QCheckBox#SelectAllCheckbox[kavitroSelectAll="true"] {
     padding: 2px;
 }
+
+/* ---------------------- Form combo popup, matches the status select popup ---------------------- */
+QAbstractItemView[kavitroFormPopup="true"] {
+    background: #ffffff;
+    color: #2f363d;
+    border: 1px solid rgba(15,23,42,0.14);
+    border-radius: 8px;
+    padding: 6px;
+    outline: none;
+}
+QAbstractItemView[kavitroFormPopup="true"]::item {
+    min-height: 24px;
+    padding: 2px 8px;
+    margin: 1px 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: #2f363d;
+}
+QAbstractItemView[kavitroFormPopup="true"]::item:hover {
+    background: rgba(16,24,40,0.06);
+    color: #2f363d;
+}
+QAbstractItemView[kavitroFormPopup="true"]::item:selected,
+QAbstractItemView[kavitroFormPopup="true"]::item:selected:active,
+QAbstractItemView[kavitroFormPopup="true"]::item:selected:!active {
+    background: rgba(33,136,255,0.12);
+    border: 1px solid rgba(33,136,255,0.42);
+    color: #2f363d;
+}

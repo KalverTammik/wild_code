@@ -124,9 +124,10 @@ Vormi **Salvesta** ei kirjuta kõiki välju tingimusteta:
 
 - väärtus kirjutatakse ainult kihil olemasolevasse sobiva nimega välja;
 - tühi vormiväärtus ei tühjenda olemasolevat kihivälja;
-- vormi mittetühi staatus kirjutab seadistatud staatusevastenduse tulemuse üle;
-- kehtestamise kuupäev saadetakse ainult staatusega täpselt **Kehtestatud** või olemasoleva algkuupäeva korral;
-- **Talumistasu arvestatakse** väärtus kogutakse, kuid põhikihi kirjutusloogika seda ühelegi väljale ei salvesta.
+- vorm avaneb servituudi Kavitrost loetud staatusega; kui seda ei õnnestu lugeda, kasutatakse kaardil olevat staatust;
+- muudetud staatus salvestatakse enne kihi kirjutamist Kavitrosse; kui Kavitro seda vastu ei võta, jääb vorm avatuks ja kihti ei kirjutata;
+- kihile kirjutatakse staatuse seadistatud vasteväärtus; valiku **Ära kirjuta** või puuduva vaste korral jääb kihi staatuseväli puutumata;
+- kehtestamise kuupäev saadetakse ainult siis, kui kihile minev staatus on täpselt **Kehtestatud**, või olemasoleva algkuupäeva korral.
 
 **Katkesta** sulgeb vormi väärtusi kinnitamata, kuid selle mõju juba joonistatud objektile sõltub kihi varasemast redigeerimisolekust.
 
@@ -247,7 +248,7 @@ Nupp on aktiivne, kui redaktoris on vähemalt üks kinnisturida. Toimingute jär
 7. lõplik geomeetria lisatakse või kirjutatakse servituutide põhikihil üle;
 8. salvestatud geomeetria proovitakse saata Kavitrosse.
 
-See ei ole ühine tehing. Teenuse seoseandmed võivad olla muudetud ka siis, kui kasutaja vajutab hiljem andmevormis **Katkesta**, põhikihi salvestamine ebaõnnestub või geomeetriat ei õnnestu Kavitrosse saata.
+See ei ole ühine tehing. Teenuse seoseandmed võivad olla muudetud ka siis, kui kasutaja vajutab hiljem andmevormis **Katkesta**, põhikihi salvestamine ebaõnnestub või geomeetriat ei õnnestu Kavitrosse saata. Samamoodi jääb andmevormis muudetud staatus Kavitrosse ka siis, kui hilisem põhikihi salvestamine ebaõnnestub.
 
 ### Pindala salvestamise järjekorraviga
 

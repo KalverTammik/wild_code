@@ -102,26 +102,6 @@ class MapSelectionController(QObject):
         self.selection_started.emit(layer)
         return True
 
-    def start_single_selection(
-        self,
-        layer: Optional[QgsVectorLayer],
-        *,
-        on_selected: SelectionCallback,
-        selection_tool: str = "rectangle",
-        restore_pan: bool = True,
-        clear_filter: bool = False,
-    ) -> bool:
-        """Prepare the given layer for a one-off single-feature selection."""
-        return self.start_selection(
-            layer,
-            on_selected=on_selected,
-            selection_tool=selection_tool,
-            restore_pan=restore_pan,
-            min_selected=1,
-            max_selected=1,
-            clear_filter=clear_filter,
-        )
-
     def cancel_selection(self) -> None:
         """Stop listening for selections on the active layer if any."""
         try:

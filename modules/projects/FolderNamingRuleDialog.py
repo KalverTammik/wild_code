@@ -194,7 +194,3 @@ class FolderNamingRuleDialog(QDialog):
 
     def get_rule(self) -> str:
         return self._result_rule or ""
-
-
-def parse_rule_to_slots(rule: str) -> List[Tuple[Optional[str], str]]:
-    return FolderNamingRuleDialog(None)._parse_rule(rule)

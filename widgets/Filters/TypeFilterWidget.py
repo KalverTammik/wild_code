@@ -24,6 +24,7 @@ from ...utils.url_manager import ModuleSupports
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...utils.logger import error
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
+from ..select_arrow import SelectArrow
 from ..theme_manager import ThemeManager
 from .select_all_checkbox import SelectAllCheckBox
 
@@ -44,9 +45,7 @@ class _TypePickerControl(QFrame):
         self._label.setObjectName("TypePickerSummary")
         self._label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self._label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self._arrow = QLabel("v", self)
-        self._arrow.setObjectName("TypePickerArrow")
-        self._arrow.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._arrow = SelectArrow(self)
         layout.addWidget(self._label, 1)
         layout.addWidget(self._arrow, 0, Qt.AlignVCenter)
         self._apply_style()
@@ -91,9 +90,6 @@ class _TypePickerControl(QFrame):
             "}"
             "QLabel#TypePickerSummary {"
             f"color: {text}; font-size: 12px; font-weight: 600;"
-            "}"
-            "QLabel#TypePickerArrow {"
-            f"color: {accent}; font-size: 12px; font-weight: 700;"
             "}"
         )
 

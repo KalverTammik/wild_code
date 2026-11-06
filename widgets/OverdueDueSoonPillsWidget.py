@@ -105,45 +105,6 @@ class OverdueDueSoonPillsWidget(QWidget):
         self.overdue_btn.setEnabled(not loading)
         self.due_soon_btn.setEnabled(not loading)
 
-    def set_due_soon_window(self, days: int) -> None:
-        if isinstance(days, int) and days > 0:
-            self._days_due_soon = days
-
-    def load_first_overdue_by_module(self, module) -> None:
-        if self._is_loading:
-            return
-        self.set_loading(True)
-        try:
-            SwitchLogger.log("overdue_load_start", module=getattr(module, "value", None))
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="overdue_load_start_log_failed",
-            )
-
-        def do_fetch():
-            overdue_total, due_soon_total = OverdueDueSoonPillsUtils.refresh_counts_for_module(
-                module,
-                days=self._days_due_soon,
-            )
-
-            def apply_counts():
-                self.set_counts(overdue_total, due_soon_total)
-                self.set_loading(False)
-                try:
-                    SwitchLogger.log("overdue_load_done", module=getattr(module, "value", None))
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module="ui",
-                        event="overdue_load_done_log_failed",
-                    )
-
-            QTimer.singleShot(0, apply_counts)
-
-        QTimer.singleShot(0, do_fetch)
-
     def set_counts(self, overdue: int, due_soon: int) -> None:
         """Update this widget's pill labels with counts."""
         self.overdue_btn.setText(str(overdue))

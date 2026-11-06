@@ -92,11 +92,11 @@ Kui väli on olemas, kuid sellel ei ole väärtuskaarti ega ühtegi täidetud n�
 
 Seos salvestatakse Kavitro staatuse ID ja nimega. Tavakasutuses leitakse vaste esmalt staatuse ID järgi; vanema või muutunud seadistuse korral proovitakse ka staatuse nime.
 
-### Valiku „Ära kirjuta“ praegune käitumine
+### Valik „Ära kirjuta“
 
-Dialoog ei salvesta vastendusrida staatusele, mille juures on valitud **Ära kirjuta**. Praegune servituutide kihi kirjutamisloogika kasutab puuduva vastenduse korral siiski Kavitro taustastaatuse nime.
+Dialoog ei salvesta vastendusrida staatusele, mille juures on valitud **Ära kirjuta**. Sellise staatusega servituudi salvestamisel jääb kihi staatuseväli puutumata: olemasolev väärtus jääb alles ja uuel alal jääb väli tühjaks. Vormil **Servituudi ala andmed** näitab staatuse silt siis „Staatus (kaardil ei muutu)“.
 
-Seega ei tähenda **Ära kirjuta** praeguses versioonis alati tühjaks jätmist. Kui taustastaatus saadetakse objekti loomise või uuendamise töövoogu, võib kihi staatuseväljale kirjutuda taustastaatuse nimi. Kui soovid kindlat kihiväärtust, määra sellele staatusele alati otsene vaste.
+Sama kehtib staatuse kohta, millele pole seoses midagi valitud, sest dialoog näitab sellegi juures **Ära kirjuta**. Kui seos on tühi, ei jõua staatus kaardile üldse. Kui soovid, et staatus jõuaks kaardile, määra sellele vaste.
 
 ## Millal vastendust kasutatakse?
 
@@ -104,6 +104,7 @@ Kavitro kasutab salvestatud seost siis, kui servituudi andmeid kirjutatakse taus
 
 - uue servituudiobjekti loomisel;
 - olemasoleva servituudiobjekti uuendamisel;
+- vormi **Servituudi ala andmed** salvestamisel, kus kihile läheb vormil valitud Kavitro staatuse vaste;
 - servituudi andmete ja geomeetria sünkroonimisel.
 
 Vastendus ei muuda tagasiulatuvalt kõigi olemasolevate kihiobjektide staatuseid kohe pärast **Kinnita** vajutamist. Uus väärtus rakendub järgmise vastava kirjutamis- või sünkroonimistoimingu käigus.

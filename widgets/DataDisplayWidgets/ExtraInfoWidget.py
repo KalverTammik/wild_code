@@ -323,25 +323,6 @@ class ExtraInfoWidget(QWidget):
     def retheme(self) -> None:
         ThemeManager.apply_module_style(self, [QssPaths.MODULE_INFO])
 
-    def _detail_button_tooltip(self) -> str:
-        base = self._lang.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_EXTRAINFO_TOOLTIP)
-        module_key = str(self.module_name or "").strip().lower()
-        uses_inline_detail = module_key in (
-            Module.PROJECT.value,
-            Module.CONTRACT.value,
-            Module.COORDINATION.value,
-            Module.EASEMENT.value,
-            Module.TASK.value,
-            Module.WORKS.value,
-            Module.ASBUILT.value,
-        )
-        if not uses_inline_detail:
-            return base
-
-        parts = [str(self.config.title or "").strip(), str(self.config.summary_text or "").strip()]
-        parts = [part for part in parts if part]
-        return "\n".join(parts) if parts else base
-
     def has_detail_content(self) -> bool:
         if self.config.detailed_widget is not None:
             return True

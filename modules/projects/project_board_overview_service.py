@@ -277,17 +277,6 @@ class ProjectBoardOverviewService:
             "empty_text": empty_text,
         }
 
-    @staticmethod
-    def _format_item_label(item: dict[str, Any]) -> str:
-        main = str(item.get("type") or item.get("title") or item.get("number") or item.get("id") or "-").strip()
-        details = [
-            str(item.get("number") or "").strip(),
-            str(item.get("title") or "").strip(),
-            str(item.get("status") or "").strip(),
-        ]
-        suffix = " | ".join(value for value in details if value and value != main)
-        return f"{main} - {suffix}" if suffix else main
-
     @classmethod
     def _build_item_payload(cls, item: dict[str, Any]) -> dict[str, str]:
         number = str(item.get("number") or "").strip()

@@ -260,8 +260,6 @@ class SessionManager:
         )
         return str(self.username or "").strip()
 
-    def clear_session(self) -> None:
-        self.username = None
         # Session data cleared.
 
     def clear_credentials(self) -> None:

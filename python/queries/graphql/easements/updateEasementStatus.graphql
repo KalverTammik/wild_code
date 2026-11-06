@@ -1,0 +1,13 @@
+mutation UpdateEasementStatus($input: UpdateEasementInput!) {
+  updateEasement(input: $input) {
+    __typename
+    id
+    updatedAt
+    status {
+      id
+      name
+      color
+      type
+    }
+  }
+}

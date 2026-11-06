@@ -5,7 +5,6 @@ from ...module_manager import Module
 from ...constants.file_paths import QueryPaths
 
 from ...python.api_client import APIClient
-from ...python.responses import HandlePropertiesResponses
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 
 
@@ -21,17 +20,7 @@ class PropertiesConnectedElementsQueries:
 
     def __init__(self):
         self.query_loader = QueryPaths()
-        self.handle_response = HandlePropertiesResponses()
         self._processor = ProcessElementData()
-
-    def load_query_properties(module_name):
-        cl = PropertiesConnectedElementsQueries()
-        module_key = cl._normalize_module_key(module_name)
-        module_file = cl.module_to_filename.get(module_key)
-        if not module_file:
-            raise ValueError(f"Module name {module_name} is not valid.")
-        QueryPaths().load_query_properties_connected_elements(module_file)
-
 
     def _normalize_module_key(self, module_name: Any) -> Optional[str]:
         if isinstance(module_name, Module):

@@ -4,8 +4,6 @@ import json
 from typing import Any
 
 from ...constants.settings_keys import SettingsService
-from ...languages.language_manager import LanguageManager
-from ...languages.translation_keys import TranslationKeys
 from ..Settings.setting_keys import SettingDialogPlaceholders
 
 
@@ -57,21 +55,6 @@ class ProjectBoardStatusRules:
             status_name = names[index] if index < len(names) else status_id
             rows.append({"statusId": status_id, "statusName": status_name or status_id})
         return json.dumps(rows, ensure_ascii=False)
-
-    @classmethod
-    def format_not_started_status_summary(cls, stored_value) -> str:
-        rows = cls.parse_not_started_status_rows(stored_value)
-        if not rows:
-            return LanguageManager().translate(TranslationKeys.PROJECT_BOARD_NOT_STARTED_SUMMARY_EMPTY)
-
-        preview = ", ".join(str(row.get("statusName") or "?").strip() for row in rows[:2])
-        if len(rows) > 2:
-            preview = f"{preview}, +{len(rows) - 2}" if preview else f"+{len(rows) - 2}"
-
-        return LanguageManager().translate(TranslationKeys.PROJECT_BOARD_NOT_STARTED_SUMMARY).format(
-            count=len(rows),
-            preview=preview or "-",
-        )
 
     @classmethod
     def is_not_started_item(cls, module_key: str, item: dict[str, Any]) -> bool:

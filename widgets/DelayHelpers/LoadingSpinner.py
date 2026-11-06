@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt, QPropertyAnimation, pyqtProperty, QTimer
-from PyQt5.QtGui import QColor, QPainter, QConicalGradient, QPen, QFont
+from PyQt5.QtGui import QColor, QPainter, QConicalGradient, QPen
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QApplication, QVBoxLayout, QLabel
 
@@ -84,39 +84,6 @@ class GradientSpinner(QWidget):
 
     def text(self) -> str:
         return self._base_text
-
-    def setTextColor(self, color: QColor):
-        self._text_color = QColor(color)
-        self.update()
-
-    def setSpinnerFont(self, font: QFont):
-        self._font = font
-        self.update()
-
-    def setSubText(self, text: str):
-        self._sub_text = text or ""
-        self.update()
-
-    def setSubTextColor(self, color: QColor):
-        self._sub_text_color = QColor(color)
-        self.update()
-
-    def setSubTextFont(self, font: QFont):
-        self._sub_text_font = font
-        self.update()
-
-    def setDotsEnabled(self, enabled: bool):
-        self._dots_enabled = bool(enabled)
-        if not self._dots_enabled:
-            self._dots_timer.stop()
-            self._dot_count = 0
-            self.update()
-        elif self._anim.state() == QPropertyAnimation.Running and not self._dots_timer.isActive():
-            self._dots_timer.start()
-
-    def setDotsInterval(self, ms: int):
-        self._dots_interval_ms = int(ms)
-        self._dots_timer.setInterval(self._dots_interval_ms)
 
     # --- internal ---
     def _advanceDots(self):

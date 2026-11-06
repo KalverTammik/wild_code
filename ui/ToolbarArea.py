@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QVBoxLayout,
     QWidget,
-    QLayout,
     QSizePolicy,
     QSpacerItem,
     QLabel,
@@ -17,7 +16,6 @@ from PyQt5.QtWidgets import (
 
 from ..widgets.theme_manager import ThemeManager, styleExtras, ThemeShadowColors, AlphaLevel
 from ..constants.file_paths import QssPaths
-from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class ModuleToolbarArea(QFrame):
@@ -102,17 +100,6 @@ class ModuleToolbarArea(QFrame):
             self._refresh_widget = widget
             self._reflow_left_widgets()
 
-    def clear_left(self) -> None:
-        for widget in self._left_widgets:
-            widget.setParent(None)
-            widget.deleteLater()
-        self._left_widgets.clear()
-        if self._refresh_widget is not None:
-            self._refresh_widget.setParent(None)
-            self._refresh_widget.deleteLater()
-        self._refresh_widget = None
-        self._purge_left_grid()
-
     def clear_refresh(self) -> None:
         widget = self._refresh_widget
         if widget is None:
@@ -122,9 +109,6 @@ class ModuleToolbarArea(QFrame):
         widget.deleteLater()
         self._reflow_left_widgets()
 
-    def clear_right(self) -> None:
-        self._clear_layout(self._right_layout)
-
     def retheme(self) -> None:
         """Re-apply toolbar QSS."""
         ThemeManager.apply_module_style(
@@ -132,37 +116,9 @@ class ModuleToolbarArea(QFrame):
             [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.COMBOBOX, QssPaths.MODULE_TOOLBAR],
         )
 
-    @staticmethod
-    def _clear_layout(layout: QLayout) -> None:
-        try:
-            while layout.count():
-                item = layout.takeAt(0)
-                w = item.widget()
-                if w is not None:
-                    w.setParent(None)
-                    w.deleteLater()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="toolbar_clear_layout_failed",
-            )
-
     def resizeEvent(self, event):  # noqa: D401
         super().resizeEvent(event)
         self._reflow_left_widgets()
-
-    def set_left_max_columns(self, count: int) -> None:
-        """Optionally allow plugins to override how many widgets fit per row."""
-        if count and count > 0:
-            self._left_max_columns = count
-            self._reflow_left_widgets()
-
-    def set_left_preferred_width(self, width: int) -> None:
-        """Override the approximate width used to estimate wrap columns."""
-        if width and width > 0:
-            self._left_preferred_width = width
-            self._reflow_left_widgets()
 
     def _reflow_left_widgets(self) -> None:
         """Place left widgets inside the grid, wrapping rows as needed."""

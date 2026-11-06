@@ -206,12 +206,6 @@ class PropertyManagementUI(SettingsBaseCard):
             self._warn_missing_search_field_if_needed()
 
     # ---------- Button Handlers ----------
-    def _on_property_added(self, property_data):
-        """Handle when a property is successfully added"""
-        # Here you can add logic to save the property data
-        # For now, just emit the original signal
-        self.addPropertyClicked.emit()
-
     def _on_remove_property_clicked(self):
         """SignalTest-style delete/action flow.
 

@@ -57,11 +57,6 @@ class PythonFailLogger:
         PythonFailLogger._install_excepthook()
 
     @staticmethod
-    def _setup_fatal_logger() -> None:
-        # Fatal monitoring disabled by design to avoid file locks/spam.
-        return None
-
-    @staticmethod
     def _install_excepthook() -> None:
         def _hook(exc_type, exc, tb):
             try:

@@ -440,10 +440,6 @@ class AsBuiltLayerService:
             error_event="asbuilt_geometry_to_payload_failed",
         )
 
-    @staticmethod
-    def _normalize_backend_geometry_payload(payload: dict[str, object]) -> dict[str, object]:
-        return GeometryPayloadService.normalize_backend_payload(payload)
-
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_name: str = ""):
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():

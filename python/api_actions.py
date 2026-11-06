@@ -211,6 +211,8 @@ class APIModuleActions:
                 event="task_priority_values_fetch_failed",
             )
 
+        # The server refuses introspection, so do not resend a doomed request on every lookup.
+        APIModuleActions._task_priority_values_cache = list(APIModuleActions._TASK_PRIORITY_DEFAULTS)
         return list(APIModuleActions._TASK_PRIORITY_DEFAULTS)
 
     @staticmethod
@@ -392,35 +394,6 @@ class APIModuleActions:
         )
         return users
 
-    @staticmethod
-    def delete_item(module: str, item_id: str, lang_manager: LanguageManager) -> bool:
-        """
-        Delete a single item from the specified module using the API.
-        Returns True on success, False otherwise.
-        """
-        # Map module to its delete query file
-        query_file = f"D_DELETE_{module}.graphql"
-
-        # Load the GraphQL query
-        loader = GraphQLQueryLoader()
-
-        try:
-            query = loader.load_query_by_module(module, query_file)
-        except Exception as exc:
-            print(f"Failed to load delete query for {module}: {exc}")
-            return False
-        variables = {"id": item_id}
-
-        # Send the request
-        client = APIClient()
-        try:
-            response = client.send_query(query, variables=variables)
-            # You may want to check for errors in the response here
-            return True
-        except Exception as e:
-            print(f"Failed to delete item {item_id} in module {module}: {e}")
-            return False
-        
     @staticmethod
     def get_module_item_connected_properties(
         module: str,
@@ -812,10 +785,6 @@ class APIModuleActions:
             return None
 
     @staticmethod
-    def get_task_files(item_id: str, *, limit: int = 200) -> Optional[List[dict]]:
-        return APIModuleActions.get_module_files(Module.TASK.value, item_id, limit=limit)
-
-    @staticmethod
     def get_tasks_by_ids(item_ids: List[str]) -> dict[str, dict]:
         """Fetch multiple tasks by id using the list query in small chunks."""
 
@@ -1004,6 +973,76 @@ class APIModuleActions:
         )
 
     @staticmethod
+    def get_easement_status(item_id: str) -> Optional[dict]:
+        """Return the status the easement has in Kavitro now, or None when it cannot be read."""
+
+        easement_id = str(item_id or "").strip()
+        if not easement_id:
+            return None
+
+        loader = GraphQLQueryLoader()
+        client = APIClient()
+        try:
+            query = loader.load_query_by_module(Module.EASEMENT.value, "easementStatus.graphql")
+            data = client.send_query(query, variables={"id": easement_id}) or {}
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_status_fetch_failed",
+                extra={"item_id": easement_id},
+            )
+            return None
+
+        easement = (data.get("easement") or {}) if isinstance(data, dict) else {}
+        status = easement.get("status") if isinstance(easement, dict) else None
+        return status if isinstance(status, dict) and str(status.get("id") or "").strip() else None
+
+    @staticmethod
+    def update_easement_status(item_id: str, status_id: str) -> Optional[dict]:
+        """Change the easement status in Kavitro; returns the status Kavitro saved, or None."""
+
+        easement_id = str(item_id or "").strip()
+        resolved_status_id = str(status_id or "").strip()
+        if not easement_id or not resolved_status_id:
+            return None
+
+        variables = {
+            "input": {
+                "id": easement_id,
+                "status": resolved_status_id,
+            }
+        }
+        extra = {"item_id": easement_id, "status_id": resolved_status_id}
+
+        loader = GraphQLQueryLoader()
+        client = APIClient()
+        try:
+            query = loader.load_query_by_module(Module.EASEMENT.value, "updateEasementStatus.graphql")
+            data = client.send_query(query, variables=variables) or {}
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_update_status_failed",
+                extra=extra,
+            )
+            return None
+
+        updated = (data.get("updateEasement") or {}) if isinstance(data, dict) else {}
+        status = updated.get("status") if isinstance(updated, dict) else None
+        # An answer with another status means Kavitro did not take the change.
+        if not isinstance(status, dict) or str(status.get("id") or "").strip() != resolved_status_id:
+            PythonFailLogger.log_exception(
+                RuntimeError("updateEasement did not return the requested status"),
+                module=Module.EASEMENT.value,
+                event="easement_update_status_not_applied",
+                extra=extra,
+            )
+            return None
+        return status
+
+    @staticmethod
     def create_file_download_link(file_uuid: str) -> Optional[str]:
         resolved_uuid = str(file_uuid or "").strip()
         if not resolved_uuid:
@@ -1152,10 +1191,6 @@ class APIModuleActions:
                 },
             )
             return None
-
-    @staticmethod
-    def upload_task_file(item_id: str, file_path: str, *, metadata: Optional[dict] = None) -> Optional[dict]:
-        return APIModuleActions.upload_module_file(Module.TASK.value, item_id, file_path, metadata=metadata)
 
     @staticmethod
     def update_task_status(item_id: str, status_id: str) -> Optional[dict]:

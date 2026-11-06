@@ -731,7 +731,7 @@ TRANSLATIONS = {
         ,TranslationKeys.ASBUILT_LAYER_MISSING: "As-built layer is not configured or is missing from the project. Please configure the As-built main layer in Settings first."
         ,TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON: "Create on map"
         ,TranslationKeys.WORKS_CREATE_DIALOG_TITLE: "Create work"
-        ,TranslationKeys.WORKS_CREATE_DIALOG_INTRO: "Choose a map location, then create a new Works task for that point. If a property is found at the clicked location, it will be linked automatically when possible."
+        ,TranslationKeys.WORKS_CREATE_PROPERTY_LINK_HINT: "A property found at this location is linked to the work automatically when possible."
         ,TranslationKeys.WORKS_CREATE_PROPERTY_LABEL: "Property"
         ,TranslationKeys.WORKS_CREATE_PROPERTY_NONE: "No property found at this location"
         ,TranslationKeys.WORKS_CREATE_COORDINATES_LABEL: "Coordinates"

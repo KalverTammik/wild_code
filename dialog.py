@@ -94,8 +94,7 @@ class PluginDialog(QDialog):
         self.moduleStack.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
 
-        self._geometry_update_callbacks = []
-        self._geometry_watcher = DialogGeometryWatcher(self, on_update=self._notify_geometry_update)
+        self._geometry_watcher = DialogGeometryWatcher(self)
 
         # Layout
         dialog_layout = QVBoxLayout()
@@ -159,28 +158,6 @@ class PluginDialog(QDialog):
         # Mark fully initialized only at the end
         self._initialized = True
 
-
-    def _notify_geometry_update(self, x, y, w, h):
-        for cb in self._geometry_update_callbacks:
-            try:
-                cb(x, y, w, h)
-
-            except Exception as e:
-                SwitchLogger.log(
-                    "dialog_geometry_callback_failed",
-                    module=Module.HOME.value,
-                    extra={"error": str(e)},
-                )
-
-    def subscribe_geometry_updates(self, callback):
-        self._geometry_update_callbacks.append(callback)
-        # Immediately call with current geometry
-        geo = self.geometry()
-        callback(geo.x(), geo.y(), geo.width(), geo.height())
-        def unsubscribe():
-            if callback in self._geometry_update_callbacks:
-                self._geometry_update_callbacks.remove(callback)
-        return unsubscribe
 
     def _on_destroyed(self, obj):
         PluginDialog._instance = None

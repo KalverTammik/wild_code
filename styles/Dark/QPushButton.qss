@@ -19,13 +19,6 @@ QPushButton:disabled {
     color: rgba(230,233,239,0.50);
 }
 
-/* Dark frame backdrop for test harness */
-QFrame {
-    background-color: #0f1419;
-    border: 1px solid #1f2a31;
-    border-radius: 6px;
-}
-
 /* Size scale (smaller/medium/larger) */
 QPushButton[btnSize="sm"] { padding: 1px 6px; min-height: 20px; font-size: 10px; }
 QPushButton[btnSize="md"] { padding: 6px 12px; min-height: 24px; font-size: 13px; }

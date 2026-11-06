@@ -90,7 +90,6 @@ Practical effect:
 Implementation map:
 - `widgets/DataDisplayWidgets/ExtraInfoWidget.py :: ExtraInfoFrame.__init__`
 - `widgets/DataDisplayWidgets/ExtraInfoWidget.py :: ExtraInfoWidget.should_show_detail_handle`
-- `widgets/DataDisplayWidgets/ExtraInfoWidget.py :: ExtraInfoWidget._detail_button_tooltip`
 
 `ExtraInfoFrame.__init__()` creates the handle only if `ExtraInfoWidget.should_show_detail_handle()` returns `True`.
 

@@ -299,11 +299,3 @@ class UnifiedFeedLogic:
             self.is_loading = False
 
     # Introspection
-    def has_more_items(self) -> bool:
-        return self.has_more
-
-    def get_total_count(self) -> Optional[int]:
-        return self.total_count
-
-    def get_last_error(self) -> Optional[Exception]:
-        return self.last_error

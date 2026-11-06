@@ -38,7 +38,6 @@ class SettingsModule(TokenMixin, QWidget):
     """
     # Signals for user action buttons
     addShpClicked = pyqtSignal()
-    addPropertyClicked = pyqtSignal()
 
     def __init__(
             self,

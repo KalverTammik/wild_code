@@ -135,10 +135,11 @@ class EasementPreviewDialog(QDialog):
 
     _DEFAULT_CURRENCY = "EUR"
 
-    def __init__(self, *, item_data=None, lang_manager=None, parent=None) -> None:
+    def __init__(self, *, item_data=None, lang_manager=None, parent=None, on_status_changed=None) -> None:
         super().__init__(parent)
         self._lang = lang_manager or LanguageManager()
         self._item = item_data if isinstance(item_data, dict) else {}
+        self._on_status_changed = on_status_changed
         self._service = ProjectBaseLayersService()
         self._preview_layer_names: set[str] = set()
         self._layer_name_labels: dict[str, QLabel] = {}
@@ -525,6 +526,7 @@ class EasementPreviewDialog(QDialog):
             item_data=self._item,
             initial_values=self._easement_form_initial_values(property_edges or []),
             parent=self,
+            on_status_changed=self._on_status_changed,
         )
         if form_values is None:
             return False, "Servituudi ala andmete sisestamine katkestati"

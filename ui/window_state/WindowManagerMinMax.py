@@ -23,12 +23,6 @@ class WindowManagerMinMax:
             self.is_minimized = True
             self.is_maximized = False
 
-    def _maximize_window(self) -> None:
-        if not self.is_maximized:
-            self.window.showMaximized()
-            self.is_maximized = True
-            self.is_minimized = False
-
     def _restore_window(self) -> None:
         coordinator = get_dialog_coordinator(iface)
         coordinator.exit_map_selection_mode(parent=self.window)
@@ -38,9 +32,3 @@ class WindowManagerMinMax:
             pass
         self.is_maximized = False
         self.is_minimized = False
-
-    def _toggle_maximize(self) -> None:
-        if self.is_maximized:
-            self._restore_window()
-        else:
-            self._maximize_window()

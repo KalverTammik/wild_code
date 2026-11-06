@@ -569,7 +569,7 @@ class TranslationKeys:
     MAP_IDENTIFY_FEATURE_MISSING = "map_identify_feature_missing"
     MAP_IDENTIFY_OPEN_FAILED = "map_identify_open_failed"
     WORKS_CREATE_DIALOG_TITLE = "works_create_dialog_title"
-    WORKS_CREATE_DIALOG_INTRO = "works_create_dialog_intro"
+    WORKS_CREATE_PROPERTY_LINK_HINT = "works_create_property_link_hint"
     WORKS_CREATE_PROPERTY_LABEL = "works_create_property_label"
     WORKS_CREATE_PROPERTY_NONE = "works_create_property_none"
     WORKS_CREATE_COORDINATES_LABEL = "works_create_coordinates_label"

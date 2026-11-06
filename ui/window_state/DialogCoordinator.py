@@ -46,39 +46,6 @@ class DialogCoordinator:
                 ),
             )
 
-    def open_modal(self, dialog: QWidget, *, parent: QWidget | None = None) -> int:
-        if dialog is None:
-            return 0
-        self.ensure_parent(dialog, parent=parent)
-        try:
-            if hasattr(dialog, "exec_"):
-                return int(dialog.exec_())
-        except Exception:
-            try:
-                dialog.show()
-                self.bring_to_front(dialog)
-            except Exception:
-                return 0
-            return 0
-        return 0
-
-    def open_non_modal(
-        self,
-        dialog: QWidget,
-        *,
-        parent: QWidget | None = None,
-        bring_front: bool = True,
-    ) -> None:
-        if dialog is None:
-            return
-        self.ensure_parent(dialog, parent=parent)
-        try:
-            dialog.show()
-        except Exception:
-            return
-        if bring_front:
-            self.bring_to_front(dialog)
-
     def enter_map_selection_mode(
         self,
         *,
@@ -105,20 +72,6 @@ class DialogCoordinator:
             if top is not None:
                 self.bring_to_front(top)
 
-    def ensure_parent(self, widget: QWidget, parent: QWidget | None = None) -> None:
-        if widget is None:
-            return
-        if parent is None:
-            parent = self._get_main_window()
-        try:
-            if widget.isVisible():
-                return
-            current_parent = widget.parent()
-            if parent is not None and current_parent is None:
-                widget.setParent(parent)
-        except Exception:
-            return
-
     def is_minimized(self, widget: QWidget) -> bool:
         widget = self._as_window(widget)
         if widget is None:
@@ -127,24 +80,6 @@ class DialogCoordinator:
             return bool(widget.isMinimized())
         except Exception:
             return False
-
-    def restore_if_minimized(self, widget: QWidget) -> None:
-        widget = self._as_window(widget)
-        if widget is None:
-            return
-        if self.is_minimized(widget):
-            try:
-                widget.showNormal()
-            except Exception:
-                return
-
-    def _get_main_window(self) -> QWidget | None:
-        try:
-            if self.iface is None:
-                return None
-            return self.iface.mainWindow()
-        except Exception:
-            return None
 
     def _show_or_restore(self, widget: QWidget) -> None:
         try:

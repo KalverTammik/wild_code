@@ -473,3 +473,32 @@ QCheckBox#SelectAllCheckbox[kavitroSelectAll="true"] {
 /* ---------------------- Nice-to-haves ---------------------- */
 /* prevent native focus rect artifacts on some platforms */
 QComboBox::indicator { width: 0; height: 0; }
+
+/* ---------------------- Form combo popup, matches the status select popup ---------------------- */
+QAbstractItemView[kavitroFormPopup="true"] {
+    background: #242b33;
+    color: #f5f7fa;
+    border: 1px solid rgba(9,144,143,0.58);
+    border-radius: 8px;
+    padding: 6px;
+    outline: none;
+}
+QAbstractItemView[kavitroFormPopup="true"]::item {
+    min-height: 24px;
+    padding: 2px 8px;
+    margin: 1px 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: #f5f7fa;
+}
+QAbstractItemView[kavitroFormPopup="true"]::item:hover {
+    background: rgba(255,255,255,0.08);
+    color: #f5f7fa;
+}
+QAbstractItemView[kavitroFormPopup="true"]::item:selected,
+QAbstractItemView[kavitroFormPopup="true"]::item:selected:active,
+QAbstractItemView[kavitroFormPopup="true"]::item:selected:!active {
+    background: rgba(9,144,143,0.24);
+    border: 1px solid rgba(9,144,143,0.58);
+    color: #f5f7fa;
+}

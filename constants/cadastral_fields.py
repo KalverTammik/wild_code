@@ -46,66 +46,6 @@ class Katastriyksus:
     search_field_items = [tunnus, l_aadress, ay_nimi, ov_nimi, mk_nimi]
 
 
-class OldKatastriyksus:
-    """Field constants for old format cadastral data."""
-    tunnus = "TUNNUS"                            # Katastriüksuse tunnus
-    hkood = "HKOOD"                              # Haldusüksuse kood
-    mk_nimi = "MK_NIMI"                          # Maakonna nimetus
-    ov_nimi = "OV_NIMI"                          # Omavalitsuse nimetus
-    ay_nimi = "AY_NIMI"                          # Asustusüksuse nimetus
-    l_aadress = "L_AADRESS"                      # Lahiaadress
-    registr = "REGISTR"                          # Katastriüksuse esmaregistreerimise kuupäev
-    muudet = "MUUDET"                            # Katastriüksuse viimase muudatuse kuupäev
-    siht1 = "SIHT1"                              # 1. sihtostarve
-    siht2 = "SIHT2"                              # 2. sihtostarve
-    siht3 = "SIHT3"                              # 3. sihtostarve
-    so_prts1 = "SO_PRTS1"                        # 1. sihtostarbe protsent
-    so_prts2 = "SO_PRTS2"                        # 2. sihtostarbe protsent
-    so_prts3 = "SO_PRTS3"                        # 3. sihtostarbe protsent
-    pindala = "PINDALA"                          # Katastriüksuse pindala
-    haritav = "HARITAV"                          # Haritava maa kõlvik
-    rohumaa = "ROHUMAA"                          # Loodusliku rohumaa kõlvik
-    mets = "METS"                                # Metsamaa kõlvik
-    ouemaa = "OUEMAA"                            # Õuemaa kõlvik
-    muumaa = "MUUMAA"                            # Muu maa kõlvik
-    kinnistu = "KINNISTU"                        # Kinnistu registriosa number
-    omvorm = "OMVORM"                            # Katastriüksuse omandivorm
-    maks_hind = "MAKS_HIND"                      # Maa-ameti arvutatud maaüksuse maksustamishind €
-    marked = "MARKETEKST"                        # Katastriüksuse märked
-    eksport = "EKSPORT"                          # Katastriüksuse märked
-
-
-class KatasterMappings:
-    """Field mapping between old and new cadastral data formats."""
-    field_mapping = {
-        OldKatastriyksus.tunnus: Katastriyksus.tunnus,
-        OldKatastriyksus.hkood: Katastriyksus.hkood,
-        OldKatastriyksus.mk_nimi: Katastriyksus.mk_nimi,
-        OldKatastriyksus.ov_nimi: Katastriyksus.ov_nimi,
-        OldKatastriyksus.ay_nimi: Katastriyksus.ay_nimi,
-        OldKatastriyksus.l_aadress: Katastriyksus.l_aadress,
-        OldKatastriyksus.registr: Katastriyksus.registr,
-        OldKatastriyksus.muudet: Katastriyksus.muudet,
-        OldKatastriyksus.siht1: Katastriyksus.siht1,
-        OldKatastriyksus.siht2: Katastriyksus.siht2,
-        OldKatastriyksus.siht3: Katastriyksus.siht3,
-        OldKatastriyksus.so_prts1: Katastriyksus.so_prts1,
-        OldKatastriyksus.so_prts2: Katastriyksus.so_prts2,
-        OldKatastriyksus.so_prts3: Katastriyksus.so_prts3,
-        OldKatastriyksus.pindala: Katastriyksus.pindala,
-        OldKatastriyksus.haritav: Katastriyksus.haritav,
-        OldKatastriyksus.rohumaa: Katastriyksus.rohumaa,
-        OldKatastriyksus.mets: Katastriyksus.mets,
-        OldKatastriyksus.ouemaa: Katastriyksus.ouemaa,
-        OldKatastriyksus.muumaa: Katastriyksus.muumaa,
-        OldKatastriyksus.kinnistu: Katastriyksus.kinnistu,
-        OldKatastriyksus.omvorm: Katastriyksus.omvorm,
-        OldKatastriyksus.maks_hind: Katastriyksus.maks_hind,
-        OldKatastriyksus.marked: Katastriyksus.marked,
-        OldKatastriyksus.eksport: Katastriyksus.eksport
-    }
-
-
 class Purpose:
     """Purpose constants for land use classification."""
     transport = "TRANSPORDIMAA"
@@ -115,34 +55,3 @@ class Purpose:
 class AreaUnit:
     M = "SQM"
     H = "H"
-
-    def convert_to_area_unit(value):
-        if value == "M":
-            return AreaUnit.M
-        elif value == "H":
-            return AreaUnit.H
-        else:
-            # Handle invalid input, if necessary
-            return AreaUnit.M  # Default value
-
-    def process_size_and_unit(size, unit_raw):
-        try:
-            size = float(size)  # Convert size to float
-        except ValueError:
-            # Handle the case where size is not a valid number
-            return "Invalid Size"
-
-        if unit_raw == "H":
-            value = size / 1000  # Divide size by 1000 if unit is "H"
-        elif unit_raw == "M":
-            value = size
-        elif unit_raw is None:
-            value = size
-            unit_raw = AreaUnit.M
-        else:
-            # Handle invalid unit_raw values
-            return "Invalid Unit"
-
-        return str(value), unit_raw
-
-

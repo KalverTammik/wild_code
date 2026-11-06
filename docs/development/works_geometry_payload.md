@@ -48,3 +48,5 @@ Praegu saadetakse backendile ainult tookasu enda punktgeomeetria.
 - Lahedal asuvaid veevorgu voi kanalisatsioonivorgu geomeetriaid praegu payloadi ei lisata.
 - Payload ei sisalda seotud objektide massiivi ega muid vorgukihtide geomeetriaid.
 - QGIS-i tagasi lugemisel kasutatakse sama `Point` objekti tookasu punktkihi geomeetriana.
+- Backend ei kontrolli seda valja (`JSON` skalaar). Kui koordinaadid ei mahu tookihi CRS-i ulatusse voi geomeetria tyyp ei klapi, jaab asukoht muutmata ja logitakse `works_sync_geometry_skipped`.
+- Iga backendist tulnud asukoha muutus logitakse syndmusena `works_sync_location_moved` koos vana asukohaga.

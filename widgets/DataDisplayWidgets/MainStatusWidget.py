@@ -62,7 +62,6 @@ class MainStatusWidget(QWidget):
 
         status_info = DataDisplayExtractors.extract_status(item_data)
         self._status_name = str(status_info.name or "-").strip() or "-"
-        bg, _fg, border = StatusColorHelper.upgrade_status_color(str(status_info.color or "cccccc"))
         self._status_delegate = None
         if StatusWidget is not None:
             self._status_delegate = StatusWidget(
@@ -75,10 +74,10 @@ class MainStatusWidget(QWidget):
 
         theme_name = ThemeManager.effective_theme()
         dark_theme = is_dark(theme_name) if theme_name in (Theme.DARK, Theme.LIGHT, Theme.SYSTEM) else False
-        shell_fill = "rgba(255,255,255,0.82)" if not dark_theme else "rgba(255,255,255,0.08)"
-        shell_border = "rgba(25,35,45,0.12)" if not dark_theme else "rgba(255,255,255,0.10)"
-        glow_alpha = 0.26 if not dark_theme else 0.32
-        core_alpha = 0.56 if not dark_theme else 0.62
+        self._shell_fill = "rgba(255,255,255,0.82)" if not dark_theme else "rgba(255,255,255,0.08)"
+        self._shell_border = "rgba(25,35,45,0.12)" if not dark_theme else "rgba(255,255,255,0.10)"
+        self._glow_alpha = 0.26 if not dark_theme else 0.32
+        self._core_alpha = 0.56 if not dark_theme else 0.62
         shell_radius = max(2, min(10, self.RAIL_WIDTH))
         core_radius = max(2, min(8, self.RAIL_WIDTH - 1))
         glow_radius = max(1, min(6, self.RAIL_WIDTH - 2))
@@ -96,11 +95,6 @@ class MainStatusWidget(QWidget):
         self.rail_frame.setToolTip("")
         self.rail_frame.setMouseTracking(True)
         self.rail_frame.installEventFilter(self)
-        self.rail_frame.setStyleSheet(
-            f"background-color: {shell_fill};"
-            f"border: 1px solid {shell_border};"
-            f"border-right: 1px solid rgba({bg[0]},{bg[1]},{bg[2]}, 0.96);"
-        )
         styleExtras.apply_chip_shadow(
             self.rail_frame,
             color=ThemeShadowColors.GRAY,
@@ -116,10 +110,6 @@ class MainStatusWidget(QWidget):
 
         self.core_fill = QFrame(self.rail_frame)
         self.core_fill.setObjectName("MainStatusCore")
-        self.core_fill.setStyleSheet(
-            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, {core_alpha});"
-            f"border: 1px solid rgba({border[0]},{border[1]},{border[2]}, 0.30);"
-        )
         core_layout = QVBoxLayout(self.core_fill)
         core_layout.setContentsMargins(0, self.CORE_TOP_BOTTOM_RIGHT_GAP, self.CORE_TOP_BOTTOM_RIGHT_GAP, self.CORE_TOP_BOTTOM_RIGHT_GAP)
         core_layout.setSpacing(0)
@@ -127,14 +117,12 @@ class MainStatusWidget(QWidget):
         self.inner_glow = QFrame(self.core_fill)
         self.inner_glow.setObjectName("MainStatusGlow")
         self.inner_glow.setMinimumWidth(inner_glow_width)
-        self.inner_glow.setStyleSheet(
-            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, {glow_alpha});"
-        )
         core_layout.addWidget(self.inner_glow, 1)
 
         rail_layout.addWidget(self.core_fill, 1)
 
         root.addWidget(self.rail_frame, 0, Qt.AlignLeft)
+        self._apply_status_colors(str(status_info.color or "cccccc"))
 
         PopupHelpers.bind_hide_timeout_attr_for(
             None,
@@ -148,6 +136,29 @@ class MainStatusWidget(QWidget):
         if self._status_delegate is not None and self._status_delegate._can_edit_status():
             self.setCursor(Qt.PointingHandCursor)
             self.rail_frame.setCursor(Qt.PointingHandCursor)
+
+    def apply_status(self, item_data) -> None:
+        """Show a status the item got after its card was built, without building the card again."""
+        status_info = DataDisplayExtractors.extract_status(item_data)
+        self._status_name = str(status_info.name or "-").strip() or "-"
+        self._apply_status_colors(str(status_info.color or "cccccc"))
+        if self._status_delegate is not None:
+            self._status_delegate._item_data = dict(item_data or {})
+
+    def _apply_status_colors(self, status_color: str) -> None:
+        bg, _fg, border = StatusColorHelper.upgrade_status_color(status_color)
+        self.rail_frame.setStyleSheet(
+            f"background-color: {self._shell_fill};"
+            f"border: 1px solid {self._shell_border};"
+            f"border-right: 1px solid rgba({bg[0]},{bg[1]},{bg[2]}, 0.96);"
+        )
+        self.core_fill.setStyleSheet(
+            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, {self._core_alpha});"
+            f"border: 1px solid rgba({border[0]},{border[1]},{border[2]}, 0.30);"
+        )
+        self.inner_glow.setStyleSheet(
+            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, {self._glow_alpha});"
+        )
 
     def eventFilter(self, obj, event):  # noqa: N802 - Qt override
         event_type = event.type()

@@ -42,27 +42,6 @@ class PropertyDataService:
         self._write_cache(cache_key, payload)
         return payload
 
-    def build_connections_for_property_id(
-        self,
-        property_id: str,
-        *,
-        cadastral_number: Optional[str] = None,
-    ) -> Dict[str, object]:
-        resolved = (cadastral_number or "").strip()
-        cache_key = ("property_id", str(property_id or "").strip(), resolved, self._session_signature())
-        cached_payload = self._read_cache(cache_key)
-        if cached_payload is not None:
-            return cached_payload
-
-        if not property_id:
-            payload = {"entries": [], "message": "Kinnistut ei leitud"}
-            self._write_cache(cache_key, payload)
-            return payload
-
-        payload = self._build_entry_payload(resolved, property_id)
-        self._write_cache(cache_key, payload)
-        return payload
-
     def _build_entry_payload(self, cadastral_number: str, property_id: str) -> Dict[str, object]:
         module_data = self._connections.fetch_all_module_data(property_id)
         entry = self._formatter.build_entry(cadastral_number, property_id, module_data)

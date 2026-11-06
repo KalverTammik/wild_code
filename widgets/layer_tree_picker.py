@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QTreeWidget, QTreeWidge
 from qgis.core import Qgis, QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMapLayer, QgsProject, QgsVectorLayer
 
 from ..constants.file_paths import QssPaths
+from .select_arrow import SelectArrow
 from .theme_manager import ThemeManager
 
 
@@ -61,9 +62,7 @@ class LayerTreePicker(QWidget):
         dropdown_layout = QHBoxLayout(self._dropdown_frame)
         dropdown_layout.setContentsMargins(0, 0, 0, 0)
         dropdown_layout.setSpacing(0)
-        self._arrow = QLabel("v", self._dropdown_frame)
-        self._arrow.setObjectName("LayerTreePickerArrow")
-        self._arrow.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._arrow = SelectArrow(self._dropdown_frame)
         dropdown_layout.addWidget(self._arrow, 0, Qt.AlignCenter)
         container_layout.addWidget(self._dropdown_frame, 0)
 

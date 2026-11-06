@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButto
 
 from ....widgets.theme_manager import ThemeManager
 from ....constants.module_icons import IconNames
-from ....utils.Folders.foldersHelpers import FolderHelpers
 from ....constants.file_paths import QssPaths
 from ....languages.translation_keys import SettingDialogPlaceholders, TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
@@ -30,24 +29,6 @@ class ModuleLabelsWidget(QFrame):
     def _not_defined_jet(self) -> str:
         return self.lang_manager.translate(SettingDialogPlaceholders.UNSET)
     
-    def _label_value(self, label_def: dict) -> str:
-        if not label_def:
-            return self._not_defined_jet()
-        raw_value = label_def.get("value")
-        if callable(raw_value):
-            try:
-                raw_value = raw_value()
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.SETTINGS.value,
-                    event="settings_label_value_failed",
-                )
-                raw_value = None
-        if raw_value is None or raw_value == "":
-            return self._not_defined_jet()
-        return str(raw_value)
-
     def _checkbox_value(self, label_def: dict) -> bool:
         if not label_def:
             return False
@@ -163,14 +144,6 @@ class ModuleLabelsWidget(QFrame):
         root.addLayout(layout)
         self.retheme()
 
-    def _on_select_folder_clicked(self, key: str, value_label: QLabel) -> None:
-        if not key:
-            return
-        start_path = value_label.text() or ""
-        selected = FolderHelpers.select_folder_path(self, start_path=start_path)
-        if selected:
-            self._update_label_value(key, selected, value_label)
-
     def _clear_label_value(self, key: str) -> None:
         widget = self._label_widgets.get(key)
         if not widget:
@@ -233,10 +206,6 @@ class ModuleLabelsWidget(QFrame):
                 target.style().unpolish(target)
                 target.style().polish(target)
 
-    @property
-    def label_widgets(self):
-        return self._label_widgets
-    
     def retheme(self) -> None:
         ThemeManager.apply_module_style(self, [QssPaths.SETTING_MODULE_LABELS])
 

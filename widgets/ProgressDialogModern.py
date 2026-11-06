@@ -204,20 +204,6 @@ class ProgressDialogModern(QDialog):
         self.cancel_button.setEnabled(False)
         self.canceled.emit()
 
-    def wasCanceled(self):
-        """
-        Check if operation was cancelled.
-
-        Returns:
-            bool: True if cancelled
-        """
-        return self.is_cancelled
-
-    def setTitle(self, title):
-        """Set dialog title."""
-        self.setWindowTitle(title)
-        self.title_label.setText(title)
-
     def setMaximum(self, maximum):
         """Set maximum progress value."""
         self.maximum = maximum
@@ -238,11 +224,6 @@ class ProgressDialogModern(QDialog):
         self.percentage_label.setText(self.lang_manager.translate(TranslationKeys.PROGRESS_DIALOG_MODERN_PERCENT))
         self.cancel_button.setText(self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON))
         self.cancel_button.setEnabled(True)
-
-    def setPhase(self, title, subtitle=""):
-        """Convenience method to set phase with title and subtitle."""
-        self.setTitle(title)
-        self.status_label1.setText(subtitle)
 
     def _apply_theme(self):
         """Apply theme using ThemeManager."""

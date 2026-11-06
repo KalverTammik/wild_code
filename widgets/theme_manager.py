@@ -3,6 +3,7 @@ from functools import lru_cache
 from typing import Any, Callable
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QStyledItemDelegate
 from qgis.PyQt import sip
 from qgis.core import QgsSettings
 import os
@@ -30,6 +31,7 @@ class ThemeManager(QObject):
     _retheme_engine = None
     _icon_cache: dict[str, QIcon] = {}
     _STYLE_GUARD_PROP = "kavitro_style_guard"
+    _LIST_POPUP_QSS = "QComboBox { combobox-popup: 0; }"
 
     # Centralized bundles (keep parity between light/dark; order matters)
     APP_BUNDLE = (
@@ -244,12 +246,32 @@ class ThemeManager(QObject):
         if combo is None:
             return
 
-        view = combo.view() if hasattr(combo, "view") else None
         theme = ThemeManager.effective_theme()
         theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
         ThemeManager.apply_theme(combo, theme_dir, [QssPaths.COMBOBOX])
-        if view is not None:
-            ThemeManager.apply_theme(view, theme_dir, [QssPaths.COMBOBOX])
+        combo.setStyleSheet(combo.styleSheet() + ThemeManager._LIST_POPUP_QSS)
+        ThemeManager._style_list_popup(combo, theme_dir)
+
+    @staticmethod
+    def apply_form_combo_popup_style(combo) -> None:
+        """Style only the popup list; the closed combo keeps the form's input look."""
+        if combo is None:
+            return
+
+        theme = ThemeManager.effective_theme()
+        theme_dir = StylePaths.DARK if is_dark(theme) else StylePaths.LIGHT
+        combo.setStyleSheet(ThemeManager._LIST_POPUP_QSS)
+        ThemeManager._style_list_popup(combo, theme_dir)
+
+    @staticmethod
+    def _style_list_popup(combo, theme_dir: str) -> None:
+        # Otherwise Fusion draws the rows as menu items, which take the QGIS UI theme's QMenu rules.
+        if not isinstance(combo.itemDelegate(), QStyledItemDelegate):
+            combo.setItemDelegate(QStyledItemDelegate(combo))
+
+        view = combo.view()
+        view.setProperty("kavitroFormPopup", True)
+        ThemeManager.apply_theme(view, theme_dir, [QssPaths.COMBOBOX])
 
     @staticmethod
     def apply_module_style(widget, qss_files=None):

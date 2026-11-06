@@ -3,7 +3,7 @@ Module-specific configurations for ExtraInfoWidget.
 Each module type can define its own status columns and activities.
 """
 
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Dict, Any, Optional
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.api_client import APIClient
@@ -35,24 +35,9 @@ class ModuleConfig:
         self.detail_open_callback = None
         self.show_detail_handle = False
 
-    def add_column(self, title: str, color: str, activities: List[Tuple[str, str]]):
-        """Add a status column to the configuration."""
-        self.columns.append({
-            'title': title,
-            'color': color,
-            'activities': activities
-        })
-
     def set_title(self, title: str):
         """Set the widget title."""
         self.title = title
-
-    def set_detailed_content(self, content: str):
-        """Set the detailed overview content."""
-        self.detailed_content = content
-
-    def set_summary_text(self, text: str):
-        self.summary_text = str(text or "")
 
     def set_detail_loader(self, loader):
         self.detail_loader = loader

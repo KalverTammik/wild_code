@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import Enum
 from threading import RLock
 from time import monotonic
@@ -185,35 +184,3 @@ class MfaSetupNotifier:
                 event=PythonFailLogger.EVENT_MFA_NOTIFICATION_FAILED,
             )
             return False
-
-
-@dataclass(frozen=True)
-class ApiErrorDisplay:
-    kind: ApiErrorKind
-    message: str
-    notify_title: Optional[str] = None
-    notify_message: Optional[str] = None
-    notify_key: Optional[str] = None
-
-
-def to_display(kind: ApiErrorKind, message: str) -> ApiErrorDisplay:
-    msg = (message or "").strip()
-    if kind == ApiErrorKind.NETWORK:
-        title = "Server unreachable"
-        return ApiErrorDisplay(
-            kind=kind,
-            message=msg,
-            notify_title=title,
-            notify_message=msg or "Network error",
-            notify_key=f"network:{msg[:60]}",
-        )
-    if kind == ApiErrorKind.SERVER:
-        title = "Server error"
-        return ApiErrorDisplay(
-            kind=kind,
-            message=msg,
-            notify_title=title,
-            notify_message=msg or "Server error",
-            notify_key=f"server:{msg[:60]}",
-        )
-    return ApiErrorDisplay(kind=kind, message=msg)

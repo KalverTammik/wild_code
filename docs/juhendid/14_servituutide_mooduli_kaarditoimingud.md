@@ -75,12 +75,11 @@ Vormil on kaks vahekaarti.
 
 - liik;
 - staatus;
-- notari registrinumber;
-- maa omanik;
-- katastritunnus;
-- telefon ja e-post;
 - kehtestamise kuupäev;
+- notari registrinumber;
 - allikas;
+- maa omanik;
+- telefon ja e-post;
 - võrk;
 - kaitsevööndi laius;
 - talumistasu;
@@ -92,15 +91,17 @@ Vormil on kaks vahekaarti.
 - piirkond;
 - aadress;
 - maja number;
-- märge **Talumistasu arvestatakse**.
+- katastritunnus, mitme kinnistu korral komadega eraldatult.
 
-Kavitro kirjutab väärtuse ainult kihil olemasolevasse sobiva nimega välja. Tühja vormiväärtusega olemasolevat kihivälja üle ei kirjutata. Staatus täidetakse esmalt teenuse staatuse ja seadistatud staatusevastenduse järgi, kuid vormil valitud mittetühi staatus kirjutab selle väärtuse üle.
+Kavitro kirjutab väärtuse ainult kihil olemasolevasse sobiva nimega välja. Tühja vormiväärtusega olemasolevat kihivälja üle ei kirjutata.
 
-Kehtestamise kuupäev saadetakse vormist ainult siis, kui staatus on täpselt **Kehtestatud** või vorm avati juba olemasoleva kehtestamise kuupäevaga.
+Staatuse väljal valitakse Kavitro staatus. Vorm loeb avamisel servituudi praeguse staatuse Kavitrost, nii et näha on ka mujal tehtud muudatus. Kihile kirjutatakse väärtus, mis on sellele staatusele määratud seadete real **Servituudi kihi staatuste seos**. Kui staatusel on seoses valitud **Ära kirjuta** või vastet pole, jääb kihi staatuseväli puutumata ja silt näitab „Staatus (kaardil ei muutu)“. Kui kihile minev väärtus erineb valitud staatusest, näitab silt seda kujul „Staatus (kaardil: Ootel)“.
 
-### Praeguse versiooni piirang
+Kui valid teise staatuse, salvestab **Salvesta** selle esmalt Kavitrosse. Alles siis, kui Kavitro muudatuse vastu võttis, kirjutatakse kiht ning servituudi kaardi staatusevärv uueneb. Kui Kavitro muudatust vastu ei võta, jääb vorm avatuks ja kaardile ei salvestata midagi. Proovi siis uuesti või vali tagasi algne staatus. **Katkesta** ei saada Kavitrosse midagi.
 
-Vormi märge **Talumistasu arvestatakse** kogutakse vormilt, kuid servituutide põhikihi salvestusloogika ei kirjuta seda praegu ühelegi kihiväljale. Kinnistupõhine tasulisuse märge salvestatakse eraldi servituudi eelvaate kinnistuandmete osas.
+Kehtestamise kuupäev on avatud ja salvestatakse ainult siis, kui kihile minev staatus on täpselt **Kehtestatud** või vorm avati juba olemasoleva kehtestamise kuupäevaga.
+
+Kinnistupõhine tasulisuse märge salvestatakse eraldi servituudi eelvaate kinnistuandmete osas.
 
 ### Muutmisrežiimi mõju
 

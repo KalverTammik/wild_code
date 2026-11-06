@@ -23,13 +23,6 @@ def date_formatter(value):
     return value
 
 
-def date_formatter_for_Kavitro_insertion(value):
-    """Format QDate values for Kavitro insertion."""
-    if isinstance(value, QDate):
-        return value.toString("yyyy-MM-dd")
-    return value
-
-
 def number_formatter(value):
     """Convert numeric values to string."""
     return str(value)

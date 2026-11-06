@@ -130,6 +130,7 @@ class WorksSyncService(QObject):
             return
 
         pending_updates: list[tuple[int, dict[str, object], object]] = []
+        skipped_geometries: list[str] = []
 
         for feature in features:
             # An edit committed while the request was running must not be overwritten.
@@ -145,13 +146,16 @@ class WorksSyncService(QObject):
                 continue
 
             updates = self._build_layer_updates(task)
-            geometry = WorksLayerService.geometry_from_payload(task.get("geometry"))
+            geometry = WorksLayerService.geometry_for_layer(task.get("geometry"), layer)
             if isinstance(geometry, QgsGeometry):
                 updates["__geometry"] = geometry
+            elif task.get("geometry"):
+                skipped_geometries.append(task_id)
 
             if updates:
                 pending_updates.append((feature.id(), updates, feature))
 
+        self._log_skipped_geometries(skipped_geometries)
         if not pending_updates:
             return
 
@@ -180,9 +184,11 @@ class WorksSyncService(QObject):
             return
 
         updates = self._build_layer_updates(task_payload)
-        geometry = WorksLayerService.geometry_from_payload(task_payload.get("geometry"))
+        geometry = WorksLayerService.geometry_for_layer(task_payload.get("geometry"), layer)
         if isinstance(geometry, QgsGeometry):
             updates["__geometry"] = geometry
+        elif task_payload.get("geometry"):
+            self._log_skipped_geometries([task_id_text])
 
         if not updates:
             return
@@ -211,6 +217,7 @@ class WorksSyncService(QObject):
                 return
 
             changed = False
+            moved_locations: list[dict[str, object]] = []
             for feature_id, updates, feature in pending_updates:
                 geometry_update = updates.pop("__geometry", None)
                 if isinstance(geometry_update, QgsGeometry):
@@ -218,6 +225,13 @@ class WorksSyncService(QObject):
                     if not self._geometries_equal(current_geometry, geometry_update):
                         if layer.changeGeometry(feature_id, geometry_update):
                             changed = True
+                            moved_locations.append(
+                                {
+                                    "feature_id": feature_id,
+                                    "previous": current_geometry.asWkt() if current_geometry else "",
+                                    "new": geometry_update.asWkt(),
+                                }
+                            )
 
                 for canonical_name, new_value in updates.items():
                     field_index = field_indices.get(str(canonical_name).lower())
@@ -244,6 +258,10 @@ class WorksSyncService(QObject):
                 errors = "; ".join(layer.commitErrors() or [])
                 layer.rollBack()
                 raise RuntimeError(errors or "Could not commit Works sync changes")
+
+            # Keeps the old location of every moved work, so a wrong backend value can be undone.
+            for moved in moved_locations:
+                PythonFailLogger.log("works_sync_location_moved", module=Module.WORKS.value, extra=moved)
 
             layer.triggerRepaint()
         except Exception as exc:
@@ -426,6 +444,16 @@ class WorksSyncService(QObject):
             )
 
     @staticmethod
+    def _log_skipped_geometries(task_ids: list[str]) -> None:
+        if not task_ids:
+            return
+        PythonFailLogger.log(
+            "works_sync_geometry_skipped",
+            module=Module.WORKS.value,
+            extra={"count": len(task_ids), "sample": ",".join(task_ids[:20])},
+        )
+
+    @staticmethod
     def _log_missing_backend_tasks(task_ids: list[str], tasks_by_id: dict[str, dict]) -> None:
         returned_ids = {str(task_id).strip() for task_id in (tasks_by_id or {}).keys() if str(task_id).strip()}
         missing_ids = [str(task_id) for task_id in task_ids if str(task_id) not in returned_ids]
@@ -511,21 +539,6 @@ class WorksSyncService(QObject):
             )
 
     @staticmethod
-    def _format_display_datetime(value: str) -> str:
-        text = str(value or "").strip()
-        if not text:
-            return ""
-
-        normalized = text.replace("Z", "+00:00")
-        try:
-            parsed = datetime.fromisoformat(normalized)
-            return parsed.strftime("%Y-%m-%d %H:%M")
-        except Exception:
-            if "T" in text:
-                return text.replace("T", " ")[:16]
-            return text[:16]
-
-    @staticmethod
     def _values_equal(current_value, new_value) -> bool:
         current_dt = WorksSyncService._normalize_datetime_value(current_value)
         new_dt = WorksSyncService._normalize_datetime_value(new_value)
@@ -577,12 +590,3 @@ class WorksSyncService(QObject):
             return existing_geometry.equals(new_geometry)
         except Exception:
             return False
-
-    @staticmethod
-    def _geometry_point(geometry: Optional[QgsGeometry]):
-        if not isinstance(geometry, QgsGeometry) or geometry.isEmpty():
-            return None
-        try:
-            return geometry.vertexAt(0)
-        except Exception:
-            return None

@@ -928,10 +928,14 @@ class WorksCreateController:
         default_status_id = self._default_status_id_from_options(status_options)
         default_status_color = self._status_color_from_options(default_status_id, status_options)
 
+        # Fetched here: a slow GUI-thread request opens a modal wait that swallows map clicks.
         try:
-            APIModuleActions.get_task_priority_values()
+            priority_options = APIModuleActions.get_task_priority_options(
+                lang_manager=self._lang,
+                include_empty=True,
+            )
         except Exception:
-            pass
+            priority_options = []
 
         return {
             "type_options": self._normalize_type_options(raw_types),
@@ -940,6 +944,7 @@ class WorksCreateController:
             "status_options": status_options,
             "default_status_id": str(default_status_id or "").strip(),
             "default_status_color": str(default_status_color or "").strip(),
+            "priority_options": priority_options,
         }
 
     def _handle_preload_success(self, payload: object, request_id: int) -> None:
@@ -958,10 +963,7 @@ class WorksCreateController:
             str(payload.get("default_status_color") or "").strip()
             or self._status_color_from_options(self._cached_default_status_id, self._cached_status_options)
         )
-        self._cached_priority_options = APIModuleActions.get_task_priority_options(
-            lang_manager=self._lang,
-            include_empty=True,
-        )
+        self._cached_priority_options = list(payload.get("priority_options") or [])
 
     def _handle_preload_error(self, message: str, request_id: int) -> None:
         if request_id != self._preload_request_id:

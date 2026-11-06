@@ -1,0 +1,11 @@
+query EasementStatus($id: ID!) {
+  easement(id: $id) {
+    id
+    status {
+      id
+      name
+      color
+      type
+    }
+  }
+}

@@ -26,6 +26,7 @@ from ..settings_layer_helper import SettingsLayerHelper
 from ....languages.translation_keys import TranslationKeys
 from ....utils.project_base_layers import ProjectBaseLayerKeys, ProjectBaseLayersService
 from ....widgets.layer_tree_picker import LayerTreePicker
+from ....widgets.theme_manager import ThemeManager
 
 
 class SettingsProjectBaseLayersCard(SettingsBaseCard):
@@ -180,6 +181,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         self._shared_sewer_field_combo = QgsFieldComboBox(self._shared_sewer_field_row)
         self._shared_sewer_field_combo.setMaximumWidth(self.TYPE_FIELD_MAX_WIDTH)
         self._shared_sewer_field_combo.fieldChanged.connect(self._on_shared_sewer_field_changed)
+        ThemeManager.apply_combo_popup_style(self._shared_sewer_field_combo)
         field_row.addWidget(self._shared_sewer_field_combo)
 
         self._add_mapping_button = QPushButton(
@@ -455,6 +457,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
             row_kind = str(row_state.get("kind") or "").strip()
             combo_index = max(0, combo.findData(row_kind))
             combo.setCurrentIndex(combo_index)
+            ThemeManager.apply_combo_popup_style(combo)
             row.addWidget(combo)
 
             ids_input = QLineEdit(row_widget)

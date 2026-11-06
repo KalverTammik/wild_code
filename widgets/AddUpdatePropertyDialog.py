@@ -5,7 +5,7 @@ from math import ceil
 from time import monotonic
 from typing import Optional
 
-from PyQt5.QtCore import pyqtSignal, Qt, QTimer, QCoreApplication, QSignalBlocker
+from PyQt5.QtCore import Qt, QTimer, QCoreApplication, QSignalBlocker
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -69,7 +69,6 @@ class AddPropertyDialog(QDialog):
     """
     Dialog for adding new properties with a smart list view
     """
-    propertyAdded = pyqtSignal(dict)  # Signal emitted when property is added
 
     def __init__(self, parent=None, *, mode: str = PropertyDialogMode.BY_LOCATION):
         super().__init__(parent)

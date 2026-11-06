@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from typing import Iterable, Optional
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QComboBox,
     QDialog,
-    QFrame,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -22,12 +21,16 @@ from ...languages.translation_keys import TranslationKeys
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module, ModuleSupports
+from ...widgets.form_grid import StackedFormGrid, fit_dialog_to_content
 from ...widgets.status_select_widget import StatusSelectWidget
 from ...widgets.theme_manager import ThemeManager
 from .works_layer_service import WorksLayerService
 
 
 class WorksCreateDialog(QDialog):
+    DIALOG_WIDTH = 620
+    FIELD_HEIGHT = 33
+
     def __init__(
         self,
         *,
@@ -72,7 +75,6 @@ class WorksCreateDialog(QDialog):
         self.setModal(True)
         self.setObjectName("WorksCreateDialog")
         self.setWindowTitle(self._lang.translate(TranslationKeys.WORKS_CREATE_DIALOG_TITLE))
-        self.resize(620, 460)
 
         self._build_ui()
         self._populate_statuses()
@@ -82,89 +84,78 @@ class WorksCreateDialog(QDialog):
         self._apply_initial_title()
 
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.MODULE_INFO])
+        for combo in (self._type_combo, self._responsible_combo, self._priority_combo):
+            ThemeManager.apply_form_combo_popup_style(combo)
+            combo.setFixedHeight(self.FIELD_HEIGHT)
+        self._title_edit.setFixedHeight(self.FIELD_HEIGHT)
+        self._status_combo.set_control_height(self.FIELD_HEIGHT)
+        fit_dialog_to_content(self, self.DIALOG_WIDTH)
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
-        root.setContentsMargins(12, 12, 12, 12)
-        root.setSpacing(10)
+        root.setContentsMargins(16, 16, 16, 16)
+        root.setSpacing(12)
 
-        intro = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_DIALOG_INTRO), self)
-        intro.setWordWrap(True)
-        root.addWidget(intro)
+        form = StackedFormGrid()
 
-        info_frame = QFrame(self)
-        info_layout = QGridLayout(info_frame)
-        info_layout.setContentsMargins(8, 8, 8, 8)
-        info_layout.setHorizontalSpacing(10)
-        info_layout.setVerticalSpacing(6)
-
-        property_title = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_PROPERTY_LABEL), info_frame)
         self._property_value = QLabel(
             WorksLayerService.property_display_text(self._property_feature, lang_manager=self._lang),
-            info_frame,
+            self,
         )
         self._property_value.setWordWrap(True)
-
-        coordinates_title = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_COORDINATES_LABEL), info_frame)
+        self._property_value.setToolTip(self._lang.translate(TranslationKeys.WORKS_CREATE_PROPERTY_LINK_HINT))
         self._coordinates_value = QLabel(
             f"{self._point.x():.2f}, {self._point.y():.2f}",
-            info_frame,
+            self,
         )
+        for value_label in (self._property_value, self._coordinates_value):
+            value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            # A wrapped property text makes the row taller, and both values must start on its first line.
+            value_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
-        info_layout.addWidget(property_title, 0, 0)
-        info_layout.addWidget(self._property_value, 0, 1)
-        info_layout.addWidget(coordinates_title, 1, 0)
-        info_layout.addWidget(self._coordinates_value, 1, 1)
-        root.addWidget(info_frame)
-
-        form = QGridLayout()
-        form.setHorizontalSpacing(10)
-        form.setVerticalSpacing(8)
-
-        type_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_TYPE_LABEL), self)
+        # Created in display order: the Tab key follows creation order.
         self._type_combo = QComboBox(self)
         self._type_combo.currentIndexChanged.connect(self._update_suggested_title)
 
-        title_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_TITLE_LABEL), self)
         self._title_edit = QLineEdit(self)
         self._title_edit.setPlaceholderText(
             self._lang.translate(TranslationKeys.WORKS_CREATE_TITLE_PLACEHOLDER)
         )
         self._title_edit.textEdited.connect(self._mark_title_touched)
 
-        description_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_DESCRIPTION_LABEL), self)
-        self._description_edit = QTextEdit(self)
-        self._description_edit.setAcceptRichText(False)
-        self._description_edit.setMinimumHeight(120)
-        if self._initial_description:
-            self._description_edit.setPlainText(self._initial_description)
-
-        priority_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_PRIORITY_LABEL), self)
-        self._priority_combo = QComboBox(self)
-
-        responsible_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_RESPONSIBLE_LABEL), self)
         self._responsible_combo = QComboBox(self)
 
-        status_label = QLabel(self._lang.translate(TranslationKeys.WORKS_CREATE_STATUS_LABEL), self)
         self._status_combo = StatusSelectWidget(
             self,
             placeholder=self._lang.translate(TranslationKeys.SELECT),
             lang_manager=self._lang,
         )
 
-        form.addWidget(type_label, 0, 0)
-        form.addWidget(self._type_combo, 0, 1)
-        form.addWidget(title_label, 1, 0)
-        form.addWidget(self._title_edit, 1, 1)
-        form.addWidget(responsible_label, 2, 0)
-        form.addWidget(self._responsible_combo, 2, 1)
-        form.addWidget(status_label, 3, 0)
-        form.addWidget(self._status_combo, 3, 1)
-        form.addWidget(priority_label, 4, 0)
-        form.addWidget(self._priority_combo, 4, 1)
-        form.addWidget(description_label, 5, 0)
-        form.addWidget(self._description_edit, 5, 1)
-        root.addLayout(form)
+        self._priority_combo = QComboBox(self)
+
+        self._description_edit = QTextEdit(self)
+        self._description_edit.setAcceptRichText(False)
+        self._description_edit.setMinimumHeight(120)
+        if self._initial_description:
+            self._description_edit.setPlainText(self._initial_description)
+
+        translate = self._lang.translate
+        form.add_fields(
+            (translate(TranslationKeys.WORKS_CREATE_PROPERTY_LABEL), self._property_value, 8),
+            (translate(TranslationKeys.WORKS_CREATE_COORDINATES_LABEL), self._coordinates_value, 4),
+        )
+        form.add_separator()
+        form.add_fields(
+            (f"{translate(TranslationKeys.WORKS_CREATE_TYPE_LABEL)} *", self._type_combo, 4),
+            (f"{translate(TranslationKeys.WORKS_CREATE_TITLE_LABEL)} *", self._title_edit, 8),
+        )
+        form.add_fields(
+            (translate(TranslationKeys.WORKS_CREATE_RESPONSIBLE_LABEL), self._responsible_combo, 4),
+            (translate(TranslationKeys.WORKS_CREATE_STATUS_LABEL), self._status_combo, 4),
+            (translate(TranslationKeys.WORKS_CREATE_PRIORITY_LABEL), self._priority_combo, 4),
+        )
+        form.add_text_area(translate(TranslationKeys.WORKS_CREATE_DESCRIPTION_LABEL), self._description_edit)
+        root.addLayout(form, 1)
 
         self._types_hint = QLabel("", self)
         self._types_hint.setWordWrap(True)
@@ -322,19 +313,9 @@ class WorksCreateDialog(QDialog):
         if self._title_touched and self._title_edit.text().strip():
             return
 
-        property_text = WorksLayerService.property_display_text(
-            self._property_feature,
-            lang_manager=self._lang,
-        )
-        type_text = self.selected_type_label()
-        parts = []
-        if property_text and property_text != self._lang.translate(TranslationKeys.WORKS_CREATE_PROPERTY_NONE):
-            parts.append(property_text)
-        if type_text:
-            parts.append(type_text)
-
-        suggestion = " - ".join(parts).strip()
-        self._title_edit.setText(suggestion)
+        type_text = self.selected_type_label() if self.selected_type_id() else ""
+        parts = (type_text, WorksLayerService.property_address(self._property_feature))
+        self._title_edit.setText(" · ".join(part for part in parts if part))
 
     def _validate_and_accept(self) -> None:
         if not self.selected_type_id():
@@ -378,9 +359,6 @@ class WorksCreateDialog(QDialog):
 
     def selected_status_id(self) -> str:
         return str(self._status_combo.currentData() or "").strip()
-
-    def selected_status_label(self) -> str:
-        return str(self._status_combo.currentText() or "").strip()
 
     def selected_status_color(self) -> str:
         color = self._status_combo.current_status_color()

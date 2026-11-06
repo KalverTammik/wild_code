@@ -11,7 +11,9 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from qgis.core import QgsApplication
+from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QThread, QTimer
+from qgis.PyQt.QtWidgets import QDialog
 from qgis.PyQt.QtGui import QFont, QFontDatabase
 from Kavitro_dev.python import api_client, api_rate_limit, api_request_task
 from Kavitro_dev.python.latest_request import LatestRequest
@@ -32,22 +34,26 @@ class ApiRequestTaskTest(unittest.TestCase):
         self.enterContext(patch.object(api_rate_limit, 'PROCESS_RATE_LIMITER', api_rate_limit.RateLimitCoordinator()))
         self.client = api_client.APIClient(session_manager=Mock(get_token=Mock(return_value='test-token')))
 
+    def tearDown(self):
+        # Back in the event loop: a wait window left open by the test closes.
+        self.app.processEvents()
+
     def test_gui_stays_alive_during_slow_http_and_transport_runs_off_gui(self):
         pulses, threads, dialogs = [], [], []
         timer = QTimer()
         timer.timeout.connect(lambda: pulses.append(time.monotonic()))
         timer.start(20)
-        original_exec = api_request_task._RequestDialog.exec_
-        def exec_dialog(dialog):
+        original_show = api_request_task._RequestDialog.show
+        def show_dialog(dialog):
             dialogs.append(dialog.label.text())
-            return original_exec(dialog)
+            return original_show(dialog)
         def post(*args, **kwargs):
             threads.append(QThread.currentThread())
             time.sleep(0.65)
             return FakeResponse()
         try:
             with patch.object(api_client.requests, 'post', side_effect=post), \
-                    patch.object(api_request_task._RequestDialog, 'exec_', exec_dialog):
+                    patch.object(api_request_task._RequestDialog, 'show', show_dialog):
                 result = self.client.send_query('query { properties { id } }')
         finally:
             timer.stop()
@@ -57,13 +63,13 @@ class ApiRequestTaskTest(unittest.TestCase):
         self.assertNotEqual(threads[0], self.app.thread())
 
     def test_gui_cancel_during_429_wait_does_not_send_again(self):
-        original_exec = api_request_task._RequestDialog.exec_
+        original_show = api_request_task._RequestDialog.show
         labels = []
         def cancel_dialog(dialog):
             labels.append(dialog.label.text())
             QTimer.singleShot(0, dialog.reject)
-            return original_exec(dialog)
-        with patch.object(api_request_task._RequestDialog, 'exec_', cancel_dialog), \
+            return original_show(dialog)
+        with patch.object(api_request_task._RequestDialog, 'show', cancel_dialog), \
                 patch.object(api_client.requests, 'post', return_value=FakeResponse(429, {'Retry-After': '30'}, {})) as post:
             with self.assertRaises(api_rate_limit.RequestCancelled):
                 self.client.send_query('mutation { createTask { id } }')
@@ -88,18 +94,115 @@ class ApiRequestTaskTest(unittest.TestCase):
         self.assertEqual(post.call_count, 1)
 
     def test_cancel_waits_for_already_sent_write_and_preserves_its_success(self):
-        original_exec = api_request_task._RequestDialog.exec_
+        original_show = api_request_task._RequestDialog.show
         def cancel_dialog(dialog):
             QTimer.singleShot(0, dialog.reject)
-            return original_exec(dialog)
+            return original_show(dialog)
         def post(*args, **kwargs):
             time.sleep(0.65)
             return FakeResponse()
-        with patch.object(api_request_task._RequestDialog, 'exec_', cancel_dialog), \
+        with patch.object(api_request_task._RequestDialog, 'show', cancel_dialog), \
                 patch.object(api_client.requests, 'post', side_effect=post) as mocked:
             result = self.client.send_query('mutation { createTask { id } }')
         self.assertEqual(result, {'id': 'saved'})
         self.assertEqual(mocked.call_count, 1)
+
+    @staticmethod
+    def _is_open(window):
+        return not sip.isdeleted(window) and window.isVisible()
+
+    def _shown_windows(self):
+        windows = []
+        original_show = api_request_task._RequestDialog.show
+        def show_dialog(dialog):
+            if not any(window is dialog for window in windows):
+                windows.append(dialog)
+            return original_show(dialog)
+        return windows, patch.object(api_request_task._RequestDialog, 'show', show_dialog)
+
+    def test_requests_of_one_flow_share_one_wait_window(self):
+        windows, watch_show = self._shown_windows()
+        def post(*args, **kwargs):
+            time.sleep(0.45)
+            return FakeResponse()
+        with watch_show, patch.object(api_client.requests, 'post', side_effect=post) as mocked:
+            for _ in range(3):
+                self.client.send_query('query { properties { id } }')
+        self.assertEqual(mocked.call_count, 3)
+        self.assertEqual(len(windows), 1)
+        self.assertTrue(self._is_open(windows[0]))
+
+        self.app.processEvents()
+
+        self.assertIsNone(api_request_task._RequestDialog.open_window)
+        self.assertFalse(self._is_open(windows[0]))
+
+    def test_fast_requests_open_no_wait_window(self):
+        windows, watch_show = self._shown_windows()
+        with watch_show, patch.object(api_client.requests, 'post', return_value=FakeResponse()):
+            for _ in range(3):
+                self.client.send_query('query { properties { id } }')
+        self.assertEqual(windows, [])
+
+    def test_cancel_also_stops_the_requests_of_the_flow_not_sent_yet(self):
+        original_show = api_request_task._RequestDialog.show
+        def cancel_dialog(dialog):
+            QTimer.singleShot(0, dialog.reject)
+            return original_show(dialog)
+        def post(*args, **kwargs):
+            time.sleep(0.65)
+            return FakeResponse()
+        with patch.object(api_request_task._RequestDialog, 'show', cancel_dialog), \
+                patch.object(api_client.requests, 'post', side_effect=post) as mocked:
+            self.assertEqual(self.client.send_query('mutation { createTask { id } }'), {'id': 'saved'})
+            with self.assertRaises(api_rate_limit.RequestCancelled):
+                self.client.send_query('query { properties { id } }')
+        self.assertEqual(mocked.call_count, 1)
+
+        # The flow is over once the event loop runs: a cancel must not outlive its window.
+        self.app.processEvents()
+        with patch.object(api_client.requests, 'post', return_value=FakeResponse()) as mocked:
+            self.assertEqual(self.client.send_query('query { properties { id } }'), {'id': 'saved'})
+        self.assertEqual(mocked.call_count, 1)
+
+    def test_message_between_requests_closes_the_wait_window_and_stays_open_itself(self):
+        windows, watch_show = self._shown_windows()
+        def post(*args, **kwargs):
+            time.sleep(0.45)
+            return FakeResponse()
+        with watch_show, patch.object(api_client.requests, 'post', side_effect=post):
+            self.client.send_query('query { properties { id } }')
+            message = QDialog()
+            during_message = []
+            def inspect_then_close():
+                during_message.append((self._is_open(windows[0]), message.isVisible()))
+                message.accept()
+            QTimer.singleShot(30, inspect_then_close)
+            message.exec_()
+            self.client.send_query('query { properties { id } }')
+        self.assertEqual(during_message, [(False, True)])
+        self.assertEqual(len(windows), 2)
+
+    def test_new_wait_window_is_not_a_child_of_a_closing_one(self):
+        owner = QDialog()
+        closing = api_request_task._RequestDialog()
+        closing.setParent(owner, closing.windowFlags())
+        with patch.object(api_request_task.QApplication, 'activeWindow', return_value=closing):
+            window = api_request_task._RequestDialog()
+        self.assertIs(window.parentWidget(), owner)
+        owner.deleteLater()
+
+    def test_request_finishes_before_an_error_in_the_wait_window_is_raised(self):
+        finished = []
+        def post(*args, **kwargs):
+            time.sleep(0.5)
+            finished.append(True)
+            return FakeResponse()
+        with patch.object(api_request_task._RequestDialog, 'show_window', side_effect=RuntimeError('window gone')), \
+                patch.object(api_client.requests, 'post', side_effect=post):
+            with self.assertRaises(Exception):
+                self.client.send_query('query { properties { id } }')
+        self.assertEqual(finished, [True])
 
     def test_gui_json_and_uploads_share_budget_and_retry_complete_files(self):
         clock = FakeClock()

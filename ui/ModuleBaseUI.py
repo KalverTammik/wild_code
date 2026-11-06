@@ -451,9 +451,6 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
                 if callable(child_retheme):
                     child_retheme()
 
-    def _reset_feed_ui_state(self) -> None:
-        self._feed_session.reset_feed_ui_state()
-
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------

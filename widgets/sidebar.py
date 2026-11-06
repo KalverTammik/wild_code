@@ -204,18 +204,6 @@ class Sidebar(QWidget):
             self._disabled_button.setEnabled(True)
             self._disabled_button = None
 
-    def clearActive(self):
-        """Clear active state on all sidebar buttons (used when showing Welcome page)."""
-        for btn in self.moduleButtons.values():
-            btn.setProperty('active', False)
-            btn.setEnabled(True)
-            btn.style().unpolish(btn); btn.style().polish(btn)
-        self._disabled_button = None
-
-    def setHomeActive(self):
-        self.homeButton.setProperty('active', True)
-        self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
-
     def emitItemClicked(self, itemName):
         # Handle both Module enum and string inputs
 

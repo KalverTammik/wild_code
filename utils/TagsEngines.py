@@ -60,36 +60,6 @@ class TagsEngines:
         return created_tag_id
 
     @staticmethod
-    def load_tags_by_module(module: str ,first: int = 50, after: str = None, ) -> list:
-        module_tags = ModuleSupports.TAGS.value
-        backend_module = _normalize_tag_module(module)
-        query_file = 'IDByModuleAndName.graphql'
-        query = GraphQLQueryLoader().load_query_by_module(module=module_tags, query_filename=query_file)
-
-        variables = {
-            "first": first,
-            "after": after,
-            "where": {
-                "column": "MODULE",
-                "value": backend_module
-            }
-        }
-
-        client = APIClient()
-        response = client.send_query(query, variables=variables)
-
-        data = _unwrap_data(response)
-        tags_data = (data or {}).get("tags") or {}
-        edges = tags_data.get("edges") or []
-        tags = [edge.get("node") for edge in edges if isinstance(edge, dict) and edge.get("node")]
-
-        print(f"Loaded {len(tags)} tags for {module} module:")
-        for tag in tags:
-            print(f" - {tag['id']}: {tag['name']}")
-
-        return tags
-
-    @staticmethod
     def get_modules_tag_id_by_name(tag_name: str,module: str) -> str: 
         #tag_name = "Arhiveeritud"
         module_tags = ModuleSupports.TAGS.value

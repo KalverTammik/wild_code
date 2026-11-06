@@ -116,3 +116,8 @@ QLabel#ProjectBoardItemSecondary {
 QLabel#ProjectBoardSectionTitle {
   font-weight: 600;
 }
+
+QFrame#FormSeparator {
+    background: #4d4d4d;
+    border: none;
+}

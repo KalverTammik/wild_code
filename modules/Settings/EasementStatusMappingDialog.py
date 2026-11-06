@@ -7,10 +7,12 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QHeaderView, QLabel, QTableWidget, QTableWidgetItem, QVBoxLayout
 
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
+from ...widgets.theme_manager import ThemeManager
 from ..easements.easement_layer_service import EasementLayerService
 
 
@@ -39,6 +41,7 @@ class EasementStatusMappingDialog(QDialog):
         self.setWindowTitle(self._lang.translate(TranslationKeys.EASEMENT_STATUS_MAPPING_TITLE))
         self.resize(760, 520)
         self._build_ui()
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.MODULE_INFO])
 
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -94,6 +97,7 @@ class EasementStatusMappingDialog(QDialog):
             if existing_value:
                 combo.setCurrentIndex(max(0, combo.findData(existing_value)))
 
+            ThemeManager.apply_form_combo_popup_style(combo)
             self._table.setCellWidget(row_index, 1, combo)
             if status_id:
                 self._combo_by_status_id[status_id] = combo

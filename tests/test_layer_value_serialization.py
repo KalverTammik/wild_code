@@ -41,7 +41,7 @@ class EasementStatusMappingTest(unittest.TestCase):
             mapped = EasementLayerService.map_backend_status_to_layer_value({"id": "1", "name": "Aktiivne"})
             unmapped = EasementLayerService.map_backend_status_to_layer_value({"id": "2", "name": "Lõpetatud"})
         self.assertEqual(mapped, "A")
-        self.assertEqual(unmapped, "Lõpetatud")
+        self.assertEqual(unmapped, "", "a status without a mapping writes nothing")
 
     def test_summary_shows_the_stored_mapping(self) -> None:
         self.assertIn("Aktiivne → A", EasementLayerService.format_status_mapping_summary(STORED_MAPPING))

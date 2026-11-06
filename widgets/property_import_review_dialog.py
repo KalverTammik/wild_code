@@ -92,6 +92,8 @@ class PropertyImportReviewDialog(QDialog):
         if decisions:
             self.table.selectRow(0)
         ThemeManager.apply_app_style(self, [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.COMBOBOX])
+        for combo in self.findChildren(QComboBox):
+            ThemeManager.apply_form_combo_popup_style(combo)
 
     def _set_all(self):
         action = self.bulk_choice.currentData()

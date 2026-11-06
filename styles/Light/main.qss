@@ -27,7 +27,7 @@ QWidget {
 QFrame { background: transparent; }
 
 /* ---------- Inputs ---------- */
-QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {
+QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox {
     background: #ffffff;
     color: #24292e;
     border: 1px solid #e1e4e8;
@@ -37,37 +37,133 @@ QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {
 QLineEdit::placeholder, QTextEdit::placeholder, QPlainTextEdit::placeholder {
     color: rgba(36,41,46,0.55);
 }
-QLineEdit:hover, QTextEdit:hover, QPlainTextEdit:hover, QComboBox:hover,
-QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QComboBox:focus {
+QLineEdit:hover, QTextEdit:hover, QPlainTextEdit:hover, QAbstractSpinBox:hover, QComboBox:hover,
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QAbstractSpinBox:focus, QComboBox:focus {
     background: #ffffff;
     border: 1px solid #2188ff;   /* blue focus */
 }
 
 /* Disabled inputs */
-QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled, QComboBox:disabled {
+QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled, QAbstractSpinBox:disabled, QComboBox:disabled {
     background: #f0f2f4;
     color: rgba(36,41,46,0.55);
     border: 1px dashed rgba(209,215,222,0.80);
+}
+
+/* The QGIS UI theme draws these input buttons dark; here they blend into the field like a combo box arrow. */
+QAbstractSpinBox::drop-down,
+QComboBox::drop-down:editable {
+    margin: 0 2px 0 0;
+    background: transparent;
+    border: none;
+}
+QAbstractSpinBox::up-button,
+QAbstractSpinBox::down-button {
+    background: transparent;
+    border: none;
+}
+
+/* ---------- Calendar popup of date fields ---------- */
+QCalendarWidget QWidget {
+    alternate-background-color: #f6f8fa;
+}
+QCalendarWidget QWidget#qt_calendar_navigationbar {
+    background: #ffffff;
+}
+QCalendarWidget QToolButton {
+    background: transparent;
+    color: #24292e;
+    border: none;
+    border-radius: 6px;
+    padding: 2px 4px;
+}
+QCalendarWidget QToolButton:hover {
+    background: rgba(16,24,40,0.06);
+}
+QCalendarWidget QToolButton#qt_calendar_monthbutton {
+    padding-right: 16px;
+}
+QCalendarWidget QToolButton::menu-indicator {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+}
+QCalendarWidget QSpinBox {
+    padding: 1px 4px;
+}
+QCalendarWidget QMenu {
+    background: #ffffff;
+    color: #24292e;
+}
+QCalendarWidget QAbstractItemView:enabled {
+    background: #ffffff;
+    color: #24292e;
+    border: none;
+    border-radius: 0;
+    outline: none;
+    selection-background-color: #e3f0ff;
+    selection-color: #24292e;
+}
+QCalendarWidget QAbstractItemView:disabled {
+    color: rgba(36,41,46,0.40);
+}
+
+/* ---------- Tabs ---------- */
+QTabWidget::pane {
+    background: transparent;
+    border: none;
+    border-top: 1px solid #e1e4e8;
+    top: -1px;
+}
+/* The weight goes on the bar: Qt measures a tab with the bar's font, so on ::tab alone it clips the text. */
+QTabBar {
+    background: transparent;
+    font-weight: 600;
+}
+QTabBar::tab {
+    background: transparent;
+    color: rgba(36,41,46,0.65);
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 6px 14px;
+    margin: 0;
+}
+QTabBar::tab:hover {
+    color: #24292e;
+}
+QTabBar::tab:selected {
+    background: transparent;
+    color: #24292e;
+    border-bottom: 2px solid #2188ff;
+}
+QTabBar::tab:!selected {
+    margin-top: 0;
 }
 
 /* ---------- Checkboxes ---------- */
 QCheckBox {
     color: #24292e;
 }
+/* image: the QGIS UI theme's own check box images would otherwise cover these. */
 QCheckBox::indicator {
     width: 16px; height: 16px;
     border-radius: 3px;
     background: #ffffff;
     border: 1px solid #d0d7de;
+    image: none;
 }
 QCheckBox::indicator:checked {
     background: #0078d4;
     border: 1px solid #005a9e;
+    image: url(check_white.svg);
 }
-QCheckBox::indicator:hover { border: 1px solid #004578; }
+QCheckBox::indicator:hover { border: 1px solid #2188ff; }
 QCheckBox::indicator:disabled {
     background: #f0f2f4;
     border: 1px dashed rgba(209,215,222,0.8);
+}
+QCheckBox::indicator:checked:disabled {
+    background: rgba(0,120,212,0.45);
+    border: 1px solid transparent;
 }
 
 /* ---------- Lists / Trees ---------- */
@@ -163,6 +259,12 @@ QTableView, QTableWidget {
 /* Teal focus ring like buttons */
 QTableView:focus, QTableWidget:focus {
     border: 1px solid rgba(15,118,110,0.55);   /* teal-700 alpha */
+}
+
+/* The UI theme's selection colour is almost the same as this window background. */
+QTableView::item:selected, QTableWidget::item:selected {
+    background: #e3f0ff;
+    color: #24292e;
 }
 
 /* Header (dark slate with teal accent) */

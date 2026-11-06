@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Callable, Optional
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
@@ -19,8 +19,9 @@ from .easement_layer_service import EasementLayerService
 
 
 class EasementAttachExistingController:
-    def __init__(self, *, lang_manager=None) -> None:
+    def __init__(self, *, lang_manager=None, on_status_changed: Optional[Callable[[dict], None]] = None) -> None:
         self._lang = lang_manager or LanguageManager()
+        self._on_status_changed = on_status_changed
         self._workflow = ModuleFeatureWorkflow(self._build_workflow_config())
 
     def start_attach(self, *, item_data: Optional[dict], parent_window=None) -> bool:
@@ -92,7 +93,7 @@ class EasementAttachExistingController:
     def _attach_easement_feature_with_form(self, layer, feature_id: int, current_item: Optional[dict]) -> tuple[bool, str]:
         item_payload = dict(current_item or {})
         item_id = str(item_payload.get("id") or "").strip()
-        form_values = EasementGeometryFormDialog.prompt(item_data=item_payload)
+        form_values = EasementGeometryFormDialog.prompt(item_data=item_payload, on_status_changed=self._on_status_changed)
         if form_values is None:
             return False, "Servituudi ala andmete sisestamine katkestati"
 

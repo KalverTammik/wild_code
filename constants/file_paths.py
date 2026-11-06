@@ -123,39 +123,6 @@ class QssPaths:
 
 # Theme directory paths (for modular theme loading)
 
-    def return_plugin_main_files() -> list:
-        """Return list of main QSS files for the plugin."""
-        qss_files = [QssPaths.MAIN, QssPaths.COMBOBOX, QssPaths.SIDEBAR]
-
-        return [
-            QssPaths.MAIN,
-            QssPaths.COMBOBOX,
-            QssPaths.SIDEBAR,
-        ]
-    
-
-    def return_module_main_files() -> list:
-        """Return list of main QSS files for modules."""
-        return [
-            QssPaths.MAIN,
-            QssPaths.SIDEBAR,
-            QssPaths.HEADER,
-            QssPaths.FOOTER,
-            QssPaths.MODULE_TOOLBAR,
-            QssPaths.MODULE_CARD,
-            QssPaths.SETUP_CARD,
-            QssPaths.PILLS,
-            QssPaths.POPUP,
-            QssPaths.TOOLTIP,
-            QssPaths.LAYER_TREE_PICKER,
-            QssPaths.SEARCH_RESULTS_WIDGET,
-            QssPaths.PROGRESS_DIALOG,
-            QssPaths.PROPERTIES_UI,
-            QssPaths.DATES,
-            QssPaths.MODULE_INFO
-
-        ]
-
 class StylePaths:
     DARK = os.path.join(PLUGIN_ROOT, STYLES, "Dark")
     LIGHT = os.path.join(PLUGIN_ROOT, STYLES, "Light")
@@ -171,37 +138,3 @@ class QmlPaths:
     EASEMENT_SEWER = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Sew.qml")
     EASEMENT_PRESSURE_SEWER = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_PrSew.qml")
     EASEMENT_FINAL = os.path.join(PLUGIN_ROOT, "QGIS_styles", "UnionedEasement.qml")
-
-
-    def get_style(style_name: str) -> str:
-        """
-        Get QML style file path by name.
-
-        Args:
-            style_name: Name of the style (e.g., 'properties_background_new', 'maa_met_import')
-
-        Returns:
-            str: Full path to the QML style file
-
-        Raises:
-            ValueError: If style name is not recognized
-        """
-        style_map = {
-            'properties_background_new': QmlPaths.PROPERTIES_BACKGROUND,
-            'maa_amet_import': QmlPaths.MAAMET_IMPORT,
-            'easement_drainage': QmlPaths.EASETMENT_DRAINAGE,
-            'easement_properties': QmlPaths.EASEMENT_PROPERTIES,
-            'easement_water': QmlPaths.EASEMENT_WATER,
-            'easement_sewer': QmlPaths.EASEMENT_SEWER,
-            'easement_pressure_sewer': QmlPaths.EASEMENT_PRESSURE_SEWER,
-            'easement_final': QmlPaths.EASEMENT_FINAL,
-        }
-
-        if style_name not in style_map:
-            available_styles = list(style_map.keys())
-            raise ValueError(f"Unknown style name '{style_name}'. Available styles: {available_styles}")
-
-        return style_map[style_name]
-
-
-

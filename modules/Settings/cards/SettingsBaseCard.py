@@ -151,9 +151,3 @@ class SettingsBaseCard(QFrame):
         """Set status text in footer area."""
         self._status_label.setText(text)
         self._footer_left.setVisible(visible and bool(text))
-
-    def clear_status(self):
-        """Clear status text and hide footer left area."""
-        self._status_label.clear()
-        self._footer_left.setVisible(False)
-

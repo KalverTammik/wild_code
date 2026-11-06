@@ -24,10 +24,12 @@ from qgis.PyQt.QtCore import QVariant
 from qgis.core import Qgis, QgsCoordinateTransform, QgsFeature, QgsProject, QgsVectorLayer
 
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ...widgets.layer_tree_picker import LayerTreePicker
+from ...widgets.theme_manager import ThemeManager
 
 
 class _DefaultValueEditor(QWidget):
@@ -54,6 +56,7 @@ class _DefaultValueEditor(QWidget):
             combo.addItem(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NO_DEFAULT), None)
             combo.addItem("False", False)
             combo.addItem("True", True)
+            ThemeManager.apply_form_combo_popup_style(combo)
             self._bool_combo = combo
             layout.addWidget(combo)
             return
@@ -133,6 +136,7 @@ class GeospatialLayerMapperDialog(QDialog):
         self.setWindowTitle(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_DIALOG_TITLE))
         self.resize(980, 640)
         self._build_ui()
+        ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.MODULE_INFO, QssPaths.LAYER_TREE_PICKER])
 
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -213,6 +217,7 @@ class GeospatialLayerMapperDialog(QDialog):
             guessed_match = self._guess_source_field(field, source_fields_by_name)
             if guessed_match:
                 source_combo.setCurrentIndex(max(0, source_combo.findData(guessed_match)))
+            ThemeManager.apply_form_combo_popup_style(source_combo)
             self._table.setCellWidget(row_index, 1, source_combo)
             self._source_field_combos[field_name] = source_combo
 

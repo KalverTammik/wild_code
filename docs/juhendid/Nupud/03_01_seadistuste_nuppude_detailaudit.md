@@ -276,7 +276,7 @@ Parajasti ootel, kuid veel kinnitamata põhikihi valikut dialoog ei kasuta. Uue 
 | **OK** | Koostab ainult täidetud vastendustest JSON-väärtuse ja võtab selle seadistuskaardil ootele |
 | **Cancel / Tühista** | Sulgeb dialoogi ja jätab varasema seose muutmata |
 
-Pärast **OK** vajutamist tuleb seos salvestada üldise **Kinnita** nupuga. Valik **Ära kirjuta** jätab vastava staatuse salvestatud vastendusest välja; praegune hilisem kihi kirjutamisloogika võib puuduva vaste korral siiski kasutada Kavitro staatuse nime.
+Pärast **OK** vajutamist tuleb seos salvestada üldise **Kinnita** nupuga. Valik **Ära kirjuta** jätab vastava staatuse salvestatud vastendusest välja; sellise staatusega servituudi salvestamisel jääb kihi staatuseväli puutumata.
 
 ## Nuppude mõju koondtabel
 

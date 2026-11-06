@@ -6,22 +6,24 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QDateEdit,
     QDialog,
-    QFormLayout,
-    QGroupBox,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QTextEdit,
     QVBoxLayout,
+    QWidget,
 )
 
 from ...constants.button_props import ButtonVariant
 from ...constants.file_paths import QssPaths
+from ...widgets.form_grid import CompactTextEdit, StackedFormGrid, fit_dialog_to_content
 from ...widgets.theme_manager import ThemeManager
 
 
 class AsBuiltGeometryFormDialog(QDialog):
+    DIALOG_WIDTH = 620
+    NETWORK_COLUMNS = 3
     NETWORK_FIELDS = (
         ("Vesi", "Vesi"),
         ("Kanal", "Kanal"),
@@ -39,19 +41,17 @@ class AsBuiltGeometryFormDialog(QDialog):
         self.setObjectName("AsBuiltGeometryFormDialog")
         self.setModal(True)
         self.setWindowTitle("Teostusjoonise andmed")
-        self.resize(620, 520)
 
         self._build_ui()
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.MODULE_INFO])
+        for combo in self.findChildren(QComboBox):
+            ThemeManager.apply_form_combo_popup_style(combo)
+        fit_dialog_to_content(self, self.DIALOG_WIDTH)
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
-        root.setContentsMargins(14, 14, 14, 14)
-        root.setSpacing(10)
-
-        title = QLabel("Teostusjoonise andmed", self)
-        title.setObjectName("ExtraInfoDialogTitle")
-        root.addWidget(title)
+        root.setContentsMargins(16, 16, 16, 16)
+        root.setSpacing(12)
 
         intro = QLabel(
             "Täida kaardile joonistatud teostusjoonise ala põhiandmed. "
@@ -61,69 +61,76 @@ class AsBuiltGeometryFormDialog(QDialog):
         intro.setWordWrap(True)
         root.addWidget(intro)
 
-        form = QFormLayout()
-        form.setContentsMargins(0, 0, 0, 0)
-        form.setSpacing(8)
+        form = StackedFormGrid()
 
+        # Created in display order: the Tab key follows creation order.
         self._work_number = QLineEdit(self)
         self._work_number.setText(self._default_work_number())
-        form.addRow("Töö nr", self._work_number)
-
         self._object = QLineEdit(self)
         self._object.setText(self._default_object())
-        form.addRow("Objekt", self._object)
+        form.add_fields(
+            ("Töö nr", self._work_number, 4),
+            ("Objekt", self._object, 8),
+        )
 
         self._survey_date = QDateEdit(self)
         self._survey_date.setCalendarPopup(True)
         self._survey_date.setDisplayFormat("yyyy-MM-dd")
         self._survey_date.setDate(QDate.currentDate())
-        form.addRow("Mõõdistamise kpv", self._survey_date)
-
         self._surveyor = QLineEdit(self)
-        form.addRow("Mõõdistaja", self._surveyor)
-
         self._contact = QLineEdit(self)
-        form.addRow("Kontakt", self._contact)
+        form.add_fields(
+            ("Mõõdistamise kpv", self._survey_date, 4),
+            ("Mõõdistaja", self._surveyor, 4),
+            ("Kontakt", self._contact, 4),
+        )
+
+        form.add_separator()
 
         self._drawing_type = QComboBox(self)
         self._drawing_type.addItem("Teostusjoonis", "TJ")
         self._drawing_type.addItem("Geoalus", "GEOALUS")
-        form.addRow("Joonis", self._drawing_type)
-
         self._scale = QComboBox(self)
         self._scale.addItem("1:500", "500")
         self._scale.addItem("1:1000", "1000")
-        form.addRow("Mõõtkava", self._scale)
-
         self._coordinate_system = QComboBox(self)
         self._coordinate_system.addItem("L-EST97", "L-EST97")
         self._coordinate_system.addItem("Tartu kohalik", "Tartu")
-        form.addRow("Koordinaatsüsteem", self._coordinate_system)
-
         self._height_system = QComboBox(self)
         self._height_system.addItem("EH2000", "EH2000")
-        form.addRow("Kõrgussüsteem", self._height_system)
+        form.add_fields(
+            ("Joonis", self._drawing_type, 3),
+            ("Mõõtkava", self._scale, 3),
+            ("Koordinaatsüsteem", self._coordinate_system, 3),
+            ("Kõrgussüsteem", self._height_system, 3),
+        )
 
-        root.addLayout(form)
+        form.add_separator()
 
-        network_group = QGroupBox("Võrk", self)
-        network_layout = QHBoxLayout(network_group)
-        network_layout.setContentsMargins(10, 8, 10, 8)
-        network_layout.setSpacing(10)
-        for field_name, label in self.NETWORK_FIELDS:
-            checkbox = QCheckBox(label, network_group)
+        network = QWidget(self)
+        network_layout = QGridLayout(network)
+        network_layout.setContentsMargins(0, 0, 0, 0)
+        # Equal columns with the form's spacing: the boxes line up with the fields of a row of three.
+        network_layout.setHorizontalSpacing(StackedFormGrid.SPACING)
+        network_layout.setVerticalSpacing(6)
+        for column in range(self.NETWORK_COLUMNS):
+            network_layout.setColumnStretch(column, 1)
+        for index, (field_name, label) in enumerate(self.NETWORK_FIELDS):
+            checkbox = QCheckBox(label, network)
             self._network_checks[field_name] = checkbox
-            network_layout.addWidget(checkbox)
-        network_layout.addStretch(1)
-        root.addWidget(network_group)
+            network_layout.addWidget(checkbox, index // self.NETWORK_COLUMNS, index % self.NETWORK_COLUMNS)
+        form.add_fields(("Võrk", network, 12))
 
-        self._notes = QTextEdit(self)
+        self._notes = CompactTextEdit(self)
         self._notes.setAcceptRichText(False)
         self._notes.setPlaceholderText("Mõõdistaja märkused")
-        self._notes.setFixedHeight(80)
-        root.addWidget(self._notes)
+        self._notes.setMinimumHeight(80)
+        form.add_text_area("Märkused", self._notes)
+
+        root.addLayout(form, 1)
 
         buttons = QHBoxLayout()
+        buttons.setSpacing(8)
         buttons.addStretch(1)
 
         cancel_btn = QPushButton("Katkesta", self)

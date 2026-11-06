@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from qgis.core import QgsCoordinateReferenceSystem, QgsFields, QgsLayerTreeGroup, QgsProject, QgsVectorLayer
+from qgis.core import QgsLayerTreeGroup, QgsProject, QgsVectorLayer
 
 from ...engines.LayerCreationEngine import MailablGroupFolders, get_layer_engine
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -62,42 +62,6 @@ class MemoryLayerResultService:
                     extra={"layer": layer_name},
                 )
         return removed
-
-    @classmethod
-    def create_empty(
-        cls,
-        *,
-        layer_name: str,
-        template_layer: Optional[QgsVectorLayer] = None,
-        fields: Optional[QgsFields] = None,
-        crs: Optional[QgsCoordinateReferenceSystem] = None,
-        geometry_type: str = "Polygon",
-        group_name: str = MailablGroupFolders.SANDBOXING,
-        style_path: Optional[str] = None,
-        replace_existing: bool = True,
-        custom_properties: Optional[dict[str, str]] = None,
-    ) -> Optional[QgsVectorLayer]:
-        if replace_existing:
-            cls.remove_existing(layer_name)
-
-        engine = get_layer_engine()
-        layer = engine.create_memory_layer_from_template(
-            layer_name=layer_name,
-            template_layer=template_layer,
-            fields=fields,
-            crs=crs,
-            geometry_type=geometry_type,
-        )
-        if layer is None or not layer.isValid():
-            return None
-        return cls.prepare_result_layer(
-            layer,
-            layer_name=layer_name,
-            group_name=group_name,
-            style_path=style_path,
-            replace_existing=False,
-            custom_properties=custom_properties,
-        )
 
     @classmethod
     def prepare_result_layer(
@@ -216,16 +180,3 @@ class MemoryLayerResultService:
                 extra={"layer": layer.name(), "group": group_name or ""},
             )
             return False
-
-    @classmethod
-    def clear_tagged_empty_layers(cls, property_tag: str) -> int:
-        try:
-            return int(MapHelpers.cleanup_empty_import_layers(property_tag) or 0)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="layers",
-                event="memory_layer_cleanup_tagged_failed",
-                extra={"tag": property_tag},
-            )
-            return 0

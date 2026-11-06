@@ -22,6 +22,7 @@ from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...utils.logger import error
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
+from ..select_arrow import SelectArrow
 from ..theme_manager import ThemeManager
 from .select_all_checkbox import SelectAllCheckBox
 
@@ -45,9 +46,7 @@ class _SimplePickerControl(QFrame):
         self._label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self._label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
-        self._arrow = QLabel("v", self)
-        self._arrow.setObjectName("SimplePickerArrow")
-        self._arrow.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._arrow = SelectArrow(self)
 
         layout.addWidget(self._label, 1)
         layout.addWidget(self._arrow, 0, Qt.AlignVCenter)
@@ -93,9 +92,6 @@ class _SimplePickerControl(QFrame):
             "}"
             "QLabel#SimplePickerSummary {"
             f"color: {text}; font-size: 12px; font-weight: 600;"
-            "}"
-            "QLabel#SimplePickerArrow {"
-            f"color: {accent}; font-size: 12px; font-weight: 700;"
             "}"
         )
 

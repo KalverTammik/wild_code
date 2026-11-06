@@ -8,6 +8,7 @@ GIS application can be activated with automated schema validation.
 from __future__ import annotations
 
 from datetime import date, datetime
+from functools import lru_cache
 import html
 import json
 import re
@@ -16,7 +17,9 @@ from typing import Optional
 from PyQt5.QtCore import QDate, QDateTime
 from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
+    QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
+    QgsCsException,
     QgsFeature,
     QgsFeatureRequest,
     QgsField,
@@ -507,6 +510,16 @@ class WorksLayerService:
                 module=Module.WORKS.value,
                 event="works_property_tunnus_failed",
             )
+            return ""
+        return str(value or "").strip()
+
+    @staticmethod
+    def property_address(feature) -> str:
+        if feature is None:
+            return ""
+        try:
+            value = feature.attribute(Katastriyksus.l_aadress)
+        except Exception:
             return ""
         return str(value or "").strip()
 
@@ -1091,10 +1104,6 @@ class WorksLayerService:
         )
 
     @staticmethod
-    def _geojson_geometry_only(payload: dict) -> dict:
-        return GeometryPayloadService.geometry_only(payload)
-
-    @staticmethod
     def geometry_from_payload(geometry_payload) -> Optional[QgsGeometry]:
         return GeometryPayloadService.to_qgs_geometry(
             geometry_payload,
@@ -1102,17 +1111,41 @@ class WorksLayerService:
             error_event="works_geometry_from_payload_failed",
         )
 
+    @staticmethod
+    def geometry_for_layer(geometry_payload, layer: QgsVectorLayer) -> Optional[QgsGeometry]:
+        """Backend location in the layer's own type, or None if it cannot be a location on this layer."""
+        geometry = WorksLayerService.geometry_from_payload(geometry_payload)
+        if geometry is None or geometry.type() != layer.geometryType():
+            return None
+
+        # The backend field is free-form JSON: another client may have written other coordinates there.
+        extent = WorksLayerService._crs_extent(layer.crs().authid())
+        if not extent.isNull() and not extent.contains(geometry.boundingBox()):
+            return None
+
+        converted = layer.dataProvider().convertToProviderType(geometry)
+        return geometry if converted.isNull() else converted
+
+    @staticmethod
+    @lru_cache(maxsize=8)
+    def _crs_extent(authid: str) -> QgsRectangle:
+        crs = QgsCoordinateReferenceSystem(authid)
+        if not crs.isValid() or crs.bounds().isNull():
+            return QgsRectangle()
+        try:
+            transform = QgsCoordinateTransform(
+                QgsCoordinateReferenceSystem("EPSG:4326"),
+                crs,
+                QgsProject.instance().transformContext(),
+            )
+            return transform.transformBoundingBox(crs.bounds())
+        except QgsCsException:
+            return QgsRectangle()
+
 
 class WorksDescriptionService:
     SECTION_MARKER = "kavitro:type=works-metadata"
     _DESCRIPTION_SPACER_HTML = "<p>&nbsp;</p>\n<p>&nbsp;</p>"
-    _SECTION_PATTERN = re.compile(
-        r'<p[^>]*?>\s*🛠️.*?</p>\s*<div[^>]*?>\s*<table[^>]*?>.*?</table>\s*</div>\s*(?:<p>\s*</p>\s*)?\s*$',
-        re.IGNORECASE | re.DOTALL,
-    )
-    _BREAK_PATTERN = re.compile(r'<\s*br\s*/?\s*>', re.IGNORECASE)
-    _PARAGRAPH_END_PATTERN = re.compile(r'</p\s*>', re.IGNORECASE)
-    _TAG_PATTERN = re.compile(r'<[^>]+>')
 
     _TABLE_STYLE = (
         "width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; "
@@ -1205,37 +1238,6 @@ class WorksDescriptionService:
         if not normalized:
             return ""
         return f"<p style=\"margin: 6px 6px 0 6px;\">{cls._plain_text_to_html(normalized)}</p>"
-
-    @classmethod
-    def remove_metadata_section(cls, description_html: str | None) -> str:
-        description = cls._normalize_html(description_html)
-        if not description:
-            return ""
-        description = re.sub(r'<!--\s*kavitro:type=works-metadata\s*-->\s*', "", description, count=1)
-        return cls._SECTION_PATTERN.sub("", description, count=1).strip()
-
-    @classmethod
-    def extract_user_description(cls, description_html: str | None) -> str:
-        return cls._html_to_plain_text(cls.remove_metadata_section(description_html))
-
-    @classmethod
-    def merge_metadata_into_description(
-        cls,
-        *,
-        existing_html: str | None,
-        layer: Optional[QgsVectorLayer],
-        point: QgsPointXY,
-        lang_manager=None,
-        point_in_layer_crs: bool = False,
-    ) -> str:
-        description_text = cls.extract_user_description(existing_html)
-        return cls.build_task_description(
-            layer=layer,
-            point=point,
-            description_text=description_text,
-            lang_manager=lang_manager,
-            point_in_layer_crs=point_in_layer_crs,
-        )
 
     @classmethod
     def _render_description_block(
@@ -1340,34 +1342,6 @@ class WorksDescriptionService:
     @staticmethod
     def _plain_text_to_html(value: str) -> str:
         return html.escape(value or "").replace("\n", "<br/>")
-
-    @staticmethod
-    def _normalize_html(value: str | None) -> str:
-        return value.strip() if isinstance(value, str) else ""
-
-    @classmethod
-    def _html_to_plain_text(cls, value: str | None) -> str:
-        if not value:
-            return ""
-        normalized = cls._BREAK_PATTERN.sub("\n", value)
-        normalized = cls._PARAGRAPH_END_PATTERN.sub("\n", normalized)
-        normalized = cls._TAG_PATTERN.sub("", normalized)
-        normalized = html.unescape(normalized)
-        normalized = normalized.replace("\r\n", "\n").replace("\r", "\n").replace("\xa0", " ")
-
-        cleaned_lines: list[str] = []
-        blank_emitted = False
-        for raw_line in normalized.split("\n"):
-            line = raw_line.strip()
-            if not line:
-                if cleaned_lines and not blank_emitted:
-                    cleaned_lines.append("")
-                    blank_emitted = True
-                continue
-            cleaned_lines.append(line)
-            blank_emitted = False
-
-        return "\n".join(cleaned_lines).strip()
 
     @classmethod
     def _render_table_header(cls, *, lang_manager: LanguageManager) -> str:

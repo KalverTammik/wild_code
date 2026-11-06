@@ -4,6 +4,7 @@ from PyQt5.QtCore import QSize, Qt
 from PyQt5.QtWidgets import QAction, QMenu, QPushButton, QDialog
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
 
+from qgis.PyQt import sip
 from qgis.utils import iface
 
 
@@ -40,6 +41,7 @@ from ...modules.works.works_create_controller import WorksCreateController
 from ...modules.works.works_layer_service import WorksLayerService
 from ...modules.works.works_reposition_controller import WorksRepositionController
 from ...constants.file_paths import QssPaths
+from .MainStatusWidget import MainStatusWidget
 
 
 
@@ -342,6 +344,19 @@ class MoreActionsButton(CardActionButton):
         if callable(self._on_files_path_updated):
             self._on_files_path_updated(resolved_path)
 
+    def _handle_easement_status_changed(self, status: dict) -> None:
+        # The card and its next actions follow the status Kavitro has now.
+        self._item_data["status"] = dict(status)
+        if sip.isdeleted(self):
+            return
+        card = self.parentWidget()
+        while card is not None and card.objectName() != "ModuleInfoCard":
+            card = card.parentWidget()
+        if card is None:
+            return
+        for status_widget in card.findChildren(MainStatusWidget):
+            status_widget.apply_status(self._item_data)
+
     def start_property_linking(self) -> None:
         """Start the shared map-selection workflow from any card entry point."""
         self._link_properties_from_map(
@@ -547,6 +562,7 @@ class MoreActionsButton(CardActionButton):
             item_data=item,
             lang_manager=lm,
             parent=self._get_safe_parent_window(),
+            on_status_changed=self._handle_easement_status_changed,
         )
         dialog.setAttribute(Qt.WA_DeleteOnClose, True)
         dialog.finished.connect(lambda *_args: setattr(self, "_easement_preview_dialog", None))
@@ -563,7 +579,10 @@ class MoreActionsButton(CardActionButton):
             return
 
         if self._easement_feature_map_controller is None:
-            self._easement_feature_map_controller = EasementAttachExistingController(lang_manager=lm)
+            self._easement_feature_map_controller = EasementAttachExistingController(
+                lang_manager=lm,
+                on_status_changed=self._handle_easement_status_changed,
+            )
 
         self._easement_feature_map_controller.start_attach(
             item_data=item,
@@ -578,7 +597,10 @@ class MoreActionsButton(CardActionButton):
             return
 
         if self._easement_feature_map_controller is None:
-            self._easement_feature_map_controller = EasementAttachExistingController(lang_manager=lm)
+            self._easement_feature_map_controller = EasementAttachExistingController(
+                lang_manager=lm,
+                on_status_changed=self._handle_easement_status_changed,
+            )
 
         self._easement_feature_map_controller.start_draw(item_data=item)
 
@@ -590,7 +612,10 @@ class MoreActionsButton(CardActionButton):
             return
 
         if self._easement_feature_map_controller is None:
-            self._easement_feature_map_controller = EasementAttachExistingController(lang_manager=lm)
+            self._easement_feature_map_controller = EasementAttachExistingController(
+                lang_manager=lm,
+                on_status_changed=self._handle_easement_status_changed,
+            )
 
         self._easement_feature_map_controller.start_edit(item_data=item)
 
@@ -791,9 +816,6 @@ class MoreActionsButton(CardActionButton):
                 self._exit_map_selection_mode()
 
         _start_selection()
-
-    def _minimize_parent_window_if_safe(self) -> None:
-        self._enter_map_selection_mode()
 
     def _restore_parent_window(self) -> None:
         self._exit_map_selection_mode()

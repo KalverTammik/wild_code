@@ -50,40 +50,6 @@ class DateHelpers:
         return locale.toString(qdt.date(), QLocale.ShortFormat)
     
 
-    def QGIS_date_to_string(self, date_item):
-        if date_item is None:
-            return ""
-
-        if isinstance(date_item, QDate):
-            if date_item.isValid():
-                return date_item.toString("dd.MM.yyyy")
-            return ""
-
-        if isinstance(date_item, QDateTime):
-            d = date_item.date()
-            if d.isValid():
-                return d.toString("dd.MM.yyyy")
-            return ""
-
-        if isinstance(date_item, datetime.datetime):
-            return date_item.date().strftime("%d.%m.%Y")
-
-        if isinstance(date_item, datetime.date):
-            return date_item.strftime("%d.%m.%Y")
-
-        # Sometimes QGIS/QT values show up as strings like "PyQt5.QtCore.QDate(2021, 12, 15)"
-        if isinstance(date_item, str):
-            s = date_item.strip()
-            match = re.search(r'QDate\((\d+),\s*(\d+),\s*(\d+)\)', s)
-            if match:
-                year, month, day = match.groups()
-                original_date = QDate(int(year), int(month), int(day))
-                if original_date.isValid():
-                    return original_date.toString("dd.MM.yyyy")
-            return ""
-
-        return ""
-
     def date_to_iso_string(self, date_item):
         """Return an API-safe ISO date string (YYYY-MM-DD) from QDate/QDateTime/date/etc."""
         if date_item is None:
@@ -145,22 +111,3 @@ class DateHelpers:
             return ""
 
         return ""
-
-
-    @staticmethod
-    def _parse_iso_date(date_str: str):
-        """Parse an ISO date string (YYYY-MM-DD) into a datetime.date or return None."""
-        if not date_str:
-            return None
-        try:
-            # Allow if already a date object
-            if isinstance(date_str, (datetime.date, datetime.datetime)):
-                return date_str.date() if isinstance(date_str, datetime.datetime) else date_str
-            return datetime.date.fromisoformat(str(date_str))
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="datehelpers_parse_iso_date_failed",
-            )
-            return None

@@ -40,14 +40,6 @@ class LayerSchemas:
 
 class GPKGHelpers:
     @staticmethod
-    def get_layer_uri(target_layer_for_file: QgsVectorLayer, new_layer_name: str):
-        uri = target_layer_for_file.dataProvider().dataSourceUri()
-        gpkg_path = uri.split("|")[0]
-        layer_uri = f"{gpkg_path}|layername={new_layer_name}"
-        print("URI:", uri)
-        print("GPKG Path:", gpkg_path)
-        return layer_uri, gpkg_path
-    @staticmethod
     def gpkg_layer_exists(gpkg_path: str, layer_name: str) -> bool:
         normalized_path = os.path.abspath(str(gpkg_path or "").strip())
         if not normalized_path or not os.path.exists(normalized_path):

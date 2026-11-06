@@ -43,12 +43,6 @@ class ModernMessageDialog:
         dialog = ModernMessageDialog._create_dialog(title, message, IconNames.CRITICAL)
         dialog.exec_()
 
-    @staticmethod
-    def Message_messages_modern(title: str, message: str):
-        """Show a general message dialog with modern styling."""
-        dialog = ModernMessageDialog._create_dialog(title, message, IconNames.QUESTION)
-        dialog.exec_()
-
     # Convenience wrappers for consistency across codebase
     @staticmethod
     def show_info(title: str, message: str) -> None:

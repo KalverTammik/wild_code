@@ -69,7 +69,7 @@ class AddBatchRunner(QObject):
         self._use_filtered_rows = use_filtered_rows
         self._queue = []
         self._done = self._total = 0
-        self._stop_requested = self._paused = False
+        self._stop_requested = False
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self._tick)
@@ -110,7 +110,6 @@ class AddBatchRunner(QObject):
         self._total = len(self._queue)
         self._done = 0
         self._stop_requested = False
-        self._paused = False
 
         if not self._queue:
             self._finish()
@@ -118,16 +117,6 @@ class AddBatchRunner(QObject):
 
         self.progress.emit(0, self._total, "starting", "")
         self._timer.start(0)
-
-    def pause(self) -> None:
-        self._paused = True
-
-    def resume(self) -> None:
-        if not self._paused:
-            return
-        self._paused = False
-        if not self._timer.isActive():
-            self._timer.start(0)
 
     def cancel(self):
         if self._finished:
@@ -152,7 +141,7 @@ class AddBatchRunner(QObject):
                             'applied': self._applied})
 
     def _tick(self):
-        if self._finished or self._in_flight or self._paused:
+        if self._finished or self._in_flight:
             return
         if self._stop_requested or not self._queue:
             self._finish()
@@ -259,6 +248,6 @@ class AddBatchRunner(QObject):
         self.progress.emit(self._done, self._total, 'processing', tunnus)
         if error or self._stop_requested or not self._queue:
             self._finish()
-        elif not self._paused:
+        else:
             # Physical HTTP requests are paced centrally, not by property-count batches.
             self._timer.start(0)

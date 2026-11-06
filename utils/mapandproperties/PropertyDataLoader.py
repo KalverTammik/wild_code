@@ -34,17 +34,6 @@ class PropertyDataLoader:
             raise ValueError(msg)
         return idx
 
-    def _request(self, fields, expr=None):
-        """Koosta ühine FeatureRequest ilma geomeetriata ja ainult vajalike väljadega."""
-        req = QgsFeatureRequest()
-        req.setFlags(QgsFeatureRequest.NoGeometry)
-        # lubame ainult vajalikud väljad (indeksite loetelu)
-        idxs = [self._ensure_field(f) for f in fields]
-        req.setSubsetOfAttributes(idxs)
-        if expr:
-            req.setFilterExpression(expr)
-        return req
-
     @staticmethod
     def _sql_quote(value):
         if value is None:

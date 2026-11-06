@@ -184,7 +184,6 @@
 #SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModulecb::indicator {
   width: 12px;
   height: 12px;
-  border: none
 }
 
 #SetupCard #AccessPills QFrame#AccessPill > QCheckBox#PreferredModulecb::indicator:disabled {

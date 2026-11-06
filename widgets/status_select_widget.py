@@ -19,6 +19,7 @@ from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..ui.window_state.popup_helpers import PopupHelpers
 from ..utils.status_color_helper import StatusColorHelper
+from .select_arrow import SelectArrow
 from .theme_manager import Theme, ThemeManager, is_dark
 
 
@@ -599,6 +600,7 @@ class StatusSelectWidget(QWidget):
         self._options: list[dict[str, object]] = []
         self._selected_id = ""
         self._popup: Optional[_StatusSelectPopup] = None
+        self._control_min_height = 24
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -626,10 +628,7 @@ class StatusSelectWidget(QWidget):
         self._label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         control_layout.addWidget(self._label, 1, Qt.AlignVCenter)
 
-        self._arrow = QLabel("v", self._control)
-        self._arrow.setObjectName("StatusSelectArrow")
-        self._arrow.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self._arrow.setAlignment(Qt.AlignCenter)
+        self._arrow = SelectArrow(self._control)
         control_layout.addWidget(self._arrow, 0, Qt.AlignVCenter)
 
         layout.addWidget(self._control)
@@ -646,6 +645,11 @@ class StatusSelectWidget(QWidget):
         return len(self._options)
 
     def retheme(self) -> None:
+        self._apply_selected_option()
+
+    def set_control_height(self, height: int) -> None:
+        # The control's style owns its minimum height and overrides setFixedHeight; 2 px is the border.
+        self._control_min_height = int(height) - 2
         self._apply_selected_option()
 
     def set_options(self, options: Iterable[dict[str, object]], *, selected_id: str = "") -> None:
@@ -779,7 +783,6 @@ class StatusSelectWidget(QWidget):
             control_bg = "#f2f4f7" if not dark_theme else "#20252b"
             border = "rgba(98,108,120,0.36)"
             text = "rgba(98,108,120,0.85)" if not dark_theme else "rgba(170,178,188,0.58)"
-            arrow = text
         else:
             control_bg = (
                 f"rgba({bg_rgb[0]},{bg_rgb[1]},{bg_rgb[2]},0.12)"
@@ -788,14 +791,13 @@ class StatusSelectWidget(QWidget):
             )
             border = f"rgba({border_rgb[0]},{border_rgb[1]},{border_rgb[2]},0.48)"
             text = "#27313a" if not dark_theme else "#f1f5f9"
-            arrow = "#667085" if not dark_theme else "#a9b4c0"
 
         self._control.setStyleSheet(
             "QFrame#StatusSelectControl {"
             f"background-color: {control_bg};"
             f"border: 1px solid {border};"
             "border-radius: 6px;"
-            "min-height: 24px;"
+            f"min-height: {self._control_min_height}px;"
             "}"
             "QFrame#StatusSelectControl:hover {"
             f"border: 1px solid rgba({border_rgb[0]},{border_rgb[1]},{border_rgb[2]},0.70);"
@@ -809,13 +811,6 @@ class StatusSelectWidget(QWidget):
             f"color: {text};"
             "font-size: 12px;"
             "font-weight: 600;"
-            "}"
-        )
-        self._arrow.setStyleSheet(
-            "QLabel#StatusSelectArrow {"
-            f"color: {arrow};"
-            "font-size: 10px;"
-            "font-weight: 700;"
             "}"
         )
         self._control.setCursor(Qt.PointingHandCursor if self.isEnabled() else Qt.ArrowCursor)
@@ -901,10 +896,7 @@ class StatusMultiSelectWidget(QWidget):
         self._label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         control_layout.addWidget(self._label, 1, Qt.AlignVCenter)
 
-        self._arrow = QLabel("v", self._control)
-        self._arrow.setObjectName("StatusSelectArrow")
-        self._arrow.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self._arrow.setAlignment(Qt.AlignCenter)
+        self._arrow = SelectArrow(self._control)
         control_layout.addWidget(self._arrow, 0, Qt.AlignVCenter)
 
         layout.addWidget(self._control)
@@ -1082,7 +1074,6 @@ class StatusMultiSelectWidget(QWidget):
             control_bg = "#f2f4f7" if not dark_theme else "#20252b"
             border = "rgba(98,108,120,0.36)"
             text = "rgba(98,108,120,0.85)" if not dark_theme else "rgba(170,178,188,0.58)"
-            arrow = text
         else:
             control_bg = (
                 f"rgba({bg_rgb[0]},{bg_rgb[1]},{bg_rgb[2]},0.12)"
@@ -1091,7 +1082,6 @@ class StatusMultiSelectWidget(QWidget):
             )
             border = f"rgba({border_rgb[0]},{border_rgb[1]},{border_rgb[2]},0.48)" if has_selection else "rgba(15,23,42,0.18)"
             text = "#27313a" if not dark_theme else "#f1f5f9"
-            arrow = "#667085" if not dark_theme else "#a9b4c0"
 
         self._control.setStyleSheet(
             "QFrame#StatusSelectControl {"
@@ -1112,13 +1102,6 @@ class StatusMultiSelectWidget(QWidget):
             f"color: {text};"
             "font-size: 12px;"
             "font-weight: 600;"
-            "}"
-        )
-        self._arrow.setStyleSheet(
-            "QLabel#StatusSelectArrow {"
-            f"color: {arrow};"
-            "font-size: 10px;"
-            "font-weight: 700;"
             "}"
         )
         self._control.setCursor(Qt.PointingHandCursor if self.isEnabled() else Qt.ArrowCursor)

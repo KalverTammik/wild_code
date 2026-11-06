@@ -42,16 +42,6 @@ QWidget#LayerTreePicker QFrame#LayerTreePickerContainer QFrame#DropdownFrame {
     max-width: 22px;
 }
 
-QWidget#LayerTreePicker QFrame#LayerTreePickerContainer QFrame#DropdownFrame QLabel#LayerTreePickerArrow {
-    color: #2188ff;
-    border: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
-    font-size: 12px;
-    font-weight: 700;
-}
-
 QFrame#LayerTreePopup {
     background: #ffffff;
     color: #24292e;

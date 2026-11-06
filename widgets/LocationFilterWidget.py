@@ -291,6 +291,7 @@ class LocationFilterWidget(QFrame):
         self.county_combo = QComboBox()
         self.county_combo.setObjectName("CountyCombo")
         self.county_combo.addItem(self.lang_manager.translate(TranslationKeys.SELECT_COUNTY), "")
+        ThemeManager.apply_form_combo_popup_style(self.county_combo)
         county_layout.addWidget(self.county_combo)
         location_layout.addLayout(county_layout)
 
@@ -303,6 +304,7 @@ class LocationFilterWidget(QFrame):
         self.municipality_combo.setObjectName("MunicipalityCombo")
         self.municipality_combo.addItem(self.lang_manager.translate(TranslationKeys.SELECT_MUNICIPALITY), "")
         self.municipality_combo.setEnabled(False)
+        ThemeManager.apply_form_combo_popup_style(self.municipality_combo)
         municipality_layout.addWidget(self.municipality_combo)
         location_layout.addLayout(municipality_layout)
 

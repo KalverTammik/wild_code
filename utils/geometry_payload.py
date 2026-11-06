@@ -3,8 +3,7 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from PyQt5.QtCore import QByteArray
-from qgis.core import QgsGeometry
+from qgis.core import QgsGeometry, QgsJsonUtils
 
 from ..Logs.python_fail_logger import PythonFailLogger
 
@@ -99,7 +98,7 @@ class GeometryPayloadService:
 
         try:
             payload_text = json.dumps(GeometryPayloadService.geometry_only(payload), ensure_ascii=False)
-            geometry = QgsGeometry.fromJson(QByteArray(payload_text.encode("utf-8")))
+            geometry = QgsJsonUtils.geometryFromGeoJson(payload_text)
             if not isinstance(geometry, QgsGeometry) or geometry.isEmpty():
                 return None
             return geometry

@@ -156,16 +156,6 @@ class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
                 except Exception as exc:
                     print(f"[CoordinationModule] Failed to clear filter widget: {exc}")
 
-    def _ensure_feed_logic(self) -> None:
-        print("[CoordinationModule] Ensuring feed logic is initialized")
-        if self.feed_logic is not None:
-            return
-        self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
-        print("[CoordinationModule] Feed logic initialized")
-        configure_single = getattr(self.feed_logic, "configure_single_item_query", None)
-        if callable(configure_single):
-            configure_single(self.SINGLE_ITEM_QUERY_FILE)
-
     def load_next_batch(self):
         return self.process_next_batch()
 

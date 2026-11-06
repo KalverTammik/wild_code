@@ -220,15 +220,6 @@ class ModuleKpiGauge(QWidget):
             current_angle = self._normalize_angle(current_angle + sweep + gap_degrees)
         return geometry
 
-    def _tooltip_text(self, segment: dict[str, object]) -> str:
-        count = int(segment.get("count") or 0)
-        percent = 0.0 if self._total_count <= 0 else (count / self._total_count) * 100.0
-        return (
-            f"{segment.get('label')}: {count}\n"
-            f"{percent:.1f}%\n"
-            f"{segment.get('tooltip')}"
-        )
-
     def _segment_anchor_point(self, segment: dict[str, object], *, radius_offset: float = 0.0) -> QPointF:
         _rect, center, radius, _thickness = self._arc_geometry()
         start = self._normalize_angle(float(segment.get("start") or 0.0))

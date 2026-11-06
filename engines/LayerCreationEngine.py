@@ -11,23 +11,25 @@ This engine provides comprehensive layer management services including:
 """
 
 import os
-from typing import Optional, List
+from typing import Optional
 from qgis.core import (
-    QgsProject, QgsVectorLayer, QgsLayerTreeGroup,
-    QgsVectorFileWriter, QgsCoordinateReferenceSystem, QgsFields,
-    Qgis
+    QgsProject,
+    QgsVectorLayer,
+    QgsLayerTreeGroup,
+    QgsCoordinateReferenceSystem,
+    QgsFields,
+    Qgis,
 )
-from qgis.PyQt.QtWidgets import QFileDialog, QWidget
+from qgis.PyQt.QtWidgets import QWidget
 from qgis.PyQt.QtCore import QTimer, QCoreApplication
 from qgis.PyQt.QtXml import QDomDocument
 
 # Local imports
 from ..constants.file_paths import QmlPaths
 
-from ..constants.layer_constants import DEFAULT_CRS, GEOPACKAGE_EXTENSION, GEOPACKAGE_DRIVER
+from ..constants.layer_constants import DEFAULT_CRS
 # Prefer module-level imports for clarity. Kept here to avoid accidental circular imports when possible.
 from ..widgets.ProgressDialogModern import ProgressDialogModern
-from ..utils.messagesHelper import ModernMessageDialog
 
 # Global layer engine instance
 _layer_engine_instance = None
@@ -309,206 +311,6 @@ class LayerCreationEngine:
         self.apply_qml_style(memory_layer, QmlPaths.MAAMET_IMPORT)
 
         return memory_layer
-
-    def save_memory_layer_to_geopackage(
-        self,
-        memory_layer_name: str,
-        new_layer_name: str,
-        group_name: str,
-        save_directory: Optional[str] = None
-    ) -> bool:
-        """
-        Save memory layer to GeoPackage and reload into project.
-
-        Args:
-            memory_layer_name: Name of memory layer to save
-            new_layer_name: Name for saved layer
-            group_name: Target group name
-            save_directory: Optional save directory
-
-        Returns:
-            bool: True if successful
-        """
-        # Find memory layer
-        memory_layer = None
-        for layer in self.project.mapLayers().values():
-            if layer.name() == memory_layer_name and layer.providerType() == 'memory':
-                memory_layer = layer
-                break
-
-        if not memory_layer:
-            return False
-
-        # Get save directory
-        if not save_directory:
-            save_directory = QFileDialog.getExistingDirectory(
-                None, "Vali salvestuskataloog", os.path.expanduser("~")
-            )
-            if not save_directory:
-                return False
-
-        # Create file path
-        file_path = os.path.join(save_directory, f"{new_layer_name}{GEOPACKAGE_EXTENSION}")
-
-        # Handle existing file
-        if os.path.exists(file_path):
-            overwrite = ModernMessageDialog.ask_yes_no(
-                "Fail on olemas",
-                f"Fail '{file_path}' on juba olemas. Kas kirjutada üle?",
-            )
-            if not overwrite:
-                return False
-            os.remove(file_path)
-
-        # Save to GeoPackage
-        options = QgsVectorFileWriter.SaveVectorOptions()
-        options.driverName = GEOPACKAGE_DRIVER
-        options.layerName = new_layer_name
-
-        error = QgsVectorFileWriter.writeAsVectorFormatV3(
-            memory_layer, file_path, self.project.transformContext(), options
-        )
-
-        if error[0] != Qgis.NoError:
-            return False
-
-        # Reload the saved layer
-        saved_layer = QgsVectorLayer(file_path, new_layer_name, "ogr")
-        if saved_layer.isValid():
-            self.project.addMapLayer(saved_layer, False)
-
-            # Add to group
-            group = self.get_or_create_group(group_name)
-            group.addLayer(saved_layer)
-
-            # Remove memory layer
-            self.project.removeMapLayer(memory_layer.id())
-
-            return True
-        else:
-            return False
-
-    def create_property_sync_layer(self, base_layer: Optional[QgsVectorLayer] = None) -> Optional[str]:
-        """
-        Create a layer specifically for property synchronization.
-
-        Args:
-            base_layer: Optional base layer to copy from
-
-        Returns:
-            Optional[str]: Name of created layer
-        """
-        layer_name = "PropertySync_Layer"
-        group_name = MailablGroupFolders.SYNC
-
-        return self.copy_virtual_layer_for_properties(layer_name, group_name, base_layer)
-
-    def create_archive_layer(self, base_layer: Optional[QgsVectorLayer] = None) -> Optional[str]:
-        """
-        Create a layer for archiving operations.
-
-        Args:
-            base_layer: Optional base layer to copy from
-
-        Returns:
-            Optional[str]: Name of created layer
-        """
-        layer_name = "Archive_Layer"
-        group_name = MailablGroupFolders.ARCHIVE
-
-        return self.copy_virtual_layer_for_properties(layer_name, group_name, base_layer)
-
-    def get_available_groups(self) -> List[str]:
-        """
-        Get list of available layer groups.
-
-        Returns:
-            List[str]: List of group names
-        """
-        groups = []
-        for child in self.layer_tree_root.children():
-            if isinstance(child, QgsLayerTreeGroup):
-                groups.append(child.name())
-        return groups
-
-    def get_layers_in_group(self, group_name: str) -> List[QgsVectorLayer]:
-        """
-        Get all layers in a specific group.
-
-        Args:
-            group_name: Name of the group
-
-        Returns:
-            List[QgsVectorLayer]: List of layers in the group
-        """
-        group = self.layer_tree_root.findGroup(group_name)
-        if not group:
-            return []
-
-        layers = []
-        for child in group.children():
-            if hasattr(child, 'layer') and child.layer():
-                layers.append(child.layer())
-
-        return layers
-
-    def get_all_layers_in_mailabl_groups(self) -> List[QgsVectorLayer]:
-        """
-        Get all layers from all Mailabl subgroups.
-
-        Returns:
-            List[QgsVectorLayer]: List of all layers in Mailabl groups
-        """
-        all_layers = []
-
-        # Get main group
-        main_group = self.layer_tree_root.findGroup(MailablGroupFolders.MAILABL_MAIN)
-        if not main_group:
-            return []
-
-        # Get layers from all subgroups
-        subgroups = [
-            MailablGroupFolders.NEW_PROPERTIES,
-            MailablGroupFolders.SANDBOXING,
-            MailablGroupFolders.IMPORT,
-            MailablGroupFolders.SYNC,
-            MailablGroupFolders.ARCHIVE
-        ]
-
-        for subgroup_name in subgroups:
-            subgroup = main_group.findGroup(subgroup_name)
-            if subgroup:
-                for child in subgroup.children():
-                    if hasattr(child, 'layer') and child.layer():
-                        all_layers.append(child.layer())
-
-        return all_layers
-
-    def remove_group_if_empty(self, group_name: str) -> bool:
-        """
-        Remove a group if it contains no layers.
-
-        Args:
-            group_name: Name of the group to remove
-
-        Returns:
-            bool: True if group was removed, False otherwise
-        """
-        group = self.layer_tree_root.findGroup(group_name)
-        if not group:
-            return False
-
-        # Check if group has any children (layers or subgroups)
-        if group.children():
-            return False
-
-        # Remove the empty group
-        parent = group.parent()
-        if parent:
-            parent.removeChildNode(group)
-            return True
-        else:
-            return False
 
     def apply_qml_style(self, layer: QgsVectorLayer, style_name) -> bool:
         """
