@@ -222,7 +222,7 @@ class StatusFilterWidget(QWidget):
             return None
         while parent is not None:
             if hasattr(parent, "_active_token"):
-                return getattr(parent, "_active_token", None)
+                return parent._active_token
             parent = parent.parent()
         return None
 
@@ -242,7 +242,7 @@ class StatusFilterWidget(QWidget):
                 except Exception:
                     return False
             if hasattr(parent, "_active_token"):
-                return bool(getattr(parent, "_activated", False)) and token == getattr(parent, "_active_token", None)
+                return bool(getattr(parent, "_activated", False)) and token == parent._active_token
             parent = parent.parent()
         return True
 

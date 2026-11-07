@@ -259,9 +259,7 @@ class UserSettingsCard(SettingsBaseCard):
     def retheme(self):
         super().retheme()
         # Repolish dynamic widgets so [active]/[inactive] QSS is reapplied
-        layout = getattr(self, "access_layout", None)
-        if layout is not None:
-            self._repolish_pills(layout)
+        self._repolish_pills(self.access_layout)
 
     # ---------- Callbacks ----------
     def _on_pref_toggled(self, btn, checked):
@@ -300,7 +298,7 @@ class UserSettingsCard(SettingsBaseCard):
         self._pill_click_targets.clear()
 
     def eventFilter(self, obj, event):
-        if obj in getattr(self, '_pill_click_targets', {}) and event.type() == QEvent.MouseButtonRelease:
+        if obj in self._pill_click_targets and event.type() == QEvent.MouseButtonRelease:
             cb = self._pill_click_targets.get(obj)
             if cb and cb.isEnabled():
                 self._toggle_checkbox_from_target(cb)

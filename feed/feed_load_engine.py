@@ -31,8 +31,9 @@ class FeedLoadEngine:
         # Hook for UI insertion callback; may be set later via attach()
         self.progressive_insert_func = progressive_insert_func
 
-        # cooperation hooks
-        self.parent_ui = None  # set by UI (e.g., ContractUi)
+        # cooperation hooks: parent_ui and the owner of a bound load_next_batch
+        # are the module UI, so both carry the TokenMixin state.
+        self.parent_ui = None  # set by attach(); cleared on deactivate
 
         # Auto-drip pacing (small, configurable batches driven by QTimer)
         self._auto_drip_ms = 20
@@ -54,41 +55,37 @@ class FeedLoadEngine:
 
     def _is_active(self) -> bool:
         if self.parent_ui is not None:
-            return bool(getattr(self.parent_ui, "_activated", True))
+            return bool(self.parent_ui._activated)
         # Fallback: check bound load_next_batch target if parent_ui was cleared
         target = getattr(self.load_next_batch, "__self__", None)
-        if target is not None and hasattr(target, "_activated"):
-            return bool(getattr(target, "_activated", False))
+        if target is not None:
+            return bool(target._activated)
         return True
 
     def _current_token(self) -> int | None:
         ui = self.parent_ui
         if ui is not None:
-            return getattr(ui, "_active_token", None)
+            return ui._active_token
         target = getattr(self.load_next_batch, "__self__", None)
         if target is not None:
-            return getattr(target, "_active_token", None)
+            return target._active_token
         return None
 
     def _is_token_active(self, token: int | None) -> bool:
         if token is None:
             return self._is_active()
         ui = self.parent_ui
-        if ui is not None and hasattr(ui, "is_token_active"):
+        if ui is not None:
             try:
                 return bool(ui.is_token_active(token))
             except Exception:
                 return False
         target = getattr(self.load_next_batch, "__self__", None)
-        if target is not None and hasattr(target, "is_token_active"):
+        if target is not None:
             try:
                 return bool(target.is_token_active(token))
             except Exception:
                 return False
-        if ui is not None:
-            return bool(getattr(ui, "_activated", False)) and token == getattr(ui, "_active_token", None)
-        if target is not None:
-            return bool(getattr(target, "_activated", False)) and token == getattr(target, "_active_token", None)
         return self._is_active()
 
     def _upstream_has_more(self) -> bool:

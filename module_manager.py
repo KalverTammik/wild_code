@@ -177,13 +177,10 @@ class ModuleManager:
 
     @staticmethod
     def _get_widget_safe(instance):
-        getter = getattr(instance, "get_widget", None)
-        if callable(getter):
-            try:
-                return getter()
-            except Exception:
-                return instance
-        return instance
+        try:
+            return instance.get_widget()
+        except Exception:
+            return instance
 
     @staticmethod
     def _get_explicit_retheme_hook(instance):

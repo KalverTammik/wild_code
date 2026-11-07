@@ -440,11 +440,7 @@ class SettingsModule(TokenMixin, QWidget):
         # Re-theme all existing cards through their own hooks so child controls
         # like combo boxes, checkboxes, and nested settings widgets can refresh.
         for card in self._cards:
-            card_retheme = getattr(card, "retheme", None)
-            if callable(card_retheme):
-                card_retheme()
-            else:
-                ThemeManager.apply_module_style(card, [QssPaths.SETUP_CARD])
+            card.retheme()
             try:
                 SwitchLogger.log(
                     "settings_retheme_card",
@@ -520,9 +516,7 @@ class SettingsModule(TokenMixin, QWidget):
 
     def _on_geospatial_mode_changed(self, active: bool) -> None:
         for card in self._module_cards.values():
-            set_mode = getattr(card, "set_geospatial_mode_active", None)
-            if callable(set_mode):
-                set_mode(bool(active))
+            card.set_geospatial_mode_active(bool(active))
 
     def _sync_property_management_card(self) -> None:
         card = None
@@ -532,9 +526,7 @@ class SettingsModule(TokenMixin, QWidget):
                 break
         if card is None:
             return
-        set_available = getattr(card, "set_property_management_available", None)
-        if callable(set_available):
-            set_available(bool(self._can_create_property))
+        card.set_property_management_available(bool(self._can_create_property))
 
     def _set_dirty(self, dirty: bool):
         self._pending_changes = bool(dirty)

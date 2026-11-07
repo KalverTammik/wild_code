@@ -1,4 +1,3 @@
-import os
 from dataclasses import replace
 from datetime import timedelta
 from math import ceil
@@ -83,6 +82,7 @@ class AddPropertyDialog(QDialog):
         # Always define these so we can use direct `self.` access everywhere.
         self.properties_table_widget = None
         self.properties_table = None
+        self.run_checks_button = None
 
         # Location filter widget + combos (set in _create_ui)
         self.location_filter_widget = None
@@ -1923,7 +1923,7 @@ class AddPropertyDialog(QDialog):
             self.add_without_checks_button.setEnabled(state.can_add_without_checks)
 
     def _update_run_checks_button(self) -> None:
-        if not hasattr(self, "run_checks_button") or self.run_checks_button is None:
+        if self.run_checks_button is None:
             return
 
         self.run_checks_button.setEnabled(self._phase_state().can_run_checks)

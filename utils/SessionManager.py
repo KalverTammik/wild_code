@@ -1,10 +1,9 @@
 from threading import RLock
-from typing import Optional, Protocol, TYPE_CHECKING
+from typing import Callable, Optional, Protocol, TYPE_CHECKING
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
-    from typing import Any
 
     class ModuleWidgetProtocol(Protocol):
         ...
@@ -36,6 +35,7 @@ if TYPE_CHECKING:
 
     class SessionDialogProtocol(Protocol):
         _has_shown: bool
+        _session_listener: Optional[Callable[[], None]]
         moduleManager: ModuleManagerProtocol
         moduleStack: ModuleStackProtocol
         sidebar: SidebarProtocol
@@ -43,6 +43,7 @@ if TYPE_CHECKING:
         footer_widget: FooterProtocol
         def close(self) -> None: ...
         def hide(self) -> None: ...
+        def _refresh_session_dependent_ui(self) -> None: ...
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
 from ..languages.translation_keys import TranslationKeys
 from .messagesHelper import ModernMessageDialog
@@ -590,15 +591,14 @@ class SessionUIController:
         from .url_manager import Module
         from .moduleSwitchHelper import ModuleSwitchHelper
         from ..constants.settings_keys import SettingsService
-        if not hasattr(dialog, "_session_listener"):
+        if dialog._session_listener is None:
             def _listener():
                 SessionUIController.handle_session_changed(dialog)
 
             dialog._session_listener = _listener
             SessionManager.register_listener(_listener)
             try:
-                if hasattr(dialog, "destroyed"):
-                    dialog.destroyed.connect(lambda *_: SessionManager.unregister_listener(_listener))
+                dialog.destroyed.connect(lambda *_: SessionManager.unregister_listener(_listener))
             except Exception:
                 pass
 
@@ -631,9 +631,7 @@ class SessionUIController:
     @staticmethod
     def handle_session_changed(dialog: "SessionDialogProtocol") -> None:
         SessionUIController.refresh_login_ui(dialog)
-        refresh = getattr(dialog, "_refresh_session_dependent_ui", None)
-        if callable(refresh):
-            refresh()
+        dialog._refresh_session_dependent_ui()
 
     @staticmethod
     def refresh_login_ui(dialog: "SessionDialogProtocol") -> None:

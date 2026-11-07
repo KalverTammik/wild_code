@@ -1,12 +1,9 @@
 from __future__ import annotations
 from typing import Any, Iterable, TypeVar
 
-from PyQt5.QtCore import QTimer
-
 from .DialogCoordinator import get_dialog_coordinator
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...Logs.switch_logger import SwitchLogger
-from ...modules.Settings.scroll_helper import SettingsScrollHelper
 from ...utils.url_manager import Module
 
 T = TypeVar("T")
@@ -44,12 +41,7 @@ class DialogHelpers:
         if not focus_module or instance is None:
             return
         try:
-            request_focus = getattr(instance, "request_focus_module", None)
-            if callable(request_focus):
-                request_focus(focus_module)
-                return
-
-            QTimer.singleShot(0, lambda sm=instance, fm=focus_module: SettingsScrollHelper.scroll_to_module(sm, fm))
+            instance.request_focus_module(focus_module)
         except Exception as exc:
             SwitchLogger.log(
                 "settings_focus_failed",

@@ -3,9 +3,7 @@ Cadastral field constants and mappings for Estonian property data.
 This module contains field definitions for cadastral data processing.
 """
 
-from typing import Iterable, Tuple, List
 
-from qgis.core import QgsVectorLayer
 
 class Katastriyksus:
     """Field constants for cadastral property data (new format)."""

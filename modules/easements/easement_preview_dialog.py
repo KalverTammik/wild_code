@@ -7,14 +7,12 @@ from typing import Optional
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (
     QCheckBox,
-    QComboBox,
     QDialog,
     QDoubleSpinBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -78,15 +76,15 @@ class EasementPreviewDialog(QDialog):
     }
 
     _STYLE_PATHS = {
-        ProjectBaseLayerKeys.WATERPIPES: getattr(QmlPaths, "EASEMENT_WATER", None),
-        ProjectBaseLayerKeys.SEWERPIPES: getattr(QmlPaths, "EASEMENT_SEWER", None),
-        ProjectBaseLayerKeys.PRESSURE_SEWERPIPES: getattr(QmlPaths, "EASEMENT_PRESSURE_SEWER", None),
+        ProjectBaseLayerKeys.WATERPIPES: QmlPaths.EASEMENT_WATER,
+        ProjectBaseLayerKeys.SEWERPIPES: QmlPaths.EASEMENT_SEWER,
+        ProjectBaseLayerKeys.PRESSURE_SEWERPIPES: QmlPaths.EASEMENT_PRESSURE_SEWER,
         ProjectBaseLayerKeys.RAINWATERPIPES: None,
-        ProjectBaseLayerKeys.SEWAGE_PUMPING: getattr(QmlPaths, "EASEMENT_SEWER", None),
-        ProjectBaseLayerKeys.SEWAGE_DUMP: getattr(QmlPaths, "EASEMENT_SEWER", None),
-        ProjectBaseLayerKeys.SEWAGE_PLANT: getattr(QmlPaths, "EASEMENT_SEWER", None),
-        ProjectBaseLayerKeys.WATER_STATION: getattr(QmlPaths, "EASEMENT_WATER", None),
-        ProjectBaseLayerKeys.RAIN_PUMP: getattr(QmlPaths, "EASETMENT_DRAINAGE", None),
+        ProjectBaseLayerKeys.SEWAGE_PUMPING: QmlPaths.EASEMENT_SEWER,
+        ProjectBaseLayerKeys.SEWAGE_DUMP: QmlPaths.EASEMENT_SEWER,
+        ProjectBaseLayerKeys.SEWAGE_PLANT: QmlPaths.EASEMENT_SEWER,
+        ProjectBaseLayerKeys.WATER_STATION: QmlPaths.EASEMENT_WATER,
+        ProjectBaseLayerKeys.RAIN_PUMP: QmlPaths.EASETMENT_DRAINAGE,
     }
 
     _FIXED_DISTANCE_BY_ROW = {
@@ -1710,7 +1708,7 @@ class EasementPreviewDialog(QDialog):
             result_layer_name=final_name,
             selected_only=False,
             group_name=MailablGroupFolders.SANDBOXING,
-            style_path=getattr(QmlPaths, "EASEMENT_FINAL", None),
+            style_path=QmlPaths.EASEMENT_FINAL,
             replace_existing=True,
             field_names=[],
             custom_properties={

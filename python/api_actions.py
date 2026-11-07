@@ -260,7 +260,7 @@ class APIModuleActions:
     @staticmethod
     def get_current_user_payload() -> Optional[dict]:
         session = SessionManager()
-        cached_user = getattr(session, "loggedInUser", None)
+        cached_user = session.loggedInUser
         if isinstance(cached_user, dict) and str(cached_user.get("id") or "").strip():
             return cached_user
 

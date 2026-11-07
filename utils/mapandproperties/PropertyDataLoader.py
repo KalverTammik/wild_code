@@ -1,5 +1,4 @@
 import re
-import datetime
 
 from ...utils.MapTools.MapHelpers import MapHelpers
 from ...constants.layer_constants import IMPORT_PROPERTY_TAG
@@ -7,7 +6,6 @@ from ...constants.cadastral_fields import Katastriyksus, AreaUnit
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from qgis.core import QgsFeatureRequest, QgsRectangle, QgsVariantUtils
-from PyQt5.QtCore import QCoreApplication
 from ...widgets.DateHelpers import DateHelpers
 from .property_row_builder import PropertyRowBuilder
 from ...Logs.python_fail_logger import PythonFailLogger

@@ -1,12 +1,10 @@
 
 
-from typing import List
 from time import perf_counter
 try:
     import sip
 except ImportError:
     sip = None
-from qgis.core import QgsProject
 
 from ...constants.settings_keys import SettingsService
 from ...constants.cadastral_fields import Katastriyksus

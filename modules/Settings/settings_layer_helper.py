@@ -13,7 +13,7 @@ class SettingsLayerHelper:
         if combo is None:
             return
         try:
-            current = combo.project() if hasattr(combo, "project") else None
+            current = combo.project()
             if current is project:
                 return
         except Exception as exc:

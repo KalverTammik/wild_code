@@ -1,1 +1,1 @@
-from .WorksUi import WorksModule
+# Works module

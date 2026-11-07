@@ -43,7 +43,7 @@ class SettingsCardBuildService:
             profile_log(
                 "settings_card_activate_profile",
                 {
-                    "card": getattr(card, "module_key", type(card).__name__),
+                    "card": card.module_key,
                     "elapsed_ms": elapsed_ms,
                 },
             )

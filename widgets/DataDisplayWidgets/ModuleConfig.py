@@ -1,13 +1,11 @@
 """
-Module-specific configurations for ExtraInfoWidget.
-Each module type can define its own status columns and activities.
+Module-specific configurations for ExtraInfoWidget: the detail view each module card opens.
 """
 
 from typing import List, Dict, Any, Optional
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.api_client import APIClient
-from ...python.api_actions import APIModuleActions
 from ...python.responses import DataDisplayExtractors
 from ...utils.url_manager import Module
 from ...languages.language_manager import LanguageManager
@@ -22,22 +20,12 @@ from .AsyncContentWidget import AsyncContentWidget
 
 
 class ModuleConfig:
-    """Configuration class for different module types."""
+    """Detail view of one module card; without a loader the card has no detail handle."""
 
-    def __init__(self, module_type: str, *, title: str):
-        self.module_type = module_type
-        self.title = title
-        self.columns: List[Dict[str, Any]] = []
-        self.summary_text = ""
-        self.detailed_content = ""
-        self.detailed_widget = None
+    def __init__(self):
         self.detail_loader = None
         self.detail_open_callback = None
         self.show_detail_handle = False
-
-    def set_title(self, title: str):
-        """Set the widget title."""
-        self.title = title
 
     def set_detail_loader(self, loader):
         self.detail_loader = loader
@@ -47,15 +35,6 @@ class ModuleConfig:
 
     def set_show_detail_handle(self, value: bool):
         self.show_detail_handle = bool(value)
-
-    def load_detailed_content(self):
-        if callable(self.detail_loader):
-            loaded = self.detail_loader()
-            if loaded is not None:
-                self.detailed_widget = loaded if hasattr(loaded, "setParent") else None
-            if isinstance(loaded, str) and loaded.strip():
-                self.detailed_content = loaded
-        return self.detailed_widget or self.detailed_content
 
 
 class ModuleConfigFactory:
@@ -82,7 +61,7 @@ class ModuleConfigFactory:
         lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         lm = lang_manager or LanguageManager()
-        config = ModuleConfig(module_type, title="")
+        config = ModuleConfig()
         config.set_detail_loader(
             lambda payload=item_data, lang=lm, current_module=module_type: AsyncContentWidget(
                 lambda: ModuleConfigFactory._load_single_item_description(
@@ -151,7 +130,7 @@ class ModuleConfigFactory:
             return ModuleConfigFactory._create_works_config(item_id, lang_manager=lang_manager)
         if module_type == Module.ASBUILT.value:
             return ModuleConfigFactory._create_asbuilt_config(item_id, lang_manager=lang_manager)
-        return ModuleConfig(str(module_type or ""), title="")
+        return ModuleConfig()
 
     @staticmethod
     def _create_project_config(
@@ -161,7 +140,7 @@ class ModuleConfigFactory:
     ) -> ModuleConfig:
         """Create configuration for project modules."""
         lm = lang_manager or LanguageManager()
-        config = ModuleConfig(Module.PROJECT.value, title="")
+        config = ModuleConfig()
 
         def _project_detail_widget(board_data, lang=lm):
             wrapper = QWidget()
@@ -202,7 +181,7 @@ class ModuleConfigFactory:
     ) -> ModuleConfig:
         """Create configuration for contract modules."""
         lm = lang_manager or LanguageManager()
-        config = ModuleConfig(Module.CONTRACT.value, title="")
+        config = ModuleConfig()
         config.set_detail_loader(
             lambda payload=item_id, lang=lm: AsyncContentWidget(
                 lambda: ModuleConfigFactory._load_single_item_description(
@@ -231,7 +210,7 @@ class ModuleConfigFactory:
     ) -> ModuleConfig:
         """Create configuration for coordination modules."""
         lm = lang_manager or LanguageManager()
-        config = ModuleConfig(Module.COORDINATION.value, title="")
+        config = ModuleConfig()
         config.set_detail_loader(
             lambda payload=item_id, lang=lm: AsyncContentWidget(
                 lambda: ModuleConfigFactory._load_single_item_coordination_detail(
@@ -281,12 +260,7 @@ class ModuleConfigFactory:
         lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         lm = lang_manager or LanguageManager()
-        config = ModuleConfig(
-            Module.EASEMENT.value,
-            title=lm.translate(
-                TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_OVERVIEW_TITLE,
-            ),
-        )
+        config = ModuleConfig()
         config.set_detail_loader(
             lambda payload=item_id, lang=lm: TaskDetailOverviewWidget(
                 item_data=payload,

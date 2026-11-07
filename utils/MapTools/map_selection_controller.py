@@ -171,7 +171,7 @@ class MapSelectionController(QObject):
             return
 
         selected_ids = list(layer.selectedFeatureIds() or [])
-        baseline_ids = getattr(self, "_baseline_selection_ids", set())
+        baseline_ids = self._baseline_selection_ids
         filtered_ids = [fid for fid in selected_ids if fid not in baseline_ids]
         count = len(filtered_ids)
         if count < (self._min_selected or 1):

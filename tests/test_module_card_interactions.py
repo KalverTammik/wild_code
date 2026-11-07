@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import sys
 import threading
-import time
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -18,7 +17,7 @@ if qgis_prefix:
 from PyQt5.QtCore import QCoreApplication, QEvent, QThread, Qt
 from PyQt5.QtTest import QTest
 from PyQt5.QtGui import QFont, QFontDatabase
-from PyQt5.QtWidgets import QApplication, QLabel, QPushButton, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 from property_fixtures import wait_for
 

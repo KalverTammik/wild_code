@@ -32,6 +32,11 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         self._show_title = bool(show_title)
         self._title_text = str(title_text or "")
         self._read_only = bool(read_only)
+        # Built only for editable or payable edges; None when the mode omits them.
+        self.unit_combo: QComboBox | None = None
+        self.currency_combo: QComboBox | None = None
+        self.total_label: QLabel | None = None
+        self.next_payment_edit: QLineEdit | None = None
         self._build_ui()
 
     @staticmethod
@@ -58,14 +63,14 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         return f"{numeric:.2f} {currency_code}".strip()
 
     def _apply_read_only_mode(self) -> None:
-        if hasattr(self, "unit_combo"):
+        if self.unit_combo is not None:
             self.unit_combo.setEnabled(False)
-        if hasattr(self, "currency_combo"):
+        if self.currency_combo is not None:
             self.currency_combo.setEnabled(False)
         self.payable_checkbox.setEnabled(False)
         self.price_spin.setReadOnly(True)
         self.price_spin.setButtonSymbols(QDoubleSpinBox.NoButtons)
-        if hasattr(self, "next_payment_edit"):
+        if self.next_payment_edit is not None:
             self.next_payment_edit.setReadOnly(True)
 
     def _build_ui(self) -> None:
@@ -179,9 +184,9 @@ class EasementPropertyAreaCalculationWidget(QWidget):
             layout.addWidget(self.currency_combo, 1, 4)
 
         self.price_spin.valueChanged.connect(self.totalsChanged.emit)
-        if hasattr(self, "currency_combo"):
+        if self.currency_combo is not None:
             self.currency_combo.currentIndexChanged.connect(self.totalsChanged.emit)
-        if hasattr(self, "unit_combo"):
+        if self.unit_combo is not None:
             self.unit_combo.currentIndexChanged.connect(self._emit_unit_changed)
 
         if self._read_only:
@@ -191,30 +196,30 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         self.unitChanged.emit()
 
     def current_unit(self) -> str:
-        if hasattr(self, "unit_combo"):
+        if self.unit_combo is not None:
             return str(self.unit_combo.currentData() or AreaUnit.M)
-        return str(getattr(self, "_current_unit_value", AreaUnit.M) or AreaUnit.M)
+        return str(self._current_unit_value or AreaUnit.M)
 
     def price_value(self) -> float:
         return float(self.price_spin.value())
 
     def currency_code(self) -> str:
-        if hasattr(self, "currency_combo"):
+        if self.currency_combo is not None:
             return str(self.currency_combo.currentData() or self._default_currency)
-        return str(getattr(self, "_current_currency_code", self._default_currency) or self._default_currency)
+        return str(self._current_currency_code or self._default_currency)
 
     def is_payable(self) -> bool:
         return bool(self.payable_checkbox.isChecked())
 
     def next_payment_text(self) -> str:
-        if hasattr(self, "next_payment_edit"):
+        if self.next_payment_edit is not None:
             return str(self.next_payment_edit.text() or "").strip()
-        return str(getattr(self, "_current_next_payment_text", "") or "").strip()
+        return str(self._current_next_payment_text or "").strip()
 
     def set_area_display(self, text: str) -> None:
         self.area_value_label.setText(str(text or ""))
 
     def set_total_display(self, text: str) -> None:
         self._current_total_text = str(text or "")
-        if hasattr(self, "total_label"):
+        if self.total_label is not None:
             self.total_label.setText(self._current_total_text)

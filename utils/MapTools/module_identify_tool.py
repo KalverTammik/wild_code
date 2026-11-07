@@ -313,11 +313,10 @@ class ModuleIdentifyToolController:
             dialog = self._plugin_dialog_instance()
             ModuleSwitchHelper.switch_module(module_key, dialog=dialog)
             module = ModuleManager().getActiveModuleInstance(module_key)
-            opener = getattr(module, "open_item_from_search", None)
-            if not callable(opener):
+            if module is None:
                 self._show_warning(self._lang.translate(TranslationKeys.MAP_IDENTIFY_OPEN_FAILED))
                 return
-            opener(module_key, item_id, title or item_id)
+            module.open_item_from_search(module_key, item_id, title or item_id)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,

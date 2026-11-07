@@ -558,13 +558,13 @@ class ModuleKpiCard(QFrame):
 
     def _handle_success(self, payload) -> None:
         worker = self._worker
-        if worker is None or getattr(worker, "request_id", None) != self._request_id:
+        if worker is None or worker.request_id != self._request_id:
             return
         self._apply_snapshot(payload)
 
     def _handle_error(self, message: str) -> None:
         worker = self._worker
-        if worker is None or getattr(worker, "request_id", None) != self._request_id:
+        if worker is None or worker.request_id != self._request_id:
             return
         self._gauge.set_error_state()
 

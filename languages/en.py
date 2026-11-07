@@ -1,9 +1,7 @@
 from .translation_keys import (
     TranslationKeys,
-    RoleTranslationKeys,
     ToolbarTranslationKeys,
     DialogLabels,
-    ToolbarTranslationKeys,
     FolderNamingTranslationKeys,
     SettingDialogPlaceholders,
 )
@@ -67,7 +65,6 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_TITLE: "QGIS project base layers",
         TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_DESCRIPTION: "Store EVEL-compatible base layer references in the current QGIS project. Legacy names are detected when possible, while the new setup keeps separate options for future layer structures.",
         TranslationKeys.SETTINGS_EVEL_LAYER_SETUP_ENABLED: "I have EVEL layer setup",
-        TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_DISABLED: "EVEL auto-detect is off. You can define the layers manually.",
         TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_EMPTY: "No EVEL base layers configured yet.",
         TranslationKeys.SETTINGS_GEOSPATIAL_MODE_VALUE: "Setup mode: {mode}",
         TranslationKeys.SETTINGS_GEOSPATIAL_MODE_MANUAL: "Manual setup",
@@ -76,7 +73,6 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_ACTIVE: "Geospatial-assisted setup is active. Manual project base layer controls are hidden until you return to manual setup.",
         TranslationKeys.SETTINGS_GEOSPATIAL_CONNECT_BUTTON: "Connect via Geospatial",
         TranslationKeys.SETTINGS_GEOSPATIAL_MANAGE_BUTTON: "Review Geospatial setup",
-        TranslationKeys.SETTINGS_GEOSPATIAL_RETURN_TO_MANUAL: "Use manual setup",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_TITLE: "Geospatial-assisted setup",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_BODY: "This flow will later configure project base layers and related defaults automatically for customers using Geospatial services. For now, enabling this mode hides the manual project base layer controls and reserves this area for the guided integration flow.",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_SCOPE: "The current placeholder step does not write automatic layer assignments yet. You can return to manual setup at any time.",
@@ -96,7 +92,6 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_BASE_LAYER_WATER_STATION: "Water station",
         TranslationKeys.SETTINGS_BASE_LAYER_RAIN_PUMP: "Rain pumping station",
         TranslationKeys.SETTINGS_SHARED_SEWER_MAPPING: "Use one sewer layer with mapped type IDs",
-        TranslationKeys.SETTINGS_SHARED_SEWER_MAPPING_DESCRIPTION: "Use the Sewerpipes layer as a shared base layer and define which IDs represent sewer, pressure sewer, and rainwater. Disable this if each type has its own separate layer.",
         TranslationKeys.SETTINGS_SHARED_SEWER_FIELD: "Type field",
         TranslationKeys.SETTINGS_SHARED_SEWER_IDS_HINT: "Enter one or more IDs separated by commas.",
         TranslationKeys.SETTINGS_SHARED_SEWER_ADD_ROW: "Add mapping",
@@ -117,68 +112,16 @@ TRANSLATIONS = {
         TranslationKeys.SEARCH_RESULTS_WIDGET_CLOSE_TOOLTIP: "Close search results",
         TranslationKeys.SIDEBAR_LEFT_ARROW: "«",
         TranslationKeys.SIDEBAR_RIGHT_ARROW: "»",
-        TranslationKeys.SIDEBAR_UP_ARROW: "˄",
-        TranslationKeys.SIDEBAR_DOWN_ARROW: "˅",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_EXTRAINFO_TOOLTIP: "Open detailed overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP: "Private",
         TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY: "No dates available",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_DETAIL_TITLE_SUFFIX: "Detailed overview",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_CLOSE: "Close",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_OVERVIEW_TITLE: "Activity overview",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE: "Project activity overview",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_OVERVIEW_TITLE: "Easement activity overview",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_OVERVIEW_TITLE: "Works activity overview",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_OVERVIEW_TITLE: "As-built activity overview",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE: "Done",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_IN_PROGRESS: "In progress",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_TODO: "To do",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PLANNING: "Planning",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPILATION: "Compilation",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REVIEW: "Review",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_APPROVAL: "Approval",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_TESTING: "Testing",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_DOCUMENTING: "Documentation",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_OPTIMIZING: "Optimization",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PUBLISHING: "Publishing",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_MONITORING: "Monitoring",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_ARCHIVING: "Archiving",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REPORTING: "Reporting",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_DETAIL_CONTENT: """
-        <h3>Project Detailed Overview</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-
-        <h4>Project Phases</h4>
-        <ul>
-        <li><b>Planning:</b> Defining the project goals and scope</li>
-        <li><b>Compilation:</b> Building project components</li>
-        <li><b>Testing:</b> Verifying functionality</li>
-        <li><b>Publishing:</b> Final release of the project</li>
-        </ul>
-
-        <h4>Project Statistics</h4>
-        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-        """,
         TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT: "Open the eye view to load project-linked module progress details.",
-        TranslationKeys.PROJECT_BOARD_DETAILS_INTRO: "Loaded linked module data through {count} project propertie(s): {preview}",
-        TranslationKeys.PROJECT_BOARD_DETAILS_NO_PROPERTIES: "This project has no linked properties yet, so module progress details cannot be resolved.",
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_DONE: "No linked module items look completed yet.",
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_IN_PROGRESS: "No linked module items are currently classified as in progress.",
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_TODO: "No linked module items are currently classified as not started.",
         TranslationKeys.PROJECT_BOARD_COLUMN_NOT_STARTED: "Not started",
-        TranslationKeys.PROJECT_BOARD_DETAILS_MISSING_MODULES: "Missing linked modules",
         TranslationKeys.DATA_DISPLAY_WIDGETS_TERMS_HEADING: "Terms",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_DETAIL_CONTENT: """
-        <h3>Easement Detailed Overview</h3>
-        <p>Easement lifecycle, linked properties, and document state overview.</p>
-        """,
-        TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_DETAIL_CONTENT: """
-        <h3>Works Detailed Overview</h3>
-        <p>Task execution and field delivery overview.</p>
-        """,
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_DETAIL_CONTENT: """
-        <h3>As-built Detailed Overview</h3>
-        <p>As-built documentation and validation overview.</p>
-        """,
         TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP: "Help",
         TranslationKeys.NO_PROJECTS_FOUND: "No projects found",
         TranslationKeys.NO_CONTRACTS_FOUND: "No contracts found",
@@ -304,12 +247,6 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_ARCHIVE_SCOPE_SKIPPED: "Missing-property archiving is disabled for this run. Select at least one settlement and load its complete, non-empty import data.",
         TranslationKeys.PROPERTY_ARCHIVE_MOVED_EXCLUDED: "{count} missing cadastral numbers were found elsewhere in the import and excluded from automatic archiving.",
         TranslationKeys.DELAY_HELPERS_LOADINGSPINNER_TITLE: "GradientSpinner + dots demo",
-    TranslationKeys.PROJECTS_MODULE_LOADED: "Projects module loaded!",
-    TranslationKeys.API_ENDPOINT_NOT_CONFIGURED: "API endpoint not configured.",
-    TranslationKeys.CONFIG_ERROR: "Configuration error: {error}",
-    TranslationKeys.LOGIN_FAILED: "Login failed: {error}",
-    TranslationKeys.NO_API_TOKEN_RECEIVED: "No API token received.",
-    TranslationKeys.LOGIN_FAILED_RESPONSE: "Login failed: {error}",
     TranslationKeys.SERVER_REQUEST_FAILED: "Server request failed (HTTP {status_code}).",
     TranslationKeys.NETWORK_ERROR: "Network error: {error}",
     TranslationKeys.KAVITRO_PLUGIN_TITLE: "Kavitro Plugin",
@@ -338,38 +275,20 @@ TRANSLATIONS = {
     TranslationKeys.SESSION_STORAGE_MIGRATION_PENDING: "The session was restored, but the legacy authentication entry could not be cleaned completely. You can continue working and cleanup will be retried on a later suitable startup or sign-in.",
     TranslationKeys.SESSION_STORAGE_CLEANUP_FAILED: "Removal of the legacy plaintext access token from QGIS settings could not be verified. Finish work securely and contact support; do not share the QGIS profile or its backup.",
     TranslationKeys.LANGUAGE_LABEL: "Language:",
-    DialogLabels.LOGIN_SECTION: "User Authentication",
-    DialogLabels.SETTINGS_SECTION: "Application Preferences",
-    DialogLabels.SESSION_EXPIRED_ERROR: "Session expired. Please log in again.",
-    DialogLabels.INVALID_CREDENTIALS_ERROR: "Invalid email or password.",
-    TranslationKeys.MAILABL_LISTENER: "Mailabl Listener",
     TranslationKeys.UNKNOWN_MODULE: "Unknown module: {module}",
-    TranslationKeys.QUERY_FILE_NOT_FOUND: "Query file not found: {file}",
-    TranslationKeys.SAVE_SETTING: "Save setting",
     TranslationKeys.USER: "User",
     TranslationKeys.ROLES: "Roles",
     TranslationKeys.CONFIRM: "Confirm",
     TranslationKeys.NAME: "Name",
     TranslationKeys.EMAIL: "Email",
-    TranslationKeys.MODULE_SETTINGS_PLACEHOLDER: "Module settings placeholder",
     TranslationKeys.PREFERRED_MODULE: "Preferred module",
     TranslationKeys.COUNTY: "County",
     TranslationKeys.MUNICIPALITY: "Municipality",
     TranslationKeys.DUE: "Due at",
-    TranslationKeys.SEARCHING: "Searching",
     TranslationKeys.SELECT_SETTLEMENTS: "Select Settlements",
-    TranslationKeys.HOME_PAGE: "Home page",
-    TranslationKeys.SETTINGS_PAGE: "Settings page",
-    TranslationKeys.ABOUT_PAGE: "About page",
-    TranslationKeys.SWITCH_TO_DARK_MODE: "Switch to dark mode",
-    TranslationKeys.SWITCH_TO_LIGHT_MODE: "Switch to light mode",
     # Added: Welcome page and layer picker texts
-    TranslationKeys.WELCOME: "Welcome",
-    TranslationKeys.SELECT_MODULE: "Select a module from the left or open Settings to set your preferred module.",
     TranslationKeys.NO_PROJECT_LOADED_TITLE: "No Project Loaded",
     TranslationKeys.NO_PROJECT_LOADED_MESSAGE: "Please load a QGIS project before using this plugin.",
-    TranslationKeys.PROJECT_FOLDER_MISSING_TITLE: "Project folder setup required",
-    TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE: "Project folders are not set for this module. Opening Settings...",
     TranslationKeys.PROJECT_FOLDER_CREATE_CONFIRM: "Generating a project folder from the prepared template is intended primarily for new projects. Check that a folder with the same contents has not already been created.\n\nThe template folder will be copied to the following location.\n\nSource folder:\n{source}\n\nDestination folder:\n{destination}\n\nCheck the destination path. Continue?",
     TranslationKeys.PROJECT_FOLDER_SOURCE_INVALID: "The configured source folder is missing or is not a directory:\n{path}",
     TranslationKeys.PROJECT_FOLDER_TARGET_INVALID: "The configured target folder is missing or is not a directory:\n{path}",
@@ -395,30 +314,8 @@ TRANSLATIONS = {
     TranslationKeys.HOME_KPI_DUE_SOON_LABEL: "Soon",
     TranslationKeys.HOME_KPI_OVERDUE_TOOLTIP: "Filtered overdue items",
     TranslationKeys.HOME_KPI_DUE_SOON_TOOLTIP: "Filtered items due soon",
-    TranslationKeys.HOME_KPI_DETAIL_TOGGLE_LABEL: "Detail",
-    TranslationKeys.HOME_KPI_DETAIL_TOGGLE_SHOW_TOOLTIP: "Show detail popup",
-    TranslationKeys.HOME_KPI_DETAIL_TOGGLE_HIDE_TOOLTIP: "Hide detail popup but keep connector",
     TranslationKeys.HOW_SELECT_PROPERTIES: "How do you want to select properties?",
     TranslationKeys.PROPERTY_BACKEND_ACTION_PROMPT_TITLE: "Choose action",
-    TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_TITLE: "Archived backend match",
-    TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_BODY: "Backend has an archived property for cadastral number {tunnus}.\n\nWhat do you want to do?",
-    TranslationKeys.PROPERTY_UNARCHIVE_FAILED_TITLE: "Unarchive failed",
-    TranslationKeys.PROPERTY_UNARCHIVE_FAILED_BODY: "Failed to unarchive backend property {backend_id} for {tunnus}.",
-    TranslationKeys.PROPERTY_BACKEND_UPDATE_FAILED_TITLE: "Backend update failed",
-    TranslationKeys.PROPERTY_BACKEND_UPDATE_FAILED_BODY: "Unarchived backend property but failed to update data for {tunnus}.",
-    TranslationKeys.PROPERTY_BACKEND_MISSING_TITLE: "Backend missing",
-    TranslationKeys.PROPERTY_BACKEND_MISSING_BODY: "Property {tunnus} exists in main layer but is missing from backend.\n\nCreate backend record from import data?",
-    TranslationKeys.PROPERTY_BACKEND_MISSING_ARCHIVED_BODY: "Property {tunnus} exists in main layer. Backend has only an archived record for this cadastral number.\n\nCreate a new ACTIVE backend record from import data?",
-    TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_TITLE: "Property exists",
-    TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_BODY: "Property {tunnus} exists in backend but is missing from main layer.\n\nCopy feature from import layer to main layer?",
-    TranslationKeys.PROPERTY_NEWER_IMPORT_TITLE: "Newer import detected",
-    TranslationKeys.PROPERTY_NEWER_IMPORT_BODY: "Property {tunnus} exists in backend and main layer, but import appears newer.\n\nArchive/replace existing property?\n- Moves existing main-layer feature to archive layer\n- Marks backend property as archived\n- Replaces main-layer feature with import feature",
-    TranslationKeys.PROPERTY_REPLACE_FAILED_TITLE: "Replace failed",
-    TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_NO_FEATURE: "Could not locate existing main-layer feature for {tunnus} to archive/replace.",
-    TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_DELETE: "Failed to delete existing main-layer feature for {tunnus}.",
-    TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_COPY: "Copy import->main failed for {tunnus}: {message}",
-    TranslationKeys.PROPERTY_ARCHIVE_LAYER_MISSING_TITLE: "Archive layer missing",
-    TranslationKeys.PROPERTY_ARCHIVE_LAYER_MISSING_BODY: "Archive layer is not configured or missing; cannot archive/replace.",
     TranslationKeys.PROPERTY_MAIN_LAYER_MISSING_TITLE: "Main layer missing",
     TranslationKeys.PROPERTY_MAIN_LAYER_MISSING_BODY: "Main property layer is not found/invalid. Please configure it in Settings.",
     TranslationKeys.PROPERTY_ARCHIVE_LAYER_REQUIRED_TITLE: "Archive layer required",
@@ -455,9 +352,7 @@ TRANSLATIONS = {
     TranslationKeys.PROPERTY_BOOTSTRAP_STAGE_CREATE_ARCHIVE: "archive layer creation",
     TranslationKeys.PROPERTY_BOOTSTRAP_STAGE_SAVE_SETTINGS: "layer settings persistence",
     TranslationKeys.PROPERTY_BOOTSTRAP_READY_BODY: "Created and configured main layer '{main}' and archive layer '{archive}' in:\n{path}",
-    TranslationKeys.PROPERTY_COPY_FAILED_TITLE: "Copy failed",
     TranslationKeys.RUN_ATTENTION_CHECKS: "Run checks",
-    TranslationKeys.YES_TO_ALL: "Yes to all",
     TranslationKeys.ADD_WITHOUT_CHECKS: "Add without checks",
     TranslationKeys.OPEN_SETTINGS: "Open Settings",
     # Added: ModuleCard/layer picker labels
@@ -468,17 +363,10 @@ TRANSLATIONS = {
     TranslationKeys.MODULE_MAIN_LAYER: "Module layer",
     TranslationKeys.MODULE_LAYER_OVERVIEW: "This is the primary layer used by this module for its own map workflows. The connected-properties 'Show on map' action uses the Properties module main layer.",
     TranslationKeys.ARCHIVE_LAYER_DESCRIPTION: "Use an optional archive layer to store historical or backup data versions.",
-    TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Choose layers used by this module (element and archive).",
-    TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE: "Select a property layer for data operations and management.",
-    TranslationKeys.SELECT_A_PROPERTY_LAYER: "Select a property layer...",
     TranslationKeys.PROPERTY_TREE_HEADER: "Property-related data",
     TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE: "Select a property on the map",
-    TranslationKeys.PROPERTY_TREE_LOADING: "Loading related data...",
     TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS: "No connections found",
-    TranslationKeys.PROPERTY_TREE_NO_DATA: "No data available",
     TranslationKeys.PROPERTY_TREE_MODULE_EMPTY: "No records",
-    TranslationKeys.PROPERTY_TREE_ROW_NO_TITLE: "Name missing",
-    TranslationKeys.PROPERTY_TREE_ROW_UPDATED_PREFIX: "Updated {date}",
     TranslationKeys.PROPERTY_NOT_FOUND: "Property not found",
     TranslationKeys.PROPERTY_MISSING_ON_LAYER: "Property not found on layer",
     TranslationKeys.PROPERTY_NOT_FOUND_ON_LAYER: "Property was not found on map layer",
@@ -492,8 +380,6 @@ TRANSLATIONS = {
     TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP: "Collapse Sidebar",
     TranslationKeys.SIDEBAR_EXPAND_TOOLTIP: "Expand Sidebar",
     TranslationKeys.THEME_SWITCH_TOOLTIP: "Switch between dark and light theme",
-    TranslationKeys.DEV_DBG_TOOLTIP: "Toggle developer logs (print) on/off",
-    TranslationKeys.DEV_FRAMES_TOOLTIP: "Show/Hide FRAME labels on the home page",
     TranslationKeys.SESSION_EXPIRED: "Your session has expired. Please sign in again.",
     TranslationKeys.URGENT_GROUP_TITLE: "Urgent!"
     ,TranslationKeys.URGENT_TOOLTIP: "What needs fast attention"
@@ -505,25 +391,12 @@ TRANSLATIONS = {
     ,TranslationKeys.FILTERS_REFRESH: "Refresh filters"
     ,TranslationKeys.FILTERS_CLEAR: "Clear filter selections"
     ,TranslationKeys.RESET_ALL_SETTINGS: "Reset all settings for this module to default values"
-    ,TranslationKeys.SETTINGS_RESET_TO_DEFAULTS: "Settings reset to defaults"
-    ,TranslationKeys.SHOW_PROJECT_NUMBERS_DESCRIPTION: "When enabled, item numbers will be displayed in cards for easy identification."
-    ,TranslationKeys.USER_PROFILE: "User Profile"
-    ,TranslationKeys.ROLES_PERMISSIONS: "Roles & Permissions"
     ,TranslationKeys.MODULE_ACCESS: "Module Access"
-    ,TranslationKeys.ADMINISTRATOR: "Administrator"
-    ,TranslationKeys.EDITOR: "Editor"
-    ,TranslationKeys.VIEWER: "Viewer"
     ,TranslationKeys.OPEN_MAA_AMET_PAGE: "Open Maa-amet page"
-    ,TranslationKeys.DASHBOARD: "Dashboard"
-    ,TranslationKeys.REPORTS: "Reports"
-    ,TranslationKeys.ADMIN: "Admin"
-    ,TranslationKeys.USER_INFORMATION: "User Information"
     ,TranslationKeys.PROPERTY_MANAGEMENT: "Property Management"
-    ,TranslationKeys.QUICK_ACTIONS: "Quick Actions"
     ,TranslationKeys.ADD_SHP_FILE: "Add SHP file"
     ,TranslationKeys.ADD_PROPERTY: "Add property"
     ,TranslationKeys.REMOVE_PROPERTY: "Remove property"
-    ,TranslationKeys.LOAD_SHAPEFILE: "Load Shapefile"
     ,TranslationKeys.SELECT_SHAPEFILE: "Select Shapefile"
     ,TranslationKeys.SHAPEFILE_LOADED_SUCCESSFULLY: "Shapefile loaded successfully"
     ,TranslationKeys.SHAPEFILE_LOADED_MESSAGE: "Shapefile '{name}' has been successfully loaded in the 'New Properties' group"
@@ -532,46 +405,10 @@ TRANSLATIONS = {
     ,TranslationKeys.INVALID_SHAPEFILE_MESSAGE: "The selected Shapefile is not valid."
     ,TranslationKeys.SHAPEFILE_LOAD_FAILED: "Shapefile load failed"
     ,TranslationKeys.SHAPEFILE_LOAD_FAILED_MESSAGE: "Failed to load the Shapefile."
-    ,TranslationKeys.SHAPEFILE_LOADING_ERROR: "Shapefile loading error"
     ,TranslationKeys.IMPORTING_SHAPEFILE: "Importing Shapefile"
-    ,TranslationKeys.PROCESSING_FEATURES: "Processing features"
-    ,TranslationKeys.FEATURES_COPIED: "Features copied"
-    ,TranslationKeys.IMPORT_COMPLETE: "Import complete"
-    ,TranslationKeys.FEATURES_IMPORTED: "features imported"
-    ,TranslationKeys.FEATURE_IMPORTED: "feature imported"
     ,TranslationKeys.INITIALIZING: "Initializing..."
-    ,TranslationKeys.SELECT_PROPERTY_TEMPLATE: "Select a property template to add:"
-    ,TranslationKeys.RESIDENTIAL_PROPERTY: "Residential Property"
-    ,TranslationKeys.COMMERCIAL_PROPERTY: "Commercial Property"
-    ,TranslationKeys.INDUSTRIAL_PROPERTY: "Industrial Property"
-    ,TranslationKeys.AGRICULTURAL_LAND: "Agricultural Land"
-    ,TranslationKeys.VACANT_LAND: "Vacant Land"
-    ,TranslationKeys.STANDARD_RESIDENTIAL_TEMPLATE: "Standard residential property template"
-    ,TranslationKeys.COMMERCIAL_BUILDING_TEMPLATE: "Commercial building template"
-    ,TranslationKeys.INDUSTRIAL_FACILITY_TEMPLATE: "Industrial facility template"
-    ,TranslationKeys.AGRICULTURAL_LAND_TEMPLATE: "Agricultural land template"
-    ,TranslationKeys.EMPTY_LAND_PARCEL_TEMPLATE: "Empty land parcel template"
-    ,TranslationKeys.PROPERTY_DETAILS: "Property Details"
-    ,TranslationKeys.ADDITIONAL_INFORMATION: "Additional Information"
-    ,TranslationKeys.PROPERTY_NAME_LABEL: "Property Name:"
-    ,TranslationKeys.PROPERTY_TYPE_LABEL: "Property Type:"
-    ,TranslationKeys.AREA_M2: "Area (m²):"
-    ,TranslationKeys.VALUE_LABEL: "Value (€):"
     ,TranslationKeys.RESIDENTIAL: "Residential"
-    ,TranslationKeys.COMMERCIAL: "Commercial"
-    ,TranslationKeys.INDUSTRIAL: "Industrial"
-    ,TranslationKeys.AGRICULTURAL: "Agricultural"
     ,TranslationKeys.OTHER: "Other"
-    ,TranslationKeys.ENTER_PROPERTY_NAME: "Enter property name"
-    ,TranslationKeys.ENTER_AREA: "Enter area in m²"
-    ,TranslationKeys.ENTER_PROPERTY_VALUE: "Enter property value"
-    ,TranslationKeys.ENTER_PROPERTY_ADDRESS: "Enter property address"
-    ,TranslationKeys.ENTER_ADDITIONAL_NOTES_OR_DESCRIPTION: "Enter additional notes or description"
-    ,TranslationKeys.ADD_PROPERTY_BUTTON: "Add Property"
-    ,TranslationKeys.PROPERTY_NAME_REQUIRED: "Property name is required."
-    ,TranslationKeys.AREA_MUST_BE_GREATER_THAN_ZERO: "Area must be greater than 0."
-    ,TranslationKeys.VALUE_MUST_BE_GREATER_THAN_ZERO: "Value must be greater than 0."
-    ,TranslationKeys.VALIDATION_ERROR: "Validation Error"
     ,TranslationKeys.CADASTRAL_ID: "Cadastral ID"
     ,TranslationKeys.ADDRESS: "Address"
     ,TranslationKeys.AREA: "Area (m²)"
@@ -580,25 +417,15 @@ TRANSLATIONS = {
     ,TranslationKeys.PROPERTY_COLUMN_MAIN_LAYER: "Main layer"
     ,TranslationKeys.PROPERTY_COLUMN_ARCHIVE_BACKEND: "Archive: backend"
     ,TranslationKeys.PROPERTY_COLUMN_ARCHIVE_MAP: "Archive: map"
-    ,TranslationKeys.PROPERTY_NAME: "Property Name"
-    ,TranslationKeys.PROPERTY_TYPE: "Property Type"
-    ,TranslationKeys.VALUE: "Value (€)"
     ,TranslationKeys.SAVE: "Save"
     ,TranslationKeys.DELETE: "Delete"
-    ,TranslationKeys.EDIT: "Edit"
     ,TranslationKeys.SELECT: "Select"
-    ,TranslationKeys.SEARCH: "Search"
     ,TranslationKeys.WARNING: "Warning"
     ,TranslationKeys.INFO: "Info"
-    ,TranslationKeys.THIS_FIELD_IS_REQUIRED: "This field is required"
     ,TranslationKeys.INVALID_VALUE: "Invalid value"
-    ,TranslationKeys.VALUE_MUST_BE_GREATER_THAN_MIN: "Value must be greater than {min}"
-    ,TranslationKeys.VALUE_MUST_BE_LESS_THAN_MAX: "Value must be less than {max}"
     ,TranslationKeys.YES: "Yes"
     ,TranslationKeys.NO: "No"
     ,TranslationKeys.OK: "OK"
-    ,TranslationKeys.SAVING: "Saving"
-    ,TranslationKeys.DELETING: "Deleting"
     ,TranslationKeys.SUCCESS: "Success"
     ,TranslationKeys.ERROR: "Error"
     ,TranslationKeys.PROPERTIES: "Properties"
@@ -642,13 +469,9 @@ TRANSLATIONS = {
     ,TranslationKeys.RESELECT_FROM_MAP: "Reselect from map"
     ,TranslationKeys.ARCHIVE: "Archive"
     ,TranslationKeys.UNARCHIVE: "Unarchive"
-    ,TranslationKeys.UNARCHIVE_EXISTING: "Unarchive existing"
-    ,TranslationKeys.CREATE_NEW: "Create new"
-    ,TranslationKeys.SKIP: "Skip"
     ,TranslationKeys.CREATE_LOAD_IN_GPKG: "Create/Load in GPKG…"
     ,TranslationKeys.SELECT_COUNTY: "Select County"
     ,TranslationKeys.SELECT_MUNICIPALITY: "Select Municipality"
-    ,TranslationKeys.ATTENTION: "Attention"
     ,TranslationKeys.SHOW_ONLY_ATTENTION: "Show only attention"
     ,TranslationKeys.PROPERTY_MANAGEMENT_BY_LOCATION_TITLE: "Property management – filter by location"
     ,TranslationKeys.SELECTED_PROPERTIES_COUNT: "Selected: 0 properties"
@@ -659,12 +482,7 @@ TRANSLATIONS = {
     ,TranslationKeys.MISSING_TUNNUS_TITLE: "Missing tunnus"
     ,TranslationKeys.MISSING_TUNNUS_MESSAGE: "Selected features do not contain cadastral tunnus."
     ,TranslationKeys.SELECTION_FAILED_TITLE: "Selection failed"
-    ,TranslationKeys.PLEASE_SELECT_AT_LEAST_ONE_PROPERTY: "Please select at least one property."
     ,TranslationKeys.NO_PROPERTY_LAYER_SELECTED: "No property layer selected. Please select a property layer first."
-    ,TranslationKeys.DATA_LOADING_ERROR: "Data Loading Error"
-    ,TranslationKeys.FAILED_TO_LOAD_PROPERTY_DATA: "Failed to load property data from layer."
-    ,TranslationKeys.PROPERTIES_ADDED: "Properties Added"
-    ,TranslationKeys.SELECTED_PROPERTIES_ADDED: "Selected properties have been added."
     ,TranslationKeys.CONNECT_PROPERTIES: "connect Prperties"
     ,TranslationKeys.CHOSE_FROM_MAP: "Chose from map"
     ,TranslationKeys.ATTENTION_CAUSE_BACKEND_LOOKUP_FAILED: "backend lookup failed"
@@ -677,10 +495,6 @@ TRANSLATIONS = {
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_RESULT: "Archived missing: backend {archived}/{total}, moved {moved}{errors_suffix}"
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR: "Archiving missing ({count}) encountered an error"
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX: " (errors)"
-    ,TranslationKeys.SELECT_PROPERTY_FIRST: "Please select a property feature on the map first."
-    ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Error selecting property"
-    ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Select Single Property"
-    ,TranslationKeys.SELECT_SINGLE_PROPERTY_MESSAGE: "Please select only one property feature on the map."
         ,TranslationKeys.MAP_SELECTION_NONE: "No properties were selected from the map."
         ,TranslationKeys.MAP_SELECTION_START_FAILED: "Could not start map selection for properties."
         ,TranslationKeys.LINK_PROPERTIES_SUCCESS: "Linked properties saved for project {pid}.\nTotal linked: {count}. {preview}{extra}"
@@ -755,7 +569,6 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_MAP_SAVE_FAILED: "Task {task_id} was created, but the map feature could not be saved to the Works layer. Details: {error}"
         ,TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED: "Task {task_id} was created and added to the map, but property linking failed for {cadastral}."
         ,TranslationKeys.WORKS_CREATE_FAILED: "Failed to create the new work item."
-        ,TranslationKeys.WORKS_SHOW_ITEM_ON_MAP_ACTION: "Show work on map"
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ACTION: "Add point on map"
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_START_FAILED: "Could not start map capture for adding this work to the map."
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_TASK_LOAD_FAILED: "Could not load task {task_id} before creating its map feature."
@@ -787,15 +600,10 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_PREVIEW_BUFFER_DISTANCE: "Buffer distance"
         ,TranslationKeys.EASEMENT_PREVIEW_LAYER_NAME: "Configured layer"
         ,TranslationKeys.EASEMENT_PREVIEW_STATUS: "Automation"
-        ,TranslationKeys.EASEMENT_PREVIEW_CREATE_ACTION: "Create preview"
         ,TranslationKeys.EASEMENT_PREVIEW_CREATE_FINAL_CUT: "Create final cut"
         ,TranslationKeys.EASEMENT_PREVIEW_ROUNDED_CAPS: "Rounded corners"
-        ,TranslationKeys.EASEMENT_PREVIEW_FINAL_AREA: "Final cut area"
-        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_AREA_TOTAL: "Calculated property area total"
-        ,TranslationKeys.EASEMENT_PREVIEW_CALCULATED_CUT_AREA: "Calculated cut area"
         ,TranslationKeys.EASEMENT_PREVIEW_CLEAR_ACTION: "Clear previews"
         ,TranslationKeys.EASEMENT_PREVIEW_LAYER_MISSING: "Layer is not configured or could not be resolved from the current project."
-        ,TranslationKeys.EASEMENT_PREVIEW_NO_SELECTION: "Select at least one feature on layer {name} first."
         ,TranslationKeys.EASEMENT_PREVIEW_CREATED: "Preview layer {preview} created from {source}. Selected features: {count}."
         ,TranslationKeys.EASEMENT_PREVIEW_CLEARED: "Cleared {count} preview layer(s)."
         ,TranslationKeys.EASEMENT_PREVIEW_NO_CONNECTED_PROPERTIES: "This easement has no connected properties yet. Select features manually on the map if needed."
@@ -806,9 +614,7 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_PREVIEW_ROW_FAILED: "Automatic preview could not be created"
         ,TranslationKeys.EASEMENT_PREVIEW_DEFINE_PROPERTIES: "Define properties from map"
         ,TranslationKeys.EASEMENT_PREVIEW_DEFINE_PROPERTIES_HINT: "This easement has no connected properties yet. Select one or more cadastral properties on the map and link them here."
-        ,TranslationKeys.EASEMENT_PREVIEW_LINK_SUCCESS: "Linked properties saved for easement {pid}. Total linked: {count}. {preview}{extra}"
         ,TranslationKeys.EASEMENT_PREVIEW_LINK_FAILED: "Could not link properties for easement {pid}. Pending selection ({count}): {preview}\n\nDetails: {err}"
-        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SECTION_TITLE: "Connected property details"
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SECTION_HINT: "Review easement-specific property values here before saving. Area, price per area unit and payment data are sent with the easement-property link."
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_AREA: "Area"
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_UNIT: "Unit"
@@ -835,11 +641,6 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_LAYER_INVALID_GEOMETRY: "The configured Easement layer must be a polygon layer to store final cut geometry."
         ,TranslationKeys.EASEMENT_LAYER_SAVE_SUCCESS: "Final cut was stored on main easement layer {layer}."
         ,TranslationKeys.EASEMENT_LAYER_SAVE_FAILED: "Final cut could not be stored on the main easement layer. Details: {error}"
-        ,TranslationKeys.EASEMENT_PREVIEW_SEWAGE_PUMPING: "Sewage pumping station"
-        ,TranslationKeys.EASEMENT_PREVIEW_SEWAGE_DUMP: "Sewage dump node"
-        ,TranslationKeys.EASEMENT_PREVIEW_SEWAGE_PLANT: "Sewage plant"
-        ,TranslationKeys.EASEMENT_PREVIEW_WATER_STATION: "Water station"
-        ,TranslationKeys.EASEMENT_PREVIEW_RAIN_PUMP: "Rain pumping station"
         ,TranslationKeys.WORKS_REPOSITION_START_FAILED: "Could not start map capture for repositioning the work."
         ,TranslationKeys.WORKS_REPOSITION_FEATURE_NOT_FOUND: "Work {task_id} could not be found on the configured Works layer."
         ,TranslationKeys.WORKS_REPOSITION_SAVE_FAILED: "Could not save the new map location for work {task_id}. Details: {error}"
@@ -888,7 +689,6 @@ TRANSLATIONS = {
         ,TranslationKeys.TASK_FILES_PREVIEW_TOO_LARGE: "This file is too large to preview in the plugin. Use external open if needed."
         ,TranslationKeys.TASK_FILES_PREVIEW_FAILED: "Could not load preview for file {name}."
         ,TranslationKeys.TASK_FILES_PREVIEW_TRUNCATED: "Showing only the first {count} KB for preview."
-        ,TranslationKeys.TASK_FILES_PREVIEW_PAGE_LIMIT: "Showing only the first {count} page(s) for preview."
         ,TranslationKeys.TASK_FILES_PDF_RUNTIME_UNSUPPORTED: "Embedded PDF preview is not available in this QGIS runtime. Current runtime: Qt {qt_version}, PyQt {pyqt_version}.\n\nInstalling standalone PyQt6 separately is usually not enough for QGIS plugins. The QGIS application itself must run on a newer Qt/PyQt runtime with PDF-capable WebEngine support.\n\nSuggested solution: upgrade QGIS to a newer build that ships with Qt6/PyQt6 and Qt WebEngine PDF support."
         ,TranslationKeys.TASK_FILES_OPEN_FAILED: "Could not open file {name}."
         ,TranslationKeys.TASK_FILES_EXTERNAL_OPEN_CONFIRM: "The file will be opened in the computer's default application.\n\nFile: {name}\nType: .{extension}\n\nOnly open it if you trust the file and its uploader. Continue?"
@@ -904,8 +704,6 @@ TRANSLATIONS = {
         ,TranslationKeys.TASK_FILES_UPLOAD_DIALOG_TITLE: "Select files to upload"
         ,TranslationKeys.TASK_FILES_UPLOAD_DIALOG_FILTER: "All files (*.*)"
         ,TranslationKeys.TASK_FILES_UPLOAD_SUCCESS: "Uploaded {count} file(s)."
-        ,TranslationKeys.TASK_FILES_UPLOAD_PARTIAL: "Uploaded {uploaded} file(s). Failed: {failed}. {failed_preview}"
-        ,TranslationKeys.TASK_FILES_UPLOAD_FAILED: "Could not upload the selected files."
         ,TranslationKeys.TASK_FILES_DELETE_CONFIRM_TITLE: "Delete file"
         ,TranslationKeys.TASK_FILES_DELETE_CONFIRM_MESSAGE: "Delete file {name}?"
         ,TranslationKeys.TASK_FILES_DELETE_SUCCESS: "Deleted file {name}."
@@ -981,18 +779,9 @@ TRANSLATIONS = {
         ,TranslationKeys.LINK_REVIEW_RESELECT: "Reselect"
     ,ToolbarTranslationKeys.OPEN_FOLDER: "Open folder"
     ,ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER: "Open item in browser"
-    ,ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP: "Show items on map"
     ,ToolbarTranslationKeys.SHOW_CONNECTED_PROPERTIES_ON_MAP: "Show connected properties on map"
     ,ToolbarTranslationKeys.CONNECT_MISSING_PROPERTIES: "No linked properties – connect properties"
     ,ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER: "Generate project folder"
-    ,RoleTranslationKeys.ADMINS: "Admins"
-    ,RoleTranslationKeys.ADMINISTRATORS: "Administrators"
-    ,RoleTranslationKeys.PROJECT_MANAGERS: "Project Managers"
-    ,RoleTranslationKeys.USERS: "Users"
-    ,RoleTranslationKeys.MANAGERS: "Managers"
-    ,RoleTranslationKeys.EDITORS: "Editors"
-    ,RoleTranslationKeys.VIEWERS: "Viewers"
-    ,RoleTranslationKeys.GUESTS: "Guests"
     ,TranslationKeys.START: "Start"
     ,TranslationKeys.CREATED: "Created"
     ,TranslationKeys.UPDATED: "Updated"
@@ -1020,11 +809,6 @@ TRANSLATIONS = {
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_SUMMARY_EMPTY: "No status mapping defined"
     ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_TITLE: "Select not started statuses"
     ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_DESCRIPTION: "Select backend statuses that should place this module's items into the Not started column in the project overview board."
-    ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_HEADER: "Backend status"
-    ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_TYPE_HEADER: "Status type"
-    ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_NO_BACKEND_STATUSES: "No backend statuses could be loaded for this module."
-    ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_SUMMARY: "{count} selected: {preview}"
-    ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_SUMMARY_EMPTY: "No not started statuses selected"
     ,DialogLabels.PROJECTS_SOURCE_FOLDER: "Projects source folder"
     ,DialogLabels.PROJECTS_TARGET_FOLDER: "Projects target folder"
     ,DialogLabels.PROJECTS_PHOTO_FOLDER: "Projects photo folder"
@@ -1045,5 +829,4 @@ TRANSLATIONS = {
     ,FolderNamingTranslationKeys.TR_SYMBOL_REQUIRED: "Symbol text is required."
     ,FolderNamingTranslationKeys.TR_SELECT_AT_LEAST_ONE: "Select at least one slot."
     ,FolderNamingTranslationKeys.TR_INVALID_RULE: "Invalid rule"
-    ,TranslationKeys.TEST_LAB: "Test Lab"
 }

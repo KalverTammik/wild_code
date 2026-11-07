@@ -11,7 +11,7 @@ import re
 from PyQt5.QtGui import QColor
 from enum import Enum
 from ..constants.file_paths import StylePaths, QssPaths
-from ..constants.module_icons import IconNames, ModuleIconPaths
+from ..constants.module_icons import IconNames
 from ..Logs.python_fail_logger import PythonFailLogger
 
 settings = QgsSettings()
@@ -227,12 +227,12 @@ class ThemeManager(QObject):
 
         combo.setProperty("kavitroCheckableCombo", True)
 
-        view = combo.view() if hasattr(combo, "view") else None
+        view = combo.view()
         if view is None:
             return
 
         view.setProperty("kavitroCheckablePopup", True)
-        viewport = view.viewport() if hasattr(view, "viewport") else None
+        viewport = view.viewport()
         if viewport is not None:
             viewport.setProperty("kavitroCheckablePopup", True)
 

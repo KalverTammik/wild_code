@@ -115,7 +115,7 @@ class DialogCoordinator:
                 was_maximized=bool(widget.isMaximized()),
                 was_visible=bool(widget.isVisible()),
                 window_state=widget.windowState(),
-                geometry=bytes(widget.saveGeometry()) if hasattr(widget, "saveGeometry") else None,
+                geometry=bytes(widget.saveGeometry()),
             )
         except Exception:
             self._map_selection_state[key] = _WindowStateSnapshot()
@@ -153,7 +153,7 @@ class DialogCoordinator:
             return
         try:
             widget.showNormal()
-            if snapshot.geometry and hasattr(widget, "restoreGeometry"):
+            if snapshot.geometry:
                 widget.restoreGeometry(snapshot.geometry)
         except Exception:
             return

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Iterable, Optional
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...module_manager import ModuleManager
-from ...python.api_actions import APIModuleActions
 from ...python.responses import DataDisplayExtractors
 from ...utils.url_manager import Module
 from ..Property.query_cordinator import PropertiesConnectedElementsQueries, PropertyLookupService

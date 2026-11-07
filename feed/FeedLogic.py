@@ -4,7 +4,6 @@ from typing import Optional, List, Dict, Any, Callable
 from ..python.api_client import APIClient
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.responses import JsonResponseHandler
-# from ..utils.logger import debug as log_debug
 from ..utils.api_error_handling import ApiErrorKind, parse_tagged_message
 from ..Logs.python_fail_logger import PythonFailLogger
 
@@ -57,6 +56,7 @@ class UnifiedFeedLogic:
         self.last_error_kind: Optional[ApiErrorKind] = None
         self.last_error_message: Optional[str] = None
         self.total_count: Optional[int] = None
+        self._loaded_items_debug: int = 0
 
     # --- Query mode management -------------------------------------------------
     def configure_single_item_query(self, query_name: str) -> None:
@@ -230,7 +230,7 @@ class UnifiedFeedLogic:
             try:
                 if isinstance(self.total_count, int):
                     # pages_seen approximated by (loaded_items // batch_size) + 1
-                    loaded_items_guess = getattr(self, '_loaded_items_debug', 0)
+                    loaded_items_guess = self._loaded_items_debug
                     if loaded_items_guess == 0:
                         loaded_items_guess = 0
                     pages_seen = (loaded_items_guess // max(1, self.batch_size)) + 1 if loaded_items_guess else 1
@@ -262,15 +262,7 @@ class UnifiedFeedLogic:
                 result.append(self.map_node(node) if self.map_node else node)
 
             # Track loaded items for heuristics
-            try:
-                prev = getattr(self, '_loaded_items_debug', 0)
-                setattr(self, '_loaded_items_debug', prev + len(result))
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=self._module_name,
-                    event="feed_loaded_items_debug_failed",
-                )
+            self._loaded_items_debug += len(result)
             #print(f"[UnifiedFeedLogic] fetched {len(result)} items (has_more={self.has_more})")
             return result
 

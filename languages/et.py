@@ -1,9 +1,7 @@
 from .translation_keys import (
     TranslationKeys,
-    RoleTranslationKeys,
     ToolbarTranslationKeys,
     DialogLabels,
-    ToolbarTranslationKeys,
     FolderNamingTranslationKeys,
     SettingDialogPlaceholders,
 )
@@ -67,7 +65,6 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_TITLE: "QGIS projekti baaskihid",
         TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_DESCRIPTION: "Salvesta EVEL-iga ühilduvad baaskihtide viited käesolevasse QGIS projekti. Võimalusel tuvastatakse vanad kihitused, kuid uus seadistus hoiab tuleviku jaoks kihid eraldi.",
         TranslationKeys.SETTINGS_EVEL_LAYER_SETUP_ENABLED: "Mul on EVEL kihistus juba seadistatud",
-        TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_DISABLED: "EVEL automaattuvastus on väljas. Saad kihid käsitsi määrata.",
         TranslationKeys.SETTINGS_PROJECT_BASE_LAYERS_EMPTY: "EVEL baaskihte pole veel seadistatud.",
         TranslationKeys.SETTINGS_GEOSPATIAL_MODE_VALUE: "Seadistusrežiim: {mode}",
         TranslationKeys.SETTINGS_GEOSPATIAL_MODE_MANUAL: "Käsitsi seadistus",
@@ -76,7 +73,6 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_ACTIVE: "Geospatiali abiga seadistus on aktiivne. Projekti baaskihtide käsitsi väljad on peidetud kuni naased käsitsi seadistusse.",
         TranslationKeys.SETTINGS_GEOSPATIAL_CONNECT_BUTTON: "Ühenda Geospatiali kaudu",
         TranslationKeys.SETTINGS_GEOSPATIAL_MANAGE_BUTTON: "Vaata Geospatiali seadistust",
-        TranslationKeys.SETTINGS_GEOSPATIAL_RETURN_TO_MANUAL: "Kasuta käsitsi seadistust",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_TITLE: "Geospatiali abiga seadistus",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_BODY: "See voog hakkab hiljem seadistama projekti baaskihid ja seotud vaikimisi väärtused automaatselt nende klientide jaoks, kes kasutavad Geospatiali teenuseid. Praegu peidab selle režiimi sisselülitamine käsitsi projekti baaskihtide väljad ja reserveerib selle ala juhitud integratsioonivoo jaoks.",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_SCOPE: "Praegune vahe-etapp ei kirjuta veel automaatseid kihiseadistusi. Käsitsi seadistusse saab igal ajal tagasi minna.",
@@ -96,7 +92,6 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_BASE_LAYER_WATER_STATION: "Veejaam",
         TranslationKeys.SETTINGS_BASE_LAYER_RAIN_PUMP: "Sademeveepumpla",
         TranslationKeys.SETTINGS_SHARED_SEWER_MAPPING: "Kasuta üht kanalisatsioonikihti tüüpide ID-kaardistusega",
-        TranslationKeys.SETTINGS_SHARED_SEWER_MAPPING_DESCRIPTION: "Kasuta Kanalisatsioonitorud kihti ühise aluskihina ja määra, millised ID-d tähistavad tava-, surve- ja sademeveekanalisatsiooni. Lülita see välja, kui igal tüübil on eraldi kiht.",
         TranslationKeys.SETTINGS_SHARED_SEWER_FIELD: "Tüübi väli",
         TranslationKeys.SETTINGS_SHARED_SEWER_IDS_HINT: "Sisesta üks või mitu ID-d komadega eraldatult.",
         TranslationKeys.SETTINGS_SHARED_SEWER_ADD_ROW: "Lisa kaardistus",
@@ -118,68 +113,16 @@ TRANSLATIONS = {
         TranslationKeys.SHOW_ONLY_ATTENTION: "Näita ainult tähelepanu vajavaid",
         TranslationKeys.SIDEBAR_LEFT_ARROW: "«",
         TranslationKeys.SIDEBAR_RIGHT_ARROW: "»",
-        TranslationKeys.SIDEBAR_UP_ARROW: "˄",
-        TranslationKeys.SIDEBAR_DOWN_ARROW: "˅",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_EXTRAINFO_TOOLTIP: "Ava detailne ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP: "Privaatne",
         TranslationKeys.DATA_DISPLAY_WIDGETS_DATES_EMPTY: "Kuupäevad puuduvad",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_DETAIL_TITLE_SUFFIX: "Detailne ülevaade",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_CLOSE: "Sulge",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_OVERVIEW_TITLE: "Tegevuste ülevaade",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_OVERVIEW_TITLE: "Projekti tegevuste ülevaade",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_OVERVIEW_TITLE: "Servituudi tegevuste ülevaade",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_OVERVIEW_TITLE: "Tööde tegevuste ülevaade",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_OVERVIEW_TITLE: "Teostusjooniste tegevuste ülevaade",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_DONE: "Tehtud",
         TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_IN_PROGRESS: "Töös",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_COLUMN_TODO: "Tegemata",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PLANNING: "Planeerimine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_COMPILATION: "Koostamine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REVIEW: "Ülevaatamine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_APPROVAL: "Kinnitamine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_TESTING: "Testimine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_DOCUMENTING: "Dokumenteerimine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_OPTIMIZING: "Optimeerimine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_PUBLISHING: "Avaldamine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_MONITORING: "Jälgimine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_ARCHIVING: "Arhiveerimine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ACTIVITY_REPORTING: "Raporteerimine",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_PROJECT_DETAIL_CONTENT: """
-        <h3>Projekti Detailne Ülevaade</h3>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-
-        <h4>Projekti Faasid</h4>
-        <ul>
-        <li><b>Planeerimine:</b> Projekti eesmärkide ja ulatuse määramine</li>
-        <li><b>Koostamine:</b> Projekti komponentide arendamine</li>
-        <li><b>Testimine:</b> Funktsionaalsuse kontrollimine</li>
-        <li><b>Avaldamine:</b> Projekti lõplik väljastamine</li>
-        </ul>
-
-        <h4>Projekti Statistika</h4>
-        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-        """,
         TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT: "Ava silmaikoon, et laadida projektiga seotud moodulite edenemise detailid.",
-        TranslationKeys.PROJECT_BOARD_DETAILS_INTRO: "Laaditi seotud moodulite andmed {count} projekti kinnistu kaudu: {preview}",
-        TranslationKeys.PROJECT_BOARD_DETAILS_NO_PROPERTIES: "Sellel projektil ei ole veel seotud kinnistuid, seega ei saa moodulite edenemise detaile leida.",
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_DONE: "Ühtegi seotud mooduli kirjet ei paista veel lõpetatuna.",
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_IN_PROGRESS: "Ühtegi seotud mooduli kirjet ei liigitatud praegu töös olevaks.",
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_TODO: "Ühtegi seotud mooduli kirjet ei liigitatud praegu alustamata olekusse.",
         TranslationKeys.PROJECT_BOARD_COLUMN_NOT_STARTED: "Alustamata",
-        TranslationKeys.PROJECT_BOARD_DETAILS_MISSING_MODULES: "Puuduvad seotud moodulid",
         TranslationKeys.DATA_DISPLAY_WIDGETS_TERMS_HEADING: "Tingimused",
-        TranslationKeys.DATA_DISPLAY_WIDGETS_EASEMENT_DETAIL_CONTENT: """
-        <h3>Servituudi Detailne Ülevaade</h3>
-        <p>Servituudi elutsükli, seotud kinnistute ja dokumentide seisu ülevaade.</p>
-        """,
-        TranslationKeys.DATA_DISPLAY_WIDGETS_WORKS_DETAIL_CONTENT: """
-        <h3>Tööde Detailne Ülevaade</h3>
-        <p>Ülesannete täitmise ja välitööde ülevaade.</p>
-        """,
-        TranslationKeys.DATA_DISPLAY_WIDGETS_ASBUILT_DETAIL_CONTENT: """
-        <h3>Teostusjooniste Detailne Ülevaade</h3>
-        <p>Teostusandmete dokumenteerimise ja valideerimise ülevaade.</p>
-        """,
         TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP: "Abi",
         TranslationKeys.NO_PROJECTS_FOUND: "Projekte ei leitud",
         TranslationKeys.NO_CONTRACTS_FOUND: "Lepinguid ei leitud",
@@ -283,19 +226,9 @@ TRANSLATIONS = {
         TranslationKeys.ADD_UPDATE_PROGRESS_CURRENT: "Kinnistu {tunnus}: salvestamine pooleli.",
         TranslationKeys.ADD_UPDATE_PROGRESS_CANCELLED_TEMPLATE: "{prefix} - katkestati {done}/{total} juures",
         TranslationKeys.DELAY_HELPERS_LOADINGSPINNER_TITLE: "GradientSpinner + täpid demo",
-    TranslationKeys.PROJECTS_MODULE_LOADED: "Projektide moodul laaditud!",
-    TranslationKeys.API_ENDPOINT_NOT_CONFIGURED: "API lõpp-punkti pole seadistatud.",
-    TranslationKeys.CONFIG_ERROR: "Seadistuse viga: {error}",
-    TranslationKeys.LOGIN_FAILED: "Sisselogimine ebaõnnestus: {error}",
-    TranslationKeys.NO_API_TOKEN_RECEIVED: "API võtit ei saadud.",
-    TranslationKeys.LOGIN_FAILED_RESPONSE: "Sisselogimine ebaõnnestus: {error}",
     TranslationKeys.SERVER_REQUEST_FAILED: "Serveri päring ebaõnnestus (HTTP {status_code}).",
     TranslationKeys.NETWORK_ERROR: "Võrgu viga: {error}",
     TranslationKeys.LANGUAGE_LABEL: "Keel:",
-    DialogLabels.LOGIN_SECTION: "Kasutaja autentimine",
-    DialogLabels.SETTINGS_SECTION: "Rakenduse eelistused",
-    DialogLabels.SESSION_EXPIRED_ERROR: "Seanss on aegunud. Palun logi uuesti sisse.",
-    DialogLabels.INVALID_CREDENTIALS_ERROR: "Vale e-post või parool.",
     TranslationKeys.USERNAME_LABEL: "Kasutajanimi:",
     TranslationKeys.PASSWORD_LABEL: "Parool:",
     TranslationKeys.LOGIN_BUTTON: "Logi sisse",
@@ -320,33 +253,19 @@ TRANSLATIONS = {
     TranslationKeys.SESSION_STORAGE_MIGRATION_PENDING: "Sessioon taastati, kuid vana autentimiskirje puhastamine ei õnnestunud täielikult. Tööd saab jätkata ja puhastamist proovitakse järgmisel sobival käivitamisel või sisselogimisel uuesti.",
     TranslationKeys.SESSION_STORAGE_CLEANUP_FAILED: "Vana avatekstis juurdepääsutõendi eemaldamist QGIS-i seadetest ei saanud kinnitada. Lõpeta töö turvaliselt ja pöördu toe poole; ära jaga QGIS-i profiili ega selle varukoopiat.",
     TranslationKeys.KAVITRO_PLUGIN_TITLE: "Kavitro",
-    TranslationKeys.MAILABL_LISTENER: "Mailabl Listener",
     TranslationKeys.UNKNOWN_MODULE: "Tundmatu moodul: {module}",
-    TranslationKeys.QUERY_FILE_NOT_FOUND: "Päringu faili ei leitud: {file}",
-    TranslationKeys.SAVE_SETTING: "Salvesta säte",
     TranslationKeys.USER: "Kasutaja",
     TranslationKeys.ROLES: "Rollid",
     TranslationKeys.CONFIRM: "Kinnita",
     TranslationKeys.NAME: "Nimi",
     TranslationKeys.EMAIL: "E-post",
-    TranslationKeys.MODULE_SETTINGS_PLACEHOLDER: "Mooduli seadete kohatäide",
     TranslationKeys.PREFERRED_MODULE: "Eelistatud moodul",
     TranslationKeys.COUNTY: "Maakond",
     TranslationKeys.MUNICIPALITY: "Omavalitsus",
     TranslationKeys.DUE: "Tähtaeg",
-    TranslationKeys.SEARCHING: "Otsimine",
-    TranslationKeys.HOME_PAGE: "Avaleht",
-    TranslationKeys.SETTINGS_PAGE: "Seadete leht",
-    TranslationKeys.ABOUT_PAGE: "Teave",
-    TranslationKeys.SWITCH_TO_DARK_MODE: "Lülita tumedale režiimile",
-    TranslationKeys.SWITCH_TO_LIGHT_MODE: "Lülita heledale režiimile",
     TranslationKeys.TOGGLE_PASSWORD: "Näita parooli",
-    TranslationKeys.WELCOME: "Tere tulemast",
-    TranslationKeys.SELECT_MODULE: "Vali vasakult moodul või ava Seaded, et määrata eelistatud moodul.",
     TranslationKeys.NO_PROJECT_LOADED_TITLE: "Ühtegi projekti pole avatud",
     TranslationKeys.NO_PROJECT_LOADED_MESSAGE: "Kavitro plugnin nõuab QGIS projektifaili, et töötada. Palun ava või loo uus projekt.",
-    TranslationKeys.PROJECT_FOLDER_MISSING_TITLE: "Projektikausta seadistus vajalik",
-    TranslationKeys.PROJECT_FOLDER_MISSING_MESSAGE: "Projekti kaustad pole selle mooduli jaoks määratud. Avan Seaded...",
     TranslationKeys.PROJECT_FOLDER_CREATE_CONFIRM: "Ettevalmistatud struktuuriga projektikausta loomine on mõeldud eelkõige uutele projektidele. Kontrolli, et samasisulist kausta pole juba loodud.\n\nMallkausta sisu kopeeritakse järgmisse asukohta.\n\nLähtekaust:\n{source}\n\nSihtkaust:\n{destination}\n\nKontrolli sihttee üle. Kas jätkata?",
     TranslationKeys.PROJECT_FOLDER_SOURCE_INVALID: "Seadistatud lähtekaust puudub või ei ole kaust:\n{path}",
     TranslationKeys.PROJECT_FOLDER_TARGET_INVALID: "Seadistatud sihtkaust puudub või ei ole kaust:\n{path}",
@@ -372,30 +291,8 @@ TRANSLATIONS = {
     TranslationKeys.HOME_KPI_DUE_SOON_LABEL: "Varsti",
     TranslationKeys.HOME_KPI_OVERDUE_TOOLTIP: "Filtreeritud hilinenud kirjed",
     TranslationKeys.HOME_KPI_DUE_SOON_TOOLTIP: "Filtreeritud peagi tähtajani jõudvad kirjed",
-    TranslationKeys.HOME_KPI_DETAIL_TOGGLE_LABEL: "Detail",
-    TranslationKeys.HOME_KPI_DETAIL_TOGGLE_SHOW_TOOLTIP: "Näita detailkaarti",
-    TranslationKeys.HOME_KPI_DETAIL_TOGGLE_HIDE_TOOLTIP: "Peida detailkaart, kuid jäta ühendusjoon nähtavale",
     TranslationKeys.HOW_SELECT_PROPERTIES: "Kuidas soovid kinnistuid valida?",
     TranslationKeys.PROPERTY_BACKEND_ACTION_PROMPT_TITLE: "Vali tegevus",
-    TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_TITLE: "Arhiveeritud kanne olemas",
-    TranslationKeys.PROPERTY_ARCHIVED_BACKEND_MATCH_BODY: "Taustasüsteemis on arhiveeritud kinnistu katastrinumbriga {tunnus}.\n\nMida soovid teha?",
-    TranslationKeys.PROPERTY_UNARCHIVE_FAILED_TITLE: "Lahtiarhiveerimine ebaõnnestus",
-    TranslationKeys.PROPERTY_UNARCHIVE_FAILED_BODY: "Taustasüsteemi kinnistu {backend_id} lahtiarhiveerimine {tunnus} jaoks ebaõnnestus.",
-    TranslationKeys.PROPERTY_BACKEND_UPDATE_FAILED_TITLE: "Taustasüsteemi uuendus ebaõnnestus",
-    TranslationKeys.PROPERTY_BACKEND_UPDATE_FAILED_BODY: "Taustasüsteemi kinnistu lahtiarhiveeriti, kuid andmete uuendamine {tunnus} jaoks ebaõnnestus.",
-    TranslationKeys.PROPERTY_BACKEND_MISSING_TITLE: "Taustasüsteemis puudub",
-    TranslationKeys.PROPERTY_BACKEND_MISSING_BODY: "Kinnistu {tunnus} on põhikihis, kuid puudub taustasüsteemis.\n\nKas luua taustasüsteemi kirje importandmetest?",
-    TranslationKeys.PROPERTY_BACKEND_MISSING_ARCHIVED_BODY: "Kinnistu {tunnus} on põhikihis. Taustasüsteemis on ainult arhiveeritud kirje selle katastrinumbriga.\n\nKas luua uus AKTIIVNE kirje taustasüsteemi importandmetest?",
-    TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_TITLE: "Kinnistu olemas",
-    TranslationKeys.PROPERTY_BACKEND_EXISTS_MISSING_MAP_BODY: "Kinnistu {tunnus} on taustasüsteemis olemas, kuid puudub põhikihis.\n\nKas kopeerida objekt importkihist põhikihti?",
-    TranslationKeys.PROPERTY_NEWER_IMPORT_TITLE: "Uuem import tuvastatud",
-    TranslationKeys.PROPERTY_NEWER_IMPORT_BODY: "Kinnistu {tunnus} on taustasüsteemis ja põhikihis, kuid import paistab uuem.\n\nKas arhiveerida/asendada olemasolev kinnistu?\n- Tõstab olemasoleva objekti arhiivikihile\n- Märgib taustasüsteemi kinnistu arhiveerituks\n- Asendab põhikihi objekti importkihist võetuga",
-    TranslationKeys.PROPERTY_REPLACE_FAILED_TITLE: "Asendamine ebaõnnestus",
-    TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_NO_FEATURE: "Olemasolevat objekti {tunnus} arhiveerimiseks/asendamiseks ei leitud.",
-    TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_DELETE: "Olemasoleva objekti kustutamine põhikihist {tunnus} ebaõnnestus.",
-    TranslationKeys.PROPERTY_REPLACE_FAILED_BODY_COPY: "Impordi kopeerimine põhikihile ebaõnnestus {tunnus}: {message}",
-    TranslationKeys.PROPERTY_ARCHIVE_LAYER_MISSING_TITLE: "Arhiivikiht puudub",
-    TranslationKeys.PROPERTY_ARCHIVE_LAYER_MISSING_BODY: "Arhiivikiht on seadistamata või puudub; arhiveerimine/asendamine ei ole võimalik.",
     TranslationKeys.PROPERTY_MAIN_LAYER_MISSING_TITLE: "Põhikiht puudub",
     TranslationKeys.PROPERTY_MAIN_LAYER_MISSING_BODY: "Põhikinnistute kiht puudub või on vigane. Palun seadista Seadetes.",
     TranslationKeys.PROPERTY_ARCHIVE_LAYER_REQUIRED_TITLE: "Arhiivikiht on nõutud",
@@ -432,9 +329,7 @@ TRANSLATIONS = {
     TranslationKeys.PROPERTY_BOOTSTRAP_STAGE_CREATE_ARCHIVE: "arhiivikihi loomine",
     TranslationKeys.PROPERTY_BOOTSTRAP_STAGE_SAVE_SETTINGS: "kihiseadistuste salvestamine",
     TranslationKeys.PROPERTY_BOOTSTRAP_READY_BODY: "Loodi ja seadistati põhikiht '{main}' ning arhiivikiht '{archive}' failis:\n{path}",
-    TranslationKeys.PROPERTY_COPY_FAILED_TITLE: "Kopeerimine ebaõnnestus",
     TranslationKeys.RUN_ATTENTION_CHECKS: "Käivita kontroll",
-    TranslationKeys.YES_TO_ALL: "Jah kõigile",
     TranslationKeys.ADD_WITHOUT_CHECKS: "Lisa ilma kontrollita",
     TranslationKeys.OPEN_SETTINGS: "Ava Seaded",
     TranslationKeys.MAIN_PROPERTY_LAYER: "Kinnistute põhikiht",
@@ -444,7 +339,6 @@ TRANSLATIONS = {
     TranslationKeys.MODULE_MAIN_LAYER: "Mooduli kiht",
     TranslationKeys.MODULE_LAYER_OVERVIEW: "See on mooduli enda töökiht kaardiga seotud töövoogude jaoks. Seotud kinnistute 'Näita kaardil' tegevus kasutab Kinnistute mooduli põhikihi seadistust.",
     TranslationKeys.ARCHIVE_LAYER_DESCRIPTION: "Kasuta valikulist arhiivikihti ajalooliste või varuandmete salvestamiseks.",
-    TranslationKeys.CHOOSE_LAYERS_USED_BY_THIS_MODULE: "Vali selle mooduli kasutatavad kihid (elemendi ja arhiivi).",
     TranslationKeys.LOGOUT_BUTTON_TOOLTIP: "Logi välja",
     TranslationKeys.SEARCH_TOOLTIP: "Funktsioon veel ei tööta",
     TranslationKeys.SEARCH_PLACEHOLDER: "Otsi...",
@@ -452,8 +346,6 @@ TRANSLATIONS = {
     TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP: "Ahenda külgriba",
     TranslationKeys.SIDEBAR_EXPAND_TOOLTIP: "Laienda külgriba",
     TranslationKeys.THEME_SWITCH_TOOLTIP: "Tume/Hele režiim",
-    TranslationKeys.DEV_DBG_TOOLTIP: "Lülita arenduslogid (print) sisse/välja",
-    TranslationKeys.DEV_FRAMES_TOOLTIP: "Näita/peida FRAME sildid avalehel",
     TranslationKeys.SESSION_EXPIRED: "Teie seanss on aegunud. Palun logige uuesti sisse.",
     TranslationKeys.STATUS_PREFERENCES: "Eelistatud staatused",
     TranslationKeys.TAGS_PREFERENCES: "Eelistatud tunnused",
@@ -471,36 +363,17 @@ TRANSLATIONS = {
     TranslationKeys.FILTERS_REFRESH: "Värskenda filtreid",
     TranslationKeys.FILTERS_CLEAR: "Tühjenda filtrivalikud",
     TranslationKeys.RESET_ALL_SETTINGS: "Lähtesta kõik selle mooduli seaded vaikimisi väärtustele",
-    TranslationKeys.SETTINGS_RESET_TO_DEFAULTS: "Seaded lähtestati vaikimisi väärtustele",
-    TranslationKeys.SHOW_PROJECT_NUMBERS_DESCRIPTION: "Sisselülitamisel kuvatakse kannetel numbrid, et neid oleks lihtsam tuvastada.",
-    TranslationKeys.USER_PROFILE: "Kasutaja profiil",
-    TranslationKeys.ROLES_PERMISSIONS: "Rollid ja õigused",
     TranslationKeys.MODULE_ACCESS: "Mooduli juurdepääs",
-    TranslationKeys.ADMINISTRATOR: "Administraator",
-    TranslationKeys.EDITOR: "Toimetaja",
-    TranslationKeys.VIEWER: "Vaataja",
     TranslationKeys.OPEN_MAA_AMET_PAGE: "Ava Maa-ameti leht",
-    TranslationKeys.DASHBOARD: "Töölaud",
-    TranslationKeys.REPORTS: "Aruanded",
-    TranslationKeys.ADMIN: "Admin",
-    TranslationKeys.USER_INFORMATION: "Kasutaja info",
     TranslationKeys.PROPERTY_MANAGEMENT: "Kinnistute haldus",
-    TranslationKeys.QUICK_ACTIONS: "Kiired toimingud",
     TranslationKeys.ADD_SHP_FILE: "Lisa SHP fail",
     TranslationKeys.ADD_PROPERTY: "Lisa kinnistuid",
     TranslationKeys.REMOVE_PROPERTY: "Eemalda kinnistu",
-    TranslationKeys.LOAD_SHAPEFILE: "Laadi Shapefile",
     TranslationKeys.SELECT_SHAPEFILE: "Vali Shapefile fail",
-    TranslationKeys.CHOOSE_PROPERTY_LAYER_FOR_MODULE: "Vali kinnistu kiht.",
-    TranslationKeys.SELECT_A_PROPERTY_LAYER: "Vali kinnistute kiht...",
     TranslationKeys.PROPERTY_TREE_HEADER: "Kinnistuga seotud andmed",
     TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE: "Vali kinnistu kaardilt",
-    TranslationKeys.PROPERTY_TREE_LOADING: "Laen seotud andmeid...",
     TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS: "Seoseid ei leitud",
-    TranslationKeys.PROPERTY_TREE_NO_DATA: "Andmed puuduvad",
     TranslationKeys.PROPERTY_TREE_MODULE_EMPTY: "Kirjeid ei ole",
-    TranslationKeys.PROPERTY_TREE_ROW_NO_TITLE: "Nimetus puudub",
-    TranslationKeys.PROPERTY_TREE_ROW_UPDATED_PREFIX: "Uuendatud {date}",
     TranslationKeys.PROPERTY_NOT_FOUND: "Kinnistu ei leitud",
     TranslationKeys.PROPERTY_MISSING_ON_LAYER: "Kinnistu puudub kihil",
     TranslationKeys.PROPERTY_NOT_FOUND_ON_LAYER: "Kinnistut ei leitud kaardikihilt",
@@ -514,46 +387,10 @@ TRANSLATIONS = {
     TranslationKeys.INVALID_SHAPEFILE_MESSAGE: "Valitud Shapefile fail ei ole kehtiv.",
     TranslationKeys.SHAPEFILE_LOAD_FAILED: "Shapefile laadimine ebaõnnestus"
     ,TranslationKeys.SHAPEFILE_LOAD_FAILED_MESSAGE: "Shapefile faili laadimine ebaõnnestus."
-    ,TranslationKeys.SHAPEFILE_LOADING_ERROR: "Shapefile laadimise viga"
     ,TranslationKeys.IMPORTING_SHAPEFILE: "Shapefile importimine"
-    ,TranslationKeys.PROCESSING_FEATURES: "Objektide töötlemine"
-    ,TranslationKeys.FEATURES_COPIED: "Objekte kopeeritud"
-    ,TranslationKeys.IMPORT_COMPLETE: "Import lõpetatud"
-    ,TranslationKeys.FEATURES_IMPORTED: "objekti imporditud"
-    ,TranslationKeys.FEATURE_IMPORTED: "objekt imporditud"
     ,TranslationKeys.INITIALIZING: "Initsialiseerimine..."
-    ,TranslationKeys.SELECT_PROPERTY_TEMPLATE: "Vali lisatav kinnistu mall:"
-    ,TranslationKeys.RESIDENTIAL_PROPERTY: "Elamukinnistu"
-    ,TranslationKeys.COMMERCIAL_PROPERTY: "Ärikinnistu"
-    ,TranslationKeys.INDUSTRIAL_PROPERTY: "Tööstuskinnistu"
-    ,TranslationKeys.AGRICULTURAL_LAND: "Põllumajandusmaa"
-    ,TranslationKeys.VACANT_LAND: "Tühi maatükk"
-    ,TranslationKeys.STANDARD_RESIDENTIAL_TEMPLATE: "Standardne elamukinnistu mall"
-    ,TranslationKeys.COMMERCIAL_BUILDING_TEMPLATE: "Ärihoone mall"
-    ,TranslationKeys.INDUSTRIAL_FACILITY_TEMPLATE: "Tööstushoone mall"
-    ,TranslationKeys.AGRICULTURAL_LAND_TEMPLATE: "Põllumajandusmaa mall"
-    ,TranslationKeys.EMPTY_LAND_PARCEL_TEMPLATE: "Tühi maatüki mall"
-    ,TranslationKeys.PROPERTY_DETAILS: "Kinnistu andmed"
-    ,TranslationKeys.ADDITIONAL_INFORMATION: "Lisateave"
-    ,TranslationKeys.PROPERTY_NAME_LABEL: "Kinnistu nimi:"
-    ,TranslationKeys.PROPERTY_TYPE_LABEL: "Kinnistu tüüp:"
-    ,TranslationKeys.AREA_M2: "Pindala (m²):"
-    ,TranslationKeys.VALUE_LABEL: "Väärtus (€):"
     ,TranslationKeys.RESIDENTIAL: "Elamu"
-    ,TranslationKeys.COMMERCIAL: "Äri"
-    ,TranslationKeys.INDUSTRIAL: "Tööstus"
-    ,TranslationKeys.AGRICULTURAL: "Põllumajandus"
     ,TranslationKeys.OTHER: "Muu"
-    ,TranslationKeys.ENTER_PROPERTY_NAME: "Sisesta kinnistu nimi"
-    ,TranslationKeys.ENTER_AREA: "Sisesta pindala m²"
-    ,TranslationKeys.ENTER_PROPERTY_VALUE: "Sisesta kinnistu väärtus"
-    ,TranslationKeys.ENTER_PROPERTY_ADDRESS: "Sisesta kinnistu aadress"
-    ,TranslationKeys.ENTER_ADDITIONAL_NOTES_OR_DESCRIPTION: "Sisesta lisamärkused või kirjeldus"
-    ,TranslationKeys.ADD_PROPERTY_BUTTON: "Lisa kinnistu"
-    ,TranslationKeys.PROPERTY_NAME_REQUIRED: "Kinnistu nimi on kohustuslik."
-    ,TranslationKeys.AREA_MUST_BE_GREATER_THAN_ZERO: "Pindala peab olema suurem kui 0."
-    ,TranslationKeys.VALUE_MUST_BE_GREATER_THAN_ZERO: "Väärtus peab olema suurem kui 0."
-    ,TranslationKeys.VALIDATION_ERROR: "Valideerimise viga"
     ,TranslationKeys.CADASTRAL_ID: "Katastritunnus"
     ,TranslationKeys.ADDRESS: "Aadress"
     ,TranslationKeys.AREA: "Pindala (m²)"
@@ -562,25 +399,15 @@ TRANSLATIONS = {
     ,TranslationKeys.PROPERTY_COLUMN_MAIN_LAYER: "Kaardil"
     ,TranslationKeys.PROPERTY_COLUMN_ARCHIVE_BACKEND: "Arhiiv"
     ,TranslationKeys.PROPERTY_COLUMN_ARCHIVE_MAP: "Arhiiv: kaart"
-    ,TranslationKeys.PROPERTY_NAME: "Kinnistu nimi"
-    ,TranslationKeys.PROPERTY_TYPE: "Kinnistu tüüp"
-    ,TranslationKeys.VALUE: "Väärtus (€)"
     ,TranslationKeys.SAVE: "Salvesta"
     ,TranslationKeys.DELETE: "Kustuta"
-    ,TranslationKeys.EDIT: "Muuda"
     ,TranslationKeys.SELECT: "Vali"
-    ,TranslationKeys.SEARCH: "Otsi"
     ,TranslationKeys.WARNING: "Hoiatus"
     ,TranslationKeys.INFO: "Info"
-    ,TranslationKeys.THIS_FIELD_IS_REQUIRED: "See väli on kohustuslik"
     ,TranslationKeys.INVALID_VALUE: "Vigane väärtus"
-    ,TranslationKeys.VALUE_MUST_BE_GREATER_THAN_MIN: "Väärtus peab olema suurem kui {min}"
-    ,TranslationKeys.VALUE_MUST_BE_LESS_THAN_MAX: "Väärtus peab olema väiksem kui {max}"
     ,TranslationKeys.YES: "Jah"
     ,TranslationKeys.NO: "Ei"
     ,TranslationKeys.OK: "OK"
-    ,TranslationKeys.SAVING: "Salvestan"
-    ,TranslationKeys.DELETING: "Kustutamine"
     ,TranslationKeys.SUCCESS: "Edu"
     ,TranslationKeys.ERROR: "Viga"
     ,TranslationKeys.PROPERTIES: "Kinnistud"
@@ -609,9 +436,6 @@ TRANSLATIONS = {
     ,TranslationKeys.RESELECT_FROM_MAP: "Vali uuesti kaardilt"
     ,TranslationKeys.ARCHIVE: "Arhiveeri"
     ,TranslationKeys.UNARCHIVE: "Taasta arhiivist"
-    ,TranslationKeys.UNARCHIVE_EXISTING: "Taasta olemasolev"
-    ,TranslationKeys.CREATE_NEW: "Loo uus"
-    ,TranslationKeys.SKIP: "Jäta vahele"
     ,TranslationKeys.CREATE_LOAD_IN_GPKG: "Loo/lae GPKG-s…"
     ,TranslationKeys.SELECT_COUNTY: "Vali maakond"
     ,TranslationKeys.SELECT_MUNICIPALITY: "Vali omavalitsus"
@@ -624,19 +448,12 @@ TRANSLATIONS = {
     ,TranslationKeys.MISSING_TUNNUS_TITLE: "Tunnus puudub"
     ,TranslationKeys.MISSING_TUNNUS_MESSAGE: "Valitud objektidel puudub katastritunnus."
     ,TranslationKeys.SELECTION_FAILED_TITLE: "Valiku alustamine ebaõnnestus"
-    ,TranslationKeys.ATTENTION: "Tähelepanu"
     ,ToolbarTranslationKeys.OPEN_FOLDER: "Ava kaust"
     ,ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER: "Ava kirje brauseris"
-    ,ToolbarTranslationKeys.SHOW_ITEMS_ON_MAP: "Näita kirjeid kaardil"
     ,ToolbarTranslationKeys.SHOW_CONNECTED_PROPERTIES_ON_MAP: "Näita seotud kinnistuid kaardil"
     ,ToolbarTranslationKeys.CONNECT_MISSING_PROPERTIES: "Kinnistuseos puudub – seosta kinnistuid"
     ,ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER: "Genereeri projekti kaust"
-    ,TranslationKeys.PLEASE_SELECT_AT_LEAST_ONE_PROPERTY: "Palun valige vähemalt üks kinnistu."
     ,TranslationKeys.NO_PROPERTY_LAYER_SELECTED: "Kinnistute kihti pole valitud. Palun valige esmalt kinnistute kiht."
-    ,TranslationKeys.DATA_LOADING_ERROR: "Andmete laadimise viga"
-    ,TranslationKeys.FAILED_TO_LOAD_PROPERTY_DATA: "Andmete laadimine kihist ebaõnnestus."
-    ,TranslationKeys.PROPERTIES_ADDED: "Kinnistud lisatud"
-    ,TranslationKeys.SELECTED_PROPERTIES_ADDED: "Valitud kinnistud on lisatud."
     ,TranslationKeys.CONNECT_PROPERTIES: "Seosta kinnistuid"
     ,TranslationKeys.CHOSE_FROM_MAP: "Vali kaardilt"
     ,TranslationKeys.ATTENTION_CAUSE_BACKEND_LOOKUP_FAILED: "taustasüsteemi päring ebaõnnestus"
@@ -671,10 +488,6 @@ TRANSLATIONS = {
     ,TranslationKeys.PROPERTY_ARCHIVE_PLAN_PARTIAL_BODY: "Kaardil arhiveeritud: {moved}. Taustasüsteemis arhiveeritud: {archived}. Ebaõnnestunud või vahele jäetud toiminguid: {failed}."
     ,TranslationKeys.PROPERTY_ARCHIVE_SCOPE_SKIPPED: "Puuduvate kinnistute arhiveerimine on sellel korral välja lülitatud. Vali vähemalt üks asustusüksus ja laadi selle täielikud, mittetühjad impordiandmed."
     ,TranslationKeys.PROPERTY_ARCHIVE_MOVED_EXCLUDED: "{count} puuduvat katastritunnust leiti impordist teise asustusüksuse alt ja jäeti automaatsest arhiveerimisest välja."
-    ,TranslationKeys.SELECT_PROPERTY_FIRST: "Palun valige esmalt kaardilt kinnisvara objekt."
-    ,TranslationKeys.ERROR_SELECTING_PROPERTY: "Viga kinnisvara valimisel"
-    ,TranslationKeys.SELECT_SINGLE_PROPERTY_TITLE: "Vali üks kinnisvara"
-    ,TranslationKeys.SELECT_SINGLE_PROPERTY_MESSAGE: "Palun valige kaardilt ainult üks kinnisvara objekt."
     ,TranslationKeys.MAP_SELECTION_NONE: "Kaardilt ei valitud ühtegi kinnistut."
     ,TranslationKeys.MAP_SELECTION_START_FAILED: "Kinnistute kaardivalikut ei saanud alustada."
     ,TranslationKeys.LINK_PROPERTIES_SUCCESS: "Kinnistute seosed salvestatud projektile {pid}.\nKokku seotud: {count}. {preview}{extra}"
@@ -749,7 +562,6 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_MAP_SAVE_FAILED: "Töö {task_id} loodi, kuid kaardiobjekti ei saanud Tööde kihile salvestada. Detailid: {error}"
         ,TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED: "Töö {task_id} loodi ja lisati kaardile, kuid kinnistu seostamine ebaõnnestus tunnusele {cadastral}."
         ,TranslationKeys.WORKS_CREATE_FAILED: "Uue töö loomine ebaõnnestus."
-        ,TranslationKeys.WORKS_SHOW_ITEM_ON_MAP_ACTION: "Näita tööd kaardil"
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ACTION: "Lisa punkt kaardile"
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_START_FAILED: "Olemasoleva töö kaardivalikut ei saanud käivitada."
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_TASK_LOAD_FAILED: "Tööd {task_id} ei õnnestunud enne kaardiobjekti loomist laadida."
@@ -781,15 +593,10 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_PREVIEW_BUFFER_DISTANCE: "Puhvri kaugus"
         ,TranslationKeys.EASEMENT_PREVIEW_LAYER_NAME: "Seadistatud kiht"
         ,TranslationKeys.EASEMENT_PREVIEW_STATUS: "Automaatika"
-        ,TranslationKeys.EASEMENT_PREVIEW_CREATE_ACTION: "Loo eelvaade"
         ,TranslationKeys.EASEMENT_PREVIEW_CREATE_FINAL_CUT: "Loo lõplik lõige"
         ,TranslationKeys.EASEMENT_PREVIEW_ROUNDED_CAPS: "Ümardatud nurgad"
-        ,TranslationKeys.EASEMENT_PREVIEW_FINAL_AREA: "Lõpliku lõike pindala"
-        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_AREA_TOTAL: "Arvutatud kinnistupindala kokku"
-        ,TranslationKeys.EASEMENT_PREVIEW_CALCULATED_CUT_AREA: "Arvutatud lõike pindala"
         ,TranslationKeys.EASEMENT_PREVIEW_CLEAR_ACTION: "Puhasta eelvaated"
         ,TranslationKeys.EASEMENT_PREVIEW_LAYER_MISSING: "Kiht on seadistamata või seda ei õnnestunud aktiivsest projektist leida."
-        ,TranslationKeys.EASEMENT_PREVIEW_NO_SELECTION: "Vali kihil {name} enne vähemalt üks objekt."
         ,TranslationKeys.EASEMENT_PREVIEW_CREATED: "Eelvaatekiht {preview} loodi kihist {source}. Valitud objekte: {count}."
         ,TranslationKeys.EASEMENT_PREVIEW_CLEARED: "Puhastati {count} eelvaatekihti."
         ,TranslationKeys.EASEMENT_PREVIEW_NO_CONNECTED_PROPERTIES: "Sellel servituudil ei ole veel seotud kinnistuid. Vajadusel vali objektid kaardilt käsitsi."
@@ -800,9 +607,7 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_PREVIEW_ROW_FAILED: "Automaatse eelvaate loomine ebaõnnestus"
         ,TranslationKeys.EASEMENT_PREVIEW_DEFINE_PROPERTIES: "Määra kinnistud kaardilt"
         ,TranslationKeys.EASEMENT_PREVIEW_DEFINE_PROPERTIES_HINT: "Sellel servituudil ei ole veel seotud kinnistuid. Vali kaardilt üks või mitu katastriüksust ja seo need siin."
-        ,TranslationKeys.EASEMENT_PREVIEW_LINK_SUCCESS: "Kinnistud seoti servituudiga {pid}. Kokku seotud: {count}. {preview}{extra}"
         ,TranslationKeys.EASEMENT_PREVIEW_LINK_FAILED: "Servituudiga {pid} kinnistute sidumine ebaõnnestus. Valik ({count}): {preview}\n\nDetailid: {err}"
-        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SECTION_TITLE: "Seotud kinnistute andmed"
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SECTION_HINT: "Vaata servituudi-kinnistu seose väljad enne salvestamist üle. Pindala, pinnaühiku hind ja makseandmed saadetakse koos servituudi kinnistuseosega."
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_AREA: "Pindala"
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_UNIT: "Ühik"
@@ -829,11 +634,6 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_LAYER_INVALID_GEOMETRY: "Seadistatud Servituudi kiht peab olema polügoonkiht, et lõpliku lõike geomeetriat salvestada."
         ,TranslationKeys.EASEMENT_LAYER_SAVE_SUCCESS: "Lõplik lõige salvestati Servituudi põhikihile {layer}."
         ,TranslationKeys.EASEMENT_LAYER_SAVE_FAILED: "Lõplikku lõiget ei õnnestunud Servituudi põhikihile salvestada. Detailid: {error}"
-        ,TranslationKeys.EASEMENT_PREVIEW_SEWAGE_PUMPING: "Reoveepumpla"
-        ,TranslationKeys.EASEMENT_PREVIEW_SEWAGE_DUMP: "Purgimissõlm"
-        ,TranslationKeys.EASEMENT_PREVIEW_SEWAGE_PLANT: "Reoveepuhasti"
-        ,TranslationKeys.EASEMENT_PREVIEW_WATER_STATION: "Veejaam"
-        ,TranslationKeys.EASEMENT_PREVIEW_RAIN_PUMP: "Sademeveepumpla"
         ,TranslationKeys.WORKS_REPOSITION_START_FAILED: "Töö ümberpaigutamise kaardivalikut ei saanud käivitada."
         ,TranslationKeys.WORKS_REPOSITION_FEATURE_NOT_FOUND: "Tööd {task_id} ei leitud seadistatud Tööde kihilt."
         ,TranslationKeys.WORKS_REPOSITION_SAVE_FAILED: "Töö {task_id} uue kaardiasukoha salvestamine ebaõnnestus. Detailid: {error}"
@@ -882,7 +682,6 @@ TRANSLATIONS = {
         ,TranslationKeys.TASK_FILES_PREVIEW_TOO_LARGE: "See fail on plugina sees eelvaate jaoks liiga suur. Vajadusel ava fail väliselt."
         ,TranslationKeys.TASK_FILES_PREVIEW_FAILED: "Faili {name} eelvaate laadimine ebaõnnestus."
         ,TranslationKeys.TASK_FILES_PREVIEW_TRUNCATED: "Eelvaates kuvatakse ainult esimesed {count} KB."
-        ,TranslationKeys.TASK_FILES_PREVIEW_PAGE_LIMIT: "Eelvaates kuvatakse ainult esimesed {count} lehekülge."
         ,TranslationKeys.TASK_FILES_PDF_RUNTIME_UNSUPPORTED: "Sisseehitatud PDF eelvaade ei ole selles QGIS-i käitusajas saadaval. Praegune käitusaeg: Qt {qt_version}, PyQt {pyqt_version}.\n\nAinult eraldi PyQt6 paigaldamisest tavaliselt QGIS pluginate jaoks ei piisa. QGIS peab ise töötama uuema Qt/PyQt käitusajaga, kus on PDF-e toetav WebEngine.\n\nSoovitus: uuenda QGIS-i uuemale versioonile, mis sisaldab Qt6/PyQt6 ja Qt WebEngine PDF tuge."
         ,TranslationKeys.TASK_FILES_OPEN_FAILED: "Faili {name} ei saanud avada."
         ,TranslationKeys.TASK_FILES_EXTERNAL_OPEN_CONFIRM: "Fail avatakse arvuti vaikimisi rakenduses.\n\nFail: {name}\nTüüp: .{extension}\n\nAva ainult siis, kui usaldad faili ja selle üleslaadijat. Kas jätkata?"
@@ -898,8 +697,6 @@ TRANSLATIONS = {
         ,TranslationKeys.TASK_FILES_UPLOAD_DIALOG_TITLE: "Vali üleslaetavad failid"
         ,TranslationKeys.TASK_FILES_UPLOAD_DIALOG_FILTER: "Kõik failid (*.*)"
         ,TranslationKeys.TASK_FILES_UPLOAD_SUCCESS: "Üles laaditi {count} faili."
-        ,TranslationKeys.TASK_FILES_UPLOAD_PARTIAL: "Üles laaditi {uploaded} faili. Ebaõnnestus: {failed}. {failed_preview}"
-        ,TranslationKeys.TASK_FILES_UPLOAD_FAILED: "Valitud failide üleslaadimine ebaõnnestus."
         ,TranslationKeys.TASK_FILES_DELETE_CONFIRM_TITLE: "Kustuta fail"
         ,TranslationKeys.TASK_FILES_DELETE_CONFIRM_MESSAGE: "Kas kustutada fail {name}?"
         ,TranslationKeys.TASK_FILES_DELETE_SUCCESS: "Fail {name} kustutati."
@@ -989,21 +786,12 @@ TRANSLATIONS = {
     ,TranslationKeys.MODULE_WORKS: "Tööd"
     ,TranslationKeys.MODULE_TAGS: "Tunnused"
     ,TranslationKeys.MODULE_STATUSES: "Staatused"
-    ,RoleTranslationKeys.ADMINS: "Admin"
-    ,RoleTranslationKeys.ADMINISTRATORS: "Administraatorid"
-    ,RoleTranslationKeys.PROJECT_MANAGERS: "Projektijuht"
-    ,RoleTranslationKeys.USERS: "Kasuta"
-    ,RoleTranslationKeys.MANAGERS: "Vastutaja"
-    ,RoleTranslationKeys.EDITORS: "Muutja"
-    ,RoleTranslationKeys.VIEWERS: "Vaataja"
-    ,RoleTranslationKeys.GUESTS: "Külaline"
     ,TranslationKeys.START: "Algus"
     ,TranslationKeys.CREATED: "Loodud"
     ,TranslationKeys.UPDATED: "Muudetud"
     ,TranslationKeys.STATUS_WIDGET_CHANGE_TOOLTIP: "Klõpsa staatuse muutmiseks"
     ,TranslationKeys.STATUS_WIDGET_NO_OPTIONS: "Selle mooduli jaoks pole praegu ühtegi staatust saadaval."
     ,TranslationKeys.STATUS_WIDGET_UPDATE_FAILED: "Kirje staatuse uuendamine ebaõnnestus."
-    ,TranslationKeys.TEST_LAB: "Test Lab"
     ,TranslationKeys.CONNECTIONS: "Otsin seoseid"
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_TITLE: "Seo servituudi taustastaatused kihiväärtustega"
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_DESCRIPTION: "Määra, kuidas servituudi taustastaatused kirjutatakse seadistatud servituudi põhikihi staatuse väljale. Kiht: {layer}; väli: {field}."
@@ -1019,11 +807,6 @@ TRANSLATIONS = {
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_SUMMARY_EMPTY: "Staatuste seost pole määratud"
     ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_TITLE: "Vali alustamata staatused"
     ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_DESCRIPTION: "Vali taustastaatused, mille korral kuvatakse selle mooduli kirjed projekti ülevaate tahvlil veerus Alustamata."
-    ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_HEADER: "Taustastaatus"
-    ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_TYPE_HEADER: "Staatuse tüüp"
-    ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_NO_BACKEND_STATUSES: "Selle mooduli taustastaatuseid ei õnnestunud laadida."
-    ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_SUMMARY: "{count} valitud: {preview}"
-    ,TranslationKeys.PROJECT_BOARD_NOT_STARTED_SUMMARY_EMPTY: "Alustamata staatuseid pole valitud"
     ,DialogLabels.PROJECTS_SOURCE_FOLDER: "Projektide lähtekaust"
     ,DialogLabels.PROJECTS_TARGET_FOLDER: "Projektide sihtkaust"
     ,DialogLabels.PROJECTS_PHOTO_FOLDER: "Projektide fotode kaust"

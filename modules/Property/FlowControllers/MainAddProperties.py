@@ -172,7 +172,7 @@ class MainAddPropertiesFlow:
                     from ....dialog import PluginDialog
 
                     dlg = PluginDialog.get_instance() if PluginDialog else None
-                    sm = getattr(dlg, "settingsModule", None) if dlg else None
+                    sm = dlg.settingsModule if dlg else None
                     if sm is not None:
                         sm.sync_module_layer_dropdown(
                             Module.PROPERTY.value,

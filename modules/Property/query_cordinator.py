@@ -3,12 +3,20 @@ from concurrent.futures import ThreadPoolExecutor
 
 from ...module_manager import Module
 from ...constants.file_paths import QueryPaths
+from ...Logs.python_fail_logger import PythonFailLogger
+from ...utils.url_manager import ModuleSupports
+from ..Settings.SettinsUtils.SettingsLogic import SettingsLogic
 
 from ...python.api_client import APIClient
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 
 
 class PropertiesConnectedElementsQueries:
+    PAGE_SIZE = 30
+    # Works are picked from all property tasks on the client, so one page could hide some.
+    WORKS_MAX_PAGES = 10
+    WORKS_CONNECTION = f"{Module.TASK.value}s"
+
     module_to_filename = {
         Module.CONTRACT.value: "connected_contracts.graphql",
         Module.COORDINATION.value: "connected_coordinations.graphql",
@@ -16,6 +24,7 @@ class PropertiesConnectedElementsQueries:
         Module.PROJECT.value: "connected_projects.graphql",
         Module.SPECIFICATION.value: "connected_specifications.graphql",
         Module.SUBMISSION.value: "connected_submissions.graphql",
+        Module.WORKS.value: "connected_tasks.graphql",
     }
 
     def __init__(self):
@@ -39,10 +48,12 @@ class PropertiesConnectedElementsQueries:
             return []
 
         query = self.query_loader.load_query_properties_connected_elements(module_file)
+        if module_key == Module.WORKS.value:
+            return self._fetch_works(query, propertie_id)
 
         variables = {
             "id": propertie_id,
-            "first": 30,
+            "first": self.PAGE_SIZE,
             "tagsFirst": 10,
             "orderBy": [
                 {
@@ -54,6 +65,38 @@ class PropertiesConnectedElementsQueries:
 
         payload = APIClient().send_query(query, variables=variables, return_raw=True) or {}
         return self._processor.process_response_data(module_key, payload)
+
+    def _fetch_works(self, query: str, property_id) -> List[Dict[str, Any]]:
+        # A work is a task whose type the Works module lists; with no types chosen it lists every task.
+        type_ids = set(
+            SettingsLogic().load_module_preference_ids(
+                Module.WORKS.value,
+                support_key=ModuleSupports.TYPES.value,
+            )
+        )
+        client = APIClient()
+        works: List[Dict[str, Any]] = []
+        after = None
+        for _ in range(self.WORKS_MAX_PAGES):
+            variables = {"id": property_id, "first": self.PAGE_SIZE, "after": after}
+            payload = client.send_query(query, variables=variables, return_raw=True) or {}
+            connection = self._processor.connection_block(self.WORKS_CONNECTION, payload)
+            works.extend(
+                node
+                for node in self._processor.connection_nodes(connection)
+                if not type_ids or str((node.get("type") or {}).get("id") or "") in type_ids
+            )
+            page_info = connection.get("pageInfo") or {}
+            after = page_info.get("endCursor")
+            if not page_info.get("hasNextPage") or not after:
+                return works
+
+        PythonFailLogger.log(
+            "property_works_page_limit_reached",
+            module=Module.PROPERTY.value,
+            extra={"property_id": property_id, "pages": self.WORKS_MAX_PAGES},
+        )
+        return works
 
     def fetch_all_module_data(self, propertie_id):
         aggregated: Dict[str, List[Dict[str, Any]]] = {}
@@ -67,7 +110,13 @@ class PropertiesConnectedElementsQueries:
         for module_key in module_keys:
             try:
                 nodes = future_by_module[module_key].result()
-            except Exception:
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="property_connected_module_fetch_failed",
+                    extra={"target_module": module_key},
+                )
                 nodes = []
             if nodes:
                 aggregated[module_key] = nodes
@@ -76,13 +125,17 @@ class PropertiesConnectedElementsQueries:
 class ProcessElementData:
     def process_response_data(self, module_key: str, payload: Dict[str, Any]):
         module_key = module_key or ""
-        plural_key = f"{module_key}s"
-        property_block = (payload or {}).get("data", {}).get("property", {})
-        module_block = property_block.get(plural_key, {})
-        edges = module_block.get("edges", [])
+        return self.connection_nodes(self.connection_block(f"{module_key}s", payload))
 
+    @staticmethod
+    def connection_block(connection_field: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        property_block = ((payload or {}).get("data") or {}).get("property") or {}
+        return property_block.get(connection_field) or {}
+
+    @staticmethod
+    def connection_nodes(connection: Dict[str, Any]) -> List[Dict[str, Any]]:
         nodes: List[Dict[str, Any]] = []
-        for edge in edges:
+        for edge in connection.get("edges") or []:
             node = edge.get("node") if isinstance(edge, dict) else None
             if node:
                 nodes.append(node)

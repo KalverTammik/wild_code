@@ -2,7 +2,6 @@ from typing import List, Dict, Optional, Sequence, Tuple, Union
 from PyQt5.QtCore import Qt
 
 from ...utils.url_manager import ModuleSupports, Module
-from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.responses import JsonResponseHandler
@@ -110,32 +109,25 @@ class FilterHelper:
         return [v for v in values if v]
 
     @staticmethod
-    def cancel_pending_load(
-        widget,
-        *,
-        invalidate_request: bool = True,
-        load_request_attr: str = "_load_request_id",
-        worker_attr: str = "_worker",
-        thread_attr: str = "_worker_thread",
-    ) -> None:
+    def cancel_pending_load(widget, *, invalidate_request: bool = True) -> None:
+        """Stop a filter widget's background load.
+
+        ``widget`` is a StatusFilterWidget, TypeFilterWidget or BaseSingleFilterWidget
+        (or None); each sets ``_load_request_id``, ``_worker`` and ``_worker_thread``
+        in ``__init__`` and declares ``loadFinished``.
+        """
         if not widget:
             return
         try:
-            if invalidate_request and hasattr(widget, load_request_attr):
-                try:
-                    current = int(getattr(widget, load_request_attr, 0) or 0)
-                    setattr(widget, load_request_attr, current + 1)
-                except Exception:
-                    pass
-            thread = getattr(widget, thread_attr, None)
-            is_running = bool(thread and callable(getattr(thread, "isRunning", None)) and thread.isRunning())
+            if invalidate_request:
+                widget._load_request_id += 1
+            thread = widget._worker_thread
+            is_running = thread is not None and thread.isRunning()
 
-            if hasattr(widget, worker_attr):
-                setattr(widget, worker_attr, None)
-            if hasattr(widget, thread_attr):
-                setattr(widget, thread_attr, None)
+            widget._worker = None
+            widget._worker_thread = None
 
-            if thread is not None and callable(getattr(thread, "isRunning", None)) and thread.isRunning():
+            if thread is not None and thread.isRunning():
                 try:
                     thread.quit()
                 except Exception as exc:
@@ -145,7 +137,7 @@ class FilterHelper:
                         event="filter_thread_quit_failed",
                     )
 
-            if is_running and invalidate_request and hasattr(widget, "loadFinished"):
+            if is_running and invalidate_request:
                 try:
                     widget.loadFinished.emit(False)
                 except Exception as exc:
@@ -189,22 +181,16 @@ class FilterRefreshService:
     def _selected_filter_ids(filter_widget) -> List[str]:
         if filter_widget is None:
             return []
-        if hasattr(filter_widget, "combo"):
-            return FilterHelper.selected_ids(filter_widget)
-        selected = getattr(filter_widget, "selected_ids", None)
-        return list(selected()) if callable(selected) else []
+        return list(filter_widget.selected_ids())
 
     @staticmethod
     def _is_filter_loaded(filter_widget) -> bool:
         if filter_widget is None:
             return False
-        is_loaded = getattr(filter_widget, "is_loaded", None)
-        if callable(is_loaded):
-            try:
-                return bool(is_loaded())
-            except Exception:
-                return False
-        return True
+        try:
+            return bool(filter_widget.is_loaded())
+        except Exception:
+            return False
 
     @staticmethod
     def _resolve_ids(
@@ -264,21 +250,19 @@ class FilterRefreshService:
         reset_overdue_pills: bool = False,
         force_list_mode: bool = True,
     ) -> None:
-        if getattr(module, "_suppress_filter_events", False):
-            return
-
-        status_filter = status_filter if status_filter is not None else getattr(module, "status_filter", None)
-        type_filter = type_filter if type_filter is not None else getattr(module, "type_filter", None)
-        tags_filter = tags_filter if tags_filter is not None else getattr(module, "tags_filter", None)
+        """``module`` is a ModuleBaseUI subclass that defines FEED_LOGIC_CLS, QUERY_FILE,
+        SINGLE_ITEM_QUERY_FILE and module_key; reset_overdue_pills also needs overdue_pills."""
+        status_filter = status_filter if status_filter is not None else module.status_filter
+        type_filter = type_filter if type_filter is not None else module.type_filter
+        tags_filter = tags_filter if tags_filter is not None else module.tags_filter
 
         status_getter = status_getter if status_getter is not None else lambda: FilterRefreshService.saved_status_ids(module)
         type_getter = type_getter if type_getter is not None else lambda: FilterRefreshService.saved_type_ids(module)
         tags_getter = tags_getter if tags_getter is not None else lambda: FilterRefreshService.saved_tag_ids(module)
 
-        feed_load_engine = getattr(module, "feed_load_engine", None)
-        buffer = getattr(feed_load_engine, "buffer", None)
-        if buffer is not None and hasattr(buffer, "clear"):
-            buffer.clear()
+        feed_load_engine = module.feed_load_engine
+        if feed_load_engine is not None:
+            feed_load_engine.buffer.clear()
 
         ids = FilterRefreshService._resolve_ids(
             module,
@@ -295,73 +279,40 @@ class FilterRefreshService:
         and_list: List[dict] = []
         if ids["status"]:
             and_list.append({"column": "STATUS", "operator": "IN", "value": ids["status"]})
-        supports_type = bool(getattr(module, "supports_type_filter", False))
-        if supports_type and ids["type"]:
+        if module.supports_type_filter and ids["type"]:
             and_list.append({"column": "TYPE", "operator": "IN", "value": ids["type"]})
 
         where = {"AND": and_list} if and_list else None
 
         if ids["tags"]:
-            build_has_tags = getattr(module, "_build_has_tags_condition", None)
-            if callable(build_has_tags):
-                where_has_filter = build_has_tags(ids["tags"])
-            else:
-                default_mode = getattr(module, "tags_match_mode", None)
-                where_has_filter = FilterHelper.build_has_tags_condition(
-                    ids["tags"], match_mode=default_mode
-                )
+            where_has_filter = FilterHelper.build_has_tags_condition(
+                ids["tags"], match_mode=module.tags_match_mode
+            )
         else:
             where_has_filter = None
 
-        feed_logic = getattr(module, "feed_logic", None)
+        feed_logic = module.feed_logic
         if feed_logic is None:
-            feed_logic_cls = getattr(module, "FEED_LOGIC_CLS", None)
-            module_key = getattr(module, "module_key", None)
-            query_file = getattr(module, "QUERY_FILE", None)
-            lang_manager = getattr(module, "lang_manager", None)
-            if feed_logic_cls and module_key and query_file:
-                feed_logic = feed_logic_cls(module_key, query_file, lang_manager)
-                setattr(module, "feed_logic", feed_logic)
+            feed_logic = module.FEED_LOGIC_CLS(module.module_key, module.QUERY_FILE, module.lang_manager)
+            module.feed_logic = feed_logic
 
-        single_item_query = getattr(module, "SINGLE_ITEM_QUERY_FILE", None)
-        if feed_logic is not None and single_item_query:
-            configure_single = getattr(feed_logic, "configure_single_item_query", None)
-            if callable(configure_single):
-                configure_single(single_item_query)
+        feed_logic.configure_single_item_query(module.SINGLE_ITEM_QUERY_FILE)
+        if force_list_mode:
+            feed_logic.set_single_item_mode(False)
+        feed_logic.set_where(where)
+        feed_logic.set_extra_arguments(whereHas=where_has_filter)
 
-        if force_list_mode and feed_logic is not None:
-            set_single_mode = getattr(feed_logic, "set_single_item_mode", None)
-            if callable(set_single_mode):
-                set_single_mode(False)
+        if module.feed_layout is not None:
+            module.clear_feed(module.feed_layout, module._empty_state)
 
-        if feed_logic is not None:
-            set_where = getattr(feed_logic, "set_where", None)
-            if callable(set_where):
-                set_where(where)
-            set_extra = getattr(feed_logic, "set_extra_arguments", None)
-            if callable(set_extra):
-                set_extra_arguments = {"whereHas": where_has_filter}
-                set_extra(**set_extra_arguments)
-
-        if hasattr(module, "_current_where"):
-            setattr(module, "_current_where", where)
-
-        clear_feed = getattr(module, "clear_feed", None)
-        feed_layout = getattr(module, "feed_layout", None)
-        empty_state = getattr(module, "_empty_state", None)
-        if callable(clear_feed) and feed_layout is not None:
-            clear_feed(feed_layout, empty_state)
-
-        scroll_area = getattr(module, "scroll_area", None)
+        scroll_area = module.scroll_area
         if scroll_area is not None and scroll_area.verticalScrollBar() is not None:
             scroll_area.verticalScrollBar().setValue(0)
 
         if feed_load_engine is not None:
-            schedule = getattr(feed_load_engine, "schedule_load", None)
-            if callable(schedule):
-                schedule()
+            feed_load_engine.schedule_load()
 
-        if reset_overdue_pills and getattr(module, "overdue_pills", None):
+        if reset_overdue_pills:
             module.overdue_pills.set_overdue_active(False)
             module.overdue_pills.set_due_soon_active(False)
 
@@ -384,10 +335,6 @@ class FilterRefreshService:
 
     @staticmethod
     def saved_filter_ids(module, kind: str) -> List[str]:
-        logic = getattr(module, "_settings_logic", None) or SettingsLogic()
-        module_key = getattr(module, "module_key", None)
-        if not logic or not module_key:
-            return []
         support_map = {
             "status": ModuleSupports.STATUSES.value,
             "type": ModuleSupports.TYPES.value,
@@ -397,5 +344,5 @@ class FilterRefreshService:
         if not support_key:
             return []
 
-        values = logic.load_module_preference_ids(module_key, support_key=support_key) or []
+        values = module._settings_logic.load_module_preference_ids(module.module_key, support_key=support_key) or []
         return [str(token).strip() for token in values if str(token).strip()]

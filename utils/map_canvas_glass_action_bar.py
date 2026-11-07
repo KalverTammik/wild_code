@@ -100,9 +100,8 @@ class MapCanvasGlassActionBar(MapCanvasGlassOverlayBase):
             dialog = PluginDialog.get_instance()
             ModuleSwitchHelper.switch_module(Module.WORKS.name, dialog=dialog)
             works_module = ModuleManager().getActiveModuleInstance(Module.WORKS.value)
-            start_create = getattr(works_module, "start_create_on_map", None)
-            if callable(start_create):
-                start_create()
+            if works_module is not None:
+                works_module.start_create_on_map()
                 return
 
             ModernMessageDialog.show_warning(
@@ -149,9 +148,8 @@ class MapCanvasGlassActionBar(MapCanvasGlassOverlayBase):
             dialog = PluginDialog.get_instance()
             ModuleSwitchHelper.switch_module(Module.WORKS.name, dialog=dialog)
             works_module = ModuleManager().getActiveModuleInstance(Module.WORKS.value)
-            review_pending = getattr(works_module, "review_pending_gis_works", None)
-            if callable(review_pending):
-                review_pending(progress_anchor=source_button)
+            if works_module is not None:
+                works_module.review_pending_gis_works(progress_anchor=source_button)
                 return
 
             ModernMessageDialog.show_warning(

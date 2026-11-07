@@ -36,6 +36,9 @@ class OverdueDueSoonPillsWidget(QWidget):
         self._days_due_soon: int = 3
         self._overdue_active = False
         self._due_soon_active = False
+        # Owned by OverdueDueSoonPillsActionHelper.refresh_counts.
+        self._counts_worker = None
+        self._counts_worker_thread = None
         if lang_manager is None:
             raise ValueError("lang_manager is required for OverdueDueSoonPillsWidget")
         self._lang = lang_manager
@@ -223,15 +226,9 @@ class OverdueDueSoonPillsActionHelper:
 
     @staticmethod
     def apply_due_filter(module: Any, *, is_overdue: bool, base_query=None, days: Optional[int] = None) -> None:
-        feed_logic = getattr(module, "feed_logic", None)
+        feed_logic = module.feed_logic
         if feed_logic is None:
-            feed_cls = getattr(module, "FEED_LOGIC_CLS", None)
-            module_key = getattr(module, "module_key", None)
-            query_file = getattr(module, "QUERY_FILE", None)
-            lang_manager = getattr(module, "lang_manager", None)
-            if feed_cls is None or module_key is None or query_file is None:
-                return
-            module.feed_logic = feed_cls(module_key, query_file, lang_manager)
+            module.feed_logic = module.FEED_LOGIC_CLS(module.module_key, module.QUERY_FILE, module.lang_manager)
             feed_logic = module.feed_logic
 
         where = (
@@ -240,31 +237,23 @@ class OverdueDueSoonPillsActionHelper:
             else OverdueDueSoonPillsUtils.build_due_soon_where(base_query, days=days)
         )
 
-        tags_filter = getattr(module, "tags_filter", None)
+        tags_filter = module.tags_filter
         tags_ids = FilterHelper.selected_ids(tags_filter) if tags_filter else []
-        build_has_tags = getattr(module, "_build_has_tags_condition", None)
-        if callable(build_has_tags):
-            where_has_filter = build_has_tags(tags_ids)
-        else:
-            default_mode = getattr(module, "tags_match_mode", None)
-            where_has_filter = FilterHelper.build_has_tags_condition(
-                tags_ids, match_mode=default_mode
-            )
+        where_has_filter = FilterHelper.build_has_tags_condition(
+            tags_ids, match_mode=module.tags_match_mode
+        )
 
-        feed_load_engine = getattr(module, "feed_load_engine", None)
-        if feed_load_engine is not None and getattr(feed_load_engine, "buffer", None) is not None:
+        feed_load_engine = module.feed_load_engine
+        if feed_load_engine is not None:
             feed_load_engine.buffer.clear()
 
         feed_logic.set_where(where if where and where.get("AND") else None)
         if where_has_filter is not None:
             feed_logic.set_extra_arguments(whereHas=where_has_filter)
 
-        feed_layout = getattr(module, "feed_layout", None)
-        empty_state = getattr(module, "_empty_state", None)
-        if hasattr(module, "clear_feed"):
-            module.clear_feed(feed_layout, empty_state)
+        module.clear_feed(module.feed_layout, module._empty_state)
 
-        scroll_area = getattr(module, "scroll_area", None)
+        scroll_area = module.scroll_area
         if scroll_area is not None and scroll_area.verticalScrollBar() is not None:
             scroll_area.verticalScrollBar().setValue(0)
 
@@ -289,26 +278,26 @@ class OverdueDueSoonPillsActionHelper:
         if pills_widget is None or module_enum is None:
             return
 
-        previous_thread = getattr(pills_widget, "_counts_worker_thread", None)
-        if previous_thread is not None and callable(getattr(previous_thread, "isRunning", None)):
+        previous_thread = pills_widget._counts_worker_thread
+        if previous_thread is not None:
             try:
                 if previous_thread.isRunning():
                     previous_thread.quit()
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,
-                    module=getattr(module_enum, "value", "ui"),
+                    module=module_enum.value,
                     event="overdue_counts_cancel_previous_failed",
                 )
 
         pills_widget._counts_worker = None
         pills_widget._counts_worker_thread = None
 
-        token = getattr(module_instance, "_active_token", None)
+        token = module_instance._active_token if module_instance is not None else None
         pills_widget.set_loading(True)
 
         try:
-            SwitchLogger.log("overdue_load_start", module=getattr(module_enum, "value", None))
+            SwitchLogger.log("overdue_load_start", module=module_enum.value)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -322,11 +311,8 @@ class OverdueDueSoonPillsActionHelper:
         def _is_stale(tok) -> bool:
             if module_instance is None:
                 return False
-            checker = getattr(module_instance, "is_token_active", None)
-            if not callable(checker):
-                return False
             try:
-                return not bool(checker(tok))
+                return not bool(module_instance.is_token_active(tok))
             except Exception:
                 return True
 
@@ -338,7 +324,7 @@ class OverdueDueSoonPillsActionHelper:
                 pills_widget.set_counts(int(overdue_total or 0), int(due_soon_total or 0))
                 pills_widget.set_loading(False)
                 try:
-                    SwitchLogger.log("overdue_load_done", module=getattr(module_enum, "value", None))
+                    SwitchLogger.log("overdue_load_done", module=module_enum.value)
                 except Exception as exc:
                     PythonFailLogger.log_exception(
                         exc,
@@ -355,7 +341,7 @@ class OverdueDueSoonPillsActionHelper:
                 pills_widget.set_loading(False)
                 PythonFailLogger.log_exception(
                     Exception(str(message)),
-                    module=getattr(module_enum, "value", "ui"),
+                    module=module_enum.value,
                     event="overdue_count_fetch_failed",
                 )
 
@@ -373,7 +359,11 @@ class OverdueDueSoonPillsActionHelper:
 
 
 class OverduePillsMixin:
-    """Mixin to wire overdue/due-soon pills with unified handling."""
+    """Mixin to wire overdue/due-soon pills with unified handling.
+
+    Hosts are ModuleBaseUI feed modules that define FEED_LOGIC_CLS and QUERY_FILE and
+    call wire_overdue_pills() in __init__.
+    """
 
     def wire_overdue_pills(self, parent_container=None, *, lang_manager: LanguageManager) -> None:
         if lang_manager is None:
@@ -382,12 +372,8 @@ class OverduePillsMixin:
         self.overdue_pills.overdueClicked.connect(lambda: self._on_due_pill_clicked(True))
         self.overdue_pills.dueSoonClicked.connect(lambda: self._on_due_pill_clicked(False))
 
-        target = parent_container or getattr(self, "toolbar_area", None)
-        if target is not None:
-            if hasattr(target, "add_right"):
-                target.add_right(self.overdue_pills)
-            elif hasattr(target, "addWidget"):
-                target.addWidget(self.overdue_pills)
+        target = parent_container or self.toolbar_area
+        target.add_right(self.overdue_pills)
 
     def _on_due_pill_clicked(self, is_overdue: bool) -> None:
         OverdueDueSoonPillsActionHelper.set_active_pill_states(self.overdue_pills, is_overdue=is_overdue)
@@ -395,7 +381,7 @@ class OverduePillsMixin:
 
     def refresh_overdue_counts(self, module_enum) -> None:
         OverdueDueSoonPillsActionHelper.refresh_counts(
-            getattr(self, "overdue_pills", None),
+            self.overdue_pills,
             module_enum,
             module_instance=self,
         )

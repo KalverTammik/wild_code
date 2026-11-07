@@ -11,7 +11,7 @@ Põhimõtted:
 """
 from typing import Optional, Callable, TYPE_CHECKING, Protocol, Any
 import gc
-from PyQt5.QtCore import Qt, QTimer, QCoreApplication
+from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea
 
 from ..ui.ToolbarArea import ModuleToolbarArea
@@ -26,7 +26,6 @@ from .mixins.progressive_load_mixin import ProgressiveLoadMixin
 from ..feed.feed_load_engine import FeedLoadEngine
 from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ..Logs.switch_logger import SwitchLogger
-from ..Logs.python_fail_logger import PythonFailLogger
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from .mixins.token_mixin import TokenMixin
@@ -76,20 +75,10 @@ class FeedSessionController:
 
         feed_logic = self._ui.active_feed_logic
         if feed_logic:
-            reset_fn = getattr(feed_logic, "reset_pagination", None)
-            if callable(reset_fn):
-                reset_fn()
-            else:
-                try:
-                    PythonFailLogger.log(
-                        "module_base_reset_pagination_missing",
-                        module=getattr(self._ui, "module_key", None),
-                    )
-                except Exception:
-                    pass
+            feed_logic.reset_pagination()
 
     def clear_feed(self, feed_layout: Optional[QVBoxLayout], empty_state: Optional["EmptyStateWidgetProtocol"] = None) -> None:
-        if getattr(self._ui, "_clearing_feed", False) or feed_layout is None:
+        if self._ui._clearing_feed or feed_layout is None:
             return
         self._ui._clearing_feed = True
         try:
@@ -132,6 +121,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
 
     PREFETCH_PX: int = 300  # default; ProgressiveLoadMixin also uses this
     LOAD_DEBOUNCE_MS: int = 80
+    module_key: str  # Every concrete module sets this right after ModuleBaseUI.__init__.
 
 
     def __init__(self, parent: Optional[QWidget] = None, lang_manager=None) -> None:
@@ -148,6 +138,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         self.status_filter: Optional[QWidget] = None
         self.type_filter: Optional[QWidget] = None
         self.tags_filter: Optional[QWidget] = None
+        self.supports_type_filter = False
         self.tags_match_mode = "ANY"
 
         # Preference loading guards
@@ -163,6 +154,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         self.feed_load_engine: Optional[FeedLoadEngine] = None
         self.feed_logic: FeedLogicProtocol | None = None
         self._empty_state: Optional["EmptyStateWidgetProtocol"] = None
+        self._filter_refresh_widget: Optional[QWidget] = None
+        self._clearing_feed = False
         self._feed_session = FeedSessionController(self)
 
         self.layout = QVBoxLayout(self)
@@ -299,7 +292,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
     def process_next_batch(self,
                            revision: Optional[int] = None,
                            insert_at_top: bool = False) -> list[dict[str, Any]]:
-        if not getattr(self, "_activated", False):
+        if not self._activated:
             return []
         feed_logic = self.active_feed_logic
         if feed_logic is None:
@@ -313,14 +306,13 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         """Handle a completed fetch on the UI thread, including asynchronous feeds."""
         feed_logic = self.active_feed_logic
         try:
-            module_key = getattr(self, "module_key", None) or getattr(self, "name", None) or ""
             SwitchLogger.log(
                 "feed_batch_result",
-                module=str(module_key),
+                module=self.module_key,
                 extra={
                     "count": len(items),
-                    "has_more": getattr(feed_logic, "has_more", None),
-                    "single": getattr(feed_logic, "_single_item_mode", None),
+                    "has_more": feed_logic.has_more,
+                    "single": feed_logic._single_item_mode,
                 },
             )
         except Exception:
@@ -406,7 +398,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         self.retheme()
 
     def _update_counter_snapshot(self) -> None:
-        if not getattr(self, "_activated", False):
+        if not self._activated:
             return
         feed_logic = self.active_feed_logic
         total = feed_logic.total_count if feed_logic else None
@@ -427,21 +419,17 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         return self
 
     def retheme(self) -> None:
-        if self.toolbar_area is not None and hasattr(self.toolbar_area, "retheme"):
-            self.toolbar_area.retheme()
+        self.toolbar_area.retheme()
 
-        for widget in getattr(self, "_filter_widgets", []) or []:
-            retheme = getattr(widget, "retheme", None)
-            if callable(retheme):
-                retheme()
+        for widget in self._filter_widgets:
+            widget.retheme()
 
+        # Only modules that use OverduePillsMixin have the pills.
         overdue_pills = getattr(self, "overdue_pills", None)
         if overdue_pills is not None:
-            retheme = getattr(overdue_pills, "retheme", None)
-            if callable(retheme):
-                retheme()
+            overdue_pills.retheme()
 
-        FilterRefreshHelper.retheme_refresh_widget(getattr(self, "_filter_refresh_widget", None))
+        FilterRefreshHelper.retheme_refresh_widget(self._filter_refresh_widget)
 
         for card in self.scroll_area.findChildren(QWidget, "ModuleInfoCard"):
             ThemeManager.apply_module_style(card, [QssPaths.MODULE_CARD])

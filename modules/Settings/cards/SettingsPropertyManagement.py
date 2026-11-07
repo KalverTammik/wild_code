@@ -18,7 +18,6 @@ from ....languages.translation_keys import TranslationKeys
 from ....languages.language_manager import LanguageManager
 from ....utils.url_manager import Module
 from ....utils.messagesHelper import ModernMessageDialog
-from ....utils.mapandproperties.property_action_service import PropertyActionService
 from ....utils.mapandproperties.property_action_service import PropertySelectionActionService
 from ....utils.mapandproperties.property_search_field_service import PropertySearchFieldService
 from ....Logs.python_fail_logger import PythonFailLogger
@@ -303,7 +302,7 @@ class PropertyManagementUI(SettingsBaseCard):
             from ....dialog import PluginDialog
 
             dialog = PluginDialog.get_instance() if PluginDialog else None
-            settings_module = getattr(dialog, "settingsModule", None) if dialog else None
+            settings_module = dialog.settingsModule if dialog else None
             if settings_module is None:
                 return
             settings_module.sync_module_layer_dropdown(

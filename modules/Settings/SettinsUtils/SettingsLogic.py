@@ -1,9 +1,6 @@
 
 from typing import Dict, Iterable, Optional
 
-from ....constants.module_icons import IconNames
-from ....widgets.theme_manager import ThemeManager
-from ....utils.messagesHelper import ModernMessageDialog
 
 from ....utils.url_manager import Module, ModuleSupports
 from ....module_manager import MODULES_LIST_BY_NAME

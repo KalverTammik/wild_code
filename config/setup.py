@@ -1,8 +1,6 @@
 
-import os
 import json
-from ..constants.file_paths import ConfigPaths, PLUGIN_ROOT, CONFIG_DIR
-from PyQt5.QtGui import QCursor
+from ..constants.file_paths import ConfigPaths
 
 config_file_path = ConfigPaths.CONFIG
 

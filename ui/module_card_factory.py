@@ -3,7 +3,6 @@ from __future__ import annotations
 from PyQt5.QtWidgets import QWidget
 
 from ..Logs.python_fail_logger import PythonFailLogger
-from ..utils.url_manager import Module
 
 
 class ResponsiveWatchWidget(QWidget):
@@ -179,7 +178,6 @@ class ModuleCardFactory:
         from ..widgets.DataDisplayWidgets.MainStatusWidget import MainStatusWidget
         from ..widgets.DataDisplayWidgets.MembersView import MembersView
         from ..widgets.DataDisplayWidgets.ExtraInfoWidget import ExtraInfoFrame
-        from ..widgets.DataDisplayWidgets.EasementPropertiesWidget import EasementPropertiesWidget
         from ..widgets.DataDisplayWidgets.InfoCardHeader import InfocardHeaderFrame
         from ..widgets.DataDisplayWidgets.DatesWidget import DatesWidget
         from ..widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions

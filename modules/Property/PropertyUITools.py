@@ -19,7 +19,6 @@ from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ...utils.url_manager import Module
 from ...python.workers import FunctionWorker, start_worker
-from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.window_state.DialogCoordinator import get_dialog_coordinator
 from qgis.utils import iface
@@ -42,7 +41,7 @@ class PropertyUITools:
         return self.lang_manager.translate(key)
 
     def _get_active_ui(self):
-        ui = getattr(self, "property_ui", None)
+        ui = self.property_ui
         if not ui:
             return None
         if sip:
@@ -94,23 +93,22 @@ class PropertyUITools:
         ui = self._get_active_ui()
         if not ui:
             return
-        signal = getattr(ui, signal_name, None)
-        if callable(getattr(signal, "emit", None)):
-            try:
-                signal.emit()
-            except RuntimeError as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="property_signal_emit_failed",
-                    extra={"signal": signal_name},
-                )
+        signal = getattr(ui, signal_name)
+        try:
+            signal.emit()
+        except RuntimeError as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_signal_emit_failed",
+                extra={"signal": signal_name},
+            )
 
     def _current_token(self) -> int | None:
         ui = self._get_active_ui()
         if ui is None:
             return None
-        return getattr(ui, "_active_token", None)
+        return ui._active_token
 
     def _is_token_active(self, token: int | None) -> bool:
         if token is None:
@@ -118,12 +116,10 @@ class PropertyUITools:
         ui = self._get_active_ui()
         if ui is None:
             return False
-        if hasattr(ui, "is_token_active"):
-            try:
-                return bool(ui.is_token_active(token))
-            except Exception:
-                return False
-        return bool(getattr(ui, "_activated", False)) and token == getattr(ui, "_active_token", None)
+        try:
+            return bool(ui.is_token_active(token))
+        except Exception:
+            return False
 
 
     def select_property_from_map(self):

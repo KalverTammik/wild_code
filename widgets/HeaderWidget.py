@@ -5,7 +5,6 @@ from ..constants.button_props import ButtonVariant, ButtonSize
 from ..constants.file_paths import QssPaths
 from ..constants.module_icons import IconNames
 
-# from ..utils.logger import debug as log_debug
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from .SearchResultsWidget import SearchResultsWidget

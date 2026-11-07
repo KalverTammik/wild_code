@@ -1,17 +1,11 @@
 from ....python.api_client import APIClient
 from ....languages.translation_keys import TranslationKeys
-from ....constants.layer_constants import IMPORT_PROPERTY_TAG
-from ....constants.settings_keys import SettingsService
-from ....utils.mapandproperties.PropertyTableManager import PropertyTableManager
-from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from ....languages.language_manager import LanguageManager 
-from ....utils.MapTools.MapHelpers import MapHelpers
 from ....utils.url_manager import Module
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from ....widgets.theme_manager import ThemeManager
 from ....constants.file_paths import QssPaths
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
 from ....utils.messagesHelper import ModernMessageDialog
 

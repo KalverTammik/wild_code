@@ -92,15 +92,11 @@ class WelcomePage(TokenMixin, QWidget):
 
     def activate(self):
         for card in self._kpi_cards:
-            refresh = getattr(card, "refresh", None)
-            if callable(refresh):
-                refresh()
+            card.refresh()
 
     def deactivate(self):
         for card in self._kpi_cards:
-            deactivate = getattr(card, "deactivate", None)
-            if callable(deactivate):
-                deactivate()
+            card.deactivate()
 
     def get_widget(self):
         """Return self as the widget for module system compatibility."""
@@ -109,6 +105,4 @@ class WelcomePage(TokenMixin, QWidget):
     def retheme(self):
         ThemeManager.apply_module_style(self)
         for card in self._kpi_cards:
-            retheme = getattr(card, "retheme", None)
-            if callable(retheme):
-                retheme()
+            card.retheme()

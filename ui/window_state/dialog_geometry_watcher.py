@@ -106,8 +106,6 @@ class DialogGeometryWatcher:
         if self._timer:
             self._timer.stop()
             self._timer = None
-        # Restore original event handlers
-        if hasattr(self.dialog, '_original_resizeEvent'):
-            self.dialog.resizeEvent = self.dialog._original_resizeEvent
-        if hasattr(self.dialog, '_original_moveEvent'):
-            self.dialog.moveEvent = self.dialog._original_moveEvent
+        # Restore original event handlers (saved by _wrap_events in __init__)
+        self.dialog.resizeEvent = self.dialog._original_resizeEvent
+        self.dialog.moveEvent = self.dialog._original_moveEvent

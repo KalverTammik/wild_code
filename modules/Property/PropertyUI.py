@@ -3,9 +3,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame,
 )
-from qgis.core import QgsProject
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper
-from ...constants.layer_constants import PROPERTY_TAG
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
 from .PropertyUITools import PropertyUITools

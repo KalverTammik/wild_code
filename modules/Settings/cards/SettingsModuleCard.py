@@ -758,9 +758,7 @@ class SettingsModuleCard(SettingsBaseCard):
         for widget, selected_ids in targets:
             if widget is None or not selected_ids:
                 continue
-            ensure_loaded = getattr(widget, "ensure_loaded", None)
-            if callable(ensure_loaded):
-                ensure_loaded()
+            widget.ensure_loaded()
 
     def _save_preference_states(self) -> bool:
         changed = False
@@ -870,7 +868,7 @@ class SettingsModuleCard(SettingsBaseCard):
                     return
             except Exception:
                 return
-            if hasattr(self, "isVisible") and not self.isVisible():
+            if not self.isVisible():
                 return
             self.pendingChanged.emit(bool(self._last_pending_state))
 
@@ -988,20 +986,16 @@ class SettingsModuleCard(SettingsBaseCard):
         ):
             if widget is None:
                 continue
-            clear_fn = getattr(widget, "clear_data", None)
-            if callable(clear_fn):
-                try:
-                    clear_fn()
-                except Exception:
-                    continue
+            try:
+                widget.clear_data()
+            except Exception:
+                continue
 
         if self._labels_widget:
-            clear_labels = getattr(self._labels_widget, "clear_data", None)
-            if callable(clear_labels):
-                try:
-                    clear_labels()
-                except Exception:
-                    pass
+            try:
+                self._labels_widget.clear_data()
+            except Exception:
+                pass
         try:
             self._set_status_text_if_changed("")
         except Exception as exc:

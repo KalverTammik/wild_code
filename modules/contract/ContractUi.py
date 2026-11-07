@@ -7,7 +7,7 @@ Erinevus teiste moodulitega: FEED_LOGIC klass, pealkiri, ning TYPE filter ON lub
 from typing import Optional, Type, List
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel, QFrame
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel
 
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...widgets.Filters.StatusFilterWidget import StatusFilterWidget
@@ -15,8 +15,7 @@ from ...widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from ...widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ...utils.url_manager import Module
 from ...module_manager import ModuleManager
-from ...widgets.theme_manager import ThemeManager, styleExtras
-from ...constants.file_paths import QssPaths
+from ...widgets.theme_manager import ThemeManager
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
 from ...widgets.OverdueDueSoonPillsWidget import OverduePillsMixin
 from ...widgets.Filters.filter_refresh_helper import FilterRefreshHelper
@@ -58,7 +57,6 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
         self.feed_logic = None
         self._status_preferences_loaded = False
         self._type_preferences_loaded = False
-        self._suppress_filter_events = False
 
         self.wire_overdue_pills(self.toolbar_area, lang_manager=self.lang_manager)
 
@@ -86,8 +84,6 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
             self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
 
         self._filter_widgets = [w for w in (self.status_filter, self.type_filter, self.tags_filter) if w is not None]
-
-        self.toolbar_area.add_right(self.overdue_pills)
 
         # Add a compact refresh button on the left (after filters)
         self._refresh_helper = FilterRefreshHelper(self)
@@ -163,21 +159,17 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
     def _ensure_filters_loaded(self) -> None:
         for widget in self._filter_widgets:
-            ensure_loaded = getattr(widget, "ensure_loaded", None)
-            if callable(ensure_loaded):
-                try:
-                    ensure_loaded()
-                except Exception as exc:
-                    print(f"[ContractsModule] Failed to load filter widget: {exc}")
+            try:
+                widget.ensure_loaded()
+            except Exception as exc:
+                print(f"[ContractsModule] Failed to load filter widget: {exc}")
 
     def _clear_filters(self) -> None:
         for widget in self._filter_widgets:
-            clear_data = getattr(widget, "clear_data", None)
-            if callable(clear_data):
-                try:
-                    clear_data()
-                except Exception as exc:
-                    print(f"[ContractsModule] Failed to clear filter widget: {exc}")
+            try:
+                widget.clear_data()
+            except Exception as exc:
+                print(f"[ContractsModule] Failed to clear filter widget: {exc}")
 
 
     # --- Andmete laadimine ---

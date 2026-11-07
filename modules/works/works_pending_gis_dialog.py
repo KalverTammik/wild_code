@@ -52,7 +52,7 @@ class WorksPendingGisDialog(QDialog):
         root.setSpacing(10)
 
         title = QLabel(self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_DIALOG_TITLE), self)
-        title.setObjectName("ExtraInfoDialogTitle")
+        title.setObjectName("WorksPendingGisTitle")
         root.addWidget(title)
 
         intro = QLabel(self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_DIALOG_INTRO), self)

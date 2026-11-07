@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QSizePolicy,
-    QSpacerItem,
     QLabel,
 )
 

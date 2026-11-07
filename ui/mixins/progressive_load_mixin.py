@@ -6,6 +6,7 @@ Consumer must define / provide:
 - scroll_area with verticalScrollBar()
 - feed_layout layout structure
 - _progressive_insert_card(item, insert_at_top=False) method or override
+- _activated flag (TokenMixin)
 """
 from PyQt5.QtCore import QTimer
 from ...Logs.switch_logger import SwitchLogger
@@ -39,7 +40,7 @@ class ProgressiveLoadMixin:
     def _on_scroll_value(self, value: int) -> None:
         if self._ignore_scroll_event:
             return
-        if hasattr(self, "_activated") and not getattr(self, "_activated", False):
+        if not self._activated:
             return
         SwitchLogger.log("scroll_value", extra={"value": value})
         scroll_area = self.scroll_area  # type: ignore[attr-defined]
@@ -78,7 +79,7 @@ class ProgressiveLoadMixin:
 
     # Initial autofill -------------------------------------------------
     def _initial_autofill_tick(self) -> None:
-        if hasattr(self, "_activated") and not getattr(self, "_activated", False):
+        if not self._activated:
             self._autofill_ticks = 0
             return
         SwitchLogger.log("autofill_tick", extra={"ticks": self._autofill_ticks})

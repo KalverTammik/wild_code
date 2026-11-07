@@ -43,11 +43,9 @@ def area_formatter(value):
     except (ValueError, TypeError):
         return str(value)
 
-FID_FIELD = getattr(Katastriyksus, "fid", "fid")  # Older deployments may lack fid constant
-
 # Mapping field names to their corresponding formatter functions.
 formatters = {
-    FID_FIELD: default_formatter,                 # Base ID, likely numeric
+    Katastriyksus.fid: default_formatter,         # Base ID, likely numeric
     Katastriyksus.tunnus: text_formatter,         # Text field
     Katastriyksus.hkood: text_formatter,          # Text field
     #"mk_nimi": text_formatter,        # Region name, text

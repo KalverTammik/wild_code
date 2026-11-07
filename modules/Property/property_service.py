@@ -2,7 +2,7 @@ import copy
 import threading
 import time
 from collections import OrderedDict
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from ...utils.SessionManager import SessionManager
 

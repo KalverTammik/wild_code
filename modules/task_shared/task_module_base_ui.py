@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QFrame, QSizePolicy, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
 from ...module_manager import ModuleManager
@@ -84,15 +84,11 @@ class TaskModuleBaseUI(SearchOpenItemMixin, ModuleBaseUI):
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.feed_content)
 
-        feed_module_enum = getattr(self, "FEED_MODULE_ENUM", Module.TASK)
-        feed_module_value = getattr(feed_module_enum, "value", Module.TASK.value)
-        root_field = getattr(self, "FEED_ROOT_FIELD", "tasks") or "tasks"
-
         self.feed_logic = self.FEED_LOGIC_CLS(
-            feed_module_value,
+            self.FEED_MODULE_ENUM.value,
             self.QUERY_FILE,
             self.lang_manager,
-            root_field=root_field,
+            root_field=self.FEED_ROOT_FIELD,
         )
         self.feed_logic.configure_single_item_query(self.SINGLE_ITEM_QUERY_FILE)
 
@@ -124,29 +120,25 @@ class TaskModuleBaseUI(SearchOpenItemMixin, ModuleBaseUI):
 
     def _ensure_filters_loaded(self) -> None:
         for widget in self._filter_widgets:
-            ensure_loaded = getattr(widget, "ensure_loaded", None)
-            if callable(ensure_loaded):
-                try:
-                    ensure_loaded()
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module=self.module_key,
-                        event="task_module_filter_load_failed",
-                    )
+            try:
+                widget.ensure_loaded()
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=self.module_key,
+                    event="task_module_filter_load_failed",
+                )
 
     def _clear_filters(self) -> None:
         for widget in self._filter_widgets:
-            clear_data = getattr(widget, "clear_data", None)
-            if callable(clear_data):
-                try:
-                    clear_data()
-                except Exception as exc:
-                    PythonFailLogger.log_exception(
-                        exc,
-                        module=self.module_key,
-                        event="task_module_filter_clear_failed",
-                    )
+            try:
+                widget.clear_data()
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=self.module_key,
+                    event="task_module_filter_clear_failed",
+                )
 
     def _module_scope_type_ids(self) -> List[str]:
         ids = self._settings_logic.load_module_preference_ids(
@@ -182,7 +174,9 @@ class TaskModuleBaseUI(SearchOpenItemMixin, ModuleBaseUI):
         *,
         status_ids: Optional[List[str]] = None,
         type_ids: Optional[List[str]] = None,
+        tags_ids: Optional[List[str]] = None,
     ) -> None:
+        # The shared clear button passes tags_ids too; task modules have no tags filter.
         effective_type_ids = self._effective_type_ids(type_ids)
         FilterRefreshService.refresh_filters(
             self,

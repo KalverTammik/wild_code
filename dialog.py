@@ -63,7 +63,10 @@ class PluginDialog(QDialog):
         if self._initialized:
             return
 
+        self._force_close = False
         self._has_shown = False
+        self.settingsModule = None  # Set by ModuleSwitchHelper once Settings is opened.
+        self._session_listener = None  # Set by SessionUIController.after_show.
 
 
         # Managers / services first
@@ -207,11 +210,10 @@ class PluginDialog(QDialog):
         if not SessionManager.is_session_valid():
             self._sync_map_canvas_overlays()
             return
-        if hasattr(self, "footer_widget") and self.footer_widget:
-            try:
-                self.footer_widget.refresh_versions()
-            except Exception:
-                pass
+        try:
+            self.footer_widget.refresh_versions()
+        except Exception:
+            pass
         self._sync_map_canvas_overlays()
 
     def showEvent(self, event):
@@ -222,7 +224,7 @@ class PluginDialog(QDialog):
         self._refresh_session_dependent_ui()
 
     def closeEvent(self, event):
-        if getattr(self, "_force_close", False):
+        if self._force_close:
             MapCanvasGlassActionBar.close_active()
             MapCanvasSearchBar.close_active()
             try:
@@ -235,10 +237,10 @@ class PluginDialog(QDialog):
                     extra={"error": str(e)},
                 )
             try:
-                listener = getattr(self, "_session_listener", None)
+                listener = self._session_listener
                 if listener is not None:
                     SessionManager.unregister_listener(listener)
-                    delattr(self, "_session_listener")
+                    self._session_listener = None
             except Exception as e:
                 SwitchLogger.log(
                     "dialog_session_listener_unregister_failed",

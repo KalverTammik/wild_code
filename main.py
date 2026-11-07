@@ -1,7 +1,6 @@
 import gc
 from qgis.PyQt.QtCore import QTimer
 from qgis.PyQt.QtWidgets import QAction
-from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsProject
 
 from .dialog import PluginDialog
@@ -24,6 +23,7 @@ class WildCodePlugin:
         self.iface = iface
         self.action = None
         self.pluginDialog = None  # Reference to PluginDialog
+        self._pending_login_listener = None
         self._crash_logger = CrashLogger()
         # Initialize ModuleManager and register all modules (metadata only)
 
@@ -82,7 +82,7 @@ class WildCodePlugin:
         SessionManager.show_pending_storage_warning(parent=self.iface.mainWindow())
         if not SessionManager.is_session_valid():
             self.pluginDialog = None
-            old_listener = getattr(self, "_pending_login_listener", None)
+            old_listener = self._pending_login_listener
             if old_listener is not None:
                 SessionManager.unregister_listener(old_listener)
 
@@ -92,8 +92,8 @@ class WildCodePlugin:
                     return
                 SwitchLogger.log("startup_login_listener_session_valid")
                 SessionManager.unregister_listener(_on_session_valid)
-                if getattr(self, "_pending_login_listener", None) is _on_session_valid:
-                    delattr(self, "_pending_login_listener")
+                if self._pending_login_listener is _on_session_valid:
+                    self._pending_login_listener = None
 
                 def _show_after_login():
                     if not SessionManager.is_session_valid():
@@ -142,7 +142,7 @@ class WildCodePlugin:
             return False
         if self._is_dialog_deleted(dialog):
             return False
-        if getattr(dialog, "_force_close", False):
+        if dialog._force_close:
             return False
         return True
 

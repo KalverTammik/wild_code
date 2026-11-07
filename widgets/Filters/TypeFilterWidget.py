@@ -22,7 +22,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...python.workers import FunctionWorker, start_worker
 from ...utils.url_manager import ModuleSupports
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
-from ...utils.logger import error
+from ...Logs.logger import error
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ..select_arrow import SelectArrow
 from ..theme_manager import ThemeManager
@@ -351,13 +351,8 @@ class TypeFilterWidget(QWidget):
         type_label = self._lang.translate(TranslationKeys.TYPE_FILTER)
         self.group_combo.setToolTip(group_label)
         self.type_combo.setToolTip(type_label)
-        try:
-            if hasattr(self.group_combo, "setDefaultText"):
-                self.group_combo.setDefaultText(group_label)
-            if hasattr(self.type_combo, "setDefaultText"):
-                self.type_combo.setDefaultText(type_label)
-        except Exception:
-            pass
+        self.group_combo.setDefaultText(group_label)
+        self.type_combo.setDefaultText(type_label)
 
         self.group_combo.checkedItemsChanged.connect(self._on_group_selection_changed)  # type: ignore[attr-defined]
         self.type_combo.checkedItemsChanged.connect(self._on_type_selection_changed)  # type: ignore[attr-defined]
@@ -609,8 +604,6 @@ class TypeFilterWidget(QWidget):
         return f"{group_name} ({checked}/{len(type_ids)})"
 
     def _update_control_summary(self) -> None:
-        if not hasattr(self, "_control"):
-            return
         if not self._loaded:
             self._control.set_summary(self._lang.translate(TranslationKeys.LOADING))
             return
@@ -874,7 +867,7 @@ class TypeFilterWidget(QWidget):
             return None
         while parent is not None:
             if hasattr(parent, "_active_token"):
-                return getattr(parent, "_active_token", None)
+                return parent._active_token
             parent = parent.parent()
         return None
 
@@ -894,7 +887,7 @@ class TypeFilterWidget(QWidget):
                 except Exception:
                     return False
             if hasattr(parent, "_active_token"):
-                return bool(getattr(parent, "_activated", False)) and token == getattr(parent, "_active_token", None)
+                return bool(getattr(parent, "_activated", False)) and token == parent._active_token
             parent = parent.parent()
         return True
 

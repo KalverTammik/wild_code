@@ -14,6 +14,8 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from qgis.core import QgsApplication, QgsPointXY
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.modules.works import works_create_controller as controller_module
@@ -106,7 +108,16 @@ class WorksCreateWaitWindowTest(unittest.TestCase):
         self.controller._cached_default_status_color = "4FBF6B"
 
     def tearDown(self) -> None:
+        # The window deletes itself with deleteLater, which outside an event loop would run in the next
+        # module's first loop and crash the suite there (0xC0000005 at test_works_geometry_sync).
         self.app.processEvents()
+        for window in self.windows:
+            if not sip.isdeleted(window):
+                window.close_timer.stop()
+                window.hide()
+                window.deleteLater()
+        api_request_task._RequestDialog.open_window = None
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
 
     def _post(self, _url, json=None, headers=None, timeout=None) -> _Response:
         query = (json or {}).get("query", "")

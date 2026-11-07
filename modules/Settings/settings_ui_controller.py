@@ -10,10 +10,7 @@ class SettingsUIController:
         from ...Logs.python_fail_logger import PythonFailLogger
 
         try:
-            module_name = ""
-            module_manager = getattr(dialog, "moduleManager", None)
-            if module_manager is not None:
-                module_name = module_manager.getActiveModuleName() or ""
+            module_name = dialog.moduleManager.getActiveModuleName() or ""
             return bool(DialogHelpers.confirm_settings_navigation(module_name, dialog))
         except Exception as exc:
             PythonFailLogger.log_exception(

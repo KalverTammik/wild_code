@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Protocol, TYPE_CHECKING, Optional
+from typing import Any, Callable, Protocol, Optional
 from .url_manager import Module
 from ..languages.translation_keys import TranslationKeys
 from ..module_manager import ModuleManager
@@ -43,6 +43,8 @@ class ModuleSwitchDialogProtocol(Protocol):
 
 
 class _ModuleInstanceProtocol(Protocol):
+    _active_token: int
+
     def get_widget(self) -> Any | None: ...
 
 
@@ -216,7 +218,7 @@ class ModuleSwitchHelper:
             return False
 
         try:
-            title, message = SettingsSetupGuard.redirect_warning_text(getattr(dlg, "lang_manager", None), target_key)
+            title, message = SettingsSetupGuard.redirect_warning_text(dlg.lang_manager, target_key)
             ModernMessageDialog.show_warning(title, message, parent=dlg)
         except Exception as exc:
             SwitchLogger.log(
@@ -271,7 +273,7 @@ class ModuleSwitchHelper:
         normalized_name = target_key
 
         try:
-            dlg.header_widget.set_active_token(getattr(instance, "_active_token", None))
+            dlg.header_widget.set_active_token(instance._active_token)
         except Exception as exc:
             SwitchLogger.log(
                 "switch_header_set_token_failed",

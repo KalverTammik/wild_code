@@ -3,7 +3,7 @@
 
 from typing import Optional, Type, List, Any
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel, QFrame
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel
 
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...widgets.Filters.StatusFilterWidget import StatusFilterWidget
@@ -11,8 +11,7 @@ from ...widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from ...widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ...utils.url_manager import Module
 from ...module_manager import ModuleManager
-from ...widgets.theme_manager import ThemeManager, styleExtras
-from ...constants.file_paths import QssPaths
+from ...widgets.theme_manager import ThemeManager
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
 from ...widgets.OverdueDueSoonPillsWidget import OverduePillsMixin
 from ...widgets.Filters.filter_refresh_helper import FilterRefreshHelper
@@ -51,8 +50,6 @@ class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
         self.qss_files = qss_files
         self.feed_logic = None
-        self._current_where = None
-        self._suppress_filter_events = False
 
         self.wire_overdue_pills(self.toolbar_area, lang_manager=self.lang_manager)
 
@@ -140,21 +137,17 @@ class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
     def _ensure_filters_loaded(self) -> None:
         for widget in self._filter_widgets:
-            ensure_loaded = getattr(widget, "ensure_loaded", None)
-            if callable(ensure_loaded):
-                try:
-                    ensure_loaded()
-                except Exception as exc:
-                    print(f"[CoordinationModule] Failed to load filter widget: {exc}")
+            try:
+                widget.ensure_loaded()
+            except Exception as exc:
+                print(f"[CoordinationModule] Failed to load filter widget: {exc}")
 
     def _clear_filters(self) -> None:
         for widget in self._filter_widgets:
-            clear_data = getattr(widget, "clear_data", None)
-            if callable(clear_data):
-                try:
-                    clear_data()
-                except Exception as exc:
-                    print(f"[CoordinationModule] Failed to clear filter widget: {exc}")
+            try:
+                widget.clear_data()
+            except Exception as exc:
+                print(f"[CoordinationModule] Failed to clear filter widget: {exc}")
 
     def load_next_batch(self):
         return self.process_next_batch()

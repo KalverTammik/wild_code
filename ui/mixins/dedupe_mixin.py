@@ -9,6 +9,8 @@ Public-ish API (used by combining UI class):
 - _mark_or_skip_duplicate(item) -> bool
 - set_deduplication(enabled: bool)
 
+Consumer must provide _update_feed_counter_live() (FeedCounterMixin).
+
 Safe removal: Only if upstream guarantees no duplicate items across pagination.
 """
 from typing import Iterable, Any
@@ -56,6 +58,4 @@ class DedupeMixin:
         self._dedupe_session_token = object()
 
     def _on_duplicate_skipped(self) -> None:
-        updater = getattr(self, "_update_feed_counter_live", None)
-        if callable(updater):
-            updater()
+        self._update_feed_counter_live()

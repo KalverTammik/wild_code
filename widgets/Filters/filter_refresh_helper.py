@@ -20,6 +20,7 @@ class FilterRefreshHelper:
     _clear_icon_cache: dict[str, QIcon] = {}
 
     def __init__(self, owner: QWidget):
+        # Owner is a ModuleBaseUI feed module that defines _ensure_filters_loaded() and _refresh_filters().
         self._owner = owner
         self._lang = LanguageManager()
 
@@ -97,13 +98,8 @@ class FilterRefreshHelper:
 
     def _on_refresh_clicked(self):
         owner = self._owner
-        status_ids: list[str] = []
-        type_ids: list[str] = []
-        tag_ids: list[str] = []
         try:
-            ensure_loaded = getattr(owner, "_ensure_filters_loaded", None)
-            if callable(ensure_loaded):
-                ensure_loaded()
+            owner._ensure_filters_loaded()
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -111,20 +107,20 @@ class FilterRefreshHelper:
                 event="filter_refresh_ensure_loaded_failed",
             )
 
-        status_filter = getattr(owner, "status_filter", None)
-        type_filter = getattr(owner, "type_filter", None)
-        tags_filter = getattr(owner, "tags_filter", None)
+        status_filter = owner.status_filter
+        type_filter = owner.type_filter
+        tags_filter = owner.tags_filter
 
         try:
             status_ids = FilterRefreshService.saved_status_ids(owner)
             type_ids = FilterRefreshService.saved_type_ids(owner)
             tag_ids = FilterRefreshService.saved_tag_ids(owner)
 
-            if status_filter and hasattr(status_filter, "set_selected_ids"):
+            if status_filter is not None:
                 status_filter.set_selected_ids(status_ids, emit=False)
-            if type_filter and hasattr(type_filter, "set_selected_ids"):
+            if type_filter is not None:
                 type_filter.set_selected_ids(type_ids, emit=False)
-            if tags_filter and hasattr(tags_filter, "set_selected_ids"):
+            if tags_filter is not None:
                 tags_filter.set_selected_ids(tag_ids, emit=False)
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -134,16 +130,7 @@ class FilterRefreshHelper:
             )
 
         try:
-            refresh_fn = getattr(owner, "_refresh_filters", None)
-            if callable(refresh_fn):
-                refresh_fn()
-            else:
-                FilterRefreshService.refresh_filters(
-                    owner,
-                    status_ids=status_ids,
-                    type_ids=type_ids,
-                    tags_ids=tag_ids,
-                )
+            owner._refresh_filters()
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -153,16 +140,16 @@ class FilterRefreshHelper:
 
     def _on_clear_clicked(self) -> None:
         owner = self._owner
-        status_filter = getattr(owner, "status_filter", None)
-        type_filter = getattr(owner, "type_filter", None)
-        tags_filter = getattr(owner, "tags_filter", None)
+        status_filter = owner.status_filter
+        type_filter = owner.type_filter
+        tags_filter = owner.tags_filter
 
         try:
-            if status_filter and hasattr(status_filter, "set_selected_ids"):
+            if status_filter is not None:
                 status_filter.set_selected_ids([], emit=False)
-            if type_filter and hasattr(type_filter, "set_selected_ids"):
+            if type_filter is not None:
                 type_filter.set_selected_ids([], emit=False)
-            if tags_filter and hasattr(tags_filter, "set_selected_ids"):
+            if tags_filter is not None:
                 tags_filter.set_selected_ids([], emit=False)
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -172,16 +159,7 @@ class FilterRefreshHelper:
             )
 
         try:
-            refresh_fn = getattr(owner, "_refresh_filters", None)
-            if callable(refresh_fn):
-                refresh_fn(status_ids=[], type_ids=[], tags_ids=[])
-            else:
-                FilterRefreshService.refresh_filters(
-                    owner,
-                    status_ids=[],
-                    type_ids=[],
-                    tags_ids=[],
-                )
+            owner._refresh_filters(status_ids=[], type_ids=[], tags_ids=[])
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,

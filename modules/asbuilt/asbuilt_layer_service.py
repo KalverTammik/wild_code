@@ -237,7 +237,7 @@ class AsBuiltLayerService:
     def current_username() -> str:
         try:
             session = SessionManager()
-            username = str(getattr(session, "username", "") or "").strip()
+            username = str(session.username or "").strip()
             if username:
                 return username
             return session.get_username()

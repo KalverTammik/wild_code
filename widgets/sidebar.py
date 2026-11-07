@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
 
 from ..constants.button_props import ButtonVariant, ButtonSize
 from ..constants.file_paths import QssPaths
-from ..widgets.theme_manager import ThemeManager, Theme, is_dark
+from ..widgets.theme_manager import ThemeManager
 from ..languages.language_manager import LanguageManager
 from ..constants.module_icons import ModuleIconPaths
 from ..utils.url_manager import Module  
@@ -229,10 +229,6 @@ class Sidebar(QWidget):
             if btn.property('active'):
                 btn.setProperty('pulse', self._pulse_on)
                 btn.style().unpolish(btn); btn.style().polish(btn)
-        # also pulse home if active
-        if hasattr(self, 'homeButton') and self.homeButton.property('active'):
-            self.homeButton.setProperty('pulse', self._pulse_on)
-            self.homeButton.style().unpolish(self.homeButton); self.homeButton.style().polish(self.homeButton)
 
     def _store_expanded_width(self):
         self._expanded_width = max(self._expanded_width, self.SidebarMainFrame.width())

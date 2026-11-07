@@ -2,7 +2,6 @@ import os
 import sys
 import traceback
 from datetime import datetime
-from typing import Any
 
 from .secure_log_io import (
     ensure_private_directory,

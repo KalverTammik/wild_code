@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Sequence
+from typing import List, Sequence
 from ....languages.translation_keys import TranslationKeys
 
 

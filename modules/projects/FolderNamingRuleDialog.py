@@ -67,7 +67,6 @@ class FolderNamingRuleDialog(QDialog):
 
         self.preview_label = widget.previewLabel
 
-        from PyQt5.QtWidgets import QDialogButtonBox
         buttons = widget.buttonBox
         if buttons:
             buttons.accepted.connect(self._on_accept)

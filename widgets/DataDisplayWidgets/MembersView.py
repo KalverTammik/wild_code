@@ -5,7 +5,7 @@ from PyQt5.QtGui import QColor, QPainter, QPen
 from PyQt5.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame, QScrollArea
 )
-from ..theme_manager import ThemeManager, IntensityLevels, styleExtras, ThemeShadowColors
+from ..theme_manager import IntensityLevels, styleExtras, ThemeShadowColors
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.responses import DataDisplayExtractors
 from ...ui.window_state.popup_helpers import PopupHelpers

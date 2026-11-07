@@ -10,7 +10,11 @@ from ...Logs.python_fail_logger import PythonFailLogger
 
 
 class UnifiedSearchController(QObject):
-    """Executes unified search requests and guards against stale responses."""
+    """Executes unified search requests and guards against stale responses.
+
+    The parent (HeaderWidget or MapCanvasSearchBar) owns the lifecycle token through
+    ``_active_token`` and ``is_token_active()``.
+    """
 
     searchSucceeded = pyqtSignal(object)
     searchFailed = pyqtSignal(str)
@@ -34,7 +38,6 @@ class UnifiedSearchController(QObject):
         try:
             PythonFailLogger.log(
                 "search_start",
-                module=getattr(self.parent(), "module_key", None),
                 message=cleaned,
                 extra={"token": lifecycle_token, "request_token": request_token},
             )
@@ -117,7 +120,6 @@ class UnifiedSearchController(QObject):
         try:
             PythonFailLogger.log(
                 "search_success",
-                module=getattr(self.parent(), "module_key", None),
                 extra={"token": token, "request_token": request_token, "results": len(normalized)},
             )
         except Exception as exc:
@@ -144,7 +146,6 @@ class UnifiedSearchController(QObject):
         try:
             PythonFailLogger.log(
                 "search_error",
-                module=getattr(self.parent(), "module_key", None),
                 message=message,
                 extra={"token": token, "request_token": request_token},
             )
@@ -161,9 +162,7 @@ class UnifiedSearchController(QObject):
         parent = self.parent()
         if parent is None:
             return None
-        if hasattr(parent, "_active_token"):
-            return getattr(parent, "_active_token", None)
-        return None
+        return parent._active_token
 
     def _next_request_token(self) -> int:
         self._request_token += 1
@@ -180,11 +179,7 @@ class UnifiedSearchController(QObject):
         parent = self.parent()
         if parent is None:
             return True
-        if hasattr(parent, "is_token_active"):
-            try:
-                return bool(parent.is_token_active(token))
-            except Exception:
-                return False
-        if hasattr(parent, "_active_token"):
-            return bool(getattr(parent, "_activated", False)) and token == getattr(parent, "_active_token", None)
-        return True
+        try:
+            return bool(parent.is_token_active(token))
+        except Exception:
+            return False

@@ -27,19 +27,11 @@ class SearchHeplpers:
         target_name = target_enum.name
         ModuleSwitchHelper.switch_module(target_name, dialog=dialog)
 
-        instance = getattr(dialog, "moduleManager", None)
-        instance = instance.getActiveModuleInstance(target_name) if instance else None
+        instance = dialog.moduleManager.getActiveModuleInstance(target_name)
         if instance is None:
             return
 
-        if hasattr(instance, "open_item_from_search"):
-            instance.open_item_from_search(module, item_id, title)
-            return
-
-        ModernMessageDialog.show_info(
-            "Not available",
-            "This module cannot be opened from search yet.",
-        )
+        instance.open_item_from_search(module, item_id, title)
 
 
 class SearchUIController:

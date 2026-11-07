@@ -1,1 +1,1 @@
-from .task_module_base_ui import TaskModuleBaseUI
+# Shared base for task-based modules

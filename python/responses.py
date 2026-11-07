@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import requests
 from typing import Any, Dict, List, Mapping, Optional, Union
-from ..Logs.python_fail_logger import PythonFailLogger
 from ..utils.project_folder_rules import resolve_project_number
 
 Json = Mapping[str, Any]

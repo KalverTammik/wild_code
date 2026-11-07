@@ -2,13 +2,11 @@ query property(
   $id: ID!
   $first: Int
   $after: String
-  $orderBy: [PropertyTasksOrderByOrderByClause!]
-  $tagsFirst: Int = 10
 ) {
   property(id: $id) {
     __typename
     id
-    tasks(first: $first, after: $after, orderBy: $orderBy) {
+    tasks(first: $first, after: $after) {
       pageInfo {
         hasNextPage
         endCursor
@@ -40,17 +38,13 @@ query property(
             type
           }
           priority
-          description
           type {
+            id
             name
           }
-          tags(first: $tagsFirst) {
-            edges {
-              node {
-                id
-                name
-                module
-              }
+          properties(first: 1) {
+            pageInfo {
+              count
             }
           }
         }

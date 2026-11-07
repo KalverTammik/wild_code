@@ -1,4 +1,3 @@
-from typing import Optional
 import sys
 
 # Simple centralized logger controlled by a global debug flag.

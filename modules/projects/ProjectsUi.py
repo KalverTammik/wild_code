@@ -6,15 +6,14 @@ Erinevus teiste moodulitega: FEED_LOGIC klass, pealkiri, ning TYPE filtrit ei ka
 
 from typing import Optional, Type, List, Any
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel, QFrame
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSizePolicy, QLabel
 
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from ...widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ...utils.url_manager import Module
 from ...module_manager import ModuleManager
-from ...widgets.theme_manager import ThemeManager, styleExtras
-from ...constants.file_paths import QssPaths
+from ...widgets.theme_manager import ThemeManager
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
 from ...widgets.OverdueDueSoonPillsWidget import  OverduePillsMixin
 from ...widgets.Filters.filter_refresh_helper import FilterRefreshHelper
@@ -58,10 +57,8 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
         # Feed/filters state
         self.feed_logic = None
-        self._current_where = None
         self._status_preferences_loaded = False
         self._tags_preferences_loaded = False
-        self._suppress_filter_events = False
 
         self.wire_overdue_pills(self.toolbar_area, lang_manager=self.lang_manager)
 
@@ -139,21 +136,17 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
 
     def _ensure_filters_loaded(self) -> None:
         for widget in self._filter_widgets:
-            ensure_loaded = getattr(widget, "ensure_loaded", None)
-            if callable(ensure_loaded):
-                try:
-                    ensure_loaded()
-                except Exception as exc:
-                    print(f"[ProjectsModule] Failed to load filter widget: {exc}")
+            try:
+                widget.ensure_loaded()
+            except Exception as exc:
+                print(f"[ProjectsModule] Failed to load filter widget: {exc}")
 
     def _clear_filters(self) -> None:
         for widget in self._filter_widgets:
-            clear_data = getattr(widget, "clear_data", None)
-            if callable(clear_data):
-                try:
-                    clear_data()
-                except Exception as exc:
-                    print(f"[ProjectsModule] Failed to clear filter widget: {exc}")
+            try:
+                widget.clear_data()
+            except Exception as exc:
+                print(f"[ProjectsModule] Failed to clear filter widget: {exc}")
 
     # --- Andmete laadimine ---
     def load_next_batch(self):
@@ -166,7 +159,14 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
     def _on_tags_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
         self._refresh_filters(tags_ids=ids)
 
-    def _refresh_filters(self, *, status_ids: Optional[List[str]] = None, tags_ids: Optional[List[str]] = None) -> None:
+    def _refresh_filters(
+        self,
+        *,
+        status_ids: Optional[List[str]] = None,
+        type_ids: Optional[List[str]] = None,
+        tags_ids: Optional[List[str]] = None,
+    ) -> None:
+        # The shared clear button passes type_ids too; projects have no type filter.
         FilterRefreshService.refresh_filters(
             self,
             status_ids=status_ids,

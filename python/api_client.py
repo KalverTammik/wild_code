@@ -19,7 +19,6 @@ from ..utils.api_error_handling import (
     summarize_connection_error,
     tag_message,
 )
-from ..Logs.python_fail_logger import PythonFailLogger
 from . import api_rate_limit
 from .api_rate_limit import ApiRateLimitError, RequestCancelled
 from .api_request_task import send_api_request
