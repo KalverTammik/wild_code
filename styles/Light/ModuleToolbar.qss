@@ -3,10 +3,6 @@ QWidget#ToolbarLeft {
     border-radius: 8px;  /* Rounded corners */   
 }
 
-QWidget#FilterWidgetContainer {
-    background: transparent;
-}
-
 QWidget#FilterActionsContainer {
     background: #ffffff;
     border: 1px solid #d7dee5;
@@ -33,14 +29,6 @@ QWidget#FilterActionsContainer QPushButton:hover {
 
 QWidget#FilterActionsContainer QPushButton:pressed {
     background: rgba(33,136,255,0.18);
-}
-
-QLabel#FilterTitleLabel {
-    color: #5f6a7d;
-    font-size: 10px;
-    font-weight: 600;
-    padding-left: 2px;
-    padding-right: 2px;
 }
 
 QToolButton#FeedSortButton, QToolButton#FeedGroupButton {

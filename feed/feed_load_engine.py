@@ -31,9 +31,9 @@ class FeedLoadEngine:
         # Hook for UI insertion callback; may be set later via attach()
         self.progressive_insert_func = progressive_insert_func
 
-        # cooperation hooks: parent_ui and the owner of a bound load_next_batch
-        # are the module UI, so both carry the TokenMixin state.
-        self.parent_ui = None  # set by attach(); cleared on deactivate
+        # The module UI that owns this engine, set by attach() for the engine's whole life.
+        # Its TokenMixin state decides whether a load still belongs to the current session.
+        self.parent_ui = None
 
         # Auto-drip pacing (small, configurable batches driven by QTimer)
         self._auto_drip_ms = 20
@@ -54,39 +54,24 @@ class FeedLoadEngine:
         return self.parent_ui.feed_logic if self.parent_ui else None
 
     def _is_active(self) -> bool:
-        if self.parent_ui is not None:
-            return bool(self.parent_ui._activated)
-        # Fallback: check bound load_next_batch target if parent_ui was cleared
-        target = getattr(self.load_next_batch, "__self__", None)
-        if target is not None:
-            return bool(target._activated)
-        return True
+        if self.parent_ui is None:
+            return True
+        return bool(self.parent_ui._activated)
 
     def _current_token(self) -> int | None:
-        ui = self.parent_ui
-        if ui is not None:
-            return ui._active_token
-        target = getattr(self.load_next_batch, "__self__", None)
-        if target is not None:
-            return target._active_token
-        return None
+        if self.parent_ui is None:
+            return None
+        return self.parent_ui._active_token
 
     def _is_token_active(self, token: int | None) -> bool:
         if token is None:
             return self._is_active()
-        ui = self.parent_ui
-        if ui is not None:
-            try:
-                return bool(ui.is_token_active(token))
-            except Exception:
-                return False
-        target = getattr(self.load_next_batch, "__self__", None)
-        if target is not None:
-            try:
-                return bool(target.is_token_active(token))
-            except Exception:
-                return False
-        return self._is_active()
+        if self.parent_ui is None:
+            return True
+        try:
+            return bool(self.parent_ui.is_token_active(token))
+        except Exception:
+            return False
 
     def _upstream_has_more(self) -> bool:
         feed_logic = self._upstream_feed_logic()

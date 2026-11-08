@@ -7,10 +7,8 @@ from PyQt5.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QGridLayout,
-    QVBoxLayout,
     QWidget,
     QSizePolicy,
-    QLabel,
 )
 
 from ..widgets.theme_manager import ThemeManager, styleExtras, ThemeShadowColors, AlphaLevel
@@ -76,8 +74,8 @@ class ModuleToolbarArea(QFrame):
     def add_left(self, widget: QWidget) -> None:
         if widget is None:
             return
-        wrapped = self._wrap_filter_widget(widget)
-        self._left_widgets.append(wrapped)
+        widget.setParent(self._left)
+        self._left_widgets.append(widget)
         self._reflow_left_widgets()
 
     def add_right(self, widget: QWidget) -> None:
@@ -157,26 +155,3 @@ class ModuleToolbarArea(QFrame):
         target_width = max(120, self._left_preferred_width)
         estimated = max(1, available // target_width)
         return max(1, min(self._left_max_columns, estimated))
-
-    def _wrap_filter_widget(self, widget: QWidget) -> QWidget:
-        """Wrap filters with a title label when they expose filter_title."""
-        title = getattr(widget, "filter_title", None)
-        if not title:
-            widget.setParent(self._left)
-            return widget
-
-        container = QWidget(self._left)
-        container.setObjectName("FilterWidgetContainer")
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(2, 0, 2, 0)
-        layout.setSpacing(2)
-
-        label = QLabel(str(title), container)
-        label.setObjectName("FilterTitleLabel")
-        label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        label.setProperty("role", "filter-title")
-        layout.addWidget(label)
-
-        widget.setParent(container)
-        layout.addWidget(widget)
-        return container

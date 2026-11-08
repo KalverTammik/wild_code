@@ -97,9 +97,10 @@ class FeedSessionController:
     def deactivate_session(self) -> None:
         engine = self._ui.feed_load_engine
         if engine:
+            # The engine keeps its module: without it a reactivated feed stops asking for the next page.
+            # Late callbacks from the old session are refused by the module's token.
             engine.reset()
             engine.progressive_insert_func = None
-            engine.parent_ui = None
 
         # Aggressively drop UI widgets and dedupe state to free memory when module hides
         self.clear_feed(self._ui.feed_layout, self._ui.empty_state)
