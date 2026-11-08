@@ -16,37 +16,32 @@ class AsBuiltNote:
 
 
 class AsBuiltNotesService:
-    """Read/write the structured AsBuilt notes section embedded in `description`."""
+    """Read/write the structured AsBuilt notes section embedded in `description`.
+
+    Kavitro edits descriptions in TipTap, so the section is written in TipTap's own schema: a bold title
+    paragraph and a plain table whose resolved column holds a task item. TipTap drops comments, wrappers and
+    inline styles on its first save, so none are written. Older sections that still carry them, and sections
+    TipTap has already saved (colgroup, colspan, header cells), are read and replaced the same way.
+    """
 
     DATE_FORMAT = "%d.%m.%Y"
     SECTION_TITLE = "🗒️ Märkused ja kommentaarid"
-    SECTION_MARKER = "kavitro:type=asbuilt-notes"
-    LEGACY_SECTION_MARKER = "mailabl:type=notes"
+    # Part of the shared description, so in the product language rather than the plugin user's.
+    TABLE_HEADERS = ("Kuupäev", "Märkus", "Lahendatud", "Lahendamise kuupäev")
 
     _SECTION_PATTERN = re.compile(
         r'(?:<!--\s*(?:kavitro:type=asbuilt-notes|mailabl:type=notes)\s*-->\s*)*'
-        r'<p[^>]*?>\s*(?:<strong>)?\s*🗒️\s*Märkused\s+ja\s+kommentaarid\s*(?:</strong>)?\s*</p>'
-        r'\s*(?:<div[^>]*?>\s*)?<table[^>]*?>.*?</table>\s*(?:</div>\s*)?(?:<p>\s*</p>\s*)?',
+        r'<p(?:\s[^>]*)?>\s*(?:<strong>)?\s*🗒️?\s*Märkused\s+ja\s+kommentaarid\s*(?:</strong>)?\s*</p>'
+        r'\s*(?:<div(?:\s[^>]*)?>\s*)?<table(?:\s[^>]*)?>.*?</table>\s*(?:</div>\s*)?(?:<p>\s*</p>\s*)?',
         re.IGNORECASE | re.DOTALL,
     )
-    _TABLE_PATTERN = re.compile(r'<table[^>]*?>(.*?)</table>', re.IGNORECASE | re.DOTALL)
-    _ROW_PATTERN = re.compile(r'<tr[^>]*?>(.*?)</tr>', re.IGNORECASE | re.DOTALL)
-    _CELL_PATTERN = re.compile(r'<td[^>]*?>(.*?)</td>', re.IGNORECASE | re.DOTALL)
+    _TABLE_PATTERN = re.compile(r'<table(?:\s[^>]*)?>(.*?)</table>', re.IGNORECASE | re.DOTALL)
+    _ROW_PATTERN = re.compile(r'<tr(?:\s[^>]*)?>(.*?)</tr>', re.IGNORECASE | re.DOTALL)
+    # TipTap can turn a body cell into a header cell, so both are read.
+    _CELL_PATTERN = re.compile(r'<t([dh])(?:\s[^>]*)?>(.*?)</t\1>', re.IGNORECASE | re.DOTALL)
     _BREAK_PATTERN = re.compile(r'<\s*br\s*/?\s*>', re.IGNORECASE)
     _PARAGRAPH_END_PATTERN = re.compile(r'</p\s*>', re.IGNORECASE)
     _TAG_PATTERN = re.compile(r'<[^>]+>')
-
-    _TABLE_STYLE = (
-        "width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; "
-        "font-size: 12px;"
-    )
-    _HEADER_CELL_STYLE = (
-        "padding: 4px 6px; font-weight: bold; background: #e5e7eb; border: 1px solid #cbd5e1; "
-        "text-align: center; color: #333333;"
-    )
-    _BODY_CELL_STYLE = (
-        "padding: 4px 6px; border: 1px solid #d1d5db; vertical-align: top;"
-    )
 
     @classmethod
     def today_text(cls) -> str:
@@ -54,11 +49,7 @@ class AsBuiltNotesService:
 
     @classmethod
     def parse_notes(cls, description_html: str | None) -> list[AsBuiltNote]:
-        description = cls._normalize_html(description_html)
-        if not description:
-            return []
-
-        section = cls.extract_notes_section(description)
+        section = cls.extract_notes_section(description_html)
         if not section:
             return []
 
@@ -67,12 +58,10 @@ class AsBuiltNotesService:
             return []
 
         rows = cls._ROW_PATTERN.findall(table_match.group(1))
-        if len(rows) <= 1:
-            return []
-
         parsed: list[AsBuiltNote] = []
+        # The first row is the header.
         for row_html in rows[1:]:
-            cells = cls._CELL_PATTERN.findall(row_html)
+            cells = [content for _kind, content in cls._CELL_PATTERN.findall(row_html)]
             if len(cells) < 4:
                 continue
             parsed.append(
@@ -103,15 +92,11 @@ class AsBuiltNotesService:
         notes_section = cls.build_notes_html(notes)
 
         if cls._SECTION_PATTERN.search(description):
-            replacement = notes_section.strip()
-            updated = cls._SECTION_PATTERN.sub(replacement, description, count=1)
-            return updated.strip()
-
+            # A function, not a template: notes hold UNC paths, and re.sub would read their backslashes as escapes.
+            return cls._SECTION_PATTERN.sub(lambda _match: notes_section, description, count=1).strip()
         if not notes_section:
-            return description.strip()
-        if not description:
-            return notes_section.strip()
-        return f"{description.rstrip()}\n\n{notes_section.strip()}"
+            return description
+        return description + notes_section
 
     @classmethod
     def build_notes_html(cls, notes: Iterable[AsBuiltNote | dict]) -> str:
@@ -120,18 +105,12 @@ class AsBuiltNotesService:
         if not content_notes:
             return ""
 
-        rows_html = "".join(cls._render_table_row(note) for note in content_notes)
+        header = "".join(f"<th>{cls._paragraph(text)}</th>" for text in cls.TABLE_HEADERS)
+        rows = "".join(cls._render_table_row(note) for note in content_notes)
         return (
-            f"<!-- {cls.SECTION_MARKER} -->\n"
-            f"<!-- {cls.LEGACY_SECTION_MARKER} -->\n"
-            f"<p style=\"font-size: 13px; font-weight: bold; margin: 14px 0 4px 6px;\">{cls.SECTION_TITLE}</p>\n"
-            f"<div style=\"width: 100%;\">\n"
-            f"  <table style=\"{cls._TABLE_STYLE}\">\n"
-            f"    {cls._render_table_header()}\n"
-            f"    {rows_html}\n"
-            f"  </table>\n"
-            f"</div>\n"
-            f"<p></p>"
+            f"<p><strong>{cls.SECTION_TITLE}</strong></p>"
+            f"<table><tbody><tr>{header}</tr>{rows}</tbody></table>"
+            "<p></p>"
         )
 
     @classmethod
@@ -193,40 +172,29 @@ class AsBuiltNotesService:
         )
 
     @staticmethod
-    def _plain_text_to_html(value: str) -> str:
-        escaped = html.escape(value or "")
-        return escaped.replace("\n", "<br/>")
-
-    @classmethod
-    def _render_table_header(cls) -> str:
-        return (
-            "<tr>"
-            f"<td style=\"{cls._HEADER_CELL_STYLE} width: 15%;\">📅</td>"
-            f"<td style=\"{cls._HEADER_CELL_STYLE} width: 60%; text-align: left;\">🗒️ Märkus</td>"
-            f"<td style=\"{cls._HEADER_CELL_STYLE} width: 10%;\">✅</td>"
-            f"<td style=\"{cls._HEADER_CELL_STYLE} width: 15%;\">📅 Lahendatud</td>"
-            "</tr>"
-        )
+    def _paragraph(value: str) -> str:
+        # TipTap escapes only the markup characters in text and writes a line break as <br>.
+        return f"<p>{html.escape(value or '', quote=False).replace(chr(10), '<br>')}</p>"
 
     @classmethod
     def _render_table_row(cls, note: AsBuiltNote) -> str:
         return (
             "<tr>"
-            f"<td style=\"{cls._BODY_CELL_STYLE} text-align: center;\"><p>{cls._plain_text_to_html(note.date)}</p></td>"
-            f"<td style=\"{cls._BODY_CELL_STYLE}\"><p>{cls._plain_text_to_html(note.note)}</p></td>"
-            f"<td style=\"{cls._BODY_CELL_STYLE} text-align: center;\">{cls._render_checkbox_html(note.resolved)}</td>"
-            f"<td style=\"{cls._BODY_CELL_STYLE} text-align: center;\"><p>{cls._plain_text_to_html(note.resolved_date)}</p></td>"
+            f"<td>{cls._paragraph(note.date)}</td>"
+            f"<td>{cls._paragraph(note.note)}</td>"
+            f"<td>{cls._render_checkbox_html(note.resolved)}</td>"
+            f"<td>{cls._paragraph(note.resolved_date)}</td>"
             "</tr>"
         )
 
     @staticmethod
     def _render_checkbox_html(is_checked: bool) -> str:
-        checked_attr = 'checked="checked"' if is_checked else ""
-        data_checked = str(bool(is_checked)).lower()
+        # TipTap's TaskItem markup, as Kavitro stores it.
+        checked = ' checked="checked"' if is_checked else ""
         return (
             '<ul data-type="taskList">'
-            f'<li data-checked="{data_checked}" data-type="taskItem">'
-            f'<label><input type="checkbox" {checked_attr}><span></span></label>'
+            f'<li data-checked="{str(bool(is_checked)).lower()}" data-type="taskItem">'
+            f'<label><input type="checkbox"{checked}><span></span></label>'
             '<div><p></p></div>'
             '</li>'
             '</ul>'

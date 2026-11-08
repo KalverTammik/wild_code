@@ -246,7 +246,7 @@ TRANSLATIONS = {
         TranslationKeys.ASBUILT_FIELD_HEIGHT_SYSTEM: "Kõrgussüsteem",
         TranslationKeys.ASBUILT_FIELD_NETWORK: "Võrk",
         TranslationKeys.ASBUILT_FIELD_NOTES: "Märkused",
-        TranslationKeys.ASBUILT_NOTES_PLACEHOLDER: "Mõõdistaja märkused",
+        TranslationKeys.ASBUILT_FORM_NOTES_PLACEHOLDER: "Mõõdistaja märkused",
         TranslationKeys.ASBUILT_DRAWING_ASBUILT: "Teostusjoonis",
         TranslationKeys.ASBUILT_DRAWING_BASE: "Geoalus",
         TranslationKeys.ASBUILT_COORDINATES_TARTU: "Tartu kohalik",
@@ -591,17 +591,18 @@ TRANSLATIONS = {
     ,TranslationKeys.LINK_PROPERTIES_MISSING_NOTE: "Puuduvad/ei leitud: {missing}"
     ,TranslationKeys.LINK_PROPERTIES_ERROR: "Kinnistute seostamine projektile {pid} ebaõnnestus.\nOotel valik ({count}): {preview}\n\nDetailid: {err}"
         ,TranslationKeys.ASBUILT_UPDATE_NOTES_ACTION: "Lisa/uuenda märkmeid"
-        ,TranslationKeys.ASBUILT_UPDATE_NOTES_TITLE: "Lisa/uuenda märkmeid"
-        ,TranslationKeys.ASBUILT_UPDATE_NOTES_LABEL: "Märkmed kirjele {name}:"
+        ,TranslationKeys.ASBUILT_UPDATE_NOTES_TITLE: "Teostusjoonise märkused"
         ,TranslationKeys.ASBUILT_UPDATE_NOTES_SUCCESS: "Kirje {name} märkmed uuendati."
         ,TranslationKeys.ASBUILT_UPDATE_NOTES_FAILED: "Kirje {name} märkmete uuendamine ebaõnnestus."
         ,TranslationKeys.ASBUILT_NOTES_ADD_NOTE: "Lisa märkus"
         ,TranslationKeys.ASBUILT_NOTES_COLUMN_NOTE: "Märkus"
         ,TranslationKeys.ASBUILT_NOTES_COLUMN_RESOLVED: "Lahendatud"
-        ,TranslationKeys.ASBUILT_NOTES_COLUMN_RESOLVED_DATE: "Lahendamise kuupäev"
         ,TranslationKeys.ASBUILT_NOTES_NO_DATE: "Kuupäev puudub"
         ,TranslationKeys.ASBUILT_NOTES_DELETE_ROW: "Kustuta märkus"
         ,TranslationKeys.ASBUILT_NOTES_PLACEHOLDER: "Sisesta märkuse sisu"
+        ,TranslationKeys.ASBUILT_NOTES_OPEN_COUNT: "Lahendamata: {count}"
+        ,TranslationKeys.ASBUILT_NOTES_ALL_RESOLVED: "Kõik lahendatud"
+        ,TranslationKeys.ASBUILT_NOTES_LOAD_FAILED: "Kirje {name} kirjeldust ei õnnestunud laadida, seega märkmeid ei avatud. Proovi uuesti."
         ,TranslationKeys.PROJECT_DRAW_NEW_ACTION: "Joonista uus seotud ala kaardile"
         ,TranslationKeys.PROJECT_DRAW_NEW_START_FAILED: "Uue projekti ala joonistamist kaardil ei saanud käivitada."
         ,TranslationKeys.PROJECT_DRAW_NEW_SAVE_FAILED: "Uus kaardiala loodi, kuid selle sidumine backendi projektiga {item_id} ebaõnnestus. Detailid: {error}"
@@ -856,12 +857,6 @@ TRANSLATIONS = {
         ,TranslationKeys.PROJECTS_TEMP_LAYER_NAME_REQUIRED: "Palun sisesta kihi nimi."
         ,TranslationKeys.PROJECTS_TEMP_LAYER_CREATE_FAILED: "Ajutise Projektide kihi '{name}' loomine/laadimine ebaõnnestus.\n\nDetailid: {error}"
         ,TranslationKeys.PROJECTS_TEMP_LAYER_READY: "Ajutine Projektide kiht '{name}' on valmis ja määrati Projektide põhikihiks."
-        ,TranslationKeys.WORKS_METADATA_SECTION_TITLE: "Töö metaandmed"
-        ,TranslationKeys.WORKS_METADATA_COLUMN_FIELD: "Kihi väli"
-        ,TranslationKeys.WORKS_METADATA_COLUMN_VALUE: "Väärtus"
-        ,TranslationKeys.WORKS_METADATA_LAYER_NAME: "Kihi nimi"
-        ,TranslationKeys.WORKS_METADATA_PROJECT_NAME: "Projekti nimi"
-        ,TranslationKeys.WORKS_METADATA_PROJECT_TITLE: "Projekti pealkiri"
     ,TranslationKeys.MORE_COUNT_SUFFIX: " … (+{count} veel)"
     ,TranslationKeys.LINK_REVIEW_CONNECTIONS_TITLE: "Seosed"
     ,TranslationKeys.LINK_REVIEW_ALREADY_LINKED: "Juba seotud"

@@ -379,7 +379,6 @@ class WorksCreateController:
         task_result = self._create_backend_task_from_dialog(
             point=point,
             works_layer=works_layer,
-            property_feature=property_feature,
             dialog=dialog,
             now=now,
         )
@@ -534,7 +533,6 @@ class WorksCreateController:
         task_result = self._create_backend_task_from_dialog(
             point=point,
             works_layer=works_layer,
-            property_feature=property_feature,
             dialog=dialog,
             now=now,
         )
@@ -616,17 +614,10 @@ class WorksCreateController:
         *,
         point: QgsPointXY,
         works_layer,
-        property_feature,
         dialog: WorksCreateDialog,
         now: datetime,
     ) -> Optional[tuple[str, dict]]:
-        backend_description = WorksDescriptionService.build_task_description(
-            layer=works_layer,
-            point=point,
-            description_text=dialog.description_text(),
-            property_feature=property_feature,
-            lang_manager=self._lang,
-        )
+        backend_description = WorksDescriptionService.build_task_description(dialog.description_text())
 
         task_id = None
         selected_status_id = dialog.selected_status_id()

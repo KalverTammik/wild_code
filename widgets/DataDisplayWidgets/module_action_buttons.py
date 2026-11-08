@@ -414,8 +414,14 @@ class MoreActionsButton(CardActionButton):
             return
 
         item_name = DataDisplayExtractors.extract_item_name(item) or item_id
-        opened_description = APIModuleActions.get_task_description(item_id)
-        source_description = opened_description if opened_description is not None else ""
+        source_description = APIModuleActions.get_task_description(item_id)
+        if source_description is None:
+            # Without the current description a save would replace all of it with the notes table.
+            ModernMessageDialog.show_warning(
+                lm.translate(TranslationKeys.ERROR),
+                lm.translate(TranslationKeys.ASBUILT_NOTES_LOAD_FAILED).format(name=item_name),
+            )
+            return
 
         dialog = AsBuiltNotesEditorDialog(
             item_name=item_name,

@@ -161,6 +161,33 @@ class TranslationKeysInCodeTest(unittest.TestCase):
                         found.append(f"{rel}:{node.lineno} {text[:60]!r}")
         self.assertEqual(found, [])
 
+    def test_each_key_is_defined_once(self) -> None:
+        """A second definition replaces the first without a word, so one of the two texts is never shown."""
+        found = []
+        keys = ast.parse((PLUGIN_ROOT / "languages" / "translation_keys.py").read_text(encoding="utf-8"))
+        for node in keys.body:
+            if isinstance(node, ast.ClassDef):
+                names = [t.id for s in node.body if isinstance(s, ast.Assign) for t in s.targets
+                         if isinstance(t, ast.Name)]
+                found += [f"{node.name}.{name}" for name in sorted(set(names)) if names.count(name) > 1]
+        # Two attributes with the same value are one entry in the tables, whatever their names.
+        for language in ("et", "en"):
+            source = ast.parse((PLUGIN_ROOT / "languages" / f"{language}.py").read_text(encoding="utf-8"))
+            aliases = key_class_aliases(source)
+            for table in (node for node in ast.walk(source) if isinstance(node, ast.Dict)):
+                seen = {}
+                for key in table.keys:
+                    if isinstance(key, ast.Attribute) and isinstance(key.value, ast.Name) and key.value.id in aliases:
+                        value = getattr(KEY_CLASSES[aliases[key.value.id]], key.attr)
+                    elif isinstance(key, ast.Constant):
+                        value = key.value
+                    else:
+                        continue
+                    if value in seen:
+                        found.append(f"{language}.py:{key.lineno} {ast.unparse(key)} repeats {seen[value]}")
+                    seen.setdefault(value, ast.unparse(key))
+        self.assertEqual(found, [])
+
     def test_the_scan_sees_the_code(self) -> None:
         """Guards the scan itself: a path change must not make the two tests above vacuous."""
         sources = list(plugin_sources())

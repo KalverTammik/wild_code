@@ -213,15 +213,15 @@ Kui struktureeritud märkmeid pole, lisatakse dialoogi üks tänase kuupäevaga 
 
 ### Lisa märkus
 
-Nupp lisab tänase kuupäeva rühma uue tühja rea. Uut Kavitro päringut ega salvestust veel ei tehta.
+Nupp asub märkmete loendi lõpus. See lisab tänase kuupäeva rühma uue tühja rea ja viib kursori selle tekstiväljale. Aken pikeneb iga uue märkusega, kuni ekraani alumine serv on käes; seejärel hakkab loend kerima ja uusim märkus jääb nähtavale. Märkuse kustutamisel aken lüheneb. Uut Kavitro päringut ega salvestust veel ei tehta.
 
-### Rea Kustuta
+### Kustuta märkus
 
-Nupp eemaldab rea dialoogist kohe ja kinnitusküsimuseta. Kustutamine jõuab Kavitrosse alles **Salvesta** järel. Kui rühm jääb tühjaks, eemaldatakse ka selle pealkiri.
+Rea paremas servas olev prügikasti ikooniga nupp eemaldab rea dialoogist kohe ja kinnitusküsimuseta. Nupu nimi **Kustuta märkus** on näha kohtspikris. Kustutamine jõuab Kavitrosse alles **Salvesta** järel. Kui rühm jääb tühjaks, eemaldatakse ka selle pealkiri.
 
 ### Lahendatud märkeruut
 
-Kuigi märkeruut ei ole eraldi nupp, mõjutab see salvestatavat tulemust: märkimisel täidetakse tühi lahendamiskuupäev tänase kuupäevaga ja märke eemaldamisel kuupäev tühjendatakse. Käsitsi sisestatud kuupäeva vormingut ei valideerita.
+Kuigi märkeruut ei ole eraldi nupp, mõjutab see salvestatavat tulemust: märkimisel täidetakse tühi lahendamiskuupäev tänase kuupäevaga ja märke eemaldamisel kuupäev tühjendatakse. Kuupäev valitakse kalendrist ja väli on muudetav ainult lahendatud real. Varem käsitsi sisestatud kuupäev, mida kalender ei loe, jääb muutmata tekstiväljaks. Lahtisel märkusel olev kuupäev säilib, kuni märkeruutu kasutatakse.
 
 ### Tühista
 
@@ -231,11 +231,11 @@ Kuigi märkeruut ei ole eraldi nupp, mõjutab see salvestatavat tulemust: märki
 
 Enne salvestamist laaditakse ülesande kirjeldus uuesti. Visuaal asendab selles ainult struktureeritud märkmete jaotise ning proovib muu vahepeal muutunud sisu säilitada.
 
-Täiesti tühi rida jäetakse välja. Kõigi sisuliste ridade eemaldamisel kustutatakse kirjeldusest märkmete jaotis. Märkmetekst teisendatakse HTML-is ohutuks tekstiks ja reavahetused säilitatakse.
+Täiesti tühi rida jäetakse välja. Kõigi sisuliste ridade eemaldamisel kustutatakse kirjeldusest märkmete jaotis. Märkmetekst teisendatakse HTML-is ohutuks tekstiks ja reavahetused säilitatakse. Jaotis kirjutatakse Kavitro kirjelduse redaktori (TipTap) skeemis: ilma kommentaaride, ümbrisplokkide ja tekstisiseste stiilideta, päisereaga tabelina ning lahendatud veerg ülesandeloendi märkeruuduna. Märkmetes olevad UNC-teed ja muud kaldkriipsud salvestatakse muutmata.
 
 Kui uus tulemus võrdub uuesti laaditud kirjeldusega, sulgub dialoog ilma salvestuspäringu ja teateta. Edu korral uuendatakse Kavitro ülesande `description` ning kuvatakse infoteade; vea korral hoiatus.
 
-Kui nii avamisel kui ka enne salvestamist kirjelduse laadimine ebaõnnestub, käsitleb kood lähtekirjeldust tühjana. Järgnev edukas salvestus võib seetõttu asendada tegeliku kirjelduse ainult märkmete tabeliga. Laadimisvea kohta eraldi teadet ei kuvata.
+Kui kirjelduse laadimine avamisel ebaõnnestub, dialoogi ei avata ja kuvatakse hoiatus. Kui avamisel laadimine õnnestus, kuid enne salvestamist uuesti laadimine ebaõnnestub, liidetakse märkmed avamisel laaditud kirjeldusega.
 
 ## Joonista uus seotud objekt kaardile
 
@@ -306,7 +306,6 @@ See toiming ainult lisab kinnistuseoseid. See ei seo joonistatud geomeetriat kin
 | Kõrge | **Muuda asukohta** kinnitab alati kogu tööde kihi redigeerimisseansi | Koos tööpunktiga salvestuvad ootamatult muud ootel muudatused | Kinnita ainult enda alustatud seanss või hoiata ja keela toiming aktiivse seansi korral |
 | Kõrge | Teostusjoonise staatuse järel sünkroonitakse tööde, mitte teostusjooniste põhikihti | Kavitro staatus ja teostusjoonise `ext_job_state` jäävad eri seisu | Vali sünkroonimisteenus mooduli järgi ja lisa teostusjooniste atribuudisünkroon |
 | Kõrge | **Lisa punkt kaardile** ei kontrolli geomeetriauuenduse `False` tulemust | QGIS-i punkt võib olla olemas ja kuvada edu, kuigi Kavitro asukoht ei muutunud | Kontrolli vastust, näita osalise õnnestumise hoiatust ja paku kordussünkroonimist |
-| Kõrge | Märkmete mõlema kirjelduse laadimise ebaõnnestumisel saab salvestada tühja lähtekirjelduse peale | Ülesande muu kirjeldus võib kaduda | Ära ava või salvesta märkmeid enne edukat kirjelduse laadimist; kuva selge veateade |
 | Kõrge | Teostusjoonise QGIS-i ja Kavitro kirjutused ei ole ühine tehing | Teenuse geomeetria võib jääda ilma QGIS-i objektita või vastupidi | Kinnita kiht enne teenuse saatmist või lisa taastatav sünkroonimisvoog ja sammude koondtulemus |
 | Keskmine | Teostusjoonise **Katkesta** kuvatakse salvestusveana | Kasutaja ei erista teadlikku katkestust tegelikust rikkest | Anna kontrollerile eraldi cancelled-tulemus ja sulge ilma veahoiatuseta |
 | Keskmine | Uue teostusjoonise joonistamine ei kontrolli olemasolevat sama ID-ga objekti | Ühe kirje jaoks võivad tekkida duplikaatobjektid | Kontrolli ID-d enne lisamist ning paku olemasoleva objekti fokuseerimist või kinnitatud asendamist |

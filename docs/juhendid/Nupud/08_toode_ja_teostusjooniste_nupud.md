@@ -51,8 +51,8 @@ Topeltklõps dialoogi tabelireal käitub samuti nagu **Ava valitud**.
 
 | Nupp | Asukoht | Lühikirjeldus |
 |---|---|---|
-| **Lisa märkus** | Märkmete dialoogi alumine vasak osa | Lisab tänase kuupäeva rühma uue tühja märkuse rea. |
-| **Kustuta märkus** | Iga märkuse rea parem serv | Eemaldab vastava märkuse rea ootel olevast tulemusest. |
+| **Lisa märkus** | Märkmete loendi lõpp | Lisab tänase kuupäeva rühma uue tühja märkuse rea ja viib kursori sellele. |
+| **Kustuta märkus** | Prügikasti ikoon iga märkuse rea paremas servas | Eemaldab vastava märkuse rea ootel olevast tulemusest. |
 | **Tühista** | Dialoogi alumine parem osa | Sulgeb dialoogi muudatusi salvestamata. |
 | **Salvesta** | Dialoogi alumine parem osa | Kinnitab märkmed ja jätkab kirjelduse uuendamist. |
 

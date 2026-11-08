@@ -245,7 +245,7 @@ TRANSLATIONS = {
         TranslationKeys.ASBUILT_FIELD_HEIGHT_SYSTEM: "Height system",
         TranslationKeys.ASBUILT_FIELD_NETWORK: "Network",
         TranslationKeys.ASBUILT_FIELD_NOTES: "Notes",
-        TranslationKeys.ASBUILT_NOTES_PLACEHOLDER: "Surveyor's notes",
+        TranslationKeys.ASBUILT_FORM_NOTES_PLACEHOLDER: "Surveyor's notes",
         TranslationKeys.ASBUILT_DRAWING_ASBUILT: "As-built drawing",
         TranslationKeys.ASBUILT_DRAWING_BASE: "Topographic base",
         TranslationKeys.ASBUILT_COORDINATES_TARTU: "Tartu local",
@@ -598,17 +598,18 @@ TRANSLATIONS = {
         ,TranslationKeys.LINK_PROPERTIES_MISSING_NOTE: "Missing/not found: {missing}"
         ,TranslationKeys.LINK_PROPERTIES_ERROR: "Could not link properties for project {pid}.\nPending selection ({count}): {preview}\n\nDetails: {err}"
         ,TranslationKeys.ASBUILT_UPDATE_NOTES_ACTION: "Add/Update notes"
-        ,TranslationKeys.ASBUILT_UPDATE_NOTES_TITLE: "Add/Update notes"
-        ,TranslationKeys.ASBUILT_UPDATE_NOTES_LABEL: "Notes for {name}:"
+        ,TranslationKeys.ASBUILT_UPDATE_NOTES_TITLE: "As-built notes"
         ,TranslationKeys.ASBUILT_UPDATE_NOTES_SUCCESS: "Notes updated for {name}."
         ,TranslationKeys.ASBUILT_UPDATE_NOTES_FAILED: "Failed to update notes for {name}."
         ,TranslationKeys.ASBUILT_NOTES_ADD_NOTE: "Add note"
         ,TranslationKeys.ASBUILT_NOTES_COLUMN_NOTE: "Note"
         ,TranslationKeys.ASBUILT_NOTES_COLUMN_RESOLVED: "Resolved"
-        ,TranslationKeys.ASBUILT_NOTES_COLUMN_RESOLVED_DATE: "Resolved date"
         ,TranslationKeys.ASBUILT_NOTES_NO_DATE: "No date"
         ,TranslationKeys.ASBUILT_NOTES_DELETE_ROW: "Delete note"
         ,TranslationKeys.ASBUILT_NOTES_PLACEHOLDER: "Enter note details"
+        ,TranslationKeys.ASBUILT_NOTES_OPEN_COUNT: "Open: {count}"
+        ,TranslationKeys.ASBUILT_NOTES_ALL_RESOLVED: "All resolved"
+        ,TranslationKeys.ASBUILT_NOTES_LOAD_FAILED: "Could not load the description of {name}, so the notes were not opened. Please try again."
         ,TranslationKeys.PROJECT_DRAW_NEW_ACTION: "Draw linked area on map"
         ,TranslationKeys.PROJECT_DRAW_NEW_START_FAILED: "Could not start drawing a new project area on the map."
         ,TranslationKeys.PROJECT_DRAW_NEW_SAVE_FAILED: "A new map area was created, but linking it to backend project {item_id} failed. Details: {error}"
@@ -863,12 +864,6 @@ TRANSLATIONS = {
         ,TranslationKeys.PROJECTS_TEMP_LAYER_NAME_REQUIRED: "Please enter a layer name."
         ,TranslationKeys.PROJECTS_TEMP_LAYER_CREATE_FAILED: "Failed to create/load temporary Projects layer '{name}'.\n\nDetails: {error}"
         ,TranslationKeys.PROJECTS_TEMP_LAYER_READY: "Temporary Projects layer '{name}' is ready and has been configured as the Projects main layer."
-        ,TranslationKeys.WORKS_METADATA_SECTION_TITLE: "Works metadata"
-        ,TranslationKeys.WORKS_METADATA_COLUMN_FIELD: "Layer field"
-        ,TranslationKeys.WORKS_METADATA_COLUMN_VALUE: "Value"
-        ,TranslationKeys.WORKS_METADATA_LAYER_NAME: "Layer name"
-        ,TranslationKeys.WORKS_METADATA_PROJECT_NAME: "Project name"
-        ,TranslationKeys.WORKS_METADATA_PROJECT_TITLE: "Project title"
         ,TranslationKeys.MORE_COUNT_SUFFIX: " … (+{count} more)"
         ,TranslationKeys.LINK_REVIEW_CONNECTIONS_TITLE: "Connections"
         ,TranslationKeys.LINK_REVIEW_ALREADY_LINKED: "Already linked"
@@ -885,7 +880,7 @@ TRANSLATIONS = {
     ,TranslationKeys.STATUS_WIDGET_CHANGE_TOOLTIP: "Click to change status"
     ,TranslationKeys.STATUS_WIDGET_NO_OPTIONS: "No statuses are currently available for this module."
     ,TranslationKeys.STATUS_WIDGET_UPDATE_FAILED: "Could not update the item status."
-    ,TranslationKeys.CONNECTIONS: "Connections"
+    ,TranslationKeys.CONNECTIONS: "Searching for connections"
     ,TranslationKeys.TAGS_PREFERENCES: "Tags preferences"
     ,TranslationKeys.STATUS_PREFERENCES: "Status preferences"
     ,TranslationKeys.TYPE_PREFERENCES: "Type preferences"

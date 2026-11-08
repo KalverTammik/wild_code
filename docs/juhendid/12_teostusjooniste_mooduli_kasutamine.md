@@ -166,31 +166,35 @@ Kui struktureeritud märkmeid ei ole, lisatakse vormile automaatselt üks tühi 
 
 ### Märkmerea väljad
 
-Igal real on:
+Akna päises on teostusjoonise nimi ja lahendamata märkuste arv. Veergude pealkirjad on loendi kohal üks kord ning iga kuupäeva märkmed on selle kuupäeva pealkirja all.
 
-- märkuse tekst;
+Igal real on vasakult paremale:
+
 - märkeruut **Lahendatud**;
+- märkuse tekst; väli kasvab teksti pikkusega kuni nelja reani ja kerib pikemat teksti;
 - lahendamise kuupäev;
-- nupp rea kustutamiseks.
+- prügikasti ikooniga nupp **Kustuta märkus**.
 
-Kui märgid rea lahendatuks ja kuupäev on tühi, täidab Kavitro kuupäeva tänase kuupäevaga kujul `pp.kk.aaaa`. Märke eemaldamisel tühjendatakse lahendamise kuupäev.
+Lahendamise kuupäev valitakse kalendrist kujul `pp.kk.aaaa` ja väli on muudetav ainult lahendatud real. Kui märgid rea lahendatuks ja kuupäev on tühi, täidab Kavitro selle tänase kuupäevaga. Märke eemaldamisel tühjendatakse lahendamise kuupäev. Lahendatud märkuse tekst on tuhmim, et lahtised märkused paistaksid välja.
 
-Lahendamise kuupäev on vabalt sisestatav tekstiväli. Praeguses versioonis ei kontrollita, kas kasutaja sisestatud kuupäev vastab etteantud vormingule.
+Varasemas versioonis käsitsi sisestatud kuupäev, mida kalender ei loe, jääb tekstiväljana alles ega muutu.
 
 ### Uue märkuse lisamine ja rea kustutamine
 
-- **Lisa märkus** lisab uue rea tänase kuupäeva rühma.
-- Rea **Kustuta** eemaldab rea dialoogist kohe, kuid muudatus jõuab Kavitro teenusesse alles nupu **Salvesta** järel.
-- Kustutamisel eraldi kinnitusküsimust ei esitata.
-- **Katkesta** sulgeb dialoogi ilma muudatusi teenusesse saatmata.
+- **Lisa märkus** loendi lõpus lisab uue rea tänase kuupäeva rühma ja viib kursori selle tekstiväljale. Aken pikeneb iga uue märkusega, kuni ekraani alumine serv on käes; seejärel hakkab loend kerima ja uusim märkus jääb nähtavale. Märkuse kustutamisel aken lüheneb.
+- **Kustuta märkus** eemaldab rea dialoogist kohe, kuid muudatus jõuab Kavitro teenusesse alles nupu **Salvesta** järel.
+- Kustutamisel eraldi kinnitusküsimust ei esitata. Kui kuupäeva viimane märkus kustutatakse, kaob ka selle kuupäeva pealkiri.
+- **Tühista** sulgeb dialoogi ilma muudatusi teenusesse saatmata.
 
 Tühi rida, millel pole märkuse teksti, lahendamise märget ega lahendamise kuupäeva, jäetakse salvestamisel välja. Kõigi märkmeridade kustutamisel eemaldatakse kirjeldusest struktureeritud märkmete jaotis.
 
 ### Kirjelduse säilitamine
 
+Kui kirje kirjeldust ei õnnestu dialoogi avamisel laadida, dialoogi ei avata ja Kavitro kuvab hoiatuse. Nii ei saa salvestus asendada kirjeldust, mida ei nähtud, ainult märkmete tabeliga.
+
 Enne märkmete salvestamist laadib Kavitro kirje kirjelduse uuesti ning asendab selles ainult struktureeritud märkmete jaotise. Kirjelduse muu sisu püütakse säilitada ka siis, kui see muutus pärast dialoogi avamist.
 
-Märkmed salvestatakse Kavitro kirje `description` väärtusesse HTML-tabelina. Neid ei kirjutata teostusjooniste QGIS-i põhikihi atribuutidesse.
+Märkmed salvestatakse Kavitro kirje `description` väärtusesse HTML-tabelina, samas vormingus, mida kasutab Kavitro veebi kirjelduse redaktor: rasvases kirjas pealkiri, päisereaga tabel ja lahendatud veerus märkeruut. Seetõttu jääb tabel alles ka siis, kui kirjeldust veebis muudetakse, ning veebis salvestatud tabel loetakse dialoogi tagasi. Märkmeid ei kirjutata teostusjooniste QGIS-i põhikihi atribuutidesse.
 
 ## Kinnistute seostamine
 

@@ -13,6 +13,7 @@ class IconNames:
     ICON_SEARCH = "Otsing.png"
     ICON_INFO = "Abikeskus1.png"
     ICON_ADD = "Add.png"
+    ICON_DELETE = "trash.svg"
     ICON_WORK_EMERGENCY = "work-emergency.svg"
     ICON_MAP_IDENTIFY = "map-identify.svg"
     ICON_WORKS_PENDING = "works-pending.svg"

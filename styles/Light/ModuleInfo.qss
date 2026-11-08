@@ -72,3 +72,53 @@ QFrame#FormSeparator {
     background: #e1e4e8;
     border: none;
 }
+
+QLabel#AsBuiltNotesItemName {
+  color: #243447;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+QLabel#AsBuiltNotesOpenCount,
+QLabel#AsBuiltNotesColumnHeader {
+  color: #667085;
+}
+
+QLabel#AsBuiltNotesColumnHeader {
+  font-size: 11px;
+}
+
+QLabel#AsBuiltNotesGroupTitle {
+  color: #243447;
+  font-weight: 600;
+}
+
+QFrame#AsBuiltNotesGroupLine {
+  background: #e4e7ec;
+  border: none;
+}
+
+QTextEdit#AsBuiltNoteTextEdit[resolved="true"] {
+  color: #667085;
+}
+
+QToolButton#AsBuiltNoteDeleteButton {
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+}
+
+QToolButton#AsBuiltNoteDeleteButton:hover {
+  background: rgba(217, 45, 32, 0.12);
+}
+
+QPushButton#AsBuiltNotesAddButton {
+  border: none;
+  background: transparent;
+  color: #0969da;
+  padding: 4px 2px;
+}
+
+QPushButton#AsBuiltNotesAddButton:hover {
+  color: #0550ae;
+}

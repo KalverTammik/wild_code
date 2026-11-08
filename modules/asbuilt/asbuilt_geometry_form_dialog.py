@@ -124,7 +124,7 @@ class AsBuiltGeometryFormDialog(QDialog):
 
         self._notes = CompactTextEdit(self)
         self._notes.setAcceptRichText(False)
-        self._notes.setPlaceholderText(translate(TranslationKeys.ASBUILT_NOTES_PLACEHOLDER))
+        self._notes.setPlaceholderText(translate(TranslationKeys.ASBUILT_FORM_NOTES_PLACEHOLDER))
         self._notes.setMinimumHeight(80)
         form.add_text_area(translate(TranslationKeys.ASBUILT_FIELD_NOTES), self._notes)
 
