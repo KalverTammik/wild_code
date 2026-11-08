@@ -62,18 +62,16 @@ class MapSelectionController(QObject):
         if clear_filter:
             try:
                 # Clear any subset string (layer filter / definition query) so selections behave as expected.
-                if hasattr(layer, "subsetString") and hasattr(layer, "setSubsetString"):
-                    current = layer.subsetString() or ""
-                    if current:
-                        layer.setSubsetString("")
-                        try:
-                            layer.triggerRepaint()
-                        except Exception as exc:
-                            PythonFailLogger.log_exception(
-                                exc,
-                                module="map",
-                                event="map_selection_repaint_failed",
-                            )
+                if layer.subsetString():
+                    layer.setSubsetString("")
+                    try:
+                        layer.triggerRepaint()
+                    except Exception as exc:
+                        PythonFailLogger.log_exception(
+                            exc,
+                            module="map",
+                            event="map_selection_repaint_failed",
+                        )
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,

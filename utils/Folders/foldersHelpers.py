@@ -202,9 +202,8 @@ class FolderEngines:
                 return
             if callable(on_files_path_updated):
                 on_files_path_updated(updated_path)
-        else:
-            print("Operation canceled by the user.")
 
+        # The folder is copied either way; only linking it to the project can be declined.
         heading = LanguageManager.translate_static(TranslationKeys.SUCCESS)
         text = LanguageManager.translate_static(TranslationKeys.FOLDER_COPY_SUCCESS).format(source=source_dir, folder=folder_name)
         ModernMessageDialog.show_info(heading, text)

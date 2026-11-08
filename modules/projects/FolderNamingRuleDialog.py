@@ -44,26 +44,20 @@ class FolderNamingRuleDialog(QDialog):
             (comboSlot3, symbolText3),
         ]
 
+        # loadUi makes every widget of the .ui file an attribute, so none of these is missing.
         for idx, (combo, symbol_input) in enumerate(self.slot_rows):
-            if combo is None:
-                print(f"[WARN] comboSlot{idx + 1} missing")
-            else:
-                print(f"[DEBUG] Combo is present; populating")
-                combo.clear()
-                # Use literal labels to avoid translation side-effects hiding items
-                combo.addItem(self.lang_manager.translate(FolderNamingTranslationKeys.TR_EMPTY), None)
-                combo.addItem(self.lang_manager.translate(FolderNamingTranslationKeys.TR_PROJECT_NUMBER), INTERNAL_PROJECT_NUMBER)
-                combo.addItem(self.lang_manager.translate(FolderNamingTranslationKeys.TR_PROJECT_NAME), INTERNAL_PROJECT_NAME)
-                combo.addItem(self.lang_manager.translate(FolderNamingTranslationKeys.TR_SYMBOL), INTERNAL_SYMBOL)
-                combo.setCurrentIndex(0)
-                combo.currentIndexChanged.connect(lambda _, i=idx: self._on_slot_changed(i))
-            if symbol_input is None:
-                print(f"[WARN] symbolText{idx + 1} missing")
-            else:
-                symbol_input.setPlaceholderText(self.lang_manager.translate(FolderNamingTranslationKeys.TR_SYMBOL_TEXT))
-                symbol_input.setVisible(False)
-                symbol_input.setEnabled(False)
-                symbol_input.textChanged.connect(lambda _: self._update_preview())
+            combo.clear()
+            # Use literal labels to avoid translation side-effects hiding items
+            combo.addItem(self.lang_manager.translate(FolderNamingTranslationKeys.TR_EMPTY), None)
+            combo.addItem(self.lang_manager.translate(FolderNamingTranslationKeys.TR_PROJECT_NUMBER), INTERNAL_PROJECT_NUMBER)
+            combo.addItem(self.lang_manager.translate(FolderNamingTranslationKeys.TR_PROJECT_NAME), INTERNAL_PROJECT_NAME)
+            combo.addItem(self.lang_manager.translate(FolderNamingTranslationKeys.TR_SYMBOL), INTERNAL_SYMBOL)
+            combo.setCurrentIndex(0)
+            combo.currentIndexChanged.connect(lambda _, i=idx: self._on_slot_changed(i))
+            symbol_input.setPlaceholderText(self.lang_manager.translate(FolderNamingTranslationKeys.TR_SYMBOL_TEXT))
+            symbol_input.setVisible(False)
+            symbol_input.setEnabled(False)
+            symbol_input.textChanged.connect(lambda _: self._update_preview())
 
         self.preview_label = widget.previewLabel
 

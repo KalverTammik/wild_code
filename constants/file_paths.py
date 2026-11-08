@@ -58,7 +58,6 @@ class QueryPaths:
     def load_query_properties_connected_elements(self, query_file_name):
         path = QueryPaths.PROPERTIES_CONNECTIONFOLDER
         graphql_path = os.path.join(path, query_file_name)
-        #print(f"graphql path: {graphql_path}")
         with open(graphql_path, 'r') as file:
             return file.read()
 

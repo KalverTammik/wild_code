@@ -461,7 +461,7 @@ class EasementPreviewDialog(QDialog):
 
     def _first_property_feature(self):
         layer = self._property_layer
-        if layer is None or not getattr(layer, "isValid", lambda: False)():
+        if layer is None or not layer.isValid():
             return None
 
         try:
@@ -493,7 +493,7 @@ class EasementPreviewDialog(QDialog):
             matches = []
         for layer in matches:
             try:
-                if getattr(layer, "isValid", lambda: False)():
+                if layer.isValid():
                     return layer
             except Exception:
                 continue
@@ -1644,7 +1644,7 @@ class EasementPreviewDialog(QDialog):
                 (
                     layer
                     for layer in preview_matches
-                    if getattr(layer, "isValid", lambda: False)()
+                    if layer.isValid()
                 ),
                 None,
             )

@@ -2,8 +2,11 @@ from typing import Iterable, List, Dict, Any
 
 from qgis.core import QgsVariantUtils
 
-from ...Logs.logger import warn
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.cadastral_fields import Katastriyksus
+
+# A layer without a field misses it on every row; it is logged once per caller and field.
+_MISSING_FIELDS_LOGGED: set[tuple[str, str]] = set()
 
 
 class PropertyRowBuilder:
@@ -28,7 +31,14 @@ class PropertyRowBuilder:
         try:
             value = obj[field_key]
         except Exception as exc:
-            warn(f"{log_prefix}: missing field '{field_key}' on feature: {exc}")
+            if (log_prefix, str(field_key)) not in _MISSING_FIELDS_LOGGED:
+                _MISSING_FIELDS_LOGGED.add((log_prefix, str(field_key)))
+                PythonFailLogger.log(
+                    "property_row_field_missing",
+                    module="property",
+                    message=str(exc),
+                    extra={"field": field_key, "source": log_prefix},
+                )
             return ""
         return PropertyRowBuilder.read_value(value)
 

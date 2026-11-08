@@ -18,6 +18,7 @@ from .utils.MapTools.MapHelpers import MapHelpers
 from .constants.layer_constants import IMPORT_PROPERTY_TAG
 from .ui.window_state.DialogCoordinator import get_dialog_coordinator
 from .constants.file_paths import ConfigPaths
+from .python.api_request_task import set_wait_window_style
 class WildCodePlugin:
     def __init__(self, iface):
         self.iface = iface
@@ -39,6 +40,7 @@ class WildCodePlugin:
         self.action.triggered.connect(self.run)
         self.iface.addToolBarIcon(self.action)
         self._crash_logger.start()
+        set_wait_window_style(ModernMessageDialog.style_as_message)
 
     def unload(self):
         try:
@@ -57,6 +59,7 @@ class WildCodePlugin:
                     pass
         finally:
             self.pluginDialog = None
+            set_wait_window_style(None)
             try:
                 self._crash_logger.stop()
             finally:

@@ -47,7 +47,7 @@ class EasementPdfService:
     ) -> tuple[bool, str]:
         pdf_path: Optional[Path] = None
         try:
-            if final_layer is None or not getattr(final_layer, "isValid", lambda: False)():
+            if final_layer is None or not final_layer.isValid():
                 return False, "Invalid final cut layer"
 
             final_features = cls._layer_features(final_layer, selected_only=False)
@@ -255,7 +255,7 @@ class EasementPdfService:
 
     @classmethod
     def _extent_from_layer(cls, layer, *, selected_only: bool) -> Optional[QgsRectangle]:
-        if layer is None or not getattr(layer, "isValid", lambda: False)():
+        if layer is None or not layer.isValid():
             return None
 
         features = cls._layer_features(layer, selected_only=selected_only)
@@ -316,7 +316,7 @@ class EasementPdfService:
 
     @classmethod
     def _layer_features(cls, layer, *, selected_only: bool) -> list:
-        if layer is None or not getattr(layer, "isValid", lambda: False)():
+        if layer is None or not layer.isValid():
             return []
         try:
             if selected_only:

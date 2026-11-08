@@ -67,7 +67,7 @@ class WorksLayerService:
 
     @classmethod
     def CUSTOM_FIELDS(cls) -> tuple[tuple[str, object], ...]:
-        integer_type = getattr(QVariant, "LongLong", QVariant.Int)
+        integer_type = QVariant.LongLong
         return (
             (cls.FIELD_EXT_JOB_ID, integer_type),
             (cls.FIELD_EXT_JOB_NAME, QVariant.String),
@@ -255,9 +255,9 @@ class WorksLayerService:
     def _field_type_matches(actual_type, expected_type) -> bool:
         integer_types = {
             QVariant.Int,
-            getattr(QVariant, "LongLong", QVariant.Int),
-            getattr(QVariant, "UInt", QVariant.Int),
-            getattr(QVariant, "ULongLong", QVariant.Int),
+            QVariant.LongLong,
+            QVariant.UInt,
+            QVariant.ULongLong,
         }
         if expected_type in integer_types:
             # Accept string fields for integer-backed properties in legacy or generic layers.
@@ -268,9 +268,9 @@ class WorksLayerService:
     def _variant_type_label(field_type) -> str:
         integer_types = {
             QVariant.Int,
-            getattr(QVariant, "LongLong", QVariant.Int),
-            getattr(QVariant, "UInt", QVariant.Int),
-            getattr(QVariant, "ULongLong", QVariant.Int),
+            QVariant.LongLong,
+            QVariant.UInt,
+            QVariant.ULongLong,
         }
         if field_type in integer_types:
             return "Integer"
@@ -1014,7 +1014,7 @@ class WorksLayerService:
                 return False
             return value
 
-        if field_type in (QVariant.Int, getattr(QVariant, "LongLong", QVariant.Int), getattr(QVariant, "UInt", QVariant.Int), getattr(QVariant, "ULongLong", QVariant.Int)):
+        if field_type in (QVariant.Int, QVariant.LongLong, QVariant.UInt, QVariant.ULongLong):
             return WorksLayerService.coerce_optional_int(value)
 
         if field_type == QVariant.String and isinstance(value, (dict, list)):

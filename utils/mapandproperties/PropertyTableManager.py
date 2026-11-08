@@ -345,7 +345,6 @@ class PropertyTableWidget:
     def _create_properties_table():
         """Create the properties table"""
         # Table section
-        lang_manager = LanguageManager()
 
         table_frame = QFrame()
         table_frame.setObjectName("TableFrame")

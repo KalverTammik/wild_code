@@ -1,7 +1,6 @@
 """Utility helpers for running blocking tasks off the UI thread."""
 
 from typing import Any, Callable, Optional
-import sys
 from threading import Event
 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
@@ -51,15 +50,12 @@ class FunctionWorker(QObject):
             return
         except Exception as exc:  # noqa: BLE001 - propagate as text
             SwitchLogger.log("worker_run_error", extra={"func": getattr(self._func, "__name__", "callable"), "error": str(exc)})
-            try:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=_resolve_module_name(self._func),
-                    event="worker_error",
-                    extra={"func": getattr(self._func, "__name__", "callable")},
-                )
-            except Exception as log_exc:
-                print(f"[FunctionWorker] Failed to log exception: {log_exc}", file=sys.stderr)
+            PythonFailLogger.log_exception(
+                exc,
+                module=_resolve_module_name(self._func),
+                event="worker_error",
+                extra={"func": getattr(self._func, "__name__", "callable")},
+            )
             self.error.emit(str(exc))
             return
         SwitchLogger.log("worker_run_done", extra={"func": getattr(self._func, "__name__", "callable")})

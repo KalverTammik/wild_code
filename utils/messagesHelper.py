@@ -24,6 +24,13 @@ class ModernMessageDialog:
         ThemeManager.apply_app_style(dialog, [QssPaths.MESSAGE_BOX, QssPaths.BUTTONS])
 
     @staticmethod
+    def style_as_message(dialog: QDialog) -> None:
+        """Gives a dialog built elsewhere the look of these messages, whichever window it opens over."""
+        dialog.setObjectName("ModernMessageDialog")
+        dialog.setProperty("messageType", "message")
+        ModernMessageDialog._apply_dialog_theme(dialog)
+
+    @staticmethod
     def Info_messages_modern(title: str, message: str):
         """Show an information message dialog with modern styling."""
         dialog = ModernMessageDialog._create_dialog(title, message, IconNames.INFO)

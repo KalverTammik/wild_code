@@ -81,10 +81,10 @@ class EasementLayerService:
         if layer is None:
             return ""
         try:
-            source = str(getattr(layer, "source", lambda: "")() or "").strip()
+            source = str(layer.source() or "").strip()
         except Exception:
             source = ""
-        name = str(getattr(layer, "name", lambda: "")() or "").strip()
+        name = str(layer.name() or "").strip()
         if name and source:
             return f"{name} ({source})"
         return name or source or ""
@@ -297,8 +297,8 @@ class EasementLayerService:
         values: list[str] = []
         try:
             widget_setup = layer.editorWidgetSetup(field_index)
-            widget_type = str(getattr(widget_setup, "type", lambda: "")() or "").strip().lower()
-            config = getattr(widget_setup, "config", lambda: {})() or {}
+            widget_type = str(widget_setup.type() or "").strip().lower()
+            config = widget_setup.config() or {}
             if widget_type == "valuemap":
                 raw_map = config.get("map") or config.get("Map") or []
                 if isinstance(raw_map, dict):

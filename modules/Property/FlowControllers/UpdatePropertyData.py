@@ -159,7 +159,6 @@ class UpdatePropertyData:
             )
             return False
 
-        #print(f"✔️ Final item_id to use: {item_id} ({type(item_id)})")
         module= Module.PROPERTY.name
         #tag_name = "Arhiveeritud"
         tag_name = TagsEngines.ARHIVEERITUD_TAG_NAME

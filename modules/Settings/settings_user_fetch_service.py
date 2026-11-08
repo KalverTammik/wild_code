@@ -10,13 +10,12 @@ from ...utils.auth.user_utils import UserUtils
 
 class SettingsUserFetchService:
     @staticmethod
-    def start_user_fetch(*, active_token, on_success, on_error, on_finished):
+    def start_user_fetch(*, on_success, on_error, on_finished):
         query_loader = GraphQLQueryLoader()
         api_client = APIClient(SessionManager(), ConfigPaths.CONFIG)
         fetcher = partial(UserUtils.fetch_user_payload, query_loader, api_client)
 
         worker = FunctionWorker(fetcher)
-        worker.active_token = active_token
         worker.finished.connect(on_success)
         worker.error.connect(on_error)
 

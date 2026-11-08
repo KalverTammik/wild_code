@@ -102,7 +102,6 @@ class MapHelpers:
         # uing traceback to find where its trigered from max of three levels
         #import traceback
         #show who is calling this function for debugging
-        #print("_get_layer_by_tag Called from:")
         #traceback.print_stack(limit=10)
       
 
@@ -111,7 +110,6 @@ class MapHelpers:
             return None
         for layer in project.mapLayers().values():
             if layer.customProperty(tag):
-                #print(f"[MapHelpers] Checking layer: {layer.name()} with tag {tag}: {layer.customProperty(tag)}")  
                 return layer
         return None
 
@@ -132,7 +130,7 @@ class MapHelpers:
                     continue
                 if not layer.customProperty(tag):
                     continue
-                if getattr(layer, "providerType", lambda: "")() != "memory":
+                if layer.providerType() != "memory":
                     continue
                 count = int(layer.featureCount() or 0)
                 if count > 0:
@@ -218,9 +216,7 @@ class MapHelpers:
             else:
                 extent.combineExtentWith(bb)
 
-        #print(f"Computed extent for zoom: {extent}")
         if extent is None or extent.isEmpty():
-            print("⚠️ Features had no valid geometry for zoom operation.")
             return
 
         # Optional: clear old selection (but don't do it unless you really mean it)
@@ -245,7 +241,6 @@ class MapHelpers:
         """Clear any filter applied to a layer."""
         if layer and layer.isValid():
             layer.setSubsetString("")
-            print(f"🔍 Cleared filter from layer '{layer.name()}'")
 
     @staticmethod
     def select_features_by_ids(layer: QgsVectorLayer, feature_ids: List[int], zoom: bool = False) -> None:
@@ -315,28 +310,22 @@ class MapHelpers:
         try:
             fields = layer.fields()
             if fields.indexOf(field_name) == -1:
-                try:
-                    PythonFailLogger.log(
-                        "property_layer_field_missing",
-                        module=Module.PROPERTY.value,
-                        extra={
-                            "field": field_name,
-                            "layer_name": layer.name(),
-                            "layer_id": layer.id(),
-                        },
-                    )
-                except Exception as log_exc:
-                    print(f"[MapHelpers] Failed to log missing field: {log_exc}")
+                PythonFailLogger.log(
+                    "property_layer_field_missing",
+                    module=Module.PROPERTY.value,
+                    extra={
+                        "field": field_name,
+                        "layer_name": layer.name(),
+                        "layer_id": layer.id(),
+                    },
+                )
                 return []
         except Exception as exc:
-            try:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="property_layer_field_check_error",
-                )
-            except Exception as log_exc:
-                print(f"[MapHelpers] Failed to log field check error: {log_exc}")
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_layer_field_check_error",
+            )
             return []
 
         clause = MapHelpers.build_subset_in_clause(field_name, values)
@@ -350,14 +339,11 @@ class MapHelpers:
             for feature in layer.getFeatures(request):
                 matches.append(feature)
         except Exception as exc:
-            try:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="property_layer_feature_iter_error",
-                )
-            except Exception as log_exc:
-                print(f"[MapHelpers] Failed to log feature iter error: {log_exc}")
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_layer_feature_iter_error",
+            )
             return []
         return matches
 

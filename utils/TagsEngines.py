@@ -55,9 +55,7 @@ class TagsEngines:
 
         data = _unwrap_data(response)
         created_tag = (data or {}).get("createTag") or {}
-        created_tag_id = created_tag["id"]
-        print(f"Tag created: ID {created_tag_id} -> Name: {created_tag['name']}")
-        return created_tag_id
+        return created_tag["id"]
 
     @staticmethod
     def get_modules_tag_id_by_name(tag_name: str,module: str) -> str: 
@@ -67,7 +65,6 @@ class TagsEngines:
 
         query_file = 'IDByModuleAndName.graphql'
         query = GraphQLQueryLoader().load_query_by_module(module=module_tags, query_filename=query_file)
-        #print(f"query_file: {query_file}, module: {module_tags}")
 
         variables = {
             "first": 50,
@@ -84,10 +81,8 @@ class TagsEngines:
         tags = ((data or {}).get("tags") or {}).get("edges") or []
         for tag in tags:
             if tag["node"]["name"].lower() == tag_name.lower():
-                #print(f"Found tag '{tag_name}' -> ID: {tag['node']['id']}")
                 return tag["node"]["id"]
 
-        #print(f"Tag '{tag_name}' not found in module '{module}'")
         return None
     
 
@@ -95,7 +90,6 @@ class TagsHelpers:
 
     @staticmethod
     def check_if_tag_exists(tag_name: str, module: str) -> bool:
-        #print(f"Checking if tag '{tag_name}' exists in module '{module}'...")
         tag_id = TagsEngines.get_modules_tag_id_by_name(tag_name=tag_name, module=module)
         if tag_id is None:
             res = TagsEngines.create_tag(tag_name=tag_name, module=module)

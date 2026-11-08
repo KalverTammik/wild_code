@@ -241,8 +241,6 @@ class StatusFilterWidget(QWidget):
                     return bool(parent.is_token_active(token))
                 except Exception:
                     return False
-            if hasattr(parent, "_active_token"):
-                return bool(getattr(parent, "_activated", False)) and token == parent._active_token
             parent = parent.parent()
         return True
 

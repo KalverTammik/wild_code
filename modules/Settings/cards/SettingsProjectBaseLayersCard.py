@@ -365,7 +365,6 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
 
         for row_item in self._mapping_row_items:
             combo = row_item["combo"]
-            ids_input = row_item["ids_input"]
             combo.setEnabled(mapping_controls_enabled)
             self._update_mapping_row_input_state(row_item, enable_input=mapping_controls_enabled)
 

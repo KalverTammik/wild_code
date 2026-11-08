@@ -20,7 +20,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
-from ...Logs.logger import error
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ..select_arrow import SelectArrow
 from ..theme_manager import ThemeManager
@@ -353,7 +353,7 @@ class BaseSingleFilterWidget(QWidget):
             self._loaded = False
             self._update_control_summary()
         except Exception as exc:
-            error(f"[{self.__class__.__name__}] clear_data failed: {exc}")
+            PythonFailLogger.log_exception(exc, module=self._module, event="filter_clear_failed")
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -382,7 +382,6 @@ class BaseSingleFilterWidget(QWidget):
                 self._support_key, self._module
             )
         )
-        worker.active_token = token
         worker.finished.connect(
             lambda payload, tok=token, req=request_id: self._handle_load_success(payload, tok, req)
         )
@@ -616,8 +615,6 @@ class BaseSingleFilterWidget(QWidget):
                     return bool(parent.is_token_active(token))
                 except Exception:
                     return False
-            if hasattr(parent, "_active_token"):
-                return bool(getattr(parent, "_activated", False)) and token == parent._active_token
             parent = parent.parent()
         return True
 

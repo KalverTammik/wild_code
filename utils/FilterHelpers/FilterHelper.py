@@ -15,7 +15,6 @@ class FilterHelper:
         key,
         module,
     ) -> Union[List[Dict[str, Optional[str]]], List[Tuple[str, str]]]:
-        #print(f"[FilterHelper] Fetching filter edges for key: {key}, module: {module}")
         key_map = {
             ModuleSupports.TAGS.value: "ListModuleTags.graphql",
             ModuleSupports.STATUSES.value: "ListModuleStatuses.graphql",

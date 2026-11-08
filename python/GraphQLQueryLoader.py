@@ -28,10 +28,7 @@ class GraphQLQueryLoader:
             message = f"unknown_module: {module}"
             raise ValueError(message)
         folder = getattr(QueryPaths, module_attr)
-        #print(f"[method load_query] Query folder found: {folder}")
         query_path = os.path.join(folder, query_filename)
-        #print(f"[method load_query] Loading GraphQL query from: {query_path}")  # Debug log
-        #print(f"[method load_query] Query file exists: {os.path.exists(query_path)}")
         if not os.path.exists(query_path):
             message = f"query_file_not_found: {query_path}"
             raise FileNotFoundError(message)

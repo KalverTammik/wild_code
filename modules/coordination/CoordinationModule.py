@@ -97,10 +97,6 @@ class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
-    def activate(self) -> None:
-        super().activate()
-        print("[CoordinationModule] Activated")
-
     def on_first_visible(self) -> None:
         self._ensure_filters_loaded()
         self._refresh_filters()
@@ -140,14 +136,14 @@ class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
             try:
                 widget.ensure_loaded()
             except Exception as exc:
-                print(f"[CoordinationModule] Failed to load filter widget: {exc}")
+                PythonFailLogger.log_exception(exc, module=self.module_key, event="filter_widget_load_failed")
 
     def _clear_filters(self) -> None:
         for widget in self._filter_widgets:
             try:
                 widget.clear_data()
             except Exception as exc:
-                print(f"[CoordinationModule] Failed to clear filter widget: {exc}")
+                PythonFailLogger.log_exception(exc, module=self.module_key, event="filter_widget_clear_failed")
 
     def load_next_batch(self):
         return self.process_next_batch()

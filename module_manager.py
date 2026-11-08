@@ -39,7 +39,6 @@ class ModuleManager:
         Register a module with its class and init parameters.
         The instance will be created lazily on first activation.
         """
-        #print(f"[ModuleManager.registerModule] Registering module: {module_name}")
         self.modules[module_name.lower()] = {
             "module_class": module_class,  # Factory: the class to instantiate
             "init_params": init_params,    # Params for __init__ (e.g., qss_files, lang_manager)
@@ -60,7 +59,6 @@ class ModuleManager:
             return
         if module_name.capitalize() not in MODULES_LIST_BY_NAME:
             MODULES_LIST_BY_NAME.append(module_name.capitalize())
-        #print(f"[ModuleManager.registerModule] Registered module names in MODULES_LIST_BY_NAME: {MODULES_LIST_BY_NAME}")
 
     def activateModule(self, moduleName):
         """Activate a module by its name, reusing instances when available."""

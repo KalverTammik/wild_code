@@ -41,7 +41,6 @@ class SettingsLogic:
         
 
     def get_module_access_from_abilities(self, subjects) -> Dict[str, bool]:
-        #print(f"[SettingsLogic.get_module_access_from_abilities] abilities_raw: {abilities_raw}")
         
         # Return access for all modules, including Property for UserCard preferred selection
         access: Dict[str, bool] = {}
@@ -55,7 +54,6 @@ class SettingsLogic:
                 continue
             else:
                 access[mod] = access.get(mod, False) or has_access
-        #print(f"[SettingsLogic.get_module_access_from_abilities] computed access: {access}")
         return access
 
     @staticmethod

@@ -507,9 +507,9 @@ class GeospatialLayerMapperDialog(QDialog):
 
         integer_types = {
             QVariant.Int,
-            getattr(QVariant, "LongLong", QVariant.Int),
-            getattr(QVariant, "UInt", QVariant.Int),
-            getattr(QVariant, "ULongLong", QVariant.Int),
+            QVariant.LongLong,
+            QVariant.UInt,
+            QVariant.ULongLong,
         }
         if target_type in integer_types:
             return source_type in integer_types
@@ -527,9 +527,9 @@ class GeospatialLayerMapperDialog(QDialog):
     def _field_type_label(field_type) -> str:
         integer_types = {
             QVariant.Int,
-            getattr(QVariant, "LongLong", QVariant.Int),
-            getattr(QVariant, "UInt", QVariant.Int),
-            getattr(QVariant, "ULongLong", QVariant.Int),
+            QVariant.LongLong,
+            QVariant.UInt,
+            QVariant.ULongLong,
         }
         if field_type in integer_types:
             return "Integer"
@@ -554,9 +554,9 @@ class GeospatialLayerMapperDialog(QDialog):
 
         integer_types = {
             QVariant.Int,
-            getattr(QVariant, "LongLong", QVariant.Int),
-            getattr(QVariant, "UInt", QVariant.Int),
-            getattr(QVariant, "ULongLong", QVariant.Int),
+            QVariant.LongLong,
+            QVariant.UInt,
+            QVariant.ULongLong,
         }
         if field_type == QVariant.Bool:
             if isinstance(value, bool):

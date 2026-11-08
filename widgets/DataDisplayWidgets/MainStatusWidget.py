@@ -78,9 +78,6 @@ class MainStatusWidget(QWidget):
         self._shell_border = "rgba(25,35,45,0.12)" if not dark_theme else "rgba(255,255,255,0.10)"
         self._glow_alpha = 0.26 if not dark_theme else 0.32
         self._core_alpha = 0.56 if not dark_theme else 0.62
-        shell_radius = max(2, min(10, self.RAIL_WIDTH))
-        core_radius = max(2, min(8, self.RAIL_WIDTH - 1))
-        glow_radius = max(1, min(6, self.RAIL_WIDTH - 2))
         inner_glow_width = max(1, self.RAIL_WIDTH - 2)
 
         root = QHBoxLayout(self)

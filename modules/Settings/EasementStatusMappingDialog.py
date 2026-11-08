@@ -47,7 +47,7 @@ class EasementStatusMappingDialog(QDialog):
         layout = QVBoxLayout(self)
         description = QLabel(
             self._lang.translate(TranslationKeys.EASEMENT_STATUS_MAPPING_DESCRIPTION).format(
-                layer=getattr(self._layer, "name", lambda: "")() if self._layer is not None else "-",
+                layer=self._layer.name() if self._layer is not None else "-",
                 field=self._status_field_name or "-",
             )
         )

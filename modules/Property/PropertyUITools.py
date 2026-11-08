@@ -1,5 +1,4 @@
 from typing import Optional
-import sys
 
 from PyQt5.QtCore import QThread
 try:
@@ -67,7 +66,7 @@ class PropertyUITools:
                 )
                 return False
         try:
-            if hasattr(layer, "isValid") and not layer.isValid():
+            if not layer.isValid():
                 return False
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -129,14 +128,11 @@ class PropertyUITools:
             return
         active_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
         if not active_layer:
-            try:
-                PythonFailLogger.log(
-                    "property_layer_missing",
-                    module=Module.PROPERTY.value,
-                    message="Active property layer not found when selecting from map",
-                )
-            except Exception as exc:
-                print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
+            PythonFailLogger.log(
+                "property_layer_missing",
+                module=Module.PROPERTY.value,
+                message="Active property layer not found when selecting from map",
+            )
             return
 
         started = self._selection_orchestrator.start_selection_for_layer(
@@ -184,14 +180,11 @@ class PropertyUITools:
             return
 
         if not self._is_layer_valid(active_layer):
-            try:
-                PythonFailLogger.log(
-                    "property_layer_invalid",
-                    module=Module.PROPERTY.value,
-                    message="Active layer invalid or deleted",
-                )
-            except Exception as exc:
-                print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
+            PythonFailLogger.log(
+                "property_layer_invalid",
+                module=Module.PROPERTY.value,
+                message="Active layer invalid or deleted",
+            )
             return
 
         features = active_layer.selectedFeatures()
@@ -282,15 +275,11 @@ class PropertyUITools:
             )
 
         except Exception as e:
-            try:
-                PythonFailLogger.log_exception(
-                    e,
-                    module=Module.PROPERTY.value,
-                    event="property_display_error",
-                )
-            except Exception as exc:
-                print(f"[PropertyUITools] log_exception failed: {exc}", file=sys.stderr)
-            print(f"Error updating property display: {e}")
+            PythonFailLogger.log_exception(
+                e,
+                module=Module.PROPERTY.value,
+                event="property_display_error",
+            )
             return
         if trigger_connections:
             self._load_property_connections(cadastral_value)
@@ -335,7 +324,6 @@ class PropertyUITools:
         token = self._current_token()
 
         worker = FunctionWorker(self._data_service.build_connections_for_cadastral, cadastral_number)
-        worker.active_token = token
 
         # eeldus: FunctionWorker.finished emiteerib payload (nt dict)
         worker.finished.connect(
@@ -364,7 +352,6 @@ class PropertyUITools:
         token = self._current_token()
 
         worker = FunctionWorker(self._fetch_property_payload, item_id)
-        worker.active_token = token
         worker.finished.connect(
             lambda payload, tok=token: self._handle_property_lookup_success(payload, tok)
         )
@@ -424,15 +411,12 @@ class PropertyUITools:
                     self._show_tree_message(missing_on_layer_message)
                     self._show_property_not_found_in_header()
             else:
-                try:
-                    PythonFailLogger.log(
-                        "property_layer_invalid",
-                        module=Module.PROPERTY.value,
-                        message="Layer invalid after search map lookup",
-                        extra={"cadastral": cadastral_number},
-                    )
-                except Exception as exc:
-                    print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
+                PythonFailLogger.log(
+                    "property_layer_invalid",
+                    module=Module.PROPERTY.value,
+                    message="Layer invalid after search map lookup",
+                    extra={"cadastral": cadastral_number},
+                )
                 self._show_tree_message(missing_on_layer_message)
                 self._show_property_not_found_in_header()
         else:
@@ -524,15 +508,12 @@ class PropertyUITools:
         if not self._is_token_active(token):
             return
 
-        try:
-            PythonFailLogger.log(
-                "property_connections_error",
-                module=Module.PROPERTY.value,
-                message=error_message,
-                extra={"token": token},
-            )
-        except Exception as exc:
-            print(f"[PropertyUITools] log failed: {exc}", file=sys.stderr)
+        PythonFailLogger.log(
+            "property_connections_error",
+            module=Module.PROPERTY.value,
+            message=error_message,
+            extra={"token": token},
+        )
 
         ui = self._get_active_ui()
         tree_widget = ui.tree_section if ui else None

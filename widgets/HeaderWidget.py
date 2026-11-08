@@ -205,7 +205,6 @@ class HeaderWidget(QWidget):
         # Re-show the current search results with updated expansion state
         query = self.searchEdit.text().strip()
         if len(query) >= 3:
-            # print(f"[DEBUG] Refreshing search results for '{query}'")
             self._perform_search()
 
     def _on_search_status(self, message: str) -> None:

@@ -71,7 +71,7 @@ class FooterWidget(QWidget):
         if not self._version_label:
             return
 
-        qgis_version = getattr(Qgis, "QGIS_VERSION", "?")
+        qgis_version = Qgis.QGIS_VERSION
         plugin_version = ConfigPaths.PLUGIN_VERSION
         is_dev = ConfigPaths.IS_DEV
         env_suffix = " DEV" if is_dev else ""

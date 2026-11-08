@@ -52,19 +52,16 @@ class SHPLayerLoader:
         self.engine = get_layer_engine()
 
     def load_shp_layer(self) -> SHPLoadResult:
-        print("[SHPLayerLoader] Starting load_shp_layer")
         PythonFailLogger.log("shp_loader_start", module="property")
 
         file_path = self._get_shp_file_path()
         if not file_path:
-            print("[SHPLayerLoader] No file selected (cancelled)")
             PythonFailLogger.log("shp_loader_cancelled", module="property")
             return SHPLoadResult(SHPLoadStatus.CANCELLED)
 
         layer_name = os.path.splitext(os.path.basename(file_path))[0]
         shp_layer = QgsVectorLayer(file_path, layer_name, "ogr")
         if not shp_layer.isValid():
-            print("[SHPLayerLoader] QgsVectorLayer is not valid")
             PythonFailLogger.log(
                 "shp_loader_invalid_source_layer",
                 module="property",
@@ -80,14 +77,12 @@ class SHPLayerLoader:
         if bootstrap_cancelled:
             return SHPLoadResult(SHPLoadStatus.CANCELLED)
 
-        print("[SHPLayerLoader] Importing shapefile to memory layer")
         memory_layer = self.engine.import_shapefile_to_memory_layer(
             shp_layer=shp_layer,
             layer_name=layer_name,
             group_name=self.target_group,
             parent_widget=self.parent,
         )
-        print(f"[SHPLayerLoader] Import result layer: {memory_layer}")
         PythonFailLogger.log(
             "shp_loader_import_result",
             module="property",
@@ -96,7 +91,6 @@ class SHPLayerLoader:
 
         memory_layer = self._resolve_import_result(memory_layer, layer_name)
         if memory_layer is None:
-            print("[SHPLayerLoader] Import did not return a valid memory layer")
             PythonFailLogger.log(
                 "shp_loader_memory_layer_missing",
                 module="property",
@@ -108,10 +102,6 @@ class SHPLayerLoader:
                 error_message=self.lang_manager.translate(TranslationKeys.SHAPEFILE_LOAD_FAILED_MESSAGE),
             )
 
-        print(
-            "[SHPLayerLoader] Memory layer found; setting tag and applying style. "
-            f"Feature count pre-style: {memory_layer.featureCount()}"
-        )
         memory_layer.setCustomProperty(IMPORT_PROPERTY_TAG, "true")
         if memory_layer.isEditable():
             memory_layer.commitChanges()
@@ -134,7 +124,6 @@ class SHPLayerLoader:
                 )
 
         feature_count = memory_layer.featureCount()
-        print(f"[SHPLayerLoader] Final feature_count={feature_count}")
         PythonFailLogger.log(
             "shp_loader_success",
             module="property",

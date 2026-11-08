@@ -231,8 +231,8 @@ class LayerProcessingService:
                 module="layers",
                 event="layer_processing_select_by_location_failed",
                 extra={
-                    "source": getattr(source_layer, "name", lambda: "")(),
-                    "overlay": getattr(overlay_layer, "name", lambda: "")(),
+                    "source": source_layer.name(),
+                    "overlay": overlay_layer.name(),
                 },
             )
             return 0

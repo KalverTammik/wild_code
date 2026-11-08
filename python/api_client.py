@@ -1,6 +1,7 @@
 import os
 import platform
 import json
+import re
 import time
 import mimetypes
 import requests
@@ -11,6 +12,7 @@ from qgis.PyQt.QtCore import QThread
 from qgis.PyQt.QtWidgets import QApplication
 from ..utils.SessionManager import SESSION_REASON_UNAUTHENTICATED, SessionManager
 from ..constants.file_paths import ConfigPaths, GraphQLSettings
+from ..Logs.python_fail_logger import PythonFailLogger
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.api_error_handling import (
@@ -24,6 +26,9 @@ from .api_rate_limit import ApiRateLimitError, RequestCancelled
 from .api_request_task import send_api_request
 
 class APIClient:
+    # A server category is a short code; anything else in the body stays out of the UI and the logs.
+    _CATEGORY_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]{1,63}$")
+
     def __init__(self, session_manager=None, config_path=None):
         self.lang = LanguageManager()
         self.session_manager = session_manager or SessionManager()
@@ -36,6 +41,34 @@ class APIClient:
             template.format(status_code=int(status_code)),
         )
 
+
+    def _forbidden_error(self, response) -> str:
+        reason = self._forbidden_reason(response)
+        PythonFailLogger.log("api_request_forbidden", module="api", extra={"reason": reason})
+        return tag_message(
+            ApiErrorKind.SERVER,
+            self.lang.translate(TranslationKeys.SERVER_REQUEST_REFUSED).format(reason=reason),
+        )
+
+    @classmethod
+    def _forbidden_reason(cls, response) -> str:
+        if "challenge" in str(response.headers.get("cf-mitigated", "")).lower():
+            return "Cloudflare challenge"
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+        extensions = []
+        if isinstance(body, dict):
+            errors = body.get("errors")
+            if isinstance(errors, list):
+                extensions = [error.get("extensions") for error in errors if isinstance(error, dict)]
+            extensions.append(body.get("extensions"))
+        for extension in extensions:
+            category = str(extension.get("category") or "") if isinstance(extension, dict) else ""
+            if cls._CATEGORY_PATTERN.match(category):
+                return category
+        return "HTTP 403"
 
     def send_query(
         self,
@@ -93,8 +126,6 @@ class APIClient:
                 token = self.session_manager.get_token()
                 if token:
                     headers["Authorization"] = f"Bearer {token}"
-                else:
-                    print("[DEBUG] No auth token available!")
 
             try:
                 response = send_api_request(
@@ -104,8 +135,11 @@ class APIClient:
                     retry_rate_limits=retry_rate_limits,
                 )
 
-                if response.status_code in (401, 403):
-                    raise Exception(tag_message(ApiErrorKind.AUTH, "Unauthenticated"))
+                if response.status_code == 401:
+                    raise Exception(tag_message(ApiErrorKind.AUTH, "HTTP 401 Unauthenticated"))
+                if response.status_code == 403:
+                    # Cloudflare, an IP rule or missing access refuse with 403; the session itself is fine.
+                    raise Exception(self._forbidden_error(response))
 
                 if response.status_code >= 500:
                     if attempt < network_attempts:
@@ -151,6 +185,8 @@ class APIClient:
                     kind = ApiErrorKind.UNKNOWN
 
                 if require_auth and kind == ApiErrorKind.AUTH:
+                    # Named before the message turns into the general expiry text, so the log tells why.
+                    PythonFailLogger.log("api_session_rejected", module="auth", extra={"cause": msg})
                     # Runs on worker threads too; SessionManager hands the UI part to the GUI thread.
                     SessionManager.invalidate_session(reason=SESSION_REASON_UNAUTHENTICATED)
                     msg2 = tag_message(
@@ -323,8 +359,11 @@ class APIClient:
                     cost=api_rate_limit.mutation_cost(query), is_main_thread=is_main_thread,
                 )
 
-                if response.status_code in (401, 403):
-                    raise Exception(tag_message(ApiErrorKind.AUTH, "Unauthenticated"))
+                if response.status_code == 401:
+                    raise Exception(tag_message(ApiErrorKind.AUTH, "HTTP 401 Unauthenticated"))
+                if response.status_code == 403:
+                    # Cloudflare, an IP rule or missing access refuse with 403; the session itself is fine.
+                    raise Exception(self._forbidden_error(response))
 
                 if response.status_code >= 500:
                     if attempt < network_attempts:
@@ -367,6 +406,8 @@ class APIClient:
                     kind = ApiErrorKind.UNKNOWN
 
                 if require_auth and kind == ApiErrorKind.AUTH:
+                    # Named before the message turns into the general expiry text, so the log tells why.
+                    PythonFailLogger.log("api_session_rejected", module="auth", extra={"cause": msg})
                     # Runs on worker threads too; SessionManager hands the UI part to the GUI thread.
                     SessionManager.invalidate_session(reason=SESSION_REASON_UNAUTHENTICATED)
                     raise Exception(tag_message(
@@ -412,7 +453,7 @@ class APIClient:
                 self.lang.translate(TranslationKeys.MFA_SETUP_REQUIRED),
             )
         if self._errors_include_unauthenticated(errors):
-            return tag_message(ApiErrorKind.AUTH, "Unauthenticated")
+            return tag_message(ApiErrorKind.AUTH, "GraphQL Unauthenticated")
         message = self._extract_error_message(errors)
         return tag_message(ApiErrorKind.GRAPHQL, message or "GraphQL error")
 

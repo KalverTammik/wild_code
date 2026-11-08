@@ -221,7 +221,7 @@ class WorksSyncService(QObject):
             for feature_id, updates, feature in pending_updates:
                 geometry_update = updates.pop("__geometry", None)
                 if isinstance(geometry_update, QgsGeometry):
-                    current_geometry = feature.geometry() if hasattr(feature, "geometry") else None
+                    current_geometry = feature.geometry()
                     if not self._geometries_equal(current_geometry, geometry_update):
                         if layer.changeGeometry(feature_id, geometry_update):
                             changed = True

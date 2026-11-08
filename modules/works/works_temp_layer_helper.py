@@ -188,7 +188,7 @@ class WorksTempLayerHelper:
     @staticmethod
     def _build_fields() -> QgsFields:
         fields = QgsFields()
-        integer_type = getattr(QVariant, "LongLong", QVariant.Int)
+        integer_type = QVariant.LongLong
 
         fields.append(QgsField("ext_job_id", integer_type))
         fields.append(QgsField("ext_job_name", QVariant.String))

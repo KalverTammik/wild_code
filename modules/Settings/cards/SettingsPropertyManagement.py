@@ -3,6 +3,7 @@
 from ....constants.button_props import ButtonVariant
 from ....constants.settings_keys import SettingsService
 from qgis.utils import iface
+from PyQt5.QtCore import QCoreApplication, QEventLoop
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton
 from qgis.core import QgsProject
 
@@ -12,6 +13,7 @@ from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....utils.SHPLayerLoader import SHPLayerLoader, SHPLoadStatus
 from ....utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
 from ....widgets.AddUpdatePropertyDialog import AddPropertyDialog, PropertyDialogMode
+from ....widgets.ProgressDialogModern import ProgressDialogModern
 from ....modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
 from ....modules.Property.FlowControllers.MainDeleteProperties import DeletePropertyUI
 from ....languages.translation_keys import TranslationKeys
@@ -329,12 +331,29 @@ class PropertyManagementUI(SettingsBaseCard):
         if not main_layer:
             return
 
-        ok, error, changed_count = PropertySearchFieldService.ensure_search_field(
-            main_layer,
+        progress = ProgressDialogModern(
+            title=self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_PROGRESS_TITLE),
+            maximum=int(main_layer.featureCount() or 0),
             parent=self,
-            progress_title=self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_PROGRESS_TITLE),
-            progress_label=self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_PROGRESS_LABEL),
         )
+        # The field is written in one edit session and committed as a whole, so it cannot stop halfway.
+        progress.cancel_button.hide()
+        label = self.lang_manager.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_PROGRESS_LABEL)
+        progress.update(value=0, text1=label)
+        progress.show()
+
+        def show_progress(done: int, _total: int) -> None:
+            progress.update(value=done, text1=label)
+            # Repaints only: a click must not start another action while the layer is being edited.
+            QCoreApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
+
+        try:
+            ok, error, changed_count = PropertySearchFieldService.ensure_search_field(
+                main_layer,
+                on_progress=show_progress,
+            )
+        finally:
+            progress.close()
         if ok:
             self._update_search_field_button_state()
             ModernMessageDialog.show_info(
@@ -414,7 +433,7 @@ class PropertyManagementUI(SettingsBaseCard):
             return 0
 
         try:
-            layer_id = shp_layer.id() if hasattr(shp_layer, "id") else None
+            layer_id = shp_layer.id()
         except Exception:
             layer_id = None
 

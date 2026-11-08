@@ -139,14 +139,14 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, ModuleBaseUI):
             try:
                 widget.ensure_loaded()
             except Exception as exc:
-                print(f"[ProjectsModule] Failed to load filter widget: {exc}")
+                PythonFailLogger.log_exception(exc, module=self.module_key, event="filter_widget_load_failed")
 
     def _clear_filters(self) -> None:
         for widget in self._filter_widgets:
             try:
                 widget.clear_data()
             except Exception as exc:
-                print(f"[ProjectsModule] Failed to clear filter widget: {exc}")
+                PythonFailLogger.log_exception(exc, module=self.module_key, event="filter_widget_clear_failed")
 
     # --- Andmete laadimine ---
     def load_next_batch(self):

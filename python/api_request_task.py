@@ -17,6 +17,15 @@ from . import api_rate_limit
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys as K
 
+# The UI layer passes the Kavitro look in at start-up (main.py), so this transport imports no plugin UI.
+_wait_window_style = None
+
+
+def set_wait_window_style(style) -> None:
+    """Styles each wait window as it is made; None leaves Qt's own look."""
+    global _wait_window_style
+    _wait_window_style = style
+
 
 class _RequestThread(QThread):
     waiting = pyqtSignal(float, str)
@@ -59,7 +68,7 @@ class _RequestDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(self.label)
         layout.addWidget(bar)
-        layout.addWidget(self.cancel_button)
+        layout.addWidget(self.cancel_button, 0, Qt.AlignRight)
         self.cancel_event = Event()
         self.active_requests = 0
         # A zero timer runs only once the GUI thread is back in an event loop. A flow sends
@@ -68,6 +77,10 @@ class _RequestDialog(QDialog):
         self.close_timer.setSingleShot(True)
         self.close_timer.setInterval(0)
         self.close_timer.timeout.connect(self.close_window)
+        # The parent is whichever window is active; during a map pick that is QGIS itself, so the look
+        # cannot be inherited from it.
+        if _wait_window_style is not None:
+            _wait_window_style(self)
 
     @classmethod
     def for_request(cls):

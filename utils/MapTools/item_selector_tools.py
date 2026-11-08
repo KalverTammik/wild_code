@@ -34,7 +34,7 @@ class PropertiesSelectors:
                 )
                 return False
         try:
-            if hasattr(layer, "isValid") and not layer.isValid():
+            if not layer.isValid():
                 return False
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -67,68 +67,53 @@ class PropertiesSelectors:
         layer = PropertiesSelectors._resolve_property_layer(module=module, use_shp=use_shp)
         
         if not layer:
-            try:
-                PythonFailLogger.log(
-                    "property_layer_missing",
-                    module=Module.PROPERTY.value,
-                    message="Layer not found in show_connected_properties_on_map",
-                    extra={"module": module or Module.PROPERTY.value},
-                )
-            except Exception as exc:
-                print(f"[PropertiesSelectors] Failed to log missing layer: {exc}")
+            PythonFailLogger.log(
+                "property_layer_missing",
+                module=Module.PROPERTY.value,
+                message="Layer not found in show_connected_properties_on_map",
+                extra={"module": module or Module.PROPERTY.value},
+            )
             return
 
         if not PropertiesSelectors._is_layer_valid(layer):
-            try:
-                PythonFailLogger.log(
-                    "property_layer_invalid",
-                    module=Module.PROPERTY.value,
-                    message="Layer invalid in show_connected_properties_on_map",
-                )
-            except Exception as exc:
-                print(f"[PropertiesSelectors] Failed to log invalid layer: {exc}")
+            PythonFailLogger.log(
+                "property_layer_invalid",
+                module=Module.PROPERTY.value,
+                message="Layer invalid in show_connected_properties_on_map",
+            )
             return
 
         try:
             features = MapHelpers.find_features_by_fields_and_values(layer, Katastriyksus.tunnus, values)
         except Exception as exc:
-            try:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="property_layer_access_error",
-                )
-            except Exception as log_exc:
-                print(f"[PropertiesSelectors] Failed to log access error: {log_exc}")
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_layer_access_error",
+            )
             return layer
         feature_ids = [feature.id() for feature in features]
         if not feature_ids:
-            try:
-                PythonFailLogger.log(
-                    "property_feature_not_found",
-                    module=Module.PROPERTY.value,
-                    extra={
-                        "layer_name": getattr(layer, "name", lambda: "")(),
-                        "layer_id": getattr(layer, "id", lambda: "")(),
-                        "cadastral": ",".join([str(v) for v in (values or [])]),
-                    },
-                )
-            except Exception as exc:
-                print(f"[PropertiesSelectors] Failed to log feature not found: {exc}")
+            PythonFailLogger.log(
+                "property_feature_not_found",
+                module=Module.PROPERTY.value,
+                extra={
+                    "layer_name": layer.name(),
+                    "layer_id": layer.id(),
+                    "cadastral": ",".join([str(v) for v in (values or [])]),
+                },
+            )
             return None
 
         try:
             MapHelpers.ensure_layer_visible(layer, make_active=True)
             layer.removeSelection()
         except Exception as exc:
-            try:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="property_layer_access_error",
-                )
-            except Exception as log_exc:
-                print(f"[PropertiesSelectors] Failed to log access error: {log_exc}")
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_layer_access_error",
+            )
             return None
 
         MapHelpers._zoom_to_features_in_layer(features, layer, select=True)
@@ -183,12 +168,9 @@ class PropertiesSelectors:
                 pass
             return layer
         except Exception as exc:
-            try:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.PROPERTY.value,
-                    event="property_layer_access_error",
-                )
-            except Exception as log_exc:
-                print(f"[PropertiesSelectors] Failed to log access error: {log_exc}")
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_layer_access_error",
+            )
             return layer

@@ -234,7 +234,7 @@ class ProjectPreviewDialog(QDialog):
 
     def _refresh_target_layer_label(self) -> None:
         layer = ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
-        self._target_layer_label.setText(getattr(layer, "name", lambda: "")() if layer is not None else "-")
+        self._target_layer_label.setText(layer.name() if layer is not None else "-")
 
     def _refresh_connected_properties_label(self) -> None:
         count = len(self._connected_property_numbers)
@@ -687,7 +687,7 @@ class ProjectPreviewDialog(QDialog):
                 self._lang.translate(TranslationKeys.SUCCESS),
                 self._lang.translate(TranslationKeys.PROJECT_PREVIEW_SAVE_SUCCESS).format(
                     item_id=self._item_id,
-                    layer=message or getattr(target_layer, "name", lambda: "")() or "-",
+                    layer=message or target_layer.name() or "-",
                 ),
             )
             return

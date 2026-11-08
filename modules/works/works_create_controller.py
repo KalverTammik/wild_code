@@ -251,7 +251,7 @@ class WorksCreateController:
             parent_window=parent_window,
             progress_anchor=progress_anchor,
         )
-        if hasattr(progress, "show_near_anchor"):
+        if isinstance(progress, _MapButtonProgressBubble):
             progress.show_near_anchor()
         else:
             progress.show()
@@ -276,6 +276,9 @@ class WorksCreateController:
         progress.setWindowModality(Qt.ApplicationModal)
         progress.setMinimumDuration(0)
         progress.setCancelButton(None)
+        # The same look and width as the other short waits; without it the window takes QGIS's own.
+        progress.setMinimumWidth(380)
+        ModernMessageDialog.style_as_message(progress)
         return progress
 
     def _decorate_pending_gis_rows(self, rows: list[dict[str, object]]) -> list[dict[str, object]]:

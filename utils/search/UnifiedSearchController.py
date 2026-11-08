@@ -1,5 +1,4 @@
 from typing import Any, Dict, List
-import sys
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from ...python.api_client import APIClient
@@ -36,19 +35,14 @@ class UnifiedSearchController(QObject):
 
         lifecycle_token = self._current_token()
         request_token = self._next_request_token()
-        self.searchStatus.emit(f'Otsin "{cleaned}"…')
-        try:
-            PythonFailLogger.log(
-                "search_start",
-                message=cleaned,
-                extra={"token": lifecycle_token, "request_token": request_token},
-            )
-        except Exception as exc:
-            print(f"[UnifiedSearchController] search_start log failed: {exc}", file=sys.stderr)
+        self.searchStatus.emit(LanguageManager().translate(TranslationKeys.SEARCH_STATUS_SEARCHING).format(term=cleaned))
+        PythonFailLogger.log(
+            "search_start",
+            message=cleaned,
+            extra={"token": lifecycle_token, "request_token": request_token},
+        )
 
         worker = FunctionWorker(self._run_search, cleaned)
-        worker.active_token = lifecycle_token
-        worker.search_request_token = request_token
         worker.finished.connect(
             lambda payload, tok=lifecycle_token, req=request_token: self._handle_success(payload, tok, req)
         )
@@ -119,13 +113,10 @@ class UnifiedSearchController(QObject):
             extra={"token": token, "current": self._current_token(), "request_token": request_token},
         )
         normalized = self._normalize_payload(payload)
-        try:
-            PythonFailLogger.log(
-                "search_success",
-                extra={"token": token, "request_token": request_token, "results": len(normalized)},
-            )
-        except Exception as exc:
-            print(f"[UnifiedSearchController] search_success log failed: {exc}", file=sys.stderr)
+        PythonFailLogger.log(
+            "search_success",
+            extra={"token": token, "request_token": request_token, "results": len(normalized)},
+        )
         self.searchSucceeded.emit(normalized)
 
     def _handle_error(self, message: str, token: int | None, request_token: int) -> None:
@@ -145,14 +136,11 @@ class UnifiedSearchController(QObject):
             "search_token_ok",
             extra={"token": token, "current": self._current_token(), "request_token": request_token},
         )
-        try:
-            PythonFailLogger.log(
-                "search_error",
-                message=message,
-                extra={"token": token, "request_token": request_token},
-            )
-        except Exception as exc:
-            print(f"[UnifiedSearchController] search_error log failed: {exc}", file=sys.stderr)
+        PythonFailLogger.log(
+            "search_error",
+            message=message,
+            extra={"token": token, "request_token": request_token},
+        )
         friendly = message or LanguageManager().translate(TranslationKeys.SEARCH_FAILED)
         self.searchFailed.emit(friendly)
 

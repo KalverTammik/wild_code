@@ -131,10 +131,8 @@ class SearchResultsWidget(QDialog):
             results: Raw search data from API with module types and hits
             search_field: The QLineEdit widget to position below
         """
-        # print(f"[DEBUG] SearchResultsWidget.show_results called with {len(results)} module types")
         self.expanded_modules.clear()
         if not results:
-            # print("[DEBUG] No results to show, hiding widget")
             self.hide()
             return
 
@@ -202,7 +200,6 @@ class SearchResultsWidget(QDialog):
             self.set_size(search_field)
         self._refocus_search_field(search_field)
 
-        # print("[DEBUG] Showing grouped search results")
         self.resultsList.viewport().repaint()
         self.show()
         self.raise_()
@@ -217,7 +214,6 @@ class SearchResultsWidget(QDialog):
             search_term: The search term that returned no results
             search_field: The QLineEdit widget to position below
         """
-        # print(f"[DEBUG] SearchResultsWidget.show_no_results called for term: '{search_term}'")
 
         # Ensure widget is visible (in case it was manually closed)
         self.expanded_modules.clear()
@@ -245,7 +241,6 @@ class SearchResultsWidget(QDialog):
             self.set_size(search_field)
         self._refocus_search_field(search_field)
 
-        # print("[DEBUG] Showing no results message")
         self.show()
         self.raise_()
 
@@ -300,7 +295,6 @@ class SearchResultsWidget(QDialog):
             if not self.geometry().contains(event.globalPos()):
                 widget_at_pos = QApplication.widgetAt(event.globalPos())
                 if widget_at_pos is None or not self.isAncestorOf(widget_at_pos):
-                    print("[DEBUG] Click outside SearchResultsWidget detected, hiding popup")
                     self.hide_results()
                     return True
         # Never take focus, never respond to keyboard events
@@ -309,25 +303,21 @@ class SearchResultsWidget(QDialog):
         return False
 
     def _on_application_focus_changed(self, old, new):
-        """Handle application focus changes to close dialog when switching away from QGIS, with debug logging."""
+        """Handle application focus changes to close dialog when switching away from QGIS."""
         if not self._focus_connection_made:
             return
 
         if self.isVisible() and new is None:
-            print("[DEBUG] Focus moved outside QGIS application, hiding popup")
             self.hide_results()
         elif self.isVisible() and new is not None:
             # If focus moves to the search field, do not hide
             if hasattr(self.parent(), 'searchEdit') and new == self.parent().searchEdit:
-                print("[DEBUG] Focus moved to search field, keeping popup open")
                 return
-            print(f"[DEBUG] Focus changed to {new}, hiding popup")
             self.hide_results()
 
     def _on_item_clicked(self, item):
         """Handle result item click."""
         data = item.data(Qt.UserRole)
-        # print(f"[DEBUG] Clicked item: {data}")
 
         if not data:
             return
@@ -346,7 +336,6 @@ class SearchResultsWidget(QDialog):
             # Show more item - expand this module type
             module = data.get("module", "")
             self.expanded_modules.add(module)
-            # print(f"[DEBUG] Expanding module: {module}")
             self.refreshRequested.emit()
 
         elif item_type == "header":
@@ -354,10 +343,8 @@ class SearchResultsWidget(QDialog):
             module = data.get("module", "")
             if module in self.expanded_modules:
                 self.expanded_modules.remove(module)
-                # print(f"[DEBUG] Collapsing module: {module}")
             else:
                 self.expanded_modules.add(module)
-                # print(f"[DEBUG] Expanding module: {module}")
             self.refreshRequested.emit()
 
 

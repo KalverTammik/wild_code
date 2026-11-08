@@ -616,8 +616,7 @@ class AddPropertyDialog(QDialog):
         self._import_selection_orchestrator = None
 
         try:
-            if hasattr(import_layer, "subsetString") and hasattr(import_layer, "setSubsetString"):
-                import_layer.setSubsetString("")
+            import_layer.setSubsetString("")
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -670,12 +669,11 @@ class AddPropertyDialog(QDialog):
 
         try:
             if PropertyTableManager.row_count(self.properties_table) > 0:
-                blocker = None
                 selection_model = self.properties_table.selectionModel()
-                if selection_model is not None:
-                    blocker = QSignalBlocker(selection_model)
+                blocker = QSignalBlocker(selection_model) if selection_model is not None else None
                 self.properties_table.selectAll()
-                blocker = None
+                if blocker is not None:
+                    blocker.unblock()
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -1468,9 +1466,8 @@ class AddPropertyDialog(QDialog):
         layer = self._main_layer_cached
 
         try:
-            if layer is not None and hasattr(layer, "isValid") and callable(layer.isValid):
-                if not layer.isValid():
-                    layer = None
+            if layer is not None and not layer.isValid():
+                layer = None
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,

@@ -183,26 +183,21 @@ class PropertyModule(TokenMixin, QWidget):
         """Called when the module becomes active."""
         self._connect_window_manager_signals()
         try:
-            print("[property_ui] activate")
             # Resolve the property layer using the same helper as map selection
             active_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
             if not active_layer:
-                print("[property_ui] no property layer found via helper")
                 return
 
             # Check if there's a selected feature and display it
-            selected_features = active_layer.selectedFeatures()
-            print(f"[property_ui] selected features count: {len(selected_features)}")
-            if selected_features:
+            if active_layer.selectedFeatures():
                 self.tools.update_property_display(active_layer)
 
         except Exception as e:
-            print(f"Error in activate: {e}")
+            PythonFailLogger.log_exception(e, module=Module.PROPERTY.value, event="property_module_activate_failed")
 
     def deactivate(self):
         """Called when the module becomes inactive."""
         self._disconnect_window_manager_signals()
-        print("[property_ui] deactivate")
 
     def get_widget(self):
         """Return the module's main QWidget."""
@@ -216,6 +211,5 @@ class PropertyModule(TokenMixin, QWidget):
         PropertyUITools to load connections for this id, reusing the same
         tree/entry pipeline used for map-based selection.
         """
-        #print(f"[DEBUG open_item_from_search] Opening property from search: module={search_module}, item_id={item_id}, title={title}")
         self.tools.open_property_from_search(item_id)
 

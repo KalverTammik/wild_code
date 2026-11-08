@@ -62,6 +62,7 @@ class SettingsModule(TokenMixin, QWidget):
         self._can_create_property = False
         self._user_fetch_thread = None
         self._user_fetch_worker = None
+        self._user_fetch_token = None
         self._pending_focus_module = None
         self.user_payload = None
         self.setup_ui()
@@ -197,20 +198,20 @@ class SettingsModule(TokenMixin, QWidget):
         if self._user_fetch_thread is not None:
             self._cancel_user_fetch_worker()
 
+        self._user_fetch_token = self._active_token
         self._user_fetch_worker, self._user_fetch_thread = SettingsUserFetchService.start_user_fetch(
-            active_token=self._active_token,
             on_success=self._handle_user_worker_success,
             on_error=self._handle_user_worker_error,
             on_finished=self._clear_user_worker_refs,
         )
 
     def _handle_user_worker_success(self, payload):
-        if not self.is_token_active(getattr(self._user_fetch_worker, "active_token", None)):
+        if not self.is_token_active(self._user_fetch_token):
             return
         self._on_user_payload_ready(payload or {})
 
     def _handle_user_worker_error(self, message):
-        if not self.is_token_active(getattr(self._user_fetch_worker, "active_token", None)):
+        if not self.is_token_active(self._user_fetch_token):
             return
         message_text = str(message or "")
         PythonFailLogger.log_exception(

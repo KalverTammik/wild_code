@@ -36,6 +36,9 @@ class _Layer:
         self.rollback_calls = 0
         self.delete_calls: list[list[int]] = []
 
+    def isValid(self) -> bool:
+        return True
+
     def isEditable(self) -> bool:
         return self._editable
 

@@ -105,8 +105,6 @@ class WorksRepositionController:
         self._clear_capture_tool(bring_front=bring_front)
 
     def _handle_point_selected(self, point: QgsPointXY) -> None:
-        layer = self._layer
-        feature_id = self._feature_id
         task_id = self._task_id
 
         success, error = self._apply_new_geometry(point)

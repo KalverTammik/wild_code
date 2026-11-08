@@ -10,6 +10,8 @@ from qgis.core import (
 )
 from osgeo import ogr
 from ...constants.file_paths import QmlPaths
+from ...Logs.python_fail_logger import PythonFailLogger
+from ..url_manager import Module
 
 from ...engines.LayerCreationEngine import MailablGroupFolders
 
@@ -66,7 +68,7 @@ class GPKGHelpers:
         layer = QgsVectorLayer(uri, layer_name, "ogr")
 
         if not layer.isValid():
-            print(f"❌ Failed to load layer '{layer_name}' from {gpkg_path}")
+            PythonFailLogger.log("gpkg_layer_load_failed", module=Module.PROPERTY.value, extra={"layer": layer_name})
             return None
 
         QgsProject.instance().addMapLayer(layer, False)
@@ -75,10 +77,8 @@ class GPKGHelpers:
             root = QgsProject.instance().layerTreeRoot()
             group = root.findGroup(group_name) or root.addGroup(group_name)
             group.addLayer(layer)  # ✅ This is safe
-            print(f"✅ Layer '{layer_name}' loaded into group '{group_name}'")
         else:
             QgsProject.instance().layerTreeRoot().insertLayer(0, layer)
-            print(f"✅ Layer '{layer_name}' loaded at top level.")
 
         return layer
     @staticmethod
@@ -94,10 +94,8 @@ class GPKGHelpers:
         Returns:
             bool: True if deletion from GPKG succeeded, False otherwise.
         """
-        print(f"🧹 Attempting to delete layer '{layer_name}' from GeoPackage: {gpkg_path}")
-
         if not os.path.exists(gpkg_path):
-            print("❌ GeoPackage file not found.")
+            PythonFailLogger.log("gpkg_file_missing", module=Module.PROPERTY.value, extra={"layer": layer_name})
             return False
 
         # 🧹 First: remove from project if loaded
@@ -105,12 +103,11 @@ class GPKGHelpers:
         if project_layers:
             for lyr in project_layers:
                 QgsProject.instance().removeMapLayer(lyr.id())
-            print(f"✅ Removed '{layer_name}' from project.")
 
         # 🧹 Then: remove from GeoPackage
         ds = ogr.Open(gpkg_path, update=1)
         if not ds:
-            print("❌ Failed to open GeoPackage.")
+            PythonFailLogger.log("gpkg_open_failed", module=Module.PROPERTY.value, extra={"layer": layer_name})
             return False
 
         try:
@@ -123,13 +120,12 @@ class GPKGHelpers:
                 -1,
             )
             if layer_index < 0:
-                print(f"❌ Layer '{layer_name}' was not found in the GeoPackage.")
+                PythonFailLogger.log("gpkg_layer_missing", module=Module.PROPERTY.value, extra={"layer": layer_name})
                 return False
             ds.DeleteLayer(layer_index)
-            print(f"✅ Layer '{layer_name}' deleted from GeoPackage.")
             return True
         except Exception as e:
-            print(f"❌ Error deleting layer '{layer_name}' from GeoPackage: {e}")
+            PythonFailLogger.log_exception(e, module=Module.PROPERTY.value, event="gpkg_layer_delete_failed")
             return False
 
     @staticmethod
@@ -158,7 +154,6 @@ class GPKGHelpers:
             bool: True if successful, False otherwise.
         """
         normalized_path = os.path.abspath(str(gpkg_path or "").strip())
-        print(f"🆕 Creating empty GPKG layer '{layer_name}' at: {normalized_path}")
 
         parent_dir = os.path.dirname(normalized_path)
         if parent_dir:
@@ -192,19 +187,18 @@ class GPKGHelpers:
         try:
             ok = bool(writer is not None and int(writer.hasError()) == int(QgsVectorFileWriter.NoError))
             if ok:
-                print(f"✅ Empty layer '{layer_name}' created successfully.")
                 return True
             try:
                 msg = writer.errorMessage() if writer is not None else ""
             except Exception:
                 msg = ""
-            print(f"❌ Failed to create layer '{layer_name}': {msg}")
+            PythonFailLogger.log("gpkg_layer_create_failed", module=Module.PROPERTY.value, extra={"layer": layer_name, "error": msg})
             return False
         finally:
             try:
                 del writer
             except Exception as e:
-                print(f"⚠️ Failed to release writer: {e}")
+                PythonFailLogger.log_exception(e, module=Module.PROPERTY.value, event="gpkg_writer_release_failed")
 
 
 class ArchiveLayerHandler:
@@ -240,12 +234,9 @@ class ArchiveLayerHandler:
         Returns:
             QgsVectorLayer or None if failed.
         """
-        print(f"📦 Resolving archive layer: {archive_layer_name}")
-
         # 1. Check if it's already in project
         existing = QgsProject.instance().mapLayersByName(archive_layer_name)
         if existing:
-            print(f"✅ Found archive layer in project.")
             return existing[0]
 
         # 2. Check in GPKG
@@ -253,11 +244,9 @@ class ArchiveLayerHandler:
         gpkg_path = uri.split("|")[0]
 
         if GPKGHelpers.gpkg_layer_exists(gpkg_path, archive_layer_name):
-            print("✅ Layer exists in GPKG — loading it.")
             return GPKGHelpers.load_layer_from_gpkg(gpkg_path, archive_layer_name, group_name=MailablGroupFolders.ARCHIVE)
 
         # 3. Create new layer in GPKG
-        print("⚠️ Archive layer not found — creating new one.")
         archive_fields = ArchiveLayerHandler.archive_fields_for_layer(source_layer)
 
         created = GPKGHelpers.create_empty_gpkg_layer(
@@ -270,16 +259,15 @@ class ArchiveLayerHandler:
         )
 
         if not created:
-            print("❌ Failed to create archive layer.")
+            PythonFailLogger.log("archive_layer_create_failed", module=Module.PROPERTY.value, extra={"layer": archive_layer_name})
             return None
 
-        print("✅ New archive layer created. Adding to project.")
         new_layer = GPKGHelpers.load_layer_from_gpkg(gpkg_path, archive_layer_name, group_name=MailablGroupFolders.ARCHIVE)
         if new_layer is not None:
             try:
                 style_path = QmlPaths.PROPERTIES_ARCHIVED
                 new_layer.loadNamedStyle(style_path)
             except Exception as e:
-                print(f"⚠️ Failed to apply archived style: {e}")
+                PythonFailLogger.log_exception(e, module=Module.PROPERTY.value, event="archive_layer_style_failed")
         gc.collect()
         return new_layer

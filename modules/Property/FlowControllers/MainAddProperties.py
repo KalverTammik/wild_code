@@ -204,7 +204,7 @@ class MainAddPropertiesFlow:
         # specific layer instance (e.g. the archive plan) passes it as `main_layer`, so
         # a second, independent name-based lookup here can never land on a different
         # layer than the one the plan was built against when two layers share that name.
-        if main_layer is not None and getattr(main_layer, "isValid", lambda: True)():
+        if main_layer is not None and main_layer.isValid():
             active_layer = main_layer
         else:
             target_layer_name = SettingsService().module_main_layer_name(Module.PROPERTY.value)

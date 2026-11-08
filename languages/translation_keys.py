@@ -65,6 +65,7 @@ class TranslationKeys:
     CARD_MEMBERS_EMPTY = "card_members_empty"
     CARD_FILES_VIEW_ALL = "card_files_view_all"
     SERVER_REQUEST_FAILED = "server_request_failed"
+    SERVER_REQUEST_REFUSED = "server_request_refused"
     NETWORK_ERROR = "Network error: {error}"
 
     # Login dialog
@@ -810,6 +811,7 @@ class TranslationKeys:
     GEOMETRY_FORM_CANCEL = "geometry_form_cancel"
     ERROR_DETAILS = "error_details"
     SEARCH_FAILED = "search_failed"
+    SEARCH_STATUS_SEARCHING = "search_status_searching"
     SEARCH_OPEN_NOT_AVAILABLE_TITLE = "search_open_not_available_title"
     SEARCH_OPEN_NOT_AVAILABLE_MESSAGE = "search_open_not_available_message"
     SEARCH_SHOW_MORE = "search_show_more"
@@ -937,6 +939,12 @@ class TranslationKeys:
     PROPERTY_SEARCH_FIELD_EXISTS_TOOLTIP = "property_search_field_exists_tooltip"
     PROPERTY_SEARCH_FIELD_PROGRESS_TITLE = "property_search_field_progress_title"
     PROPERTY_SEARCH_FIELD_PROGRESS_LABEL = "property_search_field_progress_label"
+    PROPERTY_SEARCH_FIELD_LAYER_INVALID = "property_search_field_layer_invalid"
+    PROPERTY_SEARCH_FIELD_NO_SOURCE_FIELDS = "property_search_field_no_source_fields"
+    PROPERTY_SEARCH_FIELD_EDIT_FAILED = "property_search_field_edit_failed"
+    PROPERTY_SEARCH_FIELD_ADD_FAILED = "property_search_field_add_failed"
+    PROPERTY_SEARCH_FIELD_MISSING = "property_search_field_missing"
+    PROPERTY_SEARCH_FIELD_SAVE_FAILED = "property_search_field_save_failed"
     PROPERTY_SEARCH_FIELD_CREATED_BODY = "property_search_field_created_body"
     PROPERTY_SEARCH_FIELD_FAILED_BODY = "property_search_field_failed_body"
     ADD_UPDATE_PROGRESS_PREFIX = "add_update_progress_prefix"

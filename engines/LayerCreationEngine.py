@@ -29,6 +29,8 @@ from ..constants.file_paths import QmlPaths
 from ..languages.translation_keys import TranslationKeys
 
 from ..constants.layer_constants import DEFAULT_CRS
+from ..Logs.python_fail_logger import PythonFailLogger
+from ..utils.url_manager import Module
 # Prefer module-level imports for clarity. Kept here to avoid accidental circular imports when possible.
 from ..widgets.ProgressDialogModern import ProgressDialogModern
 
@@ -296,7 +298,6 @@ class LayerCreationEngine:
         memory_layer = self.create_memory_layer_from_template(
             new_layer_name, template_layer
         )
-        print(f"[LayerCreationEngine] Created memory layer: {memory_layer}")
         if not memory_layer:
             return None
 
@@ -381,15 +382,12 @@ class LayerCreationEngine:
         """
         memory_layer_name = f"{layer_name}_memory"
 
-        print(f"[LayerCreationEngine] Import start: layer={layer_name}, group={group_name}")
-
         # Create memory layer with correct structure using existing method
         result = self.copy_virtual_layer_for_properties(
             memory_layer_name,
             group_name,
             shp_layer
         )
-        print(f"[LayerCreationEngine] Memory layer creation result: {result}")
         if result== None:
             return None
 
@@ -410,8 +408,6 @@ class LayerCreationEngine:
         # Get total feature count
         total_features = shp_layer.featureCount()
 
-        print(f"[LayerCreationEngine] Source features: {total_features}")
-
         if total_features == 0:
             # No features to import, just finalize
             memory_layer.updateExtents()
@@ -426,11 +422,10 @@ class LayerCreationEngine:
             parent=parent_widget,
         )
         progress.show()
-        print("[LayerCreationEngine] Progress dialog created")
         # Get data provider for batch operations
         provider = memory_layer.dataProvider()
         if not provider:
-            print("[LayerCreationEngine] No data provider for memory layer")
+            PythonFailLogger.log("layer_import_no_provider", module=Module.PROPERTY.value)
             return None
 
         # Disable undo stack for bulk operations (still useful for memory management)
@@ -444,8 +439,6 @@ class LayerCreationEngine:
         batch_size = batch_size if batch_size and batch_size > 0 else 5000
         features_added = 0
         progress_update_interval = progress_update_interval if progress_update_interval and progress_update_interval > 0 else 2000
-
-        print(f"[LayerCreationEngine] Using batch_size={batch_size}, progress_interval={progress_update_interval}")
 
         # Disable signals during bulk operations for maximum performance
         memory_layer.blockSignals(True)
@@ -462,7 +455,11 @@ class LayerCreationEngine:
                         features_added += len(features_batch)
                         features_batch.clear()  # More efficient than reassigning []
                     else:
-                        print(f"Error: Failed to add features batch of size {len(features_batch)}")
+                        PythonFailLogger.log(
+                            "layer_import_batch_failed",
+                            module=Module.PROPERTY.value,
+                            extra={"size": len(features_batch)},
+                        )
                         memory_layer.blockSignals(False)  # Re-enable signals on error
                         return None
 
@@ -483,12 +480,14 @@ class LayerCreationEngine:
             if features_batch:
                 success = provider.addFeatures(features_batch)
                 if not success:
-                    print(f"Error: Failed to flush final features batch of size {len(features_batch)}")
+                    PythonFailLogger.log(
+                        "layer_import_batch_failed",
+                        module=Module.PROPERTY.value,
+                        extra={"size": len(features_batch), "final": True},
+                    )
                     memory_layer.blockSignals(False)  # Re-enable signals on error
                     return None
                 features_added += len(features_batch)
-
-            print(f"[LayerCreationEngine] Features imported: {features_added}")
 
             # Update progress to indicate finalization (reuse progress UI instead of a separate dialog)
             if progress:
@@ -506,7 +505,6 @@ class LayerCreationEngine:
 
             style_path = QmlPaths.MAAMET_IMPORT
             memory_layer.loadNamedStyle(style_path)
-            print(f"[LayerCreationEngine] Style applied: {style_path}")
 
             if progress:
                 complete_text = self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_COMPLETE)
@@ -522,16 +520,14 @@ class LayerCreationEngine:
             if original_undo_stack:
                 try:
                     memory_layer.setUndoStack(original_undo_stack)
-                    print("Undo stack restored successfully")
                 except Exception as e:
-                    print(f"Warning: Failed to restore undo stack: {e}")
+                    PythonFailLogger.log_exception(
+                        e, module=Module.PROPERTY.value, event="layer_import_undo_restore_failed")
 
             return memory_layer
 
         except Exception as e:
-            print(f"Unexpected error during Shapefile import: {e}")
-            import traceback
-            traceback.print_exc()
+            PythonFailLogger.log_exception(e, module=Module.PROPERTY.value, event="layer_import_failed")
             # Close any open progress dialog on unexpected error
             if progress:
                 progress.close()

@@ -67,7 +67,6 @@ class UnifiedFeedLogic:
         This does not enable single-item mode by itself; call
         ``set_single_item_mode(True, id=...)`` to activate.
         """
-        #print(f"[FeedLogic] Configuring single item query: {query_name}")
         self._single_item_query_name = query_name
 
     def set_single_item_mode(self, enabled: bool, *, id: Optional[str] = None, **extra_vars: Any) -> None:
@@ -160,7 +159,6 @@ class UnifiedFeedLogic:
                 variables,
                 return_raw=True,
             ) or {}
-            #print(f"[FeedLogic] Fetch payload: {payload}")
             # Debug logging for single-item mode removed after verification
             self.last_response = payload
 
@@ -170,7 +168,6 @@ class UnifiedFeedLogic:
             # exactly one node (or an empty list if nothing was found).
             if self._single_item_mode:
                 data = payload.get("data") or {}
-                #print(f"[FeedLogic] Single-item mode payload data: {data}")
                 single: Optional[Dict[str, Any]] = None
 
                 # Heuristic: look for common single-item roots by module.
@@ -219,7 +216,6 @@ class UnifiedFeedLogic:
             ) or {}
             edges: List[Dict[str, Any]] = JsonResponseHandler.get_edges_from_path(payload, path)
             page_info: Dict[str, Any] = JsonResponseHandler.get_page_info_from_path(payload, path)
-            #print(f"[FeedLogic] GraphQL pageInfo: {page_info}")
             # Prefer item totalCount on root if available; some APIs put page count in pageInfo.total
             root_total = root.get("totalCount") if isinstance(root, dict) else None
             page_total = page_info.get("total") if isinstance(page_info, dict) else None
@@ -263,7 +259,6 @@ class UnifiedFeedLogic:
 
             # Track loaded items for heuristics
             self._loaded_items_debug += len(result)
-            #print(f"[UnifiedFeedLogic] fetched {len(result)} items (has_more={self.has_more})")
             return result
 
         except Exception as e:
@@ -272,7 +267,6 @@ class UnifiedFeedLogic:
                 _kind, friendly = parse_tagged_message(e)
                 self.last_error_kind = _kind if _kind else None
                 self.last_error_message = friendly or str(e)
-                print(f"[UnifiedFeedLogic] fetch error for module '{self._module_name}': {friendly or e}")
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,

@@ -180,9 +180,9 @@ class WorksFeedLogic(UnifiedFeedLogic):
         return snapshot, snapshot.fetch_next_batch()
 
     def accept_snapshot(self, snapshot):
+        # The snapshot is a copy of this feed, so it has every page field.
         for name in self._PAGE_STATE:
-            if hasattr(snapshot, name):
-                setattr(self, name, getattr(snapshot, name))
+            setattr(self, name, getattr(snapshot, name))
         self.is_loading = False
 
     """Server sorting with an explicit second pass for missing date values."""

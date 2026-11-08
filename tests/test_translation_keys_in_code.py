@@ -36,7 +36,7 @@ TEXT_SINK_CALLS = {
     "showMessage", "set_status_text", "setAccessibleName", "setLabelText", "setHeaderLabels", "setTabText", "addTab",
     "setDefaultText", "set_title", "setSuffix", "setPrefix", "addItem", "insertItem", "setItemText",
     "setHorizontalHeaderLabels", "setVerticalHeaderLabels", "add_text_area", "setSpecialValueText", "setFormat",
-    "addSection", "addMenu", "setButtonText",
+    "addSection", "addMenu", "setButtonText", "emit",
     "QLabel", "QPushButton", "QAction", "QCheckBox", "QRadioButton", "QGroupBox", "QToolButton", "QMenu",
     "QListWidgetItem", "QTreeWidgetItem", "QTableWidgetItem", "QStandardItem",
 }

@@ -50,7 +50,7 @@ class MemoryLayerResultService:
         project = cls._project()
         for layer in list(project.mapLayersByName(str(layer_name or "").strip())):
             try:
-                if only_memory and getattr(layer, "providerType", lambda: "")() != "memory":
+                if only_memory and layer.providerType() != "memory":
                     continue
                 project.removeMapLayer(layer.id())
                 removed += 1
