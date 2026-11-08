@@ -40,10 +40,10 @@ def prompt_backend_action_dialog(*, parent=None, table_frame, table, title: str 
     btn_row = QHBoxLayout()
     btn_row.addStretch(1)
 
-    cancel_text = lang_manager.translate(TranslationKeys.CANCEL_BUTTON) or "Cancel"
-    archive_text = lang_manager.translate(TranslationKeys.ARCHIVE) or "Archive"
-    unarchive_text = lang_manager.translate(TranslationKeys.UNARCHIVE) or "Unarchive"
-    delete_text = lang_manager.translate(TranslationKeys.DELETE) or "Delete"
+    cancel_text = lang_manager.translate(TranslationKeys.CANCEL_BUTTON)
+    archive_text = lang_manager.translate(TranslationKeys.ARCHIVE)
+    unarchive_text = lang_manager.translate(TranslationKeys.UNARCHIVE)
+    delete_text = lang_manager.translate(TranslationKeys.DELETE)
 
     btn_cancel = QPushButton(cancel_text)
     btn_cancel.clicked.connect(dialog.reject)

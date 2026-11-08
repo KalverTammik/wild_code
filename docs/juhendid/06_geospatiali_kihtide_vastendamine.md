@@ -90,7 +90,7 @@ Kui valid **Ära kaardista** ega määra vaikeväärtust, jätab mapper selle si
 Vaikeväärtuse sisestus sõltub sihtvälja tüübist:
 
 - tekst- ja arvuväljal sisestatakse väärtus tekstikasti;
-- tõeväärtuse väljal saab valida **True**, **False** või vaikeväärtuse puudumise;
+- tõeväärtuse väljal saab valida **Jah**, **Ei** või vaikeväärtuse puudumise;
 - kuupäevaväljal märgitakse **Kasuta vaikeväärtust** ja valitakse kuupäev;
 - kuupäeva-kellaaja väljal märgitakse **Kasuta vaikeväärtust** ning valitakse kuupäev ja kellaaeg.
 

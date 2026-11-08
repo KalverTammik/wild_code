@@ -130,7 +130,7 @@ class MapCanvasSearchBar(MapCanvasGlassOverlayBase):
             self.search_results_widget.show_no_results(self.search_edit.text().strip(), self.search_edit)
 
     def _on_search_error(self, message: str) -> None:
-        self.search_results_widget.show_status_message(message or "Otsing ebaõnnestus", self.search_edit, is_error=True)
+        self.search_results_widget.show_status_message(message, self.search_edit, is_error=True)
 
     def _open_result_in_plugin(self, module: str, item_id: str, title: str) -> None:
         try:

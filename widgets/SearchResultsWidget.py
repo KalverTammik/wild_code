@@ -191,7 +191,7 @@ class SearchResultsWidget(QDialog):
             # Add "show more" if there are more results
             if not is_expanded and len(hits) > 5:
                 more_item = QListWidgetItem()
-                more_item.setText(f"  -- Show {len(hits) - 5} more --")
+                more_item.setText(LanguageManager().translate(TranslationKeys.SEARCH_SHOW_MORE).format(count=len(hits) - 5))
                 more_item.setData(Qt.UserRole, {"type": "show_more", "module": module_type})
                 more_item.setForeground(QColor("#666666"))
                 more_item.setFont(QFont("Arial", 9, QFont.StyleItalic))

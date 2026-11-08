@@ -26,6 +26,7 @@ from qgis.PyQt.QtXml import QDomDocument
 
 # Local imports
 from ..constants.file_paths import QmlPaths
+from ..languages.translation_keys import TranslationKeys
 
 from ..constants.layer_constants import DEFAULT_CRS
 # Prefer module-level imports for clarity. Kept here to avoid accidental circular imports when possible.
@@ -68,13 +69,8 @@ class LayerCreationEngine:
         """
         self.project = QgsProject.instance()
         self.layer_tree_root = self.project.layerTreeRoot()
-        # Initialize language manager for translations
-        # Inline import used because LanguageManager is optional functionality that may not be available
-        try:
-            from ..languages.language_manager import LanguageManager
-            self.lang_manager = LanguageManager()
-        except ImportError:
-            self.lang_manager = None
+        from ..languages.language_manager import LanguageManager
+        self.lang_manager = LanguageManager()
 
     def get_or_create_group(self, group_name: str) -> QgsLayerTreeGroup:
         """
@@ -476,8 +472,10 @@ class LayerCreationEngine:
                         progress_pct = int((i + 1) / total_features * 100)
                         progress.update(
                             value=i + 1,
-                            text1=f"Processing features: {i + 1}/{total_features} ({progress_pct}%)",
-                            text2=f"Features copied: {features_added}"
+                            text1=self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_PROGRESS).format(
+                                done=i + 1, total=total_features, percent=progress_pct
+                            ),
+                            text2=self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_COPIED).format(count=features_added),
                         )
                         QCoreApplication.processEvents()
 
@@ -494,12 +492,11 @@ class LayerCreationEngine:
 
             # Update progress to indicate finalization (reuse progress UI instead of a separate dialog)
             if progress:
-                final_touches_text = "Adding final touches..." if not self.lang_manager else \
-                    (self.lang_manager.translate("Adding final touches...") or "Adding final touches...")
+                final_touches_text = self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_FINAL_TOUCHES)
                 progress.update(
                     value=total_features,
                     text1=final_touches_text,
-                    text2=f"Features copied: {features_added}"
+                    text2=self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_COPIED).format(count=features_added),
                 )
                 QCoreApplication.processEvents()
 
@@ -512,12 +509,11 @@ class LayerCreationEngine:
             print(f"[LayerCreationEngine] Style applied: {style_path}")
 
             if progress:
-                complete_text = "Import complete!" if not self.lang_manager else \
-                    (self.lang_manager.translate("Import complete!") or "Import complete!")
+                complete_text = self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_COMPLETE)
                 progress.update(
                     value=total_features,
                     text1=complete_text,
-                    text2=f"{features_added} features imported"
+                    text2=self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_IMPORTED).format(count=features_added),
                 )
                 # Close progress after a short delay to let user see the final state
                 QTimer.singleShot(1200, lambda: progress.close())

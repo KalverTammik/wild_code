@@ -518,9 +518,10 @@ class ActiveLayersHelper:
         layer = MapHelpers.resolve_layer(layer_id)
         if not layer:
             if not silent:
+                lang = LanguageManager()
                 ModernMessageDialog.Warning_messages_modern(
-                    "Property layer not configured or missing from project",
-                    LanguageManager().translate(TranslationKeys.ERROR),
+                    lang.translate(TranslationKeys.ERROR),
+                    lang.translate(TranslationKeys.PROPERTY_MAIN_LAYER_MISSING),
                 )
             return None
         return layer

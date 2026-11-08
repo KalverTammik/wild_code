@@ -199,7 +199,7 @@ class EasementPreviewDialog(QDialog):
         self._property_summary_card = PropertySummaryCard(
             self,
             show_title=True,
-            title_text="Kinnistu andmed",
+            title_text=self._lang.translate(TranslationKeys.PROPERTY_SUMMARY_TITLE),
         )
         layout.addWidget(self._property_summary_card)
 

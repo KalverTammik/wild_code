@@ -5,13 +5,16 @@ from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
 from ..constants.cadastral_fields import Katastriyksus
 from ..languages.MaaAmetFieldFormater import format_field
+from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
 
 
 class PropertySummaryCard(QFrame):
     """Reusable property details card styled like the Property module header."""
 
-    def __init__(self, parent=None, *, show_title: bool = False, title_text: str = "Kinnistu andmed"):
+    def __init__(self, parent=None, *, show_title: bool = False, title_text: str | None = None, lang_manager=None):
         super().__init__(parent)
+        lang = lang_manager or LanguageManager()
         self.setObjectName("PropertyHeader")
         self.setFrameStyle(QFrame.StyledPanel)
 
@@ -20,7 +23,7 @@ class PropertySummaryCard(QFrame):
         header_layout.setSpacing(6)
 
         if show_title:
-            details_title = QLabel(title_text)
+            details_title = QLabel(title_text or lang.translate(TranslationKeys.PROPERTY_SUMMARY_TITLE))
             details_title.setObjectName("DetailsTitle")
             title_font = QFont()
             title_font.setBold(True)
@@ -45,13 +48,13 @@ class PropertySummaryCard(QFrame):
         basic_layout.setSpacing(6)
 
         ids_layout = QHBoxLayout()
-        tunnus_label = QLabel("Katastritunnus:")
+        tunnus_label = QLabel(lang.translate(TranslationKeys.PROPERTY_SUMMARY_CADASTRAL))
         tunnus_label.setObjectName("InfoLabel")
         ids_layout.addWidget(tunnus_label)
         self.lbl_katastritunnus_value = QLabel("...")
         ids_layout.addWidget(self.lbl_katastritunnus_value)
 
-        reg_label = QLabel("(reg.nr:)")
+        reg_label = QLabel(lang.translate(TranslationKeys.PROPERTY_SUMMARY_REGISTRY))
         reg_label.setObjectName("InfoLabel")
         ids_layout.addSpacing(3)
         ids_layout.addWidget(reg_label)
@@ -61,7 +64,7 @@ class PropertySummaryCard(QFrame):
         basic_layout.addLayout(ids_layout)
 
         address_layout = QHBoxLayout()
-        address_label = QLabel("Aadress:")
+        address_label = QLabel(lang.translate(TranslationKeys.PROPERTY_SUMMARY_ADDRESS))
         address_label.setObjectName("InfoLabel")
         address_layout.addWidget(address_label)
         self.lbl_address_value = QLabel("...")
@@ -78,7 +81,7 @@ class PropertySummaryCard(QFrame):
         additional_layout.setSpacing(6)
 
         pindala_layout = QHBoxLayout()
-        pindala_label = QLabel("Pindala (m²):")
+        pindala_label = QLabel(lang.translate(TranslationKeys.PROPERTY_SUMMARY_AREA))
         pindala_label.setObjectName("InfoLabel")
         pindala_layout.addWidget(pindala_label)
         self.lbl_area_value = QLabel("0.00")
@@ -89,7 +92,7 @@ class PropertySummaryCard(QFrame):
         siht_layouts = []
         for idx in range(1, 4):
             row = QHBoxLayout()
-            label = QLabel(f"Siht {idx}:")
+            label = QLabel(lang.translate(TranslationKeys.PROPERTY_SUMMARY_PURPOSE).format(index=idx))
             label.setObjectName("InfoLabel")
             row.addWidget(label)
             value_label = QLabel("...")
@@ -103,7 +106,7 @@ class PropertySummaryCard(QFrame):
             self.lbl_siht3_label, self.lbl_siht3_value) = siht_layouts
 
         registr_layout = QHBoxLayout()
-        registr_label = QLabel("Moodustatud:")
+        registr_label = QLabel(lang.translate(TranslationKeys.PROPERTY_SUMMARY_REGISTERED))
         registr_label.setObjectName("InfoLabel")
         registr_layout.addWidget(registr_label)
         self.lbl_registr_value = QLabel("...")
@@ -112,7 +115,7 @@ class PropertySummaryCard(QFrame):
         additional_layout.addLayout(registr_layout)
 
         muudet_layout = QHBoxLayout()
-        muudet_label = QLabel("Viimati muudetud:")
+        muudet_label = QLabel(lang.translate(TranslationKeys.PROPERTY_SUMMARY_UPDATED))
         muudet_label.setObjectName("InfoLabel")
         muudet_layout.addWidget(muudet_label)
         self.lbl_muudet_value = QLabel("...")

@@ -131,7 +131,7 @@ class ProgressDialogModern(QDialog):
 
         # Primary status
         self.status_label1 = QLabel(
-            self.lang_manager.translate(TranslationKeys.INITIALIZING) or "Initializing..."
+            self.lang_manager.translate(TranslationKeys.INITIALIZING)
         )
         self.status_label1.setObjectName("StatusLabel1")
         status_layout.addWidget(self.status_label1)
@@ -148,7 +148,7 @@ class ProgressDialogModern(QDialog):
         button_layout.addStretch()
 
         self.cancel_button = QPushButton(
-            self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON) or "Cancel"
+            self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON)
         )
         self.cancel_button.setObjectName("CancelButton")
         self.cancel_button.setProperty("variant", ButtonVariant.GHOST)
@@ -195,12 +195,12 @@ class ProgressDialogModern(QDialog):
             self.percentage_label.setText(f"{percentage}%")
         elif self.maximum == 0:
             # Indeterminate mode
-            self.percentage_label.setText(self.lang_manager.translate("Working...") or "Working...")
+            self.percentage_label.setText(self.lang_manager.translate(TranslationKeys.PROGRESS_WORKING))
 
     def _on_cancel_clicked(self):
         """Handle cancel button click."""
         self.is_cancelled = True
-        self.cancel_button.setText(self.lang_manager.translate("Cancelling...") or "Cancelling...")
+        self.cancel_button.setText(self.lang_manager.translate(TranslationKeys.ADD_UPDATE_PROPERTY_DIALOG_CANCELLING))
         self.cancel_button.setEnabled(False)
         self.canceled.emit()
 
@@ -233,7 +233,7 @@ class ProgressDialogModern(QDialog):
 
             # Apply theme using centralized QSS files
             ThemeManager.apply_module_style(self, [QssPaths.PROGRESS_DIALOG])
-        except Exception as e:
+        except Exception:
             # Theme loading failed - widget will use default Qt styling
             pass
 

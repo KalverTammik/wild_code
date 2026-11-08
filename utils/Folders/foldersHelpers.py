@@ -55,10 +55,10 @@ class FolderEngines:
                                                target_folder,
                                                on_files_path_updated: Optional[Callable[[str], None]] = None,
                                                ) -> None:
-        confirm_title = LanguageManager.translate_static(TranslationKeys.CONFIRM) or "Confirmation"
-        yes_label = LanguageManager.translate_static(TranslationKeys.YES) or "Yes"
-        no_label = LanguageManager.translate_static(TranslationKeys.NO) or "No"
-        warning_title = LanguageManager.translate_static(TranslationKeys.WARNING) or "Warning"
+        confirm_title = LanguageManager.translate_static(TranslationKeys.CONFIRM)
+        yes_label = LanguageManager.translate_static(TranslationKeys.YES)
+        no_label = LanguageManager.translate_static(TranslationKeys.NO)
+        warning_title = LanguageManager.translate_static(TranslationKeys.WARNING)
 
         source_value = str(source_folder or "").strip()
         target_value = str(target_folder or "").strip()
@@ -138,7 +138,7 @@ class FolderEngines:
                 if callable(on_files_path_updated):
                     on_files_path_updated(updated_path)
 
-                heading = LanguageManager.translate_static(TranslationKeys.SUCCESS) or "Success"
+                heading = LanguageManager.translate_static(TranslationKeys.SUCCESS)
                 text = LanguageManager.translate_static(
                     TranslationKeys.PROJECT_FOLDER_EXISTING_LINK_SUCCESS
                 ).format(
@@ -205,10 +205,9 @@ class FolderEngines:
         else:
             print("Operation canceled by the user.")
 
-        heading = LanguageManager.translate_static(TranslationKeys.SUCCESS) or "Success"
-        text = (f"Kausta '{source_dir}'\n(k.a kaustas sisalduvad alamkaustad ja failid) dubleerimine õnnestus.")
-        text_2 = f"Sihtkohta on genereeritud kaust nimetusega \n'{folder_name}'."
-        ModernMessageDialog.show_info(heading, f"{text}\n\n{text_2}")
+        heading = LanguageManager.translate_static(TranslationKeys.SUCCESS)
+        text = LanguageManager.translate_static(TranslationKeys.FOLDER_COPY_SUCCESS).format(source=source_dir, folder=folder_name)
+        ModernMessageDialog.show_info(heading, text)
 
 class FolderNameGenerator:
     def folder_structure_name_order(self, project_name, project_number):

@@ -54,8 +54,8 @@ class _DefaultValueEditor(QWidget):
             self._mode = "bool"
             combo = QComboBox(self)
             combo.addItem(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NO_DEFAULT), None)
-            combo.addItem("False", False)
-            combo.addItem("True", True)
+            combo.addItem(self._lang.translate(TranslationKeys.NO), False)
+            combo.addItem(self._lang.translate(TranslationKeys.YES), True)
             ThemeManager.apply_form_combo_popup_style(combo)
             self._bool_combo = combo
             layout.addWidget(combo)

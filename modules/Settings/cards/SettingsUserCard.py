@@ -38,8 +38,7 @@ class UserSettingsCard(SettingsBaseCard):
         left_column = QVBoxLayout()
         left_column.setSpacing(4)
 
-        loading_text = self.lang_manager.translate(TranslationKeys.LOADING) if self.lang_manager else "Loading"
-        placeholder = f"{loading_text}…"
+        placeholder = self.lang_manager.translate(TranslationKeys.LOADING)
 
 
         # Name prominently displayed

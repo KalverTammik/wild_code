@@ -420,7 +420,7 @@ class TaskFilePreviewDialog(QDialog):
         name = self._file_name()
         if self._local_file_path:
             size = self._human_readable_size(self._safe_int(os.path.getsize(self._local_file_path)) if os.path.exists(self._local_file_path) else None)
-            uploader = "Local file"
+            uploader = self._lang.translate(TranslationKeys.TASK_FILE_LOCAL_FILE)
         else:
             size = str(self._file_info.get("humanReadableSize") or "").strip() or "–"
             uploader = APIModuleActions.user_display_name(self._file_info.get("uploader")) or "–"

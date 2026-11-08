@@ -39,7 +39,7 @@ Põhiakna päise otsingul ei ole eraldi otsingunuppu: otsing käivitub teksti si
 | **× Sulge otsingutulemused** | Otsingutulemuste hüpikakna ülanurk | Peidab tulemuste loendi ilma otsinguteksti muutmata. |
 | **Andmerühma pealkiri** | Otsingutulemuste rühma algus | Proovib rühma tulemusi laiendada või ahendada ja käivitab otsingu uuesti. |
 | **Otsingutulemus** | Otsingutulemuste loend | Avab toetatud tulemuse vastavas moodulis; mittetoetatud andmerühma puhul kuvab teate. |
-| **-- Show N more --** | Otsingutulemuste andmerühma lõpp, kui vastuste loendis on üle viie tabamuse | Proovib laiendada andmerühma; praeguse viie vaste päringupiirangu tõttu ei too see tavaliselt lisatulemusi. |
+| **-- Näita veel N --** | Otsingutulemuste andmerühma lõpp, kui vastuste loendis on üle viie tabamuse | Proovib laiendada andmerühma; praeguse viie vaste päringupiirangu tõttu ei too see tavaliselt lisatulemusi. |
 
 Otsingutulemuse rida, andmerühma pealkiri ja **Show N more** on loendiread, mitte tehnilised nupuklassid, kuid käituvad kasutaja jaoks nupuna.
 

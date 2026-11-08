@@ -55,7 +55,7 @@ class HeaderWidget(QWidget):
         # Add help icon and text
         self.helpButton.setIcon(ThemeManager.get_qicon(IconNames.ICON_HELP))
         self.helpButton.setIconSize(QSize(18, 18))
-        self.helpButton.setText(self.lang_manager.translate(TranslationKeys.HEADER_WIDGET_ABI) or "")
+        self.helpButton.setText(self.lang_manager.translate(TranslationKeys.HEADER_WIDGET_ABI))
                     
         # Add tooltip
         tooltip = self.lang_manager.translate(TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP)
@@ -219,5 +219,4 @@ class HeaderWidget(QWidget):
             self.search_results_widget.show_no_results(query, self.searchEdit)
 
     def _on_search_error(self, message: str) -> None:
-        friendly = message or "Otsing ebaõnnestus"
-        self.search_results_widget.show_status_message(friendly, self.searchEdit, is_error=True)
+        self.search_results_widget.show_status_message(message, self.searchEdit, is_error=True)

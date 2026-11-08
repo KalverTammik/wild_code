@@ -103,9 +103,9 @@ class Sidebar(QWidget):
         self.toggleButton.setAutoRaise(True)
         self.toggleButton.setFixedSize(22, 40)        # slim, tall target
 
-        tooltip = lang_manager.translate(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP) or "Collapse Sidebar"
+        tooltip = lang_manager.translate(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP)
         self.toggleButton.setToolTip(tooltip)
-        self.toggleButton.setText(lang_manager.translate(TranslationKeys.SIDEBAR_LEFT_ARROW) or "«")                # expanded → show collapse glyph
+        self.toggleButton.setText(lang_manager.translate(TranslationKeys.SIDEBAR_LEFT_ARROW))                # expanded → show collapse glyph
         self.toggleButton.clicked.connect(self.toggleSidebar)
         self._apply_toggle_shadow()
         self.toggleButton.raise_()
@@ -254,11 +254,11 @@ class Sidebar(QWidget):
 
         # settings button
         if self._is_compact:
-            self.toggleButton.setText(lang_manager.translate(TranslationKeys.SIDEBAR_RIGHT_ARROW) or "»")
-            self.toggleButton.setToolTip(lang_manager.translate(TranslationKeys.SIDEBAR_EXPAND_TOOLTIP) or "Expand Sidebar")
+            self.toggleButton.setText(lang_manager.translate(TranslationKeys.SIDEBAR_RIGHT_ARROW))
+            self.toggleButton.setToolTip(lang_manager.translate(TranslationKeys.SIDEBAR_EXPAND_TOOLTIP))
         else:
-            self.toggleButton.setText(lang_manager.translate(TranslationKeys.SIDEBAR_LEFT_ARROW) or "«")
-            self.toggleButton.setToolTip(lang_manager.translate(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP) or "Collapse Sidebar")
+            self.toggleButton.setText(lang_manager.translate(TranslationKeys.SIDEBAR_LEFT_ARROW))
+            self.toggleButton.setToolTip(lang_manager.translate(TranslationKeys.SIDEBAR_COLLAPSE_TOOLTIP))
 
         start_w = self.SidebarMainFrame.width()
         end_w = self._compact_width if self._is_compact else self._expanded_width

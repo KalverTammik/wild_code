@@ -179,12 +179,8 @@ class SettingsLogic:
 
     # --- Module label helpers ----------------------------------------------
 
-    def load_module_label_value(self, module_key: str, label_key) -> str:
-        # Ensure label_key is a string
-        key = getattr(label_key, 'value', label_key)
-        value = self._service.module_label_value(module_key, key) or ""
-
-        return value
+    def load_module_label_value(self, module_key: str, label_key: str) -> str:
+        return self._service.module_label_value(module_key, label_key) or ""
 
     def load_module_label_values(self, module_key: str, module_labels) -> Dict[str, str]:
         values: Dict[str, str] = {}
@@ -195,13 +191,12 @@ class SettingsLogic:
             values[key] = self.load_module_label_value(module_key, key) or ""
         return values
 
-    def save_module_label_value(self, module_key: str, label_key, value: str) -> None:
+    def save_module_label_value(self, module_key: str, label_key: str, value: str) -> None:
         try:
-            key = getattr(label_key, 'value', label_key)
             if value is None:
-                self._service.module_label_value(module_key, key, clear=True)
+                self._service.module_label_value(module_key, label_key, clear=True)
             else:
-                self._service.module_label_value(module_key, key, value=value)
+                self._service.module_label_value(module_key, label_key, value=value)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -209,10 +204,9 @@ class SettingsLogic:
                 event="settings_save_label_failed",
             )
 
-    def clear_module_label_value(self, module_key: str, label_key) -> None:
+    def clear_module_label_value(self, module_key: str, label_key: str) -> None:
         try:
-            key = getattr(label_key, 'value', label_key)
-            self._service.module_label_value(module_key, key, clear=True)
+            self._service.module_label_value(module_key, label_key, clear=True)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,

@@ -35,6 +35,7 @@ if TYPE_CHECKING:
 
     class SessionDialogProtocol(Protocol):
         _has_shown: bool
+        _force_close: bool
         _session_listener: Optional[Callable[[], None]]
         moduleManager: ModuleManagerProtocol
         moduleStack: ModuleStackProtocol
@@ -558,10 +559,7 @@ class SessionUIController:
         )
         SessionManager.clear()
         gc.collect()
-        try:
-            setattr(dialog, "_force_close", True)
-        except Exception:
-            pass
+        dialog._force_close = True
         dialog.close()
         try:
             dialog.deleteLater()

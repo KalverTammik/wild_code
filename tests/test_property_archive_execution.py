@@ -13,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from Kavitro_dev.modules.Property.FlowControllers import MainAddProperties as flow_module
 from Kavitro_dev.modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
 from Kavitro_dev.modules.Property.FlowControllers.UpdatePropertyData import UpdatePropertyData
+from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.utils.mapandproperties import property_action_service as action_service_module
 from Kavitro_dev.utils.mapandproperties.property_action_service import PropertyActionService
 
@@ -324,7 +326,8 @@ class PropertyArchiveExecutionTest(unittest.TestCase):
             result = PropertyActionService.run_action("archive", ["T1", "T2"])
 
         self.assertFalse(result.ok)
-        self.assertIn("failed: 1", result.message)
+        summary = LanguageManager().translate(TranslationKeys.PROPERTY_ACTION_ARCHIVE_SUMMARY)
+        self.assertIn(summary.format(succeeded=1, skipped=0, failed=1), result.message)
         self.assertIsNotNone(result.error)
 
 

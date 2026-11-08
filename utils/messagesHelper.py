@@ -222,7 +222,7 @@ class ModernMessageDialog:
         cancel_button = None
         if with_cancel:
             cancel_button = QPushButton(
-                LanguageManager().translate(TranslationKeys.CANCEL_BUTTON) or "Cancel"
+                LanguageManager().translate(TranslationKeys.CANCEL_BUTTON)
             )
             cancel_button.setProperty("variant", ButtonVariant.GHOST)
             cancel_button.setProperty("btnSize", ButtonSize.SMALL)
@@ -230,7 +230,7 @@ class ModernMessageDialog:
             button_layout.addWidget(cancel_button)
 
         # OK button
-        ok_button = QPushButton(LanguageManager().translate(TranslationKeys.OK) or "OK")
+        ok_button = QPushButton(LanguageManager().translate(TranslationKeys.OK))
         ok_button.setProperty("variant", ButtonVariant.PRIMARY)
         ok_button.clicked.connect(dialog.accept)
         ok_button.setDefault(True)
@@ -433,10 +433,10 @@ class ModernMessageDialog:
         btn_row = QHBoxLayout()
         btn_row.addStretch(1)
 
-        cancel_btn = QPushButton(LanguageManager().translate(TranslationKeys.CANCEL_BUTTON) or "Cancel")
+        cancel_btn = QPushButton(LanguageManager().translate(TranslationKeys.CANCEL_BUTTON))
         cancel_btn.setProperty("variant", ButtonVariant.GHOST)
         cancel_btn.setProperty("btnSize", ButtonSize.SMALL)
-        ok_btn = QPushButton(LanguageManager().translate(TranslationKeys.OK) or "OK")
+        ok_btn = QPushButton(LanguageManager().translate(TranslationKeys.OK))
         ok_btn.setProperty("variant", ButtonVariant.PRIMARY)
         ok_btn.setProperty("btnSize", ButtonSize.SMALL)
         ok_btn.setDefault(True)

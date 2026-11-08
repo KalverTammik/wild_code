@@ -141,10 +141,6 @@ class StatusWidget(QWidget):
         row.setContentsMargins(0, 0, 0, 0)
         row.addStretch(1)
 
-        self.legacy_marker = QLabel("LEGACY", self)
-        self.legacy_marker.setObjectName("LegacyStatusMarker")
-        self.legacy_marker.setAlignment(Qt.AlignCenter)
-
         self.status_label = _ClickableStatusLabel(self)
         self.status_label.setObjectName("StatusLabel")
         self.status_label.setAlignment(Qt.AlignCenter)
@@ -157,8 +153,6 @@ class StatusWidget(QWidget):
             )
             self.status_label.clicked.connect(self._show_status_menu)
 
-        row.addWidget(self.legacy_marker, 0, Qt.AlignRight | Qt.AlignVCenter)
-        row.addSpacing(4)
         row.addWidget(self.status_label, 0, Qt.AlignRight | Qt.AlignVCenter)
         main_layout.addLayout(row)
         self._apply_status_info(DataDisplayExtractors.extract_status(self._item_data))

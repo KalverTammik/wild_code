@@ -158,7 +158,9 @@ class MoreActionsButton(CardActionButton):
         on_properties_linked=None,
         on_files_path_updated=None,
     ) -> None:
-        tooltip = lang_manager.translate(ToolbarTranslationKeys.MORE_ACTIONS) if lang_manager else ""
+        # The menu labels and the setup warning need a language; cards built without one use the default.
+        lang_manager = lang_manager or LanguageManager()
+        tooltip = lang_manager.translate(ToolbarTranslationKeys.MORE_ACTIONS)
         super().__init__(
             "MoreActionsButton",
             IconNames.ICON_ADD,

@@ -35,20 +35,21 @@ class PropertyActionService:
         module_name: str = Module.PROPERTY.name,
         archive_tag_name: str = "Arhiveeritud",
     ) -> PropertyActionResult:
+        lang = LanguageManager()
         normalized_action = (action or "").strip().lower()
         if not normalized_action:
             return PropertyActionResult(
                 ok=False,
-                title="Unknown action",
-                message="Action was not provided.",
+                title=lang.translate(TranslationKeys.PROPERTY_ACTION_UNKNOWN_TITLE),
+                message=lang.translate(TranslationKeys.PROPERTY_ACTION_MISSING_MESSAGE),
                 action=normalized_action,
             )
 
         if not tunnused:
             return PropertyActionResult(
                 ok=False,
-                title="Missing tunnus",
-                message="Selected features do not contain cadastral tunnus.",
+                title=lang.translate(TranslationKeys.PROPERTY_ACTION_MISSING_TUNNUS_TITLE),
+                message=lang.translate(TranslationKeys.PROPERTY_ACTION_MISSING_TUNNUS_MESSAGE),
                 action=normalized_action,
             )
 
@@ -64,10 +65,12 @@ class PropertyActionService:
                 failed = int(summary.get("failed") or 0)
                 return PropertyActionResult(
                     ok=bool(succeeded > 0 and failed == 0),
-                    title="Backend archive" if failed == 0 else "Backend archive (partial)",
+                    title=lang.translate(
+                        TranslationKeys.PROPERTY_ACTION_ARCHIVE_TITLE if failed == 0 else TranslationKeys.PROPERTY_ACTION_ARCHIVE_PARTIAL_TITLE
+                    ),
                     message=(
-                        f"Backend archived: {succeeded}; skipped: {skipped}; failed: {failed}"
-                        + "\n" + LanguageManager().translate(TranslationKeys.PROPERTY_BACKEND_PENDING).format(tunnused=", ".join(summary.get("pending") or []))
+                        lang.translate(TranslationKeys.PROPERTY_ACTION_ARCHIVE_SUMMARY).format(succeeded=succeeded, skipped=skipped, failed=failed)
+                        + "\n" + lang.translate(TranslationKeys.PROPERTY_BACKEND_PENDING).format(tunnused=", ".join(summary.get("pending") or []))
                     ),
                     action=normalized_action,
                     error=(f"{failed} backend archive operations failed" if failed else None),
@@ -80,10 +83,12 @@ class PropertyActionService:
                 failed = int(summary.get("failed") or 0)
                 return PropertyActionResult(
                     ok=bool(succeeded > 0 and failed == 0),
-                    title="Backend unarchive" if failed == 0 else "Backend unarchive (partial)",
+                    title=lang.translate(
+                        TranslationKeys.PROPERTY_ACTION_UNARCHIVE_TITLE if failed == 0 else TranslationKeys.PROPERTY_ACTION_UNARCHIVE_PARTIAL_TITLE
+                    ),
                     message=(
-                        f"Backend unarchived: {succeeded}; skipped: {skipped}; failed: {failed}"
-                        + "\n" + LanguageManager().translate(TranslationKeys.PROPERTY_BACKEND_PENDING).format(tunnused=", ".join(summary.get("pending") or []))
+                        lang.translate(TranslationKeys.PROPERTY_ACTION_UNARCHIVE_SUMMARY).format(succeeded=succeeded, skipped=skipped, failed=failed)
+                        + "\n" + lang.translate(TranslationKeys.PROPERTY_BACKEND_PENDING).format(tunnused=", ".join(summary.get("pending") or []))
                     ),
                     action=normalized_action,
                     error=(f"{failed} backend unarchive operations failed" if failed else None),
@@ -94,8 +99,8 @@ class PropertyActionService:
                 if main_layer is None:
                     return PropertyActionResult(
                         ok=True,
-                        title="Delete",
-                        message=f"Backend delete attempted: {len(tunnused)}",
+                        title=lang.translate(TranslationKeys.PROPERTY_ACTION_DELETE_TITLE),
+                        message=lang.translate(TranslationKeys.PROPERTY_ACTION_DELETE_ATTEMPTED).format(count=len(tunnused)),
                         action=normalized_action,
                     )
 
@@ -106,14 +111,16 @@ class PropertyActionService:
                 )
 
                 lines = [
-                    f"Backend delete attempted: {len(tunnused)}",
-                    f"MAIN matched: {len(feature_ids or [])}",
-                    f"MAIN deleted: {len(feature_ids or []) if ok_commit else 0}",
+                    lang.translate(TranslationKeys.PROPERTY_ACTION_DELETE_ATTEMPTED).format(count=len(tunnused)),
+                    lang.translate(TranslationKeys.PROPERTY_ACTION_DELETE_MATCHED).format(count=len(feature_ids or [])),
+                    lang.translate(TranslationKeys.PROPERTY_ACTION_DELETE_DELETED).format(count=len(feature_ids or []) if ok_commit else 0),
                 ]
                 if err:
-                    lines.append(f"Error: {err}")
+                    lines.append(lang.translate(TranslationKeys.ERROR_DETAILS).format(error=err))
 
-                title = "Delete" if ok_commit else "Delete (partial)"
+                title = lang.translate(
+                    TranslationKeys.PROPERTY_ACTION_DELETE_TITLE if ok_commit else TranslationKeys.PROPERTY_ACTION_DELETE_PARTIAL_TITLE
+                )
                 return PropertyActionResult(
                     ok=bool(ok_commit),
                     title=title,
@@ -124,8 +131,8 @@ class PropertyActionService:
 
             return PropertyActionResult(
                 ok=False,
-                title="Unknown action",
-                message=f"Action '{action}' is not supported.",
+                title=lang.translate(TranslationKeys.PROPERTY_ACTION_UNKNOWN_TITLE),
+                message=lang.translate(TranslationKeys.PROPERTY_ACTION_UNSUPPORTED_MESSAGE).format(action=action),
                 action=normalized_action,
             )
         except Exception as exc:
@@ -136,7 +143,7 @@ class PropertyActionService:
             )
             return PropertyActionResult(
                 ok=False,
-                title="Backend action failed",
+                title=lang.translate(TranslationKeys.PROPERTY_ACTION_FAILED_TITLE),
                 message=str(exc),
                 action=normalized_action,
                 error=str(exc),

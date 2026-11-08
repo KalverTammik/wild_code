@@ -1,6 +1,9 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QHBoxLayout
 from PyQt5.QtCore import Qt
 
+from ..languages.language_manager import LanguageManager
+from ..languages.translation_keys import TranslationKeys
+
 class FeedCounterWidget(QWidget):
     """
     Displays a counter: Loaded <loaded> of <total>, with independent styling for numbers and text.
@@ -29,9 +32,11 @@ class FeedCounterWidget(QWidget):
         # Use plain text without colors
         if total is None or total == "" or total == -1:
             # Unknown total – show only loaded portion
-            self._label.setText(f'Loaded {loaded}')
+            self._label.setText(LanguageManager().translate(TranslationKeys.FEED_COUNTER_LOADED).format(loaded=loaded))
         else:
-            self._label.setText(f'Loaded {loaded} of {total}')
+            self._label.setText(
+                LanguageManager().translate(TranslationKeys.FEED_COUNTER_LOADED_OF).format(loaded=loaded, total=total)
+            )
 
     def retheme(self):
         """No theme-specific colors needed anymore."""

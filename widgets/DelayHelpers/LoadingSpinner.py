@@ -1,10 +1,6 @@
 from PyQt5.QtCore import Qt, QPropertyAnimation, pyqtProperty, QTimer
 from PyQt5.QtGui import QColor, QPainter, QConicalGradient, QPen
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QApplication, QVBoxLayout, QLabel
-
-from ...languages.language_manager import LanguageManager
-from ...languages.translation_keys import TranslationKeys
 
 
 class GradientSpinner(QWidget):
@@ -188,35 +184,3 @@ class GradientSpinner(QWidget):
                 painter.drawText(sub_start_x, sub_baseline_y, self._sub_text)
 
         painter.end()
-
-if __name__ == "__main__":
-    import sys
-
-    app = QApplication(sys.argv)
-
-    window = QWidget()
-    window.setWindowTitle(LanguageManager().translate(TranslationKeys.DELAY_HELPERS_LOADINGSPINNER_TITLE))
-    layout = QVBoxLayout(window)
-    layout.setContentsMargins(32, 32, 32, 32)
-    layout.setSpacing(16)
-
-    label = QLabel("Spinner preview – animated dots in the center")
-    label.setWordWrap(True)
-    layout.addWidget(label)
-
-    spinner = GradientSpinner(
-        diameter=120,
-        text="Laen",     # base text, dots will be added
-        sub_text="Palun oota",  # second line
-        border_thickness=10,
-        border_color=QColor(63, 249, 220),
-        dots_enabled=True,
-        dots_interval_ms=350,
-    )
-    layout.addWidget(spinner, alignment=Qt.AlignCenter)
-    spinner.start()
-
-    window.resize(300, 300)
-    window.show()
-
-    sys.exit(app.exec_())

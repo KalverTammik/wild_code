@@ -627,8 +627,7 @@ class TypeFilterWidget(QWidget):
 
     # Async helpers --------------------------------------------------
     def _show_loading_placeholder(self) -> None:
-        loading_text = self._lang.translate(TranslationKeys.LOADING) if self._lang else "Loading"
-        placeholder = f"{loading_text}..."
+        placeholder = self._lang.translate(TranslationKeys.LOADING)
         self.group_combo.addItem(placeholder)
         self.type_combo.addItem(placeholder)
 
@@ -724,7 +723,7 @@ class TypeFilterWidget(QWidget):
             return
         self.group_combo.clear()
         self.type_combo.clear()
-        self.group_combo.addItem(f"Error: {message[:40]}...")
+        self.group_combo.addItem(self._lang.translate(TranslationKeys.ERROR_DETAILS).format(error=f"{message[:40]}..."))
         self.group_combo.setEnabled(False)
         self.type_combo.setEnabled(False)
         self._control.setEnabled(False)

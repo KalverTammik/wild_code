@@ -81,7 +81,7 @@ class PropertyModule(TokenMixin, QWidget):
 
         # Title + action row
         top_row = QHBoxLayout()
-        details_title = QLabel("Kinnistu andmed")
+        details_title = QLabel(self.lang_manager.translate(TranslationKeys.PROPERTY_SUMMARY_TITLE))
         details_title.setObjectName("DetailsTitle")
         title_font = QFont()
         title_font.setBold(True)

@@ -98,7 +98,7 @@ class EasementLayerService:
             if not silent:
                 ModernMessageDialog.show_warning(
                     lang.translate(TranslationKeys.ERROR),
-                    "Configured easement main layer is ambiguous. Please re-select the main easement layer in Settings.",
+                    lang.translate(TranslationKeys.EASEMENT_MAIN_LAYER_AMBIGUOUS),
                 )
             return None
 

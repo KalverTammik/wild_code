@@ -1205,10 +1205,10 @@ class SettingsModuleCard(SettingsBaseCard):
             self._pend_label_values = {}
 
             self._update_stored_values_display()
-            self.set_status_text(f"✅ {self.lang_manager.translate('Settings reset to defaults')}", True)
+            self.set_status_text(f"✅ {self.lang_manager.translate(TranslationKeys.SETTINGS_RESET_TO_DEFAULTS)}", True)
             self._emit_pending_changed(self.has_pending_changes())
         except Exception as exc:
-            self.set_status_text(f"❌ {self.lang_manager.translate('Reset failed')}: {exc}", True)
+            self.set_status_text(f"❌ {self.lang_manager.translate(TranslationKeys.SETTINGS_RESET_FAILED)}: {exc}", True)
 
     # --- Eelistused (settings) ---
 

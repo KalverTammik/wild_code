@@ -7,6 +7,8 @@ from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.workers import FunctionWorker, start_worker
 from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 
 
 class UnifiedSearchController(QObject):
@@ -151,7 +153,7 @@ class UnifiedSearchController(QObject):
             )
         except Exception as exc:
             print(f"[UnifiedSearchController] search_error log failed: {exc}", file=sys.stderr)
-        friendly = message or "Otsing ebaõnnestus"
+        friendly = message or LanguageManager().translate(TranslationKeys.SEARCH_FAILED)
         self.searchFailed.emit(friendly)
 
     def _clear_worker_refs(self) -> None:

@@ -18,6 +18,8 @@ from PyQt5.QtWidgets import (
 
 from ...constants.button_props import ButtonVariant
 from ...constants.file_paths import QssPaths
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
@@ -52,6 +54,26 @@ class EasementGeometryFormDialog(QDialog):
     FIELD_REGION = "Piirkond"
     FIELD_ADDRESS = "Aadress"
     FIELD_HOUSE_NUMBER = "Maja nr"
+    # The FIELD_* names are layer field names and the values() keys; the labels come from the translations.
+    _LABEL_KEYS = {
+        FIELD_KIND: TranslationKeys.EASEMENT_FIELD_KIND,
+        FIELD_STATUS: TranslationKeys.EASEMENT_FIELD_STATUS,
+        FIELD_NOTARY_NUMBER: TranslationKeys.EASEMENT_FIELD_NOTARY_NUMBER,
+        FIELD_LAND_OWNER: TranslationKeys.EASEMENT_FIELD_LAND_OWNER,
+        FIELD_CADASTRAL: TranslationKeys.EASEMENT_FIELD_CADASTRAL,
+        FIELD_PHONE: TranslationKeys.EASEMENT_FIELD_PHONE,
+        FIELD_EMAIL: TranslationKeys.EASEMENT_FIELD_EMAIL,
+        FIELD_NOTE: TranslationKeys.EASEMENT_FIELD_NOTE,
+        FIELD_ESTABLISHED_DATE: TranslationKeys.EASEMENT_FIELD_ESTABLISHED_DATE,
+        FIELD_SOURCE: TranslationKeys.EASEMENT_FIELD_SOURCE,
+        FIELD_NETWORK: TranslationKeys.EASEMENT_FIELD_NETWORK,
+        FIELD_PROTECTION_WIDTH: TranslationKeys.EASEMENT_FIELD_PROTECTION_WIDTH,
+        FIELD_COMPENSATION: TranslationKeys.EASEMENT_FIELD_COMPENSATION,
+        FIELD_MUNICIPALITY: TranslationKeys.EASEMENT_FIELD_MUNICIPALITY,
+        FIELD_REGION: TranslationKeys.EASEMENT_FIELD_REGION,
+        FIELD_ADDRESS: TranslationKeys.EASEMENT_FIELD_ADDRESS,
+        FIELD_HOUSE_NUMBER: TranslationKeys.EASEMENT_FIELD_HOUSE_NUMBER,
+    }
 
     def __init__(
         self,
@@ -60,9 +82,11 @@ class EasementGeometryFormDialog(QDialog):
         initial_values: dict | None = None,
         status_options: list[dict] | None = None,
         current_status: dict | None = None,
+        lang_manager=None,
         parent=None,
     ) -> None:
         super().__init__(parent)
+        self._lang = lang_manager or LanguageManager()
         self._item_data = item_data if isinstance(item_data, dict) else {}
         self._initial_values = initial_values if isinstance(initial_values, dict) else {}
         self._status_options = list(status_options or [])
@@ -72,7 +96,7 @@ class EasementGeometryFormDialog(QDialog):
 
         self.setObjectName("EasementGeometryFormDialog")
         self.setModal(True)
-        self.setWindowTitle("Servituudi ala andmed")
+        self.setWindowTitle(self._lang.translate(TranslationKeys.EASEMENT_FORM_TITLE))
 
         self._build_ui()
         self._apply_defaults()
@@ -87,29 +111,25 @@ class EasementGeometryFormDialog(QDialog):
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(12)
 
-        intro = QLabel(
-            "Täida servituudi ala kihiandmed enne ala salvestamist. Muudetud staatus salvestatakse ka Kavitrosse. "
-            "Automaatika täidab seose, pindala ja logiväljad, kui need on arvutatavad.",
-            self,
-        )
+        intro = QLabel(self._lang.translate(TranslationKeys.EASEMENT_FORM_INTRO), self)
         intro.setWordWrap(True)
         root.addWidget(intro)
 
         tabs = QTabWidget(self)
-        tabs.addTab(self._build_data_tab(), "Andmed")
-        tabs.addTab(self._build_location_tab(), "Asukoht")
+        tabs.addTab(self._build_data_tab(), self._lang.translate(TranslationKeys.EASEMENT_FORM_TAB_DATA))
+        tabs.addTab(self._build_location_tab(), self._lang.translate(TranslationKeys.EASEMENT_FORM_TAB_LOCATION))
         root.addWidget(tabs, 1)
 
         buttons = QHBoxLayout()
         buttons.setSpacing(8)
         buttons.addStretch(1)
 
-        cancel_btn = QPushButton("Katkesta", self)
+        cancel_btn = QPushButton(self._lang.translate(TranslationKeys.GEOMETRY_FORM_CANCEL), self)
         cancel_btn.setProperty("variant", ButtonVariant.GHOST)
         cancel_btn.clicked.connect(self.reject)
         buttons.addWidget(cancel_btn)
 
-        save_btn = QPushButton("Salvesta", self)
+        save_btn = QPushButton(self._lang.translate(TranslationKeys.SAVE), self)
         save_btn.setProperty("variant", ButtonVariant.SUCCESS)
         save_btn.clicked.connect(self.accept)
         buttons.addWidget(save_btn)
@@ -128,10 +148,10 @@ class EasementGeometryFormDialog(QDialog):
         # Created in display order: the Tab key follows creation order.
         self._kind = QLineEdit(tab)
         self._status = StatusSelectWidget(tab)
-        self._status.setToolTip("Muudetud staatus salvestatakse Kavitrosse ja kaardikihile.")
+        self._status.setToolTip(self._lang.translate(TranslationKeys.EASEMENT_FORM_STATUS_TOOLTIP))
         _, self._status_label = form.add_fields(
-            (self.FIELD_KIND, self._kind, 6),
-            (self.FIELD_STATUS, self._status, 6),
+            (self._label(self.FIELD_KIND), self._kind, 6),
+            (self._label(self.FIELD_STATUS), self._status, 6),
         )
         # The label also names the map value, and that text must not move the other fields.
         self._status_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
@@ -142,13 +162,15 @@ class EasementGeometryFormDialog(QDialog):
         # Shown at the minimum date: a date that will not be saved is left blank.
         self._established_date.setSpecialValueText(" ")
         self._established_date.setDate(QDate.currentDate())
-        self._established_date.setToolTip(f"Kuupäev salvestatakse, kui staatusele vastab kihil väärtus {self.STATUS_ESTABLISHED}.")
+        self._established_date.setToolTip(
+            self._lang.translate(TranslationKeys.EASEMENT_FORM_DATE_TOOLTIP).format(status=self.STATUS_ESTABLISHED)
+        )
         self._notary_number = QLineEdit(tab)
         self._source = QLineEdit(tab)
         form.add_fields(
-            (self.FIELD_ESTABLISHED_DATE, self._established_date, 4),
-            (self.FIELD_NOTARY_NUMBER, self._notary_number, 4),
-            (self.FIELD_SOURCE, self._source, 4),
+            (self._label(self.FIELD_ESTABLISHED_DATE), self._established_date, 4),
+            (self._label(self.FIELD_NOTARY_NUMBER), self._notary_number, 4),
+            (self._label(self.FIELD_SOURCE), self._source, 4),
         )
 
         form.add_separator()
@@ -157,9 +179,9 @@ class EasementGeometryFormDialog(QDialog):
         self._phone = QLineEdit(tab)
         self._email = QLineEdit(tab)
         form.add_fields(
-            (self.FIELD_LAND_OWNER, self._land_owner, 4),
-            (self.FIELD_PHONE, self._phone, 4),
-            (self.FIELD_EMAIL, self._email, 4),
+            (self._label(self.FIELD_LAND_OWNER), self._land_owner, 4),
+            (self._label(self.FIELD_PHONE), self._phone, 4),
+            (self._label(self.FIELD_EMAIL), self._email, 4),
         )
 
         form.add_separator()
@@ -168,15 +190,15 @@ class EasementGeometryFormDialog(QDialog):
         self._protection_width = QLineEdit(tab)
         self._compensation = QLineEdit(tab)
         form.add_fields(
-            (self.FIELD_NETWORK, self._network, 4),
-            (self.FIELD_PROTECTION_WIDTH, self._protection_width, 4),
-            (self.FIELD_COMPENSATION, self._compensation, 4),
+            (self._label(self.FIELD_NETWORK), self._network, 4),
+            (self._label(self.FIELD_PROTECTION_WIDTH), self._protection_width, 4),
+            (self._label(self.FIELD_COMPENSATION), self._compensation, 4),
         )
 
         self._note = CompactTextEdit(tab)
         self._note.setAcceptRichText(False)
         self._note.setMinimumHeight(76)
-        form.add_text_area(self.FIELD_NOTE, self._note)
+        form.add_text_area(self._label(self.FIELD_NOTE), self._note)
 
         return tab
 
@@ -188,23 +210,26 @@ class EasementGeometryFormDialog(QDialog):
         self._municipality = QLineEdit(tab)
         self._region = QLineEdit(tab)
         form.add_fields(
-            (self.FIELD_MUNICIPALITY, self._municipality, 6),
-            (self.FIELD_REGION, self._region, 6),
+            (self._label(self.FIELD_MUNICIPALITY), self._municipality, 6),
+            (self._label(self.FIELD_REGION), self._region, 6),
         )
 
         self._address = QLineEdit(tab)
         self._house_number = QLineEdit(tab)
         form.add_fields(
-            (self.FIELD_ADDRESS, self._address, 9),
-            (self.FIELD_HOUSE_NUMBER, self._house_number, 3),
+            (self._label(self.FIELD_ADDRESS), self._address, 9),
+            (self._label(self.FIELD_HOUSE_NUMBER), self._house_number, 3),
         )
 
         # Full width: an area across several properties lists all of their numbers.
         self._cadastral = QLineEdit(tab)
-        form.add_fields((self.FIELD_CADASTRAL, self._cadastral, 12))
+        form.add_fields((self._label(self.FIELD_CADASTRAL), self._cadastral, 12))
 
         form.setRowStretch(form.rowCount(), 1)
         return tab
+
+    def _label(self, field_name: str) -> str:
+        return self._lang.translate(self._LABEL_KEYS[field_name])
 
     def _layer_status(self) -> str:
         option = self._status.current_option()
@@ -212,12 +237,11 @@ class EasementGeometryFormDialog(QDialog):
 
     def _on_status_changed(self) -> None:
         layer_status = self._layer_status()
+        label = self._label(self.FIELD_STATUS)
         if self._status.current_option() and not layer_status:
-            label = f"{self.FIELD_STATUS} (kaardil ei muutu)"
+            label = self._lang.translate(TranslationKeys.EASEMENT_FORM_STATUS_MAP_UNCHANGED).format(label=label)
         elif layer_status and layer_status != self._status.currentText():
-            label = f"{self.FIELD_STATUS} (kaardil: {layer_status})"
-        else:
-            label = self.FIELD_STATUS
+            label = self._lang.translate(TranslationKeys.EASEMENT_FORM_STATUS_MAP_VALUE).format(label=label, value=layer_status)
         self._status_label.setText(label)
         self._sync_established_date()
 
@@ -289,9 +313,8 @@ class EasementGeometryFormDialog(QDialog):
         saved = APIModuleActions.update_easement_status(item_id, status_id)
         if saved is None:
             ModernMessageDialog.show_warning(
-                "Staatust ei muudetud",
-                "Kavitro ei võtnud uut staatust vastu, seega kaardile ei salvestatud midagi. "
-                "Proovi uuesti või vali tagasi algne staatus.",
+                self._lang.translate(TranslationKeys.EASEMENT_FORM_STATUS_REJECTED_TITLE),
+                self._lang.translate(TranslationKeys.EASEMENT_FORM_STATUS_REJECTED_MESSAGE),
                 parent=self,
             )
             return False

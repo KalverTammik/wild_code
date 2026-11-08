@@ -46,10 +46,7 @@ class WildCodePlugin:
             self.action = None
             dlg = self.pluginDialog or PluginDialog.get_instance()
             if dlg is not None:
-                try:
-                    setattr(dlg, "_force_close", True)
-                except Exception:
-                    pass
+                dlg._force_close = True
                 try:
                     dlg.close()
                 except Exception:

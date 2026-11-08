@@ -30,10 +30,7 @@ class APIClient:
         self.config_path = ConfigPaths.CONFIG
 
     def _http_status_error(self, status_code: int) -> str:
-        template = self.lang.translate(
-            TranslationKeys.SERVER_REQUEST_FAILED,
-            fallback="Server request failed (HTTP {status_code}).",
-        )
+        template = self.lang.translate(TranslationKeys.SERVER_REQUEST_FAILED)
         return tag_message(
             ApiErrorKind.SERVER,
             template.format(status_code=int(status_code)),
@@ -136,7 +133,7 @@ class APIClient:
                     time.sleep(0.4 * attempt)
                     continue
                 summary = summarize_connection_error(str(exc))
-                template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
+                template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
                 raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error=summary)))
 
             except Exception as exc:
@@ -169,7 +166,7 @@ class APIClient:
                         return _wrap_error(msg)
                     raise Exception(msg)
 
-                template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
+                template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
                 msg2 = tag_message(ApiErrorKind.NETWORK, template.format(error=""))
                 if with_success:
                     return _wrap_error(msg2)
@@ -179,7 +176,7 @@ class APIClient:
             if with_success:
                 return _wrap_error(last_error)
             raise Exception(last_error)
-        template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
+        template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
         msg2 = tag_message(ApiErrorKind.NETWORK, template.format(error=""))
         if with_success:
             return _wrap_error(msg2)
@@ -353,7 +350,7 @@ class APIClient:
                     time.sleep(0.4 * attempt)
                     continue
                 summary = summarize_connection_error(str(exc))
-                template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
+                template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
                 raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error=summary)))
 
             except Exception as exc:
@@ -380,7 +377,7 @@ class APIClient:
                 if msg:
                     raise Exception(msg)
 
-                template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
+                template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
                 raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error="")))
 
             finally:
@@ -392,7 +389,7 @@ class APIClient:
 
         if last_error:
             raise Exception(last_error)
-        template = self.lang.translate(TranslationKeys.NETWORK_ERROR) or "Network error: {error}"
+        template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
         raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error="")))
 
     def _extract_error_message(self, errors):
@@ -405,7 +402,7 @@ class APIClient:
             try:
                 return json.dumps(errors)
             except Exception:
-                return self.lang.translate("network_error").format(error="")
+                return self.lang.translate(TranslationKeys.NETWORK_ERROR).format(error="")
 
     def _tagged_graphql_error(self, errors) -> str:
         if self._errors_include_category(errors, "MFA_SETUP_REQUIRED"):

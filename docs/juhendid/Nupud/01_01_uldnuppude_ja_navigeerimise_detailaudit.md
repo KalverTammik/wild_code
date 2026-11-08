@@ -175,7 +175,7 @@ Otsing küsib teenuselt iga andmerühma kohta kuni viis vastet. Tulemused rühmi
 | **× Sulge otsingutulemused** | Peidab tulemuste hüpiku, kuid jätab otsinguteksti väljale. Uus tekstimuudatus võib hüpiku uuesti avada. |
 | **Andmerühma pealkiri** | Proovib rühma tulemusi laiendada või ahendada ning käivitab otsingu uuesti. |
 | **Otsingutulemus** | Peidab hüpiku ja proovib avada kirje vastavas Visuaali moodulis. |
-| **-- Show N more --** | Proovib näidata rühma ülejäänud tulemusi ja käivitab otsingu uuesti. Tekst pole praegu eesti keelde tõlgitud. |
+| **-- Näita veel N --** | Proovib näidata rühma ülejäänud tulemusi ja käivitab otsingu uuesti. |
 
 Tulemuste hüpik peidetakse ka sellest väljapoole klõpsamisel või QGIS-i fookuse kaotamisel. Sulgemine ei tühjenda otsinguvälja ega katkesta juba avatud kirjet. Kui otsingupäring on sulgemise hetkel veel pooleli, võib selle hilisem vastus hüpiku uuesti avada.
 

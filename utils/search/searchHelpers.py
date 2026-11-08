@@ -1,4 +1,6 @@
 from ..messagesHelper import ModernMessageDialog
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 class SearchHeplpers:
     @staticmethod
     def _on_search_result_clicked(dialog, module: str, item_id: str, title: str) -> None:
@@ -18,9 +20,10 @@ class SearchHeplpers:
 
         target_enum = MODULE_SEARCH_TO_ENUM.get(module.upper())
         if target_enum is None:
+            lang = LanguageManager()
             ModernMessageDialog.show_info(
-                "Not available",
-                "This module cannot be opened from search yet.",
+                lang.translate(TranslationKeys.SEARCH_OPEN_NOT_AVAILABLE_TITLE),
+                lang.translate(TranslationKeys.SEARCH_OPEN_NOT_AVAILABLE_MESSAGE),
             )
             return
 

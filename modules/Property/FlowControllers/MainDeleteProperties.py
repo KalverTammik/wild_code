@@ -49,7 +49,7 @@ class DeletePropertyUI(QDialog):
         self.lang_manager = LanguageManager()
 
         self.setWindowTitle(
-            self.lang_manager.translate(TranslationKeys.REMOVE_PROPERTY) or "Remove property"
+            self.lang_manager.translate(TranslationKeys.REMOVE_PROPERTY)
         )
         self.setModal(True)
         self.setFixedSize(420, 160)
@@ -65,7 +65,7 @@ class DeletePropertyUI(QDialog):
         layout.setSpacing(10)
 
         title = QLabel(
-            self.lang_manager.translate(TranslationKeys.REMOVE_PROPERTY) or "Remove property"
+            self.lang_manager.translate(TranslationKeys.REMOVE_PROPERTY)
         )
         title.setObjectName("FilterTitle")
         layout.addWidget(title)
@@ -82,7 +82,7 @@ class DeletePropertyUI(QDialog):
         btns.addStretch(1)
 
         self._btn_cancel = QPushButton(
-            self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON) or "Cancel",
+            self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
             self,
         )
         self._btn_cancel.setObjectName("ConfirmButton")
@@ -90,7 +90,7 @@ class DeletePropertyUI(QDialog):
         btns.addWidget(self._btn_cancel)
 
         self._btn_confirm = QPushButton(
-            self.lang_manager.translate(TranslationKeys.CONFIRM) or "Confirm",
+            self.lang_manager.translate(TranslationKeys.CONFIRM),
             self,
         )
         self._btn_confirm.setObjectName("ConfirmButton")
@@ -118,7 +118,7 @@ class DeletePropertyUI(QDialog):
         
             if not ok:
                 ModernMessageDialog.show_warning(
-                    self.lang_manager.translate("Delete failed") ,
+                    self.lang_manager.translate(TranslationKeys.PROPERTY_DELETE_FAILED),
                     message,
                 )
         finally:
@@ -127,8 +127,8 @@ class DeletePropertyUI(QDialog):
 
         if ok:
             ModernMessageDialog.show_info(
-                self.lang_manager.translate("Deleted") or "Deleted",
-                self.lang_manager.translate("Property deleted successfully.") or "Property deleted successfully.",
+                self.lang_manager.translate(TranslationKeys.PROPERTY_DELETED_TITLE),
+                self.lang_manager.translate(TranslationKeys.PROPERTY_DELETED_MESSAGE),
             )
             self.accept()
             return

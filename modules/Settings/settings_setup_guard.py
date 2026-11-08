@@ -81,13 +81,8 @@ class SettingsSetupGuard:
 
     @staticmethod
     def redirect_warning_text(lang_manager, module_key: str) -> tuple[str, str]:
-        module_name = str(module_key or "").strip().lower()
-        translated_module = (
-            lang_manager.translate_module_name(module_name)
-            if lang_manager is not None and hasattr(lang_manager, "translate_module_name")
-            else module_name.capitalize()
-        )
-        title = lang_manager.translate(TranslationKeys.SETTINGS_SETUP_MISSING_TITLE) if lang_manager else "Module setup missing"
-        body = lang_manager.translate(TranslationKeys.SETTINGS_SETUP_MISSING_MESSAGE).format(module=translated_module) if lang_manager else f"Settings for module {translated_module} are not configured yet. Next, you will be redirected to that module's settings."
-        note = lang_manager.translate(TranslationKeys.SETTINGS_SETUP_MISSING_NOTE) if lang_manager else "Nota bene:\nPlease also review the other module settings while you are in Settings."
+        translated_module = lang_manager.translate_module_name(str(module_key or "").strip().lower())
+        title = lang_manager.translate(TranslationKeys.SETTINGS_SETUP_MISSING_TITLE)
+        body = lang_manager.translate(TranslationKeys.SETTINGS_SETUP_MISSING_MESSAGE).format(module=translated_module)
+        note = lang_manager.translate(TranslationKeys.SETTINGS_SETUP_MISSING_NOTE)
         return title, f"{body}\n\n{note}"
