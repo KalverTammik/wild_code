@@ -38,13 +38,14 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.SessionManager import SessionManager
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
+from ...utils.layers.module_layer_service_base import ModuleLayerServiceBase
 from ...utils.geometry_payload import GeometryPayloadService
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 
 
-class WorksLayerService:
+class WorksLayerService(ModuleLayerServiceBase):
     EXT_SYSTEM_NAME = "Kavitro"
 
     BACKEND_GEOMETRY_ICON = "fa6-solid:person-digging"
@@ -313,37 +314,6 @@ class WorksLayerService:
             return int(text)
         except (TypeError, ValueError):
             return None
-
-    @staticmethod
-    def parse_backend_datetime(value) -> Optional[datetime]:
-        text = str(value or "").strip()
-        if not text:
-            return None
-
-        normalized = text.replace("Z", "+00:00")
-        try:
-            parsed = datetime.fromisoformat(normalized)
-        except Exception:
-            parsed = None
-
-        if parsed is None:
-            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
-                try:
-                    parsed = datetime.strptime(text, fmt)
-                    break
-                except Exception:
-                    continue
-
-        if parsed is None:
-            return None
-
-        if parsed.tzinfo is not None:
-            try:
-                parsed = parsed.astimezone().replace(tzinfo=None)
-            except Exception:
-                parsed = parsed.replace(tzinfo=None)
-
-        return parsed
 
     @staticmethod
     def created_date_from_task(task: Optional[dict]) -> Optional[datetime]:
@@ -803,7 +773,7 @@ class WorksLayerService:
         task_id_value = WorksLayerService.coerce_optional_int(task_id)
         feature.setAttribute(task_id_field, task_id_value if task_id_value is not None else str(task_id or "").strip())
         for canonical_name, value in field_values.items():
-            WorksLayerService._set_attr_if_present(
+            WorksLayerService._set_attr_via_field_map(
                 feature,
                 layer=layer,
                 field_map=field_map,
@@ -895,7 +865,7 @@ class WorksLayerService:
         task_id_value = WorksLayerService.coerce_optional_int(task_id)
         feature.setAttribute(task_id_field, task_id_value if task_id_value is not None else str(task_id or "").strip())
         for canonical_name, value in field_values.items():
-            WorksLayerService._set_attr_if_present(
+            WorksLayerService._set_attr_via_field_map(
                 feature,
                 layer=layer,
                 field_map=field_map,
@@ -974,7 +944,7 @@ class WorksLayerService:
         return payload if isinstance(payload, dict) else {}
 
     @staticmethod
-    def _set_attr_if_present(
+    def _set_attr_via_field_map(
         feature: QgsFeature,
         *,
         layer: Optional[QgsVectorLayer],

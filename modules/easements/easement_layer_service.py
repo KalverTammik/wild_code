@@ -12,15 +12,15 @@ from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ..Settings.setting_keys import SettingDialogPlaceholders
-from ...utils.MapTools.MapHelpers import MapHelpers
 from ...utils.SessionManager import SessionManager
+from ...utils.layers.module_layer_service_base import ModuleLayerServiceBase
 from ...utils.geometry_payload import GeometryPayloadService
 from ...utils.url_manager import Module
 from ...utils.messagesHelper import ModernMessageDialog
 from ...Logs.python_fail_logger import PythonFailLogger
 
 
-class EasementLayerService:
+class EasementLayerService(ModuleLayerServiceBase):
     EXT_SYSTEM_NAME = "Kavitro"
     FIELD_EXTERNAL_ID = "ext_easement_id"
     FIELD_EXTERNAL_SYSTEM = "ext_system"
@@ -50,31 +50,6 @@ class EasementLayerService:
     FIELD_PROTECTION_WIDTH_CANDIDATES = ("Kaitsevööndi laius", "kaitsevööndi laius")
     FIELD_NETWORK_CANDIDATES = ("Võrk", "võrk")
     FIELD_MUNICIPALITY_CANDIDATES = ("Vald", "vald")
-
-    @staticmethod
-    def _configured_layers(identifier: str) -> list[QgsMapLayer]:
-        cleaned = str(identifier or "").strip()
-        if not cleaned:
-            return []
-
-        direct = MapHelpers.find_layer_by_id(cleaned)
-        if direct is not None:
-            return [direct]
-
-        project = QgsProject.instance()
-        if project is None:
-            return []
-
-        target = cleaned.lower()
-        matches: list[QgsMapLayer] = []
-        for layer in project.mapLayers().values():
-            try:
-                candidate = str(layer.name() or "").strip()
-            except Exception:
-                continue
-            if candidate and candidate.lower() == target:
-                matches.append(layer)
-        return matches
 
     @staticmethod
     def _layer_target_label(layer: Optional[QgsMapLayer]) -> str:
@@ -145,15 +120,6 @@ class EasementLayerService:
                 event="easement_layer_field_map_failed",
             )
             return {}
-
-    @classmethod
-    def _resolve_first_field_name(cls, layer: Optional[QgsVectorLayer], candidates: tuple[str, ...]) -> Optional[str]:
-        field_map = cls._field_map(layer)
-        for candidate in candidates:
-            actual = field_map.get(str(candidate).lower())
-            if actual:
-                return actual
-        return None
 
     @classmethod
     def _resolve_identity_field_name(cls, layer: Optional[QgsVectorLayer]) -> Optional[str]:
@@ -433,42 +399,6 @@ class EasementLayerService:
             return ""
 
     @staticmethod
-    def parse_backend_datetime(value) -> Optional[datetime]:
-        text = str(value or "").strip()
-        if not text:
-            return None
-        normalized = text.replace("Z", "+00:00")
-        try:
-            parsed = datetime.fromisoformat(normalized)
-        except Exception:
-            parsed = None
-        if parsed is None:
-            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
-                try:
-                    parsed = datetime.strptime(text, fmt)
-                    break
-                except Exception:
-                    continue
-        if parsed is None:
-            return None
-        if parsed.tzinfo is not None:
-            try:
-                parsed = parsed.astimezone().replace(tzinfo=None)
-            except Exception:
-                parsed = parsed.replace(tzinfo=None)
-        return parsed
-
-    @staticmethod
-    def coerce_optional_int(value) -> Optional[int]:
-        text = str(value or "").strip()
-        if not text:
-            return None
-        try:
-            return int(text)
-        except Exception:
-            return None
-
-    @staticmethod
     def coerce_value_for_field(field, value):
         if field is None or value is None:
             return value
@@ -516,15 +446,6 @@ class EasementLayerService:
             return value
 
         return value
-
-    @classmethod
-    def _set_attr_if_present(cls, feature: QgsFeature, *, layer: QgsVectorLayer, candidates: tuple[str, ...], value) -> None:
-        actual = cls._resolve_first_field_name(layer, candidates)
-        if not actual:
-            return
-        field_index = layer.fields().indexFromName(actual)
-        field = layer.fields()[field_index] if field_index >= 0 else None
-        feature.setAttribute(actual, cls.coerce_value_for_field(field, value))
 
     @classmethod
     def _set_mapped_status(cls, feature: QgsFeature, *, layer: QgsVectorLayer, status_payload) -> None:
@@ -940,29 +861,6 @@ class EasementLayerService:
                 extra={"feature_id": int(feature_id)},
             )
             return False, str(exc)
-
-    @staticmethod
-    def _refresh_saved_layer(layer: Optional[QgsVectorLayer]) -> None:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return
-        try:
-            layer.updateExtents()
-        except Exception:
-            pass
-        try:
-            if not layer.isEditable():
-                layer.reload()
-        except Exception:
-            pass
-        try:
-            layer.triggerRepaint()
-        except Exception:
-            pass
-        try:
-            if iface is not None and iface.mapCanvas() is not None:
-                iface.mapCanvas().refresh()
-        except Exception:
-            pass
 
     @classmethod
     def upsert_final_cut_feature(

@@ -15,9 +15,10 @@ from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...utils.url_manager import ModuleSupports
 from ..status_select_widget import StatusMultiSelectWidget
+from .filter_widget_parts import FilterLoadingMixin
 
 
-class StatusFilterWidget(QWidget):
+class StatusFilterWidget(FilterLoadingMixin, QWidget):
     """Status-specific filter backed by the custom status multi-select."""
 
     selectionChanged = pyqtSignal(list, list)
@@ -80,10 +81,6 @@ class StatusFilterWidget(QWidget):
         self.selector.set_loading(f"{loading_text}...")
         self._start_async_load()
 
-    def ensure_loaded(self) -> None:
-        if not self._loaded:
-            self.reload()
-
     def selected_ids(self) -> List[str]:
         return list(self.selector.selected_ids())
 
@@ -96,12 +93,6 @@ class StatusFilterWidget(QWidget):
             self._pending_selected_ids = normalized
             return
         self.selector.set_selected_ids(normalized, emit=emit)
-
-    def is_loaded(self) -> bool:
-        return self._loaded
-
-    def is_loading(self) -> bool:
-        return self._worker_thread is not None
 
     def clear_data(self) -> None:
         try:
@@ -174,12 +165,6 @@ class StatusFilterWidget(QWidget):
         self._loaded = False
         self.loadFinished.emit(False)
 
-    def _cleanup_worker(self) -> None:
-        if not self._is_widget_alive():
-            return
-        self._worker = None
-        self._worker_thread = None
-
     def _initial_selected_ids(self) -> List[str]:
         if self._pending_selected_ids is not None:
             return list(self._pending_selected_ids)
@@ -212,44 +197,3 @@ class StatusFilterWidget(QWidget):
             seen.add(text)
             normalized.append(text)
         return normalized
-
-    def _current_token(self) -> int | None:
-        if not self._is_widget_alive():
-            return None
-        try:
-            parent = self.parent()
-        except RuntimeError:
-            return None
-        while parent is not None:
-            if hasattr(parent, "_active_token"):
-                return parent._active_token
-            parent = parent.parent()
-        return None
-
-    def _is_token_active(self, token: int | None) -> bool:
-        if not self._is_widget_alive():
-            return False
-        if token is None:
-            return True
-        try:
-            parent = self.parent()
-        except RuntimeError:
-            return False
-        while parent is not None:
-            if hasattr(parent, "is_token_active"):
-                try:
-                    return bool(parent.is_token_active(token))
-                except Exception:
-                    return False
-            parent = parent.parent()
-        return True
-
-    def _is_widget_alive(self) -> bool:
-        try:
-            import sip
-        except Exception:
-            sip = None
-        try:
-            return not bool(sip and sip.isdeleted(self))
-        except RuntimeError:
-            return False

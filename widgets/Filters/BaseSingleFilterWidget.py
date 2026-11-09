@@ -24,12 +24,11 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ..select_arrow import SelectArrow
 from ..theme_manager import ThemeManager
+from .filter_widget_parts import PickerControlBase, PickerPopupBase, SelectAllFilterMixin
 from .select_all_checkbox import SelectAllCheckBox
 
 
-class _SimplePickerControl(QFrame):
-    clicked = pyqtSignal()
-
+class _SimplePickerControl(PickerControlBase):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setObjectName("SimplePickerControl")
@@ -51,23 +50,6 @@ class _SimplePickerControl(QFrame):
         layout.addWidget(self._label, 1)
         layout.addWidget(self._arrow, 0, Qt.AlignVCenter)
         self.apply_style()
-
-    def set_summary(self, text: str) -> None:
-        self._label.setText(text)
-
-    def mousePressEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton and self.isEnabled():
-            self.clicked.emit()
-            event.accept()
-            return
-        super().mousePressEvent(event)
-
-    def keyPressEvent(self, event) -> None:  # noqa: N802
-        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
-            self.clicked.emit()
-            event.accept()
-            return
-        super().keyPressEvent(event)
 
     def apply_style(self) -> None:
         dark = ThemeManager.effective_theme() == "dark"
@@ -96,7 +78,7 @@ class _SimplePickerControl(QFrame):
         )
 
 
-class _SimplePickerPopup(QWidget):
+class _SimplePickerPopup(PickerPopupBase):
     def __init__(self, owner: "BaseSingleFilterWidget", *, min_width: int, parent=None) -> None:
         super().__init__(parent, flags=Qt.Popup | Qt.FramelessWindowHint)
         self.setObjectName("SimplePickerPopup")
@@ -165,16 +147,6 @@ class _SimplePickerPopup(QWidget):
         self._owner._set_option_checked(row, checked)
         self.refresh()
 
-    def _clear_layout(self, layout) -> None:
-        while layout.count():
-            item = layout.takeAt(0)
-            child_layout = item.layout()
-            widget = item.widget()
-            if child_layout is not None:
-                self._clear_layout(child_layout)
-            if widget is not None:
-                widget.deleteLater()
-
     def _apply_style(self) -> None:
         dark = ThemeManager.effective_theme() == "dark"
         if dark:
@@ -222,7 +194,7 @@ class _SimplePickerPopup(QWidget):
         )
 
 
-class BaseSingleFilterWidget(QWidget):
+class BaseSingleFilterWidget(SelectAllFilterMixin, QWidget):
     """Shared base for single-combo filters (status/tags)."""
 
     selectionChanged = pyqtSignal(list, list)
@@ -320,10 +292,6 @@ class BaseSingleFilterWidget(QWidget):
         self._show_loading_placeholder()
         self._start_async_load()
 
-    def ensure_loaded(self) -> None:
-        if not self._loaded:
-            self.reload()
-
     def selected_ids(self) -> List[str]:
         return FilterHelper.selected_ids(self)
 
@@ -334,12 +302,6 @@ class BaseSingleFilterWidget(QWidget):
         FilterHelper.set_selected_ids(self, ids, emit=emit)
         self._update_control_summary()
         self._refresh_popup()
-
-    def is_loaded(self) -> bool:
-        return self._loaded
-
-    def is_loading(self) -> bool:
-        return self._worker_thread is not None
 
     def clear_data(self) -> None:
         """Clear combo data to free memory; safe to call on deactivate."""
@@ -443,12 +405,6 @@ class BaseSingleFilterWidget(QWidget):
         self._loaded = False
         self._update_control_summary()
         self.loadFinished.emit(False)
-
-    def _cleanup_worker(self) -> None:
-        if not self._is_widget_alive():
-            return
-        self._worker = None
-        self._worker_thread = None
 
     def _apply_select_all(self, checked: bool) -> None:
         if checked and hasattr(self.combo, "selectAllOptions"):
@@ -577,54 +533,3 @@ class BaseSingleFilterWidget(QWidget):
         else:
             state = Qt.PartiallyChecked
         self._set_all_cb_state(state)
-
-    def _set_all_cb_state(self, state: Qt.CheckState, *, enabled: bool | None = None) -> None:
-        self._suppress_all_cb = True
-        try:
-            self.all_cb.setCheckState(state)
-            if enabled is not None:
-                self.all_cb.setEnabled(enabled)
-        finally:
-            self._suppress_all_cb = False
-
-    def _current_token(self) -> int | None:
-        if not self._is_widget_alive():
-            return None
-        try:
-            parent = self.parent()
-        except RuntimeError:
-            return None
-        while parent is not None:
-            if hasattr(parent, "_active_token"):
-                return parent._active_token
-            parent = parent.parent()
-        return None
-
-    def _is_token_active(self, token: int | None) -> bool:
-        if not self._is_widget_alive():
-            return False
-        if token is None:
-            return True
-        try:
-            parent = self.parent()
-        except RuntimeError:
-            return False
-        while parent is not None:
-            if hasattr(parent, "is_token_active"):
-                try:
-                    return bool(parent.is_token_active(token))
-                except Exception:
-                    return False
-            parent = parent.parent()
-        return True
-
-    def _is_widget_alive(self) -> bool:
-        try:
-            import sip
-        except Exception:
-            sip = None
-        try:
-            return not bool(sip and sip.isdeleted(self))
-        except RuntimeError:
-            return False
-
