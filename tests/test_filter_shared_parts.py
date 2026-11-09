@@ -6,7 +6,7 @@ import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -18,13 +18,19 @@ from PyQt5.QtCore import QCoreApplication, QEvent, QPointF, Qt
 from PyQt5.QtGui import QKeyEvent, QMouseEvent
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.python.api_actions import APIModuleActions
+from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper
+from Kavitro_dev.utils.url_manager import ModuleSupports
 from Kavitro_dev.widgets.Filters.BaseSingleFilterWidget import (
     BaseSingleFilterWidget,
     _SimplePickerControl,
     _SimplePickerPopup,
 )
 from Kavitro_dev.widgets.Filters.StatusFilterWidget import StatusFilterWidget
+from Kavitro_dev.widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from Kavitro_dev.widgets.Filters.TypeFilterWidget import TypeFilterWidget, _TypePickerControl, _TypePickerPopup
+from Kavitro_dev.widgets.theme_manager import ThemeManager
 
 FILTER_WIDGETS = (BaseSingleFilterWidget, StatusFilterWidget, TypeFilterWidget)
 SELECT_ALL_WIDGETS = (BaseSingleFilterWidget, TypeFilterWidget)
@@ -52,11 +58,11 @@ def gone():
 class SharedPartsStayInOnePlaceTest(unittest.TestCase):
     def test_no_filter_class_carries_its_own_copy(self) -> None:
         loading = ("ensure_loaded", "is_loaded", "is_loading", "_cleanup_worker", "_current_token", "_is_token_active",
-                   "_is_widget_alive")
+                   "_is_widget_alive", "_start_async_load")
         groups = (
             (FILTER_WIDGETS, loading),
-            (SELECT_ALL_WIDGETS, ("_set_all_cb_state",)),
-            (PICKER_CONTROLS, ("clicked", "set_summary", "mousePressEvent", "keyPressEvent")),
+            (SELECT_ALL_WIDGETS, ("_set_all_cb_state", "_refresh_popup", "_sync_all_checkbox_state", "_apply_select_all")),
+            (PICKER_CONTROLS, ("clicked", "set_summary", "mousePressEvent", "keyPressEvent", "__init__", "apply_style")),
             (PICKER_POPUPS, ("_clear_layout",)),
         )
         for classes, names in groups:
@@ -195,7 +201,244 @@ class SelectAllStateTest(unittest.TestCase):
                 self.assertFalse(fake._suppress_all_cb)
 
 
+class FakeCombo:
+    """Rows of (value, check state); a row without a value is a placeholder."""
+
+    def __init__(self, rows) -> None:
+        self.rows = list(rows)
+
+    def count(self) -> int:
+        return len(self.rows)
+
+    def itemData(self, index: int):  # noqa: N802
+        return self.rows[index][0]
+
+    def itemCheckState(self, index: int):  # noqa: N802
+        return self.rows[index][1]
+
+    def setItemCheckState(self, index: int, state) -> None:  # noqa: N802
+        self.rows[index] = (self.rows[index][0], state)
+
+
+class FakeComboWithActions(FakeCombo):
+    def __init__(self, rows) -> None:
+        super().__init__(rows)
+        self.selectAllOptions = Mock()
+        self.deselectAllOptions = Mock()
+
+
+def combo_owner(combo) -> SimpleNamespace:
+    """A stand-in that answers to the combo under the name each widget uses for it."""
+    return SimpleNamespace(combo=combo, type_combo=combo, _options_combo=combo, _set_all_cb_state=Mock())
+
+
+class SelectAllFromComboTest(unittest.TestCase):
+    def state_for(self, widget, rows):
+        owner = combo_owner(FakeCombo(rows))
+        widget._sync_all_checkbox_state(owner)
+        owner._set_all_cb_state.assert_called_once()
+        return owner._set_all_cb_state.call_args.args[0]
+
+    def test_box_shows_how_much_is_checked(self) -> None:
+        checked, unchecked = ("a", Qt.Checked), ("b", Qt.Unchecked)
+        for widget in SELECT_ALL_WIDGETS:
+            for rows, expected in (([], Qt.Unchecked), ([unchecked], Qt.Unchecked), ([checked, checked], Qt.Checked),
+                                   ([checked, unchecked], Qt.PartiallyChecked)):
+                with self.subTest(widget=widget.__name__, rows=rows):
+                    self.assertEqual(self.state_for(widget, rows), expected)
+
+    def test_placeholder_rows_are_not_counted(self) -> None:
+        for widget in SELECT_ALL_WIDGETS:
+            with self.subTest(widget=widget.__name__):
+                self.assertEqual(self.state_for(widget, [(None, Qt.Unchecked), ("a", Qt.Checked)]), Qt.Checked)
+
+    def test_combo_actions_are_used_when_it_has_them(self) -> None:
+        for widget in SELECT_ALL_WIDGETS:
+            with self.subTest(widget=widget.__name__):
+                combo = FakeComboWithActions([("a", Qt.Unchecked)])
+                owner = combo_owner(combo)
+                widget._apply_select_all(owner, True)
+                combo.selectAllOptions.assert_called_once_with()
+                widget._apply_select_all(owner, False)
+                combo.deselectAllOptions.assert_called_once_with()
+                self.assertEqual(combo.rows, [("a", Qt.Unchecked)])
+
+    def test_without_combo_actions_each_real_row_is_set(self) -> None:
+        for widget in SELECT_ALL_WIDGETS:
+            for checked, state in ((True, Qt.Checked), (False, Qt.Unchecked)):
+                with self.subTest(widget=widget.__name__, checked=checked):
+                    other = Qt.Unchecked if checked else Qt.Checked
+                    combo = FakeCombo([(None, other), ("a", other), ("b", other)])
+                    widget._apply_select_all(combo_owner(combo), checked)
+                    self.assertEqual(combo.rows, [(None, other), ("a", state), ("b", state)])
+
+
+class PopupRefreshTest(unittest.TestCase):
+    def test_open_popup_is_refreshed(self) -> None:
+        for widget in SELECT_ALL_WIDGETS:
+            with self.subTest(widget=widget.__name__):
+                popup = Mock()
+                owner = SimpleNamespace(_popup=popup)
+                widget._refresh_popup(owner)
+                popup.refresh.assert_called_once_with()
+                self.assertIs(owner._popup, popup)
+
+    def test_closed_popup_needs_nothing(self) -> None:
+        for widget in SELECT_ALL_WIDGETS:
+            with self.subTest(widget=widget.__name__):
+                owner = SimpleNamespace(_popup=None)
+                widget._refresh_popup(owner)
+                self.assertIsNone(owner._popup)
+
+    def test_deleted_popup_is_forgotten(self) -> None:
+        for widget in SELECT_ALL_WIDGETS:
+            with self.subTest(widget=widget.__name__):
+                popup = Mock()
+                popup.refresh.side_effect = RuntimeError("wrapped C/C++ object has been deleted")
+                owner = SimpleNamespace(_popup=popup)
+                widget._refresh_popup(owner)
+                self.assertIsNone(owner._popup)
+
+
+class RealFilterCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = QApplication.instance() or QApplication([])
+
+    def setUp(self) -> None:
+        self.host = QWidget()
+        self.addCleanup(self.delete_host)
+        lang = LanguageManager("et")
+        settings = Mock()
+        settings.load_module_preference_ids.return_value = []
+        self.status = StatusFilterWidget("contract", self.host, auto_load=False, lang_manager=lang, settings_logic=settings)
+        self.types = TypeFilterWidget("contract", self.host, auto_load=False, settings_logic=settings)
+        self.tags = TagsFilterWidget("contract", lang, self.host, auto_load=False, settings_logic=settings)
+        self.widgets = (self.status, self.types, self.tags)
+
+    def delete_host(self) -> None:
+        self.host.hide()
+        self.host.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+
+
+class FilterLoadResponseTest(RealFilterCase):
+    def test_select_all_works_on_the_combo_holding_the_options(self) -> None:
+        self.assertIs(self.tags._options_combo, self.tags.combo)
+        self.assertIs(self.types._options_combo, self.types.type_combo)
+
+    def finished_signal(self, widget) -> Mock:
+        finished = Mock()
+        widget.loadFinished.connect(finished)
+        return finished
+
+    def test_current_response_finishes_the_load(self) -> None:
+        for widget in self.widgets:
+            with self.subTest(widget=type(widget).__name__):
+                finished = self.finished_signal(widget)
+                widget._load_request_id = 4
+                widget._handle_load_success([], None, 4)
+                finished.assert_called_once_with(True)
+                self.assertTrue(widget.is_loaded())
+                finished.reset_mock()
+                widget._handle_load_error("katki", None, 4)
+                finished.assert_called_once_with(False)
+                self.assertFalse(widget.is_loaded())
+
+    def test_answer_to_an_older_request_is_ignored(self) -> None:
+        for widget in self.widgets:
+            with self.subTest(widget=type(widget).__name__):
+                finished = self.finished_signal(widget)
+                widget._load_request_id = 4
+                widget._handle_load_success([], None, 3)
+                widget._handle_load_error("katki", None, 3)
+                finished.assert_not_called()
+                self.assertFalse(widget.is_loaded())
+
+    def test_answer_for_a_stale_token_is_ignored(self) -> None:
+        for widget in self.widgets:
+            with self.subTest(widget=type(widget).__name__):
+                finished = self.finished_signal(widget)
+                widget._load_request_id = 4
+                widget._is_token_active = lambda _token: False
+                widget._handle_load_success([], 9, 4)
+                widget._handle_load_error("katki", 9, 4)
+                finished.assert_not_called()
+
+    def test_answer_after_the_widget_is_gone_is_ignored(self) -> None:
+        for widget in self.widgets:
+            with self.subTest(widget=type(widget).__name__):
+                finished = self.finished_signal(widget)
+                widget._load_request_id = 4
+                widget._is_widget_alive = lambda: False
+                widget._handle_load_success([], None, 4)
+                widget._handle_load_error("katki", None, 4)
+                finished.assert_not_called()
+
+
+class FilterAsyncLoadTest(RealFilterCase):
+    def start(self, widget):
+        widget._load_request_id = 9
+        widget._current_token = lambda: 4
+        widget._handle_load_success = Mock()
+        widget._handle_load_error = Mock()
+        home = sys.modules[type(widget)._start_async_load.__module__]
+        with patch.object(home, "FunctionWorker") as worker_class, patch.object(
+            home, "start_worker", return_value="thread"
+        ) as start_worker, patch.object(FilterHelper, "cancel_pending_load") as cancel:
+            widget._start_async_load()
+        return worker_class, start_worker, cancel
+
+    def test_earlier_load_is_cancelled_without_a_new_request_number(self) -> None:
+        for widget in self.widgets:
+            with self.subTest(widget=type(widget).__name__):
+                _worker_class, _start, cancel = self.start(widget)
+                cancel.assert_called_once_with(widget, invalidate_request=False)
+                self.assertEqual(widget._load_request_id, 9)
+
+    def test_worker_is_started_and_kept(self) -> None:
+        for widget in self.widgets:
+            with self.subTest(widget=type(widget).__name__):
+                worker_class, start, _cancel = self.start(widget)
+                start.assert_called_once_with(worker_class.return_value, on_thread_finished=widget._cleanup_worker)
+                self.assertIs(widget._worker, worker_class.return_value)
+                self.assertEqual(widget._worker_thread, "thread")
+
+    def test_answers_carry_the_token_and_request_of_their_start(self) -> None:
+        for widget in self.widgets:
+            with self.subTest(widget=type(widget).__name__):
+                worker_class, _start, _cancel = self.start(widget)
+                worker = worker_class.return_value
+                widget._load_request_id = 10
+                worker.finished.connect.call_args.args[0]("vastus")
+                worker.error.connect.call_args.args[0]("viga")
+                widget._handle_load_success.assert_called_once_with("vastus", 4, 9)
+                widget._handle_load_error.assert_called_once_with("viga", 4, 9)
+
+    def test_each_filter_asks_for_its_own_options(self) -> None:
+        with patch.object(FilterHelper, "get_filter_edges_by_key_and_module", return_value="servast") as edges, patch.object(
+            APIModuleActions, "get_module_status_options", return_value="olekud"
+        ) as statuses:
+            for widget, expected, key in ((self.tags, "servast", ModuleSupports.TAGS.value),
+                                          (self.types, "servast", ModuleSupports.TYPES.value),
+                                          (self.status, "olekud", None)):
+                with self.subTest(widget=type(widget).__name__):
+                    edges.reset_mock()
+                    statuses.reset_mock()
+                    worker_class, _start, _cancel = self.start(widget)
+                    self.assertEqual(worker_class.call_args.args[0](), expected)
+                    if key is None:
+                        statuses.assert_called_once_with("contract")
+                        edges.assert_not_called()
+                    else:
+                        edges.assert_called_once_with(key, "contract")
+                        statuses.assert_not_called()
+
+
 class PickerControlTest(unittest.TestCase):
+    NAMES = {_SimplePickerControl: ("SimplePickerControl", "SimplePickerSummary"),
+             _TypePickerControl: ("TypePickerControl", "TypePickerSummary")}
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
@@ -206,6 +449,41 @@ class PickerControlTest(unittest.TestCase):
         clicked = Mock()
         control.clicked.connect(clicked)
         return control, clicked
+
+    def test_control_is_built_under_its_own_names(self) -> None:
+        for control_class, (control_name, summary_name) in self.NAMES.items():
+            with self.subTest(control=control_class.__name__):
+                control, _clicked = self.build(control_class)
+                self.assertEqual(control.objectName(), control_name)
+                self.assertEqual(control._label.objectName(), summary_name)
+                self.assertEqual(control.cursor().shape(), Qt.PointingHandCursor)
+                self.assertEqual(control.focusPolicy(), Qt.StrongFocus)
+                self.assertTrue(control._label.testAttribute(Qt.WA_TransparentForMouseEvents))
+                self.assertEqual(control.layout().count(), 2)
+
+    def test_style_targets_its_own_names_in_the_current_theme(self) -> None:
+        for control_class, (control_name, summary_name) in self.NAMES.items():
+            for theme, background, accent, text in (("dark", "#303a42", "#1f5d5c", "#c5c5d2"),
+                                                    ("light", "#ffffff", "#2188ff", "#24292e")):
+                with self.subTest(control=control_class.__name__, theme=theme), patch.object(
+                    ThemeManager, "effective_theme", return_value=theme
+                ):
+                    control, _clicked = self.build(control_class)
+                    style = control.styleSheet()
+                    self.assertIn(f"QFrame#{control_name} {{background: {background};", style)
+                    self.assertIn(f"QFrame#{control_name}:hover, QFrame#{control_name}:focus {{", style)
+                    self.assertIn(f"border-color: {accent};", style)
+                    self.assertIn(f"QLabel#{summary_name} {{color: {text};", style)
+
+    def test_applying_the_style_again_follows_a_theme_change(self) -> None:
+        for control_class in self.NAMES:
+            with self.subTest(control=control_class.__name__):
+                with patch.object(ThemeManager, "effective_theme", return_value="dark"):
+                    control, _clicked = self.build(control_class)
+                with patch.object(ThemeManager, "effective_theme", return_value="light"):
+                    control.apply_style()
+                self.assertIn("background: #ffffff;", control.styleSheet())
+                self.assertNotIn("#303a42", control.styleSheet())
 
     @staticmethod
     def press(button) -> QMouseEvent:

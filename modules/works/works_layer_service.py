@@ -33,10 +33,8 @@ from qgis.core import (
 from qgis.utils import iface
 
 from ...constants.cadastral_fields import Katastriyksus
-from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...utils.SessionManager import SessionManager
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...utils.layers.module_layer_service_base import ModuleLayerServiceBase
 from ...utils.geometry_payload import GeometryPayloadService
@@ -46,6 +44,12 @@ from ...Logs.python_fail_logger import PythonFailLogger
 
 
 class WorksLayerService(ModuleLayerServiceBase):
+    MODULE = Module.WORKS
+    LAYER_MISSING_KEY = TranslationKeys.WORKS_LAYER_MISSING
+    LAYER_AMBIGUOUS_KEY = TranslationKeys.WORKS_MAIN_LAYER_AMBIGUOUS
+    REQUIRED_GEOMETRY = QgsWkbTypes.PointGeometry
+    LAYER_INVALID_GEOMETRY_KEY = TranslationKeys.WORKS_LAYER_INVALID_GEOMETRY
+
     EXT_SYSTEM_NAME = "Kavitro"
 
     BACKEND_GEOMETRY_ICON = "fa6-solid:person-digging"
@@ -118,60 +122,26 @@ class WorksLayerService(ModuleLayerServiceBase):
             WorksLayerService.FIELD_DETAILED: detailed,
         }
 
-    @staticmethod
-    def resolve_main_layer(*, lang_manager=None, silent: bool = False) -> Optional[QgsVectorLayer]:
-        lang = lang_manager or LanguageManager()
-        identifier = SettingsService().module_main_layer_name(Module.WORKS.value) or ""
-        layer = MapHelpers.resolve_layer(identifier)
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            if not silent:
-                ModernMessageDialog.show_warning(
-                    lang.translate(TranslationKeys.ERROR),
-                    lang.translate(TranslationKeys.WORKS_LAYER_MISSING),
-                )
-            return None
-
-        if layer.geometryType() != QgsWkbTypes.PointGeometry:
-            if not silent:
-                ModernMessageDialog.show_warning(
-                    lang.translate(TranslationKeys.ERROR),
-                    lang.translate(TranslationKeys.WORKS_LAYER_INVALID_GEOMETRY),
-                )
-            return None
-
-        if WorksLayerService.resolve_task_id_field_name(layer) is None:
+    @classmethod
+    def _main_layer_is_ready(cls, layer: QgsVectorLayer, *, lang, silent: bool) -> bool:
+        if cls.resolve_task_id_field_name(layer) is None:
             if not silent:
                 ModernMessageDialog.show_warning(
                     lang.translate(TranslationKeys.ERROR),
                     lang.translate(TranslationKeys.WORKS_LAYER_ID_FIELD_MISSING),
                 )
-            return None
+            return False
 
-        ok, message = WorksLayerService._prepare_required_fields(layer)
+        ok, message = cls._prepare_required_fields(layer)
         if not ok:
             if not silent:
                 ModernMessageDialog.show_warning(
                     lang.translate(TranslationKeys.ERROR),
                     str(message or "Configured Works layer does not match the required schema."),
                 )
-            return None
+            return False
 
-        return layer
-
-    @staticmethod
-    def _field_map(layer: Optional[QgsVectorLayer]) -> dict[str, str]:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return {}
-
-        try:
-            return {field.name().lower(): field.name() for field in layer.fields()}
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_layer_field_map_failed",
-            )
-            return {}
+        return True
 
     @classmethod
     def _prepare_required_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
@@ -288,32 +258,6 @@ class WorksLayerService(ModuleLayerServiceBase):
     @staticmethod
     def resolve_task_id_field_name(layer: Optional[QgsVectorLayer]) -> Optional[str]:
         return WorksLayerService._field_map(layer).get(WorksLayerService.FIELD_EXT_JOB_ID.lower())
-
-    @staticmethod
-    def current_username() -> str:
-        try:
-            session = SessionManager()
-            username = str(session.username or "").strip()
-            if username:
-                return username
-            return session.get_username()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_current_user_resolve_failed",
-            )
-            return ""
-
-    @staticmethod
-    def coerce_optional_int(value) -> Optional[int]:
-        text = str(value or "").strip()
-        if not text:
-            return None
-        try:
-            return int(text)
-        except (TypeError, ValueError):
-            return None
 
     @staticmethod
     def created_date_from_task(task: Optional[dict]) -> Optional[datetime]:
@@ -1022,43 +966,6 @@ class WorksLayerService(ModuleLayerServiceBase):
             return value
 
         return value
-
-    @staticmethod
-    def _point_in_layer_crs(point: QgsPointXY, layer: QgsVectorLayer) -> QgsPointXY:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return point
-
-        canvas = iface.mapCanvas() if iface is not None else None
-        if canvas is None:
-            return point
-
-        try:
-            source_crs = canvas.mapSettings().destinationCrs()
-            target_crs = layer.crs()
-            if not source_crs.isValid() or not target_crs.isValid() or source_crs == target_crs:
-                return point
-
-            transform = QgsCoordinateTransform(
-                source_crs,
-                target_crs,
-                QgsProject.instance().transformContext(),
-            )
-            return transform.transform(point)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_point_transform_failed",
-            )
-            return point
-
-    @staticmethod
-    def backend_geometry_payload_from_geometry(geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
-        return GeometryPayloadService.from_qgs_geometry(
-            geometry,
-            module=Module.WORKS.value,
-            error_event="works_geometry_to_payload_failed",
-        )
 
     @staticmethod
     def styled_backend_geometry_payload(

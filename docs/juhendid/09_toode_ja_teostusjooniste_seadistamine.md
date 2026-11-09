@@ -57,6 +57,8 @@ Kaardipõhiste tööde jaoks peab valitud kiht:
 
 Kui kiht ei ole punktikiht, ei saa Kavitro uut tööd kaardipunktina luua. Kui väli `ext_job_id` puudub, ei saa loodud kaardiobjekti Kavitro töö kirjega siduda.
 
+Kui seadistatud nimega kihte on projektis mitu, ei saa Kavitro üheselt otsustada, millist kasutada. Vali põhikiht seadetes uuesti, et salvestada konkreetse kihi viide.
+
 Pärast `ext_job_id` leidmist kontrollib Kavitro ka teisi standardseid tööde välju. Puuduvad väljad proovitakse kirjutatavale kihile automaatselt lisada. Kui sama nimega olemasoleva välja tüüp ei sobi oodatud skeemiga, ei saa kihti tööde kaarditoiminguteks kasutada enne skeemi parandamist või sobiva kihi valimist.
 
 Tööde kaarditoimingud võimaldavad muu hulgas:

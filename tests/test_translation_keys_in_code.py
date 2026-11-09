@@ -121,6 +121,17 @@ class TranslationKeysInCodeTest(unittest.TestCase):
                         missing.append(f"{rel}:{node.lineno} {cls.__name__}.{node.attr}")
         self.assertEqual(missing, [])
 
+    def test_every_translation_key_has_both_languages(self) -> None:
+        """A key can reach translate() through a variable, where the scans above cannot follow it."""
+        missing = []
+        for attribute, key in vars(translation_keys.TranslationKeys).items():
+            if attribute.startswith("_") or not isinstance(key, str):
+                continue
+            for name, table in (("et", et.TRANSLATIONS), ("en", en.TRANSLATIONS)):
+                if key not in table:
+                    missing.append(f"TranslationKeys.{attribute} missing in {name}")
+        self.assertEqual(missing, [])
+
     def test_translate_has_no_fallback_text(self) -> None:
         found = []
         for rel, module in plugin_sources():

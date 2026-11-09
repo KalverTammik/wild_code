@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -18,64 +17,17 @@ from qgis.gui import QgsCheckableComboBox
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
-from ..select_arrow import SelectArrow
 from ..theme_manager import ThemeManager
-from .filter_widget_parts import PickerControlBase, PickerPopupBase, SelectAllFilterMixin
+from .filter_widget_parts import PickerControlBase, PickerFilterMixin, PickerPopupBase
 from .select_all_checkbox import SelectAllCheckBox
 
 
 class _SimplePickerControl(PickerControlBase):
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        self.setObjectName("SimplePickerControl")
-        self.setCursor(Qt.PointingHandCursor)
-        self.setFocusPolicy(Qt.StrongFocus)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 4, 8, 4)
-        layout.setSpacing(8)
-
-        self._label = QLabel("", self)
-        self._label.setObjectName("SimplePickerSummary")
-        self._label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self._label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-
-        self._arrow = SelectArrow(self)
-
-        layout.addWidget(self._label, 1)
-        layout.addWidget(self._arrow, 0, Qt.AlignVCenter)
-        self.apply_style()
-
-    def apply_style(self) -> None:
-        dark = ThemeManager.effective_theme() == "dark"
-        if dark:
-            bg = "#303a42"
-            hover = "#2e2f38"
-            border = "#4d4d4d"
-            accent = "#1f5d5c"
-            text = "#c5c5d2"
-        else:
-            bg = "#ffffff"
-            hover = "#f9fafb"
-            border = "#d7dee5"
-            accent = "#2188ff"
-            text = "#24292e"
-        self.setStyleSheet(
-            "QFrame#SimplePickerControl {"
-            f"background: {bg}; border: 1px solid {border}; border-radius: 6px; min-height: 22px;"
-            "}"
-            "QFrame#SimplePickerControl:hover, QFrame#SimplePickerControl:focus {"
-            f"background: {hover}; border-color: {accent};"
-            "}"
-            "QLabel#SimplePickerSummary {"
-            f"color: {text}; font-size: 12px; font-weight: 600;"
-            "}"
-        )
+    CONTROL_NAME = "SimplePickerControl"
+    SUMMARY_NAME = "SimplePickerSummary"
 
 
 class _SimplePickerPopup(PickerPopupBase):
@@ -194,7 +146,7 @@ class _SimplePickerPopup(PickerPopupBase):
         )
 
 
-class BaseSingleFilterWidget(SelectAllFilterMixin, QWidget):
+class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
     """Shared base for single-combo filters (status/tags)."""
 
     selectionChanged = pyqtSignal(list, list)
@@ -334,24 +286,8 @@ class BaseSingleFilterWidget(SelectAllFilterMixin, QWidget):
         loading_text = self._lang.translate(TranslationKeys.LOADING)
         self.combo.addItem(f"{loading_text}…")
 
-    def _start_async_load(self) -> None:
-        FilterHelper.cancel_pending_load(self, invalidate_request=False)
-        token = self._current_token()
-        request_id = self._load_request_id
-
-        worker = FunctionWorker(
-            lambda: FilterHelper.get_filter_edges_by_key_and_module(
-                self._support_key, self._module
-            )
-        )
-        worker.finished.connect(
-            lambda payload, tok=token, req=request_id: self._handle_load_success(payload, tok, req)
-        )
-        worker.error.connect(
-            lambda message, tok=token, req=request_id: self._handle_load_error(message, tok, req)
-        )
-        self._worker = worker
-        self._worker_thread = start_worker(worker, on_thread_finished=self._cleanup_worker)
+    def _fetch_options(self):
+        return FilterHelper.get_filter_edges_by_key_and_module(self._support_key, self._module)
 
     def _handle_load_success(
         self,
@@ -359,11 +295,7 @@ class BaseSingleFilterWidget(SelectAllFilterMixin, QWidget):
         token: int | None,
         request_id: int,
     ) -> None:
-        if not self._is_widget_alive():
-            return
-        if request_id != self._load_request_id:
-            return
-        if not self._is_token_active(token):
+        if not self._is_response_current(token, request_id):
             return
         self.combo.clear()
         for label, value in payload:
@@ -391,11 +323,7 @@ class BaseSingleFilterWidget(SelectAllFilterMixin, QWidget):
         self.loadFinished.emit(True)
 
     def _handle_load_error(self, message: str, token: int | None, request_id: int) -> None:
-        if not self._is_widget_alive():
-            return
-        if request_id != self._load_request_id:
-            return
-        if not self._is_token_active(token):
+        if not self._is_response_current(token, request_id):
             return
         self.combo.clear()
         self.combo.addItem(f"{self._lang.translate(TranslationKeys.ERROR)}: {message[:60]}…")
@@ -406,19 +334,9 @@ class BaseSingleFilterWidget(SelectAllFilterMixin, QWidget):
         self._update_control_summary()
         self.loadFinished.emit(False)
 
-    def _apply_select_all(self, checked: bool) -> None:
-        if checked and hasattr(self.combo, "selectAllOptions"):
-            self.combo.selectAllOptions()
-            return
-        if not checked and hasattr(self.combo, "deselectAllOptions"):
-            self.combo.deselectAllOptions()
-            return
-
-        target_state = Qt.Checked if checked else Qt.Unchecked
-        for i in range(self.combo.count()):
-            if self.combo.itemData(i) is None:
-                continue
-            self.combo.setItemCheckState(i, target_state)
+    @property
+    def _options_combo(self) -> QgsCheckableComboBox:
+        return self.combo
 
     def _on_all_cb_state_changed(self, state: int) -> None:
         if self._suppress_all_cb:
@@ -497,15 +415,6 @@ class BaseSingleFilterWidget(SelectAllFilterMixin, QWidget):
             summary = f"{len(selected)} {self._label_text.lower()}"
         self._control.set_summary(summary)
 
-    def _refresh_popup(self) -> None:
-        popup = self._popup
-        if popup is None:
-            return
-        try:
-            popup.refresh()
-        except RuntimeError:
-            self._popup = None
-
     def _close_popup(self) -> None:
         popup = self._popup
         if popup is None:
@@ -515,21 +424,3 @@ class BaseSingleFilterWidget(SelectAllFilterMixin, QWidget):
             popup.close()
         except RuntimeError:
             pass
-
-    def _sync_all_checkbox_state(self) -> None:
-        total = 0
-        checked = 0
-        for i in range(self.combo.count()):
-            val = self.combo.itemData(i)
-            if val is None:
-                continue
-            total += 1
-            if self.combo.itemCheckState(i) == Qt.Checked:
-                checked += 1
-        if total == 0 or checked == 0:
-            state = Qt.Unchecked
-        elif checked == total:
-            state = Qt.Checked
-        else:
-            state = Qt.PartiallyChecked
-        self._set_all_cb_state(state)

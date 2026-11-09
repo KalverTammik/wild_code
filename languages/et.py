@@ -662,6 +662,7 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_VALIDATE_TITLE: "Sisesta töö pealkiri."
         ,TranslationKeys.WORKS_CREATE_START_FAILED: "Uue töö kaardivalikut ei saanud käivitada."
         ,TranslationKeys.WORKS_LAYER_MISSING: "Tööde kiht on seadistamata või puudub projektist. Palun seadista kõigepealt Seadetes Tööde põhikiht."
+        ,TranslationKeys.WORKS_MAIN_LAYER_AMBIGUOUS: "Tööde põhikiht ei ole üheselt määratud. Vali seadetes Tööde põhikiht uuesti."
         ,TranslationKeys.WORKS_LAYER_INVALID_GEOMETRY: "Seadistatud Tööde kiht peab olema punktikiht, et kaardipõhiseid töid saaks luua."
         ,TranslationKeys.WORKS_LAYER_ID_FIELD_MISSING: "Seadistatud Tööde kihil puudub ülesande id väli ext_job_id."
         ,TranslationKeys.WORKS_CREATE_SUCCESS: "Töö {task_id} loodi edukalt."

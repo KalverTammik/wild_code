@@ -5,22 +5,25 @@ from datetime import date, datetime
 from typing import Optional
 
 from qgis.PyQt.QtCore import QVariant, QDate, QDateTime
-from qgis.core import QgsCoordinateTransform, QgsFeature, QgsFeatureRequest, QgsField, QgsGeometry, QgsMapLayer, QgsPointXY, QgsProject, QgsRectangle, QgsVectorLayer, QgsWkbTypes
-from qgis.utils import iface
+from qgis.core import QgsFeature, QgsFeatureRequest, QgsField, QgsMapLayer, QgsVectorLayer, QgsWkbTypes
 
 from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ..Settings.setting_keys import SettingDialogPlaceholders
-from ...utils.SessionManager import SessionManager
-from ...utils.layers.module_layer_service_base import ModuleLayerServiceBase
-from ...utils.geometry_payload import GeometryPayloadService
+from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase
 from ...utils.url_manager import Module
-from ...utils.messagesHelper import ModernMessageDialog
 from ...Logs.python_fail_logger import PythonFailLogger
 
 
-class EasementLayerService(ModuleLayerServiceBase):
+class EasementLayerService(AttachableLayerServiceBase):
+    MODULE = Module.EASEMENT
+    LAYER_MISSING_KEY = TranslationKeys.EASEMENT_LAYER_MISSING
+    LAYER_AMBIGUOUS_KEY = TranslationKeys.EASEMENT_MAIN_LAYER_AMBIGUOUS
+    DRAW_START_FAILED_KEY = TranslationKeys.EASEMENT_DRAW_NEW_START_FAILED
+    REQUIRED_GEOMETRY = QgsWkbTypes.PolygonGeometry
+    LAYER_INVALID_GEOMETRY_KEY = TranslationKeys.EASEMENT_LAYER_INVALID_GEOMETRY
+
     EXT_SYSTEM_NAME = "Kavitro"
     FIELD_EXTERNAL_ID = "ext_easement_id"
     FIELD_EXTERNAL_SYSTEM = "ext_system"
@@ -63,63 +66,6 @@ class EasementLayerService(ModuleLayerServiceBase):
         if name and source:
             return f"{name} ({source})"
         return name or source or ""
-
-    @classmethod
-    def resolve_main_layer(cls, *, lang_manager=None, silent: bool = False) -> Optional[QgsVectorLayer]:
-        lang = lang_manager or LanguageManager()
-        identifier = SettingsService().module_main_layer_name(Module.EASEMENT.value) or ""
-        matches = cls._configured_layers(identifier)
-        if len(matches) > 1:
-            if not silent:
-                ModernMessageDialog.show_warning(
-                    lang.translate(TranslationKeys.ERROR),
-                    lang.translate(TranslationKeys.EASEMENT_MAIN_LAYER_AMBIGUOUS),
-                )
-            return None
-
-        layer = matches[0] if matches else None
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            if not silent:
-                ModernMessageDialog.show_warning(
-                    lang.translate(TranslationKeys.ERROR),
-                    lang.translate(TranslationKeys.EASEMENT_LAYER_MISSING),
-                )
-            return None
-
-        try:
-            if str(identifier or "").strip() != str(layer.id() or "").strip():
-                SettingsService().module_main_layer_name(Module.EASEMENT.value, value=layer.id())
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_layer_setting_id_migrate_failed",
-                extra={"identifier": str(identifier or "")},
-            )
-
-        if layer.geometryType() != QgsWkbTypes.PolygonGeometry:
-            if not silent:
-                ModernMessageDialog.show_warning(
-                    lang.translate(TranslationKeys.ERROR),
-                    lang.translate(TranslationKeys.EASEMENT_LAYER_INVALID_GEOMETRY),
-                )
-            return None
-
-        return layer
-
-    @staticmethod
-    def _field_map(layer: Optional[QgsVectorLayer]) -> dict[str, str]:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return {}
-        try:
-            return {field.name().lower(): field.name() for field in layer.fields()}
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_layer_field_map_failed",
-            )
-            return {}
 
     @classmethod
     def _resolve_identity_field_name(cls, layer: Optional[QgsVectorLayer]) -> Optional[str]:
@@ -383,22 +329,6 @@ class EasementLayerService(ModuleLayerServiceBase):
         return None
 
     @staticmethod
-    def current_username() -> str:
-        try:
-            session = SessionManager()
-            username = str(session.username or "").strip()
-            if username:
-                return username
-            return session.get_username()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_current_user_resolve_failed",
-            )
-            return ""
-
-    @staticmethod
     def coerce_value_for_field(field, value):
         if field is None or value is None:
             return value
@@ -455,29 +385,6 @@ class EasementLayerService(ModuleLayerServiceBase):
             cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_STATUS_CANDIDATES, value=layer_status)
 
     @classmethod
-    def _feature_by_id(cls, layer: QgsVectorLayer, feature_id: int) -> Optional[QgsFeature]:
-        try:
-            feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
-            if feature is not None:
-                return feature
-        except Exception:
-            pass
-
-        try:
-            target_id = int(feature_id)
-            for candidate in layer.getFeatures():
-                if int(candidate.id()) == target_id:
-                    return candidate
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_feature_by_id_failed",
-                extra={"feature_id": int(feature_id)},
-            )
-        return None
-
-    @classmethod
     def _apply_geometry_form_values(
         cls,
         feature: QgsFeature,
@@ -527,107 +434,6 @@ class EasementLayerService(ModuleLayerServiceBase):
         if field_type in (QVariant.Int, QVariant.UInt, QVariant.LongLong, QVariant.ULongLong):
             return actual, int(round(area_sqm))
         return actual, round(float(area_sqm), 2)
-
-    @staticmethod
-    def _geometry_in_layer_crs(geometry: QgsGeometry, *, source_layer: QgsVectorLayer, target_layer: QgsVectorLayer) -> QgsGeometry:
-        transformed = QgsGeometry(geometry)
-        try:
-            if source_layer.crs() != target_layer.crs():
-                transform = QgsCoordinateTransform(
-                    source_layer.crs(),
-                    target_layer.crs(),
-                    QgsProject.instance(),
-                )
-                transformed.transform(transform)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_layer_geometry_transform_failed",
-            )
-        return transformed
-
-    @staticmethod
-    def backend_geometry_payload_from_geometry(geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
-        return GeometryPayloadService.from_qgs_geometry(
-            geometry,
-            module=Module.EASEMENT.value,
-            error_event="easement_geometry_to_payload_failed",
-        )
-
-    @staticmethod
-    def _point_in_layer_crs(point: QgsPointXY, layer: QgsVectorLayer) -> QgsPointXY:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return point
-
-        canvas = iface.mapCanvas() if iface is not None else None
-        if canvas is None:
-            return point
-
-        try:
-            source_crs = canvas.mapSettings().destinationCrs()
-            target_crs = layer.crs()
-            if not source_crs.isValid() or not target_crs.isValid() or source_crs == target_crs:
-                return point
-
-            transform = QgsCoordinateTransform(
-                source_crs,
-                target_crs,
-                QgsProject.instance().transformContext(),
-            )
-            return transform.transform(point)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_point_transform_failed",
-            )
-            return point
-
-    @classmethod
-    def find_feature_at_point(cls, point: QgsPointXY, *, layer: Optional[QgsVectorLayer], radius_multiplier: float = 3.0):
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return None
-
-        canvas = iface.mapCanvas() if iface is not None else None
-        if canvas is None:
-            return None
-
-        try:
-            search_radius = canvas.mapUnitsPerPixel() * float(radius_multiplier)
-        except Exception:
-            search_radius = 0.0
-        if search_radius <= 0:
-            search_radius = 2.0
-
-        layer_point = cls._point_in_layer_crs(point, layer)
-        search_rect = QgsRectangle(
-            layer_point.x() - search_radius,
-            layer_point.y() - search_radius,
-            layer_point.x() + search_radius,
-            layer_point.y() + search_radius,
-        )
-
-        try:
-            request = QgsFeatureRequest().setFilterRect(search_rect)
-            point_geometry = QgsGeometry.fromPointXY(layer_point)
-            for feature in layer.getFeatures(request):
-                geometry = feature.geometry()
-                if geometry is None or geometry.isEmpty():
-                    continue
-                try:
-                    if geometry.contains(point_geometry) or geometry.intersects(point_geometry):
-                        return feature
-                except Exception:
-                    continue
-            return None
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_feature_at_point_failed",
-            )
-            return None
 
     @classmethod
     def attach_backend_item_to_feature(

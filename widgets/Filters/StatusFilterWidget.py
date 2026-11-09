@@ -11,7 +11,6 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
 from ...python.api_actions import APIModuleActions
-from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...utils.url_manager import ModuleSupports
 from ..status_select_widget import StatusMultiSelectWidget
@@ -115,21 +114,8 @@ class StatusFilterWidget(FilterLoadingMixin, QWidget):
         selected_ids = list(self.selector.selected_ids() if ids is None else ids)
         self.selectionChanged.emit(selected_texts, selected_ids)
 
-    def _start_async_load(self) -> None:
-        FilterHelper.cancel_pending_load(self, invalidate_request=False)
-        token = self._current_token()
-        request_id = self._load_request_id
-
-        worker = FunctionWorker(lambda: APIModuleActions.get_module_status_options(str(self._module or "")))
-        worker.active_token = token
-        worker.finished.connect(
-            lambda payload, tok=token, req=request_id: self._handle_load_success(payload, tok, req)
-        )
-        worker.error.connect(
-            lambda message, tok=token, req=request_id: self._handle_load_error(message, tok, req)
-        )
-        self._worker = worker
-        self._worker_thread = start_worker(worker, on_thread_finished=self._cleanup_worker)
+    def _fetch_options(self):
+        return APIModuleActions.get_module_status_options(str(self._module or ""))
 
     def _handle_load_success(
         self,
@@ -137,11 +123,7 @@ class StatusFilterWidget(FilterLoadingMixin, QWidget):
         token: int | None,
         request_id: int,
     ) -> None:
-        if not self._is_widget_alive():
-            return
-        if request_id != self._load_request_id:
-            return
-        if not self._is_token_active(token):
+        if not self._is_response_current(token, request_id):
             return
 
         status_options = [entry for entry in (payload or []) if isinstance(entry, dict)]
@@ -154,11 +136,7 @@ class StatusFilterWidget(FilterLoadingMixin, QWidget):
         self.loadFinished.emit(True)
 
     def _handle_load_error(self, message: str, token: int | None, request_id: int) -> None:
-        if not self._is_widget_alive():
-            return
-        if request_id != self._load_request_id:
-            return
-        if not self._is_token_active(token):
+        if not self._is_response_current(token, request_id):
             return
         error_text = self._lang.translate(TranslationKeys.ERROR)
         self.selector.set_error(f"{error_text}: {str(message or '')[:60]}...")

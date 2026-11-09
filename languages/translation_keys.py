@@ -469,6 +469,7 @@ class TranslationKeys:
     WORKS_CREATE_VALIDATE_TITLE = "works_create_validate_title"
     WORKS_CREATE_START_FAILED = "works_create_start_failed"
     WORKS_LAYER_MISSING = "works_layer_missing"
+    WORKS_MAIN_LAYER_AMBIGUOUS = "works_main_layer_ambiguous"
     WORKS_LAYER_INVALID_GEOMETRY = "works_layer_invalid_geometry"
     WORKS_LAYER_ID_FIELD_MISSING = "works_layer_id_field_missing"
     WORKS_CREATE_SUCCESS = "works_create_success"

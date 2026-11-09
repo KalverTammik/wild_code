@@ -6,31 +6,26 @@ from typing import Optional
 
 from qgis.PyQt.QtCore import QVariant, QDateTime
 from qgis.core import (
-    QgsCoordinateTransform,
     QgsFeature,
-    QgsFeatureRequest,
     QgsField,
-    QgsGeometry,
-    QgsPointXY,
-    QgsProject,
-    QgsRectangle,
     QgsVectorLayer,
     QgsWkbTypes,
 )
-from qgis.utils import iface
 
-from ...constants.settings_keys import SettingsService
-from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...utils.SessionManager import SessionManager
-from ...utils.layers.module_layer_service_base import ModuleLayerServiceBase
-from ...utils.geometry_payload import GeometryPayloadService
-from ...utils.messagesHelper import ModernMessageDialog
+from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 
 
-class ProjectsLayerService(ModuleLayerServiceBase):
+class ProjectsLayerService(AttachableLayerServiceBase):
+    MODULE = Module.PROJECT
+    LAYER_MISSING_KEY = TranslationKeys.PROJECT_LAYER_MISSING
+    LAYER_AMBIGUOUS_KEY = TranslationKeys.PROJECT_LAYER_MISSING
+    DRAW_START_FAILED_KEY = TranslationKeys.PROJECT_DRAW_NEW_START_FAILED
+    REQUIRED_GEOMETRY = QgsWkbTypes.PolygonGeometry
+    LAYER_INVALID_GEOMETRY_KEY = TranslationKeys.PROJECT_LAYER_INVALID_GEOMETRY
+
     EXT_SYSTEM_NAME = "Kavitro"
 
     FIELD_EXTERNAL_ID = "ext_project_id"
@@ -56,63 +51,6 @@ class ProjectsLayerService(ModuleLayerServiceBase):
         (FIELD_UPDATED_BY, QVariant.String),
         (FIELD_UPDATE_DATE, QVariant.DateTime),
     )
-
-    @classmethod
-    def resolve_main_layer(cls, *, lang_manager=None, silent: bool = False) -> Optional[QgsVectorLayer]:
-        lang = lang_manager or LanguageManager()
-        identifier = SettingsService().module_main_layer_name(Module.PROJECT.value) or ""
-        matches = cls._configured_layers(identifier)
-        if len(matches) > 1:
-            if not silent:
-                ModernMessageDialog.show_warning(
-                    lang.translate(TranslationKeys.ERROR),
-                    lang.translate(TranslationKeys.PROJECT_LAYER_MISSING),
-                )
-            return None
-
-        layer = matches[0] if matches else None
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            if not silent:
-                ModernMessageDialog.show_warning(
-                    lang.translate(TranslationKeys.ERROR),
-                    lang.translate(TranslationKeys.PROJECT_LAYER_MISSING),
-                )
-            return None
-
-        try:
-            if str(identifier or "").strip() != str(layer.id() or "").strip():
-                SettingsService().module_main_layer_name(Module.PROJECT.value, value=layer.id())
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_layer_setting_id_migrate_failed",
-                extra={"identifier": str(identifier or "")},
-            )
-
-        if layer.geometryType() != QgsWkbTypes.PolygonGeometry:
-            if not silent:
-                ModernMessageDialog.show_warning(
-                    lang.translate(TranslationKeys.ERROR),
-                    lang.translate(TranslationKeys.PROJECT_LAYER_INVALID_GEOMETRY),
-                )
-            return None
-
-        return layer
-
-    @staticmethod
-    def _field_map(layer: Optional[QgsVectorLayer]) -> dict[str, str]:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return {}
-        try:
-            return {field.name().lower(): field.name() for field in layer.fields()}
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_layer_field_map_failed",
-            )
-            return {}
 
     @classmethod
     def _ensure_custom_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
@@ -155,40 +93,6 @@ class ProjectsLayerService(ModuleLayerServiceBase):
                 event="project_layer_ensure_fields_failed",
             )
             return False, str(exc)
-
-    @classmethod
-    def prepare_layer_for_draw(cls, *, lang_manager=None, silent: bool = False) -> tuple[Optional[QgsVectorLayer], str]:
-        layer = cls.resolve_main_layer(lang_manager=lang_manager, silent=silent)
-        if layer is None:
-            return None, ""
-
-        ok, message = cls._ensure_custom_fields(layer)
-        if ok:
-            return layer, ""
-
-        lang = lang_manager or LanguageManager()
-        if not silent:
-            ModernMessageDialog.show_warning(
-                lang.translate(TranslationKeys.ERROR),
-                str(message or lang.translate(TranslationKeys.PROJECT_DRAW_NEW_START_FAILED)),
-            )
-        return None, str(message or "")
-
-    @staticmethod
-    def current_username() -> str:
-        try:
-            session = SessionManager()
-            username = str(session.username or "").strip()
-            if username:
-                return username
-            return session.get_username()
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_current_user_resolve_failed",
-            )
-            return ""
 
     @staticmethod
     def active_from_project(project: Optional[dict]):
@@ -268,77 +172,6 @@ class ProjectsLayerService(ModuleLayerServiceBase):
                 return QDateTime(parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute, parsed.second)
         return value
 
-    @staticmethod
-    def _feature_by_id(layer: Optional[QgsVectorLayer], feature_id: int):
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return None
-
-        try:
-            feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
-            if feature is not None:
-                return feature
-        except Exception:
-            pass
-
-        try:
-            for feature in layer.getFeatures():
-                if int(feature.id()) == int(feature_id):
-                    return feature
-        except Exception:
-            pass
-        return None
-
-    @staticmethod
-    def _point_in_layer_crs(point: QgsPointXY, layer: QgsVectorLayer) -> QgsPointXY:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return point
-
-        canvas = iface.mapCanvas() if iface is not None else None
-        if canvas is None:
-            return point
-
-        try:
-            source_crs = canvas.mapSettings().destinationCrs()
-            target_crs = layer.crs()
-            if not source_crs.isValid() or not target_crs.isValid() or source_crs == target_crs:
-                return point
-            transform = QgsCoordinateTransform(source_crs, target_crs, QgsProject.instance().transformContext())
-            return transform.transform(point)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_point_transform_failed",
-            )
-            return point
-
-    @staticmethod
-    def _geometry_in_layer_crs(geometry: QgsGeometry, *, source_layer: QgsVectorLayer, target_layer: QgsVectorLayer) -> QgsGeometry:
-        transformed = QgsGeometry(geometry)
-        try:
-            if source_layer.crs() != target_layer.crs():
-                transform = QgsCoordinateTransform(
-                    source_layer.crs(),
-                    target_layer.crs(),
-                    QgsProject.instance(),
-                )
-                transformed.transform(transform)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_layer_geometry_transform_failed",
-            )
-        return transformed
-
-    @staticmethod
-    def backend_geometry_payload_from_geometry(geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
-        return GeometryPayloadService.from_qgs_geometry(
-            geometry,
-            module=Module.PROJECT.value,
-            error_event="project_geometry_to_payload_failed",
-        )
-
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_number: str = "", item_name: str = ""):
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
@@ -373,51 +206,6 @@ class ProjectsLayerService(ModuleLayerServiceBase):
                 extra={"item_id": item_id_text, "item_number": item_number_text},
             )
         return None
-
-    @classmethod
-    def find_feature_at_point(cls, point: QgsPointXY, *, layer: Optional[QgsVectorLayer], radius_multiplier: float = 3.0):
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return None
-
-        canvas = iface.mapCanvas() if iface is not None else None
-        if canvas is None:
-            return None
-
-        try:
-            search_radius = canvas.mapUnitsPerPixel() * float(radius_multiplier)
-        except Exception:
-            search_radius = 0.0
-        if search_radius <= 0:
-            search_radius = 2.0
-
-        layer_point = cls._point_in_layer_crs(point, layer)
-        search_rect = QgsRectangle(
-            layer_point.x() - search_radius,
-            layer_point.y() - search_radius,
-            layer_point.x() + search_radius,
-            layer_point.y() + search_radius,
-        )
-
-        try:
-            request = QgsFeatureRequest().setFilterRect(search_rect)
-            point_geometry = QgsGeometry.fromPointXY(layer_point)
-            for feature in layer.getFeatures(request):
-                geometry = feature.geometry()
-                if geometry is None or geometry.isEmpty():
-                    continue
-                try:
-                    if geometry.contains(point_geometry) or geometry.intersects(point_geometry):
-                        return feature
-                except Exception:
-                    continue
-            return None
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_feature_at_point_failed",
-            )
-            return None
 
     @classmethod
     def attach_backend_item_to_feature(

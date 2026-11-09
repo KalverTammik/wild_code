@@ -669,6 +669,7 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_VALIDATE_TITLE: "Please enter a work title."
         ,TranslationKeys.WORKS_CREATE_START_FAILED: "Could not start map capture for a new work."
         ,TranslationKeys.WORKS_LAYER_MISSING: "Works layer is not configured or is missing from the project. Please configure the Works main layer in Settings first."
+        ,TranslationKeys.WORKS_MAIN_LAYER_AMBIGUOUS: "Configured Works main layer is ambiguous. Please re-select the Works main layer in Settings."
         ,TranslationKeys.WORKS_LAYER_INVALID_GEOMETRY: "The configured Works layer must be a point layer to create map-based works."
         ,TranslationKeys.WORKS_LAYER_ID_FIELD_MISSING: "The configured Works layer is missing the task id field ext_job_id."
         ,TranslationKeys.WORKS_CREATE_SUCCESS: "Work {task_id} was created successfully."

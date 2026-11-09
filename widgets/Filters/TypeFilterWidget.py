@@ -11,7 +11,6 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
     QScrollArea,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -19,61 +18,18 @@ from qgis.gui import QgsCheckableComboBox
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...python.workers import FunctionWorker, start_worker
 from ...utils.url_manager import ModuleSupports
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
-from ..select_arrow import SelectArrow
 from ..theme_manager import ThemeManager
-from .filter_widget_parts import PickerControlBase, PickerPopupBase, SelectAllFilterMixin
+from .filter_widget_parts import PickerControlBase, PickerFilterMixin, PickerPopupBase
 from .select_all_checkbox import SelectAllCheckBox
 
 
 class _TypePickerControl(PickerControlBase):
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        self.setObjectName("TypePickerControl")
-        self.setCursor(Qt.PointingHandCursor)
-        self.setFocusPolicy(Qt.StrongFocus)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 4, 8, 4)
-        layout.setSpacing(8)
-        self._label = QLabel("", self)
-        self._label.setObjectName("TypePickerSummary")
-        self._label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self._label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self._arrow = SelectArrow(self)
-        layout.addWidget(self._label, 1)
-        layout.addWidget(self._arrow, 0, Qt.AlignVCenter)
-        self._apply_style()
-
-    def _apply_style(self) -> None:
-        dark = ThemeManager.effective_theme() == "dark"
-        if dark:
-            bg = "#303a42"
-            hover = "#2e2f38"
-            border = "#4d4d4d"
-            accent = "#1f5d5c"
-            text = "#c5c5d2"
-        else:
-            bg = "#ffffff"
-            hover = "#f9fafb"
-            border = "#d7dee5"
-            accent = "#2188ff"
-            text = "#24292e"
-        self.setStyleSheet(
-            "QFrame#TypePickerControl {"
-            f"background: {bg}; border: 1px solid {border}; border-radius: 6px; min-height: 22px;"
-            "}"
-            "QFrame#TypePickerControl:hover, QFrame#TypePickerControl:focus {"
-            f"background: {hover}; border-color: {accent};"
-            "}"
-            "QLabel#TypePickerSummary {"
-            f"color: {text}; font-size: 12px; font-weight: 600;"
-            "}"
-        )
+    CONTROL_NAME = "TypePickerControl"
+    SUMMARY_NAME = "TypePickerSummary"
 
 
 class _TypePickerPopup(PickerPopupBase):
@@ -253,7 +209,7 @@ class _TypePickerPopup(PickerPopupBase):
         )
 
 
-class TypeFilterWidget(SelectAllFilterMixin, QWidget):
+class TypeFilterWidget(PickerFilterMixin, QWidget):
     """Simple group/type multi-select without shared base class."""
 
     selectionChanged = pyqtSignal(list, list)
@@ -336,7 +292,7 @@ class TypeFilterWidget(SelectAllFilterMixin, QWidget):
     def retheme(self) -> None:
         ThemeManager.apply_checkable_combo_popup_style(self.group_combo)
         ThemeManager.apply_checkable_combo_popup_style(self.type_combo)
-        self._control._apply_style()
+        self._control.apply_style()
         self.style().unpolish(self)
         self.style().polish(self)
         self.all_cb.style().unpolish(self.all_cb)
@@ -481,14 +437,6 @@ class TypeFilterWidget(SelectAllFilterMixin, QWidget):
         popup.move(self._control.mapToGlobal(self._control.rect().bottomLeft()))
         popup.show()
 
-    def _refresh_popup(self) -> None:
-        popup = self._popup
-        if popup is not None:
-            try:
-                popup.refresh()
-            except RuntimeError:
-                self._popup = None
-
     def _visible_groups(self) -> Optional[set[str]]:
         if self._show_all_groups:
             return None
@@ -614,34 +562,16 @@ class TypeFilterWidget(SelectAllFilterMixin, QWidget):
         safe_backend_group = (backend_group or "").strip()
         return safe_backend_group or None
 
-    def _start_async_load(self) -> None:
-        FilterHelper.cancel_pending_load(self, invalidate_request=False)
-        token = self._current_token()
-        request_id = self._load_request_id
+    def _fetch_options(self):
+        return FilterHelper.get_filter_edges_by_key_and_module(ModuleSupports.TYPES.value, self._module)
 
-        key = ModuleSupports.TYPES.value
-        worker = FunctionWorker(lambda: FilterHelper.get_filter_edges_by_key_and_module(key, self._module))
-        worker.active_token = token
-        worker.finished.connect(
-            lambda payload, tok=token, req=request_id: self._handle_types_loaded(payload, tok, req)
-        )
-        worker.error.connect(
-            lambda message, tok=token, req=request_id: self._handle_types_failed(message, tok, req)
-        )
-        self._worker = worker
-        self._worker_thread = start_worker(worker, on_thread_finished=self._cleanup_worker)
-
-    def _handle_types_loaded(
+    def _handle_load_success(
         self,
         payload: List[Dict[str, Optional[str]]],
         token: int | None,
         request_id: int,
     ) -> None:
-        if not self._is_widget_alive():
-            return
-        if request_id != self._load_request_id:
-            return
-        if not self._is_token_active(token):
+        if not self._is_response_current(token, request_id):
             return
         self.type_combo.clear()
         self.group_combo.clear()
@@ -682,12 +612,8 @@ class TypeFilterWidget(SelectAllFilterMixin, QWidget):
         self._refresh_popup()
         self.loadFinished.emit(True)
 
-    def _handle_types_failed(self, message: str, token: int | None, request_id: int) -> None:
-        if not self._is_widget_alive():
-            return
-        if request_id != self._load_request_id:
-            return
-        if not self._is_token_active(token):
+    def _handle_load_error(self, message: str, token: int | None, request_id: int) -> None:
+        if not self._is_response_current(token, request_id):
             return
         self.group_combo.clear()
         self.type_combo.clear()
@@ -754,19 +680,9 @@ class TypeFilterWidget(SelectAllFilterMixin, QWidget):
                 )
         finally:
             self._suppress_type_emit = False
-    def _apply_select_all(self, checked: bool) -> None:
-        if checked and hasattr(self.type_combo, "selectAllOptions"):
-            self.type_combo.selectAllOptions()
-            return
-        if not checked and hasattr(self.type_combo, "deselectAllOptions"):
-            self.type_combo.deselectAllOptions()
-            return
-
-        target_state = Qt.Checked if checked else Qt.Unchecked
-        for i in range(self.type_combo.count()):
-            if self.type_combo.itemData(i) is None:
-                continue
-            self.type_combo.setItemCheckState(i, target_state)
+    @property
+    def _options_combo(self) -> QgsCheckableComboBox:
+        return self.type_combo
 
     def _on_all_cb_state_changed(self, state: int) -> None:
         if self._suppress_all_cb:
@@ -786,21 +702,3 @@ class TypeFilterWidget(SelectAllFilterMixin, QWidget):
         self._update_control_summary()
         self._refresh_popup()
         self._emit_selection_change(source="select_all_checkbox")
-
-    def _sync_all_checkbox_state(self) -> None:
-        total = 0
-        checked = 0
-        for i in range(self.type_combo.count()):
-            val = self.type_combo.itemData(i)
-            if val is None:
-                continue
-            total += 1
-            if self.type_combo.itemCheckState(i) == Qt.Checked:
-                checked += 1
-        if total == 0 or checked == 0:
-            state = Qt.Unchecked
-        elif checked == total:
-            state = Qt.Checked
-        else:
-            state = Qt.PartiallyChecked
-        self._set_all_cb_state(state)
