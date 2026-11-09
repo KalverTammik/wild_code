@@ -83,7 +83,7 @@ class ProjectCardFilesPathRefreshTest(unittest.TestCase):
             button for button in second_actions.buttons if isinstance(button, OpenFolderActionButton)
         )
 
-        first_more._handle_files_path_updated(r"C:\Projects\Project-1")
+        first_more.update_files_path(r"C:\Projects\Project-1")
 
         self.assertTrue(first_folder.isEnabled())
         self.assertEqual(first_folder.file_path, r"C:\Projects\Project-1")

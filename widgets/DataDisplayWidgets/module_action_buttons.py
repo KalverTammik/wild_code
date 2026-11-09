@@ -1,6 +1,6 @@
 from typing import Optional, Iterable
 
-from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QAction, QMenu, QPushButton, QDialog
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
 
@@ -10,15 +10,12 @@ from qgis.utils import iface
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import ToolbarTranslationKeys
-from ...utils.url_manager import OpenLink, Module, loadWebpage
+from ...utils.url_manager import OpenLink, loadWebpage
 from ...python.api_actions import APIModuleActions
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 from ..theme_manager import ThemeManager
-from ...utils.Folders.foldersHelpers import FolderHelpers, FolderEngines
-from ...constants.settings_keys import SettingsService
+from ...utils.Folders.foldersHelpers import FolderHelpers
 from ...constants.module_icons import IconNames
-from ...modules.Settings.setting_keys import SettingDialogPlaceholders
-from ...utils.moduleSwitchHelper import ModuleSwitchHelper
 from ...constants.button_props import ButtonVariant
 from ...utils.messagesHelper import ModernMessageDialog
 from ...languages.translation_keys import TranslationKeys
@@ -28,19 +25,8 @@ from ...constants.cadastral_fields import Katastriyksus
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.window_state.dialog_helpers import DialogHelpers
-from ...python.responses import DataDisplayExtractors
-from ...modules.asbuilt.asbuilt_notes_dialog import AsBuiltNotesEditorDialog
-from ...modules.asbuilt.asbuilt_feature_map_controller import AsBuiltFeatureMapController
-from ...modules.asbuilt.asbuilt_notes_service import AsBuiltNotesService
-from ...modules.easements.easement_attach_existing_controller import EasementAttachExistingController
-from ...modules.easements.easement_preview_dialog import EasementPreviewDialog
-from ...modules.projects.project_preview_dialog import ProjectPreviewDialog
-from ...modules.projects.projects_feature_map_controller import ProjectsFeatureMapController
-from ...modules.Settings.settings_setup_guard import SettingsSetupGuard
-from ...modules.works.works_create_controller import WorksCreateController
-from ...modules.works.works_layer_service import WorksLayerService
-from ...modules.works.works_reposition_controller import WorksRepositionController
 from ...constants.file_paths import QssPaths
+from ...module_manager import ModuleManager
 from .MainStatusWidget import MainStatusWidget
 
 
@@ -150,6 +136,10 @@ class OpenWebActionButton(CardActionButton):
 
 
 class MoreActionsButton(CardActionButton):
+    """A card's "more" menu. The actions its module registers get the button as their host: they use
+    `item_data`, `lang_manager`, `safe_parent_window`, `window`, `update_files_path` and `apply_item_status`.
+    """
+
     def __init__(
         self,
         lang_manager=None,
@@ -170,19 +160,12 @@ class MoreActionsButton(CardActionButton):
         item_payload = dict(item_data or {})
         module = getattr(module, "value", module)
         module = str(module or "").strip().lower()
-        self._item_data = item_payload
+        self.item_data = item_payload
         self.module = module  # Ensure module is passed correctly
         self._map_selection_orchestrator: Optional[MapSelectionOrchestrator] = None
-        self._works_reposition_controller: Optional[WorksRepositionController] = None
-        self._works_create_controller: Optional[WorksCreateController] = None
-        self._asbuilt_feature_map_controller: Optional[AsBuiltFeatureMapController] = None
-        self._easement_feature_map_controller: Optional[EasementAttachExistingController] = None
-        self._projects_feature_map_controller: Optional[ProjectsFeatureMapController] = None
-        self._easement_preview_dialog: Optional[EasementPreviewDialog] = None
-        self._project_preview_dialog: Optional[ProjectPreviewDialog] = None
         self._on_properties_linked = on_properties_linked
         self._on_files_path_updated = on_files_path_updated
-        self._lang_manager = lang_manager
+        self.lang_manager = lang_manager
         self._parent_window: Optional[QDialog] = None
         self._restore_parent_on_close: bool = False
 
@@ -193,124 +176,12 @@ class MoreActionsButton(CardActionButton):
         menu.setObjectName("CardActionsMenu")
         menu.setProperty("popupKind", "card-actions")
 
-        if module == Module.PROJECT.value:
-            action1 = QAction(
-                lang_manager.translate(ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER),
-                self,
-            )
-            action1.triggered.connect(
-                self._generate_project_folder(
-                    module,
-                    item_payload,
-                    lang_manager,
-                    parent_window=self._get_safe_parent_window(),
-                    on_files_path_updated=self._handle_files_path_updated,
-                )
-            )
-            menu.addAction(action1)
-
-            action_project_preview = QAction(
-                lang_manager.translate(TranslationKeys.PROJECT_PREVIEW_ACTION),
-                self,
-            )
-            action_project_preview.triggered.connect(
-                lambda _, data=item_payload, lm=lang_manager: self._open_project_preview(data, lm)
-            )
-            menu.addAction(action_project_preview)
-
-            action_draw_project_area = QAction(
-                lang_manager.translate(TranslationKeys.PROJECT_DRAW_NEW_ACTION),
-                self,
-            )
-            action_draw_project_area.triggered.connect(
-                lambda _, data=item_payload, lm=lang_manager: self._draw_new_project_area_on_map(data, lm)
-            )
-            menu.addAction(action_draw_project_area)
-
-        if module == Module.ASBUILT.value:
-            action_notes = QAction(
-                lang_manager.translate(TranslationKeys.ASBUILT_UPDATE_NOTES_ACTION),
-                self,
-            )
-            action_notes.triggered.connect(
-                lambda _, data=item_payload, lm=lang_manager: self._edit_asbuilt_notes(data, lm)
-            )
-            menu.addAction(action_notes)
-
-            action_draw_new = QAction(
-                lang_manager.translate(TranslationKeys.ASBUILT_DRAW_NEW_ACTION),
-                self,
-            )
-            action_draw_new.triggered.connect(
-                lambda _, data=item_payload, lm=lang_manager: self._draw_new_asbuilt_on_map(data, lm)
-            )
-            menu.addAction(action_draw_new)
-
-        if module == Module.EASEMENT.value:
-            action_files = QAction(
-                lang_manager.translate(TranslationKeys.TASK_FILES_ACTION),
-                self,
-            )
-            action_files.triggered.connect(
-                lambda _, mod=module, data=item_payload, lm=lang_manager: self._open_item_files(mod, data, lm)
-            )
-            menu.addAction(action_files)
-
-        if module == Module.WORKS.value:
-            action_add_point = QAction(
-                lang_manager.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ACTION),
-                self,
-            )
-            action_add_point.triggered.connect(
-                lambda _, data=item_payload, lm=lang_manager: self._add_existing_work_point_on_map(data, lm)
-            )
-            menu.addAction(action_add_point)
-
-            action_reposition = QAction(
-                lang_manager.translate(TranslationKeys.WORKS_REPOSITION_ACTION),
-                self,
-            )
-            action_reposition.triggered.connect(
-                lambda _, data=item_payload, lm=lang_manager: self._reposition_work_on_map(data, lm)
-            )
-            menu.addAction(action_reposition)
-
-        if module == Module.EASEMENT.value:
-            action_draw_new = QAction(
-                lang_manager.translate(TranslationKeys.EASEMENT_DRAW_NEW_ACTION),
-                self,
-            )
-            action_draw_new.triggered.connect(
-                lambda _, data=item_payload, lm=lang_manager: self._draw_new_easement_on_map(data, lm)
-            )
-            menu.addAction(action_draw_new)
-
-            action_attach_existing = QAction(
-                lang_manager.translate(TranslationKeys.EASEMENT_ATTACH_EXISTING_ACTION),
-                self,
-            )
-            action_attach_existing.triggered.connect(
-                lambda _, data=item_payload, lm=lang_manager: self._attach_existing_easement_on_map(data, lm)
-            )
-            menu.addAction(action_attach_existing)
-
-            action_edit_geometry = QAction(
-                lang_manager.translate(TranslationKeys.EASEMENT_EDIT_GEOMETRY_ACTION),
-                self,
-            )
-            action_edit_geometry.triggered.connect(
-                lambda _, data=item_payload, lm=lang_manager: self._edit_easement_geometry_on_map(data, lm)
-            )
-            menu.addAction(action_edit_geometry)
-
-            action_easement_preview = QAction(
-                lang_manager.translate(TranslationKeys.EASEMENT_PREVIEW_ACTION),
-                self,
-            )
-            action_easement_preview.triggered.connect(
-                lambda _, data=item_payload, lm=lang_manager: self._open_easement_preview(data, lm)
-            )
-            menu.addAction(action_easement_preview)
+        actions_class = ModuleManager().getModuleCardActions(module)
+        self._module_actions = actions_class(self) if actions_class is not None else None
+        for label_key, run in self._module_actions.menu_actions() if self._module_actions is not None else ():
+            action = QAction(lang_manager.translate(label_key), self)
+            action.triggered.connect(lambda _checked=False, run_action=run: run_action())
+            menu.addAction(action)
 
         action2 = QAction(
             lang_manager.translate(TranslationKeys.CONNECT_PROPERTIES),
@@ -323,32 +194,17 @@ class MoreActionsButton(CardActionButton):
         ThemeManager.apply_module_style(menu, [QssPaths.POPUP])
         self.setMenu(menu)
 
-    def _open_item_files(self, module, item_data, lang_manager) -> None:
-        from .TaskFilesDialog import TaskFilesDialog
-
-        item_id = DataDisplayExtractors.extract_item_id(item_data)
-        if not item_id:
-            return
-        dialog = TaskFilesDialog(
-            item_id=item_id,
-            item_name=DataDisplayExtractors.extract_item_name(item_data) or item_id,
-            module_name=module,
-            lang_manager=lang_manager,
-            parent=self.window(),
-        )
-        dialog.exec_()
-
-    def _handle_files_path_updated(self, files_path: str) -> None:
+    def update_files_path(self, files_path: str) -> None:
         resolved_path = str(files_path or "").strip()
         if not resolved_path:
             return
-        self._item_data["filesPath"] = resolved_path
+        self.item_data["filesPath"] = resolved_path
         if callable(self._on_files_path_updated):
             self._on_files_path_updated(resolved_path)
 
-    def _handle_easement_status_changed(self, status: dict) -> None:
+    def apply_item_status(self, status: dict) -> None:
         # The card and its next actions follow the status Kavitro has now.
-        self._item_data["status"] = dict(status)
+        self.item_data["status"] = dict(status)
         if sip.isdeleted(self):
             return
         card = self.parentWidget()
@@ -357,275 +213,15 @@ class MoreActionsButton(CardActionButton):
         if card is None:
             return
         for status_widget in card.findChildren(MainStatusWidget):
-            status_widget.apply_status(self._item_data)
+            status_widget.apply_status(self.item_data)
 
     def start_property_linking(self) -> None:
         """Start the shared map-selection workflow from any card entry point."""
         self._link_properties_from_map(
             self.module,
-            self._item_data,
-            self._lang_manager,
+            self.item_data,
+            self.lang_manager,
         )
-
-    @staticmethod
-    def _generate_project_folder(
-        module,
-        item_data,
-        lang_manager,
-        *,
-        parent_window=None,
-        on_files_path_updated=None,
-    ):
-        def handler():            
-            missing_requirements = SettingsSetupGuard.missing_requirements(module)
-            if missing_requirements:
-                title, message = SettingsSetupGuard.redirect_warning_text(lang_manager, module)
-                ModernMessageDialog.show_warning(
-                    title,
-                    message,
-                    parent=parent_window,
-                )
-
-                ModuleSwitchHelper.switch_module(
-                    Module.SETTINGS.name,
-                    focus_module=module,
-                )
-                return
-            svc = SettingsService()
-            folder_to_copy = svc.module_label_value(module, SettingDialogPlaceholders.PROJECTS_SOURCE_FOLDER)
-            target_folder = svc.module_label_value(module, SettingDialogPlaceholders.PROJECTS_TARGET_FOLDER)
-            FolderEngines.generate_project_folder_from_template(
-                DataDisplayExtractors.extract_item_id(item_data),
-                DataDisplayExtractors.extract_item_name(item_data),
-                DataDisplayExtractors.extract_project_number(item_data),
-                source_folder=folder_to_copy,
-                target_folder=target_folder,
-                on_files_path_updated=on_files_path_updated,
-            )
-
-        return handler
-
-    def _edit_asbuilt_notes(self, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-
-        item_id = DataDisplayExtractors.extract_item_id(item)
-        if not item_id:
-            return
-
-        item_name = DataDisplayExtractors.extract_item_name(item) or item_id
-        source_description = APIModuleActions.get_task_description(item_id)
-        if source_description is None:
-            # Without the current description a save would replace all of it with the notes table.
-            ModernMessageDialog.show_warning(
-                lm.translate(TranslationKeys.ERROR),
-                lm.translate(TranslationKeys.ASBUILT_NOTES_LOAD_FAILED).format(name=item_name),
-            )
-            return
-
-        dialog = AsBuiltNotesEditorDialog(
-            item_name=item_name,
-            notes=AsBuiltNotesService.parse_notes(source_description),
-            lang_manager=lm,
-            parent=self._get_safe_parent_window(),
-        )
-        if dialog.exec_() != QDialog.Accepted:
-            return
-
-        latest_description = APIModuleActions.get_task_description(item_id)
-        base_description = latest_description if latest_description is not None else source_description
-        merged_description = AsBuiltNotesService.merge_notes_into_description(
-            base_description,
-            dialog.get_notes(),
-        )
-
-        if merged_description == (base_description or ""):
-            return
-
-        success = APIModuleActions.update_task_description(item_id, merged_description)
-        if success:
-            item["description"] = merged_description
-            ModernMessageDialog.show_info(
-                lm.translate(TranslationKeys.SUCCESS),
-                lm.translate(TranslationKeys.ASBUILT_UPDATE_NOTES_SUCCESS).format(name=item_name),
-            )
-            return
-
-        ModernMessageDialog.show_warning(
-            lm.translate(TranslationKeys.ERROR),
-            lm.translate(TranslationKeys.ASBUILT_UPDATE_NOTES_FAILED).format(name=item_name),
-        )
-
-    def _reposition_work_on_map(self, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-
-        item_id = DataDisplayExtractors.extract_item_id(item)
-        if not item_id:
-            return
-
-        if self._works_reposition_controller is None:
-            self._works_reposition_controller = WorksRepositionController(lang_manager=lm)
-
-        self._works_reposition_controller.start_reposition(
-            task_id=item_id,
-            parent_window=self._get_safe_parent_window(),
-        )
-
-    def _add_existing_work_point_on_map(self, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-
-        item_id = DataDisplayExtractors.extract_item_id(item)
-        if not item_id:
-            return
-
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=lm, silent=False)
-        if works_layer is None:
-            return
-
-        existing_feature = WorksLayerService.find_feature_by_task_id(works_layer, item_id)
-        if existing_feature is not None:
-            WorksLayerService.focus_feature_by_task_id(works_layer, item_id)
-            ModernMessageDialog.show_info(
-                lm.translate(TranslationKeys.INFO),
-                lm.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_ALREADY_LINKED).format(
-                    task_id=item_id,
-                ),
-            )
-            return
-
-        if self._works_create_controller is None:
-            self._works_create_controller = WorksCreateController(lang_manager=lm)
-
-        self._works_create_controller.start_add_existing_to_map(
-            task_id=item_id,
-            task_payload=item,
-            parent_window=self._get_safe_parent_window(),
-        )
-
-    def _draw_new_asbuilt_on_map(self, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-        item_id = DataDisplayExtractors.extract_item_id(item)
-        if not item_id:
-            return
-
-        if self._asbuilt_feature_map_controller is None:
-            self._asbuilt_feature_map_controller = AsBuiltFeatureMapController(lang_manager=lm)
-
-        self._asbuilt_feature_map_controller.start_draw(item_data=item)
-
-    def _draw_new_project_area_on_map(self, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-        item_id = DataDisplayExtractors.extract_item_id(item)
-        if not item_id:
-            return
-
-        if self._projects_feature_map_controller is None:
-            self._projects_feature_map_controller = ProjectsFeatureMapController(lang_manager=lm)
-
-        self._projects_feature_map_controller.start_draw(item_data=item)
-
-    def _open_project_preview(self, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-        if self._project_preview_dialog is not None:
-            try:
-                if self._project_preview_dialog.isVisible():
-                    self._project_preview_dialog.showNormal()
-                    self._project_preview_dialog.raise_()
-                    self._project_preview_dialog.activateWindow()
-                    return
-            except Exception:
-                self._project_preview_dialog = None
-
-        dialog = ProjectPreviewDialog(
-            item_data=item,
-            lang_manager=lm,
-            parent=self._get_safe_parent_window(),
-        )
-        dialog.setAttribute(Qt.WA_DeleteOnClose, True)
-        dialog.finished.connect(lambda *_args: setattr(self, "_project_preview_dialog", None))
-        self._project_preview_dialog = dialog
-        dialog.show()
-        dialog.raise_()
-        dialog.activateWindow()
-
-    def _open_easement_preview(self, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-        if self._easement_preview_dialog is not None:
-            try:
-                if self._easement_preview_dialog.isVisible():
-                    self._easement_preview_dialog.showNormal()
-                    self._easement_preview_dialog.raise_()
-                    self._easement_preview_dialog.activateWindow()
-                    return
-            except Exception:
-                self._easement_preview_dialog = None
-
-        dialog = EasementPreviewDialog(
-            item_data=item,
-            lang_manager=lm,
-            parent=self._get_safe_parent_window(),
-            on_status_changed=self._handle_easement_status_changed,
-        )
-        dialog.setAttribute(Qt.WA_DeleteOnClose, True)
-        dialog.finished.connect(lambda *_args: setattr(self, "_easement_preview_dialog", None))
-        self._easement_preview_dialog = dialog
-        dialog.show()
-        dialog.raise_()
-        dialog.activateWindow()
-
-    def _attach_existing_easement_on_map(self, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-        item_id = DataDisplayExtractors.extract_item_id(item)
-        if not item_id:
-            return
-
-        if self._easement_feature_map_controller is None:
-            self._easement_feature_map_controller = EasementAttachExistingController(
-                lang_manager=lm,
-                on_status_changed=self._handle_easement_status_changed,
-            )
-
-        self._easement_feature_map_controller.start_attach(
-            item_data=item,
-            parent_window=self._get_safe_parent_window(),
-        )
-
-    def _draw_new_easement_on_map(self, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-        item_id = DataDisplayExtractors.extract_item_id(item)
-        if not item_id:
-            return
-
-        if self._easement_feature_map_controller is None:
-            self._easement_feature_map_controller = EasementAttachExistingController(
-                lang_manager=lm,
-                on_status_changed=self._handle_easement_status_changed,
-            )
-
-        self._easement_feature_map_controller.start_draw(item_data=item)
-
-    def _edit_easement_geometry_on_map(self, item_data, lang_manager) -> None:
-        lm = lang_manager or LanguageManager()
-        item = item_data if isinstance(item_data, dict) else {}
-        item_id = DataDisplayExtractors.extract_item_id(item)
-        if not item_id:
-            return
-
-        if self._easement_feature_map_controller is None:
-            self._easement_feature_map_controller = EasementAttachExistingController(
-                lang_manager=lm,
-                on_status_changed=self._handle_easement_status_changed,
-            )
-
-        self._easement_feature_map_controller.start_edit(item_data=item)
 
     def _link_properties_from_map(self, module, item_data, lang_manager) -> None:
         object_id = (item_data).get("id")
@@ -828,7 +424,7 @@ class MoreActionsButton(CardActionButton):
     def _restore_parent_window(self) -> None:
         self._exit_map_selection_mode()
 
-    def _get_safe_parent_window(self) -> Optional[QDialog]:
+    def safe_parent_window(self) -> Optional[QDialog]:
         w = self._resolve_parent_window()
         return DialogHelpers.resolve_safe_parent_window(
             w,
@@ -838,7 +434,7 @@ class MoreActionsButton(CardActionButton):
         )
 
     def _enter_map_selection_mode(self) -> None:
-        parent_window = self._get_safe_parent_window()
+        parent_window = self.safe_parent_window()
         DialogHelpers.enter_map_selection_mode(
             iface_obj=iface,
             parent_window=parent_window,
@@ -851,7 +447,7 @@ class MoreActionsButton(CardActionButton):
     def _exit_map_selection_mode(self) -> None:
         if not self._restore_parent_on_close:
             return
-        parent_window = self._get_safe_parent_window() or self._parent_window
+        parent_window = self.safe_parent_window() or self._parent_window
         DialogHelpers.exit_map_selection_mode(
             iface_obj=iface,
             parent_window=parent_window,

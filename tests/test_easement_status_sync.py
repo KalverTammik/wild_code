@@ -22,6 +22,8 @@ from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.utils.status_color_helper import StatusColorHelper
 from Kavitro_dev.widgets.DataDisplayWidgets.MainStatusWidget import MainStatusWidget
 from Kavitro_dev.widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
+from Kavitro_dev.module_manager import ModuleManager
+from Kavitro_dev.modules.easements.easement_card_actions import EasementCardActions
 from Kavitro_dev.widgets.DataDisplayWidgets.module_action_buttons import MoreActionsButton
 
 PREPARING = {"id": "1", "name": "Ettevalmistamisel", "color": "4FBF6B", "type": "OPEN"}
@@ -111,7 +113,8 @@ class EasementCardStatusTest(unittest.TestCase):
         card.setObjectName("ModuleInfoCard")
         layout = QHBoxLayout(card)
         status = MainStatusWidget(item, module_name="easement", parent=card)
-        actions = ModuleConnectionActions("easement", item["id"], item, StubLanguageManager())
+        with patch.object(ModuleManager, "getModuleCardActions", return_value=EasementCardActions):
+            actions = ModuleConnectionActions("easement", item["id"], item, StubLanguageManager())
         layout.addWidget(status)
         layout.addWidget(actions)
 
@@ -127,12 +130,12 @@ class EasementCardStatusTest(unittest.TestCase):
         status, more = self._card({"id": "1", "status": PREPARING})
         other_status, _other_more = self._card({"id": "2", "status": PREPARING})
 
-        more._handle_easement_status_changed(SIGNED)
+        more.apply_item_status(SIGNED)
 
         bg, _fg, _border = StatusColorHelper.upgrade_status_color(SIGNED["color"])
         self.assertEqual(status._status_name, SIGNED["name"])
         self.assertIn(f"rgba({bg[0]},{bg[1]},{bg[2]}", status.core_fill.styleSheet())
-        self.assertEqual(more._item_data["status"], SIGNED)
+        self.assertEqual(more.item_data["status"], SIGNED)
         self.assertEqual(other_status._status_name, PREPARING["name"])
 
     def test_both_form_flows_pass_the_card_update_on(self) -> None:
@@ -141,15 +144,15 @@ class EasementCardStatusTest(unittest.TestCase):
 
         with prompt as attach_prompt:
             controller = controller_module.EasementAttachExistingController.__new__(controller_module.EasementAttachExistingController)
-            controller._on_status_changed = more._handle_easement_status_changed
+            controller._on_status_changed = more.apply_item_status
             controller._attach_easement_feature_with_form(None, 1, {"id": "1"})
 
-        self.assertEqual(attach_prompt.call_args.kwargs["on_status_changed"], more._handle_easement_status_changed)
+        self.assertEqual(attach_prompt.call_args.kwargs["on_status_changed"], more.apply_item_status)
 
         dialog = preview_module.EasementPreviewDialog.__new__(preview_module.EasementPreviewDialog)
         dialog._item, dialog._property_edges, dialog._final_area_sqm = {"id": "1"}, [], 0.0
         dialog._lang = StubLanguageManager()
-        dialog._on_status_changed = more._handle_easement_status_changed
+        dialog._on_status_changed = more.apply_item_status
         with (
             patch.object(preview_module.EasementPreviewDialog, "_ensure_final_cut_layer", return_value=(object(), "")),
             patch.object(preview_module.EasementLayerService, "resolve_main_layer", return_value=object()),
@@ -157,16 +160,16 @@ class EasementCardStatusTest(unittest.TestCase):
         ):
             preview_module.EasementPreviewDialog._save_final_cut_to_main_layer(dialog)
 
-        self.assertEqual(preview_prompt.call_args.kwargs["on_status_changed"], more._handle_easement_status_changed)
+        self.assertEqual(preview_prompt.call_args.kwargs["on_status_changed"], more.apply_item_status)
 
     def test_card_buttons_hand_their_update_to_the_form_flows(self) -> None:
         _status, more = self._card({"id": "1", "status": PREPARING})
 
         with patch.object(controller_module.EasementAttachExistingController, "start_attach") as start:
-            more._attach_existing_easement_on_map({"id": "1"}, StubLanguageManager())
+            more._module_actions.attach_existing_on_map()
 
         self.assertTrue(start.called)
-        self.assertEqual(more._easement_feature_map_controller._on_status_changed, more._handle_easement_status_changed)
+        self.assertEqual(more._module_actions._map_controller._on_status_changed, more.apply_item_status)
 
 
 if __name__ == "__main__":

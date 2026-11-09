@@ -33,6 +33,7 @@ class ModuleManager:
         supports_tags=False,
         supports_archive_layer=False,
         module_labels=None,
+        card_actions=None,
         **init_params,
     ):
         """
@@ -52,6 +53,7 @@ class ModuleManager:
             "supports_tags": supports_tags,
             "supports_archive_layer": supports_archive_layer,
             "module_labels": module_labels or [],
+            "card_actions": card_actions,
         }
 
         if module_name.capitalize() == Module.SETTINGS.value.capitalize() or \
@@ -172,6 +174,13 @@ class ModuleManager:
         if not module_data:
             return []
         return module_data.get("module_labels", [])
+
+    def getModuleCardActions(self, moduleName):
+        """Return the class that builds the module's card menu actions, or None."""
+        module_data = self.modules.get(moduleName.lower())
+        if not module_data:
+            return None
+        return module_data.get("card_actions")
 
     @staticmethod
     def _get_widget_safe(instance):

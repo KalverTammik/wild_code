@@ -17,8 +17,8 @@ from PyQt5.QtWidgets import QDialog
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.asbuilt.asbuilt_notes_service import AsBuiltNote
-from Kavitro_dev.widgets.DataDisplayWidgets import module_action_buttons
-from Kavitro_dev.widgets.DataDisplayWidgets.module_action_buttons import MoreActionsButton
+from Kavitro_dev.modules.asbuilt import asbuilt_card_actions
+from Kavitro_dev.modules.asbuilt.asbuilt_card_actions import AsBuiltCardActions
 
 ITEM = {"id": "a1", "name": "TJ-12"}
 NOTE = AsBuiltNote(date="02.04.2026", note="kaev 47 viga")
@@ -30,22 +30,22 @@ class EditNotesTest(unittest.TestCase):
         self.api = self._patch("APIModuleActions")
         self.dialog_class = self._patch("AsBuiltNotesEditorDialog")
         self.messages = self._patch("ModernMessageDialog")
-        # Stands in for the button: the action reads only its parent window.
-        self.button = Mock()
+        # Stands in for the card button.
+        self.button = Mock(lang_manager=self.lang)
         dialog = self.dialog_class.return_value
         dialog.exec_.return_value = QDialog.Accepted
         dialog.get_notes.return_value = [NOTE]
         self.api.update_task_description.return_value = True
 
     def _patch(self, name: str) -> Mock:
-        patcher = patch.object(module_action_buttons, name)
+        patcher = patch.object(asbuilt_card_actions, name)
         self.addCleanup(patcher.stop)
         return patcher.start()
 
     def edit(self) -> dict:
-        item = dict(ITEM)
-        MoreActionsButton._edit_asbuilt_notes(self.button, item, self.lang)
-        return item
+        self.button.item_data = dict(ITEM)
+        AsBuiltCardActions(self.button).edit_notes()
+        return self.button.item_data
 
     def test_failed_load_opens_nothing_and_saves_nothing(self) -> None:
         self.api.get_task_description.return_value = None

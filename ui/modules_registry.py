@@ -35,13 +35,17 @@ class ModulesRegistry:
         from ..modules.Settings.EasementStatusMappingDialog import EasementStatusMappingDialog
         from ..modules.Property.PropertyUI import PropertyModule
         from ..modules.projects.ProjectsUi import ProjectsModule
+        from ..modules.projects.projects_card_actions import ProjectCardActions
         from ..modules.projects.FolderNamingRuleDialog import FolderNamingRuleDialog
         from ..modules.contract.ContractUi import ContractsModule
         from ..modules.coordination.CoordinationModule import CoordinationModule
         from ..modules.easements.EasementsUi import EasementsModule
+        from ..modules.easements.easement_card_actions import EasementCardActions
         from ..modules.easements.easement_layer_service import EasementLayerService
         from ..modules.works.WorksUi import WorksModule
+        from ..modules.works.works_card_actions import WorksCardActions
         from ..modules.asbuilt.AsBuiltUi import AsBuiltModule
+        from ..modules.asbuilt.asbuilt_card_actions import AsBuiltCardActions
         from ..utils.url_manager import Module
         from .window_state.dialog_helpers import DialogHelpers
         from ..utils.Folders.foldersHelpers import FolderHelpers
@@ -90,6 +94,7 @@ class ModulesRegistry:
         module_manager.registerModule(
             ProjectsModule,
             Module.PROJECT.name,
+            card_actions=ProjectCardActions,
             qss_files=qss_modular,
             language=dialog.lang_manager,
             supports_statuses=True,
@@ -139,6 +144,7 @@ class ModulesRegistry:
         module_manager.registerModule(
             EasementsModule,
             Module.EASEMENT.name,
+            card_actions=EasementCardActions,
             qss_files=qss_modular,
             lang_manager=dialog.lang_manager,
             supports_types=True,
@@ -157,6 +163,7 @@ class ModulesRegistry:
         module_manager.registerModule(
             WorksModule,
             Module.WORKS.name,
+            card_actions=WorksCardActions,
             qss_files=qss_modular,
             lang_manager=dialog.lang_manager,
             supports_types=True,
@@ -166,6 +173,7 @@ class ModulesRegistry:
         module_manager.registerModule(
             AsBuiltModule,
             Module.ASBUILT.name,
+            card_actions=AsBuiltCardActions,
             qss_files=qss_modular,
             lang_manager=dialog.lang_manager,
             supports_types=True,
