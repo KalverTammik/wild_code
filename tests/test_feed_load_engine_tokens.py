@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import QApplication, QWidget
 
 from Kavitro_dev.feed.feed_load_engine import FeedLoadEngine
 from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.module_manager import ModuleManager
 from Kavitro_dev.modules.coordination.CoordinationModule import CoordinationModule
 from Kavitro_dev.ui.mixins.token_mixin import TokenMixin
 
@@ -72,13 +73,13 @@ class FeedSessionReactivationTest(unittest.TestCase):
 
     def setUp(self) -> None:
         patches = [
-            patch("Kavitro_dev.modules.coordination.CoordinationModule.ModuleManager"),
+            patch.object(ModuleManager, "getModuleSupports", return_value=(False, False, False, False)),
             patch("requests.sessions.Session.request", side_effect=AssertionError("Unexpected network request")),
         ]
-        mocks = [p.start() for p in patches]
+        for p in patches:
+            p.start()
         for p in patches:
             self.addCleanup(p.stop)
-        mocks[0].return_value.getModuleSupports.return_value = (False, False, False, False)
         self.ui = CoordinationModule(language=LanguageManager("et"))
         self.addCleanup(delete_now, self.ui)
         self.ui.init_feed_engine(self.ui.load_next_batch)

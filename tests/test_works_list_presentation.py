@@ -174,7 +174,7 @@ class WorksListWidgetTest(unittest.TestCase):
         self.patches = [
             patch('Kavitro_dev.modules.works.WorksUi.WorksCreateController'),
             patch('Kavitro_dev.modules.works.WorksUi.WorksSyncService'),
-            patch('Kavitro_dev.modules.task_shared.task_module_base_ui.ModuleManager'),
+            patch('Kavitro_dev.ui.mixins.filtered_feed_mixin.ModuleManager'),
             patch('requests.sessions.Session.request', side_effect=AssertionError('Unexpected network request')),
             patch.object(ModuleCardFactory, 'create_item_card', side_effect=self.make_card),
         ]

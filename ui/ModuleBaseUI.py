@@ -144,14 +144,6 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         self.supports_type_filter = False
         self.tags_match_mode = "ANY"
 
-        # Preference loading guards
-        self._status_filter_signal_connected = False
-        self._type_filter_signal_connected = False
-        self._tags_filter_signal_connected = False
-        self._status_preferences_loaded = False
-        self._type_preferences_loaded = False
-        self._tags_preferences_loaded = False
-
         self.feed_layout: Optional[QVBoxLayout] = None
 
         self.feed_load_engine: Optional[FeedLoadEngine] = None
