@@ -16,6 +16,7 @@ from .python.api_client import APIClient
 from .python.GraphQLQueryLoader import GraphQLQueryLoader
 from .utils.api_error_handling import ApiErrorKind, parse_tagged_message
 from .utils.url_manager import Module
+from .ui.session_storage_warning import show_storage_warning
 
 class LoginDialog(QDialog):
     loginSuccessful = pyqtSignal(str, dict)
@@ -239,7 +240,7 @@ class LoginDialog(QDialog):
         )
         self.password_input.clear()
         self.mfa_code_input.clear()
-        SessionManager.show_storage_warning(
+        show_storage_warning(
             storage_status,
             parent=self,
             lang_manager=self.lang,

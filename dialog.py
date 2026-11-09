@@ -22,7 +22,8 @@ from .module_manager import ModuleManager
 from .widgets.sidebar import Sidebar
 from .ui.window_state.dialog_geometry_watcher import DialogGeometryWatcher
 from .ui.window_state.dialog_helpers import DialogHelpers
-from .utils.SessionManager import SessionManager, SessionUIController
+from .utils.SessionManager import SessionManager
+from .ui.session_ui_controller import SessionUIController
 from .ui.modules_registry import ModulesRegistry
         
 from .utils.url_manager import Module

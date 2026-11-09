@@ -1,53 +1,9 @@
 from threading import RLock
-from typing import Callable, Optional, Protocol, TYPE_CHECKING
+from typing import Callable, Optional
 
-from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
-if TYPE_CHECKING:
-
-    class ModuleWidgetProtocol(Protocol):
-        ...
-
-    class ModuleInstanceProtocol(Protocol):
-        def get_widget(self) -> Optional[ModuleWidgetProtocol]: ...
-
-    class ModuleManagerProtocol(Protocol):
-        modules: dict
-        def getActiveModuleName(self) -> Optional[str]: ...
-        def getActiveModuleInstance(self, moduleName: str) -> Optional[ModuleInstanceProtocol]: ...
-
-    class ModuleStackProtocol(Protocol):
-        def setCurrentWidget(self, widget: ModuleWidgetProtocol) -> None: ...
-        def setEnabled(self, enabled: bool) -> None: ...
-
-    class SidebarProtocol(Protocol):
-        def setActiveModuleOnSidebarButton(self, moduleName: str) -> None: ...
-        def setEnabled(self, enabled: bool) -> None: ...
-
-    class LogoutButtonProtocol(Protocol):
-        def setEnabled(self, enabled: bool) -> None: ...
-
-    class HeaderProtocol(Protocol):
-        logoutButton: LogoutButtonProtocol
-
-    class FooterProtocol(Protocol):
-        def setEnabled(self, enabled: bool) -> None: ...
-
-    class SessionDialogProtocol(Protocol):
-        _has_shown: bool
-        _force_close: bool
-        _session_listener: Optional[Callable[[], None]]
-        moduleManager: ModuleManagerProtocol
-        moduleStack: ModuleStackProtocol
-        sidebar: SidebarProtocol
-        header_widget: HeaderProtocol
-        footer_widget: FooterProtocol
-        def close(self) -> None: ...
-        def hide(self) -> None: ...
-        def _refresh_session_dependent_ui(self) -> None: ...
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
-from ..languages.translation_keys import TranslationKeys
-from .messagesHelper import ModernMessageDialog
 from ..Logs.python_fail_logger import PythonFailLogger
 from .secure_session_store import (
     AUTH_ID,
@@ -57,13 +13,12 @@ from .secure_session_store import (
 )
 
 
-"""Session persistence + UI session flow (single-file layout).
+"""Session state and persistence. Nothing here shows a window: the UI layer registers how a login is asked for.
 
 Sections:
 - Session constants
 - SessionGuiBridge (worker thread -> GUI thread hand-off)
 - SessionManager (persistence/auth)
-- SessionUIController (UI lifecycle helpers)
 """
 
 # ------------------------------------------------------------------
@@ -105,7 +60,7 @@ class SessionGuiBridge(QObject):
     @pyqtSlot(bool, str)
     def _on_session_invalidated(self, notify: bool, reason: str) -> None:
         if notify:
-            SessionManager._notify_session_changed()
+            SessionManager.notify_session_changed()
         SessionManager.request_login(reason=reason or None)
 
 
@@ -116,6 +71,7 @@ class SessionManager:
 
     _instance = None
     _login_dialog_open = False
+    _login_prompt: Optional[Callable[[object, Optional[str]], None]] = None
     _login_cancelled_for_reason: Optional[str] = None
     _listeners: list = []
     _storage_warning_pending: Optional[str] = None
@@ -249,7 +205,7 @@ class SessionManager:
             SessionManager._advance_session_generation()
             SessionManager._login_cancelled_for_reason = None
             SessionManager.save_session()  # purges the legacy token and syncs
-        SessionManager._notify_session_changed()
+        SessionManager.notify_session_changed()
         PythonFailLogger.log(
             "logout_session_cleared",
             module="auth",
@@ -333,7 +289,7 @@ class SessionManager:
         SessionManager._login_cancelled_for_reason = None
         session.settings.setValue(SESSION_NEEDS_LOGIN, False)
         SessionManager.save_session()  # Always save after setting
-        SessionManager._notify_session_changed()
+        SessionManager.notify_session_changed()
         PythonFailLogger.log(
             "login_session_set",
             module="auth",
@@ -355,36 +311,11 @@ class SessionManager:
         return str(SessionManager._instance.session_generation)
 
     @staticmethod
-    def show_storage_warning(status: str, parent=None, lang_manager=None) -> None:
-        if status not in (
-            SESSION_STORAGE_MEMORY_ONLY,
-            SESSION_STORAGE_MIGRATION_PENDING,
-            SESSION_STORAGE_CLEANUP_FAILED,
-        ):
-            return
-        manager = lang_manager
-        if manager is None:
-            from ..languages.language_manager import LanguageManager
-
-            manager = LanguageManager()
-        title = manager.translate(TranslationKeys.SESSION_STORAGE_WARNING_TITLE)
-        message_keys = {
-            SESSION_STORAGE_MEMORY_ONLY: TranslationKeys.SESSION_STORAGE_MEMORY_ONLY,
-            SESSION_STORAGE_MIGRATION_PENDING: TranslationKeys.SESSION_STORAGE_MIGRATION_PENDING,
-            SESSION_STORAGE_CLEANUP_FAILED: TranslationKeys.SESSION_STORAGE_CLEANUP_FAILED,
-        }
-        ModernMessageDialog.show_warning(
-            title,
-            manager.translate(message_keys[status]),
-            parent=parent,
-        )
-
-    @staticmethod
-    def show_pending_storage_warning(parent=None, lang_manager=None) -> None:
+    def take_pending_storage_warning() -> Optional[str]:
+        """Return the storage problem found while loading, once."""
         status = SessionManager._storage_warning_pending
         SessionManager._storage_warning_pending = None
-        if status:
-            SessionManager.show_storage_warning(status, parent=parent, lang_manager=lang_manager)
+        return status
 
     @staticmethod
     def register_listener(listener) -> None:
@@ -398,7 +329,7 @@ class SessionManager:
             SessionManager._listeners.remove(listener)
 
     @staticmethod
-    def _notify_session_changed() -> None:
+    def notify_session_changed() -> None:
         for listener in list(SessionManager._listeners):
             try:
                 listener()
@@ -438,8 +369,13 @@ class SessionManager:
             return SessionManager._gui_bridge_instance
 
     @staticmethod
+    def set_login_prompt(prompt: Optional[Callable[[object, Optional[str]], None]]) -> None:
+        """Set how a login is asked for: ``prompt(parent, reason)``. The plugin does this at start and unload."""
+        SessionManager._login_prompt = prompt
+
+    @staticmethod
     def request_login(parent=None, reason: Optional[str] = None, user_initiated: bool = False) -> None:
-        """Open the login dialog.
+        """Ask the user to log in.
 
         A cancelled prompt silences only the automatic retries that share its
         reason; anything the user asked for is always shown, so a cancel can
@@ -449,67 +385,28 @@ class SessionManager:
             return
         if not user_initiated and reason and SessionManager._login_cancelled_for_reason == reason:
             return
+        prompt = SessionManager._login_prompt
+        if prompt is None:
+            PythonFailLogger.log(
+                "login_prompt_unavailable",
+                module="auth",
+                extra={"reason": str(reason or "")},
+            )
+            return
         SessionManager._login_dialog_open = True
         PythonFailLogger.log(
             "login_dialog_requested",
             module="auth",
             extra={"reason": str(reason or "")},
         )
+        prompt(parent, reason)
 
-        def _resolve_parent():
-            try:
-                if parent is not None:
-                    return parent
-            except Exception:
-                return None
-            try:
-                from qgis.utils import iface
-                if iface:
-                    return iface.mainWindow()
-            except Exception:
-                return None
-            try:
-                from PyQt5.QtWidgets import QApplication
-                return QApplication.activeWindow()
-            except Exception:
-                return None
-
-        def _open_dialog():
-            try:
-                from ..login_dialog import LoginDialog
-
-                dlg = LoginDialog(parent=_resolve_parent())
-                result = dlg.exec_()
-                if SessionManager.is_session_valid():
-                    QTimer.singleShot(0, SessionManager._notify_session_changed)
-                    PythonFailLogger.log(
-                        "login_dialog_success",
-                        module="auth",
-                        extra={"reason": str(reason or "")},
-                    )
-                elif result == 0:
-                    SessionManager._login_cancelled_for_reason = reason
-                    PythonFailLogger.log(
-                        "login_dialog_cancelled",
-                        module="auth",
-                        extra={"reason": str(reason or "")},
-                    )
-                else:
-                    PythonFailLogger.log(
-                        "login_dialog_no_session",
-                        module="auth",
-                        extra={"reason": str(reason or "")},
-                    )
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="auth",
-                    event="login_dialog_open_failed",
-                )
-            finally:
-                SessionManager._login_dialog_open = False
-
-        QTimer.singleShot(0, _open_dialog)
+    @staticmethod
+    def finish_login_prompt(reason: Optional[str], *, cancelled: bool = False) -> None:
+        """The prompt has closed; a cancel silences automatic retries that share its reason."""
+        if cancelled:
+            SessionManager._login_cancelled_for_reason = reason
+        SessionManager._login_dialog_open = False
 
     @staticmethod
     def _set_storage_warning(status: str) -> None:
@@ -543,103 +440,3 @@ class SessionManager:
         if isinstance(value, (int, float)):
             return bool(value)
         return bool(value) if value is not None else default
-
-
-# ------------------------------------------------------------------
-# SessionUIController (UI flow helpers)
-# ------------------------------------------------------------------
-class SessionUIController:
-    @staticmethod
-    def logout(dialog: "SessionDialogProtocol") -> None:
-        import gc
-
-        PythonFailLogger.log(
-            "logout_requested",
-            module="auth",
-        )
-        SessionManager.clear()
-        gc.collect()
-        dialog._force_close = True
-        dialog.close()
-        try:
-            dialog.deleteLater()
-        except Exception:
-            pass
-        PythonFailLogger.log(
-            "logout_dialog_closed",
-            module="auth",
-        )
-
-    @staticmethod
-    def ensure_logged_in(dialog: "SessionDialogProtocol") -> bool:
-        """Refuse to show an unusable window; ask for a login instead.
-
-        ``close()`` only minimises this dialog, so returning without a prompt
-        used to leave a blank window and no explanation.
-        """
-        if SessionManager.is_session_valid():
-            return True
-        dialog.hide()
-        SessionManager.request_login(reason="dialog_show", user_initiated=True)
-        return False
-
-    @staticmethod
-    def after_show(dialog: "SessionDialogProtocol") -> None:
-        from ..Logs.switch_logger import SwitchLogger
-        from .url_manager import Module
-        from .moduleSwitchHelper import ModuleSwitchHelper
-        from ..constants.settings_keys import SettingsService
-        if dialog._session_listener is None:
-            def _listener():
-                SessionUIController.handle_session_changed(dialog)
-
-            dialog._session_listener = _listener
-            SessionManager.register_listener(_listener)
-            try:
-                dialog.destroyed.connect(lambda *_: SessionManager.unregister_listener(_listener))
-            except Exception:
-                pass
-
-        SessionUIController.refresh_login_ui(dialog)
-        if dialog._has_shown and dialog.moduleManager.getActiveModuleName():
-            # Preserve the current active module on subsequent shows
-            active_name = dialog.moduleManager.getActiveModuleName()
-            inst = dialog.moduleManager.getActiveModuleInstance(active_name)
-            if inst:
-                try:
-                    widget = inst.get_widget()
-                    if widget:
-                        dialog.moduleStack.setCurrentWidget(widget)
-                        dialog.sidebar.setActiveModuleOnSidebarButton(active_name)
-                except Exception as exc:
-                    SwitchLogger.log(
-                        "dialog_restore_widget_failed",
-                        module=active_name,
-                        extra={"error": str(exc)},
-                    )
-            return
-
-        pref_key = SettingsService().preferred_module().lower() or ""
-        if pref_key and pref_key in dialog.moduleManager.modules:
-            ModuleSwitchHelper.switch_module(pref_key, dialog=dialog)
-        else:
-            ModuleSwitchHelper.switch_module(Module.HOME.name, dialog=dialog)
-        dialog._has_shown = True
-
-    @staticmethod
-    def handle_session_changed(dialog: "SessionDialogProtocol") -> None:
-        SessionUIController.refresh_login_ui(dialog)
-        dialog._refresh_session_dependent_ui()
-
-    @staticmethod
-    def refresh_login_ui(dialog: "SessionDialogProtocol") -> None:
-        """Gate session-scoped UI on session validity (no dialog opening here).
-
-        Logout stays enabled on purpose: it is the only action that resets a
-        session stuck behind a cancelled login prompt.
-        """
-        is_valid = SessionManager.is_session_valid()
-        dialog.sidebar.setEnabled(is_valid)
-        dialog.moduleStack.setEnabled(is_valid)
-        dialog.footer_widget.setEnabled(is_valid)
-        dialog.header_widget.logoutButton.setEnabled(True)

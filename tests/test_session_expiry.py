@@ -120,9 +120,7 @@ class LoginPromptSuppressionTest(unittest.TestCase):
         SessionManager._login_cancelled_for_reason = None
 
     def _request(self, reason, user_initiated=False) -> None:
-        # QTimer.singleShot defers the dialog; run the callback straight away instead.
-        with patch.object(session_module, "QTimer") as timer:
-            timer.singleShot.side_effect = lambda _ms, fn: self._opened.append(reason)
+        with patch.object(SessionManager, "_login_prompt", lambda _parent, why: self._opened.append(why)):
             SessionManager.request_login(reason=reason, user_initiated=user_initiated)
 
     def test_automatic_prompt_is_silenced_after_cancel(self) -> None:

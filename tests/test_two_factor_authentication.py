@@ -38,10 +38,6 @@ class StubSessionManager:
         self.stored_sessions.append((token, user, username))
         return "persistent"
 
-    @staticmethod
-    def show_storage_warning(*_args, **_kwargs) -> None:
-        return None
-
 
 class ScriptedApiClient:
     def __init__(self, *responses) -> None:

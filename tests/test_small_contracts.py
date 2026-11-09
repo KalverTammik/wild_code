@@ -21,6 +21,7 @@ from Kavitro_dev.modules.Settings.SettinsUtils.SettingsLogic import SettingsLogi
 from Kavitro_dev.modules.Settings.setting_keys import SettingDialogPlaceholders
 from Kavitro_dev.modules.Settings.settings_setup_guard import SettingsSetupGuard
 from Kavitro_dev.utils import SessionManager as session_module
+from Kavitro_dev.ui.session_ui_controller import SessionUIController
 from Kavitro_dev.widgets.DataDisplayWidgets.module_action_buttons import MoreActionsButton
 
 
@@ -31,7 +32,7 @@ class LogoutClosesForGoodTest(unittest.TestCase):
         dialog.close.side_effect = lambda: seen.append(dialog._force_close)
 
         with patch.object(session_module.SessionManager, "clear"), patch.object(session_module.PythonFailLogger, "log"):
-            session_module.SessionUIController.logout(dialog)
+            SessionUIController.logout(dialog)
 
         self.assertEqual(seen, [True], "closeEvent must see the flag, or close() only minimises")
 

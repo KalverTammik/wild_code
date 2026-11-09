@@ -19,6 +19,8 @@ from .constants.layer_constants import IMPORT_PROPERTY_TAG
 from .ui.window_state.DialogCoordinator import get_dialog_coordinator
 from .constants.file_paths import ConfigPaths
 from .python.api_request_task import set_wait_window_style
+from .ui.session_storage_warning import show_pending_storage_warning
+from .ui.session_ui_controller import SessionUIController
 class WildCodePlugin:
     def __init__(self, iface):
         self.iface = iface
@@ -41,6 +43,7 @@ class WildCodePlugin:
         self.iface.addToolBarIcon(self.action)
         self._crash_logger.start()
         set_wait_window_style(ModernMessageDialog.style_as_message)
+        SessionManager.set_login_prompt(SessionUIController.open_login_prompt)
 
     def unload(self):
         try:
@@ -60,6 +63,7 @@ class WildCodePlugin:
         finally:
             self.pluginDialog = None
             set_wait_window_style(None)
+            SessionManager.set_login_prompt(None)
             try:
                 self._crash_logger.stop()
             finally:
@@ -79,7 +83,7 @@ class WildCodePlugin:
         MapHelpers.cleanup_empty_import_layers(IMPORT_PROPERTY_TAG)
         session = SessionManager()
         session.load()
-        SessionManager.show_pending_storage_warning(parent=self.iface.mainWindow())
+        show_pending_storage_warning(parent=self.iface.mainWindow())
         if not SessionManager.is_session_valid():
             self.pluginDialog = None
             old_listener = self._pending_login_listener
