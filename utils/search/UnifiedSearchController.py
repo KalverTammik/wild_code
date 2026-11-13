@@ -78,7 +78,6 @@ class UnifiedSearchController(QObject):
                     "EASEMENTS",
                     "COORDINATIONS",
                     "SPECIFICATIONS",
-                    "ORDINANCES",
                     "CONTRACTS",
                 ],
                 "limit": 5,

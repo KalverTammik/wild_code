@@ -14,7 +14,6 @@ class Module(Enum):
     LETTER = "letter"
     SPECIFICATION = "specification"
     EASEMENT = "easement"
-    ORDINANCE = "ordinance"
     SUBMISSION = "submission"
 
     ASBUILT = "asbuilt"

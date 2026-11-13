@@ -20,7 +20,6 @@ _MODULE_TRANSLATION_KEY_MAP = {
     Module.LETTER.value: TranslationKeys.MODULE_LETTER,
     Module.SPECIFICATION.value: TranslationKeys.MODULE_SPECIFICATION,
     Module.EASEMENT.value: TranslationKeys.MODULE_EASEMENT,
-    Module.ORDINANCE.value: TranslationKeys.MODULE_ORDINANCE,
     Module.SUBMISSION.value: TranslationKeys.MODULE_SUBMISSION,
     Module.TASK.value: TranslationKeys.MODULE_TASK,
     Module.ASBUILT.value: TranslationKeys.MODULE_ASBUILT,
@@ -33,7 +32,6 @@ _MODULE_TRANSLATION_KEY_MAP = {
     "letters": TranslationKeys.LETTERS,
     "specifications": TranslationKeys.SPECIFICATIONS,
     "easements": TranslationKeys.EASEMENTS,
-    "ordinances": TranslationKeys.ORDINANCES,
     "submissions": TranslationKeys.SUBMISSIONS,
     "tasks": TranslationKeys.TASKS,
 }

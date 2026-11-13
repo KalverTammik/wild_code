@@ -90,5 +90,31 @@ class DeprecatedGraphqlFieldsTest(unittest.TestCase):
         )
 
 
+class RemovedOrdinanceDomainTest(unittest.TestCase):
+    """Server changelog 2026-11-11 removed the whole Ordinances domain,
+    including ORDINANCES from SearchableType. One unknown enum value makes the
+    server reject the whole unified search."""
+
+    def test_unified_search_does_not_request_ordinances(self) -> None:
+        from unittest import mock
+        from Kavitro_dev.utils.search import UnifiedSearchController as usc
+
+        client = mock.Mock()
+        client.send_query.return_value = {}
+        with mock.patch.object(usc, "APIClient", return_value=client):
+            usc.UnifiedSearchController()._run_search("õpetajate")
+
+        variables = client.send_query.call_args.kwargs["variables"]
+        types = variables["input"]["types"]
+        self.assertNotIn("ORDINANCES", types)
+        self.assertIn("PROPERTIES", types)
+
+    def test_no_query_uses_removed_ordinance_schema(self) -> None:
+        queries_root = PLUGIN_ROOT / "python" / "queries"
+        for path in queries_root.rglob("*.graphql"):
+            with self.subTest(query=str(path.relative_to(PLUGIN_ROOT))):
+                self.assertNotIn("ordinance", path.read_text(encoding="utf-8").lower())
+
+
 if __name__ == "__main__":
     unittest.main()

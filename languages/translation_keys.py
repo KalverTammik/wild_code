@@ -224,7 +224,6 @@ class TranslationKeys:
     MODULE_LETTER = "letter"
     MODULE_SPECIFICATION = "specification"
     MODULE_EASEMENT = "easement"
-    MODULE_ORDINANCE = "ordinance"
     MODULE_SUBMISSION = "submission"
     MODULE_TASK = "task"
     MODULE_ASBUILT = "asbuilt"
@@ -243,7 +242,6 @@ class TranslationKeys:
     COORDINATIONS = "Coordinations"
     TASKS = "Tasks"
     SUBMISSIONS = "Submissions"
-    ORDINANCES = "Ordinances"
 
 
 
