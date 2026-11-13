@@ -4,7 +4,7 @@ from typing import Optional, List, Dict, Any, Callable
 from ..python.api_client import APIClient
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.responses import JsonResponseHandler
-from ..utils.api_error_handling import ApiErrorKind, parse_tagged_message
+from ..utils.api_error_handling import ApiErrorKind, parse_tagged_message, user_message
 from ..Logs.python_fail_logger import PythonFailLogger
 
 class UnifiedFeedLogic:
@@ -263,18 +263,8 @@ class UnifiedFeedLogic:
 
         except Exception as e:
             self.last_error = e
-            try:
-                _kind, friendly = parse_tagged_message(e)
-                self.last_error_kind = _kind if _kind else None
-                self.last_error_message = friendly or str(e)
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=self._module_name,
-                    event="feed_parse_error_message_failed",
-                )
-                self.last_error_kind = None
-                self.last_error_message = str(e) if e else None
+            self.last_error_kind = parse_tagged_message(e)[0]
+            self.last_error_message = user_message(e)
             PythonFailLogger.log_exception(
                 e,
                 module=self._module_name,

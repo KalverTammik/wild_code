@@ -19,6 +19,7 @@ from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions, ActiveLaye
 from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from ....widgets.DateHelpers import DateHelpers
 from ....Logs.python_fail_logger import PythonFailLogger
+from ....utils.api_error_handling import user_message
 
 
 def apply_reviewed_backend(data, uses, import_date, main_date, *, review=None, source_changed=False):
@@ -233,7 +234,7 @@ class AddBatchRunner(QObject):
 
     @pyqtSlot(str)
     def _backend_failed(self, message):
-        self._complete_item(message)
+        self._complete_item(user_message(message))
 
     def _complete_item(self, error=None, *, deferred=False):
         self._in_flight = False

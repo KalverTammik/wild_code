@@ -17,6 +17,7 @@ from qgis.gui import QgsCheckableComboBox
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...utils.api_error_handling import user_message
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
@@ -326,7 +327,7 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
         if not self._is_response_current(token, request_id):
             return
         self.combo.clear()
-        self.combo.addItem(f"{self._lang.translate(TranslationKeys.ERROR)}: {message[:60]}…")
+        self.combo.addItem(f"{self._lang.translate(TranslationKeys.ERROR)}: {user_message(message)[:60]}…")
         self.combo.setEnabled(False)
         self._control.setEnabled(False)
         self.all_cb.setEnabled(False)

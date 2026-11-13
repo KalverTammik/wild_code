@@ -14,6 +14,7 @@ from ...constants.file_paths import QssPaths
 from ...engines.LayerCreationEngine import MailablGroupFolders
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...utils.api_error_handling import user_message
 from ...python.api_actions import APIModuleActions
 from ...python.responses import DataDisplayExtractors
 from ...ui.window_state.dialog_helpers import DialogHelpers
@@ -550,7 +551,7 @@ class ProjectPreviewDialog(QDialog):
                     pid=self._item_id,
                     count=len(selected_numbers),
                     preview=", ".join(selected_numbers[:5]),
-                    err=str(exc),
+                    err=user_message(exc),
                 ),
             )
             self._finish_property_selection()

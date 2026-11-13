@@ -20,6 +20,7 @@ from ...utils.SessionManager import SessionManager
 from ...python.latest_request import LatestRequest
 from ...widgets.works_list_widgets import WorksListControls, WorksListView
 from ...utils.messagesHelper import ModernMessageDialog
+from ...utils.api_error_handling import user_message
 
 
 class WorksModule(TaskModuleBaseUI):
@@ -181,8 +182,8 @@ class WorksModule(TaskModuleBaseUI):
             self._invalidate_feed_request()
             return
         self.feed_logic.is_loading = False
-        self.feed_logic.last_error_message = message
-        self._show_empty_state(message)
+        self.feed_logic.last_error_message = user_message(message)
+        self._show_empty_state(self.feed_logic.last_error_message)
 
     def _schedule_post_batch_updates(self):
         # Cards style themselves when constructed; do not restyle the entire feed per page.

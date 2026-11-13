@@ -8,6 +8,7 @@ from .MainAddProperties import BackendPropertyVerifier
 from .property_import_decisions import classify_property_import
 from ....languages.translation_keys import TranslationKeys as K
 from ....Logs.python_fail_logger import PythonFailLogger
+from ....utils.api_error_handling import user_message
 from ....python.api_rate_limit import RequestCancelled, api_request_context
 
 
@@ -81,7 +82,7 @@ class BackendVerifyWorker(QObject):
                         # The row was never checked; it is unfinished, not a failed lookup.
                         break
                     except Exception as e:
-                        errors.append({"tunnus": tunnus, "error": str(e)})
+                        errors.append({"tunnus": tunnus, "error": user_message(e)})
                         self.rowResult.emit(
                             row,
                             tunnus,
@@ -128,7 +129,7 @@ class BackendVerifyWorker(QObject):
                             event="backend_verify_decision_failed",
                             extra={"tunnus": tunnus, "source": self._source},
                         )
-                        errors.append({"tunnus": tunnus, "error": str(e)})
+                        errors.append({"tunnus": tunnus, "error": user_message(e)})
                         self.rowResult.emit(
                             row,
                             tunnus,
@@ -157,7 +158,7 @@ class BackendVerifyWorker(QObject):
                 event="backend_verify_run_failed",
                 extra={"source": self._source},
             )
-            errors.append({"tunnus": "", "error": str(e)})
+            errors.append({"tunnus": "", "error": user_message(e)})
         finally:
             self.finished.emit(
                 {

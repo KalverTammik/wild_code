@@ -6,6 +6,7 @@ from .MainDeleteProperties import deleteProperty
 from ....utils.TagsEngines import TagsHelpers
 from ....languages.language_manager import LanguageManager
 from ....languages.translation_keys import TranslationKeys
+from ....utils.api_error_handling import user_message
 
 
 class BackendPropertyActions:
@@ -113,4 +114,4 @@ class BackendPropertyActions:
                     raise RuntimeError(message or LanguageManager().translate(TranslationKeys.PROPERTY_ADD_WRITE_FAILED))
             except Exception as exc:
                 raise RuntimeError(LanguageManager().translate(TranslationKeys.PROPERTY_DELETE_STOPPED).format(
-                    tunnus=tunnus, pending=", ".join(tunnused[index + 1:]), error=str(exc))) from exc
+                    tunnus=tunnus, pending=", ".join(tunnused[index + 1:]), error=user_message(exc))) from exc

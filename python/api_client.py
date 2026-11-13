@@ -19,7 +19,7 @@ from ..utils.api_error_handling import (
     ApiError,
     ApiErrorKind,
     MfaSetupNotifier,
-    summarize_connection_error,
+    connection_error_key,
 )
 from . import api_rate_limit
 from .api_rate_limit import ApiRateLimitError, RequestCancelled
@@ -46,9 +46,9 @@ class APIClient:
             self.lang.translate(TranslationKeys.SERVER_REQUEST_REFUSED).format(reason=reason),
         )
 
-    def _network_error(self, summary: str = "") -> ApiError:
+    def _network_error(self, reason_key: str = TranslationKeys.NETWORK_CONNECTION_FAILED) -> ApiError:
         template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
-        return ApiError(ApiErrorKind.NETWORK, template.format(error=summary))
+        return ApiError(ApiErrorKind.NETWORK, template.format(error=self.lang.translate(reason_key)))
 
     @classmethod
     def _forbidden_reason(cls, response) -> str:
@@ -132,11 +132,9 @@ class APIClient:
                 if response.status_code == 403:
                     # Cloudflare, an IP rule or missing access refuse with 403; the session itself is fine.
                     raise self._forbidden_error(response)
-                if response.status_code >= 500:
-                    if attempt < attempts:
-                        time.sleep(0.4 * attempt)
-                        continue
-                    raise ApiError(ApiErrorKind.SERVER, f"HTTP {response.status_code}")
+                if response.status_code >= 500 and attempt < attempts:
+                    time.sleep(0.4 * attempt)
+                    continue
                 if response.status_code == 200:
                     data = response.json()
                     errors = data.get("errors")
@@ -154,7 +152,9 @@ class APIClient:
                 if attempt < attempts:
                     time.sleep(0.4 * attempt)
                     continue
-                raise self._network_error(summarize_connection_error(str(exc))) from exc
+                # The user gets a short translated reason; the library's own text is only logged.
+                PythonFailLogger.log("api_network_error", module="api", message=str(exc))
+                raise self._network_error(connection_error_key(str(exc))) from exc
 
             except ApiError as exc:
                 if require_auth and exc.kind == ApiErrorKind.AUTH:
@@ -368,8 +368,10 @@ class APIClient:
             )
         if self._errors_include_unauthenticated(errors):
             return ApiError(ApiErrorKind.AUTH, "GraphQL Unauthenticated")
-        message = self._extract_error_message(errors)
-        return ApiError(ApiErrorKind.GRAPHQL, message or "GraphQL error")
+        message = self._extract_error_message(errors) or "GraphQL error"
+        # user_message() shows a translated short text instead, so the full text is kept here.
+        PythonFailLogger.log("api_graphql_error", module="api", message=message)
+        return ApiError(ApiErrorKind.GRAPHQL, message)
 
     @staticmethod
     def _errors_include_unauthenticated(errors) -> bool:

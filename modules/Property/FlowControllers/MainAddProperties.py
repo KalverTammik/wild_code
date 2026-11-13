@@ -6,6 +6,7 @@ from PyQt5.QtCore import QCoreApplication
 from ....python.api_client import APIClient
 from ....python.api_rate_limit import ApiRateLimitError, RequestCancelled
 from ....languages.translation_keys import TranslationKeys
+from ....utils.api_error_handling import user_message
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....constants.settings_keys import SettingsService
 from ....constants.cadastral_fields import Katastriyksus
@@ -358,7 +359,7 @@ class MainAddPropertiesFlow:
                 except Exception as exc:
                     backend_info = None
                     summary["backend_failed"] += 1
-                    summary["errors"].append(f"Backend lookup {tunnus} failed: {exc}")
+                    summary["errors"].append(f"Backend lookup {tunnus} failed: {user_message(exc)}")
                     break
 
                 if not isinstance(backend_info, dict) or backend_info.get("exists") is None:
@@ -387,7 +388,7 @@ class MainAddPropertiesFlow:
                 except Exception as exc:
                     archived = False
                     summary["errors"].append(
-                        f"Archive backend {tunnus}/{property_id} failed: {exc}"
+                        f"Archive backend {tunnus}/{property_id} failed: {user_message(exc)}"
                     )
                 if archived:
                     summary["archived_backend"] += 1
@@ -420,7 +421,7 @@ class MainAddPropertiesFlow:
                     module=Module.PROPERTY.value,
                     event="archive_layer_rollback_failed",
                 )
-            summary["errors"].append(str(e))
+            summary["errors"].append(user_message(e))
 
         return summary
     

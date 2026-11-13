@@ -12,6 +12,7 @@ from ...python.api_client import APIClient
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...utils.api_error_handling import user_message
 from ...languages.MaaAmetFieldFormater import format_field
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
@@ -428,7 +429,7 @@ class PropertyUITools:
     def _handle_property_lookup_error(self, message: str, token: int | None):
         if not self._is_token_active(token):
             return
-        friendly = message or self._t(TranslationKeys.PROPERTY_NOT_FOUND)
+        friendly = user_message(message) or self._t(TranslationKeys.PROPERTY_NOT_FOUND)
         self._show_tree_message(friendly)
         self._show_property_not_found_in_header()
 
@@ -520,7 +521,7 @@ class PropertyUITools:
         if not self._is_widget_valid(tree_widget):
             return
 
-        error_text = error_message or self._t(TranslationKeys.PROPERTY_CONNECTIONS_LOAD_FAILED_REASON)
+        error_text = user_message(error_message) or self._t(TranslationKeys.PROPERTY_CONNECTIONS_LOAD_FAILED_REASON)
         tree_widget.show_message(
             self._t(TranslationKeys.PROPERTY_CONNECTIONS_LOAD_ERROR).format(error=error_text)
         )

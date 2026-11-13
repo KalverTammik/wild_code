@@ -5,6 +5,7 @@ from typing import Callable, Sequence
 
 from ...constants.cadastral_fields import Katastriyksus
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...utils.api_error_handling import user_message
 from ...modules.Property.FlowControllers.BackendPropertyActions import BackendPropertyActions
 from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ...utils.MapTools.MapHelpers import FeatureActions
@@ -144,7 +145,7 @@ class PropertyActionService:
             return PropertyActionResult(
                 ok=False,
                 title=lang.translate(TranslationKeys.PROPERTY_ACTION_FAILED_TITLE),
-                message=str(exc),
+                message=user_message(exc),
                 action=normalized_action,
                 error=str(exc),
             )

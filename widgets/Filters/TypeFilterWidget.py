@@ -18,6 +18,7 @@ from qgis.gui import QgsCheckableComboBox
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...utils.api_error_handling import user_message
 from ...utils.url_manager import ModuleSupports
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -617,7 +618,7 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
             return
         self.group_combo.clear()
         self.type_combo.clear()
-        self.group_combo.addItem(self._lang.translate(TranslationKeys.ERROR_DETAILS).format(error=f"{message[:40]}..."))
+        self.group_combo.addItem(self._lang.translate(TranslationKeys.ERROR_DETAILS).format(error=f"{user_message(message)[:40]}..."))
         self.group_combo.setEnabled(False)
         self.type_combo.setEnabled(False)
         self._control.setEnabled(False)

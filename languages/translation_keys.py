@@ -67,6 +67,13 @@ class TranslationKeys:
     SERVER_REQUEST_FAILED = "server_request_failed"
     SERVER_REQUEST_REFUSED = "server_request_refused"
     NETWORK_ERROR = "Network error: {error}"
+    SERVER_REQUEST_NOT_COMPLETED = "server_request_not_completed"
+    NETWORK_DNS_FAILED = "network_dns_failed"
+    NETWORK_CONNECTION_REFUSED = "network_connection_refused"
+    NETWORK_READ_TIMEOUT = "network_read_timeout"
+    NETWORK_CONNECT_TIMEOUT = "network_connect_timeout"
+    NETWORK_UNREACHABLE = "network_unreachable"
+    NETWORK_CONNECTION_FAILED = "network_connection_failed"
 
     # Login dialog
     LANGUAGE_LABEL = "Language:"

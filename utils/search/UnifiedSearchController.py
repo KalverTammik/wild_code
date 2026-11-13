@@ -8,6 +8,7 @@ from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ..api_error_handling import user_message
 
 
 class UnifiedSearchController(QObject):
@@ -140,7 +141,7 @@ class UnifiedSearchController(QObject):
             message=message,
             extra={"token": token, "request_token": request_token},
         )
-        friendly = message or LanguageManager().translate(TranslationKeys.SEARCH_FAILED)
+        friendly = user_message(message) or LanguageManager().translate(TranslationKeys.SEARCH_FAILED)
         self.searchFailed.emit(friendly)
 
     def _clear_worker_refs(self) -> None:

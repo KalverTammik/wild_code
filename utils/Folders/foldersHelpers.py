@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QFileDialog
 from ...python.module_files_path_updater import ModuleFilesPathUpdater
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...utils.api_error_handling import user_message
 
 from ...utils.url_manager import Module
 from ...modules.Settings.setting_keys import SettingDialogPlaceholders
@@ -42,7 +43,7 @@ class FolderEngines:
                 TranslationKeys.PROJECT_FOLDER_LINK_UPDATE_FAILED
             ).format(
                 path=dest_dir,
-                error=exc,
+                error=user_message(exc),
             )
             ModernMessageDialog.show_warning(warning_title, text)
             return None

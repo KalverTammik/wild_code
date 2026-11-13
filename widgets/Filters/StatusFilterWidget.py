@@ -7,6 +7,7 @@ from PyQt5.QtCore import QTimer, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QWidget
 
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...utils.api_error_handling import user_message
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
@@ -139,7 +140,7 @@ class StatusFilterWidget(FilterLoadingMixin, QWidget):
         if not self._is_response_current(token, request_id):
             return
         error_text = self._lang.translate(TranslationKeys.ERROR)
-        self.selector.set_error(f"{error_text}: {str(message or '')[:60]}...")
+        self.selector.set_error(f"{error_text}: {user_message(message)[:60]}...")
         self._loaded = False
         self.loadFinished.emit(False)
 

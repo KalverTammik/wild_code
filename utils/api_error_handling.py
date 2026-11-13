@@ -89,26 +89,40 @@ def parse_tagged_message(message: Union[str, Exception]) -> Tuple[ApiErrorKind, 
     return ApiErrorKind.UNKNOWN, text
 
 
-def summarize_connection_error(raw: str) -> str:
-    """Turn long requests/urllib3 messages into a short, user-facing hint."""
-    text = (raw or "").strip()
-    lowered = text.lower()
+def connection_error_key(raw: str) -> str:
+    """Translation key for a requests/urllib3 failure; the raw text itself goes only to the log."""
+    from ..languages.translation_keys import TranslationKeys
 
-    if "nameresolutionerror" in lowered or "temporary failure in name resolution" in lowered:
-        return "Cannot resolve server name (DNS)"
-    if "connection refused" in lowered:
-        return "Connection refused"
+    lowered = (raw or "").lower()
+    if "nameresolutionerror" in lowered or "temporary failure in name resolution" in lowered \
+            or "getaddrinfo failed" in lowered:
+        return TranslationKeys.NETWORK_DNS_FAILED
+    if "connection refused" in lowered or "actively refused" in lowered:
+        return TranslationKeys.NETWORK_CONNECTION_REFUSED
     if "read timed out" in lowered:
-        return "Request timed out"
+        return TranslationKeys.NETWORK_READ_TIMEOUT
     if "connect timeout" in lowered or "connection timed out" in lowered:
-        return "Connection timed out"
+        return TranslationKeys.NETWORK_CONNECT_TIMEOUT
     if "network is unreachable" in lowered:
-        return "Network is unreachable"
-    if "max retries exceeded" in lowered:
-        return "Connection failed (max retries exceeded)"
+        return TranslationKeys.NETWORK_UNREACHABLE
+    return TranslationKeys.NETWORK_CONNECTION_FAILED
 
-    # Fallback: keep it short
-    return text[:160] if len(text) > 160 else text
+
+def user_message(error: Union[str, Exception]) -> str:
+    """The text to show the user for a failed request, without the ``[WC-API]`` tag.
+
+    The client already words auth, network, refusal and MFA failures for the
+    user. A GraphQL error is the server's technical text in English, so the
+    user gets a translated short text and the full text stays in the log
+    (``api_graphql_error``). Text that is no API error is returned unchanged.
+    """
+    kind, text = parse_tagged_message(error)
+    if kind == ApiErrorKind.GRAPHQL:
+        from ..languages.language_manager import LanguageManager
+        from ..languages.translation_keys import TranslationKeys
+
+        return LanguageManager().translate(TranslationKeys.SERVER_REQUEST_NOT_COMPLETED)
+    return text
 
 
 class DedupeNotifier:

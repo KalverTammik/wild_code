@@ -21,7 +21,7 @@ from qgis.core import QgsApplication
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.python import api_client as api_client_module
 from Kavitro_dev.python.api_rate_limit import ApiRateLimitError, RequestCancelled
-from Kavitro_dev.utils.api_error_handling import ApiError, ApiErrorKind, parse_tagged_message
+from Kavitro_dev.utils.api_error_handling import ApiError, ApiErrorKind, parse_tagged_message, user_message
 from Kavitro_dev.utils.SessionManager import SESSION_REASON_UNAUTHENTICATED
 
 
@@ -87,6 +87,12 @@ class _ClientCase(unittest.TestCase):
     def t(self, key) -> str:
         return self.client.lang.translate(key)
 
+    def status_text(self, code: int) -> str:
+        return "[WC-API][server] " + self.t(TranslationKeys.SERVER_REQUEST_FAILED).format(status_code=code)
+
+    def network_text(self, reason_key) -> str:
+        return "[WC-API][network] " + self.t(TranslationKeys.NETWORK_ERROR).format(error=self.t(reason_key))
+
     def _answers(self, answers):
         answers = list(answers)
 
@@ -143,6 +149,7 @@ class ApiClientAnswersTest(_ClientCase):
         error = self.error_of(_Response(200, body))
         self.assertEqual(str(error), '[WC-API][graphql] Value "ORDINANCES" does not exist')
         self.assertEqual(self.session.invalidated_with, [])
+        self.mock_log.assert_any_call("api_graphql_error", module="api", message='Value "ORDINANCES" does not exist')
 
     def test_graphql_error_without_message_falls_back_to_its_text(self) -> None:
         error = self.error_of(_Response(200, {"errors": ["plain"]}))
@@ -190,7 +197,7 @@ class ApiClientAnswersTest(_ClientCase):
 
     def test_5xx_on_gui_thread_fails_at_once(self) -> None:
         error = self.error_of(_Response(502), _Response(200, {"data": {}}))
-        self.assertEqual(str(error), "[WC-API][server] HTTP 502")
+        self.assertEqual(str(error), self.status_text(502))
         self.assertEqual(len(self.calls), 1)
 
     def test_other_status_names_only_the_code(self) -> None:
@@ -201,10 +208,21 @@ class ApiClientAnswersTest(_ClientCase):
 
     # --- transport -----------------------------------------------------------
 
-    def test_connection_error_is_summarised(self) -> None:
-        error = self.error_of(requests.exceptions.ConnectionError("Max retries exceeded with url: /graphql"))
-        network = self.t(TranslationKeys.NETWORK_ERROR).format(error="Connection failed (max retries exceeded)")
-        self.assertEqual(str(error), f"[WC-API][network] {network}")
+    def test_connection_error_names_a_translated_reason_and_logs_the_raw_text(self) -> None:
+        cases = (
+            ("HTTPSConnectionPool: Max retries exceeded (Caused by NameResolutionError(...))", TranslationKeys.NETWORK_DNS_FAILED),
+            ("[WinError 10061] No connection could be made because the target machine actively refused it",
+             TranslationKeys.NETWORK_CONNECTION_REFUSED),
+            ("HTTPSConnectionPool(host='x', port=443): Read timed out. (read timeout=30)", TranslationKeys.NETWORK_READ_TIMEOUT),
+            ("Connection to x timed out. (connect timeout=30)", TranslationKeys.NETWORK_CONNECT_TIMEOUT),
+            ("[Errno 101] Network is unreachable", TranslationKeys.NETWORK_UNREACHABLE),
+            ("Max retries exceeded with url: /graphql", TranslationKeys.NETWORK_CONNECTION_FAILED),
+        )
+        for raw, reason_key in cases:
+            with self.subTest(reason=reason_key):
+                error = self.error_of(requests.exceptions.ConnectionError(raw))
+                self.assertEqual(str(error), self.network_text(reason_key))
+                self.mock_log.assert_any_call("api_network_error", module="api", message=raw)
         self.assertEqual(self.session.invalidated_with, [])
 
     def test_rate_limit_and_cancel_pass_through_unchanged(self) -> None:
@@ -221,8 +239,7 @@ class ApiClientAnswersTest(_ClientCase):
 
     def test_empty_failure_reads_as_network_error(self) -> None:
         error = self.error_of(RuntimeError(""))
-        network = self.t(TranslationKeys.NETWORK_ERROR).format(error="").strip()
-        self.assertEqual(str(error), f"[WC-API][network] {network}")
+        self.assertEqual(str(error), self.network_text(TranslationKeys.NETWORK_CONNECTION_FAILED))
 
     def test_request_carries_bearer_token(self) -> None:
         with patch.object(api_client_module.requests, "post") as post:
@@ -267,7 +284,7 @@ class SendQueryOnlyTest(_ClientCase):
     def test_worker_thread_gives_up_after_three_5xx(self) -> None:
         with self.off_gui_thread():
             error = self.error_of(_Response(500))
-        self.assertEqual(str(error), "[WC-API][server] HTTP 500")
+        self.assertEqual(str(error), self.status_text(500))
         self.assertEqual(len(self.calls), 3)
 
     def test_worker_thread_retries_reads_after_connection_errors(self) -> None:
@@ -284,7 +301,7 @@ class SendQueryOnlyTest(_ClientCase):
 
     def test_retry_network_true_still_needs_a_worker_thread(self) -> None:
         error = self.error_of(_Response(500), retry_network=True)
-        self.assertEqual(str(error), "[WC-API][server] HTTP 500")
+        self.assertEqual(str(error), self.status_text(500))
         self.assertEqual(len(self.calls), 1)
 
     def test_with_success_wraps_data(self) -> None:
@@ -323,10 +340,11 @@ class TypedErrorTest(_ClientCase):
             (_Response(200, {"errors": [{"message": "bad"}]}), ApiErrorKind.GRAPHQL, "bad"),
             (_Response(403, {}), ApiErrorKind.SERVER,
              self.t(TranslationKeys.SERVER_REQUEST_REFUSED).format(reason="HTTP 403")),
-            (_Response(500), ApiErrorKind.SERVER, "HTTP 500"),
+            (_Response(500), ApiErrorKind.SERVER,
+             self.t(TranslationKeys.SERVER_REQUEST_FAILED).format(status_code=500)),
             (_Response(401, {}), ApiErrorKind.AUTH, self.t(TranslationKeys.SESSION_EXPIRED)),
             (requests.exceptions.ConnectionError("Connection refused"), ApiErrorKind.NETWORK,
-             self.t(TranslationKeys.NETWORK_ERROR).format(error="Connection refused")),
+             self.t(TranslationKeys.NETWORK_ERROR).format(error=self.t(TranslationKeys.NETWORK_CONNECTION_REFUSED))),
         )
         for answer, kind, text in cases:
             for multipart in (False, True):
@@ -342,6 +360,40 @@ class TypedErrorTest(_ClientCase):
         error = self.error_of(_Response(401, {}))
         self.assertIsInstance(error.__cause__, ApiError)
         self.assertEqual(str(error.__cause__), "[WC-API][auth] HTTP 401 Unauthenticated")
+
+
+class UserMessageTest(_ClientCase):
+    """What the user reads: no [WC-API] tag, and no technical server text."""
+
+    def test_graphql_error_reads_as_a_translated_short_text(self) -> None:
+        error = self.error_of(_Response(200, {"errors": [{"message": 'Variable "$input" got invalid value "ORDINANCES"'}]}))
+        expected = self.t(TranslationKeys.SERVER_REQUEST_NOT_COMPLETED)
+        # Workers carry the error as text, so both forms must read the same.
+        self.assertEqual(user_message(error), expected)
+        self.assertEqual(user_message(str(error)), expected)
+        self.assertNotIn("WC-API", expected)
+
+    def test_client_worded_errors_lose_only_the_tag(self) -> None:
+        cases = (
+            (_Response(401, {}), self.t(TranslationKeys.SESSION_EXPIRED)),
+            (_Response(403, {}), self.t(TranslationKeys.SERVER_REQUEST_REFUSED).format(reason="HTTP 403")),
+            (_Response(500), self.t(TranslationKeys.SERVER_REQUEST_FAILED).format(status_code=500)),
+            (requests.exceptions.ConnectionError("Read timed out."),
+             self.t(TranslationKeys.NETWORK_ERROR).format(error=self.t(TranslationKeys.NETWORK_READ_TIMEOUT))),
+            (_Response(200, {"errors": [{"message": "x", "extensions": {"category": "MFA_SETUP_REQUIRED"}}]}),
+             self.t(TranslationKeys.MFA_SETUP_REQUIRED)),
+        )
+        for answer, expected in cases:
+            with self.subTest(expected=expected):
+                error = self.error_of(answer)
+                self.assertEqual(user_message(error), expected)
+                self.assertEqual(user_message(str(error)), expected)
+
+    def test_text_that_is_no_api_error_is_unchanged(self) -> None:
+        self.assertEqual(user_message(RuntimeError("Kihti ei leitud")), "Kihti ei leitud")
+        self.assertEqual(user_message("Kihti ei leitud"), "Kihti ei leitud")
+        self.assertEqual(user_message(""), "")
+        self.assertEqual(user_message(None), "")
 
 
 class MultipartOnlyTest(unittest.TestCase):
@@ -377,7 +429,8 @@ class MultipartOnlyTest(unittest.TestCase):
                 patch.object(api_client_module.time, "sleep"):
             with self.assertRaises(Exception) as caught:
                 client.send_multipart_query(MUTATION, {"input": {}}, file_variables={"input.file": upload.name})
-        self.assertEqual(str(caught.exception), "[WC-API][server] HTTP 500")
+        failed = client.lang.translate(TranslationKeys.SERVER_REQUEST_FAILED).format(status_code=500)
+        self.assertEqual(str(caught.exception), f"[WC-API][server] {failed}")
         self.assertEqual(len(calls), 1)
 
 

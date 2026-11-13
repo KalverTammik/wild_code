@@ -28,6 +28,7 @@ from ...constants.file_paths import QmlPaths, QssPaths
 from ...engines.LayerCreationEngine import MailablGroupFolders
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...utils.api_error_handling import user_message
 from ...modules.easements.easement_layer_service import EasementLayerService
 from ...modules.easements.easement_pdf_service import EasementPdfService
 from ...python.api_actions import APIModuleActions
@@ -1310,7 +1311,7 @@ class EasementPreviewDialog(QDialog):
                     pid=self._item_id,
                     count=len(payloads),
                     preview=preview,
-                    err=str(exc),
+                    err=user_message(exc),
                 ),
             )
 
@@ -1370,7 +1371,7 @@ class EasementPreviewDialog(QDialog):
                     pid=self._item_id,
                     count=len(selected_numbers),
                     preview=summary,
-                    err=str(exc),
+                    err=user_message(exc),
                 ),
             )
         finally:
