@@ -25,7 +25,23 @@ def tag_message(kind: ApiErrorKind, message: str) -> str:
     return f"{_TAG_PREFIX}[{kind.value}] {cleaned}".strip()
 
 
+class ApiError(Exception):
+    """A failed API request; ``kind`` says what failed, ``message`` is the text for the user.
+
+    ``str()`` keeps the ``[WC-API][kind] message`` form, because workers carry
+    errors across threads as text (``FunctionWorker.error`` is a ``str`` signal)
+    and ``parse_tagged_message`` reads it back on the other side.
+    """
+
+    def __init__(self, kind: ApiErrorKind, message: str) -> None:
+        self.kind = kind
+        self.message = (message or "").strip()
+        super().__init__(tag_message(kind, self.message))
+
+
 def parse_tagged_message(message: Union[str, Exception]) -> Tuple[ApiErrorKind, str]:
+    if isinstance(message, ApiError):
+        return message.kind, message.message
     text = str(message or "").strip()
     if not text:
         return ApiErrorKind.UNKNOWN, ""

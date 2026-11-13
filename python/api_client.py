@@ -16,10 +16,10 @@ from ..Logs.python_fail_logger import PythonFailLogger
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.api_error_handling import (
+    ApiError,
     ApiErrorKind,
     MfaSetupNotifier,
     summarize_connection_error,
-    tag_message,
 )
 from . import api_rate_limit
 from .api_rate_limit import ApiRateLimitError, RequestCancelled
@@ -34,21 +34,21 @@ class APIClient:
         self.session_manager = session_manager or SessionManager()
         self.config_path = ConfigPaths.CONFIG
 
-    def _http_status_error(self, status_code: int) -> str:
+    def _http_status_error(self, status_code: int) -> ApiError:
         template = self.lang.translate(TranslationKeys.SERVER_REQUEST_FAILED)
-        return tag_message(
-            ApiErrorKind.SERVER,
-            template.format(status_code=int(status_code)),
-        )
+        return ApiError(ApiErrorKind.SERVER, template.format(status_code=int(status_code)))
 
-
-    def _forbidden_error(self, response) -> str:
+    def _forbidden_error(self, response) -> ApiError:
         reason = self._forbidden_reason(response)
         PythonFailLogger.log("api_request_forbidden", module="api", extra={"reason": reason})
-        return tag_message(
+        return ApiError(
             ApiErrorKind.SERVER,
             self.lang.translate(TranslationKeys.SERVER_REQUEST_REFUSED).format(reason=reason),
         )
+
+    def _network_error(self, summary: str = "") -> ApiError:
+        template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
+        return ApiError(ApiErrorKind.NETWORK, template.format(error=summary))
 
     @classmethod
     def _forbidden_reason(cls, response) -> str:
@@ -70,6 +70,113 @@ class APIClient:
                 return category
         return "HTTP 403"
 
+    @staticmethod
+    def _on_gui_thread() -> bool:
+        try:
+            app = QApplication.instance()
+            if app is not None:
+                return QThread.currentThread() == app.thread()
+        except Exception:
+            pass
+        return True
+
+    def _request_headers(self, require_auth: bool, *, json_body: bool) -> dict:
+        headers = {}
+        if json_body:
+            headers["Content-Type"] = "application/json"
+        headers.update({
+            "Accept": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            "User-Agent": f"QGIS/{Qgis.QGIS_VERSION} ({platform.system()} {platform.release()})",
+        })
+        if require_auth:
+            token = self.session_manager.get_token()
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def _execute(
+        self,
+        query: str,
+        prepare_send,
+        *,
+        require_auth: bool,
+        attempts: int,
+        json_body: bool,
+        is_main_thread: bool,
+        retry_rate_limits: bool = True,
+    ) -> dict:
+        """Send one request and return the whole JSON body, or raise.
+
+        ``prepare_send(api_url, headers)`` returns the callable that does the
+        HTTP post. Server errors (5xx) and connection errors are tried again
+        up to ``attempts`` times. Rate limits and cancellation pass through
+        unchanged; every other failure becomes an ``ApiError`` or keeps its
+        own text.
+        """
+        api_url = GraphQLSettings.graphql_endpoint()
+        cost = api_rate_limit.mutation_cost(query)
+        for attempt in range(1, attempts + 1):
+            headers = self._request_headers(require_auth, json_body=json_body)
+            try:
+                send = prepare_send(api_url, headers)
+                response = send_api_request(
+                    send,
+                    endpoint=api_url, authorization=headers.get("Authorization"),
+                    cost=cost, is_main_thread=is_main_thread,
+                    retry_rate_limits=retry_rate_limits,
+                )
+
+                if response.status_code == 401:
+                    raise ApiError(ApiErrorKind.AUTH, "HTTP 401 Unauthenticated")
+                if response.status_code == 403:
+                    # Cloudflare, an IP rule or missing access refuse with 403; the session itself is fine.
+                    raise self._forbidden_error(response)
+                if response.status_code >= 500:
+                    if attempt < attempts:
+                        time.sleep(0.4 * attempt)
+                        continue
+                    raise ApiError(ApiErrorKind.SERVER, f"HTTP {response.status_code}")
+                if response.status_code == 200:
+                    data = response.json()
+                    errors = data.get("errors")
+                    if errors:
+                        raise self._graphql_error(errors)
+                    return data
+
+                # Never carry an untrusted response body into UI or persistent logs.
+                raise self._http_status_error(response.status_code)
+
+            except (ApiRateLimitError, RequestCancelled):
+                raise
+
+            except requests_exceptions.RequestException as exc:
+                if attempt < attempts:
+                    time.sleep(0.4 * attempt)
+                    continue
+                raise self._network_error(summarize_connection_error(str(exc))) from exc
+
+            except ApiError as exc:
+                if require_auth and exc.kind == ApiErrorKind.AUTH:
+                    # Named before the message turns into the general expiry text, so the log tells why.
+                    PythonFailLogger.log("api_session_rejected", module="auth", extra={"cause": str(exc)})
+                    # Runs on worker threads too; SessionManager hands the UI part to the GUI thread.
+                    SessionManager.invalidate_session(reason=SESSION_REASON_UNAUTHENTICATED)
+                    raise ApiError(
+                        ApiErrorKind.AUTH,
+                        self.lang.translate(TranslationKeys.SESSION_EXPIRED),
+                    ) from exc
+                raise
+
+            except Exception as exc:
+                # Anything else (a body that is no JSON, an unreadable upload) keeps its own text.
+                message = str(exc)
+                if message:
+                    raise Exception(message) from exc
+                raise self._network_error() from exc
+
+        raise self._network_error()
+
     def send_query(
         self,
         query: str,
@@ -82,141 +189,42 @@ class APIClient:
         retry_network: bool | None = None,
         retry_rate_limits: bool = True,
     ):
-        def _wrap_success(raw_json: dict):
-            if return_raw:
-                return {"success": True, "response": raw_json, "raw": raw_json, "error": None}
-            return {"success": True, "response": (raw_json or {}).get("data", {}), "raw": raw_json, "error": None}
-
-        def _wrap_error(message: str):
-            return {"success": False, "response": None, "raw": None, "error": message}
-
         payload = {"query": query}
-
         if variables:
-            sanitized_variables = requestBuilder.sanitize_for_json(variables)
-            payload["variables"] = sanitized_variables
-        api_url = GraphQLSettings.graphql_endpoint()
-       
+            payload["variables"] = requestBuilder.sanitize_for_json(variables)
 
-        # Determine retry behavior.
-        is_main_thread = True
-        try:
-            app = QApplication.instance()
-            if app is not None:
-                is_main_thread = QThread.currentThread() == app.thread()
-        except Exception:
-            is_main_thread = True
-
+        is_main_thread = self._on_gui_thread()
         # Unknown write outcomes require reconciliation, not blind repetition.
         if retry_network is None:
             retry_network = api_rate_limit.mutation_cost(query) == 0
         # Avoid blocking the UI thread with network retries.
-        network_attempts = 3 if retry_network and not is_main_thread else 1
-        last_error = None
+        attempts = 3 if retry_network and not is_main_thread else 1
 
-        for attempt in range(1, network_attempts + 1):
-            headers = {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "X-Requested-With": "XMLHttpRequest",
-                 "User-Agent": f"QGIS/{Qgis.QGIS_VERSION} ({platform.system()} {platform.release()})"
-            }
+        def prepare_send(api_url, headers):
+            return lambda: requests.post(api_url, json=payload, headers=headers, timeout=timeout)
 
-            if require_auth:
-                token = self.session_manager.get_token()
-                if token:
-                    headers["Authorization"] = f"Bearer {token}"
-
-            try:
-                response = send_api_request(
-                    lambda: requests.post(api_url, json=payload, headers=headers, timeout=timeout),
-                    endpoint=api_url, authorization=headers.get('Authorization'),
-                    cost=api_rate_limit.mutation_cost(query), is_main_thread=is_main_thread,
-                    retry_rate_limits=retry_rate_limits,
-                )
-
-                if response.status_code == 401:
-                    raise Exception(tag_message(ApiErrorKind.AUTH, "HTTP 401 Unauthenticated"))
-                if response.status_code == 403:
-                    # Cloudflare, an IP rule or missing access refuse with 403; the session itself is fine.
-                    raise Exception(self._forbidden_error(response))
-
-                if response.status_code >= 500:
-                    if attempt < network_attempts:
-                        time.sleep(0.4 * attempt)
-                        continue
-                    raise Exception(tag_message(ApiErrorKind.SERVER, f"HTTP {response.status_code}"))
-
-                if response.status_code == 200:
-                    data = response.json()
-                    errors = data.get("errors")
-                    if errors:
-                        raise Exception(self._tagged_graphql_error(errors))
-                    if with_success:
-                        return _wrap_success(data)
-                    return data if return_raw else data.get("data", {})
-
-                # Never carry an untrusted response body into UI or persistent logs.
-                raise Exception(self._http_status_error(response.status_code))
-
-            except (ApiRateLimitError, RequestCancelled):
+        try:
+            data = self._execute(
+                query, prepare_send,
+                require_auth=require_auth, attempts=attempts, json_body=True,
+                is_main_thread=is_main_thread, retry_rate_limits=retry_rate_limits,
+            )
+        except (ApiRateLimitError, RequestCancelled):
+            raise
+        except ApiError as exc:
+            # A connection failure is raised even here; only the server's answer is wrapped.
+            if not with_success or isinstance(exc.__cause__, requests_exceptions.RequestException):
                 raise
+            return {"success": False, "response": None, "raw": None, "error": str(exc)}
+        except Exception as exc:
+            if not with_success:
+                raise
+            return {"success": False, "response": None, "raw": None, "error": str(exc)}
 
-            except requests_exceptions.RequestException as exc:
-                if attempt < network_attempts:
-                    time.sleep(0.4 * attempt)
-                    continue
-                summary = summarize_connection_error(str(exc))
-                template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
-                raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error=summary)))
-
-            except Exception as exc:
-                msg = str(exc)
-                last_error = msg
-
-                kind = ApiErrorKind.UNKNOWN
-                try:
-                    if msg.startswith("[WC-API]") and "[" in msg and "]" in msg:
-                        # format: [WC-API][kind] message
-                        kind_token = msg.split("]", 2)[1].lstrip("[").rstrip("]").strip().lower()
-                        if kind_token in ApiErrorKind._value2member_map_:
-                            kind = ApiErrorKind(kind_token)
-                except Exception:
-                    kind = ApiErrorKind.UNKNOWN
-
-                if require_auth and kind == ApiErrorKind.AUTH:
-                    # Named before the message turns into the general expiry text, so the log tells why.
-                    PythonFailLogger.log("api_session_rejected", module="auth", extra={"cause": msg})
-                    # Runs on worker threads too; SessionManager hands the UI part to the GUI thread.
-                    SessionManager.invalidate_session(reason=SESSION_REASON_UNAUTHENTICATED)
-                    msg2 = tag_message(
-                        ApiErrorKind.AUTH,
-                        self.lang.translate(TranslationKeys.SESSION_EXPIRED),
-                    )
-                    if with_success:
-                        return _wrap_error(msg2)
-                    raise Exception(msg2)
-
-                if msg:
-                    if with_success:
-                        return _wrap_error(msg)
-                    raise Exception(msg)
-
-                template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
-                msg2 = tag_message(ApiErrorKind.NETWORK, template.format(error=""))
-                if with_success:
-                    return _wrap_error(msg2)
-                raise Exception(msg2)
-
-        if last_error:
-            if with_success:
-                return _wrap_error(last_error)
-            raise Exception(last_error)
-        template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
-        msg2 = tag_message(ApiErrorKind.NETWORK, template.format(error=""))
         if with_success:
-            return _wrap_error(msg2)
-        raise Exception(msg2)
+            response = data if return_raw else (data or {}).get("data", {})
+            return {"success": True, "response": response, "raw": data, "error": None}
+        return data if return_raw else data.get("data", {})
 
     @staticmethod
     def _set_nested_variable(container, path: str, value) -> None:
@@ -299,139 +307,45 @@ class APIClient:
             "query": query,
             "variables": payload_variables,
         }
-        api_url = GraphQLSettings.graphql_endpoint()
+        file_handles = []
 
-        is_main_thread = True
-        try:
-            app = QApplication.instance()
-            if app is not None:
-                is_main_thread = QThread.currentThread() == app.thread()
-        except Exception:
-            is_main_thread = True
+        def prepare_send(api_url, headers):
+            map_payload: dict[str, list[str]] = {}
+            files_payload = {"operations": (None, json.dumps(payload), "application/json")}
+            for index, (variable_path, file_path) in enumerate(prepared_files.items()):
+                file_key = str(index)
+                map_path = variable_path if variable_path.startswith("variables.") else f"variables.{variable_path}"
+                map_payload[file_key] = [map_path]
 
-        # A lost upload response can already have created a file. Only a known
-        # pre-execution HTTP 429 rejection is safe to retry automatically.
-        network_attempts = 1
-        last_error = None
+                mime_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
+                handle = open(file_path, "rb")
+                file_handles.append(handle)
+                files_payload[file_key] = (os.path.basename(file_path) or file_key, handle, mime_type)
+            files_payload["map"] = (None, json.dumps(map_payload), "application/json")
 
-        for attempt in range(1, network_attempts + 1):
-            headers = {
-                "Accept": "application/json",
-                "X-Requested-With": "XMLHttpRequest",
-                "User-Agent": f"QGIS/{Qgis.QGIS_VERSION} ({platform.system()} {platform.release()})"
-            }
-
-            if require_auth:
-                token = self.session_manager.get_token()
-                if token:
-                    headers["Authorization"] = f"Bearer {token}"
-
-            file_handles = []
-            files_payload = {}
-            try:
-                map_payload: dict[str, list[str]] = {}
-                files_payload["operations"] = (None, json.dumps(payload), "application/json")
-                files_payload["map"] = (None, json.dumps(map_payload), "application/json")
-                for index, (variable_path, file_path) in enumerate(prepared_files.items()):
-                    file_key = str(index)
-                    map_path = variable_path if variable_path.startswith("variables.") else f"variables.{variable_path}"
-                    map_payload[file_key] = [map_path]
-
-                    mime_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
-                    handle = open(file_path, "rb")
-                    file_handles.append(handle)
-                    files_payload[file_key] = (
-                        os.path.basename(file_path) or file_key,
-                        handle,
-                        mime_type,
-                    )
-
-                files_payload["map"] = (None, json.dumps(map_payload), "application/json")
-
-                def send_files():
-                    # Each HTTP 429 attempt resends the complete upload.
-                    for handle in file_handles:
-                        handle.seek(0)
-                    return requests.post(api_url, files=files_payload, headers=headers, timeout=timeout)
-
-                response = send_api_request(
-                    send_files, endpoint=api_url, authorization=headers.get('Authorization'),
-                    cost=api_rate_limit.mutation_cost(query), is_main_thread=is_main_thread,
-                )
-
-                if response.status_code == 401:
-                    raise Exception(tag_message(ApiErrorKind.AUTH, "HTTP 401 Unauthenticated"))
-                if response.status_code == 403:
-                    # Cloudflare, an IP rule or missing access refuse with 403; the session itself is fine.
-                    raise Exception(self._forbidden_error(response))
-
-                if response.status_code >= 500:
-                    if attempt < network_attempts:
-                        time.sleep(0.4 * attempt)
-                        continue
-                    raise Exception(tag_message(ApiErrorKind.SERVER, f"HTTP {response.status_code}"))
-
-                if response.status_code == 200:
-                    data = response.json()
-                    errors = data.get("errors")
-                    if errors:
-                        raise Exception(self._tagged_graphql_error(errors))
-                    return data if return_raw else data.get("data", {})
-
-                # Never carry an untrusted response body into UI or persistent logs.
-                raise Exception(self._http_status_error(response.status_code))
-
-            except (ApiRateLimitError, RequestCancelled):
-                raise
-
-            except requests_exceptions.RequestException as exc:
-                if attempt < network_attempts:
-                    time.sleep(0.4 * attempt)
-                    continue
-                summary = summarize_connection_error(str(exc))
-                template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
-                raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error=summary)))
-
-            except Exception as exc:
-                msg = str(exc)
-                last_error = msg
-
-                kind = ApiErrorKind.UNKNOWN
-                try:
-                    if msg.startswith("[WC-API]") and "[" in msg and "]" in msg:
-                        kind_token = msg.split("]", 2)[1].lstrip("[").rstrip("]").strip().lower()
-                        if kind_token in ApiErrorKind._value2member_map_:
-                            kind = ApiErrorKind(kind_token)
-                except Exception:
-                    kind = ApiErrorKind.UNKNOWN
-
-                if require_auth and kind == ApiErrorKind.AUTH:
-                    # Named before the message turns into the general expiry text, so the log tells why.
-                    PythonFailLogger.log("api_session_rejected", module="auth", extra={"cause": msg})
-                    # Runs on worker threads too; SessionManager hands the UI part to the GUI thread.
-                    SessionManager.invalidate_session(reason=SESSION_REASON_UNAUTHENTICATED)
-                    raise Exception(tag_message(
-                        ApiErrorKind.AUTH,
-                        self.lang.translate(TranslationKeys.SESSION_EXPIRED),
-                    ))
-
-                if msg:
-                    raise Exception(msg)
-
-                template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
-                raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error="")))
-
-            finally:
+            def send_files():
+                # Each HTTP 429 attempt resends the complete upload.
                 for handle in file_handles:
-                    try:
-                        handle.close()
-                    except Exception:
-                        pass
+                    handle.seek(0)
+                return requests.post(api_url, files=files_payload, headers=headers, timeout=timeout)
 
-        if last_error:
-            raise Exception(last_error)
-        template = self.lang.translate(TranslationKeys.NETWORK_ERROR)
-        raise Exception(tag_message(ApiErrorKind.NETWORK, template.format(error="")))
+            return send_files
+
+        try:
+            # A lost upload response can already have created a file. Only a known
+            # pre-execution HTTP 429 rejection is safe to retry automatically.
+            data = self._execute(
+                query, prepare_send,
+                require_auth=require_auth, attempts=1, json_body=False,
+                is_main_thread=self._on_gui_thread(),
+            )
+        finally:
+            for handle in file_handles:
+                try:
+                    handle.close()
+                except Exception:
+                    pass
+        return data if return_raw else data.get("data", {})
 
     def _extract_error_message(self, errors):
         try:
@@ -445,17 +359,17 @@ class APIClient:
             except Exception:
                 return self.lang.translate(TranslationKeys.NETWORK_ERROR).format(error="")
 
-    def _tagged_graphql_error(self, errors) -> str:
+    def _graphql_error(self, errors) -> ApiError:
         if self._errors_include_category(errors, "MFA_SETUP_REQUIRED"):
             MfaSetupNotifier.notify()
-            return tag_message(
+            return ApiError(
                 ApiErrorKind.MFA_SETUP_REQUIRED,
                 self.lang.translate(TranslationKeys.MFA_SETUP_REQUIRED),
             )
         if self._errors_include_unauthenticated(errors):
-            return tag_message(ApiErrorKind.AUTH, "GraphQL Unauthenticated")
+            return ApiError(ApiErrorKind.AUTH, "GraphQL Unauthenticated")
         message = self._extract_error_message(errors)
-        return tag_message(ApiErrorKind.GRAPHQL, message or "GraphQL error")
+        return ApiError(ApiErrorKind.GRAPHQL, message or "GraphQL error")
 
     @staticmethod
     def _errors_include_unauthenticated(errors) -> bool:

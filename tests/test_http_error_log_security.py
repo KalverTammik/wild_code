@@ -29,9 +29,10 @@ class HttpErrorSourceSecurityTest(unittest.TestCase):
         source = (ROOT / "python" / "api_client.py").read_text(encoding="utf-8")
 
         self.assertNotIn("response.text", source)
+        # send_query and send_multipart_query share _execute, so one place names the status only.
         self.assertEqual(
-            source.count("raise Exception(self._http_status_error(response.status_code))"),
-            2,
+            source.count("raise self._http_status_error(response.status_code)"),
+            1,
         )
 
     def test_both_disk_loggers_use_private_log_io(self) -> None:
