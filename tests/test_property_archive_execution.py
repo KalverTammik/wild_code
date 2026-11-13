@@ -334,5 +334,92 @@ class PropertyArchiveExecutionTest(unittest.TestCase):
         self.assertIsNotNone(result.error)
 
 
+class ArchiveSummaryTextTest(unittest.TestCase):
+    """The archive warning dialog lists summary["errors"] as is, so every line is translated text."""
+
+    @staticmethod
+    def text(key, **values) -> str:
+        return LanguageManager().translate(key).format(**{"tunnus": "", "details": "", **values})
+
+    def run_archive(self, target=None, archive=None, *, matches=None, copy=(True, ""),
+                    backend=None, archive_backend=None):
+        target = target or _Layer()
+        archive = archive or _Layer()
+        with (
+            patch.object(MainAddPropertiesFlow, "_prepare_layers", return_value=(object(), target, archive)),
+            patch.object(flow_module.PropertyDataLoader, "read_features_by_field_values",
+                         return_value={"T1": [_Feature(41)]} if matches is None else matches),
+            patch.object(flow_module.FeatureActions, "copy_feature_to_layer", return_value=copy),
+            patch.object(flow_module.BackendPropertyVerifier, "verify_properties_by_cadastral_number",
+                         return_value=backend or {"exists": True, "active_ids": ["backend-1"]}),
+            patch.object(flow_module.UpdatePropertyData, "_archive_a_propertie",
+                         **(archive_backend or {"return_value": True})),
+            patch.object(flow_module.PythonFailLogger, "log") as log,
+        ):
+            result = MainAddPropertiesFlow.archive_missing_from_import(["T1"])
+        return result["errors"], log
+
+    def test_map_side_failures_read_as_translated_sentences(self) -> None:
+        cases = {
+            "already editing": (
+                dict(target=_Layer(editable=True)),
+                self.text(TranslationKeys.PROPERTY_ARCHIVE_ERROR_ALREADY_EDITING)),
+            "not found": (
+                dict(matches={}),
+                self.text(TranslationKeys.PROPERTY_ARCHIVE_ERROR_NOT_FOUND, tunnus="T1")),
+            "copy failed": (
+                dict(copy=(False, "Layer.addFeature returned False.")),
+                self.text(TranslationKeys.PROPERTY_ARCHIVE_ERROR_COPY, tunnus="T1")),
+            "archive commit": (
+                dict(archive=_Layer(commit_ok=False)),
+                self.text(TranslationKeys.PROPERTY_ARCHIVE_ERROR_ARCHIVE_COMMIT, details=" test commit failure")),
+            "main commit": (
+                dict(target=_Layer(commit_ok=False)),
+                self.text(TranslationKeys.PROPERTY_ARCHIVE_ERROR_MAIN_COMMIT, details=" test commit failure")),
+        }
+        for name, (kwargs, expected) in cases.items():
+            with self.subTest(case=name):
+                errors, _log = self.run_archive(**kwargs)
+                self.assertEqual(errors, [expected])
+
+    def test_copy_failure_detail_goes_to_the_log(self) -> None:
+        errors, log = self.run_archive(copy=(False, "Layer.addFeature returned False."))
+
+        self.assertNotIn("addFeature", errors[0])
+        log.assert_called_once()
+        self.assertEqual(log.call_args.kwargs["message"], "Layer.addFeature returned False.")
+        self.assertEqual(log.call_args.kwargs["extra"], {"tunnus": "T1"})
+
+    def test_backend_failures_read_as_translated_sentences(self) -> None:
+        cases = {
+            "lookup without answer": (
+                dict(backend={"exists": None}),
+                self.text(TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_LOOKUP, tunnus="T1")),
+            "several active records": (
+                dict(backend={"exists": True, "active_ids": ["1", "2"]}),
+                self.text(TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_MULTIPLE, tunnus="T1")),
+            "archive refused": (
+                dict(archive_backend={"return_value": False}),
+                self.text(TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_ARCHIVE, tunnus="T1")),
+        }
+        for name, (kwargs, expected) in cases.items():
+            with self.subTest(case=name):
+                errors, _log = self.run_archive(**kwargs)
+                self.assertEqual(errors, [expected])
+
+    def test_backend_archive_exception_gives_one_line_not_two(self) -> None:
+        errors, _log = self.run_archive(archive_backend={"side_effect": RuntimeError("server said no")})
+
+        self.assertEqual(errors, [self.text(
+            TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_ARCHIVE, tunnus="T1", details=" server said no")])
+
+    def test_summary_lines_are_never_literal_text(self) -> None:
+        import re
+
+        source = Path(flow_module.__file__).read_text(encoding="utf-8")
+        literal = re.findall(r'summary\["errors"\]\.append\(\s*f?["\']', source)
+        self.assertEqual(literal, [])
+
+
 if __name__ == "__main__":
     unittest.main()

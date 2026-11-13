@@ -23,6 +23,13 @@ from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
 from ....utils.messagesHelper import ModernMessageDialog
 
 
+def _archive_error(key: str, *, tunnus: str = "", details: str = "") -> str:
+    """One translated line for the archive summary the user sees; `details` follows after a space."""
+    details = str(details or "").strip()
+    return LanguageManager().translate(key).format(
+        tunnus=tunnus, details=f" {details}" if details else "")
+
+
 class MainAddPropertiesFlow:
     """
     Handles user interaction events and coordinates between data loading and UI updates.
@@ -254,24 +261,22 @@ class MainAddPropertiesFlow:
 
         layers = MainAddPropertiesFlow._prepare_layers(main_layer)
         if not layers:
-            summary["errors"].append("Layer preparation failed")
+            summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_LAYERS_NOT_READY))
             return summary
 
         _import_layer, target_layer, archive_layer = layers
         if not target_layer or not archive_layer:
-            summary["errors"].append("Missing target or archive layer")
+            summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_LAYERS_NOT_READY))
             return summary
 
         # Never commit or roll back edit buffers that may belong to the user.
         if target_layer.isEditable() or archive_layer.isEditable():
-            summary["errors"].append(
-                "Main or archive layer is already in edit mode; archive plan was not applied"
-            )
+            summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_ALREADY_EDITING))
             return summary
 
         try:
             if not archive_layer.startEditing():
-                summary["errors"].append("Archive layer could not enter edit mode")
+                summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_ARCHIVE_EDIT))
                 return summary
 
             source_ids = []
@@ -291,7 +296,7 @@ class MainAddPropertiesFlow:
                 matches = matches_by_tunnus.get(tunnus, [])
 
                 if not matches:
-                    summary["errors"].append(f"Main feature {tunnus} was not found")
+                    summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_NOT_FOUND, tunnus=tunnus))
                     break
 
                 # Stage every archive copy first. No MAIN deletion starts until all
@@ -309,7 +314,13 @@ class MainAddPropertiesFlow:
                         source_ids.append(feat.id())
                         moved_tunnused.add(tunnus)
                     else:
-                        summary["errors"].append(f"Copy {tunnus} failed: {msg}")
+                        PythonFailLogger.log(
+                            "archive_copy_feature_failed",
+                            module=Module.PROPERTY.value,
+                            message=msg,
+                            extra={"tunnus": tunnus},
+                        )
+                        summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_COPY, tunnus=tunnus))
                         break
 
                 if summary["errors"]:
@@ -322,27 +333,21 @@ class MainAddPropertiesFlow:
             if not archive_layer.commitChanges():
                 msg = "; ".join(archive_layer.commitErrors() or [])
                 archive_layer.rollBack()
-                summary["errors"].append(f"Archive layer commit failed: {msg}")
+                summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_ARCHIVE_COMMIT, details=msg))
                 return summary
 
             # Archive copies are durable. Only now begin deleting their originals.
             if not target_layer.startEditing():
-                summary["errors"].append(
-                    "Main layer could not enter edit mode; committed archive copies were retained"
-                )
+                summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_MAIN_EDIT))
                 return summary
             if not target_layer.deleteFeatures(source_ids):
                 target_layer.rollBack()
-                summary["errors"].append(
-                    "Main layer delete failed; committed archive copies were retained"
-                )
+                summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_MAIN_DELETE))
                 return summary
             if not target_layer.commitChanges():
                 msg = "; ".join(target_layer.commitErrors() or [])
                 target_layer.rollBack()
-                summary["errors"].append(
-                    f"Main layer commit failed; committed archive copies were retained: {msg}"
-                )
+                summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_MAIN_COMMIT, details=msg))
                 return summary
 
             summary["moved_map"] = len(source_ids)
@@ -359,12 +364,13 @@ class MainAddPropertiesFlow:
                 except Exception as exc:
                     backend_info = None
                     summary["backend_failed"] += 1
-                    summary["errors"].append(f"Backend lookup {tunnus} failed: {user_message(exc)}")
+                    summary["errors"].append(_archive_error(
+                        TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_LOOKUP, tunnus=tunnus, details=user_message(exc)))
                     break
 
                 if not isinstance(backend_info, dict) or backend_info.get("exists") is None:
                     summary["backend_failed"] += 1
-                    summary["errors"].append(f"Backend lookup {tunnus} failed")
+                    summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_LOOKUP, tunnus=tunnus))
                     break
 
                 active_ids = [
@@ -377,26 +383,22 @@ class MainAddPropertiesFlow:
                     continue
                 if len(active_ids) > 1:
                     summary["backend_failed"] += 1
-                    summary["errors"].append(
-                        f"Backend archive {tunnus} skipped: multiple active matches"
-                    )
+                    summary["errors"].append(_archive_error(TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_MULTIPLE, tunnus=tunnus))
                     break
 
                 property_id = active_ids[0]
+                details = ""
                 try:
                     archived = bool(UpdatePropertyData._archive_a_propertie(property_id))
                 except Exception as exc:
                     archived = False
-                    summary["errors"].append(
-                        f"Archive backend {tunnus}/{property_id} failed: {user_message(exc)}"
-                    )
+                    details = user_message(exc)
                 if archived:
                     summary["archived_backend"] += 1
                 else:
                     summary["backend_failed"] += 1
-                    summary["errors"].append(
-                        f"Archive backend {tunnus}/{property_id} failed"
-                    )
+                    summary["errors"].append(_archive_error(
+                        TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_ARCHIVE, tunnus=tunnus, details=details))
                     break
             if summary["backend_pending"]:
                 summary["errors"].append(LanguageManager().translate(
