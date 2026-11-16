@@ -1220,34 +1220,34 @@ class EasementPreviewDialog(QDialog):
             for payload in payloads
             if not str(payload.get("id") or "").strip() and str(payload.get("cadastralUnitNumber") or "").strip()
         ]
-        resolved_map, missing = APIModuleActions.resolve_property_map_by_cadastral(unresolved_numbers)
-        save_payloads: list[dict[str, object]] = []
-        for payload in payloads:
-            property_id = str(payload.get("id") or "").strip()
-            number = str(payload.get("cadastralUnitNumber") or "").strip()
-            if not property_id and number:
-                property_id = resolved_map.get(number, "")
-                if property_id:
-                    payload["id"] = property_id
-            if property_id:
-                save_payload = dict(payload)
-                save_payload.pop("cadastralUnitNumber", None)
-                save_payloads.append(save_payload)
-
-        if not save_payloads:
-            raise_message = ", ".join(missing[:5]) or ", ".join(unresolved_numbers[:5]) or "-"
-            ModernMessageDialog.show_warning(
-                self._lang.translate(TranslationKeys.ERROR),
-                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SAVE_FAILED).format(
-                    pid=self._item_id,
-                    count=len(payloads),
-                    preview=raise_message,
-                    err="No property ids resolved for save",
-                ),
-            )
-            return
-
         try:
+            resolved_map, missing = APIModuleActions.resolve_property_map_by_cadastral(unresolved_numbers)
+            save_payloads: list[dict[str, object]] = []
+            for payload in payloads:
+                property_id = str(payload.get("id") or "").strip()
+                number = str(payload.get("cadastralUnitNumber") or "").strip()
+                if not property_id and number:
+                    property_id = resolved_map.get(number, "")
+                    if property_id:
+                        payload["id"] = property_id
+                if property_id:
+                    save_payload = dict(payload)
+                    save_payload.pop("cadastralUnitNumber", None)
+                    save_payloads.append(save_payload)
+
+            if not save_payloads:
+                raise_message = ", ".join(missing[:5]) or ", ".join(unresolved_numbers[:5]) or "-"
+                ModernMessageDialog.show_warning(
+                    self._lang.translate(TranslationKeys.ERROR),
+                    self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SAVE_FAILED).format(
+                        pid=self._item_id,
+                        count=len(payloads),
+                        preview=raise_message,
+                        err="No property ids resolved for save",
+                    ),
+                )
+                return
+
             APIModuleActions.associate_easement_properties(self._item_id, save_payloads)
             refreshed_edges = APIModuleActions.get_easement_property_edges(self._item_id) or []
             self._set_property_edges(refreshed_edges)

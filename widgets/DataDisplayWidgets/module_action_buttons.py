@@ -24,6 +24,7 @@ from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ...constants.cadastral_fields import Katastriyksus
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...utils.api_error_handling import user_message
 from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...constants.file_paths import QssPaths
 from ...module_manager import ModuleManager
@@ -282,12 +283,32 @@ class MoreActionsButton(CardActionButton):
                 if main_layer is not None:
                     main_layer.blockSignals(signals_were_blocked)
 
+        def _missing_note(missing: list[str]) -> str:
+            note = lang_manager.translate(TranslationKeys.LINK_PROPERTIES_MISSING_NOTE).format(
+                missing=", ".join(missing[:5])
+            )
+            if len(missing) > 5:
+                note += lang_manager.translate(TranslationKeys.MORE_COUNT_SUFFIX).format(count=len(missing) - 5)
+            return note
+
         def _persist_links(selected_numbers: list[str]):
-            property_ids, missing = APIModuleActions.resolve_property_ids_by_cadastral(selected_numbers)
-            if not property_ids:
-                raise Exception(f"No property ids resolved for selection: {missing}")
-            response = APIModuleActions.associate_properties(module, object_id, property_ids)
-            refreshed = APIModuleActions.get_module_item_connected_properties(module, object_id) or []
+            """Link the selection; a failure comes back as (False, [], {"error": text, "missing": [...]})."""
+            missing: list[str] = []
+            try:
+                property_ids, missing = APIModuleActions.resolve_property_ids_by_cadastral(selected_numbers)
+                if not property_ids:
+                    # No request failed: none of the selected numbers exist in Kavitro.
+                    return False, [], {"error": _missing_note(missing), "missing": missing}
+                response = APIModuleActions.associate_properties(module, object_id, property_ids)
+                refreshed = APIModuleActions.get_module_item_connected_properties(module, object_id) or []
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=module or "general",
+                    event="module_action_link_properties_failed",
+                    extra={"item_id": object_id},
+                )
+                return False, [], {"error": user_message(exc), "missing": missing}
             return True, refreshed, {"missing": missing, "raw": response}
 
 
@@ -320,14 +341,7 @@ class MoreActionsButton(CardActionButton):
                             count=len(refreshed) - 5
                         )
                     missing = (resp or {}).get("missing") if isinstance(resp, dict) else []
-                    extra_note = ""
-                    if missing:
-                        missing_preview = ", ".join(missing[:5])
-                        extra_note = "\n\n" + lang_manager.translate(TranslationKeys.LINK_PROPERTIES_MISSING_NOTE).format(missing=missing_preview)
-                        if len(missing) > 5:
-                            extra_note += lang_manager.translate(TranslationKeys.MORE_COUNT_SUFFIX).format(
-                                count=len(missing) - 5
-                            )
+                    extra_note = "\n\n" + _missing_note(missing) if missing else ""
                     ModernMessageDialog.show_info(
                         lang_manager.translate(TranslationKeys.SUCCESS),
                         lang_manager.translate(TranslationKeys.LINK_PROPERTIES_SUCCESS).format(
@@ -358,7 +372,7 @@ class MoreActionsButton(CardActionButton):
                             pid=object_id,
                             count=len(selected_numbers),
                             preview=summary,
-                            err=resp or "unknown",
+                            err=(resp.get("error") if isinstance(resp, dict) else resp) or "unknown",
                         ),
                     )
             self._map_selection_orchestrator = None
