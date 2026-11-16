@@ -1243,7 +1243,7 @@ class EasementPreviewDialog(QDialog):
                         pid=self._item_id,
                         count=len(payloads),
                         preview=raise_message,
-                        err="No property ids resolved for save",
+                        err=self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_NONE_RESOLVED),
                     ),
                 )
                 return

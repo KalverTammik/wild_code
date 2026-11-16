@@ -129,8 +129,17 @@ class EasementPropertySaveTest(QgsCase):
 
         self.save()
 
-        self.assertWarned(self.failed_text("No property ids resolved for save"))
+        self.assertWarned(self.failed_text(LANG.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_NONE_RESOLVED)))
         self.log.assert_not_called()
+
+    def test_none_resolved_warning_uses_the_translated_text_not_the_english_literal(self) -> None:
+        self.api.resolve_property_map_by_cadastral.return_value = ({}, [self.NUMBER])
+
+        self.save()
+
+        text = self.messages.show_warning.call_args.args[1]
+        self.assertIn(LANG.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_NONE_RESOLVED), text)
+        self.assertNotIn("No property ids", text)
 
     def test_good_save_reports_success_and_logs_nothing(self) -> None:
         self.api.resolve_property_map_by_cadastral.return_value = ({self.NUMBER: "p1"}, ["99999:001:0009"])
@@ -151,6 +160,19 @@ class EasementPropertySaveTest(QgsCase):
         self.messages.show_warning.assert_not_called()
         self.dialog._rerun_automation.assert_called_once()
         self.log.assert_not_called()
+
+
+class LinkTextModuleNeutralTest(unittest.TestCase):
+    """Link texts are shown on every module's card, so they must not name one module (project)."""
+
+    def test_link_texts_do_not_name_the_project_module(self) -> None:
+        for language in ("et", "en"):
+            manager = LanguageManager(language)
+            for key in (TranslationKeys.LINK_PROPERTIES_SUCCESS, TranslationKeys.LINK_PROPERTIES_ERROR):
+                text = manager.translate(key).lower()
+                for word in ("projekt", "project"):
+                    with self.subTest(language=language, key=key):
+                        self.assertNotIn(word, text)
 
 
 class CardPropertyLinkTest(QgsCase):

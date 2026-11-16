@@ -267,7 +267,7 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_MAIN_DELETE: "Deleting from the property layer failed. The archive copies are saved, but the properties also remain on the property layer.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_MAIN_COMMIT: "Saving the property layer failed. The archive copies are saved, but the properties also remain on the property layer.{details}",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_LOOKUP: "Checking property {tunnus} in the backend failed.{details}",
-        TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_MULTIPLE: "Property {tunnus} was not archived in the backend: it has several active records.",
+        TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_MULTIPLE: "Property {tunnus} was not archived in the backend: it has several active matches.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_BACKEND_ARCHIVE: "Archiving property {tunnus} in the backend failed.{details}",
         TranslationKeys.TASK_FILES_UPLOAD_STOPPED: "File upload stopped. Uploaded: {uploaded}. Saving “{failed}” was not confirmed; check the file list before retrying. Not sent: {pending}.\n{pending_names}",
         TranslationKeys.WORKS_GEOMETRY_SYNC_STOPPED: "Saving geometries to Kavitro stopped at map feature {feature_id}. Further features not processed: {pending}. Map edits are retained, but their backend state needs checking.",
@@ -286,13 +286,13 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_IMPORT_BULK_SET: "Set",
         TranslationKeys.PROPERTY_IMPORT_BULK_SKIPPED: "{count} properties do not allow this action and kept their previous choice.",
         TranslationKeys.PROPERTY_TOOLTIP_PENDING: "No check result yet. Press \"Run check\".",
-        TranslationKeys.PROPERTY_TOOLTIP_BACKEND_OK: "The backend record exists and its data matches the import.",
+        TranslationKeys.PROPERTY_TOOLTIP_BACKEND_OK: "The property exists in Kavitro and its data matches the import.",
         TranslationKeys.PROPERTY_TOOLTIP_BACKEND_ISSUES: "Backend: {causes}",
         TranslationKeys.PROPERTY_TOOLTIP_MAIN_OK: "The property is on the main map layer and its date is not older than the import.",
         TranslationKeys.PROPERTY_TOOLTIP_MAIN_ISSUES: "On the map: {causes}",
         TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_NONE: "Archiving only concerns properties that are no longer in the import. There is no plan for this row.",
-        TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_PLANNED: "Adding will archive the backend record.",
-        TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_SKIP: "No backend record was found, so nothing will be archived.",
+        TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_PLANNED: "Adding will archive the property in Kavitro.",
+        TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_SKIP: "The property was not found in Kavitro, so nothing will be archived.",
         TranslationKeys.PROPERTY_TOOLTIP_ARCHIVE_MAP_PLANNED: "Adding will move the main layer feature to the archive layer.",
         TranslationKeys.PROPERTY_IMPORT_ADDRESS_MISSING: "The import has no address, but the backend record has one. Needs a decision; the backend address is not overwritten automatically.",
         TranslationKeys.PROPERTY_ADD_STOPPED_RESULT: "Stopped due to an error. Processed {done}/{total}. Succeeded: {succeeded}. Failed: {failed}. Not processed: {pending}.",
@@ -301,9 +301,9 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_ADD_STAGE_UPDATE: "Updating property data",
         TranslationKeys.PROPERTY_ADD_STAGE_USES: "Saving intended uses",
         TranslationKeys.PROPERTY_ADD_CANCELLED_RESULT: "Cancelled. Processed {done}/{total}. Succeeded: {succeeded}. Failed: {failed}. Not processed: {pending}.",
-        TranslationKeys.PROPERTY_ADD_LOOKUP_FAILED: "Backend existence check failed. No record was created.",
-        TranslationKeys.PROPERTY_ADD_WRITE_FAILED: "Backend save did not fully succeed. Check the record again before retrying.",
-        TranslationKeys.PROPERTY_ADD_AMBIGUOUS: "An archived record or multiple active matches were found. Separate review is required; no automatic changes were made.",
+        TranslationKeys.PROPERTY_ADD_LOOKUP_FAILED: "Backend existence check failed. The property was not added.",
+        TranslationKeys.PROPERTY_ADD_WRITE_FAILED: "Backend save did not fully succeed. Check the property again before retrying.",
+        TranslationKeys.PROPERTY_ADD_AMBIGUOUS: "An archived property or multiple active matches were found. Separate review is required; no automatic changes were made.",
         TranslationKeys.PROPERTY_ADD_MAP_FAILED: "The backend operation completed, but adding to the main layer failed or the layer is being edited.",
         TranslationKeys.PROPERTY_ADD_LAYER_CHANGED: "The import or main layer changed or is unavailable. Check the property again.",
         TranslationKeys.CLEAR_VALUE: "Clear value",
@@ -346,9 +346,9 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_ARCHIVE_PLAN_COLUMN_NOTE: "Note",
         TranslationKeys.PROPERTY_ARCHIVE_PLAN_MAP_MOVE: "Move to archive",
         TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_ARCHIVE: "Archive",
-        TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MISSING: "No active record — skip",
+        TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MISSING: "No active property — skip",
         TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_FAILED: "Check failed — skip",
-        TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MULTIPLE: "Multiple active records — skip",
+        TranslationKeys.PROPERTY_ARCHIVE_PLAN_BACKEND_MULTIPLE: "Multiple active matches — skip",
         TranslationKeys.PROPERTY_ARCHIVE_PLAN_CONFIRM: "Confirm and continue",
         TranslationKeys.PROPERTY_ARCHIVE_PLAN_CANCEL: "Cancel",
         TranslationKeys.PROPERTY_ARCHIVE_PLAN_COMPLETENESS_CONFIRM: "I confirm that the import contains the complete current data for the selected settlements.",
@@ -485,7 +485,7 @@ TRANSLATIONS = {
     TranslationKeys.PROPERTY_TREE_HEADER: "Property-related data",
     TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE: "Select a property on the map",
     TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS: "No connections found",
-    TranslationKeys.PROPERTY_TREE_MODULE_EMPTY: "No records",
+    TranslationKeys.PROPERTY_TREE_MODULE_EMPTY: "No items",
     TranslationKeys.PROPERTY_NOT_FOUND: "Property not found",
     TranslationKeys.PROPERTY_MISSING_ON_LAYER: "Property not found on layer",
     TranslationKeys.PROPERTY_NOT_FOUND_ON_LAYER: "Property was not found on map layer",
@@ -620,9 +620,9 @@ TRANSLATIONS = {
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERRORS_SUFFIX: " (errors)"
         ,TranslationKeys.MAP_SELECTION_NONE: "No properties were selected from the map."
         ,TranslationKeys.MAP_SELECTION_START_FAILED: "Could not start map selection for properties."
-        ,TranslationKeys.LINK_PROPERTIES_SUCCESS: "Linked properties saved for project {pid}.\nTotal linked: {count}. {preview}{extra}"
+        ,TranslationKeys.LINK_PROPERTIES_SUCCESS: "Linked properties saved.\nTotal linked: {count}. {preview}{extra}"
         ,TranslationKeys.LINK_PROPERTIES_MISSING_NOTE: "Missing/not found: {missing}"
-        ,TranslationKeys.LINK_PROPERTIES_ERROR: "Could not link properties for project {pid}.\nPending selection ({count}): {preview}\n\nDetails: {err}"
+        ,TranslationKeys.LINK_PROPERTIES_ERROR: "Could not link properties.\nPending selection ({count}): {preview}\n\nDetails: {err}"
         ,TranslationKeys.ASBUILT_UPDATE_NOTES_ACTION: "Add/Update notes"
         ,TranslationKeys.ASBUILT_UPDATE_NOTES_TITLE: "As-built notes"
         ,TranslationKeys.ASBUILT_UPDATE_NOTES_SUCCESS: "Notes updated for {name}."
@@ -666,8 +666,8 @@ TRANSLATIONS = {
         ,TranslationKeys.PROJECT_LAYER_INVALID_GEOMETRY: "Projects layer must use polygon geometry for area drawing."
         ,TranslationKeys.ASBUILT_DRAW_NEW_ACTION: "Draw new linked feature on map"
         ,TranslationKeys.ASBUILT_DRAW_NEW_START_FAILED: "Could not start drawing a new As-built feature on the map."
-        ,TranslationKeys.ASBUILT_DRAW_NEW_SAVE_FAILED: "A new map feature was created, but linking it to backend As-built item {item_id} failed. Details: {error}"
-        ,TranslationKeys.ASBUILT_DRAW_NEW_SUCCESS: "A new map feature was created and linked to backend As-built item {item_id}."
+        ,TranslationKeys.ASBUILT_DRAW_NEW_SAVE_FAILED: "A new map feature was created, but linking it to As-built {item_id} in Kavitro failed. Details: {error}"
+        ,TranslationKeys.ASBUILT_DRAW_NEW_SUCCESS: "A new map feature was created and linked to As-built {item_id} in Kavitro."
         ,TranslationKeys.ASBUILT_LAYER_MISSING: "As-built layer is not configured or is missing from the project. Please configure the As-built main layer in Settings first."
         ,TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON: "Create on map"
         ,TranslationKeys.WORKS_CREATE_DIALOG_TITLE: "Create work"
@@ -750,8 +750,9 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_NEXT_PAYMENT: "Next payment"
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_DATE_PLACEHOLDER: "YYYY-MM-DD"
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SAVE: "Save easement property data"
-        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SAVE_SUCCESS: "Easement property data saved for {pid}. Total linked: {count}. {preview}{extra}"
-        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SAVE_FAILED: "Could not save easement property data for {pid}. Pending selection ({count}): {preview}\n\nDetails: {err}"
+        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SAVE_SUCCESS: "Easement property data saved. Total linked: {count}. {preview}{extra}"
+        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SAVE_FAILED: "Could not save easement property data. Pending selection ({count}): {preview}\n\nDetails: {err}"
+        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_NONE_RESOLVED: "None of the selected properties were found in Kavitro."
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_INVALID_DATE: "Next payment date for {property} must be in ISO format YYYY-MM-DD."
         ,TranslationKeys.EASEMENT_PREVIEW_FINAL_CREATED: "Final easement area preview {preview} created from {count} intersecting layer(s)."
         ,TranslationKeys.EASEMENT_PREVIEW_FINAL_SKIPPED: "Final easement area was not created because no buffered utility areas intersect the selected properties."
@@ -897,7 +898,7 @@ TRANSLATIONS = {
         ,TranslationKeys.LINK_REVIEW_NEW_SELECTIONS: "New selections"
         ,TranslationKeys.LINK_REVIEW_RESELECT: "Reselect"
     ,ToolbarTranslationKeys.OPEN_FOLDER: "Open folder"
-    ,ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER: "Open item in browser"
+    ,ToolbarTranslationKeys.OPEN_ITEM_IN_BROWSER: "Open in browser"
     ,ToolbarTranslationKeys.SHOW_CONNECTED_PROPERTIES_ON_MAP: "Show connected properties on map"
     ,ToolbarTranslationKeys.CONNECT_MISSING_PROPERTIES: "No linked properties – connect properties"
     ,ToolbarTranslationKeys.GENERATE_PROJECT_FOLDER: "Generate project folder"
@@ -906,7 +907,7 @@ TRANSLATIONS = {
     ,TranslationKeys.UPDATED: "Updated"
     ,TranslationKeys.STATUS_WIDGET_CHANGE_TOOLTIP: "Click to change status"
     ,TranslationKeys.STATUS_WIDGET_NO_OPTIONS: "No statuses are currently available for this module."
-    ,TranslationKeys.STATUS_WIDGET_UPDATE_FAILED: "Could not update the item status."
+    ,TranslationKeys.STATUS_WIDGET_UPDATE_FAILED: "Could not update the status."
     ,TranslationKeys.CONNECTIONS: "Searching for connections"
     ,TranslationKeys.TAGS_PREFERENCES: "Tags preferences"
     ,TranslationKeys.STATUS_PREFERENCES: "Status preferences"

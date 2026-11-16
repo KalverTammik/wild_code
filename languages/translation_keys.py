@@ -399,10 +399,10 @@ class TranslationKeys:
     SELECTION_FAILED_TITLE = "Selection failed"
     MAP_SELECTION_NONE = "No properties were selected from the map."
     MAP_SELECTION_START_FAILED = "Could not start map selection for properties."
-    LINK_PROPERTIES_SUCCESS = "Linked properties saved for project {pid}.\nTotal linked: {count}. {preview}{extra}"
+    LINK_PROPERTIES_SUCCESS = "Linked properties saved.\nTotal linked: {count}. {preview}{extra}"
     LINK_PROPERTIES_MISSING_NOTE = "Missing/not found: {missing}"
     LINK_PROPERTIES_ERROR = (
-        "Could not link properties for project {pid}.\n"
+        "Could not link properties.\n"
         "Pending selection ({count}): {preview}\n\nDetails: {err}"
     )
     ASBUILT_UPDATE_NOTES_ACTION = "asbuilt_update_notes_action"
@@ -540,6 +540,7 @@ class TranslationKeys:
     EASEMENT_PREVIEW_PROPERTY_SAVE = "easement_preview_property_save"
     EASEMENT_PREVIEW_PROPERTY_SAVE_SUCCESS = "easement_preview_property_save_success"
     EASEMENT_PREVIEW_PROPERTY_SAVE_FAILED = "easement_preview_property_save_failed"
+    EASEMENT_PREVIEW_PROPERTY_NONE_RESOLVED = "easement_preview_property_none_resolved"
     EASEMENT_PREVIEW_PROPERTY_INVALID_DATE = "easement_preview_property_invalid_date"
     EASEMENT_PREVIEW_FINAL_CREATED = "easement_preview_final_created"
     EASEMENT_PREVIEW_FINAL_SKIPPED = "easement_preview_final_skipped"
