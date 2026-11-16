@@ -19,6 +19,7 @@ from .constants.layer_constants import IMPORT_PROPERTY_TAG
 from .ui.window_state.DialogCoordinator import get_dialog_coordinator
 from .constants.file_paths import ConfigPaths
 from .python.api_request_task import set_wait_window_style
+from .python.workers import stop_all_workers
 from .ui.session_storage_warning import show_pending_storage_warning
 from .ui.session_ui_controller import SessionUIController
 class WildCodePlugin:
@@ -46,28 +47,42 @@ class WildCodePlugin:
         SessionManager.set_login_prompt(SessionUIController.open_login_prompt)
 
     def unload(self):
+        # Every step runs even when an earlier one fails, and running it twice is safe.
         try:
-            self.iface.removeToolBarIcon(self.action)
-            self.action = None
-            dlg = self.pluginDialog or PluginDialog.get_instance()
-            if dlg is not None:
-                dlg._force_close = True
-                try:
-                    dlg.close()
-                except Exception:
-                    pass
-                try:
-                    dlg.deleteLater()
-                except Exception:
-                    pass
+            self._drop_pending_login_listener()
+            # Background work must not answer into widgets that are about to be deleted.
+            stop_all_workers()
         finally:
-            self.pluginDialog = None
-            set_wait_window_style(None)
-            SessionManager.set_login_prompt(None)
             try:
-                self._crash_logger.stop()
+                if self.action is not None:
+                    self.iface.removeToolBarIcon(self.action)
+                self.action = None
+                dlg = self.pluginDialog or PluginDialog.get_instance()
+                if dlg is not None:
+                    dlg._force_close = True
+                    try:
+                        dlg.close()
+                    except Exception:
+                        pass
+                    try:
+                        dlg.deleteLater()
+                    except Exception:
+                        pass
             finally:
-                gc.collect()
+                self.pluginDialog = None
+                set_wait_window_style(None)
+                SessionManager.set_login_prompt(None)
+                try:
+                    self._crash_logger.stop()
+                finally:
+                    gc.collect()
+
+    def _drop_pending_login_listener(self):
+        """A login after unload must not open the window of this plugin instance."""
+        listener = self._pending_login_listener
+        self._pending_login_listener = None
+        if listener is not None:
+            SessionManager.unregister_listener(listener)
 
     def run(self):
         project = QgsProject.instance()
