@@ -267,8 +267,8 @@ class ModuleFilePaginationTest(unittest.TestCase):
         }}}
 
     def fetch(self, pages, **kwargs):
-        with patch("Kavitro_dev.python.api_actions.GraphQLQueryLoader"), \
-                patch("Kavitro_dev.python.api_actions.APIClient") as client:
+        with patch("Kavitro_dev.python.actions.file_actions.GraphQLQueryLoader"), \
+                patch("Kavitro_dev.python.actions.file_actions.APIClient") as client:
             client.return_value.send_query.side_effect = pages
             result = APIModuleActions.get_module_files("works", "task-1", **kwargs)
             return result, client.return_value.send_query.call_count
