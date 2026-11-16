@@ -61,9 +61,10 @@ class SharedPartsStayInOnePlaceTest(unittest.TestCase):
                    "_is_widget_alive", "_start_async_load")
         groups = (
             (FILTER_WIDGETS, loading),
-            (SELECT_ALL_WIDGETS, ("_set_all_cb_state", "_refresh_popup", "_sync_all_checkbox_state", "_apply_select_all")),
+            (SELECT_ALL_WIDGETS, ("_set_all_cb_state", "_refresh_popup", "_sync_all_checkbox_state", "_apply_select_all",
+                                  "_open_picker", "_close_popup", "_show_summary")),
             (PICKER_CONTROLS, ("clicked", "set_summary", "mousePressEvent", "keyPressEvent", "__init__", "apply_style")),
-            (PICKER_POPUPS, ("_clear_layout",)),
+            (PICKER_POPUPS, ("_clear_layout", "__init__", "_apply_style")),
         )
         for classes, names in groups:
             for owner in classes:
@@ -544,6 +545,93 @@ class PickerControlTest(unittest.TestCase):
                 control.keyPressEvent(event)
                 clicked.assert_not_called()
                 self.assertFalse(event.isAccepted())
+
+
+class PickerSummaryTest(unittest.TestCase):
+    def summary(self, widget, label, selected, prefix="") -> str:
+        owner = SimpleNamespace(_control=Mock())
+        widget._show_summary(owner, label, selected, prefix)
+        return owner._control.set_summary.call_args.args[0]
+
+    def test_two_picks_by_name_more_as_a_count(self) -> None:
+        for widget in SELECT_ALL_WIDGETS:
+            for selected, prefix, expected in (
+                ([], "", "Sildid"),
+                (["Punane"], "", "Punane"),
+                (["Punane", "Sinine"], "", "Punane, Sinine"),
+                (["Punane", "Sinine", "Roheline"], "", "3 sildid"),
+                (["Toru"], "Vesi", "Vesi: Toru"),
+                (["Toru", "Kaev", "Kraan"], "2 gruppi", "2 gruppi: 3 sildid"),
+            ):
+                with self.subTest(widget=widget.__name__, selected=selected, prefix=prefix):
+                    self.assertEqual(self.summary(widget, "Sildid", selected, prefix), expected)
+
+
+class PickerPopupTest(RealFilterCase):
+    TYPES = [
+        {"id": "a1", "label": "Vesi - Toru", "group": None},
+        {"id": "a2", "label": "Vesi - Kaev", "group": None},
+        {"id": "b1", "label": "Gaas - Toru", "group": None},
+    ]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.tags._load_request_id = self.types._load_request_id = 1
+        self.tags._handle_load_success([("Punane", "t1"), ("Sinine", "t2")], None, 1)
+        self.types._handle_load_success(self.TYPES, None, 1)
+        self.addCleanup(self.close_popups)
+
+    def close_popups(self) -> None:
+        for widget in (self.tags, self.types):
+            widget._close_popup()
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+
+    def test_popup_is_built_under_its_own_names_and_width(self) -> None:
+        for widget, name, width in ((self.tags, "SimplePicker", 260), (self.types, "TypePicker", 420)):
+            with self.subTest(popup=name):
+                widget._open_picker()
+                popup = widget._popup
+                self.assertEqual(popup.objectName(), f"{name}Popup")
+                self.assertEqual(popup._frame.objectName(), f"{name}PopupFrame")
+                self.assertEqual(popup._frame.minimumWidth(), width)
+                self.assertTrue(popup.windowFlags() & Qt.Popup)
+                self.assertTrue(popup.testAttribute(Qt.WA_DeleteOnClose))
+                self.assertTrue(popup.findChildren(QWidget, f"{name}ActionButton"))
+
+    def test_style_targets_its_own_rows_in_the_current_theme(self) -> None:
+        rows = {self.tags: ("SimplePicker", ("OptionRow",), "#252932"),
+                self.types: ("TypePicker", ("GroupRow", "TypeRow"), "#2e2f38")}
+        for widget, (name, row_names, action_bg) in rows.items():
+            with self.subTest(popup=name), patch.object(ThemeManager, "effective_theme", return_value="dark"):
+                widget._open_picker()
+                style = widget._popup.styleSheet()
+                widget._close_popup()
+                selectors = ", ".join(f"QPushButton#{name}{row}:checked" for row in row_names)
+                self.assertIn(f"{selectors} {{background: rgba(9,144,143,0.28);", style)
+                self.assertIn(f"QPushButton#{name}ActionButton {{background: {action_bg};", style)
+                self.assertEqual("QFrame#TypePickerPanel" in style, name == "TypePicker")
+
+    def test_second_click_closes_and_unusable_control_does_not_open(self) -> None:
+        for widget in (self.tags, self.types):
+            with self.subTest(widget=type(widget).__name__):
+                widget._open_picker()
+                self.assertIsNotNone(widget._popup)
+                widget._open_picker()
+                self.assertIsNone(widget._popup)
+                widget._control.setEnabled(False)
+                widget._open_picker()
+                self.assertIsNone(widget._popup)
+                widget._control.setEnabled(True)
+                widget._loaded = False
+                widget._open_picker()
+                self.assertIsNone(widget._popup)
+
+    def test_group_count_in_the_type_summary_is_translated(self) -> None:
+        for code, expected in (("et", "2 gruppi: Vesi - Toru, Gaas - Toru"), ("en", "2 groups: Vesi - Toru, Gaas - Toru")):
+            with self.subTest(language=code):
+                self.types._lang = LanguageManager(code)
+                self.types.set_selected_ids(["a1", "b1"], emit=False)
+                self.assertEqual(self.types._control._label.text(), expected)
 
 
 class PickerPopupClearLayoutTest(unittest.TestCase):

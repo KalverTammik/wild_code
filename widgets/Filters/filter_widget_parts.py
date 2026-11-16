@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QWidget
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
@@ -94,7 +94,46 @@ class FilterLoadingMixin:
 
 
 class PickerFilterMixin(FilterLoadingMixin):
-    """A filter with a popup in `_popup`, a select-all box in `all_cb` and its options in `_options_combo`."""
+    """A filter with a popup in `_popup`, a select-all box in `all_cb` and its options in `_options_combo`.
+
+    The closed picker is `_control`; `_create_popup` builds the open list.
+    """
+
+    def _create_popup(self) -> "PickerPopupBase":
+        raise NotImplementedError
+
+    def _open_picker(self) -> None:
+        """A click on the control opens the list, or closes it when it is already open."""
+        if not self._loaded or not self._control.isEnabled():
+            return
+        if self._popup is not None:
+            self._close_popup()
+            return
+        popup = self._create_popup()
+        self._popup = popup
+        popup.destroyed.connect(lambda *_: setattr(self, "_popup", None))
+        popup.move(self._control.mapToGlobal(self._control.rect().bottomLeft()))
+        popup.show()
+
+    def _close_popup(self) -> None:
+        popup = self._popup
+        if popup is None:
+            return
+        self._popup = None
+        try:
+            popup.close()
+        except RuntimeError:
+            pass
+
+    def _show_summary(self, label: str, selected: list[str], prefix: str = "") -> None:
+        """Up to two picks by name, more as a count; `prefix` (the chosen groups) goes in front."""
+        if not selected:
+            text = label
+        elif len(selected) <= 2:
+            text = ", ".join(selected)
+        else:
+            text = f"{len(selected)} {label.lower()}"
+        self._control.set_summary(f"{prefix}: {text}" if prefix else text)
 
     def _set_all_cb_state(self, state: Qt.CheckState, *, enabled: bool | None = None) -> None:
         self._suppress_all_cb = True
@@ -222,7 +261,99 @@ class PickerControlBase(QFrame):
 
 
 class PickerPopupBase(QWidget):
-    """The picker's open list."""
+    """The picker's open list: a frameless popup holding one frame, which `refresh` fills.
+
+    Every object name starts with NAME. ROW_NAMES are the checkable rows; ACTION_BACKGROUND is the color the action
+    buttons take; `_extra_style` adds rules for parts only one popup has.
+    """
+
+    NAME: str
+    MIN_WIDTH: int
+    ROW_NAMES: tuple[str, ...]
+    ACTION_BACKGROUND = "frame_bg"
+
+    def __init__(self, owner, *, min_width: int, parent=None) -> None:
+        super().__init__(parent, flags=Qt.Popup | Qt.FramelessWindowHint)
+        self.setObjectName(f"{self.NAME}Popup")
+        self.setAttribute(Qt.WA_DeleteOnClose, True)
+        self._owner = owner
+        self._min_width = max(self.MIN_WIDTH, min_width)
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        self._frame = QFrame(self)
+        self._frame.setObjectName(f"{self.NAME}PopupFrame")
+        self._frame.setMinimumWidth(self._min_width)
+        self._frame_layout = QVBoxLayout(self._frame)
+        self._frame_layout.setContentsMargins(8, 8, 8, 8)
+        self._frame_layout.setSpacing(8)
+        root.addWidget(self._frame)
+
+        self._apply_style()
+        self.refresh()
+
+    def refresh(self) -> None:
+        raise NotImplementedError
+
+    def _apply_style(self) -> None:
+        if ThemeManager.effective_theme() == "dark":
+            colors = {
+                "frame_bg": "#252932",
+                "panel_bg": "#2e2f38",
+                "border": "#1f5d5c",
+                "text": "#c5c5d2",
+                "muted": "#9aa4b2",
+                "hover": "#3a3f4b",
+                "selected": "rgba(9,144,143,0.28)",
+                "selected_border": "rgb(9,144,143)",
+            }
+        else:
+            colors = {
+                "frame_bg": "#ffffff",
+                "panel_bg": "#f9fafb",
+                "border": "#2188ff",
+                "text": "#24292e",
+                "muted": "#6a737d",
+                "hover": "#eaeef2",
+                "selected": "rgba(33,136,255,0.14)",
+                "selected_border": "#2188ff",
+            }
+        name = self.NAME
+        rows = [f"QPushButton#{name}{row}" for row in self.ROW_NAMES]
+        self.setStyleSheet(
+            f"QFrame#{name}PopupFrame {{"
+            f"background: {colors['frame_bg']}; border: 1px solid {colors['border']}; border-radius: 8px;"
+            "}"
+            f"QLabel#{name}SectionLabel {{"
+            f"color: {colors['muted']}; font-size: 10px; font-weight: 800; text-transform: uppercase;"
+            "}"
+            f"{', '.join(rows)} {{"
+            f"background: transparent; color: {colors['text']}; border: 1px solid transparent; border-radius: 6px;"
+            "padding: 5px 8px; text-align: left; font-size: 12px; font-weight: 600;"
+            "}"
+            f"{', '.join(row + ':hover' for row in rows)} {{"
+            f"background: {colors['hover']};"
+            "}"
+            f"{', '.join(row + ':checked' for row in rows)} {{"
+            f"background: {colors['selected']}; border-color: {colors['selected_border']};"
+            "}"
+            f"QPushButton#{name}ActionButton {{"
+            f"background: {colors[self.ACTION_BACKGROUND]}; color: {colors['text']};"
+            "border: 1px solid rgba(128,128,128,0.30); border-radius: 5px; padding: 4px 8px; font-size: 11px;"
+            "font-weight: 700;"
+            "}"
+            f"QPushButton#{name}ActionButton:hover {{"
+            f"border-color: {colors['border']};"
+            "}"
+            f"QScrollArea#{name}Scroll {{ background: transparent; border: none; }}"
+            f"QWidget#{name}Content {{ background: transparent; }}"
+            + self._extra_style(colors)
+        )
+
+    def _extra_style(self, colors: dict[str, str]) -> str:
+        return ""
 
     def _clear_layout(self, layout) -> None:
         while layout.count():

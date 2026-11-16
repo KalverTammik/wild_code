@@ -32,27 +32,9 @@ class _SimplePickerControl(PickerControlBase):
 
 
 class _SimplePickerPopup(PickerPopupBase):
-    def __init__(self, owner: "BaseSingleFilterWidget", *, min_width: int, parent=None) -> None:
-        super().__init__(parent, flags=Qt.Popup | Qt.FramelessWindowHint)
-        self.setObjectName("SimplePickerPopup")
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
-        self._owner = owner
-        self._min_width = max(260, min_width)
-
-        root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(0)
-
-        self._frame = QFrame(self)
-        self._frame.setObjectName("SimplePickerPopupFrame")
-        self._frame.setMinimumWidth(self._min_width)
-        self._frame_layout = QVBoxLayout(self._frame)
-        self._frame_layout.setContentsMargins(8, 8, 8, 8)
-        self._frame_layout.setSpacing(8)
-        root.addWidget(self._frame)
-
-        self._apply_style()
-        self.refresh()
+    NAME = "SimplePicker"
+    MIN_WIDTH = 260
+    ROW_NAMES = ("OptionRow",)
 
     def refresh(self) -> None:
         self._clear_layout(self._frame_layout)
@@ -99,52 +81,6 @@ class _SimplePickerPopup(PickerPopupBase):
     def _on_option_clicked(self, row: int, checked: bool) -> None:
         self._owner._set_option_checked(row, checked)
         self.refresh()
-
-    def _apply_style(self) -> None:
-        dark = ThemeManager.effective_theme() == "dark"
-        if dark:
-            frame_bg = "#252932"
-            border = "#1f5d5c"
-            text = "#c5c5d2"
-            muted = "#9aa4b2"
-            hover = "#3a3f4b"
-            selected = "rgba(9,144,143,0.28)"
-            selected_border = "rgb(9,144,143)"
-        else:
-            frame_bg = "#ffffff"
-            border = "#2188ff"
-            text = "#24292e"
-            muted = "#6a737d"
-            hover = "#eaeef2"
-            selected = "rgba(33,136,255,0.14)"
-            selected_border = "#2188ff"
-        self.setStyleSheet(
-            "QFrame#SimplePickerPopupFrame {"
-            f"background: {frame_bg}; border: 1px solid {border}; border-radius: 8px;"
-            "}"
-            "QLabel#SimplePickerSectionLabel {"
-            f"color: {muted}; font-size: 10px; font-weight: 800; text-transform: uppercase;"
-            "}"
-            "QPushButton#SimplePickerOptionRow {"
-            f"background: transparent; color: {text}; border: 1px solid transparent; border-radius: 6px;"
-            "padding: 5px 8px; text-align: left; font-size: 12px; font-weight: 600;"
-            "}"
-            "QPushButton#SimplePickerOptionRow:hover {"
-            f"background: {hover};"
-            "}"
-            "QPushButton#SimplePickerOptionRow:checked {"
-            f"background: {selected}; border-color: {selected_border};"
-            "}"
-            "QPushButton#SimplePickerActionButton {"
-            f"background: {frame_bg}; color: {text}; border: 1px solid rgba(128,128,128,0.30);"
-            "border-radius: 5px; padding: 4px 8px; font-size: 11px; font-weight: 700;"
-            "}"
-            "QPushButton#SimplePickerActionButton:hover {"
-            f"border-color: {border};"
-            "}"
-            "QScrollArea#SimplePickerScroll { background: transparent; border: none; }"
-            "QWidget#SimplePickerContent { background: transparent; }"
-        )
 
 
 class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
@@ -354,21 +290,8 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
         self._refresh_popup()
         self.selectionChanged.emit(texts, ids)
 
-    def _open_picker(self) -> None:
-        if not self._loaded or not self._control.isEnabled():
-            return
-        if self._popup is not None:
-            try:
-                self._popup.close()
-            except RuntimeError:
-                pass
-            self._popup = None
-            return
-        popup = _SimplePickerPopup(self, min_width=self._control.width(), parent=self)
-        popup.destroyed.connect(lambda *_: setattr(self, "_popup", None))
-        self._popup = popup
-        popup.move(self._control.mapToGlobal(self._control.rect().bottomLeft()))
-        popup.show()
+    def _create_popup(self) -> _SimplePickerPopup:
+        return _SimplePickerPopup(self, min_width=self._control.width(), parent=self)
 
     def _iter_options(self) -> List[Tuple[int, str, str, bool]]:
         options: List[Tuple[int, str, str, bool]] = []
@@ -407,21 +330,4 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
         self._refresh_popup()
 
     def _update_control_summary(self) -> None:
-        selected = FilterHelper.selected_texts(self)
-        if not selected:
-            summary = self._label_text
-        elif len(selected) <= 2:
-            summary = ", ".join(selected)
-        else:
-            summary = f"{len(selected)} {self._label_text.lower()}"
-        self._control.set_summary(summary)
-
-    def _close_popup(self) -> None:
-        popup = self._popup
-        if popup is None:
-            return
-        self._popup = None
-        try:
-            popup.close()
-        except RuntimeError:
-            pass
+        self._show_summary(self._label_text, FilterHelper.selected_texts(self))

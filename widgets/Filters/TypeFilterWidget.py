@@ -34,26 +34,10 @@ class _TypePickerControl(PickerControlBase):
 
 
 class _TypePickerPopup(PickerPopupBase):
-    def __init__(self, owner: "TypeFilterWidget", *, min_width: int, parent=None) -> None:
-        super().__init__(parent, flags=Qt.Popup | Qt.FramelessWindowHint)
-        self.setObjectName("TypePickerPopup")
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
-        self._owner = owner
-        self._min_width = max(420, min_width)
-        self._max_body_height = 360
-        self._root = QVBoxLayout(self)
-        self._root.setContentsMargins(0, 0, 0, 0)
-        self._root.setSpacing(0)
-        self._frame = QFrame(self)
-        self._frame.setObjectName("TypePickerPopupFrame")
-        self._frame.setMinimumWidth(self._min_width)
-        self._frame_layout = QVBoxLayout(self._frame)
-        self._frame_layout.setContentsMargins(8, 8, 8, 8)
-        self._frame_layout.setSpacing(8)
-        self._root.addWidget(self._frame)
-        self._apply_style()
-        self._update_available_height()
-        self.refresh()
+    NAME = "TypePicker"
+    MIN_WIDTH = 420
+    ROW_NAMES = ("GroupRow", "TypeRow")
+    ACTION_BACKGROUND = "panel_bg"
 
     def refresh(self) -> None:
         self._update_available_height()
@@ -157,56 +141,12 @@ class _TypePickerPopup(PickerPopupBase):
         self._owner._set_type_checked(type_id, checked)
         self.refresh()
 
-    def _apply_style(self) -> None:
-        dark = ThemeManager.effective_theme() == "dark"
-        if dark:
-            frame_bg = "#252932"
-            panel_bg = "#2e2f38"
-            border = "#1f5d5c"
-            text = "#c5c5d2"
-            muted = "#9aa4b2"
-            hover = "#3a3f4b"
-            selected = "rgba(9,144,143,0.28)"
-            selected_border = "rgb(9,144,143)"
-        else:
-            frame_bg = "#ffffff"
-            panel_bg = "#f9fafb"
-            border = "#2188ff"
-            text = "#24292e"
-            muted = "#6a737d"
-            hover = "#eaeef2"
-            selected = "rgba(33,136,255,0.14)"
-            selected_border = "#2188ff"
-        self.setStyleSheet(
-            "QFrame#TypePickerPopupFrame {"
-            f"background: {frame_bg}; border: 1px solid {border}; border-radius: 8px;"
-            "}"
+    def _extra_style(self, colors: dict[str, str]) -> str:
+        return (
             "QFrame#TypePickerPanel {"
-            f"background: {panel_bg}; border: 1px solid rgba(128,128,128,0.20); border-radius: 6px;"
+            f"background: {colors['panel_bg']}; border: 1px solid rgba(128,128,128,0.20); border-radius: 6px;"
             "}"
-            "QLabel#TypePickerSectionLabel {"
-            f"color: {muted}; font-size: 10px; font-weight: 800; text-transform: uppercase;"
-            "}"
-            "QPushButton#TypePickerGroupRow, QPushButton#TypePickerTypeRow {"
-            f"background: transparent; color: {text}; border: 1px solid transparent; border-radius: 6px;"
-            "padding: 5px 8px; text-align: left; font-size: 12px; font-weight: 600;"
-            "}"
-            "QPushButton#TypePickerGroupRow:hover, QPushButton#TypePickerTypeRow:hover {"
-            f"background: {hover};"
-            "}"
-            "QPushButton#TypePickerGroupRow:checked, QPushButton#TypePickerTypeRow:checked {"
-            f"background: {selected}; border-color: {selected_border};"
-            "}"
-            "QPushButton#TypePickerActionButton {"
-            f"background: {panel_bg}; color: {text}; border: 1px solid rgba(128,128,128,0.30); border-radius: 5px;"
-            "padding: 4px 8px; font-size: 11px; font-weight: 700;"
-            "}"
-            "QPushButton#TypePickerActionButton:hover {"
-            f"border-color: {border};"
-            "}"
-            "QScrollArea#TypePickerScroll { background: transparent; border: none; }"
             "QFrame#TypePickerTypePanel { background: transparent; border: none; }"
-            "QWidget#TypePickerContent { background: transparent; }"
         )
 
 
@@ -248,7 +188,7 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         layout.setSpacing(2)
 
         self._control = _TypePickerControl(self)
-        self._control.clicked.connect(self._open_type_picker)
+        self._control.clicked.connect(self._open_picker)
         self._control.setEnabled(False)
         layout.addWidget(self._control, 1)
 
@@ -422,21 +362,8 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         ids = self.selected_ids()
         self.selectionChanged.emit(texts, ids)
 
-    def _open_type_picker(self) -> None:
-        if not self._loaded or not self._control.isEnabled():
-            return
-        if self._popup is not None:
-            try:
-                self._popup.close()
-            except Exception:
-                pass
-            self._popup = None
-            return
-        popup = _TypePickerPopup(self, min_width=max(self.width(), self._control.width()), parent=self)
-        self._popup = popup
-        popup.destroyed.connect(lambda *_: setattr(self, "_popup", None))
-        popup.move(self._control.mapToGlobal(self._control.rect().bottomLeft()))
-        popup.show()
+    def _create_popup(self) -> _TypePickerPopup:
+        return _TypePickerPopup(self, min_width=max(self.width(), self._control.width()), parent=self)
 
     def _visible_groups(self) -> Optional[set[str]]:
         if self._show_all_groups:
@@ -524,23 +451,13 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         if not self._loaded:
             self._control.set_summary(self._lang.translate(TranslationKeys.LOADING))
             return
-        selected_groups = sorted(self._selected_groups(), key=str.lower)
-        group_prefix = ""
-        if len(selected_groups) == 1:
-            group_prefix = selected_groups[0]
-        elif len(selected_groups) > 1:
-            group_prefix = f"{len(selected_groups)} gruppi"
-        selected = self.selected_texts()
-        if not selected:
-            base = self._lang.translate(TranslationKeys.TYPE_FILTER)
-            self._control.set_summary(f"{base}: {group_prefix}" if group_prefix else base)
-            return
-        if len(selected) <= 2:
-            text = ", ".join(selected)
-            self._control.set_summary(f"{group_prefix}: {text}" if group_prefix else text)
-            return
-        count_text = f"{len(selected)} {self._lang.translate(TranslationKeys.TYPE_FILTER).lower()}"
-        self._control.set_summary(f"{group_prefix}: {count_text}" if group_prefix else count_text)
+        # Groups come from the picked types, so with nothing picked there is no prefix.
+        groups = sorted(self._selected_groups(), key=str.lower)
+        if len(groups) > 1:
+            prefix = self._lang.translate(TranslationKeys.TYPE_FILTER_GROUP_COUNT).format(count=len(groups))
+        else:
+            prefix = groups[0] if groups else ""
+        self._show_summary(self._lang.translate(TranslationKeys.TYPE_FILTER), self.selected_texts(), prefix)
 
     # Async helpers --------------------------------------------------
     def _show_loading_placeholder(self) -> None:

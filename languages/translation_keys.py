@@ -289,6 +289,7 @@ class TranslationKeys:
     TYPE_FILTER = "Type Filter"
     TYPE_GROUP_FILTER = "Type Group Filter"
     TYPE_FILTER_ALL_GROUPS = "type_filter_all_groups"
+    TYPE_FILTER_GROUP_COUNT = "type_filter_group_count"
     RESET = "Reset"
     FILTERS_REFRESH = "filters_refresh"
     FILTERS_CLEAR = "filters_clear"
