@@ -12,7 +12,8 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from Kavitro_dev.modules.works import works_create_controller as controller_module
-from Kavitro_dev.python import api_actions as actions_module
+from Kavitro_dev.python.actions import status_actions as status_module
+from Kavitro_dev.python.actions.status_actions import StatusActions
 from Kavitro_dev.python.api_actions import APIModuleActions
 
 PRIORITY_OPTIONS = [{"value": "", "label": "-"}, {"value": "HIGH", "label": "High"}]
@@ -57,7 +58,7 @@ class WorksCreatePreloadTest(unittest.TestCase):
 
 class TaskPriorityLookupTest(unittest.TestCase):
     def setUp(self) -> None:
-        cache = patch.object(APIModuleActions, "_task_priority_values_cache", None)
+        cache = patch.object(StatusActions, "_task_priority_values_cache", None)
         cache.start()
         self.addCleanup(cache.stop)
 
@@ -66,9 +67,9 @@ class TaskPriorityLookupTest(unittest.TestCase):
         client.send_query.side_effect = Exception("[WC-API][graphql] GraphQL introspection is not allowed")
 
         with (
-            patch.object(actions_module, "APIClient", return_value=client),
-            patch.object(actions_module, "GraphQLQueryLoader"),
-            patch.object(actions_module.PythonFailLogger, "log_exception") as log_exception,
+            patch.object(status_module, "APIClient", return_value=client),
+            patch.object(status_module, "GraphQLQueryLoader"),
+            patch.object(status_module.PythonFailLogger, "log_exception") as log_exception,
         ):
             results = [APIModuleActions.get_task_priority_values() for _ in range(3)]
 
