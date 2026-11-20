@@ -116,7 +116,8 @@ class StatusFilterWidget(FilterLoadingMixin, QWidget):
         self.selectionChanged.emit(selected_texts, selected_ids)
 
     def _fetch_options(self):
-        return APIModuleActions.get_module_status_options(str(self._module or ""))
+        # A failed read raises here, so the worker hands it to _handle_load_error instead of an empty filter.
+        return APIModuleActions.get_module_status_options(str(self._module or ""), raise_on_error=True)
 
     def _handle_load_success(
         self,

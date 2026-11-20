@@ -1,4 +1,4 @@
-"""Status and priority actions: the statuses of a module, the task priority values and their labels."""
+"""Status and priority actions: the statuses of a module, the task priority values and their labels, the easement status."""
 from typing import List, Optional
 
 from ..api_client import APIClient
@@ -10,7 +10,7 @@ from ...utils.url_manager import Module
 
 
 class StatusActions:
-    """Static status and priority actions; APIModuleActions inherits them so callers keep one entry point."""
+    """Static status, priority and easement status actions; APIModuleActions inherits them so callers keep one entry point."""
     _TASK_PRIORITY_DEFAULTS = ("URGENT", "HIGH", "MEDIUM", "LOW")
     _task_priority_values_cache: Optional[List[str]] = None
 
@@ -26,7 +26,17 @@ class StatusActions:
         return f"{module_name.upper()}S"
 
     @staticmethod
-    def get_module_status_options(module_name: str, *, limit: int = 100) -> List[dict[str, object]]:
+    def get_module_status_options(
+        module_name: str,
+        *,
+        limit: int = 100,
+        raise_on_error: bool = False,
+    ) -> List[dict[str, object]]:
+        """Statuses of the module, sorted; a failed read is logged and gives [] unless raise_on_error is set.
+
+        raise_on_error=True re-raises the failure after logging it, for a caller that shows the error
+        itself (the status filter's worker); the other callers treat [] as "no statuses" and keep the default.
+        """
         status_module = StatusActions._status_module_value(module_name)
         max_items = max(1, int(limit or 0))
         if not status_module:
@@ -86,6 +96,8 @@ class StatusActions:
                 event="module_statuses_fetch_failed",
                 extra={"module": str(module_name or "")},
             )
+            if raise_on_error:
+                raise
             return []
 
         def _sort_key(option: dict[str, object]) -> tuple[int, str]:
@@ -172,3 +184,73 @@ class StatusActions:
             )
 
         return options
+
+    @staticmethod
+    def get_easement_status(item_id: str) -> Optional[dict]:
+        """Return the status the easement has in Kavitro now, or None when it cannot be read."""
+
+        easement_id = str(item_id or "").strip()
+        if not easement_id:
+            return None
+
+        loader = GraphQLQueryLoader()
+        client = APIClient()
+        try:
+            query = loader.load_query_by_module(Module.EASEMENT.value, "easementStatus.graphql")
+            data = client.send_query(query, variables={"id": easement_id}) or {}
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_status_fetch_failed",
+                extra={"item_id": easement_id},
+            )
+            return None
+
+        easement = (data.get("easement") or {}) if isinstance(data, dict) else {}
+        status = easement.get("status") if isinstance(easement, dict) else None
+        return status if isinstance(status, dict) and str(status.get("id") or "").strip() else None
+
+    @staticmethod
+    def update_easement_status(item_id: str, status_id: str) -> Optional[dict]:
+        """Change the easement status in Kavitro; returns the status Kavitro saved, or None."""
+
+        easement_id = str(item_id or "").strip()
+        resolved_status_id = str(status_id or "").strip()
+        if not easement_id or not resolved_status_id:
+            return None
+
+        variables = {
+            "input": {
+                "id": easement_id,
+                "status": resolved_status_id,
+            }
+        }
+        extra = {"item_id": easement_id, "status_id": resolved_status_id}
+
+        loader = GraphQLQueryLoader()
+        client = APIClient()
+        try:
+            query = loader.load_query_by_module(Module.EASEMENT.value, "updateEasementStatus.graphql")
+            data = client.send_query(query, variables=variables) or {}
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_update_status_failed",
+                extra=extra,
+            )
+            return None
+
+        updated = (data.get("updateEasement") or {}) if isinstance(data, dict) else {}
+        status = updated.get("status") if isinstance(updated, dict) else None
+        # An answer with another status means Kavitro did not take the change.
+        if not isinstance(status, dict) or str(status.get("id") or "").strip() != resolved_status_id:
+            PythonFailLogger.log_exception(
+                RuntimeError("updateEasement did not return the requested status"),
+                module=Module.EASEMENT.value,
+                event="easement_update_status_not_applied",
+                extra=extra,
+            )
+            return None
+        return status

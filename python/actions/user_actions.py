@@ -19,10 +19,10 @@ class UserActions:
             return cached_user
 
         loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(Module.USER.value, "me.graphql")
         client = APIClient()
 
         try:
+            query = loader.load_query_by_module(Module.USER.value, "me.graphql")
             data = client.send_query(query) or {}
             user = (data.get("me") or {}) if isinstance(data, dict) else {}
             if isinstance(user, dict) and str(user.get("id") or "").strip():

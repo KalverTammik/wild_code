@@ -8,6 +8,7 @@ move. The entry point tests at the end describe the layout after the move.
 """
 from __future__ import annotations
 
+import ast
 import importlib
 import os
 import sys
@@ -359,6 +360,67 @@ class GetModuleStatusOptionsTest(ActionTestCase):
         self.assertEqual(self.log.call_args.kwargs["event"], "module_statuses_fetch_failed")
 
 
+class StatusOptionsRaiseOnErrorTest(ActionTestCase):
+    """A caller that shows the error itself (the status filter) asks for it with raise_on_error=True."""
+
+    def test_failure_is_logged_and_raised_to_the_caller(self) -> None:
+        cases = (
+            ("first page", [RuntimeError("offline")]),
+            ("later page", [status_page(status_nodes(0, 50), "c1", True), RuntimeError("offline")]),
+        )
+        for name, answers in cases:
+            with self.subTest(case=name):
+                self.reset_calls()
+                error = answers[-1]
+                self.client.send_query.side_effect = answers
+                with self.assertRaises(RuntimeError) as raised:
+                    APIModuleActions.get_module_status_options("works", raise_on_error=True)
+                self.assertIs(raised.exception, error)
+                self.assertEqual(self.log.call_count, 1)
+                self.assertIs(self.log.call_args.args[0], error)
+                self.assertEqual(self.log.call_args.kwargs, {
+                    "module": "statuses",
+                    "event": "module_statuses_fetch_failed",
+                    "extra": {"module": "works"},
+                })
+
+    def test_unloadable_query_is_raised_to_the_caller(self) -> None:
+        error = FileNotFoundError("query_file_not_found")
+        self.loader.load_query_by_module.side_effect = error
+        with self.assertRaises(FileNotFoundError) as raised:
+            APIModuleActions.get_module_status_options("works", raise_on_error=True)
+        self.assertIs(raised.exception, error)
+        self.client.send_query.assert_not_called()
+        self.assertEqual(self.log.call_args.kwargs["event"], "module_statuses_fetch_failed")
+
+    def test_read_statuses_are_the_same_as_without_the_flag(self) -> None:
+        pages = [status_page([status_node("2", "b", sortOrder=2)], "c1", True), status_page([status_node("1", "a")])]
+        self.client.send_query.side_effect = list(pages)
+        raised_mode = APIModuleActions.get_module_status_options("works", limit=7, raise_on_error=True)
+        raised_mode_sent = self.sent()
+        self.reset_calls()
+        self.client.send_query.side_effect = list(pages)
+        self.assertEqual(raised_mode, APIModuleActions.get_module_status_options("works", limit=7))
+        self.assertEqual(raised_mode_sent, self.sent())
+        self.assertEqual([option["id"] for option in raised_mode], ["1", "2"])
+        self.log.assert_not_called()
+
+    def test_blank_module_and_empty_answers_are_no_error(self) -> None:
+        self.assertEqual(APIModuleActions.get_module_status_options(" ", raise_on_error=True), [])
+        self.client.send_query.assert_not_called()
+        for response in (None, {}, {"statuses": {"edges": []}}):
+            with self.subTest(response=response):
+                self.client.send_query.return_value = response
+                self.assertEqual(APIModuleActions.get_module_status_options("works", raise_on_error=True), [])
+        self.log.assert_not_called()
+
+    def test_flag_is_keyword_only_and_off_by_default(self) -> None:
+        self.client.send_query.side_effect = RuntimeError("offline")
+        self.assertEqual(APIModuleActions.get_module_status_options("works"), [])
+        with self.assertRaises(TypeError):
+            APIModuleActions.get_module_status_options("works", 100, True)
+
+
 class TaskPriorityValuesTest(PriorityTestCase):
     def test_enum_values_come_from_the_task_priority_query(self) -> None:
         self.client.send_query.return_value = enum_answer("urgent", " High ", "MEDIUM", "low")
@@ -586,13 +648,20 @@ class GetCurrentUserPayloadTest(ActionTestCase):
                 self.assertIs(self.log.call_args.args[0], error)
                 self.assertEqual(self.log.call_args.kwargs, {"module": "user", "event": "current_user_fetch_failed"})
 
-    def test_unloadable_query_is_not_caught(self) -> None:
-        # The query is loaded before the try block, so a missing file reaches the caller (pinned as it is).
-        self.loader.load_query_by_module.side_effect = FileNotFoundError("query_file_not_found")
-        with self.assertRaises(FileNotFoundError):
-            APIModuleActions.get_current_user_payload()
-        self.client.send_query.assert_not_called()
-        self.log.assert_not_called()
+    def test_unloadable_query_is_logged_and_falls_back_to_the_cached_dict_or_nothing(self) -> None:
+        # Like a failed request: the missing file no longer reaches the caller.
+        error = FileNotFoundError("query_file_not_found")
+        self.loader.load_query_by_module.side_effect = error
+        for cached, expected in ((None, None), ({"displayName": "no id"}, {"displayName": "no id"}), ("text", None)):
+            with self.subTest(cached=cached):
+                self.reset_calls()
+                self.session.loggedInUser = cached
+                self.assertEqual(APIModuleActions.get_current_user_payload(), expected)
+                self.client.send_query.assert_not_called()
+                self.session_class.save_session.assert_not_called()
+                self.assertEqual(self.log.call_count, 1)
+                self.assertIs(self.log.call_args.args[0], error)
+                self.assertEqual(self.log.call_args.kwargs, {"module": "user", "event": "current_user_fetch_failed"})
 
 
 class GetCurrentUserIdTest(ActionTestCase):
@@ -606,6 +675,11 @@ class GetCurrentUserIdTest(ActionTestCase):
     def test_fetched_user_gives_its_id(self) -> None:
         self.client.send_query.return_value = {"me": {"id": " 9 "}}
         self.assertEqual(APIModuleActions.get_current_user_id(), "9")
+
+    def test_unloadable_query_gives_an_empty_id(self) -> None:
+        self.loader.load_query_by_module.side_effect = FileNotFoundError("query_file_not_found")
+        self.assertEqual(APIModuleActions.get_current_user_id(), "")
+        self.assertEqual(self.log.call_args.kwargs["event"], "current_user_fetch_failed")
 
     def test_no_user_gives_an_empty_id(self) -> None:
         self.client.send_query.side_effect = RuntimeError("offline")
@@ -792,6 +866,20 @@ class GetAssignableUsersTest(ActionTestCase):
         self.assertEqual(self.session.loggedInUser, {"id": "1", "displayName": "Zed"})
         self.session_class.save_session.assert_called_once_with()
 
+    def test_users_are_listed_when_the_current_user_query_cannot_be_loaded(self) -> None:
+        self.session.loggedInUser = None
+
+        def load(module, filename):
+            if filename == "me.graphql":
+                raise FileNotFoundError("query_file_not_found")
+            return self._query_text(module, filename)
+
+        self.loader.load_query_by_module.side_effect = load
+        self.client.send_query.return_value = user_page([user_node("3", "Bob"), user_node("2", "Ann")])
+        self.assertEqual(APIModuleActions.get_assignable_users(), [self.entry("2", "Ann"), self.entry("3", "Bob")])
+        self.assertEqual(self.sent(), [(self.USERS_QUERY, {"variables": {"first": 50, "after": None}})])
+        self.assertEqual([call.kwargs["event"] for call in self.log.call_args_list], ["current_user_fetch_failed"])
+
     def test_users_are_listed_without_a_current_user_when_it_cannot_be_read(self) -> None:
         self.session.loggedInUser = None
         self.answer({
@@ -840,7 +928,7 @@ class QueryFilesTest(unittest.TestCase):
 
 
 class EntryPointInterfaceTest(unittest.TestCase):
-    """APIModuleActions keeps its whole surface after the split, and the moved code left api_actions.py."""
+    """APIModuleActions keeps its whole surface after the split, and api_actions.py keeps only the entry point."""
 
     FILES = (
         "_file_owner_module", "_file_model_type", "_file_query_name", "get_module_files",
@@ -853,31 +941,37 @@ class EntryPointInterfaceTest(unittest.TestCase):
     )
     STATUSES = (
         "_status_module_value", "get_module_status_options", "get_task_priority_values", "task_priority_label",
-        "get_task_priority_options",
+        "get_task_priority_options", "get_easement_status", "update_easement_status",
     )
     USERS = ("get_current_user_payload", "get_current_user_id", "user_display_name", "get_assignable_users")
-    REMAINING = (
-        "_geometry_input_value", "_is_unknown_input_field_error", "_is_unknown_geometry_input_error",
-        "_is_geometry_retryable_create_error", "get_task_data", "get_tasks_by_ids", "get_task_description",
-        "update_task_description", "_update_module_geometry", "update_task_geometry", "update_project_geometry",
-        "update_easement_geometry", "get_easement_status", "update_easement_status", "update_task_status",
+    TASKS = (
+        "get_task_data", "get_tasks_by_ids", "get_task_description", "update_task_description", "update_task_status",
         "update_task_members", "_build_task_member_associate_payload", "create_task",
+    )
+    GEOMETRY = (
+        "_geometry_input_value", "_is_unknown_input_field_error", "_is_unknown_geometry_input_error",
+        "_is_geometry_retryable_create_error", "_update_module_geometry", "update_task_geometry",
+        "update_project_geometry", "update_easement_geometry",
     )
     MOVED = {
         "Kavitro_dev.python.actions.file_actions": ("FileActions", FILES),
         "Kavitro_dev.python.actions.property_link_actions": ("PropertyLinkActions", PROPERTIES),
         "Kavitro_dev.python.actions.status_actions": ("StatusActions", STATUSES),
         "Kavitro_dev.python.actions.user_actions": ("UserActions", USERS),
+        "Kavitro_dev.python.actions.task_actions": ("TaskActions", TASKS),
+        "Kavitro_dev.python.actions.geometry_actions": ("GeometryActions", GEOMETRY),
     }
-    # Text only the status and user code used; none of it may stay behind in api_actions.py.
+    # Text only the moved code used; none of it may stay behind in api_actions.py.
     MOVED_TEXT = (
         "ListModuleStatuses.graphql", "taskPriorityEnum.graphql", "me.graphql", "users.graphql",
         "_TASK_PRIORITY_DEFAULTS", "_task_priority_values_cache", "_sort_key", "SessionManager",
-        "LanguageManager", "TranslationKeys",
+        "LanguageManager", "TranslationKeys", "createTask.graphql", "_build_task_input", "json.dumps",
+        "easementStatus.graphql", "APIClient", "GraphQLQueryLoader", "PythonFailLogger",
     )
 
     def test_entry_point_still_offers_every_method(self) -> None:
-        names = self.FILES + self.PROPERTIES + self.STATUSES + self.USERS + self.REMAINING
+        names = [name for _class_name, group in self.MOVED.values() for name in group]
+        self.assertEqual(len(names), 42)
         self.assertEqual(len(set(names)), 42)
         for name in names:
             with self.subTest(method=name):
@@ -895,10 +989,29 @@ class EntryPointInterfaceTest(unittest.TestCase):
                     self.assertEqual(function.__module__, module_name)
                     self.assertNotIn(name, vars(APIModuleActions), "the entry point must not shadow a domain method")
 
-    def test_remaining_methods_stay_on_the_entry_point(self) -> None:
-        for name in self.REMAINING:
-            with self.subTest(method=name):
-                self.assertIn(name, vars(APIModuleActions))
+    def test_entry_point_defines_nothing_of_its_own(self) -> None:
+        own = {name: value for name, value in vars(APIModuleActions).items()
+               if not (name.startswith("__") and name.endswith("__"))}
+        self.assertEqual(own, {})
+        domain_classes = {getattr(importlib.import_module(module), name) for module, (name, _names) in self.MOVED.items()}
+        self.assertEqual(set(APIModuleActions.__bases__), domain_classes)
+
+    def test_api_actions_is_only_imports_and_the_class(self) -> None:
+        tree = ast.parse(Path(api_actions_module.__file__).read_text(encoding="utf-8"))
+        body = list(tree.body)
+        if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+            body.pop(0)
+        *imports, entry = body
+        for node in imports:
+            with self.subTest(line=node.lineno):
+                self.assertIsInstance(node, ast.ImportFrom)
+                self.assertEqual(node.level, 1)
+                self.assertTrue(str(node.module).startswith("actions."), node.module)
+        self.assertIsInstance(entry, ast.ClassDef)
+        self.assertEqual(entry.name, "APIModuleActions")
+        self.assertEqual(len(entry.body), 1)
+        self.assertIsInstance(entry.body[0], ast.Expr)
+        self.assertIsInstance(entry.body[0].value, ast.Constant)
 
     def test_task_priority_state_has_one_owner(self) -> None:
         status_actions = importlib.import_module("Kavitro_dev.python.actions.status_actions").StatusActions
@@ -918,7 +1031,7 @@ class EntryPointInterfaceTest(unittest.TestCase):
                 self.assertNotIn(text, source)
 
     def test_domain_modules_do_not_import_the_entry_point(self) -> None:
-        for module_name in ("Kavitro_dev.python.actions.status_actions", "Kavitro_dev.python.actions.user_actions"):
+        for module_name in self.MOVED:
             with self.subTest(module=module_name):
                 source = Path(importlib.import_module(module_name).__file__).read_text(encoding="utf-8")
                 self.assertNotIn("api_actions", source)

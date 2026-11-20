@@ -429,7 +429,7 @@ class FilterAsyncLoadTest(RealFilterCase):
                     worker_class, _start, _cancel = self.start(widget)
                     self.assertEqual(worker_class.call_args.args[0](), expected)
                     if key is None:
-                        statuses.assert_called_once_with("contract")
+                        statuses.assert_called_once_with("contract", raise_on_error=True)
                         edges.assert_not_called()
                     else:
                         edges.assert_called_once_with(key, "contract")

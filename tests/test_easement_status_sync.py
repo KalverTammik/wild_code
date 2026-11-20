@@ -17,7 +17,7 @@ from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout
 
 from Kavitro_dev.modules.easements import easement_attach_existing_controller as controller_module
 from Kavitro_dev.modules.easements import easement_preview_dialog as preview_module
-from Kavitro_dev.python import api_actions as api_module
+from Kavitro_dev.python.actions import status_actions as status_actions_module
 from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.utils.status_color_helper import StatusColorHelper
 from Kavitro_dev.widgets.DataDisplayWidgets.MainStatusWidget import MainStatusWidget
@@ -44,8 +44,8 @@ class EasementStatusApiTest(unittest.TestCase):
         else:
             client.send_query.return_value = response
         for target, name, kwargs in (
-            (api_module, "APIClient", {"return_value": client}),
-            (api_module.PythonFailLogger, "log_exception", {}),
+            (status_actions_module, "APIClient", {"return_value": client}),
+            (status_actions_module.PythonFailLogger, "log_exception", {}),
         ):
             patcher = patch.object(target, name, **kwargs)
             started = patcher.start()
