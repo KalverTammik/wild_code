@@ -58,6 +58,7 @@ TRANSLATIONS = {
         TranslationKeys.MAP_IDENTIFY_LAYER_MISSING: "Mooduli {module} pĆµhikiht on seadistamata vĆµi puudub projektist.",
         TranslationKeys.MAP_IDENTIFY_ID_FIELD_MISSING: "Valitud kihilt {layer} ei leitud vĆ¤lja, mille jĆ¤rgi Kavitro elementi avada.",
         TranslationKeys.MAP_IDENTIFY_FEATURE_MISSING: "Selles kohas ei leitud aktiivse mooduli objekti.",
+        TranslationKeys.LAYER_FEATURE_ID_NOT_NUMBER: "Kaardiobjekti tunnus „{feature_id}“ ei ole arv.",
         TranslationKeys.MAP_IDENTIFY_OPEN_FAILED: "Objekti avamine Kavitro moodulis ebaĆµnnestus.",
         # Added from translation audit (UI literals)
         TranslationKeys.FOLDER_NAMING_RULE_DIALOG_TITLE: "Kausta nimetamise reegel",
@@ -888,7 +889,7 @@ TRANSLATIONS = {
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED: "Geospatiali sihtkihi muutmisrežiimi ei saanud käivitada."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED: "Migreeritud objekti lisamine Geospatiali sihtkihile ebaõnnestus."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_GEOMETRY_TRANSFORM_FAILED: "{count} objekti koordinaate ei saanud sihtkihi koordinaatsüsteemi teisendada. Neid objekte ei lisatud ega uuendatud."
-        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY: "Tühjaks jäetud väärtusi: {count}. Need ei sobinud sihtvälja tüübiga, objektid kanti üle ilma nendeta:"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY: "Sihtvälja tüübiga sobimatuid väärtusi: {count}. Uutel objektidel jäi väli tühjaks, uuendatud objektidel jäi alles endine väärtus:"
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY_HINT: "Paranda need väärtused sihtkihi atribuutide tabelis."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_COMMIT_FAILED: "Migreeritud objektide salvestamine Geospatiali sihtkihile ebaõnnestus."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_SUCCESS: "Migratsioon lõpetati. Lisatud: {inserted}, uuendatud: {updated}, muutmata: {skipped}."

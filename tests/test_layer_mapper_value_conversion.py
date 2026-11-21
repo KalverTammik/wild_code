@@ -1,4 +1,6 @@
-"""The layer mapper converts values with the layer services' rules; a value that does not fit is left empty and reported.
+"""The layer mapper converts values with the layer services' rules; a value that does not fit is reported.
+
+A new feature gets an empty field, an updated feature keeps its previous value.
 
 Before, the mapper had its own copy: "1 250", "3,0" and 3.0 were silently emptied in whole-number fields, "ei" was stored
 as yes, and one wrong number or date failed the commit of the whole transfer.
@@ -147,14 +149,36 @@ class MapperValueConversionTest(unittest.TestCase):
         self.assertEqual(self._values(target, "kuupaev"), [QDate(2024, 5, 1), NULL])
         self.assertIn("• kuupaev: „kolmapäev“ – peab olema kuupäev", errors[0])
 
-    def test_update_with_a_wrong_value_empties_the_field_and_still_counts_as_updated(self) -> None:
-        target = _target(({"ext_job_id": "J-1", "laius": 9.5},))
+    def test_update_with_a_wrong_value_keeps_the_previous_value_and_reports_it(self) -> None:
+        target = _target(({"ext_job_id": "J-1", "laius": 9.5, "kogus": 1},))
 
-        inserted, updated, skipped, errors = self._transfer(target, _source(({"ext_job_id": "J-1", "laius": "lai"},)))
+        inserted, updated, skipped, errors = self._transfer(
+            target, _source(({"ext_job_id": "J-1", "laius": "lai", "kogus": "4"},))
+        )
 
         self.assertEqual((inserted, updated, skipped), (0, 1, 0))
-        self.assertEqual(self._values(target, "laius"), [NULL])
+        # Before, the wrong value emptied the field and the feature lost its old width.
+        self.assertEqual(self._values(target, "laius"), [9.5])
+        self.assertEqual(self._values(target, "kogus"), [4])
         self.assertIn("• laius: „lai“ – peab olema arv", errors[0])
+
+    def test_a_null_source_value_gets_the_default(self) -> None:
+        # Guide 06: the default is used when the source field of that feature is empty.
+        target = _target()
+        rows = [_row("laius", "laius", default="7,5"), _row("ext_job_id", "ext_job_id")]
+
+        result = self._transfer(target, _source(({"ext_job_id": "a"}, {"ext_job_id": "b", "laius": "2"})), rows)
+
+        self.assertEqual(result, (2, 0, 0, []))
+        self.assertEqual(self._values(target, "laius"), [7.5, 2.0])
+
+    def test_update_with_a_null_source_value_and_no_default_keeps_the_previous_value(self) -> None:
+        target = _target(({"ext_job_id": "J-1", "laius": 9.5},))
+
+        result = self._transfer(target, _source(({"ext_job_id": "J-1"},)))
+
+        self.assertEqual(result, (0, 1, 0, []))
+        self.assertEqual(self._values(target, "laius"), [9.5])
 
     def test_note_counts_every_value_and_lists_the_first_five_distinct_ones(self) -> None:
         rows = tuple({"kogus": f"x{index}"} for index in range(7)) + ({"kogus": "x0"},)
@@ -164,7 +188,7 @@ class MapperValueConversionTest(unittest.TestCase):
 
         self.assertEqual(inserted, 8)
         lines = errors[0].split("\n")
-        self.assertEqual(lines[0], "Tühjaks jäetud väärtusi: 8. Need ei sobinud sihtvälja tüübiga, objektid kanti üle ilma nendeta:")
+        self.assertEqual(lines[0], "Sihtvälja tüübiga sobimatuid väärtusi: 8. Uutel objektidel jäi väli tühjaks, uuendatud objektidel jäi alles endine väärtus:")
         self.assertEqual(lines[1:6], [f"• Kogus: „x{index}“ – peab olema täisarv" for index in range(4)]
                          + ["• Kogus: „x4“ – peab olema täisarv … (+2 veel)"])
         self.assertEqual(lines[6], "Paranda need väärtused sihtkihi atribuutide tabelis.")
@@ -188,7 +212,7 @@ class MapperValueConversionTest(unittest.TestCase):
         self.assertEqual(
             self.show_warning.call_args.args[1],
             "Migratsioon lõpetati vigadega. Lisatud: 2, uuendatud: 0, muutmata: 0.\n\nVead:\n"
-            "Tühjaks jäetud väärtusi: 2. Need ei sobinud sihtvälja tüübiga, objektid kanti üle ilma nendeta:\n"
+            "Sihtvälja tüübiga sobimatuid väärtusi: 2. Uutel objektidel jäi väli tühjaks, uuendatud objektidel jäi alles endine väärtus:\n"
             "• Kogus: „2,5“ – peab olema täisarv\n"
             "• laius: „lai“ – peab olema arv\n"
             "Paranda need väärtused sihtkihi atribuutide tabelis.",

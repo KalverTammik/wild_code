@@ -20,13 +20,11 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
     INVALID_LAYER_TEXT = "Invalid As-built layer"
     FIELDS_TEXTS = LayerEditTexts(
         start_failed="Could not start editing As-built layer to add external fields",
-        change_failed="Could not add field {field} to As-built layer",
+        change_failed="Could not add external As-built fields to layer",
         commit_failed="Could not commit new As-built layer fields",
         failed_event="asbuilt_layer_ensure_fields_failed",
         rollback_event="asbuilt_layer_ensure_fields_rollback_failed",
     )
-    # Needs a user decision: the other modules add the fields through the provider, outside the user's edit session.
-    ADD_FIELDS_IN_EDIT_BUFFER = True
     MISSING_ITEM_ID_TEXT = "Missing backend As-built id"
     FEATURE_NOT_FOUND_TEXT = "Selected As-built feature was not found"
     ATTACH_TEXTS = LayerEditTexts(
@@ -167,11 +165,6 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
             (cls._resolve_first_field_name(layer, (cls.FIELD_EXT_JOB_NAME,)), item_name),
         )
         return cls._find_first_feature(layer, keys, log_extra={"item_id": str(item_id or "").strip()})
-
-    @classmethod
-    def _refresh_after_save(cls, layer: QgsVectorLayer) -> None:
-        # Needs a user decision: projects and easements also reload the layer and refresh the canvas.
-        layer.triggerRepaint()
 
     @classmethod
     def _write_item_attributes(

@@ -94,7 +94,7 @@ Vaikeväärtuse sisestus sõltub sihtvälja tüübist:
 - kuupäevaväljal märgitakse **Kasuta vaikeväärtust** ja valitakse kuupäev;
 - kuupäeva-kellaaja väljal märgitakse **Kasuta vaikeväärtust** ning valitakse kuupäev ja kellaaeg.
 
-Arvuväljal loetakse ka eesti koma ja tühikutega rühmitatud arvud (nt `2,5` või `1 250`). Väärtus, mis ei sobi sihtvälja tüübiga (nt `2,5` täisarvuväljal või tekst arvuväljal), jäetakse tühjaks, objekt kantakse siiski üle. Tulemuse teates on tühjaks jäetud väärtuste arv ja loetelu; paranda need sihtkihi atribuutide tabelis.
+Arvuväljal loetakse ka eesti koma ja tühikutega rühmitatud arvud (nt `2,5` või `1 250`). Väärtus, mis ei sobi sihtvälja tüübiga (nt `2,5` täisarvuväljal või tekst arvuväljal), jäetakse uuel objektil tühjaks; uuendataval objektil jääb alles selle välja endine väärtus. Objekt kantakse mõlemal juhul üle. Tulemuse teates on sobimatute väärtuste arv ja loetelu; paranda need lähtekihis või sihtkihi atribuutide tabelis.
 
 ## Objektide lisamine ja uuendamine
 

@@ -431,6 +431,10 @@ class EasementLayerService(AttachableLayerServiceBase):
     def delete_feature_by_id(cls, *, layer: QgsVectorLayer, feature_id: int) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False, "Invalid easement main layer"
+        feature_number = cls._feature_id_number(feature_id)
+        if feature_number is None:
+            return False, cls._feature_id_not_number_text(feature_id)
+        feature_id = feature_number
 
         started_edit = False
         try:
@@ -439,7 +443,7 @@ class EasementLayerService(AttachableLayerServiceBase):
                 if not started_edit:
                     return False, "Could not start editing easement layer"
 
-            if not layer.deleteFeature(int(feature_id)):
+            if not layer.deleteFeature(feature_id):
                 if started_edit:
                     layer.rollBack()
                 return False, "Could not delete selected easement feature"
@@ -451,27 +455,19 @@ class EasementLayerService(AttachableLayerServiceBase):
 
             cls._refresh_saved_layer(layer)
             try:
-                verified = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
+                verified = next(layer.getFeatures(QgsFeatureRequest(feature_id)), None)
             except (TypeError, ValueError, RuntimeError):
                 verified = object()
             if verified is not None:
                 return False, "Deleted easement feature could not be verified"
             return True, cls._layer_target_label(layer)
         except Exception as exc:
-            try:
-                if layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.EASEMENT.value,
-                    event="easement_delete_rollback_failed",
-                )
+            cls._rollback_own_edit(layer, started_edit, event="easement_delete_rollback_failed")
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.EASEMENT.value,
                 event="easement_delete_feature_failed",
-                extra={"feature_id": int(feature_id)},
+                extra={"feature_id": feature_id},
             )
             return False, str(exc)
 
@@ -479,15 +475,19 @@ class EasementLayerService(AttachableLayerServiceBase):
     def archive_feature_by_id(cls, *, layer: QgsVectorLayer, feature_id: int, archive_status_value: str = "(puudub)") -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False, "Invalid easement main layer"
+        feature_number = cls._feature_id_number(feature_id)
+        if feature_number is None:
+            return False, cls._feature_id_not_number_text(feature_id)
+        feature_id = feature_number
 
         try:
-            feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
+            feature = next(layer.getFeatures(QgsFeatureRequest(feature_id)), None)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.EASEMENT.value,
                 event="easement_archive_feature_load_failed",
-                extra={"feature_id": int(feature_id)},
+                extra={"feature_id": feature_id},
             )
             feature = None
 
@@ -523,27 +523,19 @@ class EasementLayerService(AttachableLayerServiceBase):
 
             cls._refresh_saved_layer(layer)
             try:
-                verified = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
+                verified = next(layer.getFeatures(QgsFeatureRequest(feature_id)), None)
             except (TypeError, ValueError, RuntimeError):
                 verified = None
             if verified is None:
                 return False, "Archived easement feature could not be verified"
             return True, cls._layer_target_label(layer)
         except Exception as exc:
-            try:
-                if layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.EASEMENT.value,
-                    event="easement_archive_rollback_failed",
-                )
+            cls._rollback_own_edit(layer, started_edit, event="easement_archive_rollback_failed")
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.EASEMENT.value,
                 event="easement_archive_feature_failed",
-                extra={"feature_id": int(feature_id)},
+                extra={"feature_id": feature_id},
             )
             return False, str(exc)
 
@@ -656,8 +648,8 @@ class EasementLayerService(AttachableLayerServiceBase):
 
         cls._apply_geometry_form_values(feature, layer=layer, values=form_values, value_problems=value_problems)
 
-        def check_saved() -> tuple[bool, str]:
-            if cls.find_feature(layer, item_id=item_id_text, item_number=item_number) is None:
+        def check_saved(saved_id: Optional[int]) -> tuple[bool, str]:
+            if not cls._verify_attached(layer, feature_id=saved_id, item_id=item_id_text, item=item_payload):
                 return False, "Saved easement feature could not be verified on the configured main layer"
             return True, cls._layer_target_label(layer)
 

@@ -58,6 +58,7 @@ TRANSLATIONS = {
         TranslationKeys.MAP_IDENTIFY_LAYER_MISSING: "The main layer for module {module} is not configured or is missing from the project.",
         TranslationKeys.MAP_IDENTIFY_ID_FIELD_MISSING: "Layer {layer} does not contain a field that can be used to open the Kavitro item.",
         TranslationKeys.MAP_IDENTIFY_FEATURE_MISSING: "No active-module object was found at this location.",
+        TranslationKeys.LAYER_FEATURE_ID_NOT_NUMBER: "The map feature id \"{feature_id}\" is not a number.",
         TranslationKeys.MAP_IDENTIFY_OPEN_FAILED: "Could not open the object in the Kavitro module.",
         # Added from translation audit (UI literals)
         TranslationKeys.FOLDER_NAMING_RULE_DIALOG_TITLE: "Folder Naming Rule",
@@ -894,7 +895,7 @@ TRANSLATIONS = {
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED: "Could not start editing the Geospatial target layer."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED: "Could not add a migrated feature to the Geospatial target layer."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_GEOMETRY_TRANSFORM_FAILED: "The coordinates of {count} features could not be transformed to the target layer's coordinate system. These features were not inserted or updated."
-        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY: "Values left empty: {count}. They did not fit the target field type; the features were transferred without them:"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY: "Values that did not fit the target field type: {count}. New features got an empty field; updated features kept their previous value:"
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY_HINT: "Correct these values in the target layer's attribute table."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_COMMIT_FAILED: "Could not commit migrated features to the Geospatial target layer."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_SUCCESS: "Migration finished. Inserted: {inserted}, updated: {updated}, unchanged: {skipped}."

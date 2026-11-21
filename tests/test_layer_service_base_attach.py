@@ -15,6 +15,8 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsPointXY, QgsVectorLayer
 from qgis.PyQt.QtCore import QVariant
 
+from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
 from Kavitro_dev.modules.easements.easement_layer_service import EasementLayerService
@@ -42,7 +44,7 @@ MESSAGES = {
         "commit": "Could not commit As-built layer changes",
         "verify": "Updated As-built feature could not be verified on the configured main layer",
         "fields_start": "Could not start editing As-built layer to add external fields",
-        "fields_add": "Could not add field ext_job_id to As-built layer",
+        "fields_add": "Could not add external As-built fields to layer",
         "fields_commit": "Could not commit new As-built layer fields",
         "events": ("asbuilt_attach_existing_save_failed", "asbuilt_attach_existing_rollback_failed"),
         "field_events": ("asbuilt_layer_ensure_fields_failed", "asbuilt_layer_ensure_fields_rollback_failed"),
@@ -103,6 +105,10 @@ def layer_for(service, rows=(), *, with_fields=True, extra_fields=""):
             feature.setAttribute(key, value)
         layer.dataProvider().addFeature(feature)
     return layer
+
+
+def not_number_text(feature_id) -> str:
+    return LanguageManager().translate(TranslationKeys.LAYER_FEATURE_ID_NOT_NUMBER).format(feature_id=feature_id)
 
 
 def feature_ids(layer) -> list[int]:
@@ -166,16 +172,25 @@ class EnsureCustomFieldsTest(_Case):
                     self.assertEqual(service._ensure_custom_fields(layer_for(service)), (True, ""))
                 start.assert_not_called()
 
-    def test_in_the_users_edit_session_only_as_built_ties_the_fields_to_it(self) -> None:
-        # Needs a user decision: as-built adds the fields to the edit buffer, the others straight to the provider.
-        for service, kept_after_rollback in ((AsBuiltLayerService, False), (ProjectsLayerService, True), (EasementLayerService, True)):
+    def test_in_the_users_edit_session_the_fields_go_to_the_provider(self) -> None:
+        # As-built added them to the edit buffer, so the user's rollback or undo removed them again.
+        for service in ATTACHABLE:
             with self.subTest(service=service.__name__):
                 layer = layer_for(service, with_fields=False)
                 layer.startEditing()
                 self.assertEqual(service._ensure_custom_fields(layer), (True, ""))
                 self.assertTrue(layer.isEditable())
+                self.assertFalse(layer.isModified())
                 layer.rollBack()
-                self.assertEqual(len(layer.fields()) > 0, kept_after_rollback)
+                self.assertEqual(sorted(f.name() for f in layer.fields()), sorted(name for name, _kind in CUSTOM_FIELDS[service]))
+                self.assertEqual(len(layer.dataProvider().fields()), len(CUSTOM_FIELDS[service]))
+
+    def test_works_adds_its_fields_to_the_provider_too(self) -> None:
+        layer = QgsVectorLayer("Point?crs=EPSG:3301&field=ext_job_id:long", "tood", "memory")
+        layer.startEditing()
+        self.assertEqual(WorksLayerService._prepare_required_fields(layer), (True, ""))
+        layer.rollBack()
+        self.assertEqual(len(layer.fields()), len(WorksLayerService.CUSTOM_FIELDS()))
 
     def test_failures_return_their_message(self) -> None:
         for service in ATTACHABLE:
@@ -191,9 +206,7 @@ class EnsureCustomFieldsTest(_Case):
             with self.subTest(service=service.__name__, step="add"):
                 layer = layer_for(service, with_fields=False)
                 provider = type(layer.dataProvider())
-                with patch.object(QgsVectorLayer, "addAttribute", return_value=False), patch.object(
-                    provider, "addAttributes", return_value=False
-                ):
+                with patch.object(provider, "addAttributes", return_value=False):
                     self.assertEqual(service._ensure_custom_fields(layer), (False, texts["fields_add"]))
                 self.assertFalse(layer.isEditable())
             with self.subTest(service=service.__name__, step="invalid"):
@@ -247,14 +260,16 @@ class FindFeatureTest(_Case):
                 self.assertIsNone(self.find(service, layer, item_id="9"))
                 self.assertIsNone(self.find(service, layer, item_id=""))
 
-    def test_the_first_feature_in_layer_order_wins(self) -> None:
-        # Needs a user decision: an earlier feature matching the number or name wins over a later one matching the id.
+    def test_the_id_wins_over_an_earlier_feature_with_the_number_or_name(self) -> None:
+        # The first feature in layer order won, so a feature with only the same number or name was linked instead.
         for service in ATTACHABLE:
             with self.subTest(service=service.__name__):
                 other_field, keyword, _item_key = OTHER_KEY[service]
-                layer = layer_for(service, [{other_field: "N-1"}, {ID_FIELD[service]: "7"}])
-                first, _second = feature_ids(layer)
-                self.assertEqual(self.find(service, layer, item_id="7", **{keyword: "N-1"}), first)
+                rows = [{other_field: "N-1"}, {ID_FIELD[service]: "7"}, {ID_FIELD[service]: "7"}, {other_field: "N-1"}]
+                layer = layer_for(service, rows)
+                first, second, _third, _fourth = feature_ids(layer)
+                self.assertEqual(self.find(service, layer, item_id="7", **{keyword: "N-1"}), second)
+                self.assertEqual(self.find(service, layer, item_id="8", **{keyword: "N-1"}), first)
                 self.assertEqual(self.find(service, layer, item_id="", **{keyword: "N-1"}), first)
                 dup = layer_for(service, [{ID_FIELD[service]: "7"}, {ID_FIELD[service]: "7"}])
                 self.assertEqual(self.find(service, dup, item_id="7"), feature_ids(dup)[0])
@@ -271,6 +286,17 @@ class FindFeatureTest(_Case):
         name_feature, number_feature = feature_ids(layer)
         self.assertEqual(self.find(ProjectsLayerService, layer, item_id="", item_number="N-1"), number_feature)
         self.assertEqual(self.find(ProjectsLayerService, layer, item_id="", item_name="Nimi"), name_feature)
+        # The number wins over an earlier feature with only the name.
+        self.assertEqual(self.find(ProjectsLayerService, layer, item_id="9", item_number="N-1", item_name="Nimi"),
+                         number_feature)
+
+    def test_the_drawn_feature_with_the_id_wins_over_an_older_number_match(self) -> None:
+        for service in (ProjectsLayerService, EasementLayerService):
+            with self.subTest(service=service.__name__):
+                layer = layer_for(service, [{OTHER_KEY[service][0]: "N-1"}])
+                drawn = draw_feature(layer, {ID_FIELD[service]: "7"})
+                self.assertEqual(self.find(service, layer, item_id="7", item_number="N-1"), drawn)
+                layer.rollBack()
 
     def test_easement_finds_the_id_in_a_legacy_field(self) -> None:
         layer = layer_for(EasementLayerService, with_fields=False, extra_fields="field=easement_id:string")
@@ -361,13 +387,14 @@ class AttachTest(_Case):
                 fid = feature_ids(layer)[0]
                 self.assertEqual(self.attach(service, layer, fid, item_id="abc"), (False, MESSAGES[service]["verify"]))
 
-    def test_projects_check_accepts_any_feature_with_the_number_or_name(self) -> None:
-        # Needs a user decision: projects do not check that the saved feature itself carries the id.
+    def test_projects_check_needs_the_id_on_the_saved_feature(self) -> None:
+        # Projects accepted any feature with the same number or name, so a link the layer dropped looked saved.
         layer = layer_for(ProjectsLayerService, with_fields=False, extra_fields="field=ext_project_id:integer")
         ProjectsLayerService._ensure_custom_fields(layer)
         layer.dataProvider().addFeature(QgsFeature(layer.fields()))
         fid = feature_ids(layer)[0]
-        self.assertEqual(self.attach(ProjectsLayerService, layer, fid, item_id="abc"), (True, "kiht"))
+        self.assertEqual(self.attach(ProjectsLayerService, layer, fid, item_id="abc"),
+                         (False, MESSAGES[ProjectsLayerService]["verify"]))
 
     def test_failed_steps_return_their_message_and_leave_nothing_open(self) -> None:
         for service in ATTACHABLE:
@@ -424,8 +451,17 @@ class AttachTest(_Case):
                 self.assertEqual(self.attach(service, layer, feature_ids(layer)[0], item_id=" "), (False, texts["missing_id"]))
                 self.assertEqual(self.attach(service, QgsVectorLayer("Polygon", "x", "nope"), 1), (False, texts["invalid"]))
                 self.assertEqual(self.attach(service, None, 1), (False, texts["invalid"]))
-                with self.assertRaises(ValueError):
-                    self.attach(service, layer, "abc")
+
+    def test_a_feature_id_that_is_not_a_number_is_a_normal_failure(self) -> None:
+        # int("abc") raised ValueError out of the service into the map click handler.
+        for service in ATTACHABLE:
+            for bad_id in ("abc", None, "1.5"):
+                with self.subTest(service=service.__name__, feature_id=bad_id):
+                    self.events.clear()
+                    layer = layer_for(service, [{}])
+                    self.assertEqual(self.attach(service, layer, bad_id), (False, not_number_text(bad_id)))
+                    self.assertEqual(self.events, [f"{service.MODULE.value}_feature_id_not_number"])
+                    self.assertFalse(layer.isEditable())
 
     def test_a_layer_without_the_fields_gets_them_first(self) -> None:
         for service in ATTACHABLE:
@@ -453,14 +489,24 @@ class AttachTest(_Case):
                 self.assertEqual(layer.getFeature(filled)[by_field], "kasutaja")
                 self.assertFalse(QVariant(layer.getFeature(filled)["added_date"]).isNull())
 
-    def test_as_built_repaints_where_the_others_reload_the_layer(self) -> None:
-        # Needs a user decision: as-built and works only repaint after a save.
-        for service, reloads in ((AsBuiltLayerService, False), (ProjectsLayerService, True), (EasementLayerService, True)):
+    def test_every_attachable_module_reloads_the_layer_after_a_save(self) -> None:
+        # As-built only repainted, so the layer extent and the canvas stayed as before the save.
+        for service in ATTACHABLE:
             with self.subTest(service=service.__name__):
                 layer = layer_for(service, [{}])
-                with patch.object(QgsVectorLayer, "reload") as reload:
+                with patch.object(QgsVectorLayer, "reload") as reload, patch.object(
+                    QgsVectorLayer, "updateExtents"
+                ) as extents:
                     self.assertTrue(self.attach(service, layer, feature_ids(layer)[0])[0])
-                self.assertEqual(reload.called, reloads)
+                reload.assert_called_once_with()
+                extents.assert_called_once_with()
+
+    def test_works_still_only_repaints(self) -> None:
+        layer = QgsVectorLayer("Point?crs=EPSG:3301&field=ext_job_id:long", "tood", "memory")
+        with patch.object(QgsVectorLayer, "reload") as reload:
+            self.assertTrue(WorksLayerService.insert_work_feature(layer=layer, point=QgsPointXY(1, 1), task_id="5",
+                                                                  title="T")[0])
+        reload.assert_not_called()
 
 
 class WorksWriteTest(_Case):
@@ -535,11 +581,12 @@ class UpsertTest(_Case):
         layer.dataProvider().addFeature(feature)
         return layer
 
-    def upsert(self, service, layer):
+    def upsert(self, service, layer, item_id="7", item=None):
         if service is ProjectsLayerService:
             return service.upsert_generated_area_feature(
-                layer=layer, preview_layer=self.source(), item_id="7", item_data={"name": "Nimi"})
-        return service.upsert_final_cut_feature(layer=layer, final_layer=self.source(), item_id="7", item_data={"number": "N-1"})
+                layer=layer, preview_layer=self.source(), item_id=item_id, item_data=item or {"name": "Nimi"})
+        return service.upsert_final_cut_feature(
+            layer=layer, final_layer=self.source(), item_id=item_id, item_data=item or {"number": "N-1"})
 
     def test_new_and_existing_feature(self) -> None:
         for service in (ProjectsLayerService, EasementLayerService):
@@ -564,6 +611,55 @@ class UpsertTest(_Case):
                 self.assertTrue(layer.isModified())
                 self.assertEqual(self.events, [event])
 
+    def test_a_saved_feature_without_the_id_fails_the_check(self) -> None:
+        # The id field holds whole numbers, so the text id is written empty. The old check found the saved feature by
+        # its number or name and reported success.
+        for service, verify in (
+            (ProjectsLayerService, "Saved project area feature could not be verified on the configured main layer"),
+            (EasementLayerService, "Saved easement feature could not be verified on the configured main layer"),
+        ):
+            for existing in (False, True):
+                with self.subTest(service=service.__name__, existing=existing):
+                    layer = layer_for(service, with_fields=False, extra_fields=f"field={ID_FIELD[service]}:integer")
+                    service._ensure_custom_fields(layer)
+                    if existing:
+                        older = QgsFeature(layer.fields())
+                        older.setAttribute(OTHER_KEY[service][0], "N-1")
+                        layer.dataProvider().addFeature(older)
+                    item = {"name": "Nimi", "projectNumber": "N-1", "number": "N-1"}
+                    self.assertEqual(self.upsert(service, layer, item_id="abc", item=item), (False, verify))
+                    self.assertEqual(layer.featureCount(), 1)
+
+    def test_an_older_feature_with_the_same_id_does_not_count_for_the_new_one(self) -> None:
+        # The saved feature is checked by the id the commit gave it, not by searching the layer for the id.
+        for service in (ProjectsLayerService, EasementLayerService):
+            with self.subTest(service=service.__name__):
+                layer = layer_for(service, [{ID_FIELD[service]: "7"}])
+                layer.dataProvider().addFeature(QgsFeature(layer.fields()))
+                with patch.object(service, "_written_feature_id", return_value=feature_ids(layer)[1]):
+                    self.assertFalse(self.upsert(service, layer, item_id="8")[0])
+
+    def test_a_new_feature_gets_its_id_from_the_commit(self) -> None:
+        for service in (ProjectsLayerService, EasementLayerService):
+            with self.subTest(service=service.__name__):
+                layer = layer_for(service, [{ID_FIELD[service]: "7"}])
+                with patch.object(QgsVectorLayer, "commitChanges", return_value=True):
+                    # A commit that reports no added feature leaves nothing to check.
+                    self.assertFalse(self.upsert(service, layer, item_id="8")[0])
+                layer.rollBack()
+                self.assertEqual(self.upsert(service, layer, item_id="8"), (True, service._layer_target_label(layer)))
+                self.assertEqual(sorted(f[ID_FIELD[service]] for f in layer.getFeatures()), ["7", "8"])
+
+    def test_a_new_feature_in_the_users_session_is_checked_by_its_temporary_id(self) -> None:
+        for service in (ProjectsLayerService, EasementLayerService):
+            with self.subTest(service=service.__name__):
+                layer = layer_for(service, [{}])
+                layer.startEditing()
+                self.assertEqual(self.upsert(service, layer), (True, service._layer_target_label(layer)))
+                self.assertTrue(layer.isEditable())
+                self.assertEqual([f[ID_FIELD[service]] for f in layer.getFeatures() if f.id() < 0], ["7"])
+                layer.rollBack()
+
     def test_failed_add_and_commit(self) -> None:
         for service, add_text in ((ProjectsLayerService, "Could not add project area feature"),
                                   (EasementLayerService, "Could not add easement feature")):
@@ -573,6 +669,70 @@ class UpsertTest(_Case):
                 commit = "Could not commit Projects layer changes" if service is ProjectsLayerService else "Could not commit easement layer changes"
                 with patch.object(QgsVectorLayer, "commitChanges", return_value=False):
                     self.assertEqual(self.upsert(service, layer_for(service)), (False, commit))
+
+
+class EasementDeleteArchiveTest(_Case):
+    @staticmethod
+    def layer():
+        return layer_for(EasementLayerService, [{}, {}], extra_fields="field=Staatus:string")
+
+    @staticmethod
+    def delete(layer, feature_id):
+        return EasementLayerService.delete_feature_by_id(layer=layer, feature_id=feature_id)
+
+    @staticmethod
+    def archive(layer, feature_id):
+        return EasementLayerService.archive_feature_by_id(layer=layer, feature_id=feature_id)
+
+    def steps(self):
+        return (("delete", self.delete, "deleteFeature", "easement_delete_feature_failed"),
+                ("archive", self.archive, "updateFeature", "easement_archive_feature_failed"))
+
+    def test_both_work(self) -> None:
+        layer = self.layer()
+        first, second = feature_ids(layer)
+        self.assertEqual(self.archive(layer, first), (True, EasementLayerService._layer_target_label(layer)))
+        self.assertEqual(layer.getFeature(first)["Staatus"], "(puudub)")
+        self.assertEqual(self.delete(layer, second), (True, EasementLayerService._layer_target_label(layer)))
+        self.assertEqual(feature_ids(layer), [first])
+        self.assertFalse(layer.isEditable())
+
+    def test_an_error_keeps_the_users_own_edit_session(self) -> None:
+        # The whole session was rolled back, dropping the user's other unsaved edits.
+        for name, run, method, event in self.steps():
+            with self.subTest(step=name):
+                self.events.clear()
+                layer = self.layer()
+                first, second = feature_ids(layer)
+                layer.startEditing()
+                layer.changeGeometry(second, QgsGeometry.fromWkt("POLYGON((0 0, 5 0, 5 5, 0 0))"))
+                with patch.object(QgsVectorLayer, method, side_effect=RuntimeError("boom")):
+                    self.assertEqual(run(layer, first), (False, "boom"))
+                self.assertTrue(layer.isEditable())
+                self.assertTrue(layer.isModified())
+                self.assertEqual(self.events, [event])
+                layer.rollBack()
+
+    def test_an_error_rolls_back_the_session_opened_here(self) -> None:
+        for name, run, method, _event in self.steps():
+            with self.subTest(step=name):
+                layer = self.layer()
+                with patch.object(QgsVectorLayer, method, side_effect=RuntimeError("boom")):
+                    self.assertEqual(run(layer, feature_ids(layer)[0]), (False, "boom"))
+                self.assertFalse(layer.isEditable())
+                self.assertEqual(len(feature_ids(layer)), 2)
+
+    def test_a_feature_id_that_is_not_a_number_is_a_normal_failure(self) -> None:
+        # int("abc") raised ValueError: archive straight out of its first read, delete out of its own error log.
+        for name, run, _method, _event in self.steps():
+            for bad_id in ("abc", None):
+                with self.subTest(step=name, feature_id=bad_id):
+                    self.events.clear()
+                    layer = self.layer()
+                    self.assertEqual(run(layer, bad_id), (False, not_number_text(bad_id)))
+                    self.assertEqual(self.events, ["easement_feature_id_not_number"])
+                    self.assertFalse(layer.isEditable())
+                    self.assertEqual(len(feature_ids(layer)), 2)
 
 
 class OneOwnerTest(unittest.TestCase):

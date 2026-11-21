@@ -67,7 +67,7 @@ class LayerEditTexts:
     """What one layer edit returns when a step fails, and its log events for an unexpected error."""
 
     start_failed: str
-    change_failed: str  # may name the field with {field}
+    change_failed: str
     commit_failed: str
     failed_event: str
     rollback_event: str
@@ -95,6 +95,7 @@ class ModuleLayerServiceBase:
 
     @staticmethod
     def parse_backend_datetime(value) -> Optional[datetime]:
+        """Backend ISO text, or a date the user typed in Estonian notation (dd.mm.yyyy, optionally with the time)."""
         text = str(value or "").strip()
         if not text:
             return None
@@ -104,7 +105,8 @@ class ModuleLayerServiceBase:
         except ValueError:
             parsed = None
         if parsed is None:
-            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            # strptime refuses a day the month does not have (31.02.2024), so a wrong date stays rejected.
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d.%m.%Y %H:%M:%S", "%d.%m.%Y %H:%M", "%d.%m.%Y"):
                 try:
                     parsed = datetime.strptime(text, fmt)
                     break
@@ -295,10 +297,10 @@ class ModuleLayerServiceBase:
     def _find_first_feature(
         cls, layer: Optional[QgsVectorLayer], keys: tuple[tuple[Optional[str], object], ...], *, log_extra: dict
     ) -> Optional[QgsFeature]:
-        """The first feature, in layer order, whose value in any of the (field, value) keys matches.
+        """The feature matching the first key that any feature matches; within one key, the first in layer order.
 
-        Keys are tried per feature, so an earlier feature matching a later key wins over a later one matching the id.
-        In edit mode QGIS returns the features added in the session first.
+        The keys are in priority order (the Kavitro id first), so a feature carrying the id wins over an earlier one
+        that only matches the number or name. In edit mode QGIS returns the features added in the session first.
         """
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return None
@@ -306,11 +308,16 @@ class ModuleLayerServiceBase:
         wanted = [(field, text) for field, text in wanted if field and text]
         if not wanted:
             return None
+        # One pass over the layer: the first match per key, stopping as soon as the first key matches.
+        first_match: list[Optional[QgsFeature]] = [None] * len(wanted)
         try:
             for feature in layer.getFeatures():
-                for field, text in wanted:
-                    if str(feature.attribute(field) or "").strip() == text:
-                        return feature
+                for index, (field, text) in enumerate(wanted):
+                    if first_match[index] is None and str(feature.attribute(field) or "").strip() == text:
+                        first_match[index] = feature
+                if first_match[0] is not None:
+                    break
+            return next((feature for feature in first_match if feature is not None), None)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -330,13 +337,11 @@ class ModuleLayerServiceBase:
             PythonFailLogger.log_exception(rollback_exc, module=cls.MODULE.value, event=event)
 
     @classmethod
-    def _add_missing_fields(
-        cls, layer: QgsVectorLayer, missing: list[QgsField], *, texts: LayerEditTexts, in_edit_buffer: bool = False
-    ) -> tuple[bool, str]:
-        """Adds the fields, committing only an edit session opened here.
+    def _add_missing_fields(cls, layer: QgsVectorLayer, missing: list[QgsField], *, texts: LayerEditTexts) -> tuple[bool, str]:
+        """Adds the fields through the provider, committing only an edit session opened here.
 
-        In the edit buffer the fields stay with the user's session (a rollback removes them); through the provider
-        they are on the layer at once, whatever the session does.
+        Through the provider the fields are on the layer at once: undoing or rolling back the user's own edit
+        session cannot remove them while the features drawn in it still need them.
         """
         if not missing:
             return True, ""
@@ -347,11 +352,11 @@ class ModuleLayerServiceBase:
                 if not started_edit:
                     return False, texts.start_failed
 
-            failed_field = cls._add_fields(layer, missing, in_edit_buffer=in_edit_buffer)
-            if failed_field is not None:
+            provider = layer.dataProvider()
+            if provider is None or not provider.addAttributes(missing):
                 if started_edit:
                     layer.rollBack()
-                return False, texts.change_failed.format(field=failed_field)
+                return False, texts.change_failed
 
             layer.updateFields()
             if not started_edit:
@@ -367,19 +372,6 @@ class ModuleLayerServiceBase:
             PythonFailLogger.log_exception(exc, module=cls.MODULE.value, event=texts.failed_event)
             return False, str(exc)
 
-    @staticmethod
-    def _add_fields(layer: QgsVectorLayer, fields: list[QgsField], *, in_edit_buffer: bool) -> Optional[str]:
-        """None when all were added, else the name of the field that failed ("" when the provider refused them all)."""
-        if in_edit_buffer:
-            for field in fields:
-                if not layer.addAttribute(field):
-                    return field.name()
-            return None
-        provider = layer.dataProvider()
-        if provider is None or not provider.addAttributes(fields):
-            return ""
-        return None
-
     @classmethod
     def _write_feature(
         cls,
@@ -389,13 +381,15 @@ class ModuleLayerServiceBase:
         add: bool,
         texts: LayerEditTexts,
         log_extra: Optional[dict] = None,
-        check_saved: Optional[Callable[[], tuple[bool, str]]] = None,
+        check_saved: Optional[Callable[[Optional[int]], tuple[bool, str]]] = None,
     ) -> tuple[bool, str]:
         """Adds or updates the feature; commits and refreshes when the layer was not already in edit mode.
 
         In the user's own edit session the change stays in it, for the user (or the draw flow) to save.
+        `check_saved` gets the id the written feature has now (None when the layer did not report it).
         """
         started_edit = False
+        committed_ids: list[int] = []
         try:
             if not layer.isEditable():
                 started_edit = bool(layer.startEditing())
@@ -408,17 +402,41 @@ class ModuleLayerServiceBase:
                     layer.rollBack()
                 return False, texts.change_failed
 
-            if started_edit and not layer.commitChanges():
+            if started_edit and not cls._commit_noting_added_ids(layer, committed_ids):
                 errors = "; ".join(layer.commitErrors() or [])
                 layer.rollBack()
                 return False, errors or texts.commit_failed
 
             cls._refresh_after_save(layer)
-            return check_saved() if check_saved is not None else (True, "")
+            if check_saved is None:
+                return True, ""
+            return check_saved(cls._written_feature_id(feature, add=add, committed=started_edit, committed_ids=committed_ids))
         except Exception as exc:
             cls._rollback_own_edit(layer, started_edit, event=texts.rollback_event)
             PythonFailLogger.log_exception(exc, module=cls.MODULE.value, event=texts.failed_event, extra=log_extra)
             return False, str(exc)
+
+    @staticmethod
+    def _commit_noting_added_ids(layer: QgsVectorLayer, added_ids: list[int]) -> bool:
+        # A feature added in the session has a temporary id until the commit; the provider's ids arrive in this signal.
+        def note(_layer_id, features) -> None:
+            added_ids.extend(int(feature.id()) for feature in features)
+
+        layer.committedFeaturesAdded.connect(note)
+        try:
+            return bool(layer.commitChanges())
+        finally:
+            try:
+                layer.committedFeaturesAdded.disconnect(note)
+            except (TypeError, RuntimeError):  # already disconnected, or the layer was deleted
+                pass
+
+    @staticmethod
+    def _written_feature_id(feature: QgsFeature, *, add: bool, committed: bool, committed_ids: list[int]) -> Optional[int]:
+        if add and committed:
+            # The session was opened here, so the one feature it added is the written one.
+            return committed_ids[0] if len(committed_ids) == 1 else None
+        return int(feature.id())
 
     @classmethod
     def _refresh_after_save(cls, layer: QgsVectorLayer) -> None:
@@ -580,7 +598,6 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
     # (name, type) or (name, type, length): the fields an attach needs, added to the layer when missing.
     CUSTOM_FIELDS: tuple[tuple, ...]
     FIELDS_TEXTS: LayerEditTexts
-    ADD_FIELDS_IN_EDIT_BUFFER: bool = False
     # The field the backend id is written to: the first one the layer has.
     ID_FIELD_CANDIDATES: tuple[str, ...]
     MISSING_ITEM_ID_TEXT: str
@@ -594,7 +611,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
             return False, cls.INVALID_LAYER_TEXT
         existing = cls._field_map(layer)
         missing = [cls._custom_field(spec) for spec in cls.CUSTOM_FIELDS if spec[0].lower() not in existing]
-        return cls._add_missing_fields(layer, missing, texts=cls.FIELDS_TEXTS, in_edit_buffer=cls.ADD_FIELDS_IN_EDIT_BUFFER)
+        return cls._add_missing_fields(layer, missing, texts=cls.FIELDS_TEXTS)
 
     @staticmethod
     def _custom_field(spec: tuple) -> QgsField:
@@ -624,7 +641,10 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
         if not item_id_text:
             return False, cls.MISSING_ITEM_ID_TEXT
 
-        feature_id = int(feature_id)
+        feature_number = cls._feature_id_number(feature_id)
+        if feature_number is None:
+            return False, cls._feature_id_not_number_text(feature_id)
+        feature_id = feature_number
         feature = cls._feature_by_id(layer, feature_id)
         if feature is None:
             return False, cls.FEATURE_NOT_FOUND_TEXT
@@ -638,8 +658,8 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
             value_problems=value_problems,
         )
 
-        def check_saved() -> tuple[bool, str]:
-            if not cls._verify_attached(layer, feature_id=feature_id, item_id=item_id_text, item=item_payload):
+        def check_saved(saved_id: Optional[int]) -> tuple[bool, str]:
+            if not cls._verify_attached(layer, feature_id=saved_id, item_id=item_id_text, item=item_payload):
                 return False, cls.ATTACH_VERIFY_FAILED_TEXT
             return True, cls._layer_target_label(layer)
 
@@ -666,13 +686,32 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
         raise NotImplementedError
 
     @classmethod
-    def _verify_attached(cls, layer: QgsVectorLayer, *, feature_id: int, item_id: str, item: dict) -> bool:
+    def _verify_attached(cls, layer: QgsVectorLayer, *, feature_id: Optional[int], item_id: str, item: dict) -> bool:
         """The saved feature itself carries the id. Another feature with the same id (an older link) does not count."""
+        if feature_id is None:
+            return False
         saved = cls._feature_by_id(layer, feature_id)
         id_field = cls._resolve_first_field_name(layer, cls.ID_FIELD_CANDIDATES)
         if saved is None or not id_field:
             return False
         return str(saved.attribute(id_field) or "").strip() == item_id
+
+    @classmethod
+    def _feature_id_number(cls, feature_id) -> Optional[int]:
+        """The feature id as a number; None (logged) when it is not one."""
+        try:
+            return int(feature_id)
+        except (TypeError, ValueError, OverflowError):
+            PythonFailLogger.log(
+                f"{cls.MODULE.value}_feature_id_not_number",
+                module=cls.MODULE.value,
+                extra={"feature_id": str(feature_id)},
+            )
+            return None
+
+    @staticmethod
+    def _feature_id_not_number_text(feature_id) -> str:
+        return LanguageManager().translate(TranslationKeys.LAYER_FEATURE_ID_NOT_NUMBER).format(feature_id=feature_id)
 
     @classmethod
     def _fill_added_fields_if_empty(

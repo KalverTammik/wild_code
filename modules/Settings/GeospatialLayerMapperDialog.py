@@ -361,7 +361,11 @@ class GeospatialLayerMapperDialog(QDialog):
                         has_value, value = self._mapped_value_for_feature(source_feature, row)
                         if not has_value:
                             continue
+                        problems_before = len(value_problems)
                         coerced = self._coerce_value_for_field(target_layer.fields()[target_index], value, value_problems)
+                        if len(value_problems) > problems_before:
+                            # A value that does not fit must not wipe the value the feature already has.
+                            continue
                         if target_layer.changeAttributeValue(target_feature_id, target_index, coerced):
                             changed = True
 

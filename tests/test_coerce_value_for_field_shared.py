@@ -8,6 +8,7 @@ import os
 import sys
 import unittest
 from datetime import date, datetime
+from functools import partial
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -17,8 +18,10 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from qgis.core import NULL, QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant
+from qgis.PyQt.QtCore import QCoreApplication, QDate, QDateTime, QEvent, QTime, QVariant
+from qgis.PyQt.QtWidgets import QLineEdit, QWidget
 
+from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
 from Kavitro_dev.modules.easements.easement_layer_service import EasementLayerService
@@ -26,6 +29,7 @@ from Kavitro_dev.modules.projects.projects_layer_service import ProjectsLayerSer
 from Kavitro_dev.modules.works.works_layer_service import WorksLayerService
 from Kavitro_dev.utils.layers.module_layer_service_base import FieldValueProblem, ModuleLayerServiceBase
 from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.widgets.form_value_check import FormValueCheck
 
 SERVICES = (AsBuiltLayerService, EasementLayerService, ProjectsLayerService, WorksLayerService)
 INTEGER, NUMBER, YES_NO = FieldValueProblem.INTEGER, FieldValueProblem.NUMBER, FieldValueProblem.YES_NO
@@ -76,7 +80,14 @@ TABLE = (
     (QVariant.Date, datetime(2026, 1, 2, 10, 5), QDate(2026, 1, 2), None),
     (QVariant.Date, "2026-01-02", QDate(2026, 1, 2), None),
     (QVariant.Date, "2026-01-02 10:05:00", QDate(2026, 1, 2), None),
-    (QVariant.Date, "02.01.2026", None, DATE),
+    # Estonian notation, as the user types it in a form.
+    (QVariant.Date, "02.01.2026", QDate(2026, 1, 2), None),
+    (QVariant.Date, "1.5.2024", QDate(2024, 5, 1), None),
+    (QVariant.Date, " 01.05.2024 10:05 ", QDate(2024, 5, 1), None),
+    (QVariant.Date, "31.02.2024", None, DATE),
+    (QVariant.Date, "32.01.2024", None, DATE),
+    (QVariant.Date, "01.13.2024", None, DATE),
+    (QVariant.Date, "01.05.24", None, DATE),
     (QVariant.Date, "abc", None, DATE),
     # DateTime fields. Before: all four agreed, except unreadable text was passed through.
     (QVariant.DateTime, QDateTime(2026, 1, 2, 10, 5), QDateTime(2026, 1, 2, 10, 5), None),
@@ -85,6 +96,11 @@ TABLE = (
     (QVariant.DateTime, date(2026, 1, 2), QDateTime(2026, 1, 2, 0, 0, 0), None),
     (QVariant.DateTime, "2026-01-02 10:05:07", QDateTime(2026, 1, 2, 10, 5, 7), None),
     (QVariant.DateTime, "2026-01-02", QDateTime(2026, 1, 2, 0, 0, 0), None),
+    (QVariant.DateTime, "01.05.2024", QDateTime(2024, 5, 1, 0, 0, 0), None),
+    (QVariant.DateTime, "1.5.2024 9:05", QDateTime(2024, 5, 1, 9, 5, 0), None),
+    (QVariant.DateTime, "01.05.2024 10:05:07", QDateTime(2024, 5, 1, 10, 5, 7), None),
+    (QVariant.DateTime, "31.02.2024 10:05", None, DATE_TIME),
+    (QVariant.DateTime, "01.05.2024 25:00", None, DATE_TIME),
     (QVariant.DateTime, "abc", None, DATE_TIME),
     # Text fields. Before: as-built and easement passed objects through unchanged.
     (QVariant.String, {"a": "ä"}, '{"a": "ä"}', None),
@@ -198,11 +214,11 @@ class FieldValueProblemRecordTest(_Case):
         for service, module in modules.items():
             with self.subTest(service=service.__name__):
                 self.log.reset_mock()
-                service.coerce_value_for_field(field_of(QVariant.Date, "kpv"), "31.12.2026")
+                service.coerce_value_for_field(field_of(QVariant.Date, "kpv"), "31.02.2026")
                 self.log.assert_called_once_with(
                     f"{module}_field_value_rejected",
                     module=module,
-                    extra={"field": "kpv", "value_type": "str", "value": "31.12.2026", "expected": DATE},
+                    extra={"field": "kpv", "value_type": "str", "value": "31.02.2026", "expected": DATE},
                 )
 
     def test_accepted_value_is_not_logged_or_recorded(self) -> None:
@@ -277,13 +293,13 @@ class SaveGoesOnWithAnEmptyFieldTest(_Case):
             )
         self._assert_saved_empty(ok, message, layer, feature_id, "ext_project_number", problems, INTEGER)
 
-    def test_works_begin_date_in_estonian_notation(self) -> None:
+    def test_works_begin_date_that_does_not_exist(self) -> None:
         layer = QgsVectorLayer("Point?crs=EPSG:3301&field=ext_job_id:long&field=begin_date:datetime", "tood", "memory")
         problems: list[FieldValueProblem] = []
         with patch.object(WorksLayerService, "current_username", return_value="kasutaja"):
             ok, message = WorksLayerService.insert_work_feature(
                 layer=layer, point=QgsPointXY(1, 1), task_id="5", title="Töö",
-                begin_date="31.12.2026", value_problems=problems,
+                begin_date="31.02.2026", value_problems=problems,
             )
         self.assertTrue(ok, message)
         saved = next(layer.getFeatures())
@@ -299,6 +315,60 @@ class SaveGoesOnWithAnEmptyFieldTest(_Case):
             )
         self.assertTrue(ok, message)
         self.assertEqual([c.args[0] for c in self.log.call_args_list], ["project_field_value_rejected"])
+
+
+class EstonianDateNotationTest(_Case):
+    """A date typed as dd.mm.yyyy reached the layer empty; only the ISO form was read."""
+
+    def test_every_service_reads_it_and_still_refuses_a_day_that_does_not_exist(self) -> None:
+        for service in SERVICES:
+            for raw, expected in (
+                ("01.05.2024", datetime(2024, 5, 1)),
+                ("1.5.2024", datetime(2024, 5, 1)),
+                ("01.05.2024 10:05", datetime(2024, 5, 1, 10, 5)),
+                ("01.05.2024 10:05:07", datetime(2024, 5, 1, 10, 5, 7)),
+                ("31.02.2024", None),
+                ("29.02.2023", None),
+                ("01.05.2024 10", None),
+            ):
+                with self.subTest(service=service.__name__, raw=raw):
+                    self.assertEqual(service.parse_backend_datetime(raw), expected)
+
+    def test_works_begin_date_in_estonian_notation_is_saved(self) -> None:
+        layer = QgsVectorLayer("Point?crs=EPSG:3301&field=ext_job_id:long&field=begin_date:datetime", "tood", "memory")
+        problems: list[FieldValueProblem] = []
+        with patch.object(WorksLayerService, "current_username", return_value="kasutaja"):
+            ok, message = WorksLayerService.insert_work_feature(
+                layer=layer, point=QgsPointXY(1, 1), task_id="5", title="Töö",
+                begin_date="31.12.2026", value_problems=problems,
+            )
+        self.assertTrue(ok, message)
+        self.assertEqual(next(layer.getFeatures())["begin_date"], QDateTime(2026, 12, 31, 0, 0, 0))
+        self.assertEqual(problems, [])
+
+    def test_the_form_check_accepts_the_same_notation(self) -> None:
+        # The form and the save share one conversion, so the form must not mark what the save now stores.
+        window = QWidget()
+        self.addCleanup(self._delete, window)
+        field_input = QLineEdit(window)
+        layer = QgsVectorLayer("Polygon?crs=EPSG:3301&field=Kehtestamise kuupäev:date", "servituudid", "memory")
+        check = FormValueCheck(
+            partial(EasementLayerService.geometry_form_value_problems, layer),
+            {"Kehtestamise kuupäev": (field_input, "Kehtestamise kuupäev")},
+            LanguageManager(language="et"),
+        )
+        for text, invalid in (("01.05.2024", []), ("1.5.2024", []), ("31.02.2024", ["Kehtestamise kuupäev"])):
+            with self.subTest(text=text):
+                field_input.setText(text)
+                self.assertEqual(check.check_all(), invalid)
+                self.assertEqual(field_input.property(FormValueCheck.STATE_PROPERTY),
+                                 FormValueCheck.STATE_ERROR if invalid else "")
+
+    @staticmethod
+    def _delete(window: QWidget) -> None:
+        window.hide()
+        window.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
 
 
 if __name__ == "__main__":

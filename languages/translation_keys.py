@@ -459,6 +459,7 @@ class TranslationKeys:
     MAP_IDENTIFY_LAYER_MISSING = "map_identify_layer_missing"
     MAP_IDENTIFY_ID_FIELD_MISSING = "map_identify_id_field_missing"
     MAP_IDENTIFY_FEATURE_MISSING = "map_identify_feature_missing"
+    LAYER_FEATURE_ID_NOT_NUMBER = "layer_feature_id_not_number"
     MAP_IDENTIFY_OPEN_FAILED = "map_identify_open_failed"
     WORKS_CREATE_DIALOG_TITLE = "works_create_dialog_title"
     WORKS_CREATE_PROPERTY_LINK_HINT = "works_create_property_link_hint"

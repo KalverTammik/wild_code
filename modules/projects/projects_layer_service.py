@@ -189,12 +189,6 @@ class ProjectsLayerService(AttachableLayerServiceBase):
         )
 
     @classmethod
-    def _verify_attached(cls, layer: QgsVectorLayer, *, feature_id: int, item_id: str, item: dict) -> bool:
-        # Needs a user decision: any feature matching the id, number or name counts, not only the saved one.
-        found = cls.find_feature(layer, item_id=item_id, item_number=cls._item_number(item), item_name=cls._item_name(item))
-        return found is not None
-
-    @classmethod
     def upsert_generated_area_feature(
         cls,
         *,
@@ -271,8 +265,8 @@ class ProjectsLayerService(AttachableLayerServiceBase):
             set_attr(candidates=(cls.FIELD_ADDED_BY,), value=username)
             set_attr(candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
 
-        def check_saved() -> tuple[bool, str]:
-            if cls.find_feature(layer, item_id=item_id_text, item_number=item_number, item_name=item_name) is None:
+        def check_saved(saved_id: Optional[int]) -> tuple[bool, str]:
+            if not cls._verify_attached(layer, feature_id=saved_id, item_id=item_id_text, item=item_payload):
                 return False, "Saved project area feature could not be verified on the configured main layer"
             return True, cls._layer_target_label(layer)
 
