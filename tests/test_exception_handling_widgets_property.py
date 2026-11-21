@@ -121,13 +121,13 @@ class MainLayerCheckLookupTest(unittest.TestCase):
         )
         return controller
 
-    def test_failed_layer_read_is_logged_and_still_reads_as_missing(self) -> None:
+    def test_failed_layer_read_is_logged_and_reported_as_a_lookup_failure(self) -> None:
         controller = self.controller()
         with patch.object(check_module.MapHelpers, "find_features_by_fields_and_values",
                           side_effect=RuntimeError("layer deleted")), \
                 patch.object(PythonFailLogger, "log") as log:
             causes = controller._compute_causes_for_row(0)
-        self.assertEqual(causes, ["missing in main layer"])
+        self.assertEqual(causes, [TranslationKeys.ATTENTION_CAUSE_MAIN_LAYER_LOOKUP_FAILED])
         call = call_for(log, "main_layer_lookup_failed")
         self.assertEqual(call.kwargs["module"], "property")
         self.assertEqual(call.kwargs["extra"], {"tunnus": "1234"})

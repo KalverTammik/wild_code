@@ -121,6 +121,8 @@ TRANSLATIONS = {
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_DONE: "Ühtegi seotud mooduli kannet ei paista veel lõpetatuna.",
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_IN_PROGRESS: "Ühtegi seotud mooduli kannet ei liigitatud praegu töös olevaks.",
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_TODO: "Ühtegi seotud mooduli kannet ei liigitatud praegu alustamata olekusse.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_FAILED_MODULES: "Osa seotud mooduleid jäi laadimata: {modules}. Tahvlil võib nende kandeid puududa.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_INCOMPLETE: "Laaditud moodulitest ei kuulu siia ühtegi kannet.",
         TranslationKeys.PROJECT_BOARD_COLUMN_NOT_STARTED: "Alustamata",
         TranslationKeys.DATA_DISPLAY_WIDGETS_TERMS_HEADING: "Tingimused",
         TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP: "Abi",
@@ -174,6 +176,7 @@ TRANSLATIONS = {
         TranslationKeys.SEARCH_OPEN_NOT_AVAILABLE_TITLE: "Pole saadaval",
         TranslationKeys.SEARCH_OPEN_NOT_AVAILABLE_MESSAGE: "Seda moodulit ei saa veel otsingust avada.",
         TranslationKeys.SEARCH_SHOW_MORE: "  -- Näita veel {count} --",
+        TranslationKeys.SEARCH_RESULT_OPEN_FAILED: "Tulemust ei õnnestunud avada",
         TranslationKeys.FEED_COUNTER_LOADED: "Laaditud {loaded}",
         TranslationKeys.FEED_COUNTER_LOADED_OF: "Laaditud {loaded} / {total}",
         TranslationKeys.TASK_FILE_LOCAL_FILE: "Kohalik fail",
@@ -588,6 +591,7 @@ TRANSLATIONS = {
     ,TranslationKeys.ATTENTION_CAUSE_IMPORT_NEWER: "import on uuem"
     ,TranslationKeys.ATTENTION_CAUSE_MISSING_MAIN_LAYER: "puudub põhikihis"
     ,TranslationKeys.ATTENTION_CAUSE_MAIN_LAYER_OLDER: "põhikiht on vanem"
+    ,TranslationKeys.ATTENTION_CAUSE_MAIN_LAYER_LOOKUP_FAILED: "põhikihi lugemine ebaõnnestus"
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_START: "Arhiveerin puuduvaid ({count}) enne lisamist..."
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_RESULT: "Puuduvad arhiveeritud: taustasüsteem {archived}/{total}, kaardile liigutatud {moved}{errors_suffix}"
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR: "Puuduvate arhiveerimisel ({count}) tekkis viga"
@@ -634,8 +638,9 @@ TRANSLATIONS = {
         ,TranslationKeys.ASBUILT_NOTES_LOAD_FAILED: "Teostusjoonise {name} kirjeldust ei õnnestunud laadida, seega märkmeid ei avatud. Proovi uuesti."
         ,TranslationKeys.PROJECT_DRAW_NEW_ACTION: "Joonista uus seotud ala kaardile"
         ,TranslationKeys.PROJECT_DRAW_NEW_START_FAILED: "Uue projekti ala joonistamist kaardil ei saanud käivitada."
-        ,TranslationKeys.PROJECT_DRAW_NEW_SAVE_FAILED: "Uus kaardiala loodi, kuid selle sidumine backendi projektiga {item_id} ebaõnnestus. Detailid: {error}"
-        ,TranslationKeys.PROJECT_DRAW_NEW_SUCCESS: "Uus kaardiala loodi ja seoti backendi projektiga {item_id}."
+        ,TranslationKeys.PROJECT_DRAW_NEW_SAVE_FAILED: "Uus kaardiala salvestati kihile ja seoti projektiga {item_id}, kuid selle geomeetriat ei saanud Kavitrosse saata."
+        ,TranslationKeys.PROJECT_DRAW_NEW_LAYER_SAVE_FAILED: "Joonistatud kaardiala ei saanud kihile salvestada ja see eemaldati. Kavitro projekti {item_id} ei muudetud. Detailid: {error}"
+        ,TranslationKeys.PROJECT_DRAW_NEW_SUCCESS: "Uus kaardiala loodi ja seoti Kavitro projektiga {item_id}."
         ,TranslationKeys.PROJECT_PREVIEW_ACTION: "Ava projekti ala eelvaade"
         ,TranslationKeys.PROJECT_PREVIEW_DIALOG_TITLE: "Projekti ala eelvaade"
         ,TranslationKeys.PROJECT_PREVIEW_INTRO: "Loo projekti {name} ({number}) ala eelvaade seotud kinnistute põhjal."
@@ -662,7 +667,8 @@ TRANSLATIONS = {
         ,TranslationKeys.PROJECT_LAYER_INVALID_GEOMETRY: "Projektide kiht peab ala joonistamiseks olema polügoongeomeetriaga."
         ,TranslationKeys.ASBUILT_DRAW_NEW_ACTION: "Joonista uus seotud objekt kaardile"
         ,TranslationKeys.ASBUILT_DRAW_NEW_START_FAILED: "Uue teostusjoonise objekti joonistamist kaardil ei saanud käivitada."
-        ,TranslationKeys.ASBUILT_DRAW_NEW_SAVE_FAILED: "Uus kaardiobjekt loodi, kuid selle sidumine Kavitro teostusjoonisega {item_id} ebaõnnestus. Detailid: {error}"
+        ,TranslationKeys.ASBUILT_DRAW_NEW_SAVE_FAILED: "Uus kaardiobjekt salvestati kihile ja seoti teostusjoonisega {item_id}, kuid selle geomeetriat ei saanud Kavitrosse saata."
+        ,TranslationKeys.ASBUILT_DRAW_NEW_LAYER_SAVE_FAILED: "Joonistatud kaardiobjekti ei saanud kihile salvestada ja see eemaldati. Kavitro teostusjoonist {item_id} ei muudetud. Detailid: {error}"
         ,TranslationKeys.ASBUILT_DRAW_NEW_SUCCESS: "Uus kaardiobjekt loodi ja seoti Kavitro teostusjoonisega {item_id}."
         ,TranslationKeys.ASBUILT_LAYER_MISSING: "Teostusjooniste kiht on seadistamata või puudub projektist. Palun seadista kõigepealt Seadetes Teostusjooniste põhikiht."
         ,TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON: "Lisa uus töö"
@@ -679,6 +685,8 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_DESCRIPTION_LABEL: "Lühikirjeldus"
         ,TranslationKeys.WORKS_CREATE_PRIORITY_LABEL: "Prioriteet"
         ,TranslationKeys.WORKS_CREATE_NO_TYPES: "Praegu pole ühtegi töö liiki loomiseks saadaval. Vajadusel kontrolli mooduli liikide seadeid."
+        ,TranslationKeys.WORKS_CREATE_TYPES_LOAD_FAILED: "Töö liike ei õnnestunud laadida, seega ei saa tööd praegu luua. Kontrolli ühendust, sulge aken ja ava see uuesti."
+        ,TranslationKeys.WORKS_CREATE_OPTIONS_LOAD_FAILED: "Neid valikuid ei õnnestunud laadida: {fields}. Töö saab luua ka ilma nendeta. Uuesti proovimiseks sulge aken ja ava see uuesti."
         ,TranslationKeys.WORKS_CREATE_VALIDATE_TYPE: "Vali töö liik."
         ,TranslationKeys.WORKS_CREATE_VALIDATE_TITLE: "Sisesta töö pealkiri."
         ,TranslationKeys.WORKS_CREATE_START_FAILED: "Uue töö kaardivalikut ei saanud käivitada."
@@ -780,8 +788,9 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_ATTACH_EXISTING_ARCHIVE_SUCCESS: "Olemasolev backendi servituudiga {item_id} seotud objekt arhiveeriti, määrates staatuseks (puudub)."
         ,TranslationKeys.EASEMENT_ATTACH_EXISTING_ARCHIVE_FAILED: "Olemasoleva backendi servituudiga {item_id} seotud objekti arhiveerimine ebaõnnestus. Detailid: {error}"
         ,TranslationKeys.EASEMENT_DRAW_NEW_START_FAILED: "Uue servituudi objekti joonistamist kaardil ei saanud käivitada."
-        ,TranslationKeys.EASEMENT_DRAW_NEW_SAVE_FAILED: "Uus kaardiobjekt loodi, kuid selle sidumine Kavitro servituudiga {item_id} ebaõnnestus. Detailid: {error}"
-        ,TranslationKeys.EASEMENT_DRAW_NEW_SUCCESS: "Uus kaardiobjekt loodi ja seoti backendi servituudiga {item_id}."
+        ,TranslationKeys.EASEMENT_DRAW_NEW_SAVE_FAILED: "Uus kaardiobjekt salvestati kihile ja seoti servituudiga {item_id}, kuid selle geomeetriat ei saanud Kavitrosse saata."
+        ,TranslationKeys.EASEMENT_DRAW_NEW_LAYER_SAVE_FAILED: "Joonistatud kaardiobjekti ei saanud kihile salvestada ja see eemaldati. Kavitro servituuti {item_id} ei muudetud. Detailid: {error}"
+        ,TranslationKeys.EASEMENT_DRAW_NEW_SUCCESS: "Uus kaardiobjekt loodi ja seoti Kavitro servituudiga {item_id}."
         ,TranslationKeys.EASEMENT_EDIT_GEOMETRY_NOT_FOUND: "Backendi servituudi {item_id} jaoks ei leitud seotud kaardiobjekti."
         ,TranslationKeys.EASEMENT_EDIT_GEOMETRY_START_FAILED: "Seotud servituudi objekti geomeetria muutmist ei saanud käivitada."
         ,TranslationKeys.EASEMENT_EDIT_GEOMETRY_READY: "Seotud servituudi objekt {item_id} on nüüd muutmiseks valitud. Kasuta QGIS-i liigutamise ja tippude tööriistu ning salvesta kihi muudatused pärast lõpetamist."
@@ -868,6 +877,7 @@ TRANSLATIONS = {
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_CONFIRM_BODY: "Lähtekiht: {source}\nSihtkiht: {target}\nTöödeldavaid objekte: {count}\n\nMapper kopeerib geomeetria ja kaardistatud väärtused Geospatiali kihile. Kui võimalik, uuendatakse sama välise id-ga olemasolevad sihtobjektid."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED: "Geospatiali sihtkihi muutmisrežiimi ei saanud käivitada."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED: "Migreeritud objekti lisamine Geospatiali sihtkihile ebaõnnestus."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_GEOMETRY_TRANSFORM_FAILED: "{count} objekti koordinaate ei saanud sihtkihi koordinaatsüsteemi teisendada. Neid objekte ei lisatud ega uuendatud."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_COMMIT_FAILED: "Migreeritud objektide salvestamine Geospatiali sihtkihile ebaõnnestus."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_SUCCESS: "Migratsioon lõpetati. Lisatud: {inserted}, uuendatud: {updated}, muutmata: {skipped}."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_WITH_ERRORS: "Migratsioon lõpetati vigadega. Lisatud: {inserted}, uuendatud: {updated}, muutmata: {skipped}.\n\nVead:\n{errors}"

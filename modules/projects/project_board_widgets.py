@@ -167,6 +167,17 @@ class ProjectBoardOverviewWidget(QWidget):
         layout.setSpacing(12)
 
         data = board_data if isinstance(board_data, dict) else {}
+        self._notice_label: Optional[QLabel] = None
+        notice_text = str(data.get("notice") or "").strip()
+        if notice_text:
+            notice_label = QLabel(notice_text, self)
+            notice_label.setObjectName("ProjectBoardNoticeLabel")
+            notice_label.setWordWrap(True)
+            notice_label.setTextFormat(Qt.PlainText)
+            self._notice_label = notice_label
+            layout.addWidget(notice_label)
+            self._apply_notice_theme()
+
         columns_row = QHBoxLayout()
         columns_row.setContentsMargins(0, 0, 0, 0)
         columns_row.setSpacing(12)
@@ -188,8 +199,18 @@ class ProjectBoardOverviewWidget(QWidget):
 
         layout.addLayout(columns_row)
 
+    def _apply_notice_theme(self) -> None:
+        if self._notice_label is None:
+            return
+        theme_name = ThemeManager.effective_theme()
+        dark_theme = is_dark(theme_name) if theme_name in (Theme.DARK, Theme.LIGHT, Theme.SYSTEM) else False
+        # Warning amber; the lighter shade stays readable on the dark board background.
+        color = "#FFB74D" if dark_theme else "#B26A00"
+        self._notice_label.setStyleSheet(f"color: {color}; font-weight: 600;")
+
     def retheme(self) -> None:
         ThemeManager.apply_module_style(self, [QssPaths.MODULE_INFO])
+        self._apply_notice_theme()
         for child in self.findChildren(QWidget):
             child_retheme = getattr(child, "retheme", None)
             if callable(child_retheme):

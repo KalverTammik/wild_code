@@ -18,7 +18,13 @@ from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module, ModuleSupports
 from ...Logs.python_fail_logger import PythonFailLogger
-from .works_create_dialog import WorksCreateDialog
+from .works_create_dialog import (
+    LOAD_FAILED_PRIORITIES,
+    LOAD_FAILED_RESPONSIBLES,
+    LOAD_FAILED_STATUSES,
+    LOAD_FAILED_TYPES,
+    WorksCreateDialog,
+)
 from .works_layer_service import WorksDescriptionService, WorksLayerService
 from .works_pending_gis_dialog import WorksPendingGisDialog
 
@@ -129,6 +135,7 @@ class WorksCreateController:
         self._cached_default_responsible_id = ""
         self._cached_default_status_id = ""
         self._cached_default_status_color = ""
+        self._load_failures: set[str] = set()
 
     def start_capture(
         self,
@@ -355,22 +362,11 @@ class WorksCreateController:
         self._clear_capture_tool(bring_front=True)
 
         property_feature = WorksLayerService.find_property_feature_at_point(point)
-        assignable_users = self._resolve_assignable_users()
-        priority_options = self._resolve_priority_options()
-        default_responsible_id = self._resolve_default_responsible_id()
-        status_options = self._resolve_status_options()
-        default_status_id = self._resolve_default_status_id(status_options)
-        type_options = self._resolve_type_options()
         dialog = WorksCreateDialog(
             point=point,
             property_feature=property_feature,
             allowed_type_ids=self._allowed_type_ids,
-            type_options=type_options,
-            assignable_users=assignable_users,
-            status_options=status_options,
-            priority_options=priority_options,
-            default_responsible_id=default_responsible_id,
-            default_status_id=default_status_id,
+            **self._resolve_dialog_options(),
             lang_manager=self._lang,
             parent=parent_window,
         )
@@ -506,23 +502,11 @@ class WorksCreateController:
             return False
 
         property_feature = WorksLayerService.find_property_feature_at_point(point)
-        assignable_users = self._resolve_assignable_users()
-        priority_options = self._resolve_priority_options()
-        default_responsible_id = self._resolve_default_responsible_id()
-        status_options = self._resolve_status_options()
-        default_status_id = self._resolve_default_status_id(status_options)
-        type_options = self._resolve_type_options()
-
         dialog = WorksCreateDialog(
             point=point,
             property_feature=property_feature,
             allowed_type_ids=self._allowed_type_ids,
-            type_options=type_options,
-            assignable_users=assignable_users,
-            status_options=status_options,
-            priority_options=priority_options,
-            default_responsible_id=default_responsible_id,
-            default_status_id=default_status_id,
+            **self._resolve_dialog_options(),
             initial_title=str(pending_payload.get("title") or ""),
             initial_type_id=str(pending_payload.get("type_id") or ""),
             initial_status_id=str(pending_payload.get("status_id") or ""),
@@ -921,8 +905,9 @@ class WorksCreateController:
             default_responsible_id = ""
 
         try:
+            # raise_on_error: a failed read must not look like a module without statuses.
             status_options = self._normalize_status_options(
-                APIModuleActions.get_module_status_options(Module.WORKS.value)
+                APIModuleActions.get_module_status_options(Module.WORKS.value, raise_on_error=True)
             )
         except Exception as exc:
             self._log_options_load_failed(exc, "works_create_status_options_load_failed")
@@ -982,30 +967,70 @@ class WorksCreateController:
         self._preload_worker = None
         self._preload_thread = None
 
+    def _resolve_dialog_options(self) -> dict[str, object]:
+        """Options for WorksCreateDialog, with the lists that failed to load named in load_failures."""
+        self._load_failures = set()
+        assignable_users = self._resolve_assignable_users()
+        priority_options = self._resolve_priority_options()
+        default_responsible_id = self._resolve_default_responsible_id()
+        status_options = self._resolve_status_options()
+        default_status_id = self._resolve_default_status_id(status_options)
+        type_options = self._resolve_type_options()
+        return {
+            "type_options": type_options,
+            "assignable_users": assignable_users,
+            "status_options": status_options,
+            "priority_options": priority_options,
+            "default_responsible_id": default_responsible_id,
+            "default_status_id": default_status_id,
+            "load_failures": sorted(self._load_failures),
+        }
+
+    # An empty cache (preload still running, failed or empty) is retried here on the GUI thread.
     def _resolve_assignable_users(self) -> list[dict[str, str]]:
         if self._cached_assignable_users:
             return list(self._cached_assignable_users)
-        return self._normalize_assignable_users(APIModuleActions.get_assignable_users())
+        try:
+            users = self._normalize_assignable_users(APIModuleActions.get_assignable_users())
+        except Exception as exc:
+            self._log_options_load_failed(exc, "works_create_assignable_users_load_failed")
+            users = []
+        if not users:
+            # get_assignable_users logs a failed request and returns what it has; a successful answer
+            # always holds the logged-in user, so an empty list means the load failed.
+            self._load_failures.add(LOAD_FAILED_RESPONSIBLES)
+        return users
 
     def _resolve_priority_options(self) -> list[dict[str, str]]:
         if self._cached_priority_options:
             return list(self._cached_priority_options)
-        return APIModuleActions.get_task_priority_options(lang_manager=self._lang, include_empty=True)
+        try:
+            return APIModuleActions.get_task_priority_options(lang_manager=self._lang, include_empty=True)
+        except Exception as exc:
+            self._log_options_load_failed(exc, "works_create_priority_options_load_failed")
+            self._load_failures.add(LOAD_FAILED_PRIORITIES)
+            return []
 
     def _resolve_default_responsible_id(self) -> str:
         if self._cached_default_responsible_id:
             return self._cached_default_responsible_id
-        return APIModuleActions.get_current_user_id()
+        try:
+            return APIModuleActions.get_current_user_id()
+        except Exception as exc:
+            # Only the preselected responsible is lost; the list itself is reported by _resolve_assignable_users.
+            self._log_options_load_failed(exc, "works_create_default_responsible_load_failed")
+            return ""
 
     def _resolve_status_options(self) -> list[dict[str, object]]:
         if self._cached_status_options:
             return list(self._cached_status_options)
         try:
             self._cached_status_options = self._normalize_status_options(
-                APIModuleActions.get_module_status_options(Module.WORKS.value)
+                APIModuleActions.get_module_status_options(Module.WORKS.value, raise_on_error=True)
             )
         except Exception as exc:
             self._log_options_load_failed(exc, "works_create_status_options_load_failed")
+            self._load_failures.add(LOAD_FAILED_STATUSES)
             self._cached_status_options = []
         return list(self._cached_status_options)
 
@@ -1035,6 +1060,7 @@ class WorksCreateController:
             )
         except Exception as exc:
             self._log_options_load_failed(exc, "works_create_type_options_load_failed")
+            self._load_failures.add(LOAD_FAILED_TYPES)
             raw_types = []
         return self._normalize_type_options(raw_types)
 

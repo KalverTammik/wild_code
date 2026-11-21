@@ -1,5 +1,6 @@
 """File actions behind the module file dialogs: list, download link, preview, delete and upload."""
 import os
+import re
 from typing import List, Optional
 
 import requests
@@ -8,6 +9,25 @@ from ..api_client import APIClient
 from ..GraphQLQueryLoader import GraphQLQueryLoader
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.url_manager import Module
+
+
+# requests puts the request URL in its error text ("... for url: https://...", urllib3's
+# "with url: /path?..."); a signed download link carries its token there.
+_URL_RE = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[^\s'\"<>()]+")
+_URL_LABEL_RE = re.compile(r"(\burl:\s*)[^\s'\"<>()]+", re.IGNORECASE)
+_QUERY_RE = re.compile(r"\?[^\s'\"<>()]+")
+
+
+def _redacted(exc: Exception) -> Exception:
+    """Return ``exc``, or a stand-in naming its type when its text held a URL or query string."""
+    original = str(exc)
+    message = _URL_RE.sub("<url>", original)
+    message = _URL_LABEL_RE.sub(r"\1<url>", message)
+    message = _QUERY_RE.sub("?<redacted>", message)
+    if message == original:
+        return exc
+    # The stand-in is a RuntimeError, so the original type goes into the text.
+    return RuntimeError(f"{type(exc).__name__}: {message}")
 
 
 class FileActions:
@@ -128,7 +148,7 @@ class FileActions:
             return list(files_by_uuid.values())
         except Exception as exc:
             PythonFailLogger.log_exception(
-                exc,
+                _redacted(exc),
                 module=owner or Module.TASK.value,
                 event="module_get_files_failed",
                 extra={"item_id": record_id, "module": str(module_name or "")},
@@ -152,7 +172,7 @@ class FileActions:
             return url or None
         except Exception as exc:
             PythonFailLogger.log_exception(
-                exc,
+                _redacted(exc),
                 module=Module.TASK.value,
                 event="task_file_download_link_failed",
                 extra={"uuid": resolved_uuid},
@@ -211,7 +231,7 @@ class FileActions:
                 }
         except Exception as exc:
             PythonFailLogger.log_exception(
-                exc,
+                _redacted(exc),
                 module=Module.TASK.value,
                 event="task_file_preview_fetch_failed",
                 extra={"uuid": resolved_uuid, "max_bytes": preview_limit},
@@ -234,7 +254,7 @@ class FileActions:
             return payload if isinstance(payload, dict) and str(payload.get("uuid") or "").strip() else None
         except Exception as exc:
             PythonFailLogger.log_exception(
-                exc,
+                _redacted(exc),
                 module=Module.TASK.value,
                 event="task_file_delete_failed",
                 extra={"uuid": resolved_uuid},
@@ -289,7 +309,7 @@ class FileActions:
             return payload if isinstance(payload, dict) and str(payload.get("uuid") or "").strip() else None
         except Exception as exc:
             PythonFailLogger.log_exception(
-                exc,
+                _redacted(exc),
                 module=owner,
                 event="module_file_upload_failed",
                 extra={

@@ -56,29 +56,40 @@ class ProjectBoardOverviewService:
                 ],
             }
 
-        module_items = cls._load_connected_module_items(property_numbers, exclude_project_id=project_id)
+        module_items, failed_modules = cls._load_connected_module_items(property_numbers, exclude_project_id=project_id)
         bucketed = cls._bucket_module_items(module_items)
-        tracked_modules = cls._tracked_modules()
-        todo_modules = [module_key for module_key in tracked_modules if module_key not in module_items]
+        notice = ""
+        if failed_modules:
+            # An empty column must not claim "nothing linked" when a module behind it did not load.
+            notice = lang.translate(TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_FAILED_MODULES).format(
+                modules=", ".join(lang.translate_module_name(module_key) for module_key in failed_modules)
+            )
+            incomplete_text = lang.translate(TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_INCOMPLETE)
+            empty_todo = empty_in_progress = empty_done = incomplete_text
+        else:
+            empty_todo = lang.translate(TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_TODO)
+            empty_in_progress = lang.translate(TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_IN_PROGRESS)
+            empty_done = lang.translate(TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_DONE)
         return {
+            "notice": notice,
             "columns": [
                 cls._build_todo_column_data(
                     bucketed[cls.TODO],
-                    todo_modules,
                     lang_manager=lang,
+                    empty_text=empty_todo,
                 ),
                 cls._build_bucket_column_data(
                     in_progress_title,
                     bucketed[cls.IN_PROGRESS],
                     lang_manager=lang,
-                    empty_text=lang.translate(TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_IN_PROGRESS),
+                    empty_text=empty_in_progress,
                     color=cls.IN_PROGRESS_COLOR,
                 ),
                 cls._build_bucket_column_data(
                     done_title,
                     bucketed[cls.DONE],
                     lang_manager=lang,
-                    empty_text=lang.translate(TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_DONE),
+                    empty_text=empty_done,
                     color=cls.DONE_COLOR,
                 ),
             ],
@@ -95,16 +106,29 @@ class ProjectBoardOverviewService:
         return numbers
 
     @classmethod
-    def _load_connected_module_items(cls, property_numbers: Iterable[str], *, exclude_project_id: str) -> dict[str, list[dict[str, Any]]]:
+    def _load_connected_module_items(
+        cls,
+        property_numbers: Iterable[str],
+        *,
+        exclude_project_id: str,
+    ) -> tuple[dict[str, list[dict[str, Any]]], list[str]]:
+        """Return the linked items per module and the tracked modules that failed to load for some property.
+
+        Raises the first error when no tracked module loaded for any property, so the board shows a load
+        failure instead of an empty board.
+        """
         lookup = PropertyLookupService()
         queries = PropertiesConnectedElementsQueries()
         tracked_modules = set(cls._tracked_modules())
         property_ids = [lookup.property_id_by_cadastral(number) for number in property_numbers]
         property_ids = [property_id for property_id in property_ids if property_id]
         if not property_ids:
-            return {}
+            return {}, []
 
         aggregated: dict[str, dict[str, dict[str, Any]]] = {}
+        failed_modules: set[str] = set()
+        first_error: Optional[Exception] = None
+        loaded_any = False
         with ThreadPoolExecutor(max_workers=min(4, len(property_ids))) as executor:
             futures = [executor.submit(queries.fetch_all_module_data, property_id) for property_id in property_ids]
 
@@ -112,15 +136,23 @@ class ProjectBoardOverviewService:
             try:
                 module_data = future.result()
             except Exception as exc:
-                # Fallback kept: the property counts as having no connected items, so the board shows it as empty.
+                # Nothing is known of this property, so every tracked module counts as not loaded.
                 PythonFailLogger.log_exception(
                     exc,
                     module=Module.PROJECT.value,
                     event="project_board_connected_items_failed",
                     extra={"property_id": property_id},
                 )
-                module_data = {}
-            for module_key, nodes in (module_data or {}).items():
+                failed_modules.update(tracked_modules)
+                first_error = first_error or exc
+                continue
+            property_failed = [module_key for module_key in module_data.errors if module_key in tracked_modules]
+            failed_modules.update(property_failed)
+            if property_failed and first_error is None:
+                first_error = module_data.errors[property_failed[0]]
+            if len(property_failed) < len(tracked_modules):
+                loaded_any = True
+            for module_key, nodes in module_data.nodes_by_module.items():
                 if module_key not in tracked_modules:
                     continue
                 bucket = aggregated.setdefault(module_key, {})
@@ -135,11 +167,15 @@ class ProjectBoardOverviewService:
                     if dedupe_key:
                         bucket[dedupe_key] = normalized
 
-        return {
+        if not loaded_any and first_error is not None:
+            raise first_error
+
+        items_by_module = {
             module_key: sorted(items.values(), key=lambda entry: str(entry.get("number") or entry.get("title") or "").lower())
             for module_key, items in aggregated.items()
             if items
         }
+        return items_by_module, cls._ordered_module_keys(failed_modules)
 
     @staticmethod
     def _tracked_modules() -> list[str]:
@@ -249,9 +285,9 @@ class ProjectBoardOverviewService:
     def _build_todo_column_data(
         cls,
         grouped_items: dict[str, list[dict[str, Any]]],
-        todo_modules: list[str],
         *,
         lang_manager: LanguageManager,
+        empty_text: str,
     ) -> dict[str, Any]:
         title = lang_manager.translate(TranslationKeys.PROJECT_BOARD_COLUMN_NOT_STARTED)
         groups: list[dict[str, Any]] = []
@@ -272,7 +308,7 @@ class ProjectBoardOverviewService:
             title=title,
             color=cls.TODO_COLOR,
             groups=groups,
-            empty_text=lang_manager.translate(TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_TODO),
+            empty_text=empty_text,
         )
 
     @staticmethod

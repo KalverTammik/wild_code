@@ -41,6 +41,7 @@ class AttentionDisplayRules:
             "import newer": TranslationKeys.ATTENTION_CAUSE_IMPORT_NEWER,
             "missing in main layer": TranslationKeys.ATTENTION_CAUSE_MISSING_MAIN_LAYER,
             "main layer older": TranslationKeys.ATTENTION_CAUSE_MAIN_LAYER_OLDER,
+            TranslationKeys.ATTENTION_CAUSE_MAIN_LAYER_LOOKUP_FAILED: TranslationKeys.ATTENTION_CAUSE_MAIN_LAYER_LOOKUP_FAILED,
             TranslationKeys.PROPERTY_ADD_BACKEND_DIFFERS: TranslationKeys.PROPERTY_ADD_BACKEND_DIFFERS,
             TranslationKeys.PROPERTY_IMPORT_ADDRESS_MISSING: TranslationKeys.PROPERTY_IMPORT_ADDRESS_MISSING,
             TranslationKeys.PROPERTY_ADD_AMBIGUOUS: TranslationKeys.PROPERTY_ADD_AMBIGUOUS,

@@ -142,6 +142,18 @@ class MapCanvasSearchBar(MapCanvasGlassOverlayBase):
         except Exception as exc:
             # Signal slot calling project code: stays broad, but the click must leave a trace.
             PythonFailLogger.log_exception(exc, module="map", event="map_search_result_open_failed")
+            # Deferred: the results popup hides itself right after emitting the click.
+            QTimer.singleShot(0, self._show_result_open_failed)
+
+    def _show_result_open_failed(self) -> None:
+        try:
+            self.search_results_widget.show_status_message(
+                self._lang.translate(TranslationKeys.SEARCH_RESULT_OPEN_FAILED),
+                self.search_edit,
+                is_error=True,
+            )
+        except RuntimeError:  # bar closed before the deferred message ran
+            pass
 
     @classmethod
     def show_for_session(cls, *, result_handler=None) -> None:

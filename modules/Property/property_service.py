@@ -38,14 +38,16 @@ class PropertyDataService:
             self._write_cache(cache_key, payload)
             return payload
 
-        payload = self._build_entry_payload(normalized, property_id)
-        self._write_cache(cache_key, payload)
-        return payload
-
-    def _build_entry_payload(self, cadastral_number: str, property_id: str) -> Dict[str, object]:
         module_data = self._connections.fetch_all_module_data(property_id)
-        entry = self._formatter.build_entry(cadastral_number, property_id, module_data)
-        return {"entries": [entry]}
+        if module_data.errors and len(module_data.errors) == len(self._connections.module_to_filename):
+            # Nothing loaded: the caller shows a load error instead of "no connections".
+            raise next(iter(module_data.errors.values()))
+        entry = self._formatter.build_entry(normalized, property_id, module_data.nodes_by_module)
+        payload = {"entries": [entry]}
+        # A partly failed load is not cached, so the next selection asks the failed modules again.
+        if not module_data.errors:
+            self._write_cache(cache_key, payload)
+        return payload
 
     def _session_signature(self) -> str:
         return SessionManager.session_signature()

@@ -120,6 +120,8 @@ TRANSLATIONS = {
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_DONE: "No linked module items look completed yet.",
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_IN_PROGRESS: "No linked module items are currently classified as in progress.",
         TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_TODO: "No linked module items are currently classified as not started.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_FAILED_MODULES: "Some linked modules could not be loaded: {modules}. The board may be missing their items.",
+        TranslationKeys.PROJECT_BOARD_DETAILS_EMPTY_INCOMPLETE: "None of the loaded modules has items in this column.",
         TranslationKeys.PROJECT_BOARD_COLUMN_NOT_STARTED: "Not started",
         TranslationKeys.DATA_DISPLAY_WIDGETS_TERMS_HEADING: "Terms",
         TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP: "Help",
@@ -173,6 +175,7 @@ TRANSLATIONS = {
         TranslationKeys.SEARCH_OPEN_NOT_AVAILABLE_TITLE: "Not available",
         TranslationKeys.SEARCH_OPEN_NOT_AVAILABLE_MESSAGE: "This module cannot be opened from search yet.",
         TranslationKeys.SEARCH_SHOW_MORE: "  -- Show {count} more --",
+        TranslationKeys.SEARCH_RESULT_OPEN_FAILED: "Could not open the result",
         TranslationKeys.FEED_COUNTER_LOADED: "Loaded {loaded}",
         TranslationKeys.FEED_COUNTER_LOADED_OF: "Loaded {loaded} of {total}",
         TranslationKeys.TASK_FILE_LOCAL_FILE: "Local file",
@@ -616,6 +619,7 @@ TRANSLATIONS = {
     ,TranslationKeys.ATTENTION_CAUSE_IMPORT_NEWER: "import newer"
     ,TranslationKeys.ATTENTION_CAUSE_MISSING_MAIN_LAYER: "missing in main layer"
     ,TranslationKeys.ATTENTION_CAUSE_MAIN_LAYER_OLDER: "main layer older"
+    ,TranslationKeys.ATTENTION_CAUSE_MAIN_LAYER_LOOKUP_FAILED: "main layer lookup failed"
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_START: "Archiving missing ({count}) before add..."
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_RESULT: "Archived missing: backend {archived}/{total}, moved {moved}{errors_suffix}"
     ,TranslationKeys.ARCHIVE_MISSING_PROGRESS_ERROR: "Archiving missing ({count}) encountered an error"
@@ -640,8 +644,9 @@ TRANSLATIONS = {
         ,TranslationKeys.ASBUILT_NOTES_LOAD_FAILED: "Could not load the description of {name}, so the notes were not opened. Please try again."
         ,TranslationKeys.PROJECT_DRAW_NEW_ACTION: "Draw linked area on map"
         ,TranslationKeys.PROJECT_DRAW_NEW_START_FAILED: "Could not start drawing a new project area on the map."
-        ,TranslationKeys.PROJECT_DRAW_NEW_SAVE_FAILED: "A new map area was created, but linking it to backend project {item_id} failed. Details: {error}"
-        ,TranslationKeys.PROJECT_DRAW_NEW_SUCCESS: "A new map area was created and linked to backend project {item_id}."
+        ,TranslationKeys.PROJECT_DRAW_NEW_SAVE_FAILED: "The new map area was saved to the layer and linked to project {item_id}, but its geometry could not be sent to Kavitro."
+        ,TranslationKeys.PROJECT_DRAW_NEW_LAYER_SAVE_FAILED: "The drawn map area could not be saved to the layer and was removed. Project {item_id} in Kavitro was not changed. Details: {error}"
+        ,TranslationKeys.PROJECT_DRAW_NEW_SUCCESS: "A new map area was created and linked to project {item_id} in Kavitro."
         ,TranslationKeys.PROJECT_PREVIEW_ACTION: "Open project area preview"
         ,TranslationKeys.PROJECT_PREVIEW_DIALOG_TITLE: "Project area preview"
         ,TranslationKeys.PROJECT_PREVIEW_INTRO: "Generate a project area preview for {name} ({number}) from linked properties."
@@ -668,7 +673,8 @@ TRANSLATIONS = {
         ,TranslationKeys.PROJECT_LAYER_INVALID_GEOMETRY: "Projects layer must use polygon geometry for area drawing."
         ,TranslationKeys.ASBUILT_DRAW_NEW_ACTION: "Draw new linked feature on map"
         ,TranslationKeys.ASBUILT_DRAW_NEW_START_FAILED: "Could not start drawing a new As-built feature on the map."
-        ,TranslationKeys.ASBUILT_DRAW_NEW_SAVE_FAILED: "A new map feature was created, but linking it to As-built {item_id} in Kavitro failed. Details: {error}"
+        ,TranslationKeys.ASBUILT_DRAW_NEW_SAVE_FAILED: "The new map feature was saved to the layer and linked to As-built {item_id}, but its geometry could not be sent to Kavitro."
+        ,TranslationKeys.ASBUILT_DRAW_NEW_LAYER_SAVE_FAILED: "The drawn map feature could not be saved to the layer and was removed. As-built {item_id} in Kavitro was not changed. Details: {error}"
         ,TranslationKeys.ASBUILT_DRAW_NEW_SUCCESS: "A new map feature was created and linked to As-built {item_id} in Kavitro."
         ,TranslationKeys.ASBUILT_LAYER_MISSING: "As-built layer is not configured or is missing from the project. Please configure the As-built main layer in Settings first."
         ,TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON: "Create on map"
@@ -685,6 +691,8 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_CREATE_DESCRIPTION_LABEL: "Description"
         ,TranslationKeys.WORKS_CREATE_PRIORITY_LABEL: "Priority"
         ,TranslationKeys.WORKS_CREATE_NO_TYPES: "No Works types are currently available for creation. Check module type settings if needed."
+        ,TranslationKeys.WORKS_CREATE_TYPES_LOAD_FAILED: "Could not load the work types, so the work cannot be created right now. Check the connection, then close this window and open it again."
+        ,TranslationKeys.WORKS_CREATE_OPTIONS_LOAD_FAILED: "Could not load these choices: {fields}. The work can be created without them. To try again, close this window and open it again."
         ,TranslationKeys.WORKS_CREATE_VALIDATE_TYPE: "Please select a work type."
         ,TranslationKeys.WORKS_CREATE_VALIDATE_TITLE: "Please enter a work title."
         ,TranslationKeys.WORKS_CREATE_START_FAILED: "Could not start map capture for a new work."
@@ -786,8 +794,9 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_ATTACH_EXISTING_ARCHIVE_SUCCESS: "The existing linked feature for backend easement {item_id} was archived by setting status to (puudub)."
         ,TranslationKeys.EASEMENT_ATTACH_EXISTING_ARCHIVE_FAILED: "Could not archive the existing linked feature for backend easement {item_id}. Details: {error}"
         ,TranslationKeys.EASEMENT_DRAW_NEW_START_FAILED: "Could not start drawing a new easement feature on the map."
-        ,TranslationKeys.EASEMENT_DRAW_NEW_SAVE_FAILED: "The new map feature was created, but linking it to easement {item_id} in Kavitro failed. Details: {error}"
-        ,TranslationKeys.EASEMENT_DRAW_NEW_SUCCESS: "A new map feature was created and linked to backend easement {item_id}."
+        ,TranslationKeys.EASEMENT_DRAW_NEW_SAVE_FAILED: "The new map feature was saved to the layer and linked to easement {item_id}, but its geometry could not be sent to Kavitro."
+        ,TranslationKeys.EASEMENT_DRAW_NEW_LAYER_SAVE_FAILED: "The drawn map feature could not be saved to the layer and was removed. Easement {item_id} in Kavitro was not changed. Details: {error}"
+        ,TranslationKeys.EASEMENT_DRAW_NEW_SUCCESS: "A new map feature was created and linked to easement {item_id} in Kavitro."
         ,TranslationKeys.EASEMENT_EDIT_GEOMETRY_NOT_FOUND: "No linked map feature was found for backend easement {item_id}."
         ,TranslationKeys.EASEMENT_EDIT_GEOMETRY_START_FAILED: "Could not activate geometry editing for the linked easement feature."
         ,TranslationKeys.EASEMENT_EDIT_GEOMETRY_READY: "Linked easement feature {item_id} is now selected for editing. Use native QGIS move/vertex tools and save layer changes when finished."
@@ -874,6 +883,7 @@ TRANSLATIONS = {
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_CONFIRM_BODY: "Source layer: {source}\nTarget layer: {target}\nFeatures to process: {count}\n\nThe mapper will copy geometry and mapped values into the Geospatial layer. Existing target features with the same external id will be updated when possible."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED: "Could not start editing the Geospatial target layer."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED: "Could not add a migrated feature to the Geospatial target layer."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_GEOMETRY_TRANSFORM_FAILED: "The coordinates of {count} features could not be transformed to the target layer's coordinate system. These features were not inserted or updated."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_COMMIT_FAILED: "Could not commit migrated features to the Geospatial target layer."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_SUCCESS: "Migration finished. Inserted: {inserted}, updated: {updated}, unchanged: {skipped}."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_WITH_ERRORS: "Migration finished with errors. Inserted: {inserted}, updated: {updated}, unchanged: {skipped}.\n\nErrors:\n{errors}"

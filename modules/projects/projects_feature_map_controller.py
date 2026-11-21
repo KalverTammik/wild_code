@@ -9,6 +9,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...utils.MapTools.module_feature_controllers import (
+    FeatureLinkResult,
     ModuleFeatureAttachMessages,
     ModuleFeatureDrawMessages,
     ModuleFeatureEditMessages,
@@ -60,7 +61,11 @@ class ProjectsFeatureMapController:
             ),
             draw_messages=ModuleFeatureDrawMessages(
                 start_failed=self._lang.translate(TranslationKeys.PROJECT_DRAW_NEW_START_FAILED),
-                save_failed_template=self._lang.translate(TranslationKeys.PROJECT_DRAW_NEW_SAVE_FAILED).format(
+                layer_save_failed_template=self._lang.translate(TranslationKeys.PROJECT_DRAW_NEW_LAYER_SAVE_FAILED).format(
+                    item_id="{item_id}",
+                    error="{error}",
+                ),
+                sync_failed_template=self._lang.translate(TranslationKeys.PROJECT_DRAW_NEW_SAVE_FAILED).format(
                     item_id="{item_id}",
                     error="{error}",
                 ),
@@ -75,7 +80,6 @@ class ProjectsFeatureMapController:
                 title_error=self._lang.translate(TranslationKeys.ERROR),
                 title_success=self._lang.translate(TranslationKeys.SUCCESS),
             ),
-            commit_edit_session_after_draw=True,
         )
 
     @staticmethod
@@ -83,7 +87,7 @@ class ProjectsFeatureMapController:
         layer: QgsVectorLayer,
         feature_id: int,
         current_item: dict,
-    ) -> tuple[bool, str]:
+    ) -> FeatureLinkResult:
         item_payload = current_item if isinstance(current_item, dict) else {}
         item_id = str(item_payload.get("id") or "").strip()
         success, message = ProjectsLayerService.attach_backend_item_to_feature(
@@ -93,22 +97,26 @@ class ProjectsFeatureMapController:
             item_data=item_payload,
         )
         if not success:
-            return success, message
+            return FeatureLinkResult(False, message)
 
+        # Read now: a drawn feature changes its id when the layer is committed.
         geometry_payload = ProjectsFeatureMapController._geometry_payload_for_item(layer, item_payload)
         if geometry_payload is None:
-            return success, message
+            return FeatureLinkResult(True, message)
 
-        if APIModuleActions.update_project_geometry(item_id, geometry_payload):
-            return success, message
+        def sync_to_kavitro() -> tuple[bool, str]:
+            if APIModuleActions.update_project_geometry(item_id, geometry_payload):
+                return True, message
 
-        PythonFailLogger.log_exception(
-            RuntimeError("Could not update project geometry in backend"),
-            module="project",
-            event="project_geometry_backend_update_failed",
-            extra={"item_id": item_id, "feature_id": int(feature_id)},
-        )
-        return success, message
+            PythonFailLogger.log_exception(
+                RuntimeError("Could not update project geometry in Kavitro"),
+                module="project",
+                event="project_geometry_backend_update_failed",
+                extra={"item_id": item_id, "feature_id": int(feature_id)},
+            )
+            return False, "Projekti geomeetria saatmine Kavitrosse ebaõnnestus"
+
+        return FeatureLinkResult(True, message, sync_to_kavitro)
 
     @staticmethod
     def _geometry_payload_for_item(layer: QgsVectorLayer, item_payload: dict) -> Optional[dict[str, object]]:

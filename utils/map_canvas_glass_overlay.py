@@ -78,25 +78,28 @@ class MapCanvasGlassOverlayBase(QWidget):
 
     @classmethod
     def show_for_session(cls, *, on_ready: Optional[Callable[["MapCanvasGlassOverlayBase"], None]] = None) -> None:
-        if cls._active_instance is not None:
+        bar = cls._active_instance
+        if bar is not None:
             try:
-                cls._active_instance.raise_()
-                cls._active_instance.move(cls._active_instance._target_pos())
-                if on_ready is not None:
-                    on_ready(cls._active_instance)
-                return
-            except Exception as exc:
-                # Broad on purpose for now: on_ready runs in this try, so a callback bug is logged here too
-                # and the live overlay is dropped; moving on_ready out and narrowing is a separate change.
+                bar.raise_()
+                bar.move(bar._target_pos())
+            except RuntimeError as exc:  # C++ overlay already deleted: build a fresh one
                 PythonFailLogger.log_exception(exc, module="map", event="map_overlay_reuse_failed")
-                cls._active_instance = None
+                cls._active_instance = bar = None
 
-        bar = cls()
-        cls._active_instance = bar
-        bar.destroyed.connect(lambda *_: setattr(cls, "_active_instance", None))
-        if on_ready is not None:
+        if bar is None:
+            bar = cls()
+            cls._active_instance = bar
+            bar.destroyed.connect(lambda *_: setattr(cls, "_active_instance", None))
+            bar.show_animated()
+
+        if on_ready is None:
+            return
+        try:
             on_ready(bar)
-        bar.show_animated()
+        except Exception as exc:
+            # Caller callback from a timer slot: a bug there must not drop or rebuild a working overlay.
+            PythonFailLogger.log_exception(exc, module="map", event="map_overlay_on_ready_failed")
 
     @classmethod
     def close_active(cls) -> None:

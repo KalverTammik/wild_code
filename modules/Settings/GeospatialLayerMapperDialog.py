@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from typing import Optional
 
@@ -21,7 +22,15 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from qgis.PyQt.QtCore import QVariant
-from qgis.core import Qgis, QgsCoordinateTransform, QgsFeature, QgsProject, QgsVectorLayer
+from qgis.core import (
+    Qgis,
+    QgsCoordinateTransform,
+    QgsCsException,
+    QgsFeature,
+    QgsGeometry,
+    QgsProject,
+    QgsVectorLayer,
+)
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.file_paths import QssPaths
@@ -310,6 +319,7 @@ class GeospatialLayerMapperDialog(QDialog):
         inserted = 0
         updated = 0
         skipped = 0
+        transform_failed = 0
         errors: list[str] = []
 
         started_edit = False
@@ -323,7 +333,12 @@ class GeospatialLayerMapperDialog(QDialog):
             for source_feature in source_layer.getFeatures():
                 identity_value = self._identity_key(source_feature.attribute(source_identity)) if source_identity else ""
                 target_feature_id = existing_by_identity.get(identity_value) if identity_value else None
-                geometry = self._transformed_geometry(source_feature.geometry(), transform)
+                source_geometry = source_feature.geometry()
+                geometry = self._transformed_geometry(source_geometry, transform)
+                if geometry is None and source_geometry is not None and not source_geometry.isEmpty():
+                    # Writing untransformed or inf coordinates would corrupt the target layer.
+                    transform_failed += 1
+                    continue
 
                 if target_feature_id is not None:
                     changed = False
@@ -378,6 +393,15 @@ class GeospatialLayerMapperDialog(QDialog):
                     inserted += 1
                 else:
                     errors.append(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED))
+
+            if transform_failed:
+                # First in the list: the result dialog shows only the first five errors.
+                errors.insert(
+                    0,
+                    self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_GEOMETRY_TRANSFORM_FAILED).format(
+                        count=transform_failed
+                    ),
+                )
 
             if already_editable:
                 target_layer.updateFields()
@@ -462,21 +486,37 @@ class GeospatialLayerMapperDialog(QDialog):
 
     @staticmethod
     def _transformed_geometry(geometry, transform):
+        """Return a transformed copy, or None when the transform failed and the feature must not be written."""
         if geometry is None or geometry.isEmpty() or transform is None:
             return geometry
-        copied = geometry
+        # transform() works in place; a copy keeps the source feature's geometry untouched.
+        copied = QgsGeometry(geometry)
         try:
-            copied.transform(transform)
-        except Exception as exc:
-            # Fallback kept: the geometry object that was passed in. transform() works in place, so after a
-            # QgsCsException (coordinates outside the target CRS) it can already hold inf coordinates.
+            result = copied.transform(transform)
+        except QgsCsException as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.SETTINGS.value,
                 event="geospatial_mapper_geometry_transform_failed",
             )
-            return geometry
+            return None
+        if result != Qgis.GeometryOperationResult.Success or not GeospatialLayerMapperDialog._has_finite_extent(copied):
+            PythonFailLogger.log_exception(
+                ValueError(f"geometry transform gave result {result!r} or non-finite coordinates"),
+                module=Module.SETTINGS.value,
+                event="geospatial_mapper_geometry_transform_failed",
+            )
+            return None
         return copied
+
+    @staticmethod
+    def _has_finite_extent(geometry) -> bool:
+        # A partial transform leaves inf/nan vertices; they show up in the bounding box.
+        if geometry is None or geometry.isNull() or geometry.isEmpty():
+            return False
+        box = geometry.boundingBox()
+        values = (box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum())
+        return all(math.isfinite(value) for value in values)
 
     @classmethod
     def _list_mappable_fields(cls, layer: Optional[QgsVectorLayer]) -> list:

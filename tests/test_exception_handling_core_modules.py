@@ -39,6 +39,7 @@ from Kavitro_dev.constants.file_paths import _read_metadata_value
 from Kavitro_dev.feed.feed_load_engine import FeedLoadEngine
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.module_manager import ModuleManager
+from Kavitro_dev.modules.Property.query_cordinator import ConnectedModuleData
 from Kavitro_dev.modules.projects import project_board_overview_service as board_module
 from Kavitro_dev.modules.projects import projects_card_actions as card_actions_module
 from Kavitro_dev.modules.projects.project_board_overview_service import ProjectBoardOverviewService
@@ -115,14 +116,14 @@ class RootModulesTest(LoggedExceptionTestCase):
         # sip.isdeleted refuses objects that are not wrapped Qt objects; that is "not deleted".
         self.assertFalse(main_module.WildCodePlugin._is_dialog_deleted(object()))
 
-    def test_failed_widget_lookup_is_logged_and_the_instance_is_registered_as_before(self) -> None:
+    def test_failed_widget_lookup_is_logged_and_no_widget_is_registered(self) -> None:
         class BrokenModule:
             def get_widget(self):
                 raise ValueError("no widget yet")
 
         instance = BrokenModule()
 
-        self.assertIs(ModuleManager._get_widget_safe(instance), instance)
+        self.assertIsNone(ModuleManager._get_widget_safe(instance))
         self.assertEqual(self.events(), ["module_widget_build_failed"])
         self.assertEqual(self.log.call_args.kwargs["extra"], {"module_class": "BrokenModule"})
 
@@ -148,7 +149,7 @@ def _memory_layer(crs: str = "EPSG:3301") -> QgsVectorLayer:
 
 
 class GeospatialLayerMapperTest(LoggedExceptionTestCase):
-    def test_coordinates_outside_the_target_crs_are_logged_and_the_geometry_goes_on(self) -> None:
+    def test_coordinates_outside_the_target_crs_are_logged_and_give_no_geometry(self) -> None:
         transform = QgsCoordinateTransform(
             QgsCoordinateReferenceSystem("EPSG:4326"),
             QgsCoordinateReferenceSystem("EPSG:3301"),
@@ -158,8 +159,9 @@ class GeospatialLayerMapperTest(LoggedExceptionTestCase):
 
         result = GeospatialLayerMapperDialog._transformed_geometry(geometry, transform)
 
-        # Fallback kept as it was: the caller gets the object it passed in (transform() already changed it in place).
-        self.assertIs(result, geometry)
+        # The feature must not be written; the source geometry stays untouched.
+        self.assertIsNone(result)
+        self.assertEqual(geometry.asWkt(), "Point (1000000 1000000)")
         self.assertEqual(self.events(), ["geospatial_mapper_geometry_transform_failed"])
         self.assertEqual(self.modules(), {"settings"})
 
@@ -302,16 +304,17 @@ class ProjectBoardTest(LoggedExceptionTestCase):
         def fetch(property_id):
             if property_id == "p-1":
                 raise RuntimeError("[WC-API] timeout")
-            return {"works": [{"id": "7", "name": "Töö", "status": {"type": "OPEN"}}]}
+            return ConnectedModuleData(nodes_by_module={"works": [{"id": "7", "name": "Töö", "status": {"type": "OPEN"}}]})
 
         with (
             patch.object(board_module.PropertyLookupService, "property_id_by_cadastral", side_effect=["p-1", "p-2"]),
             patch.object(board_module.PropertiesConnectedElementsQueries, "fetch_all_module_data", side_effect=fetch),
             patch.object(ProjectBoardOverviewService, "_tracked_modules", return_value=["works"]),
         ):
-            items = ProjectBoardOverviewService._load_connected_module_items(["1:1", "2:2"], exclude_project_id="")
+            items, failed_modules = ProjectBoardOverviewService._load_connected_module_items(["1:1", "2:2"], exclude_project_id="")
 
         self.assertEqual([item["id"] for item in items["works"]], ["7"])
+        self.assertEqual(failed_modules, ["works"])
         self.assertEqual(self.events(), ["project_board_connected_items_failed"])
         self.assertEqual(self.modules(), {"project"})
         self.assertEqual(self.log.call_args.kwargs["extra"], {"property_id": "p-1"})

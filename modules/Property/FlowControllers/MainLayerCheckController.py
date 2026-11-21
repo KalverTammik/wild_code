@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
 from ....constants.cadastral_fields import Katastriyksus
+from ....languages.translation_keys import TranslationKeys
 from ....utils.MapTools.MapHelpers import MapHelpers
 from ....widgets.DateHelpers import DateHelpers
 from ....Logs.python_fail_logger import PythonFailLogger
@@ -154,17 +155,19 @@ class MainLayerCheckController(QObject):
                 return causes
 
             try:
-                matches = MapHelpers.find_features_by_fields_and_values(main_layer, Katastriyksus.tunnus, [tunnus])
+                matches = MapHelpers.find_features_by_fields_and_values(
+                    main_layer, Katastriyksus.tunnus, [tunnus], strict=True)
             except Exception as exc:
-                # Still reported as "missing in main layer" below: a failed read and a real
-                # miss are not told apart yet, so at least leave a trace of the failure.
+                # A failed read says nothing about the property, so it must not
+                # become "missing in main layer": the user would look for the wrong fix.
                 PythonFailLogger.log_exception(
                     exc,
                     module=Module.PROPERTY.value,
                     event="main_layer_lookup_failed",
                     extra={"tunnus": tunnus},
                 )
-                matches = []
+                causes.append(TranslationKeys.ATTENTION_CAUSE_MAIN_LAYER_LOOKUP_FAILED)
+                return causes
 
             if not matches:
                 causes.append("missing in main layer")

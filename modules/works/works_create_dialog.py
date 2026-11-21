@@ -27,10 +27,21 @@ from ...widgets.status_select_widget import StatusSelectWidget
 from ...widgets.theme_manager import ThemeManager
 from .works_layer_service import WorksLayerService
 
+# Names in load_failures: a choice list that could not be loaded, as opposed to one that loaded empty.
+# Module-level so the controller still has them when a test replaces the dialog class.
+LOAD_FAILED_TYPES = "types"
+LOAD_FAILED_RESPONSIBLES = "responsibles"
+LOAD_FAILED_STATUSES = "statuses"
+LOAD_FAILED_PRIORITIES = "priorities"
+
 
 class WorksCreateDialog(QDialog):
     DIALOG_WIDTH = 620
     FIELD_HEIGHT = 33
+    LOAD_FAILED_TYPES = LOAD_FAILED_TYPES
+    LOAD_FAILED_RESPONSIBLES = LOAD_FAILED_RESPONSIBLES
+    LOAD_FAILED_STATUSES = LOAD_FAILED_STATUSES
+    LOAD_FAILED_PRIORITIES = LOAD_FAILED_PRIORITIES
 
     def __init__(
         self,
@@ -50,6 +61,7 @@ class WorksCreateDialog(QDialog):
         initial_type_id: str = "",
         initial_status_id: str = "",
         initial_priority: str = "",
+        load_failures: Optional[Iterable[str]] = None,
         lang_manager=None,
         parent=None,
     ) -> None:
@@ -70,6 +82,7 @@ class WorksCreateDialog(QDialog):
         self._default_priority = str(initial_priority or default_priority or "").strip().upper()
         self._default_responsible_id = str(default_responsible_id or "").strip()
         self._default_status_id = str(initial_status_id or default_status_id or "").strip()
+        self._load_failures = {str(name) for name in (load_failures or []) if name}
         self._status_by_id: dict[str, dict[str, object]] = {}
         self._title_touched = False
 
@@ -82,6 +95,7 @@ class WorksCreateDialog(QDialog):
         self._populate_priorities()
         self._populate_types()
         self._populate_responsibles()
+        self._show_options_load_failure()
         self._apply_initial_title()
 
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.MODULE_INFO])
@@ -163,6 +177,12 @@ class WorksCreateDialog(QDialog):
         self._types_hint.setVisible(False)
         root.addWidget(self._types_hint)
 
+        self._options_hint = QLabel("", self)
+        self._options_hint.setObjectName("WorksCreateOptionsLoadFailedHint")
+        self._options_hint.setWordWrap(True)
+        self._options_hint.setVisible(False)
+        root.addWidget(self._options_hint)
+
         buttons = QHBoxLayout()
         buttons.setContentsMargins(0, 0, 0, 0)
         buttons.setSpacing(8)
@@ -229,6 +249,8 @@ class WorksCreateDialog(QDialog):
 
         if self._priority_combo.count() <= 0:
             self._priority_combo.addItem(self._lang.translate(TranslationKeys.WORKS_PRIORITY_NONE), "")
+        # After a failed load the lone "none" entry is no real choice; the options hint says why.
+        self._priority_combo.setEnabled(self.LOAD_FAILED_PRIORITIES not in self._load_failures)
 
         if self._default_priority:
             index = self._priority_combo.findData(self._default_priority)
@@ -240,19 +262,21 @@ class WorksCreateDialog(QDialog):
         self._type_combo.addItem(self._lang.translate(TranslationKeys.SELECT), "")
 
         entries = list(self._type_options)
-        if not entries:
+        # A caller that already failed to load the types is not asked again: that would be one more slow request.
+        if not entries and self.LOAD_FAILED_TYPES not in self._load_failures:
             try:
                 entries = FilterHelper.get_filter_edges_by_key_and_module(
                     ModuleSupports.TYPES.value,
                     Module.WORKS.value,
                 )
             except Exception as exc:
-                # Fallback kept: the dialog shows its no-types hint.
+                # The hint below then says the load failed, not that there are no types.
                 PythonFailLogger.log_exception(
                     exc,
                     module=Module.WORKS.value,
                     event="works_create_type_options_load_failed",
                 )
+                self._load_failures.add(self.LOAD_FAILED_TYPES)
                 entries = []
 
         visible_entries = []
@@ -279,7 +303,12 @@ class WorksCreateDialog(QDialog):
             self._types_hint.setVisible(False)
             return
 
-        self._types_hint.setText(self._lang.translate(TranslationKeys.WORKS_CREATE_NO_TYPES))
+        hint_key = (
+            TranslationKeys.WORKS_CREATE_TYPES_LOAD_FAILED
+            if self.LOAD_FAILED_TYPES in self._load_failures
+            else TranslationKeys.WORKS_CREATE_NO_TYPES
+        )
+        self._types_hint.setText(self._lang.translate(hint_key))
         self._types_hint.setVisible(True)
 
     def _populate_responsibles(self) -> None:
@@ -305,6 +334,26 @@ class WorksCreateDialog(QDialog):
             index = self._responsible_combo.findData(self._default_responsible_id)
             if index >= 0:
                 self._responsible_combo.setCurrentIndex(index)
+
+    def _show_options_load_failure(self) -> None:
+        # Without this an unloaded list looks the same as an empty one, and the work would be created without it unnoticed.
+        translate = self._lang.translate
+        failed_labels = [
+            translate(label_key)
+            for name, label_key in (
+                (self.LOAD_FAILED_RESPONSIBLES, TranslationKeys.WORKS_CREATE_RESPONSIBLE_LABEL),
+                (self.LOAD_FAILED_STATUSES, TranslationKeys.WORKS_CREATE_STATUS_LABEL),
+                (self.LOAD_FAILED_PRIORITIES, TranslationKeys.WORKS_CREATE_PRIORITY_LABEL),
+            )
+            if name in self._load_failures
+        ]
+        if not failed_labels:
+            self._options_hint.setVisible(False)
+            return
+        self._options_hint.setText(
+            translate(TranslationKeys.WORKS_CREATE_OPTIONS_LOAD_FAILED).format(fields=", ".join(failed_labels))
+        )
+        self._options_hint.setVisible(True)
 
     def _apply_initial_title(self) -> None:
         if self._initial_title:

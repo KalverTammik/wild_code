@@ -8,6 +8,7 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.MapTools.module_feature_controllers import (
+    FeatureLinkResult,
     ModuleFeatureAttachMessages,
     ModuleFeatureDrawMessages,
     ModuleFeatureEditMessages,
@@ -71,7 +72,11 @@ class EasementAttachExistingController:
             ),
             draw_messages=ModuleFeatureDrawMessages(
                 start_failed=self._lang.translate(TranslationKeys.EASEMENT_DRAW_NEW_START_FAILED),
-                save_failed_template=self._lang.translate(TranslationKeys.EASEMENT_DRAW_NEW_SAVE_FAILED).format(
+                layer_save_failed_template=self._lang.translate(TranslationKeys.EASEMENT_DRAW_NEW_LAYER_SAVE_FAILED).format(
+                    item_id="{item_id}",
+                    error="{error}",
+                ),
+                sync_failed_template=self._lang.translate(TranslationKeys.EASEMENT_DRAW_NEW_SAVE_FAILED).format(
                     item_id="{item_id}",
                     error="{error}",
                 ),
@@ -87,19 +92,18 @@ class EasementAttachExistingController:
                 title_success=self._lang.translate(TranslationKeys.SUCCESS),
             ),
             before_attach=self._handle_attach_conflict,
-            commit_edit_session_after_draw=True,
         )
 
-    def _attach_easement_feature_with_form(self, layer, feature_id: int, current_item: Optional[dict]) -> tuple[bool, str]:
+    def _attach_easement_feature_with_form(self, layer, feature_id: int, current_item: Optional[dict]) -> FeatureLinkResult:
         item_payload = dict(current_item or {})
         item_id = str(item_payload.get("id") or "").strip()
         form_values = EasementGeometryFormDialog.prompt(item_data=item_payload, on_status_changed=self._on_status_changed)
         if form_values is None:
-            return False, "Servituudi ala andmete sisestamine katkestati"
+            return FeatureLinkResult(False, "Servituudi ala andmete sisestamine katkestati")
 
         item_payload["_easement_geometry_form"] = form_values
         item_payload["_easement_feature_id"] = int(feature_id)
-        return self._attach_and_sync_easement_geometry(
+        return self._link_easement_geometry(
             layer=layer,
             feature_id=feature_id,
             item_id=item_id,
@@ -107,13 +111,13 @@ class EasementAttachExistingController:
         )
 
     @staticmethod
-    def _attach_and_sync_easement_geometry(
+    def _link_easement_geometry(
         *,
         layer,
         feature_id: int,
         item_id: str,
         item_payload: dict,
-    ) -> tuple[bool, str]:
+    ) -> FeatureLinkResult:
         success, message = EasementLayerService.attach_backend_item_to_feature(
             layer=layer,
             feature_id=feature_id,
@@ -121,8 +125,9 @@ class EasementAttachExistingController:
             item_data=item_payload,
         )
         if not success:
-            return success, message
+            return FeatureLinkResult(False, message)
 
+        # Read now: a drawn feature changes its id when the layer is committed.
         geometry_payload = EasementAttachExistingController._geometry_payload_for_item(layer, item_payload)
         if geometry_payload is None:
             PythonFailLogger.log(
@@ -130,23 +135,26 @@ class EasementAttachExistingController:
                 module="easement",
                 extra={"item_id": item_id, "feature_id": int(feature_id)},
             )
-            return success, message
+            return FeatureLinkResult(True, message)
 
-        if APIModuleActions.update_easement_geometry(item_id, geometry_payload):
-            PythonFailLogger.log(
-                "easement_geometry_backend_sync_success",
+        def sync_to_kavitro() -> tuple[bool, str]:
+            if APIModuleActions.update_easement_geometry(item_id, geometry_payload):
+                PythonFailLogger.log(
+                    "easement_geometry_backend_sync_success",
+                    module="easement",
+                    extra={"item_id": item_id, "feature_id": int(feature_id), "geometry_type": str(geometry_payload.get("type") or "")},
+                )
+                return True, message
+
+            PythonFailLogger.log_exception(
+                RuntimeError("Could not update easement geometry in Kavitro"),
                 module="easement",
-                extra={"item_id": item_id, "feature_id": int(feature_id), "geometry_type": str(geometry_payload.get("type") or "")},
+                event="easement_geometry_backend_update_failed",
+                extra={"item_id": item_id, "feature_id": int(feature_id)},
             )
-            return success, message
+            return False, "Servituudi geomeetria saatmine Kavitrosse ebaõnnestus"
 
-        PythonFailLogger.log_exception(
-            RuntimeError("Could not update easement geometry in backend"),
-            module="easement",
-            event="easement_geometry_backend_update_failed",
-            extra={"item_id": item_id, "feature_id": int(feature_id)},
-        )
-        return False, "Servituudi geomeetria saatmine backendisse ebaõnnestus"
+        return FeatureLinkResult(True, message, sync_to_kavitro)
 
     @staticmethod
     def _geometry_payload_for_item(layer, item_payload: dict):

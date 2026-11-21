@@ -217,15 +217,18 @@ class PropertyConnectionsWithWorksTest(BackendTestCase):
         with patch.object(query_cordinator.PythonFailLogger, "log_exception") as log_exception:
             module_data = PropertiesConnectedElementsQueries().fetch_all_module_data(PROPERTY_ID)
 
-        self.assertEqual(module_data, {})
+        # The failed works request is reported, not mistaken for a property without works.
+        self.assertEqual(module_data.nodes_by_module, {})
+        self.assertEqual(list(module_data.errors), [Module.WORKS.value])
         log_exception.assert_called_once()
         self.assertEqual(log_exception.call_args.kwargs["extra"], {"target_module": Module.WORKS.value})
 
     def test_project_board_lists_works_of_the_project_properties(self) -> None:
         self.use_backend(pages({None: tasks_page([task("1", WORK_TYPE), task("2", ASBUILT_TYPE)])}))
 
-        items = ProjectBoardOverviewService._load_connected_module_items([CADASTRAL], exclude_project_id="")
+        items, failed_modules = ProjectBoardOverviewService._load_connected_module_items([CADASTRAL], exclude_project_id="")
 
+        self.assertEqual(failed_modules, [])
         self.assertEqual([item["id"] for item in items[Module.WORKS.value]], ["1"])
         self.assertEqual(items[Module.WORKS.value][0]["title"], "Töö 1")
 

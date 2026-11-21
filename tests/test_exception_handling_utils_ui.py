@@ -135,7 +135,7 @@ class SecureSessionStoreLoggingTest(unittest.TestCase):
 
 class SecurityBoundariesDriveProbeTest(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "the probe only runs on Windows")
-    def test_a_failing_drive_probe_is_logged_and_keeps_its_fallback(self) -> None:
+    def test_a_failing_drive_probe_is_logged_and_reports_a_remote_drive(self) -> None:
         def broken(*_args):
             raise OSError("probe failed")
 
@@ -145,7 +145,8 @@ class SecurityBoundariesDriveProbeTest(unittest.TestCase):
         )
         with patch.object(ctypes, "windll", fake_windll, create=True), \
                 patch.object(PythonFailLogger, "log") as log:
-            self.assertEqual(security_boundaries.windows_drive_type("Z:\\file.pdf"), 0)
+            # Fails closed: an unknown drive gets the network confirmation, never the silent local path.
+            self.assertEqual(security_boundaries.windows_drive_type("Z:\\file.pdf"), security_boundaries._WINDOWS_DRIVE_REMOTE)
             self.assertEqual(security_boundaries.windows_mapped_drive_remote_name("Z:\\file.pdf"), "")
         self.assertEqual(logged_events(log), ["security_drive_probe_failed"] * 2)
         self.assertEqual(log.call_args.kwargs["module"], "general")
@@ -171,25 +172,6 @@ class OverlayLoggingTest(QtCase):
         if instance is not None:
             delete_now(instance)
 
-    def test_a_failing_reuse_is_logged_and_replaced_by_a_fresh_overlay(self) -> None:
-        self.Overlay.show_for_session()
-        first = self.Overlay._active_instance
-        calls = []
-
-        def fails_on_the_reused_overlay_only(bar) -> None:
-            calls.append(bar)
-            if bar is first:
-                raise TypeError("callback bug")
-
-        with patch.object(PythonFailLogger, "log") as log:
-            self.Overlay.show_for_session(on_ready=fails_on_the_reused_overlay_only)
-
-        self.assertEqual(logged_events(log), ["map_overlay_reuse_failed"])
-        self.assertEqual(log.call_args.kwargs["module"], "map")
-        self.assertIsNot(self.Overlay._active_instance, first)
-        self.assertIs(calls[-1], self.Overlay._active_instance)
-        delete_now(first)
-
     def test_closing_forgets_a_deleted_overlay_but_not_a_programming_error(self) -> None:
         self.Overlay._active_instance = Mock(close=Mock(side_effect=RuntimeError("deleted")))
         self.Overlay.close_active()
@@ -208,7 +190,7 @@ class SearchBarLoggingTest(unittest.TestCase):
                     side_effect=RuntimeError("handler bug"),
                 ), \
                 patch.object(PythonFailLogger, "log") as log:
-            MapCanvasSearchBar._open_result_in_plugin(None, "property", "1", "Title")
+            MapCanvasSearchBar._open_result_in_plugin(Mock(), "property", "1", "Title")
         self.assertEqual(logged_events(log), ["map_search_result_open_failed"])
         self.assertEqual(log.call_args.kwargs["module"], "map")
 

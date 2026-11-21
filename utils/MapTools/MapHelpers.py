@@ -10,6 +10,11 @@ from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.cadastral_fields import Katastriyksus
 
+
+class LayerLookupError(RuntimeError):
+    """A strict feature lookup could not read the layer, so its result says nothing."""
+
+
 class MapHelpers:
 
     @staticmethod
@@ -295,14 +300,28 @@ class MapHelpers:
                 )
 
     @staticmethod
-    def find_features_by_fields_and_values(layer: QgsVectorLayer, field_name: str, values: List[str]) -> List[QgsFeature]:
+    def find_features_by_fields_and_values(
+        layer: QgsVectorLayer,
+        field_name: str,
+        values: List[str],
+        *,
+        strict: bool = False,
+    ) -> List[QgsFeature]:
         """Look up features by attribute value, pushing the filter to the provider.
 
         Geometry is kept (not NoGeometry) because callers such as
         `item_selector_tools.show_connected_properties_on_map` zoom to the returned
         features' geometry.
+
+        By default a failed read is logged and gives [], like a miss. With
+        ``strict=True`` it raises `LayerLookupError` instead, for callers that must
+        not tell the user a feature is missing when the layer could not be read.
         """
-        if not layer or not layer.isValid() or not values:
+        if not values:
+            return []
+        if not layer or not layer.isValid():
+            if strict:
+                raise LayerLookupError("layer is missing or invalid")
             return []
         try:
             fields = layer.fields()
@@ -316,8 +335,14 @@ class MapHelpers:
                         "layer_id": layer.id(),
                     },
                 )
+                if strict:
+                    raise LayerLookupError(f"layer has no field {field_name!r}")
                 return []
+        except LayerLookupError:
+            raise
         except Exception as exc:
+            if strict:
+                raise LayerLookupError("layer fields could not be read") from exc
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.PROPERTY.value,
@@ -336,6 +361,8 @@ class MapHelpers:
             for feature in layer.getFeatures(request):
                 matches.append(feature)
         except Exception as exc:
+            if strict:
+                raise LayerLookupError("layer features could not be read") from exc
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.PROPERTY.value,

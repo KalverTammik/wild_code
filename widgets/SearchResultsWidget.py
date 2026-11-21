@@ -374,4 +374,12 @@ class SearchResultsWidget(QDialog):
     def _refocus_search_field(self, search_field):
         if not search_field:
             return
-        QTimer.singleShot(0, lambda: search_field.setFocus(Qt.OtherFocusReason))
+        QTimer.singleShot(0, lambda: self._set_focus_if_alive(search_field))
+
+    @staticmethod
+    def _set_focus_if_alive(search_field) -> None:
+        # The bar can close before the timer fires; an exception escaping a Qt callback aborts QGIS.
+        try:
+            search_field.setFocus(Qt.OtherFocusReason)
+        except RuntimeError:
+            pass

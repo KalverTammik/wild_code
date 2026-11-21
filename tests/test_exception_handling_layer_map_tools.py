@@ -43,6 +43,7 @@ from Kavitro_dev.utils.MapTools import module_feature_controllers as controllers
 from Kavitro_dev.utils.MapTools import module_identify_tool as identify_module
 from Kavitro_dev.utils.MapTools.MapHelpers import FeatureActions, MapHelpers
 from Kavitro_dev.utils.MapTools.module_feature_controllers import (
+    FeatureLinkResult,
     ModuleFeatureAttachController,
     ModuleFeatureDrawController,
     ModuleFeatureEditController,
@@ -471,7 +472,7 @@ class FeatureControllersTest(LoggedCase):
                 item_data={"id": "7"},
                 resolve_layer=lambda: layer,
                 find_feature_at_point=lambda point, _layer: None,
-                attach_handler=lambda *_args: (True, ""),
+                attach_handler=lambda *_args: FeatureLinkResult(True),
                 start_failed_message="start",
                 feature_not_found_message="missing",
                 save_failed_message="failed",
@@ -490,7 +491,7 @@ class FeatureControllersTest(LoggedCase):
         layer = memory_layer()
         feature = Mock()
         feature.id.return_value = 5
-        handler = Mock(return_value=(True, ""))
+        handler = Mock(return_value=FeatureLinkResult(True))
         controller._layer = layer
         controller._item_id = "job-9"
         controller._find_feature_at_point = lambda _point, _layer: feature
@@ -544,7 +545,8 @@ class FeatureControllersTest(LoggedCase):
         controller._on_feature_created = handler
         controller._title_error = "E"
         controller._title_success = "S"
-        controller._save_failed_message = "{item_id}: {error}"
+        controller._layer_save_failed_message = "{item_id}: {error}"
+        controller._sync_failed_message = "not synced {item_id}"
         controller._success_message = "saved {item_id}"
         controller._item_id = "job-4"
         controller._log_module = "works"
@@ -555,7 +557,7 @@ class FeatureControllersTest(LoggedCase):
         layer.commitChanges.return_value = False
         layer.commitErrors.return_value = ["constraint failed"]
         layer.rollBack.side_effect = RuntimeError("rollback boom")
-        controller = self.draw_controller(layer, Mock(return_value=(True, "")))
+        controller = self.draw_controller(layer, Mock(return_value=FeatureLinkResult(True)))
         controller._started_edit_session = True
 
         with patch.object(controllers_module, "iface", Mock()), patch.object(
@@ -574,7 +576,7 @@ class FeatureControllersTest(LoggedCase):
         layer.triggerRepaint.side_effect = RuntimeError("layer deleted")
         interface = Mock()
         interface.actionPan.side_effect = AttributeError("no pan action")
-        controller = self.draw_controller(layer, Mock(return_value=(True, "")))
+        controller = self.draw_controller(layer, Mock(return_value=FeatureLinkResult(True)))
 
         with patch.object(controllers_module, "iface", interface), patch.object(controllers_module, "MapHelpers"):
             controller._finalize_feature_added(4)

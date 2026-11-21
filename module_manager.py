@@ -1,4 +1,6 @@
 
+from PyQt5.QtWidgets import QWidget
+
 from .utils.url_manager import Module
 
 from .constants.module_icons import ModuleIconPaths
@@ -98,8 +100,9 @@ class ModuleManager:
             engine = ThemeManager.get_retheme_engine()
             qss_files = params.get("qss_files") if params else None
             widget = self._get_widget_safe(target_instance)
-            after_apply = self._get_explicit_retheme_hook(target_instance)
-            engine.register(widget, qss_files=qss_files or ThemeManager.module_bundle(), after_apply=after_apply)
+            if widget is not None:
+                after_apply = self._get_explicit_retheme_hook(target_instance)
+                engine.register(widget, qss_files=qss_files or ThemeManager.module_bundle(), after_apply=after_apply)
 
         # Activate and mark as current
         self.activeModule = module_data
@@ -185,17 +188,24 @@ class ModuleManager:
 
     @staticmethod
     def _get_widget_safe(instance):
+        """Return the module's QWidget, or None so the retheme engine skips the module.
+
+        Registering anything else breaks the next theme switch: sip.isdeleted() raises
+        TypeError on a non-Qt object.
+        """
         try:
-            return instance.get_widget()
+            widget = instance.get_widget()
+            if not isinstance(widget, QWidget):
+                raise TypeError(f"get_widget() returned {type(widget).__name__}, not a QWidget")
         except Exception as exc:
-            # Fallback kept: the module instance is registered in place of its widget; the cause is only logged.
             PythonFailLogger.log_exception(
                 exc,
                 module="general",
                 event="module_widget_build_failed",
                 extra={"module_class": type(instance).__name__},
             )
-            return instance
+            return None
+        return widget
 
     @staticmethod
     def _get_explicit_retheme_hook(instance):

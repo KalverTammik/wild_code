@@ -9,6 +9,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...utils.MapTools.module_feature_controllers import (
+    FeatureLinkResult,
     ModuleFeatureAttachMessages,
     ModuleFeatureDrawMessages,
     ModuleFeatureEditMessages,
@@ -60,7 +61,11 @@ class AsBuiltFeatureMapController:
             ),
             draw_messages=ModuleFeatureDrawMessages(
                 start_failed=self._lang.translate(TranslationKeys.ASBUILT_DRAW_NEW_START_FAILED),
-                save_failed_template=self._lang.translate(TranslationKeys.ASBUILT_DRAW_NEW_SAVE_FAILED).format(
+                layer_save_failed_template=self._lang.translate(TranslationKeys.ASBUILT_DRAW_NEW_LAYER_SAVE_FAILED).format(
+                    item_id="{item_id}",
+                    error="{error}",
+                ),
+                sync_failed_template=self._lang.translate(TranslationKeys.ASBUILT_DRAW_NEW_SAVE_FAILED).format(
                     item_id="{item_id}",
                     error="{error}",
                 ),
@@ -75,7 +80,6 @@ class AsBuiltFeatureMapController:
                 title_error=self._lang.translate(TranslationKeys.ERROR),
                 title_success=self._lang.translate(TranslationKeys.SUCCESS),
             ),
-            commit_edit_session_after_draw=True,
         )
 
     @staticmethod
@@ -83,12 +87,12 @@ class AsBuiltFeatureMapController:
         layer: QgsVectorLayer,
         feature_id: int,
         current_item: dict,
-    ) -> tuple[bool, str]:
+    ) -> FeatureLinkResult:
         item_payload = current_item if isinstance(current_item, dict) else {}
         item_id = str(item_payload.get("id") or "").strip()
         form_values = AsBuiltGeometryFormDialog.prompt(item_data=item_payload)
         if form_values is None:
-            return False, "Teostusjoonise andmete sisestamine katkestati"
+            return FeatureLinkResult(False, "Teostusjoonise andmete sisestamine katkestati")
 
         item_payload["_asbuilt_geometry_form"] = form_values
         item_payload["_asbuilt_feature_id"] = int(feature_id)
@@ -99,8 +103,9 @@ class AsBuiltFeatureMapController:
             item_data=item_payload,
         )
         if not success:
-            return success, message
+            return FeatureLinkResult(False, message)
 
+        # Read now: a drawn feature changes its id when the layer is committed.
         geometry_payload = AsBuiltFeatureMapController._geometry_payload_for_item(layer, item_payload)
         if geometry_payload is None:
             PythonFailLogger.log(
@@ -108,23 +113,26 @@ class AsBuiltFeatureMapController:
                 module="asbuilt",
                 extra={"item_id": item_id, "feature_id": int(feature_id)},
             )
-            return False, "Teostusjoonise geomeetriat ei leitud backendisse saatmiseks"
+            return FeatureLinkResult(False, "Teostusjoonise geomeetriat ei leitud Kavitrosse saatmiseks")
 
-        if APIModuleActions.update_task_geometry(item_id, geometry_payload):
-            PythonFailLogger.log(
-                "asbuilt_geometry_backend_sync_success",
+        def sync_to_kavitro() -> tuple[bool, str]:
+            if APIModuleActions.update_task_geometry(item_id, geometry_payload):
+                PythonFailLogger.log(
+                    "asbuilt_geometry_backend_sync_success",
+                    module="asbuilt",
+                    extra={"item_id": item_id, "feature_id": int(feature_id), "geometry_type": str(geometry_payload.get("type") or "")},
+                )
+                return True, message
+
+            PythonFailLogger.log_exception(
+                RuntimeError("Could not update As-built task geometry in Kavitro"),
                 module="asbuilt",
-                extra={"item_id": item_id, "feature_id": int(feature_id), "geometry_type": str(geometry_payload.get("type") or "")},
+                event="asbuilt_geometry_backend_update_failed",
+                extra={"item_id": item_id, "feature_id": int(feature_id)},
             )
-            return success, message
+            return False, "Teostusjoonise geomeetria saatmine Kavitrosse ebaõnnestus"
 
-        PythonFailLogger.log_exception(
-            RuntimeError("Could not update As-built task geometry in backend"),
-            module="asbuilt",
-            event="asbuilt_geometry_backend_update_failed",
-            extra={"item_id": item_id, "feature_id": int(feature_id)},
-        )
-        return False, "Teostusjoonise geomeetria saatmine backendisse ebaõnnestus"
+        return FeatureLinkResult(True, message, sync_to_kavitro)
 
     @staticmethod
     def _geometry_payload_for_item(layer: QgsVectorLayer, item_payload: dict) -> Optional[dict[str, object]]:

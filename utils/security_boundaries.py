@@ -77,7 +77,7 @@ class DescriptionLinkTarget:
 
 
 def _log_drive_probe_failure(exc: Exception) -> None:
-    """Trace a failed Win32 drive probe; the caller's fallback value stays unchanged."""
+    """Trace a failed Win32 drive probe; the caller still returns its fail-closed value."""
     try:
         from ..Logs.python_fail_logger import PythonFailLogger
     except ImportError:  # imported as a top-level `utils` module outside the plugin package (unit tests)
@@ -86,7 +86,11 @@ def _log_drive_probe_failure(exc: Exception) -> None:
 
 
 def windows_drive_type(path: object) -> int:
-    """Return the Win32 drive type for an absolute drive path without probing a file."""
+    """Return the Win32 drive type for an absolute drive path without probing a file.
+
+    A failed probe reports a remote drive: an unverified drive letter may be a mapped
+    network share, so it must get the network confirmation instead of opening as local.
+    """
 
     text = str(path or "").strip()
     if os.name != "nt" or not _WINDOWS_ABSOLUTE_PATH_RE.match(text):
@@ -99,7 +103,7 @@ def windows_drive_type(path: object) -> int:
         return int(ctypes.windll.kernel32.GetDriveTypeW(root))  # type: ignore[attr-defined]
     except Exception as exc:
         _log_drive_probe_failure(exc)
-        return 0
+        return _WINDOWS_DRIVE_REMOTE
 
 
 def windows_mapped_drive_remote_name(path: object) -> str:

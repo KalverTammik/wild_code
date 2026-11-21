@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor
 
@@ -9,6 +10,17 @@ from ..Settings.SettinsUtils.SettingsLogic import SettingsLogic
 
 from ...python.api_client import APIClient
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
+
+
+@dataclass
+class ConnectedModuleData:
+    """Connected nodes per module, and the error of each module whose request failed.
+
+    A failed module is kept apart from one without nodes, so callers do not show a failure as "nothing linked".
+    """
+
+    nodes_by_module: Dict[str, List[Dict[str, Any]]] = field(default_factory=dict)
+    errors: Dict[str, Exception] = field(default_factory=dict)
 
 
 class PropertiesConnectedElementsQueries:
@@ -98,8 +110,8 @@ class PropertiesConnectedElementsQueries:
         )
         return works
 
-    def fetch_all_module_data(self, propertie_id):
-        aggregated: Dict[str, List[Dict[str, Any]]] = {}
+    def fetch_all_module_data(self, propertie_id) -> ConnectedModuleData:
+        result = ConnectedModuleData()
         module_keys = list(self.module_to_filename.keys())
         with ThreadPoolExecutor(max_workers=min(4, len(module_keys))) as executor:
             future_by_module = {
@@ -117,10 +129,11 @@ class PropertiesConnectedElementsQueries:
                     event="property_connected_module_fetch_failed",
                     extra={"target_module": module_key},
                 )
-                nodes = []
+                result.errors[module_key] = exc
+                continue
             if nodes:
-                aggregated[module_key] = nodes
-        return aggregated
+                result.nodes_by_module[module_key] = nodes
+        return result
 
 class ProcessElementData:
     def process_response_data(self, module_key: str, payload: Dict[str, Any]):

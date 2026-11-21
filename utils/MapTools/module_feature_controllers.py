@@ -16,8 +16,24 @@ from .MapHelpers import MapHelpers
 LayerResolver = Callable[[], Optional[QgsVectorLayer]]
 FeatureAtPointResolver = Callable[[object, QgsVectorLayer], Optional[QgsFeature]]
 FeatureLookupResolver = Callable[[QgsVectorLayer, dict], Optional[QgsFeature]]
-AttachHandler = Callable[[QgsVectorLayer, int, dict], tuple[bool, str]]
 BeforeAttachHandler = Callable[[QgsVectorLayer, QgsFeature, dict], bool]
+KavitroSync = Callable[[], tuple[bool, str]]
+
+
+@dataclass(frozen=True)
+class FeatureLinkResult:
+    """Outcome of writing a Kavitro item onto a layer feature.
+
+    The Kavitro update is returned, not run, so the draw flow can send it only
+    after the layer commit: otherwise Kavitro gets a geometry the layer never saved.
+    """
+
+    success: bool
+    message: str = ""
+    sync_to_kavitro: Optional[KavitroSync] = None
+
+
+AttachHandler = Callable[[QgsVectorLayer, int, dict], FeatureLinkResult]
 
 
 @dataclass(frozen=True)
@@ -34,7 +50,10 @@ class ModuleFeatureAttachMessages:
 @dataclass(frozen=True)
 class ModuleFeatureDrawMessages:
     start_failed: str
-    save_failed_template: str
+    # Nothing was saved: the drawn feature is gone and Kavitro was not changed.
+    layer_save_failed_template: str
+    # The feature is on the layer with the Kavitro link, but Kavitro did not get its geometry.
+    sync_failed_template: str
     success: str
     title_error: str
     title_success: str
@@ -60,7 +79,6 @@ class ModuleFeatureWorkflowConfig:
     draw_messages: ModuleFeatureDrawMessages
     edit_messages: ModuleFeatureEditMessages
     before_attach: Optional[BeforeAttachHandler] = None
-    commit_edit_session_after_draw: bool = True
 
 
 class ModuleFeatureAttachController:
@@ -179,7 +197,10 @@ class ModuleFeatureAttachController:
                 extra={"item_id": self._item_id},
             )
 
-        success, message = self._attach_handler(layer, int(feature.id()), self._item_data)
+        link = self._attach_handler(layer, int(feature.id()), self._item_data)
+        success, message = link.success, link.message
+        if success and link.sync_to_kavitro is not None:
+            success, message = link.sync_to_kavitro()
         self._clear_capture_tool(bring_front=True, log_module=log_module)
 
         if not success:
@@ -234,13 +255,13 @@ class ModuleFeatureDrawController:
         self._on_feature_created: Optional[AttachHandler] = None
         self._title_error = ""
         self._title_success = ""
-        self._save_failed_message = ""
+        self._layer_save_failed_message = ""
+        self._sync_failed_message = ""
         self._success_message = ""
         self._log_module = "general"
         self._item_id: str = ""
         self._pending_feature_ids: set[int] = set()
         self._started_edit_session = False
-        self._commit_edit_session = True
         self._original_form_suppress = None
 
     def start_draw(
@@ -250,12 +271,12 @@ class ModuleFeatureDrawController:
         resolve_layer: LayerResolver,
         on_feature_created: AttachHandler,
         start_failed_message: str,
-        save_failed_message: str,
+        layer_save_failed_message: str,
+        sync_failed_message: str,
         success_message: str,
         title_error: str,
         title_success: str,
         log_module: str,
-        commit_edit_session: bool = True,
     ) -> bool:
         layer = resolve_layer()
         if layer is None:
@@ -268,11 +289,11 @@ class ModuleFeatureDrawController:
         self._on_feature_created = on_feature_created
         self._title_error = title_error
         self._title_success = title_success
-        self._save_failed_message = save_failed_message
+        self._layer_save_failed_message = layer_save_failed_message
+        self._sync_failed_message = sync_failed_message
         self._success_message = success_message
         self._log_module = log_module
         self._started_edit_session = False
-        self._commit_edit_session = bool(commit_edit_session)
 
         try:
             MapHelpers.ensure_layer_visible(layer, make_active=True)
@@ -310,12 +331,12 @@ class ModuleFeatureDrawController:
         self._on_feature_created = None
         self._title_error = ""
         self._title_success = ""
-        self._save_failed_message = ""
+        self._layer_save_failed_message = ""
+        self._sync_failed_message = ""
         self._success_message = ""
         self._log_module = log_module
         self._item_id = ""
         self._started_edit_session = False
-        self._commit_edit_session = True
         self._original_form_suppress = None
 
     def _handle_feature_added(self, feature_id: int) -> None:
@@ -357,7 +378,7 @@ class ModuleFeatureDrawController:
             )
 
         try:
-            success, message = handler(layer, int(feature_id), self._item_data)
+            link = handler(layer, int(feature_id), self._item_data)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -365,37 +386,19 @@ class ModuleFeatureDrawController:
                 event="module_feature_draw_finalize_failed",
                 extra={"feature_id": int(feature_id), "item_id": self._item_id},
             )
-            success, message = False, str(exc)
+            link = FeatureLinkResult(False, str(exc))
 
-        if started_edit_session:
-            try:
-                if success and self._commit_edit_session:
-                    if not layer.commitChanges():
-                        commit_errors = "; ".join(layer.commitErrors() or [])
-                        success = False
-                        message = commit_errors or "Could not commit layer changes after drawing"
-                        try:
-                            layer.rollBack()
-                        except Exception as rollback_exc:  # a failed rollBack leaves the layer in edit mode
-                            PythonFailLogger.log_exception(
-                                rollback_exc,
-                                module=self._log_module,
-                                event="module_feature_draw_rollback_failed",
-                                extra={"feature_id": int(feature_id), "item_id": self._item_id},
-                            )
-                elif layer.isEditable():
-                    layer.rollBack()
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=self._log_module,
-                    event="module_feature_draw_commit_failed",
-                    extra={"feature_id": int(feature_id), "item_id": self._item_id},
-                )
-                success = False
-                message = str(exc)
+        saved_to_layer, message = link.success, link.message
+        if saved_to_layer and started_edit_session:
+            saved_to_layer, message = self._commit_drawn_feature(layer, feature_id)
+        if not saved_to_layer:
+            self._discard_drawn_feature(layer, feature_id, started_edit_session)
 
-        if success:
+        synced, sync_detail = True, ""
+        if saved_to_layer and link.sync_to_kavitro is not None:
+            synced, sync_detail = self._run_kavitro_sync(link.sync_to_kavitro, feature_id)
+
+        if saved_to_layer:
             try:
                 layer.triggerRepaint()
             except RuntimeError:  # layer deleted
@@ -413,7 +416,8 @@ class ModuleFeatureDrawController:
 
         title_error = self._title_error
         title_success = self._title_success
-        save_failed_message = self._save_failed_message
+        layer_save_failed_message = self._layer_save_failed_message
+        sync_failed_message = self._sync_failed_message
         success_message = self._success_message
         item_id = self._item_id
         log_module = self._log_module
@@ -426,10 +430,17 @@ class ModuleFeatureDrawController:
         except (AttributeError, RuntimeError):  # no pan action, or it was deleted
             pass
 
-        if not success:
+        if not saved_to_layer:
             ModernMessageDialog.show_warning(
                 title_error,
-                save_failed_message.format(item_id=item_id or "-", error=message or title_error),
+                layer_save_failed_message.format(item_id=item_id or "-", error=message or title_error),
+            )
+            return
+
+        if not synced:
+            ModernMessageDialog.show_warning(
+                title_error,
+                sync_failed_message.format(item_id=item_id or "-", error=sync_detail or title_error),
             )
             return
 
@@ -437,6 +448,51 @@ class ModuleFeatureDrawController:
             title_success,
             success_message.format(item_id=item_id or "-"),
         )
+
+    def _commit_drawn_feature(self, layer: QgsVectorLayer, feature_id: int) -> tuple[bool, str]:
+        try:
+            if layer.commitChanges():
+                return True, ""
+            return False, "; ".join(layer.commitErrors() or []) or "Could not commit layer changes after drawing"
+        except Exception as exc:  # timer callback: nothing may escape; the feature is discarded next
+            PythonFailLogger.log_exception(
+                exc,
+                module=self._log_module,
+                event="module_feature_draw_commit_failed",
+                extra={"feature_id": int(feature_id), "item_id": self._item_id},
+            )
+            return False, str(exc)
+
+    def _discard_drawn_feature(self, layer: QgsVectorLayer, feature_id: int, started_edit_session: bool) -> None:
+        # No half-saved feature may stay behind: our own session is rolled back whole,
+        # a session the user opened earlier loses only the feature drawn here.
+        try:
+            if not layer.isEditable():
+                return
+            if started_edit_session:
+                layer.rollBack()
+            else:
+                layer.deleteFeature(int(feature_id))
+        except Exception as exc:  # a failed rollBack leaves the layer in edit mode
+            PythonFailLogger.log_exception(
+                exc,
+                module=self._log_module,
+                event="module_feature_draw_rollback_failed",
+                extra={"feature_id": int(feature_id), "item_id": self._item_id},
+            )
+
+    def _run_kavitro_sync(self, sync: KavitroSync, feature_id: int) -> tuple[bool, str]:
+        try:
+            synced, detail = sync()
+        except Exception as exc:  # timer callback: nothing may escape; the layer save stands
+            PythonFailLogger.log_exception(
+                exc,
+                module=self._log_module,
+                event="module_feature_draw_kavitro_sync_failed",
+                extra={"feature_id": int(feature_id), "item_id": self._item_id},
+            )
+            return False, str(exc)
+        return bool(synced), detail
 
     @staticmethod
     def _trigger_iface_action(*action_names: str) -> bool:
@@ -598,12 +654,12 @@ class ModuleFeatureWorkflow:
             resolve_layer=self._config.resolve_layer,
             on_feature_created=self._config.attach_handler,
             start_failed_message=messages.start_failed,
-            save_failed_message=messages.save_failed_template,
+            layer_save_failed_message=messages.layer_save_failed_template,
+            sync_failed_message=messages.sync_failed_template,
             success_message=messages.success,
             title_error=messages.title_error,
             title_success=messages.title_success,
             log_module=self._config.log_module,
-            commit_edit_session=self._config.commit_edit_session_after_draw,
         )
 
     def start_edit(self, *, item_data: Optional[dict]) -> bool:
