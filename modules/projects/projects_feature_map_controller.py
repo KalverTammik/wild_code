@@ -8,6 +8,7 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
+from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...utils.MapTools.module_feature_controllers import (
     FeatureLinkResult,
     ModuleFeatureAttachMessages,
@@ -90,11 +91,13 @@ class ProjectsFeatureMapController:
     ) -> FeatureLinkResult:
         item_payload = current_item if isinstance(current_item, dict) else {}
         item_id = str(item_payload.get("id") or "").strip()
+        value_problems: list[FieldValueProblem] = []
         success, message = ProjectsLayerService.attach_backend_item_to_feature(
             layer=layer,
             feature_id=feature_id,
             item_id=item_id,
             item_data=item_payload,
+            value_problems=value_problems,
         )
         if not success:
             return FeatureLinkResult(False, message)
@@ -102,7 +105,7 @@ class ProjectsFeatureMapController:
         # Read now: a drawn feature changes its id when the layer is committed.
         geometry_payload = ProjectsFeatureMapController._geometry_payload_for_item(layer, item_payload)
         if geometry_payload is None:
-            return FeatureLinkResult(True, message)
+            return FeatureLinkResult(True, message, value_problems=tuple(value_problems))
 
         def sync_to_kavitro() -> tuple[bool, str]:
             if APIModuleActions.update_project_geometry(item_id, geometry_payload):
@@ -116,7 +119,7 @@ class ProjectsFeatureMapController:
             )
             return False, "Projekti geomeetria saatmine Kavitrosse ebaõnnestus"
 
-        return FeatureLinkResult(True, message, sync_to_kavitro)
+        return FeatureLinkResult(True, message, sync_to_kavitro, tuple(value_problems))
 
     @staticmethod
     def _geometry_payload_for_item(layer: QgsVectorLayer, item_payload: dict) -> Optional[dict[str, object]]:

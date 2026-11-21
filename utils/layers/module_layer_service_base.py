@@ -1,9 +1,13 @@
 """What the module layer services (works, as-built, projects, easements) have in common."""
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Optional
+import json
+import math
+from dataclasses import dataclass
+from datetime import date, datetime
+from typing import ClassVar, Optional
 
+from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant
 from qgis.core import (
     QgsCoordinateTransform,
     QgsFeature,
@@ -27,6 +31,45 @@ from ..SessionManager import SessionManager
 from ..geometry_payload import GeometryPayloadService
 from ..url_manager import Module
 from ..user_dialogs import UserDialogs
+
+
+@dataclass(frozen=True)
+class FieldValueProblem:
+    """A value a layer save could not convert for its field. The field was written empty and the save went on."""
+
+    NUMBER: ClassVar[str] = "number"
+    INTEGER: ClassVar[str] = "integer"
+    YES_NO: ClassVar[str] = "yes/no"
+    DATE: ClassVar[str] = "date"
+    DATE_TIME: ClassVar[str] = "date and time"
+    # Long text (a whole note in the wrong field) is cut, so a message or log line stays readable.
+    MAX_VALUE_LENGTH: ClassVar[int] = 60
+
+    field_name: str
+    field_label: str  # the field's alias when the layer has one
+    raw_value: str
+    value_type: str
+    expected: str  # one of the kinds above
+
+    @classmethod
+    def for_field(cls, field, value, expected: str) -> "FieldValueProblem":
+        name = str(field.name() or "")
+        label = str(field.displayName() or "") or name
+        raw = str(value)
+        if len(raw) > cls.MAX_VALUE_LENGTH:
+            raw = raw[: cls.MAX_VALUE_LENGTH - 1] + "\u2026"
+        return cls(field_name=name, field_label=label, raw_value=raw, value_type=type(value).__name__, expected=expected)
+
+
+_REJECTED = object()
+_INTEGER_RANGES = {
+    QVariant.Int: (-(2**31), 2**31 - 1),
+    QVariant.UInt: (0, 2**32 - 1),
+    QVariant.LongLong: (-(2**63), 2**63 - 1),
+    QVariant.ULongLong: (0, 2**64 - 1),
+}
+_TRUE_WORDS = frozenset({"1", "true", "t", "yes", "y", "jah"})
+_FALSE_WORDS = frozenset({"0", "false", "f", "no", "n", "ei"})
 
 
 class ModuleLayerServiceBase:
@@ -63,6 +106,154 @@ class ModuleLayerServiceBase:
             except (ValueError, OSError, OverflowError):  # dates outside the OS time range
                 parsed = parsed.replace(tzinfo=None)
         return parsed
+
+    @staticmethod
+    def parse_number_text(value) -> Optional[float]:
+        """Number from form text; Estonian input uses a decimal comma and may group digits with spaces."""
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value) if math.isfinite(value) else None
+        text = ModuleLayerServiceBase._number_text(value)
+        if not text:
+            return None
+        try:
+            number = float(text)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        # "inf" and "nan" parse, but no layer field can store them.
+        return number if math.isfinite(number) else None
+
+    @staticmethod
+    def _number_text(value) -> str:
+        return str(value or "").strip().replace("\u00a0", "").replace(" ", "").replace(",", ".")
+
+    @staticmethod
+    def _integer_value(value, field_type):
+        if isinstance(value, bool):
+            number = int(value)
+        elif isinstance(value, int):
+            number = value
+        else:
+            try:
+                # Exact for long digit strings, which a float would round.
+                number = int(ModuleLayerServiceBase._number_text(value))
+            except ValueError:
+                parsed = ModuleLayerServiceBase.parse_number_text(value)
+                # "2,5" in a whole-number field is a typing mistake, not something to round away.
+                if parsed is None or not parsed.is_integer():
+                    return _REJECTED
+                number = int(parsed)
+        low, high = _INTEGER_RANGES[field_type]
+        return number if low <= number <= high else _REJECTED
+
+    @staticmethod
+    def _double_value(value, field_type):
+        if isinstance(value, bool):
+            return float(value)
+        number = ModuleLayerServiceBase.parse_number_text(value)
+        return _REJECTED if number is None else number
+
+    @staticmethod
+    def _bool_value(value, field_type):
+        if isinstance(value, bool):
+            return value
+        text = str(value).strip().lower()
+        if text in _TRUE_WORDS:
+            return True
+        if text in _FALSE_WORDS:
+            return False
+        return _REJECTED
+
+    @staticmethod
+    def _python_datetime(value) -> Optional[datetime]:
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, date):
+            return datetime(value.year, value.month, value.day)
+        return ModuleLayerServiceBase.parse_backend_datetime(value)
+
+    @staticmethod
+    def _date_value(value, field_type):
+        if isinstance(value, QDate):
+            return value if value.isValid() else None
+        if isinstance(value, QDateTime):
+            return value.date() if value.isValid() else None
+        parsed = ModuleLayerServiceBase._python_datetime(value)
+        return _REJECTED if parsed is None else QDate(parsed.year, parsed.month, parsed.day)
+
+    @staticmethod
+    def _datetime_value(value, field_type):
+        if isinstance(value, QDateTime):
+            return value if value.isValid() else None
+        if isinstance(value, QDate):
+            return QDateTime(value, QTime(0, 0)) if value.isValid() else None
+        parsed = ModuleLayerServiceBase._python_datetime(value)
+        if parsed is None:
+            return _REJECTED
+        return QDateTime(parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute, parsed.second)
+
+    @staticmethod
+    def coerce_field_value(field, value) -> tuple[object, Optional[FieldValueProblem]]:
+        """The value as the field stores it, and the problem when it could not be converted (then the value is None).
+
+        A wrong value must not fail the whole layer save: the field stays empty and the caller can tell the user.
+        Field types without a rule, and fields whose type cannot be read, get the value unchanged.
+        """
+        if field is None or value is None:
+            return value, None
+        if isinstance(value, QVariant) and value.isNull():  # QGIS NULL
+            return None, None
+        try:
+            field_type = field.type()
+        except (AttributeError, RuntimeError):  # not a field, or the layer was deleted
+            return value, None
+
+        if field_type == QVariant.String:
+            if isinstance(value, (dict, list)):
+                try:
+                    return json.dumps(value, ensure_ascii=False), None
+                except (TypeError, ValueError):  # not JSON-serialisable, or a circular structure
+                    return str(value), None
+            return value, None
+
+        if field_type in _INTEGER_RANGES:
+            convert, expected = ModuleLayerServiceBase._integer_value, FieldValueProblem.INTEGER
+        elif field_type == QVariant.Double:
+            convert, expected = ModuleLayerServiceBase._double_value, FieldValueProblem.NUMBER
+        elif field_type == QVariant.Bool:
+            convert, expected = ModuleLayerServiceBase._bool_value, FieldValueProblem.YES_NO
+        elif field_type == QVariant.Date:
+            convert, expected = ModuleLayerServiceBase._date_value, FieldValueProblem.DATE
+        elif field_type == QVariant.DateTime:
+            convert, expected = ModuleLayerServiceBase._datetime_value, FieldValueProblem.DATE_TIME
+        else:
+            return value, None
+
+        if isinstance(value, str) and not value.strip():  # a blank form field means no value
+            return None, None
+        converted = convert(value, field_type)
+        if converted is _REJECTED:
+            return None, FieldValueProblem.for_field(field, value, expected)
+        return converted, None
+
+    @classmethod
+    def coerce_value_for_field(cls, field, value, problems: Optional[list[FieldValueProblem]] = None):
+        """`coerce_field_value` for writing: a rejected value is logged, added to `problems`, and becomes None."""
+        coerced, problem = cls.coerce_field_value(field, value)
+        if problem is None:
+            return coerced
+        PythonFailLogger.log(
+            f"{cls.MODULE.value}_field_value_rejected",
+            module=cls.MODULE.value,
+            extra={
+                "field": problem.field_name,
+                "value_type": problem.value_type,
+                "value": problem.raw_value,
+                "expected": problem.expected,
+            },
+        )
+        if problems is not None:
+            problems.append(problem)
+        return coerced
 
     @staticmethod
     def coerce_optional_int(value) -> Optional[int]:
@@ -213,18 +404,13 @@ class ModuleLayerServiceBase:
 class AttachableLayerServiceBase(ModuleLayerServiceBase):
     """A module that attaches backend items to features on one configured layer: as-built, projects, easements.
 
-    A service sets the key below and supplies `_ensure_custom_fields` and `coerce_value_for_field`, whose copies
-    still differ between modules.
+    A service sets the key below and supplies `_ensure_custom_fields`.
     """
 
     DRAW_START_FAILED_KEY: str
 
     @classmethod
     def _ensure_custom_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
-        raise NotImplementedError
-
-    @staticmethod
-    def coerce_value_for_field(field, value):
         raise NotImplementedError
 
     @classmethod
@@ -266,13 +452,21 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
         return None
 
     @classmethod
-    def _set_attr_if_present(cls, feature: QgsFeature, *, layer: QgsVectorLayer, candidates: tuple[str, ...], value) -> None:
+    def _set_attr_if_present(
+        cls,
+        feature: QgsFeature,
+        *,
+        layer: QgsVectorLayer,
+        candidates: tuple[str, ...],
+        value,
+        value_problems: Optional[list[FieldValueProblem]] = None,
+    ) -> None:
         actual = cls._resolve_first_field_name(layer, candidates)
         if not actual:
             return
         field_index = layer.fields().indexFromName(actual)
         field = layer.fields()[field_index] if field_index >= 0 else None
-        feature.setAttribute(actual, cls.coerce_value_for_field(field, value))
+        feature.setAttribute(actual, cls.coerce_value_for_field(field, value, value_problems))
 
     @classmethod
     def _feature_by_id(cls, layer: Optional[QgsVectorLayer], feature_id: int) -> Optional[QgsFeature]:

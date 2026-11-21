@@ -1,18 +1,18 @@
 from __future__ import annotations
 
+from functools import partial
 import json
-import math
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 
-from qgis.PyQt.QtCore import QVariant, QDate, QDateTime
+from qgis.PyQt.QtCore import QVariant
 from qgis.core import QgsFeature, QgsFeatureRequest, QgsField, QgsMapLayer, QgsVectorLayer, QgsWkbTypes
 
 from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ..Settings.setting_keys import SettingDialogPlaceholders
-from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase
+from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 
@@ -54,6 +54,27 @@ class EasementLayerService(AttachableLayerServiceBase):
     FIELD_PROTECTION_WIDTH_CANDIDATES = ("Kaitsevööndi laius", "kaitsevööndi laius")
     FIELD_NETWORK_CANDIDATES = ("Võrk", "võrk")
     FIELD_MUNICIPALITY_CANDIDATES = ("Vald", "vald")
+    # Geometry form key -> the layer fields its value is written to. The save and the form's own check both read
+    # this, so the form can never accept a value the save would leave empty.
+    GEOMETRY_FORM_FIELDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("Liik", FIELD_TYPE_CANDIDATES),
+        ("Staatus", FIELD_STATUS_CANDIDATES),
+        ("Notari reg nr", FIELD_NOTARY_NUMBER_CANDIDATES),
+        ("Maa omanik", FIELD_LAND_OWNER_CANDIDATES),
+        ("Katastritunnus", FIELD_PROPERTY_CANDIDATES),
+        ("Telefon", FIELD_PHONE_CANDIDATES),
+        ("E-kiri", FIELD_EMAIL_CANDIDATES),
+        ("Märkus", FIELD_NOTE_CANDIDATES),
+        ("Kehtestamise kuupäev", FIELD_ESTABLISHED_DATE_CANDIDATES),
+        ("Allikas", FIELD_SYSTEM_CANDIDATES),
+        ("Võrk", FIELD_NETWORK_CANDIDATES),
+        ("Kaitsevööndi laius", FIELD_PROTECTION_WIDTH_CANDIDATES),
+        ("Talumistasu", FIELD_COMPENSATION_CANDIDATES),
+        ("Vald", FIELD_MUNICIPALITY_CANDIDATES),
+        ("Piirkond", FIELD_REGION_CANDIDATES),
+        ("Aadress", FIELD_ADDRESS_CANDIDATES),
+        ("Maja nr", FIELD_HOUSE_NUMBER_CANDIDATES),
+    )
 
     @staticmethod
     def _layer_target_label(layer: Optional[QgsMapLayer]) -> str:
@@ -333,75 +354,25 @@ class EasementLayerService(AttachableLayerServiceBase):
             )
         return None
 
-    @staticmethod
-    def parse_number_text(value):
-        """Number from form text; Estonian input uses a decimal comma and may group digits with spaces."""
-        if isinstance(value, (int, float)) and not isinstance(value, bool):
-            return float(value) if math.isfinite(value) else None
-        text = str(value or "").strip().replace("\u00a0", "").replace(" ", "").replace(",", ".")
-        if not text:
-            return None
-        try:
-            number = float(text)
-        except (TypeError, ValueError, OverflowError):
-            return None
-        # "inf" and "nan" parse, but no layer field can store them.
-        return number if math.isfinite(number) else None
-
-    @staticmethod
-    def coerce_value_for_field(field, value):
-        if field is None or value is None:
-            return value
-        try:
-            field_type = field.type()
-        except (AttributeError, RuntimeError):
-            field_type = None
-
-        if field_type in (QVariant.Int, QVariant.UInt, QVariant.LongLong, QVariant.ULongLong):
-            try:
-                return int(value)
-            except (TypeError, ValueError, OverflowError):
-                number = EasementLayerService.parse_number_text(value)
-                return int(round(number)) if number is not None else value
-
-        if field_type == QVariant.Double:
-            number = EasementLayerService.parse_number_text(value)
-            return number if number is not None else value
-
-        if field_type == QVariant.DateTime:
-            if isinstance(value, QDateTime):
-                return value
-            parsed_datetime = value if isinstance(value, datetime) else EasementLayerService.parse_backend_datetime(value)
-            if isinstance(parsed_datetime, datetime):
-                return QDateTime(
-                    parsed_datetime.year,
-                    parsed_datetime.month,
-                    parsed_datetime.day,
-                    parsed_datetime.hour,
-                    parsed_datetime.minute,
-                    parsed_datetime.second,
-                )
-            return value
-
-        if field_type == QVariant.Date:
-            if isinstance(value, QDate):
-                return value
-            parsed_date = value if isinstance(value, date) and not isinstance(value, datetime) else None
-            parsed_datetime = value if isinstance(value, datetime) else EasementLayerService.parse_backend_datetime(value)
-            if isinstance(parsed_datetime, datetime):
-                parsed_date = parsed_datetime.date()
-            if isinstance(parsed_date, date):
-                return QDate(parsed_date.year, parsed_date.month, parsed_date.day)
-            return value
-
-        return value
-
     @classmethod
-    def _set_mapped_status(cls, feature: QgsFeature, *, layer: QgsVectorLayer, status_payload) -> None:
+    def _set_mapped_status(
+        cls,
+        feature: QgsFeature,
+        *,
+        layer: QgsVectorLayer,
+        status_payload,
+        value_problems: Optional[list[FieldValueProblem]] = None,
+    ) -> None:
         # Without a mapped value the field keeps what it has: an empty value would clear it.
         layer_status = cls.map_backend_status_to_layer_value(status_payload or {})
         if layer_status:
-            cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_STATUS_CANDIDATES, value=layer_status)
+            cls._set_attr_if_present(
+                feature,
+                layer=layer,
+                candidates=cls.FIELD_STATUS_CANDIDATES,
+                value=layer_status,
+                value_problems=value_problems,
+            )
 
     @classmethod
     def _apply_geometry_form_values(
@@ -410,34 +381,36 @@ class EasementLayerService(AttachableLayerServiceBase):
         *,
         layer: QgsVectorLayer,
         values: Optional[dict],
+        value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> None:
+        for _key, candidates, value in cls._geometry_form_entries(values):
+            cls._set_attr_if_present(feature, layer=layer, candidates=candidates, value=value, value_problems=value_problems)
+
+    @classmethod
+    def _geometry_form_entries(cls, values: Optional[dict]):
+        """(form key, layer field candidates, value) for each form value the save writes; a blank one keeps the field."""
         if not isinstance(values, dict):
             return
+        for key, candidates in cls.GEOMETRY_FORM_FIELDS:
+            value = values.get(key)
+            if value not in (None, ""):
+                yield key, candidates, value
 
-        mapping: tuple[tuple[tuple[str, ...], object], ...] = (
-            (cls.FIELD_TYPE_CANDIDATES, values.get("Liik")),
-            (cls.FIELD_STATUS_CANDIDATES, values.get("Staatus")),
-            (cls.FIELD_NOTARY_NUMBER_CANDIDATES, values.get("Notari reg nr")),
-            (cls.FIELD_LAND_OWNER_CANDIDATES, values.get("Maa omanik")),
-            (cls.FIELD_PROPERTY_CANDIDATES, values.get("Katastritunnus")),
-            (cls.FIELD_PHONE_CANDIDATES, values.get("Telefon")),
-            (cls.FIELD_EMAIL_CANDIDATES, values.get("E-kiri")),
-            (cls.FIELD_NOTE_CANDIDATES, values.get("Märkus")),
-            (cls.FIELD_ESTABLISHED_DATE_CANDIDATES, values.get("Kehtestamise kuupäev")),
-            (cls.FIELD_SYSTEM_CANDIDATES, values.get("Allikas")),
-            (cls.FIELD_NETWORK_CANDIDATES, values.get("Võrk")),
-            (cls.FIELD_PROTECTION_WIDTH_CANDIDATES, values.get("Kaitsevööndi laius")),
-            (cls.FIELD_COMPENSATION_CANDIDATES, values.get("Talumistasu")),
-            (cls.FIELD_MUNICIPALITY_CANDIDATES, values.get("Vald")),
-            (cls.FIELD_REGION_CANDIDATES, values.get("Piirkond")),
-            (cls.FIELD_ADDRESS_CANDIDATES, values.get("Aadress")),
-            (cls.FIELD_HOUSE_NUMBER_CANDIDATES, values.get("Maja nr")),
-        )
-
-        for candidates, value in mapping:
-            if value in (None, ""):
-                continue
-            cls._set_attr_if_present(feature, layer=layer, candidates=candidates, value=value)
+    @classmethod
+    def geometry_form_value_problems(cls, layer: Optional[QgsVectorLayer], values: Optional[dict]) -> dict[str, FieldValueProblem]:
+        """The form values this layer's save would leave empty, by form key. Nothing is written or logged."""
+        problems: dict[str, FieldValueProblem] = {}
+        try:
+            for key, candidates, value in cls._geometry_form_entries(values):
+                field_name = cls._resolve_first_field_name(layer, candidates)
+                if not field_name:
+                    continue
+                _value, problem = cls.coerce_field_value(layer.fields().field(field_name), value)
+                if problem is not None:
+                    problems[key] = problem
+        except RuntimeError:  # the layer was deleted while the form was open; its save fails on its own
+            return {}
+        return problems
 
     @staticmethod
     def _coerce_area_value(layer: QgsVectorLayer, candidates: tuple[str, ...], area_sqm: float):
@@ -462,6 +435,7 @@ class EasementLayerService(AttachableLayerServiceBase):
         feature_id: int,
         item_id: str,
         item_data: Optional[dict] = None,
+        value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False, "Invalid easement main layer"
@@ -488,23 +462,27 @@ class EasementLayerService(AttachableLayerServiceBase):
         existing_added_by = cls._resolve_first_field_name(layer, cls.FIELD_ADDED_BY_CANDIDATES)
         existing_added_date = cls._resolve_first_field_name(layer, cls.FIELD_ADDED_DATE_CANDIDATES)
 
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ID_CANDIDATES, value=item_id_text)
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_NUMBER_CANDIDATES, value=item_number)
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_TYPE_CANDIDATES, value=item_type_name)
-        cls._set_mapped_status(feature, layer=layer, status_payload=item_payload.get("status"))
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_SYSTEM_CANDIDATES, value=cls.EXT_SYSTEM_NAME)
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATED_BY_CANDIDATES, value=username)
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATE_DATE_CANDIDATES, value=updated_date)
+        set_attr = partial(cls._set_attr_if_present, feature, layer=layer, value_problems=value_problems)
+        set_attr(candidates=cls.FIELD_ID_CANDIDATES, value=item_id_text)
+        set_attr(candidates=cls.FIELD_NUMBER_CANDIDATES, value=item_number)
+        set_attr(candidates=cls.FIELD_TYPE_CANDIDATES, value=item_type_name)
+        cls._set_mapped_status(
+            feature, layer=layer, status_payload=item_payload.get("status"), value_problems=value_problems
+        )
+        set_attr(candidates=cls.FIELD_SYSTEM_CANDIDATES, value=cls.EXT_SYSTEM_NAME)
+        set_attr(candidates=cls.FIELD_UPDATED_BY_CANDIDATES, value=username)
+        set_attr(candidates=cls.FIELD_UPDATE_DATE_CANDIDATES, value=updated_date)
 
         try:
             if existing_added_by and not str(feature.attribute(existing_added_by) or "").strip():
-                cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ADDED_BY_CANDIDATES, value=username)
+                set_attr(candidates=cls.FIELD_ADDED_BY_CANDIDATES, value=username)
             if existing_added_date and not feature.attribute(existing_added_date):
                 cls._set_attr_if_present(
                     feature,
                     layer=layer,
                     candidates=cls.FIELD_ADDED_DATE_CANDIDATES,
                     value=cls.parse_backend_datetime(item_payload.get("createdAt")) or updated_date,
+                    value_problems=value_problems,
                 )
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -518,6 +496,7 @@ class EasementLayerService(AttachableLayerServiceBase):
             feature,
             layer=layer,
             values=item_payload.get("_easement_geometry_form"),
+            value_problems=value_problems,
         )
 
         started_edit = False
@@ -702,6 +681,7 @@ class EasementLayerService(AttachableLayerServiceBase):
         item_data: Optional[dict] = None,
         property_edges: Optional[list[dict]] = None,
         form_values: Optional[dict] = None,
+        value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False, "Invalid easement main layer"
@@ -766,32 +746,39 @@ class EasementLayerService(AttachableLayerServiceBase):
         feature = QgsFeature(existing_feature) if existing_feature is not None else QgsFeature(layer.fields())
         feature.setGeometry(target_geometry)
 
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ID_CANDIDATES, value=item_id_text)
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_NUMBER_CANDIDATES, value=item_number)
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_TYPE_CANDIDATES, value=item_type_name)
-        cls._set_mapped_status(feature, layer=layer, status_payload=item_payload.get("status"))
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_SYSTEM_CANDIDATES, value=cls.EXT_SYSTEM_NAME)
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_PROPERTY_CANDIDATES, value=primary_cadastral)
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATED_BY_CANDIDATES, value=username)
-        cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_UPDATE_DATE_CANDIDATES, value=updated_date)
+        set_attr = partial(cls._set_attr_if_present, feature, layer=layer, value_problems=value_problems)
+        set_attr(candidates=cls.FIELD_ID_CANDIDATES, value=item_id_text)
+        set_attr(candidates=cls.FIELD_NUMBER_CANDIDATES, value=item_number)
+        set_attr(candidates=cls.FIELD_TYPE_CANDIDATES, value=item_type_name)
+        cls._set_mapped_status(
+            feature, layer=layer, status_payload=item_payload.get("status"), value_problems=value_problems
+        )
+        set_attr(candidates=cls.FIELD_SYSTEM_CANDIDATES, value=cls.EXT_SYSTEM_NAME)
+        set_attr(candidates=cls.FIELD_PROPERTY_CANDIDATES, value=primary_cadastral)
+        set_attr(candidates=cls.FIELD_UPDATED_BY_CANDIDATES, value=username)
+        set_attr(candidates=cls.FIELD_UPDATE_DATE_CANDIDATES, value=updated_date)
 
         area_field_name, area_value = cls._coerce_area_value(layer, cls.FIELD_FINAL_AREA_CANDIDATES, area_sqm)
         if area_field_name:
             feature.setAttribute(area_field_name, area_value)
 
-        if has_compensation:
+        # The form opens with this sum and its value is written below; writing the sum first would report it as
+        # rejected on a whole-number field even after the user corrected it in the form.
+        form_compensation = form_values.get("Talumistasu") if isinstance(form_values, dict) else None
+        if has_compensation and form_compensation in (None, ""):
             cls._set_attr_if_present(
                 feature,
                 layer=layer,
                 candidates=cls.FIELD_COMPENSATION_CANDIDATES,
                 value=round(total_compensation, 2),
+                value_problems=value_problems,
             )
 
         if existing_feature is None:
-            cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ADDED_BY_CANDIDATES, value=username)
-            cls._set_attr_if_present(feature, layer=layer, candidates=cls.FIELD_ADDED_DATE_CANDIDATES, value=added_date)
+            set_attr(candidates=cls.FIELD_ADDED_BY_CANDIDATES, value=username)
+            set_attr(candidates=cls.FIELD_ADDED_DATE_CANDIDATES, value=added_date)
 
-        cls._apply_geometry_form_values(feature, layer=layer, values=form_values)
+        cls._apply_geometry_form_values(feature, layer=layer, values=form_values, value_problems=value_problems)
 
         started_edit = False
         try:

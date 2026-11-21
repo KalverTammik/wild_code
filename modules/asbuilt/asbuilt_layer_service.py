@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from functools import partial
 from datetime import datetime
 from typing import Optional
 
-from qgis.PyQt.QtCore import QVariant, QDate, QDateTime
+from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
     QgsFeature,
     QgsField,
@@ -11,7 +12,7 @@ from qgis.core import (
 )
 
 from ...languages.translation_keys import TranslationKeys
-from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase
+from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 
@@ -118,46 +119,6 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
             )
             return False, str(exc)
 
-    @staticmethod
-    def coerce_value_for_field(field, value):
-        if field is None or value is None:
-            return value
-        try:
-            field_type = field.type()
-        except (AttributeError, RuntimeError):
-            field_type = None
-
-        if field_type in (QVariant.Int, QVariant.UInt, QVariant.LongLong, QVariant.ULongLong):
-            try:
-                return int(value)
-            except (TypeError, ValueError, OverflowError):
-                return value
-
-        if field_type == QVariant.Bool:
-            if isinstance(value, bool):
-                return value
-            text = str(value or "").strip().lower()
-            if text in {"1", "true", "t", "yes", "y", "jah"}:
-                return True
-            if text in {"0", "false", "f", "no", "n", "ei"}:
-                return False
-            return bool(value)
-
-        if field_type == QVariant.Date:
-            if isinstance(value, QDate):
-                return value
-            text = str(value or "").strip()
-            parsed = QDate.fromString(text, "yyyy-MM-dd")
-            return parsed if parsed.isValid() else value
-
-        if field_type == QVariant.DateTime:
-            if isinstance(value, QDateTime):
-                return value
-            parsed = value if isinstance(value, datetime) else AsBuiltLayerService.parse_backend_datetime(value)
-            if isinstance(parsed, datetime):
-                return QDateTime(parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute, parsed.second)
-        return value
-
     @classmethod
     def _apply_geometry_form_values(
         cls,
@@ -169,6 +130,7 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
         username: str,
         created_date: datetime,
         updated_date: datetime,
+        value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> None:
         form_values = values if isinstance(values, dict) else {}
         item_name = str(item_payload.get("name") or item_payload.get("title") or "").strip()
@@ -207,7 +169,26 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
         for field_name, value in fields.items():
             if value is None:
                 continue
-            cls._set_attr_if_present(feature, layer=layer, candidates=(field_name,), value=value)
+            cls._set_attr_if_present(feature, layer=layer, candidates=(field_name,), value=value, value_problems=value_problems)
+
+    @classmethod
+    def geometry_form_value_problems(cls, layer: Optional[QgsVectorLayer], values: Optional[dict]) -> dict[str, FieldValueProblem]:
+        """The form values this layer's save would leave empty, by form key. Nothing is written or logged.
+
+        Like the save above, each form key is the layer field name its value goes to.
+        """
+        problems: dict[str, FieldValueProblem] = {}
+        try:
+            for key, value in (values or {}).items():
+                field_name = cls._resolve_first_field_name(layer, (key,))
+                if value is None or not field_name:
+                    continue
+                _value, problem = cls.coerce_field_value(layer.fields().field(field_name), value)
+                if problem is not None:
+                    problems[key] = problem
+        except RuntimeError:  # the layer was deleted while the form was open; its save fails on its own
+            return {}
+        return problems
 
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_name: str = ""):
@@ -246,6 +227,7 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
         feature_id: int,
         item_id: str,
         item_data: Optional[dict] = None,
+        value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False, "Invalid As-built layer"
@@ -271,13 +253,14 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
         created_date = cls.parse_backend_datetime(item_payload.get("createdAt")) or datetime.now()
         updated_date = cls.parse_backend_datetime(item_payload.get("updatedAt")) or created_date
 
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXT_JOB_ID,), value=item_id_text)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXT_SYSTEM,), value=cls.EXT_SYSTEM_NAME)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXT_JOB_NAME,), value=item_name)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXT_JOB_TYPE,), value=item_type_name)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXT_JOB_STATE,), value=item_status_id)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_UPDATED_BY,), value=username)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_UPDATE_DATE,), value=updated_date)
+        set_attr = partial(cls._set_attr_if_present, feature, layer=layer, value_problems=value_problems)
+        set_attr(candidates=(cls.FIELD_EXT_JOB_ID,), value=item_id_text)
+        set_attr(candidates=(cls.FIELD_EXT_SYSTEM,), value=cls.EXT_SYSTEM_NAME)
+        set_attr(candidates=(cls.FIELD_EXT_JOB_NAME,), value=item_name)
+        set_attr(candidates=(cls.FIELD_EXT_JOB_TYPE,), value=item_type_name)
+        set_attr(candidates=(cls.FIELD_EXT_JOB_STATE,), value=item_status_id)
+        set_attr(candidates=(cls.FIELD_UPDATED_BY,), value=username)
+        set_attr(candidates=(cls.FIELD_UPDATE_DATE,), value=updated_date)
         cls._apply_geometry_form_values(
             feature,
             layer=layer,
@@ -286,15 +269,16 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
             username=username,
             created_date=created_date,
             updated_date=updated_date,
+            value_problems=value_problems,
         )
 
         added_by_field = cls._resolve_first_field_name(layer, (cls.FIELD_ADDED_BY,))
         added_date_field = cls._resolve_first_field_name(layer, (cls.FIELD_ADDED_DATE,))
         try:
             if added_by_field and not str(feature.attribute(added_by_field) or "").strip():
-                cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_BY,), value=username)
+                set_attr(candidates=(cls.FIELD_ADDED_BY,), value=username)
             if added_date_field and not feature.attribute(added_date_field):
-                cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
+                set_attr(candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,

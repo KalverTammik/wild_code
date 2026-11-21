@@ -15,6 +15,8 @@ from ...python.api_actions import APIModuleActions
 from ...python.workers import FunctionWorker, start_worker
 from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
+from ...utils.layers.field_value_problems import show_saved, with_field_value_problems
+from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module, ModuleSupports
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -388,6 +390,7 @@ class WorksCreateController:
 
         map_saved = False
         map_error = ""
+        value_problems: list[FieldValueProblem] = []
         if works_layer is not None:
             created_at = WorksLayerService.created_date_from_task(created_task) or now
             updated_at = WorksLayerService.updated_date_from_task(created_task) or created_at
@@ -411,6 +414,7 @@ class WorksCreateController:
                 added_date=created_at,
                 updated_by=responsible_name,
                 update_date=updated_at,
+                value_problems=value_problems,
             )
 
         property_link_failed = False
@@ -454,16 +458,23 @@ class WorksCreateController:
         if property_link_failed:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.WARNING),
-                self._lang.translate(TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED).format(
-                    task_id=task_id,
-                    cadastral=cadastral_number,
+                with_field_value_problems(
+                    self._lang.translate(TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED).format(
+                        task_id=task_id,
+                        cadastral=cadastral_number,
+                    ),
+                    value_problems,
+                    self._lang,
                 ),
             )
             return
 
-        ModernMessageDialog.show_info(
-            self._lang.translate(TranslationKeys.SUCCESS),
-            self._lang.translate(TranslationKeys.WORKS_CREATE_SUCCESS).format(task_id=task_id),
+        show_saved(
+            ModernMessageDialog,
+            title=self._lang.translate(TranslationKeys.SUCCESS),
+            message=self._lang.translate(TranslationKeys.WORKS_CREATE_SUCCESS).format(task_id=task_id),
+            problems=value_problems,
+            lang=self._lang,
         )
 
     def _open_pending_gis_feature(
@@ -534,6 +545,7 @@ class WorksCreateController:
             fallback=dialog.selected_responsible_label() or WorksLayerService.current_username(),
         )
         created_title = str(created_task.get("name") or dialog.title_text() or "").strip()
+        value_problems: list[FieldValueProblem] = []
         map_saved, map_error = WorksLayerService.update_existing_work_feature(
             layer=works_layer,
             feature_id=feature_id,
@@ -549,6 +561,7 @@ class WorksCreateController:
             added_date=created_at,
             updated_by=responsible_name,
             update_date=updated_at,
+            value_problems=value_problems,
         )
 
         property_link_failed = self._link_property_to_task(
@@ -582,17 +595,24 @@ class WorksCreateController:
         if property_link_failed:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.WARNING),
-                self._lang.translate(TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED).format(
-                    task_id=task_id,
-                    cadastral=cadastral_number,
+                with_field_value_problems(
+                    self._lang.translate(TranslationKeys.WORKS_CREATE_PROPERTY_LINK_FAILED).format(
+                        task_id=task_id,
+                        cadastral=cadastral_number,
+                    ),
+                    value_problems,
+                    self._lang,
                 ),
                 parent=parent_window,
             )
             return True
 
-        ModernMessageDialog.show_info(
-            self._lang.translate(TranslationKeys.SUCCESS),
-            self._lang.translate(TranslationKeys.WORKS_CREATE_SUCCESS).format(task_id=task_id),
+        show_saved(
+            ModernMessageDialog,
+            title=self._lang.translate(TranslationKeys.SUCCESS),
+            message=self._lang.translate(TranslationKeys.WORKS_CREATE_SUCCESS).format(task_id=task_id),
+            problems=value_problems,
+            lang=self._lang,
         )
         return True
 
@@ -753,6 +773,7 @@ class WorksCreateController:
         )
         title = str(task_payload.get("name") or "").strip() or task_id
 
+        value_problems: list[FieldValueProblem] = []
         map_saved, map_error = WorksLayerService.insert_work_feature(
             layer=works_layer,
             point=point,
@@ -768,6 +789,7 @@ class WorksCreateController:
             added_date=created_at,
             updated_by=responsible_name,
             update_date=updated_at,
+            value_problems=value_problems,
         )
 
         if not map_saved:
@@ -826,16 +848,23 @@ class WorksCreateController:
         if property_link_failed:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.WARNING),
-                self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_PROPERTY_LINK_FAILED).format(
-                    task_id=task_id,
-                    cadastral=cadastral_number,
+                with_field_value_problems(
+                    self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_PROPERTY_LINK_FAILED).format(
+                        task_id=task_id,
+                        cadastral=cadastral_number,
+                    ),
+                    value_problems,
+                    self._lang,
                 ),
             )
             return
 
-        ModernMessageDialog.show_info(
-            self._lang.translate(TranslationKeys.SUCCESS),
-            self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SUCCESS).format(task_id=task_id),
+        show_saved(
+            ModernMessageDialog,
+            title=self._lang.translate(TranslationKeys.SUCCESS),
+            message=self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SUCCESS).format(task_id=task_id),
+            problems=value_problems,
+            lang=self._lang,
         )
 
     @staticmethod

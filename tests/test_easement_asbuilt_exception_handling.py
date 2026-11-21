@@ -94,11 +94,15 @@ class AsBuiltLayerServiceLoggingTest(LoggedExceptionTestCase):
         self.assertEqual(self.events(), ["asbuilt_added_fields_set_failed"])
         self.assertEqual(self.log.call_args.kwargs["extra"], {"item_id": "job-1"})
 
-    def test_coerce_keeps_the_raw_value_for_numbers_it_cannot_convert(self) -> None:
+    def test_coerce_leaves_numbers_it_cannot_convert_empty(self) -> None:
+        # Text in a number field made a GeoPackage refuse the whole save; now only that field stays empty.
         field = QgsField("state", QVariant.Int)
-        for raw in ("abc", None, float("inf")):
-            with self.subTest(raw=raw):
-                self.assertEqual(AsBuiltLayerService.coerce_value_for_field(field, raw), raw)
+        with patch.object(PythonFailLogger, "log") as log:
+            for raw in ("abc", float("inf")):
+                with self.subTest(raw=raw):
+                    self.assertIsNone(AsBuiltLayerService.coerce_value_for_field(field, raw))
+            self.assertIsNone(AsBuiltLayerService.coerce_value_for_field(field, None))
+        self.assertEqual([call.args[0] for call in log.call_args_list], ["asbuilt_field_value_rejected"] * 2)
         self.log.assert_not_called()
 
 
@@ -154,12 +158,14 @@ class EasementLayerServiceLoggingTest(LoggedExceptionTestCase):
         self.assertEqual(EasementLayerService.linked_backend_id_for_feature(layer, QgsFeature()), "")
         self.log.assert_not_called()
 
-    def test_coerce_keeps_the_raw_value_for_numbers_it_cannot_convert(self) -> None:
-        for field_type in (QVariant.Int, QVariant.Double):
-            field = QgsField("size", field_type)
-            for raw in ("abc", float("inf") if field_type == QVariant.Int else "1,5 m"):
-                with self.subTest(field_type=field_type, raw=raw):
-                    self.assertEqual(EasementLayerService.coerce_value_for_field(field, raw), raw)
+    def test_coerce_leaves_numbers_it_cannot_convert_empty(self) -> None:
+        with patch.object(PythonFailLogger, "log") as log:
+            for field_type in (QVariant.Int, QVariant.Double):
+                field = QgsField("size", field_type)
+                for raw in ("abc", float("inf") if field_type == QVariant.Int else "1,5 m"):
+                    with self.subTest(field_type=field_type, raw=raw):
+                        self.assertIsNone(EasementLayerService.coerce_value_for_field(field, raw))
+        self.assertEqual([call.args[0] for call in log.call_args_list], ["easement_field_value_rejected"] * 4)
         self.log.assert_not_called()
 
 

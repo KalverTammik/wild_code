@@ -742,7 +742,7 @@ class FieldWriteTest(unittest.TestCase):
             with self.subTest(service=service.__name__):
                 feature, coerce, field = self.write(service, field_map={"code": "CODE"})
                 feature.setAttribute.assert_called_once_with("CODE", "coerced")
-                coerce.assert_called_once_with(field, "raw")
+                coerce.assert_called_once_with(field, "raw", None)
 
     def test_field_missing_from_the_layer_is_left_alone(self) -> None:
         for service in FIELD_WRITE_SERVICES:
@@ -755,7 +755,7 @@ class FieldWriteTest(unittest.TestCase):
         for service in FIELD_WRITE_SERVICES:
             with self.subTest(service=service.__name__):
                 feature, coerce, _field = self.write(service, field_map={"code": "CODE"}, field_index=-1)
-                coerce.assert_called_once_with(None, "raw")
+                coerce.assert_called_once_with(None, "raw", None)
                 feature.setAttribute.assert_called_once_with("CODE", "coerced")
 
 
@@ -766,13 +766,33 @@ class FieldWriteTest(unittest.TestCase):
                 feature, layer=None, field_map={"code": "CODE"}, field_name="Code", value="raw"
             )
         feature.setAttribute.assert_called_once_with("CODE", "coerced")
-        coerce.assert_called_once_with(None, "raw")
+        coerce.assert_called_once_with(None, "raw", None)
+
+    def test_the_problem_list_reaches_the_conversion(self) -> None:
+        problems: list = []
+        for service in FIELD_WRITE_SERVICES:
+            with self.subTest(service=service.__name__):
+                feature, layer = Mock(), MagicMock()
+                layer.fields.return_value.indexFromName.return_value = -1
+                with patch.object(service, "_field_map", return_value={"code": "CODE"}), patch.object(
+                    service, "coerce_value_for_field", return_value="coerced"
+                ) as coerce:
+                    service._set_attr_if_present(
+                        feature, layer=layer, candidates=("Code",), value="raw", value_problems=problems
+                    )
+                coerce.assert_called_once_with(None, "raw", problems)
+        with patch.object(WorksLayerService, "coerce_value_for_field", return_value="coerced") as coerce:
+            WorksLayerService._set_attr_via_field_map(
+                Mock(), layer=None, field_map={"code": "CODE"}, field_name="Code", value="raw", value_problems=problems
+            )
+        coerce.assert_called_once_with(None, "raw", problems)
 
 
 class SharedHelpersStayInOnePlaceTest(unittest.TestCase):
     SHARED = ("_configured_layers", "_feature_by_id", "_field_map", "_geometry_in_layer_crs", "_layer_target_label",
               "_point_in_layer_crs", "_refresh_saved_layer", "_resolve_first_field_name", "_set_attr_if_present",
-              "backend_geometry_payload_from_geometry", "coerce_optional_int", "current_username",
+              "backend_geometry_payload_from_geometry", "coerce_field_value", "coerce_optional_int",
+              "coerce_value_for_field", "current_username", "parse_number_text",
               "find_feature_at_point", "parse_backend_datetime", "prepare_layer_for_draw", "resolve_main_layer")
     KEPT_ON_PURPOSE = {(EasementLayerService, "_layer_target_label")}
 

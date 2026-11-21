@@ -19,6 +19,7 @@ from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.modules.easements import easement_layer_service as easement_module
 from Kavitro_dev.modules.projects import projects_layer_service as projects_module
 from Kavitro_dev.modules.Settings import EasementStatusMappingDialog as mapping_dialog_module
+from Kavitro_dev.utils.layers import module_layer_service_base
 
 EasementLayerService = easement_module.EasementLayerService
 ProjectsLayerService = projects_module.ProjectsLayerService
@@ -102,7 +103,7 @@ class ProjectFieldCoercionTest(unittest.TestCase):
         self.assertEqual(ProjectsLayerService.coerce_value_for_field(self._string_field(), value), str(value))
 
     def test_programming_errors_are_not_hidden_by_the_text_fallback(self) -> None:
-        with patch.object(projects_module.json, "dumps", side_effect=NameError("boom")):
+        with patch.object(module_layer_service_base.json, "dumps", side_effect=NameError("boom")):
             with self.assertRaises(NameError):
                 ProjectsLayerService.coerce_value_for_field(self._string_field(), {"a": 1})
 

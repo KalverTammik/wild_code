@@ -290,9 +290,10 @@ class WorksLayerServiceTest(LoggedCase):
     def test_integer_field_gets_nothing_for_numbers_it_cannot_read(self) -> None:
         # The value goes through str() first, so even int(inf) never reaches an OverflowError here.
         field = QgsField("state", QVariant.Int)
-        for raw in ("abc", float("inf"), float("nan")):
-            with self.subTest(raw=raw):
-                self.assertIsNone(WorksLayerService.coerce_value_for_field(field, raw))
+        with patch.object(PythonFailLogger, "log"):  # each rejection leaves a log line
+            for raw in ("abc", float("inf"), float("nan")):
+                with self.subTest(raw=raw):
+                    self.assertIsNone(WorksLayerService.coerce_value_for_field(field, raw))
         self.assertEqual(WorksLayerService.coerce_value_for_field(field, " 12 "), 12)
 
 

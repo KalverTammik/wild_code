@@ -8,6 +8,7 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
+from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...utils.MapTools.module_feature_controllers import (
     FeatureLinkResult,
     ModuleFeatureAttachMessages,
@@ -90,17 +91,19 @@ class AsBuiltFeatureMapController:
     ) -> FeatureLinkResult:
         item_payload = current_item if isinstance(current_item, dict) else {}
         item_id = str(item_payload.get("id") or "").strip()
-        form_values = AsBuiltGeometryFormDialog.prompt(item_data=item_payload)
+        form_values = AsBuiltGeometryFormDialog.prompt(item_data=item_payload, layer=layer)
         if form_values is None:
             return FeatureLinkResult(False, "Teostusjoonise andmete sisestamine katkestati")
 
         item_payload["_asbuilt_geometry_form"] = form_values
         item_payload["_asbuilt_feature_id"] = int(feature_id)
+        value_problems: list[FieldValueProblem] = []
         success, message = AsBuiltLayerService.attach_backend_item_to_feature(
             layer=layer,
             feature_id=feature_id,
             item_id=item_id,
             item_data=item_payload,
+            value_problems=value_problems,
         )
         if not success:
             return FeatureLinkResult(False, message)
@@ -132,7 +135,7 @@ class AsBuiltFeatureMapController:
             )
             return False, "Teostusjoonise geomeetria saatmine Kavitrosse ebaõnnestus"
 
-        return FeatureLinkResult(True, message, sync_to_kavitro)
+        return FeatureLinkResult(True, message, sync_to_kavitro, tuple(value_problems))
 
     @staticmethod
     def _geometry_payload_for_item(layer: QgsVectorLayer, item_payload: dict) -> Optional[dict[str, object]]:

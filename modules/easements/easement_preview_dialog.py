@@ -37,6 +37,8 @@ from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ...utils.layers import LayerProcessingService, MemoryLayerResultService
+from ...utils.layers.field_value_problems import field_value_problems_note
+from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.project_base_layers import ProjectBaseLayerKeys, ProjectBaseLayersService
@@ -514,7 +516,12 @@ class EasementPreviewDialog(QDialog):
         final_layer = self._resolve_final_preview_layer()
         return final_layer, str(final_status or "")
 
-    def _save_final_cut_to_main_layer(self, property_edges: Optional[list[dict]] = None) -> tuple[bool, str]:
+    def _save_final_cut_to_main_layer(
+        self,
+        property_edges: Optional[list[dict]] = None,
+        value_problems: Optional[list[FieldValueProblem]] = None,
+    ) -> tuple[bool, str]:
+        """`value_problems` gets the fields left empty, only when the area really reached the layer."""
         final_layer, final_status = self._ensure_final_cut_layer()
         if final_layer is None:
             return False, final_status or self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_FINAL_FAILED)
@@ -526,12 +533,14 @@ class EasementPreviewDialog(QDialog):
         form_values = EasementGeometryFormDialog.prompt(
             item_data=self._item,
             initial_values=self._easement_form_initial_values(property_edges or []),
+            layer=target_layer,
             parent=self,
             on_status_changed=self._on_status_changed,
         )
         if form_values is None:
             return False, "Servituudi ala andmete sisestamine katkestati"
 
+        saved_problems: list[FieldValueProblem] = []
         ok, message = EasementLayerService.upsert_final_cut_feature(
             layer=target_layer,
             final_layer=final_layer,
@@ -539,8 +548,11 @@ class EasementPreviewDialog(QDialog):
             item_data=self._item,
             property_edges=property_edges,
             form_values=form_values,
+            value_problems=saved_problems,
         )
         if ok:
+            if value_problems is not None:
+                value_problems.extend(saved_problems)
             geometry_synced = self._sync_saved_easement_geometry_to_backend(target_layer)
             if not geometry_synced:
                 return False, "Servituudi geomeetria saatmine backendisse ebaõnnestus"
@@ -1258,7 +1270,8 @@ class EasementPreviewDialog(QDialog):
             APIModuleActions.associate_easement_properties(self._item_id, save_payloads)
             refreshed_edges = APIModuleActions.get_easement_property_edges(self._item_id) or []
             self._set_property_edges(refreshed_edges)
-            layer_saved, layer_message = self._save_final_cut_to_main_layer(refreshed_edges)
+            value_problems: list[FieldValueProblem] = []
+            layer_saved, layer_message = self._save_final_cut_to_main_layer(refreshed_edges, value_problems)
 
             preview_numbers = [
                 str(edge.get("cadastralUnitNumber") or "")
@@ -1282,6 +1295,9 @@ class EasementPreviewDialog(QDialog):
                 )
             if layer_message:
                 extra_note += ("\n\n" if extra_note else "\n\n") + layer_message
+            problems_note = field_value_problems_note(value_problems, self._lang)
+            if problems_note:
+                extra_note += "\n\n" + problems_note
 
             success_message = self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SAVE_SUCCESS).format(
                 pid=self._item_id,
@@ -1289,7 +1305,12 @@ class EasementPreviewDialog(QDialog):
                 preview=preview_text,
                 extra=extra_note,
             )
-            if layer_saved:
+            if layer_saved and problems_note:
+                ModernMessageDialog.show_warning(
+                    self._lang.translate(TranslationKeys.FIELD_VALUE_PROBLEMS_TITLE),
+                    success_message,
+                )
+            elif layer_saved:
                 ModernMessageDialog.show_info(
                     self._lang.translate(TranslationKeys.SUCCESS),
                     success_message,

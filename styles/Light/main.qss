@@ -50,6 +50,14 @@ QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled, QAbstractSpinBo
     border: 1px dashed rgba(209,215,222,0.80);
 }
 
+/* A value the map layer field would not store (FormValueCheck); after :hover/:focus so it stays red there. */
+QLineEdit[validationState="error"],
+QLineEdit[validationState="error"]:hover,
+QLineEdit[validationState="error"]:focus {
+    background: #fff5f5;
+    border: 1px solid #d32f2f;
+}
+
 /* The QGIS UI theme draws these input buttons dark; here they blend into the field like a combo box arrow. */
 QAbstractSpinBox::drop-down,
 QComboBox::drop-down:editable {

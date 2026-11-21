@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable
+from functools import partial
+from typing import Callable, Optional
 
 from PyQt5.QtCore import QDate
 from PyQt5.QtWidgets import (
@@ -21,9 +22,11 @@ from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
+from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ...widgets.form_grid import CompactTextEdit, StackedFormGrid, fit_dialog_to_content
+from ...widgets.form_value_check import FormValueCheck, FormValueValidator
 from ...widgets.status_select_widget import StatusSelectWidget
 from ...widgets.theme_manager import ThemeManager
 from .easement_layer_service import EasementLayerService
@@ -82,9 +85,11 @@ class EasementGeometryFormDialog(QDialog):
         initial_values: dict | None = None,
         status_options: list[dict] | None = None,
         current_status: dict | None = None,
+        value_validator: Optional[FormValueValidator] = None,
         lang_manager=None,
         parent=None,
     ) -> None:
+        """`value_validator` checks the values against the map layer; without it only the number fields are checked."""
         super().__init__(parent)
         self._lang = lang_manager or LanguageManager()
         self._item_data = item_data if isinstance(item_data, dict) else {}
@@ -100,6 +105,9 @@ class EasementGeometryFormDialog(QDialog):
 
         self._build_ui()
         self._apply_defaults()
+        self._value_check = FormValueCheck(value_validator or self._number_problems, self._text_inputs(), self._lang)
+        # A prefilled value the layer cannot store (a sum with cents in a whole-number field) shows at once.
+        self._value_check.check_all()
         self._on_status_changed()
         self._status.currentChanged.connect(self._on_status_changed)
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.MODULE_INFO])
@@ -299,26 +307,44 @@ class EasementGeometryFormDialog(QDialog):
         # A value longer than its field shows from the start, not from the end.
         widget.setCursorPosition(0)
 
-    def _invalid_number_labels(self) -> list[str]:
-        fields = (
+    def _text_inputs(self) -> dict[str, tuple[QLineEdit, str]]:
+        # In the order the form shows them: the first wrong one gets the focus.
+        widgets = (
+            (self.FIELD_KIND, self._kind),
+            (self.FIELD_NOTARY_NUMBER, self._notary_number),
+            (self.FIELD_SOURCE, self._source),
+            (self.FIELD_LAND_OWNER, self._land_owner),
+            (self.FIELD_PHONE, self._phone),
+            (self.FIELD_EMAIL, self._email),
+            (self.FIELD_NETWORK, self._network),
             (self.FIELD_PROTECTION_WIDTH, self._protection_width),
             (self.FIELD_COMPENSATION, self._compensation),
+            (self.FIELD_MUNICIPALITY, self._municipality),
+            (self.FIELD_REGION, self._region),
+            (self.FIELD_ADDRESS, self._address),
+            (self.FIELD_HOUSE_NUMBER, self._house_number),
+            (self.FIELD_CADASTRAL, self._cadastral),
         )
-        return [
-            self._label(name)
-            for name, widget in fields
-            if widget.text().strip() and EasementLayerService.parse_number_text(widget.text()) is None
-        ]
+        return {key: (widget, self._label(key)) for key, widget in widgets}
+
+    def _number_problems(self, values: dict[str, object]) -> dict[str, FieldValueProblem]:
+        # Without the layer its field types are unknown; these two are numbers on the standard layer.
+        problems = {}
+        for key in (self.FIELD_PROTECTION_WIDTH, self.FIELD_COMPENSATION):
+            value = str(values.get(key) or "").strip()
+            if value and EasementLayerService.parse_number_text(value) is None:
+                problems[key] = FieldValueProblem(
+                    field_name=key,
+                    field_label=self._label(key),
+                    raw_value=value,
+                    value_type=type(value).__name__,
+                    expected=FieldValueProblem.NUMBER,
+                )
+        return problems
 
     def accept(self) -> None:
-        # A number the layer cannot store would fail the whole map save, so it is caught here, before Kavitro changes.
-        invalid = self._invalid_number_labels()
-        if invalid:
-            ModernMessageDialog.show_warning(
-                self._lang.translate(TranslationKeys.EASEMENT_FORM_NUMBER_INVALID_TITLE),
-                self._lang.translate(TranslationKeys.EASEMENT_FORM_NUMBER_INVALID_MESSAGE).format(fields=", ".join(invalid)),
-                parent=self,
-            )
+        # A value the layer cannot store would be saved empty, so it is caught here, before Kavitro changes.
+        if not self._value_check.confirm(self):
             return
         # Kavitro first: if it does not take the new status, nothing reaches the map and the form stays open.
         if self._save_status_to_kavitro():
@@ -374,9 +400,11 @@ class EasementGeometryFormDialog(QDialog):
         *,
         item_data: dict | None = None,
         initial_values: dict | None = None,
+        layer=None,
         parent=None,
         on_status_changed: Callable[[dict], None] | None = None,
     ) -> dict[str, object] | None:
+        """`layer` is the map layer the values are saved to; its field types are checked while the form is filled."""
         item = item_data if isinstance(item_data, dict) else {}
         # Read before the form opens: a slow answer would otherwise put its wait window over the form.
         # The status is read too, because the card can be older than a change made in Kavitro.
@@ -387,6 +415,7 @@ class EasementGeometryFormDialog(QDialog):
             initial_values=initial_values,
             status_options=status_options,
             current_status=current_status,
+            value_validator=partial(EasementLayerService.geometry_form_value_problems, layer) if layer is not None else None,
             parent=parent,
         )
         accepted = dialog.exec_() == QDialog.Accepted

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import json
+from functools import partial
 from datetime import datetime
 from typing import Optional
 
-from qgis.PyQt.QtCore import QVariant, QDateTime
+from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
     QgsFeature,
     QgsField,
@@ -13,7 +13,7 @@ from qgis.core import (
 )
 
 from ...languages.translation_keys import TranslationKeys
-from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase
+from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 
@@ -143,39 +143,6 @@ class ProjectsLayerService(AttachableLayerServiceBase):
             "updatedAt": project.get("updatedAt"),
         }
 
-    @staticmethod
-    def coerce_value_for_field(field, value):
-        if field is None or value is None:
-            return value
-        try:
-            field_type = field.type()
-        except (AttributeError, RuntimeError):
-            field_type = None
-
-        if field_type == QVariant.Bool:
-            if isinstance(value, bool):
-                return value
-            text = str(value or "").strip().lower()
-            if text in ("true", "1", "yes", "y"):
-                return True
-            if text in ("false", "0", "no", "n"):
-                return False
-            return value
-
-        if field_type == QVariant.String and isinstance(value, (dict, list)):
-            try:
-                return json.dumps(value, ensure_ascii=False)
-            except (TypeError, ValueError):
-                return str(value)
-
-        if field_type == QVariant.DateTime:
-            if isinstance(value, QDateTime):
-                return value
-            parsed = value if isinstance(value, datetime) else ProjectsLayerService.parse_backend_datetime(value)
-            if isinstance(parsed, datetime):
-                return QDateTime(parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute, parsed.second)
-        return value
-
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_number: str = "", item_name: str = ""):
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
@@ -219,6 +186,7 @@ class ProjectsLayerService(AttachableLayerServiceBase):
         feature_id: int,
         item_id: str,
         item_data: Optional[dict] = None,
+        value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False, "Invalid Projects layer"
@@ -252,22 +220,23 @@ class ProjectsLayerService(AttachableLayerServiceBase):
         created_date = cls.parse_backend_datetime(item_payload.get("createdAt")) or datetime.now()
         updated_date = cls.parse_backend_datetime(item_payload.get("updatedAt")) or created_date
 
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_ID,), value=item_id_text)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_SYSTEM,), value=cls.EXT_SYSTEM_NAME)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_NAME,), value=item_name)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_NUMBER,), value=item_number)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_DETAILED,), value=cls.detailed_from_project(item_payload))
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ACTIVE,), value=cls.active_from_project(item_payload))
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_UPDATED_BY,), value=username)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_UPDATE_DATE,), value=updated_date)
+        set_attr = partial(cls._set_attr_if_present, feature, layer=layer, value_problems=value_problems)
+        set_attr(candidates=(cls.FIELD_EXTERNAL_ID,), value=item_id_text)
+        set_attr(candidates=(cls.FIELD_EXTERNAL_SYSTEM,), value=cls.EXT_SYSTEM_NAME)
+        set_attr(candidates=(cls.FIELD_EXTERNAL_NAME,), value=item_name)
+        set_attr(candidates=(cls.FIELD_EXTERNAL_NUMBER,), value=item_number)
+        set_attr(candidates=(cls.FIELD_DETAILED,), value=cls.detailed_from_project(item_payload))
+        set_attr(candidates=(cls.FIELD_ACTIVE,), value=cls.active_from_project(item_payload))
+        set_attr(candidates=(cls.FIELD_UPDATED_BY,), value=username)
+        set_attr(candidates=(cls.FIELD_UPDATE_DATE,), value=updated_date)
 
         added_by_field = cls._resolve_first_field_name(layer, (cls.FIELD_ADDED_BY,))
         added_date_field = cls._resolve_first_field_name(layer, (cls.FIELD_ADDED_DATE,))
         try:
             if added_by_field and not str(feature.attribute(added_by_field) or "").strip():
-                cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_BY,), value=username)
+                set_attr(candidates=(cls.FIELD_ADDED_BY,), value=username)
             if added_date_field and not feature.attribute(added_date_field):
-                cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
+                set_attr(candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -324,6 +293,7 @@ class ProjectsLayerService(AttachableLayerServiceBase):
         preview_layer: QgsVectorLayer,
         item_id: str,
         item_data: Optional[dict] = None,
+        value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False, "Invalid Projects layer"
@@ -378,18 +348,19 @@ class ProjectsLayerService(AttachableLayerServiceBase):
         feature = QgsFeature(existing_feature) if existing_feature is not None else QgsFeature(layer.fields())
         feature.setGeometry(target_geometry)
 
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_ID,), value=item_id_text)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_SYSTEM,), value=cls.EXT_SYSTEM_NAME)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_NAME,), value=item_name)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_EXTERNAL_NUMBER,), value=item_number)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_DETAILED,), value=cls.detailed_from_project(item_payload))
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ACTIVE,), value=cls.active_from_project(item_payload))
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_UPDATED_BY,), value=username)
-        cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_UPDATE_DATE,), value=updated_date)
+        set_attr = partial(cls._set_attr_if_present, feature, layer=layer, value_problems=value_problems)
+        set_attr(candidates=(cls.FIELD_EXTERNAL_ID,), value=item_id_text)
+        set_attr(candidates=(cls.FIELD_EXTERNAL_SYSTEM,), value=cls.EXT_SYSTEM_NAME)
+        set_attr(candidates=(cls.FIELD_EXTERNAL_NAME,), value=item_name)
+        set_attr(candidates=(cls.FIELD_EXTERNAL_NUMBER,), value=item_number)
+        set_attr(candidates=(cls.FIELD_DETAILED,), value=cls.detailed_from_project(item_payload))
+        set_attr(candidates=(cls.FIELD_ACTIVE,), value=cls.active_from_project(item_payload))
+        set_attr(candidates=(cls.FIELD_UPDATED_BY,), value=username)
+        set_attr(candidates=(cls.FIELD_UPDATE_DATE,), value=updated_date)
 
         if existing_feature is None:
-            cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_BY,), value=username)
-            cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
+            set_attr(candidates=(cls.FIELD_ADDED_BY,), value=username)
+            set_attr(candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
 
         started_edit = False
         try:

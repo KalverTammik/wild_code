@@ -9,6 +9,8 @@ from qgis.utils import iface
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.window_state.dialog_helpers import DialogHelpers
+from ..layers.field_value_problems import show_saved, with_field_value_problems
+from ..layers.module_layer_service_base import FieldValueProblem
 from ..messagesHelper import ModernMessageDialog
 from .canvas_click_tool import SingleClickMapTool
 from .MapHelpers import MapHelpers
@@ -26,11 +28,14 @@ class FeatureLinkResult:
 
     The Kavitro update is returned, not run, so the draw flow can send it only
     after the layer commit: otherwise Kavitro gets a geometry the layer never saved.
+    `value_problems` are fields left empty because their value did not fit; the user hears of them
+    only when the feature was really saved.
     """
 
     success: bool
     message: str = ""
     sync_to_kavitro: Optional[KavitroSync] = None
+    value_problems: tuple[FieldValueProblem, ...] = ()
 
 
 AttachHandler = Callable[[QgsVectorLayer, int, dict], FeatureLinkResult]
@@ -201,16 +206,34 @@ class ModuleFeatureAttachController:
         success, message = link.success, link.message
         if success and link.sync_to_kavitro is not None:
             success, message = link.sync_to_kavitro()
+        # Read before the clear below empties it: the messages used to name item "-".
+        item_id = self._item_id or "-"
         self._clear_capture_tool(bring_front=True, log_module=log_module)
 
-        if not success:
+        if not link.success:
             ModernMessageDialog.show_warning(
                 title_error,
-                save_failed_message.format(item_id=self._item_id or "-", error=message or title_error),
+                save_failed_message.format(item_id=item_id, error=message or title_error),
             )
             return
 
-        ModernMessageDialog.show_info(title_success, success_message.format(item_id=self._item_id or "-"))
+        # The handler has saved the feature; only the Kavitro update can still have failed.
+        if not success:
+            ModernMessageDialog.show_warning(
+                title_error,
+                with_field_value_problems(
+                    save_failed_message.format(item_id=item_id, error=message or title_error),
+                    link.value_problems,
+                ),
+            )
+            return
+
+        show_saved(
+            ModernMessageDialog,
+            title=title_success,
+            message=success_message.format(item_id=item_id),
+            problems=link.value_problems,
+        )
 
     def _clear_capture_tool(self, *, bring_front: bool, log_module: str) -> None:
         canvas = iface.mapCanvas() if iface is not None else None
@@ -320,11 +343,7 @@ class ModuleFeatureDrawController:
     def cancel(self, *, log_module: str = "general") -> None:
         if isinstance(self._layer, QgsVectorLayer):
             self._restore_attribute_form(self._layer)
-        if isinstance(self._layer, QgsVectorLayer):
-            try:
-                self._layer.featureAdded.disconnect(self._handle_feature_added)
-            except (TypeError, RuntimeError):  # not connected, or the layer was deleted
-                pass
+        self._disconnect_feature_added()
         self._pending_feature_ids.clear()
         self._layer = None
         self._item_data = {}
@@ -338,6 +357,13 @@ class ModuleFeatureDrawController:
         self._item_id = ""
         self._started_edit_session = False
         self._original_form_suppress = None
+
+    def _disconnect_feature_added(self) -> None:
+        if isinstance(self._layer, QgsVectorLayer):
+            try:
+                self._layer.featureAdded.disconnect(self._handle_feature_added)
+            except (TypeError, RuntimeError):  # not connected, or the layer was deleted
+                pass
 
     def _handle_feature_added(self, feature_id: int) -> None:
         try:
@@ -355,6 +381,9 @@ class ModuleFeatureDrawController:
         if normalized_feature_id in self._pending_feature_ids:
             return
 
+        # One draw links one feature. Committing it emits featureAdded again with the
+        # permanent id, which must not open the form a second time.
+        self._disconnect_feature_added()
         self._pending_feature_ids.add(normalized_feature_id)
         QTimer.singleShot(0, lambda fid=normalized_feature_id: self._finalize_feature_added(fid))
 
@@ -437,16 +466,22 @@ class ModuleFeatureDrawController:
             )
             return
 
+        # Past this point the feature is on the layer, so the fields left empty are worth correcting.
         if not synced:
             ModernMessageDialog.show_warning(
                 title_error,
-                sync_failed_message.format(item_id=item_id or "-", error=sync_detail or title_error),
+                with_field_value_problems(
+                    sync_failed_message.format(item_id=item_id or "-", error=sync_detail or title_error),
+                    link.value_problems,
+                ),
             )
             return
 
-        ModernMessageDialog.show_info(
-            title_success,
-            success_message.format(item_id=item_id or "-"),
+        show_saved(
+            ModernMessageDialog,
+            title=title_success,
+            message=success_message.format(item_id=item_id or "-"),
+            problems=link.value_problems,
         )
 
     def _commit_drawn_feature(self, layer: QgsVectorLayer, feature_id: int) -> tuple[bool, str]:

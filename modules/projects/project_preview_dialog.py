@@ -22,6 +22,8 @@ from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ...utils.layers import LayerProcessingService, MemoryLayerResultService
+from ...utils.layers.field_value_problems import show_saved
+from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
@@ -677,19 +679,24 @@ class ProjectPreviewDialog(QDialog):
         if target_layer is None:
             return
 
+        value_problems: list[FieldValueProblem] = []
         success, message = ProjectsLayerService.upsert_generated_area_feature(
             layer=target_layer,
             preview_layer=preview_layer,
             item_id=self._item_id,
             item_data=self._item,
+            value_problems=value_problems,
         )
         if success:
-            ModernMessageDialog.show_info(
-                self._lang.translate(TranslationKeys.SUCCESS),
-                self._lang.translate(TranslationKeys.PROJECT_PREVIEW_SAVE_SUCCESS).format(
+            show_saved(
+                ModernMessageDialog,
+                title=self._lang.translate(TranslationKeys.SUCCESS),
+                message=self._lang.translate(TranslationKeys.PROJECT_PREVIEW_SAVE_SUCCESS).format(
                     item_id=self._item_id,
                     layer=message or target_layer.name() or "-",
                 ),
+                problems=value_problems,
+                lang=self._lang,
             )
             return
 

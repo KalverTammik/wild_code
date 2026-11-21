@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from functools import partial
+from typing import Optional
+
 from PyQt5.QtCore import QDate
 from PyQt5.QtWidgets import (
     QCheckBox,
@@ -20,6 +23,8 @@ from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.form_grid import CompactTextEdit, StackedFormGrid, fit_dialog_to_content
+from ...widgets.form_value_check import FormValueCheck, FormValueValidator
+from .asbuilt_layer_service import AsBuiltLayerService
 from ...widgets.theme_manager import ThemeManager
 
 
@@ -36,7 +41,15 @@ class AsBuiltGeometryFormDialog(QDialog):
         ("Side", TranslationKeys.ASBUILT_NETWORK_TELECOM),
     )
 
-    def __init__(self, *, item_data: dict | None = None, lang_manager=None, parent=None) -> None:
+    def __init__(
+        self,
+        *,
+        item_data: dict | None = None,
+        value_validator: Optional[FormValueValidator] = None,
+        lang_manager=None,
+        parent=None,
+    ) -> None:
+        """`value_validator` checks the typed values against the map layer; without it nothing is checked."""
         super().__init__(parent)
         self._lang = lang_manager or LanguageManager()
         self._item_data = item_data if isinstance(item_data, dict) else {}
@@ -47,6 +60,12 @@ class AsBuiltGeometryFormDialog(QDialog):
         self.setWindowTitle(self._lang.translate(TranslationKeys.ASBUILT_FORM_TITLE))
 
         self._build_ui()
+        self._value_check = (
+            FormValueCheck(value_validator, self._text_inputs(), self._lang) if value_validator is not None else None
+        )
+        if self._value_check is not None:
+            # The prefilled work number may not fit a layer whose "Töö nr" is a number field.
+            self._value_check.check_all()
         ThemeManager.apply_module_style(self, [QssPaths.MAIN, QssPaths.BUTTONS, QssPaths.MODULE_INFO])
         for combo in self.findChildren(QComboBox):
             ThemeManager.apply_form_combo_popup_style(combo)
@@ -150,6 +169,21 @@ class AsBuiltGeometryFormDialog(QDialog):
 
         root.addLayout(buttons)
 
+    def _text_inputs(self) -> dict[str, tuple[QLineEdit, str]]:
+        # Typed text only: the choices, the date and the boxes always hold what the standard layer takes.
+        translate = self._lang.translate
+        return {
+            AsBuiltLayerService.FIELD_WORK_NUMBER: (self._work_number, translate(TranslationKeys.ASBUILT_FIELD_WORK_NUMBER)),
+            AsBuiltLayerService.FIELD_OBJECT: (self._object, translate(TranslationKeys.ASBUILT_FIELD_OBJECT)),
+            AsBuiltLayerService.FIELD_SURVEYOR: (self._surveyor, translate(TranslationKeys.ASBUILT_FIELD_SURVEYOR)),
+            AsBuiltLayerService.FIELD_CONTACT: (self._contact, translate(TranslationKeys.ASBUILT_FIELD_CONTACT)),
+        }
+
+    def accept(self) -> None:
+        # A value the layer cannot store would be saved empty, so the form stays open until it fits.
+        if self._value_check is None or self._value_check.confirm(self):
+            super().accept()
+
     def values(self) -> dict[str, object]:
         values: dict[str, object] = {
             "Töö nr": self._work_number.text().strip(),
@@ -168,8 +202,10 @@ class AsBuiltGeometryFormDialog(QDialog):
         return values
 
     @classmethod
-    def prompt(cls, *, item_data: dict | None = None, parent=None) -> dict[str, object] | None:
-        dialog = cls(item_data=item_data, parent=parent)
+    def prompt(cls, *, item_data: dict | None = None, layer=None, parent=None) -> dict[str, object] | None:
+        """`layer` is the map layer the values are saved to; its field types are checked while the form is filled."""
+        validator = partial(AsBuiltLayerService.geometry_form_value_problems, layer) if layer is not None else None
+        dialog = cls(item_data=item_data, value_validator=validator, parent=parent)
         return dialog.values() if dialog.exec_() == QDialog.Accepted else None
 
     def _default_work_number(self) -> str:

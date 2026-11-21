@@ -6,6 +6,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
+from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.MapTools.module_feature_controllers import (
     FeatureLinkResult,
@@ -97,7 +98,9 @@ class EasementAttachExistingController:
     def _attach_easement_feature_with_form(self, layer, feature_id: int, current_item: Optional[dict]) -> FeatureLinkResult:
         item_payload = dict(current_item or {})
         item_id = str(item_payload.get("id") or "").strip()
-        form_values = EasementGeometryFormDialog.prompt(item_data=item_payload, on_status_changed=self._on_status_changed)
+        form_values = EasementGeometryFormDialog.prompt(
+            item_data=item_payload, layer=layer, on_status_changed=self._on_status_changed
+        )
         if form_values is None:
             return FeatureLinkResult(False, "Servituudi ala andmete sisestamine katkestati")
 
@@ -118,11 +121,13 @@ class EasementAttachExistingController:
         item_id: str,
         item_payload: dict,
     ) -> FeatureLinkResult:
+        value_problems: list[FieldValueProblem] = []
         success, message = EasementLayerService.attach_backend_item_to_feature(
             layer=layer,
             feature_id=feature_id,
             item_id=item_id,
             item_data=item_payload,
+            value_problems=value_problems,
         )
         if not success:
             return FeatureLinkResult(False, message)
@@ -135,7 +140,7 @@ class EasementAttachExistingController:
                 module="easement",
                 extra={"item_id": item_id, "feature_id": int(feature_id)},
             )
-            return FeatureLinkResult(True, message)
+            return FeatureLinkResult(True, message, value_problems=tuple(value_problems))
 
         def sync_to_kavitro() -> tuple[bool, str]:
             if APIModuleActions.update_easement_geometry(item_id, geometry_payload):
@@ -154,7 +159,7 @@ class EasementAttachExistingController:
             )
             return False, "Servituudi geomeetria saatmine Kavitrosse ebaõnnestus"
 
-        return FeatureLinkResult(True, message, sync_to_kavitro)
+        return FeatureLinkResult(True, message, sync_to_kavitro, tuple(value_problems))
 
     @staticmethod
     def _geometry_payload_for_item(layer, item_payload: dict):

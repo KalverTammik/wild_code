@@ -107,6 +107,50 @@ class DrawFlowTest(DialogStubCase):
         self.assertEqual(title, "E")
         return text
 
+    def test_the_commit_does_not_open_the_form_a_second_time(self) -> None:
+        # QGIS emits featureAdded again on commit (temporary id -> permanent id); the user got the form twice
+        # and the second run failed with "could not be verified".
+        calls = []
+        timers = []
+
+        def sync_with_wait_window():
+            # The Kavitro request opens a wait window whose event loop runs queued timers.
+            while timers:
+                timers.pop(0)()
+            return True, ""
+
+        self.sync = Mock(side_effect=sync_with_wait_window)
+        link = self.handler(7)
+
+        def counting_handler(layer, feature_id, item):
+            calls.append(feature_id)
+            return link(layer, feature_id, item)
+
+        controller = ModuleFeatureDrawController()
+        with patch.object(controllers_module.QTimer, "singleShot", side_effect=lambda _ms, fn: timers.append(fn)):
+            controller.start_draw(
+                item_data={"id": "42"},
+                resolve_layer=lambda: self.layer,
+                on_feature_created=counting_handler,
+                start_failed_message="start failed",
+                layer_save_failed_message=LAYER_SAVE_FAILED,
+                sync_failed_message=SYNC_FAILED,
+                success_message=SUCCESS,
+                title_error="E",
+                title_success="S",
+                log_module="easement",
+            )
+            feature = QgsFeature(self.layer.fields())
+            feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(1, 2)))
+            self.assertTrue(self.layer.addFeature(feature))
+            while timers:
+                timers.pop(0)()
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(self.layer.featureCount(), 1)
+        self.show_info.assert_called_once()
+        self.show_warning.assert_not_called()
+
     def test_failed_commit_says_nothing_was_saved_and_leaves_no_feature(self) -> None:
         # The provider refuses the value, as in the user's "1 feature(s) not added. Provider errors: ..." case.
         self.draw(self.handler("not a number"))
