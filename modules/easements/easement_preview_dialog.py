@@ -384,7 +384,7 @@ class EasementPreviewDialog(QDialog):
                 continue
             try:
                 selected_count = int(layer.selectedFeatureCount() or 0)
-            except Exception:
+            except (AttributeError, RuntimeError):
                 selected_count = 0
             suffix = f" ({selected_count})" if selected_count > 0 else ""
             label.setText(f"{layer.name()}{suffix}")
@@ -467,7 +467,7 @@ class EasementPreviewDialog(QDialog):
 
         try:
             selected_features = list(layer.getSelectedFeatures())
-        except Exception:
+        except (AttributeError, RuntimeError):
             selected_features = []
         if selected_features:
             return selected_features[0]
@@ -475,28 +475,30 @@ class EasementPreviewDialog(QDialog):
         try:
             for feature in layer.getFeatures():
                 return feature
-        except Exception:
+        except (AttributeError, RuntimeError):
             return None
         return None
 
     def _refresh_property_summary_card(self) -> None:
         try:
             self._property_summary_card.set_feature(self._first_property_feature())
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_property_summary_refresh_failed",
+            )
             self._property_summary_card.clear()
 
     def _resolve_preview_layer_by_name(self, layer_name: str):
         if not layer_name:
             return None
-        try:
-            matches = QgsProject.instance().mapLayersByName(layer_name)
-        except Exception:
-            matches = []
+        matches = QgsProject.instance().mapLayersByName(layer_name)
         for layer in matches:
             try:
                 if layer.isValid():
                     return layer
-            except Exception:
+            except RuntimeError:
                 continue
         return None
 
@@ -517,7 +519,7 @@ class EasementPreviewDialog(QDialog):
         if final_layer is None:
             return False, final_status or self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_FINAL_FAILED)
 
-        target_layer = EasementLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
+        target_layer = EasementLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
         if target_layer is None:
             return False, self._lang.translate(TranslationKeys.EASEMENT_LAYER_MISSING)
 
@@ -606,7 +608,7 @@ class EasementPreviewDialog(QDialog):
                 if amount not in (None, ""):
                     total_compensation += float(amount)
                     has_compensation = True
-            except Exception:
+            except (TypeError, ValueError, OverflowError):
                 continue
 
         values: dict[str, object] = {}
@@ -625,8 +627,13 @@ class EasementPreviewDialog(QDialog):
             return
         try:
             EasementPdfService.cleanup_output_pdf(path)
-        except Exception:
-            pass
+        except Exception as exc:
+            # Runs from reject()/closeEvent(), so nothing may escape; pathlib errors vary by platform.
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_pdf_cleanup_failed",
+            )
 
     def _drawing_preview_title(self) -> str:
         return f"{self._item_number or self._item_id or 'easement'}_drawing.pdf"
@@ -698,7 +705,7 @@ class EasementPreviewDialog(QDialog):
         try:
             if area_value <= 0 or price_value <= 0:
                 return None
-        except Exception:
+        except TypeError:
             return None
         return round(float(area_value) * float(price_value), 2)
 
@@ -725,7 +732,7 @@ class EasementPreviewDialog(QDialog):
     def _format_area_display(self, square_meters: float, unit: str = AreaUnit.M) -> str:
         try:
             numeric = max(0.0, float(square_meters or 0.0))
-        except Exception:
+        except (TypeError, ValueError, OverflowError):
             numeric = 0.0
 
         if unit == AreaUnit.H:
@@ -736,7 +743,7 @@ class EasementPreviewDialog(QDialog):
         try:
             if geometry is None or geometry.isEmpty():
                 return 0.0
-        except Exception:
+        except (AttributeError, RuntimeError):
             return 0.0
 
         try:
@@ -747,10 +754,10 @@ class EasementPreviewDialog(QDialog):
                 distance_area.setEllipsoid(ellipsoid)
             measured = distance_area.measureArea(geometry)
             return max(0.0, float(distance_area.convertAreaMeasurement(measured, QgsUnitTypes.AreaSquareMeters)))
-        except Exception:
+        except (AttributeError, RuntimeError, TypeError):
             try:
                 return max(0.0, float(geometry.area()))
-            except Exception:
+            except (AttributeError, TypeError, ValueError):
                 return 0.0
 
     def _refresh_property_area_label(self, row_key: str) -> None:
@@ -860,7 +867,7 @@ class EasementPreviewDialog(QDialog):
                     value = feature[fld]
                     if value:
                         return f"{value} — {number}"
-                except Exception:
+                except KeyError:
                     continue
         return str(number or "")
 
@@ -875,7 +882,7 @@ class EasementPreviewDialog(QDialog):
         if isinstance(value, (int, float)):
             try:
                 return abs(float(value))
-            except Exception:
+            except (TypeError, ValueError, OverflowError):
                 return None
 
         text = str(value or "").strip()
@@ -887,14 +894,14 @@ class EasementPreviewDialog(QDialog):
             return None
         try:
             return abs(float(match.group(0)))
-        except Exception:
+        except ValueError:
             return None
 
     @classmethod
     def _format_distance(cls, value: float) -> str:
         try:
             numeric = float(value)
-        except Exception:
+        except (TypeError, ValueError, OverflowError):
             return str(value)
         if abs(numeric - round(numeric)) < 0.001:
             return str(int(round(numeric)))
@@ -909,7 +916,7 @@ class EasementPreviewDialog(QDialog):
         matched: list[str] = []
         try:
             fields = layer.fields()
-        except Exception:
+        except (AttributeError, RuntimeError):
             return matched
 
         for field in fields:
@@ -954,7 +961,7 @@ class EasementPreviewDialog(QDialog):
         max_flow = None
         try:
             selected_features = list(source_layer.getSelectedFeatures())
-        except Exception:
+        except (AttributeError, RuntimeError):
             selected_features = []
 
         for feature in selected_features:
@@ -1013,7 +1020,7 @@ class EasementPreviewDialog(QDialog):
 
         try:
             selected_features = list(source_layer.getSelectedFeatures())
-        except Exception:
+        except (AttributeError, RuntimeError):
             selected_features = []
 
         for feature in selected_features:
@@ -1109,7 +1116,7 @@ class EasementPreviewDialog(QDialog):
             for feat in existing_feats or []:
                 try:
                     num = feat[Katastriyksus.tunnus]
-                except Exception:
+                except KeyError:
                     num = None
                 if num and num in existing_numbers:
                     existing_display[num] = self._format_property_label(num, feat)
@@ -1122,7 +1129,7 @@ class EasementPreviewDialog(QDialog):
         for feature in selected_features or []:
             try:
                 number = str(feature[Katastriyksus.tunnus] or "").strip()
-            except Exception:
+            except KeyError:
                 number = ""
             if number:
                 feature_by_number[number] = feature
@@ -1319,8 +1326,12 @@ class EasementPreviewDialog(QDialog):
         try:
             if self._property_selection_orchestrator is not None:
                 self._property_selection_orchestrator.cancel()
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_property_selection_cancel_failed",
+            )
         self._property_selection_orchestrator = None
 
     def _open_property_link_review_dialog(self, selected_numbers: list[str], selected_features: list, main_layer) -> None:
@@ -1329,7 +1340,7 @@ class EasementPreviewDialog(QDialog):
         for feat in selected_features or []:
             try:
                 num = feat[Katastriyksus.tunnus]
-            except Exception:
+            except KeyError:
                 num = None
             if num:
                 selected_display[str(num)] = self._format_property_label(str(num), feat)
@@ -1381,7 +1392,7 @@ class EasementPreviewDialog(QDialog):
         if not self._item_id:
             return
 
-        main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
+        main_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=ModernMessageDialog)
         if main_layer is None:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
@@ -1391,7 +1402,7 @@ class EasementPreviewDialog(QDialog):
 
         try:
             main_layer.removeSelection()
-        except Exception:
+        except RuntimeError:
             pass
 
         if self._property_selection_orchestrator is not None:
@@ -1406,7 +1417,7 @@ class EasementPreviewDialog(QDialog):
             for feature in selected_features:
                 try:
                     tunnus = feature[Katastriyksus.tunnus]
-                except Exception:
+                except KeyError:
                     tunnus = None
                 if tunnus:
                     cadastral_numbers.append(str(tunnus))
@@ -1448,7 +1459,7 @@ class EasementPreviewDialog(QDialog):
 
         try:
             selected_count = int(source_layer.selectedFeatureCount() or 0)
-        except Exception:
+        except (AttributeError, RuntimeError):
             selected_count = 0
         if selected_count <= 0:
             self._set_row_status(layer_key, self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_ROW_SKIPPED))
@@ -1530,8 +1541,13 @@ class EasementPreviewDialog(QDialog):
                 continue
             try:
                 MemoryLayerResultService.remove_existing(layer_name, only_memory=True)
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.EASEMENT.value,
+                    event="easement_named_layers_cleanup_failed",
+                    extra={"layer_name": str(layer_name)},
+                )
 
     def _remove_non_final_preview_layers(self) -> int:
         removed = 0
@@ -1557,7 +1573,7 @@ class EasementPreviewDialog(QDialog):
 
         try:
             final_features = list(final_layer.getFeatures())
-        except Exception:
+        except (AttributeError, RuntimeError):
             final_features = []
 
         final_geometries = []
@@ -1565,7 +1581,7 @@ class EasementPreviewDialog(QDialog):
         for feature in final_features:
             try:
                 geometry = feature.geometry()
-            except Exception:
+            except (AttributeError, RuntimeError):
                 geometry = None
             if geometry is None:
                 continue
@@ -1575,20 +1591,20 @@ class EasementPreviewDialog(QDialog):
         calculated: dict[str, float] = {}
         try:
             property_features = list(self._property_layer.getSelectedFeatures())
-        except Exception:
+        except (AttributeError, RuntimeError):
             property_features = []
 
         for feature in property_features:
             try:
                 row_key = str(feature[Katastriyksus.tunnus] or "").strip()
-            except Exception:
+            except KeyError:
                 row_key = ""
             if not row_key:
                 continue
 
             try:
                 property_geometry = feature.geometry()
-            except Exception:
+            except (AttributeError, RuntimeError):
                 property_geometry = None
             if property_geometry is None:
                 calculated[row_key] = 0.0
@@ -1600,7 +1616,7 @@ class EasementPreviewDialog(QDialog):
                     if not final_geometry.intersects(property_geometry):
                         continue
                     clipped = final_geometry.intersection(property_geometry)
-                except Exception:
+                except (AttributeError, TypeError):
                     clipped = None
                 if clipped is None:
                     continue
@@ -1632,7 +1648,7 @@ class EasementPreviewDialog(QDialog):
         property_selected_only = False
         try:
             property_selected_only = int(self._property_layer.selectedFeatureCount() or 0) > 0
-        except Exception:
+        except (AttributeError, RuntimeError):
             property_selected_only = False
 
         for key in self._ROW_KEYS:
@@ -1915,7 +1931,7 @@ class EasementPreviewDialog(QDialog):
         if self._property_layer is not None:
             try:
                 self._property_layer.removeSelection()
-            except Exception:
+            except RuntimeError:
                 pass
         for key in self._ROW_KEYS:
             layer = ProjectBaseLayersService.resolve_layer(key, include_legacy=True)
@@ -1923,5 +1939,5 @@ class EasementPreviewDialog(QDialog):
                 continue
             try:
                 layer.removeSelection()
-            except Exception:
+            except RuntimeError:
                 pass

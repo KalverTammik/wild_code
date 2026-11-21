@@ -49,7 +49,7 @@ class EasementAttachExistingController:
     def _build_workflow_config(self) -> ModuleFeatureWorkflowConfig:
         return ModuleFeatureWorkflowConfig(
             log_module="easement",
-            resolve_layer=lambda: EasementLayerService.resolve_main_layer(lang_manager=self._lang, silent=False),
+            resolve_layer=lambda: EasementLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog),
             find_feature_at_point=lambda point, layer: EasementLayerService.find_feature_at_point(point, layer=layer),
             attach_handler=self._attach_easement_feature_with_form,
             find_feature_for_item=lambda layer, current_item: EasementLayerService.find_feature(

@@ -72,7 +72,7 @@ class SessionUIController:
         dialog.close()
         try:
             dialog.deleteLater()
-        except Exception:
+        except RuntimeError:  # dialog already deleted
             pass
         PythonFailLogger.log(
             "logout_dialog_closed",
@@ -102,8 +102,13 @@ class SessionUIController:
             SessionManager.register_listener(_listener)
             try:
                 dialog.destroyed.connect(lambda *_: SessionManager.unregister_listener(_listener))
-            except Exception:
-                pass
+            except (TypeError, RuntimeError) as exc:
+                # Without this hook the listener outlives the dialog.
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="auth",
+                    event="session_listener_unregister_hook_failed",
+                )
 
         SessionUIController.refresh_login_ui(dialog)
         if dialog._has_shown and dialog.moduleManager.getActiveModuleName():
@@ -156,21 +161,15 @@ class SessionUIController:
 
     @staticmethod
     def _login_parent(parent):
-        try:
-            if parent is not None:
-                return parent
-        except Exception:
-            return None
+        if parent is not None:
+            return parent
         try:
             from qgis.utils import iface
             if iface:
                 return iface.mainWindow()
-        except Exception:
+        except (ImportError, AttributeError, RuntimeError):  # iface missing or already deleted
             return None
-        try:
-            return QApplication.activeWindow()
-        except Exception:
-            return None
+        return QApplication.activeWindow()
 
     @staticmethod
     def _run_login_prompt(parent, reason: Optional[str]) -> None:

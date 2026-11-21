@@ -38,8 +38,8 @@ from ...languages.translation_keys import TranslationKeys
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...utils.layers.module_layer_service_base import ModuleLayerServiceBase
 from ...utils.geometry_payload import GeometryPayloadService
-from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
+from ...utils.user_dialogs import UserDialogs
 from ...Logs.python_fail_logger import PythonFailLogger
 
 
@@ -123,10 +123,10 @@ class WorksLayerService(ModuleLayerServiceBase):
         }
 
     @classmethod
-    def _main_layer_is_ready(cls, layer: QgsVectorLayer, *, lang, silent: bool) -> bool:
+    def _main_layer_is_ready(cls, layer: QgsVectorLayer, *, lang, dialogs: Optional[UserDialogs]) -> bool:
         if cls.resolve_task_id_field_name(layer) is None:
-            if not silent:
-                ModernMessageDialog.show_warning(
+            if dialogs is not None:
+                dialogs.show_warning(
                     lang.translate(TranslationKeys.ERROR),
                     lang.translate(TranslationKeys.WORKS_LAYER_ID_FIELD_MISSING),
                 )
@@ -134,8 +134,8 @@ class WorksLayerService(ModuleLayerServiceBase):
 
         ok, message = cls._prepare_required_fields(layer)
         if not ok:
-            if not silent:
-                ModernMessageDialog.show_warning(
+            if dialogs is not None:
+                dialogs.show_warning(
                     lang.translate(TranslationKeys.ERROR),
                     str(message or "Configured Works layer does not match the required schema."),
                 )
@@ -191,8 +191,12 @@ class WorksLayerService(ModuleLayerServiceBase):
             try:
                 if started_edit and layer.isEditable():
                     layer.rollBack()
-            except Exception:
-                pass
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.WORKS.value,
+                    event="works_layer_prepare_required_fields_rollback_failed",
+                )
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.WORKS.value,
@@ -376,7 +380,7 @@ class WorksLayerService(ModuleLayerServiceBase):
 
     @staticmethod
     def find_property_feature_at_point(point: QgsPointXY, *, radius_multiplier: float = 3.0):
-        property_layer = ActiveLayersHelper.resolve_main_property_layer(silent=True)
+        property_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=None)
         if not isinstance(property_layer, QgsVectorLayer) or not property_layer.isValid():
             return None
 
@@ -386,7 +390,7 @@ class WorksLayerService(ModuleLayerServiceBase):
 
         try:
             search_radius = canvas.mapUnitsPerPixel() * float(radius_multiplier)
-        except Exception:
+        except (RuntimeError, TypeError, ValueError, OverflowError):  # canvas deleted, or the radius is not a number
             search_radius = 0.0
 
         if search_radius <= 0:
@@ -433,7 +437,7 @@ class WorksLayerService(ModuleLayerServiceBase):
             return ""
         try:
             value = feature.attribute(Katastriyksus.l_aadress)
-        except Exception:
+        except KeyError:  # the layer has no such field
             return ""
         return str(value or "").strip()
 
@@ -456,7 +460,7 @@ class WorksLayerService(ModuleLayerServiceBase):
         ):
             try:
                 value = feature.attribute(field_name)
-            except Exception:
+            except KeyError:
                 value = None
             text = str(value or "").strip()
             if text:
@@ -520,7 +524,7 @@ class WorksLayerService(ModuleLayerServiceBase):
 
         try:
             fid = int(feature_id)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):  # int(inf) raises OverflowError
             return None
 
         try:
@@ -593,7 +597,7 @@ class WorksLayerService(ModuleLayerServiceBase):
             geometry = feature.geometry()
             if geometry is None or geometry.isEmpty():
                 return {}
-        except Exception:
+        except (AttributeError, RuntimeError):  # not a usable feature
             return {}
 
         detailed = cls._feature_detailed_payload(feature, field_map)
@@ -860,7 +864,7 @@ class WorksLayerService(ModuleLayerServiceBase):
             return ""
         try:
             value = feature.attribute(actual)
-        except Exception:
+        except KeyError:  # the feature does not carry that field
             return ""
         if value is None:
             return ""
@@ -870,7 +874,7 @@ class WorksLayerService(ModuleLayerServiceBase):
             try:
                 if is_null():
                     return ""
-            except Exception:
+            except (TypeError, RuntimeError):  # isNull needs arguments, or its owner is gone
                 pass
 
         text = str(value).strip()
@@ -883,7 +887,7 @@ class WorksLayerService(ModuleLayerServiceBase):
             return {}
         try:
             payload = json.loads(raw_value)
-        except Exception:
+        except (ValueError, RecursionError):  # another client may have written anything here
             return {}
         return payload if isinstance(payload, dict) else {}
 
@@ -915,7 +919,7 @@ class WorksLayerService(ModuleLayerServiceBase):
 
         try:
             field_type = field.type()
-        except Exception:
+        except (AttributeError, RuntimeError):  # not a field, or the layer was deleted
             field_type = None
 
         if field_type == QVariant.Bool:
@@ -934,7 +938,7 @@ class WorksLayerService(ModuleLayerServiceBase):
         if field_type == QVariant.String and isinstance(value, (dict, list)):
             try:
                 return json.dumps(value, ensure_ascii=False)
-            except Exception:
+            except (TypeError, ValueError):  # not JSON-serialisable, or a circular structure
                 return str(value)
 
         if field_type == QVariant.DateTime:

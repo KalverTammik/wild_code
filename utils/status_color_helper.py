@@ -14,7 +14,7 @@ class StatusColorHelper:
             s = ''.join([c*2 for c in s])
         try:
             return tuple(int(s[i:i+2], 16) for i in (0, 2, 4))
-        except Exception:
+        except ValueError:  # not a hex colour
             return (204, 204, 204)
 
     @staticmethod

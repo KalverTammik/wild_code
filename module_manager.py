@@ -5,6 +5,7 @@ from .constants.module_icons import ModuleIconPaths
 from .languages.language_manager import LanguageManager
 from .widgets.theme_manager import ThemeManager
 from .Logs.switch_logger import SwitchLogger
+from .Logs.python_fail_logger import PythonFailLogger
 
 MODULES_LIST_BY_NAME = []
 
@@ -186,7 +187,14 @@ class ModuleManager:
     def _get_widget_safe(instance):
         try:
             return instance.get_widget()
-        except Exception:
+        except Exception as exc:
+            # Fallback kept: the module instance is registered in place of its widget; the cause is only logged.
+            PythonFailLogger.log_exception(
+                exc,
+                module="general",
+                event="module_widget_build_failed",
+                extra={"module_class": type(instance).__name__},
+            )
             return instance
 
     @staticmethod

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import date, datetime
 from typing import Optional
 
@@ -60,7 +61,7 @@ class EasementLayerService(AttachableLayerServiceBase):
             return ""
         try:
             source = str(layer.source() or "").strip()
-        except Exception:
+        except (AttributeError, RuntimeError):
             source = ""
         name = str(layer.name() or "").strip()
         if name and source:
@@ -290,8 +291,12 @@ class EasementLayerService(AttachableLayerServiceBase):
             try:
                 if layer.isEditable():
                     layer.rollBack()
-            except Exception:
-                pass
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.EASEMENT.value,
+                    event="easement_layer_ensure_fields_rollback_failed",
+                )
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.EASEMENT.value,
@@ -329,25 +334,39 @@ class EasementLayerService(AttachableLayerServiceBase):
         return None
 
     @staticmethod
+    def parse_number_text(value):
+        """Number from form text; Estonian input uses a decimal comma and may group digits with spaces."""
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value) if math.isfinite(value) else None
+        text = str(value or "").strip().replace("\u00a0", "").replace(" ", "").replace(",", ".")
+        if not text:
+            return None
+        try:
+            number = float(text)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        # "inf" and "nan" parse, but no layer field can store them.
+        return number if math.isfinite(number) else None
+
+    @staticmethod
     def coerce_value_for_field(field, value):
         if field is None or value is None:
             return value
         try:
             field_type = field.type()
-        except Exception:
+        except (AttributeError, RuntimeError):
             field_type = None
 
         if field_type in (QVariant.Int, QVariant.UInt, QVariant.LongLong, QVariant.ULongLong):
             try:
                 return int(value)
-            except Exception:
-                return value
+            except (TypeError, ValueError, OverflowError):
+                number = EasementLayerService.parse_number_text(value)
+                return int(round(number)) if number is not None else value
 
         if field_type == QVariant.Double:
-            try:
-                return float(value)
-            except Exception:
-                return value
+            number = EasementLayerService.parse_number_text(value)
+            return number if number is not None else value
 
         if field_type == QVariant.DateTime:
             if isinstance(value, QDateTime):
@@ -429,7 +448,7 @@ class EasementLayerService(AttachableLayerServiceBase):
         field = layer.fields()[field_index] if field_index >= 0 else None
         try:
             field_type = field.type() if field is not None else None
-        except Exception:
+        except (AttributeError, RuntimeError):
             field_type = None
         if field_type in (QVariant.Int, QVariant.UInt, QVariant.LongLong, QVariant.ULongLong):
             return actual, int(round(area_sqm))
@@ -487,8 +506,13 @@ class EasementLayerService(AttachableLayerServiceBase):
                     candidates=cls.FIELD_ADDED_DATE_CANDIDATES,
                     value=cls.parse_backend_datetime(item_payload.get("createdAt")) or updated_date,
                 )
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_added_fields_set_failed",
+                extra={"item_id": item_id_text},
+            )
 
         cls._apply_geometry_form_values(
             feature,
@@ -545,7 +569,7 @@ class EasementLayerService(AttachableLayerServiceBase):
             return ""
         try:
             return str(feature.attribute(field_name) or "").strip()
-        except Exception:
+        except KeyError:
             return ""
 
     @classmethod
@@ -573,7 +597,7 @@ class EasementLayerService(AttachableLayerServiceBase):
             cls._refresh_saved_layer(layer)
             try:
                 verified = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
-            except Exception:
+            except (TypeError, ValueError, RuntimeError):
                 verified = object()
             if verified is not None:
                 return False, "Deleted easement feature could not be verified"
@@ -645,7 +669,7 @@ class EasementLayerService(AttachableLayerServiceBase):
             cls._refresh_saved_layer(layer)
             try:
                 verified = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
-            except Exception:
+            except (TypeError, ValueError, RuntimeError):
                 verified = None
             if verified is None:
                 return False, "Archived easement feature could not be verified"
@@ -716,7 +740,7 @@ class EasementLayerService(AttachableLayerServiceBase):
         target_geometry = cls._geometry_in_layer_crs(geometry, source_layer=final_layer, target_layer=layer)
         try:
             area_sqm = max(0.0, float(target_geometry.area()))
-        except Exception:
+        except (AttributeError, TypeError, ValueError):
             area_sqm = 0.0
 
         cadastral_numbers = [
@@ -735,7 +759,7 @@ class EasementLayerService(AttachableLayerServiceBase):
                 if amount not in (None, ""):
                     total_compensation += float(amount)
                     has_compensation = True
-            except Exception:
+            except (TypeError, ValueError, OverflowError):
                 continue
 
         existing_feature = cls.find_feature(layer, item_id=item_id_text, item_number=item_number)

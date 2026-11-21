@@ -20,7 +20,7 @@ def _read_metadata_value(metadata_path, key):
                 line = raw_line.strip()
                 if line.lower().startswith(target_key):
                     return line.split("=", 1)[1].strip()
-    except Exception:
+    except (OSError, UnicodeError):
         return ""
     return ""
 

@@ -39,7 +39,7 @@ class PropertyTableModel(QAbstractTableModel):
             return None
         try:
             return self._headers[section]
-        except Exception:
+        except (IndexError, TypeError):  # section outside the header list
             return None
 
     def flags(self, index: QModelIndex):  # type: ignore[override]

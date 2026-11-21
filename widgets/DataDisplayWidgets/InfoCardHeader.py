@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
 )
 try:
     import sip
-except Exception:  # pragma: no cover - runtime availability depends on QGIS/PyQt packaging
+except ImportError:  # pragma: no cover - runtime availability depends on QGIS/PyQt packaging
     sip = None
 from ...widgets.theme_manager import ThemeManager
 from ...constants.module_icons import MiscIcons
@@ -62,7 +62,7 @@ class ElidedLabel(QLabel):
     def _is_deleted(self) -> bool:
         try:
             return bool(sip and sip.isdeleted(self))
-        except Exception:
+        except TypeError:  # not a sip wrapper
             return False
 
     def _safe_elide(self):

@@ -72,12 +72,9 @@ class APIClient:
 
     @staticmethod
     def _on_gui_thread() -> bool:
-        try:
-            app = QApplication.instance()
-            if app is not None:
-                return QThread.currentThread() == app.thread()
-        except Exception:
-            pass
+        app = QApplication.instance()
+        if app is not None:
+            return QThread.currentThread() == app.thread()
         return True
 
     def _request_headers(self, require_auth: bool, *, json_body: bool) -> dict:
@@ -343,7 +340,7 @@ class APIClient:
             for handle in file_handles:
                 try:
                     handle.close()
-                except Exception:
+                except OSError:
                     pass
         return data if return_raw else data.get("data", {})
 
@@ -353,10 +350,10 @@ class APIClient:
             if isinstance(first, dict):
                 return first.get("message") or str(first)
             return str(first)
-        except Exception:
+        except (IndexError, KeyError, TypeError):
             try:
                 return json.dumps(errors)
-            except Exception:
+            except (TypeError, ValueError):
                 return self.lang.translate(TranslationKeys.NETWORK_ERROR).format(error="")
 
     def _graphql_error(self, errors) -> ApiError:

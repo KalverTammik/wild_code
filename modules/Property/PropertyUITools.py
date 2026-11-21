@@ -14,6 +14,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.api_error_handling import user_message
 from ...languages.MaaAmetFieldFormater import format_field
+from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
@@ -48,7 +49,7 @@ class PropertyUITools:
             try:
                 if sip.isdeleted(ui):
                     return None
-            except Exception:
+            except TypeError:  # not a sip wrapper
                 return None
         return ui
 
@@ -85,7 +86,7 @@ class PropertyUITools:
             try:
                 if sip.isdeleted(widget):
                     return False
-            except Exception:
+            except TypeError:  # not a sip wrapper
                 return False
         return True
 
@@ -118,7 +119,7 @@ class PropertyUITools:
             return False
         try:
             return bool(ui.is_token_active(token))
-        except Exception:
+        except RuntimeError:  # owner already deleted
             return False
 
 
@@ -127,7 +128,7 @@ class PropertyUITools:
         ui = self._get_active_ui()
         if not ui:
             return
-        active_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
+        active_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=ModernMessageDialog)
         if not active_layer:
             PythonFailLogger.log(
                 "property_layer_missing",

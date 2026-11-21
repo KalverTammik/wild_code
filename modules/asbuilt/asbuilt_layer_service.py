@@ -105,8 +105,12 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
             try:
                 if started_edit and layer.isEditable():
                     layer.rollBack()
-            except Exception:
-                pass
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.ASBUILT.value,
+                    event="asbuilt_layer_ensure_fields_rollback_failed",
+                )
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.ASBUILT.value,
@@ -120,13 +124,13 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
             return value
         try:
             field_type = field.type()
-        except Exception:
+        except (AttributeError, RuntimeError):
             field_type = None
 
         if field_type in (QVariant.Int, QVariant.UInt, QVariant.LongLong, QVariant.ULongLong):
             try:
                 return int(value)
-            except Exception:
+            except (TypeError, ValueError, OverflowError):
                 return value
 
         if field_type == QVariant.Bool:
@@ -291,8 +295,13 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
                 cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_BY,), value=username)
             if added_date_field and not feature.attribute(added_date_field):
                 cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.ASBUILT.value,
+                event="asbuilt_added_fields_set_failed",
+                extra={"item_id": item_id_text},
+            )
 
         started_edit = False
         try:
@@ -320,8 +329,12 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
             try:
                 if started_edit and layer.isEditable():
                     layer.rollBack()
-            except Exception:
-                pass
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.ASBUILT.value,
+                    event="asbuilt_attach_existing_rollback_failed",
+                )
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.ASBUILT.value,

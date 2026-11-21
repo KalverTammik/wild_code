@@ -878,6 +878,8 @@ class TranslationKeys:
     EASEMENT_FORM_STATUS_MAP_VALUE = "easement_form_status_map_value"
     EASEMENT_FORM_STATUS_REJECTED_TITLE = "easement_form_status_rejected_title"
     EASEMENT_FORM_STATUS_REJECTED_MESSAGE = "easement_form_status_rejected_message"
+    EASEMENT_FORM_NUMBER_INVALID_TITLE = "easement_form_number_invalid_title"
+    EASEMENT_FORM_NUMBER_INVALID_MESSAGE = "easement_form_number_invalid_message"
     EASEMENT_FIELD_KIND = "easement_field_kind"
     EASEMENT_FIELD_STATUS = "easement_field_status"
     EASEMENT_FIELD_NOTARY_NUMBER = "easement_field_notary_number"

@@ -241,6 +241,7 @@ class SettingsModuleCard(SettingsBaseCard):
                     container,
                     settings_logic=self.logic,
                     auto_load=False,
+                    lang_manager=self.lang_manager,
                 ),
             )
             self._status_filter_widget = status_widget
@@ -284,6 +285,7 @@ class SettingsModuleCard(SettingsBaseCard):
                     container,
                     settings_logic=self.logic,
                     auto_load=False,
+                    lang_manager=self.lang_manager,
                 ),
             )
             self._type_filter_widget = type_widget
@@ -304,6 +306,7 @@ class SettingsModuleCard(SettingsBaseCard):
                     container,
                     settings_logic=self.logic,
                     auto_load=False,
+                    lang_manager=self.lang_manager,
                 ),
             )
             self._not_started_status_filter_widget = not_started_widget
@@ -855,7 +858,7 @@ class SettingsModuleCard(SettingsBaseCard):
         def _flush():
             try:
                 import sip
-            except Exception:
+            except ImportError:
                 sip = None
 
             self._pending_emit_scheduled = False
@@ -864,7 +867,7 @@ class SettingsModuleCard(SettingsBaseCard):
             try:
                 if sip and sip.isdeleted(self):
                     return
-            except Exception:
+            except TypeError:
                 return
             if not self.isVisible():
                 return
@@ -908,7 +911,7 @@ class SettingsModuleCard(SettingsBaseCard):
                     owner = None
                     try:
                         owner = target.parent()
-                    except Exception:
+                    except RuntimeError:
                         owner = None
                     if owner is obj:
                         to_remove.add(target)
@@ -916,7 +919,7 @@ class SettingsModuleCard(SettingsBaseCard):
                     self._lazy_filter_widgets.discard(target)
                     try:
                         target.removeEventFilter(self)
-                    except Exception:
+                    except RuntimeError:
                         continue
         return super().eventFilter(obj, event)
 
@@ -986,14 +989,17 @@ class SettingsModuleCard(SettingsBaseCard):
                 continue
             try:
                 widget.clear_data()
-            except Exception:
+            except Exception as exc:
+                self._log_error("settings_card_clear_data_failed", exc, extra={"widget": type(widget).__name__})
                 continue
 
         if self._labels_widget:
             try:
                 self._labels_widget.clear_data()
-            except Exception:
-                pass
+            except Exception as exc:
+                self._log_error(
+                    "settings_card_clear_data_failed", exc, extra={"widget": type(self._labels_widget).__name__}
+                )
         try:
             self._set_status_text_if_changed("")
         except Exception as exc:
@@ -1090,7 +1096,7 @@ class SettingsModuleCard(SettingsBaseCard):
                         lyr = combo.currentLayer()
                         if lyr:
                             return lyr.name()
-                except Exception:
+                except (AttributeError, RuntimeError):
                     pass
                 return MapHelpers.layer_name_from_id(fallback_name) or fallback_name or ""
 

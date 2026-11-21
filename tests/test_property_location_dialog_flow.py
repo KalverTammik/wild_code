@@ -379,6 +379,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                     patch.object(dialog, '_archive_scope_is_current', return_value=True), \
                     patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm', return_value=True) as confirm, \
                     patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import') as archive, \
+                    patch.object(dialog_module.ModernMessageDialog, 'show_warning'), \
                     patch.object(dialog_module.ModernMessageDialog, 'Warning_messages_modern'):
                 # A clean apply archives only what the lookup allowed, then continues the add.
                 archive.return_value = {'archived_backend': 1, 'moved_map': 3, 'errors': []}
@@ -439,6 +440,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                                  side_effect=confirm_side_effect), \
                     patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import',
                                  side_effect=archive_side_effect), \
+                    patch.object(dialog_module.ModernMessageDialog, 'show_warning'), \
                     patch.object(dialog_module.ModernMessageDialog, 'Warning_messages_modern'):
                 dialog._missing_from_import = {'8'}
                 dialog._run_missing_cleanup_if_any(then)
@@ -517,6 +519,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                     patch.object(dialog, '_archive_scope_is_current', side_effect=[True, False]), \
                     patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm') as confirm, \
                     patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import') as archive, \
+                    patch.object(dialog_module.ModernMessageDialog, 'show_warning'), \
                     patch.object(dialog_module.ModernMessageDialog, 'Warning_messages_modern') as warning:
                 dialog._missing_from_import = {'9'}
                 dialog._run_missing_cleanup_if_any(then)

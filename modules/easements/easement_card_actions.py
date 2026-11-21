@@ -78,7 +78,8 @@ class EasementCardActions:
                     self._preview_dialog.raise_()
                     self._preview_dialog.activateWindow()
                     return
-            except Exception:
+            except RuntimeError:
+                # Dialog was deleted on close; build a new one below.
                 self._preview_dialog = None
 
         dialog = EasementPreviewDialog(

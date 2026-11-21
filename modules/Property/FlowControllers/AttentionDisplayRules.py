@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import List, Sequence
 from ....languages.translation_keys import TranslationKeys
+from ....Logs.python_fail_logger import PythonFailLogger
+from ....utils.url_manager import Module
 
 
 class AttentionDisplayRules:
@@ -50,7 +52,13 @@ class AttentionDisplayRules:
 
         try:
             translated = translate(key)
-        except Exception:
+        except Exception as exc:  # `translate` is supplied by the caller
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="attention_cause_translate_failed",
+                extra={"key": key},
+            )
             translated = ""
 
         translated = str(translated or "").strip()

@@ -74,7 +74,7 @@ class PropertyRowBuilder:
         for row in rows or []:
             try:
                 value = row.get(key, "")
-            except Exception:
+            except AttributeError:  # row is not a mapping
                 value = ""
             if value:
                 values.append(value)

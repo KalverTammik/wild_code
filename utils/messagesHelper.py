@@ -369,7 +369,8 @@ class ModernMessageDialog:
             min_w = max(dialog.minimumWidth(), layout.sizeHint().width() + 20)
             dialog.setMinimumWidth(min_w)
             dialog.resize(dialog.sizeHint())
-        except Exception:
+        except Exception as exc:  # the dialog itself: it must open even when sizing fails
+            PythonFailLogger.log_exception(exc, module="ui", event="message_dialog_widen_failed")
             dialog.adjustSize()
         else:
             dialog.adjustSize()

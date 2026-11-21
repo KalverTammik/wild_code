@@ -85,8 +85,12 @@ class ProjectsLayerService(AttachableLayerServiceBase):
             try:
                 if started_edit and layer.isEditable():
                     layer.rollBack()
-            except Exception:
-                pass
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.PROJECT.value,
+                    event="project_layer_ensure_fields_rollback_failed",
+                )
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.PROJECT.value,
@@ -145,7 +149,7 @@ class ProjectsLayerService(AttachableLayerServiceBase):
             return value
         try:
             field_type = field.type()
-        except Exception:
+        except (AttributeError, RuntimeError):
             field_type = None
 
         if field_type == QVariant.Bool:
@@ -264,8 +268,13 @@ class ProjectsLayerService(AttachableLayerServiceBase):
                 cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_BY,), value=username)
             if added_date_field and not feature.attribute(added_date_field):
                 cls._set_attr_if_present(feature, layer=layer, candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
-        except Exception:
-            pass
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROJECT.value,
+                event="project_added_fields_set_failed",
+                extra={"item_id": item_id_text},
+            )
 
         started_edit = False
         try:
@@ -293,8 +302,12 @@ class ProjectsLayerService(AttachableLayerServiceBase):
             try:
                 if started_edit and layer.isEditable():
                     layer.rollBack()
-            except Exception:
-                pass
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.PROJECT.value,
+                    event="project_attach_rollback_failed",
+                )
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.PROJECT.value,
@@ -415,8 +428,12 @@ class ProjectsLayerService(AttachableLayerServiceBase):
             try:
                 if started_edit and layer.isEditable():
                     layer.rollBack()
-            except Exception:
-                pass
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.PROJECT.value,
+                    event="project_generated_area_rollback_failed",
+                )
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.PROJECT.value,

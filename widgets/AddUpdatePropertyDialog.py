@@ -114,7 +114,12 @@ class AddPropertyDialog(QDialog):
                         parent_window=parent_window,
                     )
                     self._restore_parent_on_close = True
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_property_map_selection_start_failed",
+            )
             self._parent_window = None
             self._restore_parent_on_close = False
 
@@ -876,7 +881,7 @@ class AddPropertyDialog(QDialog):
             canceled = bool(summary.get("canceled")) if isinstance(summary, dict) else False
             done = int(summary.get("done") or 0) if isinstance(summary, dict) else 0
             total = int(summary.get("total") or 0) if isinstance(summary, dict) else 0
-        except Exception:
+        except (TypeError, ValueError):  # non-numeric counters
             canceled = False
             done = 0
             total = 0
@@ -999,7 +1004,7 @@ class AddPropertyDialog(QDialog):
             return ready
 
         source = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
-        target = ActiveLayersHelper.resolve_main_property_layer(silent=True)
+        target = ActiveLayersHelper.resolve_main_property_layer(dialogs=None)
         if source is None or target is None or not source.isValid() or not target.isValid():
             return ready
 
@@ -1205,11 +1210,11 @@ class AddPropertyDialog(QDialog):
             return ("", "")
         try:
             layer_id = str(layer.id() or "")
-        except Exception:
+        except (AttributeError, RuntimeError):  # not a layer, or deleted
             layer_id = ""
         try:
             source = str(layer.source() or "")
-        except Exception:
+        except (AttributeError, RuntimeError):  # not a layer, or deleted
             source = ""
         return (layer_id, source)
 
@@ -1477,7 +1482,7 @@ class AddPropertyDialog(QDialog):
             layer = None
 
         if layer is None:
-            layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
+            layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=ModernMessageDialog)
             self._main_layer_cached = layer
 
         return layer
@@ -1659,7 +1664,12 @@ class AddPropertyDialog(QDialog):
             causes_raw = result.get("causes") if isinstance(result, dict) else []
             if isinstance(causes_raw, list):
                 causes = [str(c).strip() for c in causes_raw if str(c).strip()]
-        except Exception:
+        except Exception as exc:  # slot: a malformed worker result must not escape
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="add_property_backend_verify_causes_failed",
+            )
             causes = []
 
         decision = result.get("decision") if isinstance(result, dict) else None

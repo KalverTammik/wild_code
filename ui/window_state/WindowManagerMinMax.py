@@ -28,7 +28,7 @@ class WindowManagerMinMax:
         coordinator.exit_map_selection_mode(parent=self.window)
         try:
             self.window.setGeometry(self.original_geometry)
-        except Exception:
+        except RuntimeError:  # window already deleted
             pass
         self.is_maximized = False
         self.is_minimized = False

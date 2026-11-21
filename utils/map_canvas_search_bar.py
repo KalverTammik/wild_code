@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLineEdit, QPushButton
 from ..constants.button_props import ButtonSize, ButtonVariant
 from ..constants.module_icons import IconNames
 from ..languages.translation_keys import TranslationKeys
+from ..Logs.python_fail_logger import PythonFailLogger
 from .map_canvas_glass_overlay import MapCanvasGlassOverlayBase
 from .map_canvas_glass_style import MapCanvasGlassStyle
 from ..utils.search.UnifiedSearchController import UnifiedSearchController
@@ -138,8 +139,9 @@ class MapCanvasSearchBar(MapCanvasGlassOverlayBase):
             from ..utils.search.searchHelpers import SearchUIController
 
             SearchUIController.handle_search_result(PluginDialog.get_instance(), module, item_id, title)
-        except Exception:
-            pass
+        except Exception as exc:
+            # Signal slot calling project code: stays broad, but the click must leave a trace.
+            PythonFailLogger.log_exception(exc, module="map", event="map_search_result_open_failed")
 
     @classmethod
     def show_for_session(cls, *, result_handler=None) -> None:
@@ -154,6 +156,6 @@ class MapCanvasSearchBar(MapCanvasGlassOverlayBase):
         if cls._active_instance is not None:
             try:
                 cls._active_instance.search_results_widget.hide_results()
-            except Exception:
+            except RuntimeError:  # results widget already deleted
                 pass
         super().close_active()

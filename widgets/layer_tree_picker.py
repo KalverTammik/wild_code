@@ -240,7 +240,7 @@ class LayerTreePicker(QWidget):
                     return False
                 if isinstance(layer, QgsVectorLayer) and layer.geometryType() < 0:
                     return False
-        except Exception:
+        except (AttributeError, RuntimeError):  # layer is None or deleted
             return True
         return True
 
@@ -251,7 +251,7 @@ class LayerTreePicker(QWidget):
                 authid = layer.crs().authid()
                 if authid:
                     label = f"{label} ({authid})"
-            except Exception:
+            except (AttributeError, RuntimeError):  # layer without a CRS, or deleted
                 pass
         return label
 

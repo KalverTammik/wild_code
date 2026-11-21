@@ -305,7 +305,7 @@ class SettingsModule(TokenMixin, QWidget):
                 self.cards_container.adjustSize()
                 self.scroll_area.widget().updateGeometry()
                 self.scroll_area.widget().adjustSize()
-            except Exception:
+            except RuntimeError:
                 pass
             SettingsScrollHelper.scroll_to_module(self, target_key)
 
@@ -442,18 +442,15 @@ class SettingsModule(TokenMixin, QWidget):
         # like combo boxes, checkboxes, and nested settings widgets can refresh.
         for card in self._cards:
             card.retheme()
-            try:
-                SwitchLogger.log(
-                    "settings_retheme_card",
-                    module=Module.SETTINGS.value,
-                    extra={
-                        "card": type(card).__name__,
-                        "tone": str(card.property("cardTone") or ""),
-                        "stylesheet_len": len(card.styleSheet() or ""),
-                    },
-                )
-            except Exception:
-                continue
+            SwitchLogger.log(
+                "settings_retheme_card",
+                module=Module.SETTINGS.value,
+                extra={
+                    "card": type(card).__name__,
+                    "tone": str(card.property("cardTone") or ""),
+                    "stylesheet_len": len(card.styleSheet() or ""),
+                },
+            )
         if self._footer_frame is not None:
             ThemeManager.apply_module_style(self._footer_frame, [QssPaths.SETUP_CARD])
         SwitchLogger.log(
@@ -542,8 +539,9 @@ class SettingsModule(TokenMixin, QWidget):
             logic_dirty = self.logic.has_unsaved_changes()
             module_dirty = self._any_module_dirty()
             return bool(logic_dirty or module_dirty)
-        except Exception:
+        except Exception as exc:
             # If everything fails, assume dirty to avoid data loss
+            PythonFailLogger.log_exception(exc, module=Module.SETTINGS.value, event="settings_unsaved_check_failed")
             return True
 
     def _any_module_dirty(self) -> bool:

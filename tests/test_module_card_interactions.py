@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 from property_fixtures import wait_for
 
 from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.python.workers import _ACTIVE_THREADS
 from Kavitro_dev.widgets.DataDisplayWidgets.AsyncContentWidget import AsyncContentWidget
@@ -266,12 +267,29 @@ class ModuleFilePaginationTest(unittest.TestCase):
             "pageInfo": {"endCursor": cursor, "hasNextPage": has_more},
         }}}
 
+    def setUp(self):
+        patcher = patch.object(PythonFailLogger, "log_exception")
+        self.log = patcher.start()
+        self.addCleanup(patcher.stop)
+        self.cursors = []
+
     def fetch(self, pages, **kwargs):
         with patch("Kavitro_dev.python.actions.file_actions.GraphQLQueryLoader"), \
                 patch("Kavitro_dev.python.actions.file_actions.APIClient") as client:
             client.return_value.send_query.side_effect = pages
             result = APIModuleActions.get_module_files("works", "task-1", **kwargs)
-            return result, client.return_value.send_query.call_count
+            send = client.return_value.send_query
+            # The cursor each request asked for; the first one starts at the beginning.
+            self.cursors = [call.kwargs["variables"]["after"] for call in send.call_args_list]
+            return result, send.call_count
+
+    def assert_failed_once(self, message):
+        self.log.assert_called_once()
+        error = self.log.call_args.args[0]
+        self.assertIsInstance(error, RuntimeError)
+        self.assertEqual(str(error), message)
+        self.assertEqual(self.log.call_args.kwargs["event"], "module_get_files_failed")
+        self.assertEqual(self.log.call_args.kwargs["extra"], {"item_id": "task-1", "module": "works"})
 
     def test_default_file_list_includes_more_than_two_hundred_files(self):
         pages = [self.page(i, i + 50, str(i), True) for i in range(0, 200, 50)]
@@ -286,14 +304,50 @@ class ModuleFilePaginationTest(unittest.TestCase):
 
     def test_broken_pagination_or_missing_item_is_not_reported_as_complete(self):
         cases = [
-            [self.page(0, 1, "same", True), self.page(1, 2, "same", True)],
-            [self.page(0, 1, "first", True), self.page(1, 1, "next", True)],
-            [{"task": None}],
+            ([self.page(0, 1, "same", True), self.page(1, 2, "same", True)], "File pagination did not advance", 2),
+            ([self.page(0, 1, "first", True), self.page(1, 1, "next", True)],
+             "File pagination returned an empty intermediate page", 2),
+            ([{"task": None}], "File response is missing the requested connection", 1),
         ]
-        for pages in cases:
-            with self.subTest(pages=pages):
-                result, _count = self.fetch(pages)
+        for pages, message, requests in cases:
+            with self.subTest(message=message):
+                self.log.reset_mock()
+                result, count = self.fetch(pages)
                 self.assertIsNone(result)
+                self.assertEqual(count, requests)
+                self.assert_failed_once(message)
+
+    def test_repeated_cursor_stops_the_walk_at_the_repeat(self):
+        # The second answer repeats the first cursor, so a third request would ask for the same page again.
+        pages = [self.page(0, 1, "same", True), self.page(1, 2, "same", True), self.page(2, 3, "other", False)]
+        result, count = self.fetch(pages)
+        self.assertIsNone(result)
+        self.assertEqual(count, 2)
+        self.assertEqual(self.cursors, [None, "same"])
+        self.assert_failed_once("File pagination did not advance")
+
+    def test_cursor_seen_earlier_counts_as_a_repeat_too(self):
+        pages = [self.page(0, 1, "a", True), self.page(1, 2, "b", True), self.page(2, 3, "a", True),
+                 self.page(3, 4, "c", False)]
+        result, count = self.fetch(pages)
+        self.assertIsNone(result)
+        self.assertEqual(count, 3)
+        self.assertEqual(self.cursors, [None, "a", "b"])
+        self.assert_failed_once("File pagination did not advance")
+
+    def test_missing_cursor_before_a_next_page_stops_the_walk(self):
+        result, count = self.fetch([self.page(0, 1, "", True), self.page(1, 2, "next", False)])
+        self.assertIsNone(result)
+        self.assertEqual(count, 1)
+        self.assert_failed_once("File pagination did not advance")
+
+    def test_distinct_cursors_are_followed_and_a_repeat_on_the_last_page_is_no_error(self):
+        pages = [self.page(0, 1, "a", True), self.page(1, 2, "b", True), self.page(2, 3, "b", False)]
+        result, count = self.fetch(pages)
+        self.assertEqual([item["uuid"] for item in result], ["0", "1", "2"])
+        self.assertEqual(count, 3)
+        self.assertEqual(self.cursors, [None, "a", "b"])
+        self.log.assert_not_called()
 
 
 if __name__ == "__main__":

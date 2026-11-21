@@ -32,7 +32,7 @@ class WorksSyncService(QObject):
         self._sync_snapshot = None
 
     def attach(self) -> Optional[QgsVectorLayer]:
-        layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
+        layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
         if layer is self._layer:
             return layer
 
@@ -62,7 +62,8 @@ class WorksSyncService(QObject):
             return
         try:
             layer.committedGeometriesChanges.disconnect(self._on_committed_geometries_changes)
-        except Exception:
+        except (TypeError, RuntimeError):
+            # TypeError: the signal was never connected; RuntimeError: the layer is already deleted.
             return
 
     def sync_from_backend(self) -> None:
@@ -121,7 +122,7 @@ class WorksSyncService(QObject):
         layer, task_id_field, features, task_ids, session = snapshot
         if (session != SessionManager.session_signature() or layer is not self._layer
                 or sip.isdeleted(layer) or not layer.isValid()
-                or WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True) is not layer):
+                or WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None) is not layer):
             return
         if self._is_layer_editable(layer, event="works_sync_apply_skipped_layer_editable"):
             return
@@ -381,28 +382,24 @@ class WorksSyncService(QObject):
         for feature in features:
             try:
                 task_id = str(feature.attribute(task_id_field) or "").strip()
-            except Exception:
+            except KeyError:
                 continue
             if not task_id:
                 continue
-            try:
-                feature_id = int(feature.id())
-            except Exception:
-                continue
-            feature_ids_by_task_id.setdefault(task_id, []).append(feature_id)
+            feature_ids_by_task_id.setdefault(task_id, []).append(int(feature.id()))
         return feature_ids_by_task_id
 
     @staticmethod
     def _layer_name(layer: QgsVectorLayer) -> str:
         try:
             return str(layer.name() or "").strip()
-        except Exception:
+        except RuntimeError:
             return ""
 
     def _is_layer_editable(self, layer: QgsVectorLayer, *, event: str, extra: Optional[dict] = None) -> bool:
         try:
             editable = bool(layer.isEditable())
-        except Exception:
+        except RuntimeError:
             return False
         if not editable:
             return False
@@ -570,7 +567,8 @@ class WorksSyncService(QObject):
         if callable(to_py_datetime):
             try:
                 parsed = to_py_datetime()
-            except Exception:
+            except ValueError:
+                # An invalid QDateTime has no Python equivalent.
                 parsed = None
             if isinstance(parsed, datetime):
                 return parsed.replace(microsecond=0, tzinfo=None)
@@ -588,5 +586,7 @@ class WorksSyncService(QObject):
             return False
         try:
             return existing_geometry.equals(new_geometry)
-        except Exception:
+        except Exception as exc:
+            # Fallback kept: "not equal" makes the caller rewrite the geometry.
+            PythonFailLogger.log_exception(exc, module=Module.WORKS.value, event="works_geometry_compare_failed")
             return False

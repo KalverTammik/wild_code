@@ -433,7 +433,7 @@ class WorksAddPointTest(CardCase):
     def test_without_a_layer_nothing_starts(self) -> None:
         self.service.resolve_main_layer.return_value = None
         self.trigger(self.button(), self.ACTION)
-        self.service.resolve_main_layer.assert_called_once_with(lang_manager=self.lang, silent=False)
+        self.service.resolve_main_layer.assert_called_once_with(lang_manager=self.lang, dialogs=self.messages)
         self.service.find_feature_by_task_id.assert_not_called()
         self.controller_class.assert_not_called()
 

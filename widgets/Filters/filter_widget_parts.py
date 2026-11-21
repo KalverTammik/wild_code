@@ -77,7 +77,7 @@ class FilterLoadingMixin:
             if hasattr(parent, "is_token_active"):
                 try:
                     return bool(parent.is_token_active(token))
-                except Exception:
+                except RuntimeError:  # owner already deleted
                     return False
             parent = parent.parent()
         return True
@@ -85,7 +85,7 @@ class FilterLoadingMixin:
     def _is_widget_alive(self) -> bool:
         try:
             import sip
-        except Exception:
+        except ImportError:
             sip = None
         try:
             return not bool(sip and sip.isdeleted(self))

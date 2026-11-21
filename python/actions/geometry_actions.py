@@ -1,6 +1,6 @@
 """Geometry actions: the geometry input value, the input errors create_task retries on, and the geometry updates."""
 import json
-from typing import Optional
+import re
 
 from ..api_client import APIClient
 from ..GraphQLQueryLoader import GraphQLQueryLoader
@@ -19,7 +19,8 @@ class GeometryActions:
     def _is_unknown_input_field_error(message: str, field_name: str) -> bool:
         text = str(message or "").lower()
         field_text = str(field_name or "").strip().lower()
-        if not field_text or field_text not in text:
+        # The whole name only: "status" must not match "statusId".
+        if not field_text or not re.search(rf"(?<!\w){re.escape(field_text)}(?!\w)", text):
             return False
 
         unknown_field_markers = (
@@ -42,13 +43,9 @@ class GeometryActions:
         if GeometryActions._is_unknown_geometry_input_error(message):
             return True
 
+        # Only errors the server returns in its answer; HTTP status errors leave the create's outcome unknown.
         retryable_markers = (
             "internal server error",
-            "[wc-api][server]",
-            "http 500",
-            "http 502",
-            "http 503",
-            "http 504",
             "geojson",
             "json",
             "icon",
@@ -65,14 +62,12 @@ class GeometryActions:
         query_filename: str,
         response_key: str,
         failure_event: str,
-        empty_event: Optional[str] = None,
+        empty_event: str,
     ) -> bool:
         resolved_id = str(item_id or "").strip()
         if not resolved_id or not isinstance(geometry, dict):
             return False
 
-        loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(module, query_filename)
         variables = {
             "input": {
                 "id": resolved_id,
@@ -80,22 +75,23 @@ class GeometryActions:
             }
         }
 
+        loader = GraphQLQueryLoader()
         client = APIClient()
         try:
+            query = loader.load_query_by_module(module, query_filename)
             data = client.send_query(query, variables=variables) or {}
             updated = (data.get(response_key) or {}) if isinstance(data, dict) else {}
             if updated.get("id"):
                 return True
-            if empty_event:
-                PythonFailLogger.log_exception(
-                    RuntimeError(f"{response_key} geometry update returned no id"),
-                    module=module,
-                    event=empty_event,
-                    extra={
-                        "item_id": resolved_id,
-                        "geometry_type": str(geometry.get("type") or ""),
-                    },
-                )
+            PythonFailLogger.log_exception(
+                RuntimeError(f"{response_key} geometry update returned no id"),
+                module=module,
+                event=empty_event,
+                extra={
+                    "item_id": resolved_id,
+                    "geometry_type": str(geometry.get("type") or ""),
+                },
+            )
             return False
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -131,6 +127,7 @@ class GeometryActions:
             query_filename="updateProjectGeometry.graphql",
             response_key="updateProject",
             failure_event="project_update_geometry_failed",
+            empty_event="project_update_geometry_empty_response",
         )
 
     @staticmethod
@@ -144,4 +141,5 @@ class GeometryActions:
             query_filename="updateEasementGeometry.graphql",
             response_key="updateEasement",
             failure_event="easement_update_geometry_failed",
+            empty_event="easement_update_geometry_empty_response",
         )

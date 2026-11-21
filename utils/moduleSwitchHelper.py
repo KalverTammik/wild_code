@@ -68,7 +68,7 @@ class ModuleSwitchHelper:
             raise TypeError("ModuleSwitchHelper.switch_module requires a module_name.")
         try:
             return Module[normalized.upper()].value
-        except Exception:
+        except KeyError:  # not a Module name: the key is used as it is
             return normalized.lower()
 
     @staticmethod
@@ -230,15 +230,16 @@ class ModuleSwitchHelper:
         if (previous_module_name or "").strip().lower() == Module.SETTINGS.value:
             instance = module_manager.getActiveModuleInstance(Module.SETTINGS.value)
             if instance is not None and ModuleSwitchHelper._settings_focus_handler:
-                try:
-                    dlg.settingsModule = instance
-                except Exception:
-                    pass
+                dlg.settingsModule = instance
                 ModuleSwitchHelper._settings_focus_handler(instance, target_key, dlg)
             try:
                 dlg.sidebar.setActiveModuleOnSidebarButton(Module.SETTINGS.value)
-            except Exception:
-                pass
+            except Exception as exc:
+                SwitchLogger.log(
+                    "switch_settings_sidebar_failed",
+                    module=target_key,
+                    extra={"error": str(exc)},
+                )
             return True
 
         ModuleSwitchHelper.switch_module(
@@ -357,7 +358,12 @@ class ModuleSwitchHelper:
 
         try:
             current_widget = dlg.moduleStack.currentWidget()
-        except Exception:
+        except Exception as exc:  # error path: it must not raise
+            SwitchLogger.log(
+                "switch_current_widget_after_fail_failed",
+                module=normalized_name,
+                extra={"error": str(exc)},
+            )
             current_widget = None
 
         return active_after_fail, current_widget

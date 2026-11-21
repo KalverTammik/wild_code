@@ -227,7 +227,7 @@ class MoreActionsButton(CardActionButton):
     def _link_properties_from_map(self, module, item_data, lang_manager) -> None:
         object_id = (item_data).get("id")
 
-        main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
+        main_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=ModernMessageDialog)
 
         # Clear any prior selection so the map starts clean.
         if main_layer is not None:
@@ -249,7 +249,7 @@ class MoreActionsButton(CardActionButton):
                         val = feature[fld]
                         if val:
                             return f"{val} — {number}"
-                    except Exception:
+                    except KeyError:  # the layer has no such field
                         continue
             return number
 
@@ -261,7 +261,7 @@ class MoreActionsButton(CardActionButton):
             for feat in existing_feats:
                 try:
                     num = feat[Katastriyksus.tunnus]
-                except Exception:
+                except KeyError:  # the layer has no such field
                     num = None
                 if num and num in existing_numbers:
                     existing_display[num] = _format_label(num, feat)
@@ -318,7 +318,7 @@ class MoreActionsButton(CardActionButton):
                 for feat in selected_feats:
                     try:
                         num = feat[Katastriyksus.tunnus]
-                    except Exception:
+                    except KeyError:  # the layer has no such field
                         num = None
                     if num:
                         selected_display[num] = _format_label(num, feat)
@@ -395,7 +395,7 @@ class MoreActionsButton(CardActionButton):
                     tunnus = f[Katastriyksus.tunnus]
                     if tunnus:
                         cadastral_numbers.append(str(tunnus))
-                except Exception:
+                except KeyError:  # the layer has no such field
                     continue
 
             if not cadastral_numbers:

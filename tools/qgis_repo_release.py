@@ -293,7 +293,7 @@ def _fetch_github_release_notes(release_tag: str) -> Tuple[str, str]:
         title = str(payload.get("name") or "").strip()
         body = str(payload.get("body") or "").strip()
         return title, body
-    except Exception:
+    except (subprocess.CalledProcessError, OSError, ValueError):
         return "", ""
 
 
@@ -314,7 +314,7 @@ def _extract_changelog_from_plugins_xml(plugins_xml_path: Path, plugin_name: str
     try:
         tree = ET.parse(plugins_xml_path)
         root = tree.getroot()
-    except Exception:
+    except (OSError, ET.ParseError):
         return ""
 
     plugin_nodes = root.findall("pyqgis_plugin")

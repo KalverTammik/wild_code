@@ -20,7 +20,7 @@ class LayerProcessingService:
         try:
             if QgsProject.instance().mapLayer(layer.id()) is not None:
                 source_ref = layer.id()
-        except Exception:
+        except (AttributeError, RuntimeError):  # layer None or already deleted
             source_ref = ""
 
         if source_ref:
@@ -31,7 +31,7 @@ class LayerProcessingService:
 
         try:
             source_ref = layer.source()
-        except Exception:
+        except (AttributeError, RuntimeError):  # layer None or already deleted
             source_ref = ""
         return QgsProcessingFeatureSourceDefinition(source_ref, bool(selected_only))
 
@@ -121,7 +121,7 @@ class LayerProcessingService:
 
         try:
             selected_count = int(source_layer.selectedFeatureCount() or 0)
-        except Exception:
+        except (AttributeError, RuntimeError):  # layer None or already deleted
             selected_count = 0
         if selected_count <= 0:
             return None
@@ -173,7 +173,7 @@ class LayerProcessingService:
         if selected_only:
             try:
                 selected_count = int(source_layer.selectedFeatureCount() or 0)
-            except Exception:
+            except (AttributeError, RuntimeError):  # layer None or already deleted
                 selected_count = 0
             if selected_count <= 0:
                 return None
@@ -240,12 +240,12 @@ class LayerProcessingService:
         if make_visible:
             try:
                 MapHelpers.ensure_layer_visible(source_layer, make_active=make_active)
-            except Exception:
-                pass
+            except Exception as exc:
+                PythonFailLogger.log_exception(exc, module="layers", event="layer_ensure_visible_failed")
 
         try:
             return int(source_layer.selectedFeatureCount() or 0)
-        except Exception:
+        except (AttributeError, RuntimeError):  # layer None or already deleted
             return 0
 
     @classmethod
@@ -307,7 +307,7 @@ class LayerProcessingService:
         merge_crs = None
         try:
             merge_crs = valid_layers[0].crs()
-        except Exception:
+        except (AttributeError, RuntimeError):  # layer deleted since the isValid() filter
             merge_crs = None
 
         return cls.run_processing_to_memory(

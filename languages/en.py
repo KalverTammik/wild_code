@@ -216,6 +216,8 @@ TRANSLATIONS = {
         TranslationKeys.EASEMENT_FORM_STATUS_MAP_VALUE: "{label} (on map: {value})",
         TranslationKeys.EASEMENT_FORM_STATUS_REJECTED_TITLE: "Status not changed",
         TranslationKeys.EASEMENT_FORM_STATUS_REJECTED_MESSAGE: "Kavitro did not accept the new status, so nothing was saved to the map. Try again or choose the original status.",
+        TranslationKeys.EASEMENT_FORM_NUMBER_INVALID_TITLE: "Invalid number",
+        TranslationKeys.EASEMENT_FORM_NUMBER_INVALID_MESSAGE: "These fields must be numbers: {fields}. Enter only a number, for example 2.5, and save again.",
         TranslationKeys.EASEMENT_FIELD_KIND: "Type",
         TranslationKeys.EASEMENT_FIELD_STATUS: "Status",
         TranslationKeys.EASEMENT_FIELD_NOTARY_NUMBER: "Notary reg. no.",
@@ -784,7 +786,7 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_ATTACH_EXISTING_ARCHIVE_SUCCESS: "The existing linked feature for backend easement {item_id} was archived by setting status to (puudub)."
         ,TranslationKeys.EASEMENT_ATTACH_EXISTING_ARCHIVE_FAILED: "Could not archive the existing linked feature for backend easement {item_id}. Details: {error}"
         ,TranslationKeys.EASEMENT_DRAW_NEW_START_FAILED: "Could not start drawing a new easement feature on the map."
-        ,TranslationKeys.EASEMENT_DRAW_NEW_SAVE_FAILED: "The new map feature was created, but linking it to backend easement {item_id} failed. Details: {error}"
+        ,TranslationKeys.EASEMENT_DRAW_NEW_SAVE_FAILED: "The new map feature was created, but linking it to easement {item_id} in Kavitro failed. Details: {error}"
         ,TranslationKeys.EASEMENT_DRAW_NEW_SUCCESS: "A new map feature was created and linked to backend easement {item_id}."
         ,TranslationKeys.EASEMENT_EDIT_GEOMETRY_NOT_FOUND: "No linked map feature was found for backend easement {item_id}."
         ,TranslationKeys.EASEMENT_EDIT_GEOMETRY_START_FAILED: "Could not activate geometry editing for the linked easement feature."

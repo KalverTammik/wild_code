@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 try:
     import sip
-except Exception:  # pragma: no cover - depends on runtime packaging
+except ImportError:  # pragma: no cover - depends on runtime packaging
     sip = None
 
 from ...languages.language_manager import LanguageManager
@@ -318,7 +318,7 @@ class StatusWidget(QWidget):
     def _is_deleted(widget) -> bool:
         try:
             return bool(widget is None or (sip and sip.isdeleted(widget)))
-        except Exception:
+        except TypeError:  # not a sip wrapper
             return widget is None
 
     def _replace_current_card(self, item_data: dict) -> None:

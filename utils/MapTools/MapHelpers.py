@@ -5,7 +5,7 @@ from qgis.utils import iface
 from ...utils.url_manager import Module
 from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
-from ...utils.messagesHelper import ModernMessageDialog
+from ...utils.user_dialogs import UserDialogs
 from ...Logs.switch_logger import SwitchLogger
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.cadastral_fields import Katastriyksus
@@ -271,10 +271,7 @@ class MapHelpers:
                     extent = None
 
                 if extent is not None and not extent.isEmpty() and iface is not None and iface.mapCanvas() is not None:
-                    try:
-                        extent.scale(1.2)
-                    except Exception:
-                        pass
+                    extent.scale(1.2)
                     iface.mapCanvas().setExtent(extent)
                     iface.mapCanvas().refresh()
 
@@ -364,7 +361,7 @@ class FeatureActions:
 
         try:
             pk_indexes = list(target_layer.dataProvider().pkAttributeIndexes() or [])
-        except Exception:
+        except (AttributeError, RuntimeError):  # no data provider, or the layer was deleted
             pk_indexes = []
 
         source_names = set(source_feature.fields().names())
@@ -499,13 +496,13 @@ class FeatureActions:
 class ActiveLayersHelper:
 
     @staticmethod
-    def resolve_main_property_layer(*, silent: bool = False):
+    def resolve_main_property_layer(*, dialogs: Optional[UserDialogs]):
         layer_id = SettingsService().module_main_layer_name(Module.PROPERTY.value) or ""
         layer = MapHelpers.resolve_layer(layer_id)
         if not layer:
-            if not silent:
+            if dialogs is not None:
                 lang = LanguageManager()
-                ModernMessageDialog.Warning_messages_modern(
+                dialogs.show_warning(
                     lang.translate(TranslationKeys.ERROR),
                     lang.translate(TranslationKeys.PROPERTY_MAIN_LAYER_MISSING),
                 )

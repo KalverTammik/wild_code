@@ -25,8 +25,8 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ..MapTools.MapHelpers import MapHelpers
 from ..SessionManager import SessionManager
 from ..geometry_payload import GeometryPayloadService
-from ..messagesHelper import ModernMessageDialog
 from ..url_manager import Module
+from ..user_dialogs import UserDialogs
 
 
 class ModuleLayerServiceBase:
@@ -46,21 +46,21 @@ class ModuleLayerServiceBase:
         normalized = text.replace("Z", "+00:00")
         try:
             parsed = datetime.fromisoformat(normalized)
-        except Exception:
+        except ValueError:
             parsed = None
         if parsed is None:
             for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
                 try:
                     parsed = datetime.strptime(text, fmt)
                     break
-                except Exception:
+                except ValueError:
                     continue
         if parsed is None:
             return None
         if parsed.tzinfo is not None:
             try:
                 parsed = parsed.astimezone().replace(tzinfo=None)
-            except Exception:
+            except (ValueError, OSError, OverflowError):  # dates outside the OS time range
                 parsed = parsed.replace(tzinfo=None)
         return parsed
 
@@ -137,13 +137,13 @@ class ModuleLayerServiceBase:
         )
 
     @classmethod
-    def resolve_main_layer(cls, *, lang_manager=None, silent: bool = False) -> Optional[QgsVectorLayer]:
+    def resolve_main_layer(cls, *, lang_manager=None, dialogs: Optional[UserDialogs]) -> Optional[QgsVectorLayer]:
         lang = lang_manager or LanguageManager()
         identifier = SettingsService().module_main_layer_name(cls.MODULE.value) or ""
         matches = cls._configured_layers(identifier)
         if len(matches) > 1:
-            if not silent:
-                ModernMessageDialog.show_warning(
+            if dialogs is not None:
+                dialogs.show_warning(
                     lang.translate(TranslationKeys.ERROR),
                     lang.translate(cls.LAYER_AMBIGUOUS_KEY),
                 )
@@ -151,8 +151,8 @@ class ModuleLayerServiceBase:
 
         layer = matches[0] if matches else None
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            if not silent:
-                ModernMessageDialog.show_warning(
+            if dialogs is not None:
+                dialogs.show_warning(
                     lang.translate(TranslationKeys.ERROR),
                     lang.translate(cls.LAYER_MISSING_KEY),
                 )
@@ -170,17 +170,17 @@ class ModuleLayerServiceBase:
             )
 
         if cls.REQUIRED_GEOMETRY is not None and layer.geometryType() != cls.REQUIRED_GEOMETRY:
-            if not silent:
-                ModernMessageDialog.show_warning(
+            if dialogs is not None:
+                dialogs.show_warning(
                     lang.translate(TranslationKeys.ERROR),
                     lang.translate(cls.LAYER_INVALID_GEOMETRY_KEY),
                 )
             return None
 
-        return layer if cls._main_layer_is_ready(layer, lang=lang, silent=silent) else None
+        return layer if cls._main_layer_is_ready(layer, lang=lang, dialogs=dialogs) else None
 
     @classmethod
-    def _main_layer_is_ready(cls, layer: QgsVectorLayer, *, lang, silent: bool) -> bool:
+    def _main_layer_is_ready(cls, layer: QgsVectorLayer, *, lang, dialogs: Optional[UserDialogs]) -> bool:
         """The module's own checks on a layer that passed the shared ones."""
         return True
 
@@ -203,7 +203,7 @@ class ModuleLayerServiceBase:
         for layer in project.mapLayers().values():
             try:
                 candidate = str(layer.name() or "").strip()
-            except Exception:
+            except RuntimeError:  # layer deleted since the project list was read
                 continue
             if candidate and candidate.lower() == target:
                 matches.append(layer)
@@ -228,8 +228,10 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
         raise NotImplementedError
 
     @classmethod
-    def prepare_layer_for_draw(cls, *, lang_manager=None, silent: bool = False) -> tuple[Optional[QgsVectorLayer], str]:
-        layer = cls.resolve_main_layer(lang_manager=lang_manager, silent=silent)
+    def prepare_layer_for_draw(
+        cls, *, lang_manager=None, dialogs: Optional[UserDialogs]
+    ) -> tuple[Optional[QgsVectorLayer], str]:
+        layer = cls.resolve_main_layer(lang_manager=lang_manager, dialogs=dialogs)
         if layer is None:
             return None, ""
 
@@ -238,8 +240,8 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
             return layer, ""
 
         lang = lang_manager or LanguageManager()
-        if not silent:
-            ModernMessageDialog.show_warning(
+        if dialogs is not None:
+            dialogs.show_warning(
                 lang.translate(TranslationKeys.ERROR),
                 str(message or lang.translate(cls.DRAW_START_FAILED_KEY)),
             )
@@ -251,7 +253,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
             return ""
         try:
             return str(layer.name() or "").strip()
-        except Exception:
+        except RuntimeError:  # layer deleted
             return ""
 
     @classmethod
@@ -281,7 +283,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
             feature = next(layer.getFeatures(QgsFeatureRequest(int(feature_id))), None)
             if feature is not None:
                 return feature
-        except Exception:
+        except (TypeError, ValueError, OverflowError, RuntimeError):  # bad id, or the layer was deleted
             pass
 
         try:
@@ -294,7 +296,8 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
                 exc,
                 module=cls.MODULE.value,
                 event=f"{cls.MODULE.value}_feature_by_id_failed",
-                extra={"feature_id": int(feature_id)},
+                # str: a bad id is what failed above, int() here would raise again from the log call.
+                extra={"feature_id": str(feature_id)},
             )
         return None
 
@@ -309,7 +312,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
 
         try:
             search_radius = canvas.mapUnitsPerPixel() * float(radius_multiplier)
-        except Exception:
+        except (RuntimeError, TypeError, ValueError, OverflowError):  # canvas deleted, or the radius is not a number
             search_radius = 0.0
         if search_radius <= 0:
             search_radius = 2.0
@@ -334,7 +337,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
                 if layer.geometryType() == QgsWkbTypes.PointGeometry:
                     try:
                         distance = geometry.distance(point_geometry)
-                    except Exception:
+                    except TypeError:
                         continue
                     if distance <= search_radius and distance < closest_distance:
                         closest_feature = feature
@@ -343,7 +346,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
                 try:
                     if geometry.contains(point_geometry) or geometry.intersects(point_geometry):
                         return feature
-                except Exception:
+                except TypeError:
                     continue
             return closest_feature
         except Exception as exc:
@@ -379,19 +382,19 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
             return
         try:
             layer.updateExtents()
-        except Exception:
+        except RuntimeError:  # layer deleted after the save
             pass
         try:
             if not layer.isEditable():
                 layer.reload()
-        except Exception:
+        except RuntimeError:
             pass
         try:
             layer.triggerRepaint()
-        except Exception:
+        except RuntimeError:
             pass
         try:
             if iface is not None and iface.mapCanvas() is not None:
                 iface.mapCanvas().refresh()
-        except Exception:
+        except RuntimeError:  # canvas deleted
             pass

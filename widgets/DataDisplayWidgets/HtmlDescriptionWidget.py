@@ -61,14 +61,14 @@ class HtmlDescriptionWidget(QTextBrowser):
     def _handle_anchor_clicked(self, link: QUrl) -> None:
         try:
             raw_target = link.toString(QUrl.FullyDecoded)
-        except Exception:
+        except (AttributeError, TypeError):  # Qt5/Qt6 QUrl API difference
             raw_target = link.toString()
 
         destination = classify_description_link(raw_target)
         if destination.kind == DESCRIPTION_LINK_BLOCKED:
             try:
                 decoded_target = QUrl.fromPercentEncoding(bytes(link.toEncoded()))
-            except Exception:
+            except (AttributeError, TypeError):  # Qt5/Qt6 QUrl API difference
                 decoded_target = raw_target
             if decoded_target != raw_target:
                 decoded_destination = classify_description_link(decoded_target)
@@ -100,10 +100,7 @@ class HtmlDescriptionWidget(QTextBrowser):
         if not self._ask_confirmation(message):
             return
 
-        try:
-            opened = bool(QDesktopServices.openUrl(QUrl(destination.target, QUrl.TolerantMode)))
-        except Exception:
-            opened = False
+        opened = bool(QDesktopServices.openUrl(QUrl(destination.target, QUrl.TolerantMode)))
         if not opened:
             self._show_open_failed(destination.display)
 
@@ -170,10 +167,7 @@ class HtmlDescriptionWidget(QTextBrowser):
         self._show_open_failed(destination.display or path)
 
     def _open_folder(self, path: str, display: str) -> None:
-        try:
-            opened = bool(QDesktopServices.openUrl(QUrl.fromLocalFile(path)))
-        except Exception:
-            opened = False
+        opened = bool(QDesktopServices.openUrl(QUrl.fromLocalFile(path)))
         if not opened:
             self._show_open_failed(display)
 

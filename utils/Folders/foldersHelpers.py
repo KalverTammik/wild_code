@@ -12,7 +12,7 @@ from ...utils.api_error_handling import user_message
 from ...utils.url_manager import Module
 from ...modules.Settings.setting_keys import SettingDialogPlaceholders
 from ...constants.settings_keys import SettingsService
-from ..messagesHelper import ModernMessageDialog
+from ..user_dialogs import UserDialogs
 from ..security_boundaries import (
     is_same_or_descendant_path,
     resolve_direct_child_path,
@@ -27,7 +27,7 @@ from ...Logs.python_fail_logger import PythonFailLogger
 
 class FolderEngines:
     @staticmethod
-    def _update_project_folder_link(project_id, dest_dir, warning_title) -> Optional[str]:
+    def _update_project_folder_link(project_id, dest_dir, warning_title, dialogs: UserDialogs) -> Optional[str]:
         try:
             updated = ModuleFilesPathUpdater().update(
                 Module.PROJECT,
@@ -45,7 +45,7 @@ class FolderEngines:
                 path=dest_dir,
                 error=user_message(exc),
             )
-            ModernMessageDialog.show_warning(warning_title, text)
+            dialogs.show_warning(warning_title, text)
             return None
 
     @staticmethod
@@ -55,6 +55,8 @@ class FolderEngines:
                                                source_folder,
                                                target_folder,
                                                on_files_path_updated: Optional[Callable[[str], None]] = None,
+                                               *,
+                                               dialogs: UserDialogs,
                                                ) -> None:
         confirm_title = LanguageManager.translate_static(TranslationKeys.CONFIRM)
         yes_label = LanguageManager.translate_static(TranslationKeys.YES)
@@ -70,14 +72,14 @@ class FolderEngines:
             text = LanguageManager.translate_static(TranslationKeys.PROJECT_FOLDER_SOURCE_INVALID).format(
                 path=source_value or "-"
             )
-            ModernMessageDialog.show_warning(warning_title, text)
+            dialogs.show_warning(warning_title, text)
             return
 
         if not target_dir or not os.path.isdir(target_dir):
             text = LanguageManager.translate_static(TranslationKeys.PROJECT_FOLDER_TARGET_INVALID).format(
                 path=target_value or "-"
             )
-            ModernMessageDialog.show_warning(warning_title, text)
+            dialogs.show_warning(warning_title, text)
             return
 
         if is_same_or_descendant_path(target_dir, source_dir):
@@ -85,7 +87,7 @@ class FolderEngines:
                 source=source_dir,
                 target=target_dir,
             )
-            ModernMessageDialog.show_warning(warning_title, text)
+            dialogs.show_warning(warning_title, text)
             return
 
         try:
@@ -95,19 +97,19 @@ class FolderEngines:
             dest_dir = resolve_direct_child_path(target_dir, folder_name)
         except MissingProjectNumberError:
             text = LanguageManager.translate_static(TranslationKeys.PROJECT_FOLDER_NUMBER_MISSING)
-            ModernMessageDialog.show_warning(warning_title, text)
+            dialogs.show_warning(warning_title, text)
             return
         except Exception as exc:
             text = (
                 LanguageManager.translate_static(TranslationKeys.PROJECT_FOLDER_DESTINATION_INVALID)
                 + f"\n{exc}"
             )
-            ModernMessageDialog.show_warning(warning_title, text)
+            dialogs.show_warning(warning_title, text)
             return
 
         if not folder_name or not dest_dir:
             text = LanguageManager.translate_static(TranslationKeys.PROJECT_FOLDER_DESTINATION_INVALID)
-            ModernMessageDialog.show_warning(warning_title, text)
+            dialogs.show_warning(warning_title, text)
             return
 
         if os.path.exists(dest_dir):
@@ -120,7 +122,7 @@ class FolderEngines:
                 ).format(
                     path=dest_dir
                 )
-                link_existing = ModernMessageDialog.ask_yes_no(
+                link_existing = dialogs.ask_yes_no(
                     confirm_title,
                     confirmation_text,
                     yes_label=link_action_label,
@@ -133,6 +135,7 @@ class FolderEngines:
                     project_id,
                     dest_dir,
                     warning_title,
+                    dialogs,
                 )
                 if not updated_path:
                     return
@@ -145,20 +148,20 @@ class FolderEngines:
                 ).format(
                     path=dest_dir
                 )
-                ModernMessageDialog.show_info(heading, text)
+                dialogs.show_info(heading, text)
                 return
 
             text = LanguageManager.translate_static(TranslationKeys.PROJECT_FOLDER_ALREADY_EXISTS).format(
                 path=dest_dir
             )
-            ModernMessageDialog.show_warning(warning_title, text)
+            dialogs.show_warning(warning_title, text)
             return
 
         confirmation_text = LanguageManager.translate_static(TranslationKeys.PROJECT_FOLDER_CREATE_CONFIRM).format(
             source=source_dir,
             destination=dest_dir,
         )
-        overall_confirmation = ModernMessageDialog.ask_yes_no(
+        overall_confirmation = dialogs.ask_yes_no(
             confirm_title,
             confirmation_text,
             yes_label=yes_label,
@@ -173,17 +176,17 @@ class FolderEngines:
                 text = LanguageManager.translate_static(TranslationKeys.PROJECT_FOLDER_ALREADY_EXISTS).format(
                     path=dest_dir
                 )
-                ModernMessageDialog.show_warning(warning_title, text)
+                dialogs.show_warning(warning_title, text)
                 return
             shutil.copytree(source_dir, dest_dir)
         except Exception as exc:
             text = LanguageManager.translate_static(TranslationKeys.PROJECT_FOLDER_COPY_FAILED).format(
                 error=exc
             )
-            ModernMessageDialog.show_warning(warning_title, text)
+            dialogs.show_warning(warning_title, text)
             return
 
-        confirmation = ModernMessageDialog.ask_yes_no(
+        confirmation = dialogs.ask_yes_no(
             confirm_title,
             LanguageManager.translate_static(TranslationKeys.PROJECT_FOLDER_LINK_CONFIRM).format(
                 path=dest_dir
@@ -198,6 +201,7 @@ class FolderEngines:
                 project_id,
                 dest_dir,
                 warning_title,
+                dialogs,
             )
             if not updated_path:
                 return
@@ -207,7 +211,7 @@ class FolderEngines:
         # The folder is copied either way; only linking it to the project can be declined.
         heading = LanguageManager.translate_static(TranslationKeys.SUCCESS)
         text = LanguageManager.translate_static(TranslationKeys.FOLDER_COPY_SUCCESS).format(source=source_dir, folder=folder_name)
-        ModernMessageDialog.show_info(heading, text)
+        dialogs.show_info(heading, text)
 
 class FolderNameGenerator:
     def folder_structure_name_order(self, project_name, project_number):

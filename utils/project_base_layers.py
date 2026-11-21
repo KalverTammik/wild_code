@@ -238,7 +238,7 @@ class ProjectBaseLayersService:
             if raw:
                 try:
                     parsed = json.loads(raw)
-                except Exception:
+                except (TypeError, ValueError):  # stored value is not valid JSON text
                     parsed = []
                 normalized = self.normalize_mapping_rows(parsed)
                 if normalized:

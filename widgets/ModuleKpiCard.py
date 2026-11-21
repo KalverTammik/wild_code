@@ -544,11 +544,11 @@ class ModuleKpiCard(QFrame):
         if worker is not None:
             try:
                 worker.finished.disconnect(self._handle_success)
-            except Exception:
+            except (TypeError, RuntimeError):  # not connected, or the worker is gone
                 pass
             try:
                 worker.error.disconnect(self._handle_error)
-            except Exception:
+            except (TypeError, RuntimeError):  # not connected, or the worker is gone
                 pass
         if thread is not None and thread.isRunning():
             thread.quit()

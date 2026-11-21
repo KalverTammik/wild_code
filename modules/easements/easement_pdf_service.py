@@ -116,7 +116,12 @@ class EasementPdfService:
     def _load_template_layout(cls, project: QgsProject, template_path: Path) -> Optional[QgsPrintLayout]:
         try:
             template_xml = template_path.read_text(encoding="utf-8")
-        except Exception:
+        except (OSError, UnicodeError) as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="easement",
+                event="easement_pdf_template_read_failed",
+            )
             return None
 
         document = QDomDocument()
@@ -127,7 +132,12 @@ class EasementPdfService:
                     return None
             elif not set_content_result:
                 return None
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="easement",
+                event="easement_pdf_template_parse_failed",
+            )
             return None
 
         layout = QgsPrintLayout(project)
@@ -135,7 +145,12 @@ class EasementPdfService:
         layout.setName("Kitsendus")
         try:
             layout.loadFromTemplate(document, QgsReadWriteContext())
-        except Exception:
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="easement",
+                event="easement_pdf_template_load_failed",
+            )
             return None
         return layout
 
@@ -155,22 +170,22 @@ class EasementPdfService:
         try:
             map_item.setKeepLayerSet(True)
             map_item.setLayers(layers)
-        except Exception:
+        except (AttributeError, TypeError):
             pass
 
         extent = cls._combined_extent(final_layer=final_layer, property_layer=property_layer)
         if extent is not None:
             try:
                 map_item.zoomToExtent(extent)
-            except Exception:
+            except (AttributeError, RuntimeError):
                 try:
                     map_item.setExtent(extent)
-                except Exception:
+                except (AttributeError, TypeError):
                     pass
 
         try:
             map_item.refresh()
-        except Exception:
+        except (AttributeError, TypeError):
             pass
 
     @classmethod
@@ -180,19 +195,19 @@ class EasementPdfService:
                 continue
             try:
                 item.setLinkedMap(map_item)
-            except Exception:
+            except (AttributeError, TypeError):
                 pass
             try:
                 item.setAutoUpdateModel(True)
-            except Exception:
+            except (AttributeError, TypeError):
                 pass
             try:
                 item.updateLegend()
-            except Exception:
+            except (AttributeError, TypeError):
                 pass
             try:
                 item.refresh()
-            except Exception:
+            except (AttributeError, TypeError):
                 pass
 
     @classmethod
@@ -203,7 +218,7 @@ class EasementPdfService:
         try:
             item.setText(str(text or ""))
             item.refresh()
-        except Exception:
+        except (AttributeError, TypeError):
             pass
 
     @classmethod
@@ -213,7 +228,7 @@ class EasementPdfService:
 
         try:
             canvas_layers = list(iface.mapCanvas().layers()) if iface is not None else []
-        except Exception:
+        except (AttributeError, RuntimeError):
             canvas_layers = []
 
         preferred_layers = list(canvas_layers)
@@ -227,7 +242,7 @@ class EasementPdfService:
                 if layer is None or not layer.isValid():
                     continue
                 layer_id = str(layer.id() or "")
-            except Exception:
+            except (AttributeError, RuntimeError):
                 continue
             if not layer_id or layer_id in seen_ids:
                 continue
@@ -266,14 +281,14 @@ class EasementPdfService:
         for feature in features:
             try:
                 geometry = feature.geometry()
-            except Exception:
+            except (AttributeError, RuntimeError):
                 geometry = None
             if geometry is None or geometry.isEmpty():
                 continue
 
             try:
                 bbox = geometry.boundingBox()
-            except Exception:
+            except (AttributeError, RuntimeError):
                 bbox = None
             if bbox is None or bbox.isEmpty():
                 continue
@@ -294,7 +309,7 @@ class EasementPdfService:
             buffered = QgsRectangle(extent)
             width = buffered.width()
             height = buffered.height()
-        except Exception:
+        except (AttributeError, TypeError):
             return extent
 
         pad_x = max(width * 0.12, 5.0)
@@ -310,7 +325,7 @@ class EasementPdfService:
             buffered.setXMaximum(buffered.xMaximum() + pad_x)
             buffered.setYMinimum(buffered.yMinimum() - pad_y)
             buffered.setYMaximum(buffered.yMaximum() + pad_y)
-        except Exception:
+        except (AttributeError, TypeError):
             return extent
         return buffered
 
@@ -325,7 +340,14 @@ class EasementPdfService:
                     return selected
                 return []
             return list(layer.getFeatures())
-        except Exception:
+        except RuntimeError as exc:
+            # Deleted layer: an empty list builds the PDF without data, so leave a trace.
+            PythonFailLogger.log_exception(
+                exc,
+                module="easement",
+                event="easement_pdf_layer_features_failed",
+                extra={"selected_only": bool(selected_only)},
+            )
             return []
 
     @classmethod
@@ -336,24 +358,24 @@ class EasementPdfService:
             ellipsoid = QgsProject.instance().ellipsoid()
             if ellipsoid:
                 distance_area.setEllipsoid(ellipsoid)
-        except Exception:
+        except (AttributeError, RuntimeError):
             pass
 
         total = 0.0
         for feature in features:
             try:
                 geometry = feature.geometry()
-            except Exception:
+            except (AttributeError, RuntimeError):
                 geometry = None
             if geometry is None or geometry.isEmpty():
                 continue
             try:
                 measured = distance_area.measureArea(geometry)
                 total += float(distance_area.convertAreaMeasurement(measured, QgsUnitTypes.AreaSquareMeters))
-            except Exception:
+            except (AttributeError, TypeError):
                 try:
                     total += float(geometry.area())
-                except Exception:
+                except (AttributeError, TypeError, ValueError):
                     continue
         return max(0.0, total)
 
@@ -380,7 +402,7 @@ class EasementPdfService:
         def _attr(name: str) -> str:
             try:
                 return str(feature[name] or "").strip()
-            except Exception:
+            except KeyError:
                 return ""
 
         address_parts = [

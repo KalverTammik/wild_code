@@ -299,7 +299,27 @@ class EasementGeometryFormDialog(QDialog):
         # A value longer than its field shows from the start, not from the end.
         widget.setCursorPosition(0)
 
+    def _invalid_number_labels(self) -> list[str]:
+        fields = (
+            (self.FIELD_PROTECTION_WIDTH, self._protection_width),
+            (self.FIELD_COMPENSATION, self._compensation),
+        )
+        return [
+            self._label(name)
+            for name, widget in fields
+            if widget.text().strip() and EasementLayerService.parse_number_text(widget.text()) is None
+        ]
+
     def accept(self) -> None:
+        # A number the layer cannot store would fail the whole map save, so it is caught here, before Kavitro changes.
+        invalid = self._invalid_number_labels()
+        if invalid:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.EASEMENT_FORM_NUMBER_INVALID_TITLE),
+                self._lang.translate(TranslationKeys.EASEMENT_FORM_NUMBER_INVALID_MESSAGE).format(fields=", ".join(invalid)),
+                parent=self,
+            )
+            return
         # Kavitro first: if it does not take the new status, nothing reaches the map and the form stays open.
         if self._save_status_to_kavitro():
             super().accept()

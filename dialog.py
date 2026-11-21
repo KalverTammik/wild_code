@@ -1,6 +1,7 @@
 import gc
 from functools import partial
 from .Logs.switch_logger import SwitchLogger
+from .Logs.python_fail_logger import PythonFailLogger
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -213,8 +214,9 @@ class PluginDialog(QDialog):
             return
         try:
             self.footer_widget.refresh_versions()
-        except Exception:
-            pass
+        except Exception as exc:
+            # showEvent path: a footer label failure must not stop the window from opening.
+            PythonFailLogger.log_exception(exc, module="ui", event="footer_versions_refresh_failed")
         self._sync_map_canvas_overlays()
 
     def showEvent(self, event):

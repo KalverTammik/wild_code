@@ -112,7 +112,7 @@ class ModuleFeatureAttachController:
 
         try:
             layer.removeSelection()
-        except Exception:
+        except RuntimeError:  # layer deleted
             pass
 
         DialogHelpers.enter_map_selection_mode(
@@ -171,8 +171,13 @@ class ModuleFeatureAttachController:
 
         try:
             MapHelpers.select_features_by_ids(layer, [int(feature.id())], zoom=True)
-        except Exception:
-            pass
+        except Exception as exc:  # canvas click callback: nothing may escape; the attach below goes on
+            PythonFailLogger.log_exception(
+                exc,
+                module=log_module,
+                event="module_feature_attach_select_failed",
+                extra={"item_id": self._item_id},
+            )
 
         success, message = self._attach_handler(layer, int(feature.id()), self._item_data)
         self._clear_capture_tool(bring_front=True, log_module=log_module)
@@ -297,7 +302,7 @@ class ModuleFeatureDrawController:
         if isinstance(self._layer, QgsVectorLayer):
             try:
                 self._layer.featureAdded.disconnect(self._handle_feature_added)
-            except Exception:
+            except (TypeError, RuntimeError):  # not connected, or the layer was deleted
                 pass
         self._pending_feature_ids.clear()
         self._layer = None
@@ -316,7 +321,7 @@ class ModuleFeatureDrawController:
     def _handle_feature_added(self, feature_id: int) -> None:
         try:
             normalized_feature_id = int(feature_id)
-        except Exception:
+        except (TypeError, ValueError, OverflowError):
             normalized_feature_id = None
 
         # QGIS can assign temporary negative feature ids while a new feature
@@ -343,8 +348,13 @@ class ModuleFeatureDrawController:
 
         try:
             MapHelpers.select_features_by_ids(layer, [int(feature_id)], zoom=True)
-        except Exception:
-            pass
+        except Exception as exc:  # timer callback: nothing may escape; saving goes on
+            PythonFailLogger.log_exception(
+                exc,
+                module=self._log_module,
+                event="module_feature_draw_select_failed",
+                extra={"feature_id": int(feature_id), "item_id": self._item_id},
+            )
 
         try:
             success, message = handler(layer, int(feature_id), self._item_data)
@@ -366,8 +376,13 @@ class ModuleFeatureDrawController:
                         message = commit_errors or "Could not commit layer changes after drawing"
                         try:
                             layer.rollBack()
-                        except Exception:
-                            pass
+                        except Exception as rollback_exc:  # a failed rollBack leaves the layer in edit mode
+                            PythonFailLogger.log_exception(
+                                rollback_exc,
+                                module=self._log_module,
+                                event="module_feature_draw_rollback_failed",
+                                extra={"feature_id": int(feature_id), "item_id": self._item_id},
+                            )
                 elif layer.isEditable():
                     layer.rollBack()
             except Exception as exc:
@@ -383,7 +398,7 @@ class ModuleFeatureDrawController:
         if success:
             try:
                 layer.triggerRepaint()
-            except Exception:
+            except RuntimeError:  # layer deleted
                 pass
             try:
                 MapHelpers.ensure_layer_visible(layer, make_active=True)
@@ -408,7 +423,7 @@ class ModuleFeatureDrawController:
         try:
             if iface is not None:
                 iface.actionPan().trigger()
-        except Exception:
+        except (AttributeError, RuntimeError):  # no pan action, or it was deleted
             pass
 
         if not success:
@@ -434,7 +449,7 @@ class ModuleFeatureDrawController:
                 if action is not None:
                     action.trigger()
                     return True
-            except Exception:
+            except (AttributeError, RuntimeError, TypeError):  # candidate action missing or unusable: try the next
                 continue
         return False
 
@@ -521,7 +536,7 @@ class ModuleFeatureEditController:
         geometry_type = None
         try:
             geometry_type = layer.geometryType()
-        except Exception:
+        except RuntimeError:  # layer deleted
             geometry_type = None
 
         preferred_actions = []
@@ -539,7 +554,7 @@ class ModuleFeatureEditController:
                 if action is not None:
                     action.trigger()
                     return True
-            except Exception:
+            except (AttributeError, RuntimeError, TypeError):  # candidate action missing or unusable: try the next
                 continue
         return False
 

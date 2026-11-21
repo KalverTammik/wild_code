@@ -17,7 +17,7 @@ class ProjectBoardStatusRules:
                 return []
             try:
                 payload = json.loads(text)
-            except Exception:
+            except ValueError:
                 return []
 
         if not isinstance(payload, list):

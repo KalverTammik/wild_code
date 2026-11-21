@@ -118,7 +118,7 @@ class MainAddPropertiesFlow:
                 # Only supported when MAIN layer is sourced from a GeoPackage.
                 try:
                     uri = active_layer.dataProvider().dataSourceUri() or ""
-                except Exception:
+                except (AttributeError, RuntimeError):  # no provider, or the layer was deleted
                     uri = ""
                 gpkg_path = (uri.split("|")[0] if uri else "").strip()
                 if not gpkg_path or os.path.splitext(gpkg_path)[1].lower() != ".gpkg":

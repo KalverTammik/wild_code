@@ -25,6 +25,7 @@ class _WindowStateSnapshot:
 
 
 class DialogCoordinator:
+    # Every `except RuntimeError` below is Qt's "wrapped C/C++ object has been deleted" for a widget that closed meanwhile.
     def __init__(self, iface):
         self.iface = iface
         self._map_selection_state: dict[int, _WindowStateSnapshot] = {}
@@ -78,7 +79,7 @@ class DialogCoordinator:
             return False
         try:
             return bool(widget.isMinimized())
-        except Exception:
+        except RuntimeError:
             return False
 
     def _show_or_restore(self, widget: QWidget) -> None:
@@ -87,21 +88,21 @@ class DialogCoordinator:
                 widget.showNormal()
             else:
                 widget.show()
-        except Exception:
+        except RuntimeError:
             return
 
     def _raise_activate_focus(self, widget: QWidget) -> None:
         try:
             widget.raise_()
-        except Exception:
+        except RuntimeError:
             pass
         try:
             widget.activateWindow()
-        except Exception:
+        except RuntimeError:
             pass
         try:
             widget.setFocus(Qt.ActiveWindowFocusReason)
-        except Exception:
+        except RuntimeError:
             pass
 
     def _snapshot_and_minimize(self, widget: QWidget) -> None:
@@ -117,11 +118,11 @@ class DialogCoordinator:
                 window_state=widget.windowState(),
                 geometry=bytes(widget.saveGeometry()),
             )
-        except Exception:
+        except RuntimeError:
             self._map_selection_state[key] = _WindowStateSnapshot()
         try:
             widget.showMinimized()
-        except Exception:
+        except RuntimeError:
             return
 
     def _restore_from_snapshot(self, widget: QWidget) -> None:
@@ -136,26 +137,26 @@ class DialogCoordinator:
             try:
                 if widget.isVisible():
                     widget.hide()
-            except Exception:
+            except RuntimeError:
                 return
             return
         if snapshot.was_minimized:
             try:
                 widget.showMinimized()
-            except Exception:
+            except RuntimeError:
                 return
             return
         if snapshot.was_maximized:
             try:
                 widget.showMaximized()
-            except Exception:
+            except RuntimeError:
                 return
             return
         try:
             widget.showNormal()
             if snapshot.geometry:
                 widget.restoreGeometry(snapshot.geometry)
-        except Exception:
+        except RuntimeError:
             return
 
     def _collect_widgets(
@@ -203,7 +204,7 @@ class DialogCoordinator:
                 return widget
             window = widget.window()
             return window if window is not None else None
-        except Exception:
+        except RuntimeError:
             return None
 
 

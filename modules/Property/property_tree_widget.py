@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 try:
     import sip
-except Exception:  # pragma: no cover - runtime availability depends on QGIS/PyQt packaging
+except ImportError:  # pragma: no cover - runtime availability depends on QGIS/PyQt packaging
     sip = None
 
 from PyQt5.QtCore import Qt
@@ -119,7 +119,7 @@ class PropertyTreeWidget(QFrame):
                 try:
                     widget.hide()
                     widget.setParent(None)
-                except Exception:
+                except RuntimeError:  # widget already deleted
                     pass
                 widget.deleteLater()
 
@@ -127,7 +127,7 @@ class PropertyTreeWidget(QFrame):
     def _is_deleted(widget) -> bool:
         try:
             return bool(widget is None or (sip and sip.isdeleted(widget)))
-        except Exception:
+        except TypeError:  # not a sip wrapper
             return widget is None
 
     def _replace_cards(self, widgets: List[QWidget]) -> None:

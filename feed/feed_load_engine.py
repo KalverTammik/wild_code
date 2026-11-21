@@ -70,7 +70,8 @@ class FeedLoadEngine:
             return True
         try:
             return bool(self.parent_ui.is_token_active(token))
-        except Exception:
+        except RuntimeError:
+            # The owner widget is already deleted; a missing is_token_active is a contract bug and must surface.
             return False
 
     def _upstream_has_more(self) -> bool:

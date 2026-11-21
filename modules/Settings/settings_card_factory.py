@@ -43,7 +43,7 @@ class SettingsCardFactory:
                     "stylesheet_len": len(card.styleSheet() or ""),
                 },
             )
-        except Exception:
+        except RuntimeError:
             pass
         card.pendingChanged.connect(on_pending_changed)
         return card

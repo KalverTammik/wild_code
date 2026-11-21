@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import requests
 from typing import Any, Dict, List, Mapping, Optional, Union
+from ..Logs.python_fail_logger import PythonFailLogger
 from ..utils.project_folder_rules import resolve_project_number
 
 Json = Mapping[str, Any]
@@ -298,7 +299,9 @@ class JsonResponseHandler:
         if hasattr(payload, "json"):
             try:
                 return payload.json()
-            except Exception:
+            except Exception as exc:
+                # Fallback kept: {} makes a non-JSON gateway error look like an empty answer, so it is logged.
+                PythonFailLogger.log_exception(exc, module="api", event="api_response_not_json")
                 return {}
         return {}
 

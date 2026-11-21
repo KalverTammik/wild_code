@@ -241,7 +241,7 @@ class TaskFilesDialog(QDialog):
             return "–"
         try:
             return locale.toString(parsed, QLocale.ShortFormat)
-        except Exception:
+        except TypeError:  # value Qt cannot convert
             return parsed.strftime("%Y-%m-%d %H:%M")
 
     def _selected_file(self) -> Optional[dict]:

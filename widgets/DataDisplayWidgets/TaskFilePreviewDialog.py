@@ -27,6 +27,7 @@ from ...constants.button_props import ButtonVariant
 from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
 from ...python.workers import FunctionWorker, start_worker
 from ...utils.messagesHelper import ModernMessageDialog
@@ -137,7 +138,7 @@ class TaskFilePreviewDialog(QDialog):
 
             qt_version = str(QT_VERSION_STR or "unknown")
             pyqt_version = str(PYQT_VERSION_STR or "unknown")
-        except Exception:
+        except ImportError:
             pass
 
         try:
@@ -147,7 +148,7 @@ class TaskFilePreviewDialog(QDialog):
                 "qt": qt_version,
                 "pyqt": pyqt_version,
             }
-        except Exception:
+        except ImportError:  # no QtWebEngine in this QGIS build
             return False, {
                 "qt": qt_version,
                 "pyqt": pyqt_version,
@@ -195,13 +196,10 @@ class TaskFilePreviewDialog(QDialog):
             if hasattr(os, "startfile"):
                 os.startfile(normalized_path)  # type: ignore[attr-defined]
                 return True
-        except Exception:
+        except OSError:  # no associated application: fall back to the desktop services
             pass
 
-        try:
-            return bool(QDesktopServices.openUrl(QUrl.fromLocalFile(normalized_path)))
-        except Exception:
-            return False
+        return bool(QDesktopServices.openUrl(QUrl.fromLocalFile(normalized_path)))
 
     @classmethod
     def _materialize_remote_file_to_temp(
@@ -230,6 +228,7 @@ class TaskFilePreviewDialog(QDialog):
 
         cls._cleanup_missing_temp_paths()
 
+        temp_path = ""
         try:
             handle = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
             temp_path = str(handle.name or "")
@@ -239,11 +238,18 @@ class TaskFilePreviewDialog(QDialog):
                     for chunk in response.iter_content(chunk_size=65536):
                         if chunk:
                             handle.write(chunk)
-        except Exception:
+        except OSError as exc:  # includes requests.RequestException
+            # The download link may carry a signature and the request error names the URL,
+            # so only the error type is logged.
+            PythonFailLogger.log(
+                "task_file_preview_download_failed",
+                module="ui",
+                extra={"error_type": type(exc).__name__, "uuid": file_uuid},
+            )
             try:
                 if temp_path and os.path.exists(temp_path):
                     os.remove(temp_path)
-            except Exception:
+            except OSError:  # best-effort removal of a half-written temp file
                 pass
             return ""
 
@@ -473,17 +479,17 @@ class TaskFilePreviewDialog(QDialog):
 
         try:
             web_view.stop()
-        except Exception:
+        except RuntimeError:  # web view already deleted
             pass
 
         try:
             web_view.setUrl(QUrl("about:blank"))
-        except Exception:
+        except RuntimeError:  # web view already deleted
             pass
 
         try:
             web_view.deleteLater()
-        except Exception:
+        except RuntimeError:  # web view already deleted
             pass
 
         self._web_view = None
@@ -591,7 +597,7 @@ class TaskFilePreviewDialog(QDialog):
 
         try:
             size_bytes = os.path.getsize(self._local_file_path)
-        except Exception:
+        except OSError:
             size_bytes = None
         if size_bytes is not None and size_bytes > self.PDF_PREVIEW_MAX_BYTES:
             self._show_placeholder(
@@ -716,41 +722,55 @@ class TaskFilePreviewDialog(QDialog):
 
         try:
             web_view = webengine_view_cls(self._content_frame)
-        except Exception:
+        except Exception as exc:  # the view class is supplied by the caller
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="task_file_preview_webview_create_failed",
+            )
             return False
 
         try:
             settings = web_view.settings()
-        except Exception:
+        except (AttributeError, RuntimeError):
             settings = None
 
         if settings is not None:
             if hasattr(webengine_settings_cls, "PdfViewerEnabled"):
                 try:
                     settings.setAttribute(webengine_settings_cls.PdfViewerEnabled, True)
-                except Exception:
+                except (TypeError, RuntimeError):
                     pass
 
             if hasattr(webengine_settings_cls, "PluginsEnabled"):
                 try:
                     settings.setAttribute(webengine_settings_cls.PluginsEnabled, True)
-                except Exception:
+                except (TypeError, RuntimeError):
                     pass
 
         try:
             web_view.loadFinished.connect(self._handle_pdf_web_view_loaded)
-        except Exception:
-            pass
+        except Exception as exc:  # without it the preview never reports a failed load
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="task_file_preview_loadfinished_connect_failed",
+            )
 
         self._web_view = web_view
         self._content_layout.addWidget(web_view, 1)
 
         try:
             web_view.setUrl(QUrl.fromLocalFile(temp_path))
-        except Exception:
+        except (AttributeError, RuntimeError):
             try:
                 web_view.load(QUrl.fromLocalFile(temp_path))
-            except Exception:
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="ui",
+                    event="task_file_preview_pdf_load_failed",
+                )
                 self._release_web_view()
                 self._clear_content()
                 return False
@@ -776,7 +796,12 @@ class TaskFilePreviewDialog(QDialog):
                 handle.write(content)
             self._pdf_temp_path = str(handle.name or "")
             return self._pdf_temp_path
-        except Exception:
+        except OSError as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="task_file_preview_pdf_temp_write_failed",
+            )
             self._pdf_temp_path = ""
             return ""
 
@@ -791,7 +816,7 @@ class TaskFilePreviewDialog(QDialog):
         try:
             if os.path.exists(path):
                 os.remove(path)
-        except Exception:
+        except OSError:  # best-effort removal of the temp PDF
             pass
 
     def _load_image_preview(self, file_uuid: str) -> None:
@@ -907,7 +932,7 @@ class TaskFilePreviewDialog(QDialog):
         for encoding in ("utf-8-sig", "utf-16", "cp1252", "latin-1"):
             try:
                 return content.decode(encoding)
-            except Exception:
+            except UnicodeDecodeError:
                 continue
         return content.decode("utf-8", errors="replace")
 
@@ -977,7 +1002,7 @@ class TaskFilePreviewDialog(QDialog):
             return "–"
         try:
             value = float(size_bytes)
-        except Exception:
+        except (TypeError, ValueError):
             return "–"
         units = ["B", "KB", "MB", "GB"]
         unit_index = 0

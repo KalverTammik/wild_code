@@ -33,7 +33,7 @@ class WorksCardActions:
         if not item_id:
             return
 
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=lm, silent=False)
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=lm, dialogs=ModernMessageDialog)
         if works_layer is None:
             return
 

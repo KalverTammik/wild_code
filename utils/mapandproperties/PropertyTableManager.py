@@ -115,7 +115,7 @@ class PropertyTableManager:
         def _feature_key(feature):
             try:
                 return ("fid", int(feature.id()))
-            except Exception:
+            except (AttributeError, TypeError, ValueError):  # feature-like payload without a numeric id()
                 return ("obj", id(feature))
 
         for row in rows:
@@ -139,7 +139,7 @@ class PropertyTableManager:
             if model is None:
                 return ""
             return str(model.data(model.index(int(row), int(col)), Qt.DisplayRole) or "").strip()
-        except Exception:
+        except (TypeError, ValueError, RuntimeError):  # non-numeric row/col, or the table is already deleted
             return ""
 
     @staticmethod
@@ -151,7 +151,7 @@ class PropertyTableManager:
             if model is None:
                 return None
             return model.data(model.index(int(row), int(col)), role)
-        except Exception:
+        except (TypeError, ValueError, RuntimeError):  # non-numeric row/col, or the table is already deleted
             return None
 
     @staticmethod
@@ -163,7 +163,7 @@ class PropertyTableManager:
             model = table.model()
             if isinstance(model, PropertyTableModel):
                 return bool(model.set_status(int(row), int(col), state=state, tooltip=tooltip))
-        except Exception:
+        except (TypeError, ValueError, RuntimeError):  # non-numeric row/col, or the table is already deleted
             return False
         return False
 
@@ -175,7 +175,7 @@ class PropertyTableManager:
         try:
             model = table.model()
             return int(model.rowCount()) if model is not None else 0
-        except Exception:
+        except (TypeError, ValueError, RuntimeError):  # the table is already deleted
             return 0
 
     @staticmethod
@@ -186,7 +186,7 @@ class PropertyTableManager:
         try:
             return [row for row in range(PropertyTableManager.row_count(table))
                     if not table.isRowHidden(row)]
-        except Exception:
+        except (AttributeError, RuntimeError):  # table without row-hiding or already deleted
             return list(range(PropertyTableManager.row_count(table)))
 
     @staticmethod
@@ -206,7 +206,7 @@ class PropertyTableManager:
             if header is None or header.count() != rows:
                 return len(PropertyTableManager.visible_rows(table))
             return max(0, rows - int(header.hiddenSectionCount()))
-        except Exception:
+        except (AttributeError, RuntimeError):  # table without a header or already deleted
             return len(PropertyTableManager.visible_rows(table))
 
     @staticmethod
@@ -242,7 +242,7 @@ class PropertyTableManager:
             return None
         try:
             return payload[field_key]
-        except Exception:
+        except (KeyError, IndexError, TypeError):  # field missing from the payload, or the payload is not subscriptable
             return None
 
     @staticmethod
@@ -263,14 +263,21 @@ class PropertyTableManager:
         if normalizer is not None:
             try:
                 normalized = normalizer(value)
-            except Exception:
+            except Exception as exc:
+                # The normalizer is caller-supplied code, so no narrower type is known; fall back to str(value).
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="property",
+                    event="property_payload_normalizer_failed",
+                    extra={"field": field_key},
+                )
                 normalized = None
             if normalized:
                 return str(normalized)
 
         try:
             return str(value)
-        except Exception:
+        except (TypeError, ValueError):  # a value whose __str__ fails
             return default
 
     @staticmethod

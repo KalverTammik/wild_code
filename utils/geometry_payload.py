@@ -90,7 +90,7 @@ class GeometryPayloadService:
         if isinstance(payload, str):
             try:
                 payload = json.loads(payload)
-            except Exception:
+            except ValueError:  # malformed JSON text
                 return None
 
         if not isinstance(payload, dict):

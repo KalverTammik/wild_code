@@ -7,6 +7,7 @@ from ..constants.cadastral_fields import Katastriyksus
 from ..languages.MaaAmetFieldFormater import format_field
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class PropertySummaryCard(QFrame):
@@ -213,5 +214,10 @@ class PropertySummaryCard(QFrame):
             self.lbl_registr_value.setText(format_field(Katastriyksus.registr, feature.attribute(Katastriyksus.registr)))
             self.lbl_muudet_value.setText(format_field(Katastriyksus.muudet, feature.attribute(Katastriyksus.muudet)))
             self.lbl_kinnistu_value.setText(format_field(Katastriyksus.kinnistu, feature.attribute(Katastriyksus.kinnistu)))
-        except Exception:
+        except Exception as exc:  # one broken field must not leave a half-filled card
+            PythonFailLogger.log_exception(
+                exc,
+                module="property",
+                event="property_summary_card_set_feature_failed",
+            )
             self.clear()

@@ -396,8 +396,13 @@ class GeospatialLayerMapperDialog(QDialog):
             try:
                 if started_edit and target_layer.isEditable():
                     target_layer.rollBack()
-            except Exception:
-                pass
+            except Exception as rollback_exc:
+                PythonFailLogger.log_exception(
+                    rollback_exc,
+                    module=Module.SETTINGS.value,
+                    event="geospatial_layer_mapper_rollback_failed",
+                    extra={"module_name": self._module_name},
+                )
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.SETTINGS.value,
@@ -446,7 +451,13 @@ class GeospatialLayerMapperDialog(QDialog):
             if not source_crs.isValid() or not target_crs.isValid() or source_crs == target_crs:
                 return None
             return QgsCoordinateTransform(source_crs, target_crs, QgsProject.instance().transformContext())
-        except Exception:
+        except (AttributeError, RuntimeError) as exc:
+            # Fallback kept: no transform means the features are copied with their source coordinates.
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="geospatial_mapper_transform_build_failed",
+            )
             return None
 
     @staticmethod
@@ -456,7 +467,14 @@ class GeospatialLayerMapperDialog(QDialog):
         copied = geometry
         try:
             copied.transform(transform)
-        except Exception:
+        except Exception as exc:
+            # Fallback kept: the geometry object that was passed in. transform() works in place, so after a
+            # QgsCsException (coordinates outside the target CRS) it can already hold inf coordinates.
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="geospatial_mapper_geometry_transform_failed",
+            )
             return geometry
         return copied
 
@@ -502,7 +520,7 @@ class GeospatialLayerMapperDialog(QDialog):
         try:
             target_type = target_field.type()
             source_type = source_field.type()
-        except Exception:
+        except (AttributeError, RuntimeError):
             return False
 
         integer_types = {
@@ -549,7 +567,7 @@ class GeospatialLayerMapperDialog(QDialog):
             return value
         try:
             field_type = field.type()
-        except Exception:
+        except (AttributeError, RuntimeError):
             field_type = None
 
         integer_types = {
@@ -571,7 +589,7 @@ class GeospatialLayerMapperDialog(QDialog):
         if field_type in integer_types:
             try:
                 return int(str(value or "").strip())
-            except Exception:
+            except ValueError:
                 return None
 
         if field_type == QVariant.DateTime:
@@ -588,7 +606,7 @@ class GeospatialLayerMapperDialog(QDialog):
             return "-"
         try:
             return str(layer.name() or "").strip() or "-"
-        except Exception:
+        except RuntimeError:
             return "-"
 
     @classmethod

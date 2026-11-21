@@ -234,7 +234,7 @@ class ProjectPreviewDialog(QDialog):
         return f"Project area preview rounded · {self._item_number or self._item_id or '-'}"
 
     def _refresh_target_layer_label(self) -> None:
-        layer = ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
+        layer = ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
         self._target_layer_label.setText(layer.name() if layer is not None else "-")
 
     def _refresh_connected_properties_label(self) -> None:
@@ -279,7 +279,7 @@ class ProjectPreviewDialog(QDialog):
         try:
             selected_features = list(layer.selectedFeatures() or [])
             feature = selected_features[0] if selected_features else next(layer.getFeatures(), None)
-        except Exception:
+        except RuntimeError:
             feature = None
         self._property_summary_card.set_feature(feature)
 
@@ -453,7 +453,7 @@ class ProjectPreviewDialog(QDialog):
 
         try:
             selected_count = int(self._property_layer.selectedFeatureCount() or 0)
-        except Exception:
+        except RuntimeError:
             selected_count = 0
         self._status_label.setText(
             self._lang.translate(TranslationKeys.PROJECT_PREVIEW_CREATED).format(
@@ -481,7 +481,7 @@ class ProjectPreviewDialog(QDialog):
         for feature in existing_features or []:
             try:
                 number = str(feature[Katastriyksus.tunnus] or "").strip()
-            except Exception:
+            except KeyError:
                 number = ""
             if number:
                 existing_display[number] = self._format_property_label(number, feature)
@@ -500,7 +500,7 @@ class ProjectPreviewDialog(QDialog):
             ):
                 try:
                     value = feature[field_name]
-                except Exception:
+                except KeyError:
                     value = None
                 if value:
                     return f"{value} - {number}"
@@ -520,7 +520,7 @@ class ProjectPreviewDialog(QDialog):
         for feature in selected_features or []:
             try:
                 number = str(feature[Katastriyksus.tunnus] or "").strip()
-            except Exception:
+            except KeyError:
                 number = ""
             if number:
                 selected_display[number] = self._format_property_label(number, feature)
@@ -591,7 +591,7 @@ class ProjectPreviewDialog(QDialog):
         if not self._item_id:
             return
 
-        main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
+        main_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=ModernMessageDialog)
         if main_layer is None:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
@@ -601,7 +601,7 @@ class ProjectPreviewDialog(QDialog):
 
         try:
             main_layer.removeSelection()
-        except Exception:
+        except RuntimeError:
             pass
 
         if self._property_selection_orchestrator is not None:
@@ -616,7 +616,7 @@ class ProjectPreviewDialog(QDialog):
             for feature in selected_features:
                 try:
                     number = str(feature[Katastriyksus.tunnus] or "").strip()
-                except Exception:
+                except KeyError:
                     number = ""
                 if number:
                     selected_numbers.append(number)
@@ -673,7 +673,7 @@ class ProjectPreviewDialog(QDialog):
             )
             return
 
-        target_layer = ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, silent=False)
+        target_layer = ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
         if target_layer is None:
             return
 
@@ -714,7 +714,7 @@ class ProjectPreviewDialog(QDialog):
         try:
             if self._property_layer is not None and self._property_layer.isValid():
                 self._property_layer.removeSelection()
-        except Exception:
+        except RuntimeError:
             pass
         super().reject()
 
@@ -725,7 +725,7 @@ class ProjectPreviewDialog(QDialog):
         try:
             if self._property_layer is not None and self._property_layer.isValid():
                 self._property_layer.removeSelection()
-        except Exception:
+        except RuntimeError:
             pass
         super().closeEvent(event)
 

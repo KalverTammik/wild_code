@@ -361,9 +361,12 @@ class GetModuleStatusOptionsTest(ActionTestCase):
 
 
 class StatusOptionsRaiseOnErrorTest(ActionTestCase):
-    """A caller that shows the error itself (the status filter) asks for it with raise_on_error=True."""
+    """A caller that shows the error itself (the status filter) asks for it with raise_on_error=True.
 
-    def test_failure_is_logged_and_raised_to_the_caller(self) -> None:
+    The caller logs what it receives (the filter's worker does), so the action must not log it as well.
+    """
+
+    def test_failure_is_raised_to_the_caller_and_left_for_it_to_log(self) -> None:
         cases = (
             ("first page", [RuntimeError("offline")]),
             ("later page", [status_page(status_nodes(0, 50), "c1", True), RuntimeError("offline")]),
@@ -376,22 +379,16 @@ class StatusOptionsRaiseOnErrorTest(ActionTestCase):
                 with self.assertRaises(RuntimeError) as raised:
                     APIModuleActions.get_module_status_options("works", raise_on_error=True)
                 self.assertIs(raised.exception, error)
-                self.assertEqual(self.log.call_count, 1)
-                self.assertIs(self.log.call_args.args[0], error)
-                self.assertEqual(self.log.call_args.kwargs, {
-                    "module": "statuses",
-                    "event": "module_statuses_fetch_failed",
-                    "extra": {"module": "works"},
-                })
+                self.log.assert_not_called()
 
-    def test_unloadable_query_is_raised_to_the_caller(self) -> None:
+    def test_unloadable_query_is_raised_to_the_caller_and_not_logged_here(self) -> None:
         error = FileNotFoundError("query_file_not_found")
         self.loader.load_query_by_module.side_effect = error
         with self.assertRaises(FileNotFoundError) as raised:
             APIModuleActions.get_module_status_options("works", raise_on_error=True)
         self.assertIs(raised.exception, error)
         self.client.send_query.assert_not_called()
-        self.assertEqual(self.log.call_args.kwargs["event"], "module_statuses_fetch_failed")
+        self.log.assert_not_called()
 
     def test_read_statuses_are_the_same_as_without_the_flag(self) -> None:
         pages = [status_page([status_node("2", "b", sortOrder=2)], "c1", True), status_page([status_node("1", "a")])]

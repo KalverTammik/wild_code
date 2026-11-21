@@ -267,16 +267,21 @@ class ResolveMainLayerTest(unittest.TestCase):
         layer.geometryType.return_value = geometry
         return layer
 
-    def resolve(self, service, matches, *, identifier="Kiht", silent=False, save_error=None):
+    def resolve(self, service, matches, *, identifier="Kiht", quiet=False, save_error=None):
+        """`quiet` passes no dialogs; the real dialog is stubbed so that a stray call could never open a window."""
         home = home_of(service.resolve_main_layer)
+        dialogs = None if quiet else Mock()
         with patch.object(service, "_configured_layers", return_value=matches) as configured, patch.object(
             home, "SettingsService"
-        ) as settings, patch.object(home, "ModernMessageDialog") as dialogs, patch.object(home, "PythonFailLogger") as logger:
+        ) as settings, patch.object(ModernMessageDialog, "show_warning") as real_dialog, patch.object(
+            home, "PythonFailLogger"
+        ) as logger:
             setting = settings.return_value.module_main_layer_name
             setting.side_effect = [identifier, save_error if save_error is not None else None]
-            result = service.resolve_main_layer(lang_manager=self.lang, silent=silent)
+            result = service.resolve_main_layer(lang_manager=self.lang, dialogs=dialogs)
             configured.assert_called_once_with(identifier)
-            return result, setting, dialogs.show_warning, logger
+            real_dialog.assert_not_called()
+            return result, setting, real_dialog if quiet else dialogs.show_warning, logger
 
     def assert_warned(self, warning, key) -> None:
         warning.assert_called_once_with(f"t:{TranslationKeys.ERROR}", f"t:{key}")
@@ -296,11 +301,11 @@ class ResolveMainLayerTest(unittest.TestCase):
                     self.assertIsNone(result)
                     self.assert_warned(warning, missing)
 
-    def test_silent_lookup_shows_no_warning(self) -> None:
+    def test_lookup_without_dialogs_shows_no_warning(self) -> None:
         for service in MAIN_LAYER_KEYS:
             for matches in ([], [self.layer(), self.layer()]):
                 with self.subTest(service=service.__name__, matches=len(matches)):
-                    result, _setting, warning, _logger = self.resolve(service, matches, silent=True)
+                    result, _setting, warning, _logger = self.resolve(service, matches, quiet=True)
                     self.assertIsNone(result)
                     warning.assert_not_called()
 
@@ -353,21 +358,24 @@ class WorksMainLayerChecksTest(unittest.TestCase):
         self.lang = Mock()
         self.lang.translate.side_effect = lambda key: f"t:{key}"
 
-    def resolve(self, geometry=QgsWkbTypes.PointGeometry, *, id_field="ext_job_id", fields=(True, ""), silent=False):
+    def resolve(self, geometry=QgsWkbTypes.PointGeometry, *, id_field="ext_job_id", fields=(True, ""), quiet=False):
+        """`quiet` passes no dialogs; the real dialog is stubbed so that a stray call could never open a window."""
         layer = valid_layer()
         layer.id.return_value = "layer-1"
         layer.geometryType.return_value = geometry
         home = home_of(WorksLayerService.resolve_main_layer)
+        dialogs = None if quiet else Mock()
         with patch.object(MapHelpers, "resolve_layer", return_value=layer), patch.object(
             MapHelpers, "find_layer_by_id", return_value=layer
         ), patch.object(home, "SettingsService") as settings, patch.object(
             ModernMessageDialog, "show_warning"
-        ) as warning, patch.object(WorksLayerService, "resolve_task_id_field_name", return_value=id_field), patch.object(
-            WorksLayerService, "_prepare_required_fields", return_value=fields
-        ) as prepare:
+        ) as real_dialog, patch.object(
+            WorksLayerService, "resolve_task_id_field_name", return_value=id_field
+        ), patch.object(WorksLayerService, "_prepare_required_fields", return_value=fields) as prepare:
             settings.return_value.module_main_layer_name.return_value = "layer-1"
-            result = WorksLayerService.resolve_main_layer(lang_manager=self.lang, silent=silent)
-            return result, layer, warning, prepare
+            result = WorksLayerService.resolve_main_layer(lang_manager=self.lang, dialogs=dialogs)
+            real_dialog.assert_not_called()
+            return result, layer, real_dialog if quiet else dialogs.show_warning, prepare
 
     def test_point_layer_with_its_fields_is_returned(self) -> None:
         result, layer, warning, prepare = self.resolve()
@@ -397,10 +405,10 @@ class WorksMainLayerChecksTest(unittest.TestCase):
         self.assertIsNone(result)
         warning.assert_called_once_with(f"t:{TranslationKeys.ERROR}", self.FALLBACK)
 
-    def test_silent_lookup_refuses_without_a_warning(self) -> None:
+    def test_lookup_without_dialogs_refuses_without_a_warning(self) -> None:
         for options in ({"geometry": QgsWkbTypes.PolygonGeometry}, {"id_field": None}, {"fields": (False, "väli ei sobi")}):
             with self.subTest(options=options):
-                result, _layer, warning, _prepare = self.resolve(silent=True, **options)
+                result, _layer, warning, _prepare = self.resolve(quiet=True, **options)
                 self.assertIsNone(result)
                 warning.assert_not_called()
 
@@ -410,14 +418,16 @@ class PrepareLayerForDrawTest(unittest.TestCase):
         self.lang = Mock()
         self.lang.translate.side_effect = lambda key: f"t:{key}"
 
-    def prepare(self, service, *, layer="layer", fields=(True, ""), silent=False):
-        home = home_of(service.prepare_layer_for_draw)
+    def prepare(self, service, *, layer="layer", fields=(True, ""), quiet=False):
+        """`quiet` passes no dialogs; the real dialog is stubbed so that a stray call could never open a window."""
+        dialogs = None if quiet else Mock()
         with patch.object(service, "resolve_main_layer", return_value=layer) as resolve, patch.object(
             service, "_ensure_custom_fields", return_value=fields
-        ), patch.object(home, "ModernMessageDialog") as dialogs:
-            result = service.prepare_layer_for_draw(lang_manager=self.lang, silent=silent)
-            resolve.assert_called_once_with(lang_manager=self.lang, silent=silent)
-            return result, dialogs.show_warning
+        ), patch.object(ModernMessageDialog, "show_warning") as real_dialog:
+            result = service.prepare_layer_for_draw(lang_manager=self.lang, dialogs=dialogs)
+            resolve.assert_called_once_with(lang_manager=self.lang, dialogs=dialogs)
+            real_dialog.assert_not_called()
+            return result, real_dialog if quiet else dialogs.show_warning
 
     def test_ready_layer_is_returned(self) -> None:
         for service in DRAW_SERVICES:
@@ -447,10 +457,10 @@ class PrepareLayerForDrawTest(unittest.TestCase):
                 self.assertEqual(result, (None, ""))
                 warning.assert_called_once_with(f"t:{TranslationKeys.ERROR}", f"t:{key}")
 
-    def test_silent_preparation_shows_nothing(self) -> None:
+    def test_preparation_without_dialogs_shows_nothing(self) -> None:
         for service in DRAW_SERVICES:
             with self.subTest(service=service.__name__):
-                result, warning = self.prepare(service, fields=(False, "väli puudub"), silent=True)
+                result, warning = self.prepare(service, fields=(False, "väli puudub"), quiet=True)
                 self.assertEqual(result, (None, "väli puudub"))
                 warning.assert_not_called()
 

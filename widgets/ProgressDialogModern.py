@@ -13,6 +13,7 @@ from qgis.utils import iface
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..constants.button_props import ButtonVariant, ButtonSize
+from ..Logs.python_fail_logger import PythonFailLogger
 from ..ui.window_state.DialogCoordinator import get_dialog_coordinator
 
 
@@ -233,9 +234,13 @@ class ProgressDialogModern(QDialog):
 
             # Apply theme using centralized QSS files
             ThemeManager.apply_module_style(self, [QssPaths.PROGRESS_DIALOG])
-        except Exception:
-            # Theme loading failed - widget will use default Qt styling
-            pass
+        except Exception as exc:
+            # The dialog stays usable with default Qt styling.
+            PythonFailLogger.log_exception(
+                exc,
+                module="ui",
+                event="progress_dialog_theme_failed",
+            )
 
     def retheme(self):
         """Re-apply theme styling for dynamic theme switching."""

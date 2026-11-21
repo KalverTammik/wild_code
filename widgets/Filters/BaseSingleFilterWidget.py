@@ -245,7 +245,8 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
         if callable(self._selected_ids_loader):
             try:
                 saved_ids = self._selected_ids_loader() or []
-            except Exception:
+            except Exception as exc:  # the loader is supplied by the caller
+                PythonFailLogger.log_exception(exc, module=self._module, event="filter_saved_ids_load_failed")
                 saved_ids = []
         else:
             saved_ids = self._settings_logic.load_module_preference_ids(

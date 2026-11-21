@@ -76,6 +76,15 @@ class DescriptionLinkTarget:
     reason: str = ""
 
 
+def _log_drive_probe_failure(exc: Exception) -> None:
+    """Trace a failed Win32 drive probe; the caller's fallback value stays unchanged."""
+    try:
+        from ..Logs.python_fail_logger import PythonFailLogger
+    except ImportError:  # imported as a top-level `utils` module outside the plugin package (unit tests)
+        return
+    PythonFailLogger.log_exception(exc, module="general", event="security_drive_probe_failed")
+
+
 def windows_drive_type(path: object) -> int:
     """Return the Win32 drive type for an absolute drive path without probing a file."""
 
@@ -88,7 +97,8 @@ def windows_drive_type(path: object) -> int:
 
         root = f"{text[0].upper()}:\\"
         return int(ctypes.windll.kernel32.GetDriveTypeW(root))  # type: ignore[attr-defined]
-    except Exception:
+    except Exception as exc:
+        _log_drive_probe_failure(exc)
         return 0
 
 
@@ -112,7 +122,8 @@ def windows_mapped_drive_remote_name(path: object) -> str:
             ctypes.byref(size),
         )
         return str(buffer.value or "").strip() if int(result) == 0 else ""
-    except Exception:
+    except Exception as exc:
+        _log_drive_probe_failure(exc)
         return ""
 
 

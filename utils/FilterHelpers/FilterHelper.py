@@ -188,7 +188,7 @@ class FilterRefreshService:
             return False
         try:
             return bool(filter_widget.is_loaded())
-        except Exception:
+        except RuntimeError:  # filter widget already deleted
             return False
 
     @staticmethod

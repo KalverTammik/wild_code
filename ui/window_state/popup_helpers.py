@@ -55,7 +55,7 @@ class PopupHelpers:
         try:
             widget.isVisible()
             return True
-        except Exception:
+        except RuntimeError:  # a deleted popup is the case this guard exists for
             return False
 
     @staticmethod
@@ -389,13 +389,13 @@ class PopupHelpers:
         if event_filter_owner is not None:
             try:
                 popup_widget.removeEventFilter(event_filter_owner)
-            except Exception:
+            except RuntimeError:  # popup already deleted
                 pass
 
         try:
             popup_widget.close()
             popup_widget.deleteLater()
-        except Exception:
+        except RuntimeError:  # popup already deleted
             pass
 
         return None

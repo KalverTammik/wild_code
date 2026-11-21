@@ -54,7 +54,7 @@ class WorksRepositionController:
         parent_window=None,
         on_repositioned: Optional[Callable[[str], None]] = None,
     ) -> bool:
-        layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=False)
+        layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
         if layer is None:
             return False
 

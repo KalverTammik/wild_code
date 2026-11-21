@@ -8,6 +8,7 @@ from ....constants.cadastral_fields import Katastriyksus
 from ....utils.MapTools.MapHelpers import MapHelpers
 from ....widgets.DateHelpers import DateHelpers
 from ....Logs.python_fail_logger import PythonFailLogger
+from ....utils.url_manager import Module
 
 
 class MainLayerCheckController(QObject):
@@ -140,11 +141,8 @@ class MainLayerCheckController(QObject):
             return []
 
         feature = None
-        try:
-            if self._main_layer_lookup:
-                feature = self._main_layer_lookup.get(tunnus)
-        except Exception:
-            feature = None
+        if self._main_layer_lookup:
+            feature = self._main_layer_lookup.get(tunnus)
 
         causes: List[str] = []
         if feature is None:
@@ -157,7 +155,15 @@ class MainLayerCheckController(QObject):
 
             try:
                 matches = MapHelpers.find_features_by_fields_and_values(main_layer, Katastriyksus.tunnus, [tunnus])
-            except Exception:
+            except Exception as exc:
+                # Still reported as "missing in main layer" below: a failed read and a real
+                # miss are not told apart yet, so at least leave a trace of the failure.
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROPERTY.value,
+                    event="main_layer_lookup_failed",
+                    extra={"tunnus": tunnus},
+                )
                 matches = []
 
             if not matches:
@@ -167,7 +173,7 @@ class MainLayerCheckController(QObject):
             feature = matches[0]
         try:
             main_muudet_raw = feature.attribute(Katastriyksus.muudet)
-        except Exception:
+        except KeyError:  # the layer has no such field
             main_muudet_raw = None
 
         import_dt = DateHelpers.parse_iso(str(import_muudet) if import_muudet is not None else "")
@@ -180,7 +186,7 @@ class MainLayerCheckController(QObject):
                 main_iso = "" if main_muudet_raw is None else (
                     DateHelpers().date_to_iso_string(main_muudet_raw) or str(main_muudet_raw)
                 )
-            except Exception:
+            except (TypeError, ValueError):  # an odd attribute value
                 main_iso = ""
 
         main_dt = DateHelpers.parse_iso(str(main_iso) if main_iso is not None else "")

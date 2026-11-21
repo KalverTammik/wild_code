@@ -170,7 +170,7 @@ class PropertySearchFieldService:
         for field_name in source_fields:
             try:
                 raw_value = feature.attribute(field_name)
-            except Exception:
+            except KeyError:  # QgsFeature.attribute() raises KeyError for a field the layer lacks
                 continue
             text = cls._normalize_value(raw_value)
             if not text:
@@ -191,7 +191,7 @@ class PropertySearchFieldService:
             try:
                 if is_null():
                     return ""
-            except Exception:
+            except (AttributeError, TypeError):  # isNull is not callable on this value
                 pass
         text = re.sub(r"\s+", " ", str(value or "").strip())
         return "" if text.upper() in ("NULL", "NONE", "NAN") else text

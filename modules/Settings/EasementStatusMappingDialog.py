@@ -22,7 +22,7 @@ class EasementStatusMappingDialog(QDialog):
         self._lang = lang_manager
         self._stored_value = str(stored_value or "")
         self._status_options = APIModuleActions.get_module_status_options(Module.EASEMENT.value)
-        self._layer = EasementLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
+        self._layer = EasementLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
         self._status_field_name = EasementLayerService.resolve_status_field_name(self._layer)
         self._layer_values = EasementLayerService.layer_status_value_options(self._layer)
         self._existing_rows = EasementLayerService.parse_status_mapping_rows(self._stored_value)
@@ -132,7 +132,7 @@ class EasementStatusMappingDialog(QDialog):
 
     @classmethod
     def edit_mapping(cls, *, lang_manager, stored_value: str = "", parent=None) -> Optional[str]:
-        layer = EasementLayerService.resolve_main_layer(lang_manager=lang_manager, silent=True)
+        layer = EasementLayerService.resolve_main_layer(lang_manager=lang_manager, dialogs=None)
         if layer is None:
             ModernMessageDialog.show_warning(
                 lang_manager.translate(TranslationKeys.ERROR),

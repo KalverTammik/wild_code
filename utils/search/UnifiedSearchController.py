@@ -171,5 +171,5 @@ class UnifiedSearchController(QObject):
             return True
         try:
             return bool(parent.is_token_active(token))
-        except Exception:
+        except RuntimeError:  # owner already deleted
             return False

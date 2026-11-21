@@ -20,6 +20,15 @@ LEGACY_AUTH_TOKEN_KEY = "apikey"
 LEGACY_AUTH_PASSWORD_KEY = "password"
 
 
+def _log_failure(event: str, exc: Exception) -> None:
+    """Record only the exception type: auth errors can carry secrets in their message."""
+    try:
+        from ..Logs.python_fail_logger import PythonFailLogger
+    except ImportError:  # imported as a top-level `utils` module outside the plugin package (unit tests)
+        return
+    PythonFailLogger.log(event, module="auth", extra={"error_type": type(exc).__name__})
+
+
 class SecureTokenLoadResult(NamedTuple):
     success: bool
     token: Optional[str]
@@ -75,7 +84,8 @@ class SecureSessionStore:
         config = self._new_config()
         try:
             result = self.auth_manager.loadAuthenticationConfig(auth_id, config, full)
-        except Exception:
+        except Exception as exc:  # QGIS auth API: no narrower type is documented
+            _log_failure("session_store_load_failed", exc)
             return False, config
         return self._call_result(result, config)
 
@@ -171,7 +181,8 @@ class SecureSessionStore:
         self._prepare_config(config, username, token)
         try:
             updated = self.auth_manager.updateAuthenticationConfig(config)
-        except Exception:
+        except Exception as exc:  # QGIS auth API: no narrower type is documented
+            _log_failure("session_store_update_failed", exc)
             updated = False
         update_succeeded, _ = self._call_result(updated, config)
         if not update_succeeded:
@@ -212,7 +223,8 @@ class SecureSessionStore:
         self._prepare_config(config, username, token)
         try:
             result = self.auth_manager.storeAuthenticationConfig(config)
-        except Exception:
+        except Exception as exc:  # QGIS auth API: no narrower type is documented
+            _log_failure("session_store_store_failed", exc)
             result = False
         stored, returned_config = self._call_result(result, config)
         auth_id = self._text(returned_config.id()) if stored else ""
@@ -278,7 +290,8 @@ class SecureSessionStore:
                 self.settings.sync()
                 remaining = self._text(self.settings.value(LEGACY_SESSION_TOKEN, ""))
             return not remaining
-        except Exception:
+        except Exception as exc:  # settings backend: no narrower type is documented
+            _log_failure("session_store_purge_legacy_failed", exc)
             return False
 
     def _stale_ids(self) -> list:
@@ -312,7 +325,7 @@ class SecureSessionStore:
                 try:
                     name = self._text(config.name())
                     method = self._text(config.method())
-                except Exception:
+                except (AttributeError, RuntimeError):  # config object None or already deleted
                     continue
                 if (
                     auth_id
@@ -322,7 +335,8 @@ class SecureSessionStore:
                     and auth_id not in stale_ids
                 ):
                     stale_ids.append(auth_id)
-        except Exception:
+        except Exception as exc:  # QGIS auth API: no narrower type is documented
+            _log_failure("session_store_cleanup_discovery_failed", exc)
             discovery_failed = True
 
         remaining = []
@@ -341,7 +355,8 @@ class SecureSessionStore:
     def _remove_auth_config(self, auth_id: str) -> bool:
         try:
             result = self.auth_manager.removeAuthenticationConfig(auth_id)
-        except Exception:
+        except Exception as exc:  # QGIS auth API: no narrower type is documented
+            _log_failure("session_store_remove_failed", exc)
             return False
         if isinstance(result, tuple):
             return bool(result[0]) if result else False

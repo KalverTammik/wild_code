@@ -11,7 +11,7 @@ from ...utils.status_color_helper import StatusColorHelper
 from ...widgets.theme_manager import ThemeManager, Theme, is_dark, styleExtras, ThemeShadowColors, IntensityLevels
 try:
     from .StatusWidget import StatusWidget
-except Exception:  # pragma: no cover - preview sandbox may not have full runtime deps
+except ImportError:  # pragma: no cover - preview sandbox may not have full runtime deps
     StatusWidget = None
 
 

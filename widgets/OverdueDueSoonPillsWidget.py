@@ -313,7 +313,7 @@ class OverdueDueSoonPillsActionHelper:
                 return False
             try:
                 return not bool(module_instance.is_token_active(tok))
-            except Exception:
+            except RuntimeError:  # module instance already deleted
                 return True
 
         def _apply_counts(payload, tok):

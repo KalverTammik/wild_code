@@ -104,7 +104,7 @@ class _MapButtonProgressBubble(QFrame):
                 top_left = anchor.mapToGlobal(QPoint(0, 0))
                 y_pos = top_left.y() + max(0, (anchor.height() - self.HEIGHT) // 2)
                 self.move(max(0, top_left.x() - self.WIDTH - self.GAP), max(0, y_pos))
-            except Exception:
+            except RuntimeError:
                 pass
         self.show()
         self.raise_()
@@ -137,7 +137,7 @@ class WorksCreateController:
         allowed_type_ids: Optional[Iterable[str]] = None,
         on_created: Optional[Callable[[str], None]] = None,
     ) -> bool:
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=False)
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
         if works_layer is None:
             return False
 
@@ -162,7 +162,7 @@ class WorksCreateController:
         parent_window=None,
         on_created: Optional[Callable[[str], None]] = None,
     ) -> bool:
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=False)
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
         if works_layer is None:
             return False
 
@@ -201,7 +201,7 @@ class WorksCreateController:
         on_created: Optional[Callable[[str], None]] = None,
         progress_anchor=None,
     ) -> bool:
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=False)
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
         if works_layer is None:
             return False
 
@@ -378,7 +378,7 @@ class WorksCreateController:
             return
 
         now = datetime.now()
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
         task_result = self._create_backend_task_from_dialog(
             point=point,
             works_layer=works_layer,
@@ -740,7 +740,7 @@ class WorksCreateController:
             )
             return
 
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, silent=True)
+        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
         if works_layer is None:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
@@ -893,30 +893,39 @@ class WorksCreateController:
             return ""
         return str(status_payload.get("id") or "").strip()
 
+    @staticmethod
+    def _log_options_load_failed(exc: Exception, event: str) -> None:
+        PythonFailLogger.log_exception(exc, module=Module.WORKS.value, event=event)
+
     def _fetch_preload_payload(self) -> dict[str, object]:
         try:
             raw_types = FilterHelper.get_filter_edges_by_key_and_module(
                 ModuleSupports.TYPES.value,
                 Module.WORKS.value,
             )
-        except Exception:
+        except Exception as exc:
+            # Fallbacks below are kept: the dialog then opens with an empty list instead of failing the preload.
+            self._log_options_load_failed(exc, "works_create_type_options_load_failed")
             raw_types = []
 
         try:
             assignable_users = APIModuleActions.get_assignable_users()
-        except Exception:
+        except Exception as exc:
+            self._log_options_load_failed(exc, "works_create_assignable_users_load_failed")
             assignable_users = []
 
         try:
             default_responsible_id = APIModuleActions.get_current_user_id()
-        except Exception:
+        except Exception as exc:
+            self._log_options_load_failed(exc, "works_create_default_responsible_load_failed")
             default_responsible_id = ""
 
         try:
             status_options = self._normalize_status_options(
                 APIModuleActions.get_module_status_options(Module.WORKS.value)
             )
-        except Exception:
+        except Exception as exc:
+            self._log_options_load_failed(exc, "works_create_status_options_load_failed")
             status_options = []
 
         default_status_id = self._default_status_id_from_options(status_options)
@@ -928,7 +937,8 @@ class WorksCreateController:
                 lang_manager=self._lang,
                 include_empty=True,
             )
-        except Exception:
+        except Exception as exc:
+            self._log_options_load_failed(exc, "works_create_priority_options_load_failed")
             priority_options = []
 
         return {
@@ -994,7 +1004,8 @@ class WorksCreateController:
             self._cached_status_options = self._normalize_status_options(
                 APIModuleActions.get_module_status_options(Module.WORKS.value)
             )
-        except Exception:
+        except Exception as exc:
+            self._log_options_load_failed(exc, "works_create_status_options_load_failed")
             self._cached_status_options = []
         return list(self._cached_status_options)
 
@@ -1022,7 +1033,8 @@ class WorksCreateController:
                 ModuleSupports.TYPES.value,
                 Module.WORKS.value,
             )
-        except Exception:
+        except Exception as exc:
+            self._log_options_load_failed(exc, "works_create_type_options_load_failed")
             raw_types = []
         return self._normalize_type_options(raw_types)
 

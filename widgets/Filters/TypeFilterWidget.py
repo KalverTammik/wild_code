@@ -112,7 +112,7 @@ class _TypePickerPopup(PickerPopupBase):
             reserved_for_actions_and_margins = 64
             available_below = available.bottom() - origin.y() - reserved_for_actions_and_margins
             self._max_body_height = max(260, min(640, available_below))
-        except Exception:
+        except (AttributeError, RuntimeError):  # owner or popup already deleted
             self._max_body_height = fallback
 
     def _add_group_row(self, layout: QVBoxLayout, group_name: str | None) -> None:
@@ -163,10 +163,11 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         *,
         auto_load: bool = True,
         settings_logic: Optional[SettingsLogic] = None,
+        lang_manager: Optional[LanguageManager] = None,
     ) -> None:
         super().__init__(parent)
         self._module = module_name
-        self._lang = LanguageManager()
+        self._lang = lang_manager or LanguageManager()
         self._group_map: Dict[str, List[str]] = {}
         self._all_types_payload: List[Dict[str, str]] = []
         self._suppress_group_emit = False

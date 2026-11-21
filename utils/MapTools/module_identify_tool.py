@@ -133,8 +133,13 @@ class ModuleIdentifyToolController:
 
         try:
             MapHelpers.select_features_by_ids(layer, [int(feature.id())], zoom=False)
-        except Exception:
-            pass
+        except Exception as exc:  # canvas click callback: nothing may escape; opening the item goes on
+            PythonFailLogger.log_exception(
+                exc,
+                module=module_key,
+                event="module_identify_select_feature_failed",
+                extra={"item_id": item_id},
+            )
 
         self._open_item(module_key, item_id, self._feature_title(feature, identity_field))
         self.cancel(bring_front=True)
@@ -150,7 +155,7 @@ class ModuleIdentifyToolController:
         try:
             if iface is not None:
                 iface.actionPan().trigger()
-        except Exception:
+        except (AttributeError, RuntimeError):  # no pan action, or it was deleted
             pass
         DialogHelpers.exit_map_selection_mode(
             iface_obj=iface,
@@ -167,7 +172,8 @@ class ModuleIdentifyToolController:
     def _active_module_key() -> str:
         try:
             return str(ModuleManager().getActiveModuleName() or "").strip().lower()
-        except Exception:
+        except Exception as exc:  # ModuleManager is project code
+            PythonFailLogger.log_exception(exc, module="map", event="module_identify_active_module_failed")
             return ""
 
     @staticmethod
@@ -180,7 +186,7 @@ class ModuleIdentifyToolController:
     def _safe_parent_window(parent_window):
         try:
             qgis_main = iface.mainWindow() if iface is not None else None
-        except Exception:
+        except (AttributeError, RuntimeError):  # no QGIS main window, or it was deleted
             qgis_main = None
 
         if parent_window is not None and parent_window is not qgis_main:
@@ -190,8 +196,8 @@ class ModuleIdentifyToolController:
             dialog = ModuleIdentifyToolController._plugin_dialog_instance()
             if dialog is not qgis_main:
                 return dialog
-        except Exception:
-            pass
+        except Exception as exc:  # imports the plugin dialog module: project code
+            PythonFailLogger.log_exception(exc, module="map", event="module_identify_parent_window_failed")
 
         return None
 
@@ -244,7 +250,9 @@ class ModuleIdentifyToolController:
                 return point
             transformer = QgsCoordinateTransform(source_crs, target_crs, QgsProject.instance())
             return transformer.transform(point)
-        except Exception:
+        except Exception as exc:
+            # The click is then searched for in the wrong CRS, so a miss or a wrong feature has a trace.
+            PythonFailLogger.log_exception(exc, module="map", event="module_identify_point_transform_failed")
             return point
 
     def _feature_at_point(self, layer: QgsVectorLayer, point: QgsPointXY) -> Optional[QgsFeature]:
@@ -254,7 +262,7 @@ class ModuleIdentifyToolController:
 
         try:
             search_radius = max(canvas.mapUnitsPerPixel() * 5.0, 1.0)
-        except Exception:
+        except (RuntimeError, TypeError):  # canvas deleted, or no usable scale
             search_radius = 2.0
 
         layer_point = self._point_in_layer_crs(point, layer)
@@ -279,7 +287,7 @@ class ModuleIdentifyToolController:
                 if is_point_layer:
                     try:
                         distance = geometry.distance(point_geometry)
-                    except Exception:
+                    except TypeError:
                         continue
                     if distance <= search_radius and distance < closest_distance:
                         closest_feature = feature
@@ -289,7 +297,7 @@ class ModuleIdentifyToolController:
                 try:
                     if geometry.contains(point_geometry) or geometry.intersects(point_geometry):
                         return feature
-                except Exception:
+                except TypeError:
                     continue
             return closest_feature
         except Exception as exc:
@@ -301,7 +309,7 @@ class ModuleIdentifyToolController:
         for candidate in ("number", "title", "name", "Objekt", "objekt", identity_field):
             try:
                 value = feature.attribute(candidate)
-            except Exception:
+            except KeyError:  # the layer has no such field
                 continue
             text = str(value or "").strip()
             if text:

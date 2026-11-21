@@ -22,6 +22,8 @@ from .python.api_request_task import set_wait_window_style
 from .python.workers import stop_all_workers
 from .ui.session_storage_warning import show_pending_storage_warning
 from .ui.session_ui_controller import SessionUIController
+from .ui.mfa_setup_notice import show_mfa_setup_notice
+from .utils.api_error_handling import MfaSetupNotifier
 class WildCodePlugin:
     def __init__(self, iface):
         self.iface = iface
@@ -45,6 +47,7 @@ class WildCodePlugin:
         self._crash_logger.start()
         set_wait_window_style(ModernMessageDialog.style_as_message)
         SessionManager.set_login_prompt(SessionUIController.open_login_prompt)
+        MfaSetupNotifier.set_presenter(show_mfa_setup_notice)
 
     def unload(self):
         # Every step runs even when an earlier one fails, and running it twice is safe.
@@ -62,16 +65,17 @@ class WildCodePlugin:
                     dlg._force_close = True
                     try:
                         dlg.close()
-                    except Exception:
+                    except Exception:  # unload must finish even when the dialog is half torn down
                         pass
                     try:
                         dlg.deleteLater()
-                    except Exception:
+                    except Exception:  # unload must finish even when the dialog is half torn down
                         pass
             finally:
                 self.pluginDialog = None
                 set_wait_window_style(None)
                 SessionManager.set_login_prompt(None)
+                MfaSetupNotifier.set_presenter(None)
                 try:
                     self._crash_logger.stop()
                 finally:
@@ -153,7 +157,7 @@ class WildCodePlugin:
             return True
         try:
             return bool(sip.isdeleted(dialog))
-        except Exception:
+        except TypeError:
             return False
 
     def _is_dialog_usable(self, dialog):
@@ -195,11 +199,8 @@ class WildCodePlugin:
         if not self._is_dialog_usable(dlg):
             if dlg is not None:
                 SwitchLogger.log("plugin_dialog_singleton_discarded")
-                try:
-                    if PluginDialog._instance is dlg:
-                        PluginDialog._instance = None
-                except Exception:
-                    pass
+                if PluginDialog._instance is dlg:
+                    PluginDialog._instance = None
             dlg = None
 
         if dlg is None and self.pluginDialog is not None:

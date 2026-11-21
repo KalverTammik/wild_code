@@ -142,7 +142,7 @@ class PropertiesSelectors:
             for feature in features or []:
                 try:
                     fid = int(feature.id())
-                except Exception:
+                except (AttributeError, TypeError, ValueError):  # feature-like payload without a numeric id()
                     continue
                 if fid in seen_ids:
                     continue
@@ -155,17 +155,14 @@ class PropertiesSelectors:
             MapHelpers.ensure_layer_visible(layer, make_active=True)
             MapHelpers.select_features_by_ids(layer, feature_ids, zoom=True)
 
-            try:
-                PythonFailLogger.log(
-                    "property_map_sync_from_table",
-                    module=Module.PROPERTY.value,
-                    extra={
-                        "selected": len(feature_ids),
-                        "ms": int((perf_counter() - started) * 1000),
-                    },
-                )
-            except Exception:
-                pass
+            PythonFailLogger.log(
+                "property_map_sync_from_table",
+                module=Module.PROPERTY.value,
+                extra={
+                    "selected": len(feature_ids),
+                    "ms": int((perf_counter() - started) * 1000),
+                },
+            )
             return layer
         except Exception as exc:
             PythonFailLogger.log_exception(

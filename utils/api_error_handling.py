@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from threading import RLock
 from time import monotonic
-from typing import Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 from ..Logs.python_fail_logger import PythonFailLogger
 
@@ -151,26 +151,12 @@ class _MfaSetupNotificationBridge(QObject):
 
     @pyqtSlot()
     def _show_notification(self) -> None:
+        presenter = MfaSetupNotifier._presenter
+        if presenter is None:
+            PythonFailLogger.log("mfa_setup_notice_unavailable", module=PythonFailLogger.LOG_MODULE_UI)
+            return
         try:
-            from ..constants.module_icons import IconNames
-            from ..languages.language_manager import LanguageManager
-            from ..languages.translation_keys import TranslationKeys
-            from .messagesHelper import ModernMessageDialog
-            from .url_manager import OpenLink, loadWebpage
-
-            lang = LanguageManager()
-            open_label = lang.translate(TranslationKeys.MFA_OPEN_WEB_APP)
-            close_label = lang.translate(TranslationKeys.OK)
-            choice = ModernMessageDialog.ask_choice_modern(
-                lang.translate(TranslationKeys.WARNING),
-                lang.translate(TranslationKeys.MFA_SETUP_REQUIRED),
-                buttons=[open_label, close_label],
-                default=open_label,
-                cancel=close_label,
-                icon_name=IconNames.WARNING,
-            )
-            if choice == open_label:
-                loadWebpage.open_webpage(OpenLink().main)
+            presenter()
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -180,11 +166,21 @@ class _MfaSetupNotificationBridge(QObject):
 
 
 class MfaSetupNotifier:
-    """Show the MFA setup notice at most once per dedupe window."""
+    """Show the MFA setup notice at most once per dedupe window.
+
+    This transport-side module decides when; the plugin registers what the notice
+    looks like (``set_presenter``), so it imports no dialogs.
+    """
 
     _bridge: Optional[_MfaSetupNotificationBridge] = None
+    _presenter: Optional[Callable[[], None]] = None
     _lock = RLock()
     _dedupe_key = "mfa_setup_required"
+
+    @classmethod
+    def set_presenter(cls, presenter: Optional[Callable[[], None]]) -> None:
+        """Set what shows the notice; it runs on the GUI thread. The plugin does this at start and unload."""
+        cls._presenter = presenter
 
     @classmethod
     def _get_bridge(cls) -> Optional[_MfaSetupNotificationBridge]:

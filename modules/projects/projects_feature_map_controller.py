@@ -15,6 +15,7 @@ from ...utils.MapTools.module_feature_controllers import (
     ModuleFeatureWorkflow,
     ModuleFeatureWorkflowConfig,
 )
+from ...utils.messagesHelper import ModernMessageDialog
 from .projects_layer_service import ProjectsLayerService
 
 
@@ -28,7 +29,7 @@ class ProjectsFeatureMapController:
         item_id = str(item_payload.get("id") or "").strip()
         if not item_id:
             return False
-        layer, _message = ProjectsLayerService.prepare_layer_for_draw(lang_manager=self._lang, silent=False)
+        layer, _message = ProjectsLayerService.prepare_layer_for_draw(lang_manager=self._lang, dialogs=ModernMessageDialog)
         if layer is None:
             return False
         return self._workflow.start_draw(item_data=item_payload)
@@ -36,7 +37,7 @@ class ProjectsFeatureMapController:
     def _build_workflow_config(self) -> ModuleFeatureWorkflowConfig:
         return ModuleFeatureWorkflowConfig(
             log_module="project",
-            resolve_layer=lambda: ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, silent=False),
+            resolve_layer=lambda: ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog),
             find_feature_at_point=lambda point, layer: ProjectsLayerService.find_feature_at_point(point, layer=layer),
             attach_handler=self._attach_project_area_and_sync_geometry,
             find_feature_for_item=lambda layer, current_item: ProjectsLayerService.find_feature(

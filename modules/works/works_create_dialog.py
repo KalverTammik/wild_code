@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 
 from ...constants.button_props import ButtonVariant
 from ...constants.file_paths import QssPaths
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
@@ -245,7 +246,13 @@ class WorksCreateDialog(QDialog):
                     ModuleSupports.TYPES.value,
                     Module.WORKS.value,
                 )
-            except Exception:
+            except Exception as exc:
+                # Fallback kept: the dialog shows its no-types hint.
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.WORKS.value,
+                    event="works_create_type_options_load_failed",
+                )
                 entries = []
 
         visible_entries = []

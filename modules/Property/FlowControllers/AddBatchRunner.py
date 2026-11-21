@@ -154,7 +154,7 @@ class AddBatchRunner(QObject):
             self._current['tunnus'] = tunnus
             self.progress.emit(self._done, self._total, 'processing', tunnus)
             source = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
-            target = ActiveLayersHelper.resolve_main_property_layer(silent=True)
+            target = ActiveLayersHelper.resolve_main_property_layer(dialogs=None)
             if (source is None or target is None or not source.isValid() or not target.isValid()
                     or source is target or source.fields().lookupField(F.tunnus) < 0
                     or target.fields().lookupField(F.tunnus) < 0):
@@ -201,7 +201,7 @@ class AddBatchRunner(QObject):
             source, target = current['source'], current['target']
             if (sip.isdeleted(source) or sip.isdeleted(target) or not source.isValid() or not target.isValid()
                     or source is not MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
-                    or target is not ActiveLayersHelper.resolve_main_property_layer(silent=True)
+                    or target is not ActiveLayersHelper.resolve_main_property_layer(dialogs=None)
                     or source.source() != current['source_uri'] or target.source() != current['target_uri']):
                 raise RuntimeError(LanguageManager().translate(K.PROPERTY_ADD_LAYER_CHANGED))
             if _result and _result.get('action') == 'needs_decision':

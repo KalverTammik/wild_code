@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QWidget
 from qgis.utils import iface
 
 from ..languages.language_manager import LanguageManager
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class MapCanvasGlassOverlayBase(QWidget):
@@ -84,7 +85,10 @@ class MapCanvasGlassOverlayBase(QWidget):
                 if on_ready is not None:
                     on_ready(cls._active_instance)
                 return
-            except Exception:
+            except Exception as exc:
+                # Broad on purpose for now: on_ready runs in this try, so a callback bug is logged here too
+                # and the live overlay is dropped; moving on_ready out and narrowing is a separate change.
+                PythonFailLogger.log_exception(exc, module="map", event="map_overlay_reuse_failed")
                 cls._active_instance = None
 
         bar = cls()
@@ -100,6 +104,6 @@ class MapCanvasGlassOverlayBase(QWidget):
             return
         try:
             cls._active_instance.close()
-        except Exception:
+        except RuntimeError:  # overlay already deleted
             pass
         cls._active_instance = None

@@ -45,7 +45,7 @@ class EasementPropertyAreaCalculationWidget(QWidget):
             if value is None or value == "":
                 return None
             return float(value)
-        except Exception:
+        except (TypeError, ValueError):
             return None
 
     def _format_area_display(self, size_value, unit_value: str) -> str:

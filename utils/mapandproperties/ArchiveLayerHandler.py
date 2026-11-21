@@ -49,7 +49,14 @@ class GPKGHelpers:
 
         try:
             ds = ogr.Open(normalized_path, 0)  # read-only
-        except Exception:
+        except (RuntimeError, OSError) as exc:
+            # An unreadable or locked file is reported as "layer missing", so callers go on to create it.
+            PythonFailLogger.log_exception(
+                exc,
+                module="layers",
+                event="gpkg_layer_exists_check_failed",
+                extra={"path": normalized_path},
+            )
             return False
 
         if not ds:
@@ -57,7 +64,13 @@ class GPKGHelpers:
 
         try:
             return layer_name in [ds.GetLayerByIndex(i).GetName() for i in range(ds.GetLayerCount())]
-        except Exception:
+        except (RuntimeError, AttributeError) as exc:  # GDAL error, or GetLayerByIndex() returned None
+            PythonFailLogger.log_exception(
+                exc,
+                module="layers",
+                event="gpkg_layer_exists_check_failed",
+                extra={"path": normalized_path},
+            )
             return False
     @staticmethod
     def load_layer_from_gpkg(gpkg_path: str, layer_name: str, group_name: str = "") -> Optional[QgsVectorLayer]:
@@ -190,7 +203,7 @@ class GPKGHelpers:
                 return True
             try:
                 msg = writer.errorMessage() if writer is not None else ""
-            except Exception:
+            except RuntimeError:  # writer already deleted
                 msg = ""
             PythonFailLogger.log("gpkg_layer_create_failed", module=Module.PROPERTY.value, extra={"layer": layer_name, "error": msg})
             return False

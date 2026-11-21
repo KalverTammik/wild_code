@@ -51,6 +51,7 @@ class ProjectCardActions:
             source_folder=settings.module_label_value(module, SettingDialogPlaceholders.PROJECTS_SOURCE_FOLDER),
             target_folder=settings.module_label_value(module, SettingDialogPlaceholders.PROJECTS_TARGET_FOLDER),
             on_files_path_updated=host.update_files_path,
+            dialogs=ModernMessageDialog,
         )
 
     def open_preview(self) -> None:
@@ -61,7 +62,7 @@ class ProjectCardActions:
                     self._preview_dialog.raise_()
                     self._preview_dialog.activateWindow()
                     return
-            except Exception:
+            except RuntimeError:
                 self._preview_dialog = None
 
         dialog = ProjectPreviewDialog(

@@ -59,6 +59,7 @@ class CrashLogger:
         try:
             paths = self._existing_log_paths()
         except Exception:
+            # Broad on purpose: the crash logger must never raise while it looks for its own files.
             return None
         return max(paths, key=self._modified_at) if paths else None
 

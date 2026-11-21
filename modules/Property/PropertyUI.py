@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame,
 )
+from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
@@ -184,7 +185,7 @@ class PropertyModule(TokenMixin, QWidget):
         self._connect_window_manager_signals()
         try:
             # Resolve the property layer using the same helper as map selection
-            active_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
+            active_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=ModernMessageDialog)
             if not active_layer:
                 return
 

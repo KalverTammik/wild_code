@@ -1,12 +1,19 @@
 """Task actions: read and list tasks, change the description, status and members, and create a task."""
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 from ..api_client import APIClient
 from ..GraphQLQueryLoader import GraphQLQueryLoader
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...utils.api_error_handling import ApiError, ApiErrorKind
 from ...utils.url_manager import Module
 from .geometry_actions import GeometryActions
 from .user_actions import UserActions
+
+
+def _clean_ids(values: Optional[Iterable[object]]) -> list[str]:
+    """Stripped, non-empty ids without repeats, in their order; None is no id (str(None) would be "None")."""
+    texts = (str(value).strip() for value in (values or []) if value is not None)
+    return list(dict.fromkeys(text for text in texts if text))
 
 
 class TaskActions:
@@ -25,10 +32,10 @@ class TaskActions:
             return None
 
         loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(Module.TASK.value, "w_tasks_module_data_by_item_id.graphql")
         client = APIClient()
 
         try:
+            query = loader.load_query_by_module(Module.TASK.value, "w_tasks_module_data_by_item_id.graphql")
             data = client.send_query(query, variables={"id": task_id}) or {}
             task = (data.get("task") or {}) if isinstance(data, dict) else {}
             return task if isinstance(task, dict) and task else None
@@ -45,13 +52,22 @@ class TaskActions:
     def get_tasks_by_ids(item_ids: List[str]) -> dict[str, dict]:
         """Fetch multiple tasks by id using the list query in small chunks."""
 
-        cleaned = list(dict.fromkeys(str(item_id).strip() for item_id in (item_ids or []) if str(item_id).strip()))
+        cleaned = _clean_ids(item_ids)
         if not cleaned:
             return {}
 
         loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(Module.TASK.value, "ListFilteredTasks.graphql")
         client = APIClient()
+        try:
+            query = loader.load_query_by_module(Module.TASK.value, "ListFilteredTasks.graphql")
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.TASK.value,
+                event="task_bulk_fetch_failed",
+                extra={"count": len(cleaned)},
+            )
+            return {}
 
         chunk_size = 25
         tasks: dict[str, dict] = {}
@@ -83,13 +99,13 @@ class TaskActions:
                 )
                 continue
 
-            tasks_conn = (data.get("tasks") or {}) if isinstance(data, dict) else {}
-            edges = tasks_conn.get("edges") or []
+            tasks_conn = data.get("tasks") if isinstance(data, dict) else None
+            edges = tasks_conn.get("edges") if isinstance(tasks_conn, dict) else None
             if not isinstance(edges, list):
                 continue
 
             for edge in edges:
-                node = (edge or {}).get("node") or {}
+                node = edge.get("node") if isinstance(edge, dict) else None
                 if not isinstance(node, dict):
                     continue
                 task_id = node.get("id")
@@ -116,8 +132,6 @@ class TaskActions:
         if not task_id:
             return False
 
-        loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(Module.TASK.value, "updateTaskDescription.graphql")
         variables = {
             "input": {
                 "id": task_id,
@@ -125,8 +139,10 @@ class TaskActions:
             }
         }
 
+        loader = GraphQLQueryLoader()
         client = APIClient()
         try:
+            query = loader.load_query_by_module(Module.TASK.value, "updateTaskDescription.graphql")
             data = client.send_query(query, variables=variables) or {}
             updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
             return bool(updated.get("id"))
@@ -141,33 +157,52 @@ class TaskActions:
 
     @staticmethod
     def update_task_status(item_id: str, status_id: str) -> Optional[dict]:
+        """Change the task status in Kavitro; returns the updated task, or None when Kavitro did not take the change."""
+
         task_id = str(item_id or "").strip()
         resolved_status_id = str(status_id or "").strip()
         if not task_id or not resolved_status_id:
             return None
 
-        loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(Module.TASK.value, "updateTaskStatus.graphql")
         variables = {
             "input": {
                 "id": task_id,
                 "status": resolved_status_id,
             }
         }
+        extra = {"item_id": task_id, "status_id": resolved_status_id}
 
+        loader = GraphQLQueryLoader()
         client = APIClient()
         try:
+            query = loader.load_query_by_module(Module.TASK.value, "updateTaskStatus.graphql")
             data = client.send_query(query, variables=variables) or {}
-            updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
-            return updated if isinstance(updated, dict) and updated.get("id") else None
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.TASK.value,
                 event="task_update_status_failed",
-                extra={"item_id": task_id, "status_id": resolved_status_id},
+                extra=extra,
             )
             return None
+
+        updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
+        status = updated.get("status") if isinstance(updated, dict) else None
+        # An answer with another status means Kavitro did not take the change.
+        if (
+            isinstance(updated, dict)
+            and updated.get("id")
+            and isinstance(status, dict)
+            and str(status.get("id") or "").strip() == resolved_status_id
+        ):
+            return updated
+        PythonFailLogger.log_exception(
+            RuntimeError("updateTask did not return the requested status"),
+            module=Module.TASK.value,
+            event="task_update_status_not_applied",
+            extra=extra,
+        )
+        return None
 
     @staticmethod
     def update_task_members(item_id: str, members_associate: List[object]) -> bool:
@@ -176,8 +211,6 @@ class TaskActions:
         if not task_id or not associate_payload:
             return False
 
-        loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(Module.TASK.value, "updateTaskMembers.graphql")
         variables = {
             "input": {
                 "id": task_id,
@@ -187,8 +220,10 @@ class TaskActions:
             }
         }
 
+        loader = GraphQLQueryLoader()
         client = APIClient()
         try:
+            query = loader.load_query_by_module(Module.TASK.value, "updateTaskMembers.graphql")
             data = client.send_query(query, variables=variables) or {}
             updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
             return bool(updated.get("id"))
@@ -208,23 +243,25 @@ class TaskActions:
         responsible_id: str = "",
         include_responsible_flag: bool = True,
     ) -> list[dict[str, object]]:
-        cleaned_member_ids = list(
-            dict.fromkeys(
-                str(member_id).strip()
-                for member_id in (member_ids or [])
-                if str(member_id).strip()
-            )
-        )
         selected_responsible_id = str(responsible_id or "").strip()
 
         payload: list[dict[str, object]] = []
-        for member_id in cleaned_member_ids:
+        for member_id in _clean_ids(member_ids):
             member_payload: dict[str, object] = {"id": member_id}
             if include_responsible_flag and selected_responsible_id:
                 member_payload["responsible"] = member_id == selected_responsible_id
             payload.append(member_payload)
 
         return payload
+
+    @staticmethod
+    def _server_refused_create(exc: Exception) -> bool:
+        """True when the server answered and refused the create, so no task was made.
+
+        After an HTTP 5xx error, a timeout or a lost connection it is unknown whether the
+        task was created, so create_task does not retry with a simpler input then.
+        """
+        return isinstance(exc, ApiError) and exc.kind == ApiErrorKind.GRAPHQL
 
     @staticmethod
     def create_task(
@@ -247,21 +284,7 @@ class TaskActions:
 
         current_user_id = UserActions.get_current_user_id()
         effective_responsible_id = str(responsible_id or "").strip() or current_user_id
-        cleaned_members = list(
-            dict.fromkeys(
-                member_id
-                for member_id in [
-                    effective_responsible_id,
-                    current_user_id,
-                    *[
-                        str(member_id).strip()
-                        for member_id in (member_ids or [])
-                        if str(member_id).strip()
-                    ],
-                ]
-                if member_id
-            )
-        )
+        cleaned_members = _clean_ids([effective_responsible_id, current_user_id, *(member_ids or [])])
         member_payload = TaskActions._build_task_member_associate_payload(
             cleaned_members,
             responsible_id=effective_responsible_id,
@@ -272,17 +295,15 @@ class TaskActions:
             include_responsible_flag=False,
         )
 
-        loader = GraphQLQueryLoader()
-        query = loader.load_query_by_module(Module.TASK.value, "createTask.graphql")
-
+        priority_text = str(priority or "").strip().upper()
         status_payload = str(status_id or "").strip()
         geometry_payload = geometry if isinstance(geometry, dict) else None
 
         def _build_task_input(
             associate_payload: Optional[List[object]],
             *,
-            include_geometry: bool = True,
-            include_status: bool = True,
+            include_geometry: bool,
+            include_status: bool,
         ) -> dict:
             task_input = {
                 "title": task_title,
@@ -290,101 +311,64 @@ class TaskActions:
             }
             if description is not None:
                 task_input["description"] = str(description or "")
-            if priority:
-                task_input["priority"] = str(priority).strip().upper()
+            if priority_text:
+                task_input["priority"] = priority_text
             if start_at:
                 task_input["startAt"] = str(start_at)
             if due_at:
                 task_input["dueAt"] = str(due_at)
-            if include_status and status_payload:
+            if include_status:
                 task_input["status"] = status_payload
-            if include_geometry and geometry_payload is not None:
+            if include_geometry:
                 task_input["geometry"] = GeometryActions._geometry_input_value(geometry_payload)
             if associate_payload:
                 task_input["members"] = {"associate": associate_payload}
             return task_input
 
-        def _is_status_retryable_create_error(message: str) -> bool:
-            return bool(status_payload) and GeometryActions._is_unknown_input_field_error(message, "status")
-
-        def _send_create(
-            associate_payload: Optional[List[object]],
-            *,
-            include_geometry: bool,
-            include_status: bool,
-        ) -> dict:
-            return client.send_query(
-                query,
-                variables={
-                    "input": _build_task_input(
-                        associate_payload,
-                        include_geometry=include_geometry,
-                        include_status=include_status,
-                    )
-                },
-            ) or {}
-
+        loader = GraphQLQueryLoader()
         client = APIClient()
         try:
-            associate_payload = member_payload
-            include_geometry = True
+            query = loader.load_query_by_module(Module.TASK.value, "createTask.graphql")
             include_status = bool(status_payload)
-            used_fallback_payload = False
-            sent_status_in_create = False
-            attempted_states: set[tuple[str, bool, bool]] = set()
+            include_geometry = geometry_payload is not None
+            flag_dropped = False
 
+            # Every retry switches off the condition that allowed it, so at most three retries follow
+            # the first send: without the status, without the responsible flag, without the geometry.
             while True:
-                payload_kind = "fallback_members" if used_fallback_payload else "members"
-                state = (payload_kind, include_geometry, include_status)
-                if state in attempted_states:
-                    raise RuntimeError("Create task retry loop exhausted")
-                attempted_states.add(state)
-
                 try:
-                    data = _send_create(
-                        associate_payload,
-                        include_geometry=include_geometry,
-                        include_status=include_status,
-                    )
-                    sent_status_in_create = bool(include_status and status_payload)
+                    data = client.send_query(
+                        query,
+                        variables={
+                            "input": _build_task_input(
+                                fallback_member_payload if flag_dropped else member_payload,
+                                include_geometry=include_geometry,
+                                include_status=include_status,
+                            )
+                        },
+                    ) or {}
                     break
                 except Exception as create_exc:
-                    message = str(create_exc or "")
-                    should_retry_without_status = include_status and _is_status_retryable_create_error(message)
-                    should_retry_without_flag = (
-                        bool(associate_payload)
-                        and associate_payload == member_payload
+                    if not TaskActions._server_refused_create(create_exc):
+                        # The task may exist already; a changed retry could create a second one.
+                        raise
+                    message = str(create_exc).lower()
+                    if include_status and GeometryActions._is_unknown_input_field_error(message, "status"):
+                        include_status = False
+                    elif (
+                        not flag_dropped
                         and member_payload != fallback_member_payload
                         and "members.associate" in message
                         and "responsible" in message
-                    )
-                    should_retry_without_geometry = (
-                        include_geometry
-                        and geometry_payload is not None
-                        and GeometryActions._is_geometry_retryable_create_error(message)
-                    )
-
-                    if should_retry_without_status:
-                        include_status = False
-                        continue
-                    if should_retry_without_flag:
-                        associate_payload = fallback_member_payload
-                        used_fallback_payload = True
-                        continue
-                    if should_retry_without_geometry:
+                    ):
+                        flag_dropped = True
+                    elif include_geometry and GeometryActions._is_geometry_retryable_create_error(message):
                         include_geometry = False
-                        continue
-                    raise
+                    else:
+                        raise
 
             created = (data.get("createTask") or {}) if isinstance(data, dict) else {}
             task_id = created.get("id")
-            task_id_text = str(task_id) if task_id else None
-            if task_id_text and used_fallback_payload and effective_responsible_id and member_payload:
-                TaskActions.update_task_members(task_id_text, member_payload)
-            if task_id_text and status_payload and not sent_status_in_create:
-                TaskActions.update_task_status(task_id_text, status_payload)
-
-            return task_id_text
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -393,3 +377,16 @@ class TaskActions:
                 extra={"title": task_title, "type_id": task_type_id},
             )
             return None
+
+        if not task_id:
+            return None
+
+        # The task exists now. A follow-up logs its own failure and never changes the result,
+        # or the user would create the task a second time.
+        task_id_text = str(task_id)
+        if flag_dropped and effective_responsible_id:
+            TaskActions.update_task_members(task_id_text, member_payload)
+        if status_payload and not include_status:
+            TaskActions.update_task_status(task_id_text, status_payload)
+
+        return task_id_text

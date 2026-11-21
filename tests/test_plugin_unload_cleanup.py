@@ -26,6 +26,7 @@ from Kavitro_dev.python import workers
 from Kavitro_dev.python.api_rate_limit import RateLimitCoordinator
 from Kavitro_dev.python.workers import FunctionWorker
 from Kavitro_dev.utils.SessionManager import SessionManager
+from Kavitro_dev.utils.api_error_handling import MfaSetupNotifier
 
 
 def flush_events() -> None:
@@ -167,6 +168,7 @@ class PluginUnloadTest(WorkerCase):
         self.plugin._crash_logger = Mock()
         self.start_patch(patch.object(main_module.PluginDialog, "get_instance", return_value=None))
         self.addCleanup(SessionManager.set_login_prompt, None)
+        self.addCleanup(MfaSetupNotifier.set_presenter, None)
 
     def start_patch(self, patcher):
         patcher.start()
@@ -214,6 +216,7 @@ class PluginUnloadTest(WorkerCase):
         self.assertIsNone(self.plugin.action)
         self.assertIsNone(self.plugin._pending_login_listener)
         self.assertIsNone(SessionManager._login_prompt)
+        self.assertIsNone(MfaSetupNotifier._presenter)
         self.assertEqual(self.plugin._crash_logger.stop.call_count, 2)
 
 

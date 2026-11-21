@@ -310,7 +310,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
                     "single": feed_logic._single_item_mode,
                 },
             )
-        except Exception:
+        except (AttributeError, TypeError):
+            # Diagnostics only: the log arguments read feed_logic fields and len(items), which a feed may not offer.
             pass
 
         if not items:
@@ -368,7 +369,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         try:
             if empty_state.isVisible():
                 empty_state.setVisible(False)
-        except Exception:
+        except RuntimeError:  # empty-state widget already deleted
             pass
 
     def _filter_new_items(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:

@@ -34,8 +34,9 @@ class StatusActions:
     ) -> List[dict[str, object]]:
         """Statuses of the module, sorted; a failed read is logged and gives [] unless raise_on_error is set.
 
-        raise_on_error=True re-raises the failure after logging it, for a caller that shows the error
-        itself (the status filter's worker); the other callers treat [] as "no statuses" and keep the default.
+        raise_on_error=True re-raises the failure without logging it, for a caller that shows the error
+        itself (the status filter's worker, which logs it); the other callers treat [] as "no statuses"
+        and keep the default.
         """
         status_module = StatusActions._status_module_value(module_name)
         max_items = max(1, int(limit or 0))
@@ -90,14 +91,15 @@ class StatusActions:
                 if not page_info.get("hasNextPage") or not after:
                     break
         except Exception as exc:
+            if raise_on_error:
+                # The caller logs what it receives; logging here as well would write the failure twice.
+                raise
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.STATUSES.value,
                 event="module_statuses_fetch_failed",
                 extra={"module": str(module_name or "")},
             )
-            if raise_on_error:
-                raise
             return []
 
         def _sort_key(option: dict[str, object]) -> tuple[int, str]:

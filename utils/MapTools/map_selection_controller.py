@@ -181,18 +181,15 @@ class MapSelectionController(QObject):
         features = self._fetch_selected_features(layer, filtered_ids)
         elapsed_ms = int((perf_counter() - started) * 1000)
         if self._lightweight_fetch:
-            try:
-                PythonFailLogger.log(
-                    "map_selection_features_fetched",
-                    module="map",
-                    extra={
-                        "count": len(features),
-                        "ms": elapsed_ms,
-                        "with_geometry": bool(self._fetch_geometry),
-                    },
-                )
-            except Exception:
-                pass
+            PythonFailLogger.log(
+                "map_selection_features_fetched",
+                module="map",
+                extra={
+                    "count": len(features),
+                    "ms": elapsed_ms,
+                    "with_geometry": bool(self._fetch_geometry),
+                },
+            )
 
         try:
             layer.selectionChanged.disconnect(self._handle_selection_changed)

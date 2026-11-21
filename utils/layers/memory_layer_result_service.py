@@ -143,7 +143,7 @@ class MemoryLayerResultService:
 
         try:
             layer.triggerRepaint()
-        except Exception:
+        except RuntimeError:  # layer already deleted
             pass
         return layer
 

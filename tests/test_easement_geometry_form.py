@@ -691,5 +691,62 @@ class AsBuiltFormTest(_FormDialogTest):
         self.assertEqual(len(form._network_checks), len(AsBuiltGeometryFormDialog.NETWORK_FIELDS))
 
 
+class EasementFormNumberTest(_EasementFormTest):
+    def _attach(self, form):
+        layer = QgsVectorLayer(
+            "Polygon?crs=EPSG:3301&field=Kaitsevööndi laius:double&field=Talumistasu:double", "servituudid", "memory"
+        )
+        layer.dataProvider().addFeature(QgsFeature(layer.fields()))
+        feature_id = next(layer.getFeatures()).id()
+        ok, message = EasementLayerService.attach_backend_item_to_feature(
+            layer=layer,
+            feature_id=feature_id,
+            item_id="1",
+            item_data={"id": "1", "status": PREPARING, "_easement_geometry_form": form.values()},
+        )
+        return ok, message, layer.getFeature(feature_id)
+
+    def test_decimal_comma_reaches_a_number_field(self) -> None:
+        form = self._form()
+        form._protection_width.setText("2,5")
+        form._compensation.setText("1 250,40")
+
+        ok, message, feature = self._attach(form)
+
+        self.assertTrue(ok, message)
+        self.assertEqual(feature["Kaitsevööndi laius"], 2.5)
+        self.assertEqual(feature["Talumistasu"], 1250.4)
+
+    def test_decimal_comma_becomes_a_number_before_the_layer_sees_it(self) -> None:
+        # A GeoPackage refuses text in a number field, so the value must already be a number here.
+        layer = QgsVectorLayer("Polygon?crs=EPSG:3301&field=w:double&field=n:integer", "x", "memory")
+        width, count = layer.fields()[0], layer.fields()[1]
+
+        self.assertEqual(EasementLayerService.coerce_value_for_field(width, "2,5"), 2.5)
+        self.assertEqual(EasementLayerService.coerce_value_for_field(width, "1 250,40"), 1250.4)
+        self.assertEqual(EasementLayerService.coerce_value_for_field(count, "3,0"), 3)
+
+    def test_text_in_a_number_field_keeps_the_form_open_before_kavitro_changes(self) -> None:
+        form = self._form(PREPARING)
+        form._status.set_current_status_id(SIGNED["id"])
+        form._protection_width.setText("2 meetrit")
+
+        form.accept()
+
+        self.assertNotEqual(form.result(), QDialog.Accepted)
+        self.update.assert_not_called()
+        self.warning.assert_called_once()
+        self.assertIn("Kaitsevööndi laius", self.warning.call_args.args[1])
+
+    def test_valid_numbers_let_the_form_close(self) -> None:
+        form = self._form()
+        form._protection_width.setText("3,0")
+
+        form.accept()
+
+        self.assertEqual(form.result(), QDialog.Accepted)
+        self.warning.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

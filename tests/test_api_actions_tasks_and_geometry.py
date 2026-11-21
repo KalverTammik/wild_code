@@ -2,9 +2,10 @@
 
 They pin which query each action loads, which variables it sends, how it reads the answer and
 what it does with an empty or broken answer, a failed request or a query file that cannot be
-loaded. For create_task they pin every branch of the retry loop: which errors are retried, in
-which order the input is simplified, how many attempts are made, which follow-up requests put
-back what the create left out, and what is returned or logged in the end. The patch helper
+loaded. For create_task they pin every branch of the retry loop: which errors are retried, that
+an error after which the task may already exist is never retried, in which order the input is
+simplified, how many attempts are made, which follow-up requests put back what the create left
+out, and what is returned or logged in the end. The patch helper
 covers every module the code may live in, so the same tests run before and after the move out
 of python/api_actions.py. MissingCurrentUserQueryTest and StatusFilterLoadErrorTest check two
 error-path fixes made after the move as their callers see them. The layout tests at the end
@@ -67,10 +68,20 @@ POINT_TEXT = '{"type":"Point","coordinates":[630385.62,6457752.97],"properties":
 # Error texts as the client raises them; each one hits exactly one retry branch of create_task.
 STATUS_UNKNOWN = '[WC-API][graphql] Field "status" is not defined by type "CreateTaskInput".'
 FLAG_REFUSED = '[WC-API][graphql] Variable "$input" got invalid value at "input.members.associate[0]"; Field "responsible" is not defined.'
+GEOMETRY_ERROR = "[WC-API][graphql] Internal server error"
 SERVER_ERROR = "[WC-API][server] HTTP 500 Internal Server Error"
 REFUSED = "[WC-API][graphql] Validation failed"
 # One text that hits all three branches.
-EVERY_BRANCH = f"{STATUS_UNKNOWN} {FLAG_REFUSED} {SERVER_ERROR}"
+EVERY_BRANCH = f"{STATUS_UNKNOWN} {FLAG_REFUSED} {GEOMETRY_ERROR}"
+GRAPHQL_TAG = "[WC-API][graphql] "
+# What Kavitro answers to the follow-up that sets the status the create left out.
+STATUS_SET = {"updateTask": {"id": "77", "status": {"id": "s1"}}}
+
+
+def rejected(message: str) -> ApiError:
+    """The error the client raises when the server answers and refuses the request."""
+    text = str(message or "")
+    return ApiError(ApiErrorKind.GRAPHQL, text[len(GRAPHQL_TAG):] if text.startswith(GRAPHQL_TAG) else text)
 
 
 def _code_modules() -> list:
@@ -198,9 +209,19 @@ class UnknownInputFieldErrorTest(unittest.TestCase):
     def test_text_and_field_are_compared_without_case_and_spaces(self) -> None:
         self.assertTrue(APIModuleActions._is_unknown_input_field_error('UNKNOWN FIELD "STATUS"', " Status "))
 
-    def test_field_is_found_inside_a_longer_name(self) -> None:
-        # A plain substring test: "statusId" counts as "status".
-        self.assertTrue(APIModuleActions._is_unknown_input_field_error('Unknown field "statusId"', "status"))
+    def test_only_the_whole_field_name_counts(self) -> None:
+        # "status" is not "statusId", "status_id" or "statuses".
+        for message in ('Unknown field "statusId"', 'Field "status_id" is not defined', "Unknown field statuses",
+                        'Field "CreateStatusInput" is not defined'):
+            with self.subTest(message=message):
+                self.assertFalse(APIModuleActions._is_unknown_input_field_error(message, "status"))
+        self.assertTrue(APIModuleActions._is_unknown_input_field_error('Unknown field "statusId"', "statusId"))
+
+    def test_field_name_is_found_as_a_quoted_name_in_a_path_or_in_brackets(self) -> None:
+        for message in ('Unknown field "status"', "Unknown field input.status", "undefined field (status)",
+                        'Field "statusId" is not defined; Did you mean "status"?'):
+            with self.subTest(message=message):
+                self.assertTrue(APIModuleActions._is_unknown_input_field_error(message, "status"))
 
     def test_other_field_or_other_error_does_not_count(self) -> None:
         cases = (
@@ -225,7 +246,8 @@ class UnknownGeometryInputErrorTest(unittest.TestCase):
         self.assertTrue(APIModuleActions._is_unknown_geometry_input_error(
             'Field "geometry" is not defined by type "CreateTaskInput".'))
         self.assertTrue(APIModuleActions._is_unknown_geometry_input_error('Unknown field "Geometry"'))
-        for message in (STATUS_UNKNOWN, "geometry is invalid", SERVER_ERROR, "", None):
+        for message in (STATUS_UNKNOWN, "geometry is invalid", SERVER_ERROR, "", None,
+                        'Field "geometryType" is not defined by type "CreateTaskInput".'):
             with self.subTest(message=message):
                 self.assertFalse(APIModuleActions._is_unknown_geometry_input_error(message))
 
@@ -233,11 +255,6 @@ class UnknownGeometryInputErrorTest(unittest.TestCase):
 class GeometryRetryableCreateErrorTest(unittest.TestCase):
     RETRYABLE = (
         "Internal server error",
-        "[WC-API][server] request failed",
-        "HTTP 500",
-        "http 502 bad gateway",
-        "HTTP 503",
-        "HTTP 504 Gateway Timeout",
         "Invalid GeoJSON",
         "JSON parse error",
         "icon is missing",
@@ -246,9 +263,12 @@ class GeometryRetryableCreateErrorTest(unittest.TestCase):
     )
     NOT_RETRYABLE = (
         "HTTP 400", "HTTP 501", "[WC-API][network] offline", REFUSED, STATUS_UNKNOWN, FLAG_REFUSED, "", None,
+        # HTTP status errors leave it unknown whether the task was created.
+        "[WC-API][server] request failed", "HTTP 500", "http 502 bad gateway", "HTTP 503",
+        "[WC-API][server] Serveri päring ebaõnnestus (HTTP 504).",
     )
 
-    def test_server_errors_and_geometry_style_errors_are_retryable(self) -> None:
+    def test_geometry_style_errors_in_the_server_answer_are_retryable(self) -> None:
         for message in self.RETRYABLE:
             with self.subTest(message=message):
                 self.assertTrue(APIModuleActions._is_geometry_retryable_create_error(message))
@@ -274,9 +294,9 @@ class BuildTaskMemberAssociatePayloadTest(unittest.TestCase):
             {"id": "u2", "responsible": False}, {"id": "u1", "responsible": True}, {"id": "7", "responsible": False},
         ])
 
-    def test_none_id_is_kept_as_text(self) -> None:
-        # str(None) is not blank, so a None id is sent as "None" (pinned as it is).
-        self.assertEqual(self.build([None]), [{"id": "None"}])
+    def test_none_id_is_no_id(self) -> None:
+        self.assertEqual(self.build([None]), [])
+        self.assertEqual(self.build([None, "u1", None], responsible_id="u1"), [{"id": "u1", "responsible": True}])
 
     def test_without_a_responsible_no_member_is_flagged(self) -> None:
         for responsible in ("", "  ", None):
@@ -330,13 +350,12 @@ class GetTaskDataTest(ActionTestCase):
         self.assertIsNone(APIModuleActions.get_task_data(" 7 "))
         self.assert_logged(error, module="task", event="task_get_data_failed", extra={"item_id": "7"})
 
-    def test_unloadable_query_reaches_the_caller(self) -> None:
-        # The query is loaded before the try block (pinned as it is).
-        self.loader.load_query_by_module.side_effect = FileNotFoundError("query_file_not_found")
-        with self.assertRaises(FileNotFoundError):
-            APIModuleActions.get_task_data("7")
+    def test_unloadable_query_returns_none_and_is_logged(self) -> None:
+        error = FileNotFoundError("query_file_not_found")
+        self.loader.load_query_by_module.side_effect = error
+        self.assertIsNone(APIModuleActions.get_task_data(" 7 "))
         self.client.send_query.assert_not_called()
-        self.log.assert_not_called()
+        self.assert_logged(error, module="task", event="task_get_data_failed", extra={"item_id": "7"})
 
 
 class GetTasksByIdsTest(ActionTestCase):
@@ -388,7 +407,7 @@ class GetTasksByIdsTest(ActionTestCase):
 
     def test_unusable_nodes_are_skipped(self) -> None:
         edges = [
-            None, {}, {"node": None}, {"node": "text"}, {"node": {"id": ""}}, {"node": {"id": 0}},
+            None, {}, "text", 5, ["node"], {"node": None}, {"node": "text"}, {"node": {"id": ""}}, {"node": {"id": 0}},
             {"node": {"name": "no id"}}, {"node": {"id": 5, "name": "Kept"}},
         ]
         self.client.send_query.return_value = {"tasks": {"edges": edges}}
@@ -401,30 +420,32 @@ class GetTasksByIdsTest(ActionTestCase):
 
     def test_empty_or_broken_answers_give_nothing_without_a_log(self) -> None:
         answers = (None, {}, "text", {"tasks": None}, {"tasks": {}}, {"tasks": {"edges": None}},
-                   {"tasks": {"edges": []}}, {"tasks": {"edges": "x"}})
+                   {"tasks": {"edges": []}}, {"tasks": {"edges": "x"}}, {"tasks": "x"}, {"tasks": ["x"]}, {"tasks": 5})
         for response in answers:
             with self.subTest(response=response):
                 self.client.send_query.return_value = response
                 self.assertEqual(APIModuleActions.get_tasks_by_ids(["1"]), {})
         self.log.assert_not_called()
 
-    def test_connection_of_the_wrong_type_reaches_the_caller(self) -> None:
-        # Only the request is inside the try block (pinned as it is).
-        self.client.send_query.return_value = {"tasks": "x"}
-        with self.assertRaises(AttributeError):
-            APIModuleActions.get_tasks_by_ids(["1"])
+    def test_chunk_of_the_wrong_type_is_skipped_and_the_other_chunks_are_kept(self) -> None:
+        ids = [str(i) for i in range(30)]
+        self.client.send_query.side_effect = [{"tasks": "x"}, task_page([{"id": value} for value in ids[25:30]])]
+        self.assertEqual(sorted(APIModuleActions.get_tasks_by_ids(ids), key=int), ids[25:30])
+        self.assertEqual(len(self.sent()), 2)
 
-    def test_none_id_is_asked_as_text(self) -> None:
-        # str(None) is not blank (pinned as it is).
-        self.client.send_query.return_value = task_page([])
-        APIModuleActions.get_tasks_by_ids([None])
-        self.assertEqual(self.sent()[0][1]["variables"]["where"], self.where(["None"]))
-
-    def test_unloadable_query_reaches_the_caller(self) -> None:
-        self.loader.load_query_by_module.side_effect = FileNotFoundError("query_file_not_found")
-        with self.assertRaises(FileNotFoundError):
-            APIModuleActions.get_tasks_by_ids(["1"])
+    def test_none_id_is_not_asked(self) -> None:
+        self.assertEqual(APIModuleActions.get_tasks_by_ids([None]), {})
         self.client.send_query.assert_not_called()
+        self.client.send_query.return_value = task_page([])
+        APIModuleActions.get_tasks_by_ids([None, "1"])
+        self.assertEqual(self.sent()[0][1]["variables"]["where"], self.where(["1"]))
+
+    def test_unloadable_query_gives_nothing_and_is_logged(self) -> None:
+        error = FileNotFoundError("query_file_not_found")
+        self.loader.load_query_by_module.side_effect = error
+        self.assertEqual(APIModuleActions.get_tasks_by_ids(["1", "2", "1"]), {})
+        self.client.send_query.assert_not_called()
+        self.assert_logged(error, module="task", event="task_bulk_fetch_failed", extra={"count": 2})
 
 
 class GetTaskDescriptionTest(ActionTestCase):
@@ -452,6 +473,12 @@ class GetTaskDescriptionTest(ActionTestCase):
     def test_failed_request_gives_none_and_is_logged_by_the_task_read(self) -> None:
         error = RuntimeError("offline")
         self.client.send_query.side_effect = error
+        self.assertIsNone(APIModuleActions.get_task_description("7"))
+        self.assert_logged(error, module="task", event="task_get_data_failed", extra={"item_id": "7"})
+
+    def test_unloadable_query_gives_none_and_is_logged_by_the_task_read(self) -> None:
+        error = FileNotFoundError("query_file_not_found")
+        self.loader.load_query_by_module.side_effect = error
         self.assertIsNone(APIModuleActions.get_task_description("7"))
         self.assert_logged(error, module="task", event="task_get_data_failed", extra={"item_id": "7"})
 
@@ -498,11 +525,12 @@ class UpdateTaskDescriptionTest(ActionTestCase):
         self.assertIs(APIModuleActions.update_task_description(" 7 ", "x"), False)
         self.assert_logged(error, module="task", event="task_update_description_failed", extra={"item_id": "7"})
 
-    def test_unloadable_query_reaches_the_caller(self) -> None:
-        self.loader.load_query_by_module.side_effect = FileNotFoundError("query_file_not_found")
-        with self.assertRaises(FileNotFoundError):
-            APIModuleActions.update_task_description("7", "x")
+    def test_unloadable_query_returns_false_and_is_logged(self) -> None:
+        error = FileNotFoundError("query_file_not_found")
+        self.loader.load_query_by_module.side_effect = error
+        self.assertIs(APIModuleActions.update_task_description(" 7 ", "x"), False)
         self.client.send_query.assert_not_called()
+        self.assert_logged(error, module="task", event="task_update_description_failed", extra={"item_id": "7"})
 
 
 class UpdateTaskStatusTest(ActionTestCase):
@@ -520,18 +548,27 @@ class UpdateTaskStatusTest(ActionTestCase):
         self.assertEqual(self.loaded(), [("task", "updateTaskStatus.graphql")])
         self.assertEqual(self.sent(), [(TASK_STATUS_QUERY, {"variables": {"input": {"id": "7", "status": "s2"}}})])
 
-    def test_answered_status_is_not_compared_with_the_requested_one(self) -> None:
-        updated = {"id": "7", "status": {"id": "other"}}
+    def test_answered_status_is_compared_as_text_with_the_requested_one(self) -> None:
+        updated = {"id": "7", "status": {"id": 2}}
         self.client.send_query.return_value = {"updateTask": updated}
-        self.assertIs(APIModuleActions.update_task_status("7", "s2"), updated)
+        self.assertIs(APIModuleActions.update_task_status("7", " 2 "), updated)
+        self.log.assert_not_called()
 
-    def test_answer_without_a_task_id_is_a_silent_none(self) -> None:
-        for response in (None, {}, "text", {"updateTask": None}, {"updateTask": {}}, {"updateTask": {"id": ""}},
-                         {"updateTask": "x"}):
+    def test_answer_without_the_task_or_the_requested_status_is_logged_as_not_applied(self) -> None:
+        answers = (None, {}, "text", {"updateTask": None}, {"updateTask": "x"}, {"updateTask": {}},
+                   {"updateTask": {"id": "7"}}, {"updateTask": {"id": "7", "status": "x"}},
+                   {"updateTask": {"id": "7", "status": {"name": "no id"}}},
+                   {"updateTask": {"id": "7", "status": {"id": "other"}}},
+                   {"updateTask": {"id": "", "status": {"id": "s2"}}},
+                   {"updateTask": {"status": {"id": "s2"}}})
+        for response in answers:
             with self.subTest(response=response):
+                self.log.reset_mock()
                 self.client.send_query.return_value = response
                 self.assertIsNone(APIModuleActions.update_task_status("7", "s2"))
-        self.log.assert_not_called()
+                self.assert_logged(RuntimeError, module="task", event="task_update_status_not_applied",
+                                   extra={"item_id": "7", "status_id": "s2"})
+                self.assertEqual(str(self.log.call_args.args[0]), "updateTask did not return the requested status")
 
     def test_failed_request_returns_none_and_is_logged(self) -> None:
         error = RuntimeError("offline")
@@ -540,11 +577,13 @@ class UpdateTaskStatusTest(ActionTestCase):
         self.assert_logged(error, module="task", event="task_update_status_failed",
                            extra={"item_id": "7", "status_id": "s2"})
 
-    def test_unloadable_query_reaches_the_caller(self) -> None:
-        self.loader.load_query_by_module.side_effect = FileNotFoundError("query_file_not_found")
-        with self.assertRaises(FileNotFoundError):
-            APIModuleActions.update_task_status("7", "s2")
+    def test_unloadable_query_returns_none_and_is_logged(self) -> None:
+        error = FileNotFoundError("query_file_not_found")
+        self.loader.load_query_by_module.side_effect = error
+        self.assertIsNone(APIModuleActions.update_task_status(" 7 ", " s2 "))
         self.client.send_query.assert_not_called()
+        self.assert_logged(error, module="task", event="task_update_status_failed",
+                           extra={"item_id": "7", "status_id": "s2"})
 
 
 class UpdateTaskMembersTest(ActionTestCase):
@@ -583,10 +622,12 @@ class UpdateTaskMembersTest(ActionTestCase):
         self.assertIs(APIModuleActions.update_task_members(" 7 ", [{"id": "1"}]), False)
         self.assert_logged(error, module="task", event="task_update_members_failed", extra={"item_id": "7"})
 
-    def test_unloadable_query_reaches_the_caller(self) -> None:
-        self.loader.load_query_by_module.side_effect = FileNotFoundError("query_file_not_found")
-        with self.assertRaises(FileNotFoundError):
-            APIModuleActions.update_task_members("7", [{"id": "1"}])
+    def test_unloadable_query_returns_false_and_is_logged(self) -> None:
+        error = FileNotFoundError("query_file_not_found")
+        self.loader.load_query_by_module.side_effect = error
+        self.assertIs(APIModuleActions.update_task_members(" 7 ", [{"id": "1"}]), False)
+        self.client.send_query.assert_not_called()
+        self.assert_logged(error, module="task", event="task_update_members_failed", extra={"item_id": "7"})
 
 
 class UpdateGeometryTest(ActionTestCase):
@@ -596,9 +637,9 @@ class UpdateGeometryTest(ActionTestCase):
         ("update_task_geometry", "task", "updateTaskGeometry.graphql", "updateTask",
          "task_update_geometry_failed", "task_update_geometry_empty_response"),
         ("update_project_geometry", "project", "updateProjectGeometry.graphql", "updateProject",
-         "project_update_geometry_failed", None),
+         "project_update_geometry_failed", "project_update_geometry_empty_response"),
         ("update_easement_geometry", "easement", "updateEasementGeometry.graphql", "updateEasement",
-         "easement_update_geometry_failed", None),
+         "easement_update_geometry_failed", "easement_update_geometry_empty_response"),
     )
 
     def each_case(self, check) -> None:
@@ -639,18 +680,15 @@ class UpdateGeometryTest(ActionTestCase):
 
         self.each_case(check)
 
-    def test_answer_without_the_id_is_false_and_only_the_task_logs_it(self) -> None:
+    def test_answer_without_the_id_is_false_and_logged(self) -> None:
         def check(update, module, _filename, key, _failure_event, empty_event) -> None:
             for response in (None, {}, "text", {"other": {"id": "7"}}, {key: None}, {key: {}}, {key: {"id": ""}}):
                 self.log.reset_mock()
                 self.client.send_query.return_value = response
                 self.assertIs(update(" 7 ", POINT), False)
-                if empty_event:
-                    self.assert_logged(RuntimeError, module=module, event=empty_event,
-                                       extra={"item_id": "7", "geometry_type": "Point"})
-                    self.assertEqual(str(self.log.call_args.args[0]), f"{key} geometry update returned no id")
-                else:
-                    self.log.assert_not_called()
+                self.assert_logged(RuntimeError, module=module, event=empty_event,
+                                   extra={"item_id": "7", "geometry_type": "Point"})
+                self.assertEqual(str(self.log.call_args.args[0]), f"{key} geometry update returned no id")
 
         self.each_case(check)
 
@@ -676,13 +714,15 @@ class UpdateGeometryTest(ActionTestCase):
 
         self.each_case(check)
 
-    def test_unloadable_query_reaches_the_caller(self) -> None:
-        def check(update, *_details) -> None:
-            with self.assertRaises(FileNotFoundError):
-                update("7", POINT)
-            self.client.send_query.assert_not_called()
+    def test_unloadable_query_returns_false_and_is_logged(self) -> None:
+        error = FileNotFoundError("query_file_not_found")
 
-        self.loader.load_query_by_module.side_effect = FileNotFoundError("query_file_not_found")
+        def check(update, module, _filename, _key, failure_event, _empty_event) -> None:
+            self.assertIs(update(" 7 ", POINT), False)
+            self.client.send_query.assert_not_called()
+            self.assert_logged(error, module=module, event=failure_event, extra={"item_id": "7"})
+
+        self.loader.load_query_by_module.side_effect = error
         self.each_case(check)
 
     def test_shared_helper_takes_any_module(self) -> None:
@@ -854,12 +894,26 @@ class CreateTaskInputTest(CreateTaskTestCase):
         }])
 
     def test_values_are_sent_as_text(self) -> None:
-        # A blank priority text is not empty, so it is sent as an empty priority (pinned as it is).
         self.client.send_query.return_value = {"createTask": {"id": "77"}}
-        self.create(description=5, priority="  ", start_at=datetime.date(2026, 11, 20), due_at=20261127)
+        self.create(description=5, priority=" low ", start_at=datetime.date(2026, 11, 20), due_at=20261127)
         sent = self.create_inputs()[0]
         self.assertEqual((sent["description"], sent["priority"], sent["startAt"], sent["dueAt"]),
-                         ("5", "", "2026-11-20", "20261127"))
+                         ("5", "LOW", "2026-11-20", "20261127"))
+
+    def test_blank_priority_is_left_out(self) -> None:
+        self.client.send_query.return_value = {"createTask": {"id": "77"}}
+        for priority in ("", "  ", "\t", None):
+            with self.subTest(priority=priority):
+                self.reset_calls()
+                self.create(priority=priority)
+                self.assertNotIn("priority", self.create_inputs()[0])
+
+    def test_none_member_id_is_not_sent_as_text(self) -> None:
+        self.client.send_query.return_value = {"createTask": {"id": "77"}}
+        self.create(member_ids=[None, "u3", ""])
+        self.assertEqual(self.create_inputs()[0]["members"], {"associate": [
+            {"id": "me", "responsible": True}, {"id": "u3", "responsible": False},
+        ]})
 
     def test_geometry_that_is_no_dict_is_left_out_and_an_empty_dict_is_sent(self) -> None:
         self.client.send_query.return_value = {"createTask": {"id": "77"}}
@@ -912,7 +966,7 @@ class CreateTaskAnswerTest(CreateTaskTestCase):
         for response in answers:
             with self.subTest(response=response):
                 self.reset_calls()
-                self.answer({CREATE_QUERY: [ValueError(STATUS_UNKNOWN), response]})
+                self.answer({CREATE_QUERY: [rejected(STATUS_UNKNOWN), response]})
                 self.assertIsNone(self.create(status_id="s1"))
                 self.assertEqual(self.queries(), [CREATE_QUERY, CREATE_QUERY])
                 self.log.assert_not_called()
@@ -934,20 +988,18 @@ class CreateTaskAnswerTest(CreateTaskTestCase):
                 self.assertEqual(self.queries(), [CREATE_QUERY])
                 self.assert_create_failed(error)
 
-    def test_unloadable_create_query_reaches_the_caller(self) -> None:
-        # The query is loaded before the try block (pinned as it is).
+    def test_unloadable_create_query_returns_none_and_is_logged(self) -> None:
         self.missing_query("createTask.graphql")
-        with self.assertRaises(FileNotFoundError):
-            self.create()
+        self.assertIsNone(self.create())
         self.client.send_query.assert_not_called()
-        self.log.assert_not_called()
+        self.assert_create_failed(FileNotFoundError)
 
 
 class CreateTaskRetryTest(CreateTaskTestCase):
     def test_unknown_status_field_is_retried_without_the_status_and_the_status_is_set_afterwards(self) -> None:
         self.answer({
-            CREATE_QUERY: [ValueError(STATUS_UNKNOWN), {"createTask": {"id": "77"}}],
-            TASK_STATUS_QUERY: {"updateTask": {"id": "77"}},
+            CREATE_QUERY: [rejected(STATUS_UNKNOWN), {"createTask": {"id": "77"}}],
+            TASK_STATUS_QUERY: STATUS_SET,
         })
         self.assertEqual(self.create(status_id=" s1 ", geometry=POINT), "77")
         first, second = self.create_inputs()
@@ -962,12 +1014,13 @@ class CreateTaskRetryTest(CreateTaskTestCase):
         cases = (
             (None, STATUS_UNKNOWN),
             ("s1", 'status "s1" is invalid'),
+            ("s1", '[WC-API][graphql] Field "statusId" is not defined by type "CreateTaskInput".'),
             ("s1", '[WC-API][graphql] Field "priority" is not defined by type "CreateTaskInput".'),
         )
         for status_id, message in cases:
             with self.subTest(status_id=status_id, message=message):
                 self.reset_calls()
-                error = ValueError(message)
+                error = rejected(message)
                 self.client.send_query.side_effect = error
                 self.assertIsNone(self.create(status_id=status_id))
                 self.assertEqual(self.queries(), [CREATE_QUERY])
@@ -975,7 +1028,7 @@ class CreateTaskRetryTest(CreateTaskTestCase):
 
     def test_refused_responsible_flag_is_retried_without_flags_and_the_members_are_sent_again(self) -> None:
         self.answer({
-            CREATE_QUERY: [ValueError(FLAG_REFUSED), {"createTask": {"id": "77"}}],
+            CREATE_QUERY: [rejected(FLAG_REFUSED), {"createTask": {"id": "77"}}],
             TASK_MEMBERS_QUERY: {"updateTask": {"id": "77"}},
         })
         self.assertEqual(self.create(responsible_id="u2", member_ids=["u3"], geometry=POINT), "77")
@@ -989,7 +1042,7 @@ class CreateTaskRetryTest(CreateTaskTestCase):
 
     def test_flag_retry_with_the_current_user_as_the_responsible(self) -> None:
         self.answer({
-            CREATE_QUERY: [ValueError(FLAG_REFUSED), {"createTask": {"id": "77"}}],
+            CREATE_QUERY: [rejected(FLAG_REFUSED), {"createTask": {"id": "77"}}],
             TASK_MEMBERS_QUERY: {"updateTask": {"id": "77"}},
         })
         self.assertEqual(self.create(), "77")
@@ -998,31 +1051,45 @@ class CreateTaskRetryTest(CreateTaskTestCase):
             (TASK_MEMBERS_QUERY, {"id": "77", "members": {"associate": [{"id": "me", "responsible": True}]}}),
         ])
 
-    def test_flag_error_needs_both_texts_in_their_case(self) -> None:
-        for message in ('invalid value at "input.members.associate[0]"', 'Field "responsible" is not defined',
-                        'INPUT.MEMBERS.ASSOCIATE[0] RESPONSIBLE', 'input.MEMBERS.ASSOCIATE[0]: Field "responsible"',
-                        'input.members.associate[0]: Field "RESPONSIBLE"'):
+    def test_flag_error_needs_both_texts(self) -> None:
+        for message in ('invalid value at "input.members.associate[0]"', 'Field "responsible" is not defined'):
             with self.subTest(message=message):
                 self.reset_calls()
-                error = ValueError(message)
+                error = rejected(message)
                 self.client.send_query.side_effect = error
                 self.assertIsNone(self.create(responsible_id="u2"))
                 self.assertEqual(self.queries(), [CREATE_QUERY])
                 self.assert_create_failed(error)
+
+    def test_flag_error_is_found_in_any_letter_case(self) -> None:
+        for message in ('INPUT.MEMBERS.ASSOCIATE[0] RESPONSIBLE', 'input.MEMBERS.ASSOCIATE[0]: Field "responsible"',
+                        'input.members.associate[0]: Field "RESPONSIBLE"'):
+            with self.subTest(message=message):
+                self.reset_calls()
+                self.answer({
+                    CREATE_QUERY: [rejected(message), {"createTask": {"id": "77"}}],
+                    TASK_MEMBERS_QUERY: {"updateTask": {"id": "77"}},
+                })
+                self.assertEqual(self.create(responsible_id="u2"), "77")
+                first, second = self.create_inputs()
+                self.assertIn("responsible", first["members"]["associate"][0])
+                self.assertEqual(second["members"], {"associate": [{"id": "u2"}, {"id": "me"}]})
+                self.assertEqual([query for query, _input in self.follow_ups()], [TASK_MEMBERS_QUERY])
+                self.log.assert_not_called()
 
     def test_flag_error_is_not_retried_when_no_member_carries_a_flag(self) -> None:
         self.session.loggedInUser = None
         for member_ids in (["u3"], []):
             with self.subTest(member_ids=member_ids):
                 self.reset_calls()
-                error = ValueError(FLAG_REFUSED)
+                error = rejected(FLAG_REFUSED)
                 self.answer({ME_QUERY: {"me": None}, CREATE_QUERY: error})
                 self.assertIsNone(self.create(member_ids=member_ids))
                 self.assertEqual(self.queries(), [ME_QUERY, CREATE_QUERY])
                 self.assert_create_failed(error)
 
     def test_geometry_error_is_retried_without_the_geometry_and_the_geometry_is_not_sent_again(self) -> None:
-        self.answer({CREATE_QUERY: [ValueError(SERVER_ERROR), {"createTask": {"id": "77"}}]})
+        self.answer({CREATE_QUERY: [rejected(GEOMETRY_ERROR), {"createTask": {"id": "77"}}]})
         self.assertEqual(self.create(geometry=POINT, status_id="s1"), "77")
         first, second = self.create_inputs()
         self.assertEqual(first["geometry"], POINT_TEXT)
@@ -1035,7 +1102,7 @@ class CreateTaskRetryTest(CreateTaskTestCase):
         for message in GeometryRetryableCreateErrorTest.RETRYABLE:
             with self.subTest(message=message):
                 self.reset_calls()
-                self.answer({CREATE_QUERY: [ValueError(message), {"createTask": {"id": "77"}}]})
+                self.answer({CREATE_QUERY: [rejected(message), {"createTask": {"id": "77"}}]})
                 self.assertEqual(self.create(geometry=POINT), "77")
                 self.assertEqual(["geometry" in sent for sent in self.create_inputs()], [True, False])
 
@@ -1043,18 +1110,18 @@ class CreateTaskRetryTest(CreateTaskTestCase):
         for geometry in (None, "text"):
             with self.subTest(geometry=geometry):
                 self.reset_calls()
-                error = ValueError(SERVER_ERROR)
+                error = rejected(GEOMETRY_ERROR)
                 self.client.send_query.side_effect = error
                 self.assertIsNone(self.create(geometry=geometry))
                 self.assertEqual(self.queries(), [CREATE_QUERY])
                 self.assert_create_failed(error)
 
     def test_one_error_for_every_branch_drops_status_then_flags_then_geometry(self) -> None:
-        error = ValueError(EVERY_BRANCH)
+        error = rejected(EVERY_BRANCH)
         self.answer({
             CREATE_QUERY: [error, error, error, {"createTask": {"id": "77"}}],
             TASK_MEMBERS_QUERY: {"updateTask": {"id": "77"}},
-            TASK_STATUS_QUERY: {"updateTask": {"id": "77"}},
+            TASK_STATUS_QUERY: STATUS_SET,
         })
         self.assertEqual(self.create(responsible_id="u2", status_id="s1", geometry=POINT), "77")
         shape = [("status" in sent, "responsible" in sent["members"]["associate"][0], "geometry" in sent)
@@ -1069,10 +1136,10 @@ class CreateTaskRetryTest(CreateTaskTestCase):
 
     def test_input_is_simplified_in_the_order_the_errors_arrive(self) -> None:
         self.answer({
-            CREATE_QUERY: [ValueError(SERVER_ERROR), ValueError(FLAG_REFUSED), ValueError(STATUS_UNKNOWN),
+            CREATE_QUERY: [rejected(GEOMETRY_ERROR), rejected(FLAG_REFUSED), rejected(STATUS_UNKNOWN),
                            {"createTask": {"id": "77"}}],
             TASK_MEMBERS_QUERY: {"updateTask": {"id": "77"}},
-            TASK_STATUS_QUERY: {"updateTask": {"id": "77"}},
+            TASK_STATUS_QUERY: STATUS_SET,
         })
         self.assertEqual(self.create(responsible_id="u2", status_id="s1", geometry=POINT), "77")
         shape = [("status" in sent, "responsible" in sent["members"]["associate"][0], "geometry" in sent)
@@ -1081,23 +1148,34 @@ class CreateTaskRetryTest(CreateTaskTestCase):
         self.assertEqual([query for query, _input in self.follow_ups()], [TASK_MEMBERS_QUERY, TASK_STATUS_QUERY])
 
     def test_four_attempts_at_most_then_the_last_error_is_logged(self) -> None:
-        errors = [ValueError(EVERY_BRANCH) for _ in range(5)]
+        errors = [rejected(EVERY_BRANCH) for _ in range(5)]
         self.answer({CREATE_QUERY: list(errors)})
         self.assertIsNone(self.create(responsible_id="u2", status_id="s1", geometry=POINT))
         self.assertEqual(self.queries(), [CREATE_QUERY] * 4)
         self.assert_create_failed(errors[3])
 
+    def test_without_a_flag_to_drop_three_attempts_at_most(self) -> None:
+        self.session.loggedInUser = None
+        errors = [rejected(EVERY_BRANCH) for _ in range(4)]
+        self.answer({ME_QUERY: {"me": None}, CREATE_QUERY: list(errors)})
+        self.assertIsNone(self.create(member_ids=["u3"], status_id="s1", geometry=POINT))
+        self.assertEqual(self.queries(), [ME_QUERY] + [CREATE_QUERY] * 3)
+        shape = [("status" in sent, "geometry" in sent, sent["members"]) for sent in self.create_inputs()]
+        no_flags = {"associate": [{"id": "u3"}]}
+        self.assertEqual(shape, [(True, True, no_flags), (False, True, no_flags), (False, False, no_flags)])
+        self.assert_create_failed(errors[2])
+
     def test_each_simplification_is_used_once(self) -> None:
         cases = (
-            (SERVER_ERROR, {"geometry": POINT}),
+            (GEOMETRY_ERROR, {"geometry": POINT}),
             (STATUS_UNKNOWN, {"status_id": "s1"}),
             (FLAG_REFUSED, {"responsible_id": "u2"}),
         )
         for message, arguments in cases:
             with self.subTest(message=message):
                 self.reset_calls()
-                second = ValueError(message)
-                self.answer({CREATE_QUERY: [ValueError(message), second, {"createTask": {"id": "77"}}]})
+                second = rejected(message)
+                self.answer({CREATE_QUERY: [rejected(message), second, {"createTask": {"id": "77"}}]})
                 self.assertIsNone(self.create(**arguments))
                 self.assertEqual(self.queries(), [CREATE_QUERY, CREATE_QUERY])
                 self.assert_create_failed(second)
@@ -1105,7 +1183,7 @@ class CreateTaskRetryTest(CreateTaskTestCase):
     def test_failed_follow_ups_do_not_change_the_result(self) -> None:
         status_error = RuntimeError("status offline")
         self.answer({
-            CREATE_QUERY: [ValueError(EVERY_BRANCH), ValueError(EVERY_BRANCH), {"createTask": {"id": "77"}}],
+            CREATE_QUERY: [rejected(EVERY_BRANCH), rejected(EVERY_BRANCH), {"createTask": {"id": "77"}}],
             TASK_MEMBERS_QUERY: {"updateTask": {}},
             TASK_STATUS_QUERY: status_error,
         })
@@ -1114,13 +1192,75 @@ class CreateTaskRetryTest(CreateTaskTestCase):
         self.assert_logged(status_error, module="task", event="task_update_status_failed",
                            extra={"item_id": "77", "status_id": "s1"})
 
-    def test_unloadable_follow_up_query_makes_the_created_task_count_as_failed(self) -> None:
-        # The follow-up loads its query outside its own try block, inside the create's (pinned as it is).
+    def test_status_follow_up_that_kavitro_did_not_take_does_not_change_the_result(self) -> None:
+        self.answer({
+            CREATE_QUERY: [rejected(STATUS_UNKNOWN), {"createTask": {"id": "77"}}],
+            TASK_STATUS_QUERY: {"updateTask": {"id": "77", "status": {"id": "other"}}},
+        })
+        self.assertEqual(self.create(status_id="s1"), "77")
+        self.assert_logged(RuntimeError, module="task", event="task_update_status_not_applied",
+                           extra={"item_id": "77", "status_id": "s1"})
+
+    def test_unloadable_status_follow_up_query_does_not_undo_the_created_task(self) -> None:
         self.missing_query("updateTaskStatus.graphql")
-        self.answer({CREATE_QUERY: [ValueError(STATUS_UNKNOWN), {"createTask": {"id": "77"}}]})
-        self.assertIsNone(self.create(status_id="s1"))
+        self.answer({CREATE_QUERY: [rejected(STATUS_UNKNOWN), {"createTask": {"id": "77"}}]})
+        self.assertEqual(self.create(status_id="s1"), "77")
         self.assertEqual(self.queries(), [CREATE_QUERY, CREATE_QUERY])
-        self.assert_create_failed(FileNotFoundError)
+        self.assert_logged(FileNotFoundError, module="task", event="task_update_status_failed",
+                           extra={"item_id": "77", "status_id": "s1"})
+
+    def test_unloadable_members_follow_up_query_does_not_undo_the_created_task(self) -> None:
+        self.missing_query("updateTaskMembers.graphql")
+        self.answer({CREATE_QUERY: [rejected(FLAG_REFUSED), {"createTask": {"id": "77"}}]})
+        self.assertEqual(self.create(responsible_id="u2"), "77")
+        self.assertEqual(self.queries(), [CREATE_QUERY, CREATE_QUERY])
+        self.assert_logged(FileNotFoundError, module="task", event="task_update_members_failed",
+                           extra={"item_id": "77"})
+
+    def test_both_follow_up_queries_unloadable_are_logged_and_the_task_id_is_still_returned(self) -> None:
+        def load(module, name):
+            if name in ("updateTaskMembers.graphql", "updateTaskStatus.graphql"):
+                raise FileNotFoundError(f"query_file_not_found: {name}")
+            return self._query_text(module, name)
+
+        self.loader.load_query_by_module.side_effect = load
+        error = rejected(EVERY_BRANCH)
+        self.answer({CREATE_QUERY: [error, error, {"createTask": {"id": "77"}}]})
+        self.assertEqual(self.create(responsible_id="u2", status_id="s1"), "77")
+        self.assertEqual(self.queries(), [CREATE_QUERY] * 3)
+        self.assertEqual([call.kwargs["event"] for call in self.log.call_args_list],
+                         ["task_update_members_failed", "task_update_status_failed"])
+
+
+class CreateTaskUnknownOutcomeTest(CreateTaskTestCase):
+    """After an error that leaves it unknown whether the task exists, nothing is sent again."""
+
+    ERRORS = (
+        ApiError(ApiErrorKind.SERVER, "Serveri päring ebaõnnestus (HTTP 504)."),
+        ApiError(ApiErrorKind.SERVER, "Server request failed (HTTP 500)."),
+        ApiError(ApiErrorKind.NETWORK, "Network error: connection timed out"),
+        ApiError(ApiErrorKind.UNKNOWN, "Internal server error"),
+        # Errors that are no API errors carry no answer from the server either.
+        ValueError(EVERY_BRANCH),
+        RuntimeError(GEOMETRY_ERROR),
+    )
+
+    def test_create_is_sent_once_and_the_error_is_logged(self) -> None:
+        for error in self.ERRORS:
+            with self.subTest(error=str(error)):
+                self.reset_calls()
+                self.answer({CREATE_QUERY: [error, {"createTask": {"id": "77"}}]})
+                self.assertIsNone(self.create(responsible_id="u2", status_id="s1", geometry=POINT))
+                self.assertEqual(self.queries(), [CREATE_QUERY])
+                self.assertEqual(self.follow_ups(), [])
+                self.assert_create_failed(error)
+
+    def test_unknown_outcome_after_a_refused_create_stops_the_retries(self) -> None:
+        timeout = ApiError(ApiErrorKind.SERVER, "Serveri päring ebaõnnestus (HTTP 504).")
+        self.answer({CREATE_QUERY: [rejected(STATUS_UNKNOWN), timeout, {"createTask": {"id": "77"}}]})
+        self.assertIsNone(self.create(responsible_id="u2", status_id="s1", geometry=POINT))
+        self.assertEqual(self.queries(), [CREATE_QUERY, CREATE_QUERY])
+        self.assert_create_failed(timeout)
 
 
 class MissingCurrentUserQueryTest(CreateTaskTestCase):
@@ -1189,6 +1329,8 @@ class StatusFilterLoadErrorTest(ActionTestCase):
         ]
         finished, errors = self.load()
         self.assertEqual((finished, errors), ([], [str(error)]))
+        # The failure is logged once, by the worker that hands it to the filter.
+        self.assert_logged(error, module="works", event="worker_error", extra={"func": "_fetch_options"})
         self.assertIn("Võrguühendus katkes", self.widget.selector._display_override)
         self.assertNotIn("[WC-API]", self.widget.selector._display_override)
         self.assertFalse(self.widget.is_loaded())

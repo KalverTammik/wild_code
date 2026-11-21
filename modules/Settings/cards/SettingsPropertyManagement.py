@@ -214,7 +214,7 @@ class PropertyManagementUI(SettingsBaseCard):
         dialog used by SignalTest (Archive/Unarchive/Delete).
         """
 
-        main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
+        main_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=ModernMessageDialog)
         if not main_layer:
             return
 
@@ -327,7 +327,7 @@ class PropertyManagementUI(SettingsBaseCard):
             )
 
     def _on_generate_search_field_clicked(self):
-        main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=False)
+        main_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=ModernMessageDialog)
         if not main_layer:
             return
 
@@ -384,7 +384,7 @@ class PropertyManagementUI(SettingsBaseCard):
             return
 
         # 1) Discover layers
-        main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=True)
+        main_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=None)
         shp_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
 
         main_exists = main_layer is not None
@@ -434,7 +434,7 @@ class PropertyManagementUI(SettingsBaseCard):
 
         try:
             layer_id = shp_layer.id()
-        except Exception:
+        except RuntimeError:
             layer_id = None
 
         now = monotonic()
@@ -490,7 +490,7 @@ class PropertyManagementUI(SettingsBaseCard):
 
     def _update_search_field_button_state(self, *, main_layer=None) -> None:
         if main_layer is None:
-            main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=True)
+            main_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=None)
         has_layer = main_layer is not None
         has_search_field = PropertySearchFieldService.has_search_field(main_layer) if has_layer else False
         self.btn_generate_search_field.setEnabled(has_layer)
@@ -509,7 +509,7 @@ class PropertyManagementUI(SettingsBaseCard):
             )
 
     def _warn_missing_search_field_if_needed(self) -> None:
-        main_layer = ActiveLayersHelper.resolve_main_property_layer(silent=True)
+        main_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=None)
         if main_layer is None:
             return
         if PropertySearchFieldService.has_search_field(main_layer):

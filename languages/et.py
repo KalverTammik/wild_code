@@ -217,6 +217,8 @@ TRANSLATIONS = {
         TranslationKeys.EASEMENT_FORM_STATUS_MAP_VALUE: "{label} (kaardil: {value})",
         TranslationKeys.EASEMENT_FORM_STATUS_REJECTED_TITLE: "Staatust ei muudetud",
         TranslationKeys.EASEMENT_FORM_STATUS_REJECTED_MESSAGE: "Kavitro ei võtnud uut staatust vastu, seega kaardile ei salvestatud midagi. Proovi uuesti või vali tagasi algne staatus.",
+        TranslationKeys.EASEMENT_FORM_NUMBER_INVALID_TITLE: "Arv on vigane",
+        TranslationKeys.EASEMENT_FORM_NUMBER_INVALID_MESSAGE: "Need väljad peavad olema arvud: {fields}. Kirjuta ainult arv, näiteks 2,5, ja salvesta uuesti.",
         TranslationKeys.EASEMENT_FIELD_KIND: "Liik",
         TranslationKeys.EASEMENT_FIELD_STATUS: "Staatus",
         TranslationKeys.EASEMENT_FIELD_NOTARY_NUMBER: "Notari reg nr",
@@ -778,7 +780,7 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_ATTACH_EXISTING_ARCHIVE_SUCCESS: "Olemasolev backendi servituudiga {item_id} seotud objekt arhiveeriti, määrates staatuseks (puudub)."
         ,TranslationKeys.EASEMENT_ATTACH_EXISTING_ARCHIVE_FAILED: "Olemasoleva backendi servituudiga {item_id} seotud objekti arhiveerimine ebaõnnestus. Detailid: {error}"
         ,TranslationKeys.EASEMENT_DRAW_NEW_START_FAILED: "Uue servituudi objekti joonistamist kaardil ei saanud käivitada."
-        ,TranslationKeys.EASEMENT_DRAW_NEW_SAVE_FAILED: "Uus kaardiobjekt loodi, kuid selle sidumine backendi servituudiga {item_id} ebaõnnestus. Detailid: {error}"
+        ,TranslationKeys.EASEMENT_DRAW_NEW_SAVE_FAILED: "Uus kaardiobjekt loodi, kuid selle sidumine Kavitro servituudiga {item_id} ebaõnnestus. Detailid: {error}"
         ,TranslationKeys.EASEMENT_DRAW_NEW_SUCCESS: "Uus kaardiobjekt loodi ja seoti backendi servituudiga {item_id}."
         ,TranslationKeys.EASEMENT_EDIT_GEOMETRY_NOT_FOUND: "Backendi servituudi {item_id} jaoks ei leitud seotud kaardiobjekti."
         ,TranslationKeys.EASEMENT_EDIT_GEOMETRY_START_FAILED: "Seotud servituudi objekti geomeetria muutmist ei saanud käivitada."

@@ -162,7 +162,7 @@ class SHPLayerLoader:
         )
 
     def _choose_bootstrap_path(self, shp_path: str) -> tuple[bool, str]:
-        if ActiveLayersHelper.resolve_main_property_layer(silent=True) is not None:
+        if ActiveLayersHelper.resolve_main_property_layer(dialogs=None) is not None:
             return False, ""
 
         create_label = self.lang_manager.translate(TranslationKeys.PROPERTY_BOOTSTRAP_CREATE)

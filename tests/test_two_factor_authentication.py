@@ -301,15 +301,19 @@ class MfaSetupRequiredTest(unittest.TestCase):
         bridge.showRequested.emit.assert_called_once_with()
 
     def test_setup_notice_action_opens_the_configured_web_app(self) -> None:
+        # The transport reaches the dialog only through the registered presenter, as the plugin registers it.
         messages_module = importlib.import_module("Kavitro_dev.utils.messagesHelper")
         url_module = importlib.import_module("Kavitro_dev.utils.url_manager")
         language_module = importlib.import_module("Kavitro_dev.languages.language_manager")
         keys_module = importlib.import_module("Kavitro_dev.languages.translation_keys")
+        notice_module = importlib.import_module("Kavitro_dev.ui.mfa_setup_notice")
         open_label = language_module.LanguageManager().translate(
             keys_module.TranslationKeys.MFA_OPEN_WEB_APP
         )
         bridge = api_error_handling._MfaSetupNotificationBridge()
         self.addCleanup(bridge.deleteLater)
+        api_error_handling.MfaSetupNotifier.set_presenter(notice_module.show_mfa_setup_notice)
+        self.addCleanup(api_error_handling.MfaSetupNotifier.set_presenter, None)
 
         with (
             patch.object(

@@ -3,6 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Iterable, Optional
 
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...module_manager import ModuleManager
@@ -107,10 +108,17 @@ class ProjectBoardOverviewService:
         with ThreadPoolExecutor(max_workers=min(4, len(property_ids))) as executor:
             futures = [executor.submit(queries.fetch_all_module_data, property_id) for property_id in property_ids]
 
-        for future in futures:
+        for property_id, future in zip(property_ids, futures):
             try:
                 module_data = future.result()
-            except Exception:
+            except Exception as exc:
+                # Fallback kept: the property counts as having no connected items, so the board shows it as empty.
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.PROJECT.value,
+                    event="project_board_connected_items_failed",
+                    extra={"property_id": property_id},
+                )
                 module_data = {}
             for module_key, nodes in (module_data or {}).items():
                 if module_key not in tracked_modules:
