@@ -204,12 +204,15 @@ class GeospatialLayerMapperTest(LoggedExceptionTestCase):
         broken_field = Mock()
         broken_field.type.side_effect = ValueError("not a field problem")
         with self.assertRaises(ValueError):
-            GeospatialLayerMapperDialog._coerce_value_for_field(broken_field, "1")
+            GeospatialLayerMapperDialog._coerce_value_for_field(broken_field, "1", [])
 
     def test_number_that_cannot_be_converted_becomes_none_and_a_deleted_layer_a_dash(self) -> None:
         field = QgsField("count", QVariant.Int)
-        self.assertEqual(GeospatialLayerMapperDialog._coerce_value_for_field(field, " 12 "), 12)
-        self.assertIsNone(GeospatialLayerMapperDialog._coerce_value_for_field(field, "abc"))
+        problems = []
+        self.assertEqual(GeospatialLayerMapperDialog._coerce_value_for_field(field, " 12 ", problems), 12)
+        self.assertIsNone(GeospatialLayerMapperDialog._coerce_value_for_field(field, "abc", problems))
+        # The rejected value is reported, not dropped silently.
+        self.assertEqual([problem.raw_value for problem in problems], ["abc"])
 
         deleted_layer = MagicMock(spec=QgsVectorLayer)
         deleted_layer.name.side_effect = RuntimeError("wrapped C/C++ object has been deleted")

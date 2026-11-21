@@ -35,6 +35,8 @@ from qgis.core import (
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
+from ...utils.layers.field_value_problems import problem_line
+from ...utils.layers.module_layer_service_base import FieldValueProblem, ModuleLayerServiceBase
 from ...utils.messagesHelper import ModernMessageDialog
 from ...utils.url_manager import Module
 from ...widgets.layer_tree_picker import LayerTreePicker
@@ -124,6 +126,8 @@ class _DefaultValueEditor(QWidget):
 
 class GeospatialLayerMapperDialog(QDialog):
     _INTERNAL_FIELD_NAMES = {"fid", "id", "geom"}
+    # The result dialog lists only five errors; the value note is one of them and stays a short block.
+    _LISTED_VALUE_PROBLEMS = 5
     _IDENTITY_CANDIDATES = {
         Module.WORKS.value: ("ext_job_id",),
         Module.ASBUILT.value: ("ext_job_id",),
@@ -321,6 +325,7 @@ class GeospatialLayerMapperDialog(QDialog):
         skipped = 0
         transform_failed = 0
         errors: list[str] = []
+        value_problems: list[FieldValueProblem] = []
 
         started_edit = False
         already_editable = bool(target_layer.isEditable())
@@ -356,7 +361,7 @@ class GeospatialLayerMapperDialog(QDialog):
                         has_value, value = self._mapped_value_for_feature(source_feature, row)
                         if not has_value:
                             continue
-                        coerced = self._coerce_value_for_field(target_layer.fields()[target_index], value)
+                        coerced = self._coerce_value_for_field(target_layer.fields()[target_index], value, value_problems)
                         if target_layer.changeAttributeValue(target_feature_id, target_index, coerced):
                             changed = True
 
@@ -381,7 +386,7 @@ class GeospatialLayerMapperDialog(QDialog):
                     has_value, value = self._mapped_value_for_feature(source_feature, row)
                     if not has_value:
                         continue
-                    coerced = self._coerce_value_for_field(target_layer.fields()[target_index], value)
+                    coerced = self._coerce_value_for_field(target_layer.fields()[target_index], value, value_problems)
                     new_feature.setAttribute(actual_target, coerced)
                     assigned_any = True
 
@@ -393,6 +398,11 @@ class GeospatialLayerMapperDialog(QDialog):
                     inserted += 1
                 else:
                     errors.append(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED))
+
+            if value_problems:
+                # One entry, so the result dialog's five-error limit cannot drop the features' own errors.
+                errors.insert(0, self._value_problems_note(value_problems))
+                self._log_value_problems(value_problems)
 
             if transform_failed:
                 # First in the list: the result dialog shows only the first five errors.
@@ -602,43 +612,46 @@ class GeospatialLayerMapperDialog(QDialog):
         return str(field_type)
 
     @staticmethod
-    def _coerce_value_for_field(field, value):
-        if field is None:
-            return value
-        try:
-            field_type = field.type()
-        except (AttributeError, RuntimeError):
-            field_type = None
+    def _coerce_value_for_field(field, value, problems: list[FieldValueProblem]):
+        """The layer services' conversion; a value that does not fit is left empty and added to `problems`.
 
-        integer_types = {
-            QVariant.Int,
-            QVariant.LongLong,
-            QVariant.UInt,
-            QVariant.ULongLong,
-        }
-        if field_type == QVariant.Bool:
-            if isinstance(value, bool):
-                return value
-            text = str(value or "").strip().lower()
-            if text in {"true", "1", "yes", "y"}:
-                return True
-            if text in {"false", "0", "no", "n"}:
-                return False
-            return value
+        Before, such a value either failed the whole commit (number, date) or was stored wrong ("ei" as yes).
+        Logging is done once per transfer, not per value, so the pure function is used here.
+        """
+        coerced, problem = ModuleLayerServiceBase.coerce_field_value(field, value)
+        if problem is not None:
+            problems.append(problem)
+        return coerced
 
-        if field_type in integer_types:
-            try:
-                return int(str(value or "").strip())
-            except ValueError:
-                return None
+    def _value_problems_note(self, problems: list[FieldValueProblem]) -> str:
+        """How many values were left empty, the first few distinct ones, and where to correct them."""
+        distinct: list[FieldValueProblem] = []
+        seen: set[tuple[str, str]] = set()
+        for problem in problems:
+            key = (problem.field_name, problem.raw_value)
+            if key not in seen:
+                seen.add(key)
+                distinct.append(problem)
+        lines = [self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY).format(count=len(problems))]
+        lines.extend(problem_line(problem, self._lang) for problem in distinct[: self._LISTED_VALUE_PROBLEMS])
+        hidden = len(distinct) - self._LISTED_VALUE_PROBLEMS
+        if hidden > 0:
+            lines[-1] += self._lang.translate(TranslationKeys.MORE_COUNT_SUFFIX).format(count=hidden)
+        lines.append(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY_HINT))
+        return "\n".join(lines)
 
-        if field_type == QVariant.DateTime:
-            return value if isinstance(value, QDateTime) else value
-
-        if field_type == QVariant.Date:
-            return value if isinstance(value, QDate) else value
-
-        return value
+    def _log_value_problems(self, problems: list[FieldValueProblem]) -> None:
+        PythonFailLogger.log(
+            "geospatial_layer_mapper_values_left_empty",
+            module=Module.SETTINGS.value,
+            extra={
+                "module_name": self._module_name,
+                "count": len(problems),
+                "fields": sorted({problem.field_name for problem in problems}),
+                "first_value": problems[0].raw_value,
+                "first_expected": problems[0].expected,
+            },
+        )
 
     @staticmethod
     def _layer_label(layer: Optional[QgsVectorLayer]) -> str:

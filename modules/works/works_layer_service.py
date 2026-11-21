@@ -35,7 +35,7 @@ from ...constants.cadastral_fields import Katastriyksus
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
-from ...utils.layers.module_layer_service_base import FieldValueProblem, ModuleLayerServiceBase
+from ...utils.layers.module_layer_service_base import FieldValueProblem, LayerEditTexts, ModuleLayerServiceBase
 from ...utils.geometry_payload import GeometryPayloadService
 from ...utils.url_manager import Module
 from ...utils.user_dialogs import UserDialogs
@@ -68,6 +68,14 @@ class WorksLayerService(ModuleLayerServiceBase):
     FIELD_ADDED_DATE = "added_date"
     FIELD_UPDATED_BY = "updated_by"
     FIELD_UPDATE_DATE = "update_date"
+
+    REQUIRED_FIELDS_TEXTS = LayerEditTexts(
+        start_failed="Could not start editing Works layer to add missing required fields",
+        change_failed="Could not add missing required fields to Works layer",
+        commit_failed="Could not commit new Works layer fields",
+        failed_event="works_layer_prepare_required_fields_failed",
+        rollback_event="works_layer_prepare_required_fields_rollback_failed",
+    )
 
     @classmethod
     def CUSTOM_FIELDS(cls) -> tuple[tuple[str, object], ...]:
@@ -157,51 +165,7 @@ class WorksLayerService(ModuleLayerServiceBase):
             message += "\n\nPlease reselect or recreate the Works layer with the updated schema."
             return False, message
 
-        if not missing_fields:
-            return True, ""
-
-        started_edit = False
-        already_editable = False
-        try:
-            already_editable = bool(layer.isEditable())
-            if not already_editable:
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing Works layer to add missing required fields"
-
-            provider = layer.dataProvider()
-            if provider is None or not provider.addAttributes(missing_fields):
-                if started_edit and layer.isEditable():
-                    layer.rollBack()
-                return False, "Could not add missing required fields to Works layer"
-
-            layer.updateFields()
-            if already_editable:
-                layer.triggerRepaint()
-                return True, ""
-
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit new Works layer fields"
-
-            return True, ""
-        except Exception as exc:
-            try:
-                if started_edit and layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.WORKS.value,
-                    event="works_layer_prepare_required_fields_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_layer_prepare_required_fields_failed",
-            )
-            return False, str(exc)
+        return cls._add_missing_fields(layer, missing_fields, texts=cls.REQUIRED_FIELDS_TEXTS)
 
     @classmethod
     def _incompatible_required_fields(cls, layer: Optional[QgsVectorLayer]) -> list[str]:
@@ -476,23 +440,11 @@ class WorksLayerService(ModuleLayerServiceBase):
         if not task_id_text:
             return None
 
-        task_id_field = WorksLayerService.resolve_task_id_field_name(layer)
-        if not task_id_field:
-            return None
-
-        try:
-            for feature in layer.getFeatures():
-                value = str(feature.attribute(task_id_field) or "").strip()
-                if value == task_id_text:
-                    return feature
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_layer_find_feature_failed",
-                extra={"task_id": task_id_text},
-            )
-        return None
+        return WorksLayerService._find_first_feature(
+            layer,
+            ((WorksLayerService.resolve_task_id_field_name(layer), task_id_text),),
+            log_extra={"task_id": task_id_text},
+        )
 
     @staticmethod
     def focus_feature_by_task_id(layer: Optional[QgsVectorLayer], task_id: str) -> bool:
@@ -703,8 +655,12 @@ class WorksLayerService(ModuleLayerServiceBase):
         if feature is None:
             return False, "Feature not found"
 
-        field_map = WorksLayerService._field_map(layer)
-        field_values = WorksLayerService.build_canonical_feature_values(
+        WorksLayerService._set_work_attributes(
+            feature,
+            layer=layer,
+            task_id_field=task_id_field,
+            task_id=task_id,
+            value_problems=value_problems,
             title=title,
             type_id=type_id,
             status_id=status_id,
@@ -717,55 +673,19 @@ class WorksLayerService(ModuleLayerServiceBase):
             updated_by=updated_by,
             update_date=update_date,
         )
-
-        task_id_value = WorksLayerService.coerce_optional_int(task_id)
-        feature.setAttribute(task_id_field, task_id_value if task_id_value is not None else str(task_id or "").strip())
-        for canonical_name, value in field_values.items():
-            WorksLayerService._set_attr_via_field_map(
-                feature,
-                layer=layer,
-                field_map=field_map,
-                field_name=canonical_name,
-                value=value,
-                value_problems=value_problems,
-            )
-
-        started_edit = False
-        try:
-            if not layer.isEditable():
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing works layer"
-
-            if not layer.updateFeature(feature):
-                if started_edit:
-                    layer.rollBack()
-                return False, "Could not update works layer feature"
-
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit works layer changes"
-
-            layer.triggerRepaint()
-            return True, ""
-        except Exception as exc:
-            try:
-                if started_edit and layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.WORKS.value,
-                    event="works_layer_update_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_layer_update_existing_failed",
-                extra={"feature_id": str(feature_id or ""), "task_id": str(task_id or "")},
-            )
-            return False, str(exc)
+        return WorksLayerService._write_feature(
+            layer,
+            feature,
+            add=False,
+            texts=LayerEditTexts(
+                start_failed="Could not start editing works layer",
+                change_failed="Could not update works layer feature",
+                commit_failed="Could not commit works layer changes",
+                failed_event="works_layer_update_existing_failed",
+                rollback_event="works_layer_update_rollback_failed",
+            ),
+            log_extra={"feature_id": str(feature_id or ""), "task_id": str(task_id or "")},
+        )
 
     @staticmethod
     def insert_work_feature(
@@ -797,8 +717,12 @@ class WorksLayerService(ModuleLayerServiceBase):
         layer_point = WorksLayerService._point_in_layer_crs(point, layer)
         feature.setGeometry(QgsGeometry.fromPointXY(layer_point))
 
-        field_map = {field.name().lower(): field.name() for field in layer.fields()}
-        field_values = WorksLayerService.build_canonical_feature_values(
+        WorksLayerService._set_work_attributes(
+            feature,
+            layer=layer,
+            task_id_field=task_id_field,
+            task_id=task_id,
+            value_problems=value_problems,
             title=title,
             type_id=type_id,
             status_id=status_id,
@@ -811,10 +735,33 @@ class WorksLayerService(ModuleLayerServiceBase):
             updated_by=updated_by,
             update_date=update_date,
         )
+        return WorksLayerService._write_feature(
+            layer,
+            feature,
+            add=True,
+            texts=LayerEditTexts(
+                start_failed="Could not start editing works layer",
+                change_failed="Could not add feature to works layer",
+                commit_failed="Could not commit works layer changes",
+                failed_event="works_layer_insert_failed",
+                rollback_event="works_layer_rollback_failed",
+            ),
+        )
 
+    @staticmethod
+    def _set_work_attributes(
+        feature: QgsFeature,
+        *,
+        layer: QgsVectorLayer,
+        task_id_field: str,
+        task_id: str,
+        value_problems: Optional[list[FieldValueProblem]],
+        **values,
+    ) -> None:
         task_id_value = WorksLayerService.coerce_optional_int(task_id)
         feature.setAttribute(task_id_field, task_id_value if task_id_value is not None else str(task_id or "").strip())
-        for canonical_name, value in field_values.items():
+        field_map = WorksLayerService._field_map(layer)
+        for canonical_name, value in WorksLayerService.build_canonical_feature_values(**values).items():
             WorksLayerService._set_attr_via_field_map(
                 feature,
                 layer=layer,
@@ -824,41 +771,10 @@ class WorksLayerService(ModuleLayerServiceBase):
                 value_problems=value_problems,
             )
 
-        started_edit = False
-        try:
-            if not layer.isEditable():
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing works layer"
-
-            if not layer.addFeature(feature):
-                if started_edit:
-                    layer.rollBack()
-                return False, "Could not add feature to works layer"
-
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit works layer changes"
-
-            layer.triggerRepaint()
-            return True, ""
-        except Exception as exc:
-            try:
-                if layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.WORKS.value,
-                    event="works_layer_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="works_layer_insert_failed",
-            )
-            return False, str(exc)
+    @classmethod
+    def _refresh_after_save(cls, layer: QgsVectorLayer) -> None:
+        # Needs a user decision: projects and easements also reload the layer and refresh the canvas.
+        layer.triggerRepaint()
 
     @staticmethod
     def _feature_attr_text(feature, field_map: dict[str, str], field_name: str) -> str:

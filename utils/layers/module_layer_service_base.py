@@ -5,13 +5,14 @@ import json
 import math
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import ClassVar, Optional
+from typing import Callable, ClassVar, Optional
 
 from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant
 from qgis.core import (
     QgsCoordinateTransform,
     QgsFeature,
     QgsFeatureRequest,
+    QgsField,
     QgsGeometry,
     QgsMapLayer,
     QgsPointXY,
@@ -59,6 +60,17 @@ class FieldValueProblem:
         if len(raw) > cls.MAX_VALUE_LENGTH:
             raw = raw[: cls.MAX_VALUE_LENGTH - 1] + "\u2026"
         return cls(field_name=name, field_label=label, raw_value=raw, value_type=type(value).__name__, expected=expected)
+
+
+@dataclass(frozen=True)
+class LayerEditTexts:
+    """What one layer edit returns when a step fails, and its log events for an unexpected error."""
+
+    start_failed: str
+    change_failed: str  # may name the field with {field}
+    commit_failed: str
+    failed_event: str
+    rollback_event: str
 
 
 _REJECTED = object()
@@ -280,6 +292,162 @@ class ModuleLayerServiceBase:
             return {}
 
     @classmethod
+    def _find_first_feature(
+        cls, layer: Optional[QgsVectorLayer], keys: tuple[tuple[Optional[str], object], ...], *, log_extra: dict
+    ) -> Optional[QgsFeature]:
+        """The first feature, in layer order, whose value in any of the (field, value) keys matches.
+
+        Keys are tried per feature, so an earlier feature matching a later key wins over a later one matching the id.
+        In edit mode QGIS returns the features added in the session first.
+        """
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return None
+        wanted = [(field, str(value or "").strip()) for field, value in keys]
+        wanted = [(field, text) for field, text in wanted if field and text]
+        if not wanted:
+            return None
+        try:
+            for feature in layer.getFeatures():
+                for field, text in wanted:
+                    if str(feature.attribute(field) or "").strip() == text:
+                        return feature
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=cls.MODULE.value,
+                event=f"{cls.MODULE.value}_layer_find_feature_failed",
+                extra=log_extra,
+            )
+        return None
+
+    @classmethod
+    def _rollback_own_edit(cls, layer: QgsVectorLayer, started_edit: bool, *, event: str) -> None:
+        # Only the session this service opened: rolling back the user's own session would drop their other edits.
+        try:
+            if started_edit and layer.isEditable():
+                layer.rollBack()
+        except Exception as rollback_exc:
+            PythonFailLogger.log_exception(rollback_exc, module=cls.MODULE.value, event=event)
+
+    @classmethod
+    def _add_missing_fields(
+        cls, layer: QgsVectorLayer, missing: list[QgsField], *, texts: LayerEditTexts, in_edit_buffer: bool = False
+    ) -> tuple[bool, str]:
+        """Adds the fields, committing only an edit session opened here.
+
+        In the edit buffer the fields stay with the user's session (a rollback removes them); through the provider
+        they are on the layer at once, whatever the session does.
+        """
+        if not missing:
+            return True, ""
+        started_edit = False
+        try:
+            if not layer.isEditable():
+                started_edit = bool(layer.startEditing())
+                if not started_edit:
+                    return False, texts.start_failed
+
+            failed_field = cls._add_fields(layer, missing, in_edit_buffer=in_edit_buffer)
+            if failed_field is not None:
+                if started_edit:
+                    layer.rollBack()
+                return False, texts.change_failed.format(field=failed_field)
+
+            layer.updateFields()
+            if not started_edit:
+                layer.triggerRepaint()
+                return True, ""
+            if not layer.commitChanges():
+                errors = "; ".join(layer.commitErrors() or [])
+                layer.rollBack()
+                return False, errors or texts.commit_failed
+            return True, ""
+        except Exception as exc:
+            cls._rollback_own_edit(layer, started_edit, event=texts.rollback_event)
+            PythonFailLogger.log_exception(exc, module=cls.MODULE.value, event=texts.failed_event)
+            return False, str(exc)
+
+    @staticmethod
+    def _add_fields(layer: QgsVectorLayer, fields: list[QgsField], *, in_edit_buffer: bool) -> Optional[str]:
+        """None when all were added, else the name of the field that failed ("" when the provider refused them all)."""
+        if in_edit_buffer:
+            for field in fields:
+                if not layer.addAttribute(field):
+                    return field.name()
+            return None
+        provider = layer.dataProvider()
+        if provider is None or not provider.addAttributes(fields):
+            return ""
+        return None
+
+    @classmethod
+    def _write_feature(
+        cls,
+        layer: QgsVectorLayer,
+        feature: QgsFeature,
+        *,
+        add: bool,
+        texts: LayerEditTexts,
+        log_extra: Optional[dict] = None,
+        check_saved: Optional[Callable[[], tuple[bool, str]]] = None,
+    ) -> tuple[bool, str]:
+        """Adds or updates the feature; commits and refreshes when the layer was not already in edit mode.
+
+        In the user's own edit session the change stays in it, for the user (or the draw flow) to save.
+        """
+        started_edit = False
+        try:
+            if not layer.isEditable():
+                started_edit = bool(layer.startEditing())
+                if not started_edit:
+                    return False, texts.start_failed
+
+            written = layer.addFeature(feature) if add else layer.updateFeature(feature)
+            if not written:
+                if started_edit:
+                    layer.rollBack()
+                return False, texts.change_failed
+
+            if started_edit and not layer.commitChanges():
+                errors = "; ".join(layer.commitErrors() or [])
+                layer.rollBack()
+                return False, errors or texts.commit_failed
+
+            cls._refresh_after_save(layer)
+            return check_saved() if check_saved is not None else (True, "")
+        except Exception as exc:
+            cls._rollback_own_edit(layer, started_edit, event=texts.rollback_event)
+            PythonFailLogger.log_exception(exc, module=cls.MODULE.value, event=texts.failed_event, extra=log_extra)
+            return False, str(exc)
+
+    @classmethod
+    def _refresh_after_save(cls, layer: QgsVectorLayer) -> None:
+        cls._refresh_saved_layer(layer)
+
+    @staticmethod
+    def _refresh_saved_layer(layer: Optional[QgsVectorLayer]) -> None:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return
+        try:
+            layer.updateExtents()
+        except RuntimeError:  # layer deleted after the save
+            pass
+        try:
+            if not layer.isEditable():
+                layer.reload()
+        except RuntimeError:
+            pass
+        try:
+            layer.triggerRepaint()
+        except RuntimeError:
+            pass
+        try:
+            if iface is not None and iface.mapCanvas() is not None:
+                iface.mapCanvas().refresh()
+        except RuntimeError:  # canvas deleted
+            pass
+
+    @classmethod
     def current_username(cls) -> str:
         try:
             session = SessionManager()
@@ -404,14 +572,140 @@ class ModuleLayerServiceBase:
 class AttachableLayerServiceBase(ModuleLayerServiceBase):
     """A module that attaches backend items to features on one configured layer: as-built, projects, easements.
 
-    A service sets the key below and supplies `_ensure_custom_fields`.
+    A service sets the names and texts below and writes its own attributes in `_write_item_attributes`.
     """
 
     DRAW_START_FAILED_KEY: str
+    INVALID_LAYER_TEXT: str
+    # (name, type) or (name, type, length): the fields an attach needs, added to the layer when missing.
+    CUSTOM_FIELDS: tuple[tuple, ...]
+    FIELDS_TEXTS: LayerEditTexts
+    ADD_FIELDS_IN_EDIT_BUFFER: bool = False
+    # The field the backend id is written to: the first one the layer has.
+    ID_FIELD_CANDIDATES: tuple[str, ...]
+    MISSING_ITEM_ID_TEXT: str
+    FEATURE_NOT_FOUND_TEXT: str
+    ATTACH_TEXTS: LayerEditTexts
+    ATTACH_VERIFY_FAILED_TEXT: str
 
     @classmethod
     def _ensure_custom_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return False, cls.INVALID_LAYER_TEXT
+        existing = cls._field_map(layer)
+        missing = [cls._custom_field(spec) for spec in cls.CUSTOM_FIELDS if spec[0].lower() not in existing]
+        return cls._add_missing_fields(layer, missing, texts=cls.FIELDS_TEXTS, in_edit_buffer=cls.ADD_FIELDS_IN_EDIT_BUFFER)
+
+    @staticmethod
+    def _custom_field(spec: tuple) -> QgsField:
+        name, field_type, *length = spec
+        return QgsField(name, field_type, len=length[0]) if length else QgsField(name, field_type)
+
+    @classmethod
+    def attach_backend_item_to_feature(
+        cls,
+        *,
+        layer: QgsVectorLayer,
+        feature_id: int,
+        item_id: str,
+        item_data: Optional[dict] = None,
+        value_problems: Optional[list[FieldValueProblem]] = None,
+    ) -> tuple[bool, str]:
+        """Links the feature to the backend item and saves it; (ok, layer label) or (False, why)."""
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return False, cls.INVALID_LAYER_TEXT
+
+        ok_fields, field_error = cls._ensure_custom_fields(layer)
+        if not ok_fields:
+            return False, field_error
+
+        item_payload = item_data if isinstance(item_data, dict) else {}
+        item_id_text = str(item_id or "").strip()
+        if not item_id_text:
+            return False, cls.MISSING_ITEM_ID_TEXT
+
+        feature_id = int(feature_id)
+        feature = cls._feature_by_id(layer, feature_id)
+        if feature is None:
+            return False, cls.FEATURE_NOT_FOUND_TEXT
+
+        cls._write_item_attributes(
+            feature,
+            layer=layer,
+            item_id=item_id_text,
+            item=item_payload,
+            username=cls.current_username(),
+            value_problems=value_problems,
+        )
+
+        def check_saved() -> tuple[bool, str]:
+            if not cls._verify_attached(layer, feature_id=feature_id, item_id=item_id_text, item=item_payload):
+                return False, cls.ATTACH_VERIFY_FAILED_TEXT
+            return True, cls._layer_target_label(layer)
+
+        return cls._write_feature(
+            layer,
+            feature,
+            add=False,
+            texts=cls.ATTACH_TEXTS,
+            log_extra={"item_id": item_id_text, "feature_id": feature_id},
+            check_saved=check_saved,
+        )
+
+    @classmethod
+    def _write_item_attributes(
+        cls,
+        feature: QgsFeature,
+        *,
+        layer: QgsVectorLayer,
+        item_id: str,
+        item: dict,
+        username: str,
+        value_problems: Optional[list[FieldValueProblem]],
+    ) -> None:
         raise NotImplementedError
+
+    @classmethod
+    def _verify_attached(cls, layer: QgsVectorLayer, *, feature_id: int, item_id: str, item: dict) -> bool:
+        """The saved feature itself carries the id. Another feature with the same id (an older link) does not count."""
+        saved = cls._feature_by_id(layer, feature_id)
+        id_field = cls._resolve_first_field_name(layer, cls.ID_FIELD_CANDIDATES)
+        if saved is None or not id_field:
+            return False
+        return str(saved.attribute(id_field) or "").strip() == item_id
+
+    @classmethod
+    def _fill_added_fields_if_empty(
+        cls,
+        feature: QgsFeature,
+        *,
+        layer: QgsVectorLayer,
+        by_candidates: tuple[str, ...],
+        date_candidates: tuple[str, ...],
+        username: str,
+        created,
+        item_id: str,
+        value_problems: Optional[list[FieldValueProblem]],
+    ) -> None:
+        # Who added the feature and when stays as it was on a feature that is linked again.
+        added_by_field = cls._resolve_first_field_name(layer, by_candidates)
+        added_date_field = cls._resolve_first_field_name(layer, date_candidates)
+        try:
+            if added_by_field and not str(feature.attribute(added_by_field) or "").strip():
+                cls._set_attr_if_present(
+                    feature, layer=layer, candidates=by_candidates, value=username, value_problems=value_problems
+                )
+            if added_date_field and not feature.attribute(added_date_field):
+                cls._set_attr_if_present(
+                    feature, layer=layer, candidates=date_candidates, value=created, value_problems=value_problems
+                )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=cls.MODULE.value,
+                event=f"{cls.MODULE.value}_added_fields_set_failed",
+                extra={"item_id": item_id},
+            )
 
     @classmethod
     def prepare_layer_for_draw(
@@ -569,26 +863,3 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
                 event=f"{cls.MODULE.value}_layer_geometry_transform_failed",
             )
         return transformed
-
-    @staticmethod
-    def _refresh_saved_layer(layer: Optional[QgsVectorLayer]) -> None:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return
-        try:
-            layer.updateExtents()
-        except RuntimeError:  # layer deleted after the save
-            pass
-        try:
-            if not layer.isEditable():
-                layer.reload()
-        except RuntimeError:
-            pass
-        try:
-            layer.triggerRepaint()
-        except RuntimeError:
-            pass
-        try:
-            if iface is not None and iface.mapCanvas() is not None:
-                iface.mapCanvas().refresh()
-        except RuntimeError:  # canvas deleted
-            pass

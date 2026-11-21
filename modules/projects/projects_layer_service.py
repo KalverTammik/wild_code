@@ -7,13 +7,12 @@ from typing import Optional
 from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
     QgsFeature,
-    QgsField,
     QgsVectorLayer,
     QgsWkbTypes,
 )
 
 from ...languages.translation_keys import TranslationKeys
-from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem
+from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem, LayerEditTexts
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 
@@ -25,6 +24,24 @@ class ProjectsLayerService(AttachableLayerServiceBase):
     DRAW_START_FAILED_KEY = TranslationKeys.PROJECT_DRAW_NEW_START_FAILED
     REQUIRED_GEOMETRY = QgsWkbTypes.PolygonGeometry
     LAYER_INVALID_GEOMETRY_KEY = TranslationKeys.PROJECT_LAYER_INVALID_GEOMETRY
+    INVALID_LAYER_TEXT = "Invalid Projects layer"
+    FIELDS_TEXTS = LayerEditTexts(
+        start_failed="Could not start editing Projects layer to add external fields",
+        change_failed="Could not add external project fields to layer",
+        commit_failed="Could not commit new Projects layer fields",
+        failed_event="project_layer_ensure_fields_failed",
+        rollback_event="project_layer_ensure_fields_rollback_failed",
+    )
+    MISSING_ITEM_ID_TEXT = "Missing backend project id"
+    FEATURE_NOT_FOUND_TEXT = "Selected project area feature was not found"
+    ATTACH_TEXTS = LayerEditTexts(
+        start_failed="Could not start editing Projects layer",
+        change_failed="Could not update selected Projects feature",
+        commit_failed="Could not commit Projects layer changes",
+        failed_event="project_attach_existing_save_failed",
+        rollback_event="project_attach_rollback_failed",
+    )
+    ATTACH_VERIFY_FAILED_TEXT = "Updated project area feature could not be verified on the configured main layer"
 
     EXT_SYSTEM_NAME = "Kavitro"
 
@@ -51,52 +68,7 @@ class ProjectsLayerService(AttachableLayerServiceBase):
         (FIELD_UPDATED_BY, QVariant.String),
         (FIELD_UPDATE_DATE, QVariant.DateTime),
     )
-
-    @classmethod
-    def _ensure_custom_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid Projects layer"
-
-        existing = cls._field_map(layer)
-        missing_fields = [QgsField(name, field_type) for name, field_type in cls.CUSTOM_FIELDS if name.lower() not in existing]
-        if not missing_fields:
-            return True, ""
-
-        started_edit = False
-        try:
-            if not layer.isEditable():
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing Projects layer to add external fields"
-
-            provider = layer.dataProvider()
-            if provider is None or not provider.addAttributes(missing_fields):
-                if started_edit:
-                    layer.rollBack()
-                return False, "Could not add external project fields to layer"
-
-            layer.updateFields()
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit new Projects layer fields"
-            return True, ""
-        except Exception as exc:
-            try:
-                if started_edit and layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.PROJECT.value,
-                    event="project_layer_ensure_fields_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_layer_ensure_fields_failed",
-            )
-            return False, str(exc)
+    ID_FIELD_CANDIDATES = (FIELD_EXTERNAL_ID,)
 
     @staticmethod
     def active_from_project(project: Optional[dict]):
@@ -143,147 +115,84 @@ class ProjectsLayerService(AttachableLayerServiceBase):
             "updatedAt": project.get("updatedAt"),
         }
 
+    @staticmethod
+    def _item_name(item: dict) -> str:
+        return str(item.get("name") or item.get("title") or "").strip()
+
+    @staticmethod
+    def _item_number(item: dict) -> str:
+        return str(item.get("projectNumber") or item.get("number") or "").strip()
+
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_number: str = "", item_name: str = ""):
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return None
-
-        id_field = cls._resolve_first_field_name(layer, (cls.FIELD_EXTERNAL_ID,))
-        number_field = cls._resolve_first_field_name(layer, (cls.FIELD_EXTERNAL_NUMBER,))
-        name_field = cls._resolve_first_field_name(layer, (cls.FIELD_EXTERNAL_NAME,))
-        item_id_text = str(item_id or "").strip()
-        item_number_text = str(item_number or "").strip()
-        item_name_text = str(item_name or "").strip()
-
-        try:
-            for feature in layer.getFeatures():
-                if id_field and item_id_text:
-                    current_id = str(feature.attribute(id_field) or "").strip()
-                    if current_id == item_id_text:
-                        return feature
-                if number_field and item_number_text:
-                    current_number = str(feature.attribute(number_field) or "").strip()
-                    if current_number == item_number_text:
-                        return feature
-                if name_field and item_name_text:
-                    current_name = str(feature.attribute(name_field) or "").strip()
-                    if current_name == item_name_text:
-                        return feature
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_layer_find_feature_failed",
-                extra={"item_id": item_id_text, "item_number": item_number_text},
-            )
-        return None
+        keys = (
+            (cls._resolve_first_field_name(layer, (cls.FIELD_EXTERNAL_ID,)), item_id),
+            (cls._resolve_first_field_name(layer, (cls.FIELD_EXTERNAL_NUMBER,)), item_number),
+            (cls._resolve_first_field_name(layer, (cls.FIELD_EXTERNAL_NAME,)), item_name),
+        )
+        log_extra = {"item_id": str(item_id or "").strip(), "item_number": str(item_number or "").strip()}
+        return cls._find_first_feature(layer, keys, log_extra=log_extra)
 
     @classmethod
-    def attach_backend_item_to_feature(
+    def _write_project_attributes(
         cls,
+        feature: QgsFeature,
         *,
         layer: QgsVectorLayer,
-        feature_id: int,
         item_id: str,
-        item_data: Optional[dict] = None,
-        value_problems: Optional[list[FieldValueProblem]] = None,
-    ) -> tuple[bool, str]:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid Projects layer"
-
-        ok_fields, field_error = cls._ensure_custom_fields(layer)
-        if not ok_fields:
-            return False, field_error
-
-        item_payload = item_data if isinstance(item_data, dict) else {}
-        item_id_text = str(item_id or "").strip()
-        if not item_id_text:
-            return False, "Missing backend project id"
-
-        try:
-            feature = cls._feature_by_id(layer, int(feature_id))
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_attach_feature_load_failed",
-                extra={"feature_id": int(feature_id)},
-            )
-            feature = None
-
-        if feature is None:
-            return False, "Selected project area feature was not found"
-
-        item_name = str(item_payload.get("name") or item_payload.get("title") or "").strip()
-        item_number = str(item_payload.get("projectNumber") or item_payload.get("number") or "").strip()
-        username = cls.current_username()
-        created_date = cls.parse_backend_datetime(item_payload.get("createdAt")) or datetime.now()
-        updated_date = cls.parse_backend_datetime(item_payload.get("updatedAt")) or created_date
-
+        item: dict,
+        username: str,
+        updated_date: datetime,
+        value_problems: Optional[list[FieldValueProblem]],
+    ) -> None:
         set_attr = partial(cls._set_attr_if_present, feature, layer=layer, value_problems=value_problems)
-        set_attr(candidates=(cls.FIELD_EXTERNAL_ID,), value=item_id_text)
+        set_attr(candidates=(cls.FIELD_EXTERNAL_ID,), value=item_id)
         set_attr(candidates=(cls.FIELD_EXTERNAL_SYSTEM,), value=cls.EXT_SYSTEM_NAME)
-        set_attr(candidates=(cls.FIELD_EXTERNAL_NAME,), value=item_name)
-        set_attr(candidates=(cls.FIELD_EXTERNAL_NUMBER,), value=item_number)
-        set_attr(candidates=(cls.FIELD_DETAILED,), value=cls.detailed_from_project(item_payload))
-        set_attr(candidates=(cls.FIELD_ACTIVE,), value=cls.active_from_project(item_payload))
+        set_attr(candidates=(cls.FIELD_EXTERNAL_NAME,), value=cls._item_name(item))
+        set_attr(candidates=(cls.FIELD_EXTERNAL_NUMBER,), value=cls._item_number(item))
+        set_attr(candidates=(cls.FIELD_DETAILED,), value=cls.detailed_from_project(item))
+        set_attr(candidates=(cls.FIELD_ACTIVE,), value=cls.active_from_project(item))
         set_attr(candidates=(cls.FIELD_UPDATED_BY,), value=username)
         set_attr(candidates=(cls.FIELD_UPDATE_DATE,), value=updated_date)
 
-        added_by_field = cls._resolve_first_field_name(layer, (cls.FIELD_ADDED_BY,))
-        added_date_field = cls._resolve_first_field_name(layer, (cls.FIELD_ADDED_DATE,))
-        try:
-            if added_by_field and not str(feature.attribute(added_by_field) or "").strip():
-                set_attr(candidates=(cls.FIELD_ADDED_BY,), value=username)
-            if added_date_field and not feature.attribute(added_date_field):
-                set_attr(candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_added_fields_set_failed",
-                extra={"item_id": item_id_text},
-            )
+    @classmethod
+    def _write_item_attributes(
+        cls,
+        feature: QgsFeature,
+        *,
+        layer: QgsVectorLayer,
+        item_id: str,
+        item: dict,
+        username: str,
+        value_problems: Optional[list[FieldValueProblem]],
+    ) -> None:
+        created_date = cls.parse_backend_datetime(item.get("createdAt")) or datetime.now()
+        updated_date = cls.parse_backend_datetime(item.get("updatedAt")) or created_date
+        cls._write_project_attributes(
+            feature,
+            layer=layer,
+            item_id=item_id,
+            item=item,
+            username=username,
+            updated_date=updated_date,
+            value_problems=value_problems,
+        )
+        cls._fill_added_fields_if_empty(
+            feature,
+            layer=layer,
+            by_candidates=(cls.FIELD_ADDED_BY,),
+            date_candidates=(cls.FIELD_ADDED_DATE,),
+            username=username,
+            created=created_date,
+            item_id=item_id,
+            value_problems=value_problems,
+        )
 
-        started_edit = False
-        try:
-            if not layer.isEditable():
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing Projects layer"
-
-            if not layer.updateFeature(feature):
-                if started_edit:
-                    layer.rollBack()
-                return False, "Could not update selected Projects feature"
-
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit Projects layer changes"
-
-            cls._refresh_saved_layer(layer)
-            verified_feature = cls.find_feature(layer, item_id=item_id_text, item_number=item_number, item_name=item_name)
-            if verified_feature is None:
-                return False, "Updated project area feature could not be verified on the configured main layer"
-            return True, cls._layer_target_label(layer)
-        except Exception as exc:
-            try:
-                if started_edit and layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.PROJECT.value,
-                    event="project_attach_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_attach_existing_save_failed",
-                extra={"item_id": item_id_text, "feature_id": int(feature_id)},
-            )
-            return False, str(exc)
+    @classmethod
+    def _verify_attached(cls, layer: QgsVectorLayer, *, feature_id: int, item_id: str, item: dict) -> bool:
+        # Needs a user decision: any feature matching the id, number or name counts, not only the saved one.
+        found = cls.find_feature(layer, item_id=item_id, item_number=cls._item_number(item), item_name=cls._item_name(item))
+        return found is not None
 
     @classmethod
     def upsert_generated_area_feature(
@@ -296,7 +205,7 @@ class ProjectsLayerService(AttachableLayerServiceBase):
         value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid Projects layer"
+            return False, cls.INVALID_LAYER_TEXT
         if not isinstance(preview_layer, QgsVectorLayer) or not preview_layer.isValid():
             return False, "Invalid project preview layer"
 
@@ -307,10 +216,10 @@ class ProjectsLayerService(AttachableLayerServiceBase):
         item_payload = item_data if isinstance(item_data, dict) else {}
         item_id_text = str(item_id or "").strip()
         if not item_id_text:
-            return False, "Missing backend project id"
+            return False, cls.MISSING_ITEM_ID_TEXT
 
-        item_name = str(item_payload.get("name") or item_payload.get("title") or "").strip()
-        item_number = str(item_payload.get("projectNumber") or item_payload.get("number") or "").strip()
+        item_name = cls._item_name(item_payload)
+        item_number = cls._item_number(item_payload)
         created_date = cls.parse_backend_datetime(item_payload.get("createdAt")) or datetime.now()
         updated_date = cls.parse_backend_datetime(item_payload.get("updatedAt")) or created_date
         username = cls.current_username()
@@ -348,67 +257,33 @@ class ProjectsLayerService(AttachableLayerServiceBase):
         feature = QgsFeature(existing_feature) if existing_feature is not None else QgsFeature(layer.fields())
         feature.setGeometry(target_geometry)
 
-        set_attr = partial(cls._set_attr_if_present, feature, layer=layer, value_problems=value_problems)
-        set_attr(candidates=(cls.FIELD_EXTERNAL_ID,), value=item_id_text)
-        set_attr(candidates=(cls.FIELD_EXTERNAL_SYSTEM,), value=cls.EXT_SYSTEM_NAME)
-        set_attr(candidates=(cls.FIELD_EXTERNAL_NAME,), value=item_name)
-        set_attr(candidates=(cls.FIELD_EXTERNAL_NUMBER,), value=item_number)
-        set_attr(candidates=(cls.FIELD_DETAILED,), value=cls.detailed_from_project(item_payload))
-        set_attr(candidates=(cls.FIELD_ACTIVE,), value=cls.active_from_project(item_payload))
-        set_attr(candidates=(cls.FIELD_UPDATED_BY,), value=username)
-        set_attr(candidates=(cls.FIELD_UPDATE_DATE,), value=updated_date)
-
+        cls._write_project_attributes(
+            feature,
+            layer=layer,
+            item_id=item_id_text,
+            item=item_payload,
+            username=username,
+            updated_date=updated_date,
+            value_problems=value_problems,
+        )
         if existing_feature is None:
+            set_attr = partial(cls._set_attr_if_present, feature, layer=layer, value_problems=value_problems)
             set_attr(candidates=(cls.FIELD_ADDED_BY,), value=username)
             set_attr(candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
 
-        started_edit = False
-        try:
-            if not layer.isEditable():
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing Projects layer"
-
-            if existing_feature is not None:
-                if not layer.updateFeature(feature):
-                    if started_edit:
-                        layer.rollBack()
-                    return False, "Could not update project area feature"
-            else:
-                if not layer.addFeature(feature):
-                    if started_edit:
-                        layer.rollBack()
-                    return False, "Could not add project area feature"
-
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit Projects layer changes"
-
-            cls._refresh_saved_layer(layer)
-            verified_feature = cls.find_feature(
-                layer,
-                item_id=item_id_text,
-                item_number=item_number,
-                item_name=item_name,
-            )
-            if verified_feature is None:
+        def check_saved() -> tuple[bool, str]:
+            if cls.find_feature(layer, item_id=item_id_text, item_number=item_number, item_name=item_name) is None:
                 return False, "Saved project area feature could not be verified on the configured main layer"
             return True, cls._layer_target_label(layer)
-        except Exception as exc:
-            try:
-                if started_edit and layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.PROJECT.value,
-                    event="project_generated_area_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.PROJECT.value,
-                event="project_generated_area_save_failed",
-                extra={"item_id": item_id_text},
-            )
-            return False, str(exc)
+
+        adding = existing_feature is None
+        texts = LayerEditTexts(
+            start_failed="Could not start editing Projects layer",
+            change_failed="Could not add project area feature" if adding else "Could not update project area feature",
+            commit_failed="Could not commit Projects layer changes",
+            failed_event="project_generated_area_save_failed",
+            rollback_event="project_generated_area_rollback_failed",
+        )
+        return cls._write_feature(
+            layer, feature, add=adding, texts=texts, log_extra={"item_id": item_id_text}, check_saved=check_saved
+        )

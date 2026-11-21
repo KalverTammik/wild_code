@@ -888,6 +888,8 @@ TRANSLATIONS = {
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED: "Geospatiali sihtkihi muutmisrežiimi ei saanud käivitada."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED: "Migreeritud objekti lisamine Geospatiali sihtkihile ebaõnnestus."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_GEOMETRY_TRANSFORM_FAILED: "{count} objekti koordinaate ei saanud sihtkihi koordinaatsüsteemi teisendada. Neid objekte ei lisatud ega uuendatud."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY: "Tühjaks jäetud väärtusi: {count}. Need ei sobinud sihtvälja tüübiga, objektid kanti üle ilma nendeta:"
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY_HINT: "Paranda need väärtused sihtkihi atribuutide tabelis."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_COMMIT_FAILED: "Migreeritud objektide salvestamine Geospatiali sihtkihile ebaõnnestus."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_SUCCESS: "Migratsioon lõpetati. Lisatud: {inserted}, uuendatud: {updated}, muutmata: {skipped}."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_WITH_ERRORS: "Migratsioon lõpetati vigadega. Lisatud: {inserted}, uuendatud: {updated}, muutmata: {skipped}.\n\nVead:\n{errors}"

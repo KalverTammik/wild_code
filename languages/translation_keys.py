@@ -626,6 +626,8 @@ class TranslationKeys:
     GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED = "geospatial_layer_mapper_edit_start_failed"
     GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED = "geospatial_layer_mapper_add_feature_failed"
     GEOSPATIAL_LAYER_MAPPER_GEOMETRY_TRANSFORM_FAILED = "geospatial_layer_mapper_geometry_transform_failed"
+    GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY = "geospatial_layer_mapper_values_left_empty"
+    GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY_HINT = "geospatial_layer_mapper_values_left_empty_hint"
     GEOSPATIAL_LAYER_MAPPER_COMMIT_FAILED = "geospatial_layer_mapper_commit_failed"
     GEOSPATIAL_LAYER_MAPPER_RESULT_SUCCESS = "geospatial_layer_mapper_result_success"
     GEOSPATIAL_LAYER_MAPPER_RESULT_WITH_ERRORS = "geospatial_layer_mapper_result_with_errors"

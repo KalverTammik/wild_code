@@ -5,16 +5,11 @@ from datetime import datetime
 from typing import Optional
 
 from qgis.PyQt.QtCore import QVariant
-from qgis.core import (
-    QgsFeature,
-    QgsField,
-    QgsVectorLayer,
-)
+from qgis.core import QgsFeature, QgsVectorLayer
 
 from ...languages.translation_keys import TranslationKeys
-from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem
+from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem, LayerEditTexts
 from ...utils.url_manager import Module
-from ...Logs.python_fail_logger import PythonFailLogger
 
 
 class AsBuiltLayerService(AttachableLayerServiceBase):
@@ -22,6 +17,26 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
     LAYER_MISSING_KEY = TranslationKeys.ASBUILT_LAYER_MISSING
     LAYER_AMBIGUOUS_KEY = TranslationKeys.ASBUILT_LAYER_MISSING
     DRAW_START_FAILED_KEY = TranslationKeys.ASBUILT_DRAW_NEW_START_FAILED
+    INVALID_LAYER_TEXT = "Invalid As-built layer"
+    FIELDS_TEXTS = LayerEditTexts(
+        start_failed="Could not start editing As-built layer to add external fields",
+        change_failed="Could not add field {field} to As-built layer",
+        commit_failed="Could not commit new As-built layer fields",
+        failed_event="asbuilt_layer_ensure_fields_failed",
+        rollback_event="asbuilt_layer_ensure_fields_rollback_failed",
+    )
+    # Needs a user decision: the other modules add the fields through the provider, outside the user's edit session.
+    ADD_FIELDS_IN_EDIT_BUFFER = True
+    MISSING_ITEM_ID_TEXT = "Missing backend As-built id"
+    FEATURE_NOT_FOUND_TEXT = "Selected As-built feature was not found"
+    ATTACH_TEXTS = LayerEditTexts(
+        start_failed="Could not start editing As-built layer",
+        change_failed="Could not update selected As-built feature",
+        commit_failed="Could not commit As-built layer changes",
+        failed_event="asbuilt_attach_existing_save_failed",
+        rollback_event="asbuilt_attach_existing_rollback_failed",
+    )
+    ATTACH_VERIFY_FAILED_TEXT = "Updated As-built feature could not be verified on the configured main layer"
 
     EXT_SYSTEM_NAME = "Kavitro"
 
@@ -68,56 +83,11 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
         (FIELD_UPDATED_BY, QVariant.String),
         (FIELD_UPDATE_DATE, QVariant.DateTime),
     )
+    ID_FIELD_CANDIDATES = (FIELD_EXT_JOB_ID,)
 
     @classmethod
     def resolve_task_id_field_name(cls, layer: Optional[QgsVectorLayer]) -> Optional[str]:
         return cls._field_map(layer).get(cls.FIELD_EXT_JOB_ID.lower())
-
-    @classmethod
-    def _ensure_custom_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid As-built layer"
-
-        existing = cls._field_map(layer)
-        missing_fields = [QgsField(name, field_type) for name, field_type in cls.CUSTOM_FIELDS if name.lower() not in existing]
-        if not missing_fields:
-            return True, ""
-
-        started_edit = False
-        try:
-            if not layer.isEditable():
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing As-built layer to add external fields"
-
-            for field in missing_fields:
-                if not layer.addAttribute(field):
-                    if started_edit:
-                        layer.rollBack()
-                    return False, f"Could not add field {field.name()} to As-built layer"
-
-            layer.updateFields()
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit new As-built layer fields"
-            return True, ""
-        except Exception as exc:
-            try:
-                if started_edit and layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.ASBUILT.value,
-                    event="asbuilt_layer_ensure_fields_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.ASBUILT.value,
-                event="asbuilt_layer_ensure_fields_failed",
-            )
-            return False, str(exc)
 
     @classmethod
     def _apply_geometry_form_values(
@@ -192,69 +162,36 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
 
     @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_name: str = ""):
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return None
-
-        id_field = cls.resolve_task_id_field_name(layer)
-        name_field = cls._resolve_first_field_name(layer, (cls.FIELD_EXT_JOB_NAME,))
-        item_id_text = str(item_id or "").strip()
-        item_name_text = str(item_name or "").strip()
-
-        try:
-            for feature in layer.getFeatures():
-                if id_field and item_id_text:
-                    current_id = str(feature.attribute(id_field) or "").strip()
-                    if current_id == item_id_text:
-                        return feature
-                if name_field and item_name_text:
-                    current_name = str(feature.attribute(name_field) or "").strip()
-                    if current_name == item_name_text:
-                        return feature
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.ASBUILT.value,
-                event="asbuilt_layer_find_feature_failed",
-                extra={"item_id": item_id_text},
-            )
-        return None
+        keys = (
+            (cls.resolve_task_id_field_name(layer), item_id),
+            (cls._resolve_first_field_name(layer, (cls.FIELD_EXT_JOB_NAME,)), item_name),
+        )
+        return cls._find_first_feature(layer, keys, log_extra={"item_id": str(item_id or "").strip()})
 
     @classmethod
-    def attach_backend_item_to_feature(
+    def _refresh_after_save(cls, layer: QgsVectorLayer) -> None:
+        # Needs a user decision: projects and easements also reload the layer and refresh the canvas.
+        layer.triggerRepaint()
+
+    @classmethod
+    def _write_item_attributes(
         cls,
+        feature: QgsFeature,
         *,
         layer: QgsVectorLayer,
-        feature_id: int,
         item_id: str,
-        item_data: Optional[dict] = None,
-        value_problems: Optional[list[FieldValueProblem]] = None,
-    ) -> tuple[bool, str]:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid As-built layer"
-
-        ok_fields, field_error = cls._ensure_custom_fields(layer)
-        if not ok_fields:
-            return False, field_error
-
-        item_payload = item_data if isinstance(item_data, dict) else {}
-        item_id_text = str(item_id or "").strip()
-        if not item_id_text:
-            return False, "Missing backend As-built id"
-
-        feature = cls._feature_by_id(layer, int(feature_id))
-
-        if feature is None:
-            return False, "Selected As-built feature was not found"
-
-        item_name = str(item_payload.get("name") or item_payload.get("title") or "").strip()
-        item_type_name = str(((item_payload.get("type") or {}).get("name") or "")).strip()
-        item_status_id = cls.coerce_optional_int(((item_payload.get("status") or {}).get("id") or ""))
-        username = cls.current_username()
-        created_date = cls.parse_backend_datetime(item_payload.get("createdAt")) or datetime.now()
-        updated_date = cls.parse_backend_datetime(item_payload.get("updatedAt")) or created_date
+        item: dict,
+        username: str,
+        value_problems: Optional[list[FieldValueProblem]],
+    ) -> None:
+        item_name = str(item.get("name") or item.get("title") or "").strip()
+        item_type_name = str(((item.get("type") or {}).get("name") or "")).strip()
+        item_status_id = cls.coerce_optional_int(((item.get("status") or {}).get("id") or ""))
+        created_date = cls.parse_backend_datetime(item.get("createdAt")) or datetime.now()
+        updated_date = cls.parse_backend_datetime(item.get("updatedAt")) or created_date
 
         set_attr = partial(cls._set_attr_if_present, feature, layer=layer, value_problems=value_problems)
-        set_attr(candidates=(cls.FIELD_EXT_JOB_ID,), value=item_id_text)
+        set_attr(candidates=(cls.FIELD_EXT_JOB_ID,), value=item_id)
         set_attr(candidates=(cls.FIELD_EXT_SYSTEM,), value=cls.EXT_SYSTEM_NAME)
         set_attr(candidates=(cls.FIELD_EXT_JOB_NAME,), value=item_name)
         set_attr(candidates=(cls.FIELD_EXT_JOB_TYPE,), value=item_type_name)
@@ -264,65 +201,20 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
         cls._apply_geometry_form_values(
             feature,
             layer=layer,
-            values=item_payload.get("_asbuilt_geometry_form"),
-            item_payload=item_payload,
+            values=item.get("_asbuilt_geometry_form"),
+            item_payload=item,
             username=username,
             created_date=created_date,
             updated_date=updated_date,
             value_problems=value_problems,
         )
-
-        added_by_field = cls._resolve_first_field_name(layer, (cls.FIELD_ADDED_BY,))
-        added_date_field = cls._resolve_first_field_name(layer, (cls.FIELD_ADDED_DATE,))
-        try:
-            if added_by_field and not str(feature.attribute(added_by_field) or "").strip():
-                set_attr(candidates=(cls.FIELD_ADDED_BY,), value=username)
-            if added_date_field and not feature.attribute(added_date_field):
-                set_attr(candidates=(cls.FIELD_ADDED_DATE,), value=created_date)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.ASBUILT.value,
-                event="asbuilt_added_fields_set_failed",
-                extra={"item_id": item_id_text},
-            )
-
-        started_edit = False
-        try:
-            if not layer.isEditable():
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing As-built layer"
-
-            if not layer.updateFeature(feature):
-                if started_edit:
-                    layer.rollBack()
-                return False, "Could not update selected As-built feature"
-
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit As-built layer changes"
-
-            layer.triggerRepaint()
-            verified_feature = cls.find_feature(layer, item_id=item_id_text, item_name=item_name)
-            if verified_feature is None or int(verified_feature.id()) != int(feature_id):
-                return False, "Updated As-built feature could not be verified on the configured main layer"
-            return True, cls._layer_target_label(layer)
-        except Exception as exc:
-            try:
-                if started_edit and layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.ASBUILT.value,
-                    event="asbuilt_attach_existing_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.ASBUILT.value,
-                event="asbuilt_attach_existing_save_failed",
-                extra={"item_id": item_id_text, "feature_id": int(feature_id)},
-            )
-            return False, str(exc)
+        cls._fill_added_fields_if_empty(
+            feature,
+            layer=layer,
+            by_candidates=(cls.FIELD_ADDED_BY,),
+            date_candidates=(cls.FIELD_ADDED_DATE,),
+            username=username,
+            created=created_date,
+            item_id=item_id,
+            value_problems=value_problems,
+        )

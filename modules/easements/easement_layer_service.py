@@ -6,13 +6,13 @@ from datetime import datetime
 from typing import Optional
 
 from qgis.PyQt.QtCore import QVariant
-from qgis.core import QgsFeature, QgsFeatureRequest, QgsField, QgsMapLayer, QgsVectorLayer, QgsWkbTypes
+from qgis.core import QgsFeature, QgsFeatureRequest, QgsMapLayer, QgsVectorLayer, QgsWkbTypes
 
 from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ..Settings.setting_keys import SettingDialogPlaceholders
-from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem
+from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem, LayerEditTexts
 from ...utils.url_manager import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 
@@ -24,13 +24,37 @@ class EasementLayerService(AttachableLayerServiceBase):
     DRAW_START_FAILED_KEY = TranslationKeys.EASEMENT_DRAW_NEW_START_FAILED
     REQUIRED_GEOMETRY = QgsWkbTypes.PolygonGeometry
     LAYER_INVALID_GEOMETRY_KEY = TranslationKeys.EASEMENT_LAYER_INVALID_GEOMETRY
+    INVALID_LAYER_TEXT = "Invalid easement main layer"
+    FIELDS_TEXTS = LayerEditTexts(
+        start_failed="Could not start editing easement layer to add external fields",
+        change_failed="Could not add external easement fields to layer",
+        commit_failed="Could not commit new easement layer fields",
+        failed_event="easement_layer_ensure_fields_failed",
+        rollback_event="easement_layer_ensure_fields_rollback_failed",
+    )
+    MISSING_ITEM_ID_TEXT = "Missing backend easement id"
+    FEATURE_NOT_FOUND_TEXT = "Selected easement feature was not found"
+    ATTACH_TEXTS = LayerEditTexts(
+        start_failed="Could not start editing easement layer",
+        change_failed="Could not update selected easement feature",
+        commit_failed="Could not commit easement layer changes",
+        failed_event="easement_attach_existing_save_failed",
+        rollback_event="easement_attach_rollback_failed",
+    )
+    ATTACH_VERIFY_FAILED_TEXT = "Updated easement feature could not be verified on the configured main layer"
 
     EXT_SYSTEM_NAME = "Kavitro"
     FIELD_EXTERNAL_ID = "ext_easement_id"
     FIELD_EXTERNAL_SYSTEM = "ext_system"
     FIELD_EXTERNAL_NUMBER = "ext_easement_number"
+    CUSTOM_FIELDS = (
+        (FIELD_EXTERNAL_ID, QVariant.String, 64),
+        (FIELD_EXTERNAL_SYSTEM, QVariant.String, 32),
+        (FIELD_EXTERNAL_NUMBER, QVariant.String, 64),
+    )
 
     FIELD_ID_CANDIDATES = (FIELD_EXTERNAL_ID, "ext_job_id", "easement_id", "ext_id", "external_id")
+    ID_FIELD_CANDIDATES = FIELD_ID_CANDIDATES
     FIELD_NUMBER_CANDIDATES = (FIELD_EXTERNAL_NUMBER, "number", "nr")
     FIELD_TYPE_CANDIDATES = ("Liik", "liik", "type", "type_name")
     FIELD_STATUS_CANDIDATES = ("Staatus", "staatus", "status")
@@ -273,86 +297,10 @@ class EasementLayerService(AttachableLayerServiceBase):
         return values
 
     @classmethod
-    def _ensure_custom_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid easement main layer"
-
-        existing = cls._field_map(layer)
-        missing_fields: list[QgsField] = []
-        if cls.FIELD_EXTERNAL_ID.lower() not in existing:
-            missing_fields.append(QgsField(cls.FIELD_EXTERNAL_ID, QVariant.String, len=64))
-        if cls.FIELD_EXTERNAL_SYSTEM.lower() not in existing:
-            missing_fields.append(QgsField(cls.FIELD_EXTERNAL_SYSTEM, QVariant.String, len=32))
-        if cls.FIELD_EXTERNAL_NUMBER.lower() not in existing:
-            missing_fields.append(QgsField(cls.FIELD_EXTERNAL_NUMBER, QVariant.String, len=64))
-
-        if not missing_fields:
-            return True, ""
-
-        started_edit = False
-        try:
-            if not layer.isEditable():
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing easement layer to add external fields"
-
-            provider = layer.dataProvider()
-            if provider is None or not provider.addAttributes(missing_fields):
-                if started_edit:
-                    layer.rollBack()
-                return False, "Could not add external easement fields to layer"
-
-            layer.updateFields()
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit new easement layer fields"
-            return True, ""
-        except Exception as exc:
-            try:
-                if layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.EASEMENT.value,
-                    event="easement_layer_ensure_fields_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_layer_ensure_fields_failed",
-            )
-            return False, str(exc)
-
-    @classmethod
     def find_feature(cls, layer: Optional[QgsVectorLayer], *, item_id: str, item_number: str = ""):
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return None
-
-        identity_field = cls._resolve_identity_field_name(layer)
-        number_field = cls._resolve_number_field_name(layer)
-        item_id_text = str(item_id or "").strip()
-        item_number_text = str(item_number or "").strip()
-
-        try:
-            for feature in layer.getFeatures():
-                if identity_field and item_id_text:
-                    current = str(feature.attribute(identity_field) or "").strip()
-                    if current == item_id_text:
-                        return feature
-                if number_field and item_number_text:
-                    current = str(feature.attribute(number_field) or "").strip()
-                    if current == item_number_text:
-                        return feature
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_layer_find_feature_failed",
-                extra={"item_id": item_id_text, "item_number": item_number_text},
-            )
-        return None
+        keys = ((cls._resolve_identity_field_name(layer), item_id), (cls._resolve_number_field_name(layer), item_number))
+        log_extra = {"item_id": str(item_id or "").strip(), "item_number": str(item_number or "").strip()}
+        return cls._find_first_feature(layer, keys, log_extra=log_extra)
 
     @classmethod
     def _set_mapped_status(
@@ -428,116 +376,44 @@ class EasementLayerService(AttachableLayerServiceBase):
         return actual, round(float(area_sqm), 2)
 
     @classmethod
-    def attach_backend_item_to_feature(
+    def _write_item_attributes(
         cls,
+        feature: QgsFeature,
         *,
         layer: QgsVectorLayer,
-        feature_id: int,
         item_id: str,
-        item_data: Optional[dict] = None,
-        value_problems: Optional[list[FieldValueProblem]] = None,
-    ) -> tuple[bool, str]:
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid easement main layer"
-
-        ok_fields, field_error = cls._ensure_custom_fields(layer)
-        if not ok_fields:
-            return False, field_error
-
-        item_payload = item_data if isinstance(item_data, dict) else {}
-        item_id_text = str(item_id or "").strip()
-        if not item_id_text:
-            return False, "Missing backend easement id"
-
-        feature = cls._feature_by_id(layer, int(feature_id))
-
-        if feature is None:
-            return False, "Selected easement feature was not found"
-
-        item_number = str(item_payload.get("number") or "").strip()
-        item_type_name = str(((item_payload.get("type") or {}).get("name") or "")).strip()
-        username = cls.current_username()
-        updated_date = cls.parse_backend_datetime(item_payload.get("updatedAt")) or datetime.now()
-
-        existing_added_by = cls._resolve_first_field_name(layer, cls.FIELD_ADDED_BY_CANDIDATES)
-        existing_added_date = cls._resolve_first_field_name(layer, cls.FIELD_ADDED_DATE_CANDIDATES)
+        item: dict,
+        username: str,
+        value_problems: Optional[list[FieldValueProblem]],
+    ) -> None:
+        item_number = str(item.get("number") or "").strip()
+        item_type_name = str(((item.get("type") or {}).get("name") or "")).strip()
+        updated_date = cls.parse_backend_datetime(item.get("updatedAt")) or datetime.now()
 
         set_attr = partial(cls._set_attr_if_present, feature, layer=layer, value_problems=value_problems)
-        set_attr(candidates=cls.FIELD_ID_CANDIDATES, value=item_id_text)
+        set_attr(candidates=cls.FIELD_ID_CANDIDATES, value=item_id)
         set_attr(candidates=cls.FIELD_NUMBER_CANDIDATES, value=item_number)
         set_attr(candidates=cls.FIELD_TYPE_CANDIDATES, value=item_type_name)
-        cls._set_mapped_status(
-            feature, layer=layer, status_payload=item_payload.get("status"), value_problems=value_problems
-        )
+        cls._set_mapped_status(feature, layer=layer, status_payload=item.get("status"), value_problems=value_problems)
         set_attr(candidates=cls.FIELD_SYSTEM_CANDIDATES, value=cls.EXT_SYSTEM_NAME)
         set_attr(candidates=cls.FIELD_UPDATED_BY_CANDIDATES, value=username)
         set_attr(candidates=cls.FIELD_UPDATE_DATE_CANDIDATES, value=updated_date)
-
-        try:
-            if existing_added_by and not str(feature.attribute(existing_added_by) or "").strip():
-                set_attr(candidates=cls.FIELD_ADDED_BY_CANDIDATES, value=username)
-            if existing_added_date and not feature.attribute(existing_added_date):
-                cls._set_attr_if_present(
-                    feature,
-                    layer=layer,
-                    candidates=cls.FIELD_ADDED_DATE_CANDIDATES,
-                    value=cls.parse_backend_datetime(item_payload.get("createdAt")) or updated_date,
-                    value_problems=value_problems,
-                )
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_added_fields_set_failed",
-                extra={"item_id": item_id_text},
-            )
-
+        cls._fill_added_fields_if_empty(
+            feature,
+            layer=layer,
+            by_candidates=cls.FIELD_ADDED_BY_CANDIDATES,
+            date_candidates=cls.FIELD_ADDED_DATE_CANDIDATES,
+            username=username,
+            created=cls.parse_backend_datetime(item.get("createdAt")) or updated_date,
+            item_id=item_id,
+            value_problems=value_problems,
+        )
         cls._apply_geometry_form_values(
             feature,
             layer=layer,
-            values=item_payload.get("_easement_geometry_form"),
+            values=item.get("_easement_geometry_form"),
             value_problems=value_problems,
         )
-
-        started_edit = False
-        try:
-            if not layer.isEditable():
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing easement layer"
-
-            if not layer.updateFeature(feature):
-                if started_edit:
-                    layer.rollBack()
-                return False, "Could not update selected easement feature"
-
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit easement layer changes"
-
-            cls._refresh_saved_layer(layer)
-            verified_feature = cls.find_feature(layer, item_id=item_id_text, item_number=item_number)
-            if verified_feature is None or int(verified_feature.id()) != int(feature_id):
-                return False, "Updated easement feature could not be verified on the configured main layer"
-            return True, cls._layer_target_label(layer)
-        except Exception as exc:
-            try:
-                if layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.EASEMENT.value,
-                    event="easement_attach_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_attach_existing_save_failed",
-                extra={"item_id": item_id_text, "feature_id": int(feature_id)},
-            )
-            return False, str(exc)
 
     @classmethod
     def linked_backend_id_for_feature(cls, layer: Optional[QgsVectorLayer], feature: Optional[QgsFeature]) -> str:
@@ -780,49 +656,19 @@ class EasementLayerService(AttachableLayerServiceBase):
 
         cls._apply_geometry_form_values(feature, layer=layer, values=form_values, value_problems=value_problems)
 
-        started_edit = False
-        try:
-            if not layer.isEditable():
-                started_edit = bool(layer.startEditing())
-                if not started_edit:
-                    return False, "Could not start editing easement layer"
-
-            if existing_feature is not None:
-                if not layer.updateFeature(feature):
-                    if started_edit:
-                        layer.rollBack()
-                    return False, "Could not update easement feature"
-            else:
-                if not layer.addFeature(feature):
-                    if started_edit:
-                        layer.rollBack()
-                    return False, "Could not add easement feature"
-
-            if started_edit and not layer.commitChanges():
-                errors = "; ".join(layer.commitErrors() or [])
-                layer.rollBack()
-                return False, errors or "Could not commit easement layer changes"
-
-            cls._refresh_saved_layer(layer)
-            verified_feature = cls.find_feature(layer, item_id=item_id_text, item_number=item_number)
-            if verified_feature is None:
+        def check_saved() -> tuple[bool, str]:
+            if cls.find_feature(layer, item_id=item_id_text, item_number=item_number) is None:
                 return False, "Saved easement feature could not be verified on the configured main layer"
-
             return True, cls._layer_target_label(layer)
-        except Exception as exc:
-            try:
-                if layer.isEditable():
-                    layer.rollBack()
-            except Exception as rollback_exc:
-                PythonFailLogger.log_exception(
-                    rollback_exc,
-                    module=Module.EASEMENT.value,
-                    event="easement_layer_rollback_failed",
-                )
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_layer_save_failed",
-                extra={"item_id": item_id_text},
-            )
-            return False, str(exc)
+
+        adding = existing_feature is None
+        texts = LayerEditTexts(
+            start_failed="Could not start editing easement layer",
+            change_failed="Could not add easement feature" if adding else "Could not update easement feature",
+            commit_failed="Could not commit easement layer changes",
+            failed_event="easement_layer_save_failed",
+            rollback_event="easement_layer_rollback_failed",
+        )
+        return cls._write_feature(
+            layer, feature, add=adding, texts=texts, log_extra={"item_id": item_id_text}, check_saved=check_saved
+        )
