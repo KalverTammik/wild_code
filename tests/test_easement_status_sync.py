@@ -17,6 +17,7 @@ from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout
 
 from Kavitro_dev.modules.easements import easement_attach_existing_controller as controller_module
 from Kavitro_dev.modules.easements import easement_preview_dialog as preview_module
+from Kavitro_dev.modules.easements.preview_dialog import final_save_mixin as final_save_module
 from Kavitro_dev.python.actions import status_actions as status_actions_module
 from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.utils.status_color_helper import StatusColorHelper
@@ -155,8 +156,8 @@ class EasementCardStatusTest(unittest.TestCase):
         dialog._on_status_changed = more.apply_item_status
         with (
             patch.object(preview_module.EasementPreviewDialog, "_ensure_final_cut_layer", return_value=(object(), "")),
-            patch.object(preview_module.EasementLayerService, "resolve_main_layer", return_value=object()),
-            patch.object(preview_module.EasementGeometryFormDialog, "prompt", return_value=None) as preview_prompt,
+            patch.object(final_save_module.EasementLayerService, "resolve_main_layer", return_value=object()),
+            patch.object(final_save_module.EasementGeometryFormDialog, "prompt", return_value=None) as preview_prompt,
         ):
             preview_module.EasementPreviewDialog._save_final_cut_to_main_layer(dialog)
 

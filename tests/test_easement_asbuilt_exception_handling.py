@@ -20,7 +20,9 @@ from qgis.PyQt.QtCore import QVariant
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
 from Kavitro_dev.modules.easements import easement_pdf_service as pdf_module
-from Kavitro_dev.modules.easements import easement_preview_dialog as preview_module
+from Kavitro_dev.modules.easements.easement_distance_rules import coerce_number, format_distance
+from Kavitro_dev.modules.easements.easement_property_edges import format_area_display, format_property_label
+from Kavitro_dev.modules.easements.preview_dialog import final_save_mixin, preview_layers_mixin
 from Kavitro_dev.modules.easements.easement_layer_service import EasementLayerService
 from Kavitro_dev.modules.easements.easement_pdf_service import EasementPdfService
 from Kavitro_dev.modules.easements.easement_preview_dialog import EasementPreviewDialog
@@ -243,7 +245,7 @@ class EasementPreviewDialogLoggingTest(LoggedExceptionTestCase):
                 raise RuntimeError("project busy")
             return 1
 
-        with patch.object(preview_module.MemoryLayerResultService, "remove_existing", side_effect=remove_existing) as remove:
+        with patch.object(preview_layers_mixin.MemoryLayerResultService, "remove_existing", side_effect=remove_existing) as remove:
             EasementPreviewDialog._cleanup_named_layers(SimpleNamespace(), ["first", "", "second"])
 
         self.assertEqual([call.args[0] for call in remove.call_args_list], ["first", "second"])
@@ -253,7 +255,7 @@ class EasementPreviewDialogLoggingTest(LoggedExceptionTestCase):
     def test_failed_pdf_cleanup_is_logged_and_the_path_forgotten(self) -> None:
         host = SimpleNamespace(_generated_pdf_path="C:/temp/x.pdf")
         with patch.object(
-            preview_module.EasementPdfService, "cleanup_output_pdf", side_effect=RuntimeError("symlink loop")
+            final_save_mixin.EasementPdfService, "cleanup_output_pdf", side_effect=RuntimeError("symlink loop")
         ):
             EasementPreviewDialog._cleanup_generated_pdf(host)
 
@@ -262,13 +264,13 @@ class EasementPreviewDialogLoggingTest(LoggedExceptionTestCase):
 
     def test_numbers_too_large_for_float_fall_back_instead_of_raising(self) -> None:
         huge = 10**400
-        self.assertIsNone(EasementPreviewDialog._coerce_number(huge))
-        self.assertEqual(EasementPreviewDialog._format_distance(huge), str(huge))
-        self.assertEqual(EasementPreviewDialog._format_area_display(SimpleNamespace(), huge), "0.00 m²")
+        self.assertIsNone(coerce_number(huge))
+        self.assertEqual(format_distance(huge), str(huge))
+        self.assertEqual(format_area_display(huge), "0.00 m²")
         self.log.assert_not_called()
 
     def test_property_label_ignores_fields_the_feature_does_not_have(self) -> None:
-        self.assertEqual(EasementPreviewDialog._format_property_label(SimpleNamespace(), "12345", QgsFeature()), "12345")
+        self.assertEqual(format_property_label("12345", QgsFeature()), "12345")
         self.log.assert_not_called()
 
 

@@ -33,6 +33,7 @@ from Kavitro_dev.modules.Property.widgets.property_ui_tools import PropertyUIToo
 from Kavitro_dev.modules.Property.widgets.property_tree_widget import PropertyTreeWidget
 from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+from Kavitro_dev.modules.Property.FlowControllers.property_archive_scope_reader import layer_identity
 from Kavitro_dev.widgets.DataDisplayWidgets.StatusWidget import StatusWidget
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
@@ -452,9 +453,9 @@ class AddDialogHandlersTest(LocationFilterTestCase):
 
     def test_layer_identity_of_a_deleted_layer_is_empty(self) -> None:
         layer = SimpleNamespace(id=Mock(side_effect=RuntimeError("deleted")), source=lambda: "memory://x")
-        self.assertEqual(AddPropertyDialog._layer_identity(layer), ("", "memory://x"))
-        self.assertEqual(AddPropertyDialog._layer_identity(None), ("", ""))
-        self.assertEqual(AddPropertyDialog._layer_identity(object()), ("", ""))
+        self.assertEqual(layer_identity(layer), ("", "memory://x"))
+        self.assertEqual(layer_identity(None), ("", ""))
+        self.assertEqual(layer_identity(object()), ("", ""))
 
 
 if __name__ == "__main__":

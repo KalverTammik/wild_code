@@ -24,6 +24,8 @@ from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.modules.asbuilt import asbuilt_feature_map_controller as asbuilt_module
 from Kavitro_dev.modules.easements import easement_preview_dialog as easement_preview_module
+from Kavitro_dev.modules.easements.preview_dialog import final_save_mixin as easement_final_save_module
+from Kavitro_dev.modules.easements.preview_dialog import property_editor_mixin as easement_editor_module
 from Kavitro_dev.modules.projects import project_preview_dialog as project_preview_module
 from Kavitro_dev.modules.works import works_create_controller as works_module
 from Kavitro_dev.utils.layers import field_value_problems as notice
@@ -388,7 +390,7 @@ class EasementFinalCutNoticeTest(DialogStubCase):
         dialog._easement_form_initial_values = Mock(return_value={})
         dialog._sync_saved_easement_geometry_to_backend = Mock(return_value=True)
         self.dialog = dialog
-        module = easement_preview_module
+        module = easement_final_save_module
         for target, name, value in (
             (module.EasementLayerService, "resolve_main_layer", Mock()),
             (module.EasementGeometryFormDialog, "prompt", {"Kaitsevööndi laius": "2 meetrit"}),
@@ -399,7 +401,7 @@ class EasementFinalCutNoticeTest(DialogStubCase):
 
     def save(self, result) -> list:
         problems: list = []
-        with patch.object(easement_preview_module.EasementLayerService, "upsert_final_cut_feature", collecting(result)):
+        with patch.object(easement_final_save_module.EasementLayerService, "upsert_final_cut_feature", collecting(result)):
             self.ok, self.message = easement_preview_module.EasementPreviewDialog._save_final_cut_to_main_layer(
                 self.dialog, [], problems
             )
@@ -424,7 +426,7 @@ class EasementPropertySaveNoticeTest(DialogStubCase):
 
     def setUp(self) -> None:
         super().setUp()
-        patcher = patch.object(easement_preview_module, "APIModuleActions")
+        patcher = patch.object(easement_editor_module, "APIModuleActions")
         api = patcher.start()
         self.addCleanup(patcher.stop)
         api.resolve_property_map_by_cadastral.return_value = ({"1:1:1": "p1"}, [])

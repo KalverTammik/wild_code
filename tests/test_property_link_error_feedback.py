@@ -26,6 +26,7 @@ from Kavitro_dev.constants.cadastral_fields import Katastriyksus
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.easements import easement_preview_dialog as preview_module
+from Kavitro_dev.modules.easements.preview_dialog import property_editor_mixin as editor_module
 from Kavitro_dev.utils.api_error_handling import ApiError, ApiErrorKind
 from Kavitro_dev.widgets.DataDisplayWidgets import module_action_buttons as buttons_module
 
@@ -54,9 +55,9 @@ class EasementPropertySaveTest(QgsCase):
 
     def setUp(self) -> None:
         # A real message window would wait for a click that never comes; nothing here may reach the network.
-        self.messages = self.start(preview_module, "ModernMessageDialog")
-        self.log = self.start(preview_module.PythonFailLogger, "log_exception")
-        self.api = self.start(preview_module, "APIModuleActions")
+        self.messages = self.start(editor_module, "ModernMessageDialog")
+        self.log = self.start(editor_module.PythonFailLogger, "log_exception")
+        self.api = self.start(editor_module, "APIModuleActions")
         self.api.get_easement_property_edges.return_value = [{"cadastralUnitNumber": self.NUMBER}]
 
         self.dialog = preview_module.EasementPreviewDialog.__new__(preview_module.EasementPreviewDialog)

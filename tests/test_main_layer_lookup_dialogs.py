@@ -49,7 +49,8 @@ EXPECTED_CALL_SITES = {
     "modules/Settings/cards/SettingsPropertyManagement.py": (2, 3),
     "modules/asbuilt/asbuilt_feature_map_controller.py": (2, 0),
     "modules/easements/easement_attach_existing_controller.py": (1, 0),
-    "modules/easements/easement_preview_dialog.py": (1, 1),
+    "modules/easements/preview_dialog/final_save_mixin.py": (0, 1),
+    "modules/easements/preview_dialog/property_editor_mixin.py": (1, 0),
     "modules/projects/project_preview_dialog.py": (2, 1),
     "modules/projects/projects_feature_map_controller.py": (2, 0),
     "modules/works/works_card_actions.py": (1, 0),
@@ -58,7 +59,8 @@ EXPECTED_CALL_SITES = {
     "modules/works/works_reposition_controller.py": (1, 0),
     "modules/works/works_sync_service.py": (0, 2),
     "modules/Property/FlowControllers/property_shp_import_flow.py": (0, 1),
-    "modules/Property/dialogs/AddUpdatePropertyDialog.py": (1, 1),
+    "modules/Property/dialogs/add_property/add_run_mixin.py": (0, 1),
+    "modules/Property/dialogs/add_property/attention_checks_mixin.py": (1, 0),
     "widgets/DataDisplayWidgets/module_action_buttons.py": (1, 0),
 }
 

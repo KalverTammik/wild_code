@@ -23,6 +23,15 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
+def main_check_batch_params(total_rows: int) -> tuple[int, int]:
+    """(batch size, pause in ms) for MAIN-layer checks of `total_rows` rows."""
+    if total_rows >= 200:
+        return (50, 5)
+    if total_rows >= 50:
+        return (50, 0)
+    return (30, 0)
+
+
 @dataclass(frozen=True)
 class CheckRow:
     """One table row as the run saw it when it started.

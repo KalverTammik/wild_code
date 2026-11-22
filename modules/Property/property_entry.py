@@ -5,7 +5,8 @@ features from here and nowhere else, so the Property internals can move without
 touching them. Keep this file thin: it only forwards to the defining modules and
 must never import other modules (modules/Settings etc.), or an import cycle appears.
 """
-from .dialogs.AddUpdatePropertyDialog import AddPropertyDialog, PropertyDialogMode
+from .dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+from .FlowControllers.property_dialog_phase import PropertyDialogMode
 from .FlowControllers.property_add_flow import MainAddPropertiesFlow
 from .dialogs.delete_property_dialog import DeletePropertyUI
 from .FlowControllers.property_remove_flow import PropertySelectionActionService

@@ -15,6 +15,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+class PropertyDialogMode:
+    """How the add-property dialog picks its rows: by location filter or from the map."""
+
+    BY_LOCATION = "by_location"
+    FROM_MAP = "from_map"
+
+
 class PropertyDialogPhase:
     """What the dialog is busy with. The first matching phase wins."""
 

@@ -215,7 +215,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             self.wait_until(lambda: dialog.county_combo.isEnabled())
             dialog.lang_manager = LanguageManager('et')
             translate = dialog.lang_manager.translate
-            with patch('Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog.monotonic', return_value=100.0) as clock, \
+            with patch('Kavitro_dev.modules.Property.dialogs.add_property.add_run_mixin.monotonic', return_value=100.0) as clock, \
                     patch.object(AddBatchRunner, 'start'), \
                     patch.object(dialog, '_run_missing_cleanup_if_any', side_effect=lambda then: then()):
                 for mode in ('with_checks', 'without_checks'):
@@ -365,7 +365,9 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                 dialog.deleteLater()
 
     def test_real_dialog_archive_plan_uses_background_lookup_and_continues_only_after_clean_apply(self):
-        from Kavitro_dev.modules.Property.dialogs import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers.property_add_flow import MainAddPropertiesFlow
+        from Kavitro_dev.modules.Property.dialogs.PropertyArchivePlanDialog import PropertyArchivePlanDialog
+        from Kavitro_dev.ui.messages_helper import ModernMessageDialog
         from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         dialog = self.open_dialog_with_village_scope()
         infos = {'7': {'exists': True, 'active_count': 1, 'active_ids': ['p7']},
@@ -377,10 +379,10 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                               side_effect=lambda number: infos[number]), \
                     patch.object(dialog, '_archive_scope_is_current', return_value=True), \
-                    patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm', return_value=True) as confirm, \
-                    patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import') as archive, \
-                    patch.object(dialog_module.ModernMessageDialog, 'show_warning'), \
-                    patch.object(dialog_module.ModernMessageDialog, 'Warning_messages_modern'):
+                    patch.object(PropertyArchivePlanDialog, 'confirm', return_value=True) as confirm, \
+                    patch.object(MainAddPropertiesFlow, 'archive_missing_from_import') as archive, \
+                    patch.object(ModernMessageDialog, 'show_warning'), \
+                    patch.object(ModernMessageDialog, 'Warning_messages_modern'):
                 # A clean apply archives only what the lookup allowed, then continues the add.
                 archive.return_value = {'archived_backend': 1, 'moved_map': 3, 'errors': []}
                 dialog._missing_from_import = {'7', '8', '9'}
@@ -417,7 +419,9 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         # b4: the dialog used to unlock the instant the background lookup finished --
         # before the user even saw the confirmation dialog, and before the archive call
         # that follows it. Both must still see the dialog locked.
-        from Kavitro_dev.modules.Property.dialogs import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers.property_add_flow import MainAddPropertiesFlow
+        from Kavitro_dev.modules.Property.dialogs.PropertyArchivePlanDialog import PropertyArchivePlanDialog
+        from Kavitro_dev.ui.messages_helper import ModernMessageDialog
         from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         dialog = self.open_dialog_with_village_scope()
         then = Mock()
@@ -436,12 +440,12 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                               return_value=missing_info()), \
                     patch.object(dialog, '_archive_scope_is_current', return_value=True), \
-                    patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm',
+                    patch.object(PropertyArchivePlanDialog, 'confirm',
                                  side_effect=confirm_side_effect), \
-                    patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import',
+                    patch.object(MainAddPropertiesFlow, 'archive_missing_from_import',
                                  side_effect=archive_side_effect), \
-                    patch.object(dialog_module.ModernMessageDialog, 'show_warning'), \
-                    patch.object(dialog_module.ModernMessageDialog, 'Warning_messages_modern'):
+                    patch.object(ModernMessageDialog, 'show_warning'), \
+                    patch.object(ModernMessageDialog, 'Warning_messages_modern'):
                 dialog._missing_from_import = {'8'}
                 dialog._run_missing_cleanup_if_any(then)
                 self.wait_until(lambda: then.called)
@@ -455,7 +459,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
     def test_real_dialog_archive_lookup_shows_progress_and_cancel_changes_nothing(self):
         from PyQt5 import sip
-        from Kavitro_dev.modules.Property.dialogs import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers.property_add_flow import MainAddPropertiesFlow
+        from Kavitro_dev.modules.Property.dialogs.PropertyArchivePlanDialog import PropertyArchivePlanDialog
         from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
         dialog = self.open_dialog_with_village_scope()
@@ -471,8 +476,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                               side_effect=lookup), \
                     patch.object(dialog, '_archive_scope_is_current', return_value=True), \
-                    patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm') as confirm, \
-                    patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import') as archive:
+                    patch.object(PropertyArchivePlanDialog, 'confirm') as confirm, \
+                    patch.object(MainAddPropertiesFlow, 'archive_missing_from_import') as archive:
                 dialog._missing_from_import = {'8', '9'}
                 dialog._run_missing_cleanup_if_any(then)
                 # The call returns at once; lookups continue in the background with the add locked.
@@ -509,7 +514,9 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             self.close_dialog(dialog)
 
     def test_real_dialog_rechecks_the_archive_scope_after_the_background_lookup(self):
-        from Kavitro_dev.modules.Property.dialogs import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers.property_add_flow import MainAddPropertiesFlow
+        from Kavitro_dev.modules.Property.dialogs.PropertyArchivePlanDialog import PropertyArchivePlanDialog
+        from Kavitro_dev.ui.messages_helper import ModernMessageDialog
         from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         dialog = self.open_dialog_with_village_scope()
         then = Mock()
@@ -517,10 +524,10 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                               return_value={'exists': False}), \
                     patch.object(dialog, '_archive_scope_is_current', side_effect=[True, False]), \
-                    patch.object(dialog_module.PropertyArchivePlanDialog, 'confirm') as confirm, \
-                    patch.object(dialog_module.MainAddPropertiesFlow, 'archive_missing_from_import') as archive, \
-                    patch.object(dialog_module.ModernMessageDialog, 'show_warning'), \
-                    patch.object(dialog_module.ModernMessageDialog, 'Warning_messages_modern') as warning:
+                    patch.object(PropertyArchivePlanDialog, 'confirm') as confirm, \
+                    patch.object(MainAddPropertiesFlow, 'archive_missing_from_import') as archive, \
+                    patch.object(ModernMessageDialog, 'show_warning'), \
+                    patch.object(ModernMessageDialog, 'Warning_messages_modern') as warning:
                 dialog._missing_from_import = {'9'}
                 dialog._run_missing_cleanup_if_any(then)
                 self.wait_until(lambda: warning.called)
