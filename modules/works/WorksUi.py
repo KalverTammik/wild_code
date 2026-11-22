@@ -18,7 +18,7 @@ from .works_list_service import LOCAL_SORTS, REMOTE_SORTS, ListChoices, WorksFee
 from ...constants.file_paths import GraphQLSettings
 from ...utils.SessionManager import SessionManager
 from ...python.latest_request import LatestRequest
-from ...widgets.works_list_widgets import WorksListControls, WorksListView
+from .works_list_widgets import WorksListControls, WorksListView
 from ...ui.messages_helper import ModernMessageDialog
 from ...utils.api_error_handling import user_message
 

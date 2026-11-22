@@ -23,7 +23,7 @@ from qgis.core import (
 )
 
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus
-from Kavitro_dev.constants.settings_keys import SettingsService
+from Kavitro_dev.utils.settings_service import SettingsService
 from Kavitro_dev.utils.maa_amet.Maa_amet_field_comparer import MaaAmetFieldComparer
 from Kavitro_dev.utils.MapTools.MapHelpers import FeatureActions
 from Kavitro_dev.utils.property.ArchiveLayerHandler import (

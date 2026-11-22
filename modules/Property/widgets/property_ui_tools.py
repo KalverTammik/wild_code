@@ -7,7 +7,7 @@ except ImportError:  # PyQt6 fallback, though project currently uses PyQt5
     sip = None
 from ..property_service import PropertyDataService
 from ....constants.cadastral_fields import Katastriyksus
-from ....constants.settings_keys import SettingsService
+from ....utils.settings_service import SettingsService
 from ....python.api_client import APIClient
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from ....languages.language_manager import LanguageManager

@@ -32,7 +32,7 @@ class ModulesRegistry:
         from ..languages.translation_keys import DialogLabels
         from ..constants.setting_placeholders import SettingDialogPlaceholders
         from ..modules.Settings.SettingsUI import SettingsModule
-        from ..modules.Settings.EasementStatusMappingDialog import EasementStatusMappingDialog
+        from ..modules.easements.easement_status_mapping_dialog import EasementStatusMappingDialog
         from ..modules.Property.widgets.property_ui import PropertyModule
         from ..modules.projects.ProjectsUi import ProjectsModule
         from ..modules.projects.projects_card_actions import ProjectCardActions
@@ -53,6 +53,23 @@ class ModulesRegistry:
         from .theme_manager import ThemeManager
 
         qss_modular = list(ThemeManager.module_bundle())
+
+        # Module pieces that shared widgets show; the widgets never import modules/ themselves.
+        from ..widgets.DataDisplayWidgets.ModuleConfig import ModuleConfigFactory
+        from ..widgets.DataDisplayWidgets.StatusWidget import StatusWidget
+        from ..modules.projects.project_detail_config import create_project_config
+        from ..modules.works.works_sync_service import WorksSyncService
+
+        ModuleConfigFactory.register(Module.PROJECT.value, create_project_config)
+
+        def sync_works_layer(item_id: str, task_payload, lang_manager) -> None:
+            WorksSyncService(lang_manager=lang_manager).sync_task_from_backend(item_id, task=task_payload)
+
+        StatusWidget.register_status_change_hook(
+            (Module.WORKS.value, Module.ASBUILT.value, Module.TASK.value),
+            "works_layer_sync",
+            sync_works_layer,
+        )
 
         def pick_folder(_module_key: str, _key: str, current_value: str):
             return FolderHelpers.select_folder_path(dialog, start_path=current_value)

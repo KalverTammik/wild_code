@@ -43,7 +43,7 @@ from Kavitro_dev.modules.Property.query_coordinator import ConnectedModuleData
 from Kavitro_dev.modules.projects import project_board_overview_service as board_module
 from Kavitro_dev.modules.projects import projects_card_actions as card_actions_module
 from Kavitro_dev.modules.projects.project_board_overview_service import ProjectBoardOverviewService
-from Kavitro_dev.modules.projects.project_board_status_rules import ProjectBoardStatusRules
+from Kavitro_dev.utils.project_board_status_rules import ProjectBoardStatusRules
 from Kavitro_dev.modules.projects.project_preview_dialog import ProjectPreviewDialog
 from Kavitro_dev.modules.projects.projects_card_actions import ProjectCardActions
 from Kavitro_dev.modules.projects.projects_layer_service import ProjectsLayerService

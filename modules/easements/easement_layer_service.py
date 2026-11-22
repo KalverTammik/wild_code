@@ -8,7 +8,7 @@ from typing import Optional
 from qgis.PyQt.QtCore import QVariant
 from qgis.core import QgsFeature, QgsFeatureRequest, QgsMapLayer, QgsVectorLayer, QgsWkbTypes
 
-from ...constants.settings_keys import SettingsService
+from ...utils.settings_service import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...constants.setting_placeholders import SettingDialogPlaceholders

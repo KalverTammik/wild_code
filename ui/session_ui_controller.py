@@ -9,7 +9,7 @@ from qgis.PyQt.QtCore import QTimer
 
 from ..Logs.python_fail_logger import PythonFailLogger
 from ..Logs.switch_logger import SwitchLogger
-from ..constants.settings_keys import SettingsService
+from ..utils.settings_service import SettingsService
 from ..login_dialog import LoginDialog
 from ..utils.SessionManager import SessionManager
 from .module_switch_helper import ModuleSwitchHelper

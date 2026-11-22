@@ -13,7 +13,7 @@ from ...python.api_actions import APIModuleActions
 from ...ui.messages_helper import ModernMessageDialog
 from ...constants.module_names import Module
 from ...ui.theme_manager import ThemeManager
-from ..easements.easement_layer_service import EasementLayerService
+from .easement_layer_service import EasementLayerService
 
 
 class EasementStatusMappingDialog(QDialog):

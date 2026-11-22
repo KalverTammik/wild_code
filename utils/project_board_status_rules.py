@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from ...constants.settings_keys import SettingsService
-from ...constants.setting_placeholders import SettingDialogPlaceholders
+from .settings_service import SettingsService
+from ..constants.setting_placeholders import SettingDialogPlaceholders
 
 
 class ProjectBoardStatusRules:

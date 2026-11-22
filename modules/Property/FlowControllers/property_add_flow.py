@@ -8,7 +8,7 @@ from ....python.api_rate_limit import ApiRateLimitError, RequestCancelled
 from ....languages.translation_keys import TranslationKeys
 from ....utils.api_error_handling import user_message
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
-from ....constants.settings_keys import SettingsService
+from ....utils.settings_service import SettingsService
 from ....constants.cadastral_fields import Katastriyksus
 from ....languages.language_manager import LanguageManager 
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions

@@ -1,6 +1,6 @@
 """Public interface of the Property module for other modules.
 
-Other modules (today only Settings' property management card) import Property
+Other modules (Settings' property management card, the project board) import Property
 features from here and nowhere else, so the Property internals can move without
 touching them. Keep this file thin: it only forwards to the defining modules and
 must never import other modules (modules/Settings etc.), or an import cycle appears.
@@ -11,9 +11,12 @@ from .FlowControllers.property_add_flow import MainAddPropertiesFlow
 from .dialogs.delete_property_dialog import DeletePropertyUI
 from .FlowControllers.property_remove_flow import PropertySelectionActionService
 from .FlowControllers.property_shp_import_flow import SHPLayerLoader, SHPLoadResult, SHPLoadStatus
+from .query_coordinator import PropertiesConnectedElementsQueries, PropertyLookupService
 
 __all__ = [
+    "PropertiesConnectedElementsQueries",
     "PropertyDialogMode",
+    "PropertyLookupService",
     "SHPLoadStatus",
     "load_property_layer_from_shp",
     "open_add_property_dialog",

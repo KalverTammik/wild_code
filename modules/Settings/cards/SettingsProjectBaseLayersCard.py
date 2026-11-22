@@ -18,7 +18,7 @@ from qgis.core import Qgis, QgsMapLayer, QgsProject
 from qgis.gui import QgsFieldComboBox
 
 from ....constants.button_props import ButtonSize, ButtonVariant
-from ....constants.settings_keys import SettingsService
+from ....utils.settings_service import SettingsService
 from ....ui.messages_helper import ModernMessageDialog
 from .GeospatialSetupDialog import GeospatialSetupDialog
 from .SettingsBaseCard import SettingsBaseCard

@@ -4,7 +4,7 @@ from typing import Optional
 
 from qgis.core import QgsVectorLayer
 
-from ...constants.settings_keys import SettingsService
+from ..settings_service import SettingsService
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.module_names import Module
 from .MapHelpers import MapHelpers

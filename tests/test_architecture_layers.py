@@ -7,15 +7,16 @@ Rules (a "->" means "must not import"):
                                     module_manager.py (QWidget + ThemeManager), MISPLACED_UI files;
                                     and modules/ (module domain).
   languages/, Logs/ (bottom)     -> the same UI set and modules/.
-  modules/<A>/                   -> modules/<B>/ internals (modules/task_shared/ is the shared base).
+  modules/<A>/                   -> modules/<B>/ internals. Allowed: modules/task_shared/ (the shared
+                                    base) and modules/<B>/<name>_entry.py, B's public interface.
   widgets/                       -> modules/.
 
 Imports are read with ast (module level and inside functions, TYPE_CHECKING included);
 relative imports are resolved from the file path.
 
-ALLOWED_VIOLATIONS lists every violation that existed when the test was written. A new
-import outside the list fails the test; a listed import that is gone also fails until its
-line is deleted, so the lists only shrink. When a file moves, rename its entries.
+ALLOWED_VIOLATIONS listed every violation that existed when the test was written; since
+v2.12.83 all lists are empty. A new import outside the list fails the test; a listed import
+that is gone also fails until its line is deleted, so the lists only shrink. When a file moves, rename its entries.
 Run this file directly to print the current violations in list format.
 """
 import ast
@@ -34,6 +35,12 @@ UI_PACKAGES = ("widgets", "ui")
 UI_ROOT_MODULES = ("dialog", "login_dialog", "main", "module_manager")
 SHARED_MODULE_PACKAGES = ("task_shared",)
 
+
+def _is_public_entry(target: str) -> bool:
+    """modules.<owner>.<name>_entry: the one file other modules may import from <owner>."""
+    parts = target.split(".")
+    return len(parts) == 3 and parts[0] == "modules" and parts[2].endswith("_entry")
+
 # UI components that still live under a headless folder. They count as UI (importing them
 # from headless code is a violation) and are not checked as headless sources. Delete the
 # path here when the file moves to ui/ and rename the matching ALLOWED_VIOLATIONS targets.
@@ -41,28 +48,14 @@ MISPLACED_UI = ()
 
 ALLOWED_VIOLATIONS = {
     "constants_imports_only_constants": [
-        "constants/settings_keys.py -> Logs.python_fail_logger",
     ],
     "headless_imports_no_ui_or_modules": [
     ],
     "bottom_layer_imports_no_ui_or_modules": [
     ],
     "module_imports_no_other_module": [
-        "modules/Settings/EasementStatusMappingDialog.py -> modules.easements.easement_layer_service",
-        "modules/Settings/cards/SettingsModuleCard.py -> modules.projects.project_board_status_rules",
-        "modules/Settings/cards/SettingsModuleCard.py -> modules.projects.projects_temp_layer_helper",
-        "modules/Settings/cards/SettingsModuleCard.py -> modules.works.works_temp_layer_helper",
-        "modules/Settings/cards/SettingsPropertyManagement.py -> modules.Property.property_entry",
-        "modules/Settings/settings_setup_guard.py -> modules.projects.project_board_status_rules",
-        "modules/projects/project_board_overview_service.py -> modules.Property.query_coordinator",
-        "modules/projects/projects_card_actions.py -> modules.Settings.settings_setup_guard",
     ],
     "widgets_import_no_modules": [
-        "widgets/DataDisplayWidgets/ModuleConfig.py -> modules.projects.project_board_overview_service",
-        "widgets/DataDisplayWidgets/ModuleConfig.py -> modules.projects.project_board_widgets",
-        "widgets/DataDisplayWidgets/StatusWidget.py -> modules.works.works_sync_service",
-        "widgets/Filters/NotStartedStatusFilterWidget.py -> modules.projects.project_board_status_rules",
-        "widgets/works_list_widgets.py -> modules.works.works_list_service",
     ],
 }
 
@@ -169,6 +162,7 @@ def find_violations(edges):
                 and target_owner
                 and source_owner != target_owner
                 and target_owner not in SHARED_MODULE_PACKAGES
+                and not _is_public_entry(target)
             ):
                 rules["module_imports_no_other_module"].add(line)
         if source_top == "widgets" and _top(target) == "modules":
@@ -222,6 +216,23 @@ class ArchitectureLayersTest(unittest.TestCase):
 
     def test_widgets_import_no_modules(self):
         self._check_rule("widgets_import_no_modules")
+
+    def test_only_entry_files_are_open_to_other_modules(self):
+        edges = {
+            ("modules/Settings/a.py", "modules.projects.projects_entry"),
+            ("modules/Settings/a.py", "modules.projects.projects_temp_layer_helper"),
+            ("modules/Settings/a.py", "modules.projects.sub.thing_entry"),
+            ("modules/Settings/a.py", "modules.task_shared.base"),
+            ("modules/Settings/a.py", "modules.Settings.other"),
+            ("widgets/w.py", "modules.projects.projects_entry"),
+        }
+        found = find_violations(edges)
+
+        self.assertEqual(sorted(found["module_imports_no_other_module"]), [
+            "modules/Settings/a.py -> modules.projects.projects_temp_layer_helper",
+            "modules/Settings/a.py -> modules.projects.sub.thing_entry",
+        ])
+        self.assertEqual(sorted(found["widgets_import_no_modules"]), ["widgets/w.py -> modules.projects.projects_entry"])
 
 
 if __name__ == "__main__":

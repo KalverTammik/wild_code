@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.settings_logic import SettingsLogic
-from ...modules.projects.project_board_status_rules import ProjectBoardStatusRules
+from ...utils.project_board_status_rules import ProjectBoardStatusRules
 from .StatusFilterWidget import StatusFilterWidget
 
 

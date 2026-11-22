@@ -45,7 +45,7 @@ EXPECTED_CALL_SITES = {
     "modules/Property/FlowControllers/add_batch_runner.py": (0, 2),
     "modules/Property/widgets/property_ui.py": (1, 0),
     "modules/Property/widgets/property_ui_tools.py": (1, 0),
-    "modules/Settings/EasementStatusMappingDialog.py": (0, 2),
+    "modules/easements/easement_status_mapping_dialog.py": (0, 2),
     "modules/Settings/cards/SettingsPropertyManagement.py": (2, 3),
     "modules/asbuilt/asbuilt_feature_map_controller.py": (2, 0),
     "modules/easements/easement_attach_existing_controller.py": (1, 0),

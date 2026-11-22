@@ -2,13 +2,13 @@
 from PyQt5.QtCore import QObject, QPoint, QTimer, Qt, pyqtSignal
 from PyQt5.QtWidgets import QActionGroup, QHBoxLayout, QMenu, QSizePolicy, QToolButton, QWidget
 
-from ..constants.file_paths import QssPaths
-from ..languages.translation_keys import TranslationKeys as K
-from ..modules.works.works_list_service import (
+from ...constants.file_paths import QssPaths
+from ...languages.translation_keys import TranslationKeys as K
+from .works_list_service import (
     GROUP_FIELDS, LOCAL_SORTS, REMOTE_SORTS, ListChoices, group_loaded_items,
 )
-from ..ui.module_card_factory import ModuleCardFactory
-from ..ui.theme_manager import ThemeManager
+from ...ui.module_card_factory import ModuleCardFactory
+from ...ui.theme_manager import ThemeManager
 
 
 FIELD_LABELS = {

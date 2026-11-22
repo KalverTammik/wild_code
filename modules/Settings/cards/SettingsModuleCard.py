@@ -12,8 +12,8 @@ from .SettingsPropertyManagement import PropertyManagementUI
 from ..GeospatialLayerMapperDialog import GeospatialLayerMapperDialog
 from ....utils.settings_logic import SettingsLogic
 from ..settings_layer_helper import SettingsLayerHelper
-from ...works.works_temp_layer_helper import WorksTempLayerHelper
-from ...projects.projects_temp_layer_helper import ProjectsTempLayerHelper
+from ...works.works_entry import WorksTempLayerHelper
+from ...projects.projects_entry import ProjectsTempLayerHelper
 from ....widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from ....widgets.Filters.NotStartedStatusFilterWidget import NotStartedStatusFilterWidget
 from ....widgets.Filters.TypeFilterWidget import TypeFilterWidget
@@ -21,7 +21,7 @@ from ....widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ....widgets.layer_tree_picker import LayerTreePicker
 from ....constants.module_icons import ModuleIconPaths
 from ....constants.button_props import ButtonVariant, ButtonSize
-from ....constants.settings_keys import SettingsService
+from ....utils.settings_service import SettingsService
 from ....constants.module_names import Module
 from ....utils.MapTools.MapHelpers import MapHelpers
 from ....utils.FilterHelpers.FilterHelper import FilterHelper
@@ -31,7 +31,7 @@ from ....Logs.python_fail_logger import PythonFailLogger
 from ....ui.messages_helper import ModernMessageDialog
 from ....utils.text_helpers import to_bool
 from ....constants.setting_placeholders import SettingDialogPlaceholders
-from ...projects.project_board_status_rules import ProjectBoardStatusRules
+from ....utils.project_board_status_rules import ProjectBoardStatusRules
 
 from qgis.core import QgsMapLayer, QgsProject, Qgis
 

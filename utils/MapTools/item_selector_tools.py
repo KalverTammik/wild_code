@@ -6,7 +6,7 @@ try:
 except ImportError:
     sip = None
 
-from ...constants.settings_keys import SettingsService
+from ..settings_service import SettingsService
 from ...constants.cadastral_fields import Katastriyksus
 from ...constants.layer_constants import IMPORT_PROPERTY_TAG
 

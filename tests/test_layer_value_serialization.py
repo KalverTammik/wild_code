@@ -18,7 +18,7 @@ from qgis.PyQt.QtWidgets import QApplication
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.modules.easements import easement_layer_service as easement_module
 from Kavitro_dev.modules.projects import projects_layer_service as projects_module
-from Kavitro_dev.modules.Settings import EasementStatusMappingDialog as mapping_dialog_module
+from Kavitro_dev.modules.easements import easement_status_mapping_dialog as mapping_dialog_module
 from Kavitro_dev.utils.layers import module_layer_service_base
 
 EasementLayerService = easement_module.EasementLayerService

@@ -3,17 +3,12 @@ Module-specific configurations for ExtraInfoWidget: the detail view each module 
 """
 
 from typing import List, Dict, Any, Optional
-from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.api_client import APIClient
 from ...python.responses import DataDisplayExtractors
 from ...constants.module_names import Module
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...modules.projects.project_board_overview_service import ProjectBoardOverviewService
-from ...modules.projects.project_board_widgets import ProjectBoardOverviewWidget
-from ...ui.theme_manager import ThemeManager
-from ...constants.file_paths import QssPaths
 from .EasementPropertiesWidget import EasementPropertiesWidget
 from .TaskDetailOverviewWidget import TaskDetailOverviewWidget
 from .AsyncContentWidget import AsyncContentWidget
@@ -39,6 +34,15 @@ class ModuleConfig:
 
 class ModuleConfigFactory:
     """Factory for creating module-specific configurations."""
+
+    # module type -> factory(item_id, *, lang_manager) -> ModuleConfig. A module whose detail
+    # view lives in its own package registers it (ui/modules_registry.py), so this widget
+    # package never imports modules/.
+    _registered_factories: Dict[str, Any] = {}
+
+    @classmethod
+    def register(cls, module_type: str, factory) -> None:
+        cls._registered_factories[module_type] = factory
 
     @staticmethod
     def _load_single_item_description(*, module_type: str, query_name: str, root_field: str, item_data: Optional[Dict[str, Any]]) -> str:
@@ -116,8 +120,9 @@ class ModuleConfigFactory:
         lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         """Create configuration based on module type."""
-        if module_type == Module.PROJECT.value:
-            return ModuleConfigFactory._create_project_config(item_id, lang_manager=lang_manager)
+        registered = ModuleConfigFactory._registered_factories.get(module_type)
+        if registered is not None:
+            return registered(item_id, lang_manager=lang_manager)
         if module_type == Module.CONTRACT.value:
             return ModuleConfigFactory._create_contract_config(item_id, lang_manager=lang_manager)
         if module_type == Module.COORDINATION.value:
@@ -131,47 +136,6 @@ class ModuleConfigFactory:
         if module_type == Module.ASBUILT.value:
             return ModuleConfigFactory._create_asbuilt_config(item_id, lang_manager=lang_manager)
         return ModuleConfig()
-
-    @staticmethod
-    def _create_project_config(
-        item_id: Dict[str, Any],
-        *,
-        lang_manager: Optional[LanguageManager] = None,
-    ) -> ModuleConfig:
-        """Create configuration for project modules."""
-        lm = lang_manager or LanguageManager()
-        config = ModuleConfig()
-
-        def _project_detail_widget(board_data, lang=lm):
-            wrapper = QWidget()
-            layout = QVBoxLayout(wrapper)
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(10)
-
-            intro = QLabel(
-                lang.translate(TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT),
-                wrapper,
-            )
-            intro.setWordWrap(True)
-            intro.setObjectName("ProjectBoardDetailIntro")
-            layout.addWidget(intro)
-
-            board_widget = ProjectBoardOverviewWidget(board_data, wrapper)
-            layout.addWidget(board_widget)
-
-            ThemeManager.apply_module_style(wrapper, [QssPaths.MODULE_INFO])
-            return wrapper
-
-        config.set_detail_loader(
-            lambda: AsyncContentWidget(
-                lambda: ProjectBoardOverviewService.build_project_board_data(item_id, lang_manager=lm),
-                _project_detail_widget,
-                lang_manager=lm,
-            )
-        )
-        config.set_show_detail_handle(True)
-
-        return config
 
     @staticmethod
     def _create_contract_config(

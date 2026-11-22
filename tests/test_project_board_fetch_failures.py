@@ -26,7 +26,7 @@ from Kavitro_dev.modules.Property.query_coordinator import (
     PropertyLookupService,
 )
 from Kavitro_dev.modules.projects.project_board_overview_service import ProjectBoardOverviewService
-from Kavitro_dev.modules.projects.project_board_status_rules import ProjectBoardStatusRules
+from Kavitro_dev.utils.project_board_status_rules import ProjectBoardStatusRules
 from Kavitro_dev.modules.projects.project_board_widgets import ProjectBoardOverviewWidget
 from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.constants.module_names import Module

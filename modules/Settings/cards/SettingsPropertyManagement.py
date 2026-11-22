@@ -1,7 +1,7 @@
 # PropertyManagement.py
 
 from ....constants.button_props import ButtonVariant
-from ....constants.settings_keys import SettingsService
+from ....utils.settings_service import SettingsService
 from qgis.utils import iface
 from PyQt5.QtCore import QCoreApplication, QEventLoop
 from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton

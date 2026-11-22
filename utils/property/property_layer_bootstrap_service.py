@@ -10,7 +10,7 @@ from qgis.core import QgsField, QgsFields, QgsProject, QgsVectorLayer, QgsWkbTyp
 
 from ...constants.file_paths import QmlPaths
 from ...constants.layer_constants import PROPERTY_TAG
-from ...constants.settings_keys import SettingsService
+from ..settings_service import SettingsService
 from ...engines.LayerCreationEngine import MailablGroupFolders, get_layer_engine
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.maa_amet.Maa_amet_field_comparer import MaaAmetFieldComparer

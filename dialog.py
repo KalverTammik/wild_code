@@ -38,7 +38,7 @@ from .ui.map_canvas_glass_action_bar import MapCanvasGlassActionBar
 from .ui.map_canvas_search_bar import MapCanvasSearchBar
 from .modules.Settings.settings_ui_controller import SettingsUIController
 from .constants.file_paths import ConfigPaths
-from .constants.settings_keys import SettingsService
+from .utils.settings_service import SettingsService
 
 
 

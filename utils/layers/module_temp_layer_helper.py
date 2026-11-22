@@ -6,7 +6,7 @@ from typing import Optional
 
 from qgis.core import QgsFields, QgsProject, QgsVectorLayer, QgsWkbTypes
 
-from ...constants.settings_keys import SettingsService
+from ..settings_service import SettingsService
 from ...engines.LayerCreationEngine import MailablGroupFolders
 from ...Logs.python_fail_logger import PythonFailLogger
 from ..MapTools.MapHelpers import MapHelpers

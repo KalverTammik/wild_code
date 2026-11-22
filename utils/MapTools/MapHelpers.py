@@ -3,7 +3,7 @@ from ...languages.translation_keys import TranslationKeys
 from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer, QgsFeatureRequest, QgsCoordinateTransform
 from qgis.utils import iface
 from ...constants.module_names import Module
-from ...constants.settings_keys import SettingsService
+from ..settings_service import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...utils.user_dialogs import UserDialogs
 from ...Logs.switch_logger import SwitchLogger

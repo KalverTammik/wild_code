@@ -52,6 +52,13 @@ projektiajalugu on failis [docs/archive/refactor_log.md](docs/archive/refactor_l
   kohta; vales kihis oleva komponendi liigutamine vajab eraldi migratsiooniplaani.
 - Dialoog ja widget koostavad UI ning delegeerivad tegevuse; hargnev äriloogika ei ela
   UI-klassis.
+- Moodul ei impordi teise mooduli sisemisi faile. Teine moodul on kättesaadav ainult tema
+  avaliku liidese kaudu (`modules/<moodul>/<nimi>_entry.py`). See fail ainult suunab
+  defineerivatesse moodulitesse ega impordi ise teisi mooduleid. Jagatud alus on
+  `modules/task_shared/`.
+- `widgets/` ei impordi mooduleid. Kui jagatud vidin vajab mooduli osa (detailvaade,
+  olekumuutuse järeltegevus), registreerib moodul selle `ui/modules_registry.py`-s.
+  Arhitektuuritest `tests/test_architecture_layers.py` kontrollib mõlemat.
 - Mooduli importimisel ei tehta võrgu-, andmebaasi- ega rasket arvutustööd. Algväärtusta
   laisalt või konstruktori/teenuse kaudu.
 - Pika elueaga, olekut hoidvad või eraldi testitavad teenused võtavad IO-kliendi sõltuvuse

@@ -121,6 +121,16 @@ class StatusWidget(QWidget):
 
     _EDITABLE_MODULES = {Module.WORKS.value, Module.ASBUILT.value, Module.TASK.value}
 
+    # module name -> {key: hook(item_id, task_payload, lang_manager)}, run after a status change
+    # was saved. Modules register them (ui/modules_registry.py); this widget package never
+    # imports modules/. Registering the same key again replaces the hook.
+    _status_change_hooks: dict[str, dict] = {}
+
+    @classmethod
+    def register_status_change_hook(cls, module_names, key: str, hook) -> None:
+        for name in module_names:
+            cls._status_change_hooks.setdefault(name, {})[key] = hook
+
     def __init__(self, item_data, module_name: Optional[str] = None, parent=None, lang_manager=None):
         super().__init__(parent)
         self.setObjectName("LegacyStatusWidget")
@@ -279,25 +289,24 @@ class StatusWidget(QWidget):
         }
 
     def _sync_works_layer_if_needed(self, *, task_payload: Optional[dict] = None) -> None:
-        if self._module_name not in {Module.WORKS.value, Module.ASBUILT.value, Module.TASK.value}:
+        hooks = list((StatusWidget._status_change_hooks.get(self._module_name) or {}).values())
+        if not hooks:
             return
 
         item_id = str(self._item_data.get("id") or "").strip()
         if not item_id:
             return
 
-        try:
-            from ...modules.works.works_sync_service import WorksSyncService
-
-            sync_service = WorksSyncService(lang_manager=self._lang)
-            sync_service.sync_task_from_backend(item_id, task=task_payload)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.WORKS.value,
-                event="status_widget_sync_works_layer_failed",
-                extra={"source_module": self._module_name},
-            )
+        for hook in hooks:
+            try:
+                hook(item_id, task_payload, self._lang)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.WORKS.value,
+                    event="status_widget_sync_works_layer_failed",
+                    extra={"source_module": self._module_name},
+                )
 
     def _schedule_card_refresh(self, item_data: Optional[dict]) -> None:
         if not isinstance(item_data, dict) or not item_data:

@@ -4,7 +4,7 @@ from typing import Dict, Iterable, Optional
 
 from ..constants.module_names import Module, ModuleSupports
 from .module_registry import MODULES_LIST_BY_NAME
-from ..constants.settings_keys import SettingsService
+from .settings_service import SettingsService
 from ..Logs.python_fail_logger import PythonFailLogger
 
 

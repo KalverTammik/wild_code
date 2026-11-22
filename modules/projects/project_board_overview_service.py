@@ -9,8 +9,8 @@ from ...languages.translation_keys import TranslationKeys
 from ...module_manager import ModuleManager
 from ...python.responses import DataDisplayExtractors
 from ...constants.module_names import Module
-from ..Property.query_coordinator import PropertiesConnectedElementsQueries, PropertyLookupService
-from .project_board_status_rules import ProjectBoardStatusRules
+from ..Property.property_entry import PropertiesConnectedElementsQueries, PropertyLookupService
+from ...utils.project_board_status_rules import ProjectBoardStatusRules
 
 
 class ProjectBoardOverviewService:

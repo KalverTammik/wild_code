@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...languages.translation_keys import TranslationKeys
-from ...module_manager import ModuleManager
-from ...constants.module_names import Module, ModuleSupports
-from ...constants.setting_placeholders import SettingDialogPlaceholders
-from ...utils.settings_logic import SettingsLogic
-from ..projects.project_board_status_rules import ProjectBoardStatusRules
+from ..languages.translation_keys import TranslationKeys
+from ..module_manager import ModuleManager
+from ..constants.module_names import Module, ModuleSupports
+from ..constants.setting_placeholders import SettingDialogPlaceholders
+from ..utils.settings_logic import SettingsLogic
+from ..utils.project_board_status_rules import ProjectBoardStatusRules
 
 
 class SettingsSetupGuard:

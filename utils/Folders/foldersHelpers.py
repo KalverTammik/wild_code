@@ -11,7 +11,7 @@ from ...utils.api_error_handling import user_message
 
 from ...constants.module_names import Module
 from ...constants.setting_placeholders import SettingDialogPlaceholders
-from ...constants.settings_keys import SettingsService
+from ..settings_service import SettingsService
 from ..user_dialogs import UserDialogs
 from ..security_boundaries import (
     is_same_or_descendant_path,

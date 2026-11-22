@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import QApplication, QDialog
 from Kavitro_dev import main as main_module
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.Logs.switch_logger import SwitchLogger
-from Kavitro_dev.constants.settings_keys import SettingsService
+from Kavitro_dev.utils.settings_service import SettingsService
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.ui.session_storage_warning import show_pending_storage_warning, show_storage_warning

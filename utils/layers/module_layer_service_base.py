@@ -23,7 +23,7 @@ from qgis.core import (
 )
 from qgis.utils import iface
 
-from ...constants.settings_keys import SettingsService
+from ..settings_service import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
