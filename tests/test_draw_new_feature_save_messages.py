@@ -24,8 +24,8 @@ from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.modules.asbuilt import asbuilt_feature_map_controller as asbuilt_module
 from Kavitro_dev.modules.easements import easement_attach_existing_controller as easement_module
 from Kavitro_dev.modules.projects import projects_feature_map_controller as projects_module
-from Kavitro_dev.utils.MapTools import module_feature_controllers as controllers_module
-from Kavitro_dev.utils.MapTools.module_feature_controllers import (
+from Kavitro_dev.ui.map_tools import module_feature_controllers as controllers_module
+from Kavitro_dev.ui.map_tools.module_feature_controllers import (
     FeatureLinkResult,
     ModuleFeatureAttachController,
     ModuleFeatureDrawController,

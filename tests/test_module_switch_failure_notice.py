@@ -15,8 +15,8 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 from Kavitro_dev.languages import en, et
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
-from Kavitro_dev.utils import moduleSwitchHelper as helper_module
-from Kavitro_dev.utils.moduleSwitchHelper import ModuleSwitchHelper
+from Kavitro_dev.ui import module_switch_helper as helper_module
+from Kavitro_dev.ui.module_switch_helper import ModuleSwitchHelper
 
 
 class FakeModule:

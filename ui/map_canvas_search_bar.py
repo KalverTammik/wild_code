@@ -136,7 +136,7 @@ class MapCanvasSearchBar(MapCanvasGlassOverlayBase):
     def _open_result_in_plugin(self, module: str, item_id: str, title: str) -> None:
         try:
             from ..dialog import PluginDialog
-            from ..utils.search.searchHelpers import SearchUIController
+            from .search_result_router import SearchUIController
 
             SearchUIController.handle_search_result(PluginDialog.get_instance(), module, item_id, title)
         except Exception as exc:

@@ -21,13 +21,13 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...module_manager import ModuleManager
-from ...ui.window_state.dialog_helpers import DialogHelpers
-from ...ui.messages_helper import ModernMessageDialog
-from ...utils.moduleSwitchHelper import ModuleSwitchHelper
+from ..window_state.dialog_helpers import DialogHelpers
+from ..messages_helper import ModernMessageDialog
+from ..module_switch_helper import ModuleSwitchHelper
 from ...constants.module_names import Module
-from .canvas_click_tool import SingleClickMapTool
-from .MapHelpers import MapHelpers
-from .module_item_focus_service import ModuleItemFocusService
+from ...utils.MapTools.canvas_click_tool import SingleClickMapTool
+from ...utils.MapTools.MapHelpers import MapHelpers
+from ...utils.MapTools.module_item_focus_service import ModuleItemFocusService
 
 
 class ModuleIdentifyToolController:

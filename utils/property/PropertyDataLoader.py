@@ -6,7 +6,7 @@ from ...constants.cadastral_fields import Katastriyksus, AreaUnit
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from qgis.core import QgsFeatureRequest, QgsRectangle, QgsVariantUtils
-from ...widgets.DateHelpers import DateHelpers
+from ..date_helpers import DateHelpers
 from .property_row_builder import PropertyRowBuilder
 from ...Logs.python_fail_logger import PythonFailLogger
 

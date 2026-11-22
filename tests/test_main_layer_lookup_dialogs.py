@@ -57,7 +57,7 @@ EXPECTED_CALL_SITES = {
     "modules/works/works_layer_service.py": (0, 1),
     "modules/works/works_reposition_controller.py": (1, 0),
     "modules/works/works_sync_service.py": (0, 2),
-    "utils/SHPLayerLoader.py": (0, 1),
+    "modules/Property/FlowControllers/property_shp_import_flow.py": (0, 1),
     "modules/Property/dialogs/AddUpdatePropertyDialog.py": (1, 1),
     "widgets/DataDisplayWidgets/module_action_buttons.py": (1, 0),
 }

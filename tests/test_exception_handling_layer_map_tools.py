@@ -37,20 +37,20 @@ from Kavitro_dev.modules.asbuilt.asbuilt_layer_service import AsBuiltLayerServic
 from Kavitro_dev.modules.works import works_layer_service as works_module
 from Kavitro_dev.modules.works.works_layer_service import WorksLayerService
 from Kavitro_dev.ui import messages_helper as messages_module
-from Kavitro_dev.utils import moduleSwitchHelper as switch_module
+from Kavitro_dev.ui import module_switch_helper as switch_module
 from Kavitro_dev.utils.layers import module_layer_service_base as base_module
-from Kavitro_dev.utils.MapTools import module_feature_controllers as controllers_module
-from Kavitro_dev.utils.MapTools import module_identify_tool as identify_module
+from Kavitro_dev.ui.map_tools import module_feature_controllers as controllers_module
+from Kavitro_dev.ui.map_tools import module_identify_tool as identify_module
 from Kavitro_dev.utils.MapTools.MapHelpers import FeatureActions, MapHelpers
-from Kavitro_dev.utils.MapTools.module_feature_controllers import (
+from Kavitro_dev.ui.map_tools.module_feature_controllers import (
     FeatureLinkResult,
     ModuleFeatureAttachController,
     ModuleFeatureDrawController,
     ModuleFeatureEditController,
 )
-from Kavitro_dev.utils.MapTools.module_identify_tool import ModuleIdentifyToolController
+from Kavitro_dev.ui.map_tools.module_identify_tool import ModuleIdentifyToolController
 from Kavitro_dev.ui.messages_helper import ModernMessageDialog
-from Kavitro_dev.utils.moduleSwitchHelper import ModuleSwitchHelper
+from Kavitro_dev.ui.module_switch_helper import ModuleSwitchHelper
 
 maphelpers_module = sys.modules[MapHelpers.__module__]
 
@@ -328,7 +328,7 @@ class MapHelpersTest(LoggedCase):
                 self.assertEqual(layer.featureCount(), 1)
 
 
-# ---------------------------------------------------------------- utils/MapTools/module_identify_tool.py
+# ---------------------------------------------------------------- ui/map_tools/module_identify_tool.py
 class IdentifyToolTest(LoggedCase):
     @staticmethod
     def controller() -> ModuleIdentifyToolController:
@@ -451,7 +451,7 @@ class IdentifyToolTest(LoggedCase):
         self.log.assert_not_called()
 
 
-# ---------------------------------------------------------------- utils/MapTools/module_feature_controllers.py
+# ---------------------------------------------------------------- ui/map_tools/module_feature_controllers.py
 class FeatureControllersTest(LoggedCase):
     MESSAGES = dict(
         save_failed_message="{item_id}: {error}",
@@ -631,7 +631,7 @@ class FeatureControllersTest(LoggedCase):
         action.trigger.assert_called_once_with()
 
 
-# ---------------------------------------------------------------- utils/moduleSwitchHelper.py
+# ---------------------------------------------------------------- ui/module_switch_helper.py
 class ModuleSwitchHelperTest(unittest.TestCase):
     def test_module_name_is_canonical_and_unknown_names_are_lowercased(self) -> None:
         self.assertEqual(ModuleSwitchHelper._canonical_key("Property"), "property")

@@ -8,12 +8,12 @@ from qgis.core import QgsEditFormConfig, QgsFeature, QgsVectorLayer, QgsWkbTypes
 from qgis.utils import iface
 
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...ui.window_state.dialog_helpers import DialogHelpers
-from ..layers.field_value_problems import show_saved, with_field_value_problems
-from ..layers.module_layer_service_base import FieldValueProblem
-from ...ui.messages_helper import ModernMessageDialog
-from .canvas_click_tool import SingleClickMapTool
-from .MapHelpers import MapHelpers
+from ..window_state.dialog_helpers import DialogHelpers
+from ...utils.layers.field_value_problems import show_saved, with_field_value_problems
+from ...utils.layers.module_layer_service_base import FieldValueProblem
+from ..messages_helper import ModernMessageDialog
+from ...utils.MapTools.canvas_click_tool import SingleClickMapTool
+from ...utils.MapTools.MapHelpers import MapHelpers
 
 LayerResolver = Callable[[], Optional[QgsVectorLayer]]
 FeatureAtPointResolver = Callable[[object, QgsVectorLayer], Optional[QgsFeature]]

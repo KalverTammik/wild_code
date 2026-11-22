@@ -17,7 +17,7 @@ from ....python.workers import FunctionWorker, start_worker
 from ....python.api_rate_limit import api_request_context, RequestCancelled
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions, ActiveLayersHelper
 from ....utils.property.PropertyDataLoader import PropertyDataLoader
-from ....widgets.DateHelpers import DateHelpers
+from ....utils.date_helpers import DateHelpers
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....utils.api_error_handling import user_message
 

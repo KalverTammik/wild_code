@@ -28,12 +28,12 @@ from .ui.session_ui_controller import SessionUIController
 from .ui.modules_registry import ModulesRegistry
         
 from .constants.module_names import Module
-from .utils.moduleSwitchHelper import ModuleSwitchHelper
+from .ui.module_switch_helper import ModuleSwitchHelper
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QSizePolicy
 
-from .utils.search.searchHelpers import SearchUIController
+from .ui.search_result_router import SearchUIController
 from .ui.map_canvas_glass_action_bar import MapCanvasGlassActionBar
 from .ui.map_canvas_search_bar import MapCanvasSearchBar
 from .modules.Settings.settings_ui_controller import SettingsUIController
@@ -111,7 +111,9 @@ class PluginDialog(QDialog):
             switch_callback=self.apply_theme_toggle,
             logout_callback=self.logout
         )
-        self.header_widget.helpRequested.connect(ShowHelp.show_help_for_module)
+        self.header_widget.helpRequested.connect(
+            lambda: ShowHelp.show_help_for_module(self.moduleManager.getActiveModuleName())
+        )
         self.header_widget.searchResultClicked.connect(
             partial(SearchUIController.handle_search_result, self)
         )

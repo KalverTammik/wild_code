@@ -9,7 +9,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...utils.layers.module_layer_service_base import FieldValueProblem
-from ...utils.MapTools.module_feature_controllers import (
+from ...ui.map_tools.module_feature_controllers import (
     FeatureLinkResult,
     ModuleFeatureAttachMessages,
     ModuleFeatureDrawMessages,

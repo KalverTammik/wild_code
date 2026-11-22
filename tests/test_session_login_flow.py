@@ -25,7 +25,7 @@ from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.ui.session_storage_warning import show_pending_storage_warning, show_storage_warning
 from Kavitro_dev.ui.session_ui_controller import SessionUIController
 from Kavitro_dev.ui.messages_helper import ModernMessageDialog
-from Kavitro_dev.utils.moduleSwitchHelper import ModuleSwitchHelper
+from Kavitro_dev.ui.module_switch_helper import ModuleSwitchHelper
 from Kavitro_dev.constants.module_names import Module
 
 login_dialog_module = importlib.import_module("Kavitro_dev.login_dialog")

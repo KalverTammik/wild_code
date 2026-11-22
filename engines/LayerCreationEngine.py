@@ -11,7 +11,8 @@ This engine provides comprehensive layer management services including:
 """
 
 import os
-from typing import Optional
+from dataclasses import dataclass
+from typing import Callable, Optional
 from qgis.core import (
     QgsProject,
     QgsVectorLayer,
@@ -20,19 +21,34 @@ from qgis.core import (
     QgsFields,
     Qgis,
 )
-from qgis.PyQt.QtWidgets import QWidget
-from qgis.PyQt.QtCore import QTimer, QCoreApplication
 from qgis.PyQt.QtXml import QDomDocument
 
 # Local imports
 from ..constants.file_paths import QmlPaths
-from ..languages.translation_keys import TranslationKeys
 
 from ..constants.layer_constants import DEFAULT_CRS
 from ..Logs.python_fail_logger import PythonFailLogger
 from ..constants.module_names import Module
-# Prefer module-level imports for clarity. Kept here to avoid accidental circular imports when possible.
-from ..widgets.ProgressDialogModern import ProgressDialogModern
+
+
+
+@dataclass(frozen=True)
+class ShapefileImportProgress:
+    """One progress report of import_shapefile_to_memory_layer.
+
+    stage is COPYING while features are read, FINALIZING before the extent, index and
+    style are built, and COMPLETE once the layer is ready. The caller decides how to show it.
+    """
+
+    COPYING = "copying"
+    FINALIZING = "finalizing"
+    COMPLETE = "complete"
+
+    stage: str
+    done: int
+    total: int
+    copied: int
+
 
 # Global layer engine instance
 _layer_engine_instance = None
@@ -364,7 +380,7 @@ class LayerCreationEngine:
         shp_layer: QgsVectorLayer,
         layer_name: str,
         group_name: str,
-        parent_widget: Optional['QWidget'] = None,
+        on_progress: Optional[Callable[[ShapefileImportProgress], None]] = None,
         batch_size: Optional[int] = None,
         progress_update_interval: Optional[int] = None,
     ) -> Optional[QgsVectorLayer]:
@@ -375,7 +391,8 @@ class LayerCreationEngine:
             shp_layer: Source Shapefile layer
             layer_name: Name for the new memory layer
             group_name: Target group name
-            parent_widget: Optional parent widget for progress dialog
+            on_progress: Optional callback for progress reports. It is not called when the
+                source has no features. An exception from it fails the import (returns None).
 
         Returns:
             Optional[QgsVectorLayer]: Created memory layer or None if failed
@@ -413,15 +430,10 @@ class LayerCreationEngine:
             memory_layer.updateExtents()
             return memory_layer
 
-        # Create progress dialog
-        progress = None
-        progress_title = "Importing Shapefile" 
-        progress = ProgressDialogModern(
-            title=progress_title,
-            maximum=total_features,
-            parent=parent_widget,
-        )
-        progress.show()
+        def report(stage: str, done: int, copied: int) -> None:
+            if on_progress is not None:
+                on_progress(ShapefileImportProgress(stage, done, total_features, copied))
+
         # Get data provider for batch operations
         provider = memory_layer.dataProvider()
         if not provider:
@@ -465,16 +477,7 @@ class LayerCreationEngine:
 
                 # Update progress very infrequently to minimize overhead
                 if i % progress_update_interval == 0 or i == total_features - 1:
-                    if progress:
-                        progress_pct = int((i + 1) / total_features * 100)
-                        progress.update(
-                            value=i + 1,
-                            text1=self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_PROGRESS).format(
-                                done=i + 1, total=total_features, percent=progress_pct
-                            ),
-                            text2=self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_COPIED).format(count=features_added),
-                        )
-                        QCoreApplication.processEvents()
+                    report(ShapefileImportProgress.COPYING, i + 1, features_added)
 
             # Flush remaining features
             if features_batch:
@@ -489,15 +492,7 @@ class LayerCreationEngine:
                     return None
                 features_added += len(features_batch)
 
-            # Update progress to indicate finalization (reuse progress UI instead of a separate dialog)
-            if progress:
-                final_touches_text = self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_FINAL_TOUCHES)
-                progress.update(
-                    value=total_features,
-                    text1=final_touches_text,
-                    text2=self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_COPIED).format(count=features_added),
-                )
-                QCoreApplication.processEvents()
+            report(ShapefileImportProgress.FINALIZING, total_features, features_added)
 
             memory_layer.updateExtents()
 
@@ -506,15 +501,7 @@ class LayerCreationEngine:
             style_path = QmlPaths.MAAMET_IMPORT
             memory_layer.loadNamedStyle(style_path)
 
-            if progress:
-                complete_text = self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_COMPLETE)
-                progress.update(
-                    value=total_features,
-                    text1=complete_text,
-                    text2=self.lang_manager.translate(TranslationKeys.LAYER_IMPORT_IMPORTED).format(count=features_added),
-                )
-                # Close progress after a short delay to let user see the final state
-                QTimer.singleShot(1200, lambda: progress.close())
+            report(ShapefileImportProgress.COMPLETE, total_features, features_added)
 
             # Restore undo stack
             if original_undo_stack:
@@ -528,17 +515,12 @@ class LayerCreationEngine:
 
         except Exception as e:
             PythonFailLogger.log_exception(e, module=Module.PROPERTY.value, event="layer_import_failed")
-            # Close any open progress dialog on unexpected error
-            if progress:
-                progress.close()
             return None
         finally:
             # Always restore signals and undo stack
             memory_layer.blockSignals(False)
             if original_undo_stack:
                 memory_layer.setUndoStack(original_undo_stack)
-            if progress:
-                progress.close()
 
 def get_layer_engine() -> LayerCreationEngine:
     """

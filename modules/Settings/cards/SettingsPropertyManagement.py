@@ -10,10 +10,11 @@ from qgis.core import QgsProject
 from .SettingsBaseCard import SettingsBaseCard
 from ..settings_layer_helper import SettingsLayerHelper
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
-from ....utils.SHPLayerLoader import SHPLayerLoader, SHPLoadStatus
 from ....utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
 from ....modules.Property.property_entry import (
     PropertyDialogMode,
+    SHPLoadStatus,
+    load_property_layer_from_shp,
     open_add_property_dialog,
     open_remove_by_id_dialog,
     start_remove_selected_flow,
@@ -279,10 +280,8 @@ class PropertyManagementUI(SettingsBaseCard):
         loadWebpage.open_webpage(wl.maa_amet)
 
     def _handle_file_import(self):
-        """Handle file import for property data using existing SHPLayerLoader"""
-        # Use the existing SHPLayerLoader for proper import functionality
-        loader = SHPLayerLoader(self)
-        result = loader.load_shp_layer()
+        """Load property data from a Shapefile through the Property module."""
+        result = load_property_layer_from_shp(self)
         if result.success:
             self._invalidate_shp_feature_cache()
             if result.bootstrap_created:

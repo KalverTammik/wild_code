@@ -16,7 +16,7 @@ from ....constants.module_names import Module
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from .property_backend_update import UpdatePropertyData
 from ....utils.TagsEngines import TagsEngines
-from ....utils.moduleSwitchHelper import ModuleSwitchHelper
+from ....ui.module_switch_helper import ModuleSwitchHelper
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....utils.property.ArchiveLayerHandler import ArchiveLayerHandler
 from ....utils.property.PropertyDataLoader import PropertyDataLoader

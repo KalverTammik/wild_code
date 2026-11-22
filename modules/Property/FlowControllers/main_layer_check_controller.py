@@ -7,7 +7,7 @@ from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 from ....constants.cadastral_fields import Katastriyksus
 from ....languages.translation_keys import TranslationKeys
 from ....utils.MapTools.MapHelpers import MapHelpers
-from ....widgets.DateHelpers import DateHelpers
+from ....utils.date_helpers import DateHelpers
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....constants.module_names import Module
 

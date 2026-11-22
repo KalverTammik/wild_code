@@ -127,7 +127,7 @@ class PropertyLocationRulesTest(LocationFilterTestCase):
         normalized ISO string must still steer classify_property_import to the same
         decision -- this is the safety net behind that internal conversion."""
         from PyQt5.QtCore import QDate
-        from Kavitro_dev.widgets.DateHelpers import DateHelpers
+        from Kavitro_dev.utils.date_helpers import DateHelpers
         from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
 
         main_layer = QgsVectorLayer(f'Point?crs=EPSG:3301&field={F.tunnus}:string', 'Main', 'memory')
@@ -161,7 +161,7 @@ class PropertyLocationRulesTest(LocationFilterTestCase):
         replacement for, the existing import-builder test
         (test_address_split_separates_only_a_trailing_house_number) or the missing-settlement
         and date-type regression guards above."""
-        from Kavitro_dev.widgets.DateHelpers import DateHelpers
+        from Kavitro_dev.utils.date_helpers import DateHelpers
         from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
 
         self.add_import_fields()

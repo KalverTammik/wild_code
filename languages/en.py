@@ -183,6 +183,7 @@ TRANSLATIONS = {
         TranslationKeys.LAYER_IMPORT_PROGRESS: "Processing features: {done}/{total} ({percent}%)",
         TranslationKeys.LAYER_IMPORT_COPIED: "Features copied: {count}",
         TranslationKeys.LAYER_IMPORT_IMPORTED: "{count} features imported",
+        TranslationKeys.LAYER_IMPORT_TITLE: "Importing Shapefile",
         TranslationKeys.EASEMENT_MAIN_LAYER_AMBIGUOUS: "Configured easement main layer is ambiguous. Please re-select the main easement layer in Settings.",
         TranslationKeys.FOLDER_COPY_SUCCESS: "Folder '{source}'\n(including its subfolders and files) was copied successfully.\n\nA folder named \n'{folder}' was created at the destination.",
         TranslationKeys.PROPERTY_SUMMARY_TITLE: "Property details",

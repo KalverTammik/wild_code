@@ -854,6 +854,7 @@ class TranslationKeys:
     LAYER_IMPORT_PROGRESS = "layer_import_progress"
     LAYER_IMPORT_COPIED = "layer_import_copied"
     LAYER_IMPORT_IMPORTED = "layer_import_imported"
+    LAYER_IMPORT_TITLE = "layer_import_title"
     EASEMENT_MAIN_LAYER_AMBIGUOUS = "easement_main_layer_ambiguous"
     FOLDER_COPY_SUCCESS = "folder_copy_success"
     PROPERTY_SUMMARY_TITLE = "property_summary_title"

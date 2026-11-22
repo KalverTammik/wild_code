@@ -26,7 +26,7 @@ from ...python.api_actions import APIModuleActions
 from ...python.workers import FunctionWorker, start_worker
 from ...ui.messages_helper import ModernMessageDialog
 from ...constants.module_names import Module
-from ..DateHelpers import DateHelpers
+from ...utils.date_helpers import DateHelpers
 from ...ui.theme_manager import ThemeManager
 from .TaskFilePreviewDialog import TaskFilePreviewDialog
 

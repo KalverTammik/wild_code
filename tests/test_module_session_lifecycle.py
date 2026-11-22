@@ -20,7 +20,7 @@ from Kavitro_dev import main as main_module
 from Kavitro_dev import module_manager as manager_module
 from Kavitro_dev.ui.mixins.token_mixin import TokenMixin
 from Kavitro_dev.utils import module_registry
-from Kavitro_dev.utils.moduleSwitchHelper import ModuleSwitchHelper
+from Kavitro_dev.ui.module_switch_helper import ModuleSwitchHelper
 from Kavitro_dev.ui.session_ui_controller import SessionUIController
 from Kavitro_dev.utils.SessionManager import SessionManager
 from Kavitro_dev.ui import theme_manager as theme_module

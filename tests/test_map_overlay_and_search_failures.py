@@ -138,7 +138,7 @@ class SearchBarFailureTest(OverlayCase):
 
         with patch("Kavitro_dev.dialog.PluginDialog.get_instance", return_value=object()), \
                 patch(
-                    "Kavitro_dev.utils.search.searchHelpers.SearchUIController.handle_search_result",
+                    "Kavitro_dev.ui.search_result_router.SearchUIController.handle_search_result",
                     side_effect=RuntimeError("handler bug"),
                 ), \
                 patch.object(PythonFailLogger, "log") as log:

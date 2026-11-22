@@ -8,7 +8,7 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
 from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...ui.messages_helper import ModernMessageDialog
-from ...utils.MapTools.module_feature_controllers import (
+from ...ui.map_tools.module_feature_controllers import (
     FeatureLinkResult,
     ModuleFeatureAttachMessages,
     ModuleFeatureDrawMessages,

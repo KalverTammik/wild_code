@@ -7,9 +7,9 @@ from ..constants.module_icons import IconNames
 from ..languages.translation_keys import TranslationKeys
 from ..Logs.python_fail_logger import PythonFailLogger
 from ..module_manager import ModuleManager
-from ..utils.moduleSwitchHelper import ModuleSwitchHelper
+from .module_switch_helper import ModuleSwitchHelper
 from ..constants.module_names import Module
-from ..utils.MapTools.module_identify_tool import ModuleIdentifyToolController
+from .map_tools.module_identify_tool import ModuleIdentifyToolController
 from .map_canvas_glass_overlay import MapCanvasGlassOverlayBase
 from .map_canvas_glass_style import MapCanvasGlassStyle
 from .map_canvas_search_bar import MapCanvasSearchBar

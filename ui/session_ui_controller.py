@@ -12,7 +12,7 @@ from ..Logs.switch_logger import SwitchLogger
 from ..constants.settings_keys import SettingsService
 from ..login_dialog import LoginDialog
 from ..utils.SessionManager import SessionManager
-from ..utils.moduleSwitchHelper import ModuleSwitchHelper
+from .module_switch_helper import ModuleSwitchHelper
 from ..constants.module_names import Module
 
 if TYPE_CHECKING:

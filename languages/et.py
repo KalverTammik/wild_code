@@ -184,6 +184,7 @@ TRANSLATIONS = {
         TranslationKeys.LAYER_IMPORT_PROGRESS: "Objektide töötlemine: {done}/{total} ({percent}%)",
         TranslationKeys.LAYER_IMPORT_COPIED: "Kopeeritud objekte: {count}",
         TranslationKeys.LAYER_IMPORT_IMPORTED: "Imporditud objekte: {count}",
+        TranslationKeys.LAYER_IMPORT_TITLE: "Shapefile'i import",
         TranslationKeys.EASEMENT_MAIN_LAYER_AMBIGUOUS: "Servituutide põhikiht ei ole üheselt määratud. Vali seadetes servituutide põhikiht uuesti.",
         TranslationKeys.FOLDER_COPY_SUCCESS: "Kausta '{source}'\n(k.a kaustas sisalduvad alamkaustad ja failid) dubleerimine õnnestus.\n\nSihtkohta on genereeritud kaust nimetusega \n'{folder}'.",
         TranslationKeys.PROPERTY_SUMMARY_TITLE: "Kinnistu andmed",

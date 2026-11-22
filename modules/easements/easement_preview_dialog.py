@@ -44,7 +44,7 @@ from ...ui.messages_helper import ModernMessageDialog
 from ...utils.project_base_layers import ProjectBaseLayerKeys, ProjectBaseLayersService
 from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...constants.module_names import Module
-from ...widgets.DateHelpers import DateHelpers
+from ...utils.date_helpers import DateHelpers
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
 from ...widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
 from ...widgets.EasementPropertyAreaCalculationWidget import EasementPropertyAreaCalculationWidget

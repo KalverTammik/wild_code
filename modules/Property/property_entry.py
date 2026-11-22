@@ -9,9 +9,12 @@ from .dialogs.AddUpdatePropertyDialog import AddPropertyDialog, PropertyDialogMo
 from .FlowControllers.property_add_flow import MainAddPropertiesFlow
 from .dialogs.delete_property_dialog import DeletePropertyUI
 from .FlowControllers.property_remove_flow import PropertySelectionActionService
+from .FlowControllers.property_shp_import_flow import SHPLayerLoader, SHPLoadResult, SHPLoadStatus
 
 __all__ = [
     "PropertyDialogMode",
+    "SHPLoadStatus",
+    "load_property_layer_from_shp",
     "open_add_property_dialog",
     "open_remove_by_id_dialog",
     "start_remove_selected_flow",
@@ -41,3 +44,12 @@ def start_remove_selected_flow(**kwargs):
     and returns its selection controller, or None when selection could not start.
     """
     return PropertySelectionActionService.start_settings_remove_flow(**kwargs)
+
+
+def load_property_layer_from_shp(parent) -> SHPLoadResult:
+    """Ask for a Shapefile and load it as the property import layer.
+
+    Shows the file pickers, the bootstrap questions, the progress window and the success
+    message itself. Returns the result; on FAILED the caller shows error_title/error_message.
+    """
+    return SHPLayerLoader(parent).load_shp_layer()

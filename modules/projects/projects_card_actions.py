@@ -10,7 +10,7 @@ from ...languages.translation_keys import ToolbarTranslationKeys, TranslationKey
 from ...python.responses import DataDisplayExtractors
 from ...utils.Folders.foldersHelpers import FolderEngines
 from ...ui.messages_helper import ModernMessageDialog
-from ...utils.moduleSwitchHelper import ModuleSwitchHelper
+from ...ui.module_switch_helper import ModuleSwitchHelper
 from ...constants.module_names import Module
 from ...constants.setting_placeholders import SettingDialogPlaceholders
 from ..Settings.settings_setup_guard import SettingsSetupGuard

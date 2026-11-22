@@ -9,18 +9,23 @@ from PyQt5.QtWidgets import QFileDialog
 from qgis.core import QgsVectorLayer
 from qgis.PyQt.QtCore import QCoreApplication
 
-from ..constants.file_paths import QmlPaths
-from ..constants.layer_constants import IMPORT_PROPERTY_TAG
-from ..engines.LayerCreationEngine import MailablGroupFolders, get_layer_engine
-from ..languages.language_manager import LanguageManager
-from ..languages.translation_keys import TranslationKeys
-from ..Logs.python_fail_logger import PythonFailLogger
-from .MapTools.MapHelpers import ActiveLayersHelper
-from .property.property_layer_bootstrap_service import (
+from ....constants.file_paths import QmlPaths
+from ....constants.layer_constants import IMPORT_PROPERTY_TAG
+from ....engines.LayerCreationEngine import (
+    MailablGroupFolders,
+    ShapefileImportProgress,
+    get_layer_engine,
+)
+from ....languages.language_manager import LanguageManager
+from ....languages.translation_keys import TranslationKeys
+from ....Logs.python_fail_logger import PythonFailLogger
+from ....utils.MapTools.MapHelpers import ActiveLayersHelper
+from ....utils.property.property_layer_bootstrap_service import (
     PropertyLayerBootstrapResult,
     PropertyLayerBootstrapService,
 )
-from ..ui.messages_helper import ModernMessageDialog
+from ....ui.messages_helper import ModernMessageDialog
+from ....widgets.ProgressDialogModern import ProgressDialogModern
 
 
 class SHPLoadStatus(Enum):
@@ -40,6 +45,50 @@ class SHPLoadResult:
     @property
     def success(self) -> bool:
         return self.status == SHPLoadStatus.SUCCESS
+
+
+class _ImportProgressWindow:
+    """Show the engine's ShapefileImportProgress reports in a progress window.
+
+    The window opens on the first report (the engine sends none for an empty source)
+    and stays open until close().
+    """
+
+    def __init__(self, parent, lang_manager) -> None:
+        self._parent = parent
+        self._lang = lang_manager
+        self._dialog = None
+
+    def __call__(self, report: ShapefileImportProgress) -> None:
+        if self._dialog is None:
+            self._dialog = ProgressDialogModern(
+                title=self._lang.translate(TranslationKeys.LAYER_IMPORT_TITLE),
+                maximum=report.total,
+                parent=self._parent,
+            )
+            self._dialog.show()
+
+        copied_text = self._lang.translate(TranslationKeys.LAYER_IMPORT_COPIED).format(count=report.copied)
+        if report.stage == ShapefileImportProgress.COPYING:
+            percent = int(report.done / report.total * 100) if report.total else 0
+            text1 = self._lang.translate(TranslationKeys.LAYER_IMPORT_PROGRESS).format(
+                done=report.done, total=report.total, percent=percent
+            )
+            text2 = copied_text
+        elif report.stage == ShapefileImportProgress.FINALIZING:
+            text1 = self._lang.translate(TranslationKeys.LAYER_IMPORT_FINAL_TOUCHES)
+            text2 = copied_text
+        else:
+            text1 = self._lang.translate(TranslationKeys.LAYER_IMPORT_COMPLETE)
+            text2 = self._lang.translate(TranslationKeys.LAYER_IMPORT_IMPORTED).format(count=report.copied)
+        self._dialog.update(value=report.done, text1=text1, text2=text2)
+        if report.stage != ShapefileImportProgress.COMPLETE:
+            QCoreApplication.processEvents()
+
+    def close(self) -> None:
+        if self._dialog is not None:
+            self._dialog.close()
+            self._dialog = None
 
 
 class SHPLayerLoader:
@@ -77,12 +126,16 @@ class SHPLayerLoader:
         if bootstrap_cancelled:
             return SHPLoadResult(SHPLoadStatus.CANCELLED)
 
-        memory_layer = self.engine.import_shapefile_to_memory_layer(
-            shp_layer=shp_layer,
-            layer_name=layer_name,
-            group_name=self.target_group,
-            parent_widget=self.parent,
-        )
+        progress_window = _ImportProgressWindow(self.parent, self.lang_manager)
+        try:
+            memory_layer = self.engine.import_shapefile_to_memory_layer(
+                shp_layer=shp_layer,
+                layer_name=layer_name,
+                group_name=self.target_group,
+                on_progress=progress_window,
+            )
+        finally:
+            progress_window.close()
         PythonFailLogger.log(
             "shp_loader_import_result",
             module="property",

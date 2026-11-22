@@ -28,8 +28,8 @@ from Kavitro_dev.modules.projects import project_preview_dialog as project_previ
 from Kavitro_dev.modules.works import works_create_controller as works_module
 from Kavitro_dev.utils.layers import field_value_problems as notice
 from Kavitro_dev.utils.layers.module_layer_service_base import FieldValueProblem
-from Kavitro_dev.utils.MapTools import module_feature_controllers as controllers_module
-from Kavitro_dev.utils.MapTools.module_feature_controllers import (
+from Kavitro_dev.ui.map_tools import module_feature_controllers as controllers_module
+from Kavitro_dev.ui.map_tools.module_feature_controllers import (
     FeatureLinkResult,
     ModuleFeatureAttachController,
     ModuleFeatureDrawController,

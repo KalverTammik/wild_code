@@ -48,7 +48,7 @@ from ....utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
 from ....ui.messages_helper import ModernMessageDialog
 from ....utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ....constants.cadastral_fields import Katastriyksus
-from ....widgets.DateHelpers import DateHelpers
+from ....utils.date_helpers import DateHelpers
 from .PropertyArchivePlanDialog import PropertyArchivePlanDialog
 from .property_import_review_dialog import PropertyImportReviewDialog
 

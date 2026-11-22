@@ -6,7 +6,7 @@ from ..languages.translation_keys import TranslationKeys
 from ..module_manager import ModuleManager
 from ..Logs.switch_logger import SwitchLogger
 from ..modules.Settings.settings_setup_guard import SettingsSetupGuard
-from ..ui.messages_helper import ModernMessageDialog
+from .messages_helper import ModernMessageDialog
 from ..utils.SessionManager import SessionManager
 
 

@@ -8,7 +8,7 @@ from ....constants.file_paths import QssPaths
 from ..FlowControllers.property_import_decisions import ADDRESS_REASONS
 from ....languages.translation_keys import TranslationKeys as K
 from ....ui.theme_manager import ThemeManager
-from ....widgets.DateHelpers import DateHelpers
+from ....utils.date_helpers import DateHelpers
 
 
 class PropertyImportReviewDialog(QDialog):
