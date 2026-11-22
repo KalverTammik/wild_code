@@ -52,6 +52,8 @@ check_module = importlib.import_module("Kavitro_dev.modules.Property.FlowControl
 dialog_module = importlib.import_module("Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog")
 html_module = importlib.import_module("Kavitro_dev.widgets.DataDisplayWidgets.HtmlDescriptionWidget")
 preview_module = importlib.import_module("Kavitro_dev.widgets.DataDisplayWidgets.TaskFilePreviewDialog")
+from Kavitro_dev.widgets.DataDisplayWidgets import task_file_external_open as external_open  # noqa: E402
+from Kavitro_dev.widgets.DataDisplayWidgets import task_file_identity  # noqa: E402
 
 # Anything that could open a modal window if a regression reached it.
 MESSAGE_DIALOG_METHODS = ("Info_messages_modern", "Warning_messages_modern", "Error_messages_modern",
@@ -212,9 +214,9 @@ class TaskFilePreviewHandlersTest(WidgetCase):
         with tempfile.TemporaryDirectory() as folder, \
                 patch.object(tempfile, "tempdir", folder), \
                 patch.object(preview_module.APIModuleActions, "create_file_download_link", return_value=link), \
-                patch.object(preview_module.requests, "get",
+                patch.object(external_open.requests, "get",
                              side_effect=requests.ConnectionError(f"failed for {link}")):
-            result = TaskFilePreviewDialog._materialize_remote_file_to_temp(self.FILE_INFO, allowed_extension="pdf")
+            result = external_open.materialize_remote_file_to_temp(self.FILE_INFO, allowed_extension="pdf")
             self.assertEqual(os.listdir(folder), [])
         self.assertEqual(result, "")
         call = call_for(self.log, "task_file_preview_download_failed")
@@ -224,14 +226,14 @@ class TaskFilePreviewHandlersTest(WidgetCase):
     def test_temp_file_that_cannot_be_created_ends_the_download_quietly(self) -> None:
         with patch.object(preview_module.APIModuleActions, "create_file_download_link",
                           return_value="https://files.example/a.pdf"), \
-                patch.object(preview_module.tempfile, "NamedTemporaryFile", side_effect=OSError("disk full")):
-            result = TaskFilePreviewDialog._materialize_remote_file_to_temp(self.FILE_INFO, allowed_extension="pdf")
+                patch.object(tempfile, "NamedTemporaryFile", side_effect=OSError("disk full")):
+            result = external_open.materialize_remote_file_to_temp(self.FILE_INFO, allowed_extension="pdf")
         self.assertEqual(result, "")
         self.assertIn("task_file_preview_download_failed", logged(self.log))
 
     def test_pdf_temp_write_failure_is_logged_and_forgets_the_path(self) -> None:
         dialog = self.dialog()
-        with patch.object(preview_module.tempfile, "NamedTemporaryFile", side_effect=OSError("disk full")):
+        with patch.object(tempfile, "NamedTemporaryFile", side_effect=OSError("disk full")):
             self.assertEqual(dialog._write_pdf_temp_file(b"%PDF"), "")
         self.assertEqual(dialog._pdf_temp_path, "")
         self.assertIn("task_file_preview_pdf_temp_write_failed", logged(self.log))
@@ -240,9 +242,9 @@ class TaskFilePreviewHandlersTest(WidgetCase):
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as handle:
             path = handle.name
         self.addCleanup(os.remove, path)
-        with patch.object(preview_module.os, "startfile", side_effect=OSError("no association"), create=True), \
-                patch.object(preview_module.QDesktopServices, "openUrl", return_value=True) as open_url:
-            self.assertTrue(TaskFilePreviewDialog._open_local_path_in_default_application(path))
+        with patch.object(os, "startfile", side_effect=OSError("no association"), create=True), \
+                patch.object(external_open.QDesktopServices, "openUrl", return_value=True) as open_url:
+            self.assertTrue(external_open.open_local_path(path))
         open_url.assert_called_once()
 
     def test_web_view_that_cannot_be_created_is_logged(self) -> None:
@@ -293,8 +295,8 @@ class TaskFilePreviewHandlersTest(WidgetCase):
         self.assertIsNone(dialog._web_view)
 
     def test_undecodable_text_and_odd_sizes_keep_their_fallbacks(self) -> None:
-        self.assertEqual(TaskFilePreviewDialog._decode_text(b"\x81"), "\x81")
-        self.assertEqual(TaskFilePreviewDialog._human_readable_size("many"), "–")
+        self.assertEqual(task_file_identity.decode_text(b"\x81"), "\x81")
+        self.assertEqual(task_file_identity.human_readable_size("many"), "–")
 
 
 class HtmlDescriptionFallbackTest(WidgetCase):

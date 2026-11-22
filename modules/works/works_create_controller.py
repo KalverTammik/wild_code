@@ -3,125 +3,34 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Callable, Iterable, Optional
 
-from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QProgressBar, QProgressDialog
 from qgis.core import QgsPointXY
-from qgis.gui import QgsMapTool
 from qgis.utils import iface
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
-from ...python.workers import FunctionWorker, start_worker
 from ...ui.window_state.dialog_helpers import DialogHelpers
-from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...utils.layers.field_value_problems import show_saved, with_field_value_problems
 from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...ui.messages_helper import ModernMessageDialog
-from ...constants.module_names import Module, ModuleSupports
+from ...constants.module_names import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 from .works_create_dialog import (
-    LOAD_FAILED_PRIORITIES,
-    LOAD_FAILED_RESPONSIBLES,
-    LOAD_FAILED_STATUSES,
-    LOAD_FAILED_TYPES,
     WorksCreateDialog,
 )
 from .works_layer_service import WorksDescriptionService, WorksLayerService
-from .works_pending_gis_dialog import WorksPendingGisDialog
+from .works_create_map_widgets import WorksPointCaptureTool
+from .works_create_options import WorksCreateOptionsMixin
+from .works_pending_gis_review import WorksPendingGisReviewMixin
 
 
-class _WorksPointCaptureTool(QgsMapTool):
-    def __init__(self, canvas, on_selected: Callable[[QgsPointXY], None], on_cancel: Callable[[], None]):
-        super().__init__(canvas)
-        self.canvas = canvas
-        self._on_selected = on_selected
-        self._on_cancel = on_cancel
-        self.setCursor(Qt.CrossCursor)
+class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin):
+    """Adds works from the map: a new work from a click, an existing task placed on the map,
+    or a pending GIS feature turned into a work (listed by WorksPendingGisReviewMixin)."""
 
-    def canvasReleaseEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton:
-            point = self.canvas.getCoordinateTransform().toMapCoordinates(event.pos())
-            self._on_selected(point)
-            return
-        if event.button() == Qt.RightButton:
-            self._on_cancel()
-
-    def keyPressEvent(self, event) -> None:  # noqa: N802
-        if event.key() == Qt.Key_Escape:
-            self._on_cancel()
-
-
-class _MapButtonProgressBubble(QFrame):
-    WIDTH = 286
-    HEIGHT = 44
-    GAP = 8
-
-    def __init__(self, *, text: str, anchor, parent=None) -> None:
-        super().__init__(parent, Qt.ToolTip | Qt.FramelessWindowHint)
-        self._anchor = anchor
-        self.setObjectName("MapButtonProgressBubble")
-        self.setFixedSize(self.WIDTH, self.HEIGHT)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setStyleSheet(
-            """
-            QFrame#MapButtonProgressBubble {
-                background: rgba(248, 252, 255, 220);
-                border: 1px solid rgba(30, 126, 180, 150);
-                border-radius: 8px;
-            }
-            QLabel#MapButtonProgressLabel {
-                color: #12394a;
-                font-weight: 600;
-            }
-            QProgressBar#MapButtonProgressBar {
-                min-width: 74px;
-                max-width: 74px;
-                height: 8px;
-                border: 1px solid rgba(22, 111, 151, 90);
-                border-radius: 4px;
-                background: rgba(255, 255, 255, 120);
-                text-align: center;
-            }
-            QProgressBar#MapButtonProgressBar::chunk {
-                border-radius: 3px;
-                background: rgba(15, 118, 110, 160);
-            }
-            """
-        )
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(10)
-
-        label = QLabel(text, self)
-        label.setObjectName("MapButtonProgressLabel")
-        label.setWordWrap(False)
-        layout.addWidget(label, 1)
-
-        progress = QProgressBar(self)
-        progress.setObjectName("MapButtonProgressBar")
-        progress.setRange(0, 0)
-        progress.setTextVisible(False)
-        layout.addWidget(progress)
-
-    def show_near_anchor(self) -> None:
-        anchor = self._anchor
-        if anchor is not None:
-            try:
-                top_left = anchor.mapToGlobal(QPoint(0, 0))
-                y_pos = top_left.y() + max(0, (anchor.height() - self.HEIGHT) // 2)
-                self.move(max(0, top_left.x() - self.WIDTH - self.GAP), max(0, y_pos))
-            except RuntimeError:
-                pass
-        self.show()
-        self.raise_()
-
-
-class WorksCreateController:
     def __init__(self, *, lang_manager=None) -> None:
         self._lang = lang_manager or LanguageManager()
-        self._capture_tool: Optional[_WorksPointCaptureTool] = None
+        self._capture_tool: Optional[WorksPointCaptureTool] = None
         self._parent_window = None
         self._allowed_type_ids: list[str] = []
         self._on_created: Optional[Callable[[str], None]] = None
@@ -202,116 +111,6 @@ class WorksCreateController:
             start_failed_key=TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_START_FAILED,
         )
 
-    def review_pending_gis_features(
-        self,
-        *,
-        parent_window=None,
-        allowed_type_ids: Optional[Iterable[str]] = None,
-        on_created: Optional[Callable[[str], None]] = None,
-        progress_anchor=None,
-    ) -> bool:
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
-        if works_layer is None:
-            return False
-
-        self.cancel(bring_front=False)
-
-        self._parent_window = parent_window
-        self._allowed_type_ids = [str(item_id) for item_id in (allowed_type_ids or []) if item_id]
-        self._on_created = on_created
-        self._existing_task_id = ""
-        self._existing_task_payload = {}
-        self.preload_dialog_data()
-
-        pending_rows = self._scan_pending_gis_features_with_feedback(
-            works_layer,
-            parent_window=parent_window,
-            progress_anchor=progress_anchor,
-        )
-        if not pending_rows:
-            ModernMessageDialog.show_info(
-                self._lang.translate(TranslationKeys.INFO),
-                self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_NONE),
-            )
-            return False
-        pending_rows = self._decorate_pending_gis_rows(pending_rows)
-
-        dialog = WorksPendingGisDialog(
-            rows=pending_rows,
-            on_open=lambda feature_id, owner: self._open_pending_gis_feature(
-                works_layer,
-                feature_id,
-                parent_window=owner,
-            ),
-            lang_manager=self._lang,
-            parent=parent_window,
-        )
-        dialog.exec_()
-        return True
-
-    def _scan_pending_gis_features_with_feedback(
-        self,
-        works_layer,
-        *,
-        parent_window=None,
-        progress_anchor=None,
-    ) -> list[dict[str, object]]:
-        progress = self._make_scan_progress_widget(
-            parent_window=parent_window,
-            progress_anchor=progress_anchor,
-        )
-        if isinstance(progress, _MapButtonProgressBubble):
-            progress.show_near_anchor()
-        else:
-            progress.show()
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-        QApplication.processEvents()
-
-        try:
-            return WorksLayerService.pending_gis_work_features(works_layer)
-        finally:
-            QApplication.restoreOverrideCursor()
-            progress.close()
-            progress.deleteLater()
-            QApplication.processEvents()
-
-    def _make_scan_progress_widget(self, *, parent_window=None, progress_anchor=None):
-        text = self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_CHECKING)
-        if progress_anchor is not None:
-            return _MapButtonProgressBubble(text=text, anchor=progress_anchor)
-
-        progress = QProgressDialog(text, "", 0, 0, parent_window)
-        progress.setWindowTitle(self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_DIALOG_TITLE))
-        progress.setWindowModality(Qt.ApplicationModal)
-        progress.setMinimumDuration(0)
-        progress.setCancelButton(None)
-        # The same look and width as the other short waits; without it the window takes QGIS's own.
-        progress.setMinimumWidth(380)
-        ModernMessageDialog.style_as_message(progress)
-        return progress
-
-    def _decorate_pending_gis_rows(self, rows: list[dict[str, object]]) -> list[dict[str, object]]:
-        type_labels = {
-            str(option.get("id") or "").strip(): str(option.get("label") or "").strip()
-            for option in self._resolve_type_options()
-            if isinstance(option, dict) and str(option.get("id") or "").strip()
-        }
-        status_labels = {
-            str(option.get("id") or "").strip(): str(option.get("name") or option.get("label") or "").strip()
-            for option in self._resolve_status_options()
-            if isinstance(option, dict) and str(option.get("id") or "").strip()
-        }
-
-        decorated: list[dict[str, object]] = []
-        for row in rows:
-            payload = dict(row or {})
-            type_id = str(payload.get("type_id") or "").strip()
-            status_id = str(payload.get("status_id") or "").strip()
-            payload["type_label"] = type_labels.get(type_id) or type_id
-            payload["status_label"] = status_labels.get(status_id) or status_id
-            decorated.append(payload)
-        return decorated
-
     def _start_point_capture(self, *, start_failed_key: str) -> bool:
 
         canvas = iface.mapCanvas() if iface is not None else None
@@ -327,7 +126,7 @@ class WorksCreateController:
             parent_window=self._parent_window,
         )
 
-        self._capture_tool = _WorksPointCaptureTool(
+        self._capture_tool = WorksPointCaptureTool(
             canvas,
             on_selected=self._handle_point_selected,
             on_cancel=self.cancel,
@@ -337,23 +136,6 @@ class WorksCreateController:
 
     def cancel(self, *, bring_front: bool = True) -> None:
         self._clear_capture_tool(bring_front=bring_front)
-
-    def preload_dialog_data(self, *, force: bool = False) -> None:
-        if self._preload_thread is not None and not force:
-            return
-
-        self._preload_request_id += 1
-        request_id = self._preload_request_id
-
-        worker = FunctionWorker(self._fetch_preload_payload)
-        worker.finished.connect(
-            lambda payload, req=request_id: self._handle_preload_success(payload, req)
-        )
-        worker.error.connect(
-            lambda message, req=request_id: self._handle_preload_error(message, req)
-        )
-        self._preload_worker = worker
-        self._preload_thread = start_worker(worker, on_thread_finished=self._cleanup_preload_worker)
 
     def _handle_point_selected(self, point: QgsPointXY) -> None:
         if self._existing_task_id:
@@ -392,58 +174,17 @@ class WorksCreateController:
         map_error = ""
         value_problems: list[FieldValueProblem] = []
         if works_layer is not None:
-            created_at = WorksLayerService.created_date_from_task(created_task) or now
-            updated_at = WorksLayerService.updated_date_from_task(created_task) or created_at
-            responsible_name = self._responsible_display_name(
-                created_task,
-                fallback=dialog.selected_responsible_label() or WorksLayerService.current_username(),
-            )
-            created_title = str(created_task.get("name") or dialog.title_text() or "").strip()
             map_saved, map_error = WorksLayerService.insert_work_feature(
                 layer=works_layer,
                 point=point,
                 task_id=task_id,
-                title=created_title,
-                type_id=WorksLayerService.type_id_from_task(created_task) or dialog.selected_type_id(),
-                status_id=WorksLayerService.status_id_from_task(created_task),
-                active=WorksLayerService.active_from_task(created_task),
-                detailed=WorksLayerService.detailed_from_task(created_task),
-                begin_date=WorksLayerService.begin_date_from_task(created_task) or created_at,
-                end_date=WorksLayerService.end_date_from_task(created_task),
-                added_by=responsible_name,
-                added_date=created_at,
-                updated_by=responsible_name,
-                update_date=updated_at,
+                **self._feature_values_from_form(created_task, dialog, now),
                 value_problems=value_problems,
             )
 
-        property_link_failed = False
+        property_link_failed = self._link_property_to_task(task_id, property_feature, event="works_property_link_failed")
         cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
-        if cadastral_number:
-            try:
-                property_ids, _missing = APIModuleActions.resolve_property_ids_by_cadastral([cadastral_number])
-                if property_ids:
-                    APIModuleActions.associate_properties(Module.TASK.value, task_id, property_ids)
-                else:
-                    property_link_failed = True
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.WORKS.value,
-                    event="works_property_link_failed",
-                    extra={"task_id": task_id, "cadastral": cadastral_number},
-                )
-                property_link_failed = True
-
-        if callable(self._on_created):
-            try:
-                self._on_created(task_id)
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.WORKS.value,
-                    event="works_post_create_callback_failed",
-                )
+        self._notify_created(task_id, event="works_post_create_callback_failed")
 
         if not map_saved:
             ModernMessageDialog.show_warning(
@@ -538,29 +279,12 @@ class WorksCreateController:
             return False
 
         task_id, created_task = task_result
-        created_at = WorksLayerService.created_date_from_task(created_task) or now
-        updated_at = WorksLayerService.updated_date_from_task(created_task) or created_at
-        responsible_name = self._responsible_display_name(
-            created_task,
-            fallback=dialog.selected_responsible_label() or WorksLayerService.current_username(),
-        )
-        created_title = str(created_task.get("name") or dialog.title_text() or "").strip()
         value_problems: list[FieldValueProblem] = []
         map_saved, map_error = WorksLayerService.update_existing_work_feature(
             layer=works_layer,
             feature_id=feature_id,
             task_id=task_id,
-            title=created_title,
-            type_id=WorksLayerService.type_id_from_task(created_task) or dialog.selected_type_id(),
-            status_id=WorksLayerService.status_id_from_task(created_task),
-            active=WorksLayerService.active_from_task(created_task),
-            detailed=WorksLayerService.detailed_from_task(created_task),
-            begin_date=WorksLayerService.begin_date_from_task(created_task) or created_at,
-            end_date=WorksLayerService.end_date_from_task(created_task),
-            added_by=responsible_name,
-            added_date=created_at,
-            updated_by=responsible_name,
-            update_date=updated_at,
+            **self._feature_values_from_form(created_task, dialog, now),
             value_problems=value_problems,
         )
 
@@ -570,16 +294,7 @@ class WorksCreateController:
             event="works_pending_gis_property_link_failed",
         )
         cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
-
-        if callable(self._on_created):
-            try:
-                self._on_created(task_id)
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.WORKS.value,
-                    event="works_pending_gis_post_create_callback_failed",
-                )
+        self._notify_created(task_id, event="works_pending_gis_post_create_callback_failed")
 
         if not map_saved:
             ModernMessageDialog.show_warning(
@@ -720,6 +435,47 @@ class WorksCreateController:
             )
             return True
 
+    def _notify_created(self, task_id: str, *, event: str) -> None:
+        if not callable(self._on_created):
+            return
+        try:
+            self._on_created(task_id)
+        except Exception as exc:
+            PythonFailLogger.log_exception(exc, module=Module.WORKS.value, event=event)
+
+    @classmethod
+    def _feature_values_from_form(cls, created_task: dict, dialog: WorksCreateDialog, now: datetime) -> dict:
+        """Layer values of a task just created from the form; the form fills what the task lacks."""
+        return cls._work_feature_values(
+            created_task,
+            title=str(created_task.get("name") or dialog.title_text() or "").strip(),
+            type_id=WorksLayerService.type_id_from_task(created_task) or dialog.selected_type_id(),
+            responsible_name=cls._responsible_display_name(
+                created_task,
+                fallback=dialog.selected_responsible_label() or WorksLayerService.current_username(),
+            ),
+            now=now,
+        )
+
+    @staticmethod
+    def _work_feature_values(task: dict, *, title: str, type_id, responsible_name: str, now: datetime) -> dict:
+        """The works layer values of a task, for insert_work_feature and update_existing_work_feature."""
+        created_at = WorksLayerService.created_date_from_task(task) or now
+        updated_at = WorksLayerService.updated_date_from_task(task) or created_at
+        return {
+            "title": title,
+            "type_id": type_id,
+            "status_id": WorksLayerService.status_id_from_task(task),
+            "active": WorksLayerService.active_from_task(task),
+            "detailed": WorksLayerService.detailed_from_task(task),
+            "begin_date": WorksLayerService.begin_date_from_task(task) or created_at,
+            "end_date": WorksLayerService.end_date_from_task(task),
+            "added_by": responsible_name,
+            "added_date": created_at,
+            "updated_by": responsible_name,
+            "update_date": updated_at,
+        }
+
     def _handle_existing_task_point_selected(self, point: QgsPointXY) -> None:
         parent_window = self._parent_window
         self._clear_capture_tool(bring_front=True)
@@ -765,30 +521,21 @@ class WorksCreateController:
             return
 
         property_feature = WorksLayerService.find_property_feature_at_point(point)
-        created_at = WorksLayerService.created_date_from_task(task_payload) or datetime.now()
-        updated_at = WorksLayerService.updated_date_from_task(task_payload) or created_at
-        responsible_name = self._responsible_display_name(
-            task_payload,
-            fallback=WorksLayerService.current_username(),
-        )
-        title = str(task_payload.get("name") or "").strip() or task_id
-
         value_problems: list[FieldValueProblem] = []
         map_saved, map_error = WorksLayerService.insert_work_feature(
             layer=works_layer,
             point=point,
             task_id=task_id,
-            title=title,
-            type_id=WorksLayerService.type_id_from_task(task_payload),
-            status_id=WorksLayerService.status_id_from_task(task_payload),
-            active=WorksLayerService.active_from_task(task_payload),
-            detailed=WorksLayerService.detailed_from_task(task_payload),
-            begin_date=WorksLayerService.begin_date_from_task(task_payload) or created_at,
-            end_date=WorksLayerService.end_date_from_task(task_payload),
-            added_by=responsible_name,
-            added_date=created_at,
-            updated_by=responsible_name,
-            update_date=updated_at,
+            **self._work_feature_values(
+                task_payload,
+                title=str(task_payload.get("name") or "").strip() or task_id,
+                type_id=WorksLayerService.type_id_from_task(task_payload),
+                responsible_name=self._responsible_display_name(
+                    task_payload,
+                    fallback=WorksLayerService.current_username(),
+                ),
+                now=datetime.now(),
+            ),
             value_problems=value_problems,
         )
 
@@ -817,33 +564,9 @@ class WorksCreateController:
                 extra={"task_id": task_id},
             )
 
-        property_link_failed = False
+        property_link_failed = self._link_property_to_task(task_id, property_feature, event="works_existing_property_link_failed")
         cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
-        if cadastral_number:
-            try:
-                property_ids, _missing = APIModuleActions.resolve_property_ids_by_cadastral([cadastral_number])
-                if property_ids:
-                    APIModuleActions.associate_properties(Module.TASK.value, task_id, property_ids)
-                else:
-                    property_link_failed = True
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.WORKS.value,
-                    event="works_existing_property_link_failed",
-                    extra={"task_id": task_id, "cadastral": cadastral_number},
-                )
-                property_link_failed = True
-
-        if callable(self._on_created):
-            try:
-                self._on_created(task_id)
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.WORKS.value,
-                    event="works_post_add_existing_callback_failed",
-                )
+        self._notify_created(task_id, event="works_post_add_existing_callback_failed")
 
         if property_link_failed:
             ModernMessageDialog.show_warning(
@@ -906,278 +629,7 @@ class WorksCreateController:
             return ""
         return str(status_payload.get("id") or "").strip()
 
-    @staticmethod
-    def _log_options_load_failed(exc: Exception, event: str) -> None:
-        PythonFailLogger.log_exception(exc, module=Module.WORKS.value, event=event)
-
-    def _fetch_preload_payload(self) -> dict[str, object]:
-        try:
-            raw_types = FilterHelper.get_filter_edges_by_key_and_module(
-                ModuleSupports.TYPES.value,
-                Module.WORKS.value,
-            )
-        except Exception as exc:
-            # Fallbacks below are kept: the dialog then opens with an empty list instead of failing the preload.
-            self._log_options_load_failed(exc, "works_create_type_options_load_failed")
-            raw_types = []
-
-        try:
-            assignable_users = APIModuleActions.get_assignable_users()
-        except Exception as exc:
-            self._log_options_load_failed(exc, "works_create_assignable_users_load_failed")
-            assignable_users = []
-
-        try:
-            default_responsible_id = APIModuleActions.get_current_user_id()
-        except Exception as exc:
-            self._log_options_load_failed(exc, "works_create_default_responsible_load_failed")
-            default_responsible_id = ""
-
-        try:
-            # raise_on_error: a failed read must not look like a module without statuses.
-            status_options = self._normalize_status_options(
-                APIModuleActions.get_module_status_options(Module.WORKS.value, raise_on_error=True)
-            )
-        except Exception as exc:
-            self._log_options_load_failed(exc, "works_create_status_options_load_failed")
-            status_options = []
-
-        default_status_id = self._default_status_id_from_options(status_options)
-        default_status_color = self._status_color_from_options(default_status_id, status_options)
-
-        # Fetched here: a slow GUI-thread request opens a modal wait that swallows map clicks.
-        try:
-            priority_options = APIModuleActions.get_task_priority_options(
-                lang_manager=self._lang,
-                include_empty=True,
-            )
-        except Exception as exc:
-            self._log_options_load_failed(exc, "works_create_priority_options_load_failed")
-            priority_options = []
-
-        return {
-            "type_options": self._normalize_type_options(raw_types),
-            "assignable_users": list(assignable_users or []),
-            "default_responsible_id": str(default_responsible_id or "").strip(),
-            "status_options": status_options,
-            "default_status_id": str(default_status_id or "").strip(),
-            "default_status_color": str(default_status_color or "").strip(),
-            "priority_options": priority_options,
-        }
-
-    def _handle_preload_success(self, payload: object, request_id: int) -> None:
-        if request_id != self._preload_request_id or not isinstance(payload, dict):
-            return
-
-        self._cached_type_options = self._normalize_type_options(payload.get("type_options") or [])
-        self._cached_assignable_users = self._normalize_assignable_users(payload.get("assignable_users") or [])
-        self._cached_default_responsible_id = str(payload.get("default_responsible_id") or "").strip()
-        self._cached_status_options = self._normalize_status_options(payload.get("status_options") or [])
-        self._cached_default_status_id = (
-            str(payload.get("default_status_id") or "").strip()
-            or self._default_status_id_from_options(self._cached_status_options)
-        )
-        self._cached_default_status_color = (
-            str(payload.get("default_status_color") or "").strip()
-            or self._status_color_from_options(self._cached_default_status_id, self._cached_status_options)
-        )
-        self._cached_priority_options = list(payload.get("priority_options") or [])
-
-    def _handle_preload_error(self, message: str, request_id: int) -> None:
-        if request_id != self._preload_request_id:
-            return
-        PythonFailLogger.log_exception(
-            RuntimeError(message or "Works create dialog preload failed"),
-            module=Module.WORKS.value,
-            event="works_create_dialog_preload_failed",
-        )
-
-    def _cleanup_preload_worker(self) -> None:
-        self._preload_worker = None
-        self._preload_thread = None
-
-    def _resolve_dialog_options(self) -> dict[str, object]:
-        """Options for WorksCreateDialog, with the lists that failed to load named in load_failures."""
-        self._load_failures = set()
-        assignable_users = self._resolve_assignable_users()
-        priority_options = self._resolve_priority_options()
-        default_responsible_id = self._resolve_default_responsible_id()
-        status_options = self._resolve_status_options()
-        default_status_id = self._resolve_default_status_id(status_options)
-        type_options = self._resolve_type_options()
-        return {
-            "type_options": type_options,
-            "assignable_users": assignable_users,
-            "status_options": status_options,
-            "priority_options": priority_options,
-            "default_responsible_id": default_responsible_id,
-            "default_status_id": default_status_id,
-            "load_failures": sorted(self._load_failures),
-        }
-
     # An empty cache (preload still running, failed or empty) is retried here on the GUI thread.
-    def _resolve_assignable_users(self) -> list[dict[str, str]]:
-        if self._cached_assignable_users:
-            return list(self._cached_assignable_users)
-        try:
-            users = self._normalize_assignable_users(APIModuleActions.get_assignable_users())
-        except Exception as exc:
-            self._log_options_load_failed(exc, "works_create_assignable_users_load_failed")
-            users = []
-        if not users:
-            # get_assignable_users logs a failed request and returns what it has; a successful answer
-            # always holds the logged-in user, so an empty list means the load failed.
-            self._load_failures.add(LOAD_FAILED_RESPONSIBLES)
-        return users
-
-    def _resolve_priority_options(self) -> list[dict[str, str]]:
-        if self._cached_priority_options:
-            return list(self._cached_priority_options)
-        try:
-            return APIModuleActions.get_task_priority_options(lang_manager=self._lang, include_empty=True)
-        except Exception as exc:
-            self._log_options_load_failed(exc, "works_create_priority_options_load_failed")
-            self._load_failures.add(LOAD_FAILED_PRIORITIES)
-            return []
-
-    def _resolve_default_responsible_id(self) -> str:
-        if self._cached_default_responsible_id:
-            return self._cached_default_responsible_id
-        try:
-            return APIModuleActions.get_current_user_id()
-        except Exception as exc:
-            # Only the preselected responsible is lost; the list itself is reported by _resolve_assignable_users.
-            self._log_options_load_failed(exc, "works_create_default_responsible_load_failed")
-            return ""
-
-    def _resolve_status_options(self) -> list[dict[str, object]]:
-        if self._cached_status_options:
-            return list(self._cached_status_options)
-        try:
-            self._cached_status_options = self._normalize_status_options(
-                APIModuleActions.get_module_status_options(Module.WORKS.value, raise_on_error=True)
-            )
-        except Exception as exc:
-            self._log_options_load_failed(exc, "works_create_status_options_load_failed")
-            self._load_failures.add(LOAD_FAILED_STATUSES)
-            self._cached_status_options = []
-        return list(self._cached_status_options)
-
-    def _resolve_default_status_id(self, status_options: Optional[list[dict[str, object]]] = None) -> str:
-        if self._cached_default_status_id:
-            return self._cached_default_status_id
-
-        options = status_options if status_options is not None else self._resolve_status_options()
-        self._cached_default_status_id = self._default_status_id_from_options(options)
-        return self._cached_default_status_id
-
-    def _resolve_default_status_color(self) -> str:
-        if self._cached_default_status_color:
-            return WorksLayerService.normalize_backend_color(self._cached_default_status_color)
-        options = self._resolve_status_options()
-        default_status_id = self._resolve_default_status_id(options)
-        self._cached_default_status_color = self._status_color_from_options(default_status_id, options)
-        return WorksLayerService.normalize_backend_color(self._cached_default_status_color)
-
-    def _resolve_type_options(self) -> list[dict[str, str]]:
-        if self._cached_type_options:
-            return list(self._cached_type_options)
-        try:
-            raw_types = FilterHelper.get_filter_edges_by_key_and_module(
-                ModuleSupports.TYPES.value,
-                Module.WORKS.value,
-            )
-        except Exception as exc:
-            self._log_options_load_failed(exc, "works_create_type_options_load_failed")
-            self._load_failures.add(LOAD_FAILED_TYPES)
-            raw_types = []
-        return self._normalize_type_options(raw_types)
-
-    @staticmethod
-    def _normalize_assignable_users(users: object) -> list[dict[str, str]]:
-        normalized: list[dict[str, str]] = []
-        for user in users or []:
-            if not isinstance(user, dict):
-                continue
-            user_id = str(user.get("id") or "").strip()
-            display_name = str(user.get("displayName") or user.get("name") or "").strip()
-            if not user_id or not display_name:
-                continue
-            normalized.append({"id": user_id, "displayName": display_name})
-        return normalized
-
-    @staticmethod
-    def _normalize_type_options(entries: object) -> list[dict[str, str]]:
-        normalized: list[dict[str, str]] = []
-        for entry in entries or []:
-            if isinstance(entry, dict):
-                type_id = str(entry.get("id") or "").strip()
-                label = str(entry.get("label") or "").strip()
-            elif isinstance(entry, (list, tuple)) and len(entry) >= 2:
-                label = str(entry[0] or "").strip()
-                type_id = str(entry[1] or "").strip()
-            else:
-                continue
-            if not type_id or not label:
-                continue
-            normalized.append({"id": type_id, "label": label})
-        return normalized
-
-    @staticmethod
-    def _normalize_status_options(options: object) -> list[dict[str, object]]:
-        normalized: list[dict[str, object]] = []
-        for option in options or []:
-            if not isinstance(option, dict):
-                continue
-
-            status_id = str(option.get("id") or "").strip()
-            label = str(option.get("name") or option.get("label") or "").strip()
-            if not status_id or not label:
-                continue
-
-            normalized.append(
-                {
-                    "id": status_id,
-                    "name": label,
-                    "label": label,
-                    "color": WorksLayerService.normalize_backend_color(option.get("color")),
-                    "type": str(option.get("type") or "").strip().upper(),
-                    "description": str(option.get("description") or "").strip(),
-                    "isDefault": bool(option.get("isDefault")),
-                    "sortOrder": option.get("sortOrder"),
-                }
-            )
-        return normalized
-
-    @staticmethod
-    def _default_status_id_from_options(options: object) -> str:
-        first_status_id = ""
-        for option in options or []:
-            if not isinstance(option, dict):
-                continue
-
-            status_id = str(option.get("id") or "").strip()
-            if status_id and not first_status_id:
-                first_status_id = status_id
-            if status_id and option.get("isDefault"):
-                return status_id
-        return first_status_id
-
-    @staticmethod
-    def _status_color_from_options(status_id: object, options: object) -> str:
-        status_id_text = str(status_id or "").strip()
-        first_color = ""
-        for option in options or []:
-            if not isinstance(option, dict):
-                continue
-
-            color = str(option.get("color") or "").strip()
-            if color and not first_color:
-                first_color = color
-            if status_id_text and str(option.get("id") or "").strip() == status_id_text and color:
-                return WorksLayerService.normalize_backend_color(color)
-        return WorksLayerService.normalize_backend_color(first_color)
-
     def _clear_capture_tool(self, *, bring_front: bool) -> None:
         canvas = iface.mapCanvas() if iface is not None else None
         if canvas is not None and self._capture_tool is not None:

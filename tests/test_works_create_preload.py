@@ -12,6 +12,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from Kavitro_dev.modules.works import works_create_controller as controller_module
+from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper
 from Kavitro_dev.python.actions import status_actions as status_module
 from Kavitro_dev.python.actions.status_actions import StatusActions
 from Kavitro_dev.python.api_actions import APIModuleActions
@@ -25,7 +26,7 @@ class WorksCreatePreloadTest(unittest.TestCase):
 
     def _fetch_payload(self, **priority_lookup) -> dict:
         with (
-            patch.object(controller_module.FilterHelper, "get_filter_edges_by_key_and_module", return_value=[]),
+            patch.object(FilterHelper, "get_filter_edges_by_key_and_module", return_value=[]),
             patch.object(APIModuleActions, "get_assignable_users", return_value=[{"id": "1", "name": "U"}]),
             patch.object(APIModuleActions, "get_current_user_id", return_value="1"),
             patch.object(APIModuleActions, "get_module_status_options", return_value=[]),

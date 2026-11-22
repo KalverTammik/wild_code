@@ -17,7 +17,8 @@ from qgis.PyQt.QtWidgets import QWidget
 
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
-from Kavitro_dev.modules.works import works_create_controller as controller_module
+from Kavitro_dev.modules.works import works_create_controller as controller_module
+from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper
 from Kavitro_dev.modules.works import works_create_dialog as dialog_module
 from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.ui.messages_helper import ModernMessageDialog
@@ -145,7 +146,7 @@ class WorksCreateControllerLoadFailureTest(_Patched):
             return {"side_effect": error} if fail else {"return_value": value}
 
         return (
-            patch.object(controller_module.FilterHelper, "get_filter_edges_by_key_and_module", **kwargs("types", TYPES)),
+            patch.object(FilterHelper, "get_filter_edges_by_key_and_module", **kwargs("types", TYPES)),
             patch.object(APIModuleActions, "get_assignable_users", **kwargs("users", USERS)),
             patch.object(APIModuleActions, "get_current_user_id", **kwargs("user_id", "1")),
             patch.object(APIModuleActions, "get_module_status_options", **kwargs("statuses", STATUSES)),

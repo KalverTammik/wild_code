@@ -51,7 +51,8 @@ from Kavitro_dev.modules.Settings.cards.SettingsModuleCard import SettingsModule
 from Kavitro_dev.modules.Settings.cards.SettingsPropertyManagement import PropertyManagementUI
 from Kavitro_dev.modules.Settings.GeospatialLayerMapperDialog import GeospatialLayerMapperDialog
 from Kavitro_dev.modules.Settings.SettingsUI import SettingsModule
-from Kavitro_dev.modules.works import works_create_controller as controller_module
+from Kavitro_dev.modules.works import works_create_controller as controller_module
+from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper
 from Kavitro_dev.modules.works import works_create_dialog as create_dialog_module
 from Kavitro_dev.modules.works.works_sync_service import WorksSyncService
 from Kavitro_dev.python import api_client as api_client_module
@@ -425,7 +426,7 @@ class WorksCreateOptionLoadsTest(LoggedExceptionTestCase):
 
     def test_every_failed_option_load_is_logged_and_the_preload_payload_stays_empty(self) -> None:
         with (
-            patch.object(controller_module.FilterHelper, "get_filter_edges_by_key_and_module", side_effect=RuntimeError("a")),
+            patch.object(FilterHelper, "get_filter_edges_by_key_and_module", side_effect=RuntimeError("a")),
             patch.object(APIModuleActions, "get_assignable_users", side_effect=RuntimeError("b")),
             patch.object(APIModuleActions, "get_current_user_id", side_effect=RuntimeError("c")),
             patch.object(APIModuleActions, "get_module_status_options", side_effect=RuntimeError("d")),
@@ -452,7 +453,7 @@ class WorksCreateOptionLoadsTest(LoggedExceptionTestCase):
 
     def test_failed_lookups_after_the_preload_are_logged_too(self) -> None:
         with (
-            patch.object(controller_module.FilterHelper, "get_filter_edges_by_key_and_module", side_effect=RuntimeError("a")),
+            patch.object(FilterHelper, "get_filter_edges_by_key_and_module", side_effect=RuntimeError("a")),
             patch.object(APIModuleActions, "get_module_status_options", side_effect=RuntimeError("d")),
         ):
             self.assertEqual(self.controller._resolve_type_options(), [])

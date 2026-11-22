@@ -2,14 +2,11 @@
 from __future__ import annotations
 
 import html
-import mimetypes
 import os
-import tempfile
 from typing import Optional
 
-import requests
-from qgis.PyQt.QtCore import Qt, QSize, QUrl, QTimer
-from qgis.PyQt.QtGui import QDesktopServices, QPixmap
+from qgis.PyQt.QtCore import Qt, QSize, QTimer
+from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import (
     QApplication,
     QDialog,
@@ -27,36 +24,32 @@ from ...constants.button_props import ButtonVariant
 from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
 from ...python.workers import FunctionWorker, start_worker
 from ...ui.messages_helper import ModernMessageDialog
 from ...utils.security_boundaries import resolve_allowed_external_extension
 from ...ui.theme_manager import ThemeManager
+from .task_file_external_open import embedded_pdf_runtime_support, open_in_default_application
+from .task_file_identity import (
+    PDF_EXTENSIONS,
+    PDF_MIME_TYPES,
+    decode_text,
+    file_name,
+    human_readable_size,
+    is_image,
+    preview_identity,
+    preview_kind,
+    safe_int,
+)
+from .task_file_pdf_preview import TaskFilePdfPreviewMixin
 
 
-class TaskFilePreviewDialog(QDialog):
+class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
     IMAGE_PREVIEW_MAX_BYTES = 25 * 1024 * 1024
     PDF_PREVIEW_MAX_BYTES = 40 * 1024 * 1024
     TEXT_PREVIEW_MAX_BYTES = 512 * 1024
     PDF_PREVIEW_MAX_PAGES = 10
     PDF_RENDER_SIZE = QSize(1200, 1600)
-    IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "bmp", "gif", "webp", "svg"}
-    PDF_EXTENSIONS = {"pdf"}
-    TEXT_EXTENSIONS = {
-        "txt", "log", "csv", "tsv", "json", "xml", "yml", "yaml", "md", "py",
-        "js", "ts", "css", "html", "htm", "sql", "ini", "cfg", "qml",
-    }
-    TEXT_MIME_TYPES = {
-        "application/json",
-        "application/xml",
-        "application/javascript",
-        "application/x-yaml",
-        "application/yaml",
-        "image/svg+xml",
-    }
-    PDF_MIME_TYPES = {"application/pdf"}
-    _EXTERNAL_TEMP_FILES: set[str] = set()
 
     @classmethod
     def open_preview(
@@ -71,9 +64,9 @@ class TaskFilePreviewDialog(QDialog):
         lazy: bool = False,
     ):
         resolved_lang = lang_manager or LanguageManager()
-        mime_type, ext = cls._resolve_preview_identity(file_info=file_info, local_file_path=local_file_path)
+        mime_type, ext = preview_identity(file_info=file_info, local_file_path=local_file_path)
 
-        if mime_type in cls.PDF_MIME_TYPES or ext in cls.PDF_EXTENSIONS:
+        if mime_type in PDF_MIME_TYPES or ext in PDF_EXTENSIONS:
             supported, runtime_info = cls.embedded_pdf_runtime_support()
             if not supported:
                 ModernMessageDialog.show_warning(
@@ -105,8 +98,7 @@ class TaskFilePreviewDialog(QDialog):
 
     @classmethod
     def is_image_preview_candidate(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> bool:
-        mime_type, ext = cls._resolve_preview_identity(file_info=file_info, local_file_path=local_file_path)
-        return mime_type.startswith("image/") or ext in cls.IMAGE_EXTENSIONS
+        return is_image(*preview_identity(file_info=file_info, local_file_path=local_file_path))
 
     @classmethod
     def is_internal_preview_candidate(
@@ -115,44 +107,11 @@ class TaskFilePreviewDialog(QDialog):
         file_info: Optional[dict] = None,
         local_file_path: str = "",
     ) -> bool:
-        mime_type, ext = cls._resolve_preview_identity(
-            file_info=file_info,
-            local_file_path=local_file_path,
-        )
-        return bool(
-            mime_type.startswith(("image/", "text/"))
-            or mime_type in cls.PDF_MIME_TYPES
-            or mime_type in cls.TEXT_MIME_TYPES
-            or ext in cls.IMAGE_EXTENSIONS
-            or ext in cls.PDF_EXTENSIONS
-            or ext in cls.TEXT_EXTENSIONS
-        )
+        return preview_kind(*preview_identity(file_info=file_info, local_file_path=local_file_path)) != "unsupported"
 
     @classmethod
     def embedded_pdf_runtime_support(cls) -> tuple[bool, dict[str, str]]:
-        qt_version = "unknown"
-        pyqt_version = "unknown"
-
-        try:
-            from qgis.PyQt.QtCore import QT_VERSION_STR, PYQT_VERSION_STR
-
-            qt_version = str(QT_VERSION_STR or "unknown")
-            pyqt_version = str(PYQT_VERSION_STR or "unknown")
-        except ImportError:
-            pass
-
-        try:
-            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView  # noqa: F401
-
-            return bool(hasattr(QWebEngineSettings, "PdfViewerEnabled")), {
-                "qt": qt_version,
-                "pyqt": pyqt_version,
-            }
-        except ImportError:  # no QtWebEngine in this QGIS build
-            return False, {
-                "qt": qt_version,
-                "pyqt": pyqt_version,
-            }
+        return embedded_pdf_runtime_support()
 
     @classmethod
     def open_in_default_application(
@@ -162,131 +121,15 @@ class TaskFilePreviewDialog(QDialog):
         local_file_path: str = "",
         user_confirmed: bool = False,
     ) -> bool:
-        if not user_confirmed:
-            return False
-
-        normalized_local_path = str(local_file_path or "").strip()
-        data = file_info if isinstance(file_info, dict) else {}
-        allowed_extension = resolve_allowed_external_extension(
-            api_extension=data.get("ext"),
-            file_name=data.get("fileName"),
-            local_file_path=normalized_local_path,
+        return open_in_default_application(
+            file_info=file_info,
+            local_file_path=local_file_path,
+            user_confirmed=user_confirmed,
         )
-        if not allowed_extension:
-            return False
-
-        if normalized_local_path:
-            return cls._open_local_path_in_default_application(normalized_local_path)
-
-        temp_path = cls._materialize_remote_file_to_temp(
-            data,
-            allowed_extension=allowed_extension,
-        )
-        if not temp_path:
-            return False
-        return cls._open_local_path_in_default_application(temp_path)
-
-    @classmethod
-    def _open_local_path_in_default_application(cls, path: str) -> bool:
-        normalized_path = str(path or "").strip()
-        if not normalized_path or not os.path.exists(normalized_path):
-            return False
-
-        try:
-            if hasattr(os, "startfile"):
-                os.startfile(normalized_path)  # type: ignore[attr-defined]
-                return True
-        except OSError:  # no associated application: fall back to the desktop services
-            pass
-
-        return bool(QDesktopServices.openUrl(QUrl.fromLocalFile(normalized_path)))
-
-    @classmethod
-    def _materialize_remote_file_to_temp(
-        cls,
-        file_info: Optional[dict],
-        *,
-        allowed_extension: str = "",
-    ) -> str:
-        data = file_info if isinstance(file_info, dict) else {}
-        file_uuid = str(data.get("uuid") or "").strip()
-        if not file_uuid:
-            return ""
-
-        resolved_extension = resolve_allowed_external_extension(
-            api_extension=data.get("ext"),
-            file_name=data.get("fileName"),
-        )
-        if not resolved_extension or resolved_extension != allowed_extension:
-            return ""
-
-        url = APIModuleActions.create_file_download_link(file_uuid) or ""
-        if not url:
-            return ""
-
-        suffix = f".{resolved_extension}"
-
-        cls._cleanup_missing_temp_paths()
-
-        temp_path = ""
-        try:
-            handle = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-            temp_path = str(handle.name or "")
-            with handle:
-                with requests.get(url, stream=True, timeout=120) as response:
-                    response.raise_for_status()
-                    for chunk in response.iter_content(chunk_size=65536):
-                        if chunk:
-                            handle.write(chunk)
-        except OSError as exc:  # includes requests.RequestException
-            # The download link may carry a signature and the request error names the URL,
-            # so only the error type is logged.
-            PythonFailLogger.log(
-                "task_file_preview_download_failed",
-                module="ui",
-                extra={"error_type": type(exc).__name__, "uuid": file_uuid},
-            )
-            try:
-                if temp_path and os.path.exists(temp_path):
-                    os.remove(temp_path)
-            except OSError:  # best-effort removal of a half-written temp file
-                pass
-            return ""
-
-        if not temp_path or not os.path.exists(temp_path):
-            return ""
-
-        cls._EXTERNAL_TEMP_FILES.add(temp_path)
-        return temp_path
-
-    @classmethod
-    def _cleanup_missing_temp_paths(cls) -> None:
-        cls._EXTERNAL_TEMP_FILES = {
-            path for path in cls._EXTERNAL_TEMP_FILES
-            if str(path or "").strip() and os.path.exists(path)
-        }
 
     @classmethod
     def resolve_file_name(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> str:
-        normalized_local_path = str(local_file_path or "").strip()
-        if normalized_local_path:
-            return os.path.basename(normalized_local_path) or normalized_local_path or "-"
-        data = file_info if isinstance(file_info, dict) else {}
-        return str(data.get("fileName") or data.get("uuid") or "-")
-
-    @classmethod
-    def _resolve_preview_identity(cls, *, file_info: Optional[dict] = None, local_file_path: str = "") -> tuple[str, str]:
-        normalized_local_path = str(local_file_path or "").strip()
-        if normalized_local_path:
-            guessed, _ = mimetypes.guess_type(normalized_local_path)
-            mime_type = str(guessed or "").strip().lower()
-            ext = os.path.splitext(normalized_local_path)[1].strip().lower().lstrip(".")
-            return mime_type, ext
-
-        data = file_info if isinstance(file_info, dict) else {}
-        mime_type = str(data.get("mimeType") or "").strip().lower()
-        ext = str(data.get("ext") or "").strip().lower().lstrip(".")
-        return mime_type, ext
+        return file_name(file_info=file_info, local_file_path=local_file_path)
 
     def __init__(
         self,
@@ -404,28 +247,21 @@ class TaskFilePreviewDialog(QDialog):
             QApplication.restoreOverrideCursor()
 
     def _file_name(self) -> str:
-        if self._local_file_path:
-            return os.path.basename(self._local_file_path) or self._local_file_path or "-"
-        return str(self._file_info.get("fileName") or self._file_info.get("uuid") or "-")
+        return file_name(file_info=self._file_info, local_file_path=self._local_file_path)
 
     def _file_uuid(self) -> str:
         return str(self._file_info.get("uuid") or "").strip()
 
     def _file_mime(self) -> str:
-        if self._local_file_path:
-            guessed, _ = mimetypes.guess_type(self._local_file_path)
-            return str(guessed or "").strip().lower()
-        return str(self._file_info.get("mimeType") or "").strip().lower()
+        return preview_identity(file_info=self._file_info, local_file_path=self._local_file_path)[0]
 
     def _file_ext(self) -> str:
-        if self._local_file_path:
-            return os.path.splitext(self._local_file_path)[1].strip().lower().lstrip(".")
-        return str(self._file_info.get("ext") or "").strip().lower().lstrip(".")
+        return preview_identity(file_info=self._file_info, local_file_path=self._local_file_path)[1]
 
     def _set_meta_text(self) -> None:
         name = self._file_name()
         if self._local_file_path:
-            size = self._human_readable_size(self._safe_int(os.path.getsize(self._local_file_path)) if os.path.exists(self._local_file_path) else None)
+            size = human_readable_size(safe_int(os.path.getsize(self._local_file_path)) if os.path.exists(self._local_file_path) else None)
             uploader = self._lang.translate(TranslationKeys.TASK_FILE_LOCAL_FILE)
         else:
             size = str(self._file_info.get("humanReadableSize") or "").strip() or "–"
@@ -471,28 +307,10 @@ class TaskFilePreviewDialog(QDialog):
         label.setAlignment(Qt.AlignCenter)
         self._content_layout.addWidget(label, 1, Qt.AlignCenter)
 
-    def _release_web_view(self) -> None:
-        if self._web_view is None:
-            return
-
-        web_view = self._web_view
-
-        try:
-            web_view.stop()
-        except RuntimeError:  # web view already deleted
-            pass
-
-        try:
-            web_view.setUrl(QUrl("about:blank"))
-        except RuntimeError:  # web view already deleted
-            pass
-
-        try:
-            web_view.deleteLater()
-        except RuntimeError:  # web view already deleted
-            pass
-
-        self._web_view = None
+    def _show_failed(self) -> None:
+        self._show_placeholder(
+            self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(name=self._file_name())
+        )
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt override
         self._cleanup_pdf_temp_file()
@@ -506,11 +324,7 @@ class TaskFilePreviewDialog(QDialog):
     def _start_lazy_image_preview_load(self) -> None:
         file_uuid = self._file_uuid()
         if not file_uuid:
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
+            self._show_failed()
             return
 
         if self._preview_thread is not None:
@@ -530,20 +344,12 @@ class TaskFilePreviewDialog(QDialog):
 
     def _handle_lazy_image_preview_loaded(self, payload: object) -> None:
         if not isinstance(payload, dict):
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
+            self._show_failed()
             return
         self._apply_image_preview_payload(payload)
 
     def _handle_lazy_image_preview_error(self, _message: str) -> None:
-        self._show_placeholder(
-            self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                name=self._file_name()
-            )
-        )
+        self._show_failed()
 
     def _cleanup_preview_worker(self) -> None:
         self._preview_worker = None
@@ -556,11 +362,7 @@ class TaskFilePreviewDialog(QDialog):
 
         file_uuid = self._file_uuid()
         if not file_uuid:
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
+            self._show_failed()
             return
 
         preview_kind = self._resolve_preview_kind()
@@ -579,248 +381,11 @@ class TaskFilePreviewDialog(QDialog):
             self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
         )
 
-    def _load_local_preview(self) -> None:
-        if not self._local_file_path or not os.path.exists(self._local_file_path):
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
-            return
-
-        preview_kind = self._resolve_preview_kind()
-        if preview_kind != "pdf":
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
-            )
-            return
-
-        try:
-            size_bytes = os.path.getsize(self._local_file_path)
-        except OSError:
-            size_bytes = None
-        if size_bytes is not None and size_bytes > self.PDF_PREVIEW_MAX_BYTES:
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_TOO_LARGE)
-            )
-            return
-
-        try:
-            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView
-        except ImportError:
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
-            )
-            return
-
-        if self._load_pdf_webengine_preview(
-            self._local_file_path,
-            webengine_settings_cls=QWebEngineSettings,
-            webengine_view_cls=QWebEngineView,
-        ):
-            self._last_url = QUrl.fromLocalFile(self._local_file_path).toString()
-            return
-
-        self._show_placeholder(
-            self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                name=self._file_name()
-            )
-        )
-
     def _resolve_preview_kind(self) -> str:
-        mime_type = self._file_mime()
-        ext = self._file_ext()
-
-        if mime_type in self.PDF_MIME_TYPES or ext in self.PDF_EXTENSIONS:
-            return "pdf"
-        if mime_type.startswith("image/") or ext in self.IMAGE_EXTENSIONS:
-            return "image"
-        if mime_type.startswith("text/") or mime_type in self.TEXT_MIME_TYPES or ext in self.TEXT_EXTENSIONS:
-            return "text"
-        return "unsupported"
-
-    def _load_pdf_preview(self, file_uuid: str) -> None:
-        size_bytes = self._safe_int(self._file_info.get("size"))
-        if size_bytes is not None and size_bytes > self.PDF_PREVIEW_MAX_BYTES:
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_TOO_LARGE)
-            )
-            return
-
-        try:
-            # inline import: QtWebEngine is optional in some QGIS Qt5 builds; import lazily to avoid breaking plugin startup.
-            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView
-        except ImportError:
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
-            )
-            return
-
-        payload = self._run_with_busy_cursor(
-            lambda: APIModuleActions.fetch_file_preview_payload(
-                file_uuid,
-                max_bytes=self.PDF_PREVIEW_MAX_BYTES,
-            )
-        )
-        if not isinstance(payload, dict):
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
-            return
-
-        self._last_url = str(payload.get("url") or "").strip()
-        if payload.get("truncated"):
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_TOO_LARGE)
-            )
-            return
-
-        content = payload.get("content") or b""
-        if not content:
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
-            return
-
-        temp_path = self._write_pdf_temp_file(content)
-        if not temp_path:
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
-            return
-
-        if self._load_pdf_webengine_preview(
-            temp_path,
-            webengine_settings_cls=QWebEngineSettings,
-            webengine_view_cls=QWebEngineView,
-        ):
-            return
-
-        self._cleanup_pdf_temp_file()
-        self._show_placeholder(
-            self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                name=self._file_name()
-            )
-        )
-
-    def _load_pdf_webengine_preview(
-        self,
-        temp_path: str,
-        *,
-        webengine_settings_cls,
-        webengine_view_cls,
-    ) -> bool:
-        self._release_web_view()
-        self._set_notice("")
-        self._clear_content()
-
-        try:
-            web_view = webengine_view_cls(self._content_frame)
-        except Exception as exc:  # the view class is supplied by the caller
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="task_file_preview_webview_create_failed",
-            )
-            return False
-
-        try:
-            settings = web_view.settings()
-        except (AttributeError, RuntimeError):
-            settings = None
-
-        if settings is not None:
-            if hasattr(webengine_settings_cls, "PdfViewerEnabled"):
-                try:
-                    settings.setAttribute(webengine_settings_cls.PdfViewerEnabled, True)
-                except (TypeError, RuntimeError):
-                    pass
-
-            if hasattr(webengine_settings_cls, "PluginsEnabled"):
-                try:
-                    settings.setAttribute(webengine_settings_cls.PluginsEnabled, True)
-                except (TypeError, RuntimeError):
-                    pass
-
-        try:
-            web_view.loadFinished.connect(self._handle_pdf_web_view_loaded)
-        except Exception as exc:  # without it the preview never reports a failed load
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="task_file_preview_loadfinished_connect_failed",
-            )
-
-        self._web_view = web_view
-        self._content_layout.addWidget(web_view, 1)
-
-        try:
-            web_view.setUrl(QUrl.fromLocalFile(temp_path))
-        except (AttributeError, RuntimeError):
-            try:
-                web_view.load(QUrl.fromLocalFile(temp_path))
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module="ui",
-                    event="task_file_preview_pdf_load_failed",
-                )
-                self._release_web_view()
-                self._clear_content()
-                return False
-
-        return True
-
-    def _handle_pdf_web_view_loaded(self, ok: bool) -> None:
-        if ok or not self.isVisible():
-            return
-
-        self._cleanup_pdf_temp_file()
-        self._show_placeholder(
-            self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                name=self._file_name()
-            )
-        )
-
-    def _write_pdf_temp_file(self, content: bytes) -> str:
-        self._cleanup_pdf_temp_file()
-        try:
-            handle = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-            with handle:
-                handle.write(content)
-            self._pdf_temp_path = str(handle.name or "")
-            return self._pdf_temp_path
-        except OSError as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="task_file_preview_pdf_temp_write_failed",
-            )
-            self._pdf_temp_path = ""
-            return ""
-
-    def _cleanup_pdf_temp_file(self) -> None:
-        self._release_web_view()
-
-        path = str(self._pdf_temp_path or "").strip()
-        self._pdf_temp_path = ""
-        if not path:
-            return
-
-        try:
-            if os.path.exists(path):
-                os.remove(path)
-        except OSError:  # best-effort removal of the temp PDF
-            pass
+        return preview_kind(self._file_mime(), self._file_ext())
 
     def _load_image_preview(self, file_uuid: str) -> None:
-        size_bytes = self._safe_int(self._file_info.get("size"))
+        size_bytes = safe_int(self._file_info.get("size"))
         if size_bytes is not None and size_bytes > self.IMAGE_PREVIEW_MAX_BYTES:
             self._show_placeholder(
                 self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_TOO_LARGE)
@@ -834,22 +399,14 @@ class TaskFilePreviewDialog(QDialog):
             )
         )
         if not isinstance(payload, dict):
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
+            self._show_failed()
             return
 
         self._apply_image_preview_payload(payload)
 
     def _apply_image_preview_payload(self, payload: dict) -> None:
         if not isinstance(payload, dict):
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
+            self._show_failed()
             return
 
         self._last_url = str(payload.get("url") or "").strip()
@@ -862,11 +419,7 @@ class TaskFilePreviewDialog(QDialog):
         content = payload.get("content") or b""
         pixmap = QPixmap()
         if not pixmap.loadFromData(content):
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
+            self._show_failed()
             return
 
         self._set_notice("")
@@ -898,16 +451,12 @@ class TaskFilePreviewDialog(QDialog):
             )
         )
         if not isinstance(payload, dict):
-            self._show_placeholder(
-                self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_FAILED).format(
-                    name=self._file_name()
-                )
-            )
+            self._show_failed()
             return
 
         self._last_url = str(payload.get("url") or "").strip()
         content = payload.get("content") or b""
-        text = self._decode_text(content)
+        text = decode_text(content)
 
         editor = QPlainTextEdit(self._content_frame)
         editor.setReadOnly(True)
@@ -926,22 +475,6 @@ class TaskFilePreviewDialog(QDialog):
             )
         else:
             self._set_notice("")
-
-    @staticmethod
-    def _decode_text(content: bytes) -> str:
-        for encoding in ("utf-8-sig", "utf-16", "cp1252", "latin-1"):
-            try:
-                return content.decode(encoding)
-            except UnicodeDecodeError:
-                continue
-        return content.decode("utf-8", errors="replace")
-
-    @staticmethod
-    def _safe_int(value) -> Optional[int]:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
 
     def _open_externally(self) -> None:
         extension = resolve_allowed_external_extension(
@@ -996,19 +529,3 @@ class TaskFilePreviewDialog(QDialog):
             self._plain_text_as_rich_text(message),
         )
 
-    @staticmethod
-    def _human_readable_size(size_bytes: Optional[int]) -> str:
-        if size_bytes is None:
-            return "–"
-        try:
-            value = float(size_bytes)
-        except (TypeError, ValueError):
-            return "–"
-        units = ["B", "KB", "MB", "GB"]
-        unit_index = 0
-        while value >= 1024.0 and unit_index < len(units) - 1:
-            value /= 1024.0
-            unit_index += 1
-        if unit_index == 0:
-            return f"{int(value)} {units[unit_index]}"
-        return f"{value:.1f} {units[unit_index]}"
