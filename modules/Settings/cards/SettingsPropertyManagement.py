@@ -12,16 +12,18 @@ from ..settings_layer_helper import SettingsLayerHelper
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....utils.SHPLayerLoader import SHPLayerLoader, SHPLoadStatus
 from ....utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
-from ....widgets.AddUpdatePropertyDialog import AddPropertyDialog, PropertyDialogMode
+from ....modules.Property.property_entry import (
+    PropertyDialogMode,
+    open_add_property_dialog,
+    open_remove_by_id_dialog,
+    start_remove_selected_flow,
+)
 from ....widgets.ProgressDialogModern import ProgressDialogModern
-from ....modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
-from ....modules.Property.FlowControllers.MainDeleteProperties import DeletePropertyUI
 from ....languages.translation_keys import TranslationKeys
 from ....languages.language_manager import LanguageManager
 from ....constants.module_names import Module
 from ....ui.messages_helper import ModernMessageDialog
-from ....utils.mapandproperties.property_action_service import PropertySelectionActionService
-from ....utils.mapandproperties.property_search_field_service import PropertySearchFieldService
+from ....utils.property.property_search_field_service import PropertySearchFieldService
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....ui.window_state.dialog_helpers import DialogHelpers
 from time import monotonic
@@ -218,7 +220,7 @@ class PropertyManagementUI(SettingsBaseCard):
         if not main_layer:
             return
 
-        self._delete_selection_controller = PropertySelectionActionService.start_settings_remove_flow(
+        self._delete_selection_controller = start_remove_selected_flow(
             parent=self,
             main_layer=main_layer,
             translate=self.lang_manager.translate,
@@ -235,7 +237,7 @@ class PropertyManagementUI(SettingsBaseCard):
 
     def _on_remove_property_by_id_clicked(self):
         """Emergency delete-by-id dialog (legacy)."""
-        DeletePropertyUI(self)
+        open_remove_by_id_dialog(self)
 
     def _on_add_property_clicked(self):
         """Handle Add property button click"""
@@ -263,9 +265,7 @@ class PropertyManagementUI(SettingsBaseCard):
             mode = PropertyDialogMode.FROM_MAP
 
         if mode is not None:
-            if not MainAddPropertiesFlow.preflight_archive_layer_before_dialog():
-                return
-            AddPropertyDialog(self, mode=mode)
+            open_add_property_dialog(self, mode)
             return
 
         # Unknown choice (future-proof)

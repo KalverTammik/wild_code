@@ -10,13 +10,13 @@ from unittest.mock import Mock, patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from Kavitro_dev.modules.Property.FlowControllers import MainAddProperties as flow_module
-from Kavitro_dev.modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
-from Kavitro_dev.modules.Property.FlowControllers.UpdatePropertyData import UpdatePropertyData
+from Kavitro_dev.modules.Property.FlowControllers import property_add_flow as flow_module
+from Kavitro_dev.modules.Property.FlowControllers.property_add_flow import MainAddPropertiesFlow
+from Kavitro_dev.modules.Property.FlowControllers.property_backend_update import UpdatePropertyData
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
-from Kavitro_dev.utils.mapandproperties import property_action_service as action_service_module
-from Kavitro_dev.utils.mapandproperties.property_action_service import PropertyActionService
+from Kavitro_dev.modules.Property.FlowControllers import property_action_service as action_service_module
+from Kavitro_dev.modules.Property.FlowControllers.property_action_service import PropertyActionService
 
 
 class _Feature:
@@ -289,7 +289,7 @@ class PropertyArchiveExecutionTest(unittest.TestCase):
         self.assertEqual((info["exists"], info["archived_only"]), (False, True))
 
     def test_archive_status_uses_the_documented_status_field(self) -> None:
-        from Kavitro_dev.modules.Property.FlowControllers import UpdatePropertyData as update_module
+        from Kavitro_dev.modules.Property.FlowControllers import property_backend_update as update_module
 
         client = Mock()
         with (

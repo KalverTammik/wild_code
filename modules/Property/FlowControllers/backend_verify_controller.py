@@ -3,7 +3,7 @@ from __future__ import annotations
 from PyQt5 import sip
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
-from .BackendVerifyWorker import BackendVerifyWorker
+from .backend_verify_worker import BackendVerifyWorker
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....python.workers import start_worker
 

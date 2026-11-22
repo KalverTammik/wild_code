@@ -23,8 +23,8 @@ from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.Settings.cards import SettingsPropertyManagement as card_module
 from Kavitro_dev.modules.Settings.cards.SettingsPropertyManagement import PropertyManagementUI
 from Kavitro_dev.modules.works.works_create_controller import WorksCreateController
-from Kavitro_dev.utils.mapandproperties import property_search_field_service as service_module
-from Kavitro_dev.utils.mapandproperties.property_search_field_service import PropertySearchFieldService
+from Kavitro_dev.utils.property import property_search_field_service as service_module
+from Kavitro_dev.utils.property.property_search_field_service import PropertySearchFieldService
 from Kavitro_dev.utils.search import UnifiedSearchController as search_module
 from Kavitro_dev.utils.search.UnifiedSearchController import UnifiedSearchController
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from .MainAddProperties import BackendPropertyVerifier
-from .UpdatePropertyData import UpdatePropertyData
-from .MainDeleteProperties import deleteProperty
+from .property_add_flow import BackendPropertyVerifier
+from .property_backend_update import UpdatePropertyData
+from .property_delete import deleteProperty
 from ....utils.TagsEngines import TagsHelpers
 from ....languages.language_manager import LanguageManager
 from ....languages.translation_keys import TranslationKeys

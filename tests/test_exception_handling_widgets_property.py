@@ -27,12 +27,12 @@ from property_fixtures import LocationFilterTestCase, close_dialog, open_dialog
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
-from Kavitro_dev.modules.Property.FlowControllers.AttentionDisplayRules import AttentionDisplayRules
-from Kavitro_dev.modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
-from Kavitro_dev.modules.Property.PropertyUITools import PropertyUITools
-from Kavitro_dev.modules.Property.property_tree_widget import PropertyTreeWidget
+from Kavitro_dev.modules.Property.FlowControllers.attention_display_rules import AttentionDisplayRules
+from Kavitro_dev.modules.Property.FlowControllers.main_layer_check_controller import MainLayerCheckController
+from Kavitro_dev.modules.Property.widgets.property_ui_tools import PropertyUITools
+from Kavitro_dev.modules.Property.widgets.property_tree_widget import PropertyTreeWidget
 from Kavitro_dev.ui.messages_helper import ModernMessageDialog
-from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
 from Kavitro_dev.widgets.DataDisplayWidgets.StatusWidget import StatusWidget
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
@@ -47,8 +47,8 @@ from Kavitro_dev.widgets.layer_tree_picker import LayerTreePicker
 from Kavitro_dev.ui.theme_manager import ThemeManager
 
 # The package re-exports some of these names as classes, so the modules are loaded by path.
-check_module = importlib.import_module("Kavitro_dev.modules.Property.FlowControllers.MainLayerCheckController")
-dialog_module = importlib.import_module("Kavitro_dev.widgets.AddUpdatePropertyDialog")
+check_module = importlib.import_module("Kavitro_dev.modules.Property.FlowControllers.main_layer_check_controller")
+dialog_module = importlib.import_module("Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog")
 html_module = importlib.import_module("Kavitro_dev.widgets.DataDisplayWidgets.HtmlDescriptionWidget")
 preview_module = importlib.import_module("Kavitro_dev.widgets.DataDisplayWidgets.TaskFilePreviewDialog")
 

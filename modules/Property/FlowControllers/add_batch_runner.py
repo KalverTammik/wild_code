@@ -4,10 +4,10 @@ from threading import Event
 from PyQt5.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 from qgis.core import QgsFeatureRequest
 
-from ....utils.mapandproperties.PropertyTableManager import PropertyTableManager
-from ....utils.mapandproperties.property_row_builder import PropertyRowBuilder
-from .MainAddProperties import MainAddPropertiesFlow, BackendPropertyVerifier
-from .UpdatePropertyData import UpdatePropertyData
+from ....widgets.property_table.PropertyTableManager import PropertyTableManager
+from ....utils.property.property_row_builder import PropertyRowBuilder
+from .property_add_flow import MainAddPropertiesFlow, BackendPropertyVerifier
+from .property_backend_update import UpdatePropertyData
 from .property_import_decisions import ADDRESS_REASONS, classify_property_import
 from ....constants.cadastral_fields import Katastriyksus as F
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
@@ -16,7 +16,7 @@ from ....languages.translation_keys import TranslationKeys as K
 from ....python.workers import FunctionWorker, start_worker
 from ....python.api_rate_limit import api_request_context, RequestCancelled
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions, ActiveLayersHelper
-from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
+from ....utils.property.PropertyDataLoader import PropertyDataLoader
 from ....widgets.DateHelpers import DateHelpers
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....utils.api_error_handling import user_message

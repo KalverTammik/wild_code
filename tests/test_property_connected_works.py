@@ -15,10 +15,10 @@ from PyQt5.QtCore import QCoreApplication, QEvent
 from PyQt5.QtWidgets import QApplication, QLabel
 
 from Kavitro_dev.languages.language_manager import LanguageManager
-from Kavitro_dev.modules.Property import query_cordinator
+from Kavitro_dev.modules.Property import query_coordinator
 from Kavitro_dev.modules.Property.property_service import PropertyDataService
-from Kavitro_dev.modules.Property.property_tree_widget import ModuleConnectionRow, PropertyConnectionCard
-from Kavitro_dev.modules.Property.query_cordinator import (
+from Kavitro_dev.modules.Property.widgets.property_tree_widget import ModuleConnectionRow, PropertyConnectionCard
+from Kavitro_dev.modules.Property.query_coordinator import (
     PropertiesConnectedElementsQueries,
     PropertyConnectionFormatter,
 )
@@ -96,9 +96,9 @@ class BackendTestCase(unittest.TestCase):
     def use_backend(self, task_page, *, works_types=(WORK_TYPE,)) -> FakeBackend:
         backend = FakeBackend(task_page)
         for patcher in (
-            patch.object(query_cordinator, "APIClient", return_value=Mock(send_query=backend.send_query)),
+            patch.object(query_coordinator, "APIClient", return_value=Mock(send_query=backend.send_query)),
             patch.object(
-                query_cordinator.SettingsLogic,
+                query_coordinator.SettingsLogic,
                 "load_module_preference_ids",
                 side_effect=preference_ids(works_types),
             ),
@@ -148,7 +148,7 @@ class PropertyWorksQueryTest(BackendTestCase):
             lambda after: tasks_page([task(f"{after}-w", WORK_TYPE)], end_cursor=f"{after}+", has_next=True)
         )
 
-        with patch.object(query_cordinator.PythonFailLogger, "log") as log:
+        with patch.object(query_coordinator.PythonFailLogger, "log") as log:
             works = self.fetch_works()
 
         limit = PropertiesConnectedElementsQueries.WORKS_MAX_PAGES
@@ -214,7 +214,7 @@ class PropertyConnectionsWithWorksTest(BackendTestCase):
 
         self.use_backend(refuse)
 
-        with patch.object(query_cordinator.PythonFailLogger, "log_exception") as log_exception:
+        with patch.object(query_coordinator.PythonFailLogger, "log_exception") as log_exception:
             module_data = PropertiesConnectedElementsQueries().fetch_all_module_data(PROPERTY_ID)
 
         # The failed works request is reported, not mistaken for a property without works.

@@ -3,20 +3,20 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame,
 )
-from ...ui.messages_helper import ModernMessageDialog
-from ...utils.MapTools.MapHelpers import ActiveLayersHelper
+from ....ui.messages_helper import ModernMessageDialog
+from ....utils.MapTools.MapHelpers import ActiveLayersHelper
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
-from .PropertyUITools import PropertyUITools
+from .property_ui_tools import PropertyUITools
 from .property_tree_widget import PropertyTreeWidget
-from ...ui.theme_manager import ThemeManager,styleExtras
-from ...constants.button_props import ButtonVariant, ButtonSize
-from ...constants.file_paths import QssPaths
-from ...languages.translation_keys import TranslationKeys
-from ...constants.module_names import Module
-from ...ui.mixins.token_mixin import TokenMixin
-from ...Logs.python_fail_logger import PythonFailLogger
-from ...widgets.PropertySummaryCard import PropertySummaryCard
+from ....ui.theme_manager import ThemeManager,styleExtras
+from ....constants.button_props import ButtonVariant, ButtonSize
+from ....constants.file_paths import QssPaths
+from ....languages.translation_keys import TranslationKeys
+from ....constants.module_names import Module
+from ....ui.mixins.token_mixin import TokenMixin
+from ....Logs.python_fail_logger import PythonFailLogger
+from ....widgets.PropertySummaryCard import PropertySummaryCard
 
 class PropertyModule(TokenMixin, QWidget):
     """

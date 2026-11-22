@@ -18,8 +18,8 @@ from qgis.core import QgsFeature, QgsGeometry, QgsVectorLayerFeatureSource
 
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
 from Kavitro_dev.languages.translation_keys import TranslationKeys as K
-from Kavitro_dev.utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
-from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableManager
+from Kavitro_dev.utils.property.PropertyDataLoader import PropertyDataLoader
+from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableManager
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from property_fixtures import LocationFilterTestCase
 
@@ -311,7 +311,7 @@ class PropertyLocationFilterTest(LocationFilterTestCase):
             threads.append(QThread.currentThread())
             return original(layer)
         self.completed.side_effect = lambda _table: threads.append(QThread.currentThread())
-        with patch('Kavitro_dev.utils.mapandproperties.PropertyUpdateFlowCoordinator.QgsVectorLayerFeatureSource', side_effect=snapshot):
+        with patch('Kavitro_dev.utils.property.PropertyUpdateFlowCoordinator.QgsVectorLayerFeatureSource', side_effect=snapshot):
             self.load_index()
             self.choose_municipality()
             self.wait_until(lambda: bool(self.ids()))

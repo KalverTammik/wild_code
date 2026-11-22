@@ -4,7 +4,7 @@ from threading import Event
 
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 
-from .MainAddProperties import BackendPropertyVerifier
+from .property_add_flow import BackendPropertyVerifier
 from .property_import_decisions import classify_property_import
 from ....languages.translation_keys import TranslationKeys as K
 from ....Logs.python_fail_logger import PythonFailLogger

@@ -15,7 +15,7 @@ if os.environ.get('QGIS_PREFIX_PATH'):
 from PyQt5.QtGui import QFont, QFontDatabase
 from qgis.core import QgsApplication
 
-from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as property_flow
+from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner as property_flow
 from Kavitro_dev.python import api_client, api_rate_limit
 
 

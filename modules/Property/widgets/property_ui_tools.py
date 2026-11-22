@@ -5,23 +5,23 @@ try:
     import sip
 except ImportError:  # PyQt6 fallback, though project currently uses PyQt5
     sip = None
-from .property_service import PropertyDataService
-from ...constants.cadastral_fields import Katastriyksus
-from ...constants.settings_keys import SettingsService
-from ...python.api_client import APIClient
-from ...python.GraphQLQueryLoader import GraphQLQueryLoader
-from ...languages.language_manager import LanguageManager
-from ...languages.translation_keys import TranslationKeys
-from ...utils.api_error_handling import user_message
-from ...languages.MaaAmetFieldFormater import format_field
-from ...ui.messages_helper import ModernMessageDialog
-from ...utils.MapTools.MapHelpers import ActiveLayersHelper
-from ...utils.MapTools.item_selector_tools import PropertiesSelectors
-from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
-from ...constants.module_names import Module
-from ...python.workers import FunctionWorker, start_worker
-from ...Logs.python_fail_logger import PythonFailLogger
-from ...ui.window_state.DialogCoordinator import get_dialog_coordinator
+from ..property_service import PropertyDataService
+from ....constants.cadastral_fields import Katastriyksus
+from ....constants.settings_keys import SettingsService
+from ....python.api_client import APIClient
+from ....python.GraphQLQueryLoader import GraphQLQueryLoader
+from ....languages.language_manager import LanguageManager
+from ....languages.translation_keys import TranslationKeys
+from ....utils.api_error_handling import user_message
+from ....languages.MaaAmetFieldFormater import format_field
+from ....ui.messages_helper import ModernMessageDialog
+from ....utils.MapTools.MapHelpers import ActiveLayersHelper
+from ....utils.MapTools.item_selector_tools import PropertiesSelectors
+from ....utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
+from ....constants.module_names import Module
+from ....python.workers import FunctionWorker, start_worker
+from ....Logs.python_fail_logger import PythonFailLogger
+from ....ui.window_state.DialogCoordinator import get_dialog_coordinator
 from qgis.utils import iface
 
 

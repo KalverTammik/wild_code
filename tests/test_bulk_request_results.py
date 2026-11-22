@@ -12,10 +12,10 @@ if os.environ.get('QGIS_PREFIX_PATH'):
 
 from qgis.core import QgsApplication
 from Kavitro_dev.languages.language_manager import LanguageManager
-from Kavitro_dev.modules.Property.FlowControllers import BackendPropertyActions as backend
-from Kavitro_dev.modules.Property.FlowControllers import MainDeleteProperties as deletion
+from Kavitro_dev.modules.Property.FlowControllers import backend_property_actions as backend
+from Kavitro_dev.modules.Property.FlowControllers import property_delete as deletion
 from Kavitro_dev.python.api_rate_limit import RequestCancelled
-from Kavitro_dev.utils.mapandproperties import property_action_service as actions
+from Kavitro_dev.modules.Property.FlowControllers import property_action_service as actions
 from Kavitro_dev.widgets.DataDisplayWidgets import TaskFilesDialog as files
 
 

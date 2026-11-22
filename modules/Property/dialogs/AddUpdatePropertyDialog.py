@@ -20,41 +20,41 @@ from PyQt5.QtWidgets import (
 from qgis.core import QgsFeatureRequest
 from qgis.utils import iface
 
-from ..modules.Property.FlowControllers.MainAddProperties import MainAddPropertiesFlow
-from ..modules.Property.FlowControllers.BackendVerifyController import BackendVerifyController
-from ..modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
-from ..modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
-from ..modules.Property.FlowControllers.AttentionDisplayRules import AttentionDisplayRules
-from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager, PropertyTableWidget
-from ..utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
-from ..utils.mapandproperties.property_archive_plan import (
+from ..FlowControllers.property_add_flow import MainAddPropertiesFlow
+from ..FlowControllers.backend_verify_controller import BackendVerifyController
+from ..FlowControllers.main_layer_check_controller import MainLayerCheckController
+from ..FlowControllers.add_batch_runner import AddBatchRunner
+from ..FlowControllers.attention_display_rules import AttentionDisplayRules
+from ....widgets.property_table.PropertyTableManager import PropertyTableManager, PropertyTableWidget
+from ....utils.property.PropertyDataLoader import PropertyDataLoader
+from ..FlowControllers.property_archive_plan import (
     PropertyArchiveScope,
     classify_archive_candidates,
 )
-from ..utils.mapandproperties.property_check_run import CheckRow, PropertyCheckRun
-from ..utils.mapandproperties.property_dialog_phase import (AddAction, AddMode, CancelTarget,
-                                                            PropertyDialogState)
-from ..utils.mapandproperties.property_row_builder import PropertyRowBuilder
-from ..ui.theme_manager import ThemeManager
-from .DelayHelpers.glow_progress_bar import GlowProgressBar
+from ..FlowControllers.property_check_run import CheckRow, PropertyCheckRun
+from ..FlowControllers.property_dialog_phase import (AddAction, AddMode, CancelTarget,
+                                                     PropertyDialogState)
+from ....utils.property.property_row_builder import PropertyRowBuilder
+from ....ui.theme_manager import ThemeManager
+from ....widgets.DelayHelpers.glow_progress_bar import GlowProgressBar
 
-from ..constants.button_props import ButtonVariant, ButtonSize
-from ..constants.file_paths import QssPaths
-from ..languages.language_manager import LanguageManager
-from ..languages.translation_keys import TranslationKeys
-from ..utils.MapTools.item_selector_tools import PropertiesSelectors
-from ..constants.layer_constants import IMPORT_PROPERTY_TAG
-from ..utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
-from ..ui.messages_helper import ModernMessageDialog
-from ..utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
-from ..constants.cadastral_fields import Katastriyksus
-from ..widgets.DateHelpers import DateHelpers
-from ..widgets.PropertyArchivePlanDialog import PropertyArchivePlanDialog
+from ....constants.button_props import ButtonVariant, ButtonSize
+from ....constants.file_paths import QssPaths
+from ....languages.language_manager import LanguageManager
+from ....languages.translation_keys import TranslationKeys
+from ....utils.MapTools.item_selector_tools import PropertiesSelectors
+from ....constants.layer_constants import IMPORT_PROPERTY_TAG
+from ....utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
+from ....ui.messages_helper import ModernMessageDialog
+from ....utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
+from ....constants.cadastral_fields import Katastriyksus
+from ....widgets.DateHelpers import DateHelpers
+from .PropertyArchivePlanDialog import PropertyArchivePlanDialog
 from .property_import_review_dialog import PropertyImportReviewDialog
 
-from .LocationFilterWidget import LocationFilterWidget, LocationFilterHelper
-from ..Logs.python_fail_logger import PythonFailLogger
-from ..ui.window_state.dialog_helpers import DialogHelpers
+from ....widgets.LocationFilterWidget import LocationFilterWidget, LocationFilterHelper
+from ....Logs.python_fail_logger import PythonFailLogger
+from ....ui.window_state.dialog_helpers import DialogHelpers
 
 
 
@@ -177,7 +177,8 @@ class AddPropertyDialog(QDialog):
         self._map_update_timer.setSingleShot(True)
         self._map_update_timer.setInterval(150)
         self._map_update_timer.timeout.connect(
-            lambda: PropertiesSelectors.show_connected_properties_on_map_from_table(self.properties_table, use_shp=True)
+            lambda: PropertiesSelectors.show_features_on_map(
+                PropertyTableManager.get_selected_features(self.properties_table), use_shp=True)
         )
         self._map_sync_row_limit = 1500
         self._last_map_sync_skip_count = -1

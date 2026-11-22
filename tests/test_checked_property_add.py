@@ -17,7 +17,7 @@ from PyQt5.QtCore import QThread, QTimer
 from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.QtTest import QTest
 from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsVectorLayer
-from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as module
+from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner as module
 from Kavitro_dev.python.workers import _ACTIVE_THREADS
 
 
@@ -239,7 +239,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
         return self.results[0]
 
     def test_prechecked_conflict_is_deferred_and_remaining_81_properties_import(self):
-        from Kavitro_dev.modules.Property.FlowControllers.BackendVerifyWorker import BackendVerifyWorker
+        from Kavitro_dev.modules.Property.FlowControllers.backend_verify_worker import BackendVerifyWorker
         from Kavitro_dev.languages.translation_keys import TranslationKeys as K
         for number in range(3, 83):
             feature = QgsFeature(self.source.fields())
@@ -265,7 +265,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
 
     def test_check_controller_interrupts_rate_limit_wait_and_ignores_a_replaced_run(self):
         from PyQt5 import sip
-        from Kavitro_dev.modules.Property.FlowControllers.BackendVerifyController import BackendVerifyController
+        from Kavitro_dev.modules.Property.FlowControllers.backend_verify_controller import BackendVerifyController
         from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
         in_flight, release = threading.Event(), threading.Event()
 
@@ -388,7 +388,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
     def test_missing_address_decision_offers_and_applies_the_import_only_when_approved(self):
         from Kavitro_dev.languages.translation_keys import TranslationKeys as K
         from Kavitro_dev.languages.language_manager import LanguageManager
-        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
+        from Kavitro_dev.modules.Property.dialogs.property_import_review_dialog import PropertyImportReviewDialog
         self.data['address'] = {'street': '', 'houseNumber': '', 'city': 'Rõude küla'}
         self.lookup.return_value = self.conflict_info('Kullamaa metskond, 157, Rõude küla')
         decision = module.apply_reviewed_backend(self.data, [], '2025-01-01', None)
@@ -413,7 +413,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
     def test_check_controller_survives_owner_deletion_during_a_request_or_a_pause(self):
         from PyQt5 import sip
         from PyQt5.QtCore import QObject, Qt
-        from Kavitro_dev.modules.Property.FlowControllers.BackendVerifyController import BackendVerifyController
+        from Kavitro_dev.modules.Property.FlowControllers.backend_verify_controller import BackendVerifyController
         from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
         gate, busy, release = threading.Event(), threading.Event(), threading.Event()
         requested = []
@@ -548,7 +548,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.assertEqual(classify_property_import(self.data, '2026-01-02', None, info)['action'], 'update')
 
     def test_review_dialog_defaults_to_later_and_never_offers_ambiguous_overwrite(self):
-        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
+        from Kavitro_dev.modules.Property.dialogs.property_import_review_dialog import PropertyImportReviewDialog
         from Kavitro_dev.languages.language_manager import LanguageManager
         self.lookup.side_effect = [self.conflict_info(), {'exists': True, 'active_count': 2}]
         result = self.run_batch(self.features)

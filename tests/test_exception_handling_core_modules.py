@@ -39,7 +39,7 @@ from Kavitro_dev.constants.file_paths import _read_metadata_value
 from Kavitro_dev.feed.feed_load_engine import FeedLoadEngine
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.module_manager import ModuleManager
-from Kavitro_dev.modules.Property.query_cordinator import ConnectedModuleData
+from Kavitro_dev.modules.Property.query_coordinator import ConnectedModuleData
 from Kavitro_dev.modules.projects import project_board_overview_service as board_module
 from Kavitro_dev.modules.projects import projects_card_actions as card_actions_module
 from Kavitro_dev.modules.projects.project_board_overview_service import ProjectBoardOverviewService

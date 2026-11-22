@@ -13,9 +13,9 @@ from qgis.gui import QgsCheckableComboBox
 
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
-from ..utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
-from ..utils.mapandproperties.PropertyUpdateFlowCoordinator import PropertyUpdateFlowCoordinator
-from ..utils.mapandproperties.PropertyTableManager import PropertyTableManager
+from ..utils.property.PropertyDataLoader import PropertyDataLoader
+from ..utils.property.PropertyUpdateFlowCoordinator import PropertyUpdateFlowCoordinator
+from .property_table.PropertyTableManager import PropertyTableManager
 from ..utils.MapTools.MapHelpers import MapHelpers
 from ..constants.layer_constants import IMPORT_PROPERTY_TAG
 from ..constants.button_props import ButtonVariant

@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from Kavitro_dev.utils.mapandproperties.property_check_run import CheckRow, PropertyCheckRun
+from Kavitro_dev.modules.Property.FlowControllers.property_check_run import CheckRow, PropertyCheckRun
 
 
 def make_run(*tunnused: str, run_id: int = 1) -> PropertyCheckRun:

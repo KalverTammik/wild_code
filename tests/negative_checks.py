@@ -51,7 +51,7 @@ def no_context(**_kwargs):
 scenario = sys.argv[1]
 if scenario == 'old_controller':
     tests = load('test_checked_property_add')
-    from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyController as ctl
+    from Kavitro_dev.modules.Property.FlowControllers import backend_verify_controller as ctl
 
     def old_forward(self, _worker, signal_name, *args):
         getattr(self, signal_name).emit(*args)
@@ -66,17 +66,17 @@ if scenario == 'old_controller':
     name = CONTROLLER_TEST
 elif scenario == 'worker_without_context':
     tests = load('test_checked_property_add')
-    from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as wk
+    from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as wk
     patches = [patch.object(wk, 'api_request_context', no_context)]
     name = CONTROLLER_TEST
 elif scenario == 'dialog_without_wait_notice':
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as wk
+    from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as wk
     patches = [patch.object(wk, 'api_request_context', no_context)]
     name = DIALOG_TEST
 elif scenario == 'dialog_cancel_closes':
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+    from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
 
     def old_cancel(self):
         self._stop_attention_checks(clear_attention=False)
@@ -86,7 +86,7 @@ elif scenario == 'dialog_cancel_closes':
     name = DIALOG_TEST
 elif scenario == 'dialog_lookup_cancel_closes':
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+    from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
 
     def cancel_without_lookup_branch(self):
         if self._checks_running:
@@ -103,7 +103,7 @@ elif scenario == 'dialog_lookup_cancel_closes':
             'test_real_dialog_archive_lookup_shows_progress_and_cancel_changes_nothing')
 elif scenario == 'dialog_lookup_without_scope_recheck':
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+    from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
     original_apply = AddPropertyDialog._apply_archive_plan
 
     def apply_without_recheck(self, missing, backend_info, then):
@@ -116,7 +116,7 @@ elif scenario == 'dialog_lookup_without_scope_recheck':
 elif scenario == 'controller_thread_parented':
     # Expected outcome is a Qt abort: a running thread is destroyed with its parent.
     tests = load('test_checked_property_add')
-    from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyController as ctl
+    from Kavitro_dev.modules.Property.FlowControllers import backend_verify_controller as ctl
     original_start = ctl.BackendVerifyController.start
 
     def start_with_parented_thread(self, *args, **kwargs):
@@ -127,13 +127,13 @@ elif scenario == 'controller_thread_parented':
     name = OWNER_DELETION_TEST
 elif scenario == 'controller_no_stop_on_destroy':
     tests = load('test_checked_property_add')
-    from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyController as ctl
+    from Kavitro_dev.modules.Property.FlowControllers import backend_verify_controller as ctl
     patches = [patch.object(ctl.BackendVerifyController, 'stop', lambda self: None)]
     name = OWNER_DELETION_TEST
 elif scenario == 'controller_eager_signal_lookup':
     # Expected outcome is a Qt abort: the lambda reads a signal of the deleted controller.
     tests = load('test_checked_property_add')
-    from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyController as ctl
+    from Kavitro_dev.modules.Property.FlowControllers import backend_verify_controller as ctl
 
     def forward_signal_object(self, worker, signal, *args):
         if self._is_current(worker):
@@ -163,20 +163,20 @@ elif scenario == 'old_address_comparison':
     name = 'CheckedPropertyAddTest.test_composed_backend_address_matches_the_cadastral_address'
 elif scenario == 'dialog_check_without_decisions':
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+    from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
     patches = [patch.object(AddPropertyDialog, '_collect_check_decisions', lambda self: [])]
     name = ('PropertyLocationDialogFlowTest.'
             'test_check_offers_decisions_before_adding_and_apply_takes_the_current_layers')
 elif scenario == 'verify_by_tag_only':
     tests = load('test_property_archive_execution')
-    from Kavitro_dev.modules.Property.FlowControllers import MainAddProperties as flow
+    from Kavitro_dev.modules.Property.FlowControllers import property_add_flow as flow
 
     patches = [patch.object(flow.BackendPropertyVerifier, '_is_archived',
                             lambda node: flow.BackendPropertyVerifier._is_archived_by_tag(node))]
     name = 'PropertyArchiveExecutionTest.test_verify_splits_records_by_status_with_one_query'
 elif scenario == 'status_update_guessing':
     tests = load('test_property_archive_execution')
-    from Kavitro_dev.modules.Property.FlowControllers import UpdatePropertyData as update_module
+    from Kavitro_dev.modules.Property.FlowControllers import property_backend_update as update_module
 
     def old_status_update(item_id, *, status_name):
         item_id = str(item_id or '').strip()
@@ -198,7 +198,7 @@ elif scenario == 'status_update_guessing':
     name = 'PropertyArchiveExecutionTest.test_archive_status_uses_the_documented_status_field'
 elif scenario == 'old_address_split':
     tests = load('test_property_location_rules')
-    from Kavitro_dev.utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
+    from Kavitro_dev.utils.property.PropertyDataLoader import PropertyDataLoader
     import re as _re
 
     def split_at_first_digit(street):
@@ -215,14 +215,14 @@ elif scenario == 'old_address_split':
     name = 'PropertyLocationRulesTest.test_address_split_separates_only_a_trailing_house_number'
 elif scenario == 'dialog_without_column_tooltips':
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+    from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
 
     patches = [patch.object(AddPropertyDialog, '_column_tooltip',
                             lambda self, causes, done, ok_key, issues_key: '')]
     name = 'PropertyLocationDialogFlowTest.test_each_status_column_explains_itself_on_hover'
 elif scenario == 'county_read_without_choices':
     tests = load('test_property_location_filter')
-    from Kavitro_dev.utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
+    from Kavitro_dev.utils.property.PropertyDataLoader import PropertyDataLoader
     original_scope_read = PropertyDataLoader.read_location_scope
 
     def scope_read_without_tree(source, cancelled, scope, include_properties):
@@ -249,7 +249,7 @@ elif scenario == 'null_address_generic_reason':
     tests = load('test_checked_property_add')
     from Kavitro_dev.languages.translation_keys import TranslationKeys as K
     from Kavitro_dev.modules.Property.FlowControllers import property_import_decisions as decisions
-    from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as runner_module
+    from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner as runner_module
     original_classify = decisions.classify_property_import
 
     def generic_reason(*args, **kwargs):
@@ -264,8 +264,8 @@ elif scenario == 'null_address_generic_reason':
 elif scenario == 'null_address_not_approvable':
     tests = load('test_checked_property_add')
     from Kavitro_dev.languages.translation_keys import TranslationKeys as K
-    from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as runner_module
-    from Kavitro_dev.widgets import property_import_review_dialog as review_module
+    from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner as runner_module
+    from Kavitro_dev.modules.Property.dialogs import property_import_review_dialog as review_module
     only_differs = (K.PROPERTY_ADD_BACKEND_DIFFERS,)
     patches = [patch.object(runner_module, 'ADDRESS_REASONS', only_differs),
                patch.object(review_module, 'ADDRESS_REASONS', only_differs)]
@@ -273,7 +273,7 @@ elif scenario == 'null_address_not_approvable':
 elif scenario == 'null_address_approval_without_runner':
     tests = load('test_checked_property_add')
     from Kavitro_dev.languages.translation_keys import TranslationKeys as K
-    from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as runner_module
+    from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner as runner_module
     patches = [patch.object(runner_module, 'ADDRESS_REASONS', (K.PROPERTY_ADD_BACKEND_DIFFERS,))]
     name = 'CheckedPropertyAddTest.test_missing_address_decision_offers_and_applies_the_import_only_when_approved'
 elif scenario == 'dialog_check_without_location':
@@ -283,7 +283,7 @@ elif scenario == 'dialog_check_without_location':
     # `AddPropertyDialog._check_location_parts`, which step 8 replaced with the shared
     # `PropertyDataLoader.build_import_address` that check and import now both use.
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
+    from Kavitro_dev.utils.property.PropertyDataLoader import PropertyDataLoader
     original_build_address = PropertyDataLoader.build_import_address
 
     def address_without_location_parts(feature):
@@ -295,7 +295,7 @@ elif scenario == 'dialog_check_without_location':
     name = NULL_ADDRESS_DIALOG_TEST
 elif scenario == 'dialog_main_address_null_text':
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
+    from Kavitro_dev.modules.Property.dialogs import AddUpdatePropertyDialog as dialog_module
     from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
 
     def old_collect(self):
@@ -318,7 +318,7 @@ elif scenario == 'dialog_main_address_null_text':
     name = NULL_ADDRESS_DIALOG_TEST
 elif scenario == 'dialog_null_reason_without_tooltip':
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.modules.Property.FlowControllers import AttentionDisplayRules as rules_module
+    from Kavitro_dev.modules.Property.FlowControllers import attention_display_rules as rules_module
     original_translate = rules_module.AttentionDisplayRules._translate_cause_text
 
     def without_new_key(cause, translate=None):
@@ -390,7 +390,7 @@ elif scenario == 'dialog_without_missing_layer_bailout':
     # Old behaviour: no early bail-out -- the full UI was built with no import layer,
     # which raised AttributeError instead of showing a message and a Close button.
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+    from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
 
     def build_full_ui_anyway(self):
         self._create_ui()
@@ -405,7 +405,7 @@ elif scenario == 'attribute_read_leaks_null_text':
     # Old `_safe_attr`: only Python None was handled, so the QGIS NULL sentinel and a
     # literal "NULL" in the source file both reached the user as the word NULL.
     tests = load('test_property_row_builder_null_handling')
-    from Kavitro_dev.utils.mapandproperties.property_row_builder import PropertyRowBuilder
+    from Kavitro_dev.utils.property.property_row_builder import PropertyRowBuilder
 
     def old_safe_attr(value):
         return '' if value is None else str(value).strip()
@@ -421,7 +421,7 @@ elif scenario == 'archive_reresolves_main_layer_by_name':
     # Old behaviour: `_prepare_layers` always looked the main layer up by name, so the
     # archive could act on a different instance than the plan was computed against.
     tests = load('test_property_archive_execution')
-    from Kavitro_dev.modules.Property.FlowControllers import MainAddProperties as flow
+    from Kavitro_dev.modules.Property.FlowControllers import property_add_flow as flow
     original_prepare_layers = flow.MainAddPropertiesFlow._prepare_layers
 
     def prepare_layers_by_name_only(main_layer=None):
@@ -438,7 +438,7 @@ elif scenario == 'add_without_checks_not_busy_gated':
     # Old behaviour: the "add without checks" rule was duplicated per method and one
     # copy left out the busy gate, so the button stayed live during a running add.
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.utils.mapandproperties import property_dialog_phase as phase_module
+    from Kavitro_dev.modules.Property.FlowControllers import property_dialog_phase as phase_module
 
     patches = [patch.object(phase_module.PropertyDialogState, 'can_add_without_checks',
                             property(lambda self: self.selected_count > 0))]
@@ -452,7 +452,7 @@ elif scenario == 'filter_untick_drops_the_check':
     # Old behaviour: the filter deleted rows, so unticking had to reload the table,
     # which ran _after_table_update -> _stop_attention_checks and dropped the run.
     tests = load('test_property_location_dialog_flow')
-    from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
+    from Kavitro_dev.modules.Property.dialogs import AddUpdatePropertyDialog as dialog_module
 
     def clear_filter_by_reloading(self):
         dialog_module.PropertyTableManager.show_all_rows(self.properties_table)
@@ -472,7 +472,7 @@ elif scenario == 'check_run_replaced_still_accepts':
     # Old behaviour: a replaced run had no way to refuse results, so a controller
     # signal already queued painted onto the run that replaced it.
     tests = load('test_property_check_run')
-    from Kavitro_dev.utils.mapandproperties.property_check_run import PropertyCheckRun
+    from Kavitro_dev.modules.Property.FlowControllers.property_check_run import PropertyCheckRun
 
     patches = [patch.object(PropertyCheckRun, 'accepts', lambda self: True)]
     name = 'PropertyCheckRunTest.test_a_replaced_run_sends_nothing_and_keeps_its_own_results'
@@ -480,7 +480,7 @@ elif scenario == 'check_run_finishes_more_than_once':
     # Old behaviour: completion was a plain flag, so the end of a run could be
     # announced more than once (and for a cancelled run).
     tests = load('test_property_check_run')
-    from Kavitro_dev.utils.mapandproperties.property_check_run import PropertyCheckRun
+    from Kavitro_dev.modules.Property.FlowControllers.property_check_run import PropertyCheckRun
 
     patches = [patch.object(PropertyCheckRun, 'mark_finished', lambda self: True)]
     name = 'PropertyCheckRunTest.test_completion_is_announced_exactly_once'
@@ -490,7 +490,7 @@ else:
 if os.environ.get('KEEP_DIALOG') == '1' and scenario.startswith('dialog'):
     # Deleting the dialog destroys its still-running check QThread, which aborts Qt
     # before the verdict is printed. Keep it alive until the hard exit below.
-    from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+    from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
     patches.append(patch.object(AddPropertyDialog, 'deleteLater', lambda self: None))
 
 suite = unittest.defaultTestLoader.loadTestsFromName(name, tests)

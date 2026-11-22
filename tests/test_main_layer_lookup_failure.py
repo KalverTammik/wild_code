@@ -19,13 +19,13 @@ from qgis.core import QgsApplication, QgsFeature, QgsVectorLayer
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.languages import en, et
 from Kavitro_dev.languages.translation_keys import TranslationKeys as K
-from Kavitro_dev.modules.Property.FlowControllers.AttentionDisplayRules import AttentionDisplayRules
-from Kavitro_dev.modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
+from Kavitro_dev.modules.Property.FlowControllers.attention_display_rules import AttentionDisplayRules
+from Kavitro_dev.modules.Property.FlowControllers.main_layer_check_controller import MainLayerCheckController
 from Kavitro_dev.utils.MapTools.MapHelpers import LayerLookupError, MapHelpers
 from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 # The package re-exports the class under the module's name, so the module is loaded by path.
-check_module = importlib.import_module("Kavitro_dev.modules.Property.FlowControllers.MainLayerCheckController")
+check_module = importlib.import_module("Kavitro_dev.modules.Property.FlowControllers.main_layer_check_controller")
 
 MESSAGE_DIALOG_METHODS = ("Info_messages_modern", "Warning_messages_modern", "Error_messages_modern",
                           "show_info", "show_warning", "show_error", "ask_choice_modern", "get_text_modern")

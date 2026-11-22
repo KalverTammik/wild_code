@@ -14,7 +14,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from Kavitro_dev.modules.Property.PropertyUITools import PropertyUITools
+from Kavitro_dev.modules.Property.widgets.property_ui_tools import PropertyUITools
 from Kavitro_dev.modules.Settings import settings_ui_controller as controller_module
 from Kavitro_dev.modules.Settings.cards.ModuleLabelsWidget import ModuleLabelsWidget
 from Kavitro_dev.modules.Settings.cards.SettingsModuleCard import SettingsModuleCard

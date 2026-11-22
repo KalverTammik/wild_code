@@ -26,11 +26,11 @@ from Kavitro_dev.constants.cadastral_fields import Katastriyksus
 from Kavitro_dev.constants.settings_keys import SettingsService
 from Kavitro_dev.utils.maa_amet.Maa_amet_field_comparer import MaaAmetFieldComparer
 from Kavitro_dev.utils.MapTools.MapHelpers import FeatureActions
-from Kavitro_dev.utils.mapandproperties.ArchiveLayerHandler import (
+from Kavitro_dev.utils.property.ArchiveLayerHandler import (
     ArchiveLayerHandler,
     GPKGHelpers,
 )
-from Kavitro_dev.utils.mapandproperties.property_layer_bootstrap_service import (
+from Kavitro_dev.utils.property.property_layer_bootstrap_service import (
     PropertyLayerBootstrapService,
 )
 from Kavitro_dev.constants.module_names import Module

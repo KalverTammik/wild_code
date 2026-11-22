@@ -18,17 +18,17 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
 )
 
-from ...constants.module_icons import ModuleIconPaths
-from ...ui.theme_manager import styleExtras, ThemeShadowColors
-from ...widgets.DataDisplayWidgets.DatesWidget import DatesWidget
-from ...widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
-from ...widgets.DataDisplayWidgets.MainStatusWidget import MainStatusWidget
-from ...module_manager import ModuleManager
-from ...languages.translation_keys import TranslationKeys
-from ...widgets.DelayHelpers.LoadingSpinner import GradientSpinner
-from ...languages.language_manager import LanguageManager
-from ...Logs.python_fail_logger import PythonFailLogger
-from ...constants.module_names import Module
+from ....constants.module_icons import ModuleIconPaths
+from ....ui.theme_manager import styleExtras, ThemeShadowColors
+from ....widgets.DataDisplayWidgets.DatesWidget import DatesWidget
+from ....widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
+from ....widgets.DataDisplayWidgets.MainStatusWidget import MainStatusWidget
+from ....module_manager import ModuleManager
+from ....languages.translation_keys import TranslationKeys
+from ....widgets.DelayHelpers.LoadingSpinner import GradientSpinner
+from ....languages.language_manager import LanguageManager
+from ....Logs.python_fail_logger import PythonFailLogger
+from ....constants.module_names import Module
 
 
 class PropertyTreeWidget(QFrame):

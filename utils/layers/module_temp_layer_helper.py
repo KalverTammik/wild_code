@@ -10,7 +10,7 @@ from ...constants.settings_keys import SettingsService
 from ...engines.LayerCreationEngine import MailablGroupFolders
 from ...Logs.python_fail_logger import PythonFailLogger
 from ..MapTools.MapHelpers import MapHelpers
-from ..mapandproperties.ArchiveLayerHandler import GPKGHelpers
+from ..property.ArchiveLayerHandler import GPKGHelpers
 from ...constants.module_names import Module
 
 

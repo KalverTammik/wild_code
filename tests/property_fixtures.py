@@ -35,7 +35,7 @@ from qgis.core import QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsVect
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.utils.MapTools.MapHelpers import MapHelpers
-from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableManager
+from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableManager
 from Kavitro_dev.widgets.LocationFilterWidget import LocationFilterHelper, LocationFilterWidget
 
 # The three fields the add dialog reads on top of the plain location fields.
@@ -284,7 +284,7 @@ class LocationFilterTestCase(unittest.TestCase):
         add_import_fields(self.layer)
 
     def open_dialog_with_village_scope(self):
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
         self.add_import_fields()
         dialog = open_dialog(AddPropertyDialog)
         self.wait_until(lambda: dialog.county_combo.isEnabled())

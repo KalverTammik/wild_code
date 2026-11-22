@@ -14,12 +14,12 @@ from ....languages.language_manager import LanguageManager
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions
 from ....constants.module_names import Module
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
-from .UpdatePropertyData import UpdatePropertyData
+from .property_backend_update import UpdatePropertyData
 from ....utils.TagsEngines import TagsEngines
 from ....utils.moduleSwitchHelper import ModuleSwitchHelper
 from ....Logs.python_fail_logger import PythonFailLogger
-from ....utils.mapandproperties.ArchiveLayerHandler import ArchiveLayerHandler
-from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
+from ....utils.property.ArchiveLayerHandler import ArchiveLayerHandler
+from ....utils.property.PropertyDataLoader import PropertyDataLoader
 from ....ui.messages_helper import ModernMessageDialog
 
 

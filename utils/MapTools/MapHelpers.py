@@ -435,7 +435,7 @@ class FeatureActions:
 
         search_idx = target_layer.fields().lookupField(Katastriyksus.search_field)
         if search_idx >= 0 and not new_feat.attribute(search_idx):
-            from ..mapandproperties.property_search_field_service import PropertySearchFieldService
+            from ..property.property_search_field_service import PropertySearchFieldService
 
             new_feat.setAttribute(
                 search_idx,

@@ -8,8 +8,9 @@ from pathlib import Path
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
-    / "utils"
-    / "mapandproperties"
+    / "modules"
+    / "Property"
+    / "FlowControllers"
     / "property_archive_plan.py"
 )
 SPEC = importlib.util.spec_from_file_location("property_archive_plan_under_test", MODULE_PATH)

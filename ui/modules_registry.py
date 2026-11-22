@@ -33,7 +33,7 @@ class ModulesRegistry:
         from ..constants.setting_placeholders import SettingDialogPlaceholders
         from ..modules.Settings.SettingsUI import SettingsModule
         from ..modules.Settings.EasementStatusMappingDialog import EasementStatusMappingDialog
-        from ..modules.Property.PropertyUI import PropertyModule
+        from ..modules.Property.widgets.property_ui import PropertyModule
         from ..modules.projects.ProjectsUi import ProjectsModule
         from ..modules.projects.projects_card_actions import ProjectCardActions
         from ..modules.projects.FolderNamingRuleDialog import FolderNamingRuleDialog

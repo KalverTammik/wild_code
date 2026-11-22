@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import Any
 
-from ...Logs.python_fail_logger import PythonFailLogger
-from ...widgets.DataDisplayWidgets.BackendActionPromptDialog import prompt_backend_action_dialog
-from .PropertyTableManager import PropertyTableManager, PropertyTableWidget
+from ....Logs.python_fail_logger import PythonFailLogger
+from ....widgets.DataDisplayWidgets.BackendActionPromptDialog import prompt_backend_action_dialog
+from ....widgets.property_table.PropertyTableManager import PropertyTableManager, PropertyTableWidget
 
 
 class PropertyPromptHelpers:

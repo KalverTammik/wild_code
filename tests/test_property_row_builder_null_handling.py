@@ -13,7 +13,7 @@ if os.environ.get('QGIS_PREFIX_PATH'):
 from qgis.core import NULL, QgsApplication, QgsFeature, QgsVectorLayer
 
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
-from Kavitro_dev.utils.mapandproperties.property_row_builder import PropertyRowBuilder
+from Kavitro_dev.utils.property.property_row_builder import PropertyRowBuilder
 
 
 class PropertyRowBuilderNullHandlingTest(unittest.TestCase):

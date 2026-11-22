@@ -9,7 +9,6 @@ except ImportError:
 from ...constants.settings_keys import SettingsService
 from ...constants.cadastral_fields import Katastriyksus
 from ...constants.layer_constants import IMPORT_PROPERTY_TAG
-from ...utils.mapandproperties.PropertyTableManager import PropertyTableManager
 
 from ...constants.module_names import Module
 from .MapHelpers import MapHelpers
@@ -120,10 +119,8 @@ class PropertiesSelectors:
         return layer        
 
     @staticmethod
-    def show_connected_properties_on_map_from_table(table, module=None, use_shp: bool=False) -> None:
-        """Goal: select and zoom cadastral features; 
-        values: List[str], layer_type: str; 
-        Returns: None."""
+    def show_features_on_map(features, module=None, use_shp: bool=False) -> None:
+        """Select and zoom to the given property features (the caller reads them from its table)."""
 
         if module is None:
             module = Module.PROPERTY.value
@@ -136,7 +133,6 @@ class PropertiesSelectors:
 
         try:
             started = perf_counter()
-            features = PropertyTableManager().get_selected_features(table)
             feature_ids = []
             seen_ids = set()
             for feature in features or []:

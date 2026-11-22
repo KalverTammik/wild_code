@@ -19,9 +19,9 @@ from qgis.core import QgsApplication
 from property_fixtures import wait_until as _wait_until
 
 from Kavitro_dev.languages.translation_keys import TranslationKeys as K
-from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
-from Kavitro_dev.modules.Property.FlowControllers.BackendVerifyWorker import BackendVerifyWorker
-from Kavitro_dev.modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
+from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
+from Kavitro_dev.modules.Property.FlowControllers.backend_verify_worker import BackendVerifyWorker
+from Kavitro_dev.modules.Property.FlowControllers.main_layer_check_controller import MainLayerCheckController
 
 
 class _QtTestCase(unittest.TestCase):
@@ -199,7 +199,7 @@ class MainLayerLookupTest(_QtTestCase):
     """A lookup that covered the whole run answers a miss without scanning the layer again."""
 
     def controller(self, *, lookup, complete):
-        from Kavitro_dev.modules.Property.FlowControllers import MainLayerCheckController as module
+        from Kavitro_dev.modules.Property.FlowControllers import main_layer_check_controller as module
         controller = MainLayerCheckController()
         self.addCleanup(controller.deleteLater)
         self.addCleanup(controller.stop)
@@ -234,7 +234,7 @@ class MainLayerLookupTest(_QtTestCase):
         """The saved scan may not change the answer, only the work done to reach it."""
 
         scanned, _module = self.controller(lookup={}, complete=False)
-        from Kavitro_dev.modules.Property.FlowControllers import MainLayerCheckController as module
+        from Kavitro_dev.modules.Property.FlowControllers import main_layer_check_controller as module
         with patch.object(module.MapHelpers, 'find_features_by_fields_and_values', return_value=[]):
             from_scan = self.causes_for_row_zero(scanned)
         trusted, _module = self.controller(lookup={}, complete=True)

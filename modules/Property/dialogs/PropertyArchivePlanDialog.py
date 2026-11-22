@@ -14,11 +14,11 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from ..constants.button_props import ButtonSize, ButtonVariant
-from ..constants.file_paths import QssPaths
-from ..languages.language_manager import LanguageManager
-from ..languages.translation_keys import TranslationKeys
-from ..ui.theme_manager import ThemeManager
+from ....constants.button_props import ButtonSize, ButtonVariant
+from ....constants.file_paths import QssPaths
+from ....languages.language_manager import LanguageManager
+from ....languages.translation_keys import TranslationKeys
+from ....ui.theme_manager import ThemeManager
 
 
 class PropertyArchivePlanDialog(QDialog):

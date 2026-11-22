@@ -19,8 +19,8 @@ from qgis.core import QgsFeature, QgsGeometry, QgsVectorLayer
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys as K
-from Kavitro_dev.utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
-from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableManager
+from Kavitro_dev.utils.property.PropertyDataLoader import PropertyDataLoader
+from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableManager
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from property_fixtures import (LocationFilterTestCase, backend_info, make_main_layer, missing_info,
                                open_dialog)
@@ -31,7 +31,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
     def test_add_dialog_missing_import_layer_shows_close_only(self):
         """b1: no import layer loaded must not crash the dialog with AttributeError."""
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
         self.resolve_mock.return_value = None
         dialog = open_dialog(AddPropertyDialog)
         try:
@@ -45,8 +45,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             dialog.deleteLater()
 
     def test_checked_add_dialog_uses_background_runner_and_shows_failures(self):
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers.add_batch_runner import AddBatchRunner
         self.add_import_fields()
         dialog = open_dialog(AddPropertyDialog)
         try:
@@ -110,9 +110,9 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             dialog.deleteLater()
 
     def test_real_precheck_and_import_defer_conflict_then_keep_without_reimporting_successes(self):
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
-        from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as runner_module
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.dialogs.property_import_review_dialog import PropertyImportReviewDialog
+        from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner as runner_module
         self.add_import_fields()
         self.layer.dataProvider().changeAttributeValues({feature.id(): {
             self.layer.fields().lookupField(F.muudet): '2025-01-01'} for feature in self.layer.getFeatures()})
@@ -167,9 +167,9 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                 dialog.deleteLater()
 
     def test_review_results_merge_into_original_counts_and_only_retry_deferred_property(self):
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
-        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.dialogs.property_import_review_dialog import PropertyImportReviewDialog
+        from Kavitro_dev.modules.Property.FlowControllers.add_batch_runner import AddBatchRunner
         self.add_import_fields()
         dialog = open_dialog(AddPropertyDialog)
         decision = {'tunnus': '1', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {},
@@ -206,8 +206,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             dialog.deleteLater()
 
     def test_add_progress_stays_visible_during_pauses_and_resets_between_runs(self):
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers.add_batch_runner import AddBatchRunner
         from Kavitro_dev.widgets.DelayHelpers.glow_progress_bar import GlowProgressBar
         self.add_import_fields()
         dialog = open_dialog(AddPropertyDialog)
@@ -215,7 +215,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             self.wait_until(lambda: dialog.county_combo.isEnabled())
             dialog.lang_manager = LanguageManager('et')
             translate = dialog.lang_manager.translate
-            with patch('Kavitro_dev.widgets.AddUpdatePropertyDialog.monotonic', return_value=100.0) as clock, \
+            with patch('Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog.monotonic', return_value=100.0) as clock, \
                     patch.object(AddBatchRunner, 'start'), \
                     patch.object(dialog, '_run_missing_cleanup_if_any', side_effect=lambda then: then()):
                 for mode in ('with_checks', 'without_checks'):
@@ -300,7 +300,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             dialog.deleteLater()
 
     def test_real_dialog_captures_archive_scope_only_after_current_village_load(self):
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
         self.add_import_fields()
         dialog = open_dialog(AddPropertyDialog)
         try:
@@ -323,8 +323,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
 
     def test_real_dialog_clears_a_finished_import_result_when_the_location_scope_changes(self):
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.modules.Property.FlowControllers import AddBatchRunner as runner_module
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner as runner_module
         self.add_import_fields()
         main = make_main_layer()
         created = lambda data, uses, raise_on_error=False: (
@@ -365,8 +365,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                 dialog.deleteLater()
 
     def test_real_dialog_archive_plan_uses_background_lookup_and_continues_only_after_clean_apply(self):
-        from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
-        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.modules.Property.dialogs import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         dialog = self.open_dialog_with_village_scope()
         infos = {'7': {'exists': True, 'active_count': 1, 'active_ids': ['p7']},
                  '8': missing_info(),
@@ -417,8 +417,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         # b4: the dialog used to unlock the instant the background lookup finished --
         # before the user even saw the confirmation dialog, and before the archive call
         # that follows it. Both must still see the dialog locked.
-        from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
-        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.modules.Property.dialogs import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         dialog = self.open_dialog_with_village_scope()
         then = Mock()
         locked_at_confirm = []
@@ -455,8 +455,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
     def test_real_dialog_archive_lookup_shows_progress_and_cancel_changes_nothing(self):
         from PyQt5 import sip
-        from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
-        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.modules.Property.dialogs import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
         dialog = self.open_dialog_with_village_scope()
         then = Mock()
@@ -509,8 +509,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             self.close_dialog(dialog)
 
     def test_real_dialog_rechecks_the_archive_scope_after_the_background_lookup(self):
-        from Kavitro_dev.widgets import AddUpdatePropertyDialog as dialog_module
-        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.modules.Property.dialogs import AddUpdatePropertyDialog as dialog_module
+        from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         dialog = self.open_dialog_with_village_scope()
         then = Mock()
         try:
@@ -538,8 +538,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
     def test_real_dialog_shows_check_rate_limit_wait_and_cancel_keeps_the_dialog_open(self):
         from PyQt5 import sip
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
         self.add_import_fields()
@@ -653,7 +653,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             self.close_dialog(dialog)
 
     def test_import_decisions_send_every_add_path_into_the_review_first(self):
-        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        from Kavitro_dev.modules.Property.FlowControllers.add_batch_runner import AddBatchRunner
         dialog = self.open_dialog_with_village_scope()
         try:
             dialog._deferred_additions = [{'tunnus': '1'}]
@@ -689,7 +689,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             self.close_dialog(dialog)
 
     def test_add_without_checks_needs_rows_but_not_a_finished_check(self):
-        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        from Kavitro_dev.modules.Property.FlowControllers.add_batch_runner import AddBatchRunner
         dialog = self.open_dialog_with_village_scope()
         try:
             with patch.object(AddBatchRunner, 'start') as start, \
@@ -743,10 +743,10 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             self.close_dialog(dialog)
 
     def test_check_offers_decisions_before_adding_and_apply_takes_the_current_layers(self):
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
-        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
-        from Kavitro_dev.modules.Property.FlowControllers.AddBatchRunner import AddBatchRunner
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.dialogs.property_import_review_dialog import PropertyImportReviewDialog
+        from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
+        from Kavitro_dev.modules.Property.FlowControllers.add_batch_runner import AddBatchRunner
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
         self.add_import_fields()
         main = make_main_layer()
@@ -789,8 +789,8 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         and it is missing from the main layer. '2' agrees with both, so the attention
         filter is the only thing that can drop it."""
 
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
         self.add_import_fields()
         main = QgsVectorLayer(f'Polygon?crs=EPSG:3301&field={F.tunnus}:string&field={F.l_aadress}:string',
@@ -826,7 +826,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
     def backend_tip(self, dialog, tunnus):
         """The backend column's tooltip for a property, found by identity rather than by row."""
-        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableWidget
         row = self.table_ids(dialog).index(tunnus)
         return PropertyTableManager.get_cell_data(
             dialog.properties_table, row, PropertyTableWidget._COL_BACKEND_ATTENTION, role=Qt.ToolTipRole)
@@ -905,7 +905,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
     def test_the_visible_count_matches_the_visible_rows_without_walking_them(self):
         """The count is read off the header now, so it must not drift from the rows."""
 
-        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableWidget
         frame, table = PropertyTableWidget.create_properties_table()
         frame.setParent(self.window)
         manager = PropertyTableManager()
@@ -931,7 +931,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
     def test_select_all_takes_the_rows_the_table_shows(self):
         """Selection mode is off in location mode, so this is where the rule is checked."""
 
-        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableWidget
         frame, table = PropertyTableWidget.create_properties_table()
         # Parented to the fixture window so it dies with it; a stray top-level widget
         # still pending deletion at interpreter shutdown crashes the run.
@@ -946,10 +946,10 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
     def test_check_treats_a_missing_cadastral_address_as_agreement_with_the_settlement(self):
         from qgis.core import NULL
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
-        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableWidget
         self.add_import_fields()
         address_index = self.layer.fields().lookupField(F.l_aadress)
         self.layer.dataProvider().changeAttributeValues(
@@ -995,10 +995,10 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                 self.close_dialog(dialog)
 
     def test_each_status_column_explains_itself_on_hover(self):
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
-        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableWidget
         self.add_import_fields()
         main = make_main_layer()
         lookup = lambda number: backend_info(
@@ -1046,10 +1046,10 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         # actual archive candidate -- those tunnus values are, by construction, always
         # absent from the import (see _compute_scoped_archive_plan), so nothing end-to-end
         # currently drives a real row through the PLANNED branch.
-        from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
-        from Kavitro_dev.modules.Property.FlowControllers import BackendVerifyWorker as worker_module
+        from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
+        from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper
-        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableWidget
         self.add_import_fields()
         main = make_main_layer()
         with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',

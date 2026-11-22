@@ -20,7 +20,7 @@ from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.Property.property_service import PropertyDataService
-from Kavitro_dev.modules.Property.query_cordinator import (
+from Kavitro_dev.modules.Property.query_coordinator import (
     ConnectedModuleData,
     PropertiesConnectedElementsQueries,
     PropertyLookupService,

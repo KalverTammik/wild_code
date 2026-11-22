@@ -42,9 +42,9 @@ SERVICE_FILES = (
 # (calls that pass ModernMessageDialog, calls that pass None) per file. A new call site must be added here on
 # purpose, so nobody makes a lookup noisy or quiet by accident.
 EXPECTED_CALL_SITES = {
-    "modules/Property/FlowControllers/AddBatchRunner.py": (0, 2),
-    "modules/Property/PropertyUI.py": (1, 0),
-    "modules/Property/PropertyUITools.py": (1, 0),
+    "modules/Property/FlowControllers/add_batch_runner.py": (0, 2),
+    "modules/Property/widgets/property_ui.py": (1, 0),
+    "modules/Property/widgets/property_ui_tools.py": (1, 0),
     "modules/Settings/EasementStatusMappingDialog.py": (0, 2),
     "modules/Settings/cards/SettingsPropertyManagement.py": (2, 3),
     "modules/asbuilt/asbuilt_feature_map_controller.py": (2, 0),
@@ -58,7 +58,7 @@ EXPECTED_CALL_SITES = {
     "modules/works/works_reposition_controller.py": (1, 0),
     "modules/works/works_sync_service.py": (0, 2),
     "utils/SHPLayerLoader.py": (0, 1),
-    "widgets/AddUpdatePropertyDialog.py": (1, 1),
+    "modules/Property/dialogs/AddUpdatePropertyDialog.py": (1, 1),
     "widgets/DataDisplayWidgets/module_action_buttons.py": (1, 0),
 }
 

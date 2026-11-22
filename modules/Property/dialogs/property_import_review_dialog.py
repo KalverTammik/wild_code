@@ -4,11 +4,11 @@ from PyQt5.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QHBoxLayout,
                              QLabel, QPlainTextEdit, QPushButton, QTableWidget, QTableWidgetItem,
                              QVBoxLayout)
 
-from ..constants.file_paths import QssPaths
-from ..modules.Property.FlowControllers.property_import_decisions import ADDRESS_REASONS
-from ..languages.translation_keys import TranslationKeys as K
-from ..ui.theme_manager import ThemeManager
-from .DateHelpers import DateHelpers
+from ....constants.file_paths import QssPaths
+from ..FlowControllers.property_import_decisions import ADDRESS_REASONS
+from ....languages.translation_keys import TranslationKeys as K
+from ....ui.theme_manager import ThemeManager
+from ....widgets.DateHelpers import DateHelpers
 
 
 class PropertyImportReviewDialog(QDialog):

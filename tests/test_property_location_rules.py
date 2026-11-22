@@ -17,9 +17,9 @@ from qgis.core import QgsFeature, QgsVariantUtils, QgsVectorLayer
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys as K
-from Kavitro_dev.utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
-from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableManager
-from Kavitro_dev.utils.mapandproperties.property_dialog_phase import (AddAction, AddMode, CancelTarget,
+from Kavitro_dev.utils.property.PropertyDataLoader import PropertyDataLoader
+from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableManager
+from Kavitro_dev.modules.Property.FlowControllers.property_dialog_phase import (AddAction, AddMode, CancelTarget,
                                                                       PropertyDialogPhase as P,
                                                                       PropertyDialogState)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -30,7 +30,7 @@ class PropertyLocationRulesTest(LocationFilterTestCase):
     """Address matching, splitting and classification -- the rules behind the widgets."""
 
     def test_import_review_sets_the_same_decision_for_every_property(self):
-        from Kavitro_dev.widgets.property_import_review_dialog import PropertyImportReviewDialog
+        from Kavitro_dev.modules.Property.dialogs.property_import_review_dialog import PropertyImportReviewDialog
         decisions = [{'tunnus': '1', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {}},
                      {'tunnus': '2', 'reason': K.PROPERTY_ADD_BACKEND_DIFFERS, 'backend_info': {}},
                      {'tunnus': '3', 'reason': K.ATTENTION_CAUSE_ARCHIVED_ONLY, 'backend_info': {}}]
@@ -200,7 +200,7 @@ class PropertyLocationRulesTest(LocationFilterTestCase):
     def test_property_table_headers_come_from_translations_in_both_languages(self):
         from Kavitro_dev.languages import en as en_module
         from Kavitro_dev.languages import et as et_module
-        from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableWidget
+        from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableWidget
 
         keys = (K.CADASTRAL_ID, K.ADDRESS, K.AREA, K.SETTLEMENT, K.PROPERTY_COLUMN_BACKEND,
                 K.PROPERTY_COLUMN_MAIN_LAYER, K.PROPERTY_COLUMN_ARCHIVE_BACKEND, K.PROPERTY_COLUMN_ARCHIVE_MAP)

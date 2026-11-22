@@ -10,8 +10,8 @@ from unittest.mock import Mock, patch
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN_ROOT.parent))
 
-from Kavitro_dev.modules.Property.FlowControllers import UpdatePropertyData as update_module
-from Kavitro_dev.modules.Property.FlowControllers.UpdatePropertyData import UpdatePropertyData
+from Kavitro_dev.modules.Property.FlowControllers import property_backend_update as update_module
+from Kavitro_dev.modules.Property.FlowControllers.property_backend_update import UpdatePropertyData
 from Kavitro_dev.utils.Folders import foldersHelpers
 
 
@@ -80,7 +80,7 @@ class ConsoleOutputSecurityTest(unittest.TestCase):
 
     def test_audited_runtime_paths_have_no_active_sensitive_print_calls(self) -> None:
         targets = {
-            PLUGIN_ROOT / "modules" / "Property" / "FlowControllers" / "UpdatePropertyData.py": {
+            PLUGIN_ROOT / "modules" / "Property" / "FlowControllers" / "property_backend_update.py": {
                 "response",
                 "input_id",
             },

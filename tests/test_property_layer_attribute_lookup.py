@@ -12,7 +12,7 @@ if os.environ.get('QGIS_PREFIX_PATH'):
 
 from qgis.core import QgsApplication, QgsFeature, QgsVectorLayer
 
-from Kavitro_dev.utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
+from Kavitro_dev.utils.property.PropertyDataLoader import PropertyDataLoader
 
 
 class PropertyLayerAttributeLookupTest(unittest.TestCase):

@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from ...utils.SessionManager import SessionManager
 
-from .query_cordinator import (
+from .query_coordinator import (
     PropertiesConnectedElementsQueries,
     PropertyLookupService,
     PropertyConnectionFormatter,

@@ -16,7 +16,7 @@ from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..Logs.python_fail_logger import PythonFailLogger
 from .MapTools.MapHelpers import ActiveLayersHelper
-from .mapandproperties.property_layer_bootstrap_service import (
+from .property.property_layer_bootstrap_service import (
     PropertyLayerBootstrapResult,
     PropertyLayerBootstrapService,
 )
