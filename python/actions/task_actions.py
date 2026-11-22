@@ -5,7 +5,7 @@ from ..api_client import APIClient
 from ..GraphQLQueryLoader import GraphQLQueryLoader
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.api_error_handling import ApiError, ApiErrorKind
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from .geometry_actions import GeometryActions
 from .user_actions import UserActions
 

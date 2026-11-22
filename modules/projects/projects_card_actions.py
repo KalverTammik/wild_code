@@ -9,10 +9,10 @@ from ...constants.settings_keys import SettingsService
 from ...languages.translation_keys import ToolbarTranslationKeys, TranslationKeys
 from ...python.responses import DataDisplayExtractors
 from ...utils.Folders.foldersHelpers import FolderEngines
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...utils.moduleSwitchHelper import ModuleSwitchHelper
-from ...utils.url_manager import Module
-from ..Settings.setting_keys import SettingDialogPlaceholders
+from ...constants.module_names import Module
+from ...constants.setting_placeholders import SettingDialogPlaceholders
 from ..Settings.settings_setup_guard import SettingsSetupGuard
 from .project_preview_dialog import ProjectPreviewDialog
 from .projects_feature_map_controller import ProjectsFeatureMapController

@@ -33,7 +33,7 @@ from Kavitro_dev.utils.mapandproperties.ArchiveLayerHandler import (
 from Kavitro_dev.utils.mapandproperties.property_layer_bootstrap_service import (
     PropertyLayerBootstrapService,
 )
-from Kavitro_dev.utils.url_manager import Module
+from Kavitro_dev.constants.module_names import Module
 
 
 class PropertyLayerBootstrapServiceTest(unittest.TestCase):

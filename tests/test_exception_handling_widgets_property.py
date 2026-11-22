@@ -31,7 +31,7 @@ from Kavitro_dev.modules.Property.FlowControllers.AttentionDisplayRules import A
 from Kavitro_dev.modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
 from Kavitro_dev.modules.Property.PropertyUITools import PropertyUITools
 from Kavitro_dev.modules.Property.property_tree_widget import PropertyTreeWidget
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.widgets.AddUpdatePropertyDialog import AddPropertyDialog
 from Kavitro_dev.widgets.DataDisplayWidgets.StatusWidget import StatusWidget
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
@@ -44,7 +44,7 @@ from Kavitro_dev.widgets.ModuleKpiCard import ModuleKpiCard
 from Kavitro_dev.widgets.ProgressDialogModern import ProgressDialogModern
 from Kavitro_dev.widgets.PropertySummaryCard import PropertySummaryCard
 from Kavitro_dev.widgets.layer_tree_picker import LayerTreePicker
-from Kavitro_dev.widgets.theme_manager import ThemeManager
+from Kavitro_dev.ui.theme_manager import ThemeManager
 
 # The package re-exports some of these names as classes, so the modules are loaded by path.
 check_module = importlib.import_module("Kavitro_dev.modules.Property.FlowControllers.MainLayerCheckController")

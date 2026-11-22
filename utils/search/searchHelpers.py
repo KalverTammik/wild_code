@@ -1,11 +1,11 @@
-from ..messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 class SearchHeplpers:
     @staticmethod
     def _on_search_result_clicked(dialog, module: str, item_id: str, title: str) -> None:
         """Handle a search result click coming from HeaderWidget using the provided dialog."""
-        from ...utils.url_manager import Module
+        from ...constants.module_names import Module
         from ..moduleSwitchHelper import ModuleSwitchHelper
 
         if dialog is None:

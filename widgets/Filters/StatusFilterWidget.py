@@ -10,10 +10,10 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.api_error_handling import user_message
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
+from ...utils.settings_logic import SettingsLogic
 from ...python.api_actions import APIModuleActions
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
-from ...utils.url_manager import ModuleSupports
+from ...constants.module_names import ModuleSupports
 from ..status_select_widget import StatusMultiSelectWidget
 from .filter_widget_parts import FilterLoadingMixin
 

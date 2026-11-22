@@ -17,8 +17,8 @@ from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...utils.layers.field_value_problems import show_saved, with_field_value_problems
 from ...utils.layers.module_layer_service_base import FieldValueProblem
-from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import Module, ModuleSupports
+from ...ui.messages_helper import ModernMessageDialog
+from ...constants.module_names import Module, ModuleSupports
 from ...Logs.python_fail_logger import PythonFailLogger
 from .works_create_dialog import (
     LOAD_FAILED_PRIORITIES,

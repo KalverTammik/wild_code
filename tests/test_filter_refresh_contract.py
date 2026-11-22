@@ -19,7 +19,7 @@ from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.module_manager import ModuleManager
 from Kavitro_dev.modules.coordination.CoordinationModule import CoordinationModule
 from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper, FilterRefreshService
-from Kavitro_dev.utils.url_manager import ModuleSupports
+from Kavitro_dev.constants.module_names import ModuleSupports
 from Kavitro_dev.widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from Kavitro_dev.widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from Kavitro_dev.widgets.Filters.TypeFilterWidget import TypeFilterWidget

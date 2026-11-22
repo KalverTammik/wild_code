@@ -7,14 +7,14 @@ from ..constants.module_icons import IconNames
 from ..languages.translation_keys import TranslationKeys
 from ..Logs.python_fail_logger import PythonFailLogger
 from ..module_manager import ModuleManager
-from .moduleSwitchHelper import ModuleSwitchHelper
-from ..utils.url_manager import Module
-from .MapTools.module_identify_tool import ModuleIdentifyToolController
+from ..utils.moduleSwitchHelper import ModuleSwitchHelper
+from ..constants.module_names import Module
+from ..utils.MapTools.module_identify_tool import ModuleIdentifyToolController
 from .map_canvas_glass_overlay import MapCanvasGlassOverlayBase
 from .map_canvas_glass_style import MapCanvasGlassStyle
 from .map_canvas_search_bar import MapCanvasSearchBar
-from ..utils.messagesHelper import ModernMessageDialog
-from ..widgets.theme_manager import ThemeManager
+from .messages_helper import ModernMessageDialog
+from .theme_manager import ThemeManager
 
 
 class MapCanvasGlassActionBar(MapCanvasGlassOverlayBase):

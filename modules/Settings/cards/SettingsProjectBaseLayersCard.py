@@ -19,14 +19,14 @@ from qgis.gui import QgsFieldComboBox
 
 from ....constants.button_props import ButtonSize, ButtonVariant
 from ....constants.settings_keys import SettingsService
-from ....utils.messagesHelper import ModernMessageDialog
+from ....ui.messages_helper import ModernMessageDialog
 from .GeospatialSetupDialog import GeospatialSetupDialog
 from .SettingsBaseCard import SettingsBaseCard
 from ..settings_layer_helper import SettingsLayerHelper
 from ....languages.translation_keys import TranslationKeys
 from ....utils.project_base_layers import ProjectBaseLayerKeys, ProjectBaseLayersService
 from ....widgets.layer_tree_picker import LayerTreePicker
-from ....widgets.theme_manager import ThemeManager
+from ....ui.theme_manager import ThemeManager
 
 
 class SettingsProjectBaseLayersCard(SettingsBaseCard):

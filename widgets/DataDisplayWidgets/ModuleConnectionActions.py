@@ -9,7 +9,7 @@ from .module_action_buttons import (
     MoreActionsButton
 )
 from ...python.responses import DataDisplayExtractors
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 class ModuleConnectionActions(QWidget):

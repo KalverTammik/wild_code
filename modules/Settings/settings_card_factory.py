@@ -1,5 +1,5 @@
 from ...module_manager import ModuleManager
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from ...Logs.switch_logger import SwitchLogger
 from .cards.SettingsModuleCard import SettingsModuleCard
 

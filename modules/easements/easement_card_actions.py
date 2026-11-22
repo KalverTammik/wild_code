@@ -7,7 +7,7 @@ from PyQt5.QtCore import Qt
 
 from ...languages.translation_keys import TranslationKeys
 from ...python.responses import DataDisplayExtractors
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from .easement_attach_existing_controller import EasementAttachExistingController
 from .easement_preview_dialog import EasementPreviewDialog
 

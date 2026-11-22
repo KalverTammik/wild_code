@@ -24,9 +24,9 @@ from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.ui.session_storage_warning import show_pending_storage_warning, show_storage_warning
 from Kavitro_dev.ui.session_ui_controller import SessionUIController
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.utils.moduleSwitchHelper import ModuleSwitchHelper
-from Kavitro_dev.utils.url_manager import Module
+from Kavitro_dev.constants.module_names import Module
 
 login_dialog_module = importlib.import_module("Kavitro_dev.login_dialog")
 session_module = importlib.import_module("Kavitro_dev.utils.SessionManager")
@@ -372,7 +372,7 @@ class FinishedLoginWarningTest(unittest.TestCase):
 
 
 class SessionLayeringTest(unittest.TestCase):
-    FORBIDDEN = ("login_dialog", "dialog", "ui", "widgets", "messagesHelper", "moduleSwitchHelper")
+    FORBIDDEN = ("login_dialog", "dialog", "ui", "widgets", "messages_helper", "moduleSwitchHelper")
 
     def imported_by(self, relative: str) -> list:
         tree = ast.parse((PLUGIN_ROOT / relative).read_text(encoding="utf-8"))

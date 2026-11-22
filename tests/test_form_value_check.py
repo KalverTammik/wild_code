@@ -31,7 +31,7 @@ from Kavitro_dev.modules.easements import easement_geometry_form_dialog as form_
 from Kavitro_dev.modules.easements.easement_geometry_form_dialog import EasementGeometryFormDialog as Form
 from Kavitro_dev.modules.easements.easement_layer_service import EasementLayerService
 from Kavitro_dev.utils.layers.module_layer_service_base import FieldValueProblem
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.widgets.form_value_check import FormValueCheck
 
 ET = LanguageManager(language="et")

@@ -30,9 +30,9 @@ from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
 from ...python.workers import FunctionWorker, start_worker
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...utils.security_boundaries import resolve_allowed_external_extension
-from ..theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 
 
 class TaskFilePreviewDialog(QDialog):

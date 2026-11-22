@@ -12,7 +12,7 @@ from ..constants.module_icons import ModuleIconPaths
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..python.workers import FunctionWorker, start_worker
-from ..widgets.theme_manager import ThemeManager
+from ..ui.theme_manager import ThemeManager
 from .module_kpi_service import ModuleKpiService
 
 

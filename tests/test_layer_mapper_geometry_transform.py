@@ -29,7 +29,7 @@ from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.Settings.GeospatialLayerMapperDialog import GeospatialLayerMapperDialog
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 OUTSIDE_WGS84 = "POINT(1000000 1000000)"
 INSIDE_ESTONIA = "POINT(24 58)"

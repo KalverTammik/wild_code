@@ -9,7 +9,7 @@ from qgis.core import Qgis, QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMapLayer, Q
 
 from ..constants.file_paths import QssPaths
 from .select_arrow import SelectArrow
-from .theme_manager import ThemeManager
+from ..ui.theme_manager import ThemeManager
 
 
 class ComboBoxTextFrame(QLabel):

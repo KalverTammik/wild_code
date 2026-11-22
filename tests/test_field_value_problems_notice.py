@@ -34,7 +34,7 @@ from Kavitro_dev.utils.MapTools.module_feature_controllers import (
     ModuleFeatureAttachController,
     ModuleFeatureDrawController,
 )
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 ET = LanguageManager(language="et")
 WIDTH = FieldValueProblem("laius", "Kaitsevööndi laius", "2 meetrit", "str", FieldValueProblem.NUMBER)

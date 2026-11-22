@@ -8,7 +8,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.workers import FunctionWorker, start_worker
 from ...Logs.python_fail_logger import PythonFailLogger
-from ..theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 
 
 class AsyncContentWidget(QWidget):

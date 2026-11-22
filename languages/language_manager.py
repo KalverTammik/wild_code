@@ -8,7 +8,7 @@ SUPPORTED_LANGUAGES = ("et", "en")
 from .et import TRANSLATIONS as ET_TRANSLATIONS
 from .en import TRANSLATIONS as EN_TRANSLATIONS
 from .translation_keys import TranslationKeys
-from ..utils.url_manager import Module
+from ..constants.module_names import Module
 
 _MODULE_TRANSLATION_KEY_MAP = {
     Module.HOME.value: TranslationKeys.MODULE_HOME,

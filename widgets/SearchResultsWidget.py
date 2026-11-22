@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QListWidget, QListWidgetItem, QPushButton, QHBoxLayout, QApplication, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QEvent, QTimer
 from PyQt5.QtGui import QColor, QFont
-from ..widgets.theme_manager import ThemeManager, styleExtras, ThemeShadowColors
+from ..ui.theme_manager import ThemeManager, styleExtras, ThemeShadowColors
 from ..constants.button_props import ButtonVariant
 from ..constants.file_paths import QssPaths
 from ..languages.language_manager import LanguageManager

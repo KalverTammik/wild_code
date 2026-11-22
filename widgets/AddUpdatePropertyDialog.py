@@ -35,7 +35,7 @@ from ..utils.mapandproperties.property_check_run import CheckRow, PropertyCheckR
 from ..utils.mapandproperties.property_dialog_phase import (AddAction, AddMode, CancelTarget,
                                                             PropertyDialogState)
 from ..utils.mapandproperties.property_row_builder import PropertyRowBuilder
-from .theme_manager import ThemeManager
+from ..ui.theme_manager import ThemeManager
 from .DelayHelpers.glow_progress_bar import GlowProgressBar
 
 from ..constants.button_props import ButtonVariant, ButtonSize
@@ -45,7 +45,7 @@ from ..languages.translation_keys import TranslationKeys
 from ..utils.MapTools.item_selector_tools import PropertiesSelectors
 from ..constants.layer_constants import IMPORT_PROPERTY_TAG
 from ..utils.MapTools.MapHelpers import MapHelpers, ActiveLayersHelper
-from ..utils.messagesHelper import ModernMessageDialog
+from ..ui.messages_helper import ModernMessageDialog
 from ..utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ..constants.cadastral_fields import Katastriyksus
 from ..widgets.DateHelpers import DateHelpers

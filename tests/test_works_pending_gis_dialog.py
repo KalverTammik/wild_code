@@ -20,7 +20,7 @@ from Kavitro_dev.constants.file_paths import QssPaths, StylePaths
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.works.works_pending_gis_dialog import WorksPendingGisDialog
-from Kavitro_dev.widgets.theme_manager import Theme, ThemeManager
+from Kavitro_dev.ui.theme_manager import Theme, ThemeManager
 
 TITLE_NAME = "WorksPendingGisTitle"
 THEMES = {Theme.LIGHT: (StylePaths.LIGHT, "#333333"), Theme.DARK: (StylePaths.DARK, "#e2e8f0")}

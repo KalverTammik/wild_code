@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
 )
 
-from ..widgets.theme_manager import ThemeManager, styleExtras, ThemeShadowColors, AlphaLevel
+from .theme_manager import ThemeManager, styleExtras, ThemeShadowColors, AlphaLevel
 from ..constants.file_paths import QssPaths
 
 

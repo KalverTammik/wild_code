@@ -1,6 +1,6 @@
 # Help URLs for different modules
 # These URLs point to specific help articles for each module
-from ..utils.url_manager import Module
+from ..constants.module_names import Module
 
 HELP_URLS = {
     Module.PROJECT.value: "https://help.kavitro.com/et/articles/10690178-projektid-qgis-pluginas",

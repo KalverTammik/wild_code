@@ -6,7 +6,7 @@ from qgis.core import QgsVectorLayer
 
 from ...constants.settings_keys import SettingsService
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from .MapHelpers import MapHelpers
 
 

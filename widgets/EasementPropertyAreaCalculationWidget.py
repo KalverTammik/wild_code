@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout, Q
 
 from ..constants.cadastral_fields import AreaUnit
 from ..languages.translation_keys import TranslationKeys
-from .theme_manager import ThemeManager
+from ..ui.theme_manager import ThemeManager
 
 
 class EasementPropertyAreaCalculationWidget(QWidget):

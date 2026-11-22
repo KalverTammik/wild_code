@@ -14,7 +14,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...python.workers import FunctionWorker, start_worker
 from ...python.responses import DataDisplayExtractors
-from ..theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from .HtmlDescriptionWidget import HtmlDescriptionWidget
 from .TaskFilePreviewDialog import TaskFilePreviewDialog
 from .TaskFilesDialog import TaskFilesDialog

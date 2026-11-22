@@ -8,10 +8,10 @@ from PyQt5.QtWidgets import (
 
 from ..constants.button_props import ButtonVariant, ButtonSize
 from ..constants.file_paths import QssPaths
-from ..widgets.theme_manager import ThemeManager
+from ..ui.theme_manager import ThemeManager
 from ..languages.language_manager import LanguageManager
 from ..constants.module_icons import ModuleIconPaths
-from ..utils.url_manager import Module  
+from ..constants.module_names import Module
 from ..languages.translation_keys import TranslationKeys
 from ..Logs.switch_logger import SwitchLogger
 from ..Logs.python_fail_logger import PythonFailLogger

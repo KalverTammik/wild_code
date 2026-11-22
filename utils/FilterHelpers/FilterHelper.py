@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional, Sequence, Tuple, Union
 from PyQt5.QtCore import Qt
 
-from ...utils.url_manager import ModuleSupports, Module
+from ...constants.module_names import ModuleSupports, Module
 
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.responses import JsonResponseHandler

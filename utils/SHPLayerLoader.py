@@ -20,7 +20,7 @@ from .mapandproperties.property_layer_bootstrap_service import (
     PropertyLayerBootstrapResult,
     PropertyLayerBootstrapService,
 )
-from .messagesHelper import ModernMessageDialog
+from ..ui.messages_helper import ModernMessageDialog
 
 
 class SHPLoadStatus(Enum):

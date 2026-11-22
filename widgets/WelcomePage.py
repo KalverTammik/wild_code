@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QFrame
 from ..languages.language_manager import LanguageManager
 from ..ui.mixins.token_mixin import TokenMixin
-from ..utils.url_manager import Module
-from ..widgets.theme_manager import ThemeManager
+from ..constants.module_names import Module
+from ..ui.theme_manager import ThemeManager
 from .ModuleKpiCard import ModuleKpiCard
 
 

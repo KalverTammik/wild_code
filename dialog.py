@@ -15,7 +15,7 @@ from .widgets.HeaderWidget import HeaderWidget
 # Removed unused: from qgis.PyQt.QtWidgets import QDialog as QgisQDialog
 
 from .utils.help.ShowHelp import ShowHelp
-from .widgets.theme_manager import ThemeManager
+from .ui.theme_manager import ThemeManager
 from .ui.window_state.WindowManagerMinMax import WindowManagerMinMax
 from .languages.language_manager import LanguageManager
 from .languages.translation_keys import TranslationKeys
@@ -27,15 +27,15 @@ from .utils.SessionManager import SessionManager
 from .ui.session_ui_controller import SessionUIController
 from .ui.modules_registry import ModulesRegistry
         
-from .utils.url_manager import Module
+from .constants.module_names import Module
 from .utils.moduleSwitchHelper import ModuleSwitchHelper
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QSizePolicy
 
 from .utils.search.searchHelpers import SearchUIController
-from .utils.map_canvas_glass_action_bar import MapCanvasGlassActionBar
-from .utils.map_canvas_search_bar import MapCanvasSearchBar
+from .ui.map_canvas_glass_action_bar import MapCanvasGlassActionBar
+from .ui.map_canvas_search_bar import MapCanvasSearchBar
 from .modules.Settings.settings_ui_controller import SettingsUIController
 from .constants.file_paths import ConfigPaths
 from .constants.settings_keys import SettingsService

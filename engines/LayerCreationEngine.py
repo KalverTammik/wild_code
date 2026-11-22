@@ -30,7 +30,7 @@ from ..languages.translation_keys import TranslationKeys
 
 from ..constants.layer_constants import DEFAULT_CRS
 from ..Logs.python_fail_logger import PythonFailLogger
-from ..utils.url_manager import Module
+from ..constants.module_names import Module
 # Prefer module-level imports for clarity. Kept here to avoid accidental circular imports when possible.
 from ..widgets.ProgressDialogModern import ProgressDialogModern
 

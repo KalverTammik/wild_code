@@ -10,7 +10,7 @@ from .SettingModuleFeatureCard import SettingsModuleFeatureCard
 from .ModuleLabelsWidget import ModuleLabelsWidget
 from .SettingsPropertyManagement import PropertyManagementUI
 from ..GeospatialLayerMapperDialog import GeospatialLayerMapperDialog
-from ..SettinsUtils.SettingsLogic import SettingsLogic
+from ....utils.settings_logic import SettingsLogic
 from ..settings_layer_helper import SettingsLayerHelper
 from ...works.works_temp_layer_helper import WorksTempLayerHelper
 from ...projects.projects_temp_layer_helper import ProjectsTempLayerHelper
@@ -22,15 +22,15 @@ from ....widgets.layer_tree_picker import LayerTreePicker
 from ....constants.module_icons import ModuleIconPaths
 from ....constants.button_props import ButtonVariant, ButtonSize
 from ....constants.settings_keys import SettingsService
-from ....utils.url_manager import Module
+from ....constants.module_names import Module
 from ....utils.MapTools.MapHelpers import MapHelpers
 from ....utils.FilterHelpers.FilterHelper import FilterHelper
-from ....utils.url_manager import ModuleSupports
+from ....constants.module_names import ModuleSupports
 from ....languages.translation_keys import TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
-from ....utils.messagesHelper import ModernMessageDialog
+from ....ui.messages_helper import ModernMessageDialog
 from ....utils.text_helpers import to_bool
-from ..setting_keys import SettingDialogPlaceholders
+from ....constants.setting_placeholders import SettingDialogPlaceholders
 from ...projects.project_board_status_rules import ProjectBoardStatusRules
 
 from qgis.core import QgsMapLayer, QgsProject, Qgis

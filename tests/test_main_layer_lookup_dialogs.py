@@ -26,7 +26,7 @@ from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
 from Kavitro_dev.modules.works.works_layer_service import WorksLayerService
 from Kavitro_dev.utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 MAP_HELPERS = sys.modules[ActiveLayersHelper.__module__]
 LOOKUP_CALLS = {"resolve_main_layer", "prepare_layer_for_draw", "resolve_main_property_layer"}
@@ -227,7 +227,7 @@ class LookupCallSitesTest(unittest.TestCase):
                 elif isinstance(node, ast.Import):
                     imported += [alias.name for alias in node.names]
             with self.subTest(file=rel):
-                self.assertFalse([name for name in imported if name.endswith("messagesHelper")], imported)
+                self.assertFalse([name for name in imported if name.endswith("messages_helper")], imported)
                 self.assertNotIn("ModernMessageDialog", imported)
                 names = {node.id for node in ast.walk(self.sources[rel]) if isinstance(node, ast.Name)}
                 self.assertNotIn("ModernMessageDialog", names)

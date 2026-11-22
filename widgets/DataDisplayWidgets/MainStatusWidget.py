@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QLabel, QFrame, QHBoxLayout, QSizePolicy, QVBoxLayou
 from ...python.responses import DataDisplayExtractors
 from ...ui.window_state.popup_helpers import PopupHelpers
 from ...utils.status_color_helper import StatusColorHelper
-from ...widgets.theme_manager import ThemeManager, Theme, is_dark, styleExtras, ThemeShadowColors, IntensityLevels
+from ...ui.theme_manager import ThemeManager, Theme, is_dark, styleExtras, ThemeShadowColors, IntensityLevels
 try:
     from .StatusWidget import StatusWidget
 except ImportError:  # pragma: no cover - preview sandbox may not have full runtime deps

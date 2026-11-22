@@ -23,12 +23,12 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...utils.layers.module_layer_service_base import FieldValueProblem
-from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import Module
+from ...ui.messages_helper import ModernMessageDialog
+from ...constants.module_names import Module
 from ...widgets.form_grid import CompactTextEdit, StackedFormGrid, fit_dialog_to_content
 from ...widgets.form_value_check import FormValueCheck, FormValueValidator
 from ...widgets.status_select_widget import StatusSelectWidget
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from .easement_layer_service import EasementLayerService
 
 

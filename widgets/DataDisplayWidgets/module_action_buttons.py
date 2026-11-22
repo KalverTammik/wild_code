@@ -13,11 +13,11 @@ from ...languages.translation_keys import ToolbarTranslationKeys
 from ...utils.url_manager import OpenLink, loadWebpage
 from ...python.api_actions import APIModuleActions
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
-from ..theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from ...utils.Folders.foldersHelpers import FolderHelpers
 from ...constants.module_icons import IconNames
 from ...constants.button_props import ButtonVariant
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...languages.translation_keys import TranslationKeys
 from ...utils.MapTools.module_item_focus_service import ModuleItemFocusService
 from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator

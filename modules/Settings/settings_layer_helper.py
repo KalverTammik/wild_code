@@ -1,7 +1,7 @@
 from qgis.core import QgsProject
 from ...utils.MapTools.MapHelpers import MapHelpers
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 class SettingsLayerHelper:

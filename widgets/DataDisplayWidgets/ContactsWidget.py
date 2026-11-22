@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QSizePolic
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.file_paths import QssPaths
 from ...constants.module_icons import IconNames
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from ...python.responses import DataDisplayExtractors
 
 

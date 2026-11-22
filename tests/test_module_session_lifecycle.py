@@ -19,10 +19,11 @@ from Kavitro_dev import dialog as dialog_module
 from Kavitro_dev import main as main_module
 from Kavitro_dev import module_manager as manager_module
 from Kavitro_dev.ui.mixins.token_mixin import TokenMixin
+from Kavitro_dev.utils import module_registry
 from Kavitro_dev.utils.moduleSwitchHelper import ModuleSwitchHelper
 from Kavitro_dev.ui.session_ui_controller import SessionUIController
 from Kavitro_dev.utils.SessionManager import SessionManager
-from Kavitro_dev.widgets import theme_manager as theme_module
+from Kavitro_dev.ui import theme_manager as theme_module
 
 ModuleManager = manager_module.ModuleManager
 PluginDialog = dialog_module.PluginDialog
@@ -79,7 +80,7 @@ class IsolatedModuleStateTest(unittest.TestCase):
             patcher.start()
             self.addCleanup(patcher.stop)
         # SettingsLogic imported this list by name, so it must stay the same object.
-        names = manager_module.MODULES_LIST_BY_NAME
+        names = module_registry.MODULES_LIST_BY_NAME
         saved_names = list(names)
         names.clear()
         self.addCleanup(lambda: names.__setitem__(slice(None), saved_names))
@@ -123,7 +124,7 @@ class ModuleManagerSessionTest(IsolatedModuleStateTest):
     def test_registering_again_does_not_repeat_module_names(self) -> None:
         register_recording_modules(self.manager, self.owner)
 
-        self.assertEqual(manager_module.MODULES_LIST_BY_NAME, ["Property", "Works"])
+        self.assertEqual(module_registry.MODULES_LIST_BY_NAME, ["Property", "Works"])
 
 
 class PluginDialogSessionTest(IsolatedModuleStateTest):

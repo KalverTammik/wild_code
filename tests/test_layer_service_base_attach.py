@@ -23,7 +23,7 @@ from Kavitro_dev.modules.easements.easement_layer_service import EasementLayerSe
 from Kavitro_dev.modules.projects.projects_layer_service import ProjectsLayerService
 from Kavitro_dev.modules.works.works_layer_service import WorksLayerService
 from Kavitro_dev.utils.layers.module_layer_service_base import AttachableLayerServiceBase, ModuleLayerServiceBase
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 POLYGON = "POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))"
 ATTACHABLE = (AsBuiltLayerService, ProjectsLayerService, EasementLayerService)

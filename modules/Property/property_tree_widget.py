@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
 )
 
 from ...constants.module_icons import ModuleIconPaths
-from ...widgets.theme_manager import styleExtras, ThemeShadowColors
+from ...ui.theme_manager import styleExtras, ThemeShadowColors
 from ...widgets.DataDisplayWidgets.DatesWidget import DatesWidget
 from ...widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
 from ...widgets.DataDisplayWidgets.MainStatusWidget import MainStatusWidget
@@ -28,7 +28,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...widgets.DelayHelpers.LoadingSpinner import GradientSpinner
 from ...languages.language_manager import LanguageManager
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 class PropertyTreeWidget(QFrame):

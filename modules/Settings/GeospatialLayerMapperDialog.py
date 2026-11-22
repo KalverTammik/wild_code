@@ -37,10 +37,10 @@ from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
 from ...utils.layers.field_value_problems import problem_line
 from ...utils.layers.module_layer_service_base import FieldValueProblem, ModuleLayerServiceBase
-from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import Module
+from ...ui.messages_helper import ModernMessageDialog
+from ...constants.module_names import Module
 from ...widgets.layer_tree_picker import LayerTreePicker
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 
 
 class _DefaultValueEditor(QWidget):

@@ -302,7 +302,7 @@ class MfaSetupRequiredTest(unittest.TestCase):
 
     def test_setup_notice_action_opens_the_configured_web_app(self) -> None:
         # The transport reaches the dialog only through the registered presenter, as the plugin registers it.
-        messages_module = importlib.import_module("Kavitro_dev.utils.messagesHelper")
+        messages_module = importlib.import_module("Kavitro_dev.ui.messages_helper")
         url_module = importlib.import_module("Kavitro_dev.utils.url_manager")
         language_module = importlib.import_module("Kavitro_dev.languages.language_manager")
         keys_module = importlib.import_module("Kavitro_dev.languages.translation_keys")

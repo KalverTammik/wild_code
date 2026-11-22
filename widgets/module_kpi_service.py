@@ -4,9 +4,9 @@ from typing import Any
 
 from ..feed.FeedLogic import UnifiedFeedLogic
 from ..module_manager import ModuleManager
-from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
+from ..utils.settings_logic import SettingsLogic
 from ..utils.FilterHelpers.FilterHelper import FilterHelper
-from ..utils.url_manager import ModuleSupports
+from ..constants.module_names import ModuleSupports
 from .OverdueDueSoonPillsWidget import OverdueDueSoonPillsUtils
 
 

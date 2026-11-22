@@ -22,7 +22,7 @@ from ..constants.button_props import ButtonVariant
 from ..constants.module_icons import IconNames
 from ..Logs.python_fail_logger import PythonFailLogger
 from ..Logs.switch_logger import SwitchLogger
-from .theme_manager import ThemeManager
+from ..ui.theme_manager import ThemeManager
 
 
 class LocationFilterHelper(QObject):

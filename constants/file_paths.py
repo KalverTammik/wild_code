@@ -131,7 +131,7 @@ class QmlPaths:
     PROPERTIES_BACKGROUND = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Properties.qml")
     PROPERTIES_ARCHIVED = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Archived_properties.qml")
     MAAMET_IMPORT = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Maa_amet_temp_layer.qml")
-    EASETMENT_DRAINAGE = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Drainage.qml")
+    EASEMENT_DRAINAGE = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Drainage.qml")
     EASEMENT_PROPERTIES = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Properties.qml")
     EASEMENT_WATER = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_W.qml")
     EASEMENT_SEWER = os.path.join(PLUGIN_ROOT, "QGIS_styles", "Easement_Sew.qml")

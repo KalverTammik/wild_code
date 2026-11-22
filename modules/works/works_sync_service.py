@@ -13,7 +13,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...python.latest_request import LatestRequest
 from ...utils.SessionManager import SessionManager
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from .works_layer_service import WorksLayerService
 
 

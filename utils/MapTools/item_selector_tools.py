@@ -11,7 +11,7 @@ from ...constants.cadastral_fields import Katastriyksus
 from ...constants.layer_constants import IMPORT_PROPERTY_TAG
 from ...utils.mapandproperties.PropertyTableManager import PropertyTableManager
 
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from .MapHelpers import MapHelpers
 from ...Logs.python_fail_logger import PythonFailLogger
 #Provides tools to select elements from map or from tables and show on map

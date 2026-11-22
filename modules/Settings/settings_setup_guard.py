@@ -4,9 +4,9 @@ from typing import Any
 
 from ...languages.translation_keys import TranslationKeys
 from ...module_manager import ModuleManager
-from ...utils.url_manager import Module, ModuleSupports
-from .setting_keys import SettingDialogPlaceholders
-from .SettinsUtils.SettingsLogic import SettingsLogic
+from ...constants.module_names import Module, ModuleSupports
+from ...constants.setting_placeholders import SettingDialogPlaceholders
+from ...utils.settings_logic import SettingsLogic
 from ..projects.project_board_status_rules import ProjectBoardStatusRules
 
 

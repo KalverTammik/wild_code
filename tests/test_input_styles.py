@@ -32,7 +32,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from Kavitro_dev.constants.file_paths import QssPaths, StylePaths
-from Kavitro_dev.widgets.theme_manager import ThemeManager
+from Kavitro_dev.ui.theme_manager import ThemeManager
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 # What the QGIS "Blend of Gray" UI theme sets on these subcontrols at application level.

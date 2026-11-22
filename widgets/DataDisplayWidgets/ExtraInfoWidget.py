@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame, QToolButton, QSizePoli
 from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from .ModuleConfig import ModuleConfigFactory
 
 

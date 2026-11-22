@@ -1,6 +1,6 @@
 import os
 from .base_paths import PLUGIN_ROOT, RESOURCE, ICON_FOLDER
-from ..utils.url_manager import Module
+from ..constants.module_names import Module
 
 class IconNames:
     VALISEE_V_ICON_NAME = "Valisee_v.png"

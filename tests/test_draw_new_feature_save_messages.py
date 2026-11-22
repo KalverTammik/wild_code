@@ -30,7 +30,7 @@ from Kavitro_dev.utils.MapTools.module_feature_controllers import (
     ModuleFeatureAttachController,
     ModuleFeatureDrawController,
 )
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 LAYER_SAVE_FAILED = "not saved {item_id}: {error}"
 SYNC_FAILED = "saved, Kavitro not updated {item_id}: {error}"  # the old texts still carry {error}

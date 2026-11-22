@@ -1,5 +1,6 @@
 from ...constants.help_urls import DEFAULT_HELP_URL, HELP_URLS
-from ...utils.url_manager import Module, loadWebpage
+from ...utils.url_manager import loadWebpage
+from ...constants.module_names import Module
 from ...module_manager import ModuleManager
 
 

@@ -28,8 +28,8 @@ from Kavitro_dev.modules.Property.query_cordinator import (
 from Kavitro_dev.modules.projects.project_board_overview_service import ProjectBoardOverviewService
 from Kavitro_dev.modules.projects.project_board_status_rules import ProjectBoardStatusRules
 from Kavitro_dev.modules.projects.project_board_widgets import ProjectBoardOverviewWidget
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
-from Kavitro_dev.utils.url_manager import Module
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
+from Kavitro_dev.constants.module_names import Module
 
 ALL_MODULES = list(PropertiesConnectedElementsQueries.module_to_filename)
 WORK = {"id": "w1", "title": "Töö 1", "status": {"id": "s1", "name": "Avatud", "type": "OPEN"}}

@@ -1,7 +1,7 @@
 
 
 
-from ....utils.url_manager import Module
+from ....constants.module_names import Module
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from ....python.api_client import APIClient
 from ....python.api_rate_limit import ApiRateLimitError, RequestCancelled

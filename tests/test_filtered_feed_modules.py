@@ -30,7 +30,7 @@ from Kavitro_dev.modules.task_shared.task_module_base_ui import TaskModuleBaseUI
 from Kavitro_dev.python.api_client import APIClient
 from Kavitro_dev.ui.ModuleBaseUI import ModuleBaseUI
 from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper, FilterRefreshService
-from Kavitro_dev.utils.url_manager import Module, ModuleSupports
+from Kavitro_dev.constants.module_names import Module, ModuleSupports
 from Kavitro_dev.widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from Kavitro_dev.widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from Kavitro_dev.widgets.Filters.TypeFilterWidget import TypeFilterWidget

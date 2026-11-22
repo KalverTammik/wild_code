@@ -5,7 +5,7 @@ from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QComboBox
 )
 
-from .widgets.theme_manager import ThemeManager
+from .ui.theme_manager import ThemeManager
 from .constants.module_icons import IconNames
 from .constants.button_props import ButtonVariant, ButtonSize
 from .languages.language_manager import SUPPORTED_LANGUAGES, LanguageManager
@@ -15,7 +15,7 @@ from .languages.translation_keys import TranslationKeys, DialogLabels
 from .python.api_client import APIClient
 from .python.GraphQLQueryLoader import GraphQLQueryLoader
 from .utils.api_error_handling import ApiErrorKind, parse_tagged_message
-from .utils.url_manager import Module
+from .constants.module_names import Module
 from .ui.session_storage_warning import show_storage_warning
 
 class LoginDialog(QDialog):

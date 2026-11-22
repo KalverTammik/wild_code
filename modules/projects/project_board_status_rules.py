@@ -4,7 +4,7 @@ import json
 from typing import Any
 
 from ...constants.settings_keys import SettingsService
-from ..Settings.setting_keys import SettingDialogPlaceholders
+from ...constants.setting_placeholders import SettingDialogPlaceholders
 
 
 class ProjectBoardStatusRules:

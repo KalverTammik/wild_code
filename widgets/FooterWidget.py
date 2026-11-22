@@ -6,7 +6,7 @@ from qgis.core import Qgis
 
 from ..constants.file_paths import ConfigPaths, QssPaths
 from ..utils.url_manager import OpenLink, loadWebpage
-from ..widgets.theme_manager import ThemeManager
+from ..ui.theme_manager import ThemeManager
 
 
 ICONS8_ATTRIBUTION_URL = "https://icons8.com"

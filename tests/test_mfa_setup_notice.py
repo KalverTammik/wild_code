@@ -26,7 +26,7 @@ from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.ui import mfa_setup_notice
 from Kavitro_dev.utils import api_error_handling
 from Kavitro_dev.utils.api_error_handling import DedupeNotifier, MfaSetupNotifier
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.utils.url_manager import OpenLink, loadWebpage
 
 API_ERROR_HANDLING = Path(api_error_handling.__file__)
@@ -178,7 +178,7 @@ class TransportImportsTest(unittest.TestCase):
                 imported.append(node.module or "")
                 imported.extend(alias.name for alias in node.names)
 
-        offenders = [name for name in imported if "messagesHelper" in name]
+        offenders = [name for name in imported if "messages_helper" in name]
         self.assertEqual(offenders, [])
 
 

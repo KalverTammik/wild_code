@@ -11,7 +11,7 @@ from qgis.core import (
 from osgeo import ogr
 from ...constants.file_paths import QmlPaths
 from ...Logs.python_fail_logger import PythonFailLogger
-from ..url_manager import Module
+from ...constants.module_names import Module
 
 from ...engines.LayerCreationEngine import MailablGroupFolders
 

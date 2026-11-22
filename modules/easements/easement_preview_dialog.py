@@ -40,16 +40,16 @@ from ...utils.layers import LayerProcessingService, MemoryLayerResultService
 from ...utils.layers.field_value_problems import field_value_problems_note
 from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...utils.project_base_layers import ProjectBaseLayerKeys, ProjectBaseLayersService
 from ...ui.window_state.dialog_helpers import DialogHelpers
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ...widgets.DateHelpers import DateHelpers
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
 from ...widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
 from ...widgets.EasementPropertyAreaCalculationWidget import EasementPropertyAreaCalculationWidget
 from ...widgets.PropertySummaryCard import PropertySummaryCard
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from .easement_geometry_form_dialog import EasementGeometryFormDialog
 
 
@@ -87,7 +87,7 @@ class EasementPreviewDialog(QDialog):
         ProjectBaseLayerKeys.SEWAGE_DUMP: QmlPaths.EASEMENT_SEWER,
         ProjectBaseLayerKeys.SEWAGE_PLANT: QmlPaths.EASEMENT_SEWER,
         ProjectBaseLayerKeys.WATER_STATION: QmlPaths.EASEMENT_WATER,
-        ProjectBaseLayerKeys.RAIN_PUMP: QmlPaths.EASETMENT_DRAINAGE,
+        ProjectBaseLayerKeys.RAIN_PUMP: QmlPaths.EASEMENT_DRAINAGE,
     }
 
     _FIXED_DISTANCE_BY_ROW = {

@@ -14,11 +14,11 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.api_error_handling import user_message
 from ...languages.MaaAmetFieldFormater import format_field
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
 from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ...python.workers import FunctionWorker, start_worker
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...ui.window_state.DialogCoordinator import get_dialog_coordinator

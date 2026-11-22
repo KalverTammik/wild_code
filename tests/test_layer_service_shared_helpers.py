@@ -21,7 +21,7 @@ from Kavitro_dev.modules.easements.easement_layer_service import EasementLayerSe
 from Kavitro_dev.modules.projects.projects_layer_service import ProjectsLayerService
 from Kavitro_dev.modules.works.works_layer_service import WorksLayerService
 from Kavitro_dev.utils.MapTools.MapHelpers import MapHelpers
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 ALL_SERVICES = (AsBuiltLayerService, EasementLayerService, ProjectsLayerService, WorksLayerService)
 LAYER_LOOKUP_SERVICES = (AsBuiltLayerService, EasementLayerService, ProjectsLayerService)

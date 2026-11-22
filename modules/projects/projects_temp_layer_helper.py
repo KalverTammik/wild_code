@@ -4,7 +4,7 @@ from qgis.PyQt.QtCore import QVariant
 from qgis.core import QgsField, QgsFields, QgsWkbTypes
 
 from ...utils.layers.module_temp_layer_helper import ModuleTempLayerHelper
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 class ProjectsTempLayerHelper(ModuleTempLayerHelper):

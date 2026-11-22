@@ -20,11 +20,11 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
-from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import Module, ModuleSupports
+from ...ui.messages_helper import ModernMessageDialog
+from ...constants.module_names import Module, ModuleSupports
 from ...widgets.form_grid import StackedFormGrid, fit_dialog_to_content
 from ...widgets.status_select_widget import StatusSelectWidget
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from .works_layer_service import WorksLayerService
 
 # Names in load_failures: a choice list that could not be loaded, as opposed to one that loaded empty.

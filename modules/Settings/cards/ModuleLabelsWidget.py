@@ -3,12 +3,12 @@ from typing import Callable, Optional
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QCheckBox
 
-from ....widgets.theme_manager import ThemeManager
+from ....ui.theme_manager import ThemeManager
 from ....constants.module_icons import IconNames
 from ....constants.file_paths import QssPaths
 from ....languages.translation_keys import SettingDialogPlaceholders, TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
-from ....utils.url_manager import Module
+from ....constants.module_names import Module
 from ....utils.text_helpers import to_bool
 
 class ModuleLabelsWidget(QFrame):
@@ -225,7 +225,7 @@ class ModuleLabelsWidget(QFrame):
                     widget.style().polish(widget)
         except Exception as exc:
             from ....Logs.python_fail_logger import PythonFailLogger
-            from ....utils.url_manager import Module
+            from ....constants.module_names import Module
 
             PythonFailLogger.log_exception(
                 exc,

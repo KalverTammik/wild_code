@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from typing import Any, Callable, Protocol, Optional
-from .url_manager import Module
+from ..constants.module_names import Module
 from ..languages.translation_keys import TranslationKeys
 from ..module_manager import ModuleManager
 from ..Logs.switch_logger import SwitchLogger
 from ..modules.Settings.settings_setup_guard import SettingsSetupGuard
-from ..utils.messagesHelper import ModernMessageDialog
+from ..ui.messages_helper import ModernMessageDialog
 from ..utils.SessionManager import SessionManager
 
 

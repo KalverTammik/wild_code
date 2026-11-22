@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 # Project-specific imports below violate utils/ dependency direction
 from ..constants.module_icons import IconNames
-from ..widgets.theme_manager import ThemeManager  # TODO: Move to ui/ or refactor out of utils/
+from .theme_manager import ThemeManager
 from ..constants.file_paths import QssPaths
 from ..constants.button_props import ButtonVariant, ButtonSize
 from ..Logs.python_fail_logger import PythonFailLogger

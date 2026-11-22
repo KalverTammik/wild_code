@@ -9,8 +9,8 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...utils.api_error_handling import user_message
 
-from ...utils.url_manager import Module
-from ...modules.Settings.setting_keys import SettingDialogPlaceholders
+from ...constants.module_names import Module
+from ...constants.setting_placeholders import SettingDialogPlaceholders
 from ...constants.settings_keys import SettingsService
 from ..user_dialogs import UserDialogs
 from ..security_boundaries import (

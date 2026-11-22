@@ -4,7 +4,7 @@ from ...constants.button_props import ButtonVariant
 from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ..theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 
 
 def prompt_backend_action_dialog(*, parent=None, table_frame, table, title: str = "Choose backend action") -> str | None:

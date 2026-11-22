@@ -26,9 +26,9 @@ from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.python.actions import file_actions as file_actions_module
 from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.ui.mixins.token_mixin import TokenMixin
-from Kavitro_dev.utils import security_boundaries
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
-from Kavitro_dev.widgets import theme_manager as theme_module
+from Kavitro_dev.utils import module_registry, security_boundaries
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
+from Kavitro_dev.ui import theme_manager as theme_module
 from Kavitro_dev.widgets.DataDisplayWidgets import HtmlDescriptionWidget as html_module
 
 ModuleManager = manager_module.ModuleManager
@@ -88,7 +88,7 @@ class ModuleWidgetLookupTest(QtTestCase):
             started = patcher.start()
             self.addCleanup(patcher.stop)
         self.log = started
-        names = manager_module.MODULES_LIST_BY_NAME
+        names = module_registry.MODULES_LIST_BY_NAME
         saved_names = list(names)
         self.addCleanup(lambda: names.__setitem__(slice(None), saved_names))
         self.manager = ModuleManager()

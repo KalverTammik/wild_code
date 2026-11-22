@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QWidget
 
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...ui.mixins.filtered_feed_mixin import FilteredFeedMixin
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
 from ...widgets.OverdueDueSoonPillsWidget import OverduePillsMixin
 from ...utils.search.SearchOpenItemMixin import SearchOpenItemMixin

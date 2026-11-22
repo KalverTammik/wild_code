@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ...ui.window_state.dialog_helpers import DialogHelpers
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 class SettingsUIController:

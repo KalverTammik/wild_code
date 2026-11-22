@@ -1,39 +1,9 @@
-from enum import Enum
-
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtGui import QDesktopServices
 
 from ..config.setup import config
 from ..Logs.python_fail_logger import PythonFailLogger
-
-
-class Module(Enum):
-    PROJECT = "project"
-    CONTRACT = "contract"
-    COORDINATION = "coordination"
-    LETTER = "letter"
-    SPECIFICATION = "specification"
-    EASEMENT = "easement"
-    SUBMISSION = "submission"
-
-    ASBUILT = "asbuilt"
-    WORKS = "works"
-    TASK = "task"
-
-    USER = "user"
-
-    PROPERTY = "property"
-    SETTINGS = "settings"
-    HOME = "home"
-
-    STATUSES = "statuses"
-    TYPES = "type"
-
-
-class ModuleSupports(Enum):
-    TAGS = "tags"
-    STATUSES = "statuses"
-    TYPES = "type"
+from ..constants.module_names import Module
 
 
 class loadWebpage:

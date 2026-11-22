@@ -4,7 +4,7 @@ from typing import Any, Iterable, TypeVar
 from .DialogCoordinator import get_dialog_coordinator
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...Logs.switch_logger import SwitchLogger
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 T = TypeVar("T")
 

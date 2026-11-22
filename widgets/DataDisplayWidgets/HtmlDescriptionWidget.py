@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QFrame, QSizePolicy, QTextBrowser
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...utils.security_boundaries import (
     DESCRIPTION_LINK_BLOCKED,
     DESCRIPTION_LINK_LOCAL_PATH,

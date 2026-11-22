@@ -37,7 +37,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...utils.MapTools.MapHelpers import ActiveLayersHelper, MapHelpers
 from ...utils.layers.module_layer_service_base import FieldValueProblem, LayerEditTexts, ModuleLayerServiceBase
 from ...utils.geometry_payload import GeometryPayloadService
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ...utils.user_dialogs import UserDialogs
 from ...Logs.python_fail_logger import PythonFailLogger
 

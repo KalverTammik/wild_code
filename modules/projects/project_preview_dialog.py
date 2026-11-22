@@ -24,11 +24,11 @@ from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ...utils.layers import LayerProcessingService, MemoryLayerResultService
 from ...utils.layers.field_value_problems import show_saved
 from ...utils.layers.module_layer_service_base import FieldValueProblem
-from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import Module
+from ...ui.messages_helper import ModernMessageDialog
+from ...constants.module_names import Module
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
 from ...widgets.PropertySummaryCard import PropertySummaryCard
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from ...Logs.python_fail_logger import PythonFailLogger
 from .projects_layer_service import ProjectsLayerService
 

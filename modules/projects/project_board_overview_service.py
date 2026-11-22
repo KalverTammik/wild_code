@@ -8,7 +8,7 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...module_manager import ModuleManager
 from ...python.responses import DataDisplayExtractors
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ..Property.query_cordinator import PropertiesConnectedElementsQueries, PropertyLookupService
 from .project_board_status_rules import ProjectBoardStatusRules
 

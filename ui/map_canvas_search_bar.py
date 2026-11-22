@@ -11,7 +11,7 @@ from .map_canvas_glass_overlay import MapCanvasGlassOverlayBase
 from .map_canvas_glass_style import MapCanvasGlassStyle
 from ..utils.search.UnifiedSearchController import UnifiedSearchController
 from ..widgets.SearchResultsWidget import SearchResultsWidget
-from ..widgets.theme_manager import ThemeManager
+from .theme_manager import ThemeManager
 
 
 class MapCanvasSearchBar(MapCanvasGlassOverlayBase):

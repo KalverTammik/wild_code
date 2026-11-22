@@ -20,7 +20,7 @@ from ..languages.translation_keys import TranslationKeys
 from ..ui.window_state.popup_helpers import PopupHelpers
 from ..utils.status_color_helper import StatusColorHelper
 from .select_arrow import SelectArrow
-from .theme_manager import Theme, ThemeManager, is_dark
+from ..ui.theme_manager import Theme, ThemeManager, is_dark
 
 
 _STATUS_GROUP_ORDER = ("OPEN", "CLOSED")

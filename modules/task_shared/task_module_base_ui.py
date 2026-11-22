@@ -10,7 +10,7 @@ from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...ui.mixins.filtered_feed_mixin import FilteredFeedMixin
 from ...utils.FilterHelpers.FilterHelper import FilterRefreshService
 from ...utils.search.SearchOpenItemMixin import SearchOpenItemMixin
-from ...utils.url_manager import Module, ModuleSupports
+from ...constants.module_names import Module, ModuleSupports
 
 
 class TaskModuleBaseUI(SearchOpenItemMixin, FilteredFeedMixin, ModuleBaseUI):

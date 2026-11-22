@@ -23,7 +23,7 @@ from Kavitro_dev.modules.Property.query_cordinator import (
     PropertyConnectionFormatter,
 )
 from Kavitro_dev.modules.projects.project_board_overview_service import ProjectBoardOverviewService
-from Kavitro_dev.utils.url_manager import Module, ModuleSupports
+from Kavitro_dev.constants.module_names import Module, ModuleSupports
 
 PROPERTY_ID = "p1"
 CADASTRAL = "12345:001:0001"

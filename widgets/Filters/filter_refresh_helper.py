@@ -9,7 +9,7 @@ from ...constants.button_props import ButtonVariant
 from ...constants.module_icons import IconNames
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ..theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.FilterHelpers.FilterHelper import FilterRefreshService
 

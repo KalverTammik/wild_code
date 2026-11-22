@@ -8,7 +8,7 @@ from ..modules.works.works_list_service import (
     GROUP_FIELDS, LOCAL_SORTS, REMOTE_SORTS, ListChoices, group_loaded_items,
 )
 from ..ui.module_card_factory import ModuleCardFactory
-from .theme_manager import ThemeManager
+from ..ui.theme_manager import ThemeManager
 
 
 FIELD_LABELS = {

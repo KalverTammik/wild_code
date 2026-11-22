@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import List, Sequence
 from ....languages.translation_keys import TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
-from ....utils.url_manager import Module
+from ....constants.module_names import Module
 
 
 class AttentionDisplayRules:

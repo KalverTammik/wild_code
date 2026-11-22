@@ -30,7 +30,7 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ..MapTools.MapHelpers import MapHelpers
 from ..SessionManager import SessionManager
 from ..geometry_payload import GeometryPayloadService
-from ..url_manager import Module
+from ...constants.module_names import Module
 from ..user_dialogs import UserDialogs
 
 

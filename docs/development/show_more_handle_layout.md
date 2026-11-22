@@ -237,8 +237,8 @@ Behavior:
 Implementation map:
 - `widgets/DataDisplayWidgets/ExtraInfoWidget.py :: ExtraInfoWidget._build_ui`
 - `ui/module_card_factory.py :: ModuleCardFactory.create_item_card`
-- `widgets/theme_manager.py :: ThemeManager.apply_module_style`
-- `widgets/theme_manager.py :: ThemeManager.module_bundle`
+- `ui/theme_manager.py :: ThemeManager.apply_module_style`
+- `ui/theme_manager.py :: ThemeManager.module_bundle`
 - `constants/file_paths.py :: QssPaths`
 
 The handle style comes from `ModuleInfo.qss`.
@@ -371,7 +371,7 @@ Implementation map:
 - `styles/Dark/ModuleInfo.qss`
 - `styles/Light/ModuleCard.qss`
 - `styles/Dark/ModuleCard.qss`
-- `widgets/theme_manager.py`
+- `ui/theme_manager.py`
 - `constants/file_paths.py`
 
 Primary behavior:
@@ -384,7 +384,7 @@ Theme and style:
 - `styles/Dark/ModuleInfo.qss`
 - `styles/Light/ModuleCard.qss`
 - `styles/Dark/ModuleCard.qss`
-- `widgets/theme_manager.py`
+- `ui/theme_manager.py`
 - `constants/file_paths.py`
 
 ## Safe places to modify behavior
@@ -412,7 +412,7 @@ If the goal is when the handle appears:
 Implementation map:
 - `widgets/DataDisplayWidgets/ExtraInfoWidget.py :: ExtraInfoFrame.__init__`
 - `widgets/DataDisplayWidgets/ExtraInfoWidget.py :: ExtraInfoFrame._position_handle`
-- `widgets/theme_manager.py :: ThemeManager.apply_module_style`
+- `ui/theme_manager.py :: ThemeManager.apply_module_style`
 
 - The handle width is hard-coded to `56` px.
 - The handle height is hard-coded to `16` px.

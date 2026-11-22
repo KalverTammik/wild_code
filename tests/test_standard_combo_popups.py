@@ -20,7 +20,7 @@ from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.modules.asbuilt.asbuilt_geometry_form_dialog import AsBuiltGeometryFormDialog
 from Kavitro_dev.widgets.LocationFilterWidget import LocationFilterWidget
 from Kavitro_dev.widgets.select_arrow import SelectArrow
-from Kavitro_dev.widgets.theme_manager import ThemeManager
+from Kavitro_dev.ui.theme_manager import ThemeManager
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 

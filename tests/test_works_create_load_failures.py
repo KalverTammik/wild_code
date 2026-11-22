@@ -20,7 +20,7 @@ from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.works import works_create_controller as controller_module
 from Kavitro_dev.modules.works import works_create_dialog as dialog_module
 from Kavitro_dev.python.api_actions import APIModuleActions
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 Dialog = dialog_module.WorksCreateDialog
 ALL_FAILURES = sorted(

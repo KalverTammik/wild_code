@@ -5,7 +5,7 @@ from typing import Optional
 
 from ...languages.translation_keys import TranslationKeys
 from ...python.responses import DataDisplayExtractors
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from .works_create_controller import WorksCreateController
 from .works_layer_service import WorksLayerService
 from .works_reposition_controller import WorksRepositionController

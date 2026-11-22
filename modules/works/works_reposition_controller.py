@@ -11,8 +11,8 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...ui.window_state.dialog_helpers import DialogHelpers
-from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import Module
+from ...ui.messages_helper import ModernMessageDialog
+from ...constants.module_names import Module
 from .works_layer_service import WorksLayerService
 
 

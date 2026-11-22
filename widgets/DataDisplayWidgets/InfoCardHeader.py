@@ -7,13 +7,13 @@ try:
     import sip
 except ImportError:  # pragma: no cover - runtime availability depends on QGIS/PyQt packaging
     sip = None
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from ...constants.module_icons import MiscIcons
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...module_manager import ModuleManager
 from ...python.responses import DataDisplayExtractors
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from .PriorityWidget import PriorityWidget
 from .TagsWidget import TagsWidget
 

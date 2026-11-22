@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import QApplication, QWidget
 from Kavitro_dev import main as main_module
 from Kavitro_dev.python import api_request_task
 from Kavitro_dev.python.api_request_task import set_wait_window_style
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 
 class WaitWindowStyleTest(unittest.TestCase):

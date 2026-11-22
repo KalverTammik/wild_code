@@ -10,9 +10,9 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
-from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import Module
-from ...widgets.theme_manager import ThemeManager
+from ...ui.messages_helper import ModernMessageDialog
+from ...constants.module_names import Module
+from ...ui.theme_manager import ThemeManager
 from ..easements.easement_layer_service import EasementLayerService
 
 

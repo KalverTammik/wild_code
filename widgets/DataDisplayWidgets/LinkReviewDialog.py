@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QPushButton, QDialog, QVBoxLayout, QHBoxLayout, QLab
 from ...constants.button_props import ButtonVariant
 from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys
-from ...widgets.theme_manager import ThemeManager, styleExtras
+from ...ui.theme_manager import ThemeManager, styleExtras
 
 
 class PropertyLinkReviewDialog(QDialog):

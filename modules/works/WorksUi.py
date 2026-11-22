@@ -11,7 +11,7 @@ from qgis.core import QgsSettings
 from ..task_shared.task_module_base_ui import TaskModuleBaseUI
 from ...constants.button_props import ButtonSize, ButtonVariant
 from ...languages.translation_keys import TranslationKeys
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from .works_create_controller import WorksCreateController
 from .works_sync_service import WorksSyncService
 from .works_list_service import LOCAL_SORTS, REMOTE_SORTS, ListChoices, WorksFeedLogic, WorksListPreferences
@@ -19,7 +19,7 @@ from ...constants.file_paths import GraphQLSettings
 from ...utils.SessionManager import SessionManager
 from ...python.latest_request import LatestRequest
 from ...widgets.works_list_widgets import WorksListControls, WorksListView
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...utils.api_error_handling import user_message
 
 

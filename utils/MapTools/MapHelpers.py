@@ -2,7 +2,7 @@ from typing import List, Optional, Sequence
 from ...languages.translation_keys import TranslationKeys
 from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer, QgsFeatureRequest, QgsCoordinateTransform
 from qgis.utils import iface
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...utils.user_dialogs import UserDialogs

@@ -1,6 +1,6 @@
 from ..python.GraphQLQueryLoader import GraphQLQueryLoader
 from ..python.api_client import APIClient
-from ..utils.url_manager import ModuleSupports
+from ..constants.module_names import ModuleSupports
 
 
 

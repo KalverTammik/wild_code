@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QDialog
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...python.responses import DataDisplayExtractors
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from .asbuilt_feature_map_controller import AsBuiltFeatureMapController
 from .asbuilt_notes_dialog import AsBuiltNotesEditorDialog
 from .asbuilt_notes_service import AsBuiltNotesService

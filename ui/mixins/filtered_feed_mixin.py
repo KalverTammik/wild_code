@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...module_manager import ModuleManager
 from ...utils.FilterHelpers.FilterHelper import FilterHelper, FilterRefreshService
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ...widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from ...widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ...widgets.Filters.TypeFilterWidget import TypeFilterWidget

@@ -17,14 +17,14 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea
 from ..ui.ToolbarArea import ModuleToolbarArea
 from ..widgets.FeedCounterWidget import FeedCounterWidget
 from ..ui.module_card_factory import ModuleCardFactory
-from ..widgets.theme_manager import ThemeManager, styleExtras
+from .theme_manager import ThemeManager, styleExtras
 from ..constants.file_paths import QssPaths
 from ..widgets.Filters.filter_refresh_helper import FilterRefreshHelper
 from .mixins.dedupe_mixin import DedupeMixin
 from .mixins.feed_counter_mixin import FeedCounterMixin
 from .mixins.progressive_load_mixin import ProgressiveLoadMixin
 from ..feed.feed_load_engine import FeedLoadEngine
-from ..modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
+from ..utils.settings_logic import SettingsLogic
 from ..Logs.switch_logger import SwitchLogger
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys

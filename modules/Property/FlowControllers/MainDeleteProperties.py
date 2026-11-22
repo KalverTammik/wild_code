@@ -1,13 +1,13 @@
 from ....python.api_client import APIClient
 from ....languages.translation_keys import TranslationKeys
 from ....languages.language_manager import LanguageManager 
-from ....utils.url_manager import Module
+from ....constants.module_names import Module
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
-from ....widgets.theme_manager import ThemeManager
+from ....ui.theme_manager import ThemeManager
 from ....constants.file_paths import QssPaths
 
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
-from ....utils.messagesHelper import ModernMessageDialog
+from ....ui.messages_helper import ModernMessageDialog
 
 
 

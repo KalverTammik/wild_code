@@ -19,7 +19,7 @@ from ...constants.button_props import ButtonVariant
 from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 
 
 class WorksPendingGisDialog(QDialog):

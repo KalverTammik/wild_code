@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFrame, QLabel, QHBoxLayout, QSizePolicy, QVBoxLayou
 from ...constants.module_icons import ModuleIconPaths
 from ...widgets.DataDisplayWidgets.MainStatusWidget import MainStatusWidget
 from ...constants.file_paths import QssPaths
-from ...widgets.theme_manager import ThemeManager, Theme, is_dark
+from ...ui.theme_manager import ThemeManager, Theme, is_dark
 
 
 class ProjectBoardItemWidget(QFrame):

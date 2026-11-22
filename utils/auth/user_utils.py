@@ -1,4 +1,4 @@
-from ..url_manager import Module
+from ...constants.module_names import Module
 
 from typing import Any, Dict, List, Set, Tuple
 

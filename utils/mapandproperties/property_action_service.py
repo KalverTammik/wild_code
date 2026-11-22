@@ -9,8 +9,8 @@ from ...utils.api_error_handling import user_message
 from ...modules.Property.FlowControllers.BackendPropertyActions import BackendPropertyActions
 from ...utils.MapTools.MapSelectionOrchestrator import MapSelectionOrchestrator
 from ...utils.MapTools.MapHelpers import FeatureActions
-from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import Module
+from ...ui.messages_helper import ModernMessageDialog
+from ...constants.module_names import Module
 from ...languages.translation_keys import TranslationKeys
 from ...languages.language_manager import LanguageManager
 from .property_prompt_helpers import PropertyPromptHelpers

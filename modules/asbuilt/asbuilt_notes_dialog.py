@@ -27,7 +27,7 @@ from ...constants.module_icons import IconNames
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...widgets.form_grid import fit_dialog_to_content
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from .asbuilt_notes_service import AsBuiltNote, AsBuiltNotesService
 
 # AsBuiltNotesService.DATE_FORMAT in Qt's notation.

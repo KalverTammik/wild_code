@@ -1,13 +1,13 @@
 from PyQt5.QtWidgets import QComboBox, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
 from ....languages.language_manager import LanguageManager
-from ....widgets.theme_manager import ThemeManager
+from ....ui.theme_manager import ThemeManager
 from ....widgets.layer_tree_picker import LayerTreePicker
 from ....constants.file_paths import QssPaths
 from ....constants.button_props import ButtonVariant, ButtonSize
 from PyQt5.QtGui import  QPixmap
 from ....languages.translation_keys import TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
-from ....utils.url_manager import Module
+from ....constants.module_names import Module
 
 class SettingsBaseCard(QFrame):
     """Reusable SetupCard base with header, content area and confirm footer."""

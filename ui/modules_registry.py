@@ -30,7 +30,7 @@ class ModulesRegistry:
         from PyQt5.QtWidgets import QDialog
 
         from ..languages.translation_keys import DialogLabels
-        from ..modules.Settings.setting_keys import SettingDialogPlaceholders
+        from ..constants.setting_placeholders import SettingDialogPlaceholders
         from ..modules.Settings.SettingsUI import SettingsModule
         from ..modules.Settings.EasementStatusMappingDialog import EasementStatusMappingDialog
         from ..modules.Property.PropertyUI import PropertyModule
@@ -46,11 +46,11 @@ class ModulesRegistry:
         from ..modules.works.works_card_actions import WorksCardActions
         from ..modules.asbuilt.AsBuiltUi import AsBuiltModule
         from ..modules.asbuilt.asbuilt_card_actions import AsBuiltCardActions
-        from ..utils.url_manager import Module
+        from ..constants.module_names import Module
         from .window_state.dialog_helpers import DialogHelpers
         from ..utils.Folders.foldersHelpers import FolderHelpers
         from ..widgets.WelcomePage import WelcomePage
-        from ..widgets.theme_manager import ThemeManager
+        from .theme_manager import ThemeManager
 
         qss_modular = list(ThemeManager.module_bundle())
 

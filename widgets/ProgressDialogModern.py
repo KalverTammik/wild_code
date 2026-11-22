@@ -229,7 +229,7 @@ class ProgressDialogModern(QDialog):
     def _apply_theme(self):
         """Apply theme using ThemeManager."""
         try:
-            from .theme_manager import ThemeManager
+            from ..ui.theme_manager import ThemeManager
             from ..constants.file_paths import QssPaths
 
             # Apply theme using centralized QSS files

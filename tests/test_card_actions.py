@@ -17,19 +17,19 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 from PyQt5.QtCore import QCoreApplication, QEvent, Qt
 from PyQt5.QtWidgets import QApplication, QDialog, QWidget
 
-from Kavitro_dev import module_manager as module_manager_module
+from Kavitro_dev.utils import module_registry
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import ToolbarTranslationKeys, TranslationKeys
 from Kavitro_dev.module_manager import ModuleManager
-from Kavitro_dev.modules.Settings.setting_keys import SettingDialogPlaceholders
+from Kavitro_dev.constants.setting_placeholders import SettingDialogPlaceholders
 from Kavitro_dev.modules.asbuilt import asbuilt_card_actions
 from Kavitro_dev.modules.easements import easement_card_actions
 from Kavitro_dev.modules.projects import projects_card_actions
 from Kavitro_dev.modules.works import works_card_actions
 from Kavitro_dev.python.responses import DataDisplayExtractors
 from Kavitro_dev.ui.modules_registry import ModulesRegistry
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
-from Kavitro_dev.utils.url_manager import Module
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
+from Kavitro_dev.constants.module_names import Module
 from Kavitro_dev.widgets.DataDisplayWidgets.module_action_buttons import MoreActionsButton
 
 # Where each module's card actions look up the names these tests replace.
@@ -74,7 +74,7 @@ class CardCase(unittest.TestCase):
 
         # The menus are built from what the plugin dialog registers.
         manager = ModuleManager()
-        names_before = list(module_manager_module.MODULES_LIST_BY_NAME)
+        names_before = list(module_registry.MODULES_LIST_BY_NAME)
         modules_before = dict(manager.modules)
         manager.modules.clear()
         ModulesRegistry.register_all(manager, SimpleNamespace(lang_manager=self.lang, sidebar=Mock()))
@@ -82,7 +82,7 @@ class CardCase(unittest.TestCase):
         def restore() -> None:
             manager.modules.clear()
             manager.modules.update(modules_before)
-            module_manager_module.MODULES_LIST_BY_NAME[:] = names_before
+            module_registry.MODULES_LIST_BY_NAME[:] = names_before
 
         self.addCleanup(restore)
 

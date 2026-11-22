@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QFrame
 import datetime
 from typing import Optional
 from ..DateHelpers import DateHelpers
-from ..theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from ...languages.language_manager import LanguageManager
 from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys

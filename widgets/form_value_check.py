@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import QLineEdit, QStackedWidget, QTabWidget, QWidget
 from ..languages.translation_keys import TranslationKeys
 from ..utils.layers.field_value_problems import expected_text, problem_line
 from ..utils.layers.module_layer_service_base import FieldValueProblem
-from ..utils.messagesHelper import ModernMessageDialog
+from ..ui.messages_helper import ModernMessageDialog
 
 # Form values by form key -> the problem per key the save would hit; keys without a problem are left out.
 FormValueValidator = Callable[[dict[str, object]], dict[str, FieldValueProblem]]

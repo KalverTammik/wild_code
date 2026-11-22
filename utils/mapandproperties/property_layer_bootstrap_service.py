@@ -14,7 +14,7 @@ from ...constants.settings_keys import SettingsService
 from ...engines.LayerCreationEngine import MailablGroupFolders, get_layer_engine
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.maa_amet.Maa_amet_field_comparer import MaaAmetFieldComparer
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from .ArchiveLayerHandler import ArchiveLayerHandler, GPKGHelpers
 
 

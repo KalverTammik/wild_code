@@ -9,7 +9,7 @@ from qgis.core import QgsFeature, QgsVectorLayer
 
 from ...languages.translation_keys import TranslationKeys
 from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem, LayerEditTexts
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 class AsBuiltLayerService(AttachableLayerServiceBase):

@@ -19,9 +19,9 @@ from qgis.core import QgsApplication
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
-from Kavitro_dev.utils.map_canvas_glass_overlay import MapCanvasGlassOverlayBase
-from Kavitro_dev.utils.map_canvas_search_bar import MapCanvasSearchBar
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.map_canvas_glass_overlay import MapCanvasGlassOverlayBase
+from Kavitro_dev.ui.map_canvas_search_bar import MapCanvasSearchBar
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.widgets.SearchResultsWidget import SearchResultsWidget
 
 

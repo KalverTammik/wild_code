@@ -19,7 +19,7 @@ from ..python.workers import FunctionWorker, start_worker
 from ..python.responses import JsonResponseHandler
 from ..utils.FilterHelpers.FilterHelper import FilterHelper
 from ..constants.file_paths import QssPaths
-from ..widgets.theme_manager import ThemeManager
+from ..ui.theme_manager import ThemeManager
 from ..Logs.switch_logger import SwitchLogger
 from ..Logs.python_fail_logger import PythonFailLogger
 

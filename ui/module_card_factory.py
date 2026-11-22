@@ -181,8 +181,8 @@ class ModuleCardFactory:
         from ..widgets.DataDisplayWidgets.InfoCardHeader import InfocardHeaderFrame
         from ..widgets.DataDisplayWidgets.DatesWidget import DatesWidget
         from ..widgets.DataDisplayWidgets.ModuleConnectionActions import ModuleConnectionActions
-        from ..widgets.theme_manager import IntensityLevels, styleExtras, ThemeShadowColors
-        from ..widgets.theme_manager import ThemeManager
+        from .theme_manager import IntensityLevels, styleExtras, ThemeShadowColors
+        from .theme_manager import ThemeManager
         from ..constants.file_paths import QssPaths
 
         item_data = dict(item or {})

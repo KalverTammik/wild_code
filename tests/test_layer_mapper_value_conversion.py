@@ -26,7 +26,7 @@ from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.modules.Settings.GeospatialLayerMapperDialog import GeospatialLayerMapperDialog
 from Kavitro_dev.utils.layers.module_layer_service_base import FieldValueProblem
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 TARGET_FIELDS = "field=kogus:integer&field=laius:double&field=vesi:boolean&field=kuupaev:date&field=nimi:string"
 SOURCE_FIELDS = "field=kogus:string&field=laius:string&field=vesi:string&field=kuupaev:string&field=ext_job_id:string"

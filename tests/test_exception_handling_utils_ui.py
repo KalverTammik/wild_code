@@ -30,8 +30,8 @@ from Kavitro_dev.utils import security_boundaries
 from Kavitro_dev.utils.SessionManager import SessionManager
 from Kavitro_dev.utils.layers import layer_processing_service as lps_module
 from Kavitro_dev.utils.layers.layer_processing_service import LayerProcessingService
-from Kavitro_dev.utils.map_canvas_glass_overlay import MapCanvasGlassOverlayBase
-from Kavitro_dev.utils.map_canvas_search_bar import MapCanvasSearchBar
+from Kavitro_dev.ui.map_canvas_glass_overlay import MapCanvasGlassOverlayBase
+from Kavitro_dev.ui.map_canvas_search_bar import MapCanvasSearchBar
 from Kavitro_dev.utils.mapandproperties import ArchiveLayerHandler as archive_module
 from Kavitro_dev.utils.mapandproperties.PropertyTableManager import PropertyTableManager
 from Kavitro_dev.utils.mapandproperties.property_table_model import PropertyTableModel

@@ -2,8 +2,8 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QPushButton
 from PyQt5.QtCore import pyqtSignal, QTimer
 from ...utils.auth.user_utils import UserUtils
-from ...widgets.theme_manager import ThemeManager
-from .SettinsUtils.SettingsLogic import SettingsLogic
+from ...ui.theme_manager import ThemeManager
+from ...utils.settings_logic import SettingsLogic
 from ...constants.file_paths import QssPaths
 from ...constants.module_icons import IconNames
 from ...constants.button_props import ButtonVariant
@@ -12,12 +12,12 @@ from .settings_card_factory import SettingsCardFactory
 from .settings_card_build_service import SettingsCardBuildService
 from .cards.SettingsUserCard import UserSettingsCard
 from .cards.SettingsProjectBaseLayersCard import SettingsProjectBaseLayersCard
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ...languages.translation_keys import TranslationKeys
-from ...widgets.theme_manager import styleExtras, ThemeShadowColors
-from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.map_canvas_glass_action_bar import MapCanvasGlassActionBar
-from ...utils.map_canvas_search_bar import MapCanvasSearchBar
+from ...ui.theme_manager import styleExtras, ThemeShadowColors
+from ...ui.messages_helper import ModernMessageDialog
+from ...ui.map_canvas_glass_action_bar import MapCanvasGlassActionBar
+from ...ui.map_canvas_search_bar import MapCanvasSearchBar
 from ...utils.SessionManager import SessionManager
 from ...utils.api_error_handling import ApiErrorKind, parse_tagged_message
 from ...Logs.switch_logger import SwitchLogger

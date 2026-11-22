@@ -1,7 +1,7 @@
 from typing import Optional
 
 from qgis.core import QgsSettings
-from ..utils.url_manager import ModuleSupports
+from ..constants.module_names import ModuleSupports
 from ..Logs.python_fail_logger import PythonFailLogger
 
 

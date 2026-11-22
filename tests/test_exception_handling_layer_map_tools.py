@@ -36,7 +36,7 @@ from Kavitro_dev.Logs.switch_logger import SwitchLogger
 from Kavitro_dev.modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
 from Kavitro_dev.modules.works import works_layer_service as works_module
 from Kavitro_dev.modules.works.works_layer_service import WorksLayerService
-from Kavitro_dev.utils import messagesHelper as messages_module
+from Kavitro_dev.ui import messages_helper as messages_module
 from Kavitro_dev.utils import moduleSwitchHelper as switch_module
 from Kavitro_dev.utils.layers import module_layer_service_base as base_module
 from Kavitro_dev.utils.MapTools import module_feature_controllers as controllers_module
@@ -49,7 +49,7 @@ from Kavitro_dev.utils.MapTools.module_feature_controllers import (
     ModuleFeatureEditController,
 )
 from Kavitro_dev.utils.MapTools.module_identify_tool import ModuleIdentifyToolController
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.utils.moduleSwitchHelper import ModuleSwitchHelper
 
 maphelpers_module = sys.modules[MapHelpers.__module__]
@@ -689,7 +689,7 @@ class ModuleSwitchHelperTest(unittest.TestCase):
         )
 
 
-# ---------------------------------------------------------------- utils/messagesHelper.py
+# ---------------------------------------------------------------- ui/messages_helper.py
 class ChoiceDialogTest(LoggedCase):
     def test_choice_dialog_still_opens_when_it_cannot_be_widened(self) -> None:
         with patch.object(messages_module, "max", side_effect=RuntimeError("sizing"), create=True):

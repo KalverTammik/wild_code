@@ -13,7 +13,7 @@ from ..constants.settings_keys import SettingsService
 from ..login_dialog import LoginDialog
 from ..utils.SessionManager import SessionManager
 from ..utils.moduleSwitchHelper import ModuleSwitchHelper
-from ..utils.url_manager import Module
+from ..constants.module_names import Module
 
 if TYPE_CHECKING:
 

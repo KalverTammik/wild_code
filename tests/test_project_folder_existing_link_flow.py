@@ -26,9 +26,9 @@ from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.projects import projects_card_actions
 from Kavitro_dev.utils.api_error_handling import user_message
 from Kavitro_dev.utils.Folders import foldersHelpers
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.utils.project_folder_rules import MissingProjectNumberError
-from Kavitro_dev.utils.url_manager import Module
+from Kavitro_dev.constants.module_names import Module
 from Kavitro_dev.utils.user_dialogs import UserDialogs
 
 T = LanguageManager.translate_static
@@ -306,9 +306,9 @@ class FolderFlowContractTest(unittest.TestCase):
         tree = ast.parse(Path(foldersHelpers.__file__).read_text(encoding="utf-8"))
         found = []
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and (node.module or "").endswith("messagesHelper"):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").endswith("messages_helper"):
                 found.append(node.lineno)
-            elif isinstance(node, ast.Import) and any(a.name.endswith("messagesHelper") for a in node.names):
+            elif isinstance(node, ast.Import) and any(a.name.endswith("messages_helper") for a in node.names):
                 found.append(node.lineno)
             elif isinstance(node, ast.Name) and node.id == "ModernMessageDialog":
                 found.append(node.lineno)

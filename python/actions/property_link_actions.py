@@ -5,7 +5,7 @@ from ..api_client import APIClient
 from ..GraphQLQueryLoader import GraphQLQueryLoader
 from ..responses import JsonResponseHandler
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 _PROPERTIES_PAGE_SIZE = 50

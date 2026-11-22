@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from PyQt5.QtCore import QTimer
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 if TYPE_CHECKING:

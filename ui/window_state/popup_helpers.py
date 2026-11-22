@@ -368,7 +368,7 @@ class PopupHelpers:
         if not PopupHelpers.is_popup_alive(widget):
             return
         try:
-            from ...widgets.theme_manager import ThemeManager
+            from ...ui.theme_manager import ThemeManager
             from ...constants.file_paths import QssPaths
 
             style_key = PopupHelpers._profile(popup_kind)["style_key"]

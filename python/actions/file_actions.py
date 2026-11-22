@@ -8,7 +8,7 @@ import requests
 from ..api_client import APIClient
 from ..GraphQLQueryLoader import GraphQLQueryLoader
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 # requests puts the request URL in its error text ("... for url: https://...", urllib3's

@@ -18,8 +18,8 @@ from ....modules.Property.FlowControllers.MainAddProperties import MainAddProper
 from ....modules.Property.FlowControllers.MainDeleteProperties import DeletePropertyUI
 from ....languages.translation_keys import TranslationKeys
 from ....languages.language_manager import LanguageManager
-from ....utils.url_manager import Module
-from ....utils.messagesHelper import ModernMessageDialog
+from ....constants.module_names import Module
+from ....ui.messages_helper import ModernMessageDialog
 from ....utils.mapandproperties.property_action_service import PropertySelectionActionService
 from ....utils.mapandproperties.property_search_field_service import PropertySearchFieldService
 from ....Logs.python_fail_logger import PythonFailLogger

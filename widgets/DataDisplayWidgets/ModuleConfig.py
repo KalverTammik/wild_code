@@ -7,12 +7,12 @@ from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.api_client import APIClient
 from ...python.responses import DataDisplayExtractors
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...modules.projects.project_board_overview_service import ProjectBoardOverviewService
 from ...modules.projects.project_board_widgets import ProjectBoardOverviewWidget
-from ...widgets.theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from ...constants.file_paths import QssPaths
 from .EasementPropertiesWidget import EasementPropertiesWidget
 from .TaskDetailOverviewWidget import TaskDetailOverviewWidget

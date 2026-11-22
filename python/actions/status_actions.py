@@ -6,7 +6,7 @@ from ..GraphQLQueryLoader import GraphQLQueryLoader
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 class StatusActions:

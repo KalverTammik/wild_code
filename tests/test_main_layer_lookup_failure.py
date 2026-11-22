@@ -22,7 +22,7 @@ from Kavitro_dev.languages.translation_keys import TranslationKeys as K
 from Kavitro_dev.modules.Property.FlowControllers.AttentionDisplayRules import AttentionDisplayRules
 from Kavitro_dev.modules.Property.FlowControllers.MainLayerCheckController import MainLayerCheckController
 from Kavitro_dev.utils.MapTools.MapHelpers import LayerLookupError, MapHelpers
-from Kavitro_dev.utils.messagesHelper import ModernMessageDialog
+from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 
 # The package re-exports the class under the module's name, so the module is loaded by path.
 check_module = importlib.import_module("Kavitro_dev.modules.Property.FlowControllers.MainLayerCheckController")

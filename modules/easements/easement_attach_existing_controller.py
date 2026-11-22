@@ -7,7 +7,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
 from ...utils.layers.module_layer_service_base import FieldValueProblem
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...utils.MapTools.module_feature_controllers import (
     FeatureLinkResult,
     ModuleFeatureAttachMessages,

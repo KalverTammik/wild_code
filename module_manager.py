@@ -1,15 +1,14 @@
 
 from PyQt5.QtWidgets import QWidget
 
-from .utils.url_manager import Module
+from .constants.module_names import Module
 
 from .constants.module_icons import ModuleIconPaths
 from .languages.language_manager import LanguageManager
-from .widgets.theme_manager import ThemeManager
+from .ui.theme_manager import ThemeManager
 from .Logs.switch_logger import SwitchLogger
 from .Logs.python_fail_logger import PythonFailLogger
-
-MODULES_LIST_BY_NAME = []
+from .utils.module_registry import MODULES_LIST_BY_NAME
 
 class ModuleManager:
     _instance = None

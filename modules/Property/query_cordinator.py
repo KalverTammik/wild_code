@@ -2,11 +2,10 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor
 
-from ...module_manager import Module
+from ...constants.module_names import Module, ModuleSupports
 from ...constants.file_paths import QueryPaths
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...utils.url_manager import ModuleSupports
-from ..Settings.SettinsUtils.SettingsLogic import SettingsLogic
+from ...utils.settings_logic import SettingsLogic
 
 from ...python.api_client import APIClient
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader

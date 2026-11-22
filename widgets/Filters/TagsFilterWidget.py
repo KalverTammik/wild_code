@@ -7,8 +7,8 @@ from PyQt5.QtWidgets import QWidget
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
-from ...utils.url_manager import ModuleSupports
+from ...utils.settings_logic import SettingsLogic
+from ...constants.module_names import ModuleSupports
 from .BaseSingleFilterWidget import BaseSingleFilterWidget
 
 

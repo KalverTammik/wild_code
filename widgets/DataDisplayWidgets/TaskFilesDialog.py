@@ -24,10 +24,10 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...python.workers import FunctionWorker, start_worker
-from ...utils.messagesHelper import ModernMessageDialog
-from ...utils.url_manager import Module
+from ...ui.messages_helper import ModernMessageDialog
+from ...constants.module_names import Module
 from ..DateHelpers import DateHelpers
-from ..theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from .TaskFilePreviewDialog import TaskFilePreviewDialog
 
 

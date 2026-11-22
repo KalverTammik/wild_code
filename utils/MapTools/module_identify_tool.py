@@ -22,9 +22,9 @@ from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...module_manager import ModuleManager
 from ...ui.window_state.dialog_helpers import DialogHelpers
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...utils.moduleSwitchHelper import ModuleSwitchHelper
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from .canvas_click_tool import SingleClickMapTool
 from .MapHelpers import MapHelpers
 from .module_item_focus_service import ModuleItemFocusService

@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QWidget
 
 from ..task_shared.task_module_base_ui import TaskModuleBaseUI
 from ...languages.translation_keys import TranslationKeys
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 class EasementsModule(TaskModuleBaseUI):

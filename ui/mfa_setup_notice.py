@@ -4,7 +4,7 @@ from __future__ import annotations
 from ..constants.module_icons import IconNames
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
-from ..utils.messagesHelper import ModernMessageDialog
+from .messages_helper import ModernMessageDialog
 from ..utils.url_manager import OpenLink, loadWebpage
 
 

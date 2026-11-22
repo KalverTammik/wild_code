@@ -2,10 +2,10 @@
 from typing import Dict, Iterable, Optional
 
 
-from ....utils.url_manager import Module, ModuleSupports
-from ....module_manager import MODULES_LIST_BY_NAME
-from ....constants.settings_keys import SettingsService
-from ....Logs.python_fail_logger import PythonFailLogger
+from ..constants.module_names import Module, ModuleSupports
+from .module_registry import MODULES_LIST_BY_NAME
+from ..constants.settings_keys import SettingsService
+from ..Logs.python_fail_logger import PythonFailLogger
 
 
 

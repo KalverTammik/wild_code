@@ -17,8 +17,8 @@ from PyQt5.QtWidgets import QApplication, QWidget
 
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import ToolbarTranslationKeys, TranslationKeys
-from Kavitro_dev.modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
-from Kavitro_dev.modules.Settings.setting_keys import SettingDialogPlaceholders
+from Kavitro_dev.utils.settings_logic import SettingsLogic
+from Kavitro_dev.constants.setting_placeholders import SettingDialogPlaceholders
 from Kavitro_dev.modules.Settings.settings_setup_guard import SettingsSetupGuard
 from Kavitro_dev.utils import SessionManager as session_module
 from Kavitro_dev.ui.session_ui_controller import SessionUIController

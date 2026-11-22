@@ -17,7 +17,7 @@ from ...utils.MapTools.module_feature_controllers import (
     ModuleFeatureWorkflow,
     ModuleFeatureWorkflowConfig,
 )
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from .projects_layer_service import ProjectsLayerService
 
 

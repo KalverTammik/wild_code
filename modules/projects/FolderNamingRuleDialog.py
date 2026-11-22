@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 from PyQt5.QtWidgets import QComboBox, QDialog, QLineEdit
 from ...languages.translation_keys import FolderNamingTranslationKeys, TranslationKeys
 from PyQt5.uic import loadUi
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 
 INTERNAL_PROJECT_NAME = "PROJECT_NAME"
 INTERNAL_PROJECT_NUMBER = "PROJECT_NUMBER"

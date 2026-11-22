@@ -5,9 +5,9 @@ from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget
 from ...constants.cadastral_fields import AreaUnit
 from ...languages.language_manager import LanguageManager
 from ...utils.MapTools.item_selector_tools import PropertiesSelectors
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ...widgets.EasementPropertyAreaCalculationWidget import EasementPropertyAreaCalculationWidget
-from ...widgets.theme_manager import styleExtras
+from ...ui.theme_manager import styleExtras
 
 
 class EasementPropertiesWidget(QWidget):

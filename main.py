@@ -9,8 +9,8 @@ from .constants.module_icons import IconNames
 from .utils.SessionManager import SessionManager  # Import the SessionManager
 from .languages.language_manager import LanguageManager
 from .languages.translation_keys import TranslationKeys
-from .widgets.theme_manager import ThemeManager
-from .utils.messagesHelper import ModernMessageDialog
+from .ui.theme_manager import ThemeManager
+from .ui.messages_helper import ModernMessageDialog
 from .Logs.switch_logger import SwitchLogger
 from .Logs.python_fail_logger import PythonFailLogger
 from .Logs.crash_logger import CrashLogger

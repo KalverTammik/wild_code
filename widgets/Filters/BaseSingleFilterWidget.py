@@ -20,8 +20,8 @@ from ...languages.translation_keys import TranslationKeys
 from ...utils.api_error_handling import user_message
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...modules.Settings.SettinsUtils.SettingsLogic import SettingsLogic
-from ..theme_manager import ThemeManager
+from ...utils.settings_logic import SettingsLogic
+from ...ui.theme_manager import ThemeManager
 from .filter_widget_parts import PickerControlBase, PickerFilterMixin, PickerPopupBase
 from .select_all_checkbox import SelectAllCheckBox
 

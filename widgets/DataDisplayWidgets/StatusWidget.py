@@ -15,9 +15,9 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
 from ...python.responses import DataDisplayExtractors, StatusInfo
 from ...ui.window_state.popup_helpers import PopupHelpers
-from ...utils.messagesHelper import ModernMessageDialog
+from ...ui.messages_helper import ModernMessageDialog
 from ...utils.status_color_helper import StatusColorHelper
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 
 
 class _ClickableStatusLabel(QLabel):

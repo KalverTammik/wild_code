@@ -9,7 +9,7 @@ from ....languages.translation_keys import TranslationKeys
 from ....utils.MapTools.MapHelpers import MapHelpers
 from ....widgets.DateHelpers import DateHelpers
 from ....Logs.python_fail_logger import PythonFailLogger
-from ....utils.url_manager import Module
+from ....constants.module_names import Module
 
 
 class MainLayerCheckController(QObject):

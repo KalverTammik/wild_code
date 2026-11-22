@@ -11,9 +11,9 @@ from qgis.core import QgsFeature, QgsFeatureRequest, QgsMapLayer, QgsVectorLayer
 from ...constants.settings_keys import SettingsService
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
-from ..Settings.setting_keys import SettingDialogPlaceholders
+from ...constants.setting_placeholders import SettingDialogPlaceholders
 from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem, LayerEditTexts
-from ...utils.url_manager import Module
+from ...constants.module_names import Module
 from ...Logs.python_fail_logger import PythonFailLogger
 
 

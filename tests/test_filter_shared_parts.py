@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QPushButton, QVBo
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper
-from Kavitro_dev.utils.url_manager import ModuleSupports
+from Kavitro_dev.constants.module_names import ModuleSupports
 from Kavitro_dev.widgets.Filters.BaseSingleFilterWidget import (
     BaseSingleFilterWidget,
     _SimplePickerControl,
@@ -30,7 +30,7 @@ from Kavitro_dev.widgets.Filters.BaseSingleFilterWidget import (
 from Kavitro_dev.widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from Kavitro_dev.widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from Kavitro_dev.widgets.Filters.TypeFilterWidget import TypeFilterWidget, _TypePickerControl, _TypePickerPopup
-from Kavitro_dev.widgets.theme_manager import ThemeManager
+from Kavitro_dev.ui.theme_manager import ThemeManager
 
 FILTER_WIDGETS = (BaseSingleFilterWidget, StatusFilterWidget, TypeFilterWidget)
 SELECT_ALL_WIDGETS = (BaseSingleFilterWidget, TypeFilterWidget)

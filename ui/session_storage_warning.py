@@ -9,7 +9,7 @@ from ..utils.SessionManager import (
     SESSION_STORAGE_MIGRATION_PENDING,
     SessionManager,
 )
-from ..utils.messagesHelper import ModernMessageDialog
+from .messages_helper import ModernMessageDialog
 
 _MESSAGE_KEYS = {
     SESSION_STORAGE_MEMORY_ONLY: TranslationKeys.SESSION_STORAGE_MEMORY_ONLY,

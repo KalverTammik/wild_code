@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayou
 from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
 from ..select_arrow import SelectArrow
-from ..theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 
 
 class FilterLoadingMixin:

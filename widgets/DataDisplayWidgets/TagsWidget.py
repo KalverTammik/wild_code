@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QSizePolicy
 )
-from ..theme_manager import ThemeManager
+from ...ui.theme_manager import ThemeManager
 from ...constants.module_icons import IconNames
 from ...ui.window_state.popup_helpers import PopupHelpers
 

@@ -12,7 +12,7 @@ from ....constants.settings_keys import SettingsService
 from ....constants.cadastral_fields import Katastriyksus
 from ....languages.language_manager import LanguageManager 
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions
-from ....utils.url_manager import Module
+from ....constants.module_names import Module
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from .UpdatePropertyData import UpdatePropertyData
 from ....utils.TagsEngines import TagsEngines
@@ -20,7 +20,7 @@ from ....utils.moduleSwitchHelper import ModuleSwitchHelper
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....utils.mapandproperties.ArchiveLayerHandler import ArchiveLayerHandler
 from ....utils.mapandproperties.PropertyDataLoader import PropertyDataLoader
-from ....utils.messagesHelper import ModernMessageDialog
+from ....ui.messages_helper import ModernMessageDialog
 
 
 def _archive_error(key: str, *, tunnus: str = "", details: str = "") -> str:
