@@ -11,7 +11,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
@@ -196,10 +196,27 @@ class NewWorkFlowTest(_FlowTest):
         self.assertEqual(kwargs.pop("value_problems"), [])
         self.assertEqual(kwargs, expected_fields(TASK, title="Server name", type_id=3, responsible="Mari"))
         self.resolve_props.assert_called_once_with(["1:2:3"])
+        self.assertEqual(self.create_task.call_args.kwargs["property_ids"], ["p1"])
+        # The created task does not show the property, so it is linked in a mutation of its own.
         self.associate.assert_called_once_with("task", "77", ["p1"])
         self.on_created.assert_called_once_with("77")
         self.assertEqual(self.info.call_args.args, ("T:Success", "T:works_create_success[('task_id', '77')]"))
         self.warning.assert_not_called()
+
+    def test_property_linked_by_the_create_needs_no_second_mutation(self):
+        self.get_task.return_value = dict(TASK, properties={"edges": [{"node": {"id": "p1", "cadastralUnitNumber": "1:2:3"}}]})
+        self.run_flow()
+        self.assertEqual(self.create_task.call_args.kwargs["property_ids"], ["p1"])
+        self.associate.assert_not_called()
+        self.info.assert_called_once()
+        self.warning.assert_not_called()
+
+    def test_failed_fallback_link_warns(self):
+        self.associate.side_effect = RuntimeError("api")
+        self.run_flow()
+        self.assertEqual(self.events(), ["works_property_link_failed"])
+        self.assertEqual(self.log.call_args.kwargs["extra"], {"task_id": "77", "cadastral": "1:2:3"})
+        self.assertEqual(self.last_warning(), "T:works_create_property_link_failed[('cadastral', '1:2:3'), ('task_id', '77')]")
 
     def test_form_values_fill_what_the_task_lacks(self):
         task = {"id": "77", "createdAt": "2026-01-02T03:04:05"}
@@ -236,6 +253,8 @@ class NewWorkFlowTest(_FlowTest):
         self.cadastral.return_value = ""
         self.run_flow()
         self.resolve_props.assert_not_called()
+        self.assertIsNone(self.create_task.call_args.kwargs["property_ids"])
+        self.associate.assert_not_called()
         self.info.assert_called_once()
 
     def test_unknown_property_and_failed_link_warn(self):
@@ -246,7 +265,10 @@ class NewWorkFlowTest(_FlowTest):
         self.resolve_props.side_effect = RuntimeError("api")
         self.run_flow()
         self.assertEqual(self.events(), ["works_property_link_failed"])
-        self.assertEqual(self.log.call_args.kwargs["extra"], {"task_id": "77", "cadastral": "1:2:3"})
+        # Resolved before the create, so there is no task id yet.
+        self.assertEqual(self.log.call_args.kwargs["extra"], {"cadastral": "1:2:3"})
+        self.assertIsNone(self.create_task.call_args.kwargs["property_ids"])
+        self.associate.assert_not_called()
         self.info.assert_not_called()
 
     def test_failing_callback_is_logged_and_the_success_still_shown(self):
@@ -307,11 +329,27 @@ class ExistingTaskFlowTest(_FlowTest):
         for name in ("layer", "point", "task_id", "value_problems"):
             kwargs.pop(name)
         self.assertEqual(kwargs, expected_fields(TASK, title="Server name", type_id=3, responsible="Mari"))
-        self.update_geometry.assert_called_once_with("77", {"color": "#4FBF6B"})
-        self.associate.assert_called_once_with("task", "77", ["p1"])
+        self.update_geometry.assert_called_once_with("77", {"color": "#4FBF6B"}, property_ids=["p1"])
+        self.associate.assert_not_called()
         self.on_created.assert_called_once_with("77")
         self.assertEqual(self.info.call_args.args[1], "T:works_add_existing_on_map_success[('task_id', '77')]")
         self.create_task.assert_not_called()
+
+    def test_refused_pair_sends_the_place_and_the_property_apart(self):
+        self.update_geometry.side_effect = [False, True]
+        self.run_flow()
+        self.assertEqual(self.update_geometry.call_args_list, [
+            call("77", {"color": "#4FBF6B"}, property_ids=["p1"]), call("77", {"color": "#4FBF6B"})])
+        self.associate.assert_called_once_with("task", "77", ["p1"])
+        self.info.assert_called_once()
+
+    def test_without_a_property_only_the_place_is_sent(self):
+        self.cadastral.return_value = ""
+        self.update_geometry.return_value = False
+        self.run_flow()
+        self.update_geometry.assert_called_once_with("77", {"color": "#4FBF6B"}, property_ids=None)
+        self.resolve_props.assert_not_called()
+        self.associate.assert_not_called()
 
     def test_task_without_name_type_or_responsible(self):
         self.get_task.return_value = {"id": "77"}
@@ -335,9 +373,10 @@ class ExistingTaskFlowTest(_FlowTest):
         self.run_flow()
         self.assertEqual(
             self.events(),
-            ["works_existing_task_geometry_update_failed", "works_existing_property_link_failed",
+            ["works_existing_property_link_failed", "works_existing_task_geometry_update_failed",
              "works_post_add_existing_callback_failed"],
         )
+        self.associate.assert_not_called()
         self.assertEqual(
             self.last_warning(),
             "T:works_add_existing_on_map_property_link_failed[('cadastral', '1:2:3'), ('task_id', '77')]",

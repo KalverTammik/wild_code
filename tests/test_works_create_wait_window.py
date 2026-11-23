@@ -64,6 +64,8 @@ class WorksCreateWaitWindowTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.sent: list[str] = []
+        self.server_links_on_create = True
+        self.linked_on_create: list = []
         self.windows: list = []
         self.messages: list[str] = []
         clock = FakeClock()
@@ -122,10 +124,14 @@ class WorksCreateWaitWindowTest(unittest.TestCase):
     def _post(self, _url, json=None, headers=None, timeout=None) -> _Response:
         query = (json or {}).get("query", "")
         time.sleep(REQUEST_SECONDS)
+        if "createTask" in query and self.server_links_on_create:
+            task_input = ((json or {}).get("variables") or {}).get("input") or {}
+            self.linked_on_create = list((task_input.get("properties") or {}).get("associate") or [])
+        edges = [{"node": {"id": property_id}} for property_id in self.linked_on_create]
         for name, data in (
             ("createTask", {"createTask": {"id": "77"}}),
             ("updateTask", {"updateTask": {"id": "77"}}),
-            ("task(", {"task": TASK}),
+            ("task(", {"task": dict(TASK, properties={"edges": edges})}),
             ("properties", {"properties": {"edges": [{"node": {"id": "p1", "cadastralUnitNumber": "66601:008:0138"}}]}}),
         ):
             if name in query:
@@ -137,7 +143,18 @@ class WorksCreateWaitWindowTest(unittest.TestCase):
     def test_adding_a_work_shows_one_wait_window(self) -> None:
         self.controller._handle_point_selected(QgsPointXY(630385.62, 6457752.97))
 
-        self.assertEqual([name for name in self.sent if name != "?"], ["createTask", "task(", "properties", "updateTask"])
+        # The property travels with the create: no second mutation and its pacing wait.
+        self.assertEqual([name for name in self.sent if name != "?"], ["properties", "createTask", "task("])
+        self.assertEqual(self.linked_on_create, ["p1"])
+        self.assertEqual(len(self.windows), 1)
+        self.assertEqual(len(self.messages), 1, self.messages)
+        self.assertTrue(self.messages[0].startswith("info: "), self.messages)
+
+    def test_a_create_that_left_the_property_out_links_it_in_the_same_window(self) -> None:
+        self.server_links_on_create = False
+        self.controller._handle_point_selected(QgsPointXY(630385.62, 6457752.97))
+
+        self.assertEqual([name for name in self.sent if name != "?"], ["properties", "createTask", "task(", "updateTask"])
         self.assertEqual(len(self.windows), 1)
         self.assertEqual(len(self.messages), 1, self.messages)
         self.assertTrue(self.messages[0].startswith("info: "), self.messages)

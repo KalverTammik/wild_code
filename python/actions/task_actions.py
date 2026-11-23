@@ -1,4 +1,5 @@
 """Task actions: read and list tasks, change the description, status and members, and create a task."""
+import re
 from typing import Iterable, List, Optional
 
 from ..api_client import APIClient
@@ -264,6 +265,12 @@ class TaskActions:
         return isinstance(exc, ApiError) and exc.kind == ApiErrorKind.GRAPHQL
 
     @staticmethod
+    def _is_property_input_error(message: str) -> bool:
+        """True when a refused create names the properties input (its path, field or a property)."""
+        text = str(message or "").lower()
+        return "input.properties" in text or bool(re.search(r"(?<!\w)propert(?:y|ies)(?!\w)", text))
+
+    @staticmethod
     def create_task(
         *,
         title: str,
@@ -276,7 +283,14 @@ class TaskActions:
         responsible_id: Optional[str] = None,
         status_id: Optional[str] = None,
         geometry: Optional[dict] = None,
+        property_ids: Optional[List[str]] = None,
     ) -> Optional[str]:
+        """Create a task and return its id, or None.
+
+        property_ids are linked in the same request, which saves a second mutation and its
+        pacing wait; if the server refuses them, the task is created without them, so the
+        caller checks the created task and links what is missing.
+        """
         task_title = str(title or "").strip()
         task_type_id = str(type_id or "").strip()
         if not task_title or not task_type_id:
@@ -298,12 +312,14 @@ class TaskActions:
         priority_text = str(priority or "").strip().upper()
         status_payload = str(status_id or "").strip()
         geometry_payload = geometry if isinstance(geometry, dict) else None
+        cleaned_property_ids = _clean_ids(property_ids or [])
 
         def _build_task_input(
             associate_payload: Optional[List[object]],
             *,
             include_geometry: bool,
             include_status: bool,
+            include_properties: bool,
         ) -> dict:
             task_input = {
                 "title": task_title,
@@ -323,6 +339,8 @@ class TaskActions:
                 task_input["geometry"] = GeometryActions._geometry_input_value(geometry_payload)
             if associate_payload:
                 task_input["members"] = {"associate": associate_payload}
+            if include_properties:
+                task_input["properties"] = {"associate": cleaned_property_ids}
             return task_input
 
         loader = GraphQLQueryLoader()
@@ -331,6 +349,7 @@ class TaskActions:
             query = loader.load_query_by_module(Module.TASK.value, "createTask.graphql")
             include_status = bool(status_payload)
             include_geometry = geometry_payload is not None
+            include_properties = bool(cleaned_property_ids)
             flag_dropped = False
 
             # Every retry switches off the condition that allowed it, so at most three retries follow
@@ -344,6 +363,7 @@ class TaskActions:
                                 fallback_member_payload if flag_dropped else member_payload,
                                 include_geometry=include_geometry,
                                 include_status=include_status,
+                                include_properties=include_properties,
                             )
                         },
                     ) or {}
@@ -364,6 +384,8 @@ class TaskActions:
                         flag_dropped = True
                     elif include_geometry and GeometryActions._is_geometry_retryable_create_error(message):
                         include_geometry = False
+                    elif include_properties and TaskActions._is_property_input_error(message):
+                        include_properties = False
                     else:
                         raise
 

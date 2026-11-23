@@ -672,6 +672,15 @@ class UpdateGeometryTest(ActionTestCase):
 
         self.each_case(check)
 
+    def test_task_geometry_can_carry_property_links(self) -> None:
+        self.client.send_query.return_value = {"updateTask": {"id": "7"}}
+        self.assertIs(APIModuleActions.update_task_geometry("7", POINT, property_ids=[" p1 ", ""]), True)
+        self.assertEqual(self.sent()[0][1]["variables"]["input"],
+                         {"id": "7", "geometry": POINT_TEXT, "properties": {"associate": ["p1"]}})
+        self.client.send_query.reset_mock()
+        APIModuleActions.update_task_geometry("7", POINT, property_ids=[" "])
+        self.assertEqual(self.sent()[0][1]["variables"]["input"], {"id": "7", "geometry": POINT_TEXT})
+
     def test_empty_dict_geometry_is_sent(self) -> None:
         def check(update, _module, _filename, key, _failure_event, _empty_event) -> None:
             self.client.send_query.return_value = {key: {"id": "7"}}
@@ -885,6 +894,42 @@ class CreateTaskInputTest(CreateTaskTestCase):
         }])
         self.assertEqual(self.follow_ups(), [])
         self.log.assert_not_called()
+
+    def test_property_ids_are_linked_by_the_create(self) -> None:
+        self.client.send_query.return_value = {"createTask": {"id": "77"}}
+        self.assertEqual(self.create(property_ids=[" p1 ", "", "p2", "p1"]), "77")
+        self.assertEqual(self.create_inputs()[0]["properties"], {"associate": ["p1", "p2"]})
+        self.assertEqual(self.follow_ups(), [])
+        self.client.send_query.reset_mock()
+        self.create(property_ids=[" "])
+        self.assertNotIn("properties", self.create_inputs()[0])
+
+    def test_refused_properties_are_dropped_and_the_task_is_still_created(self) -> None:
+        refused = 'Variable "$input" got invalid value "p1" at "input.properties.associate[0]"'
+        for message in (refused, "Property p1 not found", "Field \"properties\" is not defined by type CreateTaskInput"):
+            with self.subTest(message=message):
+                self.reset_calls()
+                self.answer({CREATE_QUERY: [rejected(message), {"createTask": {"id": "77"}}]})
+                self.assertEqual(self.create(property_ids=["p1"], geometry=POINT), "77")
+                first, second = self.create_inputs()
+                self.assertEqual(first["properties"], {"associate": ["p1"]})
+                self.assertNotIn("properties", second)
+                self.assertEqual(second["geometry"], POINT_TEXT)
+                self.log.assert_not_called()
+
+    def test_property_error_is_not_retried_without_properties(self) -> None:
+        error = rejected("Property p1 not found")
+        self.client.send_query.side_effect = error
+        self.assertIsNone(self.create())
+        self.assertEqual(self.queries(), [CREATE_QUERY])
+        self.assert_create_failed(error)
+
+    def test_refusal_that_names_no_property_keeps_the_properties_and_is_not_retried(self) -> None:
+        error = rejected(REFUSED)
+        self.client.send_query.side_effect = error
+        self.assertIsNone(self.create(property_ids=["p1"]))
+        self.assertEqual(self.queries(), [CREATE_QUERY])
+        self.assert_create_failed(error)
 
     def test_empty_optional_fields_are_left_out(self) -> None:
         self.client.send_query.return_value = {"createTask": {"id": "77"}}

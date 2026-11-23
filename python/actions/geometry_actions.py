@@ -1,6 +1,7 @@
 """Geometry actions: the geometry input value, the input errors create_task retries on, and the geometry updates."""
 import json
 import re
+from typing import List, Optional
 
 from ..api_client import APIClient
 from ..GraphQLQueryLoader import GraphQLQueryLoader
@@ -63,6 +64,7 @@ class GeometryActions:
         response_key: str,
         failure_event: str,
         empty_event: str,
+        extra_input: Optional[dict] = None,
     ) -> bool:
         resolved_id = str(item_id or "").strip()
         if not resolved_id or not isinstance(geometry, dict):
@@ -72,6 +74,7 @@ class GeometryActions:
             "input": {
                 "id": resolved_id,
                 "geometry": GeometryActions._geometry_input_value(geometry),
+                **(extra_input or {}),
             }
         }
 
@@ -103,8 +106,9 @@ class GeometryActions:
             return False
 
     @staticmethod
-    def update_task_geometry(item_id: str, geometry: dict) -> bool:
-        """Update the task geometry field in the backend."""
+    def update_task_geometry(item_id: str, geometry: dict, *, property_ids: Optional[List[str]] = None) -> bool:
+        """Update the task geometry field in the backend; property_ids are linked in the same mutation."""
+        cleaned = [str(value).strip() for value in (property_ids or []) if str(value or "").strip()]
 
         return GeometryActions._update_module_geometry(
             item_id=item_id,
@@ -114,6 +118,7 @@ class GeometryActions:
             response_key="updateTask",
             failure_event="task_update_geometry_failed",
             empty_event="task_update_geometry_empty_response",
+            extra_input={"properties": {"associate": cleaned}} if cleaned else None,
         )
 
     @staticmethod

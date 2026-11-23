@@ -159,11 +159,14 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
 
         now = datetime.now()
         works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
+        property_ids, property_link_failed = self._resolve_property_ids(
+            property_feature, event="works_property_link_failed")
         task_result = self._create_backend_task_from_dialog(
             point=point,
             works_layer=works_layer,
             dialog=dialog,
             now=now,
+            property_ids=property_ids,
         )
         if task_result is None:
             return
@@ -182,7 +185,9 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
                 value_problems=value_problems,
             )
 
-        property_link_failed = self._link_property_to_task(task_id, property_feature, event="works_property_link_failed")
+        property_link_failed = self._link_missing_properties(
+            task_id, created_task, property_ids, property_link_failed,
+            property_feature=property_feature, event="works_property_link_failed")
         cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
         self._notify_created(task_id, event="works_post_create_callback_failed")
 
@@ -269,11 +274,14 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             return False
 
         now = datetime.now()
+        property_ids, property_link_failed = self._resolve_property_ids(
+            property_feature, event="works_pending_gis_property_link_failed")
         task_result = self._create_backend_task_from_dialog(
             point=point,
             works_layer=works_layer,
             dialog=dialog,
             now=now,
+            property_ids=property_ids,
         )
         if task_result is None:
             return False
@@ -288,11 +296,9 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             value_problems=value_problems,
         )
 
-        property_link_failed = self._link_property_to_task(
-            task_id,
-            property_feature,
-            event="works_pending_gis_property_link_failed",
-        )
+        property_link_failed = self._link_missing_properties(
+            task_id, created_task, property_ids, property_link_failed,
+            property_feature=property_feature, event="works_pending_gis_property_link_failed")
         cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
         self._notify_created(task_id, event="works_pending_gis_post_create_callback_failed")
 
@@ -338,6 +344,7 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
         works_layer,
         dialog: WorksCreateDialog,
         now: datetime,
+        property_ids: Optional[list[str]] = None,
     ) -> Optional[tuple[str, dict]]:
         backend_description = WorksDescriptionService.build_task_description(dialog.description_text())
 
@@ -361,6 +368,7 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
                 responsible_id=dialog.selected_responsible_id(),
                 status_id=selected_status_id,
                 geometry=geometry_payload,
+                property_ids=property_ids or None,
             )
         except Exception as exc:
             PythonFailLogger.log_exception(
@@ -415,23 +423,52 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
 
         return str(task_id), created_task
 
-    def _link_property_to_task(self, task_id: str, property_feature, *, event: str) -> bool:
+    def _resolve_property_ids(self, property_feature, *, event: str, task_id: str = "") -> tuple[list[str], bool]:
+        """Kavitro ids of the property under the point, and whether linking it already failed.
+
+        Resolved before the task mutation, so the link can travel with it."""
         cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
         if not cadastral_number:
-            return False
-
+            return [], False
         try:
             property_ids, _missing = APIModuleActions.resolve_property_ids_by_cadastral([cadastral_number])
-            if property_ids:
-                APIModuleActions.associate_properties(Module.TASK.value, task_id, property_ids)
-                return False
-            return True
+        except Exception as exc:
+            extra = {"task_id": task_id, "cadastral": cadastral_number} if task_id else {"cadastral": cadastral_number}
+            PythonFailLogger.log_exception(exc, module=Module.WORKS.value, event=event, extra=extra)
+            return [], True
+        property_ids = [str(value) for value in (property_ids or []) if str(value or "").strip()]
+        return property_ids, not property_ids
+
+    @staticmethod
+    def _task_has_properties(task: Optional[dict], property_ids: list[str]) -> bool:
+        properties = task.get("properties") if isinstance(task, dict) else None
+        edges = properties.get("edges") if isinstance(properties, dict) else None
+        linked = {
+            str(((edge or {}).get("node") or {}).get("id") or "")
+            for edge in (edges or [])
+            if isinstance(edge, dict)
+        }
+        return all(property_id in linked for property_id in property_ids)
+
+    def _link_missing_properties(
+        self, task_id: str, task: Optional[dict], property_ids: list[str], failed: bool, *, property_feature, event: str,
+    ) -> bool:
+        """Link the properties the create could not carry; returns whether linking failed."""
+        if failed or not property_ids or self._task_has_properties(task, property_ids):
+            return failed
+        return self._link_property_to_task(task_id, property_ids, property_feature=property_feature, event=event)
+
+    def _link_property_to_task(self, task_id: str, property_ids: list[str], *, property_feature, event: str) -> bool:
+        """Link the properties in a mutation of their own; returns whether it failed."""
+        try:
+            APIModuleActions.associate_properties(Module.TASK.value, task_id, property_ids)
+            return False
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.WORKS.value,
                 event=event,
-                extra={"task_id": task_id, "cadastral": cadastral_number},
+                extra={"task_id": task_id, "cadastral": WorksLayerService.property_cadastral_number(property_feature)},
             )
             return True
 
@@ -549,13 +586,21 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             )
             return
 
+        property_ids, property_link_failed = self._resolve_property_ids(
+            property_feature, event="works_existing_property_link_failed", task_id=task_id)
         geometry_payload = self._backend_point_geometry_payload(
             point,
             works_layer,
             status_color=WorksLayerService.status_color_from_task(task_payload),
         )
+        # One mutation for the place and the property: a second one waits for the pacing.
+        linked = False
         try:
-            APIModuleActions.update_task_geometry(task_id, geometry_payload)
+            if APIModuleActions.update_task_geometry(task_id, geometry_payload, property_ids=property_ids or None):
+                linked = bool(property_ids)
+            elif property_ids:
+                # The server may have refused the pair for the property alone: send the place by itself.
+                APIModuleActions.update_task_geometry(task_id, geometry_payload)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -564,7 +609,9 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
                 extra={"task_id": task_id},
             )
 
-        property_link_failed = self._link_property_to_task(task_id, property_feature, event="works_existing_property_link_failed")
+        if property_ids and not linked:
+            property_link_failed = self._link_property_to_task(
+                task_id, property_ids, property_feature=property_feature, event="works_existing_property_link_failed")
         cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
         self._notify_created(task_id, event="works_post_add_existing_callback_failed")
 
