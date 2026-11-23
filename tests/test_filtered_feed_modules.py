@@ -245,12 +245,148 @@ class ModuleLifecycleTest(ModuleCase):
                     expected.append(call.overdue(spec.overdue))
                 self.assertEqual(order.mock_calls, expected)
 
-    def test_next_batch_comes_from_the_shared_pipeline(self) -> None:
+    def test_without_a_further_page_no_request_is_sent(self) -> None:
         for spec in SPECS:
             with self.subTest(module=spec.cls.__name__):
-                module = self.build(spec)
+                module, request = self.loading_module(spec)
+                module.feed_logic.has_more = False
                 module.process_next_batch = Mock(return_value="erä")
                 self.assertEqual(module.load_next_batch(), "erä")
+                request.submit.assert_not_called()
+                module._activated = False
+                self.assertEqual(module.load_next_batch(), [])
+
+    def test_a_page_is_fetched_in_a_worker_on_a_snapshot_and_accepted_on_the_ui_thread(self) -> None:
+        for spec in SPECS:
+            with self.subTest(module=spec.cls.__name__):
+                module, request = self.loading_module(spec)
+                feed = module.feed_logic
+                feed.where = {"AND": [{"column": "STATUS"}]}
+                self.assertEqual(module.load_next_batch(), [])
+                function, snapshot = request.submit.call_args.args
+                self.assertIs(function, type(feed).fetch_snapshot)
+                self.assertIsNot(snapshot, feed)
+                self.assertIsNot(snapshot.where, feed.where)
+                self.assertEqual(snapshot.where, feed.where)
+                self.assertEqual((feed.is_loading, snapshot.is_loading), (True, False))
+                # While the page is on its way, no second request for it.
+                self.assertEqual(module.load_next_batch(), [])
+                request.submit.assert_called_once()
+
+                snapshot.end_cursor, snapshot.has_more, snapshot.total_count = "c2", False, 9
+                module.accept_batch_result = Mock(return_value=["card"])
+                module.feed_load_engine = Mock()
+                module._on_feed_loaded((snapshot, [{"id": "1"}]))
+                self.assertEqual((feed.end_cursor, feed.has_more, feed.total_count, feed.is_loading),
+                                 ("c2", False, 9, False))
+                module.accept_batch_result.assert_called_once_with([{"id": "1"}])
+                module.feed_load_engine.accept_batch.assert_called_once_with(["card"], token=module._active_token)
+
+    def test_a_page_for_an_old_view_or_session_is_dropped(self) -> None:
+        for spec in SPECS:
+            for change in ("token", "session", "deactivated"):
+                with self.subTest(module=spec.cls.__name__, change=change):
+                    module, request = self.loading_module(spec)
+                    module.load_next_batch()
+                    snapshot = request.submit.call_args.args[1]
+                    snapshot.end_cursor = "c2"
+                    module.accept_batch_result = Mock()
+                    with patch("Kavitro_dev.ui.mixins.filtered_feed_mixin.SessionManager.session_signature",
+                               return_value="other" if change == "session" else module._feed_request_key[1]):
+                        if change == "token":
+                            module.bump_token()
+                        elif change == "deactivated":
+                            module._activated = False
+                        module._on_feed_loaded((snapshot, [{"id": "1"}]))
+                    module.accept_batch_result.assert_not_called()
+                    self.assertIsNone(module.feed_logic.end_cursor)
+                    self.assertFalse(module.feed_logic.is_loading)
+                    request.invalidate.assert_called()
+
+    def test_a_new_filter_or_session_cancels_the_page_on_its_way(self) -> None:
+        for spec in SPECS:
+            for step in ("clear_feed", "reset_feed_session"):
+                with self.subTest(module=spec.cls.__name__, step=step):
+                    module, request = self.loading_module(spec)
+                    module.load_next_batch()
+                    if step == "clear_feed":
+                        module.clear_feed(module.feed_layout, module._empty_state)
+                    else:
+                        module.reset_feed_session()
+                    request.invalidate.assert_called()
+                    self.assertFalse(module.feed_logic.is_loading)
+                    self.assertIsNone(module._feed_request_key)
+
+    def test_a_worker_failure_is_shown_in_the_feed(self) -> None:
+        for spec in SPECS:
+            with self.subTest(module=spec.cls.__name__):
+                module, request = self.loading_module(spec)
+                module.load_next_batch()
+                module._show_empty_state = Mock()
+                module._on_feed_failed("[WC-API][network] Connection refused")
+                self.assertFalse(module.feed_logic.is_loading)
+                self.assertTrue(module.feed_logic.last_error_message)
+                self.assertNotIn("WC-API", module.feed_logic.last_error_message)
+                module._show_empty_state.assert_called_once_with(module.feed_logic.last_error_message)
+
+    def test_the_request_runs_off_the_ui_thread(self) -> None:
+        import threading
+        import time
+        from Kavitro_dev.feed.FeedLogic import UnifiedFeedLogic
+
+        spec = BY_CLASS[ProjectsModule]
+        module = self.build(spec)
+        module._activated = True
+        threads = []
+
+        def fetch(feed):
+            threads.append(threading.current_thread())
+            feed.end_cursor, feed.has_more = "c2", False
+            return [{"id": "1"}]
+
+        module.accept_batch_result = Mock(return_value=[])
+        module.feed_load_engine = Mock()
+        with patch.object(UnifiedFeedLogic, "fetch_next_batch", fetch):
+            self.assertEqual(module.load_next_batch(), [])
+            deadline = time.monotonic() + 5
+            while not module.accept_batch_result.called and time.monotonic() < deadline:
+                QCoreApplication.processEvents()
+                time.sleep(0.01)
+        module.accept_batch_result.assert_called_once_with([{"id": "1"}])
+        self.assertEqual(len(threads), 1)
+        self.assertIsNot(threads[0], threading.main_thread())
+        self.assertEqual((module.feed_logic.end_cursor, module.feed_logic.is_loading), ("c2", False))
+        module._invalidate_feed_request()
+
+    def test_autofill_waits_for_the_page_instead_of_polling(self) -> None:
+        spec = BY_CLASS[ProjectsModule]
+        module = self.build(spec)
+        module._activated = True
+        module.feed_load_engine = Mock()
+        module.feed_load_engine.has_buffer.return_value = False
+        module._is_scrollable = Mock(return_value=False)
+        with patch("Kavitro_dev.ui.mixins.progressive_load_mixin.QTimer.singleShot") as later:
+            module.feed_logic.is_loading = True
+            module._initial_autofill_tick()
+            module.feed_load_engine.schedule_load.assert_not_called()
+            module.feed_logic.is_loading = False
+            module._initial_autofill_tick()
+            module.feed_load_engine.schedule_load.assert_called_once()
+            # The page answer starts the next tick, so nothing is queued meanwhile.
+            later.assert_not_called()
+            module.feed_load_engine.has_buffer.return_value = True
+            module._initial_autofill_tick()
+            module.feed_load_engine.feed_until_filled_plus_one.assert_called_once_with(max_cards=50)
+            later.assert_called_once()
+
+    def loading_module(self, spec):
+        module = self.build(spec)
+        if module.feed_logic is None:
+            module.feed_logic = module.FEED_LOGIC_CLS(module.module_key, module.QUERY_FILE, module.lang_manager)
+        module._activated = True
+        request = Mock()
+        module._feed_request = request
+        return module, request
 
     def test_deactivate_clears_cancels_and_ends_the_session(self) -> None:
         for spec in SPECS:

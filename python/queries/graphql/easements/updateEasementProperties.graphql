@@ -3,6 +3,9 @@ mutation UpdateEasement($input: UpdateEasementInput!) {
     __typename
     id
     properties {
+      pageInfo {
+        hasNextPage
+      }
       edges {
         area {
           size

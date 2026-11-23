@@ -114,6 +114,32 @@ class UnifiedFeedLogic:
         self._extra_args = cleaned
         self.reset()
 
+    # The fields one page request changes; a worker's snapshot hands them back to the visible feed.
+    _PAGE_STATE = (
+        'end_cursor', 'has_more', 'total_count', 'last_response', 'last_error',
+        'last_error_kind', 'last_error_message', '_loaded_items_debug',
+    )
+
+    def snapshot(self) -> "UnifiedFeedLogic":
+        """Copy request state so a worker cannot change the visible feed's cursor/filters."""
+        from copy import copy, deepcopy
+        snapshot = copy(self)
+        snapshot.where = deepcopy(self.where)
+        snapshot._extra_args = deepcopy(self._extra_args)
+        snapshot.is_loading = False
+        return snapshot
+
+    @staticmethod
+    def fetch_snapshot(snapshot: "UnifiedFeedLogic"):
+        """Runs in a worker: one page fetched on the snapshot, returned with it."""
+        return snapshot, snapshot.fetch_next_batch()
+
+    def accept_snapshot(self, snapshot: "UnifiedFeedLogic") -> None:
+        # The snapshot is a copy of this feed, so it has every page field.
+        for name in self._PAGE_STATE:
+            setattr(self, name, getattr(snapshot, name))
+        self.is_loading = False
+
     def fetch_next_batch(self) -> List[Dict[str, Any]]:
         if self.is_loading or (not self.has_more and not self._single_item_mode):
             self.last_error_kind = None

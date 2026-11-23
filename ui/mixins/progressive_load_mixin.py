@@ -87,15 +87,15 @@ class ProgressiveLoadMixin:
         feed_logic = self.feed_logic  # type: ignore[attr-defined]
         if not engine or not feed_logic:
             return
-        # Stop when scrollable or no more data upstream
-        if self._is_scrollable() or not feed_logic.has_more:
+        # Stop when scrollable, when no more data upstream, or while a page is on its way:
+        # the page answer starts the autofill again.
+        if self._is_scrollable() or not feed_logic.has_more or feed_logic.is_loading:
             self._autofill_ticks = 0
             return
         # Tick count retained only as a safeguard (not a hard cap now)
         self._autofill_ticks += 1
         if engine.has_buffer():
             engine.feed_until_filled_plus_one(max_cards=50)
+            QTimer.singleShot(0, self._initial_autofill_tick)
         else:
-            if feed_logic.has_more and not feed_logic.is_loading:
-                engine.schedule_load()
-        QTimer.singleShot(0, self._initial_autofill_tick)
+            engine.schedule_load()

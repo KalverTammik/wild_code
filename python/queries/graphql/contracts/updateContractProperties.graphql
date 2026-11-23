@@ -3,6 +3,9 @@ mutation UpdateContract($input: UpdateContractInput!) {
     __typename
     id
     properties {
+      pageInfo {
+        hasNextPage
+      }
       edges {
         node {
           id

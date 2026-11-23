@@ -32,6 +32,10 @@ class PythonFailLogger:
 
     _log_paths: dict[str, str] = {}
     _fatal_handle = None
+    # Files are written only after the plugin started a session (main.run), as SwitchLogger does.
+    # Code run without one (tests, imports) would otherwise write fake errors into the user's logs
+    # and, through the two-file rotation, delete the real ones.
+    _session_started = False
 
     @staticmethod
     def _base_dir() -> str:
@@ -49,6 +53,7 @@ class PythonFailLogger:
     def start_session() -> None:
         """Reset per-module session paths."""
         PythonFailLogger._log_paths = {}
+        PythonFailLogger._session_started = True
         try:
             ensure_private_directory(PythonFailLogger._logs_dir())
         except Exception:
@@ -84,6 +89,8 @@ class PythonFailLogger:
 
     @staticmethod
     def _get_log_path(module: str | None) -> str | None:
+        if not PythonFailLogger._session_started:
+            return None
         mod = PythonFailLogger._sanitize_module(module)
         cached = PythonFailLogger._log_paths.get(mod)
         if cached:

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from PyQt5.QtCore import Qt, QTimer, pyqtSlot
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QLabel, QPushButton
 from PyQt5.QtWidgets import QWidget
 from qgis.core import QgsSettings
@@ -17,10 +17,8 @@ from .works_sync_service import WorksSyncService
 from .works_list_service import LOCAL_SORTS, REMOTE_SORTS, ListChoices, WorksFeedLogic, WorksListPreferences
 from ...constants.file_paths import GraphQLSettings
 from ...utils.SessionManager import SessionManager
-from ...python.latest_request import LatestRequest
 from .works_list_widgets import WorksListControls, WorksListView
 from ...ui.messages_helper import ModernMessageDialog
-from ...utils.api_error_handling import user_message
 
 
 class WorksModule(TaskModuleBaseUI):
@@ -37,8 +35,6 @@ class WorksModule(TaskModuleBaseUI):
         self._list_controls = None
         self._list_choices = ListChoices()
         self._list_preferences = None
-        self._feed_request = None
-        self._feed_request_key = None
         super().__init__(
             module_enum=Module.WORKS,
             empty_state_key=TranslationKeys.NO_WORKS_FOUND,
@@ -48,9 +44,6 @@ class WorksModule(TaskModuleBaseUI):
         )
 
         self._list_view = WorksListView(self)
-        self._feed_request = LatestRequest(self)
-        self._feed_request.finished.connect(self._on_feed_loaded)
-        self._feed_request.error.connect(self._on_feed_failed)
         self._list_controls = WorksListControls(self.lang_manager, self.toolbar_area)
         self.toolbar_area.add_after_filters(self._list_controls)
         self._list_controls.choicesChanged.connect(self._on_list_choices_changed)
@@ -133,57 +126,10 @@ class WorksModule(TaskModuleBaseUI):
         TaskModuleBaseUI._refresh_filters(self, status_ids=status_ids, type_ids=type_ids)
 
     def deactivate(self) -> None:
-        self._invalidate_feed_request()
         self._list_view.clear()
         self._sync_service.detach()
         self._create_controller.cancel(bring_front=False)
         super().deactivate()
-
-    def _invalidate_feed_request(self):
-        if self._feed_request is not None:
-            self._feed_request.invalidate()
-            self._feed_request_key = None
-            self.feed_logic.is_loading = False
-
-    def load_next_batch(self):
-        if not self._activated or not self.feed_logic.has_more:
-            return []
-        key = (self._active_token, SessionManager.session_signature())
-        if self._feed_request.busy and key == self._feed_request_key:
-            return []
-        self._feed_request_key = key
-        snapshot = self.feed_logic.snapshot()
-        self.feed_logic.is_loading = True
-        if not self._compute_loaded_cards():
-            self._show_loading_placeholder()
-        self._feed_request.submit(WorksFeedLogic.fetch_snapshot, snapshot)
-        return []
-
-    def _feed_request_is_current(self):
-        return self._activated and self._feed_request_key == (
-            self._active_token, SessionManager.session_signature())
-
-    @pyqtSlot(object)
-    def _on_feed_loaded(self, result):
-        if not self._feed_request_is_current():
-            self._invalidate_feed_request()
-            return
-        snapshot, items = result
-        self.feed_logic.accept_snapshot(snapshot)
-        token = self._active_token
-        filtered = self.accept_batch_result(items)
-        self.feed_load_engine.accept_batch(filtered, token=token)
-        if not self.feed_logic.last_error_message:
-            QTimer.singleShot(0, self._initial_autofill_tick)
-
-    @pyqtSlot(str)
-    def _on_feed_failed(self, message):
-        if not self._feed_request_is_current():
-            self._invalidate_feed_request()
-            return
-        self.feed_logic.is_loading = False
-        self.feed_logic.last_error_message = user_message(message)
-        self._show_empty_state(self.feed_logic.last_error_message)
 
     def _schedule_post_batch_updates(self):
         # Cards style themselves when constructed; do not restyle the entire feed per page.
@@ -249,13 +195,11 @@ class WorksModule(TaskModuleBaseUI):
         QTimer.singleShot(0, self._initial_autofill_tick)
 
     def clear_feed(self, feed_layout, empty_state=None):
-        self._invalidate_feed_request()
         if self._list_view is not None:
             self._list_view.clear()
         super().clear_feed(feed_layout, empty_state)
 
     def reset_feed_session(self):
-        self._invalidate_feed_request()
         if self._list_view is not None:
             self._list_view.clear()
         super().reset_feed_session()

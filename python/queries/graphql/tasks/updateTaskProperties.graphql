@@ -3,6 +3,9 @@ mutation UpdateTask($input: UpdateTaskInput!) {
     __typename
     id
     properties {
+      pageInfo {
+        hasNextPage
+      }
       edges {
         node {
           id

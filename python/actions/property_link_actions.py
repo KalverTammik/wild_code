@@ -97,6 +97,31 @@ class PropertyLinkActions:
         return cadastral_numbers
 
     @staticmethod
+    def linked_cadastral_numbers_from_response(module: str, response) -> Optional[List[str]]:
+        """Cadastral numbers linked to the item, read from an associate_properties answer.
+
+        None when the answer does not hold the whole list (no properties or a further page),
+        so the caller reads them with get_module_item_connected_properties instead.
+        """
+        module_key = PropertyLinkActions._property_owner_module(module)
+        data = response.get("data") if isinstance(response, dict) else None
+        updated = data.get(f"update{module_key.capitalize()}") if isinstance(data, dict) else None
+        properties = updated.get("properties") if isinstance(updated, dict) else None
+        if not isinstance(properties, dict) or not isinstance(properties.get("edges"), list):
+            return None
+        page_info = properties.get("pageInfo")
+        if not isinstance(page_info, dict) or page_info.get("hasNextPage") is not False:
+            return None
+
+        numbers: List[str] = []
+        for edge in properties["edges"]:
+            node = edge.get("node") if isinstance(edge, dict) else None
+            number = node.get("cadastralUnitNumber") if isinstance(node, dict) else None
+            if number and number not in numbers:
+                numbers.append(number)
+        return numbers
+
+    @staticmethod
     def resolve_property_ids_by_cadastral(numbers: List[str]) -> tuple[list[str], list[str]]:
         """Resolve cadastral numbers to property IDs (chunked to 25 per query). Returns (ids, missing_numbers)."""
         resolved_map, missing = PropertyLinkActions.resolve_property_map_by_cadastral(numbers)

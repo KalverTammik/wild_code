@@ -184,6 +184,8 @@ class CardPropertyLinkTest(QgsCase):
         self.log = self.start(buttons_module.PythonFailLogger, "log_exception")
         self.api = self.start(buttons_module, "APIModuleActions")
         self.api.get_module_item_connected_properties.side_effect = [[], ["1:1", "2:2"]]
+        # The mutation answer holds no whole list here, so the linked numbers are read again.
+        self.api.linked_cadastral_numbers_from_response.return_value = None
 
         self.layer = Mock()
         self.start(buttons_module.ActiveLayersHelper, "resolve_main_property_layer", return_value=self.layer)
@@ -311,6 +313,19 @@ class CardPropertyLinkTest(QgsCase):
         self.button._on_properties_linked.assert_called_once_with(["1:1", "2:2"])
         self.log.assert_not_called()
         self.assertSelectionClosed()
+
+    def test_linked_numbers_come_from_the_mutation_answer_without_a_second_read(self) -> None:
+        self.api.resolve_property_ids_by_cadastral.return_value = (["p1", "p2"], [])
+        self.api.linked_cadastral_numbers_from_response.return_value = ["1:1", "2:2", "9:9"]
+
+        self.select()
+
+        response = self.api.associate_properties.return_value
+        self.api.linked_cadastral_numbers_from_response.assert_called_once_with("project", response)
+        # Only the read of the existing links before the selection.
+        self.api.get_module_item_connected_properties.assert_called_once_with("project", "7")
+        self.button._on_properties_linked.assert_called_once_with(["1:1", "2:2", "9:9"])
+        self.messages.show_warning.assert_not_called()
 
     def test_cancelled_review_links_nothing_and_closes_the_selection(self) -> None:
         self.review.exec_.return_value = QDialog.Rejected

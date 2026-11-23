@@ -159,31 +159,12 @@ def group_loaded_items(items, choices, lang, *, today=None):
 
 
 class WorksFeedLogic(UnifiedFeedLogic):
-    _PAGE_STATE = (
-        'end_cursor', 'has_more', 'total_count', 'last_response', 'last_error',
-        'last_error_kind', 'last_error_message', '_missing_phase', '_sort_seen_ids',
-        '_loaded_items_debug',
-    )
+    _PAGE_STATE = UnifiedFeedLogic._PAGE_STATE + ('_missing_phase', '_sort_seen_ids')
 
     def snapshot(self):
-        """Copy request state so a worker cannot change the visible feed's cursor/filters."""
-        from copy import copy, deepcopy
-        snapshot = copy(self)
-        snapshot.where = deepcopy(self.where)
-        snapshot._extra_args = deepcopy(self._extra_args)
+        snapshot = super().snapshot()
         snapshot._sort_seen_ids = set(self._sort_seen_ids)
-        snapshot.is_loading = False
         return snapshot
-
-    @staticmethod
-    def fetch_snapshot(snapshot):
-        return snapshot, snapshot.fetch_next_batch()
-
-    def accept_snapshot(self, snapshot):
-        # The snapshot is a copy of this feed, so it has every page field.
-        for name in self._PAGE_STATE:
-            setattr(self, name, getattr(snapshot, name))
-        self.is_loading = False
 
     """Server sorting with an explicit second pass for missing date values."""
     def __init__(self, *args, **kwargs):

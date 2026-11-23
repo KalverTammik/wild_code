@@ -830,7 +830,7 @@ class EntryPointInterfaceTest(unittest.TestCase):
     PROPERTIES = (
         "_property_owner_module", "get_module_item_connected_properties", "resolve_property_ids_by_cadastral",
         "resolve_property_map_by_cadastral", "get_easement_property_edges", "associate_properties",
-        "associate_easement_properties",
+        "associate_easement_properties", "linked_cadastral_numbers_from_response",
     )
     STATUSES = (
         "_status_module_value", "get_module_status_options", "get_task_priority_values", "task_priority_label",
@@ -864,8 +864,8 @@ class EntryPointInterfaceTest(unittest.TestCase):
 
     def test_entry_point_still_offers_every_method(self) -> None:
         names = [name for _class_name, group in self.MOVED.values() for name in group]
-        self.assertEqual(len(names), 42)
-        self.assertEqual(len(set(names)), 42)
+        self.assertEqual(len(names), 43)
+        self.assertEqual(len(set(names)), 43)
         for name in names:
             with self.subTest(method=name):
                 self.assertTrue(callable(getattr(APIModuleActions, name, None)), name)

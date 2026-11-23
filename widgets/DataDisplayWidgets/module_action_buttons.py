@@ -300,7 +300,10 @@ class MoreActionsButton(CardActionButton):
                     # No request failed: none of the selected numbers exist in Kavitro.
                     return False, [], {"error": _missing_note(missing), "missing": missing}
                 response = APIModuleActions.associate_properties(module, object_id, property_ids)
-                refreshed = APIModuleActions.get_module_item_connected_properties(module, object_id) or []
+                # The answer lists the linked properties; read them again only when it holds part of them.
+                refreshed = APIModuleActions.linked_cadastral_numbers_from_response(module, response)
+                if refreshed is None:
+                    refreshed = APIModuleActions.get_module_item_connected_properties(module, object_id) or []
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,

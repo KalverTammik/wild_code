@@ -3,11 +3,14 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer, pyqtSlot
 from PyQt5.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...module_manager import ModuleManager
+from ...python.latest_request import LatestRequest
+from ...utils.api_error_handling import user_message
+from ...utils.SessionManager import SessionManager
 from ...utils.FilterHelpers.FilterHelper import FilterHelper, FilterRefreshService
 from ...constants.module_names import Module
 from ...widgets.Filters.StatusFilterWidget import StatusFilterWidget
@@ -24,6 +27,8 @@ class FilteredFeedMixin:
     """
 
     FILTER_EVENT_PREFIX: str
+    _feed_request: Optional[LatestRequest] = None
+    _feed_request_key = None
 
     def _init_feed_module(self, module: Module, lang_manager) -> None:
         self.module_key = module.value
@@ -82,6 +87,7 @@ class FilteredFeedMixin:
         self._refresh_filters()
 
     def deactivate(self) -> None:
+        self._invalidate_feed_request()
         self._clear_filters()
         # Filter worker threads must stop before the module goes, or QThread teardown crashes.
         for name, widget in (("status", self.status_filter), ("type", self.type_filter), ("tags", self.tags_filter)):
@@ -109,8 +115,76 @@ class FilteredFeedMixin:
             except Exception as exc:
                 PythonFailLogger.log_exception(exc, module=self.module_key, event="filter_widget_clear_failed")
 
+    # --- Pages in a worker ---------------------------------------------------------------------
+    # A GUI-thread request over 400 ms opens the modal wait window, which also stops the list from
+    # scrolling; a page is fetched on a snapshot of the feed in a worker and accepted only while
+    # the module, its token and the session are still the ones that asked.
+
     def load_next_batch(self):
-        return self.process_next_batch()
+        feed_logic = self.active_feed_logic
+        if not self._activated or feed_logic is None:
+            return []
+        if feed_logic.is_loading or (not feed_logic.has_more and not feed_logic._single_item_mode):
+            # No request is sent: the synchronous path shows the empty state and the counter.
+            return self.process_next_batch()
+        self._feed_request_key = (self._active_token, SessionManager.session_signature())
+        snapshot = feed_logic.snapshot()
+        feed_logic.is_loading = True
+        if not self._compute_loaded_cards():
+            self._show_loading_placeholder()
+        self._background_feed_request().submit(type(feed_logic).fetch_snapshot, snapshot)
+        return []
+
+    def _background_feed_request(self) -> LatestRequest:
+        if self._feed_request is None:
+            self._feed_request = LatestRequest(self)
+            self._feed_request.finished.connect(self._on_feed_loaded)
+            self._feed_request.error.connect(self._on_feed_failed)
+        return self._feed_request
+
+    def _invalidate_feed_request(self) -> None:
+        if self._feed_request is not None:
+            self._feed_request.invalidate()
+        self._feed_request_key = None
+        if self.feed_logic is not None:
+            self.feed_logic.is_loading = False
+
+    def _feed_request_is_current(self) -> bool:
+        return self._activated and self._feed_request_key == (
+            self._active_token, SessionManager.session_signature())
+
+    @pyqtSlot(object)
+    def _on_feed_loaded(self, result) -> None:
+        if not self._feed_request_is_current():
+            self._invalidate_feed_request()
+            return
+        snapshot, items = result
+        feed_logic = self.active_feed_logic
+        feed_logic.accept_snapshot(snapshot)
+        token = self._active_token
+        filtered = self.accept_batch_result(items or [])
+        if self.feed_load_engine is not None:
+            self.feed_load_engine.accept_batch(filtered, token=token)
+        if not feed_logic.last_error_message:
+            QTimer.singleShot(0, self._initial_autofill_tick)
+
+    @pyqtSlot(str)
+    def _on_feed_failed(self, message: str) -> None:
+        if not self._feed_request_is_current():
+            self._invalidate_feed_request()
+            return
+        feed_logic = self.active_feed_logic
+        feed_logic.is_loading = False
+        feed_logic.last_error_message = user_message(message)
+        self._show_empty_state(feed_logic.last_error_message)
+
+    def clear_feed(self, feed_layout, empty_state=None) -> None:
+        self._invalidate_feed_request()
+        super().clear_feed(feed_layout, empty_state)
+
+    def reset_feed_session(self) -> None:
+        self._invalidate_feed_request()
+        super().reset_feed_session()
 
     def _on_status_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
         self._refresh_filters(status_ids=ids)

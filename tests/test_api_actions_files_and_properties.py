@@ -794,6 +794,54 @@ class AssociatePropertiesTest(ActionTestCase):
         self.log.assert_not_called()
 
 
+class LinkedNumbersFromResponseTest(unittest.TestCase):
+    @staticmethod
+    def answer(root, edges, has_next=False, page_info=True):
+        properties = {"edges": edges}
+        if page_info:
+            properties["pageInfo"] = {"hasNextPage": has_next}
+        return {"data": {root: {"id": "x", "properties": properties}}}
+
+    def test_whole_list_is_read_from_the_answer_of_each_module(self) -> None:
+        edges = [{"node": {"cadastralUnitNumber": "1:1"}}, {"node": {"cadastralUnitNumber": "2:2"}},
+                 {"node": {"cadastralUnitNumber": "1:1"}}, {"node": {"cadastralUnitNumber": ""}}, {"node": None}, "x"]
+        cases = (("project", "updateProject"), ("Easement", "updateEasement"), ("works", "updateTask"),
+                 ("asbuilt", "updateTask"), ("contract", "updateContract"), ("coordination", "updateCoordination"))
+        for module, root in cases:
+            with self.subTest(module=module):
+                self.assertEqual(
+                    APIModuleActions.linked_cadastral_numbers_from_response(module, self.answer(root, edges)),
+                    ["1:1", "2:2"])
+        self.assertEqual(APIModuleActions.linked_cadastral_numbers_from_response(
+            "project", self.answer("updateProject", [])), [])
+
+    def test_part_of_the_list_or_another_answer_is_none(self) -> None:
+        edges = [{"node": {"cadastralUnitNumber": "1:1"}}]
+        for response in (
+            self.answer("updateProject", edges, has_next=True),
+            self.answer("updateProject", edges, page_info=False),
+            {"data": {"updateProject": {"id": "x", "properties": {"pageInfo": {"hasNextPage": None}, "edges": edges}}}},
+            self.answer("updateTask", edges),
+            {"data": {"updateProject": {"id": "x"}}},
+            {"data": {"updateProject": {"id": "x", "properties": {"pageInfo": {"hasNextPage": False}}}}},
+            {"data": None}, None, "text",
+        ):
+            with self.subTest(response=response):
+                self.assertIsNone(APIModuleActions.linked_cadastral_numbers_from_response("project", response))
+
+    def test_every_link_mutation_asks_whether_more_pages_exist(self) -> None:
+        loader = GraphQLQueryLoader()
+        for module, filename in (("project", "updateProjectProperties.graphql"),
+                                 ("contract", "updateContractProperties.graphql"),
+                                 ("coordination", "updateCoordinationProperties.graphql"),
+                                 ("easement", "updateEasementProperties.graphql"),
+                                 ("task", "updateTaskProperties.graphql")):
+            with self.subTest(file=filename):
+                text = " ".join(loader.load_query_by_module(module, filename).split())
+                self.assertIn("pageInfo { hasNextPage }", text)
+                self.assertIn("cadastralUnitNumber", text)
+
+
 class AssociateEasementPropertiesTest(ActionTestCase):
     def test_missing_id_or_properties_raise_before_any_request(self) -> None:
         cases = (
@@ -861,7 +909,8 @@ class EntryPointInterfaceTest(unittest.TestCase):
         "get_current_user_payload", "get_current_user_id", "user_display_name", "get_assignable_users",
         "get_module_item_connected_properties", "resolve_property_ids_by_cadastral",
         "resolve_property_map_by_cadastral", "get_easement_property_edges", "associate_properties",
-        "associate_easement_properties", "get_task_data", "get_module_files", "get_tasks_by_ids",
+        "associate_easement_properties", "linked_cadastral_numbers_from_response", "get_task_data",
+        "get_module_files", "get_tasks_by_ids",
         "get_task_description", "update_task_description", "_update_module_geometry", "update_task_geometry",
         "update_project_geometry", "update_easement_geometry", "get_easement_status", "update_easement_status",
         "create_file_download_link", "fetch_file_preview_payload", "delete_file", "upload_module_file",
@@ -886,7 +935,7 @@ class EntryPointInterfaceTest(unittest.TestCase):
     )
 
     def test_entry_point_still_offers_every_method(self) -> None:
-        self.assertEqual(len(set(self.EXPECTED_METHODS)), 42)
+        self.assertEqual(len(set(self.EXPECTED_METHODS)), 43)
         for name in self.EXPECTED_METHODS:
             with self.subTest(method=name):
                 self.assertTrue(callable(getattr(APIModuleActions, name, None)), name)
