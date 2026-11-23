@@ -34,6 +34,14 @@ from .preview_dialog.preview_layers_mixin import EasementPreviewLayersMixin
 from .preview_dialog.property_editor_mixin import EasementPropertyEditorMixin
 
 
+class _StatusLabel(QLabel):
+    """The dialog's status line: shown while it has text, so a new status is never set on a hidden label."""
+
+    def setText(self, text) -> None:  # noqa: N802 - Qt name
+        super().setText(text)
+        self.setVisible(bool(str(text or "").strip()))
+
+
 class EasementPreviewDialog(EasementPreviewLayersMixin, EasementPropertyEditorMixin, EasementFinalSaveMixin, QDialog):
     """Preview an easement on the map, link its properties and save the final cut.
 
@@ -294,10 +302,11 @@ class EasementPreviewDialog(EasementPreviewLayersMixin, EasementPropertyEditorMi
         property_layout.addLayout(property_buttons)
         layout.addWidget(property_frame, 2)
 
-        self._status_label = QLabel("", self)
+        self._status_label = _StatusLabel("", self)
         self._status_label.setWordWrap(True)
         self._status_label.setObjectName("SetupCardDescription")
         self._status_label.hide()
+        layout.addWidget(self._status_label)
 
         buttons = QHBoxLayout()
         buttons.setContentsMargins(0, 0, 0, 0)

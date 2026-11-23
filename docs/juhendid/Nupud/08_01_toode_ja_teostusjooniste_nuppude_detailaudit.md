@@ -17,7 +17,7 @@ Staatus- ja liigifiltri ning filtrite värskendamise ja tühjendamise täpne kä
 | Töö **Muuda asukohta** | Salvestab tööpunkti uue asukoha QGIS-i kihile; taustakuulaja võib saata selle Kavitrosse | Kihi redigeerimisseanss kinnitatakse kohe |
 | **Kontrolli sidumata GIS töid** | Otsib QGIS-i kihilt sidumata punkte ja võimaldab neist Kavitro töid luua | Kontroll ise ei muuda andmeid; rea avamise järel algab loomistöövoog |
 | Teostusjoonise **Lisa/uuenda märkmeid** | Asendab Kavitro ülesande kirjelduse struktureeritud märkmete jaotise | Enne **Salvesta** vajutamist saab katkestada |
-| Teostusjoonise **Joonista uus seotud objekt kaardile** | Lisab QGIS-i objekti, kirjutab atribuudid ja saadab geomeetria Kavitrosse | QGIS-i ja Kavitro muudatused ei ole ühine tehing |
+| Teostusjoonise **Joonista uus seotud objekt kaardile** | Lisab QGIS-i objekti, kirjutab atribuudid ja saadab geomeetria Kavitrosse | Kiht salvestatakse enne Kavitrot; Kavitro vea korral saab kohe uuesti proovida |
 | **Seosta kinnistuid** | Lisab Kavitro ülesandele kinnistuseoseid | Selle töövooga seoseid eemaldada ei saa |
 
 Tööde ja teostusjooniste Kavitro kirjed on tehniliselt ülesanded. Seetõttu kasutavad kirjeldus, failid, staatus, geomeetria, veebiaadress ja kinnistuseosed ülesannete teenusetoiminguid.
@@ -58,7 +58,7 @@ Sama või tühja staatuse valimine ei tee midagi. Teenuse vea korral taastatakse
 
 Töö staatuse muutmisel võib taustas uueneda tööde põhikihi `ext_job_state`, detailne ülesandeinfo ja teenusest tulnud geomeetria. Kui tööde kiht on juba redigeerimisrežiimis, jäetakse sünkroonimine vahele. Kihi sünkroonimise ebaõnnestumine logitakse, kuid kasutajale ei kuvata eraldi hoiatust.
 
-Teostusjoonise staatuse muutmisel käivitab praegune kood samuti tööde kihi sünkroonimisteenuse, mitte teostusjooniste kihi uuendamise. Tavaliselt ei leita tööde kihilt sama ID-ga objekti ning teostusjooniste põhikihi `ext_job_state` jääb muutmata. Kavitro ülesande staatus ja kirjekaart võivad sellest hoolimata õigesti uueneda.
+Teostusjoonise staatuse muutmisel kirjutatakse uus staatus teostusjooniste põhikihi `ext_job_state` väljale (`AsBuiltLayerService.sync_status_from_task`); tööde kihti see ei puuduta. Kui teostusjooniste kiht on juba redigeerimisrežiimis, jäetakse uuendus vahele ja logitakse.
 
 ## Ava kirje brauseris
 
@@ -303,8 +303,6 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kõrge | Teostusjoonise staatuse järel sünkroonitakse tööde, mitte teostusjooniste põhikihti | Kavitro staatus ja teostusjoonise `ext_job_state` jäävad eri seisu | Vali sünkroonimisteenus mooduli järgi ja lisa teostusjooniste atribuudisünkroon |
-| Kõrge | Teostusjoonise kiht kinnitatakse enne Kavitrot ja Kavitro viga kuvatakse hoiatusena, kuid ühist tehingut ega korduvat sünkroonimist ei ole | Teenuse geomeetria võib jääda QGIS-i objektist erinevaks | Paku korduvat sünkroonimist |
 | Keskmine | Teostusjoonise **Katkesta** tagastatakse veana ja tekst „Teostusjoonise andmete sisestamine katkestati“ on koodis (`asbuilt_feature_map_controller.py`) | Kasutaja ei erista teadlikku katkestust rikkest; tõlkevõtmete reegel on rikutud | Anna kontrollerile eraldi cancelled-tulemus ja sulge ilma veahoiatuseta |
 | Keskmine | Uue teostusjoonise joonistamine ei kontrolli olemasolevat sama ID-ga objekti | Ühe kirje jaoks võivad tekkida duplikaatobjektid | Kontrolli ID-d enne lisamist ning paku olemasoleva objekti fokuseerimist või kinnitatud asendamist |
 | Keskmine | Tööpunkti valiku- ja ümberpaigutustööriistad ei käsitle muu tööriista aktiveerimist katkestusena | Visuaali aken võib jääda kaardivaliku režiimi ja kontroller ootele | Kuula tööriista deaktiveerimist ning taasta aken ja pan-režiim |

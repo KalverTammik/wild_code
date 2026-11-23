@@ -71,6 +71,13 @@ class DialogStubCase(unittest.TestCase):
         self.show_warning.assert_called_once()
         return self.show_warning.call_args.args[:2]
 
+    def one_retry_question(self) -> tuple[str, str]:
+        """A failed Kavitro update asks once whether to try again (declined by the stub), and says nothing else."""
+        self.show_info.assert_not_called()
+        self.show_warning.assert_not_called()
+        self.ask_choice_modern.assert_called_once()
+        return self.ask_choice_modern.call_args.args[:2]
+
 
 class NoteTextTest(unittest.TestCase):
     def test_note_names_field_value_expected_kind_and_what_to_do(self) -> None:
@@ -203,7 +210,7 @@ class DrawFlowNoticeTest(DialogStubCase):
     def test_failed_kavitro_update_still_names_the_empty_fields_of_the_saved_feature(self) -> None:
         self.draw(7, sync_result=(False, "Kavitro refused"))
 
-        title, text = self.one_warning()
+        title, text = self.one_retry_question()
         self.assertEqual(title, "E")
         self.assertTrue(text.startswith("saved, Kavitro not updated 42: Kavitro refused\n\n"), text)
         self.assertIn(WIDTH.field_label, text)
@@ -258,9 +265,11 @@ class AttachFlowNoticeTest(DialogStubCase):
     def test_failed_kavitro_update_after_the_link_names_the_fields(self) -> None:
         self.attach(FeatureLinkResult(True, "", lambda: (False, "Kavitro refused"), (SCALE,)))
 
-        title, text = self.one_warning()
+        title, text = self.one_retry_question()
         self.assertEqual(title, "E")
-        self.assertEqual(text, notice.with_field_value_problems("failed 42: Kavitro refused", [SCALE]))
+        self.assertTrue(
+            text.startswith(notice.with_field_value_problems("failed 42: Kavitro refused", [SCALE]) + "\n\n"), text
+        )
 
 
 class AsBuiltHandlerCollectsProblemsTest(DialogStubCase):
@@ -355,9 +364,11 @@ class ProjectPreviewNoticeTest(DialogStubCase):
         self.dialog._item_id = "5"
         self.dialog._item = {"id": "5"}
         self.dialog._preview_layer = Mock(return_value=object())
+        # The saved area goes to Kavitro next; no request may leave the test.
+        self.dialog._send_area_to_kavitro = Mock(return_value=(True, ""))
         service = project_preview_module.ProjectsLayerService
         self.start = lambda result: patch.object(service, "upsert_generated_area_feature", collecting(result))
-        patcher = patch.object(service, "resolve_main_layer", return_value=Mock())
+        patcher = patch.object(service, "resolve_main_layer", return_value=Mock(isEditable=Mock(return_value=False)))
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -392,7 +403,7 @@ class EasementFinalCutNoticeTest(DialogStubCase):
         self.dialog = dialog
         module = easement_final_save_module
         for target, name, value in (
-            (module.EasementLayerService, "resolve_main_layer", Mock()),
+            (module.EasementLayerService, "resolve_main_layer", Mock(isEditable=Mock(return_value=False))),
             (module.EasementGeometryFormDialog, "prompt", {"Kaitsevööndi laius": "2 meetrit"}),
         ):
             patcher = patch.object(target, name, return_value=value)

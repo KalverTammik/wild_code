@@ -7,6 +7,7 @@ from ....python.api_actions import APIModuleActions
 from ....utils.layers.module_layer_service_base import FieldValueProblem
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....ui.messages_helper import ModernMessageDialog
+from ....ui.map_tools.kavitro_sync_retry import offer_kavitro_sync_retry
 from ....constants.module_names import Module
 from ....widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
 from ..easement_geometry_form_dialog import EasementGeometryFormDialog
@@ -30,6 +31,9 @@ class EasementFinalSaveMixin:
         target_layer = EasementLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
         if target_layer is None:
             return False, self._lang.translate(TranslationKeys.EASEMENT_LAYER_MISSING)
+        if target_layer.isEditable():
+            # The cut would stay in the user's session unsaved, and Kavitro would get a shape the layer lacks.
+            return False, self._lang.translate(TranslationKeys.LAYER_ALREADY_EDITING).format(layer=target_layer.name())
 
         form_values = EasementGeometryFormDialog.prompt(
             item_data=self._item,
@@ -54,9 +58,20 @@ class EasementFinalSaveMixin:
         if ok:
             if value_problems is not None:
                 value_problems.extend(saved_problems)
-            geometry_synced = self._sync_saved_easement_geometry_to_backend(target_layer)
+            # The layer is saved first; a failed Kavitro update can be tried again before the dialog goes on.
+            sync_failed = self._lang.translate(TranslationKeys.EASEMENT_FINAL_GEOMETRY_SYNC_FAILED)
+            geometry_synced = self._sync_saved_easement_geometry_to_backend(target_layer) or offer_kavitro_sync_retry(
+                lambda: (self._sync_saved_easement_geometry_to_backend(target_layer), ""),
+                failure_message=lambda _detail: sync_failed,
+                title=self._lang.translate(TranslationKeys.ERROR),
+                log_module=Module.EASEMENT.value,
+                lang=self._lang,
+                parent=self,
+                extra={"item_id": str(self._item_id or "")},
+                dialog_class=ModernMessageDialog,
+            )
             if not geometry_synced:
-                return False, "Servituudi geomeetria saatmine backendisse ebaõnnestus"
+                return False, sync_failed
             return True, self._lang.translate(TranslationKeys.EASEMENT_LAYER_SAVE_SUCCESS).format(layer=message)
         return False, self._lang.translate(TranslationKeys.EASEMENT_LAYER_SAVE_FAILED).format(error=message)
 

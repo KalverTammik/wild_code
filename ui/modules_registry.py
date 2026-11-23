@@ -66,10 +66,18 @@ class ModulesRegistry:
             WorksSyncService(lang_manager=lang_manager).sync_task_from_backend(item_id, task=task_payload)
 
         StatusWidget.register_status_change_hook(
-            (Module.WORKS.value, Module.ASBUILT.value, Module.TASK.value),
+            (Module.WORKS.value, Module.TASK.value),
             "works_layer_sync",
             sync_works_layer,
         )
+
+        def sync_asbuilt_layer(item_id: str, task_payload, lang_manager) -> None:
+            from ..modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
+
+            AsBuiltLayerService.sync_status_from_task(item_id, task_payload, lang_manager=lang_manager)
+
+        # An as-built is a task too, but its status belongs on the as-built layer, not the Works layer.
+        StatusWidget.register_status_change_hook((Module.ASBUILT.value,), "asbuilt_layer_sync", sync_asbuilt_layer)
 
         def pick_folder(_module_key: str, _key: str, current_value: str):
             return FolderHelpers.select_folder_path(dialog, start_path=current_value)

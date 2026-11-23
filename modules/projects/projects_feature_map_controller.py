@@ -34,7 +34,35 @@ class ProjectsFeatureMapController:
         layer, _message = ProjectsLayerService.prepare_layer_for_draw(lang_manager=self._lang, dialogs=ModernMessageDialog)
         if layer is None:
             return False
+        mode = self._existing_area_mode(layer, item_id)
+        if mode is None:
+            return False
+        if mode:
+            item_payload["_project_area_mode"] = mode
         return self._workflow.start_draw(item_data=item_payload)
+
+    def _existing_area_mode(self, layer: QgsVectorLayer, item_id: str) -> Optional[str]:
+        """How a new drawing treats the project's area already on the map: "" when there is none, None when cancelled.
+
+        A project keeps one feature, so the map focus and Kavitro both get the whole area.
+        """
+        if layer.isEditable() or not ProjectsLayerService.item_feature_ids(layer, item_id):
+            return ""  # an editable layer is refused by the draw flow itself
+        replace = self._lang.translate(TranslationKeys.PROJECT_AREA_REPLACE)
+        add_part = self._lang.translate(TranslationKeys.PROJECT_AREA_ADD_PART)
+        cancel = self._lang.translate(TranslationKeys.CANCEL_BUTTON)
+        if ProjectsLayerService.allows_multi_part(layer):
+            message = self._lang.translate(TranslationKeys.PROJECT_AREA_EXISTS_QUESTION).format(item_id=item_id)
+            buttons, default = [replace, add_part, cancel], add_part
+        else:
+            message = self._lang.translate(TranslationKeys.PROJECT_AREA_EXISTS_REPLACE_ONLY).format(
+                item_id=item_id, layer=layer.name()
+            )
+            buttons, default = [replace, cancel], cancel
+        choice = ModernMessageDialog.ask_choice_modern(
+            self._lang.translate(TranslationKeys.CONFIRM), message, buttons=buttons, default=default, cancel=cancel,
+        )
+        return {replace: ProjectsLayerService.AREA_REPLACE, add_part: ProjectsLayerService.AREA_ADD_PART}.get(choice)
 
     def _build_workflow_config(self) -> ModuleFeatureWorkflowConfig:
         return ModuleFeatureWorkflowConfig(
@@ -102,8 +130,16 @@ class ProjectsFeatureMapController:
         if not success:
             return FeatureLinkResult(False, message)
 
+        mode = str(item_payload.get("_project_area_mode") or "")
+        if mode:
+            folded, fold_error = ProjectsLayerService.fold_existing_areas(
+                layer, keep_feature_id=feature_id, item_id=item_id, mode=mode
+            )
+            if not folded:
+                return FeatureLinkResult(False, fold_error)
+
         # Read now: a drawn feature changes its id when the layer is committed.
-        geometry_payload = ProjectsFeatureMapController._geometry_payload_for_item(layer, item_payload)
+        geometry_payload = ProjectsFeatureMapController._geometry_payload_for_item(layer, item_payload, feature_id)
         if geometry_payload is None:
             return FeatureLinkResult(True, message, value_problems=tuple(value_problems))
 
@@ -122,14 +158,19 @@ class ProjectsFeatureMapController:
         return FeatureLinkResult(True, message, sync_to_kavitro, tuple(value_problems))
 
     @staticmethod
-    def _geometry_payload_for_item(layer: QgsVectorLayer, item_payload: dict) -> Optional[dict[str, object]]:
+    def _geometry_payload_for_item(
+        layer: QgsVectorLayer, item_payload: dict, feature_id: Optional[int] = None
+    ) -> Optional[dict[str, object]]:
         try:
-            feature = ProjectsLayerService.find_feature(
-                layer,
-                item_id=str((item_payload or {}).get("id") or "").strip(),
-                item_number=str((item_payload or {}).get("projectNumber") or (item_payload or {}).get("number") or "").strip(),
-                item_name=str((item_payload or {}).get("name") or (item_payload or {}).get("title") or "").strip(),
-            )
+            # The linked feature itself: a lookup by id could find an older area of the same project.
+            feature = ProjectsLayerService._feature_by_id(layer, int(feature_id)) if feature_id is not None else None
+            if feature is None:
+                feature = ProjectsLayerService.find_feature(
+                    layer,
+                    item_id=str((item_payload or {}).get("id") or "").strip(),
+                    item_number=str((item_payload or {}).get("projectNumber") or (item_payload or {}).get("number") or "").strip(),
+                    item_name=str((item_payload or {}).get("name") or (item_payload or {}).get("title") or "").strip(),
+                )
             geometry = feature.geometry() if feature is not None else None
             return ProjectsLayerService.backend_geometry_payload_from_geometry(geometry)
         except Exception as exc:

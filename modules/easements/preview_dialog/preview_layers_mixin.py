@@ -362,7 +362,6 @@ class EasementPreviewLayersMixin:
 
     def _run_connected_property_preview_flow(self) -> None:
         if not self._connected_property_numbers:
-            self._define_properties_button.setVisible(True)
             self._property_summary_card.clear()
             for key in self._ROW_KEYS:
                 self._set_row_status(key, self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_ROW_SKIPPED))
@@ -371,7 +370,6 @@ class EasementPreviewLayersMixin:
             )
             return
 
-        self._define_properties_button.setVisible(False)
 
         property_layer = PropertiesSelectors.show_connected_properties_on_map(
             self._connected_property_numbers,

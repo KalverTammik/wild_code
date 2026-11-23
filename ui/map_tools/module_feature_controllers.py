@@ -14,6 +14,7 @@ from ..window_state.dialog_helpers import DialogHelpers
 from ...utils.layers.field_value_problems import show_saved, with_field_value_problems
 from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ..messages_helper import ModernMessageDialog
+from .kavitro_sync_retry import offer_kavitro_sync_retry, run_kavitro_sync
 from ...utils.MapTools.canvas_click_tool import SingleClickMapTool
 from ...utils.MapTools.MapHelpers import MapHelpers
 
@@ -207,7 +208,8 @@ class ModuleFeatureAttachController:
         link = self._attach_handler(layer, int(feature.id()), self._item_data)
         success, message = link.success, link.message
         if success and link.sync_to_kavitro is not None:
-            success, message = link.sync_to_kavitro()
+            success, message = run_kavitro_sync(
+                link.sync_to_kavitro, log_module=log_module, extra={"item_id": self._item_id})
         # Read before the clear below empties it: the messages used to name item "-".
         item_id = self._item_id or "-"
         self._clear_capture_tool(bring_front=True, log_module=log_module)
@@ -220,14 +222,18 @@ class ModuleFeatureAttachController:
             return
 
         # The handler has saved the feature; only the Kavitro update can still have failed.
-        if not success:
-            ModernMessageDialog.show_warning(
-                title_error,
-                with_field_value_problems(
-                    save_failed_message.format(item_id=item_id, error=message or title_error),
-                    link.value_problems,
-                ),
-            )
+        if not success and not offer_kavitro_sync_retry(
+            link.sync_to_kavitro,
+            failure_message=lambda detail: with_field_value_problems(
+                save_failed_message.format(item_id=item_id, error=detail or title_error),
+                link.value_problems,
+            ),
+            title=title_error,
+            log_module=log_module,
+            first_detail=message,
+            extra={"item_id": item_id},
+            dialog_class=ModernMessageDialog,
+        ):
             return
 
         show_saved(
@@ -524,14 +530,18 @@ class ModuleFeatureDrawController:
             return
 
         # Past this point the feature is on the layer, so the fields left empty are worth correcting.
-        if not synced:
-            ModernMessageDialog.show_warning(
-                title_error,
-                with_field_value_problems(
-                    sync_failed_message.format(item_id=item_id or "-", error=sync_detail or title_error),
-                    link.value_problems,
-                ),
-            )
+        if not synced and not offer_kavitro_sync_retry(
+            link.sync_to_kavitro,
+            failure_message=lambda detail: with_field_value_problems(
+                sync_failed_message.format(item_id=item_id or "-", error=detail or title_error),
+                link.value_problems,
+            ),
+            title=title_error,
+            log_module=log_module,
+            first_detail=sync_detail,
+            extra={"item_id": item_id, "feature_id": int(feature_id)},
+            dialog_class=ModernMessageDialog,
+        ):
             return
 
         show_saved(

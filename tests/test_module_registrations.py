@@ -132,8 +132,10 @@ class RegistryWiringTest(_Registrations):
 
         self.assertIs(ModuleConfigFactory._registered_factories[Module.PROJECT.value],
                       project_detail_config.create_project_config)
-        for module in (Module.WORKS.value, Module.ASBUILT.value, Module.TASK.value):
+        for module in (Module.WORKS.value, Module.TASK.value):
             self.assertIn("works_layer_sync", StatusWidget._status_change_hooks[module])
+        # An as-built's status goes to the as-built layer; the Works layer never holds as-builts.
+        self.assertEqual(list(StatusWidget._status_change_hooks[Module.ASBUILT.value]), ["asbuilt_layer_sync"])
         self.assertNotIn(Module.PROJECT.value, StatusWidget._status_change_hooks)
 
         with patch.object(works_sync_service.WorksSyncService, "sync_task_from_backend") as sync:

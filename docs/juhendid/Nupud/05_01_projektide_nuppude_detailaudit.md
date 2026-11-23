@@ -15,7 +15,7 @@ Filtrite, tähtajanuppude ja kirjekaardi üldise ülesehituse detailid on failis
 | **Seosta kinnistuid** | Lisab Kavitros projektile kinnistuseoseid | Selle töövooga seoseid eemaldada ei saa |
 | Eelvaate loomine ja puhastamine | Lisab või eemaldab QGIS-i ajutisi mälukihte | Jah, kuni ala pole põhikihile salvestatud |
 | **Salvesta ala kihile** | Lisab või uuendab projektide QGIS-i põhikihi objekti | Sõltub kihi redigeerimis- ja varundusolekust |
-| **Joonista uus seotud ala kaardile** | Lisab projektide põhikihi objekti ja proovib uuendada Kavitro geomeetriat | QGIS-i ja Kavitro muudatused ei ole ühine tehing |
+| **Joonista uus seotud ala kaardile** | Lisab projektide põhikihi objekti ja proovib uuendada Kavitro geomeetriat | Kiht salvestatakse enne Kavitrot; Kavitro vea korral saab kohe uuesti proovida |
 
 Seadistuste vaate üldine **Kinnita** ei lõpeta ega võta tagasi ühtegi siin kirjeldatud projektikaardi toimingut.
 
@@ -221,11 +221,10 @@ Salvestamisel:
 3. leitud objekti geomeetria ja projektiväljad uuendatakse või lisatakse uus objekt;
 4. vajaduse korral lisatakse kihile väljad `ext_project_id`, `ext_system`, `ext_project_name`, `ext_project_number`, `detailed`, `active`, `added_by`, `added_date`, `updated_by` ja `update_date`.
 
-Enne olemasoleva objekti asendamist eraldi kinnitust ei küsita.
 
-Kui kiht ei olnud redigeerimisrežiimis, alustab ja salvestab tööriist muudatused ise. Kui kiht oli juba redigeerimisrežiimis, jääb tulemus koos muude ootel muudatustega salvestamata, kuigi Visuaal kuvab toimingu õnnestumise teate.
+Kui kiht on juba redigeerimisrežiimis, keeldub nupp salvestamisest ja kasutaja peab enne oma muudatused salvestama või tühistama. Muidu alustab ja salvestab tööriist muudatused ise.
 
-Nupp ei saada eelvaate geomeetriat Kavitro teenusesse. QGIS-i projektiala ja Kavitro geomeetria võivad seetõttu lahkneda.
+Pärast kihile salvestamist saadetakse sama ala Kavitrosse. Kui see ebaõnnestub, saab kohe uuesti proovida; eduteade kuvatakse alles siis, kui ka Kavitro on uuendatud.
 
 ### Vale objekti uuendamise risk
 
@@ -274,15 +273,11 @@ Kui Visuaal alustas redigeerimisrežiimi, salvestab ta eduka QGIS-i toimingu jä
 
 ### Kihimuudatuse ja Kavitro sünkroonimise piirangud
 
-Kavitro geomeetriapäring tehakse enne Visuaali alustatud kihi redigeerimisseansi lõplikku `commitChanges()` kutset. Need toimingud ei ole ühine tehing:
-
-- Kavitro võib saada geomeetria, kuigi hilisem kihisalvestus ebaõnnestub ja QGIS-i objekt pööratakse tagasi;
-- Kavitro geomeetria uuenduse ebaõnnestumine ainult logitakse ning QGIS-i sidumist käsitletakse ikkagi õnnestununa;
-- kasutajale võidakse kuvada „loodi ja seoti“ eduteade ka siis, kui Kavitro geomeetria jäi uuendamata.
+Kiht salvestatakse enne Kavitrot, nii et Kavitro ei saa kuju, mida kiht ei hoidnud. Kui Kavitro uuendus ebaõnnestub, küsib Visuaal **Proovi uuesti** või **Jäta praegu nii**; teade ütleb, et kaardil ja Kavitros on kuju erinev, ning eduteadet ei kuvata enne, kui Kavitro uuendus õnnestub.
 
 Geomeetriapäringusse pannakse projektikihi toorkoordinaadid ilma CRS-i teisenduse või CRS-i metaandmeta. Tulemuse õigsus sõltub sellest, millist koordinaatsüsteemi Kavitro teenus eeldab.
 
-Toiming ei kontrolli, kas samal projektil on põhikihil juba objekt. Iga käivitus lisab uue polügooni ja sama `ext_project_id` väärtusega duplikaadid on võimalikud.
+Kui projektil on põhikihil juba ala, küsib Visuaal enne joonistamist, kas uus joonis **Asenda** vana ala või **Lisa juurde** selle uue osana. Projektile jääb üks objekt ja Kavitro saab kogu ala. Kui kiht ei luba mitmeosalisi objekte, pakutakse ainult asendamist. Projektil on teadlikult üks ala; mitut eraldi ala ei toetata (kasutaja otsus 2026-11-23).
 
 ### Joonistamise katkestamise servajuht
 
@@ -296,9 +291,6 @@ Detailtahvel kasutab teadlikult nimekirja päringu esimest kinnistut: nii laadib
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kõrge | Tööd loetakse lehtede kaupa (kuni 10 lehte), kuid teiste moodulite seosed ainult esimeselt 30-kirjeliselt lehelt (`PropertiesConnectedElementsQueries`) | Suurte seostega tahvel on puudulik | Rakenda kõigile moodulitele paginatsioon või näita kärpimise hoiatust |
-| Kõrge | Eelvaate salvestamine ei uuenda Kavitro geomeetriat | QGIS-i ja Kavitro projektiala jäävad erinevaks | Paku kontrollitud sünkroonimist ja kuva selgelt mõlema andmeallika tulemus |
-| Kõrge | Käsitsi joonistamine lubab lisada samale projektile piiramatult sama ID-ga alasid | Kaardifookus ja hilisem ala uuendamine kasutavad vaid üht mitmest duplikaadist | Küsi olemasoleva ala korral, kas seda asendada, muuta või lisada eraldi ala |
 | Keskmine | Detailtahvel laaditakse ainult esimesel avamisel ja ei värskene pärast seoste lisamist | Avatud kaart kuvab aegunud tööde ja seoste seisu | Lisa tahvlile **Värskenda** või invalideeri detail pärast seosemuudatust |
 | Keskmine | Kinnistuseoste dialoogi **Kinnita** on lisav `associate`, mitte lõpliku loendi salvestus | Kasutaja võib eeldada, et valik asendab seosed või võimaldab neid eemaldada | Nimeta tegevus „Lisa valitud seosed“ ja loo eraldi eemaldamisvoog |
 | Keskmine | Projektikausta valmisolekukontroll nõuab ka kihte, filtreid ja tahvlistaatusi | Failikausta loomine võib olla blokeeritud kõrvalise seadistuse tõttu | Kontrolli kaustatoimingus ainult lähte-, siht- ja nimeseadeid |

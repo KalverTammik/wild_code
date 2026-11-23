@@ -151,11 +151,11 @@ class PropertyWorksQueryTest(BackendTestCase):
         with patch.object(query_coordinator.PythonFailLogger, "log") as log:
             works = self.fetch_works()
 
-        limit = PropertiesConnectedElementsQueries.WORKS_MAX_PAGES
+        limit = PropertiesConnectedElementsQueries.MAX_PAGES
         self.assertEqual(len(backend.task_variables), limit)
         self.assertEqual(len(works), limit)
         log.assert_called_once()
-        self.assertEqual(log.call_args.args[0], "property_works_page_limit_reached")
+        self.assertEqual(log.call_args.args[0], "property_connected_page_limit_reached")
 
     def test_missing_property_or_tasks_maps_to_no_works(self) -> None:
         current = {}

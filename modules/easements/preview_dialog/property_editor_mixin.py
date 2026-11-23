@@ -435,7 +435,6 @@ class EasementPropertyEditorMixin:
 
         try:
             self._merge_selected_properties_into_editor(selected_numbers, selected_features)
-            self._define_properties_button.setVisible(False)
             self._status_label.setText(
                 self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SECTION_HINT)
             )

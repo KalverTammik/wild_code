@@ -24,8 +24,8 @@ class ConnectedModuleData:
 
 class PropertiesConnectedElementsQueries:
     PAGE_SIZE = 30
-    # Works are picked from all property tasks on the client, so one page could hide some.
-    WORKS_MAX_PAGES = 10
+    # Every module is read page by page: one page of 30 hid the rest of a property's links.
+    MAX_PAGES = 10
     WORKS_CONNECTION = f"{Module.TASK.value}s"
 
     module_to_filename = {
@@ -63,8 +63,6 @@ class PropertiesConnectedElementsQueries:
             return self._fetch_works(query, propertie_id)
 
         variables = {
-            "id": propertie_id,
-            "first": self.PAGE_SIZE,
             "tagsFirst": 10,
             "orderBy": [
                 {
@@ -73,9 +71,7 @@ class PropertiesConnectedElementsQueries:
                 }
             ]
         }
-
-        payload = APIClient().send_query(query, variables=variables, return_raw=True) or {}
-        return self._processor.process_response_data(module_key, payload)
+        return self._fetch_pages(query, propertie_id, f"{module_key}s", variables, module_key=module_key)
 
     def _fetch_works(self, query: str, property_id) -> List[Dict[str, Any]]:
         # A work is a task whose type the Works module lists; with no types chosen it lists every task.
@@ -85,29 +81,47 @@ class PropertiesConnectedElementsQueries:
                 support_key=ModuleSupports.TYPES.value,
             )
         )
+        return self._fetch_pages(
+            query,
+            property_id,
+            self.WORKS_CONNECTION,
+            {},
+            module_key=Module.WORKS.value,
+            keep=lambda node: not type_ids or str((node.get("type") or {}).get("id") or "") in type_ids,
+        )
+
+    def _fetch_pages(
+        self,
+        query: str,
+        property_id,
+        connection_field: str,
+        variables: Dict[str, Any],
+        *,
+        module_key: str,
+        keep=None,
+    ) -> List[Dict[str, Any]]:
+        """All nodes of one property connection, following `endCursor` up to MAX_PAGES pages."""
         client = APIClient()
-        works: List[Dict[str, Any]] = []
+        nodes: List[Dict[str, Any]] = []
         after = None
-        for _ in range(self.WORKS_MAX_PAGES):
-            variables = {"id": property_id, "first": self.PAGE_SIZE, "after": after}
-            payload = client.send_query(query, variables=variables, return_raw=True) or {}
-            connection = self._processor.connection_block(self.WORKS_CONNECTION, payload)
-            works.extend(
-                node
-                for node in self._processor.connection_nodes(connection)
-                if not type_ids or str((node.get("type") or {}).get("id") or "") in type_ids
+        for _ in range(self.MAX_PAGES):
+            page_variables = {**variables, "id": property_id, "first": self.PAGE_SIZE, "after": after}
+            payload = client.send_query(query, variables=page_variables, return_raw=True) or {}
+            connection = self._processor.connection_block(connection_field, payload)
+            nodes.extend(
+                node for node in self._processor.connection_nodes(connection) if keep is None or keep(node)
             )
             page_info = connection.get("pageInfo") or {}
             after = page_info.get("endCursor")
             if not page_info.get("hasNextPage") or not after:
-                return works
+                return nodes
 
         PythonFailLogger.log(
-            "property_works_page_limit_reached",
+            "property_connected_page_limit_reached",
             module=Module.PROPERTY.value,
-            extra={"property_id": property_id, "pages": self.WORKS_MAX_PAGES},
+            extra={"property_id": property_id, "target_module": module_key, "pages": self.MAX_PAGES},
         )
-        return works
+        return nodes
 
     def fetch_all_module_data(self, propertie_id) -> ConnectedModuleData:
         result = ConnectedModuleData()

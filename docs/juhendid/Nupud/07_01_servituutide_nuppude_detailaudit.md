@@ -12,7 +12,7 @@ Staatus- ja liigifiltri ning filtrite värskendamise ja tühjendamise täpne kä
 | **Ava kaust**, **Ava kirje brauseris** | Avab välise asukoha | Visuaal andmeid ei muuda |
 | **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Seoseta olekus võib pärast ülevaate kinnitamist lisada Kavitro kinnistuseoseid; seosega olekus laadib seotud kinnistud ja fokuseerib võimaluse korral servituudi põhikihi objekti | Seostamist selle töövooga tagasi võtta ei saa; kaardil näitamine püsiandmeid ei muuda |
 | **Failid** | Peaks avama failihalduse | Praeguses versioonis ei käivitu |
-| **Joonista uus seotud objekt kaardile** | Lisab QGIS-i objekti ja proovib saata geomeetria Kavitrosse | QGIS-i ja Kavitro muudatused ei ole ühine tehing |
+| **Joonista uus seotud objekt kaardile** | Lisab QGIS-i objekti ja proovib saata geomeetria Kavitrosse | Kiht salvestatakse enne Kavitrot; Kavitro vea korral saab kohe uuesti proovida |
 | **Seo olemasolev joonis kaardilt** | Kirjutab olemasolevale objektile servituudi väljad ja saadab geomeetria Kavitrosse | Automaatset ühist tagasivõtmist ei ole |
 | Konflikti **Kustuta objekt** või **Arhiveeri objekt** | Kustutab QGIS-i objekti või muudab selle staatust | Kavitro kirjet ei muudeta; salvestatud kihimuudatus võib olla pöördumatu |
 | **Muuda joonise geomeetriat kaardil** | Käivitab QGIS-i redigeerimise | Muudatusi haldab QGIS; Kavitrot ei sünkroonita |
@@ -208,11 +208,11 @@ Mõlema juhtelemendi muutmine eemaldab varasemad ajutised eelvaated ja lõpliku 
 
 ## Määra kinnistud kaardilt
 
-Nupp kuvatakse ainult siis, kui Kavitrost laaditud kinnistuseoste loend on tühi. Olemasoleva ühe või enama seose korral nupp peidetakse.
+Nupp on alati nähtaval. Kaardilt valitud kinnistud lisatakse olemasolevatele seostele; ülevaatedialoog näitab olemasolevaid ja uusi koos.
 
 Kaardilt kinnitatud valikud liidetakse dialoogi redaktoris olevatele ridadele. Neid ei saadeta selle nupu kaudu Kavitrosse ning olemasolevaid ridu ei saa eemaldada. Teenusesse kirjutamine toimub alles nupuga **Salvesta servituudi kinnistuandmed**.
 
-Ülevaatedialoogis saab kasutada **Vali uuesti**, **Tühista** ja **Kinnita**. Pärast esimese valiku kinnitamist peidetakse **Määra kinnistud kaardilt**, seega täiendava valiku jaoks tuleb enne kinnitamist kasutada **Vali uuesti** või lisada hiljem kirjekaardi **Seosta kinnistuid** toiminguga.
+Ülevaatedialoogis saab kasutada **Vali uuesti**, **Tühista** ja **Kinnita**. Nupp jääb ka pärast kinnitamist nähtavale, nii et valikut saab hiljem täiendada.
 
 ## Loo lõplik lõige
 
@@ -246,7 +246,7 @@ Nupp on aktiivne, kui redaktoris on vähemalt üks kinnisturida. Toimingute jär
 7. lõplik geomeetria lisatakse või kirjutatakse servituutide põhikihil üle;
 8. salvestatud geomeetria proovitakse saata Kavitrosse.
 
-See ei ole ühine tehing. Teenuse seoseandmed võivad olla muudetud ka siis, kui kasutaja vajutab hiljem andmevormis **Katkesta**, põhikihi salvestamine ebaõnnestub või geomeetriat ei õnnestu Kavitrosse saata. Samamoodi jääb andmevormis muudetud staatus Kavitrosse ka siis, kui hilisem põhikihi salvestamine ebaõnnestub.
+See ei ole ühine tehing. Teenuse seoseandmed võivad olla muudetud ka siis, kui kasutaja vajutab hiljem andmevormis **Katkesta**, põhikihi salvestamine ebaõnnestub või geomeetriat ei õnnestu Kavitrosse saata (siis pakutakse **Proovi uuesti**). Kiht, mida kasutaja juba muudab, lükatakse enne andmevormi tagasi. Samamoodi jääb andmevormis muudetud staatus Kavitrosse ka siis, kui hilisem põhikihi salvestamine ebaõnnestub.
 
 ### Pindala salvestamise järjekorraviga
 
@@ -306,9 +306,6 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
 | Kriitiline | Kinnistuandmete payload koostatakse enne puuduva lõpliku lõike loomist | Ilma eelneva **Loo lõplik lõige** vajutuseta võivad arvutatud pindalad Kavitrosse salvestamata jääda | Loo ja arvuta lõige enne payload'i kogumist või saada pärast arvutust teine kontrollitud uuendus |
-| Kõrge | Kihi ja Kavitro kirjutused ei ole ühine tehing: kiht kinnitatakse enne Kavitrot ja Kavitro viga kuvatakse hoiatusena, kuid kihti tagasi ei pöörata | QGIS-i objekt ja teenuse geomeetria võivad jääda eri seisu | Paku korduvat sünkroonimist |
-| Kõrge | Eelvaate üldine olekusilt peidetakse ja seda ei näidata hiljem | Lõpliku lõike ning puhastamise tulemus ja vead ei ole tekstina nähtavad | Kutsu oleku muutmisel `show()` või eemalda algne püsiv peitmine |
-| Kõrge | **Määra kinnistud kaardilt** peidetakse kõigi olemasolevate seoste korral | Eelvaatest ei saa olemasolevale servituudile uut kinnistut lisada, kuigi nupu nimi viitab üldisele määramisele | Hoia nupp nähtaval ja luba lisamine; seoste eemaldamiseks loo eraldi kinnitatud töövoog |
 | Keskmine | **Ümardatud nurgad** muudab otsakuju, mitte nurgastiili | Nupp ei anna nimele vastavat tulemust, eriti polügoonidel | Seo märkeruut `JOIN_STYLE` parameetriga ja nimeta otsakuju eraldi |
 | Keskmine | Mittetasulise seose märkimine tasuliseks ei lisa maksekuupäeva ega kogusumma juhtelemente | Kasutaja ei saa uue tasulise seose kõiki andmeid sisestada ega kontrollida | Ehita tasulisuse muutusel sõltuvad väljad dünaamiliselt ümber |
 | Keskmine | PDF-i silt **Lepingu nr** on koodis (`easement_pdf_service.py`) ja maketis eestikeelne tekst ning avaldamine ei kontrolli duplikaati | Skeem on valesti nimetatud ning korduvad vajutused võivad luua dubleeritud failid | Paranda silt tõlkevõtmega, näita failinime ja küsi olemasoleva faili korral asendamise või uue versiooni valik |

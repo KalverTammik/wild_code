@@ -156,7 +156,8 @@ class EasementCardStatusTest(unittest.TestCase):
         dialog._on_status_changed = more.apply_item_status
         with (
             patch.object(preview_module.EasementPreviewDialog, "_ensure_final_cut_layer", return_value=(object(), "")),
-            patch.object(final_save_module.EasementLayerService, "resolve_main_layer", return_value=object()),
+            patch.object(final_save_module.EasementLayerService, "resolve_main_layer",
+                         return_value=Mock(isEditable=Mock(return_value=False))),
             patch.object(final_save_module.EasementGeometryFormDialog, "prompt", return_value=None) as preview_prompt,
         ):
             preview_module.EasementPreviewDialog._save_final_cut_to_main_layer(dialog)

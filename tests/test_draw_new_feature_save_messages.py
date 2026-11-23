@@ -107,6 +107,15 @@ class DrawFlowTest(DialogStubCase):
         self.assertEqual(title, "E")
         return text
 
+    def retry_offered(self) -> str:
+        """The text of the one "try again" question; no warning or success follows when it is declined."""
+        self.show_warning.assert_not_called()
+        self.show_info.assert_not_called()
+        self.ask_choice_modern.assert_called_once()
+        title, text = self.ask_choice_modern.call_args.args[:2]
+        self.assertEqual(title, "E")
+        return text
+
     def test_the_commit_does_not_open_the_form_a_second_time(self) -> None:
         # QGIS emits featureAdded again on commit (temporary id -> permanent id); the user got the form twice
         # and the second run failed with "could not be verified".
@@ -174,7 +183,7 @@ class DrawFlowTest(DialogStubCase):
         self.sync_result = (False, "Kavitro refused")
         self.draw(self.handler(7))
 
-        self.assertEqual(self.warned(), "saved, Kavitro not updated 42: Kavitro refused")
+        self.assertTrue(self.retry_offered().startswith("saved, Kavitro not updated 42: Kavitro refused\n\n"))
         self.assertEqual(self.layer.featureCount(), 1)
         self.assertFalse(self.layer.isEditable())
         self.assertEqual(next(self.layer.getFeatures())["kavitro_id"], 7)
@@ -183,9 +192,22 @@ class DrawFlowTest(DialogStubCase):
         self.sync.side_effect = RuntimeError("network gone")
         self.draw(self.handler(7))
 
-        self.assertEqual(self.warned(), "saved, Kavitro not updated 42: network gone")
+        self.assertTrue(self.retry_offered().startswith("saved, Kavitro not updated 42: network gone\n\n"))
         self.assertEqual(self.layer.featureCount(), 1)
         self.assertEqual([c.kwargs["event"] for c in self.log.call_args_list], ["module_feature_draw_kavitro_sync_failed"])
+
+    def test_a_failed_kavitro_update_can_be_sent_again(self) -> None:
+        # Found 2026-11-23: the layer is saved first, and a failed Kavitro update only warned. Now it can be retried.
+        results = [(False, "Kavitro refused"), (True, "")]
+        self.sync.side_effect = lambda: results.pop(0)
+        self.ask_choice_modern.side_effect = lambda *_args, **kwargs: kwargs["buttons"][0]  # "Try again"
+
+        self.draw(self.handler(7))
+
+        self.assertEqual(self.sync.call_count, 2)
+        self.ask_choice_modern.assert_called_once()
+        self.show_info.assert_called_once_with("S", "saved 42")
+        self.show_warning.assert_not_called()
 
     def test_kavitro_is_updated_only_after_the_layer_commit(self) -> None:
         self.draw(self.handler(7))
@@ -311,8 +333,37 @@ class AttachFlowTest(DialogStubCase):
             )
 
         sync.assert_called_once_with()
-        self.show_warning.assert_called_once_with("E", "9: geometry not sent")
+        self.show_warning.assert_not_called()
         self.show_info.assert_not_called()
+        title, text = self.ask_choice_modern.call_args.args[:2]
+        self.assertEqual(title, "E")
+        self.assertTrue(text.startswith("9: geometry not sent\n\n"), text)
+
+
+class AttachRetryTest(DialogStubCase):
+    def test_attach_can_send_a_failed_kavitro_update_again(self) -> None:
+        controller = ModuleFeatureAttachController()
+        feature = Mock()
+        feature.id.return_value = 3
+        sync = Mock(side_effect=[(False, "geometry not sent"), RuntimeError("network gone"), (True, "ok")])
+        controller._layer = QgsVectorLayer("Point?crs=EPSG:3301", "attach", "memory")
+        controller._item_id = "9"
+        controller._find_feature_at_point = lambda _point, _layer: feature
+        controller._attach_handler = Mock(return_value=FeatureLinkResult(True, "", sync))
+        self.ask_choice_modern.side_effect = lambda *_args, **kwargs: kwargs["buttons"][0]
+
+        with patch.object(controllers_module, "MapHelpers"), patch.object(controller, "_clear_capture_tool"):
+            controller._handle_point_selected(
+                QgsPointXY(0, 0), feature_not_found_message="missing", save_failed_message="{item_id}: {error}",
+                success_message="ok {item_id}", title_error="E", title_warning="W", title_success="S",
+                log_module="easement",
+            )
+
+        self.assertEqual(sync.call_count, 3)
+        self.assertEqual(self.ask_choice_modern.call_count, 2)
+        self.assertTrue(self.ask_choice_modern.call_args_list[1].args[1].startswith("9: network gone"))
+        self.show_info.assert_called_once_with("S", "ok 9")
+        self.show_warning.assert_not_called()
 
 
 class ModuleHandlersTest(DialogStubCase):

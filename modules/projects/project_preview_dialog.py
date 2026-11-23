@@ -25,6 +25,7 @@ from ...utils.layers import LayerProcessingService, MemoryLayerResultService
 from ...utils.layers.field_value_problems import show_saved
 from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...ui.messages_helper import ModernMessageDialog
+from ...ui.map_tools.kavitro_sync_retry import offer_kavitro_sync_retry, run_kavitro_sync
 from ...constants.module_names import Module
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
 from ...widgets.PropertySummaryCard import PropertySummaryCard
@@ -678,6 +679,13 @@ class ProjectPreviewDialog(QDialog):
         target_layer = ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
         if target_layer is None:
             return
+        if target_layer.isEditable():
+            # The area would stay in the user's session unsaved, and Kavitro would get a shape the layer lacks.
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.LAYER_ALREADY_EDITING).format(layer=target_layer.name()),
+            )
+            return
 
         value_problems: list[FieldValueProblem] = []
         success, message = ProjectsLayerService.upsert_generated_area_feature(
@@ -688,6 +696,25 @@ class ProjectPreviewDialog(QDialog):
             value_problems=value_problems,
         )
         if success:
+            # The layer is saved first; then Kavitro gets the same area, and a failed update can be tried again.
+            extra = {"item_id": self._item_id}
+            synced, detail = run_kavitro_sync(
+                lambda: self._send_area_to_kavitro(target_layer), log_module=Module.PROJECT.value, extra=extra
+            )
+            if not synced and not offer_kavitro_sync_retry(
+                lambda: self._send_area_to_kavitro(target_layer),
+                failure_message=lambda error: self._lang.translate(TranslationKeys.PROJECT_PREVIEW_SAVE_SYNC_FAILED).format(
+                    item_id=self._item_id, error=error or "-"
+                ),
+                title=self._lang.translate(TranslationKeys.ERROR),
+                log_module=Module.PROJECT.value,
+                first_detail=detail,
+                lang=self._lang,
+                parent=self,
+                extra=extra,
+                dialog_class=ModernMessageDialog,
+            ):
+                return
             show_saved(
                 ModernMessageDialog,
                 title=self._lang.translate(TranslationKeys.SUCCESS),
@@ -707,6 +734,22 @@ class ProjectPreviewDialog(QDialog):
                 error=message or self._lang.translate(TranslationKeys.ERROR),
             ),
         )
+
+    def _send_area_to_kavitro(self, layer: QgsVectorLayer) -> tuple[bool, str]:
+        feature = ProjectsLayerService.find_feature(
+            layer,
+            item_id=self._item_id,
+            item_number=ProjectsLayerService._item_number(self._item),
+            item_name=ProjectsLayerService._item_name(self._item),
+        )
+        payload = ProjectsLayerService.backend_geometry_payload_from_geometry(
+            feature.geometry() if feature is not None else None
+        )
+        if payload is None:
+            return False, "Project area geometry was not found on the layer"
+        if APIModuleActions.update_project_geometry(self._item_id, payload):
+            return True, ""
+        return False, "Kavitro did not accept the project geometry"
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
