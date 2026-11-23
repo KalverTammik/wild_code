@@ -1,6 +1,6 @@
 # Kinnistute nupud
 
-See loend ühendab kinnistute mooduli nupud ja seadistustes asuva kinnistute halduse tööriistad. Nuppude eeldused, katkestamine, andmemõju ja auditi tähelepanekud on failis [Kinnistute nuppude detailaudit](04_01_kinnistute_nuppude_detailaudit.md). Kinnistute kasutusvood on juhendites [Kinnistute mooduli kasutamine](../15_kinnistute_mooduli_kasutamine.md) ning [Kinnistute kihi seadistamine ja haldamine](../05_kinnistute_kihi_seadistamine_ja_haldamine.md).
+See loend ühendab kinnistute mooduli nupud ja seadistustes asuva kinnistute halduse tööriistad. Nuppude eeldused, katkestamine, andmemõju ja auditi tähelepanekud on failis [Kinnistute nuppude detailaudit](04_01_kinnistute_nuppude_detailaudit.md). Kinnistute kasutusvood on juhendites „Kinnistute mooduli kasutamine“ ([Kavitro abikeskus](https://help.kavitro.com/et)) ning „Kinnistute kihi seadistamine ja haldamine“ ([Kavitro abikeskus](https://help.kavitro.com/et)).
 
 ## Kinnistute moodul
 

@@ -229,7 +229,7 @@ Eeltingimused:
 
 Kaardivaliku käivitamisel minimeeritakse Visuaali aken ja kursor muutub ristiks. Vasakklõps määrab punkti ning avab töö loomise vormi. Paremklõps või `Esc` katkestab valiku ja taastab akna.
 
-Vormi kinnitamine võib luua Kavitro töö, lisada QGIS-i kihile punkti ja seostada leitud kinnistu. Kuna Kavitro töö luuakse enne kihiobjekti ja kinnistuseose salvestamist, võib toiming õnnestuda osaliselt. Täielik töövoog ja kontrollsammud on juhendis [Tööde mooduli kaarditoimingud](../11_toode_mooduli_kaarditoimingud.md).
+Vormi kinnitamine võib luua Kavitro töö, lisada QGIS-i kihile punkti ja seostada leitud kinnistu. Kuna Kavitro töö luuakse enne kihiobjekti ja kinnistuseose salvestamist, võib toiming õnnestuda osaliselt. Täielik töövoog ja kontrollsammud on juhendis „Tööde mooduli kaarditoimingud“ ([Kavitro abikeskus](https://help.kavitro.com/et)).
 
 ### Mis see on
 
@@ -298,7 +298,5 @@ Loomisvormi kinnitamine loob esmalt Kavitro töö ning kirjutab seejärel selle 
 ## Seotud juhendid
 
 - [Üldnupud ja navigeerimine](01_uldnupud_ja_navigeerimine.md)
-- [Kavitro põhiaken, otsing ja ühised töövõtted](../17_kavitro_pohiaken_otsing_ja_uhised_toovotted.md)
-- [Kasutaja eelistuste seadistamine](../02_kasutaja_eelistuste_seadistamine.md)
-- [Tööde mooduli kaarditoimingud](../11_toode_mooduli_kaarditoimingud.md)
+- Kasutusjuhendid: [Kavitro abikeskus](https://help.kavitro.com/et)
 - [Filtrite nuppude detailaudit](02_01_filtrite_nuppude_detailaudit.md)

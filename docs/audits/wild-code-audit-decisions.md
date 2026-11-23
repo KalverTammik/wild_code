@@ -65,7 +65,7 @@ Käsitsi kontroll kinnitas pärast plugina uuesti laadimist, et sisselogimine ja
 
 Release’i sündmuse tagi, manuaalse käivituse sisendeid ja valideeritud sammuväljundeid ei tohi lisada otse GitHub Actionsi `run:` skripti. Sisendid antakse keskkonnamuutujate kaudu testitavale resolverile, mis lubab ainult Kavitro release’i versiooni- ja tagivormingut. Järgmised sammud saavad kasutada ainult resolveri kontrollitud väljundeid ning samuti ainult keskkonnamuutujate kaudu.
 
-Sama turvapiir peab kajastuma nii tegelikus `.github/workflows/qgis_release.yml` failis kui ka `docs/development/release_setup_reference.md` mallis.
+Sama turvapiir peab kajastuma nii tegelikus `.github/workflows/qgis_release.yml` failis kui ka `docs/development/release_setup_reference.md` mallis. Test `tests/test_release_workflow_security.py` kontrollib mõlemat.
 
 Teostuses lahendab `tools/resolve_release_values.py` release’i sündmuse ja manuaalse käivituse väärtused, kontrollib need range lubatud vormingu järgi ning kirjutab ainult üherealised kontrollitud väärtused faili `GITHUB_OUTPUT`. Workflow’ `run:` plokkides ei ole pärast parandust GitHubi kontekstiavaldisi.
 
@@ -168,7 +168,7 @@ Staatilised regressioonitestid valideerivad usalduspiiri repository tasemel. Jä
 
 Regressioonitestid kontrollivad mõlemat API veateed 422 vastusega, mille keha sisaldab näilist juurdepääsutõendit. Nii tavalises kui ka failiga päringus säilib `HTTP 422`, kuid vastuse keha ega `accessToken` tekst ei jõua tagastatud veasse. Staatiline test takistab `response.text` kasutuse tagasitulekut ning kontrollib, et mõlemad faililogijad kasutaksid turvalist I/O abimoodulit.
 
-QGIS 3.40.13 Pythoni keskkonnas läbis kogu komplekt 103 testi; kaks platvormi- või keskkonnaspetsiifilist testi jäeti vahele. POSIX-i `0700` ja `0600` õiguste test käivitub Linuxi CI-s või muus POSIX-keskkonnas.
+QGIS 3.40.13 Pythoni keskkonnas läbis kogu komplekt 103 testi; kaks platvormi- või keskkonnaspetsiifilist testi jäeti vahele. POSIX-i `0700` ja `0600` õiguste test käivitub ainult POSIX-keskkonnas; Windowsis jääb see vahele. Testide CI-d repos ei ole (otsus 2026-11-04), seega tuleb see test vajadusel käsitsi Linuxis käivitada.
 
 Jääkriskina võivad tavapärased GraphQL-i rakendustaseme veateated endiselt logisse jõuda. Backend ei tohiks neisse lisada paroole, tokeneid ega muid saladusi. Crash-logi loomise viis failis `main.py` ei kuulu WC-13 parandusse ja hinnatakse eraldi WC-14 etapis.
 

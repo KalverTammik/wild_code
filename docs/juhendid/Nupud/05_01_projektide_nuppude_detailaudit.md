@@ -50,7 +50,7 @@ Iga kinnistu ja mooduli kohta küsitakse kuni 30 seotud kirjet. Järgmisi lehti 
 
 Detail luuakse kaardil esimesel avamisel ja sama detailvidinat uuesti avades ei laadita. Pärast kinnistute sidumist või taustakirjete muutmist tuleb kogu projektikaart või projektide loend värskendada.
 
-Üksiku mooduli päringuvead teisendatakse tühjaks tulemuseks. Tahvel ei kuva nende kohta veateadet ega erista olukorda „seoseid ei ole“ olukorrast „mooduli andmete laadimine ebaõnnestus“. Katastritunnuse põhjal kinnistu ID lahendamise erindit seevastu siin kinni ei püüta ning see võib detaili avamise katkestada. Päringud käivitatakse detaili avamise käigus kasutajaliidese lõimest; suurema seoste hulga või aeglase ühenduse korral võib aken laadimise ajal hanguda.
+Tahvel laaditakse taustal (`AsyncContentWidget`). Mooduli, mille laadimine mõne kinnistu jaoks ebaõnnestus, kohta näitab tahvel eraldi teadet; kui ükski moodul ei laadinud, kuvatakse laadimisviga, mitte tühja tahvlit.
 
 ## Ava kaust
 
@@ -290,26 +290,24 @@ Joonistuskontroller kuulab kihi `featureAdded` signaali, kuid ei kuula eraldi QG
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
+Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
+
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kriitiline | Detailtahvel kasutab projektikaardi päringus vaikimisi ainult esimest seotud kinnistut | Mitme kinnistuga projekti edenemistahvel võib jätta suure osa seotud töödest kuvamata | Laadi detaili avamisel kõik projekti kinnistuseosed lehekülgede kaupa |
+| Kriitiline | Detailtahvel kasutab kaardi andmeid, mille nimekirjapäring küsib vaikimisi ühe kinnistu (`ListFilteredProjects.graphql`: `$propertiesFirst: Int = 1`) | Mitme kinnistuga projekti tahvel näitab ainult esimese kinnistu töid ja seoseid | Laadi detaili avamisel kõik projekti kinnistuseosed lehekülgede kaupa |
 | Kriitiline | Puhvri väljad on märgitud meetrites, kuid töötlus kasutab kinnistukihi CRS-i ühikuid | Geograafilises CRS-is võib `2 m` muutuda kaheks kraadiks ja tekitada väga vale projektiala | Teisenda töögeomeetria meetrilisse CRS-i või kuva ja valideeri tegelikud ühikud |
-| Kriitiline | Käsitsi joonistamise Kavitro uuendus toimub enne kihi commit'i ning selle ebaõnnestumist käsitletakse ikkagi eduna | QGIS ja Kavitro võivad lahkneda mõlemas suunas, samal ajal kui kasutaja näeb eduteadet | Seo tulemus mõlema sammu õnnestumisega ning lisa taastatav tehing või koondveateade |
 | Kriitiline | Katkestatud käsitsi joonistamine võib jätta `featureAdded` kuulaja aktiivseks | Hiljem lisatud kõrvaline polügoon võidakse siduda vale projektiga | Kuula kaarditööriista deaktiveerimist ja `Esc`-i ning tühista kontroller kindlalt |
-| Kõrge | Seotud moodulite päring piirdub 30 kirjega ega kasuta `pageInfo` järgmist lehte | Suurte seostega tahvel on puudulik | Rakenda iga mooduli päringule paginatsioon või näita kärpimise hoiatust |
-| Kõrge | Moodulipäringu vead muudetakse tühjaks tulemuseks, kinnistu-ID viga võib avamise katkestada ja kogu laadimine blokeerib UI-lõime | Andmeviga näib puuduva tööna või detail ei avane ning aken võib hanguda | Laadi taustatöös, kuva edenemine ja käsitle kõik päringuvead ühtse nähtava tulemusena |
-| Kõrge | Projektiala otsing võib nime või numbri järgi leida varasema rea enne täpset ID-vastet | **Salvesta ala kihile** võib üle kirjutada vale projekti objekti | Otsi esmalt kogu kihilt ainult ID järgi; kasuta numbrit või nime alles üheselt kontrollitud varuvariandina |
+| Kõrge | Tööd loetakse lehtede kaupa (kuni 10 lehte), kuid teiste moodulite seosed ainult esimeselt 30-kirjeliselt lehelt (`PropertiesConnectedElementsQueries`) | Suurte seostega tahvel on puudulik | Rakenda kõigile moodulitele paginatsioon või näita kärpimise hoiatust |
 | Kõrge | Eelvaate salvestamine ei uuenda Kavitro geomeetriat | QGIS-i ja Kavitro projektiala jäävad erinevaks | Paku kontrollitud sünkroonimist ja kuva selgelt mõlema andmeallika tulemus |
-| Kõrge | Projektikaardi menüüst käivitatud seostamisvoog ei püüa API-erindeid | Dialoog võib sulguda ilma arusaadava veateateta ja seoste seis jääb ebaselgeks | Kasuta sama veakäsitlust nagu eelvaatedialoogis ning kuva värskendatud seoste koond |
 | Kõrge | Käsitsi joonistamine lubab lisada samale projektile piiramatult sama ID-ga alasid | Kaardifookus ja hilisem ala uuendamine kasutavad vaid üht mitmest duplikaadist | Küsi olemasoleva ala korral, kas seda asendada, muuta või lisada eraldi ala |
 | Keskmine | Detailtahvel laaditakse ainult esimesel avamisel ja ei värskene pärast seoste lisamist | Avatud kaart kuvab aegunud tööde ja seoste seisu | Lisa tahvlile **Värskenda** või invalideeri detail pärast seosemuudatust |
 | Keskmine | Kinnistuseoste dialoogi **Kinnita** on lisav `associate`, mitte lõpliku loendi salvestus | Kasutaja võib eeldada, et valik asendab seosed või võimaldab neid eemaldada | Nimeta tegevus „Lisa valitud seosed“ ja loo eraldi eemaldamisvoog |
 | Keskmine | Projektikausta valmisolekukontroll nõuab ka kihte, filtreid ja tahvlistaatusi | Failikausta loomine võib olla blokeeritud kõrvalise seadistuse tõttu | Kontrolli kaustatoimingus ainult lähte-, siht- ja nimeseadeid |
 | Keskmine | Eelvaate vaikeseade ümardab ala raadiusega 2,0 | Kasutaja võib salvestada kinnistupiiridest erineva ala seda märkamata | Kasuta vaikimisi nullraadiust või nõua enne salvestamist nähtavat kinnitust |
 | Keskmine | Kaardivaliku `Esc`, paremklõps ja tööriistavahetus ei taasta alati Visuaali akent | Töövoog näib kinni jäänud | Lisa kontrollerile katkestussignaal ja kasutajaliidese taastamine |
-| Keskmine | Kihil juba avatud redigeerimisseansi korral kuvatakse salvestamise edu, kuigi muudatus jääb ootele | Kasutaja võib QGIS-i sulgedes projektiala kaotada | Erista „salvestatud“ ja „QGIS-is ootel“ teated |
-| Madal | **Ava kaust** ja **Ava kirje brauseris** ei kuva avamisviga kasutajale | Nupp võib näida mittetöötav | Kuva vigase tee, URL-i või käivitamisvea korral hoiatus |
-| Madal | Kaardinupu kohtspikker on tõlkimata ning **Puhasta eelvaade** võib jätta vana olekuteksti | Kasutajaliidese seis ja keel on eksitavad | Rakenda kohtspikrile tõlge ning tühjenda olek alati pärast puhastamist |
+| Keskmine | Joonistamine kihil, mille redigeerimisseanss oli juba avatud, kinnitab kogu seansi (`_commit_drawn_feature`) | Koos projektialaga salvestuvad kasutaja varasemad, mitteseotud muudatused | Kinnita ainult joonistatud objekt või hoiata avatud seansi korral |
+| Madal | **Ava kaust** ja **Ava kirje brauseris** ei kuva avamisviga kasutajale; `FolderHelpers.open_item_folder` käivitab Kavitrost tuleva tee `shell=True` kaudu | Nupp võib näida mittetöötav; erimärkidega tee võib käivitada soovimatu käsu | Ava tee `os.startfile`/`QDesktopServices` kaudu ilma shellita ja kuva viga |
+| Madal | **Puhasta eelvaade** jätab vana olekuteksti, kui eemaldatavaid kihte ei olnud | Kasutajaliidese seis on eksitav | Tühjenda olek alati pärast puhastamist |
 
 ## Soovituslik turvaline tööjärjekord
 
@@ -325,8 +323,7 @@ Joonistuskontroller kuulab kihi `featureAdded` signaali, kuid ei kuula eraldi QG
 ## Seotud juhendid
 
 - [Projektide nupud](05_projektide_nupud.md)
-- [Projektide mooduli kasutamine](../13_projektide_mooduli_kasutamine.md)
-- [Projektide mooduli seadistamine](../07_projektide_mooduli_seadistamine.md)
+- Kasutusjuhendid: [Kavitro abikeskus](https://help.kavitro.com/et)
 - [Seadistuste nuppude detailaudit](03_01_seadistuste_nuppude_detailaudit.md)
 - [Filtrite nuppude detailaudit](02_01_filtrite_nuppude_detailaudit.md)
 - [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md)

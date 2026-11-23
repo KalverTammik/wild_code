@@ -19,6 +19,29 @@ Kehtivad refaktoreerimisreeglid on failis [REFACTOR_RULES.md](REFACTOR_RULES.md)
 Dokumentatsiooni jaotus ning säilitamisreeglid on kirjas failis
 [docs/README.md](docs/README.md).
 
+## Arendus
+
+Testid käivitatakse QGIS-i Pythoniga ilma QGIS-i aknata:
+
+```powershell
+$env:QT_QPA_PLATFORM = "offscreen"
+& "C:\Program Files\QGIS 3.40.13\bin\python-qgis-ltr.bat" tools/run_tests.py [muster]
+```
+
+Skript paneb plugina juurkausta ja QGIS-i pluginate kausta `sys.path`-ile ning käivitab
+komplekti ajutises kaustas.
+
+- Geomeetriaga mälukihtide testid loovad jooksvasse kausta QGIS-i `symbology-style.db`
+  faili; seepärast ei käivitata komplekti plugina kaustas.
+- Testid ei tohi saata päris päringuid. Mock'imata päring avab sisselogimisakna, mis
+  ilma QGIS-i aknata ei sulgu, ja kogu komplekt jääb seisma.
+- Testid ei kirjuta `Logs/` kausta: `PythonFailLogger` loob logifaile alles pärast
+  `start_session()`, mida kutsub ainult plugina avamine.
+- Kontrolli väljumiskoodi, mitte ainult rida `OK`: lahti jäänud Qt objekt võib protsessi
+  lõpus kokku kukkuda.
+
+Lint: `ruff check .` plugina juurkaustas. Reeglid on failis [.ruff.toml](.ruff.toml).
+
 ## Release
 
 Release'i juhendid:

@@ -50,13 +50,13 @@ Kooskõlastuse tingimused lisatakse kirjelduse järele eraldi pealkirja alla. Ki
 
 ### Laadimine, värskendamine ja vead
 
-Kirjelduse, tingimuste ja failide päringud käivitatakse detaili avamise ajal kasutajaliidese lõimest. Aeglase ühenduse või suure faililoendi korral võib Visuaali aken seni mitte reageerida.
+Kirjeldus ja tingimused laaditakse detaili avamisel taustal (`AsyncContentWidget`), failid eraldi taustatöös; aken jääb laadimise ajal kasutatavaks.
 
 Kirjelduse ja tingimuste laadijal puudub kohalik veakäsitlus. Päringufaili, seansi või teenuse erind võib seetõttu detaili loomise katkestada ilma selle kaardi sees kuvatava kasutajasõbraliku veateateta. Faililoendi teenusepäringu viga käsitletakse eraldi ning detailis kuvatakse faili laadimise ebaõnnestumise tekst.
 
 ## Failide kokkuvõtte nupud
 
-Failide kokkuvõte küsib Kavitrost faile kuni 50 kaupa ja lõpetab hiljemalt 200 faili juures. Lepingute ja kooskõlastuste päring ei määra failide järjestust, mistõttu ei saa viit nähtavat faili pidada kindlalt uusimateks.
+Failide kokkuvõte küsib Kavitrost kogu faililoendi 50 faili kaupa. Lepingute ja kooskõlastuste päring ei määra failide järjestust, mistõttu ei saa viit nähtavat faili pidada kindlalt uusimateks.
 
 Detailis kuvatakse ainult kuni viis esimest laaditud faili:
 
@@ -66,7 +66,7 @@ Detailis kuvatakse ainult kuni viis esimest laaditud faili:
 | **Pildi ruudukujuline eelvaateikoon** | Laadib kuni 2 MB pisipildi ja avab vajutamisel sama pildi eelvaate nagu failinimi |
 | `+N` märge | Näitab, mitu laaditud faili jäi viie nähtava rea taha; see ei ole nupp |
 
-Lepingute ja kooskõlastuste menüüs puudub eraldi täieliku faililoendi toiming. Kuuendat ja hilisemat faili ei saa detailist valida; nende vaatamiseks tuleb avada kirje Kavitro veebirakenduses või kasutada sobiva `filesPath` väärtuse korral kaustatoimingut. Kui kirjel on üle 200 faili, ei näita ka `+N` märge teenuse tegelikku täielikku hulka.
+Kui faile on üle viie, avab detaili nupp täieliku failihalduse (`TaskFilesDialog`), kus saab kõiki faile vaadata, üles laadida ja kustutada.
 
 ### Faili eelvaate nupud
 
@@ -159,17 +159,16 @@ Kaardivaliku kontroller ei käsitle objekti valimata `Esc`-klahvi, paremklõpsu 
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
+Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
+
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kõrge | Detaili kirjelduse, tingimuste ja failide laadimine toimub kasutajaliidese lõimes ning kirjelduse laadimise erindit ei käsitleta | Detail võib aeglase ühenduse korral akna hanguma panna või üldse avanemata jääda | Laadi detail taustatöös, kuva edenemine ning teisenda kõik vead kaardi sees nähtavaks olekuks |
-| Kõrge | Detail näitab ainult viit faili, peidetud failide märge ei ole avatav ja moodulis puudub täieliku faililoendi nupp | Kuuendat ja hilisemat faili ei saa Visuaalis valida | Lisa **Näita kõiki faile** või ava moodulipõhine failidialoog lugemisrežiimis |
-| Kõrge | Kinnistu-ID lahendamise või seostamise erind väljub ülevaatedialoogi kinnitusharust | Seostamine võib katkeda ilma arusaadava tulemuse ja taastamisjuhiseta | Püüa erind, säilita valik ning kuva lisatud, leidmata ja vigaste tunnuste koond |
 | Keskmine | Detail luuakse üks kord ja sellel puudub värskendusnupp | Ahendamise järel uuesti avatud kirjeldus, tingimused ja failid võivad olla vananenud | Lisa detailile värskendamine või laadi andmed igal avamisel uuesti |
-| Keskmine | Failipäring lõpetab 200 faili juures ja lepingute ning kooskõlastuste failidel puudub määratud sorteerimine | Nähtav `+N` ja viis faili ei pruugi kirjeldada täielikku ega uusimat seisu | Kasuta teenuse koguarvu, lisa paginatsioon ning määra `createdAt DESC` järjestus |
+| Keskmine | Lepingute ja kooskõlastuste failidel puudub määratud sorteerimine (`CREATED_AT DESC` saadetakse ainult ülesannetele) | Detaili viis faili ei pruugi olla uusimad | Määra kõigile moodulitele `createdAt DESC` järjestus |
 | Keskmine | PDF-i käitustoe puudumisel suletakse voog enne eelvaatedialoogi ning välise avamise nuppu ei pakuta | Kasutaja ei saa failirea kaudu PDF-i väliselt avada | Lisa hoiatusse **Ava väliselt** valik või ava piiratud PDF otse välises rakenduses |
 | Keskmine | Väliseks avamiseks alla laaditud ajutisi faile ei kustutata | Kaugfailide koopiad kogunevad ajutisse kataloogi ja võivad jääda sinna pikaks ajaks | Kustuta fail rakenduse sulgemisel või halda seda kontrollitud vahemäluna |
 | Keskmine | Kaardivaliku katkestamine objekti loomata ei taasta alati Visuaali akent | Töövoog näib hangunud või kadunud | Kuula `Esc`-i, paremklõpsu ja tööriista deaktiveerimist ning taasta aken ühes lõpetamisharus |
-| Madal | Kaarditoimingu ebaõnnestumised on kasutajale vaiksed ja kohtspikker on ingliskeelne | Nupp võib näida mittetöötavana ning keelekasutus on ebaühtlane | Kuva leitud ja leidmata kinnistute koond ning kasuta tõlgitud kohtspikrit |
+| Madal | Kaarditoimingu ebaõnnestumised on kasutajale vaiksed | Nupp võib näida mittetöötavana | Kuva leitud ja leidmata kinnistute koond |
 
 ## Soovituslik tööjärjekord
 
@@ -183,8 +182,7 @@ Kaardivaliku kontroller ei käsitle objekti valimata `Esc`-klahvi, paremklõpsu 
 ## Seotud juhendid
 
 - [Lepingute ja kooskõlastuste nupud](06_lepingute_ja_kooskolastuste_nupud.md)
-- [Lepingute ja kooskõlastuste mooduli kasutamine](../16_lepingute_ja_kooskolastuste_mooduli_kasutamine.md)
-- [Lepingute ja kooskõlastuste mooduli seadistamine](../10_lepingute_ja_kooskolastuste_seadistamine.md)
+- Kasutusjuhendid: [Kavitro abikeskus](https://help.kavitro.com/et)
 - [Filtrite nuppude detailaudit](02_01_filtrite_nuppude_detailaudit.md)
 - [Loendite, filtrite ja kirjekaartide nupud](02_loendid_filtrid_ja_kirjekaardid.md)
 - [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md)

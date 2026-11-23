@@ -346,7 +346,7 @@ Toiming:
 - ei eemalda vastavat objekti põhikihist ega arhiivikihist;
 - ei värskenda kinnistute mooduli avatud vaadet.
 
-API-kutse tehakse kasutajaliidese lõimes. Meetodis puudub üldine erindikäsitlus kustutamispäringu ümber, mistõttu ootamatu ühendus- või kliendiviga võib väljuda dialoogi nupukäsitlejast ilma kasutajasõbraliku koondteateta.
+API-kutse tehakse kasutajaliidese lõimes. Päringu viga püütakse kinni ja kuvatakse dialoogis; edukaks loetakse ainult vastus, mis kinnitab sama kirje ID kustutamist.
 
 ## Loo/paranda otsinguväli
 
@@ -366,23 +366,19 @@ Kui mõne objekti atribuudi muutmine tagastab `False`, ei lisata seda muudetud k
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
+Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
+
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kriitiline | Automaatse arhiivimise käigus proovitakse esmalt salvestada arhiivikiht ja seejärel põhikihi kustutused; arhiivikihi salvestusvea järel jätkub põhikihi salvestamine | Objekt võib põhikihist kaduda, kuigi koopiat arhiivikihti ei salvestatud | Peata põhikihi kustutuse salvestamine arhiivikihi vea korral või kasuta ühist taastatavat tehingut |
-| Kriitiline | Eemaldamise **Kustuta** ei arvesta Kavitro kustutuspäringute üksiktulemusi enne põhikihi objektide kustutamist | Kavitro kirje võib jääda alles, kuid kaardiobjekt kustutatakse ja toiming näib edukas | Tagasta iga Kavitro toimingu tulemus, kustuta kaardilt ainult edukad vasted ja kuva koondraport |
-| Kõrge | Uue Kavitro kirje loomise tagastusväärtust ei kontrollita enne impordiobjekti põhikihti kopeerimist | Kihile võib tekkida objekt ilma Kavitro kirjeta | Kopeeri objekt alles kinnitatud teenuse-ID järel või märgi osaline tulemus taastatavaks veaks |
-| Kõrge | Juba redigeerimisrežiimis põhi- ja arhiivikihtide lisamis-, arhiivimis- ja kustutamisvood kutsuvad `commitChanges()` | Tööriist võib salvestada ka kasutaja varasemad, selle toiminguga mitteseotud muudatused | Jälgi, milline voog redigeerimise alustas, ja salvesta ainult enda alustatud seanss |
-| Keskmine | **Lisa valitud** ei nõua tähelepanukontrolli läbimist ning **Lisa ilma kontrollita** avab juba loodud arhiiviplaani kinnitusdialoogi, kui kontroll on tehtud | Nuppude nimed ei vasta tehniliselt kontrollikohustuse tegelikkusele, kuigi arhiveerimine ise nõuab nüüd eraldi kinnitust | Seo kontrollitud lisamine kehtiva kontrollitulemusega või selgita nupu juhendis nimetuse ja tegeliku käitumise erinevust |
-| Kõrge | Lisamisjärjekord neelab üksuse erandid ja loendab töödeldud üksuse tehtuks sõltumata tulemusest | Lõpu edenemisnäit võib jätta vale mulje täielikust õnnestumisest | Kogu iga tunnuse olek, kuva edukate, vahele jäetud ja vigaste kirjete koond ning paku vigaste eksporti |
-| Kõrge | Arhiveerimise ja taastamise üksiktulemusi ei tagastata tegevusteenusele; kasutajale kuvatakse üldine edu ka ebaõnnestumiste korral | Kasutaja ei tea, millised kirjed tegelikult muutusid | Tagasta struktureeritud tulemused ja kuva tunnuste kaupa koondraport |
+| Kõrge | Lisamine ja arhiveerimine keelduvad juba redigeerimisrežiimis kihist, kuid eemaldamise **Kustuta** (`MapHelpers.delete_features_by_field_values`) kinnitab juba avatud seansi | Tööriist võib salvestada ka kasutaja varasemad, selle toiminguga mitteseotud muudatused | Keeldu avatud seansist või kinnita ainult enda alustatud seanss |
 | Keskmine | Geospatiali režiimis lubatakse **Lisa kinnistuid** ilma impordikihita ning veavaate järel jätkub dialoogi initsialiseerimine puuduvate juhtelementidega | Nupuvajutus võib põhjustada programmivea | Arvuta nupu olek impordikihi järgi ka Geospatiali režiimis ja lõpeta konstruktor puuduva kihi veavaates ohutult |
 | Keskmine | Eri nimega SHP-de import võib jätta mitu märgendatud mälukihti; töövoog kasutab esimest, mitte tingimata uusimat | Lisada võidakse vana impordi kinnistud | Luba üks kanooniline impordikiht või küsi kasutajalt aktiivne impordikiht |
 | Keskmine | Kaardivaliku kontroller ei käsitle objekti valimata `Esc`-i, paremklõpsu ega tööriistavahetust lõpetamisena | Visuaali aken või lisamisdialoog võib jääda minimeerituks | Kuula kaarditööriista deaktiveerimist ja taasta kasutajaliides katkestussignaaliga |
-| Keskmine | Olemasoleva Kavitro kirje samade tunnuste korral käivitatakse uuendus enne impordi uuemuse otsuse rakendamist | Vanemad impordiandmed võivad taustakirje välju üle kirjutada | Uuenda ainult uuema või kasutaja kinnitatud impordi korral |
+| Keskmine | Aadressikonflikt jääb otsust ootama, kuid sama aadressiga **vanem** import uuendab Kavitro kirjet ilma otsuseta (`classify_property_import`) | Vanemad impordiandmed (pindala, sihtotstarbed) võivad taustakirje üle kirjutada | Uuenda ainult uuema või kasutaja kinnitatud impordi korral |
 | Keskmine | **Kustuta ID järgi** ei kuva kustutatava kirje eelvaadet ega puuduta QGIS-i kihti | Vale sisemise ID sisestamine on raskesti kontrollitav ja andmeallikad lahknevad | Laadi enne kinnitamist kirje nimi ja tunnus ning paku kontrollitud kihisünkroonimist |
 | Keskmine | Kiirete järjestikuste kaardivalikute seoste päringuid ei eristata kinnistu kaupa | Vanem vastus võib kuvada vale kinnistu seotud kirjed | Tühista vana töö või kasuta iga valiku jaoks eraldi päringutunnust |
 | Madal | Maa-ameti lingi avamise ebaõnnestumine ei kuva kasutajale teadet | Nupp näib mittetöötav | Kuva vigase URL-i või avamisvea korral hoiatus |
-| Madal | Mitmed impordi edenemistekstid ja failifiltri **All files** tekst on ingliskeelsed | Keelekasutus on ebaühtlane | Vii tekstid tõlkevõtmetesse ja piira failivalik vajaduse korral SHP-le |
+| Madal | SHP failivaliku filter `SHP files (*.shp);;All files (*.*)` ja kustutamise veateade `Failed to delete property with ID` on koodis ingliskeelsed | Keelekasutus on ebaühtlane ja tõlkevõtmete reegel on rikutud | Vii tekstid tõlkevõtmetesse |
 | Madal | Seotud andmerühma noolenupul puudub kirjeldav kohtspikker | Funktsioon on klaviatuuri- ja abitehnoloogia kasutajale raskemini mõistetav | Lisa „Näita/peida seotud kirjed“ kohtspikker ja ligipääsetav nimi |
 
 ## Soovituslik turvaline tööjärjekord
@@ -398,8 +394,7 @@ Kui mõne objekti atribuudi muutmine tagastab `False`, ei lisata seda muudetud k
 ## Seotud juhendid
 
 - [Kinnistute nupud](04_kinnistute_nupud.md)
-- [Kinnistute kihi seadistamine ja haldamine](../05_kinnistute_kihi_seadistamine_ja_haldamine.md)
-- [Kinnistute mooduli kasutamine](../15_kinnistute_mooduli_kasutamine.md)
+- Kasutusjuhendid: [Kavitro abikeskus](https://help.kavitro.com/et)
 - [Seadistuste nuppude detailaudit](03_01_seadistuste_nuppude_detailaudit.md)
 - [Loendite, filtrite ja kirjekaartide nupud](02_loendid_filtrid_ja_kirjekaardid.md)
 - [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md)

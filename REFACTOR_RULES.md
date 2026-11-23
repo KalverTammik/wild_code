@@ -69,6 +69,14 @@ projektiajalugu on failis [docs/archive/refactor_log.md](docs/archive/refactor_l
   tohi vaikides kaduda ega muutuda näiliseks õnnestumiseks. Qt cleanup võib ignoreerida
   ainult kitsalt määratud ja ootuspärast kustutatud-objekti viga, mitte üldist
   `Exception`-it.
+- Püüa kitsast veatüüpi, kui `try` sees on üks kindla veaga tehe: failitehe `OSError`,
+  teisendus `ValueError`/`TypeError`, Qt `disconnect` `TypeError`/`RuntimeError`.
+  Lai `except Exception` jääb ainult piiripunkti: Qt slot, worker, plugina elutsükkel või
+  QGIS-i/API/teise mooduli kutse, mille vigu ei saa ette teada. Erand Qt slot'is lõpetab
+  QGIS-i. Piiripunkt logib alati (`PythonFailLogger.log_exception`).
+- Kavitro API kõik ebaõnnestumised on `ApiError` (`utils/api_error_handling.py`), välja
+  arvatud `ApiRateLimitError` ja `RequestCancelled`. Kasutajale näita
+  `user_message(exc)`, mitte `str(exc)`.
 - Kohustusliku liidese puhul ära kasuta `hasattr`/`getattr` varuteed; paranda leping või
   kasutuskoht.
 
@@ -83,6 +91,12 @@ projektiajalugu on failis [docs/archive/refactor_log.md](docs/archive/refactor_l
 - Ühenda signaal otse kanoonilise callable'iga, kui eraldi ühe rea handler pole vajalik.
 - Ära käivita API- või reload-tööd widget'i `__init__`-is. Kasuta aktiveerimist või
   vajadusel `QTimer.singleShot(0, ...)` edasilükkamist.
+- Üle 400 ms kestev päring GUI-lõimes avab modaalse ooteakna, mis neelab kaardiklõpsud.
+  Tee sellised päringud taustal (`LatestRequest`, nimekirja lehtede jaoks
+  `FilteredFeedMixin`) või vähenda päringute arvu. Mõõdik on logisündmus
+  `api_gui_thread_wait`.
+- Teemavahetus jõuab vidinani ainult `retheme()` kaudu. Vidin, mis värvib end ise
+  (`setStyleSheet` teema järgi), peab olema omaniku `retheme()` ahelas.
 - Ära muuda `resizeEvent`-is teksti ilma re-entry kaitse või järjekorda pandud uuenduseta.
 - Ära märgi moodulit aktiivseks enne eduka `activate()` lõppu.
 - Ära käsitle „Vali kõik” valikut võltsandmereana; kasuta eraldi kontrolli või menüüd.
@@ -145,6 +159,8 @@ Enne ühendamist kontrolli:
     ainult mock'idel põhinev unit-test.
 12. Käivitati puudutatud ala testid ning tulemus ja teadlikult tegemata kontrollid märgiti
     commit'i või PR-i kirjeldusse.
+13. `ruff check .` on puhas. Uus test tabab tahtliku vea: eemalda parandus koopias ja
+    kontrolli, et test kukub.
 
 ## 8. Dokumentatsiooni piir
 

@@ -13,19 +13,23 @@ Need kolm faili jäävad juurkausta, sest need on arendaja peamised sisenemispun
 
 ## Kasutajajuhendid
 
-Kaust [`juhendid/`](juhendid/) sisaldab Kavitro kasutus- ja seadistusjuhendeid.
-Alamkaust `juhendid/Nupud/` koondab nuppude lühiülevaated ja detailauditid.
-Need failid on dokumentatsiooni allikmaterjal, kuid neid ei pakendata pluginaga kaasa.
+Kasutajajuhendid on Kavitro abikeskuses: <https://help.kavitro.com/et>. Plugin avab
+mooduli juhendi lingi kaudu (`constants/help_urls.py`).
+
+Kaust [`juhendid/Nupud/`](juhendid/Nupud/) koondab plugina nuppude lühiülevaated ja
+nende detailauditid (eeldused, veateed, avatud leiud). Neid ei pakendata pluginaga kaasa.
 
 ## Arendaja referentsid
 
 Kaust [`development/`](development/) sisaldab kehtivaid tehnilisi leppeid ja
 hooldusjuhendeid:
 
-- release'i DEV/LIVE seadistuse detailne referents;
+- release'i DEV/LIVE seadistuse mall (`release_setup_reference.md`, selle turvalisust
+  kontrollib `tests/test_release_workflow_security.py`);
 - turvalise salvestuse poliitika;
-- geomeetria payload'i lepe;
-- aktiivsete komponentide tehnilised kirjeldused.
+- tööde geomeetria lepe;
+- kinnistute impordi päringupiirangud;
+- jagatud komponentide tehnilised kirjeldused.
 
 Arendaja referents peab kirjeldama praegu kehtivat käitumist. Kui kirjeldatud
 komponent eemaldatakse või lahendus asendatakse, tuleb dokument uuendada või arhiivi

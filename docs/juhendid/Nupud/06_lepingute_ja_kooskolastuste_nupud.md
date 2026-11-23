@@ -1,6 +1,6 @@
 # Lepingute ja kooskõlastuste nupud
 
-Lepingute ja kooskõlastuste nupud on praeguses versioonis peaaegu samad. Moodulite kasutus on juhendis [Lepingute ja kooskõlastuste mooduli kasutamine](../16_lepingute_ja_kooskolastuste_mooduli_kasutamine.md).
+Lepingute ja kooskõlastuste nupud on praeguses versioonis peaaegu samad. Moodulite kasutus on juhendis „Lepingute ja kooskõlastuste mooduli kasutamine“ ([Kavitro abikeskus](https://help.kavitro.com/et)).
 
 ## Loendi nupud
 

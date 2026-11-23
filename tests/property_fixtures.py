@@ -7,9 +7,7 @@ rule the tests assert still belongs to the production modules.
 
 The test modules import this one as a plain top level module, so they put the
 ``tests`` directory on ``sys.path`` themselves before importing it. That keeps it
-working under ``unittest discover``, under a direct run of a single file and
-under the mutation runner in ``negative_checks.py``, which loads a test module
-straight from its path.
+working under ``unittest discover`` and under a direct run of a single file.
 """
 from __future__ import annotations
 

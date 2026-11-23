@@ -232,10 +232,16 @@ class ApiClientAnswersTest(_ClientCase):
                     self.call(raised)
                 self.assertIs(caught.exception, raised)
 
-    def test_untagged_failure_keeps_its_text(self) -> None:
-        error = self.error_of(RuntimeError("boom"))
-        self.assertEqual(str(error), "boom")
+    def test_other_failure_is_an_unknown_api_error_that_keeps_its_text(self) -> None:
+        cause = RuntimeError("boom")
+        error = self.error_of(cause)
+        self.assertIsInstance(error, ApiError)
+        self.assertEqual((error.kind, error.message), (ApiErrorKind.UNKNOWN, "boom"))
+        self.assertIs(error.__cause__, cause)
         self.assertEqual(parse_tagged_message(error), (ApiErrorKind.UNKNOWN, "boom"))
+        self.assertEqual(user_message(error), "boom")
+        # Carried across threads as text, it reads back the same.
+        self.assertEqual(parse_tagged_message(str(error)), (ApiErrorKind.UNKNOWN, "boom"))
 
     def test_empty_failure_reads_as_network_error(self) -> None:
         error = self.error_of(RuntimeError(""))

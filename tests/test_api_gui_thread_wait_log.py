@@ -19,6 +19,7 @@ from qgis.core import QgsApplication
 from Kavitro_dev.Logs.switch_logger import SwitchLogger
 from Kavitro_dev.python import api_client as client_module
 from Kavitro_dev.python.api_client import APIClient, graphql_operation_name, plugin_callers
+from Kavitro_dev.utils.api_error_handling import ApiError
 
 _APP = QgsApplication.instance() or QgsApplication([], False)
 
@@ -85,7 +86,7 @@ class WaitLogTest(unittest.TestCase):
 
     def test_a_failed_slow_request_is_logged_too(self):
         self.send.side_effect = RuntimeError("cancelled")
-        with self.assertRaisesRegex(Exception, "cancelled"):
+        with self.assertRaisesRegex(ApiError, "cancelled"):
             self.run_request(2.0)
         self.assertEqual(self.log.call_args.kwargs["extra"]["seconds"], "2.00")
 

@@ -1,40 +1,21 @@
-# Languages Directory
+# Tõlked
 
-This directory contains JSON files for supported languages. Each file should follow the format:
+Kasutajale nähtav tekst tuleb ainult tõlkevõtmest.
 
-# Keelefailide ja tõlkesüsteemi README
-{
-    "key": "translation"
-}
-```
+- `translation_keys.py`: klass `TranslationKeys`, iga teksti võti.
+- `et.py` ja `en.py`: sõnastik `TRANSLATIONS` võtmest tekstini. Toetatud keeled on
+  `SUPPORTED_LANGUAGES` (`language_manager.py`), vaikimisi eesti keel.
+- `language_manager.py`: `LanguageManager.translate(key)` ja `translate_static(key)`.
+  Puuduv võti on viga, mitte varutekst.
+- `MaaAmetFieldFormater.py`: Maa-ameti katastriväljade väärtuste kuvavorming (kuupäevad, tekst).
 
-    "password_label": "Password:",
-    "login_button": "Login"
-}
+## Uus tekst
 
-Add new languages by creating a new JSON file with the appropriate translations.
+1. Lisa võti `TranslationKeys` klassi.
+2. Lisa tekst nii `et.py` kui ka `en.py` faili.
+3. Kasuta koodis `lang_manager.translate(TranslationKeys.<VÕTI>)`. Ära lisa koodi
+   varuteksti (`translate(...) or "..."`) ega anna vidinale teksti otse.
 
-Supported languages: Estonian (et), English (en), French (fr).
-
-## Using the Translation Agent
-
-1. **Start the Agent**:
-   Run the following command in your terminal to start the translation agent:
-   ```
-   ```
-
-2. **Monitor Changes**:
-   The agent will monitor changes in the following files:
-   - `dialog.py`
-   - `main.py`
-
-   - Add a new `lang.translate("key")` call in one of the monitored files.
-   - Save the file.
-
-4. **Check Updates**:
-   - The agent will automatically update `base.json` with the new key and propagate it to all language files with a placeholder value (`"TODO"`).
-
-6. **Verify Translations**:
-   - Open the language files (e.g., `et.json`, `fr.json`) and replace `"TODO"` with the correct translations.
-
-Kui kõik on läbi käidud, siis tuleta mulle meelde commitida
+Testid `tests/test_translation_completeness.py` ja `tests/test_translation_keys_in_code.py`
+kontrollivad, et igal võtmel on mõlemas keeles tekst, koodis kasutatud võtmed on olemas
+ja kasutajale nähtavat teksti ei kirjutata koodi otse.

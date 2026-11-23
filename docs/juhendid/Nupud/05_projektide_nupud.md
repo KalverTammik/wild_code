@@ -1,6 +1,6 @@
 # Projektide nupud
 
-See fail koondab projektikaardi ja projektiala töövoogude nupud. Nuppude eeldused, andmemõju, katkestamine, veateed ja auditi leiud on failis [Projektide nuppude detailaudit](05_01_projektide_nuppude_detailaudit.md). Projektide mooduli põhjalik kasutus on juhendis [Projektide mooduli kasutamine](../13_projektide_mooduli_kasutamine.md). Filtrite, tähtaja ja ühiste kirjekaardinuppude kirjeldus on failis [Loendid, filtrid ja kirjekaardid](02_loendid_filtrid_ja_kirjekaardid.md).
+See fail koondab projektikaardi ja projektiala töövoogude nupud. Nuppude eeldused, andmemõju, katkestamine, veateed ja auditi leiud on failis [Projektide nuppude detailaudit](05_01_projektide_nuppude_detailaudit.md). Projektide mooduli põhjalik kasutus on juhendis „Projektide mooduli kasutamine“ ([Kavitro abikeskus](https://help.kavitro.com/et)). Filtrite, tähtaja ja ühiste kirjekaardinuppude kirjeldus on failis [Loendid, filtrid ja kirjekaardid](02_loendid_filtrid_ja_kirjekaardid.md).
 
 ## Projektikaardi ühised nupud
 

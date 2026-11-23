@@ -1,6 +1,6 @@
 # Seadistuste nupud
 
-See loend katab seadistuste mooduli kirjutavad ja dialooge avavad nupud. Märkeruudud, kihivalikud ja filtrieelistuste valikuväljad ei ole sellesse nupuloendisse arvestatud. Nuppude eeldused, katkestamine, andmemõju ja auditi tähelepanekud on failis [Seadistuste nuppude detailaudit](03_01_seadistuste_nuppude_detailaudit.md). Seadistuste sisuline ülevaade algab juhendist [Kavitro seadistuste mooduli kasutamine](../01_seadistuste_mooduli_kasutamine.md).
+See loend katab seadistuste mooduli kirjutavad ja dialooge avavad nupud. Märkeruudud, kihivalikud ja filtrieelistuste valikuväljad ei ole sellesse nupuloendisse arvestatud. Nuppude eeldused, katkestamine, andmemõju ja auditi tähelepanekud on failis [Seadistuste nuppude detailaudit](03_01_seadistuste_nuppude_detailaudit.md). Seadistuste sisuline ülevaade algab juhendist „Kavitro seadistuste mooduli kasutamine“ ([Kavitro abikeskus](https://help.kavitro.com/et)).
 
 ## Salvestamine ja lähtestamine
 

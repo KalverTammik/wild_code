@@ -136,7 +136,6 @@ def _should_exclude(rel_posix: str, exclude_dirs: Tuple[str, ...]) -> bool:
         "config/config_dev.json",
         "metadata.dev.txt",
         "metadata.release.txt",
-        "wfs-property-query.html",
     }:
         return True
     if lower.endswith((".pyc", ".pyo")):

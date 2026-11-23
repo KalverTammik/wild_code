@@ -9,7 +9,7 @@ Moodulipõhise nupu eel ja järel toimuvad sammud jäävad vastava mooduli detai
 | Nupp või nupurühm | Peamine mõju | Kas toiming on tagasi võetav? |
 |---|---|---|
 | Detaili **Faili nimi** ja pildi eelvaateikoon | Laadib faili eelvaateks ning avab modaalse eelvaatedialoogi | Püsiandmeid ei muudeta |
-| Failihalduse **Värskenda** | Laadib Kavitrost kuni 200 faili | Püsiandmeid ei muudeta; varasem tabel võib vea korral nähtavale jääda |
+| Failihalduse **Värskenda** | Laadib Kavitrost kogu faililoendi | Püsiandmeid ei muudeta; varasem tabel võib vea korral nähtavale jääda |
 | **Laadi üles** | Lisab ühe või mitu faili Kavitro kirjele | Automaatset tagasivõtmist ei ole |
 | Failihalduse **Eelvaade** ja rea topeltklõps | Avab valitud faili eelvaate | Püsiandmeid ei muudeta |
 | **Kustuta** | Kustutab kinnituse järel faili Kavitrost | Visuaalis tagasivõtmise võimalust ei ole |
@@ -33,11 +33,11 @@ Failide kokkuvõte luuakse järgmiste moodulite kirjekaardi detailis:
 
 Tööde ja teostusjooniste failid käsitletakse tehniliselt ülesande failidena. Projektikaardi detail kuvab edenemistahvlit, mitte seda failikokkuvõtet.
 
-Täieliku failihalduse `TaskFilesDialog` klass on repos olemas, kuid ühtegi seda loovat kutset ei ole. Servituudi **Rohkem toiminguid → Failid** viitab olematule `_open_item_files` meetodile. Seetõttu saab praeguses kasutajaliideses kasutada detaili failieelvaadet, kuid mitte allpool kirjeldatud üleslaadimis- ja kustutamisnuppe.
+Täieliku failihalduse `TaskFilesDialog` avavad servituudi **Rohkem toiminguid → Failid** ning detaili failikokkuvõtte nupp, kui faile on üle viie.
 
 ## Detailvaate failide kokkuvõte
 
-Detaili esimesel avamisel laaditakse Kavitrost kuni 200 faili, kuni 50 faili kaupa. Kokkuvõttes kuvatakse neist kuni viis ja ülejäänute arv tekstina. Rohkemate failide avamiseks ega täieliku loendi kuvamiseks nuppu ei ole.
+Detaili esimesel avamisel laaditakse Kavitrost kogu faililoend 50 faili kaupa. Kokkuvõttes kuvatakse neist kuni viis, ülejäänute arv ja nupp täieliku failihalduse avamiseks.
 
 Ülesannete ehk tööde ja teostusjooniste failipäring tellib failid loomise aja järgi kahanevalt. Teiste moodulite päring ei anna selles koodis järjestust ette, mistõttu lepingu, kooskõlastuse või servituudi viis kuvatavat faili ei ole tingimata viis uusimat.
 
@@ -61,17 +61,13 @@ Pisipildi olemasolu ega puudumine ei mõjuta failinime nupu aktiivsust.
 
 ## Täieliku failihalduse dialoog
 
-Järgmised alamjaotised kirjeldavad olemasoleva klassi käitumist juhul, kui avamisvoog hiljem parandatakse. Praeguses versioonis ei saa kasutaja sellesse dialoogi jõuda.
-
-Dialoogi loomisel laaditakse kohe kuni 200 faili. Tabel kuvab faili nime, suuruse, tüübi, üleslaadija ja loomise aja. Valida saab ühe rea. **Eelvaade** ja **Kustuta** on valikuta passiivsed; **Värskenda**, **Laadi üles** ja **Sulge** on alati aktiivsed.
+Dialoogi loomisel laaditakse taustal kogu faililoend. Tabel kuvab faili nime, suuruse, tüübi, üleslaadija ja loomise aja. Valida saab ühe rea. **Eelvaade** ja **Kustuta** on valikuta passiivsed; **Värskenda**, **Laadi üles** ja **Sulge** on alati aktiivsed.
 
 Tabel sorteeritakse loomise aja nähtava, lokaadipõhiselt vormindatud teksti järgi. Tekstisort ei taga kronoloogilist järjestust, eriti kuupäevavormingus, kus päev või kuu paikneb enne aastat.
 
 ### Värskenda
 
-Nupp teeb failipäringu kasutajaliidese lõimes ja näitab ootekursorit. Õnnestumisel ehitatakse tabel uuesti ning varasem valik kaob.
-
-Päring tagastab maksimaalselt 200 unikaalset faili. Kui kirjel on rohkem faile, ei kuva dialoog piirangu ega järgmise lehe nuppu ning arv `200` võib näida täieliku failide arvuna.
+Nupp teeb failipäringu taustal; päringu ajal on **Värskenda** ja **Laadi üles** passiivsed. Õnnestumisel ehitatakse tabel uuesti ning varasem valik kaob. Vea korral kuvatakse teade ja nupp pakub uut katset.
 
 Päringu vea korral kuvatakse hoiatus, kuid senist tabelit ja loendurit ei tühjendata ega märgita aegunuks. Kasutaja võib seetõttu jätkata töötamist vana loendiga.
 
@@ -254,23 +250,21 @@ Edu lõpus ajastatakse dialoogi sulgemine 1,2 sekundi pärast, kuid meetodi `fin
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
+Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
+
 Välise avamise laiendikontrolli ja kinnituse puudumine on Etapp 1A ehk WC-02 raames lahendatud. Allolevasse tabelisse jäävad teised, sellest muudatusest sõltumatud tähelepanekud.
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kriitiline | Servituudi **Failid** menüü viitab olematule `_open_item_files` meetodile ja `TaskFilesDialog` klassi ei looda mujal | Täielikku faililoendit, üleslaadimist ega kustutamist ei saa Visuaalist kasutada | Lisa testitud avamiskäsitleja või eemalda katkine menüü kuni funktsiooni valmimiseni |
-| Kriitiline | SHP-impordi edenemisakna katkestussignaali ega olekut ei kontrollita | **Tühista** jätab mulje katkestamisest, kuid import jätkub; kontrollimata sulgemine võib jätta osalise kihi | Kontrolli olekut igas partiis, lõpeta kontrollitult ja otsusta osalise mälukihi säilitamine või eemaldamine |
+| Kriitiline | SHP-impordi edenemisaknal on **Tühista**, kuid importi ei katkestata (`property_shp_import_flow.py` ei loe akna `is_cancelled` olekut) | **Tühista** jätab mulje katkestamisest, kuid import jätkub | Kontrolli olekut igas partiis, lõpeta kopeerimine ja eemalda osaline kiht |
 | Kõrge | PDF-i WebEngine toe puudumisel lõpetatakse enne eelvaatedialoogi loomist | Kasutajale ei pakuta **Ava väliselt** nuppu, kuigi fail on Kavitros olemas | Paku hoiatuses eraldi välise avamise valik või ava piiratud eelvaatedialoog |
 | Kõrge | Väliselt avamiseks allalaaditud ajutisi faile ei kustutata | Tundlikud dokumendid jäävad kettale ja ajutine kataloog kasvab | Halda elutsüklit, paku säilitamisvalikut ning kustuta fail pärast ohutut viivitust või sessiooni lõpus |
-| Kõrge | Failide üleslaadimise ajal jäävad dialooginupud aktiivseks ning toimingul puudub katkestamine | Võimalik on käivitada kattuvaid jadasid või sulgeda dialoog poole töö ajal | Keela vastuolulised nupud, kasuta taustatööd ja lisa kontrollitud katkestamine |
-| Kõrge | Kinnistuseoste kinnitamise teenuseetappidel puudub ühine erindipüüdur | Dialoog sulgub, kuid kasutaja ei saa selget tulemust ning aken või kontroller võib jääda valesse olekusse | Püüa erindid, kuva sammupõhine tulemus ja taasta aken `finally` harus |
-| Keskmine | Failipäringu 200 faili piir ei ole kasutajale nähtav | Dialoogi loendurit võidakse pidada täielikuks failide arvuks | Kuva piirang ja lisa lehekülgede või „Laadi veel“ tugi |
-| Keskmine | Ebaõnnestunud värskendus jätab vana failitabeli nähtavale ilma aegumise märgita | Kasutaja võib eelvaadata või kustutada juba muutunud faili | Märgi tabel aegunuks, keela kirjutavad nupud või tühjenda tulemus |
+| Kõrge | Failide üleslaadimine käib kasutajaliidese lõimes ilma katkestamiseta; esimese vea järel peatutakse ja ülejäänud failid kuvatakse | Pikk jada blokeerib akna | Kasuta taustatööd ja katkestamist |
+| Keskmine | Ebaõnnestunud värskendus näitab veateadet ja kordusnuppu, kuid vana failitabel ja selle nupud jäävad kasutatavaks | Kasutaja võib eelvaadata või kustutada juba muutunud faili | Märgi tabel aegunuks või keela kirjutavad nupud |
 | Keskmine | Failitabel sorteerib lokaliseeritud kuupäevateksti leksikograafiliselt | Failide järjekord võib olla vale | Salvesta tabelireale eraldi kuupäeva sortimisväärtus või säilita serveri järjestus |
 | Keskmine | Välise avamise täisallalaadimine toimub kasutajaliidese lõimes ilma mahupiirita | Suur fail võib Visuaali kuni 120 sekundiks blokeerida | Laadi taustal, kuva maht ja edenemine ning võimalda katkestada |
 | Keskmine | Edukas seostamisteade kasutab värskendatud seoste koguarvu | Kasutaja võib pidada koguarvu uute seoste arvuks | Kuva eraldi lisatud, juba olemas olnud ja lahendamata kinnistute arv |
-| Madal | Kümne PDF-lehekülje konstant ja tõlketekst on kasutamata | Tegelik PDF-käitumine ei vasta koodis väljendatud piirile | Rakenda leheküljepiir või eemalda eksitav surnud seadistus |
-| Madal | Edenemisakna lõpetamistekst suletakse `finally` harus kohe ja osa tekste on ingliskeelsed | Lõpptulemus jääb märkamatuks ning keelekasutus on ebaühtlane | Sulge dialoog ainult ühes lõpetamisharus ja kasuta tõlkevõtmeid |
+| Madal | Edenemisakna lõpetamistekst suletakse `finally` harus kohe | Lõpptulemus jääb märkamatuks | Sulge dialoog ainult ühes lõpetamisharus |
 
 ## Soovituslik turvaline tööjärjekord
 
@@ -290,4 +284,4 @@ Välise avamise laiendikontrolli ja kinnituse puudumine on Etapp 1A ehk WC-02 ra
 - [Lepingute ja kooskõlastuste nuppude detailaudit](06_01_lepingute_ja_kooskolastuste_nuppude_detailaudit.md)
 - [Servituutide nuppude detailaudit](07_01_servituutide_nuppude_detailaudit.md)
 - [Tööde ja teostusjooniste nuppude detailaudit](08_01_toode_ja_teostusjooniste_nuppude_detailaudit.md)
-- [Kavitro põhiaken, otsing ja ühised töövõtted](../17_kavitro_pohiaken_otsing_ja_uhised_toovotted.md)
+- Kasutusjuhendid: [Kavitro abikeskus](https://help.kavitro.com/et)

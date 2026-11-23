@@ -1,6 +1,6 @@
 # Servituutide nupud
 
-Servituutide töövood on juhendis [Servituutide mooduli kaarditoimingud](../14_servituutide_mooduli_kaarditoimingud.md). Ühiste filtrite ja kirjekaardinuppude alusloend on failis [Loendid, filtrid ja kirjekaardid](02_loendid_filtrid_ja_kirjekaardid.md).
+Servituutide töövood on juhendis „Servituutide mooduli kaarditoimingud“ ([Kavitro abikeskus](https://help.kavitro.com/et)). Ühiste filtrite ja kirjekaardinuppude alusloend on failis [Loendid, filtrid ja kirjekaardid](02_loendid_filtrid_ja_kirjekaardid.md).
 
 ## Servituudikaardi ühised nupud
 

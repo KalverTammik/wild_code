@@ -201,7 +201,7 @@ class ApiRequestTaskTest(unittest.TestCase):
             return FakeResponse()
         with patch.object(api_request_task._RequestDialog, 'show_window', side_effect=RuntimeError('window gone')), \
                 patch.object(api_client.requests, 'post', side_effect=post):
-            with self.assertRaisesRegex(Exception, "window gone"):
+            with self.assertRaisesRegex(ApiError, "window gone"):
                 self.client.send_query('query { properties { id } }')
         self.assertEqual(finished, [True])
 

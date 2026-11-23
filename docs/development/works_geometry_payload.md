@@ -1,52 +1,38 @@
-# Works Geometry Payload Structure
+# Tööde geomeetria Kavitrosse
 
-See dokument kirjeldab `Works` mooduli poolt backendile saadetava `geometry` JSON-i eelduslikku struktuuri.
+See dokument kirjeldab, millise `geometry` väärtuse saadab Tööde moodul Kavitrosse ja kuidas see tagasi kaardile loetakse.
 
 ## Transport
 
-GraphQL sisendis liigub geomeetria `geometry` valja kaudu. Plugin serialiseerib JSON objekti stringiks.
+Geomeetria liigub GraphQL sisendi väljal `geometry` JSON-tekstina: plugin koostab objekti ja serialiseerib selle (`GeometryActions._geometry_input_value`). Sama kuju kasutavad töö loomine (`createTask`) ja asukoha muutmine (`updateTask`, päringufail `updateTaskGeometry.graphql`).
+
+Kui töö asukohas on kinnistu, saadetakse selle seos samas sisendis: `properties: {associate: [<kinnistu id>]}`. Nii ei kulu kinnistu sidumiseks eraldi muutmistoimingut. Kui server sisendi kinnistu tõttu tagasi lükkab, luuakse või liigutatakse töö ilma selleta ja kinnistu seotakse eraldi päringuga (`modules/works/works_create_controller.py`).
 
 ```json
 {
   "title": "Lekke parandamine",
-  "description": "<p>...</p>",
-  "moduleId": "works",
   "typeId": "task-type-id",
   "statusId": "status-id",
-  "geometry": "{\"type\":\"Point\",\"coordinates\":[542123.45,6589123.67],\"color\":\"#9CCC65\",\"icon\":\"map-marker\",\"iconColor\":\"#FFFFFF\"}"
+  "geometry": "{\"type\":\"Point\",\"coordinates\":[542123.45,6589123.67],\"icon\":\"fa6-solid:person-digging\",\"color\":\"transparent\",\"iconColor\":\"#9CCC65\"}",
+  "properties": {"associate": ["property-id"]}
 }
 ```
 
-Sama struktuur kehtib `createTask` ja `updateTaskGeometry` korral.
+## Geomeetria objekti väljad
 
-## Geometry JSON
-
-Praegu saadetakse backendile ainult tookasu enda punktgeomeetria.
-
-```json
-{
-  "type": "Point",
-  "coordinates": [542123.45, 6589123.67],
-  "color": "#9CCC65",
-  "icon": "map-marker",
-  "iconColor": "#FFFFFF"
-}
-```
-
-## Fields
-
-| Field | Type | Required | Description |
+| Väli | Tüüp | Kohustuslik | Kirjeldus |
 | --- | --- | --- | --- |
-| `type` | string | yes | GeoJSON geomeetria tyyp. Praegu `Point`. |
-| `coordinates` | array | yes | Tookasu punkti koordinaadid tookihi CRS-is. |
-| `color` | string | no | Tookasu markeri taustavarv. |
-| `icon` | string | no | Backend kaardi jaoks soovituslik ikooni nimi. |
-| `iconColor` | string | no | Ikooni varv hex kujul. |
+| `type` | string | jah | GeoJSON geomeetria tüüp, praegu alati `Point`. |
+| `coordinates` | array | jah | Töö punkt Tööde kihi CRS-is. |
+| `icon` | string | ei | Kavitro kaardi ikoon, `WorksLayerService.BACKEND_GEOMETRY_ICON`. |
+| `color` | string | ei | Markeri taust, `transparent`. |
+| `iconColor` | string | ei | Ikooni värv: töö staatuse värv hex-kujul. |
 
-## Notes
+Stiiliväljad lisab `GeometryPayloadService.with_style` (`utils/geometry_payload.py`).
 
-- Lahedal asuvaid veevorgu voi kanalisatsioonivorgu geomeetriaid praegu payloadi ei lisata.
-- Payload ei sisalda seotud objektide massiivi ega muid vorgukihtide geomeetriaid.
-- QGIS-i tagasi lugemisel kasutatakse sama `Point` objekti tookasu punktkihi geomeetriana.
-- Backend ei kontrolli seda valja (`JSON` skalaar). Kui koordinaadid ei mahu tookihi CRS-i ulatusse voi geomeetria tyyp ei klapi, jaab asukoht muutmata ja logitakse `works_sync_geometry_skipped`.
-- Iga backendist tulnud asukoha muutus logitakse syndmusena `works_sync_location_moved` koos vana asukohaga.
+## Märkused
+
+- Saadetakse ainult töö enda punkt. Lähedasi vee- või kanalisatsioonivõrgu geomeetriaid ega seotud objektide loendit ei lisata.
+- Kaardile tagasi lugemisel kasutatakse sama `Point` objekti Tööde kihi geomeetriana (`WorksLayerService.geometry_for_layer`).
+- Kavitro ei kontrolli seda välja (`JSON` skalaar). Kui geomeetria tüüp ei sobi kihiga või koordinaadid ei mahu kihi CRS-i ulatusse, jääb asukoht muutmata ja logitakse `works_sync_geometry_skipped`.
+- Iga Kavitrost tulnud asukoha muutus logitakse sündmusena `works_sync_location_moved` koos vana asukohaga.

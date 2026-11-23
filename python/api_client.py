@@ -154,8 +154,8 @@ class APIClient:
         ``prepare_send(api_url, headers)`` returns the callable that does the
         HTTP post. Server errors (5xx) and connection errors are tried again
         up to ``attempts`` times. Rate limits and cancellation pass through
-        unchanged; every other failure becomes an ``ApiError`` or keeps its
-        own text.
+        unchanged; every other failure becomes an ``ApiError``, so callers can
+        catch one type.
         """
         api_url = GraphQLSettings.graphql_endpoint()
         cost = api_rate_limit.mutation_cost(query)
@@ -217,10 +217,11 @@ class APIClient:
                 raise
 
             except Exception as exc:
-                # Anything else (a body that is no JSON, an unreadable upload) keeps its own text.
+                # Anything else (an unreadable upload, a failed wait window) keeps its own text
+                # as an UNKNOWN ApiError; user_message() shows the text without the tag.
                 message = str(exc)
                 if message:
-                    raise Exception(message) from exc
+                    raise ApiError(ApiErrorKind.UNKNOWN, message) from exc
                 raise self._network_error() from exc
 
         raise self._network_error()

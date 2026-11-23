@@ -1,6 +1,6 @@
 # Tööde ja teostusjooniste nupud
 
-Tööde detailne kasutus on juhendis [Tööde mooduli kaarditoimingud](../11_toode_mooduli_kaarditoimingud.md) ning teostusjooniste kasutus juhendis [Teostusjooniste mooduli kasutamine](../12_teostusjooniste_mooduli_kasutamine.md).
+Tööde detailne kasutus on juhendis „Tööde mooduli kaarditoimingud“ ([Kavitro abikeskus](https://help.kavitro.com/et)) ning teostusjooniste kasutus juhendis „Teostusjooniste mooduli kasutamine“ ([Kavitro abikeskus](https://help.kavitro.com/et)).
 
 Nuppude eeldused, täpne salvestusjärjekord, katkestamine ja veateed on alamfailis [Tööde ja teostusjooniste nuppude detailaudit](08_01_toode_ja_teostusjooniste_nuppude_detailaudit.md).
 

@@ -1,6 +1,6 @@
 # Üldnupud ja navigeerimine
 
-See loend katab nupud, mis ei kuulu ainult ühte sisumoodulisse. Detailsem põhiakna ja otsingu kasutus on juhendis [Kavitro põhiaken, otsing ja ühised töövõtted](../17_kavitro_pohiaken_otsing_ja_uhised_toovotted.md).
+See loend katab nupud, mis ei kuulu ainult ühte sisumoodulisse. Detailsem põhiakna ja otsingu kasutus on juhendis „Kavitro põhiaken, otsing ja ühised töövõtted“ ([Kavitro abikeskus](https://help.kavitro.com/et)).
 
 Nuppude eeldused, andmemõju, katkestamine, veateed ja praeguse teostuse piirangud on kirjeldatud alamfailis [Üldnuppude ja navigeerimise detailaudit](01_01_uldnuppude_ja_navigeerimise_detailaudit.md).
 

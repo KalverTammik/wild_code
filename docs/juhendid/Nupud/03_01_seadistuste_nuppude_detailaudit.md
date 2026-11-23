@@ -220,7 +220,7 @@ Kui sihtkiht ei olnud enne ülekannet redigeerimisrežiimis, proovib mapper muud
 
 Üldine **Kinnita**, seadistustest lahkumise **Hülga** ja mapperi hilisem sulgemine ei võta ülekannet tagasi.
 
-Täielik väljade, vaikeväärtuste, geomeetria ja ID-de juhend on failis [Geospatiali kihtide vastendamine](../06_geospatiali_kihtide_vastendamine.md).
+Täielik väljade, vaikeväärtuste, geomeetria ja ID-de juhend on failis „Geospatiali kihtide vastendamine“ ([Kavitro abikeskus](https://help.kavitro.com/et)).
 
 ## Hammasrattaikoon – vali väärtus
 
@@ -295,13 +295,15 @@ Pärast **OK** vajutamist tuleb seos salvestada üldise **Kinnita** nupuga. Vali
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
+Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
+
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
 | Kõrge | **Lähtesta** ei küsi kinnitust ja kustutab seaded enne üldist salvestamist | Üks juhuklõps võib muuta mooduli kasutuskõlbmatuks; **Hülga** ei taasta kustutust | Lisa selge kinnitus ning hoia lähtestus ootel kuni üldise **Kinnita** vajutamiseni |
 | Kõrge | Moodulikaardi lähtestus võib pärast **Hülga** kuvada vana kihivalikut, kuigi salvestatud viide on juba tühi | Ekraan ja tegelik salvestus võivad lahkneda | Lähtesta korraga ainult ootel olek või laadi pärast kohest kustutust kogu kaart salvestusest uuesti |
 | Kõrge | Eraldiseisva GeoPackage'i ülekirjutamine kustutab kogu faili ja eemaldab projektist kõik selle faili kihid | Kaovad ka sama faili teised, tööriistaga mitteseotud kihid | Näita kinnituses kustutatavate kihtide loendit, nõua tugevamat kinnitust ja soovita või loo varukoopia |
 | Kõrge | Mapper võib osa objekte edukalt kirjutada ja alles seejärel vigadest teatada; vigadega dialoog jääb avatuks | Uuesti vajutamine võib juba lisatud objektid dubleerida | Kasuta terviklikku tehingut või märgi osaline tulemus üheselt ja blokeeri pime korduskäivitus |
-| Kõrge | Koordinaatteisenduse loomise või rakendamise viga ei peata mapperit, vaid kasutada võidakse teisendamata geomeetriat | Objektid võivad sattuda valesse asukohta | Peata ülekanne vigase CRS-i või teisendusvea korral ja kuva kasutajale konkreetne viga |
+| Kõrge | Koordinaatteisenduse **loomise** viga ei peata mapperit: objektid kopeeritakse teisendamata (`_build_geometry_transform`). Üksiku objekti teisendusviga jätab objekti nüüd vahele | Objektid võivad sattuda valesse asukohta | Peata ülekanne, kui teisendust ei saa luua, ja kuva konkreetne viga |
 | Keskmine | Mapper lubab valida lähtekihiks sama kihi, mida kasutatakse sihtkihina | Võimalik on iseendasse kopeerimine ja duplikaadid | Välista sihtkiht lähtekihi valikust ning kontrolli võrdsust enne ülekannet |
 | Keskmine | Üldine **Kinnita** salvestab kaardid järjestikku, ilma ühise tehingu ja koondveateateta; mõned salvestusabilised logivad vea, kuid ei anna seda kutsujale tagasi | Vea korral võib osa seadeid salvestuda ja kasutajaliides siiski puhta oleku näidata | Kogu salvestustulemused, näita ebaõnnestunud kaardid ja jäta need ootel olekusse |
 | Keskmine | **Vaata Geospatiali seadistust** käivitab väljalülitamise ning dialoogi väide kõigi Geospatiali seadete eemaldamisest on tegelikust mõjust laiem | Kasutaja võib eeldada üksnes ülevaadet või andmete kustumist | Nimeta nupp **Lülita käsitsi seadistusele** ja täpsusta dialoogis, et kihid ning mapperiga kantud andmed säilivad |
@@ -322,10 +324,4 @@ Pärast **OK** vajutamist tuleb seos salvestada üldise **Kinnita** nupuga. Vali
 ## Seotud juhendid
 
 - [Seadistuste nupud](03_seadistuste_nupud.md)
-- [Kavitro seadistuste mooduli kasutamine](../01_seadistuste_mooduli_kasutamine.md)
-- [QGIS-i projekti baaskihtide seadistamine](../03_qgis_projekti_baaskihtide_seadistamine.md)
-- [Mooduli kihtide ja filtrieelistuste seadistamine](../04_mooduli_kihtide_ja_filtrieelistuste_seadistamine.md)
-- [Geospatiali kihtide vastendamine](../06_geospatiali_kihtide_vastendamine.md)
-- [Projektide mooduli seadistamine](../07_projektide_mooduli_seadistamine.md)
-- [Servituutide mooduli seadistamine](../08_servituutide_mooduli_seadistamine.md)
-- [Tööde ja teostusjooniste seadistamine](../09_toode_ja_teostusjooniste_seadistamine.md)
+- Kasutusjuhendid: [Kavitro abikeskus](https://help.kavitro.com/et)

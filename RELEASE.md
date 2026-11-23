@@ -34,7 +34,7 @@ Development and handoff material remains versioned in Git but is not included in
 
 Excluded from the live package:
 
-- internal operating guides (`docs/juhendid/`), all other repository documentation (`docs/`), and Markdown handoff files (`*.md`)
+- button audits (`docs/juhendid/Nupud/`), all other repository documentation (`docs/`), and Markdown files (`*.md`)
 - tests and developer tooling (`tests/`, `tools/`)
 - local environments, caches, logs, and temporary output
 - development-only configuration and metadata

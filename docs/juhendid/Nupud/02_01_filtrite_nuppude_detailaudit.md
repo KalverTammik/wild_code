@@ -216,5 +216,4 @@ Kui Kavitros on vastavas moodulis piirist rohkem staatuseid või tunnuseid, ei p
 
 - [Loendite, filtrite ja kirjekaartide nupud](02_loendid_filtrid_ja_kirjekaardid.md)
 - [Üldnuppude ja navigeerimise detailaudit](01_01_uldnuppude_ja_navigeerimise_detailaudit.md)
-- [Mooduli kihtide ja filtrieelistuste seadistamine](../04_mooduli_kihtide_ja_filtrieelistuste_seadistamine.md)
-- [Kavitro põhiaken, otsing ja ühised töövõtted](../17_kavitro_pohiaken_otsing_ja_uhised_toovotted.md)
+- Kasutusjuhendid: [Kavitro abikeskus](https://help.kavitro.com/et)

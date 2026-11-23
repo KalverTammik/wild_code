@@ -29,14 +29,14 @@ Kirjekaardi alumises servas olev `…` nupp laiendab ja ahendab detaili sama kaa
 Detail luuakse alles esimesel avamisel:
 
 - kirjeldus laaditakse ülesande üksikkirje päringuga;
-- failid laaditakse ülesande failidena, kuni 200 faili, 50 faili kaupa;
+- failid laaditakse ülesande failidena, kogu loend 50 faili kaupa;
 - kokkuvõttes kuvatakse kuni viis uusimast vanimani järjestatud faili;
 - failinime või pildi eelvaate ikooni klõps avab failieelvaate;
-- ülejäänud failide arv kuvatakse tekstina, kuid detailis puudub nupp täieliku failihalduse avamiseks.
+- ülejäänud failide arv kuvatakse tekstina ja nupp avab täieliku failihalduse (`TaskFilesDialog`).
 
 Detail jääb kirjekaardi eluea jooksul vahemällu. Ahendamine ja uuesti avamine ei laadi kirjeldust ega faile uuesti. Värske seisu jaoks värskenda mooduli loendit.
 
-Kirjelduse laadimine ja failipäring toimuvad detaili loomise ajal kasutajaliidese lõimes. Aeglase ühenduse korral võib avamine näida hangumisena. Failipäringu viga kuvatakse detailis, kuid kirjelduse päringu erindil ei ole samasugust kohalikku veakäsitlust.
+Kirjeldus ja failid laaditakse taustal; failipäringu viga kuvatakse detailis.
 
 ## Staatuseriba
 
@@ -299,21 +299,20 @@ See toiming ainult lisab kinnistuseoseid. See ei seo joonistatud geomeetriat kin
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
+Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
+
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
 | Kriitiline | Teostusjoonise joonistuskontroller ei lõpeta `featureAdded` kuulamist objekti loomisele eelneva `Esc`-katkestuse ega tööriistavahetuse korral | Hilisem kõrvaline objekt võidakse siduda vale teostusjoonisega | Kuula kaarditööriista deaktiveerimist ja katkestust ning lõpeta kontroller kindlalt |
-| Kriitiline | Tööde kihi lisamise erindiharu võib pöörata tagasi ka kasutaja varem avatud redigeerimisseansi | Nupuga mitteseotud ootel kihimuudatused võivad kaduda | Kutsu `rollBack()` ainult Visuaali enda alustatud seansile või kasuta eraldatud edit command'i |
 | Kõrge | **Muuda asukohta** kinnitab alati kogu tööde kihi redigeerimisseansi | Koos tööpunktiga salvestuvad ootamatult muud ootel muudatused | Kinnita ainult enda alustatud seanss või hoiata ja keela toiming aktiivse seansi korral |
 | Kõrge | Teostusjoonise staatuse järel sünkroonitakse tööde, mitte teostusjooniste põhikihti | Kavitro staatus ja teostusjoonise `ext_job_state` jäävad eri seisu | Vali sünkroonimisteenus mooduli järgi ja lisa teostusjooniste atribuudisünkroon |
-| Kõrge | **Lisa punkt kaardile** ei kontrolli geomeetriauuenduse `False` tulemust | QGIS-i punkt võib olla olemas ja kuvada edu, kuigi Kavitro asukoht ei muutunud | Kontrolli vastust, näita osalise õnnestumise hoiatust ja paku kordussünkroonimist |
-| Kõrge | Teostusjoonise QGIS-i ja Kavitro kirjutused ei ole ühine tehing | Teenuse geomeetria võib jääda ilma QGIS-i objektita või vastupidi | Kinnita kiht enne teenuse saatmist või lisa taastatav sünkroonimisvoog ja sammude koondtulemus |
-| Keskmine | Teostusjoonise **Katkesta** kuvatakse salvestusveana | Kasutaja ei erista teadlikku katkestust tegelikust rikkest | Anna kontrollerile eraldi cancelled-tulemus ja sulge ilma veahoiatuseta |
+| Kõrge | Olemasoleva töö punkti lisamisel jäetakse `update_task_geometry` `False` tulemus arvestamata (`works_create_controller.py`) | QGIS-i punkt võib olla olemas ja kuvada edu, kuigi Kavitro asukoht ei muutunud | Kontrolli vastust, näita osalise õnnestumise hoiatust ja paku kordussünkroonimist |
+| Kõrge | Teostusjoonise kiht kinnitatakse enne Kavitrot ja Kavitro viga kuvatakse hoiatusena, kuid ühist tehingut ega korduvat sünkroonimist ei ole | Teenuse geomeetria võib jääda QGIS-i objektist erinevaks | Paku korduvat sünkroonimist |
+| Keskmine | Teostusjoonise **Katkesta** tagastatakse veana ja tekst „Teostusjoonise andmete sisestamine katkestati“ on koodis (`asbuilt_feature_map_controller.py`) | Kasutaja ei erista teadlikku katkestust rikkest; tõlkevõtmete reegel on rikutud | Anna kontrollerile eraldi cancelled-tulemus ja sulge ilma veahoiatuseta |
 | Keskmine | Uue teostusjoonise joonistamine ei kontrolli olemasolevat sama ID-ga objekti | Ühe kirje jaoks võivad tekkida duplikaatobjektid | Kontrolli ID-d enne lisamist ning paku olemasoleva objekti fokuseerimist või kinnitatud asendamist |
-| Keskmine | Teostusjoonise salvestusjärgne kontroll otsib iga objekti juures ID-d ja seejärel nime | Kihis eespool olev sama nimega objekt võib põhjustada õige uue objekti kontrolli ebaõnnestumise | Otsi kogu kihilt esmalt ainult täpse ID järgi ning kasuta nime alles üheselt kontrollitud varuvariandina |
 | Keskmine | Tööpunkti valiku- ja ümberpaigutustööriistad ei käsitle muu tööriista aktiveerimist katkestusena | Visuaali aken võib jääda kaardivaliku režiimi ja kontroller ootele | Kuula tööriista deaktiveerimist ning taasta aken ja pan-režiim |
 | Keskmine | Staatuse valik ei piirdu mooduli eelistatud staatustega ja salvestab ilma kinnituseta | Kasutaja võib valida ootamatu ülesandestaatuse ühe klõpsuga | Piira loend lubatud töövooga või lisa enne muutmist kinnitamine |
-| Keskmine | Tööde ja teostusjooniste menüüs puudub täieliku failihalduse toiming | Detailis näeb kuni viit faili, kuid kõiki faile ei saa Visuaalis hallata | Lisa kontrollitud `TaskFilesDialog` avav **Failid** toiming |
-| Madal | Kaardinupu kohtspikker on ingliskeelne ning puuduv objekt annab vaikse tulemuse | Nupp võib näida mittetöötavana | Kasuta tõlkevõtit ja kuva leitud ning leidmata objektide koond |
+| Madal | Puuduv objekt annab vaikse tulemuse | Nupp võib näida mittetöötavana | Kuva leitud ja leidmata objektide koond |
 
 ## Soovituslik turvaline tööjärjekord
 
@@ -329,8 +328,6 @@ See toiming ainult lisab kinnistuseoseid. See ei seo joonistatud geomeetriat kin
 ## Seotud juhendid
 
 - [Tööde ja teostusjooniste nupud](08_toode_ja_teostusjooniste_nupud.md)
-- [Tööde mooduli kaarditoimingud](../11_toode_mooduli_kaarditoimingud.md)
-- [Teostusjooniste mooduli kasutamine](../12_teostusjooniste_mooduli_kasutamine.md)
-- [Tööde ja teostusjooniste mooduli seadistamine](../09_toode_ja_teostusjooniste_seadistamine.md)
+- Kasutusjuhendid: [Kavitro abikeskus](https://help.kavitro.com/et)
 - [Filtrite nuppude detailaudit](02_01_filtrite_nuppude_detailaudit.md)
 - [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md)

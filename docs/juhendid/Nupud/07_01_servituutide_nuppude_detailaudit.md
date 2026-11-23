@@ -87,9 +87,7 @@ Menüütoiminguid ei peideta puuduva kihi, seadistuse või õiguse järgi. Vajal
 
 ## Failid
 
-Praeguses koodis ühendatakse menüütoiming kutsega `self._open_item_files(...)`, kuid klassis ega mujal repos sellist meetodit ei ole. Klõps lõpeb puuduva atribuudi veaga ja olemasolevat `TaskFilesDialog` dialoogi ei looda.
-
-Dialoogiklass ise toetaks kuni 200 faili laadimist, failide üleslaadimist, eelvaadet, lubatud tüüpi faili turvakinnitusega väliselt avamist, kinnitusega kustutamist ja värskendamist. Kuni menüü käsitleja parandamiseni kasuta **Ava kirje brauseris** toimingut. Detailvaate kuni viis failirida jäävad lugemiseks ja eelvaateks kasutatavaks.
+Menüütoiming avab servituudi failihalduse dialoogi `TaskFilesDialog` (`easement_card_actions.py`). Dialoog laadib kogu faililoendi ning võimaldab üleslaadimist, eelvaadet, lubatud tüüpi faili turvakinnitusega väliselt avamist, kinnitusega kustutamist ja värskendamist.
 
 ## Joonista uus seotud objekt kaardile
 
@@ -303,24 +301,21 @@ Põhikihile, Kavitrosse või avaldatud faili tehtud muudatusi sulgemine tagasi e
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
+Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
+
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kriitiline | **Failid** menüütoiming viitab olematule `_open_item_files` meetodile | Täielikku failihaldust ei saa Visuaalist avada, sh avaldatud PDF-i kustutada | Lisa käsitleja, mis loob `TaskFilesDialog` dialoogi, ning kata menüütoiming testiga |
 | Kriitiline | Puhvrikaugused märgitakse meetrites, kuid `native:buffer` saab väärtuse lähtekihi CRS-i ühikutes | Geograafilises või muus mitte-meetrilises CRS-is võib servituudiala olla väga vale | Teisenda töögeomeetriad meetrilisse CRS-i või valideeri ja kuva tegelik ühik |
 | Kriitiline | Kinnistuandmete payload koostatakse enne puuduva lõpliku lõike loomist | Ilma eelneva **Loo lõplik lõige** vajutuseta võivad arvutatud pindalad Kavitrosse salvestamata jääda | Loo ja arvuta lõige enne payload'i kogumist või saada pärast arvutust teine kontrollitud uuendus |
 | Kriitiline | Katkestatud uue objekti joonistamine võib jätta `featureAdded` kuulaja aktiivseks | Hilisem kõrvaline polügoon võidakse siduda vale servituudiga | Kuula lisamistööriista deaktiveerimist ja `Esc`-i ning lõpeta kontroller kindlalt |
-| Kõrge | Kihi ja Kavitro kirjutustoimingud ei moodusta ühist tehingut | QGIS-i objekt, seosemetaandmed ja teenuse geomeetria võivad jääda eri seisu | Raporteeri iga sammu tulemus ning lisa taastatav või korduv sünkroonimisvoog |
-| Kõrge | Erindite harud võivad `rollBack()` abil tühistada kasutaja juba avatud redigeerimisseansi muudatused | Servituuditoiminguga mitteseotud ootel kihimuudatused võivad kaduda | Pööra tagasi ainult tööriista enda alustatud seanss või kasuta eraldi edit command'i |
+| Kõrge | Kihi ja Kavitro kirjutused ei ole ühine tehing: kiht kinnitatakse enne Kavitrot ja Kavitro viga kuvatakse hoiatusena, kuid kihti tagasi ei pöörata | QGIS-i objekt ja teenuse geomeetria võivad jääda eri seisu | Paku korduvat sünkroonimist |
 | Kõrge | Eelvaate üldine olekusilt peidetakse ja seda ei näidata hiljem | Lõpliku lõike ning puhastamise tulemus ja vead ei ole tekstina nähtavad | Kutsu oleku muutmisel `show()` või eemalda algne püsiv peitmine |
 | Kõrge | **Määra kinnistud kaardilt** peidetakse kõigi olemasolevate seoste korral | Eelvaatest ei saa olemasolevale servituudile uut kinnistut lisada, kuigi nupu nimi viitab üldisele määramisele | Hoia nupp nähtaval ja luba lisamine; seoste eemaldamiseks loo eraldi kinnitatud töövoog |
 | Kõrge | Põhikihi pindala arvutatakse kihi ruutühikutes, aga väärtust käsitletakse ruutmeetritena | Mitte-meetrilises CRS-is salvestub vale pindala | Kasuta sama `QgsDistanceArea` ruutmeetriarvutust nagu kinnistuseostel |
-| Kõrge | Uue objekti Kavitro sünkroon toimub enne Visuaali alustatud kihi commit'i | Kavitro võib uueneda ka siis, kui QGIS-i salvestus hiljem ebaõnnestub | Kinnita kiht enne teenuse saatmist või rakenda kompenseeriv tagasipööramine |
 | Keskmine | **Ümardatud nurgad** muudab otsakuju, mitte nurgastiili | Nupp ei anna nimele vastavat tulemust, eriti polügoonidel | Seo märkeruut `JOIN_STYLE` parameetriga ja nimeta otsakuju eraldi |
-| Keskmine | Objekti otsing võib numbri vaste leida enne täpset ID-vastet | Muutmisele või ülekirjutamisele võib sattuda vale servituudiala | Otsi kogu kihilt esmalt ainult ID järgi ja kasuta numbrit alles üheselt kontrollitud varuvariandina |
 | Keskmine | Mittetasulise seose märkimine tasuliseks ei lisa maksekuupäeva ega kogusumma juhtelemente | Kasutaja ei saa uue tasulise seose kõiki andmeid sisestada ega kontrollida | Ehita tasulisuse muutusel sõltuvad väljad dünaamiliselt ümber |
-| Keskmine | PDF-i silt ütleb **Lepingu nr** ja avaldamine ei kontrolli duplikaati | Skeem on valesti nimetatud ning korduvad vajutused võivad luua dubleeritud failid | Paranda silt, näita failinime ja küsi olemasoleva faili korral asendamise või uue versiooni valik |
-| Madal | Detaili ahendamine käivitab uuesti kinnistute kaardile näitamise | Sulgemisnupp muudab ootamatult QGIS-i vaadet | Käivita detaili avamiskallback ainult suletud olekust avamisel |
-| Madal | Kaardinupu kohtspikker on ingliskeelne ja osa kaardivigu on vaiksed | Keelekasutus on ebaühtlane ning nupp võib näida mittetöötavana | Kasuta tõlgitud võtit ja kuva leitud ning leidmata objektide koond |
+| Keskmine | PDF-i silt **Lepingu nr** on koodis (`easement_pdf_service.py`) ja maketis eestikeelne tekst ning avaldamine ei kontrolli duplikaati | Skeem on valesti nimetatud ning korduvad vajutused võivad luua dubleeritud failid | Paranda silt tõlkevõtmega, näita failinime ja küsi olemasoleva faili korral asendamise või uue versiooni valik |
+| Madal | Osa kaardivigu on vaiksed | Nupp võib näida mittetöötavana | Kuva leitud ja leidmata objektide koond |
 
 ## Soovituslik turvaline tööjärjekord
 
@@ -336,8 +331,7 @@ Põhikihile, Kavitrosse või avaldatud faili tehtud muudatusi sulgemine tagasi e
 ## Seotud juhendid
 
 - [Servituutide nupud](07_servituutide_nupud.md)
-- [Servituutide mooduli kaarditoimingud](../14_servituutide_mooduli_kaarditoimingud.md)
-- [Servituutide mooduli seadistamine](../08_servituutide_mooduli_seadistamine.md)
+- Kasutusjuhendid: [Kavitro abikeskus](https://help.kavitro.com/et)
 - [Filtrite nuppude detailaudit](02_01_filtrite_nuppude_detailaudit.md)
 - [Loendite, filtrite ja kirjekaartide nupud](02_loendid_filtrid_ja_kirjekaardid.md)
 - [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md)

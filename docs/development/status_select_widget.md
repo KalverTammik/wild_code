@@ -41,8 +41,6 @@ The widgets expect status option dictionaries with these fields:
 
 Status filters should load options through `APIModuleActions.get_module_status_options(...)` so the same backend payload is shared between filters and create/update flows.
 
-## Migration Notes
+## Other Filters
 
-The older `BaseSingleFilterWidget` remains in use for non-status filters. Status filters intentionally do not expose `.combo`; callers must use the filter API (`selected_ids`, `selected_texts`, `set_selected_ids`) rather than reaching into widget internals.
-
-`FilterRefreshService` supports both old combo-backed filters and the new status filter API during this transition.
+Tag filters use `BaseSingleFilterWidget` and the type filter uses `TypeFilterWidget`; both keep a checkable combo. Status filters do not expose `.combo`; callers use the filter API (`selected_ids`, `selected_texts`, `set_selected_ids`) rather than widget internals. `FilterRefreshService` reads both kinds.

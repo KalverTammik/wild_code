@@ -15,7 +15,7 @@ Failide kokkuvõte kuvatakse lepingu, kooskõlastuse, servituudi, töö ja teost
 
 ## Täieliku failihalduse dialoog
 
-Dialoog on ette nähtud avanema servituudi **Rohkem toiminguid → Failid** kaudu. Praeguses koodiversioonis viitab menüütoiming aga puuduvale `_open_item_files` käsitlejale ning dialoogiklassi ei looda kusagil mujal. Seetõttu ei ole täielik failihaldus kasutajaliidesest avatav. Allolevad nupud kirjeldavad olemasolevat dialoogiklassi, mis muutub kasutatavaks pärast avamisvoo parandamist.
+Dialoog avaneb servituudi **Rohkem toiminguid → Failid** kaudu ja detaili failikokkuvõtte nupust, kui faile on üle viie.
 
 | Nupp | Asukoht | Lühikirjeldus |
 |---|---|---|
