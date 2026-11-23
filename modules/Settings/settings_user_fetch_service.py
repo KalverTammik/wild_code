@@ -27,11 +27,11 @@ class SettingsUserFetchService:
         if worker is not None:
             try:
                 worker.finished.disconnect(on_success)
-            except Exception as exc:
+            except (TypeError, RuntimeError) as exc:
                 log_error(exc, "settings_disconnect_finished_failed")
             try:
                 worker.error.disconnect(on_error)
-            except Exception as exc:
+            except (TypeError, RuntimeError) as exc:
                 log_error(exc, "settings_disconnect_error_failed")
 
         if thread is not None and thread.isRunning():

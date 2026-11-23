@@ -331,7 +331,7 @@ class JsonResponseHandler:
         module_data = JsonResponseHandler.walk_path(data.get("data", {}), path)
         return module_data.get("pageInfo", {})
 
-    @staticmethod    
+    @staticmethod
     def get_page_detalils_from_path(payload:Union[requests.Response, Dict[str, Any]],path:list)->tuple:
         page_info = JsonResponseHandler.get_page_info_from_path(payload, path)
         end_cursor = page_info.get("endCursor")

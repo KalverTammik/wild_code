@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from qgis.core import QgsApplication
 from Kavitro_dev.python import api_client, api_rate_limit as module
+from Kavitro_dev.utils.api_error_handling import ApiError
 
 
 class FakeClock:
@@ -327,7 +328,7 @@ class ApiRateLimitTest(unittest.TestCase):
         for failure in (api_client.requests_exceptions.Timeout('lost'), FakeResponse(503)):
             with self.subTest(failure=type(failure).__name__):
                 with patch.object(api_client.requests, 'post', side_effect=[failure]) as post:
-                    with self.assertRaises(Exception):
+                    with self.assertRaises(ApiError):
                         self.client.send_query('mutation { createProperty { id } }', retry_network=False)
                 self.assertEqual(post.call_count, 1)
 

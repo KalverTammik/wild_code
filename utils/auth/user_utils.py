@@ -34,7 +34,7 @@ class UserUtils:
             parsed = json.loads(abilities_raw)
             if isinstance(parsed, (list, tuple)):
                 return list(parsed)
-        except Exception as exc:
+        except (TypeError, ValueError) as exc:  # JSONDecodeError is a ValueError
             PythonFailLogger.log_exception(
                 exc,
                 module=Module.USER.value,

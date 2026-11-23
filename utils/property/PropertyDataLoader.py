@@ -353,7 +353,7 @@ class propertyUsages:
                 return 0
             try:
                 return int(s)
-            except Exception as exc:
+            except ValueError as exc:
                 PythonFailLogger.log_exception(
                     exc,
                     module="data",
@@ -361,7 +361,7 @@ class propertyUsages:
                 )
                 try:
                     return int(float(s.replace(",", ".")))
-                except Exception as exc:
+                except (OverflowError, ValueError) as exc:  # inf or not a number
                     PythonFailLogger.log_exception(
                         exc,
                         module="data",
@@ -397,5 +397,5 @@ class propertyUsages:
             input_data.append(intended_use)
 
         return input_data
-    
+
 

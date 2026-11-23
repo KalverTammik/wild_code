@@ -58,7 +58,7 @@ class TagsEngines:
         return created_tag["id"]
 
     @staticmethod
-    def get_modules_tag_id_by_name(tag_name: str,module: str) -> str: 
+    def get_modules_tag_id_by_name(tag_name: str,module: str) -> str:
         #tag_name = "Arhiveeritud"
         module_tags = ModuleSupports.TAGS.value
         backend_module = _normalize_tag_module(module)
@@ -84,7 +84,7 @@ class TagsEngines:
                 return tag["node"]["id"]
 
         return None
-    
+
 
 class TagsHelpers:
 

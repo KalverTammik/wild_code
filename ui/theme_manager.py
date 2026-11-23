@@ -133,13 +133,7 @@ class ThemeManager(QObject):
         ThemeManager._apply_theme_for(widget, new_theme, qss_files or ThemeManager.app_bundle())
         ThemeManager._update_header_icons(new_theme, switch_button, logout_button)
         ThemeManager.save_theme_setting(new_theme)
-        # Emit change for listeners
-        try:
-            # if a shared instance exists in your app, emit on that; otherwise this is a static utility
-            # you can wire a shared instance in your app bootstrap and pass it around
-            pass
-        finally:
-            return new_theme
+        return new_theme
 
     @staticmethod
     def _apply_theme_for(widget, theme: str, qss_files=None):
@@ -175,10 +169,7 @@ class ThemeManager(QObject):
             lower = raw.lower()
             if (
                 raw.startswith(":")
-                or lower.startswith("qrc:")
-                or lower.startswith("http://")
-                or lower.startswith("https://")
-                or lower.startswith("file://")
+                or lower.startswith(("qrc:", "http://", "https://", "file://"))
                 or os.path.isabs(raw)
             ):
                 return f"url({raw})"
@@ -486,7 +477,7 @@ class ShadowIntensityEngine:
             },
 
             ThemeShadowColors.ACCENT: {
-                Theme.DARK:  QColor(  0, 120, 212, alpha),  
+                Theme.DARK:  QColor(  0, 120, 212, alpha),
                 Theme.LIGHT: QColor(  0, 120, 212, alpha),
             },
         }

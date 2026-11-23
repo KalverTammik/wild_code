@@ -18,7 +18,7 @@ class HeaderWidget(QWidget):
     """
     helpRequested = pyqtSignal()
     searchResultClicked = pyqtSignal(str, str, str)  # module, id, title
-    
+
     def __init__(self, title, switch_callback, logout_callback, parent=None):
         super().__init__(parent)
         self.lang_manager = LanguageManager()
@@ -42,7 +42,7 @@ class HeaderWidget(QWidget):
         frame_layout.setContentsMargins(8, 2, 8, 2)
         frame_layout.setSpacing(6)
         frame_layout.addWidget(self.titleLabel)
-        
+
         # Help button next to title
         self.helpButton = QPushButton()
         self.helpButton.setObjectName("headerHelpButton")
@@ -51,17 +51,17 @@ class HeaderWidget(QWidget):
         self.helpButton.setDefault(False)
         self.helpButton.setProperty("variant", ButtonVariant.ICON)
         self.helpButton.setProperty("btnSize", ButtonSize.SMALL)
-        
+
         # Add help icon and text
         self.helpButton.setIcon(ThemeManager.get_qicon(IconNames.ICON_HELP))
         self.helpButton.setIconSize(QSize(18, 18))
         self.helpButton.setText(self.lang_manager.translate(TranslationKeys.HEADER_WIDGET_ABI))
-                    
+
         # Add tooltip
         tooltip = self.lang_manager.translate(TranslationKeys.HEADER_HELP_BUTTON_TOOLTIP)
         if tooltip:
             self.helpButton.setToolTip(tooltip)
-        
+
         self.helpButton.clicked.connect(self.helpRequested.emit)
         frame_layout.addWidget(self.helpButton)
         layout.addWidget(self.titleFrame, 0, Qt.AlignLeft | Qt.AlignVCenter)
@@ -73,29 +73,29 @@ class HeaderWidget(QWidget):
         self.searchEdit.setPlaceholderText(placeholder)
         self.searchEdit.setObjectName("headerSearchEdit")
         self.searchEdit.setFixedWidth(240)
-        
+
         styleExtras.apply_chip_shadow(
-            element=self.searchEdit, 
+            element=self.searchEdit,
             color=ThemeShadowColors.GRAY,
-            blur_radius=15, 
-            x_offset=1, 
-            y_offset=1, 
+            blur_radius=15,
+            x_offset=1,
+            y_offset=1,
             alpha_level=IntensityLevels.MEDIUM
             )
         # Rakenda tooltip keelefailist
         tooltip = self.lang_manager.translate(TranslationKeys.SEARCH_TOOLTIP)
         self.searchEdit.setToolTip(tooltip)
-        
+
         # Initialize search functionality
         self._search_timer = QTimer(self)
         self._search_timer.setSingleShot(True)
         self._search_timer.timeout.connect(self._perform_search)
         self.searchEdit.textChanged.connect(self._on_search_text_changed)
         self.searchEdit.returnPressed.connect(self._perform_search)
-        
+
         # Ensure search field maintains focus and handles Return key properly
         self.searchEdit.setFocusPolicy(Qt.StrongFocus)
-        
+
         # Lazy initialization - SearchResultsWidget will be created only when first needed
         self._search_results = None
         self.search_controller = UnifiedSearchController(self)
@@ -105,9 +105,9 @@ class HeaderWidget(QWidget):
 
         self._active_token = None
         self._activated = True
-        
+
         layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
-        
+
         # Right: theme switch + logout
         self.switchButton = QPushButton()
         self.switchButton.setObjectName("themeSwitchButton")
@@ -185,7 +185,7 @@ class HeaderWidget(QWidget):
             return
         # Restart timer for debounced search
         self._search_timer.start(500)  # 0.5 second delay
-    
+
     def _perform_search(self):
         """Execute the search query in a worker thread."""
         query = self.searchEdit.text().strip()
@@ -194,7 +194,7 @@ class HeaderWidget(QWidget):
             return
 
         self.search_controller.search(query)
-    
+
     def _on_search_result_clicked(self, module, item_id, title):
         """Handle search result selection."""
         # Emit signal for parent to handle navigation

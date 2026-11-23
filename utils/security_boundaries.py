@@ -180,7 +180,7 @@ def classify_description_link(value: object) -> DescriptionLinkTarget:
     if scheme in {"http", "https"}:
         try:
             host = str(parsed.hostname or "").strip()
-            parsed.port
+            _ = parsed.port  # urlsplit checks the port only when it is read
         except ValueError:
             return _blocked_description_link(text, "invalid_url")
         if not host or not parsed.netloc:

@@ -155,7 +155,7 @@ class CrashLogger:
         if handle is not None:
             try:
                 handle.close()
-            except Exception:
+            except OSError:
                 print("[CrashLogger] Failed to close crash log", file=sys.stderr)
                 if not handle.closed:
                     return

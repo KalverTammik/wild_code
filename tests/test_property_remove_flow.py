@@ -26,7 +26,7 @@ from Kavitro_dev.modules.Property.FlowControllers.property_action_service import
 from Kavitro_dev.utils.MapTools.MapHelpers import MapHelpers
 from Kavitro_dev.utils.MapTools.item_selector_tools import PropertiesSelectors
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from property_fixtures import LocationFilterTestCase, close_dialog  # noqa: E402
+from property_fixtures import LocationFilterTestCase, close_dialog
 
 
 class _FakeOrchestrator:

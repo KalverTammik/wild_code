@@ -46,7 +46,7 @@ class IconNames:
         return path
 
 
-#Module icons 
+#Module icons
 class ModuleIcons:
     ICON_CONTRACT = "Lepingud.png"
     ICON_HOME = "Avaleht.png"
@@ -55,7 +55,7 @@ class ModuleIcons:
     ICON_PROPERTY = "Kinnistud.png"
     ICON_COORDINATION = "Kooskõlastused.png"
     ICON_EASEMENTS = "Servituudid.png"
-    
+
 
 class MiscIcons:
     ICON_IS_PRIVATE = "show.png"
@@ -83,4 +83,4 @@ class ModuleIconPaths:
         module_name = module_name.lower()
         path = ModuleIconPaths.MODULE_ICONS.get(module_name)
         return path
-    
+

@@ -36,7 +36,7 @@ class PropertyLinkActions:
             query_file = "w_tasks_module_data_by_item_id.graphql"
         else:
             query_file = f"W_{module_name}_id.graphql"
-        
+
         loader = GraphQLQueryLoader()
         try:
             query = loader.load_query_by_module(query_module, query_file)

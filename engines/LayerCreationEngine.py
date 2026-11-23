@@ -405,7 +405,7 @@ class LayerCreationEngine:
             group_name,
             shp_layer
         )
-        if result== None:
+        if result is None:
             return None
 
         # Get the created memory layer

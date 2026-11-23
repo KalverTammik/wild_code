@@ -225,7 +225,7 @@ class PropertyAttentionChecksMixin:
             batch_size=batch_size,
             interval_ms=interval_ms,
         )
- 
+
         # Mark in-progress in the Attention column.
         table.setUpdatesEnabled(False)
         for entry in run.rows:
@@ -238,7 +238,7 @@ class PropertyAttentionChecksMixin:
                 backend_done=False,
             )
         table.setUpdatesEnabled(True)
- 
+
         self._update_check_status_label()
 
         try:
@@ -259,7 +259,7 @@ class PropertyAttentionChecksMixin:
 
     def _on_backend_verify_row_result(self, row: int, _tunnus: str, result: dict) -> None:
         row_idx = int(row)
- 
+
         causes = []
         try:
             causes_raw = result.get("causes") if isinstance(result, dict) else []

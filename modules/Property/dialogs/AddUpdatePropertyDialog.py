@@ -365,7 +365,7 @@ class AddPropertyDialog(PropertyAddRunMixin, PropertyAttentionChecksMixin, Prope
 
     def _create_ui(self):
         """Create the user interface with hierarchical selection"""
-        
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
@@ -524,7 +524,7 @@ class AddPropertyDialog(PropertyAddRunMixin, PropertyAttentionChecksMixin, Prope
         self.attention_only_checkbox.stateChanged.connect(self._on_attention_only_changed)
         self.run_checks_button.clicked.connect(self._on_run_checks_clicked)
 
-    
+
         # Button connections; selection buttons exist only in map mode.
         if self._dialog_mode == PropertyDialogMode.FROM_MAP:
             self.select_all_btn.clicked.connect(

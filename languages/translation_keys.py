@@ -263,7 +263,7 @@ class TranslationKeys:
     PROPERTY_NOT_SELECTED = "property_not_selected"
     PROPERTY_CONNECTIONS_LOAD_ERROR = "property_connections_load_error"
     PROPERTY_CONNECTIONS_LOAD_FAILED_REASON = "property_connections_load_failed_reason"
-    
+
     # UI tooltips
     LOGOUT_BUTTON_TOOLTIP = "logout_button_tooltip"
     SEARCH_TOOLTIP = "search_tooltip"

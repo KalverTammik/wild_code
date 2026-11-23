@@ -38,7 +38,7 @@ class WildCodePlugin:
         # Force final garbage collection
         gc.collect()
         icon_path = IconNames.KAVITRO_ICON
-        
+
         plugin_title = ConfigPaths.PLUGIN_NAME or LanguageManager.translate_static(TranslationKeys.KAVITRO_PLUGIN_TITLE)
 
         self.action = QAction(ThemeManager.get_qicon(icon_path), plugin_title, self.iface.mainWindow())  # Set the icon for the action

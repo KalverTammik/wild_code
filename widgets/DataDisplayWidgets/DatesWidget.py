@@ -29,7 +29,7 @@ class DatesPopupWidget(QWidget):
         self.frame = QFrame(self)
         self.frame.setObjectName("DatesPopup")
         self.retheme()
-        
+
         # Main layout on the frame
         layout = QVBoxLayout(self.frame)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -85,7 +85,7 @@ class DatesWidget(QWidget):
 
         locale = QLocale.system()
         today = datetime.datetime.now().date()
-        
+
         dates = DataDisplayExtractors.extract_dates(item_data)
         start_dt = DateHelpers.parse_iso(dates.start_at)
         due_dt = DateHelpers.parse_iso(dates.due_at)

@@ -81,7 +81,7 @@ class SwitchLogger:
                     oldest_name = existing.pop(0)
                     try:
                         os.remove(os.path.join(logs_dir, oldest_name))
-                    except Exception:
+                    except OSError:
                         print(f"[SwitchLogger] Failed to remove old log {oldest_name}", file=sys.stderr)
                         break
 

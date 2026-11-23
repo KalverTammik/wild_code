@@ -81,7 +81,7 @@ def format_field(field_name, value):
     """
     if value is None or str(value).upper() == "NULL":
         return "---"
-    
+
     # Retrieve the appropriate formatter; default to default_formatter if not found.
     formatter = formatters.get(field_name, default_formatter)
     return formatter(value)

@@ -10,7 +10,7 @@ class GradientSpinner(QWidget):
     """
 
     def __init__(self, parent=None, diameter=80,
-                 border_color=QColor(63, 249, 220),
+                 border_color=None,
                  border_thickness=8,
                  text="",
                  text_color=None,
@@ -24,7 +24,7 @@ class GradientSpinner(QWidget):
 
         self._angle = 0.0
         self._diameter = diameter
-        self._border_color = QColor(border_color)
+        self._border_color = QColor(63, 249, 220) if border_color is None else QColor(border_color)
         self._border_thickness = border_thickness
 
         self._base_text = text or ""

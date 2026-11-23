@@ -26,7 +26,7 @@ class LayerSchemas:
             layer (QgsVectorLayer): The source layer.
 
         Returns:
-            Tuple[QgsFields, QgsWkbTypes.Type, QgsCoordinateReferenceSystem]: 
+            Tuple[QgsFields, QgsWkbTypes.Type, QgsCoordinateReferenceSystem]:
                 A tuple containing (fields, geometry_type, crs).
         """
         if not layer.isValid():
@@ -210,7 +210,7 @@ class GPKGHelpers:
         finally:
             try:
                 del writer
-            except Exception as e:
+            except NameError as e:  # UnboundLocalError: the writer was never created
                 PythonFailLogger.log_exception(e, module=Module.PROPERTY.value, event="gpkg_writer_release_failed")
 
 

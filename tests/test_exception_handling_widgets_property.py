@@ -52,8 +52,8 @@ check_module = importlib.import_module("Kavitro_dev.modules.Property.FlowControl
 dialog_module = importlib.import_module("Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog")
 html_module = importlib.import_module("Kavitro_dev.widgets.DataDisplayWidgets.HtmlDescriptionWidget")
 preview_module = importlib.import_module("Kavitro_dev.widgets.DataDisplayWidgets.TaskFilePreviewDialog")
-from Kavitro_dev.widgets.DataDisplayWidgets import task_file_external_open as external_open  # noqa: E402
-from Kavitro_dev.widgets.DataDisplayWidgets import task_file_identity  # noqa: E402
+from Kavitro_dev.widgets.DataDisplayWidgets import task_file_external_open as external_open
+from Kavitro_dev.widgets.DataDisplayWidgets import task_file_identity
 
 # Anything that could open a modal window if a regression reached it.
 MESSAGE_DIALOG_METHODS = ("Info_messages_modern", "Warning_messages_modern", "Error_messages_modern",

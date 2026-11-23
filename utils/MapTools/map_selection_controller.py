@@ -117,7 +117,7 @@ class MapSelectionController(QObject):
             return
         try:
             self._layer.selectionChanged.disconnect(self._handle_selection_changed)
-        except Exception as exc:
+        except (TypeError, RuntimeError) as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module="map",
@@ -193,7 +193,7 @@ class MapSelectionController(QObject):
 
         try:
             layer.selectionChanged.disconnect(self._handle_selection_changed)
-        except Exception as exc:
+        except (TypeError, RuntimeError) as exc:
             PythonFailLogger.log_exception(
                 exc,
                 module="map",

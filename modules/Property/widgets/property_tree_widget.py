@@ -65,7 +65,7 @@ class PropertyTreeWidget(QFrame):
         self.scroll_area.setWidget(self.cards_container)
 
         default_message = self.lang_manager.translate(TranslationKeys.PROPERTY_TREE_DEFAULT_MESSAGE)
-  
+
         self.show_message(default_message)
 
     # --- Public API ------------------------------------------------------

@@ -46,7 +46,7 @@ class SettingsModule(TokenMixin, QWidget):
         TokenMixin.__init__(self)
 
         self.name = Module.SETTINGS.name
-        
+
         self.lang_manager = LanguageManager()
         # Logic layer
         self.logic = SettingsLogic()
@@ -138,7 +138,7 @@ class SettingsModule(TokenMixin, QWidget):
         card.preferredModuleChanged.connect(self._user_preferred_module_changed)
         card.mapOverlayChanged.connect(self._user_map_overlay_changed)
         card.mapSearchChanged.connect(self._user_map_search_changed)
-    
+
         self._user_card = card
         return card
 
@@ -397,7 +397,7 @@ class SettingsModule(TokenMixin, QWidget):
         )
         self._user_fetch_worker = None
         self._user_fetch_thread = None
-     
+
     def deactivate(self):
         self.mark_deactivated(bump_token=True)
         self._cancel_user_fetch_worker(invalidate_request=False)
@@ -406,7 +406,7 @@ class SettingsModule(TokenMixin, QWidget):
                 self._project_base_layers_card.on_settings_deactivate()
             except Exception as exc:
                 self._log_settings_exception(exc, "settings_project_base_layers_deactivate_failed")
-        
+
         # Deactivate module cards to free memory
         for card in self._module_cards.values():
             try:
@@ -556,7 +556,7 @@ class SettingsModule(TokenMixin, QWidget):
 
     def confirm_navigation_away(self, parent=None) -> bool:
         """Handle unsaved changes prompt when navigating away from Settings.
-        
+
         Args:
             parent: Parent dialog for the prompt (optional).
 
@@ -599,4 +599,4 @@ class SettingsModule(TokenMixin, QWidget):
             return False
 
 
-   
+

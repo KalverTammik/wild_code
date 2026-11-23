@@ -10,7 +10,7 @@ from ....utils.api_error_handling import user_message
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....utils.settings_service import SettingsService
 from ....constants.cadastral_fields import Katastriyksus
-from ....languages.language_manager import LanguageManager 
+from ....languages.language_manager import LanguageManager
 from ....utils.MapTools.MapHelpers import MapHelpers, FeatureActions
 from ....constants.module_names import Module
 from ....python.GraphQLQueryLoader import GraphQLQueryLoader
@@ -222,7 +222,7 @@ class MainAddPropertiesFlow:
         archive_layer = MainAddPropertiesFlow._ensure_archive_layer_ready(active_layer) if active_layer else None
         if active_layer and not archive_layer:
             return import_layer, active_layer, None
-        
+
         #4) Ensure archive layers are visible
         if active_layer:
             MapHelpers.ensure_layer_visible(active_layer, make_active=True)
@@ -426,7 +426,7 @@ class MainAddPropertiesFlow:
             summary["errors"].append(user_message(e))
 
         return summary
-    
+
 
     @staticmethod
     def add_single_property_item(item, siht_data, *, raise_on_error=False):
@@ -454,7 +454,7 @@ class MainAddPropertiesFlow:
             UpdatePropertyData.add_additional_property_data(property_id, siht_data)
 
             return property_id
-        
+
         except RequestCancelled as exc:
             stage_key = (TranslationKeys.PROPERTY_ADD_STAGE_CREATE if stage == "createProperty"
                          else TranslationKeys.PROPERTY_ADD_STAGE_USES)
@@ -602,8 +602,8 @@ class BackendPropertyVerifier:
             archived_nodes = [node for node in nodes if BackendPropertyVerifier._is_archived(node)]
             active_nodes = [node for node in nodes if node not in archived_nodes]
             return BackendPropertyVerifier._summary(active_nodes, archived_nodes)
-        
-        
+
+
         except (ApiRateLimitError, RequestCancelled):
             raise
         except Exception as e:

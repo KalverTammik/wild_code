@@ -329,7 +329,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
     def _update_controls_enabled(self) -> None:
         geospatial_active = self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL
         manual_layers_enabled = not bool(self._pend_enabled) and not geospatial_active
-        for key, combo in self._layer_combos.items():
+        for combo in self._layer_combos.values():
             enabled = manual_layers_enabled
             combo.setEnabled(enabled)
 

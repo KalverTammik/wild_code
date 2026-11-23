@@ -43,7 +43,6 @@ class QueryPaths:
     STATUS = os.path.join(PLUGIN_ROOT, PYTHON, QUERIES, GRAPHQL, STATUS_QUERIES)
     EASEMENT = os.path.join(PLUGIN_ROOT, PYTHON, QUERIES, GRAPHQL, EASEMENT_QUERIES)
     TAGS = os.path.join(PLUGIN_ROOT, PYTHON, QUERIES, GRAPHQL, TAGS_QUERIES)
-    STATUS = os.path.join(PLUGIN_ROOT, PYTHON, QUERIES, GRAPHQL, STATUS_QUERIES)
     TASK = os.path.join(PLUGIN_ROOT, PYTHON, QUERIES, GRAPHQL, TASK_QUERIES)
     WORKS = os.path.join(PLUGIN_ROOT, PYTHON, QUERIES, GRAPHQL, TASK_QUERIES)
     COORDINATION = os.path.join(PLUGIN_ROOT, PYTHON, QUERIES, GRAPHQL, COORDINATION_QUERIES)
@@ -63,11 +62,6 @@ class QueryPaths:
 
 
 class ConfigPaths:
-    CONFIG = ""
-    CONFIG_NAME = ""
-    PLUGIN_NAME = ""
-    PLUGIN_VERSION = ""
-    IS_DEV = False
     # Use metadata.dev.txt if it exists, otherwise fallback to metadata.txt
     _dev_metadata = os.path.join(PLUGIN_ROOT, "metadata.dev.txt")
     _main_metadata = os.path.join(PLUGIN_ROOT, "metadata.txt")

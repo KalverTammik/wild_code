@@ -18,10 +18,10 @@ class UpdatePropertyData:
         if isinstance(response, dict) and "data" in response and isinstance(response.get("data"), dict):
             return response.get("data")
         return response if isinstance(response, dict) else {}
-        
+
     @staticmethod
     def _update_property_street_name(propertie_id, new_name, module: str = None):
-        
+
         mutation_file =  'UpdateStreetName.graphql'
         module = module or Module.PROPERTY.name
         mutation = GraphQLQueryLoader().load_query_by_module(module=module, query_filename=mutation_file)
@@ -34,14 +34,14 @@ class UpdatePropertyData:
                         }
             }
         }
-        
+
         response = APIClient().send_query(mutation, variables)
         return UpdatePropertyData._unwrap_gql_data(response)
-    
+
     @staticmethod
     def _update_property_tags(property_id: str, module: str, tag_id: str) -> bool:
 
-        
+
         # Step 1: Load current tags
         query_file = 'Tags.graphql'
         query = GraphQLQueryLoader().load_query_by_module(module=module, query_filename=query_file)
@@ -52,7 +52,7 @@ class UpdatePropertyData:
         data = UpdatePropertyData._unwrap_gql_data(response)
         current_tags = (((data or {}).get("property") or {}).get("tags") or {}).get("edges") or []
         current_tag_ids = [tag["node"]["id"] for tag in current_tags]
-        
+
         if tag_id not in current_tag_ids:
             current_tag_ids.append(tag_id)
 
@@ -302,7 +302,7 @@ class UpdatePropertyData:
                 property(id: $id) {
                     id
                     address {
-                            street 
+                            street
                         }
                     }
                 }

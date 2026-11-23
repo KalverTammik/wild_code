@@ -178,7 +178,7 @@ class PropertyAddRunMixin:
         if self._add_runner is not None:
             try:
                 self._add_runner.deleteLater()
-            except Exception as exc:
+            except RuntimeError as exc:
                 PythonFailLogger.log_exception(
                     exc,
                     module="property",

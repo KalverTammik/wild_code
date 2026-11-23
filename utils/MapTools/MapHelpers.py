@@ -108,7 +108,7 @@ class MapHelpers:
         #import traceback
         #show who is calling this function for debugging
         #traceback.print_stack(limit=10)
-      
+
 
         project = QgsProject.instance()
         if not project:
@@ -207,7 +207,7 @@ class MapHelpers:
     ) -> None:
         if not features:
             return
-        
+
 
         # Build an extent from the *geometries*, so zoom works even if select=False
         extent: QgsRectangle | None = None

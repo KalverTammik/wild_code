@@ -30,7 +30,7 @@ class PropertyRowBuilder:
         """Read one field of a QgsFeature (or feature-like mapping) as null-safe text."""
         try:
             value = obj[field_key]
-        except Exception as exc:
+        except (KeyError, IndexError, TypeError) as exc:
             if (log_prefix, str(field_key)) not in _MISSING_FIELDS_LOGGED:
                 _MISSING_FIELDS_LOGGED.add((log_prefix, str(field_key)))
                 PythonFailLogger.log(

@@ -49,8 +49,8 @@ class FolderEngines:
             return None
 
     @staticmethod
-    def generate_project_folder_from_template( project_id, 
-                                               project_name, 
+    def generate_project_folder_from_template( project_id,
+                                               project_name,
                                                project_number,
                                                source_folder,
                                                target_folder,

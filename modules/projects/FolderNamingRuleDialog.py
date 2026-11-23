@@ -30,7 +30,7 @@ class FolderNamingRuleDialog(QDialog):
         comboSlot1 = widget.comboSlot1
         comboSlot2 = widget.comboSlot2
         comboSlot3 = widget.comboSlot3
-        
+
         symbolText1 = widget.symbolText1
         symbolText2 = widget.symbolText2
         symbolText3 = widget.symbolText3

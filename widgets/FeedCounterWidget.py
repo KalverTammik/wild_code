@@ -40,7 +40,6 @@ class FeedCounterWidget(QWidget):
 
     def retheme(self):
         """No theme-specific colors needed anymore."""
-        pass
 
     def loaded(self):
         return self._loaded

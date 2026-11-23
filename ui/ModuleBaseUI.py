@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import annotations
 """
 ModuleBaseUI – residentne feed'i UI-baas QGIS pluginale.
 
@@ -9,6 +8,7 @@ Põhimõtted:
 - Scrolli sündmused on idempotentselt ühendatud.
 - Kaarti lisades ei käivita scroll-handlerit (_ignore_scroll_event).
 """
+from __future__ import annotations
 from typing import Optional, Callable, TYPE_CHECKING, Protocol, Any
 import gc
 from PyQt5.QtCore import Qt, QCoreApplication
@@ -409,7 +409,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         self._feed_session.reset_session()
 
 
- 
+
     def get_widget(self) -> QWidget:
         """Return self as the widget for module system compatibility."""
         return self

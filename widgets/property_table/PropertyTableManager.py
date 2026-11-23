@@ -12,7 +12,7 @@ from ...languages.language_manager import LanguageManager
 
 from .property_table_model import PropertyTableModel
 from ...Logs.python_fail_logger import PythonFailLogger
- 
+
 class PropertyTableManager:
     """
     Handles table operations for property display and selection.
@@ -330,7 +330,7 @@ class PropertyTableWidget:
 
 
 
-    @staticmethod   
+    @staticmethod
     def _headers():
         lang_manager = LanguageManager()
         return [
@@ -359,7 +359,7 @@ class PropertyTableWidget:
         table_layout = QVBoxLayout(table_frame)
         table_layout.setContentsMargins(6, 6, 6, 6)
         table_layout.setSpacing(6)
-        
+
         # Properties table
         properties_table = QTableView()
         properties_table.setObjectName("PropertiesTable")

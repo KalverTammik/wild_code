@@ -114,7 +114,7 @@ class PythonFailLogger:
                     oldest_name = existing.pop(0)
                     try:
                         os.remove(os.path.join(folder_path, oldest_name))
-                    except Exception:
+                    except OSError:
                         print(f"[PythonFailLogger] Failed to remove {oldest_name}", file=sys.stderr)
                         break
 

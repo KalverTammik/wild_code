@@ -219,7 +219,7 @@ class RateLimitCoordinator:
                 now = self._clock()
                 states = self._states(endpoint, authorization, cost)
                 delay, reason = 0.0, 'pacing'
-                for state, amount, kind in states:
+                for state, amount, _kind in states:
                     while state.recent and state.recent[0][0] <= now - 60:
                         state.recent.popleft()
                     if state.remaining_until <= now:

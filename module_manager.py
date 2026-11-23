@@ -153,7 +153,7 @@ class ModuleManager:
         """Return the currently active module."""
         return self.activeModule
 
-    def getActiveModuleName(self):  
+    def getActiveModuleName(self):
         """Return the name of the currently active module."""
         if self.activeModule:
             return self.activeModule.get("name")
@@ -164,7 +164,7 @@ class ModuleManager:
         module_data = self.modules.get(moduleName.lower())
         if not module_data:
             return None
-        
+
         types = bool(module_data.get("supports_types", False))
         statuses = bool(module_data.get("supports_statuses", False))
         tags = bool(module_data.get("supports_tags", False))
@@ -212,4 +212,3 @@ class ModuleManager:
         if callable(method):
             return lambda _widget, _theme, m=method: m()
         return None
- 

@@ -164,10 +164,11 @@ class CheckedPropertyAddTest(unittest.TestCase):
 
     def test_create_request_does_not_retry_after_lost_response(self):
         from Kavitro_dev.python import api_client
+        from Kavitro_dev.utils.api_error_handling import ApiError
         client = api_client.APIClient(session_manager=Mock())
         with patch.object(api_client.QThread, 'currentThread', return_value=object()), \
                 patch.object(api_client.requests, 'post', side_effect=api_client.requests_exceptions.Timeout('lost')) as post:
-            with self.assertRaises(Exception):
+            with self.assertRaises(ApiError):
                 client.send_query('mutation { createProperty { id } }', require_auth=False, retry_network=False)
         self.assertEqual(post.call_count, 1)
 

@@ -455,7 +455,7 @@ class requestBuilder:
         elif isinstance(obj, list):
             return [requestBuilder.sanitize_for_json(v) for v in obj]
         elif isinstance(obj, QVariant):
-            return None if obj.isNull() else obj.value() 
+            return None if obj.isNull() else obj.value()
         elif hasattr(obj, 'value'):
             return obj.value()  # handles QVariant-like types
         return obj

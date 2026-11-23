@@ -369,10 +369,10 @@ class PropertyManagementUI(SettingsBaseCard):
                 error=error or self.lang_manager.translate(TranslationKeys.ERROR),
             ),
         )
-            
 
-    
-    
+
+
+
     def _update_button_states(self):
         """
         Internal logic that reads layers and applies the enabled/disabled states
@@ -519,7 +519,7 @@ class PropertyManagementUI(SettingsBaseCard):
         )
 
 
-class LayerChecker:    
+class LayerChecker:
     @staticmethod
     def compute_property_button_states(main_layer_exists: bool, shp_layer_exists: bool, shp_feature_count: int = 0):
         """

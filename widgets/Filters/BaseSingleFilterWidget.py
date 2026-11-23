@@ -66,7 +66,7 @@ class _SimplePickerPopup(PickerPopupBase):
         title = QLabel(self._owner._label_text, content)
         title.setObjectName("SimplePickerSectionLabel")
         content_layout.addWidget(title)
-        for row, label, value, checked in self._owner._iter_options():
+        for row, label, _value, checked in self._owner._iter_options():
             option = QPushButton(label, content)
             option.setObjectName("SimplePickerOptionRow")
             option.setCheckable(True)

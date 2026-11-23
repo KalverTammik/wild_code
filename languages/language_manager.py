@@ -1,14 +1,13 @@
-# ...existing code...
+from .et import TRANSLATIONS as ET_TRANSLATIONS
+from .en import TRANSLATIONS as EN_TRANSLATIONS
+from .translation_keys import TranslationKeys
+from ..constants.module_names import Module
+
 DEFAULT_LANGUAGE = "et"  # Set Estonian as the default language
 
 # Languages that actually carry a translation table. Offering more would only
 # fall back to Estonian silently.
 SUPPORTED_LANGUAGES = ("et", "en")
-
-from .et import TRANSLATIONS as ET_TRANSLATIONS
-from .en import TRANSLATIONS as EN_TRANSLATIONS
-from .translation_keys import TranslationKeys
-from ..constants.module_names import Module
 
 _MODULE_TRANSLATION_KEY_MAP = {
     Module.HOME.value: TranslationKeys.MODULE_HOME,

@@ -26,7 +26,7 @@ from .ui.window_state.dialog_helpers import DialogHelpers
 from .utils.SessionManager import SessionManager
 from .ui.session_ui_controller import SessionUIController
 from .ui.modules_registry import ModulesRegistry
-        
+
 from .constants.module_names import Module
 from .ui.module_switch_helper import ModuleSwitchHelper
 
@@ -75,7 +75,7 @@ class PluginDialog(QDialog):
         self.lang_manager: "LanguageManager" = LanguageManager()
         self.moduleManager: "ModuleManager" = ModuleManager()
         self.retheme_engine = ThemeManager.get_retheme_engine()
-        self.window_manager = WindowManagerMinMax(self)  
+        self.window_manager = WindowManagerMinMax(self)
         self._geometry_restored = False
 
         # Window flags (only once)
@@ -175,7 +175,7 @@ class PluginDialog(QDialog):
     def _on_sidebar_item_clicked(self, moduleName):
         ModuleSwitchHelper.switch_module(moduleName, dialog=self)
 
-             
+
     def apply_theme_toggle(self):
         # Use ThemeManager to toggle theme and update icon
         new_theme = ThemeManager.toggle_theme(

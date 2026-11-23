@@ -295,7 +295,7 @@ class SendQueryOnlyTest(_ClientCase):
 
     def test_worker_thread_does_not_repeat_mutations(self) -> None:
         with self.off_gui_thread(), self._answers([_Response(500)]):
-            with self.assertRaises(Exception):
+            with self.assertRaises(ApiError):
                 self.client.send_query(MUTATION)
         self.assertEqual(len(self.calls), 1)
 

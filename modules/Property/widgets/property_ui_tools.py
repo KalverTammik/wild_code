@@ -208,9 +208,12 @@ class PropertyUITools:
             ay_name = feature.attribute(Katastriyksus.ay_nimi)
             mk_name = feature.attribute(Katastriyksus.mk_nimi)
             address_parts = []
-            if self._is_not_null(l_address): address_parts.append(str(l_address))
-            if self._is_not_null(ay_name): address_parts.append(str(ay_name))
-            if self._is_not_null(mk_name): address_parts.append(str(mk_name))
+            if self._is_not_null(l_address):
+                address_parts.append(str(l_address))
+            if self._is_not_null(ay_name):
+                address_parts.append(str(ay_name))
+            if self._is_not_null(mk_name):
+                address_parts.append(str(mk_name))
             address = ", ".join(address_parts) if address_parts else "..."
             ui.lbl_address_value.setText(address)
 

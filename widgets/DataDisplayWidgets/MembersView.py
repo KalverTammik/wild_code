@@ -106,7 +106,7 @@ class AvatarBubble(QLabel):
             self.setText("")
             self.setToolTip(f"{label}\n{action}")
         self.setAlignment(Qt.AlignCenter)
-        
+
         # Only set tooltip for non-assignee avatars to avoid duplicate info
         if not popup_members and not unassigned:
             self.setToolTip(self.fullname)
@@ -290,7 +290,8 @@ class MembersView(QWidget):
         self._build(item_data)
 
     def _build(self, item_data: dict):
-        layout = QVBoxLayout(self); layout.setContentsMargins(0, 0, 0, 0)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
         responsible_nodes, participant_nodes = DataDisplayExtractors.extract_members(item_data)

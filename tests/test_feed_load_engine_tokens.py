@@ -57,7 +57,7 @@ class FeedLoadEngineTokenTest(unittest.TestCase):
         self.assertFalse(self.engine._is_token_active(self.token))
 
     def test_plain_function_loader_has_no_owner(self) -> None:
-        engine = FeedLoadEngine(lambda: [])
+        engine = FeedLoadEngine(list)
 
         self.assertTrue(engine._is_active())
         self.assertIsNone(engine._current_token())

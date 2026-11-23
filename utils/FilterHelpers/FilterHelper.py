@@ -70,7 +70,7 @@ class FilterHelper:
                     break
 
             return entries
-        
+
         else:
             data = APIClient().send_query(query, variables=variables, return_raw=True) or {}
             edges = JsonResponseHandler.get_edges_from_path(data, [key])

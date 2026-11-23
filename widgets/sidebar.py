@@ -52,7 +52,7 @@ class Sidebar(QWidget):
         self.SidebarMainFrame.setObjectName("SidebarMainFrame")
         self.SidebarMainFrame.setFixedWidth(self._expanded_width)
         main_layout.addWidget(self.SidebarMainFrame)
-        
+
         cm = QVBoxLayout(self.SidebarMainFrame)
         cm.setContentsMargins(0, 0, 0, 0)
         cm.setSpacing(6)
@@ -199,7 +199,8 @@ class Sidebar(QWidget):
             elif btn is not self._disabled_button:
                 btn.setEnabled(True)
             btn.setProperty('active', active)
-            btn.style().unpolish(btn); btn.style().polish(btn)
+            btn.style().unpolish(btn)
+            btn.style().polish(btn)
         if not target_found and self._disabled_button:
             self._disabled_button.setEnabled(True)
             self._disabled_button = None
@@ -228,7 +229,8 @@ class Sidebar(QWidget):
         for btn in self.moduleButtons.values():
             if btn.property('active'):
                 btn.setProperty('pulse', self._pulse_on)
-                btn.style().unpolish(btn); btn.style().polish(btn)
+                btn.style().unpolish(btn)
+                btn.style().polish(btn)
 
     def _store_expanded_width(self):
         self._expanded_width = max(self._expanded_width, self.SidebarMainFrame.width())
@@ -275,7 +277,8 @@ class Sidebar(QWidget):
         self.SidebarMainFrame.setMaximumWidth(end_w)
 
         # refresh style for [compact="true"]
-        self.style().unpolish(self); self.style().polish(self)
+        self.style().unpolish(self)
+        self.style().polish(self)
         QTimer.singleShot(0, self._position_toggle)
 
 

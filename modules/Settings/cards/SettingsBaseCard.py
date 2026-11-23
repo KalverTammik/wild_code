@@ -1,7 +1,8 @@
-from PyQt5.QtWidgets import QComboBox, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import QComboBox, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget
 from ....languages.language_manager import LanguageManager
 from ....ui.theme_manager import ThemeManager
 from ....widgets.layer_tree_picker import LayerTreePicker
+from ....widgets.Filters.filter_widget_parts import FilterLoadingMixin
 from ....constants.file_paths import QssPaths
 from ....constants.button_props import ButtonVariant, ButtonSize
 from PyQt5.QtGui import  QPixmap
@@ -33,7 +34,7 @@ class SettingsBaseCard(QFrame):
         self.lay = QVBoxLayout(self)
         self.lay.setContentsMargins(10, 10, 10, 10)  # Slightly tighter margins
         self.lay.setSpacing(6)  # Reduced spacing
-        
+
         # Header with separator frame
         header_frame = QFrame(self)
         header_frame.setObjectName("SetupCardHeader")
@@ -46,7 +47,7 @@ class SettingsBaseCard(QFrame):
         title_layout = QHBoxLayout(title_frame)
         title_layout.setContentsMargins(0, 0, 0, 0)
         title_layout.setSpacing(0)
-        
+
         if icon_path:
             icon_label = QLabel()
             cache_key = (icon_path, 18, 18)
@@ -70,7 +71,7 @@ class SettingsBaseCard(QFrame):
         self._meta_row = self._build_footer_row()
         header_layout.addWidget(self._meta_row, 1)
         self.lay.addWidget(header_frame)
-        
+
         # Content
         self._content = QFrame(self)
         self._content.setObjectName("SetupCardContent")
@@ -85,6 +86,11 @@ class SettingsBaseCard(QFrame):
                 ThemeManager.apply_combo_popup_style(combo)
         for picker in self.findChildren(LayerTreePicker):
             picker.retheme()
+        # Filter pickers colour themselves inline, and a card inside this one (property management)
+        # keeps its own stylesheet: neither follows the theme unless asked to.
+        for widget in self.findChildren(QWidget):
+            if isinstance(widget, (FilterLoadingMixin, SettingsBaseCard)):
+                widget.retheme()
 
 
     def _build_footer_row(self):
@@ -123,7 +129,7 @@ class SettingsBaseCard(QFrame):
         self._reset_btn.setObjectName("ResetButton")
         self._reset_btn.setProperty("variant", ButtonVariant.GHOST)
         self._reset_btn.setProperty("btnSize", ButtonSize.SMALL)
-        
+
         self._reset_btn.setVisible(False)  # Hidden by default
         buttons_layout.addWidget(self._reset_btn)
 

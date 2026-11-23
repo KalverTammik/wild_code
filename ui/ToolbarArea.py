@@ -27,7 +27,7 @@ class ModuleToolbarArea(QFrame):
         self._layout.setHorizontalSpacing(0)
         self._layout.setVerticalSpacing(0)
 
-        
+
         self._left = QWidget(self)
         self._left.setObjectName("ToolbarLeft")
         self._left.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)

@@ -14,7 +14,7 @@ class DateHelpers:
             return None
         try:
             return datetime.datetime.fromisoformat(s.replace('Z', '+00:00'))
-        except Exception as exc:
+        except (AttributeError, TypeError, ValueError) as exc:  # not text, or not ISO
             PythonFailLogger.log_exception(
                 exc,
                 module="ui",
@@ -48,7 +48,7 @@ class DateHelpers:
             return "–"
         qdt = QDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
         return locale.toString(qdt.date(), QLocale.ShortFormat)
-    
+
 
     def date_to_iso_string(self, date_item):
         """Return an API-safe ISO date string (YYYY-MM-DD) from QDate/QDateTime/date/etc."""
@@ -80,7 +80,7 @@ class DateHelpers:
             if dt is not None:
                 try:
                     return dt.date().strftime("%Y-%m-%d")
-                except Exception as exc:
+                except ValueError as exc:
                     PythonFailLogger.log_exception(
                         exc,
                         module="ui",

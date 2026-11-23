@@ -186,7 +186,7 @@ class ModernMessageDialog:
         # Icon
         icon_label = QLabel()
         icon_label.setObjectName("iconLabel")  # For QSS targeting
-        
+
         # Load and scale the icon
         icon = ThemeManager.get_qicon(icon_name)
         pixmap = icon.pixmap(32, 32)  # Scale to 32x32

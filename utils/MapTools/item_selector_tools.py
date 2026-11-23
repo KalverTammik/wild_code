@@ -56,15 +56,15 @@ class PropertiesSelectors:
 
     @staticmethod
     def show_connected_properties_on_map(values, module=None, use_shp: bool=False) -> None:
-        """Goal: select and zoom cadastral features; 
-        values: List[str], layer_type: str; 
+        """Goal: select and zoom cadastral features;
+        values: List[str], layer_type: str;
         Returns: None."""
 
         if module is None:
             module = Module.PROPERTY.value
 
         layer = PropertiesSelectors._resolve_property_layer(module=module, use_shp=use_shp)
-        
+
         if not layer:
             PythonFailLogger.log(
                 "property_layer_missing",
@@ -116,7 +116,7 @@ class PropertiesSelectors:
             return None
 
         MapHelpers._zoom_to_features_in_layer(features, layer, select=True)
-        return layer        
+        return layer
 
     @staticmethod
     def show_features_on_map(features, module=None, use_shp: bool=False) -> None:
@@ -126,7 +126,7 @@ class PropertiesSelectors:
             module = Module.PROPERTY.value
 
         layer = PropertiesSelectors._resolve_property_layer(module=module, use_shp=use_shp)
-        
+
         if not layer:
             return
 

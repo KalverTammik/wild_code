@@ -32,7 +32,7 @@ class TagsWidget(QWidget):
             tags_layout = QHBoxLayout(tags_container)
             tags_layout.setContentsMargins(2, 1, 2, 1) if self._compact else tags_layout.setContentsMargins(4, 2, 4, 2)
             tags_layout.setSpacing(0)
-            
+
             # Tags icon
             icon = ThemeManager.get_qicon(IconNames.ICON_TAGS)
             icon_label = QLabel()
@@ -48,7 +48,7 @@ class TagsWidget(QWidget):
             self._tags_container = tags_container
 
             main_layout.addWidget(tags_container)
-            
+
 
 
         self.hover_popup = None

@@ -85,7 +85,7 @@ class WaitLogTest(unittest.TestCase):
 
     def test_a_failed_slow_request_is_logged_too(self):
         self.send.side_effect = RuntimeError("cancelled")
-        with self.assertRaises(Exception):
+        with self.assertRaisesRegex(Exception, "cancelled"):
             self.run_request(2.0)
         self.assertEqual(self.log.call_args.kwargs["extra"]["seconds"], "2.00")
 

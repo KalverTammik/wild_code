@@ -28,7 +28,7 @@ class ModuleLabelsWidget(QFrame):
 
     def _not_defined_jet(self) -> str:
         return self.lang_manager.translate(SettingDialogPlaceholders.UNSET)
-    
+
     def _checkbox_value(self, label_def: dict) -> bool:
         if not label_def:
             return False
@@ -68,7 +68,7 @@ class ModuleLabelsWidget(QFrame):
         return str(formatted)
 
     def _build(self):
-        
+
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
@@ -92,7 +92,7 @@ class ModuleLabelsWidget(QFrame):
             title.setProperty("modulelabeltitle", "true")
             title.setMinimumWidth(300)
             row.addWidget(title, 0, Qt.AlignLeft)
-            
+
             tool = label_def.get("tool")
             if tool == "button":
                 custom_handler: Optional[Callable[[str, str, str], Optional[str]]] = label_def.get("on_click")
@@ -126,7 +126,7 @@ class ModuleLabelsWidget(QFrame):
                     value_widget = value_label
 
             if tool == "checkBox":
-                checkbox = QCheckBox()  
+                checkbox = QCheckBox()
                 checkbox.setObjectName(f"{key}_checkbox")
                 checkbox.setChecked(self._checkbox_value(label_def))
                 checkbox.stateChanged.connect(

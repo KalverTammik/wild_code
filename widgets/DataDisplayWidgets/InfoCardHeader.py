@@ -109,7 +109,7 @@ class WrappingTextLabel(QLabel):
 class InfocardHeaderFrame(QFrame):
     def __init__(self, item_data, module_name=None, parent=None, lang_manager=None):
         super().__init__(parent)
-        
+
         self.setFrameShape(QFrame.NoFrame)
         self.setObjectName("InfocardHeaderFrame")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
@@ -131,10 +131,10 @@ class InfocardHeaderFrame(QFrame):
         leftL.setContentsMargins(0, 0, 0, 0)
         leftL.setSpacing(4)
 
-        
+
         # Name row: conditional layout based on number display setting
         nameRow = QHBoxLayout()
-        nameRow.setContentsMargins(0,0,0,0) 
+        nameRow.setContentsMargins(0,0,0,0)
         nameRow.setSpacing(6)
 
         if module_name != Module.PROJECT.value and DataDisplayExtractors.extract_is_public(item_data):
@@ -144,7 +144,7 @@ class InfocardHeaderFrame(QFrame):
             icon = ThemeManager.get_qicon(MiscIcons.ICON_IS_PRIVATE)
             privateIcon.setPixmap(icon.pixmap(12, 12))
             nameRow.addWidget(privateIcon, 0, Qt.AlignVCenter)
-        
+
         number = DataDisplayExtractors.extract_item_number(item_data) or '-'
         if number and number != '-':
             numberBadge = QLabel(str(number))

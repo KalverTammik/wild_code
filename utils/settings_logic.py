@@ -38,10 +38,10 @@ class SettingsLogic:
         self._pending_map_overlay_enabled: bool = True
         self._original_map_search_enabled: bool = True
         self._pending_map_search_enabled: bool = True
-        
+
 
     def get_module_access_from_abilities(self, subjects) -> Dict[str, bool]:
-        
+
         # Return access for all modules, including Property for UserCard preferred selection
         access: Dict[str, bool] = {}
         normalized_subjects = {_normalize_subject_name(subject) for subject in (subjects or []) if str(subject or "").strip()}
@@ -60,13 +60,13 @@ class SettingsLogic:
     def get_module_update_permissions(update_subjects) -> Dict[str, bool]:
         """Check if user has update permissions for specific modules"""
         update_permissions = {}
-        
+
         for subj in update_subjects:
             subject_name = subj[0] if isinstance(subj, list) and subj else subj if isinstance(subj, str) else None
             normalized_subject = _normalize_subject_name(subject_name)
             if normalized_subject and normalized_subject in SUBJECT_TO_MODULE:
                 update_permissions[SUBJECT_TO_MODULE[normalized_subject]] = True
-        
+
         return update_permissions
 
     def load_original_settings(self):

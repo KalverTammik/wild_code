@@ -203,7 +203,8 @@ class UserSettingsCard(SettingsBaseCard):
             # QSS properties for coloring
             pill.setProperty("active", bool(has_access))
             pill.setProperty("inactive", not has_access)
-            pill.style().unpolish(pill); pill.style().polish(pill)
+            pill.style().unpolish(pill)
+            pill.style().polish(pill)
 
             # Strike text if no access
             f = txt.font()
@@ -212,7 +213,7 @@ class UserSettingsCard(SettingsBaseCard):
 
             hl.addWidget(chk, 0)
             hl.addWidget(txt, 0)
-            
+
             # Module access is now handled through ModuleCard - no settings button needed
             hl.addStretch(1)
 
@@ -265,7 +266,7 @@ class UserSettingsCard(SettingsBaseCard):
         # Single-selection behavior with ability to select none
         if checked:
             module_name = btn.property("moduleName")
-            for m, cb in self._check_by_module.items():
+            for _module, cb in self._check_by_module.items():
                 if cb is btn:
                     continue
                 if cb.isChecked():
@@ -319,7 +320,9 @@ class UserSettingsCard(SettingsBaseCard):
             item = layout.itemAt(i)
             w = item.widget()
             if isinstance(w, QFrame) and w.objectName() == "AccessPill":
-                w.style().unpolish(w); w.style().polish(w); w.update()
+                w.style().unpolish(w)
+                w.style().polish(w)
+                w.update()
 
     def _toggle_checkbox_from_target(self, checkbox):
         if not checkbox:

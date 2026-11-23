@@ -23,7 +23,7 @@ class DialogGeometryWatcher:
 
     def _wrap_events(self):
         # Save original handlers if not already saved
-        
+
         if not hasattr(self.dialog, '_original_resizeEvent'):
             self.dialog._original_resizeEvent = self.dialog.resizeEvent
         if not hasattr(self.dialog, '_original_moveEvent'):
@@ -88,7 +88,7 @@ class DialogGeometryWatcher:
                 self.dialog.setGeometry(x, y, w, h)
                 try:
                     self._last_geom = (int(x), int(y), int(w), int(h))
-                except Exception as exc:
+                except (TypeError, ValueError) as exc:
                     PythonFailLogger.log_exception(
                         exc,
                         module="ui",

@@ -1,5 +1,5 @@
 from ....languages.translation_keys import TranslationKeys
-from ....languages.language_manager import LanguageManager 
+from ....languages.language_manager import LanguageManager
 from ....ui.theme_manager import ThemeManager
 from ....constants.file_paths import QssPaths
 
@@ -82,7 +82,7 @@ class DeletePropertyUI(QDialog):
         self._btn_cancel.setEnabled(False)
         try:
             ok, message = deleteProperty.delete_single_item(property_id)
-        
+
             if not ok:
                 ModernMessageDialog.show_warning(
                     self.lang_manager.translate(TranslationKeys.PROPERTY_DELETE_FAILED),

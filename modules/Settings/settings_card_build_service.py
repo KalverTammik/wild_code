@@ -97,7 +97,7 @@ class SettingsCardBuildService:
             log_error(exc, "settings_card_deactivate_failed")
         try:
             card.pendingChanged.disconnect(on_pending_changed)
-        except Exception as exc:
+        except (TypeError, RuntimeError) as exc:
             log_error(exc, "settings_card_disconnect_failed")
         try:
             cards_layout.removeWidget(card)

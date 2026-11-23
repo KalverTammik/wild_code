@@ -100,11 +100,11 @@ class RootModulesTest(LoggedExceptionTestCase):
     def test_only_a_deleted_owner_makes_a_token_inactive(self) -> None:
         deleted_owner = Mock(_activated=True, _active_token=3)
         deleted_owner.is_token_active.side_effect = RuntimeError("wrapped C/C++ object has been deleted")
-        engine = FeedLoadEngine(lambda: []).attach(parent_ui=deleted_owner)
+        engine = FeedLoadEngine(list).attach(parent_ui=deleted_owner)
         self.assertFalse(engine._is_token_active(3))
 
         # A parent without the contract method is a coding error and must not turn into "inactive".
-        engine = FeedLoadEngine(lambda: []).attach(parent_ui=SimpleNamespace(_activated=True, _active_token=3))
+        engine = FeedLoadEngine(list).attach(parent_ui=SimpleNamespace(_activated=True, _active_token=3))
         with self.assertRaises(AttributeError):
             engine._is_token_active(3)
 

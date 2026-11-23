@@ -23,7 +23,7 @@ class PropertyModule(TokenMixin, QWidget):
     Property module - focused on displaying and managing data for a single property item.
     Features a header area with info/tools and a tree view for property-related data.
     """
-    
+
     QUERY_FILE = "ListFilteredProperties.graphql" #Not active yet
     USE_TYPE_FILTER = False
     BATCH_SIZE = 0

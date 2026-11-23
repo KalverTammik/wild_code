@@ -18,6 +18,7 @@ from qgis.PyQt.QtGui import QFont, QFontDatabase
 from Kavitro_dev.python import api_client, api_rate_limit, api_request_task
 from Kavitro_dev.python.latest_request import LatestRequest
 from Kavitro_dev.python.workers import _ACTIVE_THREADS
+from Kavitro_dev.utils.api_error_handling import ApiError
 from qgis.PyQt.QtTest import QTest
 from tests.test_api_rate_limit import FakeClock, FakeResponse
 
@@ -200,7 +201,7 @@ class ApiRequestTaskTest(unittest.TestCase):
             return FakeResponse()
         with patch.object(api_request_task._RequestDialog, 'show_window', side_effect=RuntimeError('window gone')), \
                 patch.object(api_client.requests, 'post', side_effect=post):
-            with self.assertRaises(Exception):
+            with self.assertRaisesRegex(Exception, "window gone"):
                 self.client.send_query('query { properties { id } }')
         self.assertEqual(finished, [True])
 
@@ -231,14 +232,14 @@ class ApiRequestTaskTest(unittest.TestCase):
             for query in ('mutation { createTask { id } }', 'mutation { updateProperty { id } }'):
                 with self.subTest(query=query), patch.object(api_client.requests, 'post',
                         side_effect=api_client.requests_exceptions.Timeout('lost')) as post:
-                    with self.assertRaises(Exception):
+                    with self.assertRaises(ApiError):
                         self.client.send_query(query)
                     self.assertEqual(post.call_count, 1)
             with TemporaryDirectory() as directory:
                 file = Path(directory) / 'upload.txt'
                 file.write_bytes(b'data')
                 with patch.object(api_client.requests, 'post', side_effect=api_client.requests_exceptions.Timeout('lost')) as post:
-                    with self.assertRaises(Exception):
+                    with self.assertRaises(ApiError):
                         self.client.send_multipart_query('mutation { uploadFile { uuid } }', file_variables={'file': str(file)})
                     self.assertEqual(post.call_count, 1)
 
