@@ -370,7 +370,6 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kõrge | Lisamine ja arhiveerimine keelduvad juba redigeerimisrežiimis kihist, kuid eemaldamise **Kustuta** (`MapHelpers.delete_features_by_field_values`) kinnitab juba avatud seansi | Tööriist võib salvestada ka kasutaja varasemad, selle toiminguga mitteseotud muudatused | Keeldu avatud seansist või kinnita ainult enda alustatud seanss |
 | Keskmine | Geospatiali režiimis lubatakse **Lisa kinnistuid** ilma impordikihita ning veavaate järel jätkub dialoogi initsialiseerimine puuduvate juhtelementidega | Nupuvajutus võib põhjustada programmivea | Arvuta nupu olek impordikihi järgi ka Geospatiali režiimis ja lõpeta konstruktor puuduva kihi veavaates ohutult |
 | Keskmine | Eri nimega SHP-de import võib jätta mitu märgendatud mälukihti; töövoog kasutab esimest, mitte tingimata uusimat | Lisada võidakse vana impordi kinnistud | Luba üks kanooniline impordikiht või küsi kasutajalt aktiivne impordikiht |
 | Keskmine | Kaardivaliku kontroller ei käsitle objekti valimata `Esc`-i, paremklõpsu ega tööriistavahetust lõpetamisena | Visuaali aken või lisamisdialoog võib jääda minimeerituks | Kuula kaarditööriista deaktiveerimist ja taasta kasutajaliides katkestussignaaliga |

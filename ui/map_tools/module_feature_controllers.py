@@ -8,6 +8,8 @@ from qgis.core import QgsEditFormConfig, QgsFeature, QgsVectorLayer, QgsWkbTypes
 from qgis.utils import iface
 
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 from ..window_state.dialog_helpers import DialogHelpers
 from ...utils.layers.field_value_problems import show_saved, with_field_value_problems
 from ...utils.layers.module_layer_service_base import FieldValueProblem
@@ -286,6 +288,8 @@ class ModuleFeatureDrawController:
         self._pending_feature_ids: set[int] = set()
         self._started_edit_session = False
         self._original_form_suppress = None
+        self._canvas = None
+        self._draw_tool = None
 
     def start_draw(
         self,
@@ -303,6 +307,13 @@ class ModuleFeatureDrawController:
     ) -> bool:
         layer = resolve_layer()
         if layer is None:
+            return False
+        if layer.isEditable():
+            # Saving the drawn feature commits the whole session, with the user's other edits in it.
+            ModernMessageDialog.show_warning(
+                title_error,
+                LanguageManager().translate(TranslationKeys.LAYER_ALREADY_EDITING).format(layer=layer.name()),
+            )
             return False
 
         self.cancel(log_module=log_module)
@@ -338,11 +349,54 @@ class ModuleFeatureDrawController:
             ModernMessageDialog.show_warning(title_error, start_failed_message)
             self.cancel(log_module=log_module)
             return False
+        self._watch_for_abandon(layer)
         return True
+
+    # Without these watches a draw left with Esc and another tool kept listening, and a feature
+    # drawn later on the same layer was linked to this item.
+    def _watch_for_abandon(self, layer: QgsVectorLayer) -> None:
+        canvas = iface.mapCanvas() if iface is not None else None
+        if canvas is not None:
+            self._canvas = canvas
+            self._draw_tool = canvas.mapTool()
+            canvas.mapToolSet.connect(self._on_map_tool_set)
+        layer.editingStopped.connect(self._abandon)
+
+    def _disconnect_abandon_watches(self) -> None:
+        if self._canvas is not None:
+            try:
+                self._canvas.mapToolSet.disconnect(self._on_map_tool_set)
+            except (TypeError, RuntimeError):  # not connected, or the canvas was deleted
+                pass
+        if isinstance(self._layer, QgsVectorLayer):
+            try:
+                self._layer.editingStopped.disconnect(self._abandon)
+            except (TypeError, RuntimeError):  # not connected, or the layer was deleted
+                pass
+        self._canvas = None
+        self._draw_tool = None
+
+    def _on_map_tool_set(self, new_tool, _old_tool=None) -> None:
+        if new_tool is not self._draw_tool:
+            self._abandon()
+
+    def _abandon(self) -> None:
+        layer = self._layer
+        started_edit_session = self._started_edit_session
+        log_module = self._log_module
+        PythonFailLogger.log("module_feature_draw_abandoned", module=log_module, extra={"item_id": self._item_id})
+        self.cancel(log_module=log_module)
+        # Close the edit session this draw opened, unless something was edited in it after all.
+        try:
+            if started_edit_session and isinstance(layer, QgsVectorLayer) and layer.isEditable() and not layer.isModified():
+                layer.rollBack()
+        except RuntimeError as exc:  # the layer was deleted
+            PythonFailLogger.log_exception(exc, module=log_module, event="module_feature_draw_abandon_rollback_failed")
 
     def cancel(self, *, log_module: str = "general") -> None:
         if isinstance(self._layer, QgsVectorLayer):
             self._restore_attribute_form(self._layer)
+        self._disconnect_abandon_watches()
         self._disconnect_feature_added()
         self._pending_feature_ids.clear()
         self._layer = None
@@ -384,6 +438,9 @@ class ModuleFeatureDrawController:
         # One draw links one feature. Committing it emits featureAdded again with the
         # permanent id, which must not open the form a second time.
         self._disconnect_feature_added()
+        # The feature is drawn: the commit ends the edit session and the pan tool follows,
+        # and neither is an abandoned draw any more.
+        self._disconnect_abandon_watches()
         self._pending_feature_ids.add(normalized_feature_id)
         QTimer.singleShot(0, lambda fid=normalized_feature_id: self._finalize_feature_added(fid))
 

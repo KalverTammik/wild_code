@@ -62,6 +62,14 @@ class WorksRepositionController:
         if not task_id_text:
             return False
 
+        if layer.isEditable():
+            # The new place is saved with commitChanges, which would save the user's other edits too.
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.LAYER_ALREADY_EDITING).format(layer=layer.name()),
+            )
+            return False
+
         feature = WorksLayerService.find_feature_by_task_id(layer, task_id_text)
         if feature is None:
             ModernMessageDialog.show_warning(

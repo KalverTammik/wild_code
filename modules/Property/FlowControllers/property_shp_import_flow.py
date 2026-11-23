@@ -13,6 +13,7 @@ from ....constants.file_paths import QmlPaths
 from ....constants.layer_constants import IMPORT_PROPERTY_TAG
 from ....engines.LayerCreationEngine import (
     MailablGroupFolders,
+    ShapefileImportCancelled,
     ShapefileImportProgress,
     get_layer_engine,
 )
@@ -58,6 +59,7 @@ class _ImportProgressWindow:
         self._parent = parent
         self._lang = lang_manager
         self._dialog = None
+        self.cancelled = False
 
     def __call__(self, report: ShapefileImportProgress) -> None:
         if self._dialog is None:
@@ -83,7 +85,11 @@ class _ImportProgressWindow:
             text2 = self._lang.translate(TranslationKeys.LAYER_IMPORT_IMPORTED).format(count=report.copied)
         self._dialog.update(value=report.done, text1=text1, text2=text2)
         if report.stage != ShapefileImportProgress.COMPLETE:
+            # The window's Cancel only sets a flag; the events have to run for the click to land.
             QCoreApplication.processEvents()
+            if self._dialog.is_cancelled is True:
+                self.cancelled = True
+                raise ShapefileImportCancelled()
 
     def close(self) -> None:
         if self._dialog is not None:
@@ -136,6 +142,8 @@ class SHPLayerLoader:
             )
         finally:
             progress_window.close()
+        if progress_window.cancelled:
+            return SHPLoadResult(SHPLoadStatus.CANCELLED)
         PythonFailLogger.log(
             "shp_loader_import_result",
             module="property",
@@ -253,27 +261,13 @@ class SHPLayerLoader:
         )
         return (False, selected_path) if use_existing else (True, "")
 
-    def _resolve_import_result(self, memory_layer, layer_name: str):
-        if isinstance(memory_layer, str):
-            layers = self.engine.project.mapLayersByName(memory_layer)
-            memory_layer = layers[0] if layers else None
-
-        if memory_layer is None:
-            for _ in range(3):
-                QCoreApplication.processEvents()
-            candidates = self.engine.project.mapLayersByName(f"{layer_name}_memory")
-            if candidates:
-                memory_layer = candidates[-1]
-
-        if memory_layer is not None:
+    @staticmethod
+    def _resolve_import_result(memory_layer, layer_name: str):
+        # Only the engine's own answer counts: looking the layer up by name after a failure
+        # would find a half-copied layer and report it as the import.
+        if isinstance(memory_layer, QgsVectorLayer) and memory_layer.isValid():
             return memory_layer
-
-        tagged_layers = [
-            layer
-            for layer in self.engine.project.mapLayers().values()
-            if layer.customProperty(IMPORT_PROPERTY_TAG)
-        ]
-        return tagged_layers[-1] if tagged_layers else None
+        return None
 
     def _bootstrap_error_message(self, result: PropertyLayerBootstrapResult) -> str:
         if result.error_code == PropertyLayerBootstrapService.ERROR_MISSING_FIELDS:

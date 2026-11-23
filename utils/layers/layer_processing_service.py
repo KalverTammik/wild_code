@@ -3,7 +3,14 @@ from __future__ import annotations
 from typing import Optional
 
 import processing
-from qgis.core import QgsMapLayer, QgsProcessingFeatureSourceDefinition, QgsProject, QgsVectorLayer
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsMapLayer,
+    QgsProcessingFeatureSourceDefinition,
+    QgsProject,
+    QgsUnitTypes,
+    QgsVectorLayer,
+)
 
 from ...engines.LayerCreationEngine import MailablGroupFolders
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -13,6 +20,30 @@ from .memory_layer_result_service import MemoryLayerResultService
 
 class LayerProcessingService:
     """Shared processing helpers for preview/result memory layers."""
+
+    # L-EST97, Estonia's national grid in metres: the buffer CRS when neither the layer nor the
+    # project is in metres.
+    METRIC_FALLBACK_CRS = "EPSG:3301"
+
+    @staticmethod
+    def metres_in_layer_units(layer: QgsVectorLayer, metres: float) -> Optional[float]:
+        """The distance in the layer's own units, or None when its CRS is geographic (degrees).
+
+        A degree is not a fixed length, so no factor converts metres to degrees.
+        """
+        crs = layer.crs()
+        if not crs.isValid() or crs.isGeographic():
+            return None
+        factor = QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, crs.mapUnits())
+        return float(metres) * float(factor)
+
+    @classmethod
+    def metric_crs(cls) -> QgsCoordinateReferenceSystem:
+        project_crs = QgsProject.instance().crs()
+        if (project_crs.isValid() and not project_crs.isGeographic()
+                and project_crs.mapUnits() == QgsUnitTypes.DistanceMeters):
+            return project_crs
+        return QgsCoordinateReferenceSystem(cls.METRIC_FALLBACK_CRS)
 
     @staticmethod
     def _source_definition(layer: QgsVectorLayer, *, selected_only: bool = False):
@@ -98,6 +129,65 @@ class LayerProcessingService:
         )
 
     @classmethod
+    def _buffer_in_metres(
+        cls,
+        source_layer: QgsVectorLayer,
+        input_definition,
+        *,
+        distance: float,
+        segments: int,
+        dissolve: bool,
+        end_cap_style: int,
+        join_style: int,
+        miter_limit: float,
+        result_layer_name: str,
+        **result_options,
+    ) -> Optional[QgsVectorLayer]:
+        """Buffer by ``distance`` metres: in the layer's units, or through a metric CRS for degrees."""
+        def buffer_parameters(input_value, layer_distance: float) -> dict:
+            return {
+                "INPUT": input_value,
+                "DISTANCE": float(layer_distance),
+                "SEGMENTS": int(segments),
+                "DISSOLVE": bool(dissolve),
+                "END_CAP_STYLE": int(end_cap_style),
+                "JOIN_STYLE": int(join_style),
+                "MITER_LIMIT": float(miter_limit),
+            }
+
+        layer_distance = cls.metres_in_layer_units(source_layer, distance)
+        if layer_distance is not None:
+            return cls.run_processing_to_memory(
+                "native:buffer",
+                buffer_parameters(input_definition, layer_distance),
+                result_layer_name=result_layer_name,
+                **result_options,
+            )
+
+        reprojected = cls.run_processing_to_memory(
+            "native:reprojectlayer",
+            {"INPUT": input_definition, "TARGET_CRS": cls.metric_crs()},
+            result_layer_name=result_layer_name,
+            register_result=False,
+        )
+        if reprojected is None:
+            return None
+        buffered = cls.run_processing_to_memory(
+            "native:buffer",
+            buffer_parameters(reprojected, distance),
+            result_layer_name=result_layer_name,
+            register_result=False,
+        )
+        if buffered is None:
+            return None
+        return cls.run_processing_to_memory(
+            "native:reprojectlayer",
+            {"INPUT": buffered, "TARGET_CRS": source_layer.crs()},
+            result_layer_name=result_layer_name,
+            **result_options,
+        )
+
+    @classmethod
     def buffer_selected_features(
         cls,
         source_layer: Optional[QgsVectorLayer],
@@ -116,6 +206,7 @@ class LayerProcessingService:
         make_visible: bool = True,
         make_active: bool = False,
     ) -> Optional[QgsVectorLayer]:
+        """Buffer the selected features by ``distance`` metres."""
         if source_layer is None or not source_layer.isValid():
             return None
 
@@ -126,17 +217,15 @@ class LayerProcessingService:
         if selected_count <= 0:
             return None
 
-        return cls.run_processing_to_memory(
-            "native:buffer",
-            {
-                "INPUT": cls._source_definition(source_layer, selected_only=True),
-                "DISTANCE": float(distance),
-                "SEGMENTS": int(segments),
-                "DISSOLVE": bool(dissolve),
-                "END_CAP_STYLE": int(end_cap_style),
-                "JOIN_STYLE": int(join_style),
-                "MITER_LIMIT": float(miter_limit),
-            },
+        return cls._buffer_in_metres(
+            source_layer,
+            cls._source_definition(source_layer, selected_only=True),
+            distance=distance,
+            segments=segments,
+            dissolve=dissolve,
+            end_cap_style=end_cap_style,
+            join_style=join_style,
+            miter_limit=miter_limit,
             result_layer_name=result_layer_name,
             group_name=group_name,
             style_path=style_path,
@@ -167,6 +256,7 @@ class LayerProcessingService:
         make_active: bool = False,
         register_result: bool = True,
     ) -> Optional[QgsVectorLayer]:
+        """Buffer the layer (or its selection) by ``distance`` metres."""
         if source_layer is None or not source_layer.isValid():
             return None
 
@@ -178,17 +268,15 @@ class LayerProcessingService:
             if selected_count <= 0:
                 return None
 
-        return cls.run_processing_to_memory(
-            "native:buffer",
-            {
-                "INPUT": cls._source_definition(source_layer, selected_only=selected_only),
-                "DISTANCE": float(distance),
-                "SEGMENTS": int(segments),
-                "DISSOLVE": bool(dissolve),
-                "END_CAP_STYLE": int(end_cap_style),
-                "JOIN_STYLE": int(join_style),
-                "MITER_LIMIT": float(miter_limit),
-            },
+        return cls._buffer_in_metres(
+            source_layer,
+            cls._source_definition(source_layer, selected_only=selected_only),
+            distance=distance,
+            segments=segments,
+            dissolve=dissolve,
+            end_cap_style=end_cap_style,
+            join_style=join_style,
+            miter_limit=miter_limit,
             result_layer_name=result_layer_name,
             group_name=group_name,
             style_path=style_path,

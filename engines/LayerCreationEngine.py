@@ -32,6 +32,10 @@ from ..constants.module_names import Module
 
 
 
+class ShapefileImportCancelled(Exception):
+    """Raised by an import's on_progress callback to stop the import; no layer is left behind."""
+
+
 @dataclass(frozen=True)
 class ShapefileImportProgress:
     """One progress report of import_shapefile_to_memory_layer.
@@ -392,7 +396,9 @@ class LayerCreationEngine:
             layer_name: Name for the new memory layer
             group_name: Target group name
             on_progress: Optional callback for progress reports. It is not called when the
-                source has no features. An exception from it fails the import (returns None).
+                source has no features. An exception from it fails the import (returns None);
+                ShapefileImportCancelled is the way to cancel. A failed or cancelled import
+                removes the half-copied layer from the project.
 
         Returns:
             Optional[QgsVectorLayer]: Created memory layer or None if failed
@@ -438,6 +444,7 @@ class LayerCreationEngine:
         provider = memory_layer.dataProvider()
         if not provider:
             PythonFailLogger.log("layer_import_no_provider", module=Module.PROPERTY.value)
+            self._discard_partial_layer(memory_layer)
             return None
 
         # Disable undo stack for bulk operations (still useful for memory management)
@@ -454,6 +461,7 @@ class LayerCreationEngine:
 
         # Disable signals during bulk operations for maximum performance
         memory_layer.blockSignals(True)
+        imported = False
         try:
             features_batch = []
 
@@ -462,18 +470,15 @@ class LayerCreationEngine:
 
                 # Process batch when it reaches the limit
                 if len(features_batch) >= batch_size:
-                    success = provider.addFeatures(features_batch)
-                    if success:
-                        features_added += len(features_batch)
-                        features_batch.clear()  # More efficient than reassigning []
-                    else:
+                    if not provider.addFeatures(features_batch):
                         PythonFailLogger.log(
                             "layer_import_batch_failed",
                             module=Module.PROPERTY.value,
                             extra={"size": len(features_batch)},
                         )
-                        memory_layer.blockSignals(False)  # Re-enable signals on error
                         return None
+                    features_added += len(features_batch)
+                    features_batch.clear()  # More efficient than reassigning []
 
                 # Update progress very infrequently to minimize overhead
                 if i % progress_update_interval == 0 or i == total_features - 1:
@@ -481,14 +486,12 @@ class LayerCreationEngine:
 
             # Flush remaining features
             if features_batch:
-                success = provider.addFeatures(features_batch)
-                if not success:
+                if not provider.addFeatures(features_batch):
                     PythonFailLogger.log(
                         "layer_import_batch_failed",
                         module=Module.PROPERTY.value,
                         extra={"size": len(features_batch), "final": True},
                     )
-                    memory_layer.blockSignals(False)  # Re-enable signals on error
                     return None
                 features_added += len(features_batch)
 
@@ -502,17 +505,16 @@ class LayerCreationEngine:
             memory_layer.loadNamedStyle(style_path)
 
             report(ShapefileImportProgress.COMPLETE, total_features, features_added)
-
-            # Restore undo stack
-            if original_undo_stack:
-                try:
-                    memory_layer.setUndoStack(original_undo_stack)
-                except Exception as e:
-                    PythonFailLogger.log_exception(
-                        e, module=Module.PROPERTY.value, event="layer_import_undo_restore_failed")
-
+            imported = True
             return memory_layer
 
+        except ShapefileImportCancelled:
+            PythonFailLogger.log(
+                "layer_import_cancelled",
+                module=Module.PROPERTY.value,
+                extra={"copied": features_added, "total": total_features},
+            )
+            return None
         except Exception as e:
             PythonFailLogger.log_exception(e, module=Module.PROPERTY.value, event="layer_import_failed")
             return None
@@ -521,6 +523,15 @@ class LayerCreationEngine:
             memory_layer.blockSignals(False)
             if original_undo_stack:
                 memory_layer.setUndoStack(original_undo_stack)
+            if not imported:
+                # A half-copied layer must not pass for the import result.
+                self._discard_partial_layer(memory_layer)
+
+    def _discard_partial_layer(self, layer: QgsVectorLayer) -> None:
+        try:
+            self.project.removeMapLayer(layer.id())
+        except RuntimeError as exc:  # the layer was already deleted
+            PythonFailLogger.log_exception(exc, module=Module.PROPERTY.value, event="layer_import_discard_failed")
 
 def get_layer_engine() -> LayerCreationEngine:
     """

@@ -101,13 +101,25 @@ class OpenFolderActionButton(CardActionButton):
             tooltip,
             lang_manager,
         )
+        self._lang = lang_manager
         self._file_path = ""
         self.clicked.connect(self._open_current_folder)
         self.set_file_path(file_path)
 
     def _open_current_folder(self, _checked: bool = False) -> None:
-        if self._file_path:
-            FolderHelpers.open_item_folder(self._file_path)
+        if not self._file_path:
+            return
+        result = FolderHelpers.open_item_folder(self._file_path)
+        keys = {
+            FolderHelpers.FOLDER_BLOCKED: (TranslationKeys.WARNING, TranslationKeys.DESCRIPTION_LINK_BLOCKED),
+            FolderHelpers.FOLDER_NOT_FOUND: (TranslationKeys.WARNING, TranslationKeys.DESCRIPTION_LINK_NOT_FOUND),
+            FolderHelpers.FOLDER_OPEN_FAILED: (TranslationKeys.ERROR, TranslationKeys.DESCRIPTION_LINK_OPEN_FAILED),
+        }
+        if result in keys:
+            lang = self._lang or LanguageManager()
+            title_key, message_key = keys[result]
+            ModernMessageDialog.show_warning(
+                lang.translate(title_key), lang.translate(message_key).format(target=self._file_path))
 
     def set_file_path(self, file_path: Optional[str]) -> None:
         """Apply the current item path without recreating its card."""

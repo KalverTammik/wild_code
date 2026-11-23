@@ -255,7 +255,7 @@ Toiming ei kontrolli enne joonistamist, kas sama `ext_job_id` objekt on kihil ju
 
 ### Joonistamise katkestamise risk
 
-Kontroller ei kuula eraldi QGIS-i lisamistööriista `Esc`-katkestust ega tööriista vahetamist. Kui kasutaja katkestab enne objekti loomist, võib `featureAdded` kuulaja jääda aktiivseks. Järgmine samale kihile hiljem lisatud kõrvaline objekt võidakse siduda varem valitud teostusjoonisega.
+Kui kasutaja vahetab kaardi tööriista või lõpetab kihi muutmise enne objekti joonistamist, lõpetab kontroller ootamise ja sulgeb enda avatud tühja muutmisseansi; hiljem lisatud objekti ei seota. Kiht, mida kasutaja juba muudab, lükatakse joonistamise alguses tagasi, sest salvestus kinnitaks kogu seansi.
 
 Ohutu katkestusviis praeguses versioonis on lõpetada loodav geomeetria ja vajutada seejärel andmevormil **Katkesta**, eeldusel et põhikiht ei olnud enne töövoogu redigeerimisrežiimis.
 
@@ -303,10 +303,7 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kriitiline | Teostusjoonise joonistuskontroller ei lõpeta `featureAdded` kuulamist objekti loomisele eelneva `Esc`-katkestuse ega tööriistavahetuse korral | Hilisem kõrvaline objekt võidakse siduda vale teostusjoonisega | Kuula kaarditööriista deaktiveerimist ja katkestust ning lõpeta kontroller kindlalt |
-| Kõrge | **Muuda asukohta** kinnitab alati kogu tööde kihi redigeerimisseansi | Koos tööpunktiga salvestuvad ootamatult muud ootel muudatused | Kinnita ainult enda alustatud seanss või hoiata ja keela toiming aktiivse seansi korral |
 | Kõrge | Teostusjoonise staatuse järel sünkroonitakse tööde, mitte teostusjooniste põhikihti | Kavitro staatus ja teostusjoonise `ext_job_state` jäävad eri seisu | Vali sünkroonimisteenus mooduli järgi ja lisa teostusjooniste atribuudisünkroon |
-| Kõrge | Olemasoleva töö punkti lisamisel jäetakse `update_task_geometry` `False` tulemus arvestamata (`works_create_controller.py`) | QGIS-i punkt võib olla olemas ja kuvada edu, kuigi Kavitro asukoht ei muutunud | Kontrolli vastust, näita osalise õnnestumise hoiatust ja paku kordussünkroonimist |
 | Kõrge | Teostusjoonise kiht kinnitatakse enne Kavitrot ja Kavitro viga kuvatakse hoiatusena, kuid ühist tehingut ega korduvat sünkroonimist ei ole | Teenuse geomeetria võib jääda QGIS-i objektist erinevaks | Paku korduvat sünkroonimist |
 | Keskmine | Teostusjoonise **Katkesta** tagastatakse veana ja tekst „Teostusjoonise andmete sisestamine katkestati“ on koodis (`asbuilt_feature_map_controller.py`) | Kasutaja ei erista teadlikku katkestust rikkest; tõlkevõtmete reegel on rikutud | Anna kontrollerile eraldi cancelled-tulemus ja sulge ilma veahoiatuseta |
 | Keskmine | Uue teostusjoonise joonistamine ei kontrolli olemasolevat sama ID-ga objekti | Ühe kirje jaoks võivad tekkida duplikaatobjektid | Kontrolli ID-d enne lisamist ning paku olemasoleva objekti fokuseerimist või kinnitatud asendamist |

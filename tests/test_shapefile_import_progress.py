@@ -26,6 +26,7 @@ from Kavitro_dev.constants.module_names import Module
 from Kavitro_dev.engines.LayerCreationEngine import (
     LayerCreationEngine,
     MailablGroupFolders,
+    ShapefileImportCancelled,
     ShapefileImportProgress,
 )
 from Kavitro_dev.languages.translation_keys import TranslationKeys
@@ -116,6 +117,23 @@ class EngineProgressReportsTest(unittest.TestCase):
 
         self.assertIsNone(layer)
         self.assertEqual(logger.log_exception.call_args.kwargs["event"], "layer_import_failed")
+        self.assertEqual(QgsProject.instance().mapLayersByName(f"{LAYER_NAME}_memory"), [])
+
+    def test_cancel_stops_the_copy_and_leaves_no_layer(self):
+        def cancel_on_second(report):
+            self.reports.append(report)
+            if len(self.reports) == 2:
+                raise ShapefileImportCancelled()
+
+        with patch("Kavitro_dev.engines.LayerCreationEngine.PythonFailLogger") as logger:
+            layer = self._import(_source_layer(6), on_progress=cancel_on_second, batch_size=2,
+                                 progress_update_interval=2)
+
+        self.assertIsNone(layer)
+        self.assertEqual(len(self.reports), 2)  # nothing is copied or reported after the cancel
+        self.assertEqual(QgsProject.instance().mapLayersByName(f"{LAYER_NAME}_memory"), [])
+        self.assertEqual(logger.log.call_args.args[0], "layer_import_cancelled")
+        logger.log_exception.assert_not_called()
 
 
 class _Lang:
@@ -173,6 +191,14 @@ class ImportProgressWindowTest(unittest.TestCase):
         # Events are processed while copying and finalizing, not after the final report.
         self.assertEqual(self.events.processEvents.call_count, 2)
 
+    def test_cancel_in_the_window_stops_the_import(self):
+        self.window(ShapefileImportProgress(ShapefileImportProgress.COPYING, 1, 4, 0))
+        self.assertFalse(self.window.cancelled)
+        self.dialog_class.return_value.is_cancelled = True
+        with self.assertRaises(ShapefileImportCancelled):
+            self.window(ShapefileImportProgress(ShapefileImportProgress.COPYING, 3, 4, 2))
+        self.assertTrue(self.window.cancelled)
+
     def test_close_closes_the_window_once(self):
         self.window(ShapefileImportProgress(ShapefileImportProgress.COPYING, 1, 2, 0))
         self.window.close()
@@ -228,6 +254,26 @@ class LoaderClosesProgressWindowTest(unittest.TestCase):
                 self._loader(self._report_then(RuntimeError("boom"))).load_shp_layer()
 
         dialog_class.return_value.close.assert_called_once_with()
+
+    def test_a_cancelled_import_is_reported_as_cancelled_not_as_failed(self):
+        def cancel(**kwargs):
+            kwargs["on_progress"].cancelled = True
+            return None
+
+        p1, p2, p3, p4 = self._patches()
+        with p1, p2, p3, p4:
+            loader = self._loader(cancel)
+            result = loader.load_shp_layer()
+
+        self.assertEqual(result.status, SHPLoadStatus.CANCELLED)
+        loader._resolve_import_result.assert_not_called()
+
+    def test_a_failed_import_is_not_replaced_by_a_layer_found_by_name(self):
+        layer = QgsVectorLayer("Point?crs=EPSG:3301", "source_memory", "memory")
+        QgsProject.instance().addMapLayer(layer)
+        self.addCleanup(lambda: QgsProject.instance().removeMapLayer(layer.id()))
+        self.assertIsNone(SHPLayerLoader._resolve_import_result(None, "source"))
+        self.assertIs(SHPLayerLoader._resolve_import_result(layer, "source"), layer)
 
     def test_engine_gets_the_progress_window_not_a_parent_widget(self):
         p1, p2, p3, p4 = self._patches()

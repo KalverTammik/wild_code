@@ -188,7 +188,7 @@ Avamine muudab QGIS-i aktiivset kihti, kinnistukihi valikut ja kaardi ulatust. D
 
 Seega muudab esmane automaatne eelvaade vaikimisi geomeetriat kahe ühiku võrra väljapoole ja tagasi puhverdades ka siis, kui põhipuhver on null. Täpselt kinnistupiire järgiva algtulemuse jaoks lülita **Ümardatud nurgad** välja või määra raadiuseks null.
 
-Puhvri- ja raadiuseväljade järelliide on `m`, kuid QGIS-i `native:buffer` saab väärtuse otse kinnistukihi koordinaatsüsteemi ühikutes. Kood ei teisenda geograafilise või muus mitte-meetrilises CRS-is kihti meetrilisse CRS-i. Meetri tähis on seetõttu õige ainult meetrites töötava kinnistukihi korral.
+Puhvri- ja raadiuseväljade väärtus on meetrites: projektsioonis kihil teisendatakse see kihi ühikutesse, kraadides kihi puhver arvutatakse meetrilises CRS-is (projekti meetriline CRS, muidu L-EST97) ja tulemus teisendatakse tagasi (`LayerProcessingService`).
 
 ## Eelvaate Seosta kinnistuid
 
@@ -286,17 +286,16 @@ Toiming ei kontrolli, kas samal projektil on põhikihil juba objekt. Iga käivit
 
 ### Joonistamise katkestamise servajuht
 
-Joonistuskontroller kuulab kihi `featureAdded` signaali, kuid ei kuula eraldi QGIS-i lisamistööriista deaktiveerimist ega `Esc`-katkestust. Kui joonistamine katkestatakse objekti loomata või kasutaja vahetab tööriista, võib kontroller jääda järgmise kihiobjekti lisamist ootama. Hiljem samale kihile lisatud objekt võidakse siis siduda varem valitud projektiga. Samaks ajaks võib jääda kehtima ka atribuudivormi mahasurumine.
+Kui kasutaja vahetab kaardi tööriista või lõpetab kihi muutmise enne objekti joonistamist, lõpetab kontroller ootamise ja sulgeb enda avatud tühja muutmisseansi; hiljem lisatud objekti ei seota. Kiht, mida kasutaja juba muudab, lükatakse joonistamise alguses tagasi, sest salvestus kinnitaks kogu seansi.
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
 Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
 
+Detailtahvel kasutab teadlikult nimekirja päringu esimest kinnistut: nii laadib projektide nimekiri kiiremini ja kaardi ikoon on õige; asukohapäring küsib vajadusel kogu kinnistute loetelu (kasutaja otsus 2026-11-23).
+
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kriitiline | Detailtahvel kasutab kaardi andmeid, mille nimekirjapäring küsib vaikimisi ühe kinnistu (`ListFilteredProjects.graphql`: `$propertiesFirst: Int = 1`) | Mitme kinnistuga projekti tahvel näitab ainult esimese kinnistu töid ja seoseid | Laadi detaili avamisel kõik projekti kinnistuseosed lehekülgede kaupa |
-| Kriitiline | Puhvri väljad on märgitud meetrites, kuid töötlus kasutab kinnistukihi CRS-i ühikuid | Geograafilises CRS-is võib `2 m` muutuda kaheks kraadiks ja tekitada väga vale projektiala | Teisenda töögeomeetria meetrilisse CRS-i või kuva ja valideeri tegelikud ühikud |
-| Kriitiline | Katkestatud käsitsi joonistamine võib jätta `featureAdded` kuulaja aktiivseks | Hiljem lisatud kõrvaline polügoon võidakse siduda vale projektiga | Kuula kaarditööriista deaktiveerimist ja `Esc`-i ning tühista kontroller kindlalt |
 | Kõrge | Tööd loetakse lehtede kaupa (kuni 10 lehte), kuid teiste moodulite seosed ainult esimeselt 30-kirjeliselt lehelt (`PropertiesConnectedElementsQueries`) | Suurte seostega tahvel on puudulik | Rakenda kõigile moodulitele paginatsioon või näita kärpimise hoiatust |
 | Kõrge | Eelvaate salvestamine ei uuenda Kavitro geomeetriat | QGIS-i ja Kavitro projektiala jäävad erinevaks | Paku kontrollitud sünkroonimist ja kuva selgelt mõlema andmeallika tulemus |
 | Kõrge | Käsitsi joonistamine lubab lisada samale projektile piiramatult sama ID-ga alasid | Kaardifookus ja hilisem ala uuendamine kasutavad vaid üht mitmest duplikaadist | Küsi olemasoleva ala korral, kas seda asendada, muuta või lisada eraldi ala |
@@ -305,8 +304,7 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 | Keskmine | Projektikausta valmisolekukontroll nõuab ka kihte, filtreid ja tahvlistaatusi | Failikausta loomine võib olla blokeeritud kõrvalise seadistuse tõttu | Kontrolli kaustatoimingus ainult lähte-, siht- ja nimeseadeid |
 | Keskmine | Eelvaate vaikeseade ümardab ala raadiusega 2,0 | Kasutaja võib salvestada kinnistupiiridest erineva ala seda märkamata | Kasuta vaikimisi nullraadiust või nõua enne salvestamist nähtavat kinnitust |
 | Keskmine | Kaardivaliku `Esc`, paremklõps ja tööriistavahetus ei taasta alati Visuaali akent | Töövoog näib kinni jäänud | Lisa kontrollerile katkestussignaal ja kasutajaliidese taastamine |
-| Keskmine | Joonistamine kihil, mille redigeerimisseanss oli juba avatud, kinnitab kogu seansi (`_commit_drawn_feature`) | Koos projektialaga salvestuvad kasutaja varasemad, mitteseotud muudatused | Kinnita ainult joonistatud objekt või hoiata avatud seansi korral |
-| Madal | **Ava kaust** ja **Ava kirje brauseris** ei kuva avamisviga kasutajale; `FolderHelpers.open_item_folder` käivitab Kavitrost tuleva tee `shell=True` kaudu | Nupp võib näida mittetöötav; erimärkidega tee võib käivitada soovimatu käsu | Ava tee `os.startfile`/`QDesktopServices` kaudu ilma shellita ja kuva viga |
+| Madal | **Ava kirje brauseris** ei kuva avamisviga kasutajale | Nupp võib näida mittetöötav | Kuva URL-i või käivitamisvea korral hoiatus |
 | Madal | **Puhasta eelvaade** jätab vana olekuteksti, kui eemaldatavaid kihte ei olnud | Kasutajaliidese seis on eksitav | Tühjenda olek alati pärast puhastamist |
 
 ## Soovituslik turvaline tööjärjekord

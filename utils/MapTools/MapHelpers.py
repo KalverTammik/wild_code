@@ -489,9 +489,14 @@ class FeatureActions:
         if not feature_ids:
             return True, [], ""
 
+        if layer.isEditable():
+            # commitChanges would save the user's own pending edits as well.
+            return False, feature_ids, LanguageManager().translate(TranslationKeys.LAYER_ALREADY_EDITING).format(
+                layer=layer.name())
+
         try:
-            if not layer.isEditable():
-                layer.startEditing()
+            if not layer.startEditing():
+                return False, feature_ids, LanguageManager().translate(TranslationKeys.PROPERTY_SEARCH_FIELD_EDIT_FAILED)
 
             ok_delete = bool(layer.deleteFeatures(feature_ids))
             ok_commit = bool(layer.commitChanges()) if ok_delete else False

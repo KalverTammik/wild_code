@@ -595,12 +595,14 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
         )
         # One mutation for the place and the property: a second one waits for the pacing.
         linked = False
+        location_saved = False
         try:
             if APIModuleActions.update_task_geometry(task_id, geometry_payload, property_ids=property_ids or None):
                 linked = bool(property_ids)
+                location_saved = True
             elif property_ids:
                 # The server may have refused the pair for the property alone: send the place by itself.
-                APIModuleActions.update_task_geometry(task_id, geometry_payload)
+                location_saved = bool(APIModuleActions.update_task_geometry(task_id, geometry_payload))
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -615,17 +617,20 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
         cadastral_number = WorksLayerService.property_cadastral_number(property_feature)
         self._notify_created(task_id, event="works_post_add_existing_callback_failed")
 
+        # The point is on the layer either way; what did not reach Kavitro is named.
+        problems = []
+        if not location_saved:
+            problems.append(self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_LOCATION_SYNC_FAILED).format(
+                task_id=task_id))
         if property_link_failed:
+            problems.append(self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_PROPERTY_LINK_FAILED).format(
+                task_id=task_id,
+                cadastral=cadastral_number,
+            ))
+        if problems:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.WARNING),
-                with_field_value_problems(
-                    self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_PROPERTY_LINK_FAILED).format(
-                        task_id=task_id,
-                        cadastral=cadastral_number,
-                    ),
-                    value_problems,
-                    self._lang,
-                ),
+                with_field_value_problems("\n\n".join(problems), value_problems, self._lang),
             )
             return
 

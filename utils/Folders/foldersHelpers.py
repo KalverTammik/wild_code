@@ -1,8 +1,9 @@
 
-import subprocess
 from typing import Callable, Optional
 import shutil
 import os
+from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QFileDialog
 from ...python.module_files_path_updater import ModuleFilesPathUpdater
 from ...languages.language_manager import LanguageManager
@@ -14,7 +15,12 @@ from ...constants.setting_placeholders import SettingDialogPlaceholders
 from ..settings_service import SettingsService
 from ..user_dialogs import UserDialogs
 from ..security_boundaries import (
+    DESCRIPTION_LINK_LOCAL_PATH,
+    DESCRIPTION_LINK_NETWORK_PATH,
+    DESCRIPTION_LINK_WEB,
+    classify_description_link,
     is_same_or_descendant_path,
+    resolve_allowed_external_extension,
     resolve_direct_child_path,
     sanitize_path_component,
 )
@@ -242,19 +248,45 @@ class FolderHelpers:
         directory = QFileDialog.getExistingDirectory(parent, caption, start_path or os.path.expanduser("~"), options)
         return directory or None
 
+    # Results of open_item_folder; the caller words them for the user.
+    FOLDER_OPENED = "opened"
+    FOLDER_BLOCKED = "blocked"
+    FOLDER_NOT_FOUND = "not_found"
+    FOLDER_OPEN_FAILED = "failed"
+
     @staticmethod
-    def open_item_folder(file_path: Optional[str]) -> None:
-        if not file_path:
-            return
-        target = file_path.replace("/", "\\")
+    def open_item_folder(file_path: Optional[str]) -> str:
+        """Open the item's folder or web address, never through a shell.
+
+        The path comes from Kavitro. A shell (``start``/``explorer`` with ``shell=True``) would read
+        characters such as ``&`` or ``|`` in it as commands; the desktop services open it as one path.
+        The description link rules decide what may open: http/https, an absolute local or network
+        folder, or a file whose extension is on the document allowlist (pdf, docx, dwg, ...), which
+        opens in its own program. Programs and scripts (exe, bat, ps1, ...) are refused, as are
+        control characters, device paths and other schemes.
+        """
+        destination = classify_description_link(file_path)
         try:
-            if target.lower().startswith("http"):
-                subprocess.Popen(["start", "", target], shell=True)
+            if destination.kind == DESCRIPTION_LINK_WEB:
+                opened = QDesktopServices.openUrl(QUrl(destination.target, QUrl.TolerantMode))
+            elif destination.kind in (DESCRIPTION_LINK_LOCAL_PATH, DESCRIPTION_LINK_NETWORK_PATH):
+                target = destination.target
+                if os.path.isfile(target):
+                    if not resolve_allowed_external_extension(local_file_path=target):
+                        PythonFailLogger.log("open_item_folder_blocked", module="ui",
+                                             extra={"reason": "file_extension"})
+                        return FolderHelpers.FOLDER_BLOCKED
+                elif not os.path.isdir(target):
+                    return FolderHelpers.FOLDER_NOT_FOUND
+                opened = QDesktopServices.openUrl(QUrl.fromLocalFile(target))
             else:
-                subprocess.Popen(["explorer", target], shell=True)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module="ui",
-                event="open_item_folder_failed",
-            )
+                PythonFailLogger.log(
+                    "open_item_folder_blocked",
+                    module="ui",
+                    extra={"reason": destination.reason or destination.kind},
+                )
+                return FolderHelpers.FOLDER_BLOCKED
+        except (OSError, RuntimeError) as exc:
+            PythonFailLogger.log_exception(exc, module="ui", event="open_item_folder_failed")
+            return FolderHelpers.FOLDER_OPEN_FAILED
+        return FolderHelpers.FOLDER_OPENED if opened else FolderHelpers.FOLDER_OPEN_FAILED

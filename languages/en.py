@@ -276,6 +276,7 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_ARCHIVE_PENDING: "Backend archiving stopped. Map archive copies are retained. Backend actions were not attempted for these properties: {tunnused}",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_LAYERS_NOT_READY: "The property layer or archive layer was not found or could not be prepared.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_ALREADY_EDITING: "The property layer or archive layer is already in edit mode. Finish editing first; nothing was archived.",
+        TranslationKeys.LAYER_ALREADY_EDITING: "Layer \"{layer}\" is already in edit mode. Save or discard your changes first; this action was not done.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_ARCHIVE_EDIT: "The archive layer could not enter edit mode. Nothing was archived.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_NOT_FOUND: "Property {tunnus} was not found on the property layer. Nothing was archived.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_COPY: "Copying property {tunnus} to the archive layer failed. Nothing was archived.",
@@ -723,6 +724,7 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SAVE_FAILED: "Task {task_id} exists in Kavitro, but its map feature could not be saved to the Works layer. Details: {error}"
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_PROPERTY_LINK_FAILED: "Task {task_id} was added to the map, but property linking failed for {cadastral}."
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SUCCESS: "Task {task_id} was added to the Works layer."
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_LOCATION_SYNC_FAILED: "Work {task_id} was added to the Works layer, but its location could not be sent to Kavitro: the map and Kavitro now show different locations."
         ,TranslationKeys.WORKS_PENDING_GIS_ACTION: "Check unlinked GIS works"
         ,TranslationKeys.WORKS_PENDING_GIS_START_FAILED: "Could not start the unlinked GIS works check."
         ,TranslationKeys.WORKS_PENDING_GIS_CHECKING: "Checking map data..."

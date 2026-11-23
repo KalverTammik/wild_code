@@ -112,7 +112,7 @@ Kui vormis vajutada **Katkesta**:
 - varem redigeeritavas kihis võib joonistatud objekt muutmispuhvrisse alles jääda;
 - katkestust käsitletakse tehniliselt salvestusveana ja kasutajale võidakse kuvada ebaõnnestumise hoiatus.
 
-Joonistuskontroller ei kuula eraldi QGIS-i lisamistööriista `Esc`-katkestust ega tööriista vahetamist. Objektita katkestamisel võib `featureAdded` kuulaja jääda aktiivseks ning järgmine samale kihile lisatud kõrvaline objekt võidakse siduda varem valitud servituudiga.
+Kui kasutaja vahetab kaardi tööriista või lõpetab kihi muutmise enne objekti joonistamist, lõpetab kontroller ootamise ja sulgeb enda avatud tühja muutmisseansi; hiljem lisatud objekti ei seota. Kiht, mida kasutaja juba muudab, lükatakse joonistamise alguses tagasi, sest salvestus kinnitaks kogu seansi.
 
 Kavitro geomeetria saadetakse enne Visuaali alustatud kihiseansi lõplikku kinnitamist. Kui teenuse uuendus õnnestub, kuid hilisem kihi `commitChanges()` ebaõnnestub, võib Kavitro geomeetria uueneda ja QGIS-i objekt kaduda.
 
@@ -200,7 +200,7 @@ Päringud, QGIS-i valikud ja töötlemisalgoritmid käivad kasutajaliidese lõim
 
 **Puhvri kaugus** on vaikimisi `2,0 m`, vahemikuga `0,1–500,0`. Väärtus on varukaugus; fikseeritud või atribuudi järgi arvutatava reegliga tehnovõrgureal võib muudatus nähtavat puhvrit mitte mõjutada.
 
-Kood annab kauguse QGIS-i `native:buffer` algoritmile otse lähtekihi koordinaatsüsteemi ühikutes. Meetri järelliide ja automaatreeglite meetritähendus on õiged ainult meetrites töötaval lähtekihil. Geograafilises CRS-is võib näiteks `2 m` muutuda kaheks kraadiks.
+Kaugus on meetrites: projektsioonis kihil teisendatakse see kihi ühikutesse, kraadides kihi puhver arvutatakse meetrilises CRS-is ja teisendatakse tagasi (`LayerProcessingService`).
 
 **Ümardatud nurgad** muudab ainult puhvri `END_CAP_STYLE` parameetrit. `JOIN_STYLE` ehk tegelik nurgastiil jääb alati ümardatuks. Seetõttu mõjutab märkeruut eelkõige jooneotsi ning polügoonide nurkade puhul ei pruugi midagi muuta.
 
@@ -262,7 +262,7 @@ Ohutu tööjärjekord on seetõttu: loo esmalt lõplik lõige, kontrolli arvutat
 - Erindite haru võib kutsuda `rollBack()` ka kasutaja varem avatud redigeerimisseansile ja tühistada teisi ootel kihimuudatusi.
 - Olemasoleva objekti otsing võib sama numbri järgi leida varasema vale objekti enne täpset ID-vastet.
 
-Põhikihi pindalaväljale kirjutatakse `geometry.area()` tulemus sihtkihi ruutühikutes, mitte alati ruutmeetrites. Dialoogi kinnistupindalad arvutatakse seevastu `QgsDistanceArea` abil ruutmeetriteks. Mitte-meetrilises CRS-is võivad teenuse seosepindala ja põhikihi pindalaväli erineda väga suurelt.
+Põhikihi pindalaväljale kirjutatakse ruutmeetrid sama arvutusega nagu dialoogi kinnistupindaladel (`measure_geometry_area_sqm`): projektsioonis kihil tasapinnaliselt, kraadides kihil ellipsoidil.
 
 ## Eelvaata PDF skeemi
 
@@ -305,13 +305,10 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kriitiline | Puhvrikaugused märgitakse meetrites, kuid `native:buffer` saab väärtuse lähtekihi CRS-i ühikutes | Geograafilises või muus mitte-meetrilises CRS-is võib servituudiala olla väga vale | Teisenda töögeomeetriad meetrilisse CRS-i või valideeri ja kuva tegelik ühik |
 | Kriitiline | Kinnistuandmete payload koostatakse enne puuduva lõpliku lõike loomist | Ilma eelneva **Loo lõplik lõige** vajutuseta võivad arvutatud pindalad Kavitrosse salvestamata jääda | Loo ja arvuta lõige enne payload'i kogumist või saada pärast arvutust teine kontrollitud uuendus |
-| Kriitiline | Katkestatud uue objekti joonistamine võib jätta `featureAdded` kuulaja aktiivseks | Hilisem kõrvaline polügoon võidakse siduda vale servituudiga | Kuula lisamistööriista deaktiveerimist ja `Esc`-i ning lõpeta kontroller kindlalt |
 | Kõrge | Kihi ja Kavitro kirjutused ei ole ühine tehing: kiht kinnitatakse enne Kavitrot ja Kavitro viga kuvatakse hoiatusena, kuid kihti tagasi ei pöörata | QGIS-i objekt ja teenuse geomeetria võivad jääda eri seisu | Paku korduvat sünkroonimist |
 | Kõrge | Eelvaate üldine olekusilt peidetakse ja seda ei näidata hiljem | Lõpliku lõike ning puhastamise tulemus ja vead ei ole tekstina nähtavad | Kutsu oleku muutmisel `show()` või eemalda algne püsiv peitmine |
 | Kõrge | **Määra kinnistud kaardilt** peidetakse kõigi olemasolevate seoste korral | Eelvaatest ei saa olemasolevale servituudile uut kinnistut lisada, kuigi nupu nimi viitab üldisele määramisele | Hoia nupp nähtaval ja luba lisamine; seoste eemaldamiseks loo eraldi kinnitatud töövoog |
-| Kõrge | Põhikihi pindala arvutatakse kihi ruutühikutes, aga väärtust käsitletakse ruutmeetritena | Mitte-meetrilises CRS-is salvestub vale pindala | Kasuta sama `QgsDistanceArea` ruutmeetriarvutust nagu kinnistuseostel |
 | Keskmine | **Ümardatud nurgad** muudab otsakuju, mitte nurgastiili | Nupp ei anna nimele vastavat tulemust, eriti polügoonidel | Seo märkeruut `JOIN_STYLE` parameetriga ja nimeta otsakuju eraldi |
 | Keskmine | Mittetasulise seose märkimine tasuliseks ei lisa maksekuupäeva ega kogusumma juhtelemente | Kasutaja ei saa uue tasulise seose kõiki andmeid sisestada ega kontrollida | Ehita tasulisuse muutusel sõltuvad väljad dünaamiliselt ümber |
 | Keskmine | PDF-i silt **Lepingu nr** on koodis (`easement_pdf_service.py`) ja maketis eestikeelne tekst ning avaldamine ei kontrolli duplikaati | Skeem on valesti nimetatud ning korduvad vajutused võivad luua dubleeritud failid | Paranda silt tõlkevõtmega, näita failinime ja küsi olemasoleva faili korral asendamise või uue versiooni valik |

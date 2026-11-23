@@ -19,7 +19,7 @@ Moodulipõhise nupu eel ja järel toimuvad sammud jäävad vastava mooduli detai
 | Seoste **Tühista** | Loobub kinnitamata uutest seostest | Jah, enne kinnitamist |
 | Seoste **Kinnita** | Lisab valitud kinnistuseosed Kavitrosse | Selle dialoogiga seoseid eemaldada ei saa |
 | Teatedialoogi **OK** | Sulgeb teate või tagastab kinnitatud sisestuse | Sõltub avavast töövoost |
-| Edenemisakna **Tühista** | Märgib dialoogi katkestatuks, kuid SHP-import jätkub | Ei peata praegust importi |
+| Edenemisakna **Tühista** | Peatab SHP-impordi ja eemaldab pooliku mälukihi | Jah |
 
 ## Kättesaadavus moodulite lõikes
 
@@ -240,9 +240,7 @@ Nupu vajutamisel:
 3. nupp keelatakse;
 4. saadetakse `canceled` signaal.
 
-Impordikood ei ühenda selle signaaliga ühtegi käsitlejat ega kontrolli `is_cancelled` olekut. Juba lisatud partiisid ei eemaldata ja ka ülejäänud objektide kopeerimine jätkub. Nupp ei sulge dialoogi.
-
-`Esc` kutsub esmalt sama katkestusmeetodi ja annab klahvisündmuse seejärel edasi QDialogile, mistõttu dialoog võib sulguda, kuigi import jätkub. Sulgemisrist märgib sulgemise lõpetatud tulemuseks, mitte katkestuseks. Kuna imporditsükkel kasutab dialoogi hilisemate edenemisuuenduste jaoks, võib dialoogi enneaegne kustumine tekitada erindi ning jätta mälukihi osaliselt täidetuks.
+Import kontrollib olekut iga edenemisteate järel: katkestamisel kopeerimine peatub, pooleldi täidetud mälukiht eemaldatakse projektist ja tulemus on „katkestatud“, mitte viga. Ebaõnnestunud importi ei asendata enam nime järgi leitud kihiga.
 
 Import ise töötab kasutajaliidese lõimes ja töötleb QGIS-i sündmusi vaid edenemisintervallidel. Suure partii ajal võib dialoog ajutiselt mitte reageerida.
 
@@ -256,7 +254,6 @@ Välise avamise laiendikontrolli ja kinnituse puudumine on Etapp 1A ehk WC-02 ra
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kriitiline | SHP-impordi edenemisaknal on **Tühista**, kuid importi ei katkestata (`property_shp_import_flow.py` ei loe akna `is_cancelled` olekut) | **Tühista** jätab mulje katkestamisest, kuid import jätkub | Kontrolli olekut igas partiis, lõpeta kopeerimine ja eemalda osaline kiht |
 | Kõrge | PDF-i WebEngine toe puudumisel lõpetatakse enne eelvaatedialoogi loomist | Kasutajale ei pakuta **Ava väliselt** nuppu, kuigi fail on Kavitros olemas | Paku hoiatuses eraldi välise avamise valik või ava piiratud eelvaatedialoog |
 | Kõrge | Väliselt avamiseks allalaaditud ajutisi faile ei kustutata | Tundlikud dokumendid jäävad kettale ja ajutine kataloog kasvab | Halda elutsüklit, paku säilitamisvalikut ning kustuta fail pärast ohutut viivitust või sessiooni lõpus |
 | Kõrge | Failide üleslaadimine käib kasutajaliidese lõimes ilma katkestamiseta; esimese vea järel peatutakse ja ülejäänud failid kuvatakse | Pikk jada blokeerib akna | Kasuta taustatööd ja katkestamist |

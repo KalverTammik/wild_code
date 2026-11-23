@@ -92,6 +92,15 @@ class PropertyActionService:
                 )
 
             if normalized_action == "delete":
+                if main_layer is not None and main_layer.isEditable():
+                    message = lang.translate(TranslationKeys.LAYER_ALREADY_EDITING).format(layer=main_layer.name())
+                    return PropertyActionResult(
+                        ok=False,
+                        title=lang.translate(TranslationKeys.PROPERTY_ACTION_FAILED_TITLE),
+                        message=message,
+                        action=normalized_action,
+                        error=message,
+                    )
                 BackendPropertyActions.delete_properties_by_tunnused(list(tunnused))
                 if main_layer is None:
                     return PropertyActionResult(

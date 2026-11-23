@@ -822,6 +822,8 @@ class TranslationKeys:
     PROPERTY_ARCHIVE_PENDING = "property_archive_pending"
     PROPERTY_ARCHIVE_ERROR_LAYERS_NOT_READY = "property_archive_error_layers_not_ready"
     PROPERTY_ARCHIVE_ERROR_ALREADY_EDITING = "property_archive_error_already_editing"
+    WORKS_ADD_EXISTING_ON_MAP_LOCATION_SYNC_FAILED = "works_add_existing_on_map_location_sync_failed"
+    LAYER_ALREADY_EDITING = "layer_already_editing"
     PROPERTY_ARCHIVE_ERROR_ARCHIVE_EDIT = "property_archive_error_archive_edit"
     PROPERTY_ARCHIVE_ERROR_NOT_FOUND = "property_archive_error_not_found"
     PROPERTY_ARCHIVE_ERROR_COPY = "property_archive_error_copy"

@@ -6,7 +6,6 @@ from typing import Optional
 
 from qgis.PyQt.QtXml import QDomDocument
 from qgis.core import (
-    QgsDistanceArea,
     QgsLayoutExporter,
     QgsLayoutItemLabel,
     QgsLayoutItemLegend,
@@ -15,13 +14,13 @@ from qgis.core import (
     QgsProject,
     QgsReadWriteContext,
     QgsRectangle,
-    QgsUnitTypes,
 )
 from qgis.utils import iface
 
 from ...constants.cadastral_fields import Katastriyksus
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.responses import DataDisplayExtractors
+from .easement_property_edges import measure_geometry_area_sqm
 
 
 class EasementPdfService:
@@ -352,31 +351,13 @@ class EasementPdfService:
 
     @classmethod
     def _measure_total_area_sqm(cls, layer, features: list) -> float:
-        distance_area = QgsDistanceArea()
-        try:
-            distance_area.setSourceCrs(layer.crs(), QgsProject.instance().transformContext())
-            ellipsoid = QgsProject.instance().ellipsoid()
-            if ellipsoid:
-                distance_area.setEllipsoid(ellipsoid)
-        except (AttributeError, RuntimeError):
-            pass
-
         total = 0.0
         for feature in features:
             try:
                 geometry = feature.geometry()
             except (AttributeError, RuntimeError):
                 geometry = None
-            if geometry is None or geometry.isEmpty():
-                continue
-            try:
-                measured = distance_area.measureArea(geometry)
-                total += float(distance_area.convertAreaMeasurement(measured, QgsUnitTypes.AreaSquareMeters))
-            except (AttributeError, TypeError):
-                try:
-                    total += float(geometry.area())
-                except (AttributeError, TypeError, ValueError):
-                    continue
+            total += measure_geometry_area_sqm(geometry, layer)
         return max(0.0, total)
 
     @classmethod

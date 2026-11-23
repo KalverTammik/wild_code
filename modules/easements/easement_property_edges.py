@@ -114,6 +114,22 @@ def format_property_label(number: str, feature=None) -> str:
     return str(number or "")
 
 
+def _ellipsoid_for(layer) -> str:
+    """The project's ellipsoid; without one, planar for a projected layer and the CRS's own for degrees.
+
+    Without an ellipsoid ("NONE", the default of a project without a CRS) the area is planar in the
+    layer's units. That is right for a projected layer such as L-EST97, whose planar area is the
+    cadastral one, but square degrees are then converted with the equator's factor: about twice the
+    real area at Estonia's latitude.
+    """
+    ellipsoid = str(QgsProject.instance().ellipsoid() or "").strip()
+    if ellipsoid and ellipsoid.upper() != "NONE":
+        return ellipsoid
+    if not layer.crs().isGeographic():
+        return "NONE"
+    return str(layer.crs().ellipsoidAcronym() or "").strip() or "EPSG:7030"
+
+
 def measure_geometry_area_sqm(geometry, layer) -> float:
     """Area in square metres on the project ellipsoid, planar when that fails."""
     try:
@@ -125,9 +141,7 @@ def measure_geometry_area_sqm(geometry, layer) -> float:
     try:
         distance_area = QgsDistanceArea()
         distance_area.setSourceCrs(layer.crs(), QgsProject.instance().transformContext())
-        ellipsoid = QgsProject.instance().ellipsoid()
-        if ellipsoid:
-            distance_area.setEllipsoid(ellipsoid)
+        distance_area.setEllipsoid(_ellipsoid_for(layer))
         measured = distance_area.measureArea(geometry)
         return max(0.0, float(distance_area.convertAreaMeasurement(measured, QgsUnitTypes.AreaSquareMeters)))
     except (AttributeError, RuntimeError, TypeError):

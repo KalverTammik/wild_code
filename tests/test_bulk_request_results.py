@@ -59,7 +59,7 @@ class BulkRequestResultsTest(unittest.TestCase):
                 patch.object(backend.deleteProperty, 'delete_single_item', side_effect=[(True, ''), (False, 'Unconfirmed'), (True, '')]) as delete, \
                 patch.object(actions.FeatureActions, 'delete_features_by_field_values') as delete_map, \
                 patch.object(actions.PythonFailLogger, 'log_exception'):
-            result = actions.PropertyActionService.run_action('delete', ['T1', 'T2', 'T3'], main_layer=object())
+            result = actions.PropertyActionService.run_action('delete', ['T1', 'T2', 'T3'], main_layer=Mock(**{'isEditable.return_value': False}))
         self.assertFalse(result.ok)
         self.assertEqual(delete.call_count, 2)
         delete_map.assert_not_called()

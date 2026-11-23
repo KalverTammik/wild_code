@@ -195,18 +195,94 @@ class DrawFlowTest(DialogStubCase):
         self.assertEqual(self.sync_saw, (False, 1))
         self.log.assert_not_called()
 
-    def test_failed_link_in_the_users_own_session_drops_only_the_drawn_feature(self) -> None:
+    def start_only(self, handler):
+        controller = ModuleFeatureDrawController()
+        started = controller.start_draw(
+            item_data={"id": "42"}, resolve_layer=lambda: self.layer, on_feature_created=handler,
+            start_failed_message="start failed", layer_save_failed_message=LAYER_SAVE_FAILED,
+            sync_failed_message=SYNC_FAILED, success_message=SUCCESS, title_error="E", title_success="S",
+            log_module="project",
+        )
+        self.assertTrue(started)
+        self.assertTrue(self.layer.isEditable())
+        canvas = controllers_module.iface.mapCanvas.return_value
+        tool_changed = canvas.mapToolSet.connect.call_args.args[0]
+        return controller, canvas, tool_changed
+
+    def add_point(self):
+        feature = QgsFeature(self.layer.fields())
+        feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(3, 4)))
+        self.assertTrue(self.layer.addFeature(feature))
+
+    def test_another_map_tool_ends_the_draw_and_a_later_feature_is_not_linked(self) -> None:
+        handler = Mock()
+        controller, canvas, tool_changed = self.start_only(handler)
+
+        tool_changed(object(), canvas.mapTool.return_value)
+
+        self.assertFalse(self.layer.isEditable())  # the empty session this draw opened is closed
+        canvas.mapToolSet.disconnect.assert_called_once_with(tool_changed)
+        self.assertTrue(self.layer.startEditing())
+        with patch.object(controllers_module.QTimer, "singleShot") as later:
+            self.add_point()
+        later.assert_not_called()
+        handler.assert_not_called()
+        self.layer.rollBack()
+
+    def test_the_draw_tool_itself_keeps_the_draw_going(self) -> None:
+        controller, canvas, tool_changed = self.start_only(Mock())
+
+        tool_changed(canvas.mapTool.return_value, None)
+
+        self.assertTrue(self.layer.isEditable())
+        with patch.object(controllers_module.QTimer, "singleShot") as later:
+            self.add_point()
+        later.assert_called_once()
+        controller.cancel()
+        self.layer.rollBack()
+
+    def test_stopping_the_edit_session_ends_the_draw(self) -> None:
+        handler = Mock()
+        self.start_only(handler)
+
+        self.layer.rollBack()  # the user leaves edit mode before drawing
+
+        self.assertTrue(self.layer.startEditing())
+        with patch.object(controllers_module.QTimer, "singleShot") as later:
+            self.add_point()
+        later.assert_not_called()
+        self.layer.rollBack()
+
+    def test_saving_the_drawn_feature_is_not_taken_for_an_abandoned_draw(self) -> None:
+        # The commit stops the edit session; the draw must still finish and report success.
+        with patch.object(PythonFailLogger, "log") as log:
+            self.draw(self.handler(7))
+
+        self.show_info.assert_called_once_with("S", "saved 42")
+        self.assertEqual(self.layer.featureCount(), 1)
+        self.assertNotIn("module_feature_draw_abandoned", [c.args[0] for c in log.call_args_list])
+
+    def test_a_layer_the_user_is_editing_is_refused_and_left_untouched(self) -> None:
+        # Saving the drawing would commit the whole session; keeping it pending would
+        # report a save that did not happen. Neither: the draw does not start.
         self.assertTrue(self.layer.startEditing())
         earlier = QgsFeature(self.layer.fields())
         earlier.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(5, 5)))
         self.assertTrue(self.layer.addFeature(earlier))
+        controller = ModuleFeatureDrawController()
 
-        self.draw(self.handler(7, link_ok=False))
+        started = controller.start_draw(
+            item_data={"id": "42"}, resolve_layer=lambda: self.layer, on_feature_created=self.handler(7),
+            start_failed_message="start failed", layer_save_failed_message=LAYER_SAVE_FAILED,
+            sync_failed_message=SYNC_FAILED, success_message=SUCCESS, title_error="E", title_success="S",
+            log_module="easement",
+        )
 
-        self.assertEqual(self.warned(), "not saved 42: form cancelled")
+        self.assertFalse(started)
+        self.assertIn("draw", self.warned())
         self.assertTrue(self.layer.isEditable())  # the user's session and its earlier edit stay
         self.assertEqual(self.layer.featureCount(), 1)
-        self.sync.assert_not_called()
+        controllers_module.iface.actionAddFeature.assert_not_called()
         self.layer.rollBack()
 
 

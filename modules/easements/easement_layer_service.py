@@ -15,6 +15,7 @@ from ...constants.setting_placeholders import SettingDialogPlaceholders
 from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem, LayerEditTexts
 from ...constants.module_names import Module
 from ...Logs.python_fail_logger import PythonFailLogger
+from .easement_property_edges import measure_geometry_area_sqm
 
 
 class EasementLayerService(AttachableLayerServiceBase):
@@ -586,10 +587,8 @@ class EasementLayerService(AttachableLayerServiceBase):
             return False, "Final cut geometry is empty"
 
         target_geometry = cls._geometry_in_layer_crs(geometry, source_layer=final_layer, target_layer=layer)
-        try:
-            area_sqm = max(0.0, float(target_geometry.area()))
-        except (AttributeError, TypeError, ValueError):
-            area_sqm = 0.0
+        # Square metres on the ellipsoid: geometry.area() is in the layer's units (degrees² for EPSG:4326).
+        area_sqm = measure_geometry_area_sqm(target_geometry, layer)
 
         cadastral_numbers = [
             str(edge.get("cadastralUnitNumber") or "").strip()

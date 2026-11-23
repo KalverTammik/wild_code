@@ -277,6 +277,7 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_ARCHIVE_PENDING: "Taustasüsteemi arhiveerimine peatus. Kaardi arhiivikoopiad on säilinud. Järgmiste kinnistute taustasüsteemi toiming jäi tegemata: {tunnused}",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_LAYERS_NOT_READY: "Kinnistute kihti või arhiivikihti ei leitud või ei saanud ette valmistada.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_ALREADY_EDITING: "Kinnistute kiht või arhiivikiht on juba muutmisrežiimis. Lõpeta enne muutmine; arhiveerimist ei tehtud.",
+        TranslationKeys.LAYER_ALREADY_EDITING: "Kiht „{layer}“ on juba muutmisrežiimis. Salvesta või tühista enne oma muudatused; seda toimingut ei tehtud.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_ARCHIVE_EDIT: "Arhiivikihti ei saanud muutmisrežiimi viia. Arhiveerimist ei tehtud.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_NOT_FOUND: "Kinnistut {tunnus} ei leitud kinnistute kihilt. Arhiveerimist ei tehtud.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_COPY: "Kinnistu {tunnus} kopeerimine arhiivikihti ebaõnnestus. Arhiveerimist ei tehtud.",
@@ -717,6 +718,7 @@ TRANSLATIONS = {
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SAVE_FAILED: "Töö {task_id} on Kavitros olemas, kuid selle kaardiobjekti ei saanud Tööde kihile salvestada. Detailid: {error}"
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_PROPERTY_LINK_FAILED: "Töö {task_id} lisati kaardile, kuid kinnistu seostamine ebaõnnestus tunnusele {cadastral}."
         ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SUCCESS: "Töö {task_id} lisati Tööde kihile."
+        ,TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_LOCATION_SYNC_FAILED: "Töö {task_id} lisati Tööde kihile, kuid asukohta ei õnnestunud Kavitrosse saata: kaardil ja Kavitros on töö asukoht praegu erinev."
         ,TranslationKeys.WORKS_PENDING_GIS_ACTION: "Kontrolli sidumata GIS töid"
         ,TranslationKeys.WORKS_PENDING_GIS_START_FAILED: "Sidumata GIS tööde kontrolli ei saanud käivitada."
         ,TranslationKeys.WORKS_PENDING_GIS_CHECKING: "Kontrollin kaardiandmeid..."

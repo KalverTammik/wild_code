@@ -377,10 +377,24 @@ class ExistingTaskFlowTest(_FlowTest):
              "works_post_add_existing_callback_failed"],
         )
         self.associate.assert_not_called()
+        # The place did not reach Kavitro either, and both are named.
         self.assertEqual(
-            self.last_warning(),
-            "T:works_add_existing_on_map_property_link_failed[('cadastral', '1:2:3'), ('task_id', '77')]",
+            self.last_warning().split(chr(10) * 2),
+            ["T:works_add_existing_on_map_location_sync_failed[('task_id', '77')]",
+             "T:works_add_existing_on_map_property_link_failed[('cadastral', '1:2:3'), ('task_id', '77')]"],
         )
+
+    def test_a_place_kavitro_did_not_take_is_reported_not_shown_as_saved(self):
+        for side_effect in ([False], [False, False]):
+            with self.subTest(side_effect=side_effect):
+                self.info.reset_mock()
+                self.update_geometry.reset_mock()
+                self.update_geometry.side_effect = side_effect
+                self.resolve_props.return_value = (["p1"] if len(side_effect) == 2 else [], False)
+                self.run_flow()
+                self.assertTrue(self.last_warning().startswith(
+                    "T:works_add_existing_on_map_location_sync_failed[('task_id', '77')]"))
+                self.info.assert_not_called()
 
 
 class PendingGisFlowTest(_FlowTest):
