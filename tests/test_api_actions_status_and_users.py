@@ -38,7 +38,7 @@ CODE_MODULES = (
     "Kavitro_dev.python.actions.status_actions",
     "Kavitro_dev.python.actions.user_actions",
 )
-PRIORITY_DEFAULTS = ["URGENT", "HIGH", "MEDIUM", "LOW"]
+PRIORITY_VALUES = ["URGENT", "HIGH", "MEDIUM", "LOW"]
 
 
 def _code_modules() -> list:
@@ -49,14 +49,6 @@ def _code_modules() -> list:
         except ImportError:
             continue
     return modules
-
-
-def priority_cache_owner() -> type:
-    """The class that holds the task priority cache: APIModuleActions itself or the domain class it inherits."""
-    for klass in APIModuleActions.__mro__:
-        if "_task_priority_values_cache" in vars(klass):
-            return klass
-    raise AssertionError("the task priority cache is not defined on APIModuleActions or a base class")
 
 
 def status_node(status_id, name, **extra) -> dict:
@@ -83,10 +75,6 @@ def user_page(nodes, cursor=None, has_more: bool = False) -> dict:
         "edges": [{"node": node} for node in nodes],
         "pageInfo": {"endCursor": cursor, "hasNextPage": has_more},
     }}
-
-
-def enum_answer(*names) -> dict:
-    return {"__type": {"enumValues": [{"name": name, "description": ""} for name in names]}}
 
 
 class LockedSession:
@@ -166,14 +154,6 @@ class ActionTestCase(unittest.TestCase):
 
     def language_managers_built(self) -> int:
         return sum(klass.call_count for klass in self.lang_classes)
-
-
-class PriorityTestCase(ActionTestCase):
-    """The task priority cache starts empty in every test and is restored afterwards."""
-
-    def setUp(self) -> None:
-        super().setUp()
-        self._patch(priority_cache_owner(), "_task_priority_values_cache", new=None)
 
 
 class StatusModuleValueTest(ActionTestCase):
@@ -418,86 +398,18 @@ class StatusOptionsRaiseOnErrorTest(ActionTestCase):
             APIModuleActions.get_module_status_options("works", 100, True)
 
 
-class TaskPriorityValuesTest(PriorityTestCase):
-    def test_enum_values_come_from_the_task_priority_query(self) -> None:
-        self.client.send_query.return_value = enum_answer("urgent", " High ", "MEDIUM", "low")
-        self.assertEqual(APIModuleActions.get_task_priority_values(), ["URGENT", "HIGH", "MEDIUM", "LOW"])
-        self.assertEqual(self.loaded(), [("task", "taskPriorityEnum.graphql")])
-        self.assertEqual(self.sent(), [("query task/taskPriorityEnum.graphql", {})])
+class TaskPriorityValuesTest(ActionTestCase):
+    def test_values_are_the_schema_enum_and_need_no_request(self) -> None:
+        # The server refuses the introspection query that once read them (a log error every session).
+        self.assertEqual(APIModuleActions.get_task_priority_values(), PRIORITY_VALUES)
+        self.loader.load_query_by_module.assert_not_called()
+        self.client.send_query.assert_not_called()
         self.log.assert_not_called()
 
-    def test_server_order_is_kept_and_unusable_entries_are_dropped(self) -> None:
-        self.client.send_query.return_value = {"__type": {"enumValues": [
-            None, "text", {}, {"name": None}, {"name": " "}, {"name": "rush"}, {"name": "later"},
-        ]}}
-        self.assertEqual(APIModuleActions.get_task_priority_values(), ["RUSH", "LATER"])
-
-    def test_a_read_answer_is_cached_and_not_asked_again(self) -> None:
-        self.client.send_query.return_value = enum_answer("high", "low")
-        first = APIModuleActions.get_task_priority_values()
-        self.client.send_query.return_value = enum_answer("other")
-        second = APIModuleActions.get_task_priority_values()
-        self.assertEqual((first, second), (["HIGH", "LOW"], ["HIGH", "LOW"]))
-        self.assertEqual(self.client.send_query.call_count, 1)
-        self.assertEqual(self.loader.load_query_by_module.call_count, 1)
-        self.assertEqual(APIModuleActions._task_priority_values_cache, ["HIGH", "LOW"])
-
-    def test_force_refresh_asks_again_and_replaces_the_cache(self) -> None:
-        self.client.send_query.return_value = enum_answer("high")
-        APIModuleActions.get_task_priority_values()
-        self.client.send_query.return_value = enum_answer("low", "medium")
-        self.assertEqual(APIModuleActions.get_task_priority_values(force_refresh=True), ["LOW", "MEDIUM"])
-        self.assertEqual(APIModuleActions.get_task_priority_values(), ["LOW", "MEDIUM"])
-        self.assertEqual(self.client.send_query.call_count, 2)
-
-    def test_callers_get_a_copy_of_the_cache(self) -> None:
-        self.client.send_query.return_value = enum_answer("high")
-        fresh = APIModuleActions.get_task_priority_values()
-        fresh.append("CHANGED")
-        cached = APIModuleActions.get_task_priority_values()
-        cached.append("CHANGED")
-        self.assertEqual(APIModuleActions.get_task_priority_values(), ["HIGH"])
-
-    def test_answer_without_values_uses_the_defaults_and_caches_them(self) -> None:
-        answers = (None, {}, {"__type": None}, {"__type": {}}, {"__type": {"enumValues": []}},
-                   {"__type": {"enumValues": [{"name": " "}, None]}}, "text")
-        for response in answers:
-            with self.subTest(response=response):
-                self.reset_calls()
-                setattr(priority_cache_owner(), "_task_priority_values_cache", None)
-                self.client.send_query.return_value = response
-                self.assertEqual(APIModuleActions.get_task_priority_values(), PRIORITY_DEFAULTS)
-                self.assertEqual(APIModuleActions.get_task_priority_values(), PRIORITY_DEFAULTS)
-                self.assertEqual(self.client.send_query.call_count, 1)
-                self.log.assert_not_called()
-
-    def test_failed_request_uses_the_defaults_is_logged_and_not_repeated(self) -> None:
-        error = Exception("[WC-API][graphql] GraphQL introspection is not allowed")
-        self.client.send_query.side_effect = error
-        self.assertEqual([APIModuleActions.get_task_priority_values() for _ in range(3)], [PRIORITY_DEFAULTS] * 3)
-        self.assertEqual(self.client.send_query.call_count, 1)
-        self.assertEqual(self.log.call_count, 1)
-        self.assertIs(self.log.call_args.args[0], error)
-        self.assertEqual(self.log.call_args.kwargs, {"module": "task", "event": "task_priority_values_fetch_failed"})
-
-    def test_unloadable_query_uses_the_defaults_and_is_logged(self) -> None:
-        self.loader.load_query_by_module.side_effect = FileNotFoundError("query_file_not_found")
-        self.assertEqual(APIModuleActions.get_task_priority_values(), PRIORITY_DEFAULTS)
-        self.client.send_query.assert_not_called()
-        self.assertEqual(self.log.call_args.kwargs["event"], "task_priority_values_fetch_failed")
-
-    def test_force_refresh_after_a_refusal_asks_again(self) -> None:
-        self.client.send_query.side_effect = RuntimeError("refused")
-        APIModuleActions.get_task_priority_values()
-        self.client.send_query.side_effect = None
-        self.client.send_query.return_value = enum_answer("high")
-        self.assertEqual(APIModuleActions.get_task_priority_values(force_refresh=True), ["HIGH"])
-
-    def test_defaults_are_handed_out_as_a_fresh_list(self) -> None:
-        self.client.send_query.return_value = None
+    def test_callers_get_a_fresh_list(self) -> None:
         APIModuleActions.get_task_priority_values().append("CHANGED")
-        self.assertEqual(APIModuleActions.get_task_priority_values(), PRIORITY_DEFAULTS)
-        self.assertEqual(APIModuleActions._TASK_PRIORITY_DEFAULTS, tuple(PRIORITY_DEFAULTS))
+        self.assertEqual(APIModuleActions.get_task_priority_values(), PRIORITY_VALUES)
+        self.assertEqual(APIModuleActions._TASK_PRIORITY_VALUES, tuple(PRIORITY_VALUES))
 
 
 class TaskPriorityLabelTest(ActionTestCase):
@@ -534,41 +446,26 @@ class TaskPriorityLabelTest(ActionTestCase):
         self.assertEqual(self.language_managers_built(), 1)
 
 
-class TaskPriorityOptionsTest(PriorityTestCase):
-    def test_options_start_with_the_empty_choice_and_follow_the_server_values(self) -> None:
-        self.client.send_query.return_value = enum_answer("urgent", "high")
+class TaskPriorityOptionsTest(ActionTestCase):
+    def test_options_start_with_the_empty_choice_and_follow_the_schema_order(self) -> None:
         self.assertEqual(APIModuleActions.get_task_priority_options(lang_manager=self.lang), [
             {"value": "", "label": f"T[{TranslationKeys.WORKS_PRIORITY_NONE}]"},
             {"value": "URGENT", "label": f"T[{TranslationKeys.WORKS_PRIORITY_URGENT}]"},
             {"value": "HIGH", "label": f"T[{TranslationKeys.WORKS_PRIORITY_HIGH}]"},
-        ])
-        self.assertEqual(self.loaded(), [("task", "taskPriorityEnum.graphql")])
-
-    def test_empty_choice_can_be_left_out(self) -> None:
-        self.client.send_query.return_value = enum_answer("low")
-        self.assertEqual(APIModuleActions.get_task_priority_options(lang_manager=self.lang, include_empty=False), [
+            {"value": "MEDIUM", "label": f"T[{TranslationKeys.WORKS_PRIORITY_MEDIUM}]"},
             {"value": "LOW", "label": f"T[{TranslationKeys.WORKS_PRIORITY_LOW}]"},
         ])
+        self.client.send_query.assert_not_called()
 
-    def test_refused_lookup_gives_the_default_priorities(self) -> None:
-        self.client.send_query.side_effect = RuntimeError("refused")
-        options = APIModuleActions.get_task_priority_options(lang_manager=self.lang)
-        self.assertEqual([option["value"] for option in options], ["", "URGENT", "HIGH", "MEDIUM", "LOW"])
-        self.assertEqual(options[3]["label"], f"T[{TranslationKeys.WORKS_PRIORITY_MEDIUM}]")
-
-    def test_unknown_server_value_gets_a_readable_label(self) -> None:
-        self.client.send_query.return_value = enum_answer("not_started")
+    def test_empty_choice_can_be_left_out(self) -> None:
         options = APIModuleActions.get_task_priority_options(lang_manager=self.lang, include_empty=False)
-        self.assertEqual(options, [{"value": "NOT_STARTED", "label": "Not Started"}])
+        self.assertEqual([option["value"] for option in options], PRIORITY_VALUES)
 
     def test_one_language_manager_serves_every_label(self) -> None:
-        self.client.send_query.return_value = enum_answer("urgent", "high", "low")
-        options = APIModuleActions.get_task_priority_options()
-        self.assertEqual(len(options), 4)
+        self.assertEqual(len(APIModuleActions.get_task_priority_options()), 5)
         self.assertEqual(self.language_managers_built(), 1)
 
     def test_given_language_manager_builds_no_other(self) -> None:
-        self.client.send_query.return_value = enum_answer("high")
         APIModuleActions.get_task_priority_options(lang_manager=self.lang)
         self.assertEqual(self.language_managers_built(), 0)
 
@@ -914,7 +811,6 @@ class QueryFilesTest(unittest.TestCase):
     def test_every_loaded_query_file_exists(self) -> None:
         cases = (
             ("statuses", "ListModuleStatuses.graphql", "statuses(first: $first"),
-            ("task", "taskPriorityEnum.graphql", '__type(name: "TaskPriority")'),
             ("user", "me.graphql", "me {"),
             ("user", "users.graphql", "users(first: $first"),
         )
@@ -961,7 +857,7 @@ class EntryPointInterfaceTest(unittest.TestCase):
     # Text only the moved code used; none of it may stay behind in api_actions.py.
     MOVED_TEXT = (
         "ListModuleStatuses.graphql", "taskPriorityEnum.graphql", "me.graphql", "users.graphql",
-        "_TASK_PRIORITY_DEFAULTS", "_task_priority_values_cache", "_sort_key", "SessionManager",
+        "_TASK_PRIORITY_VALUES", "_sort_key", "SessionManager",
         "LanguageManager", "TranslationKeys", "createTask.graphql", "_build_task_input", "json.dumps",
         "easementStatus.graphql", "APIClient", "GraphQLQueryLoader", "PythonFailLogger",
     )
@@ -973,7 +869,7 @@ class EntryPointInterfaceTest(unittest.TestCase):
         for name in names:
             with self.subTest(method=name):
                 self.assertTrue(callable(getattr(APIModuleActions, name, None)), name)
-        self.assertEqual(APIModuleActions._TASK_PRIORITY_DEFAULTS, tuple(PRIORITY_DEFAULTS))
+        self.assertEqual(APIModuleActions._TASK_PRIORITY_VALUES, tuple(PRIORITY_VALUES))
 
     def test_moved_methods_are_the_domain_class_functions(self) -> None:
         for module_name, (class_name, names) in self.MOVED.items():
@@ -1012,7 +908,7 @@ class EntryPointInterfaceTest(unittest.TestCase):
 
     def test_task_priority_state_has_one_owner(self) -> None:
         status_actions = importlib.import_module("Kavitro_dev.python.actions.status_actions").StatusActions
-        for name in ("_TASK_PRIORITY_DEFAULTS", "_task_priority_values_cache"):
+        for name in ("_TASK_PRIORITY_VALUES",):
             with self.subTest(attribute=name):
                 self.assertIn(name, vars(status_actions))
                 self.assertNotIn(name, vars(APIModuleActions))

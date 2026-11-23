@@ -230,6 +230,11 @@ class PropertyLinkActions:
             raise ValueError("No property IDs provided for association")
 
         module_key = PropertyLinkActions._property_owner_module(module)
+        if module_key == Module.EASEMENT.value:
+            # An easement links each property as an EasementPropertyInput object, not a bare id.
+            return PropertyLinkActions.associate_easement_properties(
+                item_id, [{"id": property_id} for property_id in property_ids]
+            )
         qfile = f"update{module_key.capitalize()}Properties.graphql"
 
         loader = GraphQLQueryLoader()

@@ -760,7 +760,7 @@ class AssociatePropertiesTest(ActionTestCase):
 
     def test_other_modules_update_their_own_properties(self) -> None:
         cases = (("project", "updateProject"), ("contract", "updateContract"),
-                 ("coordination", "updateCoordination"), ("easement", "updateEasement"))
+                 ("coordination", "updateCoordination"))
         for module, root in cases:
             with self.subTest(module=module):
                 self.reset_calls()
@@ -768,6 +768,15 @@ class AssociatePropertiesTest(ActionTestCase):
                 APIModuleActions.associate_properties(module, "x-1", ["p1"])
                 self.assertEqual(self.loaded(), [(module, f"update{module.capitalize()}Properties.graphql")])
                 self.assertEqual(self.sent()[0][1]["variables"], {"input": {"id": "x-1", "properties": {"associate": ["p1"]}}})
+
+    def test_an_easement_links_each_property_as_an_object(self) -> None:
+        # The server rejects a bare id here: Expected type "EasementPropertyInput" to be an object.
+        response = {"data": {"updateEasement": {"id": "e-1"}}}
+        self.client.send_query.return_value = response
+        self.assertIs(APIModuleActions.associate_properties("Easement", "e-1", ["p1", "p2"]), response)
+        self.assertEqual(self.loaded(), [("easement", "updateEasementProperties.graphql")])
+        self.assertEqual(self.sent()[0][1]["variables"],
+                         {"input": {"id": "e-1", "properties": {"associate": [{"id": "p1"}, {"id": "p2"}]}}})
 
     def test_answer_without_the_updated_id_raises(self) -> None:
         for response in (None, {}, {"data": None}, {"data": {"updateProject": None}},
@@ -881,7 +890,7 @@ class EntryPointInterfaceTest(unittest.TestCase):
         for name in self.EXPECTED_METHODS:
             with self.subTest(method=name):
                 self.assertTrue(callable(getattr(APIModuleActions, name, None)), name)
-        self.assertEqual(APIModuleActions._TASK_PRIORITY_DEFAULTS, ("URGENT", "HIGH", "MEDIUM", "LOW"))
+        self.assertEqual(APIModuleActions._TASK_PRIORITY_VALUES, ("URGENT", "HIGH", "MEDIUM", "LOW"))
 
     def test_moved_methods_are_the_domain_class_functions(self) -> None:
         for module_name, (class_name, names) in self.MOVED.items():

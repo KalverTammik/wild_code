@@ -3,6 +3,7 @@ import platform
 import json
 import re
 import time
+import traceback
 import mimetypes
 import requests
 from requests import exceptions as requests_exceptions
@@ -13,6 +14,7 @@ from qgis.PyQt.QtWidgets import QApplication
 from ..utils.SessionManager import SESSION_REASON_UNAUTHENTICATED, SessionManager
 from ..constants.file_paths import ConfigPaths, GraphQLSettings
 from ..Logs.python_fail_logger import PythonFailLogger
+from ..Logs.switch_logger import SwitchLogger
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 from ..utils.api_error_handling import (
@@ -24,6 +26,35 @@ from ..utils.api_error_handling import (
 from . import api_rate_limit
 from .api_rate_limit import ApiRateLimitError, RequestCancelled
 from .api_request_task import send_api_request
+
+# A GUI-thread request this slow has opened the modal wait window, which drops map clicks.
+GUI_WAIT_LOG_SECONDS = 0.4
+_OPERATION_PATTERN = re.compile(r"\b(?:query|mutation)\s+([A-Za-z_]\w*)|\{\s*([A-Za-z_]\w*)")
+_PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_TRANSPORT_DIRS = tuple(os.path.join(_PLUGIN_ROOT, name) + os.sep for name in ("python", "Logs"))
+
+
+def graphql_operation_name(query: str) -> str:
+    """The operation name, or the first field of an anonymous query; never the variables."""
+    match = _OPERATION_PATTERN.search(str(query or ""))
+    if not match:
+        return "?"
+    return match.group(1) or match.group(2)
+
+
+def plugin_callers(limit: int = 3) -> str:
+    """The nearest plugin functions outside the API layer that led to this request."""
+    frames = []
+    for frame in reversed(traceback.extract_stack()[:-1]):
+        path = os.path.abspath(frame.filename)
+        if not path.startswith(_PLUGIN_ROOT + os.sep) or path.startswith(_TRANSPORT_DIRS):
+            continue
+        relative = os.path.relpath(path, _PLUGIN_ROOT).replace(os.sep, "/")
+        frames.append(f"{relative}:{frame.name}")
+        if len(frames) >= limit:
+            break
+    return " < ".join(frames) or "?"
+
 
 class APIClient:
     # A server category is a short code; anything else in the body stays out of the UI and the logs.
@@ -69,6 +100,21 @@ class APIClient:
             if cls._CATEGORY_PATTERN.match(category):
                 return category
         return "HTTP 403"
+
+    @staticmethod
+    def _log_gui_thread_wait(query: str, seconds: float) -> None:
+        """Names the flows that keep the user waiting, so they can be moved off the GUI thread."""
+        if seconds < GUI_WAIT_LOG_SECONDS:
+            return
+        SwitchLogger.log(
+            "api_gui_thread_wait",
+            module="api",
+            extra={
+                "operation": graphql_operation_name(query),
+                "seconds": f"{seconds:.2f}",
+                "caller": plugin_callers(),
+            },
+        )
 
     @staticmethod
     def _on_gui_thread() -> bool:
@@ -117,12 +163,17 @@ class APIClient:
             headers = self._request_headers(require_auth, json_body=json_body)
             try:
                 send = prepare_send(api_url, headers)
-                response = send_api_request(
-                    send,
-                    endpoint=api_url, authorization=headers.get("Authorization"),
-                    cost=cost, is_main_thread=is_main_thread,
-                    retry_rate_limits=retry_rate_limits,
-                )
+                started = time.monotonic()
+                try:
+                    response = send_api_request(
+                        send,
+                        endpoint=api_url, authorization=headers.get("Authorization"),
+                        cost=cost, is_main_thread=is_main_thread,
+                        retry_rate_limits=retry_rate_limits,
+                    )
+                finally:
+                    if is_main_thread:
+                        self._log_gui_thread_wait(query, time.monotonic() - started)
 
                 if response.status_code == 401:
                     raise ApiError(ApiErrorKind.AUTH, "HTTP 401 Unauthenticated")

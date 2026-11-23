@@ -11,8 +11,9 @@ from ...constants.module_names import Module
 
 class StatusActions:
     """Static status, priority and easement status actions; APIModuleActions inherits them so callers keep one entry point."""
-    _TASK_PRIORITY_DEFAULTS = ("URGENT", "HIGH", "MEDIUM", "LOW")
-    _task_priority_values_cache: Optional[List[str]] = None
+    # The TaskPriority enum of the Kavitro schema (kavitro.dev/docs/graphql/reference/enums/task-priority).
+    # The server refuses introspection and has no query that lists enum values, so they live here.
+    _TASK_PRIORITY_VALUES = ("URGENT", "HIGH", "MEDIUM", "LOW")
 
     @staticmethod
     def _status_module_value(module: str) -> str:
@@ -113,37 +114,8 @@ class StatusActions:
         return sorted(statuses_by_id.values(), key=_sort_key)
 
     @staticmethod
-    def get_task_priority_values(*, force_refresh: bool = False) -> List[str]:
-        if StatusActions._task_priority_values_cache and not force_refresh:
-            return list(StatusActions._task_priority_values_cache)
-
-        loader = GraphQLQueryLoader()
-        client = APIClient()
-
-        try:
-            query = loader.load_query_by_module(Module.TASK.value, "taskPriorityEnum.graphql")
-            data = client.send_query(query) or {}
-            enum_payload = (data.get("__type") or {}) if isinstance(data, dict) else {}
-            enum_values = enum_payload.get("enumValues") or []
-
-            values = [
-                str(item.get("name") or "").strip().upper()
-                for item in enum_values
-                if isinstance(item, dict) and str(item.get("name") or "").strip()
-            ]
-            if values:
-                StatusActions._task_priority_values_cache = values
-                return list(values)
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.TASK.value,
-                event="task_priority_values_fetch_failed",
-            )
-
-        # The server refuses introspection, so do not resend a doomed request on every lookup.
-        StatusActions._task_priority_values_cache = list(StatusActions._TASK_PRIORITY_DEFAULTS)
-        return list(StatusActions._TASK_PRIORITY_DEFAULTS)
+    def get_task_priority_values() -> List[str]:
+        return list(StatusActions._TASK_PRIORITY_VALUES)
 
     @staticmethod
     def task_priority_label(priority: str, *, lang_manager=None) -> str:

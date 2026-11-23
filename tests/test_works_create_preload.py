@@ -58,25 +58,11 @@ class WorksCreatePreloadTest(unittest.TestCase):
 
 
 class TaskPriorityLookupTest(unittest.TestCase):
-    def setUp(self) -> None:
-        cache = patch.object(StatusActions, "_task_priority_values_cache", None)
-        cache.start()
-        self.addCleanup(cache.stop)
-
-    def test_refused_lookup_is_sent_once_and_uses_the_defaults(self) -> None:
-        client = Mock()
-        client.send_query.side_effect = Exception("[WC-API][graphql] GraphQL introspection is not allowed")
-
-        with (
-            patch.object(status_module, "APIClient", return_value=client),
-            patch.object(status_module, "GraphQLQueryLoader"),
-            patch.object(status_module.PythonFailLogger, "log_exception") as log_exception,
-        ):
+    def test_priorities_are_known_without_a_request(self) -> None:
+        with patch.object(status_module, "APIClient") as client_class:
             results = [APIModuleActions.get_task_priority_values() for _ in range(3)]
-
-        self.assertEqual(client.send_query.call_count, 1)
-        log_exception.assert_called_once()
-        self.assertEqual(results, [list(APIModuleActions._TASK_PRIORITY_DEFAULTS)] * 3)
+        client_class.assert_not_called()
+        self.assertEqual(results, [list(StatusActions._TASK_PRIORITY_VALUES)] * 3)
 
 
 if __name__ == "__main__":
