@@ -2,7 +2,6 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
@@ -25,13 +24,17 @@ class BulkRequestResultsTest(unittest.TestCase):
         cls.app = QgsApplication.instance() or QgsApplication([], False)
 
     def test_upload_failure_stops_before_next_file_and_refreshes_actual_list(self):
-        dialog = SimpleNamespace(_module_name='works', _item_id='task-1',
-                                 _lang=LanguageManager(), _load_files=Mock())
-        with patch.object(files.QFileDialog, 'getOpenFileNames', return_value=(['a.txt', 'b.txt', 'c.txt'], '')), \
+        dialog = files.TaskFilesDialog(item_id='task-1', module_name='works', lang_manager=LanguageManager(),
+                                       initial_files=[])
+        self.addCleanup(dialog.deleteLater)
+        dialog._load_files = Mock()
+        # The upload runs in background workers (2026-11-24); run each one in place here.
+        with patch.object(files, 'start_worker', side_effect=lambda worker: worker.run()), \
+                patch.object(files.QFileDialog, 'getOpenFileNames', return_value=(['a.txt', 'b.txt', 'c.txt'], '')), \
                 patch.object(files.APIModuleActions, 'upload_module_file', side_effect=[{'uuid': 'a'}, None, {'uuid': 'c'}]) as upload, \
                 patch.object(files.ModernMessageDialog, 'show_warning') as warning, \
                 patch.object(files.ModernMessageDialog, 'show_info') as success:
-            files.TaskFilesDialog._upload_files(dialog)
+            dialog._upload_files()
         self.assertEqual(upload.call_count, 2)
         self.assertIn('b.txt', warning.call_args.args[1])
         self.assertIn('c.txt', warning.call_args.args[1])

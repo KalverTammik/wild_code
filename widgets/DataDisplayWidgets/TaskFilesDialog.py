@@ -26,6 +26,7 @@ from ...python.api_actions import APIModuleActions
 from ...python.workers import FunctionWorker, start_worker
 from ...ui.messages_helper import ModernMessageDialog
 from ...constants.module_names import Module
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.date_helpers import DateHelpers
 from ...ui.theme_manager import ThemeManager
 from .TaskFilePreviewDialog import TaskFilePreviewDialog
@@ -64,6 +65,15 @@ class TaskFilesDialog(QDialog):
         self._loading = False
         self._load_worker = None
         self._load_thread = None
+        # Upload runs one background request per file (audit 09, 2026-11-24): it used to block the window.
+        self._uploading = False
+        self._upload_queue: list[str] = []
+        self._upload_total = 0
+        self._upload_current = ""
+        self._upload_done: list[str] = []
+        self._upload_failed = ""
+        self._upload_cancelled = False
+        self._upload_worker = None
 
         self.setModal(True)
         self.setObjectName("TaskFilesDialog")
@@ -128,6 +138,12 @@ class TaskFilesDialog(QDialog):
         self._upload_button.setProperty("variant", ButtonVariant.PRIMARY)
         self._upload_button.clicked.connect(self._upload_files)
         button_row.addWidget(self._upload_button)
+
+        self._cancel_upload_button = QPushButton(self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_CANCEL), self)
+        self._cancel_upload_button.setProperty("variant", ButtonVariant.WARNING)
+        self._cancel_upload_button.clicked.connect(self._cancel_upload)
+        self._cancel_upload_button.setVisible(False)
+        button_row.addWidget(self._cancel_upload_button)
 
         self._open_button = QPushButton(self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW), self)
         self._open_button.setProperty("variant", ButtonVariant.GHOST)
@@ -282,7 +298,7 @@ class TaskFilesDialog(QDialog):
         return dict(payload or {}) if isinstance(payload, dict) else None
 
     def _update_button_states(self) -> None:
-        has_selection = not self._loading and self._selected_file() is not None
+        has_selection = not self._loading and not self._uploading and self._selected_file() is not None
         self._open_button.setEnabled(has_selection)
         self._delete_button.setEnabled(has_selection)
 
@@ -325,51 +341,147 @@ class TaskFilesDialog(QDialog):
         data = file_info if isinstance(file_info, dict) else {}
         return str(data.get("fileName") or data.get("uuid") or "-")
 
+    @staticmethod
+    def _base_name(path: str) -> str:
+        return os.path.basename(path) or path
+
     def _upload_files(self) -> None:
-        paths, _ = QFileDialog.getOpenFileNames(
-            self,
-            self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_DIALOG_TITLE),
-            "",
-            self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_DIALOG_FILTER),
-        )
-        if not paths:
-            return
+        """Upload the chosen files one by one in the background; the window stays usable.
 
-        uploaded_names: list[str] = []
-        failed_names: list[str] = []
-        pending_names: list[str] = []
-
-        QApplication.setOverrideCursor(Qt.WaitCursor)
+        Each file is its own request, so Cancel stops the queue after the file in flight
+        (a started upload cannot be taken back). The first unconfirmed file stops the queue.
+        """
         try:
-            for index, path in enumerate(paths):
-                normalized_path = str(path or "").strip()
-                if not normalized_path:
-                    continue
-                uploaded = APIModuleActions.upload_module_file(self._module_name, self._item_id, normalized_path)
-                target_name = os.path.basename(normalized_path) or normalized_path
-                if isinstance(uploaded, dict) and str(uploaded.get("uuid") or "").strip():
-                    uploaded_names.append(target_name)
-                else:
-                    failed_names.append(target_name)
-                    pending_names = [os.path.basename(value) for value in paths[index + 1:]]
-                    break
-        finally:
-            QApplication.restoreOverrideCursor()
+            if self._uploading:
+                return
+            paths, _ = QFileDialog.getOpenFileNames(
+                self,
+                self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_DIALOG_TITLE),
+                "",
+                self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_DIALOG_FILTER),
+            )
+            queue = [str(path or "").strip() for path in (paths or [])]
+            queue = [path for path in queue if path]
+            if not queue:
+                return
+
+            self._uploading = True
+            self._upload_queue = queue
+            self._upload_total = len(queue)
+            self._upload_current = ""
+            self._upload_done = []
+            self._upload_failed = ""
+            self._upload_cancelled = False
+            self._refresh_button.setEnabled(False)
+            self._upload_button.setEnabled(False)
+            self._cancel_upload_button.setEnabled(True)
+            self._cancel_upload_button.setVisible(True)
+            self._update_button_states()
+            self._start_next_upload()
+        except Exception as exc:  # button callback: nothing may escape
+            PythonFailLogger.log_exception(exc, module=self._module_name, event="task_files_upload_start_failed")
+            self._finish_upload()
+
+    def _start_next_upload(self) -> None:
+        if self._upload_cancelled or self._upload_failed or not self._upload_queue:
+            self._finish_upload()
+            return
+        path = self._upload_queue.pop(0)
+        self._upload_current = path
+        index = self._upload_total - len(self._upload_queue)
+        self._count_label.setText(
+            self._lang.translate(TranslationKeys.TASK_FILES_UPLOADING).format(
+                index=index, total=self._upload_total, name=self._base_name(path))
+        )
+        worker = FunctionWorker(APIModuleActions.upload_module_file, self._module_name, self._item_id, path)
+        worker.finished.connect(self._upload_file_finished)
+        worker.error.connect(self._upload_file_failed)
+        self._upload_worker = worker
+        start_worker(worker)
+
+    @pyqtSlot(object)
+    def _upload_file_finished(self, uploaded) -> None:
+        try:
+            if not self._uploading:
+                return
+            self._upload_worker = None
+            name = self._base_name(self._upload_current)
+            if isinstance(uploaded, dict) and str(uploaded.get("uuid") or "").strip():
+                self._upload_done.append(name)
+            else:
+                self._upload_failed = name
+            self._start_next_upload()
+        except Exception as exc:  # Qt slot: nothing may escape
+            PythonFailLogger.log_exception(exc, module=self._module_name, event="task_files_upload_step_failed")
+            self._finish_upload()
+
+    @pyqtSlot(str)
+    def _upload_file_failed(self, _message: str) -> None:
+        self._upload_file_finished(None)
+
+    def _cancel_upload(self) -> None:
+        try:
+            if not self._uploading:
+                return
+            self._upload_cancelled = True
+            self._cancel_upload_button.setEnabled(False)
+            self._count_label.setText(
+                self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_CANCELLING).format(
+                    name=self._base_name(self._upload_current))
+            )
+        except Exception as exc:  # button callback: nothing may escape
+            PythonFailLogger.log_exception(exc, module=self._module_name, event="task_files_upload_cancel_failed")
+
+    def _finish_upload(self) -> None:
+        if not self._uploading:
+            return
+        uploaded = list(self._upload_done)
+        failed = self._upload_failed
+        pending_names = [self._base_name(path) for path in self._upload_queue]
+        cancelled = self._upload_cancelled and not failed
+        self._uploading = False
+        self._upload_queue = []
+        self._upload_worker = None
+        self._cancel_upload_button.setVisible(False)
+        self._upload_button.setEnabled(True)
+        self._refresh_button.setEnabled(True)
+        self._update_button_states()
 
         # Refresh also after an uncertain response: the last file may be saved.
         self._load_files()
-        if failed_names:
+        if failed:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.WARNING),
                 self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_STOPPED).format(
-                    uploaded=len(uploaded_names), failed=failed_names[0],
+                    uploaded=len(uploaded), failed=failed,
                     pending=len(pending_names), pending_names=", ".join(pending_names)),
+            )
+        elif cancelled and pending_names:
+            ModernMessageDialog.show_info(
+                self._lang.translate(TranslationKeys.WARNING),
+                self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_CANCELLED).format(
+                    uploaded=len(uploaded), pending=len(pending_names), pending_names=", ".join(pending_names)),
             )
         else:
             ModernMessageDialog.show_info(
                 self._lang.translate(TranslationKeys.SUCCESS),
-                self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_SUCCESS).format(count=len(uploaded_names)),
+                self._lang.translate(TranslationKeys.TASK_FILES_UPLOAD_SUCCESS).format(count=len(uploaded)),
             )
+
+    def done(self, result: int) -> None:  # noqa: D401 - Qt override
+        """Closing stops the upload queue; the file in flight finishes on the server unseen."""
+        if self._uploading:
+            self._upload_cancelled = True
+            self._upload_queue = []
+            self._uploading = False
+            worker = self._upload_worker
+            self._upload_worker = None
+            if worker is not None:
+                try:
+                    worker.detach()
+                except RuntimeError:  # worker already deleted
+                    pass
+        super().done(result)
 
     def _delete_selected(self) -> None:
         file_info = self._require_selected_file()

@@ -4,6 +4,10 @@ from ....python.GraphQLQueryLoader import GraphQLQueryLoader
 from ....languages.language_manager import LanguageManager
 from ....languages.translation_keys import TranslationKeys
 from ....utils.api_error_handling import user_message
+from ....constants.cadastral_fields import Katastriyksus
+from ....utils.MapTools.MapHelpers import FeatureActions, MapHelpers
+from ....utils.settings_service import SettingsService
+from qgis.core import QgsVectorLayer
 
 
 class deleteProperty:
@@ -47,12 +51,68 @@ class deleteProperty:
             return deleteProperty.PREVIEW_FAILED, {"id": item, "error": user_message(exc)}
 
         address = ""
-        for edge in (((listing.get("properties") or {}).get("edges")) or []):
+        found = False
+        properties = listing.get("properties") or {}
+        edges = properties.get("edges") or []
+        for edge in edges:
             node = (edge or {}).get("node") or {}
             if str(node.get("id") or "") == item:
                 address = str(node.get("displayAddress") or "").strip()
+                found = True
                 break
-        return deleteProperty.PREVIEW_OK, {"id": item, "number": number, "address": address}
+        try:
+            total = int((properties.get("pageInfo") or {}).get("total"))
+        except (TypeError, ValueError):
+            total = len(edges)
+        # "others" decides whether the map feature may go: it belongs to this record only when no
+        # other Kavitro record has the number. Unknown (record not in the listing) counts as shared.
+        others = max(0, total - 1) if found else None
+        return deleteProperty.PREVIEW_OK, {"id": item, "number": number, "address": address, "others": others}
+
+    @staticmethod
+    def property_map_layers() -> list:
+        """The property main and archive layers that exist in the project (each once)."""
+        settings = SettingsService()
+        layers = []
+        for name in (
+            settings.module_main_layer_name(Module.PROPERTY.value) or "",
+            settings.module_archive_layer_name(Module.PROPERTY.value) or "",
+        ):
+            layer = MapHelpers.resolve_layer(name) if str(name).strip() else None
+            if isinstance(layer, QgsVectorLayer) and layer.isValid() and all(layer.id() != known.id() for known in layers):
+                layers.append(layer)
+        return layers
+
+    @staticmethod
+    def map_matches(number: str) -> list:
+        """[(layer, feature count)] of the property layers holding this cadastral number.
+
+        Raises LayerLookupError when a layer cannot be read: the caller must not promise
+        a map change it cannot check.
+        """
+        matches = []
+        for layer in deleteProperty.property_map_layers():
+            features = MapHelpers.find_features_by_fields_and_values(layer, Katastriyksus.tunnus, [number], strict=True)
+            if features:
+                matches.append((layer, len(features)))
+        return matches
+
+    @staticmethod
+    def remove_from_map(number: str, layers: list) -> tuple[int, list[str]]:
+        """Delete this number's features from the given layers. Returns (removed, errors).
+
+        FeatureActions refuses a layer already in edit mode, so the user's own pending
+        edits are never saved along with the delete.
+        """
+        removed = 0
+        errors: list[str] = []
+        for layer in layers:
+            ok, feature_ids, error = FeatureActions.delete_features_by_field_values(layer, Katastriyksus.tunnus, [number])
+            if ok:
+                removed += len(feature_ids or [])
+            else:
+                errors.append(f"{layer.name()}: {error}" if error else layer.name())
+        return removed, errors
 
     @staticmethod
     def delete_single_item(item: str):

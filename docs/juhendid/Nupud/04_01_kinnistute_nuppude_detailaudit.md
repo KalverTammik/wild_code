@@ -11,7 +11,7 @@ See juhend kirjeldab Visuaali kinnistunuppude tegelikku käitumist praeguse kood
 | **Lisa SHP fail** | Lisab QGIS-i mälukihi; võib luua GPKG-kihid ja salvestada kihiviited | Ei |
 | Lisamisdialoogi lisamisnupud | Võivad muuta Kavitro kirjeid ning QGIS-i põhi- ja arhiivikihti | Ei |
 | **Arhiveeri**, **Taasta arhiivist**, **Kustuta** | Muudavad Kavitro andmeid; kustutamine muudab ka põhikihti | Ei |
-| **Kustuta ID järgi** | Kustutab ainult Kavitro kirje | Ei |
+| **Kustuta ID järgi** | Kustutab Kavitro kirje ja ainult sellele kirjele kuuluva objekti põhi- ja arhiivikihist | Ei |
 | **Loo/paranda otsinguväli** | Muudab kinnistute põhikihi skeemi ja atribuute | Ei |
 
 Seadistuste vaate üldist **Kinnita** nuppu ei ole ühegi siin kirjeldatud haldustoimingu lõpetamiseks vaja.
@@ -337,7 +337,7 @@ See on erakorraline taustateenuse toiming ja ei kasuta QGIS-i kihivalikut.
 | **Tühista** | Sulgeb dialoogi midagi muutmata |
 | **Kinnita** | Kontrollib, et väli pole tühi, keelab päringu ajaks mõlemad nupud ja laadib sisestatud ID-ga kirje eelvaate |
 
-Eelvaade loeb Kavitrost kirje katastritunnuse ja aadressi. Seejärel avaneb kinnitusdialoog **Kinnita kustutamine**, mis näitab ID-d, katastritunnust ja aadressi ning hoiatab, et kaardikihte see ei muuda ja kustutamist ei saa tagasi võtta:
+Eelvaade loeb Kavitrost kirje katastritunnuse ja aadressi. Seejärel avaneb kinnitusdialoog **Kinnita kustutamine**, mis näitab ID-d, katastritunnust ja aadressi ning ütleb, mis kaardil juhtub, ja hoiatab, et kustutamist ei saa tagasi võtta:
 
 | Kinnitusdialoogi nupp | Tulemus |
 |---|---|
@@ -346,10 +346,9 @@ Eelvaade loeb Kavitrost kirje katastritunnuse ja aadressi. Seejärel avaneb kinn
 
 Kui sellise ID-ga kirjet ei leita või eelvaate laadimine ebaõnnestub, kuvatakse hoiatus ja midagi ei kustutata. Kustutamise edu korral dialoog suletakse. Vea korral kuvatakse hoiatus ja dialoog jääb avatuks.
 
-Toiming:
+Kaardiobjekt eemaldatakse ainult siis, kui Kavitros ei ole sama katastritunnusega teist kirjet; muidu kuulub objekt teisele kirjele ja kaardikihte ei muudeta (kinnitus ütleb seda). Kui kirjete arvu ei saa kindlaks teha, kaarti samuti ei muudeta. Kui sobiv põhi- või arhiivikiht on juba redigeerimisrežiimis või seda ei saa lugeda, peatatakse toiming enne kinnitust ja midagi ei kustutata, nii et kasutaja enda muudatusi kaasa ei salvestata. Kaardilt eemaldatakse objekt alles pärast seda, kui Kavitro on kustutamise kinnitanud. Kui see ebaõnnestub, ütleb hoiatus, et kirje on Kavitrost kustutatud, kuid kaardil on objekt alles.
 
-- ei eemalda vastavat objekti põhikihist ega arhiivikihist;
-- ei värskenda kinnistute mooduli avatud vaadet.
+Toiming ei värskenda kinnistute mooduli avatud vaadet.
 
 API-kutsed tehakse kasutajaliidese lõimes. Päringu viga püütakse kinni ja kuvatakse dialoogis; edukaks loetakse ainult vastus, mis kinnitab sama kirje ID kustutamist.
 
@@ -373,9 +372,7 @@ Kui mõne objekti atribuudi muutmine tagastab `False`, ei lisata seda muudetud k
 
 Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
 
-| Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
-|---|---|---|---|
-| Madal | **Kustuta ID järgi** näitab enne kustutamist kirje eelvaadet, kuid ei puuduta QGIS-i põhi- ega arhiivikihti | Kavitro ja kaardikiht võivad lahkneda | Lisa kontrollitud kihisünkroonimine; olemasolev kihikustutaja salvestab ka kasutaja muud ootel muudatused, seega seda siin ei kasutata |
+Avatud leide praegu ei ole: **Kustuta ID järgi** eemaldab ka ainult sellele kirjele kuuluva kaardiobjekti (2026-11-24).
 
 ## Soovituslik turvaline tööjärjekord
 
@@ -385,7 +382,7 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 4. Loe arhiiviplaani ülevaatedialoogi tabel ja piirkonna rida enne täielikkuse kinnisruudu märkimist läbi; piiratud valikul jäta ruut märkimata ja vajuta **Loobu**.
 5. Lisa esmalt väike proovikogum ilma varasema kontrolliplaanita.
 6. Võrdle pärast lisamist eraldi Kavitro kirjeid, põhikihti ja arhiivikihti.
-7. Kasuta **Kustuta ID järgi** ainult siis, kui kinnitusdialoogi katastritunnus ja aadress vastavad kustutatavale kinnistule; eemalda vajadusel objekt kaardikihist eraldi.
+7. Kasuta **Kustuta ID järgi** ainult siis, kui kinnitusdialoogi katastritunnus ja aadress vastavad kustutatavale kinnistule. Kui kinnitus ütleb, et kaardikihte ei muudeta, eemalda objekt vajadusel kaardilt eraldi.
 
 ## Seotud juhendid
 

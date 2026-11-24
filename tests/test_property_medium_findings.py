@@ -227,7 +227,8 @@ class DeleteByIdPreviewTest(unittest.TestCase):
             status, data = deleteProperty.load_preview("42")
 
         self.assertEqual(status, deleteProperty.PREVIEW_OK)
-        self.assertEqual(data, {"id": "42", "number": "12345:001:0001", "address": "Kase tee 1"})
+        # Without pageInfo the edges count: one other record shares the number.
+        self.assertEqual(data, {"id": "42", "number": "12345:001:0001", "address": "Kase tee 1", "others": 1})
         where = client.send_query.call_args_list[1].kwargs["variables"]["where"]["AND"][0]
         self.assertEqual(where["value"], "12345:001:0001")
 

@@ -75,15 +75,15 @@ Päringu vea korral kuvatakse hoiatus, kuid senist tabelit ja loendurit ei tühj
 
 Nupp avab mitme faili valija filtriga **Kõik failid**. Failitüüpi, failisuurust, valitud failide arvu ega samanimelise faili olemasolu enne saatmist ei kontrollita.
 
-Valitud failid laaditakse üles ükshaaval, igaühe jaoks kuni 120-sekundilise päringuajaga. Dialoogil puudub katkestamisnupp. Failide vahel töödeldakse kasutajaliidese sündmusi, kuid nuppe ei keelata; teise üleslaadimise või sulgemise käivitamine poolelioleva jada ajal ei ole blokeeritud.
+Valitud failid laaditakse üles ükshaaval taustal, iga fail eraldi päringuna (kuni 120 sekundit faili kohta); aken jääb kasutatavaks. Olekureal on edenemine („Laadin üles 2/5: nimi“). Üleslaadimise ajal on **Laadi üles**, **Värskenda**, **Eelvaade** ja **Kustuta** passiivsed ning nähtav on nupp **Katkesta üleslaadimine**. Katkestus peatab järjekorra pärast pooleliolevat faili, sest alustatud saatmist ei saa tagasi võtta; lõpus kuvatakse, mitu faili lisati ja millised jäid saatmata. Teist üleslaadimist samal ajal alustada ei saa. Dialoogi sulgemine peatab järjekorra: poolelijäänud fail võib Kavitros siiski valmis saada, kuid sellest teadet ei kuvata.
 
 Tulemuseks kuvatakse:
 
 - eduteade, kui kõik valitud failid õnnestusid;
-- osalise õnnestumise hoiatus koos kuni viie ebaõnnestunud failinimega;
-- veateade, kui ükski fail ei õnnestunud.
+- hoiatus, kui mõne faili salvestamist ei kinnitatud: järjekord peatub selle faili juures, teade nimetab selle ja saatmata jäänud failid ning soovitab enne korduskatset failide loendit kontrollida;
+- katkestamise teade lisatud ja saatmata failidega.
 
-Vähemalt ühe eduka faili järel värskendatakse loendit enne lõputeate kuvamist. Kui see värskendus ebaõnnestub, võib kasutaja saada esmalt laadimisvea ja seejärel üleslaadimise eduteate, samal ajal kui tabel jääb vanaks.
+Pärast järjekorra lõppu värskendatakse faililoendit taustal, ka ebakindla vastuse järel, sest viimane fail võib olla salvestatud.
 
 Iga edukas fail on Kavitros juba eraldi salvestatud. Hilisema faili ebaõnnestumine ega dialoogi sulgemine varasemaid üleslaadimisi tagasi ei võta.
 
@@ -253,9 +253,7 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 
 Välise avamise laiendikontrolli ja kinnituse puudumine on Etapp 1A ehk WC-02 raames lahendatud. Allolevasse tabelisse jäävad teised, sellest muudatusest sõltumatud tähelepanekud.
 
-| Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
-|---|---|---|---|
-| Kõrge | Failide üleslaadimine käib kasutajaliidese lõimes ilma katkestamiseta; esimese vea järel peatutakse ja ülejäänud failid kuvatakse | Pikk jada blokeerib akna | Kasuta taustatööd ja katkestamist |
+Avatud leide praegu ei ole: üleslaadimine käib taustal ja seda saab katkestada (2026-11-24).
 
 ## Soovituslik turvaline tööjärjekord
 
