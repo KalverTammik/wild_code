@@ -15,6 +15,7 @@ from ....Logs.python_fail_logger import PythonFailLogger
 from ....constants.button_props import ButtonSize, ButtonVariant
 from ....constants.module_names import Module
 from ....languages.translation_keys import TranslationKeys
+from ....utils.property.ArchiveLayerHandler import GPKGHelpers
 from ....ui.messages_helper import ModernMessageDialog
 from ....utils.MapTools.MapHelpers import MapHelpers
 
@@ -141,6 +142,7 @@ class SettingsTempLayerMixin:
 
             target_gpkg_path: str | None = None
             overwrite_file = False
+            backup_path = ""
             if storage_choice == use_existing_label:
                 if not helper.gpkg_path_for_layer(reference_layer):
                     ModernMessageDialog.show_warning(translate(TranslationKeys.ERROR), translate(flow.gpkg_required))
@@ -158,14 +160,33 @@ class SettingsTempLayerMixin:
 
                 target_gpkg_path = selected_path if selected_path.lower().endswith(".gpkg") else f"{selected_path}.gpkg"
                 if os.path.exists(target_gpkg_path):
-                    overwrite_file = ModernMessageDialog.ask_yes_no(
+                    # The whole file goes: name its layers, default to Cancel and keep the old file as a backup.
+                    backup_path = helper.backup_path_for(target_gpkg_path)
+                    file_layers = GPKGHelpers.gpkg_layer_names(target_gpkg_path)
+                    loaded = helper.loaded_layer_names_for_gpkg(target_gpkg_path)
+                    dash = translate(TranslationKeys.NONE_DASH)
+                    overwrite_label = translate(TranslationKeys.TEMP_LAYER_OVERWRITE_BUTTON)
+                    choice = ModernMessageDialog.ask_choice_modern(
                         translate(flow.overwrite_title),
-                        translate(flow.overwrite_message).format(path=target_gpkg_path),
-                        yes_label=translate(TranslationKeys.OK),
-                        no_label=cancel_label,
-                        default=translate(TranslationKeys.OK),
+                        translate(TranslationKeys.TEMP_LAYER_OVERWRITE_CONFIRM).format(
+                            path=target_gpkg_path,
+                            layers=", ".join(file_layers) if file_layers else dash,
+                            loaded=", ".join(loaded) if loaded else dash,
+                            backup=backup_path,
+                        ),
+                        buttons=[overwrite_label, cancel_label],
+                        default=cancel_label,
+                        cancel=cancel_label,
+                        button_variants=[ButtonVariant.WARNING, ButtonVariant.GHOST],
                     )
-                    if not overwrite_file:
+                    if choice != overwrite_label:
+                        return
+                    moved, move_error = helper.move_gpkg_to_backup(target_gpkg_path, backup_path)
+                    if not moved:
+                        ModernMessageDialog.show_warning(
+                            translate(TranslationKeys.ERROR),
+                            translate(TranslationKeys.TEMP_LAYER_BACKUP_FAILED).format(error=move_error),
+                        )
                         return
 
             created_layer, error_text = helper.create_or_load_layer(
@@ -188,10 +209,10 @@ class SettingsTempLayerMixin:
             self._write_saved_layer_value("element", actual_name)
             self.sync_main_layer_selection(actual_name, force=True)
 
-            ModernMessageDialog.show_info(
-                translate(TranslationKeys.SUCCESS),
-                translate(flow.ready).format(name=actual_name),
-            )
+            ready_text = translate(flow.ready).format(name=actual_name)
+            if backup_path:
+                ready_text += "\n\n" + translate(TranslationKeys.TEMP_LAYER_BACKUP_NOTE).format(backup=backup_path)
+            ModernMessageDialog.show_info(translate(TranslationKeys.SUCCESS), ready_text)
         except Exception as exc:
             PythonFailLogger.log_exception(exc, module=Module.SETTINGS.value, event=flow.failure_event)
             ModernMessageDialog.show_warning(

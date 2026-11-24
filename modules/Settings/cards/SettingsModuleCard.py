@@ -347,10 +347,13 @@ class SettingsModuleCard(
 
         changed = self._save_preference_states() or changed
 
-        # Save label values
+        # Save label values; an emptied one (a reset) is removed from the storage.
         for key, value in self._pend_label_values.items():
             if self._orig_label_values.get(key, "") != value:
-                self.logic.save_module_label_value(self.module_key, key, value)
+                if str(value or "") == "":
+                    self.logic.clear_module_label_value(self.module_key, key)
+                else:
+                    self.logic.save_module_label_value(self.module_key, key, value)
                 changed = True
         if changed:
             self._orig_label_values = dict(self._pend_label_values)
@@ -378,6 +381,12 @@ class SettingsModuleCard(
         self._pend_archive_name = self._orig_archive_name
 
         self._revert_preference_states()
+
+        # The label values too: a pending reset emptied them on screen.
+        self._pend_label_values = dict(self._orig_label_values)
+        if self._labels_widget:
+            for key, value in self._orig_label_values.items():
+                self._labels_widget.set_label_value(key, value)
 
         self._update_stored_values_display()
         self._emit_pending_changed(False)
@@ -418,35 +427,44 @@ class SettingsModuleCard(
 
     # --- Filter handlers & Reset ---
     def _on_reset_settings(self):
-        """Reset all stored values for this module card."""
+        """Empty every value of this card as a pending change (audit 2026-11-24).
+
+        Nothing is written here: the general Confirm saves the reset, Discard brings the old values back.
+        It used to clear the storage at once, without asking, and Discard then showed values that were gone.
+        """
+        if not ModernMessageDialog.ask_yes_no(
+            self.lang_manager.translate(TranslationKeys.RESET),
+            self.lang_manager.translate(TranslationKeys.SETTINGS_RESET_CONFIRM),
+            yes_label=self.lang_manager.translate(TranslationKeys.RESET),
+            no_label=self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
+            default=self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
+        ):
+            return
         try:
-            # Reset layer selections
             SettingsLayerHelper.clear_combo_selection(self._layer_selector)
             if self.supports_archive:
                 SettingsLayerHelper.clear_combo_selection(self._archive_picker)
             self._pend_element_name = ""
             self._pend_archive_name = ""
 
-            # Reset filters and clear stored preference settings
-            self._clear_preference_states_and_storage()
+            for _enabled, _support_key, _orig_attr, pend_attr, widget in self._preference_specs():
+                setattr(self, pend_attr, set())
+                if widget is not None:
+                    widget.set_selected_ids([], emit=False)
+            self._pend_not_started_status_preferences = set()
+            if self._not_started_status_filter_widget is not None:
+                self._not_started_status_filter_widget.set_selected_ids([], emit=False)
 
-            # Clear stored layer settings
-            self._write_saved_layer_value("element", "")
-            if self.supports_archive:
-                self._write_saved_layer_value("archive", "")
-
-            # Clear label values
-            for key in list(self._orig_label_values.keys()):
-                self.logic.clear_module_label_value(self.module_key, key)
-                if self._labels_widget:
+            self._pend_label_values = {key: "" for key in self._orig_label_values}
+            if self._labels_widget:
+                for key in self._pend_label_values:
                     self._labels_widget.set_label_value(key, "")
-            self._orig_label_values = {}
-            self._pend_label_values = {}
 
             self._update_stored_values_display()
-            self.set_status_text(f"✅ {self.lang_manager.translate(TranslationKeys.SETTINGS_RESET_TO_DEFAULTS)}", True)
+            self.set_status_text(self.lang_manager.translate(TranslationKeys.SETTINGS_RESET_PENDING), True)
             self._emit_pending_changed(self.has_pending_changes())
-        except Exception as exc:
+        except Exception as exc:  # button callback: nothing may escape
+            self._log_error("settings_module_reset_failed", exc)
             self.set_status_text(f"❌ {self.lang_manager.translate(TranslationKeys.SETTINGS_RESET_FAILED)}: {exc}", True)
 
     # --- Eelistused (settings) ---

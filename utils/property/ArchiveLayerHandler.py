@@ -42,6 +42,22 @@ class LayerSchemas:
 
 class GPKGHelpers:
     @staticmethod
+    def gpkg_layer_names(gpkg_path: str) -> Optional[list[str]]:
+        """Names of the layers in the file; None when it cannot be read."""
+        normalized_path = os.path.abspath(str(gpkg_path or "").strip())
+        if not normalized_path or not os.path.exists(normalized_path):
+            return []
+        try:
+            ds = ogr.Open(normalized_path, 0)  # read-only
+            if not ds:
+                return None
+            return [ds.GetLayerByIndex(i).GetName() for i in range(ds.GetLayerCount())]
+        except (RuntimeError, OSError, AttributeError) as exc:
+            PythonFailLogger.log_exception(exc, module="layers", event="gpkg_layer_names_failed",
+                                           extra={"path": normalized_path})
+            return None
+
+    @staticmethod
     def gpkg_layer_exists(gpkg_path: str, layer_name: str) -> bool:
         normalized_path = os.path.abspath(str(gpkg_path or "").strip())
         if not normalized_path or not os.path.exists(normalized_path):

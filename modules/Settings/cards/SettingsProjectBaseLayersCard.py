@@ -638,24 +638,24 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         self.pendingChanged.emit(self.has_pending_changes())
 
     def _on_reset_settings(self) -> None:
+        """Empty the base layer settings as a pending change: Confirm saves it, Discard restores them."""
+        if not ModernMessageDialog.ask_yes_no(
+            self.lang_manager.translate(TranslationKeys.RESET),
+            self.lang_manager.translate(TranslationKeys.SETTINGS_RESET_CONFIRM),
+            yes_label=self.lang_manager.translate(TranslationKeys.RESET),
+            no_label=self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
+            default=self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
+        ):
+            return
         self._pend_setup_mode = self.SETUP_MODE_MANUAL
         self._pend_enabled = False
         self._pend_layers = {key: "" for key in ProjectBaseLayerKeys.ORDER}
         self._pend_sewer_mapping_enabled = False
         self._pend_sewer_mapping_field = ""
         self._pend_sewer_mapping_rows = []
-        self._service.clear()
-        self._settings_service.geospatial_setup_mode(clear=True)
-        self._orig_setup_mode = self.SETUP_MODE_MANUAL
-        self._orig_enabled = False
-        self._orig_layers = dict(self._pend_layers)
-        self._orig_sewer_mapping_enabled = False
-        self._orig_sewer_mapping_field = ""
-        self._orig_sewer_mapping_rows = []
         self._restore_state_to_ui()
-        self._update_status()
-        self.geospatialModeChanged.emit(False)
-        self.pendingChanged.emit(False)
+        self.set_status_text(self.lang_manager.translate(TranslationKeys.SETTINGS_RESET_PENDING), True)
+        self.pendingChanged.emit(self.has_pending_changes())
 
     def _update_status(self) -> None:
         if self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL:

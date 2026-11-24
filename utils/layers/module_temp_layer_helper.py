@@ -69,6 +69,40 @@ class ModuleTempLayerHelper:
         return None
 
     @classmethod
+    def loaded_layer_names_for_gpkg(cls, gpkg_path: str) -> list[str]:
+        """Names of the project layers read from this file: an overwrite takes them out of the project."""
+        normalized_path = cls._normalize_gpkg_path(gpkg_path)
+        if not normalized_path:
+            return []
+        return sorted(
+            layer.name()
+            for layer in QgsProject.instance().mapLayers().values()
+            if isinstance(layer, QgsVectorLayer) and layer.isValid()
+            and cls._normalize_gpkg_path(cls.gpkg_path_for_layer(layer)) == normalized_path
+        )
+
+    @staticmethod
+    def backup_path_for(gpkg_path: str, stamp: Optional[str] = None) -> str:
+        from datetime import datetime
+
+        base, extension = os.path.splitext(gpkg_path)
+        return f"{base}.backup-{stamp or datetime.now().strftime('%Y%m%d-%H%M%S')}{extension or '.gpkg'}"
+
+    @classmethod
+    def move_gpkg_to_backup(cls, gpkg_path: str, backup_path: str) -> tuple[bool, str]:
+        """Take the file's layers out of the project and rename the file; it is never deleted (audit 2026-11-24)."""
+        try:
+            cls._remove_loaded_layers_for_gpkg(gpkg_path)
+            os.replace(gpkg_path, backup_path)
+        except OSError as exc:  # locked by another program, or no write access
+            PythonFailLogger.log_exception(exc, module=cls.MODULE.value, event=f"{cls.EVENT_PREFIX}_gpkg_backup_failed",
+                                           extra={"path": gpkg_path})
+            return False, str(exc)
+        PythonFailLogger.log(f"{cls.EVENT_PREFIX}_gpkg_backed_up", module=cls.MODULE.value,
+                             extra={"path": gpkg_path, "backup": backup_path})
+        return True, ""
+
+    @classmethod
     def _remove_loaded_layers_for_gpkg(cls, gpkg_path: str) -> None:
         normalized_path = cls._normalize_gpkg_path(gpkg_path)
         if not normalized_path:

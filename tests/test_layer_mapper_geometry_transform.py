@@ -139,13 +139,10 @@ class TransferFeaturesTest(unittest.TestCase):
 
         inserted, updated, skipped, errors = self._dialog(target)._transfer_features(source, self._rows())
 
-        self.assertEqual((inserted, updated, skipped), (1, 0, 0))
+        # The whole transfer stops (2026-11-24): half a transfer let a second try double the good features.
+        self.assertEqual((inserted, updated, skipped), (0, 0, 0))
         self.assertEqual(errors, [self._expected_error(1)])
-        names = [feature["name"] for feature in target.getFeatures()]
-        self.assertEqual(names, ["good"])
-        for feature in target.getFeatures():
-            box = feature.geometry().boundingBox()
-            self.assertTrue(math.isfinite(box.xMaximum()) and math.isfinite(box.yMaximum()))
+        self.assertEqual(target.featureCount(), 0)
         # The source layer keeps its own coordinates.
         self.assertEqual(sorted(f.geometry().asWkt() for f in source.getFeatures()), ["Point (1000000 1000000)", "Point (24 58)"])
 

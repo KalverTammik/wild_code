@@ -314,6 +314,19 @@ TRANSLATIONS = {
         TranslationKeys.LINK_REMOVE_FAILED: "Seoseid ei õnnestunud eemaldada.\n\nDetailid: {error}",
         TranslationKeys.LINK_REMOVE_LOAD_FAILED: "Kirje seotud kinnistuid ei saanud Kavitrost lugeda, seega ei saa seoseid eemaldada.\n\nDetailid: {error}",
         TranslationKeys.LINK_REMOVE_NONE: "Kirjel pole seotud kinnistuid.",
+        TranslationKeys.SETTINGS_RESET_CONFIRM: "Kas tühjendada selle kaardi kõik väärtused? Tühjendus salvestub alles siis, kui vajutad seadete all nuppu Kinnita.",
+        TranslationKeys.SETTINGS_RESET_PENDING: "Väärtused on tühjendatud, kuid salvestamata. Salvestamiseks vajuta Kinnita.",
+        TranslationKeys.SETTINGS_UNSAVED_TITLE: "Salvestamata muudatused",
+        TranslationKeys.SETTINGS_UNSAVED_MESSAGE: "Seadetes on salvestamata muudatusi.\n\nKas salvestada need või hüljata?",
+        TranslationKeys.SETTINGS_DISCARD_BUTTON: "Hülga",
+        TranslationKeys.TEMP_LAYER_OVERWRITE_CONFIRM: "Fail on juba olemas:\n{path}\n\nSelles failis on kihid: {layers}\nProjektist eemaldatakse laaditud kihid: {loaded}\n\nVana fail nimetatakse ümber varukoopiaks\n{backup}\nja selle asemele luuakse uus GeoPackage.",
+        TranslationKeys.TEMP_LAYER_OVERWRITE_BUTTON: "Kirjuta üle",
+        TranslationKeys.TEMP_LAYER_BACKUP_NOTE: "Vana fail on alles varukoopiana:\n{backup}",
+        TranslationKeys.TEMP_LAYER_BACKUP_FAILED: "Vana faili ei saanud varukoopiaks ümber nimetada, seega ei kirjutatud midagi üle.\n\nDetailid: {error}",
+        TranslationKeys.NONE_DASH: "–",
+        TranslationKeys.GEOSPATIAL_LAYER_MAPPER_CRS_MISSING: "Lähte- või sihtkihil puudub koordinaatsüsteem, seega ei saa objekte õigesse kohta kopeerida. Ülekannet ei tehtud.",
+        TranslationKeys.GEOSPATIAL_LAYER_MAPPER_TRANSFORM_UNAVAILABLE: "Kihtide „{source}“ ja „{target}“ koordinaatsüsteemide vahel ei saa teisendust luua, seega ülekannet ei tehtud. Kontrolli mõlema kihi koordinaatsüsteemi.",
+        TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NOTHING_WRITTEN: "Ülekanne peatati ja midagi ei kirjutatud: sihtkiht on samas seisus nagu enne. Paranda vead ja proovi uuesti.\n\nVead:\n{errors}",
         TranslationKeys.WEB_PAGE_OPEN_FAILED: "Veebilehte ei saanud avada.\n\nAadress: {url}",
         TranslationKeys.WEB_LINK_MISSING: "Kirje veebiaadressi ei saa koostada: mooduli Kavitro aadress puudub.",
         TranslationKeys.KAVITRO_SYNC_RETRY: "Proovi uuesti",
@@ -938,7 +951,7 @@ TRANSLATIONS = {
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_CONFIRM_BODY: "Lähtekiht: {source}\nSihtkiht: {target}\nTöödeldavaid objekte: {count}\n\nMapper kopeerib geomeetria ja kaardistatud väärtused Geospatiali kihile. Kui võimalik, uuendatakse sama välise id-ga olemasolevad sihtobjektid."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED: "Geospatiali sihtkihi muutmisrežiimi ei saanud käivitada."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED: "Migreeritud objekti lisamine Geospatiali sihtkihile ebaõnnestus."
-        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_GEOMETRY_TRANSFORM_FAILED: "{count} objekti koordinaate ei saanud sihtkihi koordinaatsüsteemi teisendada. Neid objekte ei lisatud ega uuendatud."
+        ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_GEOMETRY_TRANSFORM_FAILED: "{count} objekti koordinaate ei saanud sihtkihi koordinaatsüsteemi teisendada."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY: "Sihtvälja tüübiga sobimatuid väärtusi: {count}. Uutel objektidel jäi väli tühjaks, uuendatud objektidel jäi alles endine väärtus:"
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_VALUES_LEFT_EMPTY_HINT: "Paranda need väärtused sihtkihi atribuutide tabelis."
         ,TranslationKeys.GEOSPATIAL_LAYER_MAPPER_COMMIT_FAILED: "Migreeritud objektide salvestamine Geospatiali sihtkihile ebaõnnestus."

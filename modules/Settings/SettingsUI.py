@@ -567,15 +567,14 @@ class SettingsModule(TokenMixin, QWidget):
             return True
 
         try:
-            title = self.tr("Unsaved changes")
-            text = self.tr("You have unsaved Settings changes.")
-            detail = self.tr("Do you want to save your changes or discard them?")
+            title = self.lang_manager.translate(TranslationKeys.SETTINGS_UNSAVED_TITLE)
+            message = self.lang_manager.translate(TranslationKeys.SETTINGS_UNSAVED_MESSAGE)
             save_label = self.lang_manager.translate(TranslationKeys.SAVE)
-            discard_label = self.tr("Discard")
+            discard_label = self.lang_manager.translate(TranslationKeys.SETTINGS_DISCARD_BUTTON)
             cancel_label = self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON)
             choice = ModernMessageDialog.ask_choice_modern(
                 title,
-                f"{text}\n\n{detail}",
+                message,
                 buttons=[save_label, discard_label, cancel_label],
                 parent=parent,
                 default=save_label,

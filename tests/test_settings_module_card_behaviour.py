@@ -210,20 +210,32 @@ class _TempLayerFlow:
         self.create.assert_called_once_with(self.reference, "New layer", gpkg_path=target + ".gpkg", overwrite_file=False)
 
     def test_existing_file_asks_before_overwriting(self):
-        self.choice.return_value = self.key("STORAGE_STANDALONE")
+        # Found 2026-11-24: OK deleted the whole file with every layer in it; now the layers are named,
+        # Cancel is the default and the old file is kept as a backup.
+        overwrite, cancel = "T:temp_layer_overwrite_button", "T:cancel_button"
         with tempfile.TemporaryDirectory() as folder:
             target = os.path.join(folder, "out.GPKG")
             Path(target).write_text("x")
             self.save_as.return_value = (target, "")
-            self.yes_no.return_value = False
+
+            self.choice.side_effect = [self.key("STORAGE_STANDALONE"), cancel]
             self.run_flow()
             self.create.assert_not_called()
-            args, kwargs = self.yes_no.call_args
-            self.assertEqual(args, (self.key("OVERWRITE_TITLE"), self.key("OVERWRITE_MESSAGE") + str([("path", target)])))
-            self.assertEqual(kwargs, {"yes_label": "T:OK", "no_label": "T:cancel_button", "default": "T:OK"})
-            self.yes_no.return_value = True
+            question = self.choice.call_args
+            self.assertEqual(question.args[0], self.key("OVERWRITE_TITLE"))
+            self.assertIn("out.GPKG", question.args[1])
+            self.assertEqual((question.kwargs["buttons"], question.kwargs["default"]), ([overwrite, cancel], cancel))
+            self.assertTrue(os.path.exists(target))
+
+            self.choice.side_effect = [self.key("STORAGE_STANDALONE"), overwrite]
             self.run_flow()
-        self.create.assert_called_once_with(self.reference, "New layer", gpkg_path=target, overwrite_file=True)
+            backups = [name for name in os.listdir(folder) if ".backup-" in name]
+            self.assertFalse(os.path.exists(target))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(Path(folder, backups[0]).read_text(), "x")
+            self.assertIn(backups[0], self.info.call_args.args[1])
+        self.yes_no.assert_not_called()
+        self.create.assert_called_once_with(self.reference, "New layer", gpkg_path=target, overwrite_file=False)
 
     def test_failed_creation_warns_with_the_name_and_error(self):
         self.create.return_value = (None, "disk full")
@@ -476,20 +488,51 @@ class PreferencesTest(_CardTest):
         self.card._not_started_status_filter_widget.set_selected_ids.assert_called_once_with(["9"], emit=False)
         self.assertFalse(self.card.has_pending_changes())
 
-    def test_reset_clears_widgets_storage_layers_and_labels(self):
+    def reset(self, *, answer=True):
         self.card.on_settings_activate()
         self.card._orig_label_values = {"a": "1"}
-        self.card._on_reset_settings()
-        cleared = {call.kwargs["support_key"] for call in self.logic.clear_module_preference_ids.call_args_list}
-        self.assertEqual(cleared, {ModuleSupports.STATUSES.value, ModuleSupports.TAGS.value, ModuleSupports.TYPES.value})
+        self.card._pend_label_values = {"a": "1"}
+        with patch.object(ModernMessageDialog, "ask_yes_no", return_value=answer) as ask:
+            self.card._on_reset_settings()
+        return ask
+
+    def test_reset_asks_first_and_no_changes_nothing(self):
+        ask = self.reset(answer=False)
+        ask.assert_called_once()
+        self.assertFalse(self.card.has_pending_changes())
+        self.assertEqual(self.card._pend_status_preferences, {"1"})
+
+    def test_reset_is_pending_and_writes_nothing_until_confirm(self):
+        # Found 2026-11-24: the reset cleared the storage at once, and Discard then showed values that were gone.
+        self.logic.get_module_layer_ids.return_value = {"element": "layer-1"}
+        self.reset()
+        self.logic.clear_module_preference_ids.assert_not_called()
+        self.logic.clear_module_label_value.assert_not_called()
+        self.logic.set_module_layer_id.assert_not_called()
+        for widget in self._widgets():
+            widget.set_selected_ids.assert_called_with([], emit=False)
+        self.assertTrue(self.card.has_pending_changes())
+        self.assertEqual(self.card._orig_status_preferences, {"1"})
+
+        self.card.apply()
+
+        saved = {call.kwargs["support_key"]: set(call.kwargs["ids"])
+                 for call in self.logic.save_module_preference_ids.call_args_list}
+        self.assertEqual(saved, {ModuleSupports.STATUSES.value: set(), ModuleSupports.TAGS.value: set(),
+                                 ModuleSupports.TYPES.value: set()})
         self.logic.clear_module_label_value.assert_any_call("works", SettingDialogPlaceholders.PROJECT_BOARD_NOT_STARTED_STATUSES)
         self.logic.clear_module_label_value.assert_any_call("works", "a")
         self.logic.set_module_layer_id.assert_called_once_with("works", kind="element", layer_name="")
-        for widget in self._widgets():
-            widget.set_selected_ids.assert_called_with([], emit=False)
-        self.assertEqual(self.card._orig_status_preferences, set())
-        self.assertEqual(self.card._orig_label_values, {})
+        self.assertFalse(self.card.has_pending_changes())
 
+    def test_discard_after_a_reset_brings_every_value_back(self):
+        self.reset()
+        self.card.revert()
+        self.assertFalse(self.card.has_pending_changes())
+        self.assertEqual(self.card._pend_status_preferences, {"1"})
+        self.assertEqual(self.card._pend_not_started_status_preferences, {"9"})
+        self.assertEqual(self.card._pend_label_values, {"a": "1"})
+        self.logic.set_module_layer_id.assert_not_called()
 
 class UnsupportedPreferencesTest(_CardTest):
     module = "project"

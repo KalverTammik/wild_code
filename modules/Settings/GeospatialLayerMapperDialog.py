@@ -140,6 +140,7 @@ class GeospatialLayerMapperDialog(QDialog):
         self._lang = lang_manager
         self._module_name = str(module_name or "").strip().lower()
         self._target_layer = target_layer
+        self._last_transfer_written = False
         self._source_combo: Optional[LayerTreePicker] = None
         self._table: Optional[QTableWidget] = None
         self._target_fields: list = []
@@ -249,6 +250,18 @@ class GeospatialLayerMapperDialog(QDialog):
                 parent=self,
             )
             return
+        transform_problem = self._geometry_transform_problem(source_layer, self._target_layer)
+        if transform_problem:
+            ModernMessageDialog.show_warning(self._lang.translate(TranslationKeys.ERROR), transform_problem, parent=self)
+            return
+        if isinstance(self._target_layer, QgsVectorLayer) and self._target_layer.isEditable():
+            # A transfer into the user's own session would stay unsaved there, mixed with their edits.
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.LAYER_ALREADY_EDITING).format(layer=self._target_layer.name()),
+                parent=self,
+            )
+            return
         if isinstance(self._target_layer, QgsVectorLayer) and source_layer.id() == self._target_layer.id():
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
@@ -274,7 +287,17 @@ class GeospatialLayerMapperDialog(QDialog):
             return
 
         inserted, updated, skipped, errors = self._transfer_features(source_layer, mapping_rows)
+        if errors and not self._last_transfer_written:
+            # Nothing reached the layer, so a second try cannot double anything: the dialog stays open.
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NOTHING_WRITTEN).format(
+                    errors="\n".join(errors[:5])),
+                parent=self,
+            )
+            return
         if errors:
+            # Saved with fields left empty: the dialog closes, so the same transfer is not run twice.
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
                 self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RESULT_WITH_ERRORS).format(
@@ -285,6 +308,7 @@ class GeospatialLayerMapperDialog(QDialog):
                 ),
                 parent=self,
             )
+            self.accept()
             return
 
         ModernMessageDialog.show_info(
@@ -313,8 +337,38 @@ class GeospatialLayerMapperDialog(QDialog):
             )
         return rows
 
+    def _geometry_transform_problem(self, source_layer, target_layer) -> str:
+        """Why the features cannot be put in the right place, or "" (audit 2026-11-24).
+
+        A transform that cannot be built used to mean "copy as is": the features then landed in the wrong place.
+        """
+        try:
+            source_crs, target_crs = source_layer.crs(), target_layer.crs()
+            if not source_crs.isValid() or not target_crs.isValid():
+                return self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_CRS_MISSING)
+            if source_crs == target_crs:
+                return ""
+            transform = QgsCoordinateTransform(source_crs, target_crs, QgsProject.instance().transformContext())
+            if transform.isValid():
+                return ""
+        except (AttributeError, RuntimeError) as exc:
+            PythonFailLogger.log_exception(exc, module=Module.SETTINGS.value, event="geospatial_mapper_transform_build_failed")
+        return self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_TRANSFORM_UNAVAILABLE).format(
+            source=self._layer_label(source_layer), target=self._layer_label(target_layer))
+
     def _transfer_features(self, source_layer: QgsVectorLayer, mapping_rows: list[dict[str, object]]) -> tuple[int, int, int, list[str]]:
+        """One transaction: a feature that cannot be written or transformed rolls the whole transfer back.
+
+        `_last_transfer_written` tells whether anything reached the layer. Values left empty because they
+        did not fit their field are reported but do not stop the transfer.
+        """
+        self._last_transfer_written = False
         target_layer = self._target_layer
+        transform_problem = self._geometry_transform_problem(source_layer, target_layer)
+        if transform_problem:
+            return 0, 0, 0, [transform_problem]
+        if target_layer.isEditable():
+            return 0, 0, 0, [self._lang.translate(TranslationKeys.LAYER_ALREADY_EDITING).format(layer=target_layer.name())]
         target_field_map = {field.name().lower(): field.name() for field in target_layer.fields()}
         source_field_map = {field.name().lower(): field.name() for field in source_layer.fields()}
 
@@ -329,6 +383,7 @@ class GeospatialLayerMapperDialog(QDialog):
                     existing_by_identity[key] = int(feature.id())
 
         transform = self._build_geometry_transform(source_layer, target_layer)
+        add_failed = 0
         inserted = 0
         updated = 0
         skipped = 0
@@ -337,12 +392,10 @@ class GeospatialLayerMapperDialog(QDialog):
         value_problems: list[FieldValueProblem] = []
 
         started_edit = False
-        already_editable = bool(target_layer.isEditable())
         try:
-            if not already_editable:
-                started_edit = bool(target_layer.startEditing())
-                if not started_edit:
-                    return 0, 0, 0, [self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED)]
+            started_edit = bool(target_layer.startEditing())
+            if not started_edit:
+                return 0, 0, 0, [self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_EDIT_START_FAILED)]
 
             for source_feature in source_layer.getFeatures():
                 identity_value = self._identity_key(source_feature.attribute(source_identity)) if source_identity else ""
@@ -410,6 +463,7 @@ class GeospatialLayerMapperDialog(QDialog):
                 if target_layer.addFeature(new_feature):
                     inserted += 1
                 else:
+                    add_failed += 1
                     errors.append(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_ADD_FEATURE_FAILED))
 
             if value_problems:
@@ -426,16 +480,17 @@ class GeospatialLayerMapperDialog(QDialog):
                     ),
                 )
 
-            if already_editable:
-                target_layer.updateFields()
-                target_layer.triggerRepaint()
-                return inserted, updated, skipped, errors
+            if transform_failed or add_failed:
+                # Part of the features would be on the layer: none is, so the transfer can be run again.
+                target_layer.rollBack()
+                return 0, 0, 0, errors
 
             if not target_layer.commitChanges():
                 commit_errors = "; ".join(target_layer.commitErrors() or [])
                 target_layer.rollBack()
                 return 0, 0, 0, [commit_errors or self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_COMMIT_FAILED)]
 
+            self._last_transfer_written = True
             target_layer.updateFields()
             target_layer.triggerRepaint()
             return inserted, updated, skipped, errors

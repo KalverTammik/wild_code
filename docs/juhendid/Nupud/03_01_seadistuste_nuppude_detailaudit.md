@@ -66,7 +66,7 @@ Nupp on nähtav sõltumata sellest, kas kaardil on seadistus juba olemas.
 
 ### Baaskihtide kaardi lähtestamine
 
-Nupp eemaldab kohe avatud QGIS-i projekti salvestusest:
+Pärast kinnitust tühjendab nupp ootel muudatusena (salvestub alles üldise **Kinnita** nupuga):
 
 - baaskihtide viited;
 - EVEL-i automaattuvastuse oleku;
@@ -77,7 +77,7 @@ Kaart lülitub tühja käsitsi seadistuse olekusse. QGIS-i kihte, kihifaile ega 
 
 ### Moodulikaardi lähtestamine
 
-Nupp eemaldab kohe vastava mooduli:
+Pärast kinnitust tühjendab nupp ootel muudatusena vastava mooduli:
 
 - põhi- ja toetatud moodulitel arhiivikihi viite;
 - eelistatud staatused, liigid ja tunnused;
@@ -86,11 +86,9 @@ Nupp eemaldab kohe vastava mooduli:
 
 Lähtestamine ei kustuta QGIS-i kihti, GeoPackage-faili, projektikausta ega kihiobjekte.
 
-### Oluline praegune käitumine
+### Kinnitus ja tagasivõtmine
 
-**Lähtesta ei küsi kinnitust.** Kustutamine kirjutatakse salvestusse juba nupu vajutamisel, mitte üldise **Kinnita** kaudu. Moodulikaardil võib pärast lähtestamist ühine **Kinnita** nupp siiski nähtavale ilmuda, sest kihi valiku ootel ja algne olek võivad ajutiselt erineda.
-
-Seadistustest lahkumise **Hülga** võib sellisel juhul taastada ekraanile vana kihivaliku, kuigi salvestatud kihiviide on juba kustutatud. Ava seadistused uuesti ja kontrolli tegelikku olekut. Turvaline taastamisviis on valida kõik vajalikud väärtused uuesti ja vajutada **Kinnita**.
+**Lähtesta** küsib enne kinnitust (vaikimisi **Tühista**). Lähtestus jääb ootele: üldine **Kinnita** salvestab selle, seadistustest lahkumise **Hülga** taastab kõik endised väärtused, ka kihivaliku ja lisaväärtused.
 
 ## Ühenda Geospatiali kaudu
 
@@ -170,7 +168,7 @@ Valik **Kasuta viitekihi GeoPackage'i** töötab ainult siis, kui viitekiht pär
 
 Kui valitud eraldiseisev `.gpkg` fail on juba olemas, küsitakse ülekirjutamiseks eraldi kinnitust.
 
-**Oluline:** **OK** eemaldab QGIS-i projektist kõik selle failiga seotud laaditud kihid ja kustutab kogu olemasoleva GeoPackage-faili koos kõigi selles olnud kihtidega. **Cancel / Tühista** jätab faili alles.
+Kinnitus loetleb faili kihid ja projektist eemaldatavad laaditud kihid; vaikimisi valik on **Tühista**. **Kirjuta üle** nimetab vana faili ümber varukoopiaks (`<nimi>.backup-<aeg>.gpkg` samas kaustas) ja loob uue faili; vana faili ei kustutata. Eduteade näitab varukoopia asukohta. Kui faili ei saa ümber nimetada (näiteks on see teises programmis lahti), ei kirjutata midagi üle.
 
 ### Salvestushetk ja tagasivõtmine
 
@@ -214,11 +212,13 @@ Olemasolevaid objekte proovitakse uuendada järgmiste väliste ID-de järgi:
 | Teostusjoonised | `ext_job_id` |
 | Servituudid | `ext_easement_id`, selle puudumisel `ext_job_id` |
 
-Teistes moodulites või sobiva ID-välja puudumisel lisatakse objektid uutena. Korduskäivitus võib seetõttu tekitada duplikaate.
+Teistes moodulites või sobiva ID-välja puudumisel lisatakse objektid uutena.
 
-Kui sihtkiht ei olnud enne ülekannet redigeerimisrežiimis, proovib mapper muudatused ise salvestada. Kui kiht oli juba redigeerimisrežiimis, jäävad muudatused QGIS-is ootele ja kasutaja peab need eraldi salvestama või tühistama.
+Ülekanne on üks tehing. Kui mõnda objekti ei saa lisada või selle koordinaate teisendada, võetakse kogu ülekanne tagasi: sihtkiht jääb endisesse seisu ja dialoog jääb avatuks, nii et kordamine ei dubleeri midagi. Kui ülekanne salvestati, aga mõni väärtus jäi sobimatu tüübi tõttu tühjaks, kuvatakse hoiatus ja dialoog suletakse. Sihtkiht, mis on juba redigeerimisrežiimis, lükatakse tagasi.
 
-Üldine **Kinnita**, seadistustest lahkumise **Hülga** ja mapperi hilisem sulgemine ei võta ülekannet tagasi.
+Kui lähte- või sihtkihil puudub koordinaatsüsteem või nende vahel ei saa teisendust luua, peatatakse ülekanne enne kinnitust ja kuvatakse põhjus; objekte ei kopeerita teisendamata koordinaatidega.
+
+Üldine **Kinnita**, seadistustest lahkumise **Hülga** ja mapperi hilisem sulgemine ei võta salvestatud ülekannet tagasi.
 
 Täielik väljade, vaikeväärtuste, geomeetria ja ID-de juhend on failis „Geospatiali kihtide vastendamine“ ([Kavitro abikeskus](https://help.kavitro.com/et)).
 
@@ -299,11 +299,6 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kõrge | **Lähtesta** ei küsi kinnitust ja kustutab seaded enne üldist salvestamist | Üks juhuklõps võib muuta mooduli kasutuskõlbmatuks; **Hülga** ei taasta kustutust | Lisa selge kinnitus ning hoia lähtestus ootel kuni üldise **Kinnita** vajutamiseni |
-| Kõrge | Moodulikaardi lähtestus võib pärast **Hülga** kuvada vana kihivalikut, kuigi salvestatud viide on juba tühi | Ekraan ja tegelik salvestus võivad lahkneda | Lähtesta korraga ainult ootel olek või laadi pärast kohest kustutust kogu kaart salvestusest uuesti |
-| Kõrge | Eraldiseisva GeoPackage'i ülekirjutamine kustutab kogu faili ja eemaldab projektist kõik selle faili kihid | Kaovad ka sama faili teised, tööriistaga mitteseotud kihid | Näita kinnituses kustutatavate kihtide loendit, nõua tugevamat kinnitust ja soovita või loo varukoopia |
-| Kõrge | Mapper võib osa objekte edukalt kirjutada ja alles seejärel vigadest teatada; vigadega dialoog jääb avatuks | Uuesti vajutamine võib juba lisatud objektid dubleerida | Kasuta terviklikku tehingut või märgi osaline tulemus üheselt ja blokeeri pime korduskäivitus |
-| Kõrge | Koordinaatteisenduse **loomise** viga ei peata mapperit: objektid kopeeritakse teisendamata (`_build_geometry_transform`). Üksiku objekti teisendusviga jätab objekti nüüd vahele | Objektid võivad sattuda valesse asukohta | Peata ülekanne, kui teisendust ei saa luua, ja kuva konkreetne viga |
 | Keskmine | Üldine **Kinnita** salvestab kaardid järjestikku, ilma ühise tehingu ja koondveateateta; mõned salvestusabilised logivad vea, kuid ei anna seda kutsujale tagasi | Vea korral võib osa seadeid salvestuda ja kasutajaliides siiski puhta oleku näidata | Kogu salvestustulemused, näita ebaõnnestunud kaardid ja jäta need ootel olekusse |
 | Keskmine | **Vaata Geospatiali seadistust** käivitab väljalülitamise ning dialoogi väide kõigi Geospatiali seadete eemaldamisest on tegelikust mõjust laiem | Kasutaja võib eeldada üksnes ülevaadet või andmete kustumist | Nimeta nupp **Lülita käsitsi seadistusele** ja täpsusta dialoogis, et kihid ning mapperiga kantud andmed säilivad |
 
