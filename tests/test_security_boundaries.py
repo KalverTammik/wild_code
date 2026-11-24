@@ -1,3 +1,4 @@
+import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -109,11 +110,12 @@ class DescriptionLinkPolicyTest(unittest.TestCase):
 
     @patch("utils.security_boundaries.windows_drive_type", return_value=3)
     def test_windows_drive_and_file_url_are_local_targets(self, _drive_type) -> None:
-        for raw in (
-            r"C:\Projects\Drawing.pdf",
-            "file:///C:/Projects/Drawing.pdf",
-            "file://localhost/C:/Projects/Drawing.pdf",
-        ):
+        raws = [r"C:\Projects\Drawing.pdf"]
+        # A file URL with a drive letter becomes a Windows path only on Windows; on Linux Qt
+        # gives "/C:/...", which is right there (found by the Linux CI, 2026-11-24).
+        if sys.platform == "win32":
+            raws += ["file:///C:/Projects/Drawing.pdf", "file://localhost/C:/Projects/Drawing.pdf"]
+        for raw in raws:
             with self.subTest(raw=raw):
                 target = classify_description_link(raw)
                 self.assertEqual(target.kind, DESCRIPTION_LINK_LOCAL_PATH)

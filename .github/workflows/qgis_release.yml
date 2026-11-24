@@ -14,7 +14,14 @@ permissions:
   contents: write
 
 jobs:
+  # Nothing is packaged or published unless lint and the offline suite pass on this commit.
+  tests:
+    uses: ./.github/workflows/tests.yml
+    permissions:
+      contents: read
+
   release:
+    needs: tests
     runs-on: ubuntu-latest
 
     steps:

@@ -86,6 +86,9 @@ class _Base(unittest.TestCase):
         self.log = self.p(PythonFailLogger, "log_exception")
         self.warning = self.p(ModernMessageDialog, "show_warning")
         self.fetch = self.p(APIModuleActions, "fetch_file_preview_payload")
+        # Remote previews load on a worker (2026-11-24); here each worker runs in place, so the
+        # rendering checks below stay synchronous. BackgroundPreviewTest covers the worker itself.
+        self.p(preview_module, "start_worker", side_effect=lambda worker, **_kw: worker.run())
         self.p(APIModuleActions, "user_display_name", return_value="Jane")
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
@@ -129,6 +132,13 @@ class ClassificationTest(unittest.TestCase):
         self.assertFalse(Dialog.is_internal_preview_candidate(file_info={"ext": "zip", "mimeType": "application/zip"}))
         self.assertTrue(Dialog.is_internal_preview_candidate(local_file_path="x/notes.log"))
         self.assertFalse(Dialog.is_internal_preview_candidate(local_file_path="x/data.dwg", file_info={"ext": "pdf"}))
+
+    def test_system_image_mime_needs_an_image_extension(self):
+        # Linux names .dwg "image/vnd.dwg"; the result must not depend on the OS MIME table.
+        with patch.object(task_file_identity.mimetypes, "guess_type", return_value=("image/vnd.dwg", None)):
+            self.assertFalse(Dialog.is_internal_preview_candidate(local_file_path="x/data.dwg"))
+        with patch.object(task_file_identity.mimetypes, "guess_type", return_value=("image/x-icon", None)):
+            self.assertTrue(Dialog.is_image_preview_candidate(local_file_path="x/logo.ico"))
 
     def test_file_names(self):
         self.assertEqual(Dialog.resolve_file_name(local_file_path=" C:/a/b.pdf "), "b.pdf")
@@ -379,31 +389,76 @@ class LazyImageTest(_Base):
     def test_lazy_image_waits_then_loads_on_a_worker(self):
         dialog = self.make({"uuid": "u", "ext": "png"}, lazy=True)
         self.assertEqual(self.placeholder(dialog), "T:loading")
-        self.fetch.assert_not_called()
+        self.start.assert_not_called()
         dialog._start_lazy_image_preview_load()
         self.start.assert_called_once()
         worker = self.start.call_args.args[0]
         self.assertIsInstance(worker, workers.FunctionWorker)
+        self.fetch.assert_not_called()  # the fetch belongs to the worker
         dialog._start_lazy_image_preview_load()
         self.start.assert_called_once()
-        dialog._fetch_image_preview_payload("u")
+        worker.run()
         self.fetch.assert_called_once_with("u", max_bytes=25 * 1024 * 1024)
-        dialog._handle_lazy_image_preview_loaded({"content": png_bytes()})
+        dialog._preview_apply = dialog._apply_image_preview_payload
+        dialog._handle_preview_payload({"content": png_bytes()})
         self.assertIsInstance(self.content(dialog), QScrollArea)
-        dialog._handle_lazy_image_preview_loaded("x")
+        dialog._preview_apply = dialog._apply_image_preview_payload
+        dialog._handle_preview_payload("x")
         self.assertEqual(self.placeholder(dialog), failed("u"))
-        dialog._handle_lazy_image_preview_error("boom")
+        dialog._preview_apply = dialog._apply_image_preview_payload
+        dialog._handle_preview_error("boom")
         self.assertEqual(self.placeholder(dialog), failed("u"))
         dialog._cleanup_preview_worker()
         self.assertIsNone(dialog._preview_thread)
 
     def test_lazy_only_for_remote_images(self):
-        self.fetch.return_value = {"content": b"abc"}
-        self.assertIsInstance(self.content(self.make({"uuid": "u", "ext": "txt"}, lazy=True)), QPlainTextEdit)
+        text = self.make({"uuid": "u", "ext": "txt"}, lazy=True)
+        self.assertEqual(self.placeholder(text), "T:loading")  # text loads at once, on a worker too
+        self.start.assert_called_once()
         dialog = self.make({"ext": "png"}, lazy=True)
         dialog._start_lazy_image_preview_load()
-        self.start.assert_not_called()
+        self.start.assert_called_once()
         self.assertEqual(self.placeholder(dialog), failed("-"))
+
+
+class BackgroundPreviewTest(_Base):
+    """Remote image, text and PDF previews fetch on a worker; the dialog shows Loading first."""
+
+    def setUp(self):
+        super().setUp()
+        self.held = []
+        self.start = self.p(preview_module, "start_worker", side_effect=lambda worker, **_kw: self.held.append(worker))
+
+    def test_each_remote_kind_starts_a_worker_and_shows_loading(self):
+        for info, max_bytes in (({"uuid": "u", "ext": "png"}, 25 * 1024 * 1024),
+                                ({"uuid": "u", "ext": "txt"}, 512 * 1024)):
+            with self.subTest(info=info):
+                self.held.clear()
+                dialog = self.make(info)
+                self.assertEqual(self.placeholder(dialog), "T:loading")
+                self.fetch.assert_not_called()
+                self.assertEqual(len(self.held), 1)
+                self.held[0].run()
+                self.fetch.assert_called_with("u", max_bytes=max_bytes)
+                self.fetch.reset_mock()
+
+    def test_payload_after_close_is_dropped(self):
+        self.fetch.return_value = {"content": b"abc"}
+        dialog = self.make({"uuid": "u", "ext": "txt"})
+        worker = self.held[0]
+        dialog.close()
+        self.assertIsNone(dialog._preview_apply)
+        self.assertTrue(dialog._preview_closed)
+        worker.run()  # detached: nothing is emitted
+        dialog._handle_preview_payload({"content": b"abc"})  # even a late delivery changes nothing
+        self.assertEqual(self.placeholder(dialog), "T:loading")
+
+    def test_an_error_while_applying_is_logged_and_shows_failed(self):
+        dialog = self.make({"uuid": "u", "ext": "txt"})
+        dialog._preview_apply = Mock(side_effect=RuntimeError("boom"))
+        dialog._handle_preview_payload({"content": b"x"})
+        self.log.assert_called_once()
+        self.assertEqual(self.placeholder(dialog), failed("u"))
 
 
 class OpenExternallyTest(_Base):

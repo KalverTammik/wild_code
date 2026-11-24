@@ -42,6 +42,16 @@ komplekti ajutises kaustas.
 
 Lint: `ruff check .` plugina juurkaustas. Reeglid on failis [.ruff.toml](.ruff.toml).
 
+GitHubis käivitab [tests.yml](.github/workflows/tests.yml) iga `main`-i push'i ja pull requesti peale ruffi ning kogu komplekti ametlikus `qgis/qgis:3.40.13-noble` konteineris. Linuxis jooksevad ka POSIX-i failiõiguste ja sümbollingi testid, mis Windowsis vahele jäävad. Väljalaske töövoog käivitab sama kontrolli enne paketi ehitamist ega avalda midagi, kui see ebaõnnestub.
+
+Sama konteineri saab käivitada ka kohapeal (Docker Desktop), kui kaust on nimega `Kavitro_dev`:
+
+```bash
+docker run --rm -e QT_QPA_PLATFORM=offscreen -e PYTHONPATH=/usr/share/qgis/python/plugins \
+  -v "<kaust, kus on Kavitro_dev>:/work" -w /work/Kavitro_dev qgis/qgis:3.40.13-noble \
+  python3 tools/run_tests.py
+```
+
 ## Release
 
 Release'i juhendid:

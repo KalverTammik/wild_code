@@ -6,10 +6,9 @@ import os
 import threading
 from typing import Optional
 
-from qgis.PyQt.QtCore import Qt, QSize, QTimer
+from qgis.PyQt.QtCore import Qt, QSize, QTimer, pyqtSlot
 from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import (
-    QApplication,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -181,6 +180,9 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         self._web_view = None
         self._preview_worker = None
         self._preview_thread = None
+        # Remote previews load on a worker (2026-11-24): the fetch used to block QGIS before the dialog showed.
+        self._preview_apply = None
+        self._preview_closed = False
         self._external_open_extension = resolve_allowed_external_extension(
             api_extension=self._file_info.get("ext"),
             file_name=self._file_info.get("fileName"),
@@ -274,14 +276,6 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         else:
             self._load_preview()
 
-    def _run_with_busy_cursor(self, callback):
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-        QApplication.processEvents()
-        try:
-            return callback()
-        finally:
-            QApplication.restoreOverrideCursor()
-
     def _file_name(self) -> str:
         return file_name(file_info=self._file_info, local_file_path=self._local_file_path)
 
@@ -358,6 +352,7 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
 
     def _release_dialog_resources(self) -> None:
         try:
+            self._stop_preview_fetch()
             self._stop_external_download()
             self._cleanup_pdf_temp_file()
             cleanup_external_temp_files()
@@ -374,30 +369,53 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         if not file_uuid:
             self._show_failed()
             return
+        self._load_image_preview(file_uuid)
 
-        if self._preview_thread is not None:
+    def _fetch_preview_in_background(self, file_uuid: str, max_bytes: int, apply) -> None:
+        """Fetch a remote preview on a worker and hand the payload to ``apply`` in the GUI thread.
+
+        The dialog shows **Loading** meanwhile; a result after the dialog closed is dropped.
+        Signals go to bound methods of the dialog, so Qt queues them to the GUI thread.
+        """
+        if self._preview_thread is not None or self._preview_closed:
             return
-
-        worker = FunctionWorker(self._fetch_image_preview_payload, file_uuid)
-        worker.finished.connect(self._handle_lazy_image_preview_loaded)
-        worker.error.connect(self._handle_lazy_image_preview_error)
+        self._show_placeholder(self._lang.translate(TranslationKeys.LOADING))
+        self._preview_apply = apply
+        worker = FunctionWorker(APIModuleActions.fetch_file_preview_payload, file_uuid, max_bytes=max_bytes)
+        worker.finished.connect(self._handle_preview_payload)
+        worker.error.connect(self._handle_preview_error)
         self._preview_worker = worker
         self._preview_thread = start_worker(worker, on_thread_finished=self._cleanup_preview_worker)
 
-    def _fetch_image_preview_payload(self, file_uuid: str):
-        return APIModuleActions.fetch_file_preview_payload(
-            file_uuid,
-            max_bytes=self.IMAGE_PREVIEW_MAX_BYTES,
-        )
-
-    def _handle_lazy_image_preview_loaded(self, payload: object) -> None:
-        if not isinstance(payload, dict):
+    @pyqtSlot(object)
+    def _handle_preview_payload(self, payload: object) -> None:
+        try:
+            apply = self._preview_apply
+            self._preview_apply = None
+            if apply is None or self._preview_closed:
+                return
+            if not isinstance(payload, dict):
+                self._show_failed()
+                return
+            apply(payload)
+        except Exception as exc:  # Qt slot: nothing may escape
+            PythonFailLogger.log_exception(exc, module="ui", event="task_file_preview_apply_failed")
             self._show_failed()
-            return
-        self._apply_image_preview_payload(payload)
 
-    def _handle_lazy_image_preview_error(self, _message: str) -> None:
-        self._show_failed()
+    @pyqtSlot(str)
+    def _handle_preview_error(self, _message: str) -> None:
+        self._handle_preview_payload(None)
+
+    def _stop_preview_fetch(self) -> None:
+        self._preview_closed = True
+        self._preview_apply = None
+        worker = self._preview_worker
+        if worker is not None:
+            try:
+                worker.detach()
+                worker.cancel()
+            except RuntimeError:  # worker already deleted
+                pass
 
     def _cleanup_preview_worker(self) -> None:
         self._preview_worker = None
@@ -440,17 +458,7 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
             )
             return
 
-        payload = self._run_with_busy_cursor(
-            lambda: APIModuleActions.fetch_file_preview_payload(
-                file_uuid,
-                max_bytes=self.IMAGE_PREVIEW_MAX_BYTES,
-            )
-        )
-        if not isinstance(payload, dict):
-            self._show_failed()
-            return
-
-        self._apply_image_preview_payload(payload)
+        self._fetch_preview_in_background(file_uuid, self.IMAGE_PREVIEW_MAX_BYTES, self._apply_image_preview_payload)
 
     def _apply_image_preview_payload(self, payload: dict) -> None:
         if not isinstance(payload, dict):
@@ -492,16 +500,9 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         self._content_layout.addWidget(scroll, 1)
 
     def _load_text_preview(self, file_uuid: str) -> None:
-        payload = self._run_with_busy_cursor(
-            lambda: APIModuleActions.fetch_file_preview_payload(
-                file_uuid,
-                max_bytes=self.TEXT_PREVIEW_MAX_BYTES,
-            )
-        )
-        if not isinstance(payload, dict):
-            self._show_failed()
-            return
+        self._fetch_preview_in_background(file_uuid, self.TEXT_PREVIEW_MAX_BYTES, self._apply_text_preview_payload)
 
+    def _apply_text_preview_payload(self, payload: dict) -> None:
         self._last_url = str(payload.get("url") or "").strip()
         content = payload.get("content") or b""
         text = decode_text(content)

@@ -9,7 +9,6 @@ from qgis.PyQt.QtCore import QUrl
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.translation_keys import TranslationKeys
-from ...python.api_actions import APIModuleActions
 from .task_file_external_open import create_external_temp_file, remove_temp_file_quietly
 from .task_file_identity import safe_int
 
@@ -110,22 +109,19 @@ class TaskFilePdfPreviewMixin:
 
         try:
             # inline import: QtWebEngine is optional in some QGIS Qt5 builds; import lazily to avoid breaking plugin startup.
-            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView
+            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView  # noqa: F401 - availability check
         except ImportError:
             self._show_placeholder(
                 self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
             )
             return
 
-        payload = self._run_with_busy_cursor(
-            lambda: APIModuleActions.fetch_file_preview_payload(
-                file_uuid,
-                max_bytes=self.PDF_PREVIEW_MAX_BYTES,
-            )
-        )
-        if not isinstance(payload, dict):
-            self._show_failed()
-            return
+        # Loads on a worker (2026-11-24); the view is built when the payload arrives.
+        self._fetch_preview_in_background(file_uuid, self.PDF_PREVIEW_MAX_BYTES, self._apply_pdf_preview_payload)
+
+    def _apply_pdf_preview_payload(self, payload: dict) -> None:
+        # inline import: checked in _load_pdf_preview before the fetch started.
+        from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView
 
         self._last_url = str(payload.get("url") or "").strip()
         if payload.get("truncated"):

@@ -7,6 +7,7 @@ import os
 from typing import Optional
 
 IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "bmp", "gif", "webp", "svg"}
+LOCAL_IMAGE_EXTENSIONS = IMAGE_EXTENSIONS | {"ico", "tif", "tiff"}
 PDF_EXTENSIONS = {"pdf"}
 TEXT_EXTENSIONS = {
     "txt", "log", "csv", "tsv", "json", "xml", "yml", "yaml", "md", "py",
@@ -30,6 +31,10 @@ def preview_identity(*, file_info: Optional[dict] = None, local_file_path: str =
         guessed, _ = mimetypes.guess_type(normalized_local_path)
         mime_type = str(guessed or "").strip().lower()
         ext = os.path.splitext(normalized_local_path)[1].strip().lower().lstrip(".")
+        # The system MIME table differs per OS: Linux calls .dwg "image/vnd.dwg", Windows does not.
+        # A local file is an image only with an extension Qt can show (found by the Linux CI, 2026-11-24).
+        if mime_type.startswith("image/") and ext not in LOCAL_IMAGE_EXTENSIONS:
+            mime_type = ""
         return mime_type, ext
 
     data = file_info if isinstance(file_info, dict) else {}

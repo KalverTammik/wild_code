@@ -116,7 +116,7 @@ Eelvaate liik otsustatakse teenusest tulnud MIME-tüübi ja faililaiendi järgi.
 
 HTML ja muud tekstivormingud kuvatakse toortekstina, mitte veebilehena. Tekst on ainult lugemiseks ning reamurdmine on välja lülitatud.
 
-Pilt laaditakse kirjekaardi kokkuvõttest avatuna taustal. PDF, tekst ja täieliku failidialoogi kaudu avatav pilt laaditakse kasutajaliidese lõimes ootekursoriga ning aeglase ühenduse korral võib dialoog ajutiselt mitte reageerida.
+Pilt laaditakse kirjekaardi kokkuvõttest avatuna taustal. Ka PDF, tekst ja täieliku failidialoogi kaudu avatav pilt laaditakse taustal: dialoog avaneb kohe teatega **Laadimine** ja QGIS jääb kasutatavaks. Kui dialoog suletakse enne laadimise lõppu, jäetakse tulemus kõrvale.
 
 PDF-i jaoks peab QGIS-i Qt WebEngine sisaldama sisseehitatud PDF-vaate tuge. Kui seda tuge pole, avaneb eelvaatedialoog ilma PDF-vaateta: sisu asemel kuvatakse teade koos Qt versiooniga ning **Ava väliselt** on kasutatav samamoodi nagu teiste toetamata vormingute puhul. Eelvaate jaoks faili sel juhul alla ei laadita.
 

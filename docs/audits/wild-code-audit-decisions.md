@@ -168,7 +168,7 @@ Staatilised regressioonitestid valideerivad usalduspiiri repository tasemel. Jä
 
 Regressioonitestid kontrollivad mõlemat API veateed 422 vastusega, mille keha sisaldab näilist juurdepääsutõendit. Nii tavalises kui ka failiga päringus säilib `HTTP 422`, kuid vastuse keha ega `accessToken` tekst ei jõua tagastatud veasse. Staatiline test takistab `response.text` kasutuse tagasitulekut ning kontrollib, et mõlemad faililogijad kasutaksid turvalist I/O abimoodulit.
 
-QGIS 3.40.13 Pythoni keskkonnas läbis kogu komplekt 103 testi; kaks platvormi- või keskkonnaspetsiifilist testi jäeti vahele. POSIX-i `0700` ja `0600` õiguste test käivitub ainult POSIX-keskkonnas; Windowsis jääb see vahele. Testide CI-d repos ei ole (otsus 2026-11-04), seega tuleb see test vajadusel käsitsi Linuxis käivitada.
+QGIS 3.40.13 Pythoni keskkonnas läbis kogu komplekt 103 testi; kaks platvormi- või keskkonnaspetsiifilist testi jäeti vahele. POSIX-i `0700` ja `0600` õiguste test käivitub ainult POSIX-keskkonnas; Windowsis jääb see vahele. Alates 2026-11-24 käivitab GitHubi töövoog `.github/workflows/tests.yml` kogu komplekti ametlikus `qgis/qgis:3.40.13-noble` konteineris iga `main`-i push'i ja pull requesti peale, seega jookseb see POSIX-i test Linuxis automaatselt. (Varasem otsus 2026-11-04 CI-d mitte teha muudeti 2026-11-24.)
 
 Jääkriskina võivad tavapärased GraphQL-i rakendustaseme veateated endiselt logisse jõuda. Backend ei tohiks neisse lisada paroole, tokeneid ega muid saladusi. Crash-logi loomise viis failis `main.py` ei kuulu WC-13 parandusse ja hinnatakse eraldi WC-14 etapis.
 
