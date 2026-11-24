@@ -326,6 +326,9 @@ class ModuleConnectionSection(QFrame):
         self.toggle_button.setCheckable(True)
         self.toggle_button.setChecked(len(self._items) <= 5)
         self.toggle_button.setArrowType(Qt.DownArrow if self.toggle_button.isChecked() else Qt.RightArrow)
+        toggle_text = self._translator.translate(TranslationKeys.PROPERTY_TREE_TOGGLE_TOOLTIP)
+        self.toggle_button.setToolTip(toggle_text)
+        self.toggle_button.setAccessibleName(toggle_text)
         self.toggle_button.toggled.connect(self._toggle_body)
         header_row.addWidget(self.toggle_button)
 

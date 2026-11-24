@@ -73,12 +73,9 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_MANUAL: "Manual project base layer setup is active.",
         TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_ACTIVE: "Geospatial-assisted setup is active. Manual project base layer controls are hidden until you return to manual setup.",
         TranslationKeys.SETTINGS_GEOSPATIAL_CONNECT_BUTTON: "Connect via Geospatial",
-        TranslationKeys.SETTINGS_GEOSPATIAL_MANAGE_BUTTON: "Review Geospatial setup",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_TITLE: "Geospatial-assisted setup",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_BODY: "This flow will later configure project base layers and related defaults automatically for customers using Geospatial services. For now, enabling this mode hides the manual project base layer controls and reserves this area for the guided integration flow.",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_SCOPE: "The current placeholder step does not write automatic layer assignments yet. You can return to manual setup at any time.",
-        TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_TITLE: "Disable Geospatial-assisted setup?",
-        TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_BODY: "If you disable Geospatial-assisted setup, all saved Geospatial settings will be removed. After that, you can configure the preferred fields manually or reset them yourself in Settings.",
         TranslationKeys.SETTINGS_MAP_OVERLAY_TITLE: "Map toolbar",
         TranslationKeys.SETTINGS_MAP_OVERLAY_DESCRIPTION: "Show quick action buttons at the edge of the map canvas during the Kavitro session.",
         TranslationKeys.SETTINGS_MAP_OVERLAY_GLASS_BAR: "Show map glass toolbar",
@@ -318,6 +315,32 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_UNSAVED_TITLE: "Unsaved changes",
         TranslationKeys.SETTINGS_UNSAVED_MESSAGE: "You have unsaved Settings changes.\n\nDo you want to save or discard them?",
         TranslationKeys.SETTINGS_DISCARD_BUTTON: "Discard",
+        TranslationKeys.SETTINGS_APPLY_FAILED_TITLE: "Settings were not saved",
+        TranslationKeys.SETTINGS_APPLY_FAILED_BODY: "Changes on these cards could not be saved:\n\n{cards}\n\nThese changes are still pending. Try again with Confirm. Changes on the other cards were saved.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_SWITCH_MANUAL_BUTTON: "Switch to manual setup",
+        TranslationKeys.SETTINGS_GEOSPATIAL_SWITCH_MANUAL_TITLE: "Switch to manual setup?",
+        TranslationKeys.SETTINGS_GEOSPATIAL_SWITCH_MANUAL_BODY: "Geospatial mode is turned off and setup continues manually. The Open mapper button disappears from the module cards, and you can choose the base layers yourself again.\n\nNothing is deleted: QGIS layers, the modules' layer choices and data copied with the mapper stay.\n\nThe change is saved when you press Confirm at the bottom of Settings.",
+        TranslationKeys.PROPERTY_ADD_NO_IMPORT_LAYER_TOOLTIP: "The project has no property import layer, or it is empty. Add an SHP file first.",
+        TranslationKeys.PROPERTY_IMPORT_LAYERS_REPLACED: "The previous import layer was removed from the project: {names}",
+        TranslationKeys.PROPERTY_DELETE_BY_ID_CONFIRM_TITLE: "Confirm deletion",
+        TranslationKeys.PROPERTY_DELETE_BY_ID_CONFIRM_BODY: "This property will be deleted from Kavitro:\n\nID: {id}\nCadastral number: {number}\nAddress: {address}\n\nMap layers are not changed. The deletion cannot be undone. Delete it?",
+        TranslationKeys.PROPERTY_DELETE_BY_ID_DELETE_BUTTON: "Delete",
+        TranslationKeys.PROPERTY_DELETE_BY_ID_NOT_FOUND: "No property with ID {id} was found. Nothing was deleted.",
+        TranslationKeys.PROPERTY_DELETE_BY_ID_PREVIEW_FAILED: "The property could not be loaded, so nothing was deleted.\n\n{error}",
+        TranslationKeys.PROPERTY_TREE_TOGGLE_TOOLTIP: "Show/hide related records",
+        TranslationKeys.TASK_FILES_PDF_PREVIEW_UNAVAILABLE: "This QGIS version cannot show the PDF here (Qt {qt_version}). Use “Open externally” to open the file.",
+        TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOADING: "Downloading file: {done} / {total}",
+        TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOADING_NO_SIZE: "Downloading file: {done}",
+        TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOAD_CANCEL: "Cancel",
+        TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOAD_CANCELLED: "Download cancelled.",
+        TranslationKeys.EASEMENT_PREVIEW_ROUND_ENDS: "Round ends",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_EXISTS_TITLE: "File already exists",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_EXISTS_MESSAGE: "This easement already has a file named {name} in Kavitro.\n\nReplace that file, or add a new version named {new_name}?",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_REPLACE: "Replace",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_NEW_VERSION: "New version",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_FILES_CHECK_FAILED: "The easement's files could not be read from Kavitro, so it is not known whether {name} already exists.\n\nPublish anyway?",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_FILE_NAME: "File name: {name}",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_OLD_NOT_REMOVED: "The new file was uploaded, but the old file {name} could not be removed. Check the easement's files in Kavitro.",
         TranslationKeys.TEMP_LAYER_OVERWRITE_CONFIRM: "The file already exists:\n{path}\n\nLayers in the file: {layers}\nLoaded layers removed from the project: {loaded}\n\nThe old file is renamed to the backup\n{backup}\nand a new GeoPackage is created in its place.",
         TranslationKeys.TEMP_LAYER_OVERWRITE_BUTTON: "Overwrite",
         TranslationKeys.TEMP_LAYER_BACKUP_NOTE: "The old file is kept as a backup:\n{backup}",
@@ -900,7 +923,6 @@ TRANSLATIONS = {
         ,TranslationKeys.TASK_FILES_PREVIEW_TOO_LARGE: "This file is too large to preview in the plugin. Use external open if needed."
         ,TranslationKeys.TASK_FILES_PREVIEW_FAILED: "Could not load preview for file {name}."
         ,TranslationKeys.TASK_FILES_PREVIEW_TRUNCATED: "Showing only the first {count} KB for preview."
-        ,TranslationKeys.TASK_FILES_PDF_RUNTIME_UNSUPPORTED: "Embedded PDF preview is not available in this QGIS runtime. Current runtime: Qt {qt_version}, PyQt {pyqt_version}.\n\nInstalling standalone PyQt6 separately is usually not enough for QGIS plugins. The QGIS application itself must run on a newer Qt/PyQt runtime with PDF-capable WebEngine support.\n\nSuggested solution: upgrade QGIS to a newer build that ships with Qt6/PyQt6 and Qt WebEngine PDF support."
         ,TranslationKeys.TASK_FILES_OPEN_FAILED: "Could not open file {name}."
         ,TranslationKeys.TASK_FILES_EXTERNAL_OPEN_CONFIRM: "The file will be opened in the computer's default application.\n\nFile: {name}\nType: .{extension}\n\nOnly open it if you trust the file and its uploader. Continue?"
         ,TranslationKeys.TASK_FILES_EXTERNAL_OPEN_BLOCKED: "File {name} cannot be opened in an external application for security reasons."

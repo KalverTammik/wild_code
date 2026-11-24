@@ -74,14 +74,14 @@ Eelvaade toetab pilte, teksti ja sobiva QGIS-i Qt WebEngine'i käitusaja korral 
 
 | Nupp | Tegelik käitumine |
 |---|---|
-| **Ava väliselt** | Kuvab vaikimisi eitava turvakinnituse ning laadib lubatud tüüpi kaugfaili alla ja avab selle vaikerakenduses alles valiku **Jah** järel |
+| **Ava väliselt** | Kuvab vaikimisi eitava turvakinnituse ning alles valiku **Jah** järel laadib lubatud tüüpi kaugfaili taustal alla ja avab selle vaikerakenduses. Allalaadimise ajal näidatakse allalaaditud mahtu ja nuppu **Katkesta** |
 | **Sulge** | Sulgeb eelvaate; Kavitro faili ei muudeta |
 
-Tekstieelvaade loeb kuni 512 KB ja märgib kärbitud sisu. Pildieelvaate piir on 25 MB ning PDF-e proovitakse eelvaadata kuni 40 MB ulatuses. Faili väliselt avamisel eelvaate mahupiir ei kehti ning allalaadimine võib suure faili või aeglase ühenduse korral kasutajaliidest pikalt blokeerida. Lubatud failitüübid ja passiivse nupu kontrolljuhis on failis [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md).
+Tekstieelvaade loeb kuni 512 KB ja märgib kärbitud sisu. Pildieelvaate piir on 25 MB ning PDF-e proovitakse eelvaadata kuni 40 MB ulatuses. Faili väliselt avamisel eelvaate mahupiir ei kehti, kuid allalaadimine käib taustal: dialoog ja QGIS jäävad kasutatavaks ning allalaadimise saab katkestada nupuga **Katkesta** või eelvaate sulgemisega. Lubatud failitüübid ja passiivse nupu kontrolljuhis on failis [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md).
 
-Kui QGIS-i käitusaeg ei toeta sisseehitatud PDF-vaadet, kuvatakse hoiatus enne eelvaatedialoogi loomist. Selles hoiatuses **Ava väliselt** nuppu ei ole, mistõttu tuleb PDF avada kausta või Kavitro veebivaate kaudu.
+Kui QGIS-i käitusaeg ei toeta sisseehitatud PDF-vaadet, avaneb eelvaatedialoog ilma PDF-vaateta: sisu asemel kuvatakse teade ning PDF-i saab avada nupuga **Ava väliselt**. Eelvaate jaoks faili sel juhul alla ei laadita.
 
-Väliseks avamiseks loodud ajutist faili pärast avamist ega eelvaate sulgemisel ei kustutata. Kood eemaldab registrist ainult failid, mis on juba muul põhjusel kettalt kadunud.
+Väliseks avamiseks ja PDF-eelvaateks loodud ajutised failid hoitakse plugina oma kaustas `Kavitro_files` süsteemi ajutises kataloogis. PDF-eelvaate fail kustutatakse eelvaate sulgemisel. Väliselt avatud faili võib teine rakendus veel kasutada, seega seda kohe ei kustutata: uue allalaadimise eel, eelvaate sulgemisel ja plugina mahalaadimisel kustutatakse kaustast failid, mis on vanemad kui 15 minutit. Faili, mida mõni programm veel lukus hoiab, ei kustutata; see märgitakse logisse ja eemaldatakse mõnel järgmisel korral.
 
 Failinime, pildikooni ja eelvaate ühine lühikaart on failis [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md).
 
@@ -159,12 +159,7 @@ Kaardivaliku kontroller ei käsitle objekti valimata `Esc`-klahvi, paremklõpsu 
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
-Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
-
-| Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
-|---|---|---|---|
-| Keskmine | PDF-i käitustoe puudumisel suletakse voog enne eelvaatedialoogi ning välise avamise nuppu ei pakuta | Kasutaja ei saa failirea kaudu PDF-i väliselt avada | Lisa hoiatusse **Ava väliselt** valik või ava piiratud PDF otse välises rakenduses |
-| Keskmine | Väliseks avamiseks alla laaditud ajutisi faile ei kustutata | Kaugfailide koopiad kogunevad ajutisse kataloogi ja võivad jääda sinna pikaks ajaks | Kustuta fail rakenduse sulgemisel või halda seda kontrollitud vahemäluna |
+Leiud on 2026-11-24 koodi vastu üle kontrollitud ja parandatud leiud on eemaldatud. Avatud leide praegu ei ole.
 
 ## Soovituslik tööjärjekord
 

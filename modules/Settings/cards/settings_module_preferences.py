@@ -51,22 +51,32 @@ class SettingsModulePreferencesMixin:
                 continue
             widget.ensure_loaded()
 
-    def _save_preference_states(self) -> bool:
-        changed = False
+    def _write_preference_states(self) -> bool:
+        """Write the changed preferences; True only when every write succeeded.
+
+        The saved (_orig_*) sets are not touched here: the card commits them only after
+        all its writes went through, so a failed Confirm leaves the card pending.
+        """
+        ok = True
         for enabled, support_key, orig_attr, pend_attr, _widget in self._preference_specs():
             if not enabled:
                 continue
-            original = getattr(self, orig_attr)
             pending = getattr(self, pend_attr)
-            if pending != original:
-                self.logic.save_module_preference_ids(
+            if pending != getattr(self, orig_attr):
+                result = self.logic.save_module_preference_ids(
                     self.module_key,
                     support_key=support_key,
                     ids=pending,
                 )
-                setattr(self, orig_attr, set(pending))
-                changed = True
-        return self._save_not_started_status_preferences() or changed
+                ok = result is not False and ok
+        return self._write_not_started_status_preferences() and ok
+
+    def _commit_preference_states(self) -> None:
+        for enabled, _support_key, orig_attr, pend_attr, _widget in self._preference_specs():
+            if enabled:
+                setattr(self, orig_attr, set(getattr(self, pend_attr)))
+        if self.supports_statuses:
+            self._orig_not_started_status_preferences = set(self._pend_not_started_status_preferences)
 
     def _revert_preference_states(self) -> None:
         for enabled, _support_key, orig_attr, pend_attr, widget in self._preference_specs():
@@ -94,11 +104,12 @@ class SettingsModulePreferencesMixin:
         self._orig_not_started_status_preferences = set(loaded)
         self._pend_not_started_status_preferences = set(loaded)
 
-    def _save_not_started_status_preferences(self) -> bool:
+    def _write_not_started_status_preferences(self) -> bool:
+        """Write the changed not-started statuses; False only when the write failed."""
         if not self.supports_statuses:
-            return False
+            return True
         if self._pend_not_started_status_preferences == self._orig_not_started_status_preferences:
-            return False
+            return True
 
         serialized = ""
         if self._pend_not_started_status_preferences:
@@ -108,19 +119,17 @@ class SettingsModulePreferencesMixin:
             serialized = ProjectBoardStatusRules.serialize_not_started_status_rows(status_ids, status_names)
 
         if serialized:
-            self.logic.save_module_label_value(
+            result = self.logic.save_module_label_value(
                 self.module_key,
                 SettingDialogPlaceholders.PROJECT_BOARD_NOT_STARTED_STATUSES,
                 serialized,
             )
         else:
-            self.logic.clear_module_label_value(
+            result = self.logic.clear_module_label_value(
                 self.module_key,
                 SettingDialogPlaceholders.PROJECT_BOARD_NOT_STARTED_STATUSES,
             )
-
-        self._orig_not_started_status_preferences = set(self._pend_not_started_status_preferences)
-        return True
+        return result is not False
 
     def _revert_not_started_status_preferences(self) -> None:
         original = set(self._orig_not_started_status_preferences)

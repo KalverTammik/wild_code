@@ -136,19 +136,14 @@ class PropertyManagementUI(SettingsBaseCard):
     def _apply_geospatial_mode(self) -> None:
         if self._geospatial_mode_active:
             self.btn_open_maa_amet.setEnabled(False)
-            self.btn_add_shp.setEnabled(False)
-            self.btn_add_property.setEnabled(True)
             tooltip = self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_ACTIVE)
             self.btn_open_maa_amet.setToolTip(tooltip)
             self.btn_add_shp.setToolTip(tooltip)
-            self.btn_add_property.setToolTip("")
-            self._update_search_field_button_state()
-            return
-
-        self.btn_open_maa_amet.setEnabled(True)
-        self.btn_open_maa_amet.setToolTip("")
-        self.btn_add_shp.setToolTip("")
-        self.btn_add_property.setToolTip("")
+        else:
+            self.btn_open_maa_amet.setEnabled(True)
+            self.btn_open_maa_amet.setToolTip("")
+            self.btn_add_shp.setToolTip("")
+        # The add and remove buttons follow the layers in both modes.
         self._update_button_states()
 
     def _minimize_plugin_window_if_safe(self) -> None:
@@ -238,7 +233,14 @@ class PropertyManagementUI(SettingsBaseCard):
 
     def _on_remove_property_by_id_clicked(self):
         """Emergency delete-by-id dialog (legacy)."""
-        open_remove_by_id_dialog(self)
+        try:
+            open_remove_by_id_dialog(self)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_property_delete_by_id_failed",
+            )
 
     def _on_add_property_clicked(self):
         """Handle Add property button click"""
@@ -384,10 +386,6 @@ class PropertyManagementUI(SettingsBaseCard):
         Internal logic that reads layers and applies the enabled/disabled states
         using the pure helper.
         """
-        if self._geospatial_mode_active:
-            self._apply_geospatial_mode()
-            return
-
         # 1) Discover layers
         main_layer = ActiveLayersHelper.resolve_main_property_layer(dialogs=None)
         shp_layer = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
@@ -404,9 +402,13 @@ class PropertyManagementUI(SettingsBaseCard):
             shp_feature_count,
         )
 
-        # 3) Apply to buttons
-        self.btn_add_shp.setEnabled(shp_en)
+        # 3) Apply to buttons. Geospatial setup has no SHP import of its own, but adding
+        # still needs a loaded import layer: the add dialog lists only its features.
+        self.btn_add_shp.setEnabled(shp_en and not self._geospatial_mode_active)
         self.btn_add_property.setEnabled(add_en)
+        self.btn_add_property.setToolTip(
+            "" if add_en else self.lang_manager.translate(TranslationKeys.PROPERTY_ADD_NO_IMPORT_LAYER_TOOLTIP)
+        )
         # Primary delete depends on MAIN layer.
         self.btn_remove_property.setEnabled(rem_en)
         self._update_search_field_button_state(main_layer=main_layer)

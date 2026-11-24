@@ -19,7 +19,7 @@ Staatus- ja liigifiltri ning filtrite värskendamise ja tühjendamise täpne kä
 | **Seosta kinnistuid** | Lisab Kavitro servituudile kinnistuseoseid | Selle töövooga seoseid eemaldada ei saa |
 | Eelvaate loomise ja puhastamise nupud | Lisavad või eemaldavad QGIS-i ajutisi mälukihte ja valikuid | Jah, kuni tulemust pole põhikihile salvestatud |
 | **Salvesta servituudi kinnistuandmed** | Uuendab Kavitro seosemetaandmeid, QGIS-i põhikihti ja Kavitro geomeetriat | Kolm andmemõju ei ole ühine tehing |
-| **Avalda PDF skeem** | Laadib uue faili Kavitrosse | Avaldatud faili eemaldamiseks on vaja failihaldust või veebirakendust |
+| **Avalda PDF skeem** | Laadib faili Kavitrosse; sama nimega faili korral asendab selle või lisab uue versiooni | Asendatud vana faili tagasi ei too; avaldatud faili eemaldamiseks on vaja failihaldust või veebirakendust |
 
 Seadistuste vaate üldine **Kinnita** ei lõpeta ega võta tagasi ühtegi siin kirjeldatud servituudikaardi toimingut.
 
@@ -196,15 +196,19 @@ Esimesel kuvamisel:
 
 Päringud, QGIS-i valikud ja töötlemisalgoritmid käivad kasutajaliidese lõimest ning suure andmehulga korral võib dialoog ajutiselt mitte reageerida. Teenuse päringu vea korral võib tagastuda tühi või osaline kinnistuloend ilma veaseisu ja päriselt puuduva seose selge eristuseta.
 
-## Puhvri kaugus ja Ümardatud nurgad
+## Puhvri kaugus, Ümardatud nurgad ja Ümarad otsad
 
 **Puhvri kaugus** on vaikimisi `2,0 m`, vahemikuga `0,1–500,0`. Väärtus on varukaugus; fikseeritud või atribuudi järgi arvutatava reegliga tehnovõrgureal võib muudatus nähtavat puhvrit mitte mõjutada.
 
 Kaugus on meetrites: projektsioonis kihil teisendatakse see kihi ühikutesse, kraadides kihi puhver arvutatakse meetrilises CRS-is ja teisendatakse tagasi (`LayerProcessingService`).
 
-**Ümardatud nurgad** muudab ainult puhvri `END_CAP_STYLE` parameetrit. `JOIN_STYLE` ehk tegelik nurgastiil jääb alati ümardatuks. Seetõttu mõjutab märkeruut eelkõige jooneotsi ning polügoonide nurkade puhul ei pruugi midagi muuta.
+**Ümardatud nurgad** määrab puhvri nurgastiili (`JOIN_STYLE`): märgituna on nurgad ümarad, märkimata teravad (`MITER`, piirväärtus 2,0). See mõjutab nii jooneliste tehnovõrkude kui ka kinnistute puhvreid.
 
-Mõlema juhtelemendi muutmine eemaldab varasemad ajutised eelvaated ja lõpliku lõike, tühjendab arvutatud pindalad ning käivitab automaatika uuesti.
+**Ümarad otsad** määrab puhvri otsakuju (`END_CAP_STYLE`): märgituna on jooneotsad ümarad, märkimata lamedad. See mõjutab ainult jooneliste objektide otsi; polügoonide puhvril otsi ei ole.
+
+Mõlemad märkeruudud on vaikimisi märgitud, nii et vaikimisi puhver on sama mis varem.
+
+Iga juhtelemendi muutmine eemaldab varasemad ajutised eelvaated ja lõpliku lõike, tühjendab arvutatud pindalad ning käivitab automaatika uuesti.
 
 ## Määra kinnistud kaardilt
 
@@ -229,7 +233,7 @@ Dialoogi üldine olekutekst on kasutajaliideses konstruktoris peidetud ja seda h
 
 Iga kinnisturea juures saab määrata pindalaühiku, ühikuhinna, valuuta, tasulisuse ja järgmise makse kuupäeva. Pindala ise arvutatakse lõpliku lõike ning kinnistu geomeetria lõikumisest.
 
-Kui teenusest tulnud seos ei olnud alguses tasuline, ei looda reale kogusumma ega järgmise makse välja. Hiljem **Tasuline** märkimine neid juhtelemente dünaamiliselt ei lisa, kuigi tasulisuse väärtus salvestatakse. Kui seos oli alguses tasuline, jäävad väljad nähtavale ka märkeruudu eemaldamisel.
+Kogusumma ja järgmise makse kuupäev on nähtaval ainult tasulisel seosel. **Tasuline** märkimine toob need väljad kohe nähtavale ka seosel, mis ei olnud varem tasuline; märke eemaldamine peidab need. Peidetud kuupäeva ei saadeta ega kontrollita, nii et mittetasulise seose vigane peidetud kuupäev salvestamist ei peata. Kirjekaardi detailis (ainult lugemiseks) kuvatakse makseväljad endiselt ainult Kavitros tasuliseks märgitud seosel.
 
 Maksekuupäev peab olema kujul `AAAA-KK-PP`. Vigane esimene kuupäev peatab kogu salvestamise.
 
@@ -271,16 +275,24 @@ Nupp kasutab olemasolevat lõplikku lõiget või proovib selle automaatselt luua
 - Kaart kasutab QGIS-i kaardil parajasti nähtavaid kihte ning lisab kinnistu- ja lõpliku servituudiala kihi.
 - Ulatus arvutatakse lõplikust alast ja valitud kinnistutest.
 - Kinnistu kokkuvõttes kuvatakse kuni kaks nimetust ning ülejäänute arv.
-- PDF-i numbrivälja pealkiri on koodis ekslikult **Lepingu nr**, kuigi väärtus on servituudi number.
+- PDF-i numbriväljal on pealkiri **Servituudi nr**.
 - Genereeritud PDF asendab sama servituudinumbriga varasema ajutise PDF-i.
 
 Kui QGIS-i käitusaeg ei toeta sisseehitatud PDF-vaadet, kuvatakse hoiatus enne eelvaatedialoogi loomist. **Ava väliselt** nuppu siis ei pakuta.
 
 ## Avalda PDF skeem
 
-Nupp genereerib PDF-i iga vajutusega uuesti ja laadib selle servituudi failina Kavitrosse. Enne üleslaadimist ei küsita kinnitust ega kontrollita, kas sama nimega skeem on juba olemas.
+Nupp genereerib PDF-i iga vajutusega uuesti ja laadib selle servituudi failina Kavitrosse. Faili nimi on servituudi number (näiteks `S-1.pdf`). Avaldamise ajal on nupp välja lülitatud, nii et korduv vajutus teist üleslaadimist ei alusta.
 
-Edu korral kuvatakse teade. Avaldatud faili ei eemaldata eelvaatedialoogi sulgemisel. Kuna **Failid** menüütoiming on katki, tuleb avaldatud faili kontrollimiseks või kustutamiseks avada servituut Kavitro veebirakenduses.
+Enne üleslaadimist loetakse Kavitrost servituudi failid. Kui seal on juba sama nimega fail (suur- ja väiketähte ei eristata), küsitakse:
+
+- **Asenda** laadib uue faili üles ja kustutab alles seejärel vana sama nimega faili. Kui vana faili ei õnnestu kustutada, jääb uus fail alles ja kuvatakse hoiatus.
+- **Uus versioon** lisab failinimele järgmise vaba järjenumbri (`S-1_v2.pdf`, `S-1_v3.pdf` jne) ning vana fail jääb alles.
+- **Tühista** on vaikevalik; ka akna sulgemine ei laadi midagi üles.
+
+Kui failide loendit ei õnnestu Kavitrost lugeda, kuvatakse hoiatus ja üleslaadimine toimub ainult kasutaja kinnitusel.
+
+Edu korral kuvatakse teade koos avaldatud faili nimega. Avaldatud faili ei eemaldata eelvaatedialoogi sulgemisel. Kuna **Failid** menüütoiming on katki, tuleb avaldatud faili kontrollimiseks või kustutamiseks avada servituut Kavitro veebirakenduses.
 
 ## Puhasta eelvaated
 
@@ -306,9 +318,6 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
 | Kriitiline | Kinnistuandmete payload koostatakse enne puuduva lõpliku lõike loomist | Ilma eelneva **Loo lõplik lõige** vajutuseta võivad arvutatud pindalad Kavitrosse salvestamata jääda | Loo ja arvuta lõige enne payload'i kogumist või saada pärast arvutust teine kontrollitud uuendus |
-| Keskmine | **Ümardatud nurgad** muudab otsakuju, mitte nurgastiili | Nupp ei anna nimele vastavat tulemust, eriti polügoonidel | Seo märkeruut `JOIN_STYLE` parameetriga ja nimeta otsakuju eraldi |
-| Keskmine | Mittetasulise seose märkimine tasuliseks ei lisa maksekuupäeva ega kogusumma juhtelemente | Kasutaja ei saa uue tasulise seose kõiki andmeid sisestada ega kontrollida | Ehita tasulisuse muutusel sõltuvad väljad dünaamiliselt ümber |
-| Keskmine | PDF-i avaldamine ei kontrolli olemasolevat faili (silt on nüüd **Servituudi nr**, tõlkevõtmega) | Korduvad vajutused võivad luua dubleeritud failid | Näita failinime ja küsi olemasoleva faili korral asendamise või uue versiooni valik |
 
 ## Soovituslik turvaline tööjärjekord
 

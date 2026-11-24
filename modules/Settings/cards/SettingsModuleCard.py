@@ -306,14 +306,15 @@ class SettingsModuleCard(
 
     # --- Persistence helpers -------------------------------------------------
 
-    def _write_saved_layer_value(self, kind: str, layer_name: str):
+    def _write_saved_layer_value(self, kind: str, layer_name: str) -> bool:
         if kind == "archive" and not self.supports_archive:
-            return
-        self.logic.set_module_layer_id(
+            return True
+        result = self.logic.set_module_layer_id(
             self.module_key,
             kind="archive" if kind == "archive" else "element",
             layer_name=layer_name,
         )
+        return result is not False
 
     # --- Apply/Revert/State ---
     def has_pending_changes(self) -> bool:
@@ -329,47 +330,59 @@ class SettingsModuleCard(
         )
         return el_dirty or ar_dirty or status_dirty or not_started_status_dirty or type_dirty or tag_dirty or label_dirty
 
-    def apply(self):
-        changed = False
+    def apply(self) -> bool:
+        """Save the pending values; True when every write succeeded.
 
-        if self._pend_element_name != self._orig_element_name:
-            self._write_saved_layer_value("element", self._pend_element_name)
+        On a failed write nothing becomes the new saved state: the card stays pending,
+        so the user sees it and the next Confirm writes it again.
+        """
+        element_changed = self._pend_element_name != self._orig_element_name
+        archive_changed = self.supports_archive and self._pend_archive_name != self._orig_archive_name
+        try:
+            ok = self._write_pending_values()
+        except Exception as exc:
+            self._log_error("settings_module_apply_failed", exc, extra={"module": self.module_key})
+            ok = False
+        if not ok:
+            self._emit_pending_changed(self.has_pending_changes())
+            return False
+
+        if element_changed:
             self._orig_element_name = self._pend_element_name
             SettingsLayerHelper.restore_combo_selection(self._layer_selector, self._orig_element_name)
-            changed = True
-
-        if self.supports_archive and (self._pend_archive_name != self._orig_archive_name):
-            self._write_saved_layer_value("archive", self._pend_archive_name)
+        if archive_changed:
             self._orig_archive_name = self._pend_archive_name
             if self._archive_picker:
                 SettingsLayerHelper.restore_combo_selection(self._archive_picker, self._orig_archive_name)
-            changed = True
-
-        changed = self._save_preference_states() or changed
-
-        # Save label values; an emptied one (a reset) is removed from the storage.
-        for key, value in self._pend_label_values.items():
-            if self._orig_label_values.get(key, "") != value:
-                if str(value or "") == "":
-                    self.logic.clear_module_label_value(self.module_key, key)
-                else:
-                    self.logic.save_module_label_value(self.module_key, key, value)
-                changed = True
-        if changed:
-            self._orig_label_values = dict(self._pend_label_values)
-
-        # Reset pending layer ids
-        self._pend_element_name = self._orig_element_name
         self._pend_archive_name = self._orig_archive_name
-
-        # Labels
-        self._pend_label_values = dict(self._orig_label_values)
+        self._commit_preference_states()
+        self._orig_label_values = dict(self._pend_label_values)
         if self._labels_widget:
             for k, v in self._orig_label_values.items():
                 self._labels_widget.set_label_value(k, v)
 
         self._update_stored_values_display()
-        self._emit_pending_changed(False if changed else self.has_pending_changes())
+        self._emit_pending_changed(self.has_pending_changes())
+        return True
+
+    def _write_pending_values(self) -> bool:
+        """Write every changed value; keep going after a failure and report it."""
+        ok = True
+        if self._pend_element_name != self._orig_element_name:
+            ok = self._write_saved_layer_value("element", self._pend_element_name) and ok
+        if self.supports_archive and (self._pend_archive_name != self._orig_archive_name):
+            ok = self._write_saved_layer_value("archive", self._pend_archive_name) and ok
+        ok = self._write_preference_states() and ok
+        # An emptied label value (a reset) is removed from the storage.
+        for key, value in self._pend_label_values.items():
+            if self._orig_label_values.get(key, "") == value:
+                continue
+            if str(value or "") == "":
+                result = self.logic.clear_module_label_value(self.module_key, key)
+            else:
+                result = self.logic.save_module_label_value(self.module_key, key, value)
+            ok = result is not False and ok
+        return ok
 
     def revert(self):
         # Layers

@@ -419,6 +419,28 @@ class EasementPdfService:
         return output_path
 
     @classmethod
+    def rename_output_pdf(cls, pdf_path: str | Path, new_base_name: str) -> str:
+        """Rename one PDF created by this service inside its own folder; "" when it cannot."""
+        try:
+            candidate = Path(pdf_path)
+        except (TypeError, ValueError):
+            return ""
+        if candidate not in cls._owned_output_paths:
+            return ""
+        target = candidate.parent / f"{cls._safe_file_name(new_base_name)}.pdf"
+        if target == candidate:
+            return str(candidate)
+        try:
+            if candidate.is_symlink() or not candidate.is_file() or target.exists():
+                return ""
+            candidate.rename(target)
+        except OSError:
+            return ""
+        cls._owned_output_paths.discard(candidate)
+        cls._owned_output_paths.add(target)
+        return str(target)
+
+    @classmethod
     def cleanup_output_pdf(cls, pdf_path: str | Path) -> bool:
         """Remove one PDF created by this service without following links."""
         if not pdf_path:

@@ -184,6 +184,10 @@ class SHPLayerLoader:
                     error_message=self._bootstrap_error_message(bootstrap_result),
                 )
 
+        # Only now that the new import is complete does it replace the old one: a cancelled
+        # or failed import leaves the previous import layer in use.
+        replaced_names = self._remove_previous_import_layers(memory_layer)
+
         feature_count = memory_layer.featureCount()
         PythonFailLogger.log(
             "shp_loader_success",
@@ -199,6 +203,14 @@ class SHPLayerLoader:
             message = self.lang_manager.translate(
                 TranslationKeys.SHAPEFILE_LOADED_MESSAGE
             ).format(name=layer_name)
+
+        if replaced_names:
+            message = "{}\n\n{}".format(
+                message,
+                self.lang_manager.translate(TranslationKeys.PROPERTY_IMPORT_LAYERS_REPLACED).format(
+                    names=", ".join(replaced_names),
+                ),
+            )
 
         if bootstrap_result is not None:
             message = "{}\n\n{}".format(
@@ -260,6 +272,39 @@ class SHPLayerLoader:
             default=self.lang_manager.translate(TranslationKeys.PROPERTY_BOOTSTRAP_ADD_TO_GPKG),
         )
         return (False, selected_path) if use_existing else (True, "")
+
+    def _remove_previous_import_layers(self, keep_layer) -> list[str]:
+        """Remove every other tagged import layer, so the project holds one canonical import.
+
+        The add flow reads the import layer by its tag and takes the first match; with two
+        tagged layers it could list the features of an older file. Returns the removed names.
+        """
+        project = self.engine.project
+        try:
+            keep_id = keep_layer.id()
+        except RuntimeError:
+            return []
+        removed: list[str] = []
+        for layer in list(project.mapLayers().values()):
+            try:
+                if layer.id() == keep_id or not layer.customProperty(IMPORT_PROPERTY_TAG):
+                    continue
+                name = layer.name()
+                project.removeMapLayer(layer.id())
+                removed.append(name)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="property",
+                    event="shp_loader_remove_previous_import_failed",
+                )
+        if removed:
+            PythonFailLogger.log(
+                "shp_loader_previous_import_removed",
+                module="property",
+                extra={"layers": removed},
+            )
+        return removed
 
     @staticmethod
     def _resolve_import_result(memory_layer, layer_name: str):

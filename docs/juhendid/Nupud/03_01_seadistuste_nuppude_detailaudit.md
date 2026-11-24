@@ -10,7 +10,7 @@ Seadistuste vaates ei käitu kõik nupud ühtemoodi. Enne toimingut kontrolli, m
 
 | Rakendumisviis | Nupud | Kas **Hülga** saab toimingu tagasi võtta? |
 |---|---|:---:|
-| Ootel muudatus | **Ühenda Geospatiali kaudu**, **Vaata Geospatiali seadistust**, lisaväärtuse hammasratas ja **Tühjenda väärtus** | Jah, kuni üldist **Kinnita** nuppu pole vajutatud |
+| Ootel muudatus | **Ühenda Geospatiali kaudu**, **Lülita käsitsi seadistusele**, lisaväärtuse hammasratas ja **Tühjenda väärtus** | Jah, kuni üldist **Kinnita** nuppu pole vajutatud |
 | Kohene seadistuse kustutamine | Kõik kaartide **Lähtesta** nupud | Ei |
 | Kohene faili- või kihitoiming | Ajutise GPKG-kihi abilised ja mapperi **Kanna andmed üle** | Ei |
 
@@ -32,14 +32,18 @@ Ootel muudatuse võivad tekitada näiteks:
 
 ### Mida nupp teeb
 
-Klõpsamisel rakendatakse muudatused selles järjekorras:
+Klõpsamisel salvestatakse muudatused selles järjekorras:
 
 1. QGIS-i projekti baaskihtide kaart;
 2. kõik kasutajale loodud moodulikaardid;
 3. kasutaja avamooduli ning **Sisestuspaani** ja **Otsingupaani** seaded;
 4. kaardipaanide nähtavus sünkroonitakse uue seadistusega.
 
-Edu korral muutuvad ootel väärtused kaartide uueks algolekuks ja **Kinnita** nupp kaob. Eraldi eduteadet ei kuvata.
+Iga kaart salvestub eraldi ja annab oma tulemuse tagasi. Ühine tehing puudub: ühe kaardi viga ei peata teiste kaartide salvestamist.
+
+Edu korral muutuvad kaardi ootel väärtused selle uueks algolekuks. Kui kõik salvestusid, kaob **Kinnita** nupp; eraldi eduteadet ei kuvata.
+
+Kui mõne kaardi salvestamine ebaõnnestub, kuvatakse üks hoiatus **Seadeid ei saanud salvestada**, mis nimetab need kaardid. Ebaõnnestunud kaardi muudatused jäävad ootele ja **Kinnita** jääb nähtavale, nii et uus vajutus proovib need uuesti salvestada. Õnnestunud kaardid muutuvad puhtaks. Kaardi sees võivad osa väärtusi olla juba kirjutatud; kordussalvestus kirjutab need samade väärtustega üle.
 
 **Kinnita** ei salvesta QGIS-i redigeerimisrežiimis olevaid mapperi kihimuudatusi. Need tuleb vajaduse korral salvestada QGIS-i enda käsuga **Salvesta kihi muudatused**.
 
@@ -47,7 +51,7 @@ Edu korral muutuvad ootel väärtused kaartide uueks algolekuks ja **Kinnita** n
 
 Ühises jaluses eraldi **Tühista** nuppu ei ole. Kui kasutaja proovib ootel muudatustega seadistustest lahkuda või akent tavaliselt sulgeda, avaneb valik:
 
-- **Salvesta** – käivitab sama rakendamise nagu **Kinnita**;
+- **Salvesta** – käivitab sama salvestamise nagu **Kinnita**; kui mõni kaart ei salvestunud, jääb kasutaja pärast hoiatust seadistuste vaatesse;
 - **Hülga** – taastab viimati salvestatud ootel väärtused;
 - **Tühista** – jääb seadistuste vaatesse.
 
@@ -105,16 +109,16 @@ Režiimi püsivaks salvestamiseks tuleb vajutada üldist **Kinnita** nuppu. Enne
 
 Kuigi Geospatiali režiim on alles ootel, saab kohe nähtavale ilmunud mapperi avada ja sellega sihtkihti muuta. Mapperi andmemuudatusi **Hülga** tagasi ei võta.
 
-## Vaata Geospatiali seadistust
+## Lülita käsitsi seadistusele
 
-Kui Geospatiali režiim on valitud, muutub sama nupu tekstiks **Vaata Geospatiali seadistust**. Nimi on eksitav: nupp ei ava seadistuse ülevaadet, vaid küsib Geospatiali režiimi väljalülitamise kinnitust.
+Kui Geospatiali režiim on valitud, muutub sama nupu tekstiks **Lülita käsitsi seadistusele**. Nupp küsib kinnitust **Kas lülitada käsitsi seadistusele?** (vaikimisi **Tühista**). Dialoog ütleb, et moodulikaartidelt kaob **Ava mapper**, baaskihte saab jälle ise valida ning QGIS-i kihid, moodulite kihivalikud ja mapperiga kantud andmed jäävad alles.
 
 | Kinnitusnupp | Tulemus |
 |---|---|
-| **OK** | Võtab käsitsi režiimi ootele, näitab baaskihtide välju ja peidab mapperi jaotised |
-| **Cancel / Tühista** | Jätab Geospatiali režiimi valituks |
+| **Lülita käsitsi seadistusele** | Võtab käsitsi režiimi ootele, näitab baaskihtide välju, peidab mapperi jaotised ja toob tööde kaardile tagasi ajutise kihi abilise |
+| **Tühista** | Jätab Geospatiali režiimi valituks |
 
-Käsitsi režiim salvestub alles üldise **Kinnita** vajutamisel. Režiimi väljalülitamine ei kustuta moodulite põhikihte ega mapperiga sihtkihti kantud objekte, kuigi dialoogi tekst ütleb laiemalt, et eemaldatakse kõik salvestatud Geospatiali seadistused.
+Käsitsi režiim salvestub alles üldise **Kinnita** vajutamisel; enne seda taastab **Hülga** Geospatiali režiimi. Salvestamisel eemaldatakse ainult Geospatiali režiimi märge. Baaskihtide varasemad valikud, moodulite põhi- ja arhiivikihid ning mapperiga sihtkihti kantud objektid jäävad muutmata.
 
 ## Lisa kaardistus
 
@@ -284,7 +288,7 @@ Pärast **OK** vajutamist tuleb seos salvestada üldise **Kinnita** nupuga. Vali
 |---|:---:|:---:|:---:|:---:|
 | **Kinnita** | Jah | Ainult kaardipaanide nähtavus | – | Ei |
 | **Lähtesta** | Jah | Ei | Ei | Ei |
-| **Ühenda Geospatiali kaudu** / **Vaata Geospatiali seadistust** | Ei | Ei | Jah | Jah |
+| **Ühenda Geospatiali kaudu** / **Lülita käsitsi seadistusele** | Ei | Ei | Jah | Jah |
 | **Lisa kaardistus** | Ei | Ei | Jah | Jah |
 | **Loo/lae ajutine Tööde GPKG kiht** | Jah | Jah | Ei | Ei |
 | **Loo/lae ajutine Projektide GPKG kiht** | Jah | Jah | Ei | Ei |
@@ -295,12 +299,7 @@ Pärast **OK** vajutamist tuleb seos salvestada üldise **Kinnita** nupuga. Vali
 
 ## Auditi käigus leitud parandamist vajavad kohad
 
-Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
-
-| Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
-|---|---|---|---|
-| Keskmine | Üldine **Kinnita** salvestab kaardid järjestikku, ilma ühise tehingu ja koondveateateta; mõned salvestusabilised logivad vea, kuid ei anna seda kutsujale tagasi | Vea korral võib osa seadeid salvestuda ja kasutajaliides siiski puhta oleku näidata | Kogu salvestustulemused, näita ebaõnnestunud kaardid ja jäta need ootel olekusse |
-| Keskmine | **Vaata Geospatiali seadistust** käivitab väljalülitamise ning dialoogi väide kõigi Geospatiali seadete eemaldamisest on tegelikust mõjust laiem | Kasutaja võib eeldada üksnes ülevaadet või andmete kustumist | Nimeta nupp **Lülita käsitsi seadistusele** ja täpsusta dialoogis, et kihid ning mapperiga kantud andmed säilivad |
+Leiud on 2026-11-24 koodi vastu üle kontrollitud ja parandatud leiud on eemaldatud. Avatud leide praegu ei ole.
 
 ## Turvaline tööjärjekord
 

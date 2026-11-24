@@ -37,6 +37,12 @@ class PropertyUITools:
         self._selection_orchestrator = MapSelectionOrchestrator(parent=property_ui)
         self._lookup_thread: Optional[QThread] = None
         self._lookup_worker: Optional[FunctionWorker] = None
+        # Every related-records request and every search lookup gets its own number. A
+        # response is shown only while its number is the newest one, so a slow answer for
+        # an earlier map pick can never fill the tree of the property picked after it.
+        self._connection_request_id = 0
+        self._connection_cadastral: Optional[str] = None
+        self._lookup_request_id = 0
 
     def _t(self, key: str) -> str:
         return self.lang_manager.translate(key)
@@ -160,6 +166,8 @@ class PropertyUITools:
         ui = self._get_active_ui()
         if not ui:
             return
+        # A map pick replaces any search lookup still on its way.
+        self._lookup_request_id += 1
         try:
             self.update_property_display(active_layer)
         finally:
@@ -328,6 +336,10 @@ class PropertyUITools:
         if not tree_widget:
             return
 
+        self._connection_request_id += 1
+        request_id = self._connection_request_id
+        self._connection_cadastral = cadastral_number or None
+
         if not cadastral_number:
             tree_widget.show_message(
                 self._t(TranslationKeys.PROPERTY_NOT_SELECTED)
@@ -341,13 +353,14 @@ class PropertyUITools:
 
         # eeldus: FunctionWorker.finished emiteerib payload (nt dict)
         worker.finished.connect(
-            lambda payload, tok=token: self.handle_success(payload, tok)
+            lambda payload, tok=token, req=request_id, num=cadastral_number: self.handle_success(
+                payload, tok, request_id=req, cadastral_number=num)
         )
 
         # eeldus: FunctionWorker.error emiteerib error_message (str)
         worker.error.connect(
-            lambda error_message, tok=token: self.handle_error(
-                error_message, tok
+            lambda error_message, tok=token, req=request_id, num=cadastral_number: self.handle_error(
+                error_message, tok, request_id=req, cadastral_number=num
             )
         )
 
@@ -364,13 +377,19 @@ class PropertyUITools:
             ui.tree_section.show_loading()
 
         token = self._current_token()
+        self._lookup_request_id += 1
+        request_id = self._lookup_request_id
+        # Until the lookup answers, no older related-records answer may fill the tree.
+        self._connection_request_id += 1
 
         worker = FunctionWorker(self._fetch_property_payload, item_id)
         worker.finished.connect(
-            lambda payload, tok=token: self._handle_property_lookup_success(payload, tok)
+            lambda payload, tok=token, req=request_id: self._handle_property_lookup_success(
+                payload, tok, request_id=req)
         )
         worker.error.connect(
-            lambda message, tok=token: self._handle_property_lookup_error(message, tok)
+            lambda message, tok=token, req=request_id: self._handle_property_lookup_error(
+                message, tok, request_id=req)
         )
 
         self._lookup_worker = worker
@@ -392,8 +411,19 @@ class PropertyUITools:
             raise RuntimeError(self._t(TranslationKeys.PROPERTY_NOT_FOUND))
         return property_data
 
-    def _handle_property_lookup_success(self, payload: dict, token: int | None):
-        if not self._is_token_active(token):
+    def _is_lookup_current(self, request_id: Optional[int]) -> bool:
+        return request_id is None or request_id == self._lookup_request_id
+
+    def _is_connection_request_current(self, request_id: Optional[int], cadastral_number) -> bool:
+        if request_id is None:
+            return True
+        if request_id != self._connection_request_id:
+            return False
+        return cadastral_number is None or cadastral_number == self._connection_cadastral
+
+    def _handle_property_lookup_success(self, payload: dict, token: int | None, *,
+                                        request_id: Optional[int] = None):
+        if not self._is_token_active(token) or not self._is_lookup_current(request_id):
             return
 
         not_found_message = self._t(TranslationKeys.PROPERTY_NOT_FOUND)
@@ -439,8 +469,9 @@ class PropertyUITools:
 
         self._load_property_connections(cadastral_number)
 
-    def _handle_property_lookup_error(self, message: str, token: int | None):
-        if not self._is_token_active(token):
+    def _handle_property_lookup_error(self, message: str, token: int | None, *,
+                                      request_id: Optional[int] = None):
+        if not self._is_token_active(token) or not self._is_lookup_current(request_id):
             return
         friendly = user_message(message) or self._t(TranslationKeys.PROPERTY_NOT_FOUND)
         self._show_tree_message(friendly)
@@ -496,9 +527,17 @@ class PropertyUITools:
         self._lookup_worker = None
         self._lookup_thread = None
 
-    def handle_success(self, payload: dict, token: int | None):
+    def handle_success(self, payload: dict, token: int | None, *,
+                       request_id: Optional[int] = None, cadastral_number: Optional[str] = None):
         """Käsitle õnnestunud ühenduse laadimise tulemust."""
         if not self._is_token_active(token):
+            return
+        if not self._is_connection_request_current(request_id, cadastral_number):
+            PythonFailLogger.log(
+                "property_connections_stale_ignored",
+                module=Module.PROPERTY.value,
+                extra={"request_id": request_id, "cadastral": cadastral_number},
+            )
             return
 
         ui = self._get_active_ui()
@@ -517,9 +556,12 @@ class PropertyUITools:
                 self._t(TranslationKeys.PROPERTY_TREE_NO_CONNECTIONS)
             )
 
-    def handle_error(self, error_message: str, token: int | None):
+    def handle_error(self, error_message: str, token: int | None, *,
+                     request_id: Optional[int] = None, cadastral_number: Optional[str] = None):
         """Käsitle veaolukorda ühenduse laadimisel."""
         if not self._is_token_active(token):
+            return
+        if not self._is_connection_request_current(request_id, cadastral_number):
             return
 
         PythonFailLogger.log(

@@ -20,6 +20,7 @@ from .ui.window_state.DialogCoordinator import get_dialog_coordinator
 from .constants.file_paths import ConfigPaths
 from .python.api_request_task import set_wait_window_style
 from .python.workers import stop_all_workers
+from .widgets.DataDisplayWidgets.task_file_external_open import cleanup_external_temp_files
 from .ui.session_storage_warning import show_pending_storage_warning
 from .ui.session_ui_controller import SessionUIController
 from .ui.mfa_setup_notice import show_mfa_setup_notice
@@ -55,6 +56,7 @@ class WildCodePlugin:
             self._drop_pending_login_listener()
             # Background work must not answer into widgets that are about to be deleted.
             stop_all_workers()
+            cleanup_external_temp_files()  # never raises; files still open elsewhere are kept
         finally:
             try:
                 if self.action is not None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import html
 import os
+import threading
 from typing import Optional
 
 from qgis.PyQt.QtCore import Qt, QSize, QTimer
@@ -22,6 +23,7 @@ from qgis.PyQt.QtWidgets import (
 
 from ...constants.button_props import ButtonVariant
 from ...constants.file_paths import QssPaths
+from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
@@ -29,7 +31,13 @@ from ...python.workers import FunctionWorker, start_worker
 from ...ui.messages_helper import ModernMessageDialog
 from ...utils.security_boundaries import resolve_allowed_external_extension
 from ...ui.theme_manager import ThemeManager
-from .task_file_external_open import embedded_pdf_runtime_support, open_in_default_application
+from .task_file_external_open import (
+    cleanup_external_temp_files,
+    embedded_pdf_runtime_support,
+    materialize_remote_file_to_temp,
+    open_in_default_application,
+    open_local_path,
+)
 from .task_file_identity import (
     PDF_EXTENSIONS,
     PDF_MIME_TYPES,
@@ -44,12 +52,28 @@ from .task_file_identity import (
 from .task_file_pdf_preview import TaskFilePdfPreviewMixin
 
 
+class _ExternalDownloadState:
+    """Shared between the dialog and its download worker. The worker thread only writes
+    plain numbers here; the dialog reads them from a timer, so no widget is touched off
+    the GUI thread."""
+
+    def __init__(self) -> None:
+        self.cancel_event = threading.Event()
+        self.done_bytes = 0
+        self.total_bytes: Optional[int] = None
+
+    def record(self, done_bytes: int, total_bytes: Optional[int]) -> None:
+        self.done_bytes = int(done_bytes or 0)
+        self.total_bytes = total_bytes
+
+
 class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
     IMAGE_PREVIEW_MAX_BYTES = 25 * 1024 * 1024
     PDF_PREVIEW_MAX_BYTES = 40 * 1024 * 1024
     TEXT_PREVIEW_MAX_BYTES = 512 * 1024
     PDF_PREVIEW_MAX_PAGES = 10
     PDF_RENDER_SIZE = QSize(1200, 1600)
+    DOWNLOAD_PROGRESS_INTERVAL_MS = 250
 
     @classmethod
     def open_preview(
@@ -67,23 +91,16 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         mime_type, ext = preview_identity(file_info=file_info, local_file_path=local_file_path)
 
         if mime_type in PDF_MIME_TYPES or ext in PDF_EXTENSIONS:
+            # Without PDF support the dialog still opens, with a notice in place of the
+            # preview, so the file can be opened with **Open externally**.
             supported, runtime_info = cls.embedded_pdf_runtime_support()
-            if not supported:
-                ModernMessageDialog.show_warning(
-                    resolved_lang.translate(TranslationKeys.WARNING),
-                    resolved_lang.translate(TranslationKeys.TASK_FILES_PDF_RUNTIME_UNSUPPORTED).format(
-                        qt_version=runtime_info.get("qt") or "unknown",
-                        pyqt_version=runtime_info.get("pyqt") or "unknown",
-                    ),
-                )
-                return None
-
             return cls(
                 file_info=file_info,
                 local_file_path=local_file_path,
                 local_title=local_title,
-                lang_manager=lang_manager,
+                lang_manager=resolved_lang,
                 parent=parent,
+                pdf_runtime_unsupported=None if supported else dict(runtime_info or {}),
             )
 
         return cls(
@@ -141,9 +158,19 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         parent=None,
         compact: bool = False,
         lazy: bool = False,
+        pdf_runtime_unsupported: Optional[dict] = None,
     ) -> None:
         super().__init__(parent)
         self._lang = lang_manager or LanguageManager()
+        # Qt/PyQt versions when QtWebEngine cannot show PDFs; None when it can.
+        self._pdf_runtime_unsupported = (
+            dict(pdf_runtime_unsupported) if isinstance(pdf_runtime_unsupported, dict) else None
+        )
+        self._download_state: Optional[_ExternalDownloadState] = None
+        self._download_worker = None
+        self._download_timer = QTimer(self)
+        self._download_timer.setInterval(self.DOWNLOAD_PROGRESS_INTERVAL_MS)
+        self._download_timer.timeout.connect(self._update_download_progress)
         self._file_info = dict(file_info or {})
         self._local_file_path = str(local_file_path or "").strip()
         self._local_title = str(local_title or "").strip()
@@ -221,6 +248,15 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
             )
             self._open_external_button.setToolTip(self._plain_text_as_rich_text(tooltip))
         buttons.addWidget(self._open_external_button)
+
+        self._cancel_download_button = QPushButton(
+            self._lang.translate(TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOAD_CANCEL),
+            self,
+        )
+        self._cancel_download_button.setProperty("variant", ButtonVariant.GHOST)
+        self._cancel_download_button.clicked.connect(self._cancel_external_download)
+        self._cancel_download_button.hide()
+        buttons.addWidget(self._cancel_download_button)
 
         buttons.addStretch(1)
 
@@ -313,8 +349,20 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         )
 
     def closeEvent(self, event) -> None:  # noqa: N802 - Qt override
-        self._cleanup_pdf_temp_file()
+        self._release_dialog_resources()
         super().closeEvent(event)
+
+    def done(self, result: int) -> None:  # Qt override: **Close** (accept) skips closeEvent
+        self._release_dialog_resources()
+        super().done(result)
+
+    def _release_dialog_resources(self) -> None:
+        try:
+            self._stop_external_download()
+            self._cleanup_pdf_temp_file()
+            cleanup_external_temp_files()
+        except Exception as exc:  # noqa: BLE001 - closing must never fail
+            PythonFailLogger.log_exception(exc, module="ui", event="task_file_preview_close_cleanup_failed")
 
     def _should_lazy_load_image_preview(self) -> bool:
         if not self._lazy_preview or self._local_file_path:
@@ -477,6 +525,17 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
             self._set_notice("")
 
     def _open_externally(self) -> None:
+        try:
+            self._open_externally_unguarded()
+        except Exception as exc:  # noqa: BLE001 - a button slot must not raise
+            PythonFailLogger.log_exception(exc, module="ui", event="task_file_external_open_failed")
+            self._finish_external_download_ui()
+            self._show_open_failed()
+
+    def _open_externally_unguarded(self) -> None:
+        if self._download_state is not None:
+            return
+
         extension = resolve_allowed_external_extension(
             api_extension=self._file_info.get("ext"),
             file_name=self._file_info.get("fileName"),
@@ -514,18 +573,122 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         if choice != yes_label:
             return
 
+        if not self._local_file_path:
+            self._start_external_download(extension)
+            return
+
         if self.open_in_default_application(
             file_info=self._file_info,
             local_file_path=self._local_file_path,
             user_confirmed=True,
         ):
             return
+        self._show_open_failed()
 
+    def _show_open_failed(self) -> None:
         message = self._lang.translate(TranslationKeys.TASK_FILES_OPEN_FAILED).format(
             name=self._file_name()
         )
         ModernMessageDialog.show_warning(
             self._lang.translate(TranslationKeys.ERROR),
             self._plain_text_as_rich_text(message),
+            parent=self,
         )
+
+    # --- background download for Open externally ---------------------------------------
+
+    def _start_external_download(self, extension: str) -> None:
+        """Download the remote file on a worker; the dialog stays usable and can cancel."""
+        state = _ExternalDownloadState()
+        size = safe_int(self._file_info.get("size"))
+        state.total_bytes = size if size and size > 0 else None
+        worker = FunctionWorker(
+            materialize_remote_file_to_temp,
+            dict(self._file_info),
+            allowed_extension=extension,
+            cancel_event=state.cancel_event,
+            progress=state.record,
+        )
+        worker.finished.connect(
+            lambda path, current=state: self._handle_external_download_finished(current, path)
+        )
+        worker.error.connect(
+            lambda message, current=state: self._handle_external_download_error(current, message)
+        )
+        self._download_state = state
+        self._download_worker = worker
+        self._open_external_button.setEnabled(False)
+        self._cancel_download_button.show()
+        self._update_download_progress()
+        self._download_timer.start()
+        start_worker(worker, on_thread_finished=lambda current=worker: self._forget_download_worker(current))
+
+    def _update_download_progress(self) -> None:
+        state = self._download_state
+        if state is None:
+            return
+        done = human_readable_size(state.done_bytes)
+        if state.total_bytes:
+            text = self._lang.translate(TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOADING).format(
+                done=done,
+                total=human_readable_size(state.total_bytes),
+            )
+        else:
+            text = self._lang.translate(TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOADING_NO_SIZE).format(
+                done=done,
+            )
+        self._set_notice(text)
+
+    def _handle_external_download_finished(self, state: _ExternalDownloadState, path: object) -> None:
+        try:
+            if state is not self._download_state or state.cancel_event.is_set():
+                return
+            self._finish_external_download_ui()
+            if path and open_local_path(str(path)):
+                return
+            self._show_open_failed()
+        except Exception as exc:  # noqa: BLE001 - a signal slot must not raise
+            PythonFailLogger.log_exception(exc, module="ui", event="task_file_external_open_failed")
+
+    def _handle_external_download_error(self, state: _ExternalDownloadState, _message: str) -> None:
+        try:
+            if state is not self._download_state or state.cancel_event.is_set():
+                return
+            self._finish_external_download_ui()
+            self._show_open_failed()
+        except Exception as exc:  # noqa: BLE001 - a signal slot must not raise
+            PythonFailLogger.log_exception(exc, module="ui", event="task_file_external_open_failed")
+
+    def _cancel_external_download(self) -> None:
+        try:
+            if self._download_state is None:
+                return
+            self._stop_external_download()
+            self._set_notice(self._lang.translate(TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOAD_CANCELLED))
+        except Exception as exc:  # noqa: BLE001 - a button slot must not raise
+            PythonFailLogger.log_exception(exc, module="ui", event="task_file_external_download_cancel_failed")
+
+    def _stop_external_download(self) -> None:
+        """Cancel a running download: the worker removes the partial file at its next chunk
+        and its outcome is ignored. The worker is not detached, because its finished/error
+        signal is what ends its thread."""
+        state = self._download_state
+        if state is None:
+            return
+        state.cancel_event.set()
+        cancel = getattr(self._download_worker, "cancel", None)
+        if callable(cancel):
+            cancel()
+        self._finish_external_download_ui()
+
+    def _finish_external_download_ui(self) -> None:
+        self._download_state = None
+        self._download_timer.stop()
+        self._cancel_download_button.hide()
+        self._open_external_button.setEnabled(bool(self._external_open_extension))
+        self._set_notice("")
+
+    def _forget_download_worker(self, worker) -> None:
+        if self._download_worker is worker:
+            self._download_worker = None
 

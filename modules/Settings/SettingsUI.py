@@ -461,16 +461,77 @@ class SettingsModule(TokenMixin, QWidget):
 
 
     # --- Handling unsaved changes ---
-    def apply_pending_changes(self):
-        if self._project_base_layers_card is not None:
-            self._project_base_layers_card.apply()
-        for card in self._module_cards.values():
-            card.apply()
-        self.logic.apply_pending_changes()
-        self._sync_map_overlay_from_settings()
+    def apply_pending_changes(self) -> bool:
+        """Save every card and the user settings; True when all of them were saved.
+
+        Each card saves on its own. A card whose save fails stays pending (its saved
+        values are not replaced), the others become clean, and one warning names the
+        failed cards. Also the Confirm button slot: nothing may escape from here.
+        """
+        failed: list[str] = []
+        try:
+            cards = []
+            if self._project_base_layers_card is not None:
+                cards.append(self._project_base_layers_card)
+            cards.extend(self._module_cards.values())
+            for card in cards:
+                if not self._apply_card(card):
+                    failed.append(self._card_label(card))
+            if not self._apply_user_settings():
+                failed.append(self._card_label(self._user_card))
+            self._sync_map_overlay_after_apply()
+        except Exception as exc:
+            self._log_settings_exception(exc, "settings_apply_failed")
+            failed.append(self.lang_manager.translate(TranslationKeys.SETTINGS_BASE_CARD_TEXT))
 
         # Recompute dirty state using both logic + cards
         self._set_dirty(self.has_unsaved_changes())
+        if failed:
+            self._show_apply_failed(failed)
+            return False
+        return True
+
+    def _apply_card(self, card) -> bool:
+        try:
+            return card.apply() is not False
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_card_apply_failed",
+                extra={"card": type(card).__name__},
+            )
+            return False
+
+    def _apply_user_settings(self) -> bool:
+        try:
+            return self.logic.apply_pending_changes() is not False
+        except Exception as exc:
+            self._log_settings_exception(exc, "settings_user_apply_failed")
+            return False
+
+    def _sync_map_overlay_after_apply(self) -> None:
+        try:
+            self._sync_map_overlay_from_settings()
+        except Exception as exc:
+            self._log_settings_exception(exc, "settings_map_overlay_sync_failed")
+
+    @staticmethod
+    def _card_label(card) -> str:
+        title_getter = getattr(card, "card_title", None)
+        title = title_getter() if callable(title_getter) else ""
+        return str(title or type(card).__name__)
+
+    def _show_apply_failed(self, failed: list[str]) -> None:
+        try:
+            cards_text = "\n".join(f"• {name}" for name in dict.fromkeys(failed))
+            ModernMessageDialog.show_warning(
+                self.lang_manager.translate(TranslationKeys.SETTINGS_APPLY_FAILED_TITLE),
+                self.lang_manager.translate(TranslationKeys.SETTINGS_APPLY_FAILED_BODY).format(cards=cards_text),
+                parent=self,
+            )
+        except Exception as exc:
+            self._log_settings_exception(exc, "settings_apply_failed_warning_failed")
 
     def revert_pending_changes(self):
         self.logic.revert_pending_changes()
@@ -583,8 +644,8 @@ class SettingsModule(TokenMixin, QWidget):
             )
 
             if choice == save_label:
-                self.apply_pending_changes()
-                return True
+                # A failed save already showed which cards failed; stay so they can be fixed.
+                return bool(self.apply_pending_changes())
             if choice == discard_label:
                 self.revert_pending_changes()
                 return True

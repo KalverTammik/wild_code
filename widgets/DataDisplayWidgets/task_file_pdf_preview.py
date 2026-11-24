@@ -1,21 +1,22 @@
-"""PDF preview of TaskFilePreviewDialog: the file is written to a temp file and shown in
-a QtWebEngine view, which is optional in QGIS builds and imported only when needed."""
+"""PDF preview of TaskFilePreviewDialog: the file is written to a temp file in the plugin's
+temp folder and shown in a QtWebEngine view, which is optional in QGIS builds and imported
+only when needed. A temp file the view still holds is left for the age-based cleanup."""
 from __future__ import annotations
 
 import os
-import tempfile
 
 from qgis.PyQt.QtCore import QUrl
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
+from .task_file_external_open import create_external_temp_file, remove_temp_file_quietly
 from .task_file_identity import safe_int
 
 
 class TaskFilePdfPreviewMixin:
     """Mixed into TaskFilePreviewDialog, which provides the content frame, the placeholders
-    and the _pdf_temp_path / _web_view state."""
+    and the _pdf_temp_path / _web_view / _pdf_runtime_unsupported state."""
 
     def _release_web_view(self) -> None:
         if self._web_view is None:
@@ -52,6 +53,9 @@ class TaskFilePdfPreviewMixin:
             )
             return
 
+        if self._show_pdf_runtime_unavailable():
+            return
+
         try:
             size_bytes = os.path.getsize(self._local_file_path)
         except OSError:
@@ -80,7 +84,23 @@ class TaskFilePdfPreviewMixin:
 
         self._show_failed()
 
+    def _show_pdf_runtime_unavailable(self) -> bool:
+        """Without PDF support in QtWebEngine the dialog stays open without a preview, so the
+        user can still use **Open externally**; nothing is downloaded for the preview."""
+        runtime_info = self._pdf_runtime_unsupported
+        if runtime_info is None:
+            return False
+        self._show_placeholder(
+            self._lang.translate(TranslationKeys.TASK_FILES_PDF_PREVIEW_UNAVAILABLE).format(
+                qt_version=runtime_info.get("qt") or "unknown",
+            )
+        )
+        return True
+
     def _load_pdf_preview(self, file_uuid: str) -> None:
+        if self._show_pdf_runtime_unavailable():
+            return
+
         size_bytes = safe_int(self._file_info.get("size"))
         if size_bytes is not None and size_bytes > self.PDF_PREVIEW_MAX_BYTES:
             self._show_placeholder(
@@ -212,10 +232,10 @@ class TaskFilePdfPreviewMixin:
     def _write_pdf_temp_file(self, content: bytes) -> str:
         self._cleanup_pdf_temp_file()
         try:
-            handle = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+            handle, path = create_external_temp_file(".pdf")
+            self._pdf_temp_path = str(path or "")
             with handle:
                 handle.write(content)
-            self._pdf_temp_path = str(handle.name or "")
             return self._pdf_temp_path
         except OSError as exc:
             PythonFailLogger.log_exception(
@@ -223,6 +243,7 @@ class TaskFilePdfPreviewMixin:
                 module="ui",
                 event="task_file_preview_pdf_temp_write_failed",
             )
+            remove_temp_file_quietly(self._pdf_temp_path)
             self._pdf_temp_path = ""
             return ""
 
@@ -234,8 +255,4 @@ class TaskFilePdfPreviewMixin:
         if not path:
             return
 
-        try:
-            if os.path.exists(path):
-                os.remove(path)
-        except OSError:  # best-effort removal of the temp PDF
-            pass
+        remove_temp_file_quietly(path)

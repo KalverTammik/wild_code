@@ -106,18 +106,27 @@ class SettingsLogic:
         has_map_search_changes = bool(self._pending_map_search_enabled) != bool(self._original_map_search_enabled)
         return has_preferred_module_changes or has_map_overlay_changes or has_map_search_changes
 
-    def apply_pending_changes(self):
-        if self._pending_preferred_module:
-            self._service.preferred_module(value=self._pending_preferred_module)
-        else:
-            self._service.preferred_module(clear=True)
+    def apply_pending_changes(self) -> bool:
+        """Write the user settings; on failure keep them pending and return False."""
+        try:
+            if self._pending_preferred_module:
+                self._service.preferred_module(value=self._pending_preferred_module)
+            else:
+                self._service.preferred_module(clear=True)
+            self._service.map_canvas_glass_action_bar_enabled(value=self._pending_map_overlay_enabled)
+            self._service.map_canvas_search_bar_enabled(value=self._pending_map_search_enabled)
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_user_apply_failed",
+            )
+            return False
         self._original_preferred = self._pending_preferred_module
-        self._service.map_canvas_glass_action_bar_enabled(value=self._pending_map_overlay_enabled)
         self._original_map_overlay_enabled = bool(self._pending_map_overlay_enabled)
-        self._service.map_canvas_search_bar_enabled(value=self._pending_map_search_enabled)
         self._original_map_search_enabled = bool(self._pending_map_search_enabled)
-
         # Property layer persistence is handled via module cards
+        return True
 
     def revert_pending_changes(self):
         # Reset pending selection back to the original
@@ -135,8 +144,8 @@ class SettingsLogic:
             archive = self._service.module_archive_layer_name(module_key) or ""
         return {"element": element, "archive": archive}
 
-    def set_module_layer_id(self, module_key: str, *, kind: str, layer_name: Optional[str]) -> None:
-        """Persist (or clear) a module's layer mapping via a single entry point."""
+    def set_module_layer_id(self, module_key: str, *, kind: str, layer_name: Optional[str]) -> bool:
+        """Persist (or clear) a module's layer mapping; False when the write failed."""
         normalized = (layer_name or "").strip()
         try:
             if kind == "archive":
@@ -155,6 +164,8 @@ class SettingsLogic:
                 module=Module.SETTINGS.value,
                 event="settings_set_module_layer_failed",
             )
+            return False
+        return True
 
     # --- Module preference helpers -------------------------------------------
     def load_module_preference_ids(self, module_key: str, *, support_key: str) -> Iterable[str]:
@@ -162,9 +173,9 @@ class SettingsLogic:
         values = SettingsService.load_preferred_ids_by_key(support_key, module_key) or []
         return values
 
-    def save_module_preference_ids(self, module_key: str, *, support_key: str, ids: Iterable[str]) -> None:
-        """Persist tag/status/type selections for a module via the centralized service."""
-        SettingsService.save_preferred_ids_by_key(support_key, module_key, ids)
+    def save_module_preference_ids(self, module_key: str, *, support_key: str, ids: Iterable[str]) -> bool:
+        """Persist tag/status/type selections for a module; False when the write failed."""
+        return SettingsService.save_preferred_ids_by_key(support_key, module_key, ids)
 
     def clear_module_preference_ids(self, module_key: str, *, support_key: str) -> None:
         """Ensure preference storage is cleared for the given capability."""
@@ -189,7 +200,7 @@ class SettingsLogic:
             values[key] = self.load_module_label_value(module_key, key) or ""
         return values
 
-    def save_module_label_value(self, module_key: str, label_key: str, value: str) -> None:
+    def save_module_label_value(self, module_key: str, label_key: str, value: str) -> bool:
         try:
             if value is None:
                 self._service.module_label_value(module_key, label_key, clear=True)
@@ -201,8 +212,10 @@ class SettingsLogic:
                 module=Module.SETTINGS.value,
                 event="settings_save_label_failed",
             )
+            return False
+        return True
 
-    def clear_module_label_value(self, module_key: str, label_key: str) -> None:
+    def clear_module_label_value(self, module_key: str, label_key: str) -> bool:
         try:
             self._service.module_label_value(module_key, label_key, clear=True)
         except Exception as exc:
@@ -211,6 +224,8 @@ class SettingsLogic:
                 module=Module.SETTINGS.value,
                 event="settings_clear_label_failed",
             )
+            return False
+        return True
 
 
 

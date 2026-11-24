@@ -417,9 +417,9 @@ class DialogTest(unittest.TestCase):
         self.dialog._distance_spin.setValue(1.5)
         self.assertEqual(self.dialog._effective_row_distance(ProjectBaseLayerKeys.WATERPIPES, no_depth), 2.0)
 
-    def test_end_cap_style_follows_the_checkbox(self):
+    def test_end_cap_style_follows_the_round_ends_checkbox(self):
         self.assertEqual(self.dialog._buffer_end_cap_style(), 0)
-        self.dialog._rounded_caps_checkbox.setChecked(False)
+        self.dialog._round_ends_checkbox.setChecked(False)
         self.assertEqual(self.dialog._buffer_end_cap_style(), 1)
 
 

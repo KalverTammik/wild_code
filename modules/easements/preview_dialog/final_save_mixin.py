@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 from typing import Optional
 from ....languages.translation_keys import TranslationKeys
 from ....modules.easements.easement_layer_service import EasementLayerService
@@ -207,6 +208,41 @@ class EasementFinalSaveMixin:
             dialog.exec_()
 
     def _publish_pdf_drawing(self) -> None:
+        """Button slot: one publish at a time, the button stays disabled until it ends."""
+        if self._publish_in_progress:
+            return
+        self._publish_in_progress = True
+        self._publish_drawing_button.setEnabled(False)
+        try:
+            self._publish_pdf_drawing_steps()
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_pdf_publish_failed",
+                extra={"item_id": str(self._item_id or "")},
+            )
+            ModernMessageDialog.show_error(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH_FAILED),
+            )
+        finally:
+            self._publish_in_progress = False
+            try:
+                self._publish_drawing_button.setEnabled(True)
+            except RuntimeError:
+                pass  # the dialog was closed while a message was open
+
+    @staticmethod
+    def _next_version_name(file_name: str, taken_names: set[str]) -> str:
+        """`S-1.pdf` -> `S-1_v2.pdf`, or the first `_vN` that is not among `taken_names` (lower case)."""
+        stem, ext = os.path.splitext(file_name)
+        version = 2
+        while f"{stem}_v{version}{ext}".casefold() in taken_names:
+            version += 1
+        return f"{stem}_v{version}{ext}"
+
+    def _publish_pdf_drawing_steps(self) -> None:
         pdf_path, error = self._ensure_generated_pdf()
         if not pdf_path:
             ModernMessageDialog.show_error(
@@ -215,15 +251,88 @@ class EasementFinalSaveMixin:
             )
             return
 
+        file_name = os.path.basename(pdf_path)
+        existing_files = APIModuleActions.get_module_files(Module.EASEMENT.value, self._item_id)
+        same_name: list[dict] = []
+        if existing_files is None:
+            # The list could not be read: publishing now might add a duplicate, so the user decides.
+            if not ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH),
+                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_FILES_CHECK_FAILED).format(
+                    name=file_name
+                ),
+                with_cancel=True,
+                parent=self,
+            ):
+                return
+        else:
+            taken_names = {
+                str(entry.get("fileName") or "").strip().casefold()
+                for entry in existing_files
+                if isinstance(entry, dict) and not entry.get("deletedAt")
+            }
+            same_name = [
+                entry for entry in existing_files
+                if isinstance(entry, dict)
+                and not entry.get("deletedAt")
+                and str(entry.get("fileName") or "").strip().casefold() == file_name.casefold()
+            ]
+
+        if same_name:
+            new_name = self._next_version_name(file_name, taken_names)
+            replace_label = self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_REPLACE)
+            version_label = self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_NEW_VERSION)
+            cancel_label = self._lang.translate(TranslationKeys.CANCEL_BUTTON)
+            choice = ModernMessageDialog.ask_choice_modern(
+                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_EXISTS_TITLE),
+                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_EXISTS_MESSAGE).format(
+                    name=file_name, new_name=new_name
+                ),
+                buttons=[replace_label, version_label, cancel_label],
+                parent=self,
+                default=cancel_label,
+                cancel=cancel_label,
+            )
+            if choice == version_label:
+                renamed = EasementPdfService.rename_output_pdf(pdf_path, os.path.splitext(new_name)[0])
+                if not renamed:
+                    ModernMessageDialog.show_error(
+                        self._lang.translate(TranslationKeys.ERROR),
+                        self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH_FAILED),
+                    )
+                    return
+                self._generated_pdf_path = renamed
+                pdf_path, file_name = renamed, os.path.basename(renamed)
+                same_name = []
+            elif choice != replace_label:
+                return
+
         uploaded = APIModuleActions.upload_module_file(Module.EASEMENT.value, self._item_id, pdf_path)
-        if isinstance(uploaded, dict) and str(uploaded.get("uuid") or "").strip():
-            ModernMessageDialog.show_info(
-                self._lang.translate(TranslationKeys.SUCCESS),
-                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH_SUCCESS),
+        if not (isinstance(uploaded, dict) and str(uploaded.get("uuid") or "").strip()):
+            ModernMessageDialog.show_error(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH_FAILED),
             )
             return
 
-        ModernMessageDialog.show_error(
-            self._lang.translate(TranslationKeys.ERROR),
-            self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH_FAILED),
-        )
+        # Replace = the new file first, then the old one goes; a failed delete never loses the drawing.
+        new_uuid = str(uploaded.get("uuid") or "").strip()
+        not_removed = [
+            entry for entry in same_name
+            if str(entry.get("uuid") or "").strip() != new_uuid
+            and not APIModuleActions.delete_file(str(entry.get("uuid") or ""))
+        ]
+        message = "\n\n".join([
+            self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_PUBLISH_SUCCESS),
+            self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_FILE_NAME).format(name=file_name),
+        ])
+        if not_removed:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                message + "\n\n" + self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DRAWING_OLD_NOT_REMOVED).format(
+                    name=file_name
+                ),
+                parent=self,
+            )
+            return
+        ModernMessageDialog.show_info(self._lang.translate(TranslationKeys.SUCCESS), message)

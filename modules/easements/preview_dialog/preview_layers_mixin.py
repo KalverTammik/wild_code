@@ -46,8 +46,12 @@ class EasementPreviewLayersMixin:
         final_layer = self._resolve_final_preview_layer()
         return final_layer, str(final_status or "")
 
+    # native:buffer values: END_CAP_STYLE 0 round, 1 flat; JOIN_STYLE 0 round, 1 miter.
     def _buffer_end_cap_style(self) -> int:
-        return 0 if self._rounded_caps_checkbox.isChecked() else 1
+        return 0 if self._round_ends_checkbox.isChecked() else 1
+
+    def _buffer_join_style(self) -> int:
+        return 0 if self._rounded_corners_checkbox.isChecked() else 1
 
     def _preview_name_for(self, layer_key: str) -> str:
         layer_title = self._lang.translate(self._LAYER_LABEL_KEYS[layer_key])
@@ -135,6 +139,7 @@ class EasementPreviewLayersMixin:
             style_path=style_path,
             replace_existing=True,
             end_cap_style=self._buffer_end_cap_style(),
+            join_style=self._buffer_join_style(),
             custom_properties={
                 "kavitro/easement_preview": "true",
                 "kavitro/easement_id": self._item_id,
@@ -396,6 +401,7 @@ class EasementPreviewLayersMixin:
             style_path=QmlPaths.EASEMENT_PROPERTIES,
             replace_existing=True,
             end_cap_style=self._buffer_end_cap_style(),
+            join_style=self._buffer_join_style(),
             custom_properties={
                 "kavitro/easement_preview": "true",
                 "kavitro/easement_id": self._item_id,

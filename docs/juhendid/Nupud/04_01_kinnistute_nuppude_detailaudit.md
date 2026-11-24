@@ -40,7 +40,7 @@ Valikutööriist lõpetab voo alles siis, kui kihil on vähemalt üks valitud ob
 
 ### Seotud kirjete laadimise servajuht
 
-Iga valik käivitab taustal uue seoste päringu, kuid eelmist sama mooduliseansi päringut ei tühistata ega eristata kinnistu-põhise päringutunnusega. Kiiresti järjest erinevaid kinnistuid valides võib aeglasem vana vastus kirjutada uuema kinnistu seotud kirjete vaate üle.
+Iga valik käivitab taustal uue seoste päringu ja annab sellele oma järjekorranumbri koos katastritunnusega. Vastus kuvatakse ainult siis, kui see kuulub viimasele päringule; vanema valiku hiljem saabunud vastus või viga jäetakse kõrvale. Sama kehtib otsingust avatud kinnistu kohta: uus otsing või kaardivalik muudab varasema otsingupäringu vastuse kehtetuks. Vana päringut ennast ei katkestata, see lihtsalt ei muuda enam vaadet.
 
 ## Seotud moodulirühma laiendamine ja ahendamine
 
@@ -52,7 +52,7 @@ Noolenupp asub iga seotud andmerühma, näiteks projektide või lepingute, päis
 - Sulgemine peidab read neid hävitamata.
 - Uuesti avamine ei käivita Kavitrosse uut päringut.
 
-Nupp ei muuda kinnistu- ega seoseandmeid. Noolenupul pole eraldi teksti ega kohtspikrit.
+Nupp ei muuda kinnistu- ega seoseandmeid. Noolenupul pole teksti, kuid selle kohtspikker ja ligipääsetav nimi on „Näita/peida seotud kirjed“.
 
 ## Kinnistute halduse nähtavus
 
@@ -69,7 +69,7 @@ Käsitsi seadistusrežiimis arvutatakse nuppude olek järgmiselt:
 | **Kustuta ID järgi** | Alati aktiivne |
 | **Loo/paranda otsinguväli** | Kehtiv kinnistute põhikiht on leitav |
 
-Geospatiali režiimis keelatakse **Ava Maa-ameti leht** ja **Lisa SHP fail**, kuid **Lisa kinnistuid** lubatakse tingimusteta. **Eemalda kinnistu** olekut selles režiimiharus uuesti ei arvutata; puuduva põhikihi korral katkestab selle nupu hilisem kontroll töövoo.
+Geospatiali režiimis keelatakse **Ava Maa-ameti leht** ja **Lisa SHP fail**. Ülejäänud nuppude olek arvutatakse samamoodi kui käsitsi režiimis: **Lisa kinnistuid** on aktiivne ainult siis, kui projektis on märgendatud impordikiht ja sellel vähemalt üks objekt, ning **Eemalda kinnistu** vajab kehtivat põhikihti. Passiivse **Lisa kinnistuid** kohtspikker ütleb, et impordikiht puudub või on tühi.
 
 ## Ava Maa-ameti leht
 
@@ -99,7 +99,7 @@ SHP-objekte ei lisata selle nupuga veel põhikihti ega Kavitrosse. Mälukiht on 
 
 Mahuka SHP kopeerimisel kuvatava edenemisakna **Tühista** nupp muudab küll enda teksti ja saadab katkestussignaali, kuid imporditsükkel ei kuula seda signaali ega katkestusolekut. Nupu vajutamise järel import jätkub. Ära sulge edenemisakent sulgemisristist, sest töö kasutab sama dialoogiobjekti hilisemate edenemisuuenduste jaoks ja kontrollimata sulgemine võib impordi lõpetada veaga pärast juba lisatud partiisid.
 
-Sama failinime uuesti importimisel eemaldatakse sama nimega varasem mälukiht. Teise nimega SHP importimisel võib projekti jääda mitu impordimärgendiga mälukihti.
+Projektis on alati üks impordikiht. Kui uus import lõpeb edukalt, eemaldatakse projektist kõik varasemad impordimärgendiga kihid, ka teise failinimega, ja eduteade nimetab eemaldatud kihid. Tühistatud või ebaõnnestunud import jätab varasema impordikihi alles ja kasutusse.
 
 ### Puuduva põhikihi valikud
 
@@ -122,9 +122,9 @@ Edu korral:
 - seadistuskaardi valikud sünkroonitakse uute kihtidega;
 - üldist **Kinnita** nuppu pole vaja.
 
-### Mitme impordikihi risk
+### Üks impordikiht
 
-Lisamise töövoog otsib impordikihi märgendi järgi ja võtab projektist esimese leitud kihi. Kui eri nimega impordikihte on mitu, ei ole tagatud, et kasutatakse viimati laaditud SHP-d. Enne uut importi eemalda või tühjenda vanad impordikihid ja kontrolli grupis **Uued kinnistud**, milline kiht on aktiivne.
+Lisamise töövoog otsib impordikihi märgendi järgi. Kuna uus import asendab varasemad impordikihid, kasutab lisamine alati viimati edukalt laaditud SHP-d. Vana impordikihi andmed on mälukihis, seega eemaldamisel need kaovad; vajadusel salvesta kiht enne uut importi eraldi faili.
 
 ## Lisa kinnistuid
 
@@ -144,9 +144,9 @@ Enne lisamisdialoogi kontrollitakse salvestatud põhi- ja arhiivikihti. Puuduva 
 
 Arhiivikihi nime küsimise dialoogis jätkab kinnitamine sisestatud nimega ja **Tühista** lõpetab voo. Tühi nimi lükatakse tagasi. Automaatne loomine töötab ainult GeoPackage-põhise põhikihiga. Loodud arhiivikihi viide salvestatakse kohe.
 
-### Geospatiali režiimi servajuht
+### Puuduv impordikiht
 
-Geospatiali režiimis on **Lisa kinnistuid** alati aktiivne, isegi kui impordikihti pole. Lisamisdialoogi konstruktor jätkab ka pärast puuduva impordikihi veavaate loomist ning järgmine initsialiseerimine eeldab tabeli ja filtrite olemasolu. Seetõttu võib nupuvajutus ilma impordikihita lõppeda programmiveaga, mitte ainult suletava veateatega.
+**Lisa kinnistuid** on mõlemas seadistusrežiimis passiivne, kui impordikihti pole. Kui kiht kaob pärast nupu vajutamist, avaneb lisamisdialoog veavaates ainult teate ja nupuga **Sulge**; tabelit, filtreid ega kaardivalikut ei looda.
 
 ## Lisamisdialoogi tabelinupud
 
@@ -273,7 +273,7 @@ Lisamise ajal muutub nupp katkestamistaotluseks. Juba rakendunud toimingud jää
 
 ### Sulge
 
-Nupp kuvatakse veavaates, kui impordikihti ei leitud. See sulgeb dialoogi. Geospatiali režiimi puuduva impordikihi servajuhus võib konstruktor jõuda veani enne, kui kasutaja saab nuppu kasutada.
+Nupp kuvatakse veavaates, kui impordikihti ei leitud. See sulgeb dialoogi midagi muutmata.
 
 ## Eemalda kinnistu
 
@@ -335,18 +335,23 @@ See on erakorraline taustateenuse toiming ja ei kasuta QGIS-i kihivalikut.
 | Dialoogi nupp | Tulemus |
 |---|---|
 | **Tühista** | Sulgeb dialoogi midagi muutmata |
-| **Kinnita** | Kontrollib, et väli pole tühi, keelab päringu ajaks mõlemad nupud ja saadab sisestatud väärtuse Kavitro kirje ID-na |
+| **Kinnita** | Kontrollib, et väli pole tühi, keelab päringu ajaks mõlemad nupud ja laadib sisestatud ID-ga kirje eelvaate |
 
-Edu korral dialoog suletakse. Vea korral kuvatakse hoiatus ja dialoog jääb avatuks.
+Eelvaade loeb Kavitrost kirje katastritunnuse ja aadressi. Seejärel avaneb kinnitusdialoog **Kinnita kustutamine**, mis näitab ID-d, katastritunnust ja aadressi ning hoiatab, et kaardikihte see ei muuda ja kustutamist ei saa tagasi võtta:
+
+| Kinnitusdialoogi nupp | Tulemus |
+|---|---|
+| **Tühista** (vaikimisi) | Midagi ei kustutata; ID-dialoog jääb avatuks |
+| **Kustuta** | Saadab kustutamispäringu sellele ID-le |
+
+Kui sellise ID-ga kirjet ei leita või eelvaate laadimine ebaõnnestub, kuvatakse hoiatus ja midagi ei kustutata. Kustutamise edu korral dialoog suletakse. Vea korral kuvatakse hoiatus ja dialoog jääb avatuks.
 
 Toiming:
 
-- ei kontrolli enne kustutamist kirje nime ega katastritunnust;
-- ei küsi teist lõplikku kinnitust;
 - ei eemalda vastavat objekti põhikihist ega arhiivikihist;
 - ei värskenda kinnistute mooduli avatud vaadet.
 
-API-kutse tehakse kasutajaliidese lõimes. Päringu viga püütakse kinni ja kuvatakse dialoogis; edukaks loetakse ainult vastus, mis kinnitab sama kirje ID kustutamist.
+API-kutsed tehakse kasutajaliidese lõimes. Päringu viga püütakse kinni ja kuvatakse dialoogis; edukaks loetakse ainult vastus, mis kinnitab sama kirje ID kustutamist.
 
 ## Loo/paranda otsinguväli
 
@@ -370,21 +375,17 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Keskmine | Geospatiali režiimis lubatakse **Lisa kinnistuid** ilma impordikihita ning veavaate järel jätkub dialoogi initsialiseerimine puuduvate juhtelementidega | Nupuvajutus võib põhjustada programmivea | Arvuta nupu olek impordikihi järgi ka Geospatiali režiimis ja lõpeta konstruktor puuduva kihi veavaates ohutult |
-| Keskmine | Eri nimega SHP-de import võib jätta mitu märgendatud mälukihti; töövoog kasutab esimest, mitte tingimata uusimat | Lisada võidakse vana impordi kinnistud | Luba üks kanooniline impordikiht või küsi kasutajalt aktiivne impordikiht |
-| Keskmine | **Kustuta ID järgi** ei kuva kustutatava kirje eelvaadet ega puuduta QGIS-i kihti | Vale sisemise ID sisestamine on raskesti kontrollitav ja andmeallikad lahknevad | Laadi enne kinnitamist kirje nimi ja tunnus ning paku kontrollitud kihisünkroonimist |
-| Keskmine | Kiirete järjestikuste kaardivalikute seoste päringuid ei eristata kinnistu kaupa | Vanem vastus võib kuvada vale kinnistu seotud kirjed | Tühista vana töö või kasuta iga valiku jaoks eraldi päringutunnust |
-| Madal | Seotud andmerühma noolenupul puudub kirjeldav kohtspikker | Funktsioon on klaviatuuri- ja abitehnoloogia kasutajale raskemini mõistetav | Lisa „Näita/peida seotud kirjed“ kohtspikker ja ligipääsetav nimi |
+| Madal | **Kustuta ID järgi** näitab enne kustutamist kirje eelvaadet, kuid ei puuduta QGIS-i põhi- ega arhiivikihti | Kavitro ja kaardikiht võivad lahkneda | Lisa kontrollitud kihisünkroonimine; olemasolev kihikustutaja salvestab ka kasutaja muud ootel muudatused, seega seda siin ei kasutata |
 
 ## Soovituslik turvaline tööjärjekord
 
 1. Hoia QGIS-i põhi- ja arhiivikiht enne massitoimingut redigeerimisrežiimist väljas ning tee andmetest varukoopia.
-2. Veendu, et projektis oleks ainult üks soovitud impordimärgendiga kiht.
+2. Veendu pärast SHP-importi, et grupis **Uued kinnistud** on soovitud faili impordikiht; uus import asendab varasema.
 3. Kontrolli kaardi- või asukohavaliku järel tabeli tegelikku ridade arvu.
 4. Loe arhiiviplaani ülevaatedialoogi tabel ja piirkonna rida enne täielikkuse kinnisruudu märkimist läbi; piiratud valikul jäta ruut märkimata ja vajuta **Loobu**.
 5. Lisa esmalt väike proovikogum ilma varasema kontrolliplaanita.
 6. Võrdle pärast lisamist eraldi Kavitro kirjeid, põhikihti ja arhiivikihti.
-7. Kasuta **Kustuta ID järgi** ainult siis, kui sisemine Kavitro ID on sõltumatult kontrollitud.
+7. Kasuta **Kustuta ID järgi** ainult siis, kui kinnitusdialoogi katastritunnus ja aadress vastavad kustutatavale kinnistule; eemalda vajadusel objekt kaardikihist eraldi.
 
 ## Seotud juhendid
 

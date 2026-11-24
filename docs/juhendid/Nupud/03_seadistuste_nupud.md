@@ -6,7 +6,7 @@ See loend katab seadistuste mooduli kirjutavad ja dialooge avavad nupud. Märker
 
 | Nupp | Asukoht | Lühikirjeldus |
 |---|---|---|
-| **Kinnita** | Seadistuste vaate alumine ühine jalus; ilmub salvestamata muudatuste korral | Salvestab korraga kasutaja, QGIS-i projekti ja moodulikaartide ootel muudatused. |
+| **Kinnita** | Seadistuste vaate alumine ühine jalus; ilmub salvestamata muudatuste korral | Salvestab kasutaja, QGIS-i projekti ja moodulikaartide ootel muudatused; ebaõnnestunud kaardid nimetatakse hoiatuses ja need jäävad ootele. |
 | **Lähtesta** | QGIS-i projekti baaskihtide kaardi ja iga mooduli seadistuskaardi päis | Eemaldab vastava kaardi salvestatud seadistuse kohe ja kinnitust küsimata. QGIS-i kihte ega nende objekte ei kustutata. |
 
 ## QGIS-i projekti baaskihid
@@ -16,7 +16,7 @@ See loend katab seadistuste mooduli kirjutavad ja dialooge avavad nupud. Märker
 | **Ühenda Geospatiali kaudu** | Seadistused → QGIS-i projekti baaskihid | Avab Geospatiali abiga seadistamise selgituse ja kinnituse. |
 | **OK** | Geospatiali abiga seadistamise teatedialoog | Võtab Geospatiali režiimi ootele; püsivaks salvestamiseks tuleb vajutada üldist **Kinnita** nuppu. |
 | **Cancel / Tühista** | Sama dialoog | Sulgeb dialoogi režiimi muutmata. |
-| **Vaata Geospatiali seadistust** | Baaskihtide kaart, kui Geospatiali režiim on valitud | Avab tegelikult režiimi väljalülitamise kinnituse; **OK** võtab käsitsi režiimi ootele. |
+| **Lülita käsitsi seadistusele** | Baaskihtide kaart, kui Geospatiali režiim on valitud | Küsib kinnitust ja võtab käsitsi režiimi ootele; kihid ja mapperiga kantud andmed jäävad alles. |
 | **Lisa kaardistus** | Baaskihtide kaart, ühiskanalisatsiooni vastenduse osa | Lisab uue kanalisatsiooniliigi ja tunnuste vastenduse rea. |
 
 ## Moodulikihtide tööriistad

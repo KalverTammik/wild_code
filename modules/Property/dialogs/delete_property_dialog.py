@@ -6,6 +6,8 @@ from ....constants.file_paths import QssPaths
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
 from ....ui.messages_helper import ModernMessageDialog
 from ..FlowControllers.property_delete import deleteProperty
+from ....constants.module_names import Module
+from ....Logs.python_fail_logger import PythonFailLogger
 
 
 class DeletePropertyUI(QDialog):
@@ -70,6 +72,19 @@ class DeletePropertyUI(QDialog):
         self.exec_()
 
     def _on_confirm_clicked(self) -> None:
+        # A Qt slot: an escaping exception would abort QGIS.
+        try:
+            self._confirm_and_delete()
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.PROPERTY.value,
+                event="property_delete_by_id_failed",
+            )
+            self._btn_confirm.setEnabled(True)
+            self._btn_cancel.setEnabled(True)
+
+    def _confirm_and_delete(self) -> None:
         property_id = (self._id_input.text() or "").strip()
         if not property_id:
             ModernMessageDialog.show_warning(
@@ -80,7 +95,41 @@ class DeletePropertyUI(QDialog):
 
         self._btn_confirm.setEnabled(False)
         self._btn_cancel.setEnabled(False)
+        ok = False
         try:
+            # The user must see which record the ID points to before anything is deleted.
+            status, preview = deleteProperty.load_preview(property_id)
+            if status == deleteProperty.PREVIEW_NOT_FOUND:
+                ModernMessageDialog.show_warning(
+                    self.lang_manager.translate(TranslationKeys.PROPERTY_DELETE_FAILED),
+                    self.lang_manager.translate(TranslationKeys.PROPERTY_DELETE_BY_ID_NOT_FOUND).format(
+                        id=property_id),
+                )
+                return
+            if status != deleteProperty.PREVIEW_OK:
+                ModernMessageDialog.show_warning(
+                    self.lang_manager.translate(TranslationKeys.PROPERTY_DELETE_FAILED),
+                    self.lang_manager.translate(TranslationKeys.PROPERTY_DELETE_BY_ID_PREVIEW_FAILED).format(
+                        error=preview.get("error") or ""),
+                )
+                return
+
+            delete_label = self.lang_manager.translate(TranslationKeys.PROPERTY_DELETE_BY_ID_DELETE_BUTTON)
+            cancel_label = self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON)
+            confirmed = ModernMessageDialog.ask_yes_no(
+                self.lang_manager.translate(TranslationKeys.PROPERTY_DELETE_BY_ID_CONFIRM_TITLE),
+                self.lang_manager.translate(TranslationKeys.PROPERTY_DELETE_BY_ID_CONFIRM_BODY).format(
+                    id=property_id,
+                    number=preview.get("number") or "—",
+                    address=preview.get("address") or "—",
+                ),
+                yes_label=delete_label,
+                no_label=cancel_label,
+                default=cancel_label,
+            )
+            if not confirmed:
+                return
+
             ok, message = deleteProperty.delete_single_item(property_id)
 
             if not ok:

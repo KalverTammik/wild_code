@@ -116,6 +116,7 @@ class EasementPreviewDialog(EasementPreviewLayersMixin, EasementPropertyEditorMi
         self._calculated_property_area_sqm: dict[str, float] = {}
         self._final_area_sqm = 0.0
         self._generated_pdf_path = ""
+        self._publish_in_progress = False
 
         self._item_id = DataDisplayExtractors.extract_item_id(self._item) or ""
         self._item_number = DataDisplayExtractors.extract_item_number(self._item) or self._item_id
@@ -180,13 +181,22 @@ class EasementPreviewDialog(EasementPreviewLayersMixin, EasementPropertyEditorMi
         self._distance_spin.setMaximumWidth(120)
         controls.addWidget(self._distance_spin)
 
-        self._rounded_caps_checkbox = QCheckBox(
+        # Corners are the buffer's join style; ends are its end cap and only change line buffers.
+        self._rounded_corners_checkbox = QCheckBox(
             self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_ROUNDED_CAPS),
             self,
         )
-        self._rounded_caps_checkbox.setChecked(True)
-        self._rounded_caps_checkbox.toggled.connect(self._on_geometry_style_changed)
-        controls.addWidget(self._rounded_caps_checkbox)
+        self._rounded_corners_checkbox.setChecked(True)
+        self._rounded_corners_checkbox.toggled.connect(self._on_geometry_style_changed)
+        controls.addWidget(self._rounded_corners_checkbox)
+
+        self._round_ends_checkbox = QCheckBox(
+            self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_ROUND_ENDS),
+            self,
+        )
+        self._round_ends_checkbox.setChecked(True)
+        self._round_ends_checkbox.toggled.connect(self._on_geometry_style_changed)
+        controls.addWidget(self._round_ends_checkbox)
 
         self._define_properties_button = QPushButton(
             self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_DEFINE_PROPERTIES),

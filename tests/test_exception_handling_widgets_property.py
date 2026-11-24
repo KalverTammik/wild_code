@@ -217,7 +217,7 @@ class TaskFilePreviewHandlersTest(WidgetCase):
                 patch.object(external_open.requests, "get",
                              side_effect=requests.ConnectionError(f"failed for {link}")):
             result = external_open.materialize_remote_file_to_temp(self.FILE_INFO, allowed_extension="pdf")
-            self.assertEqual(os.listdir(folder), [])
+            self.assertEqual(os.listdir(os.path.join(folder, external_open.EXTERNAL_TEMP_FOLDER_NAME)), [])
         self.assertEqual(result, "")
         call = call_for(self.log, "task_file_preview_download_failed")
         self.assertEqual(call.kwargs["extra"], {"error_type": "ConnectionError", "uuid": "u-1"})
@@ -226,14 +226,14 @@ class TaskFilePreviewHandlersTest(WidgetCase):
     def test_temp_file_that_cannot_be_created_ends_the_download_quietly(self) -> None:
         with patch.object(preview_module.APIModuleActions, "create_file_download_link",
                           return_value="https://files.example/a.pdf"), \
-                patch.object(tempfile, "NamedTemporaryFile", side_effect=OSError("disk full")):
+                patch.object(tempfile, "mkstemp", side_effect=OSError("disk full")):
             result = external_open.materialize_remote_file_to_temp(self.FILE_INFO, allowed_extension="pdf")
         self.assertEqual(result, "")
         self.assertIn("task_file_preview_download_failed", logged(self.log))
 
     def test_pdf_temp_write_failure_is_logged_and_forgets_the_path(self) -> None:
         dialog = self.dialog()
-        with patch.object(tempfile, "NamedTemporaryFile", side_effect=OSError("disk full")):
+        with patch.object(tempfile, "mkstemp", side_effect=OSError("disk full")):
             self.assertEqual(dialog._write_pdf_temp_file(b"%PDF"), "")
         self.assertEqual(dialog._pdf_temp_path, "")
         self.assertIn("task_file_preview_pdf_temp_write_failed", logged(self.log))

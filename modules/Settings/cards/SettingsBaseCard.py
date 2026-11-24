@@ -30,6 +30,10 @@ class SettingsBaseCard(QFrame):
                 event="settings_card_theme_failed",
             )
 
+    def card_title(self) -> str:
+        """The translated card title, as shown in the card header."""
+        return getattr(self, "_title_text", "")
+
     def _build(self, title_text: str, icon_path: str = None):
         self.lay = QVBoxLayout(self)
         self.lay.setContentsMargins(10, 10, 10, 10)  # Slightly tighter margins
@@ -62,6 +66,7 @@ class SettingsBaseCard(QFrame):
         # Use translation key if title_text matches the default literal
         if title_text == "Settings":
             title_text = self.lang_manager.translate(TranslationKeys.SETTINGS_BASE_CARD_TEXT)
+        self._title_text = str(title_text or "")
         title = QLabel(title_text)
         title.setObjectName("SetupCardTitle")
         title_layout.addWidget(title, 0)

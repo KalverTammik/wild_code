@@ -13,8 +13,8 @@ Moodulipõhise nupu eel ja järel toimuvad sammud jäävad vastava mooduli detai
 | **Laadi üles** | Lisab ühe või mitu faili Kavitro kirjele | Automaatset tagasivõtmist ei ole |
 | Failihalduse **Eelvaade** ja rea topeltklõps | Avab valitud faili eelvaate | Püsiandmeid ei muudeta |
 | **Kustuta** | Kustutab kinnituse järel faili Kavitrost | Visuaalis tagasivõtmise võimalust ei ole |
-| Eelvaate **Ava väliselt** | Laadib kaugfaili ajutisse asukohta ja annab selle operatsioonisüsteemile avamiseks | Kavitro andmeid ei muudeta; ajutine fail jääb kettale |
-| Eelvaate **Sulge** | Sulgeb vaate ja eemaldab sisemise PDF-i ajutise faili | Väliselt avamiseks loodud ajutist faili ei eemaldata |
+| Eelvaate **Ava väliselt** | Laadib kaugfaili taustal plugina ajutisse kausta ja annab selle operatsioonisüsteemile avamiseks | Kavitro andmeid ei muudeta; ajutine fail kustutatakse hiljemalt 15 minuti möödudes järgmisel puhastusel |
+| Eelvaate **Sulge** | Sulgeb vaate, katkestab pooleli oleva allalaadimise ja eemaldab sisemise PDF-i ajutise faili | Väliselt avatud faili ei eemaldata kohe, sest teine rakendus võib seda veel kasutada |
 | Seoste **Vali uuesti** | Loobub praegusest kinnitamata valikust ja naaseb kaardivalikusse | Jah, sest seoseid pole veel saadetud |
 | Seoste **Tühista** | Loobub kinnitamata uutest seostest | Jah, enne kinnitamist |
 | Seoste **Kinnita** | Lisab valitud kinnistuseosed Kavitrosse | Selle dialoogiga seoseid eemaldada ei saa |
@@ -118,9 +118,9 @@ HTML ja muud tekstivormingud kuvatakse toortekstina, mitte veebilehena. Tekst on
 
 Pilt laaditakse kirjekaardi kokkuvõttest avatuna taustal. PDF, tekst ja täieliku failidialoogi kaudu avatav pilt laaditakse kasutajaliidese lõimes ootekursoriga ning aeglase ühenduse korral võib dialoog ajutiselt mitte reageerida.
 
-PDF-i jaoks peab QGIS-i Qt WebEngine sisaldama sisseehitatud PDF-vaate tuge. Kui seda tuge pole, kuvatakse enne dialoogi loomist hoiatus ja meetod lõpetab töö. Seetõttu ei teki ka **Ava väliselt** nuppu, kuigi teiste toetamata vormingute dialoog seda pakub.
+PDF-i jaoks peab QGIS-i Qt WebEngine sisaldama sisseehitatud PDF-vaate tuge. Kui seda tuge pole, avaneb eelvaatedialoog ilma PDF-vaateta: sisu asemel kuvatakse teade koos Qt versiooniga ning **Ava väliselt** on kasutatav samamoodi nagu teiste toetamata vormingute puhul. Eelvaate jaoks faili sel juhul alla ei laadita.
 
-Koodis on deklareeritud kümne PDF-lehekülje piir ja vastav tõlketekst, kuid eelvaate loogika seda piirangut ei rakenda. Kuni 40 MiB PDF laaditakse tervikuna ajutisse faili ja antakse WebEngine'i vaatele.
+Koodis on deklareeritud kümne PDF-lehekülje piir ja vastav tõlketekst, kuid eelvaate loogika seda piirangut ei rakenda. Kuni 40 MiB PDF laaditakse tervikuna plugina ajutisse kausta ja antakse WebEngine'i vaatele.
 
 ## Ava väliselt
 
@@ -129,14 +129,15 @@ Kaugfaili avamisel:
 1. kontrollitakse teenuse `ext` ja failinime laiendit; olemasolev väärtus peab olema lihtne ja lubatud tüüpide loendis ning mõlema olemasolul peavad need omavahel sobima;
 2. kuvatakse failinime ja kontrollitud laiendiga kinnitus, mille vaike- ja tühistamisvalik on **Ei**;
 3. alles valiku **Jah** järel küsitakse faili UUID põhjal ajutine allalaadimislink;
-4. kogu fail laaditakse sünkroonselt operatsioonisüsteemi ajutisse kataloogi, päringuajaga kuni 120 sekundit;
-5. fail avatakse Windowsis `startfile` abil või varuvariandina Qt vaikeavaga.
+4. link küsitakse ja fail laaditakse taustatöös plugina kausta `Kavitro_files` süsteemi ajutises kataloogis; ühenduse loomise ooteaeg on 15 sekundit ja iga andmeosa ooteaeg 60 sekundit;
+5. allalaadimise ajal jääb dialoog kasutatavaks: teaterida näitab allalaaditud mahtu (teadaoleva suuruse korral ka kogumahtu), **Ava väliselt** on passiivne ja nähtaval on nupp **Katkesta**;
+6. fail avatakse Windowsis `startfile` abil või varuvariandina Qt vaikeavaga; vea korral kuvatakse hoiatus.
 
 Lubatud vormingute täielik loend ja abikeskuse kontrolljuhis on failis [Failide ja ühisdialoogide nupud](09_failide_ja_uhisdialoogide_nupud.md). Tundmatu, käivitatava, aktiivsisu sisaldava või vastuoluliste laiendiandmetega faili korral on **Ava väliselt** passiivne. Automaatset välises rakenduses avamise haru enam ei ole. Sisemise eelvaate tugi ja välise avamise allowlist on erinevad: näiteks HTML-i või SVG sisu võib eelvaadata, kuid seda ei anta OS-i rakendusele avamiseks.
 
-Välisel allalaadimisel ei rakendata sisemise eelvaate 25, 40 ega 0,5 MiB mahupiire. Eraldi turvakinnitus kuvatakse enne allalaadimist, kuid suur lubatud tüüpi fail võib pärast kinnitamist kasutajaliidest endiselt pikalt blokeerida.
+Välisel allalaadimisel ei rakendata sisemise eelvaate 25, 40 ega 0,5 MiB mahupiire. Kuna allalaadimine käib taustal, ei blokeeri ka suur fail QGIS-i ega kaardiklõpse. **Katkesta** või eelvaate sulgemine peatab allalaadimise järgmise andmeosa juures, pooleli fail kustutatakse ja tulemust ei avata.
 
-Väliselt avamiseks loodud ajutiste failide teid hoitakse mälus, kuid olemasolevaid faile ei kustutata dialoogi sulgemisel ega plugina selles koodis. Puhastus eemaldab loendist ainult teed, mille fail on juba muul põhjusel kadunud. Tundlik fail võib seetõttu jääda kasutaja ajutisse kataloogi pärast Visuaali sulgemist.
+Ajutised failid (väliselt avatud failid ja PDF-eelvaate failid) on ainult plugina kaustas `Kavitro_files`. Väliselt avatud faili võib teine rakendus veel kasutada, seega seda kohe ei kustutata. Uue allalaadimise eel, eelvaate sulgemisel ja plugina mahalaadimisel kustutatakse kaustast plugina failid, mis on vanemad kui 15 minutit. Kui mõni programm hoiab faili veel lukus, jäetakse see vahele, märgitakse logisse ja kustutatakse mõnel järgmisel puhastusel. Kui fail avati vähem kui 15 minutit enne plugina mahalaadimist, jääb see kettale kuni järgmise kasutuskorra puhastuseni.
 
 Kohaliku PDF-i korral avatakse algne fail ega looda koopiat. Avamisvea korral kuvatakse hoiatus.
 
@@ -154,12 +155,12 @@ TipTapi editoripoolne lingivalideerimine ei ole QGIS-i usalduspiir: API-s võib 
 
 ## Eelvaate Sulge
 
-Nupp sulgeb modaalse eelvaatedialoogi. Kaug-PDF-i sisemise eelvaate jaoks loodud ajutine PDF eemaldatakse sulgemisel ning WebEngine'i vaade vabastatakse.
+Nupp sulgeb modaalse eelvaatedialoogi. Pooleli olev välise avamise allalaadimine katkestatakse, kaug-PDF-i sisemise eelvaate jaoks loodud ajutine PDF eemaldatakse ning WebEngine'i vaade vabastatakse. Samuti kustutatakse plugina ajutisest kaustast üle 15 minuti vanused failid.
 
 Nupp ei kustuta:
 
 - Kavitro faili;
-- väliselt avamiseks loodud ajutist faili;
+- viimase 15 minuti jooksul väliselt avatud ajutist faili;
 - kasutaja algset kohalikku faili.
 
 Taustal laaditava pildieelvaate jaoks ei saadeta sulgemisel eraldi katkestustaotlust.
@@ -254,15 +255,12 @@ Välise avamise laiendikontrolli ja kinnituse puudumine on Etapp 1A ehk WC-02 ra
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kõrge | PDF-i WebEngine toe puudumisel lõpetatakse enne eelvaatedialoogi loomist | Kasutajale ei pakuta **Ava väliselt** nuppu, kuigi fail on Kavitros olemas | Paku hoiatuses eraldi välise avamise valik või ava piiratud eelvaatedialoog |
-| Kõrge | Väliselt avamiseks allalaaditud ajutisi faile ei kustutata | Tundlikud dokumendid jäävad kettale ja ajutine kataloog kasvab | Halda elutsüklit, paku säilitamisvalikut ning kustuta fail pärast ohutut viivitust või sessiooni lõpus |
 | Kõrge | Failide üleslaadimine käib kasutajaliidese lõimes ilma katkestamiseta; esimese vea järel peatutakse ja ülejäänud failid kuvatakse | Pikk jada blokeerib akna | Kasuta taustatööd ja katkestamist |
-| Keskmine | Välise avamise täisallalaadimine toimub kasutajaliidese lõimes ilma mahupiirita | Suur fail võib Visuaali kuni 120 sekundiks blokeerida | Laadi taustal, kuva maht ja edenemine ning võimalda katkestada |
 
 ## Soovituslik turvaline tööjärjekord
 
 1. Kasuta detailvaate failinuppe eelkõige pildi-, teksti- ja toetatud PDF-failide lugemiseks.
-2. Kui PDF-i käitusaja hoiatus ilmub, ava kirje Kavitro veebivaates; selles harus Visuaal **Ava väliselt** nuppu ei paku.
+2. Kui eelvaates on teade, et PDF-i ei saa selles QGIS-i versioonis eelvaadata, ava fail nupuga **Ava väliselt**.
 3. Kinnita välise avamise dialoog ainult siis, kui usaldad faili ja selle üleslaadijat. Passiivse nupu korral ära proovi faili ümbernimetamisega turvakontrollist mööduda.
 4. Halda failide täielikku loendit, üleslaadimist ja kustutamist praegu Kavitro veebirakenduses.
 5. Kontrolli kinnistuseoste dialoogis eraldi juba seotud ja uute kinnistute loendit; **Kinnita** on ainult lisav toiming.

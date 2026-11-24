@@ -4,7 +4,9 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
 
 from ..constants.cadastral_fields import AreaUnit
+from ..constants.module_names import Module
 from ..languages.translation_keys import TranslationKeys
+from ..Logs.python_fail_logger import PythonFailLogger
 from ..ui.theme_manager import ThemeManager
 
 
@@ -37,6 +39,7 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         self.currency_combo: QComboBox | None = None
         self.total_label: QLabel | None = None
         self.next_payment_edit: QLineEdit | None = None
+        self._payment_widgets: list[QWidget] = []
         self._build_ui()
 
     @staticmethod
@@ -130,7 +133,9 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         self.payable_checkbox.setChecked(is_payable)
         layout.addWidget(self.payable_checkbox, 0, 4)
 
-        if is_payable:
+        # An editable row builds the payment controls for every link, so marking a free link
+        # payable shows them; the read-only card shows them only for a payable link.
+        if is_payable or not self._read_only:
             total_title = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_TOTAL), self)
             total_title.setObjectName("InfoLabel")
             layout.addWidget(total_title, 0, 5)
@@ -158,6 +163,8 @@ class EasementPropertyAreaCalculationWidget(QWidget):
             )
             self.next_payment_edit.setText(self._current_next_payment_text)
             layout.addWidget(self.next_payment_edit, 1, 1, 1, 2)
+            self._payment_widgets = [total_title, self.total_label, next_payment_label, self.next_payment_edit]
+            self._apply_payable_visibility()
 
         if not self._read_only:
             unit_label = QLabel(self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_UNIT), self)
@@ -184,6 +191,7 @@ class EasementPropertyAreaCalculationWidget(QWidget):
             layout.addWidget(self.currency_combo, 1, 4)
 
         self.price_spin.valueChanged.connect(self.totalsChanged.emit)
+        self.payable_checkbox.toggled.connect(self._on_payable_toggled)
         if self.currency_combo is not None:
             self.currency_combo.currentIndexChanged.connect(self.totalsChanged.emit)
         if self.unit_combo is not None:
@@ -191,6 +199,24 @@ class EasementPropertyAreaCalculationWidget(QWidget):
 
         if self._read_only:
             self._apply_read_only_mode()
+
+    def _apply_payable_visibility(self) -> None:
+        # The read-only card keeps its payment fields as they came from Kavitro.
+        visible = self._read_only or self.is_payable()
+        for widget in self._payment_widgets:
+            if widget is not None:
+                widget.setVisible(visible)
+
+    def _on_payable_toggled(self, _checked: bool) -> None:
+        try:
+            self._apply_payable_visibility()
+            self.totalsChanged.emit()
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.EASEMENT.value,
+                event="easement_property_payable_toggle_failed",
+            )
 
     def _emit_unit_changed(self, _index: int) -> None:
         self.unitChanged.emit()
@@ -212,6 +238,9 @@ class EasementPropertyAreaCalculationWidget(QWidget):
         return bool(self.payable_checkbox.isChecked())
 
     def next_payment_text(self) -> str:
+        if not self._read_only and not self.is_payable():
+            # The date field is hidden for a free link, so its text is neither sent nor checked.
+            return ""
         if self.next_payment_edit is not None:
             return str(self.next_payment_edit.text() or "").strip()
         return str(self._current_next_payment_text or "").strip()

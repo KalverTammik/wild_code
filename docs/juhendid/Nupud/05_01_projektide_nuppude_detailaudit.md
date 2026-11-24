@@ -10,9 +10,9 @@ Filtrite, tähtajanuppude ja kirjekaardi üldise ülesehituse detailid on failis
 |---|---|---|
 | **… Detailne ülevaade** | Loeb Kavitrost seotud kirjeid ja kuvab need projektikaardil | Püsiandmeid ei muudeta |
 | **Ava kaust**, **Ava kirje brauseris** | Avab välise asukoha | Visuaal andmeid ei muuda |
-| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Seoseta olekus võib pärast ülevaate kinnitamist lisada Kavitro kinnistuseoseid; seosega olekus muudab QGIS-i aktiivset kihti, objektivalikuid ja kaardi ulatust | Seostamist selle töövooga tagasi võtta ei saa; QGIS-i valikud saab eemaldada |
+| **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Seoseta olekus võib pärast ülevaate kinnitamist lisada Kavitro kinnistuseoseid; seosega olekus muudab QGIS-i aktiivset kihti, objektivalikuid ja kaardi ulatust | Seoseid saab eemaldada ülevaateaknas või kaardimenüü tegevusega **Eemalda seotud kinnistuid**; QGIS-i valikud saab eemaldada |
 | **Genereeri projekti kaust** | Kopeerib failisüsteemi kausta ja võib muuta Kavitro projekti `filesPath` väärtust | Automaatset tagasivõtmist ei ole |
-| **Seosta kinnistuid** | Lisab Kavitros projektile kinnistuseoseid | Selle töövooga seoseid eemaldada ei saa |
+| **Seosta kinnistuid** | Lisab Kavitros projektile kinnistuseoseid ja eemaldab ülevaateaknas eemaldamiseks märgitud seosed | Jah, sama töövooga või kaardimenüü tegevusega **Eemalda seotud kinnistuid** |
 | Eelvaate loomine ja puhastamine | Lisab või eemaldab QGIS-i ajutisi mälukihte | Jah, kuni ala pole põhikihile salvestatud |
 | **Salvesta ala kihile** | Lisab või uuendab projektide QGIS-i põhikihi objekti | Sõltub kihi redigeerimis- ja varundusolekust |
 | **Joonista uus seotud ala kaardile** | Lisab projektide põhikihi objekti ja proovib uuendada Kavitro geomeetriat | Kiht salvestatakse enne Kavitrot; Kavitro vea korral saab kohe uuesti proovida |
@@ -152,7 +152,7 @@ Toiming vajab kinnistute põhikihti ja projekti ID-d.
 4. Ülevaatedialoog näitab eraldi juba seotud ja uusi valikuid.
 5. **Kinnita** lahendab valitud katastritunnustele Kavitro kinnistute ID-d ja saadab need `associate` toiminguna projektile.
 
-See on lisav, mitte asendav töövoog. **Kinnita** ei saada Kavitrosse dialoogis kuvatud olemasolevate ja uute seoste täielikku lõppnimekirja ning ei eemalda ühtegi varasemat seost.
+Juba seotud kinnistud saab ülevaateaknas märkida eemaldamiseks. **Salvesta muudatused** saadab lisamised ja eemaldamised ühe päringuga; muid varasemaid seoseid ei muudeta. Õnnestumist näidatakse alles pärast seda, kui seosed on Kavitrost uuesti loetud; lugemisvea korral ei eemaldata midagi.
 
 ### Ülevaatedialoogi nupud
 
@@ -192,7 +192,7 @@ Puhvri- ja raadiuseväljade väärtus on meetrites: projektsioonis kihil teisend
 
 ## Eelvaate Seosta kinnistuid
 
-Nupp kasutab sama lisavat seostamisloogikat nagu projektikaardi menüü. Kaardilt kinnitatud kinnistud lisatakse olemasolevatele seostele; seoste eemaldamise võimalust ei ole.
+Nupp kasutab sama lisavat seostamisloogikat nagu projektikaardi menüü. Kaardilt kinnitatud kinnistud lisatakse olemasolevatele seostele. Seoseid eemaldatakse kaardimenüü tegevusega **Eemalda seotud kinnistuid** (nimekiri, **Näita kaardil**, nimeline kinnitus vaikimisi **Ei**) või ülevaateaknas.
 
 Edu korral:
 
@@ -291,9 +291,7 @@ Detailtahvel kasutab teadlikult nimekirja päringu esimest kinnistut: nii laadib
 
 Eelvaate vaikimisi ümardusraadius 2,0 on teadlik valik (kasutaja otsus 2026-11-23).
 
-| Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
-|---|---|---|---|
-| Keskmine | Seoste eemaldamiseks pole visuaalis töövoogu (nupp on nüüd **Lisa valitud seosed**) | Ekslikku seost saab eemaldada ainult Kavitro veebis | Loo eraldi kinnitatud eemaldamisvoog |
+Avatud leide ei ole: seoste eemaldamine lisati versioonis v2.12.93.
 
 ## Soovituslik turvaline tööjärjekord
 

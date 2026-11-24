@@ -73,12 +73,9 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_MANUAL: "Projekti baaskihtide käsitsi seadistus on aktiivne.",
         TranslationKeys.SETTINGS_GEOSPATIAL_STATUS_ACTIVE: "Geospatiali abiga seadistus on aktiivne. Projekti baaskihtide käsitsi väljad on peidetud kuni naased käsitsi seadistusse.",
         TranslationKeys.SETTINGS_GEOSPATIAL_CONNECT_BUTTON: "Ühenda Geospatiali kaudu",
-        TranslationKeys.SETTINGS_GEOSPATIAL_MANAGE_BUTTON: "Vaata Geospatiali seadistust",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_TITLE: "Geospatiali abiga seadistus",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_BODY: "See voog hakkab hiljem seadistama projekti baaskihid ja seotud vaikimisi väärtused automaatselt nende klientide jaoks, kes kasutavad Geospatiali teenuseid. Praegu peidab selle režiimi sisselülitamine käsitsi projekti baaskihtide väljad ja reserveerib selle ala juhitud integratsioonivoo jaoks.",
         TranslationKeys.SETTINGS_GEOSPATIAL_DIALOG_SCOPE: "Praegune vahe-etapp ei kirjuta veel automaatseid kihiseadistusi. Käsitsi seadistusse saab igal ajal tagasi minna.",
-        TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_TITLE: "Kas lülitada Geospatiali abiga seadistus välja?",
-        TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_BODY: "Kui lülitad Geospatiali abiga seadistuse välja, eemaldatakse kõik salvestatud Geospatiali seadistused. Pärast seda saad eelistatud väljad käsitsi seadistada või need ise Seadetes lähtestada.",
         TranslationKeys.SETTINGS_MAP_OVERLAY_TITLE: "Tööriistad",
         TranslationKeys.SETTINGS_MAP_OVERLAY_DESCRIPTION: "Näita kiireid otse juurdepääse",
         TranslationKeys.SETTINGS_MAP_OVERLAY_GLASS_BAR: "Sisestuspaan",
@@ -319,6 +316,32 @@ TRANSLATIONS = {
         TranslationKeys.SETTINGS_UNSAVED_TITLE: "Salvestamata muudatused",
         TranslationKeys.SETTINGS_UNSAVED_MESSAGE: "Seadetes on salvestamata muudatusi.\n\nKas salvestada need või hüljata?",
         TranslationKeys.SETTINGS_DISCARD_BUTTON: "Hülga",
+        TranslationKeys.SETTINGS_APPLY_FAILED_TITLE: "Seadeid ei saanud salvestada",
+        TranslationKeys.SETTINGS_APPLY_FAILED_BODY: "Nende kaartide muudatusi ei õnnestunud salvestada:\n\n{cards}\n\nNeed muudatused on endiselt ootel. Proovi uuesti nupuga Kinnita. Teiste kaartide muudatused salvestati.",
+        TranslationKeys.SETTINGS_GEOSPATIAL_SWITCH_MANUAL_BUTTON: "Lülita käsitsi seadistusele",
+        TranslationKeys.SETTINGS_GEOSPATIAL_SWITCH_MANUAL_TITLE: "Kas lülitada käsitsi seadistusele?",
+        TranslationKeys.SETTINGS_GEOSPATIAL_SWITCH_MANUAL_BODY: "Geospatiali režiim lülitub välja ja seadistus jätkub käsitsi. Moodulikaartidelt kaob nupp Ava mapper ning baaskihte saad jälle ise valida.\n\nMidagi ei kustutata: QGIS-i kihid, moodulite kihivalikud ja mapperiga kantud andmed jäävad alles.\n\nMuudatus salvestub, kui vajutad seadete all nuppu Kinnita.",
+        TranslationKeys.PROPERTY_ADD_NO_IMPORT_LAYER_TOOLTIP: "Projektis pole kinnistute impordikihti või see on tühi. Lisa esmalt SHP-fail.",
+        TranslationKeys.PROPERTY_IMPORT_LAYERS_REPLACED: "Eelmine impordikiht eemaldati projektist: {names}",
+        TranslationKeys.PROPERTY_DELETE_BY_ID_CONFIRM_TITLE: "Kinnita kustutamine",
+        TranslationKeys.PROPERTY_DELETE_BY_ID_CONFIRM_BODY: "Kavitrost kustutatakse kinnistu:\n\nID: {id}\nKatastritunnus: {number}\nAadress: {address}\n\nKaardikihte see ei muuda. Kustutamist ei saa tagasi võtta. Kas kustutada?",
+        TranslationKeys.PROPERTY_DELETE_BY_ID_DELETE_BUTTON: "Kustuta",
+        TranslationKeys.PROPERTY_DELETE_BY_ID_NOT_FOUND: "Kinnistut ID-ga {id} ei leitud. Midagi ei kustutatud.",
+        TranslationKeys.PROPERTY_DELETE_BY_ID_PREVIEW_FAILED: "Kinnistu andmeid ei õnnestunud laadida, seega midagi ei kustutatud.\n\n{error}",
+        TranslationKeys.PROPERTY_TREE_TOGGLE_TOOLTIP: "Näita/peida seotud kirjed",
+        TranslationKeys.TASK_FILES_PDF_PREVIEW_UNAVAILABLE: "Selles QGIS-i versioonis ei saa PDF-faili siin eelvaadata (Qt {qt_version}). Faili avamiseks vajuta „Ava väliselt“.",
+        TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOADING: "Laadin faili alla: {done} / {total}",
+        TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOADING_NO_SIZE: "Laadin faili alla: {done}",
+        TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOAD_CANCEL: "Katkesta",
+        TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOAD_CANCELLED: "Allalaadimine katkestati.",
+        TranslationKeys.EASEMENT_PREVIEW_ROUND_ENDS: "Ümarad otsad",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_EXISTS_TITLE: "Fail on juba olemas",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_EXISTS_MESSAGE: "Servituudil on Kavitros juba fail nimega {name}.\n\nKas asendada see fail või lisada uus versioon nimega {new_name}?",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_REPLACE: "Asenda",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_NEW_VERSION: "Uus versioon",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_FILES_CHECK_FAILED: "Servituudi faile ei saanud Kavitrost lugeda, seega pole teada, kas fail {name} on juba olemas.\n\nKas avaldada ikkagi?",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_FILE_NAME: "Faili nimi: {name}",
+        TranslationKeys.EASEMENT_PREVIEW_DRAWING_OLD_NOT_REMOVED: "Uus fail on üles laaditud, aga vana faili {name} ei õnnestunud eemaldada. Kontrolli servituudi faile Kavitros.",
         TranslationKeys.TEMP_LAYER_OVERWRITE_CONFIRM: "Fail on juba olemas:\n{path}\n\nSelles failis on kihid: {layers}\nProjektist eemaldatakse laaditud kihid: {loaded}\n\nVana fail nimetatakse ümber varukoopiaks\n{backup}\nja selle asemele luuakse uus GeoPackage.",
         TranslationKeys.TEMP_LAYER_OVERWRITE_BUTTON: "Kirjuta üle",
         TranslationKeys.TEMP_LAYER_BACKUP_NOTE: "Vana fail on alles varukoopiana:\n{backup}",
@@ -894,7 +917,6 @@ TRANSLATIONS = {
         ,TranslationKeys.TASK_FILES_PREVIEW_TOO_LARGE: "See fail on plugina sees eelvaate jaoks liiga suur. Vajadusel ava fail väliselt."
         ,TranslationKeys.TASK_FILES_PREVIEW_FAILED: "Faili {name} eelvaate laadimine ebaõnnestus."
         ,TranslationKeys.TASK_FILES_PREVIEW_TRUNCATED: "Eelvaates kuvatakse ainult esimesed {count} KB."
-        ,TranslationKeys.TASK_FILES_PDF_RUNTIME_UNSUPPORTED: "Sisseehitatud PDF eelvaade ei ole selles QGIS-i käitusajas saadaval. Praegune käitusaeg: Qt {qt_version}, PyQt {pyqt_version}.\n\nAinult eraldi PyQt6 paigaldamisest tavaliselt QGIS pluginate jaoks ei piisa. QGIS peab ise töötama uuema Qt/PyQt käitusajaga, kus on PDF-e toetav WebEngine.\n\nSoovitus: uuenda QGIS-i uuemale versioonile, mis sisaldab Qt6/PyQt6 ja Qt WebEngine PDF tuge."
         ,TranslationKeys.TASK_FILES_OPEN_FAILED: "Faili {name} ei saanud avada."
         ,TranslationKeys.TASK_FILES_EXTERNAL_OPEN_CONFIRM: "Fail avatakse arvuti vaikimisi rakenduses.\n\nFail: {name}\nTüüp: .{extension}\n\nAva ainult siis, kui usaldad faili ja selle üleslaadijat. Kas jätkata?"
         ,TranslationKeys.TASK_FILES_EXTERNAL_OPEN_BLOCKED: "Faili {name} ei saa turvakaalutlustel välise rakendusega avada."

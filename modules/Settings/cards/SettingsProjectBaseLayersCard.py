@@ -27,6 +27,8 @@ from ....languages.translation_keys import TranslationKeys
 from ....utils.project_base_layers import ProjectBaseLayerKeys, ProjectBaseLayersService
 from ....widgets.layer_tree_picker import LayerTreePicker
 from ....ui.theme_manager import ThemeManager
+from ....Logs.python_fail_logger import PythonFailLogger
+from ....constants.module_names import Module
 
 
 class SettingsProjectBaseLayersCard(SettingsBaseCard):
@@ -264,20 +266,34 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
             or self._pend_sewer_mapping_rows != self._orig_sewer_mapping_rows
         )
 
-    def apply(self) -> None:
-        if self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL:
-            self._settings_service.geospatial_setup_mode(value=self._pend_setup_mode)
-        else:
-            self._settings_service.geospatial_setup_mode(clear=True)
-        self._service.save_state(
-            evel_enabled=self._pend_enabled,
-            layers=self._pend_layers,
-            sewer_mapping={
-                "enabled": self._pend_sewer_mapping_enabled,
-                "field": self._pend_sewer_mapping_field,
-                "rows": self._pend_sewer_mapping_rows,
-            },
-        )
+    def apply(self) -> bool:
+        """Save the pending values; True on success.
+
+        A failed write keeps the card pending (the saved values stay as they were), so
+        the settings view can name this card and the next Confirm writes it again.
+        """
+        try:
+            if self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL:
+                self._settings_service.geospatial_setup_mode(value=self._pend_setup_mode)
+            else:
+                self._settings_service.geospatial_setup_mode(clear=True)
+            self._service.save_state(
+                evel_enabled=self._pend_enabled,
+                layers=self._pend_layers,
+                sewer_mapping={
+                    "enabled": self._pend_sewer_mapping_enabled,
+                    "field": self._pend_sewer_mapping_field,
+                    "rows": self._pend_sewer_mapping_rows,
+                },
+            )
+        except Exception as exc:
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_project_base_layers_apply_failed",
+            )
+            self.pendingChanged.emit(self.has_pending_changes())
+            return False
         self._orig_setup_mode = self._pend_setup_mode
         self._orig_enabled = self._pend_enabled
         self._orig_layers = dict(self._pend_layers)
@@ -288,6 +304,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         self._update_status()
         self.geospatialModeChanged.emit(self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL)
         self.pendingChanged.emit(False)
+        return True
 
     def revert(self) -> None:
         self._pend_setup_mode = self._orig_setup_mode
@@ -387,7 +404,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         )
         self._geospatial_button.setText(
             self.lang_manager.translate(
-                TranslationKeys.SETTINGS_GEOSPATIAL_MANAGE_BUTTON
+                TranslationKeys.SETTINGS_GEOSPATIAL_SWITCH_MANUAL_BUTTON
                 if geospatial_active
                 else TranslationKeys.SETTINGS_GEOSPATIAL_CONNECT_BUTTON
             )
@@ -609,24 +626,37 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         self._update_status()
 
     def _on_geospatial_button_clicked(self) -> None:
-        if self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL:
-            disable_geospatial = ModernMessageDialog.ask_yes_no(
-                self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_TITLE),
-                self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_DISABLE_BODY),
-                yes_label=self.lang_manager.translate(TranslationKeys.OK),
-                no_label=self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
-                default=self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
+        try:
+            if self._pend_setup_mode == self.SETUP_MODE_GEOSPATIAL:
+                self._ask_switch_to_manual_setup()
+            else:
+                self._ask_geospatial_setup()
+        except Exception as exc:  # button callback: nothing may escape
+            PythonFailLogger.log_exception(
+                exc,
+                module=Module.SETTINGS.value,
+                event="settings_geospatial_button_failed",
             )
-            if not disable_geospatial:
-                return
-            self._pend_setup_mode = self.SETUP_MODE_MANUAL
-            self._update_geospatial_mode_ui()
-            self._update_controls_enabled()
-            self._update_status()
-            self.geospatialModeChanged.emit(False)
-            self.pendingChanged.emit(self.has_pending_changes())
-            return
 
+    def _ask_switch_to_manual_setup(self) -> None:
+        """Only the setup mode changes (pending until Confirm); layers and mapper data stay."""
+        switch_to_manual = ModernMessageDialog.ask_yes_no(
+            self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_SWITCH_MANUAL_TITLE),
+            self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_SWITCH_MANUAL_BODY),
+            yes_label=self.lang_manager.translate(TranslationKeys.SETTINGS_GEOSPATIAL_SWITCH_MANUAL_BUTTON),
+            no_label=self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
+            default=self.lang_manager.translate(TranslationKeys.CANCEL_BUTTON),
+        )
+        if not switch_to_manual:
+            return
+        self._pend_setup_mode = self.SETUP_MODE_MANUAL
+        self._update_geospatial_mode_ui()
+        self._update_controls_enabled()
+        self._update_status()
+        self.geospatialModeChanged.emit(False)
+        self.pendingChanged.emit(self.has_pending_changes())
+
+    def _ask_geospatial_setup(self) -> None:
         dialog = GeospatialSetupDialog(lang_manager=self.lang_manager, parent=self)
         if dialog.exec_() != dialog.Accepted:
             return

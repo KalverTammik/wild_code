@@ -204,7 +204,8 @@ class SettingsService:
         return ids
 
     @staticmethod
-    def save_preferred_ids_by_key(key, module, ids) -> None:
+    def save_preferred_ids_by_key(key, module, ids) -> bool:
+        """Return False when the write failed, so the settings Confirm keeps the card pending."""
         service = SettingsService()
         writers = {
             ModuleSupports.TAGS.value: service.module_preferred_tags,
@@ -213,7 +214,7 @@ class SettingsService:
         }
         writer = writers.get(key)
         if not writer:
-            return
+            return False
 
         try:
             cleaned = sorted({str(v).strip() for v in (ids or []) if str(v).strip()})
@@ -227,6 +228,8 @@ class SettingsService:
                 module="settings",
                 event="settings_save_preferred_ids_failed",
             )
+            return False
+        return True
 
 
 

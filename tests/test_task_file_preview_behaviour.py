@@ -87,6 +87,9 @@ class _Base(unittest.TestCase):
         self.warning = self.p(ModernMessageDialog, "show_warning")
         self.fetch = self.p(APIModuleActions, "fetch_file_preview_payload")
         self.p(APIModuleActions, "user_display_name", return_value="Jane")
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.p(tempfile, "tempdir", folder.name)
         self.addCleanup(lambda: QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete))
 
     def p(self, target, name, *args, **kwargs):
@@ -147,11 +150,14 @@ class OpenPreviewTest(_Base):
         super().setUp()
         self.p(Dialog, "_load_preview")
 
-    def test_pdf_without_runtime_warns_and_opens_nothing(self):
+    def test_pdf_without_runtime_opens_the_dialog_with_external_open(self):
         self.p(Dialog, "embedded_pdf_runtime_support", return_value=(False, {"qt": "5.15", "pyqt": ""}))
-        self.assertIsNone(Dialog.open_preview(file_info={"ext": "pdf", "uuid": "u"}, lang_manager=LANG))
-        self.assertEqual(self.warning.call_args.args,
-                         ("T:Warning", "T:task_files_pdf_runtime_unsupported[('pyqt_version', 'unknown'), ('qt_version', '5.15')]"))
+        dialog = Dialog.open_preview(file_info={"ext": "pdf", "uuid": "u", "fileName": "a.pdf"}, lang_manager=LANG)
+        self.addCleanup(dialog.deleteLater)
+        self.assertIsInstance(dialog, Dialog)
+        self.assertEqual(dialog._pdf_runtime_unsupported, {"qt": "5.15", "pyqt": ""})
+        self.assertTrue(dialog._open_external_button.isEnabled())
+        self.warning.assert_not_called()
 
     def test_pdf_opens_full_size_and_others_keep_compact_and_lazy(self):
         self.p(Dialog, "embedded_pdf_runtime_support", return_value=(True, {}))
@@ -283,6 +289,18 @@ class PdfPreviewTest(_Base):
             self.assertEqual(self.placeholder(self.make(self.INFO)), "T:task_files_preview_unsupported")
         self.fetch.assert_not_called()
 
+    def test_runtime_without_pdf_support_shows_a_notice_and_downloads_nothing(self):
+        dialog = self.make(self.INFO, pdf_runtime_unsupported={"qt": "5.15"})
+        self.assertEqual(self.placeholder(dialog), "T:task_files_pdf_preview_unavailable[('qt_version', '5.15')]")
+        with tempfile.TemporaryDirectory() as folder:
+            pdf = os.path.join(folder, "a.pdf")
+            Path(pdf).write_bytes(b"%PDF")
+            local = self.make(local_file_path=pdf, pdf_runtime_unsupported={})
+            self.assertEqual(self.placeholder(local), "T:task_files_pdf_preview_unavailable[('qt_version', 'unknown')]")
+            local.close()
+        self.assertEqual(_FakeWebView.made, [])
+        self.fetch.assert_not_called()
+
     def test_payload_problems(self):
         for payload, text in ((None, failed("a.pdf")), ({"truncated": True}, "T:task_files_preview_too_large"),
                               ({"content": b""}, failed("a.pdf"))):
@@ -394,6 +412,14 @@ class OpenExternallyTest(_Base):
         self.p(Dialog, "_load_preview")
         self.ask = self.p(ModernMessageDialog, "ask_choice_modern", return_value="T:Yes")
         self.open_default = self.p(Dialog, "open_in_default_application", return_value=True)
+        self.start = self.p(preview_module, "start_worker", return_value=object())
+
+    def local_pdf(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = os.path.join(folder.name, "a.pdf")
+        Path(path).write_bytes(b"%PDF")
+        return path
 
     def test_blocked_type_warns_on_the_dialog(self):
         dialog = self.make({"uuid": "u", "fileName": "a.exe", "ext": "exe"})
@@ -401,24 +427,49 @@ class OpenExternallyTest(_Base):
         self.assertIs(self.warning.call_args.kwargs["parent"], dialog)
         self.ask.assert_not_called()
 
-    def test_confirmation_then_open(self):
-        dialog = self.make({"uuid": "u", "fileName": "a.pdf", "ext": "pdf"}, local_title="Plaan")
+    def test_confirmation_then_open_a_local_file(self):
+        path = self.local_pdf()
+        dialog = self.make(local_file_path=path, local_title="Plaan")
         dialog._open_externally()
         args, kwargs = self.ask.call_args
         self.assertEqual(args[0], "T:confirm")
         self.assertIn("Plaan", args[1])
         self.assertEqual((kwargs["buttons"], kwargs["default"], kwargs["cancel"]), (["T:Yes", "T:No"], "T:No", "T:No"))
-        self.open_default.assert_called_once_with(file_info=dialog._file_info, local_file_path="", user_confirmed=True)
+        self.open_default.assert_called_once_with(file_info={}, local_file_path=path, user_confirmed=True)
+        self.start.assert_not_called()
         self.warning.assert_not_called()
         self.ask.return_value = "T:No"
         dialog._open_externally()
         self.assertEqual(self.open_default.call_count, 1)
 
-    def test_failed_open_warns(self):
-        self.open_default.return_value = False
+    def test_remote_file_is_downloaded_on_a_worker_not_in_the_gui_thread(self):
         dialog = self.make({"uuid": "u", "fileName": "a.pdf", "ext": "pdf"})
         dialog._open_externally()
+        self.open_default.assert_not_called()
+        self.start.assert_called_once()
+        worker = self.start.call_args.args[0]
+        self.assertIsInstance(worker, workers.FunctionWorker)
+        self.assertIs(worker._func, external_open.materialize_remote_file_to_temp)
+        self.assertEqual(worker._kwargs["allowed_extension"], "pdf")
+        self.ask.return_value = "T:No"
+        dialog._open_externally()
+        self.ask.return_value = "T:Yes"
+        dialog._open_externally()
+        self.start.assert_called_once()
+
+    def test_failed_open_warns(self):
+        self.open_default.return_value = False
+        dialog = self.make(local_file_path=self.local_pdf())
+        dialog._open_externally()
         self.assertEqual(self.warning.call_args.args[0], "T:Error")
+        self.assertIn("task_files_open_failed", self.warning.call_args.args[1])
+        self.assertIs(self.warning.call_args.kwargs["parent"], dialog)
+
+    def test_an_unexpected_error_is_logged_not_raised(self):
+        self.open_default.side_effect = RuntimeError("boom")
+        dialog = self.make(local_file_path=self.local_pdf())
+        dialog._open_externally()
+        self.assertEqual(self.log.call_args.kwargs["event"], "task_file_external_open_failed")
         self.assertIn("task_files_open_failed", self.warning.call_args.args[1])
 
 
@@ -462,12 +513,11 @@ class DefaultApplicationTest(_Base):
         get = self.p(requests, "get", return_value=response)
         start = self.p(os, "startfile", create=True)
         self.assertTrue(Dialog.open_in_default_application(file_info=self.INFO, user_confirmed=True))
-        get.assert_called_once_with("https://d", stream=True, timeout=120)
+        get.assert_called_once_with("https://d", stream=True, timeout=external_open.DOWNLOAD_TIMEOUT)
         path = start.call_args.args[0]
-        self.addCleanup(lambda: os.path.exists(path) and os.remove(path))
         self.assertTrue(path.endswith(".pdf"))
         self.assertEqual(Path(path).read_bytes(), b"abc")
-        self.assertIn(path, external_open.EXTERNAL_TEMP_FILES)
+        self.assertEqual(os.path.dirname(path), external_open.external_temp_folder())
 
     def test_remote_download_guards(self):
         link = self.p(APIModuleActions, "create_file_download_link", return_value="")
@@ -476,11 +526,6 @@ class DefaultApplicationTest(_Base):
         link.assert_not_called()
         self.assertEqual(external_open.materialize_remote_file_to_temp(self.INFO, allowed_extension="pdf"), "")
         link.assert_called_once_with("u")
-
-    def test_forgotten_temp_files_are_dropped(self):
-        with patch.object(external_open, "EXTERNAL_TEMP_FILES", {"", "C:/nope/gone.pdf", __file__}):
-            external_open.cleanup_missing_temp_paths()
-            self.assertEqual(external_open.EXTERNAL_TEMP_FILES, {__file__})
 
 
 if __name__ == "__main__":
