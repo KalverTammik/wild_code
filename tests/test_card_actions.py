@@ -111,12 +111,13 @@ class CardMenuTest(CardCase):
         for module, keys in MENUS.items():
             with self.subTest(module=module):
                 labels = [action.text() for action in self.button(module=module).menu().actions()]
-                self.assertEqual(labels, [self.lang.translate(key) for key in [*keys, TranslationKeys.CONNECT_PROPERTIES]])
+                self.assertEqual(labels, [self.lang.translate(key) for key in
+                                          [*keys, TranslationKeys.CONNECT_PROPERTIES, TranslationKeys.REMOVE_PROPERTIES]])
 
     def test_module_given_as_an_enum_or_in_capitals_finds_its_actions(self) -> None:
         for module in (Module.WORKS, "WORKS", " works "):
             with self.subTest(module=module):
-                self.assertEqual(len(self.button(module=module).menu().actions()), 3)
+                self.assertEqual(len(self.button(module=module).menu().actions()), 4)
 
     def test_linking_action_starts_property_linking_for_any_module(self) -> None:
         for module in MENUS:

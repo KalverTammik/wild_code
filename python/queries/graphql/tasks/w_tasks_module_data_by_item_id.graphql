@@ -46,6 +46,7 @@ query task(
         node {
           id
           cadastralUnitNumber
+          displayAddress
         }
       }
     }

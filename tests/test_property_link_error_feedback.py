@@ -183,7 +183,9 @@ class CardPropertyLinkTest(QgsCase):
         self.messages = self.start(buttons_module, "ModernMessageDialog")
         self.log = self.start(buttons_module.PythonFailLogger, "log_exception")
         self.api = self.start(buttons_module, "APIModuleActions")
-        self.api.get_module_item_connected_properties.side_effect = [[], ["1:1", "2:2"]]
+        # The existing links are read with their ids (none here); the second read is the refresh after linking.
+        self.api.get_linked_properties.return_value = []
+        self.api.get_module_item_connected_properties.side_effect = [["1:1", "2:2"]]
         # The mutation answer holds no whole list here, so the linked numbers are read again.
         self.api.linked_cadastral_numbers_from_response.return_value = None
 
@@ -195,6 +197,7 @@ class CardPropertyLinkTest(QgsCase):
         self.review = self.start(buttons_module, "PropertyLinkReviewDialog").return_value
         self.review.exec_.return_value = QDialog.Accepted
         self.review.reselect_requested = False
+        self.review.numbers_to_remove = []
 
         self.button = SimpleNamespace(
             _map_selection_orchestrator=None,
@@ -325,7 +328,8 @@ class CardPropertyLinkTest(QgsCase):
         response = self.api.associate_properties.return_value
         self.api.linked_cadastral_numbers_from_response.assert_called_once_with("project", response)
         # Only the read of the existing links before the selection.
-        self.api.get_module_item_connected_properties.assert_called_once_with("project", "7")
+        self.api.get_linked_properties.assert_called_once_with("project", "7")
+        self.api.get_module_item_connected_properties.assert_not_called()
         self.button._on_properties_linked.assert_called_once_with(["1:1", "2:2", "9:9"])
         self.messages.show_warning.assert_not_called()
 

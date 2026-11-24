@@ -25,6 +25,7 @@ from ...utils.layers import LayerProcessingService, MemoryLayerResultService
 from ...utils.layers.field_value_problems import show_saved
 from ...utils.layers.module_layer_service_base import FieldValueProblem
 from ...ui.messages_helper import ModernMessageDialog
+from ...widgets.DataDisplayWidgets.property_link_removal import confirm_link_removal
 from ...ui.map_tools.kavitro_sync_retry import offer_kavitro_sync_retry, run_kavitro_sync
 from ...constants.module_names import Module
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
@@ -509,13 +510,30 @@ class ProjectPreviewDialog(QDialog):
                     return f"{value} - {number}"
         return str(number or "").strip()
 
-    def _persist_property_links(self, selected_numbers: list[str]) -> tuple[bool, list[str], dict[str, object]]:
+    def _persist_property_links(
+        self, selected_numbers: list[str], remove_ids: tuple[str, ...] = ()
+    ) -> tuple[bool, list[str], dict[str, object]]:
         property_ids, missing = APIModuleActions.resolve_property_ids_by_cadastral(selected_numbers)
-        if not property_ids:
+        if not property_ids and not remove_ids:
             raise RuntimeError(f"No property ids resolved for selection: {missing}")
-        response = APIModuleActions.associate_properties(Module.PROJECT.value, self._item_id, property_ids)
-        refreshed = APIModuleActions.get_module_item_connected_properties(Module.PROJECT.value, self._item_id) or []
+        response = APIModuleActions.update_property_links(
+            Module.PROJECT.value, self._item_id, associate_ids=property_ids, dissociate_ids=list(remove_ids))
+        linked = APIModuleActions.get_linked_properties(Module.PROJECT.value, self._item_id)
+        still = [entry["number"] or entry["id"] for entry in linked if entry["id"] in set(remove_ids)]
+        if still:
+            raise RuntimeError(", ".join(still))  # success only once Kavitro no longer links them
+        refreshed = [entry["number"] for entry in linked if entry.get("number")]
         return True, refreshed, {"missing": missing, "raw": response}
+
+    def _linked_property_ids(self) -> dict[str, str]:
+        """number -> id of the project's links; empty when they cannot be read (the review is then add-only)."""
+        try:
+            entries = APIModuleActions.get_linked_properties(Module.PROJECT.value, self._item_id)
+        except Exception as exc:  # the add-only review still works
+            PythonFailLogger.log_exception(exc, module=Module.PROJECT.value, event="project_preview_linked_ids_failed",
+                                           extra={"item_id": self._item_id})
+            return {}
+        return {entry["number"]: entry["id"] for entry in entries if entry.get("number")}
 
     def _open_property_link_review_dialog(self, selected_numbers: list[str], selected_features: list, main_layer: QgsVectorLayer) -> None:
         existing_display = self._existing_property_display(main_layer)
@@ -530,7 +548,8 @@ class ProjectPreviewDialog(QDialog):
         for number in selected_numbers:
             selected_display.setdefault(number, self._format_property_label(number))
 
-        dialog = PropertyLinkReviewDialog(existing_display, selected_display, self._lang)
+        linked_ids = self._linked_property_ids()
+        dialog = PropertyLinkReviewDialog(existing_display, selected_display, self._lang, allow_removal=bool(linked_ids))
         result = dialog.exec_()
         if dialog.reselect_requested:
             QTimer.singleShot(0, self._start_define_properties_flow)
@@ -538,9 +557,19 @@ class ProjectPreviewDialog(QDialog):
         if result != QDialog.Accepted:
             self._finish_property_selection()
             return
+        remove_numbers = [number for number in dialog.numbers_to_remove if number in linked_ids]
+        if remove_numbers and not confirm_link_removal(
+            self._lang, Module.PROJECT.value, ProjectsLayerService._item_name(self._item) or self._item_id,
+            [{"id": linked_ids[n], "number": n, "address": ""} for n in remove_numbers], parent=self,
+        ):
+            self._finish_property_selection()
+            return
 
         try:
-            _ok, refreshed, response = self._persist_property_links(selected_numbers)
+            _ok, refreshed, response = self._persist_property_links(
+                [number for number in selected_numbers if number not in remove_numbers],
+                tuple(linked_ids[number] for number in remove_numbers),
+            )
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -572,6 +601,9 @@ class ProjectPreviewDialog(QDialog):
             )
         extra_note = "\n\n" + self._lang.translate(TranslationKeys.LINK_PROPERTIES_ADDED_NOTE).format(
             added=added, already=already)
+        if remove_numbers:
+            extra_note += "\n\n" + self._lang.translate(TranslationKeys.LINK_REMOVED_NOTE).format(
+                removed=len(remove_numbers))
         if missing:
             missing_preview = ", ".join(missing[:5])
             extra_note += "\n\n" + self._lang.translate(TranslationKeys.LINK_PROPERTIES_MISSING_NOTE).format(

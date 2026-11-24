@@ -19,7 +19,9 @@ query project($id: ID!, $propertiesFirst: Int, $propertiesAfter: String) {
             }
             edges {
                 node {
+                    id
                     cadastralUnitNumber
+                    displayAddress
                 }
             }
         }

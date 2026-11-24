@@ -97,6 +97,104 @@ class PropertyLinkActions:
         return cadastral_numbers
 
     @staticmethod
+    def _linked_query(module: str) -> tuple[str, str]:
+        """(owner module, read query file) of the item's linked properties."""
+        module_name = str(module or "").strip().lower()
+        query_module = PropertyLinkActions._property_owner_module(module_name)
+        if query_module == Module.TASK.value:
+            return query_module, "w_tasks_module_data_by_item_id.graphql"
+        return query_module, f"W_{module_name}_id.graphql"
+
+    @staticmethod
+    def get_linked_properties(module: str, item_id: str) -> List[dict]:
+        """Every property linked to the item, all pages: [{"id", "number", "address"}].
+
+        Unlike get_module_item_connected_properties this raises when a page cannot be read, so a removal
+        never works from a partial list.
+        """
+        record_id = str(item_id or "").strip()
+        if not record_id:
+            raise ValueError("No item id for the linked properties")
+        query_module, query_file = PropertyLinkActions._linked_query(module)
+        query = GraphQLQueryLoader().load_query_by_module(query_module, query_file)
+        client = APIClient()
+        path = [query_module, "properties"]
+        linked: List[dict] = []
+        seen: Set[str] = set()
+        end_cursor: Optional[str] = None
+        while True:
+            payload = client.send_query(query, variables={
+                "propertiesFirst": _PROPERTIES_PAGE_SIZE, "propertiesAfter": end_cursor, "id": record_id,
+            }, return_raw=True)
+            data = (payload or {}).get("data") if isinstance(payload, dict) else None
+            if not isinstance(data, dict) or not isinstance(data.get(query_module), dict):
+                raise RuntimeError(f"Linked properties of {query_module} {record_id} could not be read")
+            for edge in JsonResponseHandler.get_edges_from_path(payload, path) or []:
+                node = edge.get("node") if isinstance(edge, dict) else None
+                property_id = str((node or {}).get("id") or "").strip()
+                if not property_id or property_id in seen:
+                    continue
+                seen.add(property_id)
+                linked.append({
+                    "id": property_id,
+                    "number": str(node.get("cadastralUnitNumber") or "").strip(),
+                    "address": str(node.get("displayAddress") or "").strip(),
+                })
+            details = JsonResponseHandler.get_page_detalils_from_path(payload, path)
+            end_cursor, has_next_page = (details[0], details[1]) if details else (None, False)
+            if has_next_page is False or not end_cursor:
+                return linked
+
+    @staticmethod
+    def update_property_links(
+        module: str,
+        item_id: str,
+        *,
+        associate_ids: Optional[List[str]] = None,
+        dissociate_ids: Optional[List[str]] = None,
+    ):
+        """Add and remove property links of one item in one update<Module> request.
+
+        `dissociate` is RelatedPropertiesInput / EasementPropertiesInput.dissociate ([ID!]), checked in the
+        kavitro.dev reference 2026-11-24. An easement links each property as an EasementPropertyInput.
+        Raises like associate_properties; the caller then shows the failure.
+        """
+        associate = [str(value) for value in (associate_ids or []) if str(value or "").strip()]
+        dissociate = [str(value) for value in (dissociate_ids or []) if str(value or "").strip()]
+        if not associate and not dissociate:
+            raise ValueError("No property links to change")
+        module_key = PropertyLinkActions._property_owner_module(module)
+        relation: dict[str, object] = {}
+        if associate:
+            relation["associate"] = (
+                [{"id": property_id} for property_id in associate] if module_key == Module.EASEMENT.value else associate
+            )
+        if dissociate:
+            relation["dissociate"] = dissociate
+        query = GraphQLQueryLoader().load_query_by_module(module_key, f"update{module_key.capitalize()}Properties.graphql")
+        response = APIClient().send_query(
+            query, variables={"input": {"id": item_id, "properties": relation}}, return_raw=True)
+        mutation_root = f"update{module_key.capitalize()}"
+        data = (response or {}).get("data") or {}
+        updated = (data.get(mutation_root) or {}) if isinstance(data, dict) else {}
+        if not isinstance(updated, dict) or not updated.get("id"):
+            raise RuntimeError(f"Property link change did not return {mutation_root}.id")
+        return response
+
+    @staticmethod
+    def remove_property_links(module: str, item_id: str, property_ids: List[str]) -> List[dict]:
+        """Remove the links and read them back; the linked properties after the change.
+
+        Raises when Kavitro still links one of them, so success is shown only for a confirmed removal.
+        """
+        PropertyLinkActions.update_property_links(module, item_id, dissociate_ids=property_ids)
+        linked = PropertyLinkActions.get_linked_properties(module, item_id)
+        still = sorted({str(value) for value in property_ids} & {entry["id"] for entry in linked})
+        if still:
+            raise RuntimeError(f"Kavitro still links properties {', '.join(still)}")
+        return linked
+
+    @staticmethod
     def linked_cadastral_numbers_from_response(module: str, response) -> Optional[List[str]]:
         """Cadastral numbers linked to the item, read from an associate_properties answer.
 

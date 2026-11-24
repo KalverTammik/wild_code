@@ -29,6 +29,8 @@ from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...constants.file_paths import QssPaths
 from ...module_manager import ModuleManager
 from .MainStatusWidget import MainStatusWidget
+from .property_link_removal import confirm_link_removal, unlink_properties_from_card
+from ...python.responses import DataDisplayExtractors
 
 
 
@@ -241,6 +243,9 @@ class MoreActionsButton(CardActionButton):
             lambda _: self.start_property_linking()
         )
         menu.addAction(action2)
+        remove_action = QAction(lang_manager.translate(TranslationKeys.REMOVE_PROPERTIES), self)
+        remove_action.triggered.connect(lambda _: self.start_property_unlinking())
+        menu.addAction(remove_action)
         ThemeManager.apply_module_style(menu, [QssPaths.POPUP])
         self.setMenu(menu)
 
@@ -265,6 +270,20 @@ class MoreActionsButton(CardActionButton):
         for status_widget in card.findChildren(MainStatusWidget):
             status_widget.apply_status(self.item_data)
 
+    def start_property_unlinking(self) -> None:
+        """The card menu's "Remove linked properties": a list of the links, no map pick."""
+        item_id = str(self.item_data.get("id") or "").strip()
+        if not item_id:
+            return
+        unlink_properties_from_card(
+            module=self.module,
+            item_id=item_id,
+            item_label=DataDisplayExtractors.extract_item_name(self.item_data) or item_id,
+            lang=self.lang_manager,
+            parent=self._parent_window,
+            on_linked_changed=self._on_properties_linked,
+        )
+
     def start_property_linking(self) -> None:
         """Start the shared map-selection workflow from any card entry point."""
         self._link_properties_from_map(
@@ -282,9 +301,18 @@ class MoreActionsButton(CardActionButton):
         if main_layer is not None:
             main_layer.removeSelection()
 
-        existing_numbers = set(
-            APIModuleActions.get_module_item_connected_properties(module, object_id) or []
-        )
+        # With their ids the review can also remove links; a failed read keeps the review add-only.
+        existing_ids: dict[str, str] = {}
+        try:
+            linked_entries = APIModuleActions.get_linked_properties(module, object_id)
+            existing_ids = {entry["number"]: entry["id"] for entry in linked_entries if entry.get("number")}
+            existing_numbers = set(existing_ids)
+        except Exception as exc:  # the add-only review below still works
+            PythonFailLogger.log_exception(exc, module=module or "general", event="module_action_linked_ids_failed",
+                                           extra={"item_id": object_id})
+            existing_numbers = set(
+                APIModuleActions.get_module_item_connected_properties(module, object_id) or []
+            )
 
         def _format_label(number: str, feature=None) -> str:
             if feature is not None:
@@ -340,17 +368,28 @@ class MoreActionsButton(CardActionButton):
                 note += lang_manager.translate(TranslationKeys.MORE_COUNT_SUFFIX).format(count=len(missing) - 5)
             return note
 
-        def _persist_links(selected_numbers: list[str]):
-            """Link the selection; a failure comes back as (False, [], {"error": text, "missing": [...]})."""
+        def _persist_links(selected_numbers: list[str], remove_ids: Optional[list[str]] = None):
+            """Link the selection and remove `remove_ids`; a failure is (False, [], {"error": text, "missing": [...]})."""
             missing: list[str] = []
+            response = None
             try:
                 property_ids, missing = APIModuleActions.resolve_property_ids_by_cadastral(selected_numbers)
-                if not property_ids:
+                if not property_ids and not remove_ids:
                     # No request failed: none of the selected numbers exist in Kavitro.
                     return False, [], {"error": _missing_note(missing), "missing": missing}
-                response = APIModuleActions.associate_properties(module, object_id, property_ids)
-                # The answer lists the linked properties; read them again only when it holds part of them.
-                refreshed = APIModuleActions.linked_cadastral_numbers_from_response(module, response)
+                if remove_ids:
+                    # One request for both; success only once Kavitro no longer links the removed ones.
+                    APIModuleActions.update_property_links(
+                        module, object_id, associate_ids=property_ids, dissociate_ids=remove_ids)
+                    linked = APIModuleActions.get_linked_properties(module, object_id)
+                    still = [entry["number"] or entry["id"] for entry in linked if entry["id"] in set(remove_ids)]
+                    if still:
+                        raise RuntimeError(", ".join(still))
+                    refreshed = [entry["number"] for entry in linked if entry.get("number")]
+                else:
+                    response = APIModuleActions.associate_properties(module, object_id, property_ids)
+                    # The answer lists the linked properties; read them again only when it holds part of them.
+                    refreshed = APIModuleActions.linked_cadastral_numbers_from_response(module, response)
                 if refreshed is None:
                     refreshed = APIModuleActions.get_module_item_connected_properties(module, object_id) or []
             except Exception as exc:
@@ -377,14 +416,27 @@ class MoreActionsButton(CardActionButton):
             for num in selected_numbers:
                 selected_display.setdefault(num, _format_label(num))
 
-            dialog = PropertyLinkReviewDialog(existing_display, selected_display, lang_manager)
+            dialog = PropertyLinkReviewDialog(existing_display, selected_display, lang_manager,
+                                              allow_removal=bool(existing_ids))
             result = dialog.exec_()
             if dialog.reselect_requested:
                 _start_selection()
                 return
             if result == QDialog.Accepted:
+                remove_numbers = [number for number in dialog.numbers_to_remove if number in existing_ids]
+                if remove_numbers and not confirm_link_removal(
+                    lang_manager, module, DataDisplayExtractors.extract_item_name(item_data) or str(object_id),
+                    [{"id": existing_ids[n], "number": n, "address": ""} for n in remove_numbers],
+                    parent=self._parent_window,
+                ):
+                    self._map_selection_orchestrator = None
+                    self._restore_parent_window()
+                    return
                 linked_before = set(existing_numbers)
-                ok, refreshed, resp = _persist_links(selected_numbers)
+                ok, refreshed, resp = _persist_links(
+                    [number for number in selected_numbers if number not in remove_numbers],
+                    [existing_ids[number] for number in remove_numbers],
+                )
                 if ok:
                     # The total alone read like the number just added.
                     added = len([number for number in refreshed if number not in linked_before])
@@ -399,6 +451,9 @@ class MoreActionsButton(CardActionButton):
                     missing = (resp or {}).get("missing") if isinstance(resp, dict) else []
                     extra_note = "\n\n" + lang_manager.translate(TranslationKeys.LINK_PROPERTIES_ADDED_NOTE).format(
                         added=added, already=already)
+                    if remove_numbers:
+                        extra_note += "\n\n" + lang_manager.translate(TranslationKeys.LINK_REMOVED_NOTE).format(
+                            removed=len(remove_numbers))
                     if missing:
                         extra_note += "\n\n" + _missing_note(missing)
                     ModernMessageDialog.show_info(
