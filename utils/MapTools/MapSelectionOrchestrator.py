@@ -49,7 +49,9 @@ class MapSelectionOrchestrator(QObject):
         fetch_geometry: bool = True,
         fetch_field_names: Optional[list[str]] = None,
         before_start: Optional[Callable[[], None]] = None,
+        on_abandoned: Optional[Callable[[], None]] = None,
     ) -> bool:
+        """`on_abandoned` runs when the user ends the selection with Escape, a right-click or another tool."""
         if not layer:
             return False
 
@@ -86,6 +88,7 @@ class MapSelectionOrchestrator(QObject):
                     lightweight_fetch=lightweight_fetch,
                     fetch_geometry=fetch_geometry,
                     fetch_field_names=fetch_field_names,
+                    on_abandoned=on_abandoned,
                 )
             )
         except Exception as exc:

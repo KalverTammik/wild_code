@@ -2,7 +2,7 @@ import weakref
 from PyQt5 import sip
 
 from PyQt5.QtCore import QEvent, QEasingCurve, QPoint, QPropertyAnimation, QTimer, Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QFrame, QToolButton, QSizePolicy
+from PyQt5.QtWidgets import QHBoxLayout, QWidget, QVBoxLayout, QFrame, QToolButton, QSizePolicy
 from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
@@ -82,6 +82,18 @@ class ExtraInfoFrame(QFrame):
         self._detail_layout = QVBoxLayout(self._detail_container)
         self._detail_layout.setContentsMargins(0, 8, 0, 8)
         self._detail_layout.setSpacing(0)
+        # Refresh: the detail is loaded once per opening of the card, so a change made elsewhere needs a reload.
+        refresh_row = QHBoxLayout()
+        refresh_row.setContentsMargins(0, 0, 0, 4)
+        refresh_row.addStretch(1)
+        self._refresh_button = QToolButton(self._detail_container)
+        self._refresh_button.setObjectName("ExtraInfoRefreshButton")
+        self._refresh_button.setAutoRaise(True)
+        self._refresh_button.setCursor(Qt.PointingHandCursor)
+        self._refresh_button.setText(self._lang.translate(TranslationKeys.CARD_DETAIL_REFRESH))
+        self._refresh_button.clicked.connect(self.invalidate_detail)
+        refresh_row.addWidget(self._refresh_button)
+        self._detail_layout.addLayout(refresh_row)
         self._layout.addWidget(self._detail_container)
 
         self._detail_animation = QPropertyAnimation(self._detail_container, b"maximumHeight", self)
@@ -122,6 +134,18 @@ class ExtraInfoFrame(QFrame):
         self._detail_layout.addWidget(detail_widget)
         self._detail_widget = detail_widget
         detail_widget.installEventFilter(self)
+
+    def invalidate_detail(self) -> None:
+        """Drop the loaded detail: an open detail loads again now, a closed one on its next opening."""
+        old = self._detail_widget
+        if old is None or self._detail_layout is None:
+            return
+        self._detail_widget = None
+        self._detail_layout.removeWidget(old)
+        old.deleteLater()
+        if self._detail_expanded:
+            self._ensure_project_detail_loaded()
+            self._height_timer.start(0)
 
     def _update_handle_state(self):
         if self._expand_handle is None:

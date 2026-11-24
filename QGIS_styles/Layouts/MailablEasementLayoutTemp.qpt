@@ -563,7 +563,7 @@
    <custom-order enabled="0"/>
   </layer-tree-group>
  </LayoutItem>
- <LayoutItem marginX="0" size="50,10,mm" zValue="2" opacity="1" itemRotation="0" uuid="{4ba597b9-3b1a-4a34-805c-9ede90488fa1}" excludeFromExports="0" visibility="1" type="65641" id="EasementNr" labelText="Lepingu nr: " positionLock="false" positionOnPage="10,10,mm" referencePoint="0" outlineWidthM="0.3,mm" groupUuid="" htmlState="0" halign="1" templateUuid="{4ba597b9-3b1a-4a34-805c-9ede90488fa1}" marginY="0" frame="false" background="false" position="10,10,mm" frameJoinStyle="miter" blendMode="0" valign="128">
+ <LayoutItem marginX="0" size="50,10,mm" zValue="2" opacity="1" itemRotation="0" uuid="{4ba597b9-3b1a-4a34-805c-9ede90488fa1}" excludeFromExports="0" visibility="1" type="65641" id="EasementNr" labelText="Servituudi nr: " positionLock="false" positionOnPage="10,10,mm" referencePoint="0" outlineWidthM="0.3,mm" groupUuid="" htmlState="0" halign="1" templateUuid="{4ba597b9-3b1a-4a34-805c-9ede90488fa1}" marginY="0" frame="false" background="false" position="10,10,mm" frameJoinStyle="miter" blendMode="0" valign="128">
   <FrameColor green="0" blue="0" red="0" alpha="255"/>
   <BackgroundColor green="255" blue="255" red="255" alpha="255"/>
   <LayoutObject>

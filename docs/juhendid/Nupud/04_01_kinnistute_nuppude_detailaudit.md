@@ -372,12 +372,8 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 |---|---|---|---|
 | Keskmine | Geospatiali režiimis lubatakse **Lisa kinnistuid** ilma impordikihita ning veavaate järel jätkub dialoogi initsialiseerimine puuduvate juhtelementidega | Nupuvajutus võib põhjustada programmivea | Arvuta nupu olek impordikihi järgi ka Geospatiali režiimis ja lõpeta konstruktor puuduva kihi veavaates ohutult |
 | Keskmine | Eri nimega SHP-de import võib jätta mitu märgendatud mälukihti; töövoog kasutab esimest, mitte tingimata uusimat | Lisada võidakse vana impordi kinnistud | Luba üks kanooniline impordikiht või küsi kasutajalt aktiivne impordikiht |
-| Keskmine | Kaardivaliku kontroller ei käsitle objekti valimata `Esc`-i, paremklõpsu ega tööriistavahetust lõpetamisena | Visuaali aken või lisamisdialoog võib jääda minimeerituks | Kuula kaarditööriista deaktiveerimist ja taasta kasutajaliides katkestussignaaliga |
-| Keskmine | Aadressikonflikt jääb otsust ootama, kuid sama aadressiga **vanem** import uuendab Kavitro kirjet ilma otsuseta (`classify_property_import`) | Vanemad impordiandmed (pindala, sihtotstarbed) võivad taustakirje üle kirjutada | Uuenda ainult uuema või kasutaja kinnitatud impordi korral |
 | Keskmine | **Kustuta ID järgi** ei kuva kustutatava kirje eelvaadet ega puuduta QGIS-i kihti | Vale sisemise ID sisestamine on raskesti kontrollitav ja andmeallikad lahknevad | Laadi enne kinnitamist kirje nimi ja tunnus ning paku kontrollitud kihisünkroonimist |
 | Keskmine | Kiirete järjestikuste kaardivalikute seoste päringuid ei eristata kinnistu kaupa | Vanem vastus võib kuvada vale kinnistu seotud kirjed | Tühista vana töö või kasuta iga valiku jaoks eraldi päringutunnust |
-| Madal | Maa-ameti lingi avamise ebaõnnestumine ei kuva kasutajale teadet | Nupp näib mittetöötav | Kuva vigase URL-i või avamisvea korral hoiatus |
-| Madal | SHP failivaliku filter `SHP files (*.shp);;All files (*.*)` ja kustutamise veateade `Failed to delete property with ID` on koodis ingliskeelsed | Keelekasutus on ebaühtlane ja tõlkevõtmete reegel on rikutud | Vii tekstid tõlkevõtmetesse |
 | Madal | Seotud andmerühma noolenupul puudub kirjeldav kohtspikker | Funktsioon on klaviatuuri- ja abitehnoloogia kasutajale raskemini mõistetav | Lisa „Näita/peida seotud kirjed“ kohtspikker ja ligipääsetav nimi |
 
 ## Soovituslik turvaline tööjärjekord

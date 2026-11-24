@@ -302,7 +302,9 @@ class CardPropertyLinkTest(QgsCase):
         self.select()
 
         self.api.associate_properties.assert_called_once_with("project", "7", ["p1", "p2"])
-        note = "\n\n" + LANG.translate(TranslationKeys.LINK_PROPERTIES_MISSING_NOTE).format(missing="3:3")
+        # Both are new links: the message says so apart from the total (found 2026-11-23).
+        note = ("\n\n" + LANG.translate(TranslationKeys.LINK_PROPERTIES_ADDED_NOTE).format(added=2, already=0)
+                + "\n\n" + LANG.translate(TranslationKeys.LINK_PROPERTIES_MISSING_NOTE).format(missing="3:3"))
         self.messages.show_info.assert_called_once_with(
             LANG.translate(TranslationKeys.SUCCESS),
             LANG.translate(TranslationKeys.LINK_PROPERTIES_SUCCESS).format(

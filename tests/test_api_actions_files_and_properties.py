@@ -169,7 +169,8 @@ class GetModuleFilesTest(ActionTestCase):
             "orderBy": [{"column": "CREATED_AT", "order": "DESC"}],
         }})])
 
-    def test_other_module_loads_its_own_query_without_ordering(self) -> None:
+    def test_other_module_loads_its_own_query_newest_first(self) -> None:
+        # Found 2026-11-23: only tasks asked for an order, so a contract detail showed any five files.
         for module in ("project", "contract", "coordination", "easement"):
             with self.subTest(module=module):
                 self.reset_calls()
@@ -181,6 +182,7 @@ class GetModuleFilesTest(ActionTestCase):
                     "id": "x-1",
                     "first": 50,
                     "after": None,
+                    "orderBy": [{"column": "CREATED_AT", "order": "DESC"}],
                 }})])
 
     def test_answer_under_another_root_is_broken(self) -> None:

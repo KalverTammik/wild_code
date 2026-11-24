@@ -31,6 +31,19 @@ from ...ui.theme_manager import ThemeManager
 from .TaskFilePreviewDialog import TaskFilePreviewDialog
 
 
+
+class _SortableItem(QTableWidgetItem):
+    """A cell shown as text but sorted by a value: dates and sizes sorted as text came out of order."""
+
+    def __init__(self, text: str, sort_key) -> None:
+        super().__init__(text)
+        self._sort_key = sort_key
+
+    def __lt__(self, other) -> bool:
+        if isinstance(other, _SortableItem):
+            return self._sort_key < other._sort_key
+        return super().__lt__(other)
+
 class TaskFilesDialog(QDialog):
     def __init__(
         self,
@@ -174,6 +187,9 @@ class TaskFilesDialog(QDialog):
         self._refresh_button.setEnabled(True)
         self._upload_button.setEnabled(True)
         if files is None:
+            # The old rows may name files that are gone or changed: no preview or delete from them.
+            self._files = []
+            self._table.setRowCount(0)
             self._count_label.setText(
                 self._lang.translate(TranslationKeys.TASK_FILES_LOAD_FAILED).format(
                     name=self._item_name or self._item_id
@@ -205,10 +221,11 @@ class TaskFilesDialog(QDialog):
             name_item = QTableWidgetItem(name)
             name_item.setData(Qt.UserRole, dict(file_info))
             self._table.setItem(row, 0, name_item)
-            self._table.setItem(row, 1, QTableWidgetItem(size))
+            self._table.setItem(row, 1, _SortableItem(size, self._size_sort_key(file_info.get("size"))))
             self._table.setItem(row, 2, QTableWidgetItem(mime_type))
             self._table.setItem(row, 3, QTableWidgetItem(uploader))
-            self._table.setItem(row, 4, QTableWidgetItem(created))
+            parsed = DateHelpers.parse_iso(str(file_info.get("createdAt") or "").strip())
+            self._table.setItem(row, 4, _SortableItem(created, parsed.isoformat() if parsed is not None else ""))
 
         count = len(self._files)
         if count <= 0:
@@ -219,6 +236,13 @@ class TaskFilesDialog(QDialog):
             )
         self._table.setSortingEnabled(True)
         self._table.sortItems(4, Qt.DescendingOrder)
+
+    @staticmethod
+    def _size_sort_key(raw_size) -> int:
+        try:
+            return int(raw_size)
+        except (TypeError, ValueError):
+            return -1
 
     @staticmethod
     def _fallback_size(raw_size) -> str:

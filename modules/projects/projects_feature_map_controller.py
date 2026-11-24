@@ -16,6 +16,7 @@ from ...ui.map_tools.module_feature_controllers import (
     ModuleFeatureEditMessages,
     ModuleFeatureWorkflow,
     ModuleFeatureWorkflowConfig,
+    ask_existing_feature_mode,
 )
 from ...ui.messages_helper import ModernMessageDialog
 from .projects_layer_service import ProjectsLayerService
@@ -42,27 +43,11 @@ class ProjectsFeatureMapController:
         return self._workflow.start_draw(item_data=item_payload)
 
     def _existing_area_mode(self, layer: QgsVectorLayer, item_id: str) -> Optional[str]:
-        """How a new drawing treats the project's area already on the map: "" when there is none, None when cancelled.
-
-        A project keeps one feature, so the map focus and Kavitro both get the whole area.
-        """
-        if layer.isEditable() or not ProjectsLayerService.item_feature_ids(layer, item_id):
-            return ""  # an editable layer is refused by the draw flow itself
-        replace = self._lang.translate(TranslationKeys.PROJECT_AREA_REPLACE)
-        add_part = self._lang.translate(TranslationKeys.PROJECT_AREA_ADD_PART)
-        cancel = self._lang.translate(TranslationKeys.CANCEL_BUTTON)
-        if ProjectsLayerService.allows_multi_part(layer):
-            message = self._lang.translate(TranslationKeys.PROJECT_AREA_EXISTS_QUESTION).format(item_id=item_id)
-            buttons, default = [replace, add_part, cancel], add_part
-        else:
-            message = self._lang.translate(TranslationKeys.PROJECT_AREA_EXISTS_REPLACE_ONLY).format(
-                item_id=item_id, layer=layer.name()
-            )
-            buttons, default = [replace, cancel], cancel
-        choice = ModernMessageDialog.ask_choice_modern(
-            self._lang.translate(TranslationKeys.CONFIRM), message, buttons=buttons, default=default, cancel=cancel,
+        return ask_existing_feature_mode(
+            ProjectsLayerService, layer, item_id, lang=self._lang,
+            question_key=TranslationKeys.PROJECT_AREA_EXISTS_QUESTION,
+            replace_only_key=TranslationKeys.PROJECT_AREA_EXISTS_REPLACE_ONLY,
         )
-        return {replace: ProjectsLayerService.AREA_REPLACE, add_part: ProjectsLayerService.AREA_ADD_PART}.get(choice)
 
     def _build_workflow_config(self) -> ModuleFeatureWorkflowConfig:
         return ModuleFeatureWorkflowConfig(
@@ -153,7 +138,7 @@ class ProjectsFeatureMapController:
                 event="project_geometry_backend_update_failed",
                 extra={"item_id": item_id, "feature_id": int(feature_id)},
             )
-            return False, "Projekti geomeetria saatmine Kavitrosse ebaõnnestus"
+            return False, LanguageManager().translate(TranslationKeys.KAVITRO_GEOMETRY_SYNC_FAILED)
 
         return FeatureLinkResult(True, message, sync_to_kavitro, tuple(value_problems))
 

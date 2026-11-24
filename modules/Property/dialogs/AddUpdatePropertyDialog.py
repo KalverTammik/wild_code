@@ -635,6 +635,7 @@ class AddPropertyDialog(PropertyAddRunMixin, PropertyAttentionChecksMixin, Prope
             lightweight_fetch=True,
             fetch_geometry=False,
             before_start=self._enter_map_selection_mode,
+            on_abandoned=self._exit_map_selection_mode,
         )
 
         if not started:

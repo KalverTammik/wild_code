@@ -244,7 +244,7 @@ class FolderHelpers:
     @staticmethod
     def select_folder_path(parent=None, start_path: str = "") -> Optional[str]:
         options = QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
-        caption: str = "Select folder"
+        caption = LanguageManager().translate(TranslationKeys.SELECT_FOLDER)
         directory = QFileDialog.getExistingDirectory(parent, caption, start_path or os.path.expanduser("~"), options)
         return directory or None
 

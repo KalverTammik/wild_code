@@ -315,7 +315,7 @@ class SHPLayerLoader:
             self.parent,
             self.lang_manager.translate(TranslationKeys.SELECT_SHAPEFILE),
             "",
-            "SHP files (*.shp);;All files (*.*)",
+            self.lang_manager.translate(TranslationKeys.SHP_FILE_FILTER),
         )
         return file_path or None
 

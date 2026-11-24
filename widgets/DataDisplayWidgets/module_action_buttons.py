@@ -32,25 +32,31 @@ from .MainStatusWidget import MainStatusWidget
 
 
 
-def open_item_in_browser(module_name: Optional[str], item_id: Optional[str]) -> None:
+def open_item_in_browser(module_name: Optional[str], item_id: Optional[str], lang_manager=None) -> bool:
+    """Open the record in Kavitro; a missing address or a failed open is shown, not only logged."""
     if not module_name or not item_id:
-        return
+        return False
+    lang = lang_manager or LanguageManager()
+    url = ""
     try:
-        wl = OpenLink()
-        base = wl.weblink_by_module(module_name)
-        if not base:
-            return
-        base = base.rstrip("/")
-        if not base.endswith("s"):
-            base = f"{base}s"
-        url = f"{base}/{item_id}"
-        loadWebpage.open_webpage(url)
-    except Exception as exc:
+        base = OpenLink().weblink_by_module(module_name)
+        if base:
+            base = base.rstrip("/")
+            if not base.endswith("s"):
+                base = f"{base}s"
+            url = f"{base}/{item_id}"
+            if loadWebpage.open_webpage(url):
+                return True
+    except Exception as exc:  # button callback: nothing may escape
         PythonFailLogger.log_exception(
             exc,
             module=module_name or "general",
             event="module_action_open_browser_failed",
         )
+    message = (lang.translate(TranslationKeys.WEB_PAGE_OPEN_FAILED).format(url=url) if url
+               else lang.translate(TranslationKeys.WEB_LINK_MISSING))
+    ModernMessageDialog.show_warning(lang.translate(TranslationKeys.WARNING), message)
+    return False
 
 
 def show_items_on_map(module_name: Optional[str], item_id: Optional[str], lang_manager=None) -> None:
@@ -58,9 +64,40 @@ def show_items_on_map(module_name: Optional[str], item_id: Optional[str], lang_m
         return
 
     numbers = APIModuleActions.get_module_item_connected_properties(module_name, item_id)
+    found: set[str] = set()
     if numbers:
-        PropertiesSelectors.show_connected_properties_on_map(numbers, module=module_name)
+        layer = PropertiesSelectors.show_connected_properties_on_map(numbers, module=module_name)
+        found = _selected_cadastral_numbers(layer)
     ModuleItemFocusService.focus_item_on_map(module_name, item_id)
+    # The button shows properties only for a record that has links, so an empty list is a failed read.
+    _warn_about_missing_properties(numbers, found, lang_manager)
+
+
+def _selected_cadastral_numbers(layer) -> set[str]:
+    if layer is None:
+        return set()
+    try:
+        return {str(feature[Katastriyksus.tunnus] or "").strip() for feature in layer.selectedFeatures()}
+    except (KeyError, RuntimeError):  # no cadastral field, or the layer was deleted
+        return set()
+
+
+def _warn_about_missing_properties(numbers: list, found: set, lang_manager=None) -> None:
+    missing = [str(number) for number in numbers or [] if str(number).strip() not in found]
+    if numbers and not missing:
+        return
+    lang = lang_manager or LanguageManager()
+    shown = ", ".join(missing[:5])
+    if len(missing) > 5:
+        shown += lang.translate(TranslationKeys.MORE_COUNT_SUFFIX).format(count=len(missing) - 5)
+    if not numbers:
+        message = lang.translate(TranslationKeys.MAP_SHOW_LOAD_FAILED)
+    elif len(missing) == len(numbers):
+        message = lang.translate(TranslationKeys.MAP_SHOW_NONE_FOUND).format(total=len(numbers), missing=shown)
+    else:
+        message = lang.translate(TranslationKeys.MAP_SHOW_SOME_MISSING).format(
+            found=len(numbers) - len(missing), total=len(numbers), missing=shown)
+    ModernMessageDialog.show_warning(lang.translate(TranslationKeys.WARNING), message)
 
 
 class CardActionButton(QPushButton):
@@ -144,7 +181,7 @@ class OpenWebActionButton(CardActionButton):
         self.setEnabled(enabled)
         if enabled:
             self.clicked.connect(
-                lambda _, module=module_name, mid=item_id: open_item_in_browser(module, mid)
+                lambda _, module=module_name, mid=item_id: open_item_in_browser(module, mid, lang_manager)
             )
 
 
@@ -346,8 +383,12 @@ class MoreActionsButton(CardActionButton):
                 _start_selection()
                 return
             if result == QDialog.Accepted:
+                linked_before = set(existing_numbers)
                 ok, refreshed, resp = _persist_links(selected_numbers)
                 if ok:
+                    # The total alone read like the number just added.
+                    added = len([number for number in refreshed if number not in linked_before])
+                    already = len([number for number in set(selected_numbers) if number in linked_before])
                     existing_numbers.clear()
                     existing_numbers.update(refreshed)
                     summary = ", ".join(refreshed[:5])
@@ -356,7 +397,10 @@ class MoreActionsButton(CardActionButton):
                             count=len(refreshed) - 5
                         )
                     missing = (resp or {}).get("missing") if isinstance(resp, dict) else []
-                    extra_note = "\n\n" + _missing_note(missing) if missing else ""
+                    extra_note = "\n\n" + lang_manager.translate(TranslationKeys.LINK_PROPERTIES_ADDED_NOTE).format(
+                        added=added, already=already)
+                    if missing:
+                        extra_note += "\n\n" + _missing_note(missing)
                     ModernMessageDialog.show_info(
                         lang_manager.translate(TranslationKeys.SUCCESS),
                         lang_manager.translate(TranslationKeys.LINK_PROPERTIES_SUCCESS).format(
@@ -439,6 +483,7 @@ class MoreActionsButton(CardActionButton):
                 clear_filter=False,
                 keep_existing_selection=bool(existing_numbers),
                 before_start=self._enter_map_selection_mode,
+                on_abandoned=self._restore_parent_window,
             )
             if not started:
                 ModernMessageDialog.show_warning(

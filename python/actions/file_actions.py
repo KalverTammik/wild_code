@@ -86,14 +86,10 @@ class FileActions:
                     "id": record_id,
                     "first": min(50, remaining),
                     "after": after,
+                    # Newest first for every owner: the card detail shows only the first few
+                    # (FilesOrderByColumns, kavitro.dev reference, checked 2026-11-24).
+                    "orderBy": [{"column": "CREATED_AT", "order": "DESC"}],
                 }
-                if owner == Module.TASK.value:
-                    variables["orderBy"] = [
-                        {
-                            "column": "CREATED_AT",
-                            "order": "DESC",
-                        }
-                    ]
                 data = client.send_query(query, variables=variables) or {}
                 root_payload = data.get(owner) if isinstance(data, dict) else None
                 connection = root_payload.get("files") if isinstance(root_payload, dict) else None

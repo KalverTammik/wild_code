@@ -289,15 +289,11 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 
 Detailtahvel kasutab teadlikult nimekirja päringu esimest kinnistut: nii laadib projektide nimekiri kiiremini ja kaardi ikoon on õige; asukohapäring küsib vajadusel kogu kinnistute loetelu (kasutaja otsus 2026-11-23).
 
+Eelvaate vaikimisi ümardusraadius 2,0 on teadlik valik (kasutaja otsus 2026-11-23).
+
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Keskmine | Detailtahvel laaditakse ainult esimesel avamisel ja ei värskene pärast seoste lisamist | Avatud kaart kuvab aegunud tööde ja seoste seisu | Lisa tahvlile **Värskenda** või invalideeri detail pärast seosemuudatust |
-| Keskmine | Kinnistuseoste dialoogi **Kinnita** on lisav `associate`, mitte lõpliku loendi salvestus | Kasutaja võib eeldada, et valik asendab seosed või võimaldab neid eemaldada | Nimeta tegevus „Lisa valitud seosed“ ja loo eraldi eemaldamisvoog |
-| Keskmine | Projektikausta valmisolekukontroll nõuab ka kihte, filtreid ja tahvlistaatusi | Failikausta loomine võib olla blokeeritud kõrvalise seadistuse tõttu | Kontrolli kaustatoimingus ainult lähte-, siht- ja nimeseadeid |
-| Keskmine | Eelvaate vaikeseade ümardab ala raadiusega 2,0 | Kasutaja võib salvestada kinnistupiiridest erineva ala seda märkamata | Kasuta vaikimisi nullraadiust või nõua enne salvestamist nähtavat kinnitust |
-| Keskmine | Kaardivaliku `Esc`, paremklõps ja tööriistavahetus ei taasta alati Visuaali akent | Töövoog näib kinni jäänud | Lisa kontrollerile katkestussignaal ja kasutajaliidese taastamine |
-| Madal | **Ava kirje brauseris** ei kuva avamisviga kasutajale | Nupp võib näida mittetöötav | Kuva URL-i või käivitamisvea korral hoiatus |
-| Madal | **Puhasta eelvaade** jätab vana olekuteksti, kui eemaldatavaid kihte ei olnud | Kasutajaliidese seis on eksitav | Tühjenda olek alati pärast puhastamist |
+| Keskmine | Seoste eemaldamiseks pole visuaalis töövoogu (nupp on nüüd **Lisa valitud seosed**) | Ekslikku seost saab eemaldada ainult Kavitro veebis | Loo eraldi kinnitatud eemaldamisvoog |
 
 ## Soovituslik turvaline tööjärjekord
 

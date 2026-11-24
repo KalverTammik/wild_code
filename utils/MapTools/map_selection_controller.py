@@ -3,7 +3,7 @@ from __future__ import annotations
 from time import perf_counter
 from typing import Callable, List, Optional
 
-from PyQt5.QtCore import QObject, QTimer, pyqtSignal
+from PyQt5.QtCore import QEvent, QObject, Qt, QTimer, pyqtSignal
 from qgis.core import QgsFeature, QgsFeatureRequest, QgsVectorLayer
 from qgis.utils import iface
 
@@ -34,6 +34,9 @@ class MapSelectionController(QObject):
         self._lightweight_fetch = False
         self._fetch_geometry = True
         self._fetch_field_names: Optional[list[str]] = None
+        self._on_abandoned: Optional[Callable[[], None]] = None
+        self._canvas = None
+        self._selection_map_tool = None
 
     def start_selection(
         self,
@@ -49,10 +52,13 @@ class MapSelectionController(QObject):
         lightweight_fetch: bool = False,
         fetch_geometry: bool = True,
         fetch_field_names: Optional[list[str]] = None,
+        on_abandoned: Optional[Callable[[], None]] = None,
     ) -> bool:
         """Prepare the given layer for a one-off selection and activate the map tool.
 
-        Completes once the selection meets the requested size constraints.
+        Completes once the selection meets the requested size constraints. Escape, a right-click or another
+        map tool ends a selection that is still waiting; `on_abandoned` is then called, so the caller can
+        restore the window it minimised.
         """
         if not layer or not layer.isValid():
             return False
@@ -97,11 +103,68 @@ class MapSelectionController(QObject):
         layer.selectionChanged.connect(self._handle_selection_changed)
         iface.setActiveLayer(layer)
         self._activate_selection_tool(selection_tool)
+        self._on_abandoned = on_abandoned
+        self._watch_for_abandon()
         self.selection_started.emit(layer)
         return True
 
+    def _watch_for_abandon(self) -> None:
+        canvas = iface.mapCanvas() if iface is not None else None
+        if canvas is None:
+            return
+        self._canvas = canvas
+        self._selection_map_tool = canvas.mapTool()
+        canvas.mapToolSet.connect(self._on_map_tool_set)
+        canvas.installEventFilter(self)
+        canvas.viewport().installEventFilter(self)
+
+    def _stop_watching(self) -> None:
+        canvas, self._canvas = self._canvas, None
+        self._selection_map_tool = None
+        if canvas is None:
+            return
+        try:
+            canvas.mapToolSet.disconnect(self._on_map_tool_set)
+        except (TypeError, RuntimeError):  # not connected, or the canvas is gone
+            pass
+        try:
+            canvas.removeEventFilter(self)
+            canvas.viewport().removeEventFilter(self)
+        except RuntimeError:  # the canvas is gone
+            pass
+
+    def _on_map_tool_set(self, new_tool, _old_tool=None) -> None:
+        if self._layer is not None and new_tool is not self._selection_map_tool:
+            self._abandon(restore_pan=False)  # the user chose that tool; leave it active
+
+    def eventFilter(self, watched, event) -> bool:  # noqa: N802
+        if self._layer is not None:
+            kind = event.type()
+            if kind == QEvent.KeyPress and event.key() == Qt.Key_Escape:
+                self._abandon(restore_pan=True)
+            elif kind == QEvent.MouseButtonRelease and event.button() == Qt.RightButton:
+                self._abandon(restore_pan=True)
+        return False
+
+    def _abandon(self, *, restore_pan: bool) -> None:
+        callback = self._on_abandoned
+        PythonFailLogger.log("map_selection_abandoned", module="map")
+        self.cancel_selection()
+        if restore_pan and self._restore_pan:
+            try:
+                iface.actionPan().trigger()
+            except (AttributeError, RuntimeError):  # no pan action, or it was deleted
+                pass
+        if callable(callback):
+            try:
+                callback()
+            except Exception as exc:  # Qt event callback: nothing may escape
+                PythonFailLogger.log_exception(exc, module="map", event="map_selection_abandon_callback_failed")
+
     def cancel_selection(self) -> None:
         """Stop listening for selections on the active layer if any."""
+        self._stop_watching()
+        self._on_abandoned = None
         try:
             if self._debounce_timer is not None:
                 self._debounce_timer.stop()
@@ -177,6 +240,9 @@ class MapSelectionController(QObject):
         if self._max_selected is not None and count > self._max_selected:
             return
 
+        # Done: the pan tool set below is not an abandoned selection.
+        self._stop_watching()
+        self._on_abandoned = None
         started = perf_counter()
         features = self._fetch_selected_features(layer, filtered_ids)
         elapsed_ms = int((perf_counter() - started) * 1000)

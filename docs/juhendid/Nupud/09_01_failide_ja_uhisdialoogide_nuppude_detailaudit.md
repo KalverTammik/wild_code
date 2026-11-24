@@ -257,11 +257,7 @@ Välise avamise laiendikontrolli ja kinnituse puudumine on Etapp 1A ehk WC-02 ra
 | Kõrge | PDF-i WebEngine toe puudumisel lõpetatakse enne eelvaatedialoogi loomist | Kasutajale ei pakuta **Ava väliselt** nuppu, kuigi fail on Kavitros olemas | Paku hoiatuses eraldi välise avamise valik või ava piiratud eelvaatedialoog |
 | Kõrge | Väliselt avamiseks allalaaditud ajutisi faile ei kustutata | Tundlikud dokumendid jäävad kettale ja ajutine kataloog kasvab | Halda elutsüklit, paku säilitamisvalikut ning kustuta fail pärast ohutut viivitust või sessiooni lõpus |
 | Kõrge | Failide üleslaadimine käib kasutajaliidese lõimes ilma katkestamiseta; esimese vea järel peatutakse ja ülejäänud failid kuvatakse | Pikk jada blokeerib akna | Kasuta taustatööd ja katkestamist |
-| Keskmine | Ebaõnnestunud värskendus näitab veateadet ja kordusnuppu, kuid vana failitabel ja selle nupud jäävad kasutatavaks | Kasutaja võib eelvaadata või kustutada juba muutunud faili | Märgi tabel aegunuks või keela kirjutavad nupud |
-| Keskmine | Failitabel sorteerib lokaliseeritud kuupäevateksti leksikograafiliselt | Failide järjekord võib olla vale | Salvesta tabelireale eraldi kuupäeva sortimisväärtus või säilita serveri järjestus |
 | Keskmine | Välise avamise täisallalaadimine toimub kasutajaliidese lõimes ilma mahupiirita | Suur fail võib Visuaali kuni 120 sekundiks blokeerida | Laadi taustal, kuva maht ja edenemine ning võimalda katkestada |
-| Keskmine | Edukas seostamisteade kasutab värskendatud seoste koguarvu | Kasutaja võib pidada koguarvu uute seoste arvuks | Kuva eraldi lisatud, juba olemas olnud ja lahendamata kinnistute arv |
-| Madal | Edenemisakna lõpetamistekst suletakse `finally` harus kohe | Lõpptulemus jääb märkamatuks | Sulge dialoog ainult ühes lõpetamisharus |
 
 ## Soovituslik turvaline tööjärjekord
 

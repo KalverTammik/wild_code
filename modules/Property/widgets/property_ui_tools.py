@@ -142,10 +142,19 @@ class PropertyUITools:
             on_selected=self._handle_property_layer_selection,
             min_selected=1,
             max_selected=None,
+            on_abandoned=self._handle_property_selection_abandoned,
         )
         if started:
             self._emit_ui_signal("property_selected_from_map")
 
+
+    def _handle_property_selection_abandoned(self) -> None:
+        # The window was minimised for the pick; ending it without a property brings it back.
+        ui = self._get_active_ui()
+        if not ui:
+            return
+        self._emit_ui_signal("property_selection_completed")
+        self.bring_dialog_to_front(ui)
 
     def _handle_property_layer_selection(self, active_layer, _features):
         ui = self._get_active_ui()

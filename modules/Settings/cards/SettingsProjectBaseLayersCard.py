@@ -464,6 +464,11 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
             ids_input.setPlaceholderText(self.lang_manager.translate(TranslationKeys.SETTINGS_SHARED_SEWER_IDS_HINT))
             ids_input.setText(str(row_state.get("ids") or ""))
             row.addWidget(ids_input)
+            remove_button = QPushButton("×", row_widget)
+            remove_button.setObjectName("MappingRowRemoveButton")
+            remove_button.setFixedWidth(28)
+            remove_button.setToolTip(self.lang_manager.translate(TranslationKeys.SETTINGS_SHARED_SEWER_REMOVE_ROW))
+            row.addWidget(remove_button)
             row.addStretch(1)
 
             row_item = {
@@ -472,6 +477,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
                 "ids_input": ids_input,
                 "kind": combo.currentData(),
             }
+            remove_button.clicked.connect(lambda _checked=False, item=row_item: self._on_remove_mapping_row(item))
             combo.currentIndexChanged.connect(
                 lambda _idx, item=row_item: self._on_mapping_row_kind_changed(item)
             )
@@ -544,6 +550,18 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
         self._pend_sewer_mapping_rows.append(
             {"kind": next_kind, "ids": self._default_ids_for_kind(next_kind)}
         )
+        self._rebuild_mapping_rows_ui()
+        self._update_controls_enabled()
+        self._update_status()
+        self.pendingChanged.emit(self.has_pending_changes())
+
+    def _on_remove_mapping_row(self, row_item: dict[str, object]) -> None:
+        if row_item not in self._mapping_row_items:
+            return
+        self._sync_mapping_rows_from_ui()
+        index = self._mapping_row_items.index(row_item)
+        if index < len(self._pend_sewer_mapping_rows):
+            del self._pend_sewer_mapping_rows[index]
         self._rebuild_mapping_rows_ui()
         self._update_controls_enabled()
         self._update_status()

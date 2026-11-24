@@ -308,8 +308,7 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 | Kriitiline | Kinnistuandmete payload koostatakse enne puuduva lõpliku lõike loomist | Ilma eelneva **Loo lõplik lõige** vajutuseta võivad arvutatud pindalad Kavitrosse salvestamata jääda | Loo ja arvuta lõige enne payload'i kogumist või saada pärast arvutust teine kontrollitud uuendus |
 | Keskmine | **Ümardatud nurgad** muudab otsakuju, mitte nurgastiili | Nupp ei anna nimele vastavat tulemust, eriti polügoonidel | Seo märkeruut `JOIN_STYLE` parameetriga ja nimeta otsakuju eraldi |
 | Keskmine | Mittetasulise seose märkimine tasuliseks ei lisa maksekuupäeva ega kogusumma juhtelemente | Kasutaja ei saa uue tasulise seose kõiki andmeid sisestada ega kontrollida | Ehita tasulisuse muutusel sõltuvad väljad dünaamiliselt ümber |
-| Keskmine | PDF-i silt **Lepingu nr** on koodis (`easement_pdf_service.py`) ja maketis eestikeelne tekst ning avaldamine ei kontrolli duplikaati | Skeem on valesti nimetatud ning korduvad vajutused võivad luua dubleeritud failid | Paranda silt tõlkevõtmega, näita failinime ja küsi olemasoleva faili korral asendamise või uue versiooni valik |
-| Madal | Osa kaardivigu on vaiksed | Nupp võib näida mittetöötavana | Kuva leitud ja leidmata objektide koond |
+| Keskmine | PDF-i avaldamine ei kontrolli olemasolevat faili (silt on nüüd **Servituudi nr**, tõlkevõtmega) | Korduvad vajutused võivad luua dubleeritud failid | Näita failinime ja küsi olemasoleva faili korral asendamise või uue versiooni valik |
 
 ## Soovituslik turvaline tööjärjekord
 

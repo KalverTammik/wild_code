@@ -17,12 +17,15 @@ from .easement_layer_service import EasementLayerService
 
 
 class EasementStatusMappingDialog(QDialog):
-    def __init__(self, *, lang_manager, stored_value: str = "", parent=None):
+    def __init__(self, *, lang_manager, stored_value: str = "", parent=None, status_options=None, layer=None):
+        """`status_options` and `layer` are what edit_mapping already read; the dialog reads them only without."""
         super().__init__(parent)
         self._lang = lang_manager
         self._stored_value = str(stored_value or "")
-        self._status_options = APIModuleActions.get_module_status_options(Module.EASEMENT.value)
-        self._layer = EasementLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
+        self._status_options = (status_options if status_options is not None
+                                else APIModuleActions.get_module_status_options(Module.EASEMENT.value))
+        self._layer = layer if layer is not None else EasementLayerService.resolve_main_layer(
+            lang_manager=self._lang, dialogs=None)
         self._status_field_name = EasementLayerService.resolve_status_field_name(self._layer)
         self._layer_values = EasementLayerService.layer_status_value_options(self._layer)
         self._existing_rows = EasementLayerService.parse_status_mapping_rows(self._stored_value)
@@ -164,7 +167,8 @@ class EasementStatusMappingDialog(QDialog):
             )
             return None
 
-        dialog = cls(lang_manager=lang_manager, stored_value=stored_value, parent=parent)
+        dialog = cls(lang_manager=lang_manager, stored_value=stored_value, parent=parent,
+                     status_options=statuses, layer=layer)
         try:
             if dialog.exec_() == QDialog.Accepted:
                 return dialog.serialized_mapping()

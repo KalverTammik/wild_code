@@ -16,6 +16,7 @@ from ...ui.map_tools.module_feature_controllers import (
     ModuleFeatureEditMessages,
     ModuleFeatureWorkflow,
     ModuleFeatureWorkflowConfig,
+    ask_existing_feature_mode,
 )
 from ...ui.messages_helper import ModernMessageDialog
 from .asbuilt_geometry_form_dialog import AsBuiltGeometryFormDialog
@@ -35,6 +36,15 @@ class AsBuiltFeatureMapController:
         layer, _message = AsBuiltLayerService.prepare_layer_for_draw(lang_manager=self._lang, dialogs=ModernMessageDialog)
         if layer is None:
             return False
+        mode = ask_existing_feature_mode(
+            AsBuiltLayerService, layer, item_id, lang=self._lang,
+            question_key=TranslationKeys.ASBUILT_FEATURE_EXISTS_QUESTION,
+            replace_only_key=TranslationKeys.ASBUILT_FEATURE_EXISTS_REPLACE_ONLY,
+        )
+        if mode is None:
+            return False
+        if mode:
+            item_payload["_existing_feature_mode"] = mode
         return self._workflow.start_draw(item_data=item_payload)
 
     def _build_workflow_config(self) -> ModuleFeatureWorkflowConfig:
@@ -93,7 +103,8 @@ class AsBuiltFeatureMapController:
         item_id = str(item_payload.get("id") or "").strip()
         form_values = AsBuiltGeometryFormDialog.prompt(item_data=item_payload, layer=layer)
         if form_values is None:
-            return FeatureLinkResult(False, "Teostusjoonise andmete sisestamine katkestati")
+            return FeatureLinkResult(
+                False, LanguageManager().translate(TranslationKeys.ASBUILT_FORM_CANCELLED), cancelled=True)
 
         item_payload["_asbuilt_geometry_form"] = form_values
         item_payload["_asbuilt_feature_id"] = int(feature_id)
@@ -108,6 +119,14 @@ class AsBuiltFeatureMapController:
         if not success:
             return FeatureLinkResult(False, message)
 
+        mode = str(item_payload.get("_existing_feature_mode") or "")
+        if mode:
+            folded, fold_error = AsBuiltLayerService.fold_existing_areas(
+                layer, keep_feature_id=feature_id, item_id=item_id, mode=mode
+            )
+            if not folded:
+                return FeatureLinkResult(False, fold_error)
+
         # Read now: a drawn feature changes its id when the layer is committed.
         geometry_payload = AsBuiltFeatureMapController._geometry_payload_for_item(layer, item_payload)
         if geometry_payload is None:
@@ -116,7 +135,7 @@ class AsBuiltFeatureMapController:
                 module="asbuilt",
                 extra={"item_id": item_id, "feature_id": int(feature_id)},
             )
-            return FeatureLinkResult(False, "Teostusjoonise geomeetriat ei leitud Kavitrosse saatmiseks")
+            return FeatureLinkResult(False, LanguageManager().translate(TranslationKeys.KAVITRO_GEOMETRY_NOT_FOUND))
 
         def sync_to_kavitro() -> tuple[bool, str]:
             if APIModuleActions.update_task_geometry(item_id, geometry_payload):
@@ -133,7 +152,7 @@ class AsBuiltFeatureMapController:
                 event="asbuilt_geometry_backend_update_failed",
                 extra={"item_id": item_id, "feature_id": int(feature_id)},
             )
-            return False, "Teostusjoonise geomeetria saatmine Kavitrosse ebaõnnestus"
+            return False, LanguageManager().translate(TranslationKeys.KAVITRO_GEOMETRY_SYNC_FAILED)
 
         return FeatureLinkResult(True, message, sync_to_kavitro, tuple(value_problems))
 

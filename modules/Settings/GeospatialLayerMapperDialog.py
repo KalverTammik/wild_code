@@ -172,6 +172,8 @@ class GeospatialLayerMapperDialog(QDialog):
         source_combo.setAllowEmptyLayer(True, self._lang.translate(TranslationKeys.SELECT_LAYER))
         source_combo.setShowCrs(False)
         source_combo.setFilters(Qgis.LayerFilter.HasGeometry)
+        # The target is not a source: copying a layer into itself doubles its features.
+        source_combo.setExceptedLayerList([self._target_layer])
         source_combo.layerChanged.connect(self._rebuild_mapping_rows)
         self._source_combo = source_combo
         source_row.addWidget(source_combo, 1)
@@ -244,6 +246,13 @@ class GeospatialLayerMapperDialog(QDialog):
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
                 self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SOURCE_REQUIRED),
+                parent=self,
+            )
+            return
+        if isinstance(self._target_layer, QgsVectorLayer) and source_layer.id() == self._target_layer.id():
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SAME_LAYER),
                 parent=self,
             )
             return

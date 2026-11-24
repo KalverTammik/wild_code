@@ -278,7 +278,9 @@ class ModuleCardFactory:
 
         show_extra_info = module_name not in ()
         if show_extra_info:
-            cl.addWidget(ExtraInfoFrame(item_data, module_name, lang_manager=lang_manager, handle_host=card))
+            extra_info = ExtraInfoFrame(item_data, module_name, lang_manager=lang_manager, handle_host=card)
+            cl.addWidget(extra_info)
+            actions_widget.item_changed.connect(extra_info.invalidate_detail)
 
         main.addWidget(
             MainStatusWidget(

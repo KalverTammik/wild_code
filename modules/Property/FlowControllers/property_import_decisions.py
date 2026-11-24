@@ -39,6 +39,13 @@ def is_import_newer(import_date_str: str, backend_date_str: str, main_layer_muud
     return import_dt.date() > max(dt.date() for dt in candidates)
 
 
+def is_import_older(import_date_str: str, backend_date_str: str) -> bool:
+    """True only when both dates parse and the import's cadastral date is before the backend's."""
+    import_dt = DateHelpers.parse_iso(str(import_date_str) if import_date_str is not None else "")
+    backend_dt = DateHelpers.parse_iso(str(backend_date_str) if backend_date_str is not None else "")
+    return bool(import_dt and backend_dt and import_dt.date() < backend_dt.date())
+
+
 def _normalize(text):
     return ' '.join(str(text or '').split()).casefold()
 
@@ -105,4 +112,7 @@ def classify_property_import(data, import_date, main_date, info):
         # Without a cadastral address, applying the import would erase the backend street.
         reason = K.PROPERTY_ADD_BACKEND_DIFFERS if street else K.PROPERTY_IMPORT_ADDRESS_MISSING
         result.update(action='needs_decision', reason=reason)
+    elif is_import_older(import_date, info.get('LastUpdated')):
+        # The backend record is newer: writing the older import would put back old areas and purposes.
+        result['action'] = 'skip'
     return result

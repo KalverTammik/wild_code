@@ -145,7 +145,7 @@ class ProjectFolderTest(CardCase):
         return button
 
     def test_missing_settings_send_the_user_to_settings(self) -> None:
-        self.guard.missing_requirements.return_value = ["puudu"]
+        self.guard.missing_project_folder_settings.return_value = ["puudu"]
         self.guard.redirect_warning_text.return_value = ("Pealkiri", "Tekst")
         self.generate()
         self.guard.redirect_warning_text.assert_called_once_with(self.lang, "project")
@@ -154,7 +154,7 @@ class ProjectFolderTest(CardCase):
         self.engine.generate_project_folder_from_template.assert_not_called()
 
     def test_folder_is_made_from_the_configured_folders(self) -> None:
-        self.guard.missing_requirements.return_value = []
+        self.guard.missing_project_folder_settings.return_value = []
         self.generate()
         create = self.engine.generate_project_folder_from_template
         create.assert_called_once()
@@ -166,7 +166,7 @@ class ProjectFolderTest(CardCase):
         self.messages.show_warning.assert_not_called()
 
     def test_new_path_reaches_the_card_and_its_callback(self) -> None:
-        self.guard.missing_requirements.return_value = []
+        self.guard.missing_project_folder_settings.return_value = []
         updated = Mock()
         button = self.generate(on_files_path_updated=updated)
         report = self.engine.generate_project_folder_from_template.call_args.kwargs["on_files_path_updated"]
@@ -175,7 +175,7 @@ class ProjectFolderTest(CardCase):
         self.assertEqual(button.item_data["filesPath"], "C:/Projektid/P-1")
 
     def test_empty_path_changes_nothing(self) -> None:
-        self.guard.missing_requirements.return_value = []
+        self.guard.missing_project_folder_settings.return_value = []
         updated = Mock()
         self.generate(on_files_path_updated=updated)
         self.engine.generate_project_folder_from_template.call_args.kwargs["on_files_path_updated"]("  ")
@@ -477,7 +477,7 @@ class WorksRepositionTest(CardCase):
         controller_class.assert_called_once_with(lang_manager=self.lang)
         start = controller_class.return_value.start_reposition
         self.assertEqual(start.call_count, 2)
-        start.assert_called_with(task_id="7", parent_window=self.host)
+        start.assert_called_with(task_id="7", parent_window=self.host, status_color="")
 
     def test_item_without_an_id_starts_nothing(self) -> None:
         controller_class = self.replace("WorksRepositionController")

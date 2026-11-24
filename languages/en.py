@@ -277,6 +277,30 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_LAYERS_NOT_READY: "The property layer or archive layer was not found or could not be prepared.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_ALREADY_EDITING: "The property layer or archive layer is already in edit mode. Finish editing first; nothing was archived.",
         TranslationKeys.LAYER_ALREADY_EDITING: "Layer \"{layer}\" is already in edit mode. Save or discard your changes first; this action was not done.",
+        TranslationKeys.SELECT_FOLDER: "Select folder",
+        TranslationKeys.SHP_FILE_FILTER: "SHP files (*.shp);;All files (*.*)",
+        TranslationKeys.PROPERTY_DELETE_FAILED_DETAIL: "Failed to delete property with ID {id}.",
+        TranslationKeys.PROPERTY_DELETE_FAILED_WITH_ERROR: "Failed to delete property with ID {id}. Error: {error}",
+        TranslationKeys.ASBUILT_FORM_CANCELLED: "Entering the as-built details was cancelled.",
+        TranslationKeys.EASEMENT_FORM_CANCELLED: "Entering the easement area details was cancelled.",
+        TranslationKeys.KAVITRO_GEOMETRY_NOT_FOUND: "No geometry was found on the layer to send to Kavitro.",
+        TranslationKeys.KAVITRO_GEOMETRY_SYNC_FAILED: "Sending the geometry to Kavitro failed.",
+        TranslationKeys.EASEMENT_PDF_NUMBER_LABEL: "Easement no: {number}",
+        TranslationKeys.EASEMENT_PDF_AREA_LABEL: "Total area: {area} m²",
+        TranslationKeys.EASEMENT_PDF_SCALE_LABEL: "Scale: 1:{scale}",
+        TranslationKeys.MAP_SHOW_NONE_FOUND: "None of the linked properties ({total}) was found on the property layer. Check that the project has the right property layer. Missing: {missing}",
+        TranslationKeys.MAP_SHOW_SOME_MISSING: "The map shows {found} of {total} linked properties. Missing from the property layer: {missing}",
+        TranslationKeys.MAP_SHOW_LOAD_FAILED: "The linked properties could not be read from Kavitro, so nothing was shown on the map.",
+        TranslationKeys.CARD_DETAIL_REFRESH: "Refresh",
+        TranslationKeys.ASBUILT_FEATURE_EXISTS_QUESTION: "As-built {item_id} already has a feature on the map. Should the new drawing replace it or be added to the same feature as a new part?",
+        TranslationKeys.ASBUILT_FEATURE_EXISTS_REPLACE_ONLY: "As-built {item_id} already has a feature on the map. Layer \"{layer}\" does not allow multi-part features, so the new drawing can only replace the old feature.",
+        TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SAME_LAYER: "The source and target are the same layer. Choose another source layer; a layer cannot copy into itself.",
+        TranslationKeys.SETTINGS_SHARED_SEWER_REMOVE_ROW: "Remove row",
+        TranslationKeys.MODULE_LABEL_EDIT_TOOLTIP: "Change: {title}",
+        TranslationKeys.LINK_REVIEW_ADD_SELECTED: "Add the selected links",
+        TranslationKeys.LINK_PROPERTIES_ADDED_NOTE: "Added {added} new links; {already} were already linked.",
+        TranslationKeys.WEB_PAGE_OPEN_FAILED: "The web page could not be opened.\n\nAddress: {url}",
+        TranslationKeys.WEB_LINK_MISSING: "The record's web address cannot be built: the module's Kavitro address is missing.",
         TranslationKeys.KAVITRO_SYNC_RETRY: "Try again",
         TranslationKeys.KAVITRO_SYNC_KEEP: "Leave it for now",
         TranslationKeys.KAVITRO_SYNC_DIFFERS_NOTE: "The change is saved on the map, but Kavitro still has the old shape. Try again now or save again later.",
@@ -958,7 +982,7 @@ TRANSLATIONS = {
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_BACKEND_HEADER: "Backend status"
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_LAYER_HEADER: "Layer value"
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_NONE_OPTION: "Do not write"
-    ,TranslationKeys.EASEMENT_STATUS_MAPPING_NO_MAIN_LAYER: "Set the easement main layer first before editing status mapping."
+    ,TranslationKeys.EASEMENT_STATUS_MAPPING_NO_MAIN_LAYER: "Set the easement main layer and save it with Confirm; the status mapping reads the saved layer."
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_NO_STATUS_FIELD: "The configured easement main layer does not contain a status field like 'Staatus'."
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_NO_LAYER_VALUES: "No selectable status values were found for layer field '{field}'. Configure a value map or add example values first."
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_NO_BACKEND_STATUSES: "No backend easement statuses could be loaded."

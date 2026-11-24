@@ -43,7 +43,7 @@ class EasementFinalSaveMixin:
             on_status_changed=self._on_status_changed,
         )
         if form_values is None:
-            return False, "Servituudi ala andmete sisestamine katkestati"
+            return False, self._lang.translate(TranslationKeys.EASEMENT_FORM_CANCELLED)
 
         saved_problems: list[FieldValueProblem] = []
         ok, message = EasementLayerService.upsert_final_cut_feature(

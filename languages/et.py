@@ -278,6 +278,30 @@ TRANSLATIONS = {
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_LAYERS_NOT_READY: "Kinnistute kihti või arhiivikihti ei leitud või ei saanud ette valmistada.",
         TranslationKeys.PROPERTY_ARCHIVE_ERROR_ALREADY_EDITING: "Kinnistute kiht või arhiivikiht on juba muutmisrežiimis. Lõpeta enne muutmine; arhiveerimist ei tehtud.",
         TranslationKeys.LAYER_ALREADY_EDITING: "Kiht „{layer}“ on juba muutmisrežiimis. Salvesta või tühista enne oma muudatused; seda toimingut ei tehtud.",
+        TranslationKeys.SELECT_FOLDER: "Vali kaust",
+        TranslationKeys.SHP_FILE_FILTER: "SHP-failid (*.shp);;Kõik failid (*.*)",
+        TranslationKeys.PROPERTY_DELETE_FAILED_DETAIL: "Kinnistut ID-ga {id} ei õnnestunud kustutada.",
+        TranslationKeys.PROPERTY_DELETE_FAILED_WITH_ERROR: "Kinnistut ID-ga {id} ei õnnestunud kustutada. Viga: {error}",
+        TranslationKeys.ASBUILT_FORM_CANCELLED: "Teostusjoonise andmete sisestamine katkestati.",
+        TranslationKeys.EASEMENT_FORM_CANCELLED: "Servituudi ala andmete sisestamine katkestati.",
+        TranslationKeys.KAVITRO_GEOMETRY_NOT_FOUND: "Kihilt ei leitud geomeetriat, mida Kavitrosse saata.",
+        TranslationKeys.KAVITRO_GEOMETRY_SYNC_FAILED: "Geomeetria saatmine Kavitrosse ebaõnnestus.",
+        TranslationKeys.EASEMENT_PDF_NUMBER_LABEL: "Servituudi nr: {number}",
+        TranslationKeys.EASEMENT_PDF_AREA_LABEL: "Pindala kokku: {area} m²",
+        TranslationKeys.EASEMENT_PDF_SCALE_LABEL: "Mõõtkava: 1:{scale}",
+        TranslationKeys.MAP_SHOW_NONE_FOUND: "Ühtegi seotud kinnistut ({total}) ei leitud kinnistute kihilt. Kontrolli, kas projektis on õige kinnistute kiht. Puuduvad: {missing}",
+        TranslationKeys.MAP_SHOW_SOME_MISSING: "Kaardil on {found} seotud kinnistut {total}-st. Kinnistute kihilt puuduvad: {missing}",
+        TranslationKeys.MAP_SHOW_LOAD_FAILED: "Seotud kinnistuid ei saanud Kavitrost lugeda, seega ei näidatud kaardil midagi.",
+        TranslationKeys.CARD_DETAIL_REFRESH: "Värskenda",
+        TranslationKeys.ASBUILT_FEATURE_EXISTS_QUESTION: "Teostusjoonisel {item_id} on kaardil juba objekt. Kas uus joonis asendab selle või lisatakse samale objektile uue osana?",
+        TranslationKeys.ASBUILT_FEATURE_EXISTS_REPLACE_ONLY: "Teostusjoonisel {item_id} on kaardil juba objekt. Kiht „{layer}“ ei luba mitmeosalisi objekte, seega saab uus joonis vana objekti ainult asendada.",
+        TranslationKeys.GEOSPATIAL_LAYER_MAPPER_SAME_LAYER: "Lähtekiht ja sihtkiht on sama kiht. Vali teine lähtekiht; kiht ei saa andmeid iseendasse kopeerida.",
+        TranslationKeys.SETTINGS_SHARED_SEWER_REMOVE_ROW: "Eemalda rida",
+        TranslationKeys.MODULE_LABEL_EDIT_TOOLTIP: "Muuda: {title}",
+        TranslationKeys.LINK_REVIEW_ADD_SELECTED: "Lisa valitud seosed",
+        TranslationKeys.LINK_PROPERTIES_ADDED_NOTE: "Lisatud {added} uut seost, juba seotud oli {already}.",
+        TranslationKeys.WEB_PAGE_OPEN_FAILED: "Veebilehte ei saanud avada.\n\nAadress: {url}",
+        TranslationKeys.WEB_LINK_MISSING: "Kirje veebiaadressi ei saa koostada: mooduli Kavitro aadress puudub.",
         TranslationKeys.KAVITRO_SYNC_RETRY: "Proovi uuesti",
         TranslationKeys.KAVITRO_SYNC_KEEP: "Jäta praegu nii",
         TranslationKeys.KAVITRO_SYNC_DIFFERS_NOTE: "Kaardil on muudatus salvestatud, kuid Kavitros on praegu vana kuju. Proovi kohe uuesti või salvesta hiljem uuesti.",
@@ -956,7 +980,7 @@ TRANSLATIONS = {
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_BACKEND_HEADER: "Taustastaatus"
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_LAYER_HEADER: "Kihi väärtus"
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_NONE_OPTION: "Ära kirjuta"
-    ,TranslationKeys.EASEMENT_STATUS_MAPPING_NO_MAIN_LAYER: "Määra esmalt Servituudi põhikiht ja siis ava staatuste seostamine."
+    ,TranslationKeys.EASEMENT_STATUS_MAPPING_NO_MAIN_LAYER: "Määra Servituudi põhikiht ja salvesta see nupuga Kinnita; staatuste seostamine loeb salvestatud kihti."
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_NO_STATUS_FIELD: "Seadistatud Servituudi põhikihil puudub staatuse väli nagu 'Staatus'."
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_NO_LAYER_VALUES: "Kihi väljal '{field}' ei leitud valitavaid staatuse väärtusi. Lisa esmalt väärtuskaart või näidisväärtused."
     ,TranslationKeys.EASEMENT_STATUS_MAPPING_NO_BACKEND_STATUSES: "Servituudi taustastaatusi ei õnnestunud laadida."

@@ -39,13 +39,14 @@ from Kavitro_dev.constants.module_names import Module
 class PropertyLayerBootstrapServiceTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.qgis_app = QgsApplication([], False)
+        cls.qgis_app = QgsApplication.instance() or QgsApplication([], False)
         cls.qgis_app.initQgis()
 
     @classmethod
     def tearDownClass(cls) -> None:
+        # No exitQgis(): the suite shares one QGIS, and a later initQgis() after exitQgis() crashed the run
+        # now and then (found 2026-11-23, in test_works_geometry_sync).
         QgsProject.instance().clear()
-        cls.qgis_app.exitQgis()
 
     def setUp(self) -> None:
         QgsProject.instance().clear()

@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-from PyQt5.QtCore import Qt
 from qgis.core import QgsGeometry, QgsPointXY, QgsVectorLayer
-from qgis.gui import QgsMapTool
 from qgis.utils import iface
 
 from ...Logs.python_fail_logger import PythonFailLogger
@@ -13,28 +11,13 @@ from ...languages.translation_keys import TranslationKeys
 from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...ui.messages_helper import ModernMessageDialog
 from ...constants.module_names import Module
+from ...utils.MapTools.canvas_click_tool import SingleClickMapTool
 from .works_layer_service import WorksLayerService
+from .works_sync_service import WorksSyncService
 
 
-class _WorksRepositionCaptureTool(QgsMapTool):
-    def __init__(self, canvas, on_selected: Callable[[QgsPointXY], None], on_cancel: Callable[[], None]):
-        super().__init__(canvas)
-        self.canvas = canvas
-        self._on_selected = on_selected
-        self._on_cancel = on_cancel
-        self.setCursor(Qt.CrossCursor)
-
-    def canvasReleaseEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton:
-            point = self.canvas.getCoordinateTransform().toMapCoordinates(event.pos())
-            self._on_selected(point)
-            return
-        if event.button() == Qt.RightButton:
-            self._on_cancel()
-
-    def keyPressEvent(self, event) -> None:  # noqa: N802
-        if event.key() == Qt.Key_Escape:
-            self._on_cancel()
+class _WorksRepositionCaptureTool(SingleClickMapTool):
+    """The new place of a work: one click, cancelled by right-click, Escape or another map tool."""
 
 
 class WorksRepositionController:
@@ -46,6 +29,7 @@ class WorksRepositionController:
         self._feature_id: Optional[int] = None
         self._task_id: str = ""
         self._on_repositioned: Optional[Callable[[str], None]] = None
+        self._status_color = ""
 
     def start_reposition(
         self,
@@ -53,7 +37,9 @@ class WorksRepositionController:
         task_id: str,
         parent_window=None,
         on_repositioned: Optional[Callable[[str], None]] = None,
+        status_color: str = "",
     ) -> bool:
+        """`status_color` is the card's status colour: with it the Kavitro update needs no read of the task first."""
         layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
         if layer is None:
             return False
@@ -93,6 +79,7 @@ class WorksRepositionController:
         self._feature_id = int(feature.id())
         self._task_id = task_id_text
         self._on_repositioned = on_repositioned
+        self._status_color = str(status_color or "").strip()
 
         WorksLayerService.focus_feature_by_task_id(layer, task_id_text)
 
@@ -167,7 +154,13 @@ class WorksRepositionController:
                     layer.rollBack()
                 return False, "Could not update work geometry"
 
-            if not layer.commitChanges():
+            # The commit hands the new location to the Works sync, which sends it to Kavitro.
+            WorksSyncService.expect_geometry_change(task_id, status_color=self._status_color)
+            try:
+                committed = layer.commitChanges()
+            finally:
+                WorksSyncService.forget_geometry_change(task_id)
+            if not committed:
                 errors = "; ".join(layer.commitErrors() or [])
                 if started_edit and layer.isEditable():
                     layer.rollBack()

@@ -73,6 +73,20 @@ class SettingsSetupGuard:
         return missing
 
     @staticmethod
+    def missing_project_folder_settings(module_key: str) -> list[str]:
+        """The folder settings a project folder needs (source, target, naming rule) that are empty.
+
+        The folder action only copies files, so layers, statuses and tags are not asked for.
+        """
+        logic = SettingsLogic()
+        key = str(module_key or "").strip().lower()
+        return [
+            f"label:{label_key}"
+            for label_key in sorted(SettingsSetupGuard._PROJECT_FOLDER_LABEL_KEYS)
+            if not str(logic.load_module_label_value(key, label_key) or "").strip()
+        ]
+
+    @staticmethod
     def is_ready(module_key: str, *, include_project_folder_labels: bool = True) -> bool:
         return not SettingsSetupGuard.missing_requirements(
             module_key,

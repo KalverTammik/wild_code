@@ -605,6 +605,71 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
     ATTACH_TEXTS: LayerEditTexts
     ATTACH_VERIFY_FAILED_TEXT: str
 
+    # How a new drawing treats the item's feature already on the layer: an item keeps one feature.
+    AREA_REPLACE = "replace"
+    AREA_ADD_PART = "add_part"
+
+    @classmethod
+    def item_feature_ids(cls, layer: Optional[QgsVectorLayer], item_id: str) -> list[int]:
+        """Ids of every feature carrying this item's backend id."""
+        field_name = cls._resolve_first_field_name(layer, cls.ID_FIELD_CANDIDATES)
+        item_id_text = str(item_id or "").strip()
+        if not field_name or not item_id_text:
+            return []
+        try:
+            return [
+                int(feature.id())
+                for feature in layer.getFeatures()
+                if str(feature.attribute(field_name) or "").strip() == item_id_text
+            ]
+        except RuntimeError:  # the layer was deleted
+            return []
+
+    @staticmethod
+    def allows_multi_part(layer: Optional[QgsVectorLayer]) -> bool:
+        try:
+            return bool(QgsWkbTypes.isMultiType(layer.wkbType()))
+        except (AttributeError, RuntimeError):
+            return False
+
+    @classmethod
+    def fold_existing_areas(
+        cls, layer: QgsVectorLayer, *, keep_feature_id: int, item_id: str, mode: str
+    ) -> tuple[bool, str]:
+        """Leave the item one feature: the drawn one replaces the older ones or takes them in as parts.
+
+        Works in the open edit session; the draw flow commits it, or rolls all of it back on failure.
+        """
+        keep_id = int(keep_feature_id)
+        others = [feature_id for feature_id in cls.item_feature_ids(layer, item_id) if feature_id != keep_id]
+        if not others or mode not in (cls.AREA_REPLACE, cls.AREA_ADD_PART):
+            return True, ""
+        if mode == cls.AREA_ADD_PART:
+            if not cls.allows_multi_part(layer):
+                return False, "The layer does not allow multi-part features"
+            kept = cls._feature_by_id(layer, keep_id)
+            if kept is None:
+                return False, cls.FEATURE_NOT_FOUND_TEXT
+            combined = QgsGeometry(kept.geometry())
+            for feature_id in others:
+                older = cls._feature_by_id(layer, feature_id)
+                if older is not None and not older.geometry().isEmpty():
+                    combined = combined.combine(older.geometry())
+            if combined.isNull() or combined.isEmpty():
+                return False, "Could not join the drawn part to the existing feature"
+            combined.convertToMultiType()
+            if not layer.changeGeometry(keep_id, combined):
+                return False, "Could not join the drawn part to the existing feature"
+        for feature_id in others:
+            if not layer.deleteFeature(feature_id):
+                return False, "Could not remove the older feature"
+        PythonFailLogger.log(
+            f"{cls.MODULE.value}_existing_features_folded",
+            module=cls.MODULE.value,
+            extra={"item_id": str(item_id or ""), "mode": mode, "removed": len(others)},
+        )
+        return True, ""
+
     @classmethod
     def _ensure_custom_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():

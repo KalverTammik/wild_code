@@ -102,7 +102,8 @@ class EasementAttachExistingController:
             item_data=item_payload, layer=layer, on_status_changed=self._on_status_changed
         )
         if form_values is None:
-            return FeatureLinkResult(False, "Servituudi ala andmete sisestamine katkestati")
+            return FeatureLinkResult(
+                False, LanguageManager().translate(TranslationKeys.EASEMENT_FORM_CANCELLED), cancelled=True)
 
         item_payload["_easement_geometry_form"] = form_values
         item_payload["_easement_feature_id"] = int(feature_id)
@@ -157,7 +158,7 @@ class EasementAttachExistingController:
                 event="easement_geometry_backend_update_failed",
                 extra={"item_id": item_id, "feature_id": int(feature_id)},
             )
-            return False, "Servituudi geomeetria saatmine Kavitrosse ebaõnnestus"
+            return False, LanguageManager().translate(TranslationKeys.KAVITRO_GEOMETRY_SYNC_FAILED)
 
         return FeatureLinkResult(True, message, sync_to_kavitro, tuple(value_problems))
 

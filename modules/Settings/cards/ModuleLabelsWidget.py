@@ -102,6 +102,8 @@ class ModuleLabelsWidget(QFrame):
                     button.setObjectName(f"{key}_button")
                     icon = ThemeManager().get_qicon(IconNames.ICON_SETTINGS)
                     button.setIcon(icon)
+                    button.setToolTip(self.lang_manager.translate(TranslationKeys.MODULE_LABEL_EDIT_TOOLTIP).format(
+                        title=label_def.get("title_value") or ""))
 
                     clear_button = QPushButton()
                     clear_button.setObjectName(f"{key}_clear")

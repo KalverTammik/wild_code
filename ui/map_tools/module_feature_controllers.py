@@ -39,9 +39,35 @@ class FeatureLinkResult:
     message: str = ""
     sync_to_kavitro: Optional[KavitroSync] = None
     value_problems: tuple[FieldValueProblem, ...] = ()
+    # The user closed the form with Cancel: the drawn feature goes, and no error is shown.
+    cancelled: bool = False
 
 
 AttachHandler = Callable[[QgsVectorLayer, int, dict], FeatureLinkResult]
+
+
+def ask_existing_feature_mode(service, layer, item_id: str, *, lang, question_key: str,
+                              replace_only_key: str) -> Optional[str]:
+    """How a new drawing treats the item's feature already on the map: "" when there is none, None when cancelled.
+
+    An item keeps one feature (user decision 2026-11-23), so the map focus and Kavitro both get all of it.
+    `service` is the module's layer service (item_feature_ids, allows_multi_part, AREA_*).
+    """
+    if layer.isEditable() or not service.item_feature_ids(layer, item_id):
+        return ""  # an editable layer is refused by the draw flow itself
+    replace = lang.translate(TranslationKeys.PROJECT_AREA_REPLACE)
+    add_part = lang.translate(TranslationKeys.PROJECT_AREA_ADD_PART)
+    cancel = lang.translate(TranslationKeys.CANCEL_BUTTON)
+    if service.allows_multi_part(layer):
+        message = lang.translate(question_key).format(item_id=item_id)
+        buttons, default = [replace, add_part, cancel], add_part
+    else:
+        message = lang.translate(replace_only_key).format(item_id=item_id, layer=layer.name())
+        buttons, default = [replace, cancel], cancel
+    choice = ModernMessageDialog.ask_choice_modern(
+        lang.translate(TranslationKeys.CONFIRM), message, buttons=buttons, default=default, cancel=cancel,
+    )
+    return {replace: service.AREA_REPLACE, add_part: service.AREA_ADD_PART}.get(choice)
 
 
 @dataclass(frozen=True)
@@ -215,6 +241,8 @@ class ModuleFeatureAttachController:
         self._clear_capture_tool(bring_front=True, log_module=log_module)
 
         if not link.success:
+            if link.cancelled:
+                return
             ModernMessageDialog.show_warning(
                 title_error,
                 save_failed_message.format(item_id=item_id, error=message or title_error),
@@ -523,6 +551,9 @@ class ModuleFeatureDrawController:
             pass
 
         if not saved_to_layer:
+            if link.cancelled:
+                PythonFailLogger.log("module_feature_draw_form_cancelled", module=log_module, extra={"item_id": item_id})
+                return
             ModernMessageDialog.show_warning(
                 title_error,
                 layer_save_failed_message.format(item_id=item_id or "-", error=message or title_error),

@@ -82,6 +82,7 @@ class PropertySelectionActionService:
             min_selected=1,
             max_selected=None,
             clear_filter=False,
+            on_abandoned=on_flow_finished,
         )
 
         if not started:

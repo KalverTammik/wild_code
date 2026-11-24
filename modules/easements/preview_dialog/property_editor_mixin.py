@@ -399,6 +399,11 @@ class EasementPropertyEditorMixin:
                 ),
             )
 
+    def _abandon_property_selection(self) -> None:
+        """Escape, right-click or another map tool ended the selection: bring the dialog back."""
+        self._exit_property_selection_mode()
+        self._finish_property_selection()
+
     def _finish_property_selection(self) -> None:
         try:
             if self._property_selection_orchestrator is not None:
@@ -518,6 +523,7 @@ class EasementPropertyEditorMixin:
             clear_filter=False,
             keep_existing_selection=bool(self._connected_property_numbers),
             before_start=self._enter_property_selection_mode,
+            on_abandoned=self._abandon_property_selection,
         )
         if not started:
             self._exit_property_selection_mode()

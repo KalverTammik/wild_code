@@ -1,5 +1,5 @@
 from typing import Optional
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize, pyqtSignal
 from PyQt5.QtWidgets import QGridLayout, QWidget, QSizePolicy
 
 from .module_action_buttons import (
@@ -14,6 +14,9 @@ from ...constants.module_names import Module
 
 class ModuleConnectionActions(QWidget):
     """Reusable strip of folder/web/map buttons for module connections."""
+
+    # A link or folder change made from this card: its loaded detail is out of date.
+    item_changed = pyqtSignal()
 
     def __init__(
         self,
@@ -79,10 +82,12 @@ class ModuleConnectionActions(QWidget):
         self._action_payload["filesPath"] = resolved_path
         if self._folder_button is not None:
             self._folder_button.set_file_path(resolved_path)
+        self.item_changed.emit()
 
     def set_connected_properties(self, property_numbers: list[str]) -> None:
         """Switch only this card from linking mode to map-display mode."""
         self._map_button.set_connection_count(len(property_numbers or []))
+        self.item_changed.emit()
 
     def _clear_layout(self):
         while self._layout.count():

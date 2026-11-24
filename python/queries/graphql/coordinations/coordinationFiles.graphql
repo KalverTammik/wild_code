@@ -2,10 +2,11 @@ query coordination(
   $id: ID!
   $first: Int = 50
   $after: String
+  $orderBy: [CoordinationFilesOrderByOrderByClause!]
 ) {
   coordination(id: $id) {
     id
-    files(first: $first, after: $after) {
+    files(first: $first, after: $after, orderBy: $orderBy) {
       pageInfo {
         count
         currentPage

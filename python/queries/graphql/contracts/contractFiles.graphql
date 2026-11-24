@@ -2,10 +2,11 @@ query contract(
   $id: ID!
   $first: Int = 50
   $after: String
+  $orderBy: [ContractFilesOrderByOrderByClause!]
 ) {
   contract(id: $id) {
     id
-    files(first: $first, after: $after) {
+    files(first: $first, after: $after, orderBy: $orderBy) {
       pageInfo {
         count
         currentPage

@@ -19,6 +19,8 @@ from qgis.utils import iface
 
 from ...constants.cadastral_fields import Katastriyksus
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 from ...python.responses import DataDisplayExtractors
 from .easement_property_edges import measure_geometry_area_sqm
 
@@ -74,8 +76,11 @@ class EasementPdfService:
             cls._configure_legend(layout, map_item)
 
             total_area_sqm = cls._measure_total_area_sqm(final_layer, final_features)
-            cls._set_label_text(layout, cls.AREA_ITEM_ID, f"Pindala kokku: {total_area_sqm:.2f} m²")
-            cls._set_label_text(layout, cls.SCALE_ITEM_ID, f"Mõõtkava: 1:{int(round(map_item.scale()))}")
+            lang = LanguageManager()
+            cls._set_label_text(layout, cls.AREA_ITEM_ID, lang.translate(TranslationKeys.EASEMENT_PDF_AREA_LABEL).format(
+                area=f"{total_area_sqm:.2f}"))
+            cls._set_label_text(layout, cls.SCALE_ITEM_ID, lang.translate(TranslationKeys.EASEMENT_PDF_SCALE_LABEL).format(
+                scale=int(round(map_item.scale()))))
             cls._set_label_text(
                 layout,
                 cls.PROPERTY_ITEM_ID,
@@ -84,7 +89,8 @@ class EasementPdfService:
             cls._set_label_text(
                 layout,
                 cls.NUMBER_ITEM_ID,
-                f"Lepingu nr: {item_number or item_id or DataDisplayExtractors.extract_item_number(item_data) or '-'}",
+                lang.translate(TranslationKeys.EASEMENT_PDF_NUMBER_LABEL).format(
+                    number=item_number or item_id or DataDisplayExtractors.extract_item_number(item_data) or "-"),
             )
 
             pdf_path = cls._output_pdf_path(item_number=item_number, item_id=item_id)

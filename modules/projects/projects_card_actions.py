@@ -36,7 +36,7 @@ class ProjectCardActions:
     def generate_folder(self) -> None:
         host = self._host
         module = Module.PROJECT.value
-        if SettingsSetupGuard.missing_requirements(module):
+        if SettingsSetupGuard.missing_project_folder_settings(module):
             title, message = SettingsSetupGuard.redirect_warning_text(host.lang_manager, module)
             ModernMessageDialog.show_warning(title, message, parent=host.safe_parent_window())
             ModuleSwitchHelper.switch_module(Module.SETTINGS.name, focus_module=module)

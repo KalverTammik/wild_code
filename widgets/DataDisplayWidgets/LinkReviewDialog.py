@@ -50,7 +50,8 @@ class PropertyLinkReviewDialog(QDialog):
         buttons.addStretch(1)
         reselect_btn = QPushButton(lang_manager.translate(TranslationKeys.LINK_REVIEW_RESELECT))
         reselect_btn.setProperty("variant", ButtonVariant.PRIMARY)
-        confirm_btn = QPushButton(lang_manager.translate(TranslationKeys.CONFIRM))
+        # The links are added to the existing ones; nothing is removed here.
+        confirm_btn = QPushButton(lang_manager.translate(TranslationKeys.LINK_REVIEW_ADD_SELECTED))
         confirm_btn.setProperty("variant", ButtonVariant.SUCCESS)
         cancel_btn = QPushButton(lang_manager.translate(TranslationKeys.CANCEL_BUTTON))
         cancel_btn.setProperty("variant", ButtonVariant.WARNING)

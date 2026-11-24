@@ -41,6 +41,8 @@ def apply_reviewed_backend(data, uses, import_date, main_date, *, review=None, s
             decision['action'] = 'update'
     if decision['action'] == 'needs_decision':
         return decision
+    if decision['action'] == 'skip':
+        return None  # Kavitro is up to date; the map side of the add goes on
     if decision['action'] == 'create':
         if not MainAddPropertiesFlow.add_single_property_item(data, uses, raise_on_error=True):
             raise RuntimeError(lang.translate(K.PROPERTY_ADD_WRITE_FAILED))

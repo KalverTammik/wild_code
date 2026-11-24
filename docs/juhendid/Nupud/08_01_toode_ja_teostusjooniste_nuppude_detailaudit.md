@@ -301,13 +301,10 @@ See toiming ainult lisab kinnistuseoseid. See ei seo joonistatud geomeetriat kin
 
 Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist eemaldatud, osaliselt parandatud leidude kirjeldus vastab praegusele koodile.
 
+Staatuse valik näitab kõiki staatusi ja muudab ühe klõpsuga teadlikult (kasutaja otsus 2026-11-23). Teostusjoonisel on nagu projektil üks objekt: uus joonis küsib **Asenda** või **Lisa juurde**.
+
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Keskmine | Teostusjoonise **Katkesta** tagastatakse veana ja tekst „Teostusjoonise andmete sisestamine katkestati“ on koodis (`asbuilt_feature_map_controller.py`) | Kasutaja ei erista teadlikku katkestust rikkest; tõlkevõtmete reegel on rikutud | Anna kontrollerile eraldi cancelled-tulemus ja sulge ilma veahoiatuseta |
-| Keskmine | Uue teostusjoonise joonistamine ei kontrolli olemasolevat sama ID-ga objekti | Ühe kirje jaoks võivad tekkida duplikaatobjektid | Kontrolli ID-d enne lisamist ning paku olemasoleva objekti fokuseerimist või kinnitatud asendamist |
-| Keskmine | Tööpunkti valiku- ja ümberpaigutustööriistad ei käsitle muu tööriista aktiveerimist katkestusena | Visuaali aken võib jääda kaardivaliku režiimi ja kontroller ootele | Kuula tööriista deaktiveerimist ning taasta aken ja pan-režiim |
-| Keskmine | Staatuse valik ei piirdu mooduli eelistatud staatustega ja salvestab ilma kinnituseta | Kasutaja võib valida ootamatu ülesandestaatuse ühe klõpsuga | Piira loend lubatud töövooga või lisa enne muutmist kinnitamine |
-| Madal | Puuduv objekt annab vaikse tulemuse | Nupp võib näida mittetöötavana | Kuva leitud ja leidmata objektide koond |
 
 ## Soovituslik turvaline tööjärjekord
 

@@ -335,7 +335,7 @@ class ProjectCardFolderActionTest(unittest.TestCase):
             patcher = patch.object(owner, name)
             mocks[name] = patcher.start()
             self.addCleanup(patcher.stop)
-        mocks["SettingsSetupGuard"].missing_requirements.return_value = []
+        mocks["SettingsSetupGuard"].missing_project_folder_settings.return_value = []
         self.create = mocks["FolderEngines"].generate_project_folder_from_template
 
     def test_project_card_hands_the_real_dialogs_to_the_flow(self) -> None:

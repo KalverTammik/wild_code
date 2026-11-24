@@ -259,10 +259,10 @@ class ProjectPreviewDialog(QDialog):
             self._rounded_preview_layer_name(),
         ):
             removed += MemoryLayerResultService.remove_existing(layer_name, only_memory=True)
-        if removed > 0:
-            self._status_label.setText(
-                self._lang.translate(TranslationKeys.PROJECT_PREVIEW_CLEARED).format(count=removed)
-            )
+        # Nothing to remove still clears the old status: it described a preview that is gone.
+        self._status_label.setText(
+            self._lang.translate(TranslationKeys.PROJECT_PREVIEW_CLEARED).format(count=removed) if removed > 0 else ""
+        )
 
     def _clear_intermediate_preview_layers(self) -> None:
         for layer_name in (
@@ -560,17 +560,21 @@ class ProjectPreviewDialog(QDialog):
             self._finish_property_selection()
             return
 
+        linked_before = set(self._connected_property_numbers or [])
         self._connected_property_numbers = list(refreshed)
         missing = (response or {}).get("missing") if isinstance(response, dict) else []
+        added = len([number for number in refreshed if number not in linked_before])
+        already = len([number for number in set(selected_numbers) if number in linked_before])
         preview_text = ", ".join(self._connected_property_numbers[:5])
         if len(self._connected_property_numbers) > 5:
             preview_text += self._lang.translate(TranslationKeys.MORE_COUNT_SUFFIX).format(
                 count=len(self._connected_property_numbers) - 5,
             )
-        extra_note = ""
+        extra_note = "\n\n" + self._lang.translate(TranslationKeys.LINK_PROPERTIES_ADDED_NOTE).format(
+            added=added, already=already)
         if missing:
             missing_preview = ", ".join(missing[:5])
-            extra_note = "\n\n" + self._lang.translate(TranslationKeys.LINK_PROPERTIES_MISSING_NOTE).format(
+            extra_note += "\n\n" + self._lang.translate(TranslationKeys.LINK_PROPERTIES_MISSING_NOTE).format(
                 missing=missing_preview,
             )
             if len(missing) > 5:
@@ -644,6 +648,7 @@ class ProjectPreviewDialog(QDialog):
             clear_filter=False,
             keep_existing_selection=bool(self._connected_property_numbers),
             before_start=self._enter_property_selection_mode,
+            on_abandoned=self._abandon_property_selection,
         )
         if not started:
             self._exit_property_selection_mode()
@@ -652,6 +657,11 @@ class ProjectPreviewDialog(QDialog):
                 self._lang.translate(TranslationKeys.ERROR),
                 self._lang.translate(TranslationKeys.MAP_SELECTION_START_FAILED),
             )
+
+    def _abandon_property_selection(self) -> None:
+        """Escape, right-click or another map tool ended the selection: bring the dialog back."""
+        self._exit_property_selection_mode()
+        self._finish_property_selection()
 
     def _finish_property_selection(self) -> None:
         orchestrator = self._property_selection_orchestrator
@@ -746,10 +756,10 @@ class ProjectPreviewDialog(QDialog):
             feature.geometry() if feature is not None else None
         )
         if payload is None:
-            return False, "Project area geometry was not found on the layer"
+            return False, self._lang.translate(TranslationKeys.KAVITRO_GEOMETRY_NOT_FOUND)
         if APIModuleActions.update_project_geometry(self._item_id, payload):
             return True, ""
-        return False, "Kavitro did not accept the project geometry"
+        return False, self._lang.translate(TranslationKeys.KAVITRO_GEOMETRY_SYNC_FAILED)
 
     def showEvent(self, event) -> None:
         super().showEvent(event)

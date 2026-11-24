@@ -19,6 +19,20 @@ from .works_layer_service import WorksLayerService
 
 class WorksSyncService(QObject):
     geometry_sync_failed = pyqtSignal(str)
+    # Status colours a flow already knows for its next geometry change (task id -> colour): the sync then
+    # sends the new location without reading the task first. Class-wide, since the flow and the sync that
+    # listens to the layer are different objects.
+    _known_status_colors: dict[str, str] = {}
+
+    @classmethod
+    def expect_geometry_change(cls, task_id: str, *, status_color: str) -> None:
+        task_id_text, color = str(task_id or "").strip(), str(status_color or "").strip()
+        if task_id_text and color:
+            cls._known_status_colors[task_id_text] = color
+
+    @classmethod
+    def forget_geometry_change(cls, task_id: str) -> None:
+        cls._known_status_colors.pop(str(task_id or "").strip(), None)
 
     def __init__(self, *, lang_manager=None, parent=None) -> None:
         super().__init__(parent)
@@ -335,10 +349,13 @@ class WorksSyncService(QObject):
             return
 
         try:
-            task = APIModuleActions.get_task_data(task_id)
-            if not task:
-                raise RuntimeError(f"Task {task_id} could not be read before geometry sync")
-            status_color = WorksLayerService.status_color_from_task(task)
+            status_color = self._known_status_colors.pop(task_id, None)
+            if status_color is None:
+                # Only the status colour is needed, for the icon Kavitro shows at the location.
+                task = APIModuleActions.get_task_data(task_id)
+                if not task:
+                    raise RuntimeError(f"Task {task_id} could not be read before geometry sync")
+                status_color = WorksLayerService.status_color_from_task(task)
             geometry_payload = WorksLayerService.backend_geometry_payload_from_geometry(geometry or feature.geometry())
             geometry_payload = WorksLayerService.styled_backend_geometry_payload(
                 geometry_payload, color=status_color)

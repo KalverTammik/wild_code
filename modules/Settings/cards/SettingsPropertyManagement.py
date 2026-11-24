@@ -274,10 +274,16 @@ class PropertyManagementUI(SettingsBaseCard):
 
     @staticmethod
     def _handle_maa_amet_page():
-        """Open the Maa-Amet page for cadastral data."""
+        """Open the Maa-Amet page for cadastral data; a failed open is shown, not only logged."""
         from ....utils.url_manager import OpenLink, loadWebpage
-        wl = OpenLink()
-        loadWebpage.open_webpage(wl.maa_amet)
+        url = OpenLink().maa_amet
+        if loadWebpage.open_webpage(url):
+            return
+        lang = LanguageManager()
+        ModernMessageDialog.show_warning(
+            lang.translate(TranslationKeys.WARNING),
+            lang.translate(TranslationKeys.WEB_PAGE_OPEN_FAILED).format(url=url or "-"),
+        )
 
     def _handle_file_import(self):
         """Load property data from a Shapefile through the Property module."""

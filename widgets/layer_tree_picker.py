@@ -29,6 +29,7 @@ class LayerTreePicker(QWidget):
         self._empty_text = ""
         self._show_crs = False
         self._filters = None
+        self._excepted_layer_ids: set[str] = set()
         self._popup: Optional[QFrame] = None
 
         self.setObjectName("LayerTreePicker")
@@ -88,6 +89,10 @@ class LayerTreePicker(QWidget):
 
     def setFilters(self, filters) -> None:  # noqa: N802
         self._filters = filters
+
+    def setExceptedLayerList(self, layers) -> None:  # noqa: N802 - QGIS-compatible API
+        """Layers the picker never offers, like QgsMapLayerComboBox.setExceptedLayerList."""
+        self._excepted_layer_ids = {layer.id() for layer in layers or [] if layer is not None}
 
     def setLayer(self, layer: QgsMapLayer | None) -> None:  # noqa: N802
         layer_id = layer.id() if layer is not None else ""
@@ -231,6 +236,11 @@ class LayerTreePicker(QWidget):
         self.setLayer(layer)
 
     def _layer_allowed(self, layer: QgsMapLayer) -> bool:
+        try:
+            if layer.id() in self._excepted_layer_ids:
+                return False
+        except (AttributeError, RuntimeError):  # layer is None or deleted
+            return True
         filters = self._filters
         if filters is None:
             return True

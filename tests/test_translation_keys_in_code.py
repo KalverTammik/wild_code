@@ -43,6 +43,13 @@ TEXT_SINK_CALLS = {
 # Calls whose first two arguments are a dialog title and message.
 DIALOG_CALLS = {"show_warning", "show_info", "show_error", "ask_yes_no", "ask_choice_modern", "Info_messages_modern",
                 "Warning_messages_modern", "Error_messages_modern"}
+# Calls with a shown text at a fixed position: file dialog caption and filter, a failed link's reason that the
+# draw flow puts in its message, the PDF layout labels.
+POSITIONAL_TEXT_CALLS = {
+    "getOpenFileName": (1, 3), "getOpenFileNames": (1, 3), "getSaveFileName": (1, 3), "getExistingDirectory": (1,),
+    "FeatureLinkResult": (1,), "_set_label_text": (2,),
+}
+ESTONIAN_LETTERS = re.compile(r"[ÄÖÜÕäöüõŠšŽž]")
 TEXT_KEYWORDS = {"text", "text1", "text2", "title", "message", "label", "tooltip", "placeholder", "heading"}
 LOG_CALLS = {"log", "log_exception", "debug", "info", "warn", "warning", "error", "print", "exception"}
 WORD = re.compile(r"[A-Za-zÄÖÜÕäöüõŠšŽž]{2,}")
@@ -52,6 +59,8 @@ ALLOWED_UI_TEXT = {
     ("modules/asbuilt/asbuilt_geometry_form_dialog.py", "EH2000"): "height system name",
     ("widgets/DataDisplayWidgets/TaskFilePreviewDialog.py", "<b></b><br> •  • "): "markup around file values",
     ("widgets/FooterWidget.py", "QGIS  | Plugin v"): "product names and version numbers",
+    ("modules/Property/FlowControllers/property_shp_import_flow.py", "GeoPackage (*.gpkg)"): "file format name",
+    ("modules/Settings/cards/settings_temp_layer_flow.py", "GeoPackage (*.gpkg)"): "file format name",
 }
 
 
@@ -163,6 +172,7 @@ class TranslationKeysInCodeTest(unittest.TestCase):
                     candidates += node.args[:1]
                 if name in DIALOG_CALLS:
                     candidates += node.args[:2]
+                candidates += [node.args[i] for i in POSITIONAL_TEXT_CALLS.get(name, ()) if i < len(node.args)]
                 if name == "add_fields":
                     candidates += [arg.elts[0] for arg in node.args if isinstance(arg, ast.Tuple) and arg.elts]
                 candidates += [k.value for k in node.keywords if k.arg in TEXT_KEYWORDS]
@@ -170,6 +180,20 @@ class TranslationKeysInCodeTest(unittest.TestCase):
                     text = literal_text(arg)
                     if text and WORD.search(text) and (rel.as_posix(), text) not in ALLOWED_UI_TEXT:
                         found.append(f"{rel}:{node.lineno} {text[:60]!r}")
+        self.assertEqual(found, [])
+
+    def test_no_failure_tuple_returns_estonian_text(self) -> None:
+        """A ``return False, "..."`` reason ends up in a dialog; Estonian there was never translated (found 2026-11-23)."""
+        found = []
+        for rel, module in plugin_sources():
+            for node in ast.walk(module):
+                value = node.value if isinstance(node, ast.Return) else None
+                if not (isinstance(value, ast.Tuple) and len(value.elts) == 2):
+                    continue
+                flag, reason = value.elts
+                text = literal_text(reason)
+                if isinstance(flag, ast.Constant) and flag.value is False and text and ESTONIAN_LETTERS.search(text):
+                    found.append(f"{rel}:{node.lineno} {text[:60]!r}")
         self.assertEqual(found, [])
 
     def test_each_key_is_defined_once(self) -> None:

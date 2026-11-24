@@ -2,33 +2,14 @@
 progress bubble shown next to a map toolbar button."""
 from __future__ import annotations
 
-from typing import Callable
 
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar
-from qgis.core import QgsPointXY
-from qgis.gui import QgsMapTool
+from ...utils.MapTools.canvas_click_tool import SingleClickMapTool
 
 
-class WorksPointCaptureTool(QgsMapTool):
-    def __init__(self, canvas, on_selected: Callable[[QgsPointXY], None], on_cancel: Callable[[], None]):
-        super().__init__(canvas)
-        self.canvas = canvas
-        self._on_selected = on_selected
-        self._on_cancel = on_cancel
-        self.setCursor(Qt.CrossCursor)
-
-    def canvasReleaseEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton:
-            point = self.canvas.getCoordinateTransform().toMapCoordinates(event.pos())
-            self._on_selected(point)
-            return
-        if event.button() == Qt.RightButton:
-            self._on_cancel()
-
-    def keyPressEvent(self, event) -> None:  # noqa: N802
-        if event.key() == Qt.Key_Escape:
-            self._on_cancel()
+class WorksPointCaptureTool(SingleClickMapTool):
+    """The works point pick: one click, cancelled by right-click, Escape or another map tool."""
 
 
 class MapButtonProgressBubble(QFrame):

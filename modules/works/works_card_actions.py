@@ -65,7 +65,9 @@ class WorksCardActions:
         if self._reposition_controller is None:
             self._reposition_controller = WorksRepositionController(lang_manager=self._host.lang_manager)
 
+        status = (self._host.item_data or {}).get("status")
         self._reposition_controller.start_reposition(
             task_id=item_id,
             parent_window=self._host.safe_parent_window(),
+            status_color=str((status or {}).get("color") or "") if isinstance(status, dict) else "",
         )

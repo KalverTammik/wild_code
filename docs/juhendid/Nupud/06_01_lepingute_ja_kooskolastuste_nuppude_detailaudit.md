@@ -163,12 +163,8 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Keskmine | Detail luuakse üks kord ja sellel puudub värskendusnupp | Ahendamise järel uuesti avatud kirjeldus, tingimused ja failid võivad olla vananenud | Lisa detailile värskendamine või laadi andmed igal avamisel uuesti |
-| Keskmine | Lepingute ja kooskõlastuste failidel puudub määratud sorteerimine (`CREATED_AT DESC` saadetakse ainult ülesannetele) | Detaili viis faili ei pruugi olla uusimad | Määra kõigile moodulitele `createdAt DESC` järjestus |
 | Keskmine | PDF-i käitustoe puudumisel suletakse voog enne eelvaatedialoogi ning välise avamise nuppu ei pakuta | Kasutaja ei saa failirea kaudu PDF-i väliselt avada | Lisa hoiatusse **Ava väliselt** valik või ava piiratud PDF otse välises rakenduses |
 | Keskmine | Väliseks avamiseks alla laaditud ajutisi faile ei kustutata | Kaugfailide koopiad kogunevad ajutisse kataloogi ja võivad jääda sinna pikaks ajaks | Kustuta fail rakenduse sulgemisel või halda seda kontrollitud vahemäluna |
-| Keskmine | Kaardivaliku katkestamine objekti loomata ei taasta alati Visuaali akent | Töövoog näib hangunud või kadunud | Kuula `Esc`-i, paremklõpsu ja tööriista deaktiveerimist ning taasta aken ühes lõpetamisharus |
-| Madal | Kaarditoimingu ebaõnnestumised on kasutajale vaiksed | Nupp võib näida mittetöötavana | Kuva leitud ja leidmata kinnistute koond |
 
 ## Soovituslik tööjärjekord
 
