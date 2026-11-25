@@ -1,8 +1,11 @@
+"""The status change of one card item: the menu of the module's statuses, the change itself in the background,
+and what follows it (the map layer, the card)."""
 from __future__ import annotations
 
+import time
 from typing import Optional
 
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import QObject, Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QFrame, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 try:
     import sip
@@ -13,8 +16,8 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
+from ...python.responses import DataDisplayExtractors
 from ...python.workers import FunctionWorker, start_worker
-from ...python.responses import DataDisplayExtractors, StatusInfo
 from ...ui.window_state.popup_helpers import PopupHelpers
 from ...ui.messages_helper import ModernMessageDialog
 from ...utils.status_color_helper import StatusColorHelper
@@ -30,8 +33,13 @@ def _change_status(module_name: str, item_id: str, status_id: str) -> dict:
     return {"updated": updated, "refreshed": refreshed}
 
 
+def _load_status_options(module_name: str) -> list:
+    """Runs on a worker thread: the statuses a module's items can have."""
+    return APIModuleActions.get_module_status_options(module_name)
+
+
 class _StatusSavingDialog(QDialog):
-    """Shown only when a status change takes longer than StatusWidget.SAVING_DIALOG_DELAY_MS; it cannot be closed by hand."""
+    """Shown only when a status change takes longer than StatusChangeController.SAVING_DIALOG_DELAY_MS."""
 
     def __init__(self, text: str, parent=None):
         super().__init__(parent)
@@ -47,17 +55,6 @@ class _StatusSavingDialog(QDialog):
 
     def reject(self) -> None:
         """Escape must not hide a write that is still running."""
-
-
-class _ClickableStatusLabel(QLabel):
-    clicked = pyqtSignal()
-
-    def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
-        if event.button() == Qt.LeftButton and self.isEnabled():
-            self.clicked.emit()
-            event.accept()
-            return
-        super().mousePressEvent(event)
 
 
 class _StatusOptionRow(QFrame):
@@ -142,10 +139,12 @@ class _StatusOptionsPopup(QWidget):
         PopupHelpers.apply_popup_style(self.frame)
 
 
-class StatusWidget(QWidget):
+class StatusChangeController(QObject):
     """Status menu and status change of one card item, for every module that has a status change.
 
-    MainStatusWidget (the card's status rail) drives it; this widget itself stays hidden.
+    The card's status rail (MainStatusWidget) owns it. Nothing here blocks the GUI: the statuses of a
+    module are cached, a missing list and the change itself are loaded in the background, and
+    `busy_changed` tells the rail to show that something is running.
     """
 
     # module name -> {key: hook(item_id, item_payload)}, run after a status change
@@ -153,10 +152,14 @@ class StatusWidget(QWidget):
     # imports modules/. Registering the same key again replaces the hook.
     _status_change_hooks: dict[str, dict] = {}
 
-    # A status change runs in the background and the card shows it inline. Only a change that is still
-    # running after this long gets a dialog of its own.
+    # A status change that is still running after this long gets a dialog of its own.
     SAVING_DIALOG_DELAY_MS = 1000
+    # The statuses of a module change rarely; a menu reuses them for this long.
+    OPTIONS_TTL_SECONDS = 300
+    _options_cache: dict[str, tuple[float, list]] = {}
 
+    busy_changed = pyqtSignal(bool)
+    status_changed = pyqtSignal(dict)
     status_change_finished = pyqtSignal(bool)
 
     @classmethod
@@ -164,15 +167,20 @@ class StatusWidget(QWidget):
         for name in module_names:
             cls._status_change_hooks.setdefault(name, {})[key] = hook
 
-    def __init__(self, item_data, module_name: Optional[str] = None, parent=None):
-        super().__init__(parent)
-        self.setObjectName("LegacyStatusWidget")
-        self._item_data = dict(item_data or {}) if isinstance(item_data, dict) else dict(item_data or {})
+    @classmethod
+    def clear_options_cache(cls) -> None:
+        cls._options_cache.clear()
+
+    def __init__(self, owner: QWidget, item_data, module_name: Optional[str] = None):
+        super().__init__(owner)
+        self._owner = owner
+        self._item_data = dict(item_data or {})
         self._module_name = str(module_name or "").strip().lower()
         self._lang = LanguageManager()
         self._is_updating = False
-        self._previous_status: Optional[StatusInfo] = None
+        self._is_loading_options = False
         self._selected_option: dict = {}
+        self._menu_anchor: Optional[QWidget] = None
         self._saving_dialog: Optional[_StatusSavingDialog] = None
         self._saving_timer = QTimer(self)
         self._saving_timer.setSingleShot(True)
@@ -183,81 +191,72 @@ class StatusWidget(QWidget):
         self._pending_refresh_payload: Optional[dict] = None
         self._status_popup: Optional[_StatusOptionsPopup] = None
 
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+    # ------------------------------------------------------------------ state
+    def set_item_data(self, item_data) -> None:
+        self._item_data = dict(item_data or {})
 
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 0, 0, 0)
-        row.addStretch(1)
-
-        self.status_label = _ClickableStatusLabel(self)
-        self.status_label.setObjectName("StatusLabel")
-        self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setFixedWidth(136)
-
-        if self._can_edit_status():
-            self.status_label.setCursor(Qt.PointingHandCursor)
-            self.status_label.setToolTip(
-                self._lang.translate(TranslationKeys.STATUS_WIDGET_CHANGE_TOOLTIP)
-            )
-            self.status_label.clicked.connect(self._show_status_menu)
-
-        row.addWidget(self.status_label, 0, Qt.AlignRight | Qt.AlignVCenter)
-        main_layout.addLayout(row)
-        self._apply_status_info(DataDisplayExtractors.extract_status(self._item_data))
-
-    def _can_edit_status(self) -> bool:
+    def can_edit_status(self) -> bool:
         item_id = str(self._item_data.get("id") or "").strip()
         return bool(item_id and APIModuleActions.can_update_status(self._module_name))
 
-    def _apply_status_info(self, status_info: StatusInfo, *, loading: bool = False) -> None:
-        base_name = str(status_info.name or "-").strip() or "-"
-        display_name = self._lang.translate(TranslationKeys.LOADING) if loading else base_name
-        if self._can_edit_status() and not loading:
-            display_name = f"{display_name} ▾"
+    def _set_busy(self, busy: bool) -> None:
+        self.busy_changed.emit(bool(busy))
 
-        hex_color = str(status_info.color or "cccccc").strip() or "cccccc"
-        bg, fg, border = StatusColorHelper.upgrade_status_color(hex_color)
-
-        self.status_label.setText(display_name)
-        self.status_label.setStyleSheet(
-            "QLabel#StatusLabel {"
-            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, 0.95);"
-            f"color: rgb({fg[0]},{fg[1]},{fg[2]});"
-            f"border: 1px solid rgba({border[0]},{border[1]},{border[2]}, 0.85);"
-            "border-radius: 6px;"
-            "padding: 3px 10px;"
-            "font-weight: 500;"
-            "font-size: 11px;"
-            "}"
-            "QLabel#StatusLabel:hover {"
-            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, 1.0);"
-            "}"
-        )
-
-    def _show_status_menu(self, anchor_widget=None) -> None:
-        if not self._can_edit_status() or self._is_updating:
+    # ------------------------------------------------------------------ the menu
+    def show_status_menu(self, anchor_widget: Optional[QWidget] = None) -> None:
+        if not self.can_edit_status() or self._is_updating or self._is_loading_options:
+            return
+        if self._status_popup is not None and self._status_popup.isVisible():
+            self._close_status_popup()
             return
 
-        status_options = APIModuleActions.get_module_status_options(self._module_name)
-        if not status_options:
+        anchor = anchor_widget or self._owner
+        options = self._cached_options()
+        if options is not None:
+            self._open_status_menu(options, anchor)
+            return
+
+        self._menu_anchor = anchor
+        self._is_loading_options = True
+        self._set_busy(True)
+        worker = FunctionWorker(_load_status_options, self._module_name)
+        worker.finished.connect(self._on_options_loaded)
+        worker.error.connect(self._on_options_failed)
+        start_worker(worker)
+
+    def _cached_options(self) -> Optional[list]:
+        cached = StatusChangeController._options_cache.get(self._module_name)
+        if cached is None:
+            return None
+        loaded_at, options = cached
+        if time.monotonic() - loaded_at > self.OPTIONS_TTL_SECONDS:
+            return None
+        return options
+
+    def _on_options_failed(self, _message: str = "") -> None:
+        self._on_options_loaded([])
+
+    def _on_options_loaded(self, options) -> None:
+        self._is_loading_options = False
+        self._set_busy(False)
+        if not options:
+            # A failed read gives [] (and logs itself); nothing is cached, the next click tries again.
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.WARNING),
                 self._lang.translate(TranslationKeys.STATUS_WIDGET_NO_OPTIONS),
             )
             return
+        StatusChangeController._options_cache[self._module_name] = (time.monotonic(), list(options))
+        self._open_status_menu(options, self._menu_anchor or self._owner)
 
-        current_status_id = DataDisplayExtractors.extract_status(self._item_data).id
-        if self._status_popup is not None and self._status_popup.isVisible():
-            self._close_status_popup()
+    def _open_status_menu(self, options: list, anchor: QWidget) -> None:
+        if self._is_deleted(self._owner) or self._is_deleted(anchor):
             return
-
-        popup_anchor = anchor_widget or self.status_label
-
-        popup = _StatusOptionsPopup(status_options, current_status_id, self.window())
+        current_status_id = DataDisplayExtractors.extract_status(self._item_data).id
+        popup = _StatusOptionsPopup(options, current_status_id, self._owner.window())
         popup.optionSelected.connect(self._handle_status_option_selected)
         popup.destroyed.connect(lambda _obj=None: setattr(self, "_status_popup", None))
-        PopupHelpers.position_popup(popup, popup_anchor, placement="below_left")
+        PopupHelpers.position_popup(popup, anchor, placement="below_left")
         popup.show()
         popup.raise_()
         self._status_popup = popup
@@ -277,16 +276,16 @@ class StatusWidget(QWidget):
 
         self._update_status(selected_option)
 
+    # ------------------------------------------------------------------ the change
     def _update_status(self, selected_option: dict) -> None:
         item_id = str(self._item_data.get("id") or "").strip()
         new_status_id = str(selected_option.get("id") or "").strip()
         if not item_id or not new_status_id or self._is_updating:
             return
 
-        self._previous_status = DataDisplayExtractors.extract_status(self._item_data)
         self._selected_option = dict(selected_option)
         self._is_updating = True
-        self._apply_status_info(self._previous_status, loading=True)
+        self._set_busy(True)
 
         worker = FunctionWorker(_change_status, self._module_name, item_id, new_status_id)
         worker.finished.connect(self._on_status_change_done)
@@ -295,11 +294,11 @@ class StatusWidget(QWidget):
         start_worker(worker)
 
     def _show_saving_dialog(self) -> None:
-        if not self._is_updating or self._saving_dialog is not None:
+        if not self._is_updating or self._saving_dialog is not None or self._is_deleted(self._owner):
             return
-        dialog = _StatusSavingDialog(self._lang.translate(TranslationKeys.API_REQUEST_RUNNING), self)
-        window = self.window()
-        if window is not None and window is not self:
+        dialog = _StatusSavingDialog(self._lang.translate(TranslationKeys.API_REQUEST_RUNNING), self._owner)
+        window = self._owner.window()
+        if window is not None and window is not self._owner:
             dialog.adjustSize()
             dialog.move(window.geometry().center() - dialog.rect().center())
         self._saving_dialog = dialog
@@ -312,6 +311,7 @@ class StatusWidget(QWidget):
             dialog.hide()
             dialog.deleteLater()
         self._is_updating = False
+        self._set_busy(False)
 
     def _on_status_change_error(self, _message: str = "") -> None:
         """The worker failed outright; the change itself logged its own failure."""
@@ -321,7 +321,6 @@ class StatusWidget(QWidget):
         self._finish_saving()
         updated_item = result.get("updated") if isinstance(result, dict) else None
         if not isinstance(updated_item, dict):
-            self._apply_status_info(self._previous_status or DataDisplayExtractors.extract_status(self._item_data))
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
                 self._lang.translate(TranslationKeys.STATUS_WIDGET_UPDATE_FAILED),
@@ -342,7 +341,7 @@ class StatusWidget(QWidget):
                 refreshed_item["updatedAt"] = updated_item.get("updatedAt")
 
         self._item_data = dict(refreshed_item)
-        self._apply_status_info(DataDisplayExtractors.extract_status(self._item_data))
+        self.status_changed.emit(dict(refreshed_item))
         self._run_status_change_hooks(refreshed_item)
         self._schedule_card_refresh(refreshed_item)
         self.status_change_finished.emit(True)
@@ -357,7 +356,7 @@ class StatusWidget(QWidget):
         }
 
     def _run_status_change_hooks(self, item_payload: Optional[dict] = None) -> None:
-        hooks = list((StatusWidget._status_change_hooks.get(self._module_name) or {}).values())
+        hooks = list((StatusChangeController._status_change_hooks.get(self._module_name) or {}).values())
         if not hooks:
             return
 
@@ -376,6 +375,7 @@ class StatusWidget(QWidget):
                     extra={"source_module": self._module_name},
                 )
 
+    # ------------------------------------------------------------------ the card
     def _schedule_card_refresh(self, item_data: Optional[dict]) -> None:
         if not isinstance(item_data, dict) or not item_data:
             return
@@ -450,10 +450,9 @@ class StatusWidget(QWidget):
                 container.setUpdatesEnabled(True)
 
     def _find_parent_card(self) -> Optional[QFrame]:
-        current = self.parentWidget()
+        current = self._owner.parentWidget()
         while current is not None:
             if isinstance(current, QFrame) and current.objectName() == "ModuleInfoCard":
                 return current
             current = current.parentWidget()
         return None
-

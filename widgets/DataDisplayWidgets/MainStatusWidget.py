@@ -9,10 +9,7 @@ from ...python.responses import DataDisplayExtractors
 from ...ui.window_state.popup_helpers import PopupHelpers
 from ...utils.status_color_helper import StatusColorHelper
 from ...ui.theme_manager import ThemeManager, Theme, is_dark, styleExtras, ThemeShadowColors, IntensityLevels
-try:
-    from .StatusWidget import StatusWidget
-except ImportError:  # pragma: no cover - preview sandbox may not have full runtime deps
-    StatusWidget = None
+from .status_change_controller import StatusChangeController
 
 
 class StatusPopupWidget(QWidget):
@@ -67,14 +64,11 @@ class MainStatusWidget(QWidget):
 
         status_info = DataDisplayExtractors.extract_status(item_data)
         self._status_name = str(status_info.name or "-").strip() or "-"
-        self._status_delegate = None
-        if StatusWidget is not None:
-            self._status_delegate = StatusWidget(
-                item_data,
-                module_name=self._module_name,
-                parent=self,
-            )
-            self._status_delegate.hide()
+        self._busy = False
+        self._status_color = str(status_info.color or "cccccc")
+        self._status_changes = StatusChangeController(self, item_data, self._module_name)
+        self._status_changes.busy_changed.connect(self._set_busy)
+        self._status_changes.status_changed.connect(self.apply_status)
 
         theme_name = ThemeManager.effective_theme()
         dark_theme = is_dark(theme_name) if theme_name in (Theme.DARK, Theme.LIGHT, Theme.SYSTEM) else False
@@ -134,19 +128,36 @@ class MainStatusWidget(QWidget):
             event_filter_owner=self,
         )
 
-        if self._status_delegate is not None and self._status_delegate._can_edit_status():
-            self.setCursor(Qt.PointingHandCursor)
-            self.rail_frame.setCursor(Qt.PointingHandCursor)
+        self._idle_cursor = Qt.PointingHandCursor if self._status_changes.can_edit_status() else None
+        self._show_idle_cursor()
 
     def apply_status(self, item_data) -> None:
         """Show a status the item got after its card was built, without building the card again."""
         status_info = DataDisplayExtractors.extract_status(item_data)
         self._status_name = str(status_info.name or "-").strip() or "-"
         self._apply_status_colors(str(status_info.color or "cccccc"))
-        if self._status_delegate is not None:
-            self._status_delegate._item_data = dict(item_data or {})
+        self._status_changes.set_item_data(item_data)
+
+    def _show_idle_cursor(self) -> None:
+        for widget in (self, self.rail_frame):
+            if self._idle_cursor is None:
+                widget.unsetCursor()
+            else:
+                widget.setCursor(self._idle_cursor)
+
+    def _set_busy(self, busy: bool) -> None:
+        """The rail fades and shows a busy cursor while a status list or a status change is loading."""
+        self._busy = bool(busy)
+        for widget in (self, self.rail_frame):
+            if self._busy:
+                widget.setCursor(Qt.BusyCursor)
+        if not self._busy:
+            self._show_idle_cursor()
+        self._apply_status_colors(self._status_color)
 
     def _apply_status_colors(self, status_color: str) -> None:
+        self._status_color = status_color
+        fade = 0.35 if self._busy else 1.0
         bg, _fg, border = StatusColorHelper.upgrade_status_color(status_color)
         self.rail_frame.setStyleSheet(
             f"background-color: {self._shell_fill};"
@@ -154,11 +165,11 @@ class MainStatusWidget(QWidget):
             f"border-right: 1px solid rgba({bg[0]},{bg[1]},{bg[2]}, 0.96);"
         )
         self.core_fill.setStyleSheet(
-            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, {self._core_alpha});"
+            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, {self._core_alpha * fade});"
             f"border: 1px solid rgba({border[0]},{border[1]},{border[2]}, 0.30);"
         )
         self.inner_glow.setStyleSheet(
-            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, {self._glow_alpha});"
+            f"background-color: rgba({bg[0]},{bg[1]},{bg[2]}, {self._glow_alpha * fade});"
         )
 
     def eventFilter(self, obj, event):  # noqa: N802 - Qt override
@@ -219,11 +230,10 @@ class MainStatusWidget(QWidget):
     def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
         if (
             event.button() == Qt.LeftButton
-            and self._status_delegate is not None
-            and self._status_delegate._can_edit_status()
+            and self._status_changes.can_edit_status()
         ):
             self.close_hover_popup()  # the menu replaces the name tooltip
-            self._status_delegate._show_status_menu(anchor_widget=self.rail_frame)
+            self._status_changes.show_status_menu(anchor_widget=self.rail_frame)
             event.accept()
             return
         super().mousePressEvent(event)

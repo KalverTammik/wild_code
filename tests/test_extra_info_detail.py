@@ -5,7 +5,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -15,7 +15,10 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 from qgis.PyQt.QtCore import QCoreApplication, QEvent
 from qgis.PyQt.QtWidgets import QApplication, QLabel, QWidget
 
+from Kavitro_dev.constants.module_names import Module
+from Kavitro_dev.modules.projects.project_detail_config import create_project_config
 from Kavitro_dev.widgets.DataDisplayWidgets.ExtraInfoWidget import ExtraInfoFrame
+from Kavitro_dev.widgets.DataDisplayWidgets.ModuleConfig import ModuleConfigFactory
 
 DETAIL_MODULES = ("project", "contract", "coordination", "easement", "task", "works", "asbuilt")
 
@@ -36,6 +39,12 @@ class ExtraInfoDetailTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.frames = []
+        # The project detail is wired by ModulesRegistry in the plugin; the test says what it depends on,
+        # so it passes alone as well as after the registry tests.
+        factories = patch.dict(ModuleConfigFactory._registered_factories)
+        factories.start()
+        self.addCleanup(factories.stop)
+        ModuleConfigFactory.register(Module.PROJECT.value, create_project_config)
 
     def tearDown(self) -> None:
         for frame in self.frames:

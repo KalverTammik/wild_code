@@ -1,6 +1,6 @@
 """Shared widgets get module pieces by registration, not by importing modules/.
 
-ModuleConfigFactory used to build the project board detail itself and StatusWidget
+ModuleConfigFactory used to build the project board detail itself and StatusChangeController
 imported the works layer sync. Both now take what ui/modules_registry.py registers.
 """
 from __future__ import annotations
@@ -23,9 +23,9 @@ from Kavitro_dev.constants.module_names import Module
 from Kavitro_dev.modules.projects import project_detail_config
 from Kavitro_dev.modules.works import works_sync_service
 from Kavitro_dev.ui.modules_registry import ModulesRegistry
-from Kavitro_dev.widgets.DataDisplayWidgets import StatusWidget as status_widget_module
+from Kavitro_dev.widgets.DataDisplayWidgets import status_change_controller as status_widget_module
 from Kavitro_dev.widgets.DataDisplayWidgets.ModuleConfig import ModuleConfig, ModuleConfigFactory
-from Kavitro_dev.widgets.DataDisplayWidgets.StatusWidget import StatusWidget
+from Kavitro_dev.widgets.DataDisplayWidgets.status_change_controller import StatusChangeController
 
 _APP = QgsApplication.instance() or QgsApplication([], False)
 if QgsApplication.instance() is _APP:
@@ -37,7 +37,7 @@ class _Registrations(unittest.TestCase):
 
     def setUp(self):
         factories = patch.dict(ModuleConfigFactory._registered_factories, clear=True)
-        hooks = patch.dict(StatusWidget._status_change_hooks, clear=True)
+        hooks = patch.dict(StatusChangeController._status_change_hooks, clear=True)
         factories.start()
         hooks.start()
         self.addCleanup(factories.stop)
@@ -73,7 +73,7 @@ class ModuleConfigRegistrationTest(_Registrations):
 
 
 class _Host:
-    """The StatusWidget state the hook runner reads."""
+    """The StatusChangeController state the hook runner reads."""
 
     def __init__(self, module_name, item_id="T1"):
         self._module_name = module_name
@@ -82,11 +82,11 @@ class _Host:
 
 class StatusChangeHookTest(_Registrations):
     def _run(self, host, payload=None):
-        StatusWidget._run_status_change_hooks(host, payload)
+        StatusChangeController._run_status_change_hooks(host, payload)
 
     def test_hook_runs_for_its_modules_only(self):
         hook = Mock()
-        StatusWidget.register_status_change_hook((Module.WORKS.value, Module.TASK.value), "sync", hook)
+        StatusChangeController.register_status_change_hook((Module.WORKS.value, Module.TASK.value), "sync", hook)
         works, project = _Host(Module.WORKS.value), _Host(Module.PROJECT.value)
 
         self._run(works, {"id": "T1"})
@@ -96,7 +96,7 @@ class StatusChangeHookTest(_Registrations):
 
     def test_no_item_id_runs_nothing(self):
         hook = Mock()
-        StatusWidget.register_status_change_hook((Module.WORKS.value,), "sync", hook)
+        StatusChangeController.register_status_change_hook((Module.WORKS.value,), "sync", hook)
 
         self._run(_Host(Module.WORKS.value, item_id=" "))
 
@@ -104,8 +104,8 @@ class StatusChangeHookTest(_Registrations):
 
     def test_registering_a_key_again_replaces_the_hook(self):
         first, second = Mock(), Mock()
-        StatusWidget.register_status_change_hook((Module.WORKS.value,), "sync", first)
-        StatusWidget.register_status_change_hook((Module.WORKS.value,), "sync", second)
+        StatusChangeController.register_status_change_hook((Module.WORKS.value,), "sync", first)
+        StatusChangeController.register_status_change_hook((Module.WORKS.value,), "sync", second)
 
         self._run(_Host(Module.WORKS.value))
 
@@ -114,8 +114,8 @@ class StatusChangeHookTest(_Registrations):
 
     def test_a_failing_hook_is_logged_and_the_next_one_still_runs(self):
         failing, other = Mock(side_effect=RuntimeError("layer gone")), Mock()
-        StatusWidget.register_status_change_hook((Module.WORKS.value,), "a", failing)
-        StatusWidget.register_status_change_hook((Module.WORKS.value,), "b", other)
+        StatusChangeController.register_status_change_hook((Module.WORKS.value,), "a", failing)
+        StatusChangeController.register_status_change_hook((Module.WORKS.value,), "b", other)
 
         with patch.object(status_widget_module.PythonFailLogger, "log_exception") as log:
             self._run(_Host(Module.WORKS.value))
@@ -131,17 +131,17 @@ class RegistryWiringTest(_Registrations):
         self.assertIs(ModuleConfigFactory._registered_factories[Module.PROJECT.value],
                       project_detail_config.create_project_config)
         for module in (Module.WORKS.value, Module.TASK.value):
-            self.assertIn("works_layer_sync", StatusWidget._status_change_hooks[module])
+            self.assertIn("works_layer_sync", StatusChangeController._status_change_hooks[module])
         # An as-built's status goes to the as-built layer; the Works layer never holds as-builts.
-        self.assertEqual(list(StatusWidget._status_change_hooks[Module.ASBUILT.value]), ["asbuilt_layer_sync"])
+        self.assertEqual(list(StatusChangeController._status_change_hooks[Module.ASBUILT.value]), ["asbuilt_layer_sync"])
         # A project and an easement mirror their status on the map; contracts and coordinations have no layer.
-        self.assertEqual(list(StatusWidget._status_change_hooks[Module.PROJECT.value]), ["project_layer_sync"])
-        self.assertEqual(list(StatusWidget._status_change_hooks[Module.EASEMENT.value]), ["easement_layer_sync"])
+        self.assertEqual(list(StatusChangeController._status_change_hooks[Module.PROJECT.value]), ["project_layer_sync"])
+        self.assertEqual(list(StatusChangeController._status_change_hooks[Module.EASEMENT.value]), ["easement_layer_sync"])
         for module in (Module.CONTRACT.value, Module.COORDINATION.value):
-            self.assertNotIn(module, StatusWidget._status_change_hooks)
+            self.assertNotIn(module, StatusChangeController._status_change_hooks)
 
         with patch.object(works_sync_service.WorksSyncService, "sync_task_from_backend") as sync:
-            StatusWidget._status_change_hooks[Module.WORKS.value]["works_layer_sync"]("T9", {"id": "T9"})
+            StatusChangeController._status_change_hooks[Module.WORKS.value]["works_layer_sync"]("T9", {"id": "T9"})
         sync.assert_called_once_with("T9", task={"id": "T9"})
 
     def test_project_and_easement_hooks_write_the_status_onto_their_layers(self):
@@ -149,18 +149,18 @@ class RegistryWiringTest(_Registrations):
         project, easement = {"id": "P1", "status": {"id": "3"}}, {"id": "E1", "status": {"id": "4"}}
 
         with patch("Kavitro_dev.modules.projects.projects_layer_service.ProjectsLayerService.sync_status_from_project") as sync_project:
-            StatusWidget._status_change_hooks[Module.PROJECT.value]["project_layer_sync"]("P1", project)
+            StatusChangeController._status_change_hooks[Module.PROJECT.value]["project_layer_sync"]("P1", project)
         sync_project.assert_called_once_with("P1", project)
 
         with patch("Kavitro_dev.modules.easements.easement_layer_service.EasementLayerService.sync_status_from_easement") as sync_easement:
-            StatusWidget._status_change_hooks[Module.EASEMENT.value]["easement_layer_sync"]("E1", easement)
+            StatusChangeController._status_change_hooks[Module.EASEMENT.value]["easement_layer_sync"]("E1", easement)
         sync_easement.assert_called_once_with("E1", easement)
 
     def test_register_all_twice_keeps_one_hook(self):
         ModulesRegistry.register_all(Mock(), Mock())
         ModulesRegistry.register_all(Mock(), Mock())
 
-        self.assertEqual(len(StatusWidget._status_change_hooks[Module.WORKS.value]), 1)
+        self.assertEqual(len(StatusChangeController._status_change_hooks[Module.WORKS.value]), 1)
 
 
 if __name__ == "__main__":

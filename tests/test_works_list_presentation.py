@@ -26,7 +26,7 @@ from Kavitro_dev.modules.works.works_list_service import (
 )
 from Kavitro_dev.modules.works.WorksUi import WorksModule
 from Kavitro_dev.ui.module_card_factory import ModuleCardFactory
-from Kavitro_dev.widgets.DataDisplayWidgets.StatusWidget import StatusWidget
+from Kavitro_dev.widgets.DataDisplayWidgets.status_change_controller import StatusChangeController
 from Kavitro_dev.widgets.DataDisplayWidgets.ExtraInfoWidget import ExtraInfoFrame
 
 
@@ -296,14 +296,14 @@ class WorksListWidgetTest(unittest.TestCase):
         self.add(task(1, names=['Kalver', 'Mari']))
         QTest.qWait(70)
         card = next(iter(self.ui._list_view.cards.values()))
-        card.findChild(StatusWidget)._replace_current_card(task(1, names=['Kalver', 'Mari'], status='Valmis'))
+        card.findChild(StatusChangeController)._replace_current_card(task(1, names=['Kalver', 'Mari'], status='Valmis'))
         QTest.qWait(70)
         QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
         self.add(task(2))
         QTest.qWait(50)
         for key, card in self.ui._list_view.cards.items():
             if key[1] == '1':
-                self.assertEqual(card.findChild(StatusWidget)._item_data['status']['name'], 'Valmis')
+                self.assertEqual(card.findChild(StatusChangeController)._item_data['status']['name'], 'Valmis')
             frame = card.findChild(ExtraInfoFrame)
             handle = frame._expand_handle
             self.assertEqual(handle.y(), card.height() - handle.height() - 1)

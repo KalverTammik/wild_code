@@ -5,6 +5,7 @@ import importlib
 import os
 import sys
 import threading
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -13,7 +14,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1].parent))
 
 from PyQt5 import sip
-from PyQt5.QtCore import QCoreApplication, QEvent, QEventLoop, QTimer
+from PyQt5.QtCore import QCoreApplication, QEvent, QEventLoop, Qt, QTimer
 from PyQt5.QtWidgets import QWidget
 from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsVectorLayer
 
@@ -22,8 +23,8 @@ from Kavitro_dev.modules.asbuilt.asbuilt_layer_service import AsBuiltLayerServic
 from Kavitro_dev.modules.easements.easement_layer_service import EasementLayerService
 from Kavitro_dev.modules.projects.projects_layer_service import ProjectsLayerService
 
-status_widget_module = importlib.import_module("Kavitro_dev.widgets.DataDisplayWidgets.StatusWidget")
-StatusWidget = status_widget_module.StatusWidget
+status_widget_module = importlib.import_module("Kavitro_dev.widgets.DataDisplayWidgets.status_change_controller")
+StatusWidget = status_widget_module.StatusChangeController
 MainStatusWidget = importlib.import_module("Kavitro_dev.widgets.DataDisplayWidgets.MainStatusWidget").MainStatusWidget
 
 OPEN = {"id": "1", "name": "Avatud", "color": "4FBF6B", "type": "OPEN"}
@@ -31,15 +32,19 @@ CLOSED = {"id": "2", "name": "Suletud", "color": "999999", "type": "CLOSED"}
 MODULES_WITH_STATUS_CHANGE = ("works", "asbuilt", "task", "project", "contract", "coordination", "easement")
 
 
-class StatusWidgetTestCase(unittest.TestCase):
+class ControllerTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.app = QgsApplication.instance() or QgsApplication([], False)
 
     def widget(self, module: str, item_id: str = "7") -> StatusWidget:
-        widget = StatusWidget({"id": item_id, "status": OPEN}, module_name=module)
-        self.addCleanup(widget.deleteLater)
-        return widget
+        owner = QWidget()
+        self.addCleanup(owner.deleteLater)
+        controller = StatusWidget(owner, {"id": item_id, "status": OPEN}, module_name=module)
+        controller.test_owner = owner  # the owner is a Python-owned widget; keep it alive with its controller
+        controller.busy = []
+        controller.busy_changed.connect(controller.busy.append)
+        return controller
 
     def patch_api(self, **returns):
         patched = {}
@@ -50,20 +55,20 @@ class StatusWidgetTestCase(unittest.TestCase):
         return patched
 
 
-class EditableModulesTest(StatusWidgetTestCase):
+class EditableModulesTest(ControllerTestCase):
     def test_every_module_with_a_status_change_can_be_edited(self) -> None:
         for module in MODULES_WITH_STATUS_CHANGE:
             with self.subTest(module=module):
-                self.assertTrue(self.widget(module)._can_edit_status())
+                self.assertTrue(self.widget(module).can_edit_status())
 
     def test_an_item_without_an_id_or_a_module_without_a_status_change_cannot(self) -> None:
-        self.assertFalse(self.widget("project", item_id="")._can_edit_status())
+        self.assertFalse(self.widget("project", item_id="").can_edit_status())
         for module in ("property", "letter", ""):
             with self.subTest(module=module):
-                self.assertFalse(self.widget(module)._can_edit_status())
+                self.assertFalse(self.widget(module).can_edit_status())
 
 
-class StatusChangeFlowTest(StatusWidgetTestCase):
+class StatusChangeFlowTest(ControllerTestCase):
     def setUp(self) -> None:
         refresh = patch.object(StatusWidget, "_schedule_card_refresh")
         self.refresh = refresh.start()
@@ -144,7 +149,7 @@ class StatusChangeFlowTest(StatusWidgetTestCase):
         self.assertEqual(self.hook.call_args.kwargs["event"], "status_widget_status_change_hook_failed")
 
 
-class BackgroundChangeTest(StatusWidgetTestCase):
+class BackgroundChangeTest(ControllerTestCase):
     """The change does not block the GUI: the card shows it inline and a dialog waits for a slow answer."""
 
     def setUp(self) -> None:
@@ -165,7 +170,7 @@ class BackgroundChangeTest(StatusWidgetTestCase):
         widget._update_status(CLOSED)
 
         self.assertTrue(widget._is_updating)
-        self.assertIn(widget._lang.translate(status_widget_module.TranslationKeys.LOADING), widget.status_label.text())
+        self.assertEqual(widget.busy, [True])
         self.start_worker.assert_called_once()
         self.assertIsNone(widget._saving_dialog)
 
@@ -224,10 +229,10 @@ class BackgroundChangeTest(StatusWidgetTestCase):
         warning.assert_called_once()
         self.assertFalse(widget._is_updating)
         self.assertEqual(widget._item_data["status"], OPEN)
-        self.assertIn(OPEN["name"], widget.status_label.text())
+        self.assertEqual(widget.busy, [True, False])
 
 
-class RealWorkerTest(StatusWidgetTestCase):
+class RealWorkerTest(ControllerTestCase):
     def test_the_change_runs_off_the_gui_thread_and_the_card_follows(self) -> None:
         for target, name in ((StatusWidget, "_schedule_card_refresh"), (PythonFailLogger, "log_exception")):
             patcher = patch.object(target, name)
@@ -281,7 +286,132 @@ class ChangeStatusFunctionTest(unittest.TestCase):
         self.assertEqual(result, {"updated": None, "refreshed": None})
 
 
-class HoverPopupLifetimeTest(StatusWidgetTestCase):
+class StatusMenuOptionsTest(ControllerTestCase):
+    """The statuses of a module are cached; a missing list is loaded in the background, never on the click."""
+
+    def setUp(self) -> None:
+        StatusWidget.clear_options_cache()
+        self.addCleanup(StatusWidget.clear_options_cache)
+        self.opened = []
+        for target, name, kwargs in (
+            (status_widget_module, "start_worker", {}),
+            (status_widget_module.ModernMessageDialog, "show_warning", {}),
+            (StatusWidget, "_open_status_menu", {"side_effect": lambda options, anchor: self.opened.append(list(options))}),
+        ):
+            patcher = patch.object(target, name, **kwargs)
+            setattr(self, name, patcher.start())
+            self.addCleanup(patcher.stop)
+
+    def test_a_cached_list_opens_the_menu_without_a_request(self) -> None:
+        StatusWidget._options_cache["project"] = (time.monotonic(), [OPEN, CLOSED])
+        widget = self.widget("project")
+
+        widget.show_status_menu()
+
+        self.assertEqual(self.opened, [[OPEN, CLOSED]])
+        self.start_worker.assert_not_called()
+        self.assertEqual(widget.busy, [])
+
+    def test_a_missing_list_is_loaded_in_the_background_and_the_menu_opens_when_it_arrives(self) -> None:
+        widget = self.widget("project")
+
+        widget.show_status_menu()
+
+        worker = self.start_worker.call_args.args[0]
+        self.assertEqual((worker._func, worker._args), (status_widget_module._load_status_options, ("project",)))
+        self.assertEqual(widget.busy, [True])
+        self.assertEqual(self.opened, [])
+
+        widget._on_options_loaded([OPEN, CLOSED])
+
+        self.assertEqual(widget.busy, [True, False])
+        self.assertEqual(self.opened, [[OPEN, CLOSED]])
+        self.assertIn("project", StatusWidget._options_cache)
+
+    def test_a_list_older_than_the_ttl_is_loaded_again(self) -> None:
+        StatusWidget._options_cache["project"] = (time.monotonic() - StatusWidget.OPTIONS_TTL_SECONDS - 1, [OPEN])
+        widget = self.widget("project")
+
+        widget.show_status_menu()
+
+        self.start_worker.assert_called_once()
+        self.assertEqual(self.opened, [])
+
+    def test_the_cache_is_kept_per_module(self) -> None:
+        StatusWidget._options_cache["contract"] = (time.monotonic(), [OPEN])
+        widget = self.widget("project")
+
+        widget.show_status_menu()
+
+        self.start_worker.assert_called_once()
+
+    def test_an_empty_answer_warns_and_is_not_cached(self) -> None:
+        widget = self.widget("project")
+        widget.show_status_menu()
+
+        widget._on_options_failed("boom")
+
+        self.show_warning.assert_called_once()
+        self.assertNotIn("project", StatusWidget._options_cache)
+        self.assertEqual(widget.busy, [True, False])
+        self.assertEqual(self.opened, [])
+
+    def test_clicks_while_the_list_loads_are_ignored(self) -> None:
+        widget = self.widget("project")
+
+        widget.show_status_menu()
+        widget.show_status_menu()
+
+        self.start_worker.assert_called_once()
+
+    def test_a_module_without_a_status_change_or_an_item_without_an_id_opens_nothing(self) -> None:
+        self.widget("property").show_status_menu()
+        self.widget("project", item_id="").show_status_menu()
+
+        self.start_worker.assert_not_called()
+        self.assertEqual(self.opened, [])
+
+
+class RailBusyLookTest(ControllerTestCase):
+    """The rail is the only thing the user sees of a status change, so it shows that one is running."""
+
+    def setUp(self) -> None:
+        self.window = QWidget()
+        self.window.show()
+        self.addCleanup(self.window.close)
+        self.rail = MainStatusWidget({"id": "7", "status": OPEN}, module_name="project", parent=self.window)
+
+    def test_the_rail_fades_and_shows_a_busy_cursor_while_busy(self) -> None:
+        idle_style = self.rail.core_fill.styleSheet()
+
+        self.rail._status_changes.busy_changed.emit(True)
+
+        self.assertEqual(self.rail.cursor().shape(), Qt.BusyCursor)
+        self.assertEqual(self.rail.rail_frame.cursor().shape(), Qt.BusyCursor)
+        self.assertNotEqual(self.rail.core_fill.styleSheet(), idle_style)
+
+        self.rail._status_changes.busy_changed.emit(False)
+
+        self.assertEqual(self.rail.cursor().shape(), Qt.PointingHandCursor)
+        self.assertEqual(self.rail.core_fill.styleSheet(), idle_style)
+
+    def test_a_rail_that_cannot_be_edited_goes_back_to_the_normal_cursor(self) -> None:
+        rail = MainStatusWidget({"id": "7", "status": OPEN}, module_name="property", parent=self.window)
+
+        rail._status_changes.busy_changed.emit(True)
+        rail._status_changes.busy_changed.emit(False)
+
+        self.assertNotEqual(rail.cursor().shape(), Qt.PointingHandCursor)
+        self.assertNotEqual(rail.cursor().shape(), Qt.BusyCursor)
+
+    def test_a_saved_status_recolours_the_rail_at_once(self) -> None:
+        self.rail._status_changes.status_changed.emit({"id": "7", "status": CLOSED})
+
+        self.assertEqual(self.rail._status_name, CLOSED["name"])
+        self.assertEqual(self.rail._status_changes._item_data["status"], CLOSED)
+
+
+class HoverPopupLifetimeTest(ControllerTestCase):
     """The status name tooltip is a window of its own; it must not stay on the screen when its card goes."""
 
     def setUp(self) -> None:
@@ -313,7 +443,7 @@ class HoverPopupLifetimeTest(StatusWidgetTestCase):
         self.assertTrue(sip.isdeleted(self.popup) or not self.popup.isVisible())
 
     def test_clicking_the_rail_for_the_status_menu_removes_the_tooltip_first(self) -> None:
-        with patch.object(StatusWidget, "_show_status_menu") as menu:
+        with patch.object(StatusWidget, "show_status_menu") as menu:
             self.rail.mousePressEvent(_left_click())
 
         menu.assert_called_once()

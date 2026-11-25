@@ -34,7 +34,7 @@ from Kavitro_dev.modules.Property.widgets.property_tree_widget import PropertyTr
 from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
 from Kavitro_dev.modules.Property.FlowControllers.property_archive_scope_reader import layer_identity
-from Kavitro_dev.widgets.DataDisplayWidgets.StatusWidget import StatusWidget
+from Kavitro_dev.widgets.DataDisplayWidgets.status_change_controller import StatusChangeController
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
 from Kavitro_dev.widgets.EasementPropertyAreaCalculationWidget import EasementPropertyAreaCalculationWidget
@@ -158,7 +158,7 @@ class MainLayerCheckLookupTest(unittest.TestCase):
 
 class SipGuardsTest(WidgetCase):
     def test_objects_that_are_not_sip_wrappers_count_as_alive_and_none_as_deleted(self) -> None:
-        for owner in (PropertyTreeWidget, StatusWidget):
+        for owner in (PropertyTreeWidget, StatusChangeController):
             with self.subTest(owner=owner.__name__):
                 self.assertTrue(owner._is_deleted(None))
                 self.assertFalse(owner._is_deleted(object()))
