@@ -18,7 +18,7 @@ from PyQt5.QtCore import QCoreApplication, QEvent, Qt
 from PyQt5.QtWidgets import QApplication, QDialog, QWidget
 
 from Kavitro_dev.utils import module_registry
-from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.language_manager import LanguageManager, set_current_language
 from Kavitro_dev.languages.translation_keys import ToolbarTranslationKeys, TranslationKeys
 from Kavitro_dev.module_manager import ModuleManager
 from Kavitro_dev.constants.setting_placeholders import SettingDialogPlaceholders
@@ -62,7 +62,9 @@ class CardCase(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self) -> None:
-        self.lang = LanguageManager("en")
+        set_current_language("en")
+        self.addCleanup(set_current_language, "et")
+        self.lang = LanguageManager()
         self.host = QWidget()
         self.addCleanup(self.delete_host)
 
@@ -92,7 +94,7 @@ class CardCase(unittest.TestCase):
         QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
 
     def button(self, item=None, module=None, **options) -> MoreActionsButton:
-        button = MoreActionsButton(self.lang, dict(ITEM if item is None else item), module or self.MODULE, **options)
+        button = MoreActionsButton(dict(ITEM if item is None else item), module or self.MODULE, **options)
         button.setParent(self.host)
         return button
 
@@ -149,7 +151,10 @@ class ProjectFolderTest(CardCase):
         self.guard.missing_project_folder_settings.return_value = ["puudu"]
         self.guard.redirect_warning_text.return_value = ("Pealkiri", "Tekst")
         self.generate()
-        self.guard.redirect_warning_text.assert_called_once_with(self.lang, "project")
+        self.guard.redirect_warning_text.assert_called_once()
+        lang_used, module_used = self.guard.redirect_warning_text.call_args.args
+        self.assertIsInstance(lang_used, LanguageManager)
+        self.assertEqual(module_used, "project")
         self.assertEqual(self.messages.show_warning.call_args.args, ("Pealkiri", "Tekst"))
         self.switch.switch_module.assert_called_once_with(Module.SETTINGS.name, focus_module="project")
         self.engine.generate_project_folder_from_template.assert_not_called()
@@ -213,7 +218,6 @@ class PreviewCase(CardCase):
         button = self.button()
         self.open(button)
         self.assertEqual(len(opened), 1)
-        self.assertIs(self.built()[0]["lang_manager"], self.lang)
         self.assertEqual(self.built()[0]["item_data"]["id"], "7")
         self.assertIs(self.built()[0]["parent"], self.host)
         dialog = opened[0]
@@ -300,7 +304,7 @@ class DrawOnMapCase(CardCase):
         button = self.button()
         self.trigger(button, self.ACTION)
         self.trigger(button, self.ACTION)
-        controller_class.assert_called_once_with(lang_manager=self.lang)
+        controller_class.assert_called_once_with()
         draw = controller_class.return_value.start_draw
         self.assertEqual(draw.call_count, 2)
         self.assertEqual(draw.call_args.kwargs["item_data"]["id"], "7")
@@ -348,7 +352,7 @@ class AsBuiltNotesMenuTest(CardCase):
         self.trigger(self.button(), TranslationKeys.ASBUILT_UPDATE_NOTES_ACTION)
 
         api.get_task_description.assert_called_once_with("7")
-        dialog_class.assert_called_once_with(item_name="Nimi", notes=["märge"], lang_manager=self.lang, parent=self.host)
+        dialog_class.assert_called_once_with(item_name="Nimi", notes=["märge"], parent=self.host)
         api.update_task_description.assert_not_called()
 
 
@@ -366,7 +370,6 @@ class EasementMapActionsTest(CardCase):
         self.trigger(button, TranslationKeys.EASEMENT_ATTACH_EXISTING_ACTION)
         self.trigger(button, TranslationKeys.EASEMENT_EDIT_GEOMETRY_ACTION)
         self.controller_class.assert_called_once()
-        self.assertIs(self.controller_class.call_args.kwargs["lang_manager"], self.lang)
 
     def test_each_action_starts_its_flow_with_this_item(self) -> None:
         button = self.button()
@@ -406,7 +409,7 @@ class EasementFilesTest(CardCase):
             button = self.button()
             self.trigger(button, TranslationKeys.TASK_FILES_ACTION)
         dialog_class.assert_called_once_with(item_id="7", item_name="Nimi", module_name="easement",
-                                             lang_manager=self.lang, parent=button.window())
+                                             parent=button.window())
         dialog_class.return_value.exec_.assert_called_once_with()
 
     def test_name_falls_back_to_the_id(self) -> None:
@@ -434,7 +437,7 @@ class WorksAddPointTest(CardCase):
     def test_without_a_layer_nothing_starts(self) -> None:
         self.service.resolve_main_layer.return_value = None
         self.trigger(self.button(), self.ACTION)
-        self.service.resolve_main_layer.assert_called_once_with(lang_manager=self.lang, dialogs=self.messages)
+        self.service.resolve_main_layer.assert_called_once_with(dialogs=self.messages)
         self.service.find_feature_by_task_id.assert_not_called()
         self.controller_class.assert_not_called()
 
@@ -454,7 +457,7 @@ class WorksAddPointTest(CardCase):
         button = self.button()
         self.trigger(button, self.ACTION)
         self.trigger(button, self.ACTION)
-        self.controller_class.assert_called_once_with(lang_manager=self.lang)
+        self.controller_class.assert_called_once_with()
         start = self.controller_class.return_value.start_add_existing_to_map
         self.assertEqual(start.call_count, 2)
         self.assertEqual(start.call_args.kwargs["task_id"], "7")
@@ -475,7 +478,7 @@ class WorksRepositionTest(CardCase):
         button = self.button()
         self.trigger(button, self.ACTION)
         self.trigger(button, self.ACTION)
-        controller_class.assert_called_once_with(lang_manager=self.lang)
+        controller_class.assert_called_once_with()
         start = controller_class.return_value.start_reposition
         self.assertEqual(start.call_count, 2)
         start.assert_called_with(task_id="7", parent_window=self.host, status_color="")

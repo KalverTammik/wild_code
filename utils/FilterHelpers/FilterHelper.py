@@ -292,7 +292,7 @@ class FilterRefreshService:
 
         feed_logic = module.feed_logic
         if feed_logic is None:
-            feed_logic = module.FEED_LOGIC_CLS(module.module_key, module.QUERY_FILE, module.lang_manager)
+            feed_logic = module.FEED_LOGIC_CLS(module.module_key, module.QUERY_FILE)
             module.feed_logic = feed_logic
 
         feed_logic.configure_single_item_query(module.SINGLE_ITEM_QUERY_FILE)

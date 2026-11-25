@@ -53,7 +53,7 @@ class RepositionRequestsTest(unittest.TestCase):
         self.addCleanup(WorksSyncService._known_status_colors.clear)
 
     def move(self, status_color: str) -> tuple[bool, str]:
-        controller = reposition_module.WorksRepositionController(lang_manager=Mock())
+        controller = reposition_module.WorksRepositionController()
         controller._layer, controller._feature_id, controller._task_id = self.layer, self.feature_id, "7"
         controller._status_color = status_color
         return controller._apply_new_geometry(QgsPointXY(50, 60))

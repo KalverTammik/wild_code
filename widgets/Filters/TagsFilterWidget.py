@@ -18,13 +18,12 @@ class TagsFilterWidget(BaseSingleFilterWidget):
     def __init__(
         self,
         module_name: Union[str, object],
-        lang_manager: Optional[LanguageManager] = None,
         parent: Optional[QWidget] = None,
         *,
         auto_load: bool = True,
         settings_logic: Optional[SettingsLogic] = None,
     ) -> None:
-        translator = lang_manager or LanguageManager()
+        translator = LanguageManager()
         label_text = translator.translate(TranslationKeys.TAGS_FILTER)
         super().__init__(
             module_name,
@@ -35,5 +34,4 @@ class TagsFilterWidget(BaseSingleFilterWidget):
             auto_load=auto_load,
             variant="tags-filter",
             settings_logic=settings_logic,
-            lang_manager=lang_manager,
         )

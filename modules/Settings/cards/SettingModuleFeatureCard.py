@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Callable, Optional, Tuple, TypeVar
-from ....languages.language_manager import LanguageManager
 from PyQt5.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QVBoxLayout, QFrame, QWidget
 
 WidgetT = TypeVar("WidgetT")
@@ -15,7 +14,6 @@ class SettingsModuleFeatureCard:
         *,
         parent: QWidget,
         title_text: str,
-        lang_manager: Optional[LanguageManager] = None,
         widget_factory: Callable[[QWidget], WidgetT],
         description_text: Optional[str] = None,
         group_object_name: Optional[str] = None,

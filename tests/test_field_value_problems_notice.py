@@ -19,7 +19,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 from qgis.core import NULL, QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
 from qgis.PyQt.QtCore import QVariant
 
-from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.language_manager import LanguageManager, set_current_language
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.modules.asbuilt import asbuilt_feature_map_controller as asbuilt_module
@@ -81,7 +81,7 @@ class DialogStubCase(unittest.TestCase):
 
 class NoteTextTest(unittest.TestCase):
     def test_note_names_field_value_expected_kind_and_what_to_do(self) -> None:
-        text = notice.field_value_problems_note([WIDTH, SCALE], ET)
+        text = notice.field_value_problems_note([WIDTH, SCALE])
 
         self.assertEqual(
             text.split("\n"),
@@ -105,52 +105,53 @@ class NoteTextTest(unittest.TestCase):
             ("et", ["arv", "täisarv", "jah/ei", "kuupäev", "kuupäev ja kellaaeg"]),
             ("en", ["a number", "a whole number", "yes/no", "a date", "a date and time"]),
         ):
-            lang = LanguageManager(language=language)
+            set_current_language(language)
+            self.addCleanup(set_current_language, "et")
             for kind, word in zip(kinds, words):
                 with self.subTest(language=language, kind=kind):
-                    text = notice.field_value_problems_note([FieldValueProblem("f", "F", "x", "str", kind)], lang)
+                    text = notice.field_value_problems_note([FieldValueProblem("f", "F", "x", "str", kind)])
                     self.assertTrue(text.split("\n")[1].endswith(" " + word), text)
 
     def test_field_label_is_the_alias_of_the_layer_field(self) -> None:
         problem = FieldValueProblem.for_field(field("kv_laius", "Kaitsevööndi laius"), "lai", FieldValueProblem.NUMBER)
-        self.assertIn("• Kaitsevööndi laius: ", notice.field_value_problems_note([problem], ET))
+        self.assertIn("• Kaitsevööndi laius: ", notice.field_value_problems_note([problem]))
 
     def test_no_problems_give_no_note_and_leave_the_message_alone(self) -> None:
-        self.assertEqual(notice.field_value_problems_note([], ET), "")
-        self.assertEqual(notice.with_field_value_problems("Salvestati.", [], ET), "Salvestati.")
+        self.assertEqual(notice.field_value_problems_note([]), "")
+        self.assertEqual(notice.with_field_value_problems("Salvestati.", []), "Salvestati.")
 
     def test_same_field_and_value_written_twice_is_listed_once(self) -> None:
-        text = notice.field_value_problems_note([WIDTH, WIDTH, SCALE], ET)
+        text = notice.field_value_problems_note([WIDTH, WIDTH, SCALE])
         self.assertEqual(text.count("Kaitsevööndi laius"), 1)
 
     def test_long_list_is_cut_with_a_count_of_the_rest(self) -> None:
         problems = [FieldValueProblem(f"f{i}", f"Väli {i}", "x", "str", FieldValueProblem.NUMBER) for i in range(13)]
-        lines = notice.field_value_problems_note(problems, ET).split("\n")
+        lines = notice.field_value_problems_note(problems).split("\n")
 
         self.assertEqual(len(lines), 1 + notice.MAX_LISTED + 1)
         self.assertTrue(lines[notice.MAX_LISTED].endswith("(+3 veel)"), lines[notice.MAX_LISTED])
 
     def test_braces_in_a_rejected_value_are_shown_as_typed(self) -> None:
         problem = FieldValueProblem("f", "F", "{item_id}", "str", FieldValueProblem.NUMBER)
-        self.assertIn("„{item_id}“", notice.with_field_value_problems("Salvestati.", [problem], ET))
+        self.assertIn("„{item_id}“", notice.with_field_value_problems("Salvestati.", [problem]))
 
 
 class ShowSavedTest(unittest.TestCase):
     def test_without_problems_the_plain_success_message_is_shown(self) -> None:
         dialogs = Mock()
-        notice.show_saved(dialogs, title="Õnnestus", message="Salvestati.", problems=[], lang=ET)
+        notice.show_saved(dialogs, title="Õnnestus", message="Salvestati.", problems=[])
 
         dialogs.show_info.assert_called_once_with("Õnnestus", "Salvestati.")
         dialogs.show_warning.assert_not_called()
 
     def test_with_problems_one_warning_says_saved_and_lists_the_fields(self) -> None:
         dialogs = Mock()
-        notice.show_saved(dialogs, title="Õnnestus", message="Salvestati.", problems=[WIDTH], lang=ET)
+        notice.show_saved(dialogs, title="Õnnestus", message="Salvestati.", problems=[WIDTH])
 
         dialogs.show_info.assert_not_called()
         title, text = dialogs.show_warning.call_args.args
         self.assertEqual(title, TITLE)
-        self.assertEqual(text, "Salvestati.\n\n" + notice.field_value_problems_note([WIDTH], ET))
+        self.assertEqual(text, "Salvestati.\n\n" + notice.field_value_problems_note([WIDTH]))
 
 
 class DrawFlowNoticeTest(DialogStubCase):
@@ -322,7 +323,7 @@ class WorksFlowNoticeTest(DialogStubCase):
         for patcher in patches:
             patcher.start()
             self.addCleanup(patcher.stop)
-        self.controller = works_module.WorksCreateController(lang_manager=ET)
+        self.controller = works_module.WorksCreateController()
 
     def add_existing(self) -> None:
         self.controller._existing_task_id = "9"
@@ -335,7 +336,7 @@ class WorksFlowNoticeTest(DialogStubCase):
         title, text = self.one_warning()
         self.assertEqual(title, TITLE)
         success = ET.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SUCCESS).format(task_id="9")
-        self.assertEqual(text, notice.with_field_value_problems(success, [WIDTH], ET))
+        self.assertEqual(text, notice.with_field_value_problems(success, [WIDTH]))
 
     def test_failed_map_save_names_no_field(self) -> None:
         self.insert_result = (False, "provider error")
@@ -379,7 +380,7 @@ class ProjectPreviewNoticeTest(DialogStubCase):
         title, text = self.one_warning()
         self.assertEqual(title, TITLE)
         success = ET.translate(TranslationKeys.PROJECT_PREVIEW_SAVE_SUCCESS).format(item_id="5", layer="Projektid")
-        self.assertEqual(text, notice.with_field_value_problems(success, [WIDTH], ET))
+        self.assertEqual(text, notice.with_field_value_problems(success, [WIDTH]))
 
     def test_failed_save_names_no_field(self) -> None:
         with self.start((False, "provider error")):
@@ -465,7 +466,7 @@ class EasementPropertySaveNoticeTest(DialogStubCase):
         title, text = self.one_warning()
         self.assertEqual(title, TITLE)
         self.assertTrue(text.startswith("Servituudi kinnistuandmed salvestati."), text)
-        self.assertTrue(text.endswith(notice.field_value_problems_note([WIDTH], ET)), text)
+        self.assertTrue(text.endswith(notice.field_value_problems_note([WIDTH])), text)
 
     def test_saved_without_problems_keeps_the_success_message(self) -> None:
         self.save((True, "Lõplik lõige salvestati."), [])

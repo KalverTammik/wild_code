@@ -15,7 +15,7 @@ class SettingsBaseCard(QFrame):
     _pixmap_cache = {}
     def __init__(self, lang_manager: LanguageManager, title_text: str, icon_path: str = None):
         super().__init__()
-        self.lang_manager = lang_manager or LanguageManager()
+        self.lang_manager = lang_manager
         self.setObjectName("SetupCard")
         self.setFrameShape(QFrame.NoFrame)
         self._confirm_btn = None

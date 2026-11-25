@@ -40,7 +40,6 @@ class EasementCardActions:
             item_id=item_id,
             item_name=DataDisplayExtractors.extract_item_name(item) or item_id,
             module_name=Module.EASEMENT.value,
-            lang_manager=self._host.lang_manager,
             parent=self._host.window(),
         )
         dialog.exec_()
@@ -50,7 +49,6 @@ class EasementCardActions:
             return None
         if self._map_controller is None:
             self._map_controller = EasementAttachExistingController(
-                lang_manager=self._host.lang_manager,
                 on_status_changed=self._host.apply_item_status,
             )
         return self._map_controller
@@ -84,7 +82,6 @@ class EasementCardActions:
 
         dialog = EasementPreviewDialog(
             item_data=self._host.item_data,
-            lang_manager=self._host.lang_manager,
             parent=self._host.safe_parent_window(),
             on_status_changed=self._host.apply_item_status,
         )

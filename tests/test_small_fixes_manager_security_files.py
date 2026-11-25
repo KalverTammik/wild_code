@@ -22,6 +22,7 @@ from qgis.PyQt.QtWidgets import QWidget
 
 from Kavitro_dev import module_manager as manager_module
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
+from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.python.actions import file_actions as file_actions_module
 from Kavitro_dev.python.api_actions import APIModuleActions
@@ -160,14 +161,7 @@ class FailedDriveProbeTest(QtTestCase):
                 self.assertEqual(target.host, "Z:")
 
     def test_a_local_pdf_link_asks_for_the_network_confirmation_before_opening(self) -> None:
-        texts = {
-            TranslationKeys.YES: "Yes",
-            TranslationKeys.NO: "No",
-            TranslationKeys.CONFIRM: "Confirm",
-            TranslationKeys.DESCRIPTION_LINK_NETWORK_CONFIRM: "Network: {host} {path}",
-        }
-        lang = SimpleNamespace(translate=lambda key: texts.get(key, str(key)))
-        widget = html_module.HtmlDescriptionWidget("", parent=self.window, lang_manager=lang)
+        widget = html_module.HtmlDescriptionWidget("", parent=self.window)
         with tempfile.TemporaryDirectory() as folder:
             path = os.path.join(folder, "drawing.pdf")
             Path(path).write_bytes(b"%PDF-1.4")
@@ -176,7 +170,9 @@ class FailedDriveProbeTest(QtTestCase):
                 widget._handle_anchor_clicked(QUrl.fromLocalFile(path))
 
         ask.assert_called_once()
-        self.assertTrue(ask.call_args.args[1].startswith(f"Network: {path[:2].upper()} "))
+        template = LanguageManager().translate(TranslationKeys.DESCRIPTION_LINK_NETWORK_CONFIRM)
+        self.assertTrue(ask.call_args.args[1].startswith(template.split("{host}")[0]))
+        self.assertIn(path[:2].upper(), ask.call_args.args[1])
         open_preview.assert_not_called()
 
 

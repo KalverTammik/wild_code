@@ -17,7 +17,6 @@ from qgis.core import QgsApplication, QgsPointXY
 from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.modules.works import works_create_controller as controller_module
 from Kavitro_dev.python import api_client, api_rate_limit, api_request_task
 from Kavitro_dev.utils.SessionManager import SessionManager
@@ -100,7 +99,7 @@ class WorksCreateWaitWindowTest(unittest.TestCase):
             active.start()
             self.addCleanup(active.stop)
 
-        self.controller = controller_module.WorksCreateController(lang_manager=LanguageManager(language="et"))
+        self.controller = controller_module.WorksCreateController()
         self.controller._cached_type_options = [{"id": "t", "label": "Avarii"}]
         self.controller._cached_assignable_users = [{"id": "1", "displayName": "U"}]
         self.controller._cached_priority_options = [{"value": "", "label": "-"}]

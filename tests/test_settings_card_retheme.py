@@ -42,9 +42,8 @@ class SettingsCardRethemeTest(unittest.TestCase):
         self.card = SettingsBaseCard(lang, "Kooskõlastused")
         self.addCleanup(self.dispose, self.card)
         layout = QVBoxLayout(self.card.content_widget())
-        self.tags = TagsFilterWidget("coordination", lang, self.card, settings_logic=Mock(), auto_load=False)
-        self.types = TypeFilterWidget("coordination", self.card, settings_logic=Mock(), auto_load=False,
-                                      lang_manager=lang)
+        self.tags = TagsFilterWidget("coordination", self.card, settings_logic=Mock(), auto_load=False)
+        self.types = TypeFilterWidget("coordination", self.card, settings_logic=Mock(), auto_load=False)
         self.nested = SettingsBaseCard(lang, "Kinnistute haldus")
         self.add_button = QPushButton("Lisa kinnistuid", self.nested)
         self.add_button.setProperty("variant", "success")

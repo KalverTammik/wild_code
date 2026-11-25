@@ -34,11 +34,11 @@ from ...python.responses import DataDisplayExtractors
 
 
 
-def open_item_in_browser(module_name: Optional[str], item_id: Optional[str], lang_manager=None) -> bool:
+def open_item_in_browser(module_name: Optional[str], item_id: Optional[str]) -> bool:
     """Open the record in Kavitro; a missing address or a failed open is shown, not only logged."""
     if not module_name or not item_id:
         return False
-    lang = lang_manager or LanguageManager()
+    lang = LanguageManager()
     url = ""
     try:
         base = OpenLink().weblink_by_module(module_name)
@@ -61,7 +61,7 @@ def open_item_in_browser(module_name: Optional[str], item_id: Optional[str], lan
     return False
 
 
-def show_items_on_map(module_name: Optional[str], item_id: Optional[str], lang_manager=None) -> None:
+def show_items_on_map(module_name: Optional[str], item_id: Optional[str]) -> None:
     if not module_name or not item_id:
         return
 
@@ -72,7 +72,7 @@ def show_items_on_map(module_name: Optional[str], item_id: Optional[str], lang_m
         found = _selected_cadastral_numbers(layer)
     ModuleItemFocusService.focus_item_on_map(module_name, item_id)
     # The button shows properties only for a record that has links, so an empty list is a failed read.
-    _warn_about_missing_properties(numbers, found, lang_manager)
+    _warn_about_missing_properties(numbers, found)
 
 
 def _selected_cadastral_numbers(layer) -> set[str]:
@@ -84,11 +84,11 @@ def _selected_cadastral_numbers(layer) -> set[str]:
         return set()
 
 
-def _warn_about_missing_properties(numbers: list, found: set, lang_manager=None) -> None:
+def _warn_about_missing_properties(numbers: list, found: set) -> None:
     missing = [str(number) for number in numbers or [] if str(number).strip() not in found]
     if numbers and not missing:
         return
-    lang = lang_manager or LanguageManager()
+    lang = LanguageManager()
     shown = ", ".join(missing[:5])
     if len(missing) > 5:
         shown += lang.translate(TranslationKeys.MORE_COUNT_SUFFIX).format(count=len(missing) - 5)
@@ -155,7 +155,7 @@ class OpenFolderActionButton(CardActionButton):
             FolderHelpers.FOLDER_OPEN_FAILED: (TranslationKeys.ERROR, TranslationKeys.DESCRIPTION_LINK_OPEN_FAILED),
         }
         if result in keys:
-            lang = self._lang or LanguageManager()
+            lang = self._lang
             title_key, message_key = keys[result]
             ModernMessageDialog.show_warning(
                 lang.translate(title_key), lang.translate(message_key).format(target=self._file_path))
@@ -183,7 +183,7 @@ class OpenWebActionButton(CardActionButton):
         self.setEnabled(enabled)
         if enabled:
             self.clicked.connect(
-                lambda _, module=module_name, mid=item_id: open_item_in_browser(module, mid, lang_manager)
+                lambda _, module=module_name, mid=item_id: open_item_in_browser(module, mid)
             )
 
 
@@ -194,14 +194,12 @@ class MoreActionsButton(CardActionButton):
 
     def __init__(
         self,
-        lang_manager=None,
         item_data=None,
         module=None,
         on_properties_linked=None,
         on_files_path_updated=None,
     ) -> None:
-        # The menu labels and the setup warning need a language; cards built without one use the default.
-        lang_manager = lang_manager or LanguageManager()
+        lang_manager = LanguageManager()
         tooltip = lang_manager.translate(ToolbarTranslationKeys.MORE_ACTIONS)
         super().__init__(
             "MoreActionsButton",
@@ -676,7 +674,6 @@ class ShowOnMapActionButton(CardActionButton):
             show_items_on_map(
                 self._module_name,
                 self._item_id,
-                self._lang_manager,
             )
             return
         if callable(self._link_properties_callback):

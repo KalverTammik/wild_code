@@ -22,6 +22,8 @@ import requests
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
+from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.python import workers
 from Kavitro_dev.python.api_actions import APIModuleActions
@@ -38,12 +40,9 @@ if QgsApplication.instance() is _APP:
 INFO = {"uuid": "u", "fileName": "a.pdf", "ext": "pdf"}
 
 
-class _Text(str):
-    def format(self, *args, **kwargs):
-        return f"{self}{sorted(kwargs.items())}"
-
-
-LANG = Mock(translate=lambda key: _Text(f"T:{key}"))
+def tr(key, **kwargs):
+    text = LanguageManager().translate(key)
+    return text.format(**kwargs) if kwargs else text
 
 
 def fake_response(chunks, length=None):
@@ -73,7 +72,7 @@ class _Case(unittest.TestCase):
         self.log = self.p(PythonFailLogger, "log")
         self.log_exception = self.p(PythonFailLogger, "log_exception")
         self.warning = self.p(ModernMessageDialog, "show_warning")
-        self.ask = self.p(ModernMessageDialog, "ask_choice_modern", return_value="T:Yes")
+        self.ask = self.p(ModernMessageDialog, "ask_choice_modern", return_value=tr(TranslationKeys.YES))
         self.p(ThemeManager, "apply_module_style")
         self.p(APIModuleActions, "user_display_name", return_value="Jane")
         self.fetch = self.p(APIModuleActions, "fetch_file_preview_payload", return_value=None)
@@ -156,7 +155,7 @@ class TempFolderCleanupTest(_Case):
 
     def test_pdf_preview_file_lives_in_the_same_folder_and_goes_on_close(self):
         self.p(Dialog, "_load_preview")
-        dialog = Dialog(file_info=INFO, lang_manager=LANG)
+        dialog = Dialog(file_info=INFO)
         self.addCleanup(dialog.deleteLater)
         path = dialog._write_pdf_temp_file(b"%PDF")
         self.assertEqual(os.path.dirname(path), self.folder())
@@ -167,7 +166,7 @@ class TempFolderCleanupTest(_Case):
         self.p(Dialog, "_load_preview")
         old = self.put("kavitro_old.pdf", self.OLD)
         young = self.put("kavitro_young.pdf", 1)
-        dialog = Dialog(file_info=INFO, lang_manager=LANG)
+        dialog = Dialog(file_info=INFO)
         self.addCleanup(dialog.deleteLater)
         dialog.reject()
         self.assertFalse(os.path.exists(old))
@@ -228,7 +227,7 @@ class DialogDownloadTest(_Case):
         self.addCleanup(self.release.set)
 
     def make(self, info=INFO):
-        dialog = Dialog(file_info=info, lang_manager=LANG)
+        dialog = Dialog(file_info=info)
         self.addCleanup(dialog.deleteLater)
         return dialog
 
@@ -248,11 +247,12 @@ class DialogDownloadTest(_Case):
         dialog._open_externally()
         self.assertTrue(dialog._cancel_download_button.isVisibleTo(dialog))
         self.assertFalse(dialog._open_external_button.isEnabled())
-        self.assertIn("task_files_external_downloading", dialog._notice_label.text())
+        self.assertEqual(dialog._notice_label.text(),
+                         tr(TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOADING, done="0 B", total="2.0 KB"))
         self.assertTrue(wait_until(lambda: download.called))
         dialog._update_download_progress()
         self.assertEqual(dialog._notice_label.text(),
-                         "T:task_files_external_downloading_no_size[('done', '3 B')]")
+                         tr(TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOADING_NO_SIZE, done="3 B"))
         self.open_local.assert_not_called()
         self.release.set()
         self.assertTrue(wait_until(lambda: self.open_local.called))
@@ -268,7 +268,7 @@ class DialogDownloadTest(_Case):
         dialog = self.make(dict(INFO, size=2048))
         dialog._open_externally()
         self.assertEqual(dialog._notice_label.text(),
-                         "T:task_files_external_downloading[('done', '0 B'), ('total', '2.0 KB')]")
+                         tr(TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOADING, done="0 B", total="2.0 KB"))
         self.release.set()
         self.assertTrue(self.idle())
 
@@ -277,7 +277,7 @@ class DialogDownloadTest(_Case):
         dialog = self.make()
         dialog._open_externally()
         self.assertTrue(wait_until(lambda: self.warning.called))
-        self.assertIn("task_files_open_failed", self.warning.call_args.args[1])
+        self.assertEqual(self.warning.call_args.args[1], f"<p>{tr(TranslationKeys.TASK_FILES_OPEN_FAILED, name='a.pdf')}</p>")
         self.open_local.assert_not_called()
         self.assertTrue(dialog._open_external_button.isEnabled())
         self.assertTrue(self.idle())
@@ -287,7 +287,7 @@ class DialogDownloadTest(_Case):
         dialog = self.make()
         dialog._open_externally()
         self.assertTrue(wait_until(lambda: self.warning.called))
-        self.assertIn("task_files_open_failed", self.warning.call_args.args[1])
+        self.assertEqual(self.warning.call_args.args[1], f"<p>{tr(TranslationKeys.TASK_FILES_OPEN_FAILED, name='a.pdf')}</p>")
         self.assertTrue(self.idle())
 
     def test_cancel_stops_waiting_and_ignores_the_result(self):
@@ -297,7 +297,7 @@ class DialogDownloadTest(_Case):
         state = dialog._download_state
         dialog._cancel_download_button.click()
         self.assertTrue(state.cancel_event.is_set())
-        self.assertEqual(dialog._notice_label.text(), "T:task_files_external_download_cancelled")
+        self.assertEqual(dialog._notice_label.text(), tr(TranslationKeys.TASK_FILES_EXTERNAL_DOWNLOAD_CANCELLED))
         self.assertTrue(dialog._open_external_button.isEnabled())
         self.assertFalse(dialog._cancel_download_button.isVisibleTo(dialog))
         self.release.set()
@@ -321,7 +321,7 @@ class DialogDownloadTest(_Case):
         with tempfile.TemporaryDirectory() as folder:
             path = os.path.join(folder, "a.pdf")
             Path(path).write_bytes(b"%PDF")
-            dialog = Dialog(local_file_path=path, lang_manager=LANG)
+            dialog = Dialog(local_file_path=path)
             self.addCleanup(dialog.deleteLater)
             dialog._open_externally()
         start.assert_not_called()
@@ -332,11 +332,11 @@ class PdfWithoutWebEngineTest(_Case):
     def test_dialog_opens_and_offers_open_externally(self):
         self.p(Dialog, "embedded_pdf_runtime_support", return_value=(False, {"qt": "5.15.3", "pyqt": "5.15"}))
         start = self.p(preview_module, "start_worker", return_value=object())
-        dialog = Dialog.open_preview(file_info=INFO, lang_manager=LANG)
+        dialog = Dialog.open_preview(file_info=INFO)
         self.addCleanup(dialog.deleteLater)
         self.assertIsInstance(dialog, Dialog)
         label = dialog._content_layout.itemAt(0).widget()
-        self.assertEqual(label.text(), "T:task_files_pdf_preview_unavailable[('qt_version', '5.15.3')]")
+        self.assertEqual(label.text(), tr(TranslationKeys.TASK_FILES_PDF_PREVIEW_UNAVAILABLE, qt_version="5.15.3"))
         self.fetch.assert_not_called()
         self.assertTrue(dialog._open_external_button.isEnabled())
         dialog._open_external_button.click()

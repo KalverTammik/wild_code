@@ -23,6 +23,7 @@ from qgis.PyQt.QtCore import QBuffer, QByteArray, QCoreApplication, QEvent, QIOD
 from qgis.PyQt.QtGui import QColor, QDesktopServices, QPixmap
 from qgis.PyQt.QtWidgets import QLabel, QPlainTextEdit, QScrollArea, QWidget
 
+from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.python import workers
 from Kavitro_dev.python.api_actions import APIModuleActions
@@ -41,9 +42,6 @@ if QgsApplication.instance() is _APP:
 class _Text(str):
     def format(self, *args, **kwargs):
         return f"{self}{sorted(kwargs.items())}"
-
-
-LANG = Mock(translate=lambda key: _Text(f"T:{key}"))
 
 
 def failed(name):
@@ -83,6 +81,7 @@ class _FakeWebView(QWidget):
 class _Base(unittest.TestCase):
     def setUp(self):
         self.p(ThemeManager, "apply_module_style")
+        self.p(LanguageManager, "translate", lambda self, key, fallback=None: _Text(f"T:{key}"))
         self.log = self.p(PythonFailLogger, "log_exception")
         self.warning = self.p(ModernMessageDialog, "show_warning")
         self.fetch = self.p(APIModuleActions, "fetch_file_preview_payload")
@@ -102,7 +101,7 @@ class _Base(unittest.TestCase):
         return mock
 
     def make(self, file_info=None, **kwargs):
-        dialog = Dialog(file_info=file_info, lang_manager=LANG, **kwargs)
+        dialog = Dialog(file_info=file_info, **kwargs)
         self.addCleanup(dialog.deleteLater)
         return dialog
 
@@ -162,7 +161,7 @@ class OpenPreviewTest(_Base):
 
     def test_pdf_without_runtime_opens_the_dialog_with_external_open(self):
         self.p(Dialog, "embedded_pdf_runtime_support", return_value=(False, {"qt": "5.15", "pyqt": ""}))
-        dialog = Dialog.open_preview(file_info={"ext": "pdf", "uuid": "u", "fileName": "a.pdf"}, lang_manager=LANG)
+        dialog = Dialog.open_preview(file_info={"ext": "pdf", "uuid": "u", "fileName": "a.pdf"})
         self.addCleanup(dialog.deleteLater)
         self.assertIsInstance(dialog, Dialog)
         self.assertEqual(dialog._pdf_runtime_unsupported, {"qt": "5.15", "pyqt": ""})
@@ -171,10 +170,10 @@ class OpenPreviewTest(_Base):
 
     def test_pdf_opens_full_size_and_others_keep_compact_and_lazy(self):
         self.p(Dialog, "embedded_pdf_runtime_support", return_value=(True, {}))
-        pdf = Dialog.open_preview(file_info={"ext": "pdf", "uuid": "u"}, lang_manager=LANG, compact=True, lazy=True)
+        pdf = Dialog.open_preview(file_info={"ext": "pdf", "uuid": "u"}, compact=True, lazy=True)
         self.addCleanup(pdf.deleteLater)
         self.assertEqual((pdf._compact_mode, pdf._lazy_preview), (False, False))
-        text = Dialog.open_preview(file_info={"ext": "txt", "uuid": "u"}, lang_manager=LANG, compact=True, lazy=True)
+        text = Dialog.open_preview(file_info={"ext": "txt", "uuid": "u"}, compact=True, lazy=True)
         self.addCleanup(text.deleteLater)
         self.assertEqual((text._compact_mode, text._lazy_preview), (True, True))
 

@@ -243,7 +243,7 @@ class PropertyTreeWorksSectionTest(unittest.TestCase):
 
     def build_card(self, module_connections: dict) -> PropertyConnectionCard:
         entry = PropertyConnectionFormatter().build_entry(CADASTRAL, PROPERTY_ID, module_connections)
-        card = PropertyConnectionCard(entry, self.lang)
+        card = PropertyConnectionCard(entry)
         self.addCleanup(self.dispose, card)
         return card
 

@@ -390,7 +390,7 @@ class ModuleHandlersTest(DialogStubCase):
         self.start(easement_module.EasementGeometryFormDialog, "prompt", return_value={})
         self.start(easement_module.EasementLayerService, "attach_backend_item_to_feature", return_value=(True, ""))
         self.start(easement_module.EasementAttachExistingController, "_geometry_payload_for_item", return_value=self.PAYLOAD)
-        controller = easement_module.EasementAttachExistingController(lang_manager=LanguageManager())
+        controller = easement_module.EasementAttachExistingController()
         self.check(controller._attach_easement_feature_with_form(None, 1, {"id": "42"}), api.update_easement_geometry)
 
     def test_asbuilt(self) -> None:
@@ -411,9 +411,9 @@ class ModuleHandlersTest(DialogStubCase):
     def test_each_module_shows_the_not_saved_text_for_a_layer_failure(self) -> None:
         lang = LanguageManager()
         for controller, key in (
-            (easement_module.EasementAttachExistingController(lang_manager=lang), TranslationKeys.EASEMENT_DRAW_NEW_LAYER_SAVE_FAILED),
-            (asbuilt_module.AsBuiltFeatureMapController(lang_manager=lang), TranslationKeys.ASBUILT_DRAW_NEW_LAYER_SAVE_FAILED),
-            (projects_module.ProjectsFeatureMapController(lang_manager=lang), TranslationKeys.PROJECT_DRAW_NEW_LAYER_SAVE_FAILED),
+            (easement_module.EasementAttachExistingController(), TranslationKeys.EASEMENT_DRAW_NEW_LAYER_SAVE_FAILED),
+            (asbuilt_module.AsBuiltFeatureMapController(), TranslationKeys.ASBUILT_DRAW_NEW_LAYER_SAVE_FAILED),
+            (projects_module.ProjectsFeatureMapController(), TranslationKeys.PROJECT_DRAW_NEW_LAYER_SAVE_FAILED),
         ):
             with self.subTest(key=key):
                 messages = controller._workflow._config.draw_messages

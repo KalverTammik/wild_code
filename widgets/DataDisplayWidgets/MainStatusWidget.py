@@ -50,7 +50,7 @@ class MainStatusWidget(QWidget):
     CORE_TOP_BOTTOM_RIGHT_GAP = 1
     HOVER_POPUP_OFFSET = QPoint(4, 9)
 
-    def __init__(self, item_data, module_name: Optional[str] = None, parent: Optional[QWidget] = None, lang_manager=None):
+    def __init__(self, item_data, module_name: Optional[str] = None, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setObjectName("MainStatusWidget")
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
@@ -68,7 +68,6 @@ class MainStatusWidget(QWidget):
                 item_data,
                 module_name=self._module_name,
                 parent=self,
-                lang_manager=lang_manager,
             )
             self._status_delegate.hide()
 

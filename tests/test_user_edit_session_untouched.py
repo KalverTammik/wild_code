@@ -60,7 +60,7 @@ class UserEditSessionTest(unittest.TestCase):
         self.assert_session_untouched()
 
     def test_a_work_reposition_does_not_start_on_a_layer_in_edit_mode(self):
-        controller = reposition.WorksRepositionController(lang_manager=None)
+        controller = reposition.WorksRepositionController()
         with patch.object(reposition.WorksLayerService, "resolve_main_layer", return_value=self.layer), \
                 patch.object(reposition.WorksLayerService, "find_feature_by_task_id") as find, \
                 patch.object(reposition, "ModernMessageDialog") as dialogs, \

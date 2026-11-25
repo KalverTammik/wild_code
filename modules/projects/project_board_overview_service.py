@@ -22,8 +22,8 @@ class ProjectBoardOverviewService:
     DONE_COLOR = "#43A047"
 
     @classmethod
-    def build_project_board_data(cls, item_data: Optional[dict], *, lang_manager=None) -> dict[str, Any]:
-        lang = lang_manager or LanguageManager()
+    def build_project_board_data(cls, item_data: Optional[dict]) -> dict[str, Any]:
+        lang = LanguageManager()
         project = item_data if isinstance(item_data, dict) else {}
         project_id = str(project.get("id") or "").strip()
         property_numbers = cls._project_property_numbers(project)

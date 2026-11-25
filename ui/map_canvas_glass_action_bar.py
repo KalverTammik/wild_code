@@ -127,7 +127,6 @@ class MapCanvasGlassActionBar(MapCanvasGlassOverlayBase):
 
             ModuleIdentifyToolController.start_for_active_module(
                 parent_window=PluginDialog.get_instance(),
-                lang_manager=self._lang,
             )
         except Exception as exc:
             PythonFailLogger.log_exception(

@@ -81,12 +81,10 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         file_info: Optional[dict] = None,
         local_file_path: str = "",
         local_title: str = "",
-        lang_manager=None,
         parent=None,
         compact: bool = False,
         lazy: bool = False,
     ):
-        resolved_lang = lang_manager or LanguageManager()
         mime_type, ext = preview_identity(file_info=file_info, local_file_path=local_file_path)
 
         if mime_type in PDF_MIME_TYPES or ext in PDF_EXTENSIONS:
@@ -97,7 +95,6 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
                 file_info=file_info,
                 local_file_path=local_file_path,
                 local_title=local_title,
-                lang_manager=resolved_lang,
                 parent=parent,
                 pdf_runtime_unsupported=None if supported else dict(runtime_info or {}),
             )
@@ -106,7 +103,6 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
             file_info=file_info,
             local_file_path=local_file_path,
             local_title=local_title,
-            lang_manager=lang_manager,
             parent=parent,
             compact=compact,
             lazy=lazy,
@@ -153,14 +149,13 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         file_info: Optional[dict] = None,
         local_file_path: str = "",
         local_title: str = "",
-        lang_manager=None,
         parent=None,
         compact: bool = False,
         lazy: bool = False,
         pdf_runtime_unsupported: Optional[dict] = None,
     ) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         # Qt/PyQt versions when QtWebEngine cannot show PDFs; None when it can.
         self._pdf_runtime_unsupported = (
             dict(pdf_runtime_unsupported) if isinstance(pdf_runtime_unsupported, dict) else None

@@ -54,14 +54,13 @@ class ModuleConfigRegistrationTest(_Registrations):
     def test_registered_factory_builds_the_config(self):
         made = ModuleConfig()
         factory = Mock(return_value=made)
-        lang = Mock()
         ModuleConfigFactory.register(Module.PROJECT.value, factory)
 
-        self.assertIs(ModuleConfigFactory.create_config(Module.PROJECT.value, {"id": "1"}, lang_manager=lang), made)
-        factory.assert_called_once_with({"id": "1"}, lang_manager=lang)
+        self.assertIs(ModuleConfigFactory.create_config(Module.PROJECT.value, {"id": "1"}), made)
+        factory.assert_called_once_with({"id": "1"})
 
     def test_project_config_loads_the_board_in_the_background(self):
-        config = project_detail_config.create_project_config({"id": "7"}, lang_manager=Mock())
+        config = project_detail_config.create_project_config({"id": "7"})
 
         self.assertTrue(config.show_detail_handle)
         with patch.object(project_detail_config, "AsyncContentWidget") as async_widget, \

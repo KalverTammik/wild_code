@@ -228,7 +228,7 @@ class OverdueDueSoonPillsActionHelper:
     def apply_due_filter(module: Any, *, is_overdue: bool, base_query=None, days: Optional[int] = None) -> None:
         feed_logic = module.feed_logic
         if feed_logic is None:
-            module.feed_logic = module.FEED_LOGIC_CLS(module.module_key, module.QUERY_FILE, module.lang_manager)
+            module.feed_logic = module.FEED_LOGIC_CLS(module.module_key, module.QUERY_FILE)
             feed_logic = module.feed_logic
 
         where = (

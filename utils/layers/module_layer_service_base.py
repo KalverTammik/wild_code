@@ -514,8 +514,8 @@ class ModuleLayerServiceBase:
         )
 
     @classmethod
-    def resolve_main_layer(cls, *, lang_manager=None, dialogs: Optional[UserDialogs]) -> Optional[QgsVectorLayer]:
-        lang = lang_manager or LanguageManager()
+    def resolve_main_layer(cls, *, dialogs: Optional[UserDialogs]) -> Optional[QgsVectorLayer]:
+        lang = LanguageManager()
         identifier = SettingsService().module_main_layer_name(cls.MODULE.value) or ""
         matches = cls._configured_layers(identifier)
         if len(matches) > 1:
@@ -813,9 +813,9 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
 
     @classmethod
     def prepare_layer_for_draw(
-        cls, *, lang_manager=None, dialogs: Optional[UserDialogs]
+        cls, *, dialogs: Optional[UserDialogs]
     ) -> tuple[Optional[QgsVectorLayer], str]:
-        layer = cls.resolve_main_layer(lang_manager=lang_manager, dialogs=dialogs)
+        layer = cls.resolve_main_layer(dialogs=dialogs)
         if layer is None:
             return None, ""
 
@@ -823,7 +823,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
         if ok:
             return layer, ""
 
-        lang = lang_manager or LanguageManager()
+        lang = LanguageManager()
         if dialogs is not None:
             dialogs.show_warning(
                 lang.translate(TranslationKeys.ERROR),

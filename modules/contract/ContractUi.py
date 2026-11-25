@@ -14,6 +14,7 @@ from ...constants.module_names import Module
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
 from ...widgets.OverdueDueSoonPillsWidget import OverduePillsMixin
 from ...utils.search.SearchOpenItemMixin import SearchOpenItemMixin
+from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 
 
@@ -27,16 +28,15 @@ class ContractsModule(SearchOpenItemMixin, OverduePillsMixin, FilteredFeedMixin,
     def __init__(
         self,
         name: Optional[str] = None,
-        lang_manager: Optional[object] = None,
         parent: Optional[QWidget] = None,
         qss_files: Optional[List[str]] = None,
     ) -> None:
         super().__init__(parent)
-        self._init_feed_module(Module.CONTRACT, lang_manager)
+        self._init_feed_module(Module.CONTRACT, LanguageManager())
         self.wire_overdue_pills(self.toolbar_area, lang_manager=self.lang_manager)
         self._build_filters_and_feed(TranslationKeys.NO_CONTRACTS_FOUND)
 
-        self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
+        self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE)
         self.feed_logic.configure_single_item_query(self.SINGLE_ITEM_QUERY_FILE)
 
     def on_first_visible(self) -> None:

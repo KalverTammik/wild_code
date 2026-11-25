@@ -15,7 +15,6 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 from PyQt5.QtCore import QCoreApplication, QEvent
 from PyQt5.QtWidgets import QApplication
 
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.module_manager import ModuleManager
 from Kavitro_dev.modules.asbuilt.AsBuiltUi import AsBuiltModule
 from Kavitro_dev.modules.easements.EasementsUi import EasementsModule
@@ -56,13 +55,13 @@ class FilterClearButtonTest(unittest.TestCase):
         module.feed_load_engine.schedule_load.assert_called_once()
 
     def test_projects_clear_reloads_feed(self) -> None:
-        self.assert_clear_reloads_feed(ProjectsModule(language=LanguageManager("et")))
+        self.assert_clear_reloads_feed(ProjectsModule())
 
     def test_asbuilt_clear_reloads_feed(self) -> None:
-        self.assert_clear_reloads_feed(AsBuiltModule(lang_manager=LanguageManager("et")))
+        self.assert_clear_reloads_feed(AsBuiltModule())
 
     def test_easements_clear_reloads_feed(self) -> None:
-        self.assert_clear_reloads_feed(EasementsModule(lang_manager=LanguageManager("et")))
+        self.assert_clear_reloads_feed(EasementsModule())
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import os
 from typing import List, Optional, Tuple
 
 from PyQt5.QtWidgets import QComboBox, QDialog, QLineEdit
+from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import FolderNamingTranslationKeys, TranslationKeys
 from PyQt5.uic import loadUi
 from ...ui.messages_helper import ModernMessageDialog
@@ -20,9 +21,9 @@ class FolderNamingRuleDialog(QDialog):
     SAMPLE_PROJECT_NUMBER = "(24)AR-3-1"
     SAMPLE_PROJECT_NAME = "Minu lemmik projekt"
 
-    def __init__(self, lang_manager=None, parent=None, initial_rule: str = ""):
+    def __init__(self, parent=None, initial_rule: str = ""):
         super().__init__(parent)
-        self.lang_manager = lang_manager
+        self.lang_manager = LanguageManager()
         self._result_rule: str = initial_rule or ""
 
         ui_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "FolderNamingRuleDialog.ui"))

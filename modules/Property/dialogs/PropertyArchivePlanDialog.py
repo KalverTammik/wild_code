@@ -24,9 +24,9 @@ from ....ui.theme_manager import ThemeManager
 class PropertyArchivePlanDialog(QDialog):
     """Read-only review of missing-property actions before they are applied."""
 
-    def __init__(self, *, scope, candidates: list[dict], parent=None, lang_manager=None):
+    def __init__(self, *, scope, candidates: list[dict], parent=None):
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self.setWindowTitle(self._lang.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_TITLE))
         self.setModal(True)
         self.resize(900, 480)
@@ -127,11 +127,10 @@ class PropertyArchivePlanDialog(QDialog):
         ThemeManager.apply_app_style(self, [QssPaths.MAIN, QssPaths.BUTTONS])
 
     @classmethod
-    def confirm(cls, *, scope, candidates: list[dict], parent=None, lang_manager=None) -> bool:
+    def confirm(cls, *, scope, candidates: list[dict], parent=None) -> bool:
         dialog = cls(
             scope=scope,
             candidates=candidates,
             parent=parent,
-            lang_manager=lang_manager,
         )
         return dialog.exec_() == QDialog.Accepted

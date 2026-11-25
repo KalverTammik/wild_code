@@ -26,10 +26,10 @@ from .status_select_popups import StatusMultiSelectPopup, StatusSelectPopup
 class _StatusControlBase(QWidget):
     """The clickable control (dot, label, arrow) and opening its popup below it."""
 
-    def __init__(self, parent: Optional[QWidget], *, object_name: str, placeholder: Optional[str], lang_manager) -> None:
+    def __init__(self, parent: Optional[QWidget], *, object_name: str, placeholder: Optional[str]) -> None:
         super().__init__(parent)
         self.setObjectName(object_name)
-        self._lang = resolve_lang(lang_manager)
+        self._lang = resolve_lang()
         self._placeholder = str(placeholder or self._lang.translate(TranslationKeys.SELECT))
         self._options: list[dict[str, object]] = []
         self._popup: Optional[QWidget] = None
@@ -177,9 +177,8 @@ class StatusSelectWidget(_StatusControlBase):
         parent: Optional[QWidget] = None,
         *,
         placeholder: Optional[str] = None,
-        lang_manager=None,
     ) -> None:
-        super().__init__(parent, object_name="StatusSelectWidget", placeholder=placeholder, lang_manager=lang_manager)
+        super().__init__(parent, object_name="StatusSelectWidget", placeholder=placeholder)
         self._selected_id = ""
         self._refresh()
 
@@ -241,7 +240,6 @@ class StatusSelectWidget(_StatusControlBase):
             self._options,
             selected_id=self._selected_id,
             min_width=max(min_width, StatusSelectPopup.MIN_WIDTH),
-            lang_manager=self._lang,
             parent=self.window(),
         )
         popup.optionSelected.connect(self._select_option)
@@ -291,11 +289,8 @@ class StatusMultiSelectWidget(_StatusControlBase):
         parent: Optional[QWidget] = None,
         *,
         placeholder: Optional[str] = None,
-        lang_manager=None,
     ) -> None:
-        super().__init__(
-            parent, object_name="StatusMultiSelectWidget", placeholder=placeholder, lang_manager=lang_manager
-        )
+        super().__init__(parent, object_name="StatusMultiSelectWidget", placeholder=placeholder)
         self._selected_ids: list[str] = []
         self._display_override = ""
         self.setMinimumWidth(210)
@@ -378,7 +373,6 @@ class StatusMultiSelectWidget(_StatusControlBase):
             self._options,
             selected_ids=self._selected_ids,
             min_width=max(min_width, StatusMultiSelectPopup.MIN_WIDTH),
-            lang_manager=self._lang,
             parent=self.window(),
         )
         popup.selectionChanged.connect(self._on_popup_selection_changed)

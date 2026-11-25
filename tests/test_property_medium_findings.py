@@ -393,7 +393,7 @@ class StaleConnectionsTest(unittest.TestCase):
 class ToggleArrowTooltipTest(unittest.TestCase):
     def test_arrow_has_tooltip_and_accessible_name(self) -> None:
         lang = LanguageManager()
-        section = ModuleConnectionSection("projects", {"count": 0, "items": []}, lang_manager=lang)
+        section = ModuleConnectionSection("projects", {"count": 0, "items": []})
         self.addCleanup(section.deleteLater)
         expected = lang.translate(TranslationKeys.PROPERTY_TREE_TOGGLE_TOOLTIP)
 

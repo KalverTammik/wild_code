@@ -21,7 +21,6 @@ from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 from property_fixtures import wait_for
 
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.python.workers import _ACTIVE_THREADS
@@ -47,7 +46,6 @@ class ModuleCardInteractionTest(unittest.TestCase):
     def setUp(self):
         self.widgets = []
         self.gates = []
-        self.lang = LanguageManager("et")
         self.file_patch = patch.object(APIModuleActions, "get_module_files", return_value=[])
         self.files_api = self.file_patch.start()
         self.description_patch = patch.object(
@@ -86,7 +84,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
         host = QWidget()
         layout = QVBoxLayout(host)
         frame = ExtraInfoFrame({"id": "task-1", "name": "Kasutaja määratud nimi"}, "works",
-                               lang_manager=self.lang, handle_host=host)
+                               handle_host=host)
         layout.addWidget(frame)
         host.resize(650, 100)
         self.show(host)
@@ -107,7 +105,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
             threads["build"] = QThread.currentThread()
             return QLabel(value)
 
-        widget = self.show(AsyncContentWidget(fetch, build, lang_manager=self.lang))
+        widget = self.show(AsyncContentWidget(fetch, build))
         self.wait_for(started.is_set)
         self.assertTrue(widget._status.isVisible())
         self.assertIsNone(widget._content)
@@ -119,7 +117,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
 
     def test_failed_detail_can_be_retried_without_recreating_card(self):
         fetch = Mock(side_effect=[RuntimeError("network error"), "Taastatud"])
-        widget = self.show(AsyncContentWidget(fetch, QLabel, lang_manager=self.lang))
+        widget = self.show(AsyncContentWidget(fetch, QLabel))
         self.wait_for(lambda: widget._retry.isVisible())
         self.assertIn("ebaõnnestus", widget._status.text())
         widget._retry.click()
@@ -137,7 +135,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
             return "late"
 
         build = Mock(return_value=None)
-        widget = self.show(AsyncContentWidget(fetch, build, lang_manager=self.lang))
+        widget = self.show(AsyncContentWidget(fetch, build))
         self.wait_for(started.is_set)
         self.widgets.remove(widget)
         widget.deleteLater()
@@ -185,7 +183,6 @@ class ModuleCardInteractionTest(unittest.TestCase):
         nodes = [{"id": str(i), "displayName": f"Osaleja {i}"} for i in range(20)]
         view = self.show(MembersView(
             {"members": {"edges": [{"node": node, "responsible": False} for node in nodes]}},
-            lang_manager=self.lang,
         ))
         bubbles = view.findChildren(AvatarBubble)
         self.assertEqual(len(bubbles), 1)
@@ -201,7 +198,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
         self.assertFalse(popup.isVisible())
 
     def test_unassigned_avatar_with_no_members_has_an_empty_state(self):
-        view = self.show(MembersView({}, lang_manager=self.lang))
+        view = self.show(MembersView({}))
         bubble = view.findChild(AvatarBubble)
         QTest.keyClick(bubble, Qt.Key_Return)
         texts = [label.text() for label in bubble._click_popup.findChildren(QLabel)]
@@ -209,7 +206,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
 
     def test_file_load_failure_has_inline_retry(self):
         self.files_api.side_effect = [None, []]
-        widget = self.show(TaskFilesSummaryWidget(item_id="task-1", lang_manager=self.lang))
+        widget = self.show(TaskFilesSummaryWidget(item_id="task-1"))
         self.wait_for(lambda: widget._retry_button.isVisible())
         widget._retry_button.click()
         self.wait_for(lambda: not widget._loading)
@@ -221,7 +218,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
         files = [{"uuid": str(i), "fileName": f"Pilt {i}.png", "mimeType": "image/png"} for i in range(7)]
         self.files_api.return_value = files
         with patch.object(_FilePreviewSquareButton, "_start_thumbnail_load"):
-            widget = self.show(TaskFilesSummaryWidget(item_id="task-1", lang_manager=self.lang))
+            widget = self.show(TaskFilesSummaryWidget(item_id="task-1"))
             self.wait_for(lambda: not widget._loading)
             self.assertEqual(widget._list_layout.count(), 6)  # Five rows and a stretch.
             row_layout = widget._list_layout.itemAt(0).widget().layout()
@@ -236,7 +233,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
 
     def test_all_files_dialog_uses_loaded_data_without_another_query(self):
         files = [{"uuid": "one", "fileName": "Fail.pdf"}]
-        dialog = self.show(TaskFilesDialog(item_id="task-1", initial_files=files, lang_manager=self.lang))
+        dialog = self.show(TaskFilesDialog(item_id="task-1", initial_files=files))
         self.assertEqual(dialog._table.rowCount(), 1)
         self.files_api.assert_not_called()
 

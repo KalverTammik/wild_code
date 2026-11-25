@@ -19,6 +19,7 @@ from qgis.PyQt.QtCore import QCoreApplication, QEvent, Qt
 from qgis.PyQt.QtTest import QTest
 from qgis.PyQt.QtWidgets import QFrame, QLabel, QPushButton, QWidget
 
+from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.ui.theme_manager import Theme, ThemeManager
 from Kavitro_dev.widgets.status_select_widget import StatusMultiSelectWidget, StatusSelectWidget
 
@@ -36,15 +37,14 @@ OPTIONS = [
 ]
 
 
-def _lang():
-    return Mock(translate=lambda key: f"T:{key}")
-
-
 class _WidgetTest(unittest.TestCase):
     def setUp(self):
         theme = patch.object(ThemeManager, "effective_theme", return_value=Theme.LIGHT)
         theme.start()
         self.addCleanup(theme.stop)
+        translate = patch.object(LanguageManager, "translate", lambda self, key, fallback=None: f"T:{key}")
+        translate.start()
+        self.addCleanup(translate.stop)
         self.host = QWidget()
         self.host.resize(300, 100)
         self.addCleanup(self._dispose)
@@ -75,7 +75,7 @@ class _WidgetTest(unittest.TestCase):
 
 class StatusSelectWidgetTest(_WidgetTest):
     def make(self, **kwargs):
-        widget = StatusSelectWidget(self.host, lang_manager=_lang(), **kwargs)
+        widget = StatusSelectWidget(self.host, **kwargs)
         widget.resize(260, 30)
         return widget
 
@@ -207,7 +207,7 @@ class StatusSelectWidgetTest(_WidgetTest):
 
 class StatusMultiSelectWidgetTest(_WidgetTest):
     def make(self, **kwargs):
-        widget = StatusMultiSelectWidget(self.host, lang_manager=_lang(), **kwargs)
+        widget = StatusMultiSelectWidget(self.host, **kwargs)
         widget.resize(260, 30)
         return widget
 

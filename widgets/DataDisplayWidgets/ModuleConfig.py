@@ -35,7 +35,7 @@ class ModuleConfig:
 class ModuleConfigFactory:
     """Factory for creating module-specific configurations."""
 
-    # module type -> factory(item_id, *, lang_manager) -> ModuleConfig. A module whose detail
+    # module type -> factory(item_id) -> ModuleConfig. A module whose detail
     # view lives in its own package registers it (ui/modules_registry.py), so this widget
     # package never imports modules/.
     _registered_factories: Dict[str, Any] = {}
@@ -61,13 +61,10 @@ class ModuleConfigFactory:
     def _create_task_description_config(
         module_type: str,
         item_data: Dict[str, Any],
-        *,
-        lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
-        lm = lang_manager or LanguageManager()
         config = ModuleConfig()
         config.set_detail_loader(
-            lambda payload=item_data, lang=lm, current_module=module_type: AsyncContentWidget(
+            lambda payload=item_data, current_module=module_type: AsyncContentWidget(
                 lambda: ModuleConfigFactory._load_single_item_description(
                     module_type=Module.TASK.value,
                     query_name="w_tasks_module_data_by_item_id.graphql",
@@ -78,9 +75,7 @@ class ModuleConfigFactory:
                     item_data=payload,
                     description_html=description,
                     module_name=current_module,
-                    lang_manager=lang,
                 ),
-                lang_manager=lang,
             )
         )
         config.set_show_detail_handle(True)
@@ -116,38 +111,33 @@ class ModuleConfigFactory:
     def create_config(
         module_type: str,
         item_id: Dict[str, Any] = None,
-        *,
-        lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         """Create configuration based on module type."""
         registered = ModuleConfigFactory._registered_factories.get(module_type)
         if registered is not None:
-            return registered(item_id, lang_manager=lang_manager)
+            return registered(item_id)
         if module_type == Module.CONTRACT.value:
-            return ModuleConfigFactory._create_contract_config(item_id, lang_manager=lang_manager)
+            return ModuleConfigFactory._create_contract_config(item_id)
         if module_type == Module.COORDINATION.value:
-            return ModuleConfigFactory._create_coordination_config(item_id, lang_manager=lang_manager)
+            return ModuleConfigFactory._create_coordination_config(item_id)
         if module_type == Module.EASEMENT.value:
-            return ModuleConfigFactory._create_easement_config(item_id, lang_manager=lang_manager)
+            return ModuleConfigFactory._create_easement_config(item_id)
         if module_type == Module.TASK.value:
-            return ModuleConfigFactory._create_task_config(item_id, lang_manager=lang_manager)
+            return ModuleConfigFactory._create_task_config(item_id)
         if module_type == Module.WORKS.value:
-            return ModuleConfigFactory._create_works_config(item_id, lang_manager=lang_manager)
+            return ModuleConfigFactory._create_works_config(item_id)
         if module_type == Module.ASBUILT.value:
-            return ModuleConfigFactory._create_asbuilt_config(item_id, lang_manager=lang_manager)
+            return ModuleConfigFactory._create_asbuilt_config(item_id)
         return ModuleConfig()
 
     @staticmethod
     def _create_contract_config(
         item_id: Dict[str, Any],
-        *,
-        lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         """Create configuration for contract modules."""
-        lm = lang_manager or LanguageManager()
         config = ModuleConfig()
         config.set_detail_loader(
-            lambda payload=item_id, lang=lm: AsyncContentWidget(
+            lambda payload=item_id: AsyncContentWidget(
                 lambda: ModuleConfigFactory._load_single_item_description(
                     module_type=Module.CONTRACT.value,
                     query_name="w_contracts_module_data_by_item_id.graphql",
@@ -158,9 +148,7 @@ class ModuleConfigFactory:
                     item_data=payload,
                     description_html=description,
                     module_name=Module.CONTRACT.value,
-                    lang_manager=lang,
                 ),
-                lang_manager=lang,
             )
         )
         config.set_show_detail_handle(True)
@@ -169,14 +157,11 @@ class ModuleConfigFactory:
     @staticmethod
     def _create_coordination_config(
         item_id: Dict[str, Any],
-        *,
-        lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         """Create configuration for coordination modules."""
-        lm = lang_manager or LanguageManager()
         config = ModuleConfig()
         config.set_detail_loader(
-            lambda payload=item_id, lang=lm: AsyncContentWidget(
+            lambda payload=item_id: AsyncContentWidget(
                 lambda: ModuleConfigFactory._load_single_item_coordination_detail(
                     item_data=payload,
                 ),
@@ -184,9 +169,7 @@ class ModuleConfigFactory:
                     item_data=payload,
                     description_html=description,
                     module_name=Module.COORDINATION.value,
-                    lang_manager=lang,
                 ),
-                lang_manager=lang,
             )
         )
         config.set_show_detail_handle(True)
@@ -195,45 +178,34 @@ class ModuleConfigFactory:
     @staticmethod
     def _create_works_config(
         item_id: Dict[str, Any],
-        *,
-        lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         """Create configuration for works modules."""
         return ModuleConfigFactory._create_task_description_config(
             Module.WORKS.value,
             item_id,
-            lang_manager=lang_manager,
         )
 
     @staticmethod
     def _create_task_config(
         item_id: Dict[str, Any],
-        *,
-        lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         return ModuleConfigFactory._create_task_description_config(
             Module.TASK.value,
             item_id,
-            lang_manager=lang_manager,
         )
 
     @staticmethod
     def _create_easement_config(
         item_id: Dict[str, Any],
-        *,
-        lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
-        lm = lang_manager or LanguageManager()
         config = ModuleConfig()
         config.set_detail_loader(
-            lambda payload=item_id, lang=lm: TaskDetailOverviewWidget(
+            lambda payload=item_id: TaskDetailOverviewWidget(
                 item_data=payload,
                 detail_widget=EasementPropertiesWidget(
                     item_data=payload,
-                    lang_manager=lang,
                 ),
                 module_name=Module.EASEMENT.value,
-                lang_manager=lang,
             )
         )
         config.set_detail_open_callback(
@@ -245,13 +217,10 @@ class ModuleConfigFactory:
     @staticmethod
     def _create_asbuilt_config(
         item_id: Dict[str, Any],
-        *,
-        lang_manager: Optional[LanguageManager] = None,
     ) -> ModuleConfig:
         """Create configuration for asbuilt modules."""
         return ModuleConfigFactory._create_task_description_config(
             Module.ASBUILT.value,
             item_id,
-            lang_manager=lang_manager,
         )
 

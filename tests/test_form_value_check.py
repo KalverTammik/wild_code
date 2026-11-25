@@ -94,7 +94,6 @@ class _Case(unittest.TestCase):
                 item_data={"id": "1", "status": PREPARING},
                 status_options=STATUSES,
                 value_validator=validator,
-                lang_manager=ET,
                 **kwargs,
             )
         )
@@ -390,7 +389,7 @@ class AsBuiltFormCheckTest(_Case):
 
     def _form(self, layer=None, item=None) -> AsBuiltForm:
         validator = partial(AsBuiltLayerService.geometry_form_value_problems, layer) if layer is not None else None
-        return self._keep(AsBuiltForm(item_data=item or {"id": "7", "number": "TJ-12"}, value_validator=validator, lang_manager=ET))
+        return self._keep(AsBuiltForm(item_data=item or {"id": "7", "number": "TJ-12"}, value_validator=validator))
 
     def test_prefilled_work_number_that_does_not_fit_is_marked_and_blocks_saving(self) -> None:
         form = self._form(self._layer())

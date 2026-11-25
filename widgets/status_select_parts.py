@@ -22,8 +22,8 @@ _STATUS_GROUP_LABEL_KEYS = {
 FALLBACK_COLOR = "#CCCCCC"
 
 
-def resolve_lang(lang_manager=None) -> LanguageManager:
-    return lang_manager or LanguageManager()
+def resolve_lang() -> LanguageManager:
+    return LanguageManager()
 
 
 def group_status_options(options: Iterable[dict[str, object]]) -> OrderedDict[str, list[dict[str, object]]]:

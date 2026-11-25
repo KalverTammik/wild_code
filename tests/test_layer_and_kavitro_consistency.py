@@ -69,7 +69,7 @@ class RetryHelperTest(DialogStubCase):
     def offer(self, sync):
         return kavitro_sync_retry.offer_kavitro_sync_retry(
             sync, failure_message=lambda detail: f"failed: {detail}", title="E", log_module="test",
-            first_detail="first", lang=LANG,
+            first_detail="first",
         )
 
     def test_try_again_until_kavitro_takes_it(self) -> None:

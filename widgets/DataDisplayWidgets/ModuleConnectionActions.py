@@ -10,6 +10,7 @@ from .module_action_buttons import (
 )
 from ...python.responses import DataDisplayExtractors
 from ...constants.module_names import Module
+from ...languages.language_manager import LanguageManager
 
 
 class ModuleConnectionActions(QWidget):
@@ -23,10 +24,10 @@ class ModuleConnectionActions(QWidget):
         module_key: str,
         item_id: str,
         item_data: Optional[dict],
-        lang_manager=None,
         parent: Optional[QWidget] = None,
     ):
         super().__init__(parent)
+        lang_manager = LanguageManager()
         module_key = str(module_key or "").strip().lower()
         action_payload = dict(item_data or {})
         if item_id and not action_payload.get("id"):
@@ -59,7 +60,6 @@ class ModuleConnectionActions(QWidget):
         self._map_button = map_btn
 
         actions_btn = MoreActionsButton(
-            lang_manager=lang_manager,
             item_data=action_payload,
             module=module_key,
             on_properties_linked=self.set_connected_properties,

@@ -268,11 +268,10 @@ class AsBuiltNotesEditorDialog(QDialog):
         *,
         item_name: str,
         notes: list[AsBuiltNote] | None = None,
-        lang_manager=None,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._item_name = str(item_name or "")
         self._group_headers: dict[str, QWidget] = {}
         # The text column's width before the dialog is shown: the dialog minus margins and the fixed columns.

@@ -25,7 +25,7 @@ from qgis.core import Qgis
 from property_fixtures import LocationFilterTestCase, close_dialog, open_dialog
 
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
-from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.language_manager import LanguageManager, set_current_language
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.Property.FlowControllers.attention_display_rules import AttentionDisplayRules
 from Kavitro_dev.modules.Property.FlowControllers.main_layer_check_controller import MainLayerCheckController
@@ -203,7 +203,6 @@ class TaskFilePreviewHandlersTest(WidgetCase):
                 patch.object(preview_module.ThemeManager, "apply_module_style"):
             return TaskFilePreviewDialog(
                 file_info={"uuid": "u-1", "fileName": "a.pdf", "ext": "pdf"},
-                lang_manager=LanguageManager(),
                 parent=self.window,
             )
 
@@ -380,7 +379,7 @@ class FilterSavedIdsTest(WidgetCase):
         settings.load_module_preference_ids.return_value = []
         widget = BaseSingleFilterWidget(
             "contract", "Label", "FilterObject", "support", self.window, auto_load=False,
-            lang_manager=LanguageManager("et"), settings_logic=settings,
+            settings_logic=settings,
             selected_ids_loader=Mock(side_effect=ValueError("bad saved ids")),
         )
         finished = Mock()
@@ -392,29 +391,15 @@ class FilterSavedIdsTest(WidgetCase):
         self.assertEqual(call.kwargs["module"], "contract")
 
 
-class NotStartedFilterLanguageManagerTest(WidgetCase):
-    """Like the other filter widgets, the not-started status filter takes the language manager it is given."""
+class NotStartedFilterLanguageTest(WidgetCase):
+    """Like the other filter widgets, the not-started status filter follows the plugin-wide language."""
 
-    MODULE_NAME_PATCH = "Kavitro_dev.widgets.Filters.NotStartedStatusFilterWidget.LanguageManager"
-
-    def build(self, **kwargs) -> NotStartedStatusFilterWidget:
-        return NotStartedStatusFilterWidget("project", self.window, auto_load=False, settings_logic=Mock(), **kwargs)
-
-    def test_given_language_manager_supplies_the_title_and_none_is_built(self) -> None:
-        english = LanguageManager("en")
-        with patch(self.MODULE_NAME_PATCH) as built:
-            widget = self.build(lang_manager=english)
-        built.assert_not_called()
-        self.assertIs(widget._lang, english)
+    def test_title_follows_the_current_language(self) -> None:
+        set_current_language("en")
+        self.addCleanup(set_current_language, "et")
+        widget = NotStartedStatusFilterWidget("project", self.window, auto_load=False, settings_logic=Mock())
         self.assertEqual(widget.selector.toolTip(),
-                         english.translate(TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_TITLE))
-
-    def test_without_one_the_widget_builds_its_own_and_hands_it_to_the_base(self) -> None:
-        own = LanguageManager("en")
-        with patch(self.MODULE_NAME_PATCH, return_value=own) as built:
-            widget = self.build()
-        built.assert_called_once_with()
-        self.assertIs(widget._lang, own)
+                         LanguageManager().translate(TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_TITLE))
 
 
 class AddDialogHandlersTest(LocationFilterTestCase):

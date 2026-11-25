@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import QApplication, QTableView, QWidget
 
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.module_manager import ModuleManager
 from Kavitro_dev.modules.contract.ContractUi import ContractsModule
 from Kavitro_dev.python.api_client import APIClient
@@ -330,8 +331,8 @@ class SessionUiControllerTest(unittest.TestCase):
 
 
 class FilteredFeedLanguageTest(QtCase):
-    def test_status_and_type_filters_share_the_module_language_manager(self) -> None:
-        lang = LanguageManager("et")
+    def test_status_and_type_filters_use_the_module_language(self) -> None:
+        lang = LanguageManager()
         for patcher in (
             patch.object(APIClient, "send_query", side_effect=AssertionError("Unexpected API call")),
             patch("requests.sessions.Session.request", side_effect=AssertionError("Unexpected network request")),
@@ -339,10 +340,10 @@ class FilteredFeedLanguageTest(QtCase):
             patcher.start()
             self.addCleanup(patcher.stop)
         with patch.object(ModuleManager, "getModuleSupports", return_value=(True, True, True, False)):
-            module = ContractsModule(lang_manager=lang)
+            module = ContractsModule()
         self.addCleanup(delete_now, module)
-        self.assertIs(module.status_filter._lang, lang)
-        self.assertIs(module.type_filter._lang, lang)
+        self.assertEqual(module.status_filter.selector.toolTip(), lang.translate(TranslationKeys.STATUS_FILTER))
+        self.assertEqual(module.type_filter.type_combo.toolTip(), lang.translate(TranslationKeys.TYPE_FILTER))
 
 
 if __name__ == "__main__":

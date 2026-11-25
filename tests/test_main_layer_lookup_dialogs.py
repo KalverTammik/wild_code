@@ -22,6 +22,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 
 from qgis.core import QgsApplication
 
+from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
 from Kavitro_dev.modules.works.works_layer_service import WorksLayerService
@@ -99,11 +100,8 @@ class QgsAppCase(unittest.TestCase):
 
 class ActiveLayersHelperDialogsTest(QgsAppCase):
     def setUp(self) -> None:
-        self.lang = Mock()
-        self.lang.translate.side_effect = lambda key: f"t:{key}"
         self.settings = patch.object(MAP_HELPERS, "SettingsService").start()
         self.addCleanup(patch.stopall)
-        patch.object(MAP_HELPERS, "LanguageManager", return_value=self.lang).start()
         # The real dialog is stubbed, so a call that ignores `dialogs` can never open a window.
         self.real_dialog = patch.object(ModernMessageDialog, "show_warning").start()
 
@@ -115,7 +113,8 @@ class ActiveLayersHelperDialogsTest(QgsAppCase):
         dialogs = Mock()
         self.assertIsNone(self.resolve(None, dialogs=dialogs))
         dialogs.show_warning.assert_called_once_with(
-            f"t:{TranslationKeys.ERROR}", f"t:{TranslationKeys.PROPERTY_MAIN_LAYER_MISSING}"
+            LanguageManager().translate(TranslationKeys.ERROR),
+            LanguageManager().translate(TranslationKeys.PROPERTY_MAIN_LAYER_MISSING),
         )
         self.real_dialog.assert_not_called()
 

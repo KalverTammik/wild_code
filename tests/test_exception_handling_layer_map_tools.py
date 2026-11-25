@@ -220,7 +220,7 @@ class WorksLayerServiceTest(LoggedCase):
 
         feature = Mock()
         feature.attribute.side_effect = attribute
-        text = WorksLayerService.property_display_text(feature, lang_manager=Mock())
+        text = WorksLayerService.property_display_text(feature)
         self.assertEqual(text, "12345:001:0001 · Tamme")
 
     def test_feature_id_that_is_not_finite_finds_nothing(self) -> None:
@@ -333,7 +333,7 @@ class IdentifyToolTest(LoggedCase):
     @staticmethod
     def controller() -> ModuleIdentifyToolController:
         with patch.object(ModuleIdentifyToolController, "_safe_parent_window", return_value=None):
-            return ModuleIdentifyToolController(lang_manager=Mock())
+            return ModuleIdentifyToolController()
 
     def test_title_skips_the_fields_the_layer_does_not_have(self) -> None:
         values = {"name": " Objekt 7 "}

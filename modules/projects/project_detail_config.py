@@ -4,7 +4,7 @@ Registered with ModuleConfigFactory in ui/modules_registry.py.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
 
@@ -20,21 +20,19 @@ from .project_board_widgets import ProjectBoardOverviewWidget
 
 def create_project_config(
     item_id: Dict[str, Any],
-    *,
-    lang_manager: Optional[LanguageManager] = None,
 ) -> ModuleConfig:
     """Create configuration for project modules."""
-    lm = lang_manager or LanguageManager()
+    lm = LanguageManager()
     config = ModuleConfig()
 
-    def _project_detail_widget(board_data, lang=lm):
+    def _project_detail_widget(board_data):
         wrapper = QWidget()
         layout = QVBoxLayout(wrapper)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
         intro = QLabel(
-            lang.translate(TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT),
+            lm.translate(TranslationKeys.PROJECT_BOARD_DETAILS_LOAD_HINT),
             wrapper,
         )
         intro.setWordWrap(True)
@@ -49,9 +47,8 @@ def create_project_config(
 
     config.set_detail_loader(
         lambda: AsyncContentWidget(
-            lambda: ProjectBoardOverviewService.build_project_board_data(item_id, lang_manager=lm),
+            lambda: ProjectBoardOverviewService.build_project_board_data(item_id),
             _project_detail_widget,
-            lang_manager=lm,
         )
     )
     config.set_show_detail_handle(True)

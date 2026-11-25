@@ -12,9 +12,9 @@ from ...ui.theme_manager import ThemeManager
 
 
 class AsyncContentWidget(QWidget):
-    def __init__(self, load_data, build_widget, *, lang_manager=None, parent=None):
+    def __init__(self, load_data, build_widget, *, parent=None):
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._load_data = load_data
         self._build_widget = build_widget
         self._loading = False

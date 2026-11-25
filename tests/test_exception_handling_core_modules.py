@@ -37,7 +37,8 @@ from Kavitro_dev import main as main_module
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.constants.file_paths import _read_metadata_value
 from Kavitro_dev.feed.feed_load_engine import FeedLoadEngine
-from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.language_manager import LanguageManager, set_current_language
+from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.module_manager import ModuleManager
 from Kavitro_dev.modules.Property.query_coordinator import ConnectedModuleData
 from Kavitro_dev.modules.projects import project_board_overview_service as board_module
@@ -51,7 +52,8 @@ from Kavitro_dev.modules.Settings.cards.SettingsModuleCard import SettingsModule
 from Kavitro_dev.modules.Settings.cards.SettingsPropertyManagement import PropertyManagementUI
 from Kavitro_dev.modules.Settings.GeospatialLayerMapperDialog import GeospatialLayerMapperDialog
 from Kavitro_dev.modules.Settings.SettingsUI import SettingsModule
-from Kavitro_dev.modules.works import works_create_controller as controller_module
+from Kavitro_dev.modules.works import works_create_controller as controller_module
+
 from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper
 from Kavitro_dev.modules.works import works_create_dialog as create_dialog_module
 from Kavitro_dev.modules.works.works_sync_service import WorksSyncService
@@ -252,7 +254,9 @@ class SettingsModuleTest(LoggedExceptionTestCase):
 class SettingsModuleCardTest(LoggedExceptionTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.lang = LanguageManager(language="en")
+        set_current_language("en")
+        self.addCleanup(set_current_language, "et")
+        self.lang = LanguageManager()
         # Never write the real settings of the profile; one test asserts the build does not try.
         writes = patch("qgis.core.QgsSettings.setValue")
         self.setting_writes = writes.start()
@@ -270,9 +274,9 @@ class SettingsModuleCardTest(LoggedExceptionTestCase):
     def test_building_the_card_writes_no_settings(self) -> None:
         self.setting_writes.assert_not_called()
 
-    def test_status_and_type_filters_share_the_language_manager_of_the_card(self) -> None:
-        self.assertIs(self.card._status_filter_widget._lang, self.lang)
-        self.assertIs(self.card._type_filter_widget._lang, self.lang)
+    def test_status_and_type_filters_use_the_language_of_the_card(self) -> None:
+        self.assertEqual(self.card._status_filter_widget.selector.toolTip(), self.lang.translate(TranslationKeys.STATUS_FILTER))
+        self.assertEqual(self.card._type_filter_widget.type_combo.toolTip(), self.lang.translate(TranslationKeys.TYPE_FILTER))
 
     def test_filter_that_fails_to_clear_is_logged_and_the_others_still_clear(self) -> None:
         self.card._status_filter_widget.clear_data = Mock(side_effect=RuntimeError("deleted"))
@@ -422,7 +426,7 @@ class ProjectCardActionsTest(LoggedExceptionTestCase):
 class WorksCreateOptionLoadsTest(LoggedExceptionTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.controller = controller_module.WorksCreateController(lang_manager=Mock())
+        self.controller = controller_module.WorksCreateController()
 
     def test_every_failed_option_load_is_logged_and_the_preload_payload_stays_empty(self) -> None:
         with (
@@ -476,7 +480,6 @@ class WorksCreateOptionLoadsTest(LoggedExceptionTestCase):
                 assignable_users=[],
                 status_options=[],
                 priority_options=[],
-                lang_manager=LanguageManager(language="et"),
             )
         self.addCleanup(self.dispose, dialog)
 
@@ -493,7 +496,7 @@ class WorksCreateOptionLoadsTest(LoggedExceptionTestCase):
 class WorksSyncServiceTest(LoggedExceptionTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.service = WorksSyncService(lang_manager=Mock())
+        self.service = WorksSyncService()
         self.addCleanup(self.service.deleteLater)
 
     def test_detach_of_a_layer_that_was_never_connected_is_quiet(self) -> None:

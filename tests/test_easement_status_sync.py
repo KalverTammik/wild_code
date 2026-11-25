@@ -115,7 +115,7 @@ class EasementCardStatusTest(unittest.TestCase):
         layout = QHBoxLayout(card)
         status = MainStatusWidget(item, module_name="easement", parent=card)
         with patch.object(ModuleManager, "getModuleCardActions", return_value=EasementCardActions):
-            actions = ModuleConnectionActions("easement", item["id"], item, StubLanguageManager())
+            actions = ModuleConnectionActions("easement", item["id"], item)
         layout.addWidget(status)
         layout.addWidget(actions)
 

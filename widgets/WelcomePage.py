@@ -8,11 +8,11 @@ from .ModuleKpiCard import ModuleKpiCard
 
 class WelcomePage(TokenMixin, QWidget):
 
-    def __init__(self, lang_manager=None, parent=None):
+    def __init__(self, parent=None):
         QWidget.__init__(self, parent)
         TokenMixin.__init__(self)
         self.setObjectName("WelcomePage")
-        self.lang_manager = lang_manager or LanguageManager()
+        self.lang_manager = LanguageManager()
         self._kpi_cards = []
 
         self._kpi_grid = QGridLayout()
@@ -66,7 +66,6 @@ class WelcomePage(TokenMixin, QWidget):
             card = ModuleKpiCard(
                 module_key=spec["module_key"],
                 query_name=spec["query_name"],
-                lang_manager=self.lang_manager,
                 parent=self,
                 root_field=spec.get("root_field"),
                 show_breakdown=bool(spec.get("show_breakdown", True)),

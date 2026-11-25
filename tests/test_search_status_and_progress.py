@@ -18,12 +18,11 @@ from PyQt5.QtWidgets import QApplication
 from qgis.core import QgsFeature, QgsVectorLayer
 
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus
-from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.language_manager import LanguageManager, set_current_language
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.Settings.cards import SettingsPropertyManagement as card_module
 from Kavitro_dev.modules.Settings.cards.SettingsPropertyManagement import PropertyManagementUI
 from Kavitro_dev.modules.works.works_create_controller import WorksCreateController
-from Kavitro_dev.utils.property import property_search_field_service as service_module
 from Kavitro_dev.utils.property.property_search_field_service import PropertySearchFieldService
 from Kavitro_dev.utils.search import UnifiedSearchController as search_module
 from Kavitro_dev.utils.search.UnifiedSearchController import UnifiedSearchController
@@ -71,9 +70,10 @@ class SearchFieldServiceTest(unittest.TestCase):
 
     def test_errors_are_in_the_users_language(self) -> None:
         # In English: the Estonian text it replaced would pass an Estonian check unchanged.
-        english = LanguageManager("en")
-        with patch.object(service_module, "LanguageManager", return_value=english):
-            ok, error, changed = PropertySearchFieldService.ensure_search_field(None)
+        set_current_language("en")
+        self.addCleanup(set_current_language, "et")
+        english = LanguageManager()
+        ok, error, changed = PropertySearchFieldService.ensure_search_field(None)
 
         self.assertEqual((ok, changed), (False, 0))
         self.assertEqual(error, english.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_LAYER_INVALID))

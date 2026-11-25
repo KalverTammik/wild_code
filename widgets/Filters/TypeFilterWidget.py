@@ -163,11 +163,10 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         *,
         auto_load: bool = True,
         settings_logic: Optional[SettingsLogic] = None,
-        lang_manager: Optional[LanguageManager] = None,
     ) -> None:
         super().__init__(parent)
         self._module = module_name
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._group_map: Dict[str, List[str]] = {}
         self._all_types_payload: List[Dict[str, str]] = []
         self._suppress_group_emit = False

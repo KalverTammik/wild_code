@@ -32,7 +32,6 @@ from PyQt5.QtCore import QCoreApplication, QEvent
 from PyQt5.QtWidgets import QWidget
 from qgis.core import QgsApplication
 
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.modules.works import works_create_controller as controller_module
 from Kavitro_dev.python import workers as workers_module
@@ -1327,7 +1326,7 @@ class MissingCurrentUserQueryTest(CreateTaskTestCase):
 
     def test_works_dialog_opens_without_a_default_responsible(self) -> None:
         # _handle_point_selected asks for it on the GUI thread without a try block.
-        controller = controller_module.WorksCreateController(lang_manager=Mock())
+        controller = controller_module.WorksCreateController()
         self.assertEqual(controller._resolve_default_responsible_id(), "")
         self.client.send_query.assert_not_called()
         self.assertEqual([call.kwargs["event"] for call in self.log.call_args_list], ["current_user_fetch_failed"])
@@ -1343,7 +1342,7 @@ class StatusFilterLoadErrorTest(ActionTestCase):
         self.addCleanup(self.delete_host)
         settings = Mock()
         settings.load_module_preference_ids.return_value = []
-        self.widget = StatusFilterWidget("works", self.host, auto_load=False, lang_manager=LanguageManager("et"),
+        self.widget = StatusFilterWidget("works", self.host, auto_load=False,
                                          settings_logic=settings)
 
     def delete_host(self) -> None:

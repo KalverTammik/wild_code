@@ -102,12 +102,12 @@ class _StatusPopupBase(QWidget):
     MIN_WIDTH = 210
     FRAME_SPACING = 0
 
-    def __init__(self, options: Iterable[dict[str, object]], *, object_name: str, lang_manager=None, parent=None):
+    def __init__(self, options: Iterable[dict[str, object]], *, object_name: str, parent=None):
         super().__init__(parent, flags=Qt.Popup | Qt.FramelessWindowHint)
         self.setObjectName(object_name)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self.setFocusPolicy(Qt.NoFocus)
-        self._lang = resolve_lang(lang_manager)
+        self._lang = resolve_lang()
         self._dark_theme = is_dark_theme()
         self._options = [dict(option or {}) for option in (options or [])]
 
@@ -180,8 +180,8 @@ class _StatusPopupBase(QWidget):
 class StatusSelectPopup(_StatusPopupBase):
     optionSelected = pyqtSignal(object)
 
-    def __init__(self, options, *, selected_id: str, min_width: int, lang_manager=None, parent=None):
-        super().__init__(options, object_name="StatusSelectPopup", lang_manager=lang_manager, parent=parent)
+    def __init__(self, options, *, selected_id: str, min_width: int, parent=None):
+        super().__init__(options, object_name="StatusSelectPopup", parent=parent)
         self._selected_id = str(selected_id or "").strip()
         self._build(min_width)
 
@@ -199,8 +199,8 @@ class StatusMultiSelectPopup(_StatusPopupBase):
     MIN_WIDTH = 230
     FRAME_SPACING = 4
 
-    def __init__(self, options, *, selected_ids: Iterable[str], min_width: int, lang_manager=None, parent=None):
-        super().__init__(options, object_name="StatusMultiSelectPopup", lang_manager=lang_manager, parent=parent)
+    def __init__(self, options, *, selected_ids: Iterable[str], min_width: int, parent=None):
+        super().__init__(options, object_name="StatusMultiSelectPopup", parent=parent)
         self._selected_ids = {str(value or "").strip() for value in (selected_ids or []) if str(value or "").strip()}
         self._row_by_id: dict[str, StatusOptionRow] = {}
         self._build(min_width)

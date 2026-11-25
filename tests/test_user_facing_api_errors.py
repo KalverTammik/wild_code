@@ -105,12 +105,11 @@ class FilterErrorTest(UserFacingCase):
         super().setUp()
         self.host = QWidget()
         self.addCleanup(self.delete_host)
-        lang = LanguageManager("et")
         settings = Mock()
         settings.load_module_preference_ids.return_value = []
-        self.status = StatusFilterWidget("contract", self.host, auto_load=False, lang_manager=lang, settings_logic=settings)
+        self.status = StatusFilterWidget("contract", self.host, auto_load=False, settings_logic=settings)
         self.types = TypeFilterWidget("contract", self.host, auto_load=False, settings_logic=settings)
-        self.tags = TagsFilterWidget("contract", lang, self.host, auto_load=False, settings_logic=settings)
+        self.tags = TagsFilterWidget("contract", self.host, auto_load=False, settings_logic=settings)
 
     def delete_host(self) -> None:
         self.host.hide()

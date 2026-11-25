@@ -16,7 +16,6 @@ from PyQt5.QtCore import QCoreApplication, QEvent
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from Kavitro_dev.feed.feed_load_engine import FeedLoadEngine
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.module_manager import ModuleManager
 from Kavitro_dev.modules.coordination.CoordinationModule import CoordinationModule
 from Kavitro_dev.ui.mixins.token_mixin import TokenMixin
@@ -80,7 +79,7 @@ class FeedSessionReactivationTest(unittest.TestCase):
             p.start()
         for p in patches:
             self.addCleanup(p.stop)
-        self.ui = CoordinationModule(language=LanguageManager("et"))
+        self.ui = CoordinationModule()
         self.addCleanup(delete_now, self.ui)
         self.ui.init_feed_engine(self.ui.load_next_batch)
         self.ui.feed_logic = Mock(has_more=True)

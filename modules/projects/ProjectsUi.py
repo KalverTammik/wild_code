@@ -27,17 +27,16 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, FilteredFeedMixin, 
 
     def __init__(
         self,
-        language: Optional[str] = None,
         parent: Optional[QWidget] = None,
         qss_files: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(parent)
-        self._init_feed_module(Module.PROJECT, language or LanguageManager())
+        self._init_feed_module(Module.PROJECT, LanguageManager())
         self.wire_overdue_pills(self.toolbar_area, lang_manager=self.lang_manager)
         self._build_filters_and_feed(TranslationKeys.NO_PROJECTS_FOUND)
 
-        self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
+        self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE)
         self.feed_logic.configure_single_item_query(self.SINGLE_ITEM_QUERY_FILE)
 
     def on_first_visible(self) -> None:

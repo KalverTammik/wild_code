@@ -21,7 +21,6 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import Qt
 
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner
 from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
@@ -37,7 +36,7 @@ class FileTableTest(unittest.TestCase):
     ]
 
     def dialog(self) -> TaskFilesDialog:
-        dialog = TaskFilesDialog(item_id="t1", initial_files=list(self.FILES), lang_manager=LanguageManager())
+        dialog = TaskFilesDialog(item_id="t1", initial_files=list(self.FILES))
         self.addCleanup(dialog.deleteLater)
         return dialog
 

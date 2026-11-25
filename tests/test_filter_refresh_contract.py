@@ -15,7 +15,6 @@ from PyQt5.QtCore import QCoreApplication, QEvent
 from PyQt5.QtWidgets import QApplication, QWidget
 
 from Kavitro_dev.feed.FeedLogic import UnifiedFeedLogic
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.module_manager import ModuleManager
 from Kavitro_dev.modules.coordination.CoordinationModule import CoordinationModule
 from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper, FilterRefreshService
@@ -48,11 +47,10 @@ class CancelPendingLoadContractTest(unittest.TestCase):
     def setUp(self) -> None:
         self.host = QWidget()
         self.addCleanup(delete_now, self.host)
-        lang = LanguageManager("et")
         self.widgets = [
-            StatusFilterWidget("contract", self.host, auto_load=False, lang_manager=lang),
+            StatusFilterWidget("contract", self.host, auto_load=False),
             TypeFilterWidget("contract", self.host, auto_load=False),
-            TagsFilterWidget("contract", lang, self.host, auto_load=False),
+            TagsFilterWidget("contract", self.host, auto_load=False),
         ]
 
     def test_invalidating_cancel_stops_the_running_load(self) -> None:
@@ -106,7 +104,7 @@ class ModuleFeedContractTest(unittest.TestCase):
             p.start()
         for p in patches:
             self.addCleanup(p.stop)
-        self.ui = CoordinationModule(language=LanguageManager("et"))
+        self.ui = CoordinationModule()
         self.addCleanup(delete_now, self.ui)
 
     def test_refresh_builds_a_list_feed_from_the_selected_filters(self) -> None:

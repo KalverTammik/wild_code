@@ -66,7 +66,6 @@ class SettingsModuleCardUiMixin:
         primary_layer_group, primary_layer_widget = SettingsModuleFeatureCard.build_filter_group(
             parent=layers_container,
             title_text=primary_layer_title,
-            lang_manager=self.lang_manager,
             description_text=primary_layer_description,
             group_object_name="MainLayerGroup",
             container_object_name="LayerSelectorContainer",
@@ -80,7 +79,6 @@ class SettingsModuleCardUiMixin:
             archive_group, archive_widget = SettingsModuleFeatureCard.build_filter_group(
                 parent=layers_container,
                 title_text=self.lang_manager.translate(TranslationKeys.ARCHIVE_LAYER),
-                lang_manager=self.lang_manager,
                 description_text=self.lang_manager.translate(TranslationKeys.ARCHIVE_LAYER_DESCRIPTION),
                 group_object_name="ArchiveLayerGroup",
                 container_object_name="ArchivePickerContainer",
@@ -96,7 +94,6 @@ class SettingsModuleCardUiMixin:
         geospatial_mapper_group, _geospatial_mapper_button = SettingsModuleFeatureCard.build_filter_group(
             parent=cw,
             title_text=self.lang_manager.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_HELPER_TITLE),
-            lang_manager=self.lang_manager,
             description_text=self.lang_manager.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_HELPER_DESCRIPTION),
             group_object_name="GeospatialLayerMapperGroup",
             container_object_name="GeospatialLayerMapperContainer",
@@ -109,7 +106,6 @@ class SettingsModuleCardUiMixin:
             works_temp_group, _works_temp_button = SettingsModuleFeatureCard.build_filter_group(
                 parent=cw,
                 title_text=self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_HELPER_TITLE),
-                lang_manager=self.lang_manager,
                 description_text=self.lang_manager.translate(TranslationKeys.WORKS_TEMP_LAYER_HELPER_DESCRIPTION),
                 group_object_name="WorksTempLayerHelperGroup",
                 container_object_name="WorksTempLayerHelperContainer",
@@ -122,7 +118,6 @@ class SettingsModuleCardUiMixin:
             projects_temp_group, _projects_temp_button = SettingsModuleFeatureCard.build_filter_group(
                 parent=cw,
                 title_text=self.lang_manager.translate(TranslationKeys.PROJECTS_TEMP_LAYER_HELPER_TITLE),
-                lang_manager=self.lang_manager,
                 description_text=self.lang_manager.translate(TranslationKeys.PROJECTS_TEMP_LAYER_HELPER_DESCRIPTION),
                 group_object_name="ProjectsTempLayerHelperGroup",
                 container_object_name="ProjectsTempLayerHelperContainer",
@@ -149,7 +144,6 @@ class SettingsModuleCardUiMixin:
             status_group, status_widget = SettingsModuleFeatureCard.build_filter_group(
                 parent=first_row_container,
                 title_text=self.lang_manager.translate(TranslationKeys.STATUS_PREFERENCES),
-                lang_manager=self.lang_manager,
                 description_text=self.lang_manager.translate(TranslationKeys.SELECT_STATUSES_DESCRIPTION),
                 group_object_name="StatusPreferencesGroup",
                 container_object_name="StatusContainer",
@@ -158,7 +152,6 @@ class SettingsModuleCardUiMixin:
                     container,
                     settings_logic=self.logic,
                     auto_load=False,
-                    lang_manager=self.lang_manager,
                 ),
             )
             self._status_filter_widget = status_widget
@@ -170,13 +163,11 @@ class SettingsModuleCardUiMixin:
             tags_group, tags_widget = SettingsModuleFeatureCard.build_filter_group(
                 parent=first_row_container,
                 title_text=self.lang_manager.translate(TranslationKeys.TAGS_PREFERENCES),
-                lang_manager=self.lang_manager,
                 description_text=self.lang_manager.translate(TranslationKeys.SELECT_TAGS_DESCRIPTION),
                 group_object_name="TagPreferencesGroup",
                 container_object_name="TagsContainer",
                 widget_factory=lambda container: TagsFilterWidget(
                     self.module_key,
-                    self.lang_manager,
                     container,
                     settings_logic=self.logic,
                     auto_load=False,
@@ -191,7 +182,6 @@ class SettingsModuleCardUiMixin:
             type_group, type_widget = SettingsModuleFeatureCard.build_filter_group(
                 parent=options_container,
                 title_text=self.lang_manager.translate(TranslationKeys.TYPE_PREFERENCES),
-                lang_manager=self.lang_manager,
                 description_text=self.lang_manager.translate(TranslationKeys.SELECT_TYPE_DESCRIPTION),
                 group_object_name="TypePreferencesGroup",
                 container_object_name="TypeContainer",
@@ -200,7 +190,6 @@ class SettingsModuleCardUiMixin:
                     container,
                     settings_logic=self.logic,
                     auto_load=False,
-                    lang_manager=self.lang_manager,
                 ),
             )
             self._type_filter_widget = type_widget
@@ -212,7 +201,6 @@ class SettingsModuleCardUiMixin:
             not_started_group, not_started_widget = SettingsModuleFeatureCard.build_filter_group(
                 parent=options_container,
                 title_text=self.lang_manager.translate(TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_TITLE),
-                lang_manager=self.lang_manager,
                 description_text=self.lang_manager.translate(TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_DESCRIPTION),
                 group_object_name="ProjectBoardNotStartedStatusesGroup",
                 container_object_name="ProjectBoardNotStartedStatusesContainer",
@@ -221,7 +209,6 @@ class SettingsModuleCardUiMixin:
                     container,
                     settings_logic=self.logic,
                     auto_load=False,
-                    lang_manager=self.lang_manager,
                 ),
             )
             self._not_started_status_filter_widget = not_started_widget

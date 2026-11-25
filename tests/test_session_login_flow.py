@@ -20,7 +20,7 @@ from Kavitro_dev import main as main_module
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.Logs.switch_logger import SwitchLogger
 from Kavitro_dev.utils.settings_service import SettingsService
-from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.language_manager import LanguageManager, set_current_language
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.ui.session_storage_warning import show_pending_storage_warning, show_storage_warning
 from Kavitro_dev.ui.session_ui_controller import SessionUIController
@@ -311,7 +311,9 @@ class StorageWarningTest(unittest.TestCase):
     }
 
     def setUp(self) -> None:
-        self.lang = LanguageManager("en")
+        set_current_language("en")
+        self.addCleanup(set_current_language, "et")
+        self.lang = LanguageManager()
         patcher = patch.object(ModernMessageDialog, "show_warning")
         self.addCleanup(patcher.stop)
         self.warning = patcher.start()
@@ -322,7 +324,7 @@ class StorageWarningTest(unittest.TestCase):
         for status, key in self.MESSAGES.items():
             with self.subTest(status=status):
                 self.warning.reset_mock()
-                show_storage_warning(status, parent=parent, lang_manager=self.lang)
+                show_storage_warning(status, parent=parent)
                 self.warning.assert_called_once_with(
                     self.lang.translate(TranslationKeys.SESSION_STORAGE_WARNING_TITLE),
                     self.lang.translate(key),
@@ -332,24 +334,19 @@ class StorageWarningTest(unittest.TestCase):
     def test_healthy_storage_shows_nothing(self) -> None:
         for status in (session_module.SESSION_STORAGE_PERSISTENT, "", "login_required"):
             with self.subTest(status=status):
-                show_storage_warning(status, lang_manager=self.lang)
+                show_storage_warning(status)
                 self.warning.assert_not_called()
-
-    def test_default_language_is_used_when_none_is_given(self) -> None:
-        show_storage_warning(session_module.SESSION_STORAGE_MEMORY_ONLY)
-        self.assertEqual(self.warning.call_args.args[1],
-                         LanguageManager().translate(TranslationKeys.SESSION_STORAGE_MEMORY_ONLY))
 
     def test_pending_warning_is_shown_once(self) -> None:
         SessionManager._storage_warning_pending = session_module.SESSION_STORAGE_CLEANUP_FAILED
-        show_pending_storage_warning(lang_manager=self.lang)
-        show_pending_storage_warning(lang_manager=self.lang)
+        show_pending_storage_warning()
+        show_pending_storage_warning()
         self.warning.assert_called_once()
         self.assertIsNone(SessionManager._storage_warning_pending)
 
     def test_nothing_pending_shows_nothing(self) -> None:
         SessionManager._storage_warning_pending = None
-        show_pending_storage_warning(lang_manager=self.lang)
+        show_pending_storage_warning()
         self.warning.assert_not_called()
 
 

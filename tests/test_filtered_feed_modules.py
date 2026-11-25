@@ -49,15 +49,15 @@ class Spec:
 
 
 SPECS = (
-    Spec(ContractsModule, lambda lang: ContractsModule(lang_manager=lang), Module.CONTRACT,
+    Spec(ContractsModule, lambda: ContractsModule(), Module.CONTRACT,
          TranslationKeys.NO_CONTRACTS_FOUND, (True, True, True, False), Module.CONTRACT, "contract"),
-    Spec(CoordinationModule, lambda lang: CoordinationModule(language=lang), Module.COORDINATION,
+    Spec(CoordinationModule, lambda: CoordinationModule(), Module.COORDINATION,
          TranslationKeys.NO_COORDINATIONS_FOUND, (True, True, True, True), Module.COORDINATION, "coordination"),
-    Spec(ProjectsModule, lambda lang: ProjectsModule(language=lang), Module.PROJECT,
+    Spec(ProjectsModule, lambda: ProjectsModule(), Module.PROJECT,
          TranslationKeys.NO_PROJECTS_FOUND, (False, True, True, False), Module.PROJECT, "projects"),
-    Spec(AsBuiltModule, lambda lang: AsBuiltModule(lang_manager=lang), Module.ASBUILT,
+    Spec(AsBuiltModule, lambda: AsBuiltModule(), Module.ASBUILT,
          TranslationKeys.NO_ASBUILT_FOUND, (True, True, False, False), None, "task_module"),
-    Spec(EasementsModule, lambda lang: EasementsModule(lang_manager=lang), Module.EASEMENT,
+    Spec(EasementsModule, lambda: EasementsModule(), Module.EASEMENT,
          TranslationKeys.NO_EASEMENTS_FOUND, (True, True, False, False), None, "task_module"),
 )
 BY_CLASS = {spec.cls: spec for spec in SPECS}
@@ -77,7 +77,7 @@ class ModuleCase(unittest.TestCase):
         cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self) -> None:
-        self.lang = LanguageManager("et")
+        self.lang = LanguageManager()
         for patcher in (
             patch.object(APIClient, "send_query", side_effect=AssertionError("Unexpected API call")),
             patch("requests.sessions.Session.request", side_effect=AssertionError("Unexpected network request")),
@@ -87,7 +87,7 @@ class ModuleCase(unittest.TestCase):
 
     def build(self, spec: Spec, supports=None):
         with patch.object(ModuleManager, "getModuleSupports", return_value=supports or spec.supports) as supports_read:
-            module = spec.build(self.lang)
+            module = spec.build()
         supports_read.assert_called_once_with(spec.module.name)
         self.addCleanup(delete_now, module)
         return module
@@ -104,7 +104,7 @@ class ModuleIdentityTest(ModuleCase):
                 module = self.build(spec)
                 self.assertEqual(module.module_key, spec.module.value)
                 self.assertEqual(module.objectName(), spec.module.value)
-                self.assertIs(module.lang_manager, self.lang)
+                self.assertEqual(module.lang_manager.language, self.lang.language)
                 self.assertIs(module.get_widget(), module)
 
 
@@ -213,7 +213,7 @@ class ModuleFeedLogicTest(ModuleCase):
         for spec in (BY_CLASS[ContractsModule], BY_CLASS[ProjectsModule]):
             with self.subTest(module=spec.cls.__name__), patch.object(spec.cls, "FEED_LOGIC_CLS") as logic:
                 module = self.build(spec)
-                logic.assert_called_once_with(spec.module.value, spec.cls.QUERY_FILE, self.lang)
+                logic.assert_called_once_with(spec.module.value, spec.cls.QUERY_FILE)
                 self.assertIs(module.feed_logic, logic.return_value)
                 logic.return_value.configure_single_item_query.assert_called_once_with(spec.cls.SINGLE_ITEM_QUERY_FILE)
 
@@ -224,7 +224,7 @@ class ModuleFeedLogicTest(ModuleCase):
         for spec in TASK_SPECS:
             with self.subTest(module=spec.cls.__name__), patch.object(spec.cls, "FEED_LOGIC_CLS") as logic:
                 module = self.build(spec)
-                logic.assert_called_once_with(spec.cls.FEED_MODULE_ENUM.value, spec.cls.QUERY_FILE, self.lang,
+                logic.assert_called_once_with(spec.cls.FEED_MODULE_ENUM.value, spec.cls.QUERY_FILE,
                                               root_field=spec.cls.FEED_ROOT_FIELD)
                 self.assertIs(module.feed_logic, logic.return_value)
                 logic.return_value.configure_single_item_query.assert_called_once_with(spec.cls.SINGLE_ITEM_QUERY_FILE)
@@ -382,7 +382,7 @@ class ModuleLifecycleTest(ModuleCase):
     def loading_module(self, spec):
         module = self.build(spec)
         if module.feed_logic is None:
-            module.feed_logic = module.FEED_LOGIC_CLS(module.module_key, module.QUERY_FILE, module.lang_manager)
+            module.feed_logic = module.FEED_LOGIC_CLS(module.module_key, module.QUERY_FILE)
         module._activated = True
         request = Mock()
         module._feed_request = request

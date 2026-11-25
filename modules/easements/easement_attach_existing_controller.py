@@ -21,8 +21,8 @@ from .easement_layer_service import EasementLayerService
 
 
 class EasementAttachExistingController:
-    def __init__(self, *, lang_manager=None, on_status_changed: Optional[Callable[[dict], None]] = None) -> None:
-        self._lang = lang_manager or LanguageManager()
+    def __init__(self, *, on_status_changed: Optional[Callable[[dict], None]] = None) -> None:
+        self._lang = LanguageManager()
         self._on_status_changed = on_status_changed
         self._workflow = ModuleFeatureWorkflow(self._build_workflow_config())
 
@@ -51,7 +51,7 @@ class EasementAttachExistingController:
     def _build_workflow_config(self) -> ModuleFeatureWorkflowConfig:
         return ModuleFeatureWorkflowConfig(
             log_module="easement",
-            resolve_layer=lambda: EasementLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog),
+            resolve_layer=lambda: EasementLayerService.resolve_main_layer(dialogs=ModernMessageDialog),
             find_feature_at_point=lambda point, layer: EasementLayerService.find_feature_at_point(point, layer=layer),
             attach_handler=self._attach_easement_feature_with_form,
             find_feature_for_item=lambda layer, current_item: EasementLayerService.find_feature(

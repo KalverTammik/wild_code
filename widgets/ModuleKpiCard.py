@@ -430,7 +430,6 @@ class ModuleKpiCard(QFrame):
         *,
         module_key: str,
         query_name: str,
-        lang_manager=None,
         parent: QWidget | None = None,
         title_override: str | None = None,
         snapshot_override: dict[str, int] | None = None,
@@ -440,7 +439,7 @@ class ModuleKpiCard(QFrame):
         super().__init__(parent)
         self.module_key = str(module_key or "").strip().lower()
         self.query_name = query_name
-        self.lang_manager = lang_manager or LanguageManager()
+        self.lang_manager = LanguageManager()
         self.title_override = str(title_override or "").strip()
         self.snapshot_override = dict(snapshot_override or {}) if snapshot_override else None
         self.root_field = str(root_field or "").strip() or None
@@ -519,7 +518,6 @@ class ModuleKpiCard(QFrame):
                 ModuleKpiService.fetch_snapshot,
                 self.module_key,
                 self.query_name,
-                self.lang_manager,
                 root_field=self.root_field,
                 include_due_counts=self.show_breakdown,
             )

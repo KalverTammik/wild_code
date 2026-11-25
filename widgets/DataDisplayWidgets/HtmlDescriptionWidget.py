@@ -37,11 +37,10 @@ class HtmlDescriptionWidget(QTextBrowser):
         *,
         inline: bool = False,
         object_name: str = "ExtraInfoContent",
-        lang_manager=None,
     ):
         super().__init__(parent)
         self._inline = inline
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self.setObjectName(object_name)
         self.setOpenExternalLinks(False)
         self.setOpenLinks(False)
@@ -145,7 +144,6 @@ class HtmlDescriptionWidget(QTextBrowser):
             dialog = TaskFilePreviewDialog.open_preview(
                 local_file_path=path,
                 local_title=os.path.basename(path) or path,
-                lang_manager=self._lang,
                 parent=self.window(),
                 compact=TaskFilePreviewDialog.is_image_preview_candidate(local_file_path=path),
             )

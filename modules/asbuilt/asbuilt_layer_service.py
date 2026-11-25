@@ -214,7 +214,7 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
         )
 
     @classmethod
-    def sync_status_from_task(cls, item_id: str, task: Optional[dict], *, lang_manager=None) -> bool:
+    def sync_status_from_task(cls, item_id: str, task: Optional[dict]) -> bool:
         """Write the Kavitro status of an as-built onto its map feature (`ext_job_state`); True when it matches.
 
         Runs after a status change on the card. A layer the user is editing is left alone: committing
@@ -224,7 +224,7 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
         status_id = cls.coerce_optional_int(((task or {}).get("status") or {}).get("id") or "")
         if not item_id_text or status_id is None:
             return False
-        layer = cls.resolve_main_layer(lang_manager=lang_manager, dialogs=None)
+        layer = cls.resolve_main_layer(dialogs=None)
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False
         extra = {"item_id": item_id_text, "layer": layer.name()}

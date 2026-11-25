@@ -170,7 +170,7 @@ class ResponsiveCornerWidget:
 
 class ModuleCardFactory:
     @staticmethod
-    def create_item_card(item, module_name=None, lang_manager=None):
+    def create_item_card(item, module_name=None):
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QSizePolicy, QWidget
 
@@ -227,23 +227,21 @@ class ModuleCardFactory:
         if item_id is None:
             raise ValueError("Module feed items must include an 'id' field")
 
-        header_frame = InfocardHeaderFrame(item_data, module_name=module_name, lang_manager=lang_manager)
+        header_frame = InfocardHeaderFrame(item_data, module_name=module_name)
         left_column_layout.addWidget(header_frame, 0, Qt.AlignTop)
 
         dates_widget = DatesWidget(
             item_data,
             parent=card,
-            lang_manager=lang_manager,
         )
 
         actions_widget = ModuleConnectionActions(
             module_name,
             item_id,
             item_data,
-            lang_manager=lang_manager,
         )
 
-        members_view = MembersView(item_data, lang_manager=lang_manager)
+        members_view = MembersView(item_data)
 
         corner_widget_controller = ResponsiveCornerWidget(
             dates_widget,
@@ -278,7 +276,7 @@ class ModuleCardFactory:
 
         show_extra_info = module_name not in ()
         if show_extra_info:
-            extra_info = ExtraInfoFrame(item_data, module_name, lang_manager=lang_manager, handle_host=card)
+            extra_info = ExtraInfoFrame(item_data, module_name, handle_host=card)
             cl.addWidget(extra_info)
             actions_widget.item_changed.connect(extra_info.invalidate_detail)
 
@@ -287,7 +285,6 @@ class ModuleCardFactory:
                 item_data,
                 module_name=module_name,
                 parent=card,
-                lang_manager=lang_manager,
             ),
             0,
         )
@@ -306,5 +303,4 @@ class ModuleCardFactory:
         return ModuleCardFactory.create_item_card(
             item,
             module_name=module_name,
-            lang_manager=lang_manager,
         )

@@ -40,7 +40,7 @@ class NotesDialogTest(unittest.TestCase):
         self.addCleanup(today.stop)
 
     def open_dialog(self, notes: list[AsBuiltNote]) -> AsBuiltNotesEditorDialog:
-        dialog = AsBuiltNotesEditorDialog(item_name="TJ-12 Kase tn", notes=notes, lang_manager=self.lang)
+        dialog = AsBuiltNotesEditorDialog(item_name="TJ-12 Kase tn", notes=notes)
         self.addCleanup(self._delete, dialog)
         return dialog
 

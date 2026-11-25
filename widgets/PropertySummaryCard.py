@@ -13,9 +13,9 @@ from ..Logs.python_fail_logger import PythonFailLogger
 class PropertySummaryCard(QFrame):
     """Reusable property details card styled like the Property module header."""
 
-    def __init__(self, parent=None, *, show_title: bool = False, title_text: str | None = None, lang_manager=None):
+    def __init__(self, parent=None, *, show_title: bool = False, title_text: str | None = None):
         super().__init__(parent)
-        lang = lang_manager or LanguageManager()
+        lang = LanguageManager()
         self.setObjectName("PropertyHeader")
         self.setFrameStyle(QFrame.StyledPanel)
 

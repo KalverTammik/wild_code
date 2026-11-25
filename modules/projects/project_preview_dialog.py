@@ -36,9 +36,9 @@ from .projects_layer_service import ProjectsLayerService
 
 
 class ProjectPreviewDialog(QDialog):
-    def __init__(self, *, item_data=None, lang_manager=None, parent=None) -> None:
+    def __init__(self, *, item_data=None, parent=None) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._item = item_data if isinstance(item_data, dict) else {}
         self._connected_property_numbers: list[str] = []
         self._property_layer: Optional[QgsVectorLayer] = None
@@ -238,7 +238,7 @@ class ProjectPreviewDialog(QDialog):
         return f"Project area preview rounded · {self._item_number or self._item_id or '-'}"
 
     def _refresh_target_layer_label(self) -> None:
-        layer = ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
+        layer = ProjectsLayerService.resolve_main_layer(dialogs=None)
         self._target_layer_label.setText(layer.name() if layer is not None else "-")
 
     def _refresh_connected_properties_label(self) -> None:
@@ -718,7 +718,7 @@ class ProjectPreviewDialog(QDialog):
             )
             return
 
-        target_layer = ProjectsLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
+        target_layer = ProjectsLayerService.resolve_main_layer(dialogs=ModernMessageDialog)
         if target_layer is None:
             return
         if target_layer.isEditable():
@@ -751,7 +751,6 @@ class ProjectPreviewDialog(QDialog):
                 title=self._lang.translate(TranslationKeys.ERROR),
                 log_module=Module.PROJECT.value,
                 first_detail=detail,
-                lang=self._lang,
                 parent=self,
                 extra=extra,
                 dialog_class=ModernMessageDialog,
@@ -765,7 +764,6 @@ class ProjectPreviewDialog(QDialog):
                     layer=message or target_layer.name() or "-",
                 ),
                 problems=value_problems,
-                lang=self._lang,
             )
             return
 

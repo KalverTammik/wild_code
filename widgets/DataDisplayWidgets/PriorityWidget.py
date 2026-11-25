@@ -27,10 +27,9 @@ class PriorityWidget(QWidget):
         *,
         priority: Optional[str] = None,
         parent=None,
-        lang_manager=None,
     ):
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -57,7 +56,7 @@ class PriorityWidget(QWidget):
             self.setVisible(False)
             return
 
-        label_text = APIModuleActions.task_priority_label(normalized, lang_manager=self._lang)
+        label_text = APIModuleActions.task_priority_label(normalized)
         self.priority_label.setToolTip(
             f"{self._lang.translate(TranslationKeys.WORKS_CREATE_PRIORITY_LABEL)}: {label_text}"
         )

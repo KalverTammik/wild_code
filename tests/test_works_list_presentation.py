@@ -181,7 +181,7 @@ class WorksListWidgetTest(unittest.TestCase):
         mocks = [p.start() for p in self.patches]
         mocks[2].return_value.getModuleSupports.return_value = (False, False, False, False)
         self.factory = mocks[4]
-        self.ui = WorksModule(lang_manager=LanguageManager('et'))
+        self.ui = WorksModule()
         self.ui.resize(700, 500)
         self.ui.show()
         self.app.processEvents()

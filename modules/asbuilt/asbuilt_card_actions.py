@@ -48,7 +48,6 @@ class AsBuiltCardActions:
         dialog = AsBuiltNotesEditorDialog(
             item_name=item_name,
             notes=AsBuiltNotesService.parse_notes(source_description),
-            lang_manager=lm,
             parent=self._host.safe_parent_window(),
         )
         if dialog.exec_() != QDialog.Accepted:
@@ -84,6 +83,6 @@ class AsBuiltCardActions:
             return
 
         if self._map_controller is None:
-            self._map_controller = AsBuiltFeatureMapController(lang_manager=self._host.lang_manager)
+            self._map_controller = AsBuiltFeatureMapController()
 
         self._map_controller.start_draw(item_data=item)

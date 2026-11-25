@@ -131,12 +131,12 @@ class StatusWidget(QWidget):
         for name in module_names:
             cls._status_change_hooks.setdefault(name, {})[key] = hook
 
-    def __init__(self, item_data, module_name: Optional[str] = None, parent=None, lang_manager=None):
+    def __init__(self, item_data, module_name: Optional[str] = None, parent=None):
         super().__init__(parent)
         self.setObjectName("LegacyStatusWidget")
         self._item_data = dict(item_data or {}) if isinstance(item_data, dict) else dict(item_data or {})
         self._module_name = str(module_name or "").strip().lower()
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._is_updating = False
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
@@ -363,7 +363,6 @@ class StatusWidget(QWidget):
             replacement = ModuleCardFactory.create_item_card(
                 item_data,
                 module_name=self._module_name,
-                lang_manager=self._lang,
             )
             container.setUpdatesEnabled(False)
             remove_widget(card)

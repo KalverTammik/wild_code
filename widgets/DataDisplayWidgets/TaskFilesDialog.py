@@ -52,12 +52,11 @@ class TaskFilesDialog(QDialog):
         item_id: str,
         item_name: str = "",
         module_name: str = Module.TASK.value,
-        lang_manager=None,
         parent=None,
         initial_files: Optional[list[dict]] = None,
     ) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._item_id = str(item_id or "").strip()
         self._item_name = str(item_name or "").strip()
         self._module_name = str(module_name or Module.TASK.value).strip().lower() or Module.TASK.value
@@ -330,7 +329,6 @@ class TaskFilesDialog(QDialog):
 
         dialog = TaskFilePreviewDialog.open_preview(
             file_info=file_info,
-            lang_manager=self._lang,
             parent=self,
         )
         if dialog is not None:

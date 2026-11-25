@@ -4,7 +4,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -22,7 +22,7 @@ PRIORITY_OPTIONS = [{"value": "", "label": "-"}, {"value": "HIGH", "label": "Hig
 
 class WorksCreatePreloadTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.controller = controller_module.WorksCreateController(lang_manager=Mock())
+        self.controller = controller_module.WorksCreateController()
 
     def _fetch_payload(self, **priority_lookup) -> dict:
         with (

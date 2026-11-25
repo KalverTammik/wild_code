@@ -18,7 +18,7 @@ from PyQt5.QtCore import QCoreApplication, QEvent, QPointF, Qt
 from PyQt5.QtGui import QKeyEvent, QMouseEvent
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.language_manager import LanguageManager, set_current_language
 from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper
 from Kavitro_dev.constants.module_names import ModuleSupports
@@ -309,12 +309,11 @@ class RealFilterCase(unittest.TestCase):
     def setUp(self) -> None:
         self.host = QWidget()
         self.addCleanup(self.delete_host)
-        lang = LanguageManager("et")
         settings = Mock()
         settings.load_module_preference_ids.return_value = []
-        self.status = StatusFilterWidget("contract", self.host, auto_load=False, lang_manager=lang, settings_logic=settings)
-        self.types = TypeFilterWidget("contract", self.host, auto_load=False, settings_logic=settings, lang_manager=lang)
-        self.tags = TagsFilterWidget("contract", lang, self.host, auto_load=False, settings_logic=settings)
+        self.status = StatusFilterWidget("contract", self.host, auto_load=False, settings_logic=settings)
+        self.types = TypeFilterWidget("contract", self.host, auto_load=False, settings_logic=settings)
+        self.tags = TagsFilterWidget("contract", self.host, auto_load=False, settings_logic=settings)
         self.widgets = (self.status, self.types, self.tags)
 
     def delete_host(self) -> None:
@@ -635,32 +634,26 @@ class PickerPopupTest(RealFilterCase):
 
 
 class TypeFilterLanguageManagerTest(RealFilterCase):
-    """Like the other filter widgets, the type filter takes the language manager it is given."""
+    """Like the other filter widgets, the type filter follows the plugin-wide language."""
 
-    def build(self, **kwargs) -> TypeFilterWidget:
+    def setUp(self) -> None:
+        super().setUp()
+        set_current_language("en")
+        self.addCleanup(set_current_language, "et")
+
+    def build(self) -> TypeFilterWidget:
         settings = Mock()
         settings.load_module_preference_ids.return_value = []
-        return TypeFilterWidget("contract", self.host, auto_load=False, settings_logic=settings, **kwargs)
+        return TypeFilterWidget("contract", self.host, auto_load=False, settings_logic=settings)
 
-    def test_given_language_manager_is_used_and_none_is_built(self) -> None:
-        english = LanguageManager("en")
-        with patch("Kavitro_dev.widgets.Filters.TypeFilterWidget.LanguageManager") as built:
-            widget = self.build(lang_manager=english)
-        built.assert_not_called()
-        self.assertIs(widget._lang, english)
+    def test_tooltips_follow_the_plugin_language(self) -> None:
+        widget = self.build()
         self.assertEqual(widget.all_cb.toolTip(), "Select All")
         self.assertEqual(widget.group_combo.toolTip(), "Filter by Type Group")
         self.assertEqual(widget.type_combo.toolTip(), "Filter by Type")
 
-    def test_without_one_the_widget_builds_its_own(self) -> None:
-        own = LanguageManager("en")
-        with patch("Kavitro_dev.widgets.Filters.TypeFilterWidget.LanguageManager", return_value=own) as built:
-            widget = self.build()
-        built.assert_called_once_with()
-        self.assertIs(widget._lang, own)
-
-    def test_popup_texts_follow_the_given_language_manager(self) -> None:
-        widget = self.build(lang_manager=LanguageManager("en"))
+    def test_popup_texts_follow_the_plugin_language(self) -> None:
+        widget = self.build()
         widget._load_request_id = 1
         widget._handle_load_success(PickerPopupTest.TYPES, None, 1)
         self.addCleanup(widget._close_popup)

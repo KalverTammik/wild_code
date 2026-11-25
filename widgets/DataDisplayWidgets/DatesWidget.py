@@ -66,10 +66,10 @@ class DatesPopupWidget(QWidget):
         self.frame.style().polish(self.frame)
 
 class DatesWidget(QWidget):
-    def __init__(self, item_data, parent=None, lang_manager=None):
+    def __init__(self, item_data, parent=None):
         super().__init__(parent)
         self.item_data = item_data
-        self.lang_manager = lang_manager or LanguageManager()
+        self.lang_manager = LanguageManager()
         self._compact = False
         self._wide_container = None
         self._compact_container = None

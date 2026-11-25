@@ -15,7 +15,6 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextDocument
 from PyQt5.QtWidgets import QApplication, QLabel
 
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
 from Kavitro_dev.widgets.DataDisplayWidgets import TaskFilePreviewDialog as preview_module
 
@@ -41,10 +40,7 @@ class FileMetadataHtmlSecurityTest(unittest.TestCase):
             patch.object(TaskFilePreviewDialog, "_load_preview"),
             patch.object(preview_module.ThemeManager, "apply_module_style"),
         ):
-            return TaskFilePreviewDialog(
-                file_info=payload,
-                lang_manager=LanguageManager(),
-            )
+            return TaskFilePreviewDialog(file_info=payload)
 
     @staticmethod
     def _rendered_plain_text(rich_text: str) -> str:

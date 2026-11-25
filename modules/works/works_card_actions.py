@@ -33,7 +33,7 @@ class WorksCardActions:
         if not item_id:
             return
 
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=lm, dialogs=ModernMessageDialog)
+        works_layer = WorksLayerService.resolve_main_layer(dialogs=ModernMessageDialog)
         if works_layer is None:
             return
 
@@ -49,7 +49,7 @@ class WorksCardActions:
             return
 
         if self._create_controller is None:
-            self._create_controller = WorksCreateController(lang_manager=lm)
+            self._create_controller = WorksCreateController()
 
         self._create_controller.start_add_existing_to_map(
             task_id=item_id,
@@ -63,7 +63,7 @@ class WorksCardActions:
             return
 
         if self._reposition_controller is None:
-            self._reposition_controller = WorksRepositionController(lang_manager=self._host.lang_manager)
+            self._reposition_controller = WorksRepositionController()
 
         status = (self._host.item_data or {}).get("status")
         self._reposition_controller.start_reposition(

@@ -43,19 +43,19 @@ class ModuleIdentifyToolController:
         Module.EASEMENT.value,
     }
 
-    def __init__(self, *, parent_window=None, lang_manager=None) -> None:
+    def __init__(self, *, parent_window=None) -> None:
         self._parent_window = self._safe_parent_window(parent_window)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._module_key = ""
         self._layer: Optional[QgsVectorLayer] = None
         self._tool: Optional[SingleClickMapTool] = None
 
     @classmethod
-    def start_for_active_module(cls, *, parent_window=None, lang_manager=None) -> bool:
+    def start_for_active_module(cls, *, parent_window=None) -> bool:
         if cls._active_instance is not None:
             cls._active_instance.cancel(bring_front=False)
 
-        controller = cls(parent_window=parent_window, lang_manager=lang_manager)
+        controller = cls(parent_window=parent_window)
         if controller.start():
             cls._active_instance = controller
             return True

@@ -6,6 +6,7 @@ from typing import List, Optional
 from PyQt5.QtWidgets import QWidget
 
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
+from ...languages.language_manager import LanguageManager
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...ui.mixins.filtered_feed_mixin import FilteredFeedMixin
 from ...utils.FilterHelpers.FilterHelper import FilterRefreshService
@@ -26,19 +27,17 @@ class TaskModuleBaseUI(SearchOpenItemMixin, FilteredFeedMixin, ModuleBaseUI):
         *,
         module_enum: Module,
         empty_state_key: str,
-        lang_manager: Optional[object] = None,
         parent: Optional[QWidget] = None,
         qss_files: Optional[List[str]] = None,
     ) -> None:
         super().__init__(parent)
-        self._init_feed_module(module_enum, lang_manager)
+        self._init_feed_module(module_enum, LanguageManager())
         self.supports_tags_filter = False
         self._build_filters_and_feed(empty_state_key)
 
         self.feed_logic = self.FEED_LOGIC_CLS(
             self.FEED_MODULE_ENUM.value,
             self.QUERY_FILE,
-            self.lang_manager,
             root_field=self.FEED_ROOT_FIELD,
         )
         self.feed_logic.configure_single_item_query(self.SINGLE_ITEM_QUERY_FILE)

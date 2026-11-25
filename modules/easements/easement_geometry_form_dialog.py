@@ -86,12 +86,11 @@ class EasementGeometryFormDialog(QDialog):
         status_options: list[dict] | None = None,
         current_status: dict | None = None,
         value_validator: Optional[FormValueValidator] = None,
-        lang_manager=None,
         parent=None,
     ) -> None:
         """`value_validator` checks the values against the map layer; without it only the number fields are checked."""
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._item_data = item_data if isinstance(item_data, dict) else {}
         self._initial_values = initial_values if isinstance(initial_values, dict) else {}
         self._status_options = list(status_options or [])

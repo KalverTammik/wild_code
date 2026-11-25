@@ -107,14 +107,14 @@ class WrappingTextLabel(QLabel):
 
 
 class InfocardHeaderFrame(QFrame):
-    def __init__(self, item_data, module_name=None, parent=None, lang_manager=None):
+    def __init__(self, item_data, module_name=None, parent=None):
         super().__init__(parent)
 
         self.setFrameShape(QFrame.NoFrame)
         self.setObjectName("InfocardHeaderFrame")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.setMinimumHeight(0)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._number_badge = None
         self._name_label = None
         self._client_label = None
@@ -154,7 +154,7 @@ class InfocardHeaderFrame(QFrame):
             self._number_badge = numberBadge
             nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
 
-        priority_widget = PriorityWidget(item_data, parent=self, lang_manager=self._lang)
+        priority_widget = PriorityWidget(item_data, parent=self)
         if not priority_widget.isHidden():
             nameRow.addWidget(priority_widget, 0, Qt.AlignVCenter)
 

@@ -100,12 +100,11 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
         auto_load: bool = True,
         variant: Optional[str] = None,
         settings_logic: Optional[SettingsLogic] = None,
-        lang_manager: Optional[LanguageManager] = None,
         selected_ids_loader: Optional[Callable[[], Sequence[str]]] = None,
     ) -> None:
         super().__init__(parent)
         self._module = getattr(module_name, "value", module_name)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._settings_logic = settings_logic or SettingsLogic()
         self._support_key = support_key
         self._suppress_emit = False

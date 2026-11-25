@@ -34,12 +34,12 @@ from ....constants.module_names import Module
 class PropertyTreeWidget(QFrame):
     """Card-based replacement for the legacy property tree."""
 
-    def __init__(self, parent: Optional[QWidget] = None, lang_manager=None):
+    def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setObjectName("PropertyTree")
         self.setFrameStyle(QFrame.NoFrame)
         self._current_entries: List[Dict[str, Any]] = []
-        self.lang_manager = lang_manager or LanguageManager()
+        self.lang_manager = LanguageManager()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 6, 6, 6)
@@ -90,7 +90,7 @@ class PropertyTreeWidget(QFrame):
         widgets: List[QWidget] = []
         for entry in entries:
             try:
-                card = PropertyConnectionCard(entry, self.lang_manager, self)
+                card = PropertyConnectionCard(entry, self)
                 styleExtras.apply_chip_shadow(
                     card,
                     blur_radius=15,
@@ -195,12 +195,11 @@ class PropertyConnectionCard(QFrame):
     def __init__(
         self,
         entry: Dict[str, Any],
-        lang_manager=None,
         parent: Optional[QWidget] = None,
     ):
         super().__init__(parent)
         self.entry = entry or {}
-        self.lang_manager = lang_manager or LanguageManager()
+        self.lang_manager = LanguageManager()
         self.setObjectName("ModuleInfoCard")
         self.setFrameStyle(QFrame.NoFrame)
         styleExtras.apply_chip_shadow(
@@ -235,7 +234,6 @@ class PropertyConnectionCard(QFrame):
             section = ModuleConnectionSection(
                 module_key,
                 module_info,
-                lang_manager=self.lang_manager,
             )
             content_layout.addWidget(section)
 
@@ -269,8 +267,6 @@ class ModuleConnectionSection(QFrame):
         module_key: str,
         module_info: Dict[str, Any],
         parent: Optional[QWidget] = None,
-        *,
-        lang_manager=None,
     ):
         super().__init__(parent)
         self.setObjectName("ModuleInfoCard")
@@ -284,7 +280,7 @@ class ModuleConnectionSection(QFrame):
             alpha_level="medium",
         )
 
-        translator = lang_manager or LanguageManager()
+        translator = LanguageManager()
         self._translator = translator
         self._module_key = str(module_key or "").strip()
         module_name = translator.translate_module_name(module_key)
@@ -367,7 +363,6 @@ class ModuleConnectionSection(QFrame):
                 row = ModuleConnectionRow(
                     summary,
                     self._module_key,
-                    lang_manager=self._translator,
                 )
                 self._body_layout.addWidget(row)
             except Exception as exc:
@@ -397,13 +392,11 @@ class ModuleConnectionRow(QFrame):
         summary: Dict[str, Any],
         module_key: str,
         parent: Optional[QWidget] = None,
-        *,
-        lang_manager=None,
     ):
         super().__init__(parent)
         self.summary = summary or {}
         self.module_key = module_key
-        self.lang_manager = lang_manager or LanguageManager()
+        self.lang_manager = LanguageManager()
         self.item_id = self.summary.get("id")
         self.raw = self.summary.get("raw", {})
         self.setObjectName("ModuleConnectionRow")
@@ -470,7 +463,6 @@ class ModuleConnectionRow(QFrame):
         dates_widget = DatesWidget(
             widget_payload,
             parent=self,
-            lang_manager=self.lang_manager,
         )
         grid.addWidget(dates_widget, 0, 1, Qt.AlignRight | Qt.AlignTop)
 
@@ -478,7 +470,6 @@ class ModuleConnectionRow(QFrame):
             widget_payload,
             module_name=self.module_key,
             parent=self,
-            lang_manager=self.lang_manager,
         )
 
         file_path = self._extract_file_path()
@@ -492,7 +483,6 @@ class ModuleConnectionRow(QFrame):
             self.module_key,
             self.item_id,
             actions_payload,
-            lang_manager=self.lang_manager,
             parent=self,
         )
         grid.addWidget(actions_widget, 0, 2, Qt.AlignRight | Qt.AlignTop)

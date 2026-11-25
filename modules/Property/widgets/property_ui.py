@@ -13,6 +13,7 @@ from ....ui.theme_manager import ThemeManager,styleExtras
 from ....constants.button_props import ButtonVariant, ButtonSize
 from ....constants.file_paths import QssPaths
 from ....languages.translation_keys import TranslationKeys
+from ....languages.language_manager import LanguageManager
 from ....constants.module_names import Module
 from ....ui.mixins.token_mixin import TokenMixin
 from ....Logs.python_fail_logger import PythonFailLogger
@@ -35,7 +36,6 @@ class PropertyModule(TokenMixin, QWidget):
     property_selection_completed = pyqtSignal()
     def __init__(
         self,
-        lang_manager: Optional[object] = None,
         parent: Optional[QWidget] = None,
         qss_files: Optional[List[str]] = None,
         **kwargs: Any
@@ -44,7 +44,7 @@ class PropertyModule(TokenMixin, QWidget):
         QWidget.__init__(self)
         TokenMixin.__init__(self)
         self.name = Module.PROPERTY.value
-        self.lang_manager = lang_manager
+        self.lang_manager = LanguageManager()
         self.tools = PropertyUITools(self)
 
         self.horizontal_label_spacing = 3
@@ -68,7 +68,7 @@ class PropertyModule(TokenMixin, QWidget):
         root.addWidget(header_frame)
 
         # Tree view section
-        self.tree_section = PropertyTreeWidget(lang_manager=self.lang_manager)
+        self.tree_section = PropertyTreeWidget()
         root.addWidget(self.tree_section, 1)
 
     def create_header_section(self):

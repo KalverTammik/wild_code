@@ -15,7 +15,6 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 from qgis.PyQt.QtCore import QCoreApplication, QEvent
 from qgis.PyQt.QtWidgets import QApplication, QLabel, QWidget
 
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.widgets.DataDisplayWidgets.ExtraInfoWidget import ExtraInfoFrame
 
 DETAIL_MODULES = ("project", "contract", "coordination", "easement", "task", "works", "asbuilt")
@@ -48,7 +47,7 @@ class ExtraInfoDetailTest(unittest.TestCase):
         # A child, as on the card: a parentless widget counts as hidden until it is shown.
         card = QWidget()
         self.frames.append(card)
-        return ExtraInfoFrame({"id": "item-1", "name": "Nimi"}, module_name, parent=card, lang_manager=LanguageManager("et"))
+        return ExtraInfoFrame({"id": "item-1", "name": "Nimi"}, module_name, parent=card)
 
     def test_modules_with_a_detail_view_get_the_handle(self) -> None:
         for module_name in DETAIL_MODULES:

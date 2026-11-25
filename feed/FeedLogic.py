@@ -17,7 +17,6 @@ class UnifiedFeedLogic:
         self,
         module_name: str,
         query_name: str,
-        lang_manager=None,
         *,
         batch_size: int = 5,
         root_field: Optional[str] = None,

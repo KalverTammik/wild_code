@@ -43,20 +43,20 @@ class FilteredFeedMixin:
     def _build_filters_and_feed(self, empty_state_key: str) -> None:
         if self.supports_status_filter:
             self.status_filter = StatusFilterWidget(
-                self.module_key, self.toolbar_area, auto_load=False, lang_manager=self.lang_manager,
+                self.module_key, self.toolbar_area, auto_load=False,
             )
             self.toolbar_area.add_left(self.status_filter)
             self.status_filter.selectionChanged.connect(self._on_status_filter_selection)
 
         if self.supports_type_filter:
             self.type_filter = TypeFilterWidget(
-                self.module_key, self.toolbar_area, auto_load=False, lang_manager=self.lang_manager,
+                self.module_key, self.toolbar_area, auto_load=False,
             )
             self.toolbar_area.add_left(self.type_filter)
             self.type_filter.selectionChanged.connect(self._on_type_filter_selection)
 
         if self.supports_tags_filter:
-            self.tags_filter = TagsFilterWidget(self.module_key, self.lang_manager, self.toolbar_area, auto_load=False)
+            self.tags_filter = TagsFilterWidget(self.module_key, self.toolbar_area, auto_load=False)
             self.toolbar_area.add_left(self.tags_filter)
             self.tags_filter.selectionChanged.connect(self._on_tags_filter_selection)
 

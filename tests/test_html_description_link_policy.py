@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from PyQt5.QtCore import QUrl
 from PyQt5.QtWidgets import QApplication
 
+from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 
 
@@ -24,25 +25,8 @@ html_description_module = importlib.import_module(
 HtmlDescriptionWidget = html_description_module.HtmlDescriptionWidget
 
 
-class StubLanguageManager:
-    _TRANSLATIONS = {
-        TranslationKeys.YES: "Yes",
-        TranslationKeys.NO: "No",
-        TranslationKeys.CONFIRM: "Confirm",
-        TranslationKeys.WARNING: "Warning",
-        TranslationKeys.ERROR: "Error",
-        TranslationKeys.DESCRIPTION_LINK_WEB_CONFIRM: "Web: {url}{http_warning}",
-        TranslationKeys.DESCRIPTION_LINK_HTTP_WARNING: " HTTP warning",
-        TranslationKeys.DESCRIPTION_LINK_FOLDER_CONFIRM: "Folder: {path}",
-        TranslationKeys.DESCRIPTION_LINK_NETWORK_CONFIRM: "Network: {host} {path}",
-        TranslationKeys.DESCRIPTION_LINK_FILE_CONFIRM: "File: {path} .{extension}",
-        TranslationKeys.DESCRIPTION_LINK_BLOCKED: "Blocked: {target}",
-        TranslationKeys.DESCRIPTION_LINK_NOT_FOUND: "Not found: {target}",
-        TranslationKeys.DESCRIPTION_LINK_OPEN_FAILED: "Open failed: {target}",
-    }
-
-    def translate(self, key) -> str:
-        return self._TRANSLATIONS.get(key, str(key))
+YES_LABEL = LanguageManager().translate(TranslationKeys.YES)
+NO_LABEL = LanguageManager().translate(TranslationKeys.NO)
 
 
 class HtmlDescriptionLinkPolicyTest(unittest.TestCase):
@@ -51,10 +35,7 @@ class HtmlDescriptionLinkPolicyTest(unittest.TestCase):
         cls._app = QApplication.instance() or QApplication([])
 
     def _widget(self) -> HtmlDescriptionWidget:
-        return HtmlDescriptionWidget(
-            '<a href="https://example.com">Example</a>',
-            lang_manager=StubLanguageManager(),
-        )
+        return HtmlDescriptionWidget('<a href="https://example.com">Example</a>')
 
     def test_qtextbrowser_automatic_link_opening_is_disabled(self) -> None:
         widget = self._widget()
@@ -67,7 +48,7 @@ class HtmlDescriptionLinkPolicyTest(unittest.TestCase):
             patch.object(
                 html_description_module.ModernMessageDialog,
                 "ask_choice_modern",
-                return_value="Yes",
+                return_value=YES_LABEL,
             ) as ask_choice,
             patch.object(
                 html_description_module.QDesktopServices,
@@ -78,7 +59,7 @@ class HtmlDescriptionLinkPolicyTest(unittest.TestCase):
             widget._handle_anchor_clicked(QUrl("https://tenant.sharepoint.com/sites/project"))
 
         ask_choice.assert_called_once()
-        self.assertEqual(ask_choice.call_args.kwargs["default"], "No")
+        self.assertEqual(ask_choice.call_args.kwargs["default"], NO_LABEL)
         open_url.assert_called_once()
 
     def test_declined_network_link_does_not_probe_the_filesystem(self) -> None:
@@ -87,7 +68,7 @@ class HtmlDescriptionLinkPolicyTest(unittest.TestCase):
             patch.object(
                 html_description_module.ModernMessageDialog,
                 "ask_choice_modern",
-                return_value="No",
+                return_value=NO_LABEL,
             ),
             patch.object(html_description_module.os.path, "exists") as exists,
         ):
@@ -101,7 +82,7 @@ class HtmlDescriptionLinkPolicyTest(unittest.TestCase):
 
         def confirm(*_args, **_kwargs):
             state["confirmed"] = True
-            return "Yes"
+            return YES_LABEL
 
         def exists_after_confirmation(_path):
             self.assertTrue(state["confirmed"])
@@ -155,7 +136,7 @@ class HtmlDescriptionLinkPolicyTest(unittest.TestCase):
                 patch.object(
                     html_description_module.ModernMessageDialog,
                     "ask_choice_modern",
-                    return_value="Yes",
+                    return_value=YES_LABEL,
                 ) as ask_choice,
                 patch.object(
                     html_description_module.TaskFilePreviewDialog,
@@ -199,7 +180,7 @@ class HtmlDescriptionLinkPolicyTest(unittest.TestCase):
                 patch.object(
                     html_description_module.ModernMessageDialog,
                     "ask_choice_modern",
-                    return_value="No",
+                    return_value=NO_LABEL,
                 ),
                 patch.object(
                     html_description_module.QDesktopServices,
@@ -237,7 +218,7 @@ class HtmlDescriptionLinkPolicyTest(unittest.TestCase):
             patch.object(
                 html_description_module.ModernMessageDialog,
                 "ask_choice_modern",
-                return_value="No",
+                return_value=NO_LABEL,
             ) as ask_choice,
             patch.object(html_description_module.os.path, "exists") as exists,
         ):

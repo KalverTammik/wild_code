@@ -90,7 +90,7 @@ class BoardFailureTestCase(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def board(self, *cadastral_numbers: str) -> dict:
-        return ProjectBoardOverviewService.build_project_board_data(project(*cadastral_numbers), lang_manager=self.lang)
+        return ProjectBoardOverviewService.build_project_board_data(project(*cadastral_numbers))
 
     def t(self, key: str) -> str:
         return self.lang.translate(key)

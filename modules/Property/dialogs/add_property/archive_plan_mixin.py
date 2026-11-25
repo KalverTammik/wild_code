@@ -276,7 +276,6 @@ class PropertyArchivePlanMixin:
             scope=self._archive_scope_snapshot,
             candidates=candidate_rows,
             parent=self,
-            lang_manager=self.lang_manager,
         ):
             return
 

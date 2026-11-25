@@ -46,12 +46,11 @@ class AsBuiltGeometryFormDialog(QDialog):
         *,
         item_data: dict | None = None,
         value_validator: Optional[FormValueValidator] = None,
-        lang_manager=None,
         parent=None,
     ) -> None:
         """`value_validator` checks the typed values against the map layer; without it nothing is checked."""
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._item_data = item_data if isinstance(item_data, dict) else {}
         self._network_checks: dict[str, QCheckBox] = {}
 

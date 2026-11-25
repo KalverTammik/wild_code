@@ -127,7 +127,8 @@ class _FlowTest(unittest.TestCase):
         self.update_geometry = self.p(APIModuleActions, "update_task_geometry", return_value=True)
         self.resolve_props = self.p(APIModuleActions, "resolve_property_ids_by_cadastral", return_value=(["p1"], []))
         self.associate = self.p(APIModuleActions, "associate_properties")
-        self.controller = Controller(lang_manager=Mock(translate=_translate))
+        self.p(controller_module, "LanguageManager", return_value=Mock(translate=_translate))
+        self.controller = Controller()
         self.controller._on_created = self.on_created
         self.controller._cached_status_options = [{"id": "s", "name": "S", "color": "4FBF6B", "isDefault": True}]
         self.controller._cached_default_status_id = "s"

@@ -28,8 +28,8 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
     """Adds works from the map: a new work from a click, an existing task placed on the map,
     or a pending GIS feature turned into a work (listed by WorksPendingGisReviewMixin)."""
 
-    def __init__(self, *, lang_manager=None) -> None:
-        self._lang = lang_manager or LanguageManager()
+    def __init__(self) -> None:
+        self._lang = LanguageManager()
         self._capture_tool: Optional[WorksPointCaptureTool] = None
         self._parent_window = None
         self._allowed_type_ids: list[str] = []
@@ -55,7 +55,7 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
         allowed_type_ids: Optional[Iterable[str]] = None,
         on_created: Optional[Callable[[str], None]] = None,
     ) -> bool:
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
+        works_layer = WorksLayerService.resolve_main_layer(dialogs=ModernMessageDialog)
         if works_layer is None:
             return False
 
@@ -80,7 +80,7 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
         parent_window=None,
         on_created: Optional[Callable[[str], None]] = None,
     ) -> bool:
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
+        works_layer = WorksLayerService.resolve_main_layer(dialogs=ModernMessageDialog)
         if works_layer is None:
             return False
 
@@ -151,14 +151,13 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             property_feature=property_feature,
             allowed_type_ids=self._allowed_type_ids,
             **self._resolve_dialog_options(),
-            lang_manager=self._lang,
             parent=parent_window,
         )
         if dialog.exec_() != dialog.Accepted:
             return
 
         now = datetime.now()
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
+        works_layer = WorksLayerService.resolve_main_layer(dialogs=None)
         property_ids, property_link_failed = self._resolve_property_ids(
             property_feature, event="works_property_link_failed")
         task_result = self._create_backend_task_from_dialog(
@@ -210,7 +209,6 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
                         cadastral=cadastral_number,
                     ),
                     value_problems,
-                    self._lang,
                 ),
             )
             return
@@ -220,7 +218,6 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             title=self._lang.translate(TranslationKeys.SUCCESS),
             message=self._lang.translate(TranslationKeys.WORKS_CREATE_SUCCESS).format(task_id=task_id),
             problems=value_problems,
-            lang=self._lang,
         )
 
     def _open_pending_gis_feature(
@@ -267,7 +264,6 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             initial_title=str(pending_payload.get("title") or ""),
             initial_type_id=str(pending_payload.get("type_id") or ""),
             initial_status_id=str(pending_payload.get("status_id") or ""),
-            lang_manager=self._lang,
             parent=parent_window,
         )
         if dialog.exec_() != dialog.Accepted:
@@ -322,7 +318,6 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
                         cadastral=cadastral_number,
                     ),
                     value_problems,
-                    self._lang,
                 ),
                 parent=parent_window,
             )
@@ -333,7 +328,6 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             title=self._lang.translate(TranslationKeys.SUCCESS),
             message=self._lang.translate(TranslationKeys.WORKS_CREATE_SUCCESS).format(task_id=task_id),
             problems=value_problems,
-            lang=self._lang,
         )
         return True
 
@@ -537,7 +531,7 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             )
             return
 
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
+        works_layer = WorksLayerService.resolve_main_layer(dialogs=None)
         if works_layer is None:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
@@ -630,7 +624,7 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
         if problems:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.WARNING),
-                with_field_value_problems("\n\n".join(problems), value_problems, self._lang),
+                with_field_value_problems("\n\n".join(problems), value_problems),
             )
             return
 
@@ -639,7 +633,6 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             title=self._lang.translate(TranslationKeys.SUCCESS),
             message=self._lang.translate(TranslationKeys.WORKS_ADD_EXISTING_ON_MAP_SUCCESS).format(task_id=task_id),
             problems=value_problems,
-            lang=self._lang,
         )
 
     @staticmethod

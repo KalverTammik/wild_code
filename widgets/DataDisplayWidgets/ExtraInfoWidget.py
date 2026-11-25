@@ -13,11 +13,11 @@ from .ModuleConfig import ModuleConfigFactory
 class ExtraInfoFrame(QFrame):
     _expanded_inline_frame_ref = None
 
-    def __init__(self, item_data, module_name=None, parent=None, lang_manager=None, handle_host=None):
+    def __init__(self, item_data, module_name=None, parent=None, handle_host=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.NoFrame)
         self.setObjectName("ExtraInfoOuterFrame")
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._handle_host = handle_host if handle_host is not None else self
         self._detail_container = None
         self._detail_layout = None
@@ -36,7 +36,7 @@ class ExtraInfoFrame(QFrame):
         self._layout.setSpacing(0)
 
         # Determine module type from item_id
-        self._extra_info_widget = ExtraInfoWidget(item_data, module_name, lang_manager=lang_manager)
+        self._extra_info_widget = ExtraInfoWidget(item_data, module_name)
         self._layout.addWidget(self._extra_info_widget)
 
         # Modules without a detail view keep an empty, hidden frame.
@@ -256,13 +256,12 @@ class ExtraInfoFrame(QFrame):
             self._detail_widget.retheme()
 
 class ExtraInfoWidget(QWidget):
-    def __init__(self, item_data, module_name=None, parent=None, lang_manager=None):
+    def __init__(self, item_data, module_name=None, parent=None):
         super().__init__(parent)
         self.setObjectName("ExtraInfoWidget")
         self.config = ModuleConfigFactory.create_config(
             module_type=module_name,
             item_id=item_data if isinstance(item_data, dict) else {},
-            lang_manager=lang_manager or LanguageManager(),
         )
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

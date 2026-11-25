@@ -63,7 +63,7 @@ class ModulesRegistry:
         ModuleConfigFactory.register(Module.PROJECT.value, create_project_config)
 
         def sync_works_layer(item_id: str, task_payload, lang_manager) -> None:
-            WorksSyncService(lang_manager=lang_manager).sync_task_from_backend(item_id, task=task_payload)
+            WorksSyncService().sync_task_from_backend(item_id, task=task_payload)
 
         StatusWidget.register_status_change_hook(
             (Module.WORKS.value, Module.TASK.value),
@@ -74,7 +74,7 @@ class ModulesRegistry:
         def sync_asbuilt_layer(item_id: str, task_payload, lang_manager) -> None:
             from ..modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
 
-            AsBuiltLayerService.sync_status_from_task(item_id, task_payload, lang_manager=lang_manager)
+            AsBuiltLayerService.sync_status_from_task(item_id, task_payload)
 
         # An as-built is a task too, but its status belongs on the as-built layer, not the Works layer.
         StatusWidget.register_status_change_hook((Module.ASBUILT.value,), "asbuilt_layer_sync", sync_asbuilt_layer)
@@ -92,7 +92,6 @@ class ModulesRegistry:
         open_folder_rule = _adapt_value_editor(
             partial(
                 DialogHelpers.open_folder_rule_dialog,
-                dialog.lang_manager,
                 dialog,
                 FolderNamingRuleDialog,
                 QDialog.Accepted,
@@ -102,7 +101,6 @@ class ModulesRegistry:
         module_manager.registerModule(
             WelcomePage,
             Module.HOME.name,
-            lang_manager=dialog.lang_manager,
         )
         module_manager.registerModule(
             SettingsModule,
@@ -113,7 +111,6 @@ class ModulesRegistry:
             PropertyModule,
             Module.PROPERTY.name,
             qss_files=qss_modular,
-            lang_manager=dialog.lang_manager,
             supports_archive_layer=True,
         )
         module_manager.registerModule(
@@ -121,7 +118,6 @@ class ModulesRegistry:
             Module.PROJECT.name,
             card_actions=ProjectCardActions,
             qss_files=qss_modular,
-            language=dialog.lang_manager,
             supports_statuses=True,
             supports_tags=True,
             module_labels=[
@@ -151,7 +147,6 @@ class ModulesRegistry:
             ContractsModule,
             Module.CONTRACT.name,
             qss_files=qss_modular,
-            lang_manager=dialog.lang_manager,
             supports_types=True,
             supports_statuses=True,
             supports_tags=True,
@@ -160,7 +155,6 @@ class ModulesRegistry:
             CoordinationModule,
             Module.COORDINATION.name,
             qss_files=qss_modular,
-            language=dialog.lang_manager,
             supports_types=True,
             supports_statuses=True,
             supports_tags=True,
@@ -171,7 +165,6 @@ class ModulesRegistry:
             Module.EASEMENT.name,
             card_actions=EasementCardActions,
             qss_files=qss_modular,
-            lang_manager=dialog.lang_manager,
             supports_types=True,
             supports_statuses=True,
             supports_tags=False,
@@ -190,7 +183,6 @@ class ModulesRegistry:
             Module.WORKS.name,
             card_actions=WorksCardActions,
             qss_files=qss_modular,
-            lang_manager=dialog.lang_manager,
             supports_types=True,
             supports_statuses=True,
             supports_tags=False,
@@ -200,7 +192,6 @@ class ModulesRegistry:
             Module.ASBUILT.name,
             card_actions=AsBuiltCardActions,
             qss_files=qss_modular,
-            lang_manager=dialog.lang_manager,
             supports_types=True,
             supports_statuses=True,
             supports_tags=False,

@@ -26,7 +26,7 @@ class WorksPendingGisReviewMixin:
         on_created: Optional[Callable[[str], None]] = None,
         progress_anchor=None,
     ) -> bool:
-        works_layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
+        works_layer = WorksLayerService.resolve_main_layer(dialogs=ModernMessageDialog)
         if works_layer is None:
             return False
 
@@ -59,7 +59,6 @@ class WorksPendingGisReviewMixin:
                 feature_id,
                 parent_window=owner,
             ),
-            lang_manager=self._lang,
             parent=parent_window,
         )
         dialog.exec_()

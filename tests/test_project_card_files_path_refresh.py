@@ -59,18 +59,15 @@ class ProjectCardFilesPathRefreshTest(unittest.TestCase):
         )
 
     def test_more_actions_callback_updates_only_its_own_folder_button(self) -> None:
-        lang_manager = StubLanguageManager()
         first_actions = ModuleConnectionActions(
             "project",
             "project-1",
             {"id": "project-1", "filesPath": ""},
-            lang_manager,
         )
         second_actions = ModuleConnectionActions(
             "project",
             "project-2",
             {"id": "project-2", "filesPath": r"C:\Projects\Other"},
-            lang_manager,
         )
 
         first_more = next(
@@ -135,22 +132,19 @@ class ProjectCardFilesPathRefreshTest(unittest.TestCase):
             "Show connected properties on map",
         )
         self.assertEqual(button.accessibleName(), button.toolTip())
-        show_on_map.assert_called_once_with("project", "project-1", lang_manager)
+        show_on_map.assert_called_once_with("project", "project-1")
         start_linking.assert_not_called()
 
     def test_successful_link_callback_switches_only_the_current_card_to_map_mode(self) -> None:
-        lang_manager = StubLanguageManager()
         first_actions = ModuleConnectionActions(
             "project",
             "project-1",
             {"id": "project-1", "properties": {"pageInfo": {"count": 0}}},
-            lang_manager,
         )
         second_actions = ModuleConnectionActions(
             "project",
             "project-2",
             {"id": "project-2", "properties": {"pageInfo": {"count": 0}}},
-            lang_manager,
         )
 
         first_map = next(

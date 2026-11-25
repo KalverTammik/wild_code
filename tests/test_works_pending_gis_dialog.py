@@ -37,7 +37,7 @@ class WorksPendingGisDialogTitleTest(unittest.TestCase):
     def _dialog(self, theme: str) -> WorksPendingGisDialog:
         # The dialog styles itself once, when it is built, so the theme is chosen before that.
         with patch.object(ThemeManager, "effective_theme", return_value=theme):
-            dialog = WorksPendingGisDialog(rows=[], on_open=Mock(), lang_manager=self.lang)
+            dialog = WorksPendingGisDialog(rows=[], on_open=Mock())
 
         def delete() -> None:
             dialog.hide()

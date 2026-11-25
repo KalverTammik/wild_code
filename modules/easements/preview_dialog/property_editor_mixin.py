@@ -351,7 +351,7 @@ class EasementPropertyEditorMixin:
                 )
             if layer_message:
                 extra_note += ("\n\n" if extra_note else "\n\n") + layer_message
-            problems_note = field_value_problems_note(value_problems, self._lang)
+            problems_note = field_value_problems_note(value_problems)
             if problems_note:
                 extra_note += "\n\n" + problems_note
 

@@ -24,8 +24,8 @@ from .asbuilt_layer_service import AsBuiltLayerService
 
 
 class AsBuiltFeatureMapController:
-    def __init__(self, *, lang_manager=None) -> None:
-        self._lang = lang_manager or LanguageManager()
+    def __init__(self) -> None:
+        self._lang = LanguageManager()
         self._workflow = ModuleFeatureWorkflow(self._build_workflow_config())
 
     def start_draw(self, *, item_data: Optional[dict]) -> bool:
@@ -33,7 +33,7 @@ class AsBuiltFeatureMapController:
         item_id = str(item_payload.get("id") or "").strip()
         if not item_id:
             return False
-        layer, _message = AsBuiltLayerService.prepare_layer_for_draw(lang_manager=self._lang, dialogs=ModernMessageDialog)
+        layer, _message = AsBuiltLayerService.prepare_layer_for_draw(dialogs=ModernMessageDialog)
         if layer is None:
             return False
         mode = ask_existing_feature_mode(
@@ -50,7 +50,7 @@ class AsBuiltFeatureMapController:
     def _build_workflow_config(self) -> ModuleFeatureWorkflowConfig:
         return ModuleFeatureWorkflowConfig(
             log_module="asbuilt",
-            resolve_layer=lambda: AsBuiltLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog),
+            resolve_layer=lambda: AsBuiltLayerService.resolve_main_layer(dialogs=ModernMessageDialog),
             find_feature_at_point=lambda point, layer: AsBuiltLayerService.find_feature_at_point(point, layer=layer),
             attach_handler=self._attach_asbuilt_feature_and_sync_geometry,
             find_feature_for_item=lambda layer, current_item: AsBuiltLayerService.find_feature(

@@ -253,7 +253,7 @@ class WorksListView(QObject):
                         # Reuse an existing instance when the grouping changes.
                         reusable = next((old_key for old_key in old_cards if old_key[1] == key[1]), None)
                         card = old_cards.pop(reusable) if reusable is not None else ModuleCardFactory.create_item_card(
-                            item, module_name=owner.module_key, lang_manager=owner.lang_manager)
+                            item, module_name=owner.module_key)
                     self.cards[key] = card
                     card._item_update_handler = owner._on_list_item_updated
                     if owner.feed_layout.indexOf(card) != position:

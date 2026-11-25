@@ -29,7 +29,7 @@ class EasementFinalSaveMixin:
         if final_layer is None:
             return False, final_status or self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_FINAL_FAILED)
 
-        target_layer = EasementLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
+        target_layer = EasementLayerService.resolve_main_layer(dialogs=None)
         if target_layer is None:
             return False, self._lang.translate(TranslationKeys.EASEMENT_LAYER_MISSING)
         if target_layer.isEditable():
@@ -66,7 +66,6 @@ class EasementFinalSaveMixin:
                 failure_message=lambda _detail: sync_failed,
                 title=self._lang.translate(TranslationKeys.ERROR),
                 log_module=Module.EASEMENT.value,
-                lang=self._lang,
                 parent=self,
                 extra={"item_id": str(self._item_id or "")},
                 dialog_class=ModernMessageDialog,
@@ -201,7 +200,6 @@ class EasementFinalSaveMixin:
         dialog = TaskFilePreviewDialog.open_preview(
             local_file_path=pdf_path,
             local_title=self._drawing_preview_title(),
-            lang_manager=self._lang,
             parent=self,
         )
         if dialog is not None:

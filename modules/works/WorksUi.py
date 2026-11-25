@@ -27,7 +27,6 @@ class WorksModule(TaskModuleBaseUI):
     def __init__(
         self,
         name: Optional[str] = None,
-        lang_manager: Optional[object] = None,
         parent: Optional[QWidget] = None,
         qss_files: Optional[List[str]] = None,
     ) -> None:
@@ -38,7 +37,6 @@ class WorksModule(TaskModuleBaseUI):
         super().__init__(
             module_enum=Module.WORKS,
             empty_state_key=TranslationKeys.NO_WORKS_FOUND,
-            lang_manager=lang_manager,
             parent=parent,
             qss_files=qss_files,
         )
@@ -55,8 +53,8 @@ class WorksModule(TaskModuleBaseUI):
         self.footer_area.layout().addWidget(self._list_scope_label, 1)
         self._list_view.changed.connect(self._on_list_presentation_changed)
 
-        self._create_controller = WorksCreateController(lang_manager=self.lang_manager)
-        self._sync_service = WorksSyncService(lang_manager=self.lang_manager, parent=self)
+        self._create_controller = WorksCreateController()
+        self._sync_service = WorksSyncService(parent=self)
         self._sync_service.geometry_sync_failed.connect(self._on_geometry_sync_failed)
         self._create_on_map_button = QPushButton(
             self.lang_manager.translate(TranslationKeys.WORKS_CREATE_ON_MAP_BUTTON)

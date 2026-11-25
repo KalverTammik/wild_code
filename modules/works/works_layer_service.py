@@ -405,8 +405,8 @@ class WorksLayerService(ModuleLayerServiceBase):
         return str(value or "").strip()
 
     @staticmethod
-    def property_display_text(feature, *, lang_manager=None) -> str:
-        lang = lang_manager or LanguageManager()
+    def property_display_text(feature) -> str:
+        lang = LanguageManager()
         if feature is None:
             return lang.translate(TranslationKeys.WORKS_CREATE_PROPERTY_NONE)
 

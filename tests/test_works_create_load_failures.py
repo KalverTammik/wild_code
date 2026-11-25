@@ -4,7 +4,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -17,7 +17,7 @@ from qgis.PyQt.QtWidgets import QWidget
 
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
-from Kavitro_dev.modules.works import works_create_controller as controller_module
+from Kavitro_dev.modules.works import works_create_controller as controller_module
 from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper
 from Kavitro_dev.modules.works import works_create_dialog as dialog_module
 from Kavitro_dev.python.api_actions import APIModuleActions
@@ -72,7 +72,7 @@ class WorksCreateDialogLoadFailureTest(_Patched):
             "priority_options": PRIORITIES,
         }
         options.update(kwargs)
-        return Dialog(point=QgsPointXY(1, 1), property_feature=None, lang_manager=self.lang, parent=self.window, **options)
+        return Dialog(point=QgsPointXY(1, 1), property_feature=None, parent=self.window, **options)
 
     def test_failed_type_load_says_so_and_blocks_creating(self) -> None:
         with patch.object(dialog_module.FilterHelper, "get_filter_edges_by_key_and_module") as lookup:
@@ -135,7 +135,7 @@ class WorksCreateDialogLoadFailureTest(_Patched):
 class WorksCreateControllerLoadFailureTest(_Patched):
     def setUp(self) -> None:
         super().setUp()
-        self.controller = controller_module.WorksCreateController(lang_manager=Mock())
+        self.controller = controller_module.WorksCreateController()
 
     def _lookups(self, *, fail: bool, **overrides):
         error = RuntimeError("offline")

@@ -31,14 +31,13 @@ class StatusFilterWidget(FilterLoadingMixin, QWidget):
         *,
         auto_load: bool = True,
         settings_logic: Optional[SettingsLogic] = None,
-        lang_manager: Optional[LanguageManager] = None,
         label_text: Optional[str] = None,
         selected_ids_loader: Optional[Callable[[], Sequence[str]]] = None,
         object_name: str = "StatusFilterCombo",
     ) -> None:
         super().__init__(parent)
         self._module = getattr(module_name, "value", module_name)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._settings_logic = settings_logic or SettingsLogic()
         self._selected_ids_loader = selected_ids_loader
         self._loaded = False
@@ -58,7 +57,6 @@ class StatusFilterWidget(FilterLoadingMixin, QWidget):
         self.selector = StatusMultiSelectWidget(
             self,
             placeholder=label,
-            lang_manager=self._lang,
         )
         self.selector.setObjectName(object_name)
         self.selector.setToolTip(label)

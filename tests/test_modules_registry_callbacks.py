@@ -8,15 +8,14 @@ class ModuleLabelCallbackTest(unittest.TestCase):
     def test_value_editor_receives_only_current_value(self) -> None:
         received = []
 
-        def open_dialog(lang_manager, parent, dialog_class, accepted_value, current_value):
+        def open_dialog(parent, dialog_class, accepted_value, current_value):
             received.append(
-                (lang_manager, parent, dialog_class, accepted_value, current_value)
+                (parent, dialog_class, accepted_value, current_value)
             )
             return "PROJECT_NUMBER + SYMBOL(_) + PROJECT_NAME"
 
         bound_editor = partial(
             open_dialog,
-            "language-manager",
             "parent-dialog",
             "folder-rule-dialog",
             "accepted",
@@ -29,7 +28,6 @@ class ModuleLabelCallbackTest(unittest.TestCase):
             received,
             [
                 (
-                    "language-manager",
                     "parent-dialog",
                     "folder-rule-dialog",
                     "accepted",

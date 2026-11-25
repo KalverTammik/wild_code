@@ -21,8 +21,8 @@ class _WorksRepositionCaptureTool(SingleClickMapTool):
 
 
 class WorksRepositionController:
-    def __init__(self, *, lang_manager=None) -> None:
-        self._lang = lang_manager or LanguageManager()
+    def __init__(self) -> None:
+        self._lang = LanguageManager()
         self._capture_tool: Optional[_WorksRepositionCaptureTool] = None
         self._parent_window = None
         self._layer: Optional[QgsVectorLayer] = None
@@ -40,7 +40,7 @@ class WorksRepositionController:
         status_color: str = "",
     ) -> bool:
         """`status_color` is the card's status colour: with it the Kavitro update needs no read of the task first."""
-        layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=ModernMessageDialog)
+        layer = WorksLayerService.resolve_main_layer(dialogs=ModernMessageDialog)
         if layer is None:
             return False
 

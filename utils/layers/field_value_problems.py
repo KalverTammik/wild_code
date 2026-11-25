@@ -50,13 +50,13 @@ def problem_line(problem: FieldValueProblem, lang, *, field: str = "") -> str:
     )
 
 
-def field_value_problems_note(problems: Iterable[FieldValueProblem], lang=None) -> str:
+def field_value_problems_note(problems: Iterable[FieldValueProblem]) -> str:
     """Which fields stayed empty, what was rejected, what was expected and what to do; empty when nothing was."""
     listed = _unique(problems)
     if not listed:
         return ""
-    lang = lang or LanguageManager()
-    lines = [lang.translate(TranslationKeys.FIELD_VALUE_PROBLEMS_INTRO)]
+    lang = LanguageManager()
+    lines =[lang.translate(TranslationKeys.FIELD_VALUE_PROBLEMS_INTRO)]
     for problem in listed[:MAX_LISTED]:
         lines.append(problem_line(problem, lang))
     if len(listed) > MAX_LISTED:
@@ -65,9 +65,9 @@ def field_value_problems_note(problems: Iterable[FieldValueProblem], lang=None) 
     return "\n".join(lines)
 
 
-def with_field_value_problems(message: str, problems: Iterable[FieldValueProblem], lang=None) -> str:
+def with_field_value_problems(message: str, problems: Iterable[FieldValueProblem]) -> str:
     """`message` followed by the note, so a flow shows one dialog, not its own and then this one."""
-    note = field_value_problems_note(problems, lang)
+    note = field_value_problems_note(problems)
     if not note:
         return message
     return f"{message}\n\n{note}" if message else note
@@ -79,15 +79,14 @@ def show_saved(
     title: str,
     message: str,
     problems: Optional[Iterable[FieldValueProblem]],
-    lang=None,
 ) -> None:
     """The success message of a save; a warning naming the empty fields when some value was rejected."""
     listed = _unique(problems or ())
     if not listed:
         dialogs.show_info(title, message)
         return
-    lang = lang or LanguageManager()
+    lang = LanguageManager()
     dialogs.show_warning(
         lang.translate(TranslationKeys.FIELD_VALUE_PROBLEMS_TITLE),
-        with_field_value_problems(message, listed, lang),
+        with_field_value_problems(message, listed),
     )

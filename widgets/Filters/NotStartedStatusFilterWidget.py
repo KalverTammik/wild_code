@@ -19,17 +19,15 @@ class NotStartedStatusFilterWidget(StatusFilterWidget):
         *,
         auto_load: bool = True,
         settings_logic: Optional[SettingsLogic] = None,
-        lang_manager: Optional[LanguageManager] = None,
     ) -> None:
         normalized_module = getattr(module_name, "value", module_name)
-        lang = lang_manager or LanguageManager()
+        lang = LanguageManager()
         label_text = lang.translate(TranslationKeys.PROJECT_BOARD_NOT_STARTED_STATUS_TITLE)
         super().__init__(
             module_name,
             parent=parent,
             auto_load=auto_load,
             settings_logic=settings_logic,
-            lang_manager=lang,
             label_text=label_text,
             object_name="NotStartedStatusFilterCombo",
             selected_ids_loader=lambda: list(ProjectBoardStatusRules.load_not_started_status_ids(normalized_module)),

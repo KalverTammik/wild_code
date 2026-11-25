@@ -36,7 +36,7 @@ class UploadQueueTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.lang = LanguageManager("et")
-        self.dialog = files.TaskFilesDialog(item_id="task-1", module_name="works", lang_manager=self.lang,
+        self.dialog = files.TaskFilesDialog(item_id="task-1", module_name="works",
                                             initial_files=[])
         self.addCleanup(self.dialog.deleteLater)
         self.dialog._load_files = Mock()
@@ -176,7 +176,7 @@ class UploadThreadTest(unittest.TestCase):
         cls.app = QgsApplication.instance() or QgsApplication([], False)
 
     def test_upload_runs_in_a_worker_thread(self) -> None:
-        dialog = files.TaskFilesDialog(item_id="task-1", module_name="works", lang_manager=LanguageManager("et"),
+        dialog = files.TaskFilesDialog(item_id="task-1", module_name="works",
                                        initial_files=[])
         self.addCleanup(dialog.deleteLater)
         dialog._load_files = Mock()

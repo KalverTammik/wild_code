@@ -92,9 +92,9 @@ class EasementPreviewDialog(EasementPreviewLayersMixin, EasementPropertyEditorMi
         AreaUnit.H: "ha",
     }
 
-    def __init__(self, *, item_data=None, lang_manager=None, parent=None, on_status_changed=None) -> None:
+    def __init__(self, *, item_data=None, parent=None, on_status_changed=None) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._item = item_data if isinstance(item_data, dict) else {}
         self._on_status_changed = on_status_changed
         self._service = ProjectBaseLayersService()

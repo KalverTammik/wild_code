@@ -23,13 +23,12 @@ class CoordinationModule(SearchOpenItemMixin, OverduePillsMixin, FilteredFeedMix
 
     def __init__(
         self,
-        language: Optional[str] = None,
         parent: Optional[QWidget] = None,
         qss_files: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(parent)
-        self._init_feed_module(Module.COORDINATION, language or LanguageManager())
+        self._init_feed_module(Module.COORDINATION, LanguageManager())
         self.wire_overdue_pills(self.toolbar_area, lang_manager=self.lang_manager)
         self._build_filters_and_feed(TranslationKeys.NO_COORDINATIONS_FOUND)
 

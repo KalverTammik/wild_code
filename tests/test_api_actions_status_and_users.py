@@ -417,7 +417,7 @@ class TaskPriorityLabelTest(ActionTestCase):
         for priority in (None, "", "  "):
             with self.subTest(priority=priority):
                 self.assertEqual(
-                    APIModuleActions.task_priority_label(priority, lang_manager=self.lang),
+                    APIModuleActions.task_priority_label(priority),
                     f"T[{TranslationKeys.WORKS_PRIORITY_NONE}]",
                 )
 
@@ -427,28 +427,24 @@ class TaskPriorityLabelTest(ActionTestCase):
         for priority, key in cases:
             with self.subTest(priority=priority):
                 self.lang.translate.reset_mock()
-                self.assertEqual(APIModuleActions.task_priority_label(priority, lang_manager=self.lang), f"T[{key}]")
+                self.assertEqual(APIModuleActions.task_priority_label(priority), f"T[{key}]")
                 self.lang.translate.assert_called_once_with(key)
 
     def test_unknown_priority_is_shown_as_title_case_words_without_a_translation(self) -> None:
         cases = (("not_started", "Not Started"), ("CRITICAL", "Critical"), (" very_high ", "Very High"))
         for priority, label in cases:
             with self.subTest(priority=priority):
-                self.assertEqual(APIModuleActions.task_priority_label(priority, lang_manager=self.lang), label)
+                self.assertEqual(APIModuleActions.task_priority_label(priority), label)
         self.lang.translate.assert_not_called()
 
-    def test_given_language_manager_is_used_and_no_other_is_built(self) -> None:
-        APIModuleActions.task_priority_label("high", lang_manager=self.lang)
-        self.assertEqual(self.language_managers_built(), 0)
-
-    def test_without_a_language_manager_one_is_built(self) -> None:
+    def test_one_language_manager_is_built(self) -> None:
         self.assertEqual(APIModuleActions.task_priority_label("low"), f"T[{TranslationKeys.WORKS_PRIORITY_LOW}]")
         self.assertEqual(self.language_managers_built(), 1)
 
 
 class TaskPriorityOptionsTest(ActionTestCase):
     def test_options_start_with_the_empty_choice_and_follow_the_schema_order(self) -> None:
-        self.assertEqual(APIModuleActions.get_task_priority_options(lang_manager=self.lang), [
+        self.assertEqual(APIModuleActions.get_task_priority_options(), [
             {"value": "", "label": f"T[{TranslationKeys.WORKS_PRIORITY_NONE}]"},
             {"value": "URGENT", "label": f"T[{TranslationKeys.WORKS_PRIORITY_URGENT}]"},
             {"value": "HIGH", "label": f"T[{TranslationKeys.WORKS_PRIORITY_HIGH}]"},
@@ -458,16 +454,8 @@ class TaskPriorityOptionsTest(ActionTestCase):
         self.client.send_query.assert_not_called()
 
     def test_empty_choice_can_be_left_out(self) -> None:
-        options = APIModuleActions.get_task_priority_options(lang_manager=self.lang, include_empty=False)
+        options = APIModuleActions.get_task_priority_options(include_empty=False)
         self.assertEqual([option["value"] for option in options], PRIORITY_VALUES)
-
-    def test_one_language_manager_serves_every_label(self) -> None:
-        self.assertEqual(len(APIModuleActions.get_task_priority_options()), 5)
-        self.assertEqual(self.language_managers_built(), 1)
-
-    def test_given_language_manager_builds_no_other(self) -> None:
-        APIModuleActions.get_task_priority_options(lang_manager=self.lang)
-        self.assertEqual(self.language_managers_built(), 0)
 
 
 class GetCurrentUserPayloadTest(ActionTestCase):

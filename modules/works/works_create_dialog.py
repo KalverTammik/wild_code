@@ -62,11 +62,10 @@ class WorksCreateDialog(QDialog):
         initial_status_id: str = "",
         initial_priority: str = "",
         load_failures: Optional[Iterable[str]] = None,
-        lang_manager=None,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._point = point
         self._property_feature = property_feature
         self._allowed_type_ids = {str(item_id) for item_id in (allowed_type_ids or []) if item_id}
@@ -114,7 +113,7 @@ class WorksCreateDialog(QDialog):
         form = StackedFormGrid()
 
         self._property_value = QLabel(
-            WorksLayerService.property_display_text(self._property_feature, lang_manager=self._lang),
+            WorksLayerService.property_display_text(self._property_feature),
             self,
         )
         self._property_value.setWordWrap(True)
@@ -143,7 +142,6 @@ class WorksCreateDialog(QDialog):
         self._status_combo = StatusSelectWidget(
             self,
             placeholder=self._lang.translate(TranslationKeys.SELECT),
-            lang_manager=self._lang,
         )
 
         self._priority_combo = QComboBox(self)

@@ -28,11 +28,10 @@ class WorksPendingGisDialog(QDialog):
         *,
         rows: Iterable[dict[str, object]],
         on_open: Callable[[int, QDialog], bool],
-        lang_manager=None,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._rows = list(rows or [])
         self._on_open = on_open
         self._table: QTableWidget | None = None

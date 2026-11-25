@@ -10,7 +10,6 @@ if os.environ.get('QGIS_PREFIX_PATH'):
     sys.path.append(str(Path(os.environ['QGIS_PREFIX_PATH']) / 'python' / 'plugins'))
 
 from qgis.core import QgsApplication
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.modules.Property.FlowControllers import backend_property_actions as backend
 from Kavitro_dev.modules.Property.FlowControllers import property_delete as deletion
 from Kavitro_dev.python.api_rate_limit import RequestCancelled
@@ -24,8 +23,7 @@ class BulkRequestResultsTest(unittest.TestCase):
         cls.app = QgsApplication.instance() or QgsApplication([], False)
 
     def test_upload_failure_stops_before_next_file_and_refreshes_actual_list(self):
-        dialog = files.TaskFilesDialog(item_id='task-1', module_name='works', lang_manager=LanguageManager(),
-                                       initial_files=[])
+        dialog = files.TaskFilesDialog(item_id='task-1', module_name='works', initial_files=[])
         self.addCleanup(dialog.deleteLater)
         dialog._load_files = Mock()
         # The upload runs in background workers (2026-11-24); run each one in place here.

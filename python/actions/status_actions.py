@@ -118,8 +118,8 @@ class StatusActions:
         return list(StatusActions._TASK_PRIORITY_VALUES)
 
     @staticmethod
-    def task_priority_label(priority: str, *, lang_manager=None) -> str:
-        lang = lang_manager or LanguageManager()
+    def task_priority_label(priority: str) -> str:
+        lang = LanguageManager()
         normalized = str(priority or "").strip().upper()
         if not normalized:
             return lang.translate(TranslationKeys.WORKS_PRIORITY_NONE)
@@ -137,8 +137,8 @@ class StatusActions:
         return normalized.replace("_", " ").title()
 
     @staticmethod
-    def get_task_priority_options(*, lang_manager=None, include_empty: bool = True) -> List[dict[str, str]]:
-        lang = lang_manager or LanguageManager()
+    def get_task_priority_options(*, include_empty: bool = True) -> List[dict[str, str]]:
+        lang = LanguageManager()
         options: List[dict[str, str]] = []
 
         if include_empty:
@@ -153,7 +153,7 @@ class StatusActions:
             options.append(
                 {
                     "value": value,
-                    "label": StatusActions.task_priority_label(value, lang_manager=lang),
+                    "label": StatusActions.task_priority_label(value),
                 }
             )
 

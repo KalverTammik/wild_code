@@ -15,7 +15,7 @@ class SearchOpenItemMixin:
 
         feed_logic = self.feed_logic
         if feed_logic is None:
-            feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE, self.lang_manager)
+            feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE)
             self.feed_logic = feed_logic
 
         feed_logic.configure_single_item_query(self.SINGLE_ITEM_QUERY_FILE)

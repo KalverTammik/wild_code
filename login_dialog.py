@@ -230,7 +230,6 @@ class LoginDialog(QDialog):
         show_storage_warning(
             storage_status,
             parent=self,
-            lang_manager=self.lang,
         )
         self.loginSuccessful.emit(self.api_token, self.user)
         self.accept()

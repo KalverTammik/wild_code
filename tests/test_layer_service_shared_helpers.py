@@ -15,6 +15,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 
 from qgis.core import QgsPointXY, QgsVectorLayer, QgsWkbTypes
 
+from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
 from Kavitro_dev.modules.easements.easement_layer_service import EasementLayerService
@@ -253,8 +254,7 @@ class GeometryInLayerCrsTest(unittest.TestCase):
 
 class ResolveMainLayerTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.lang = Mock()
-        self.lang.translate.side_effect = lambda key: f"t:{key}"
+        self.lang = LanguageManager()
         for patcher in (patch.object(WorksLayerService, "resolve_task_id_field_name", return_value="ext_job_id"),
                         patch.object(WorksLayerService, "_prepare_required_fields", return_value=(True, ""))):
             patcher.start()
@@ -278,13 +278,13 @@ class ResolveMainLayerTest(unittest.TestCase):
         ) as logger:
             setting = settings.return_value.module_main_layer_name
             setting.side_effect = [identifier, save_error if save_error is not None else None]
-            result = service.resolve_main_layer(lang_manager=self.lang, dialogs=dialogs)
+            result = service.resolve_main_layer(dialogs=dialogs)
             configured.assert_called_once_with(identifier)
             real_dialog.assert_not_called()
             return result, setting, real_dialog if quiet else dialogs.show_warning, logger
 
     def assert_warned(self, warning, key) -> None:
-        warning.assert_called_once_with(f"t:{TranslationKeys.ERROR}", f"t:{key}")
+        warning.assert_called_once_with(self.lang.translate(TranslationKeys.ERROR), self.lang.translate(key))
 
     def test_several_layers_with_the_name_warn_and_give_nothing(self) -> None:
         for service, (_missing, ambiguous, _geometry) in MAIN_LAYER_KEYS.items():
@@ -355,8 +355,7 @@ class WorksMainLayerChecksTest(unittest.TestCase):
     FALLBACK = "Configured Works layer does not match the required schema."
 
     def setUp(self) -> None:
-        self.lang = Mock()
-        self.lang.translate.side_effect = lambda key: f"t:{key}"
+        self.lang = LanguageManager()
 
     def resolve(self, geometry=QgsWkbTypes.PointGeometry, *, id_field="ext_job_id", fields=(True, ""), quiet=False):
         """`quiet` passes no dialogs; the real dialog is stubbed so that a stray call could never open a window."""
@@ -373,7 +372,7 @@ class WorksMainLayerChecksTest(unittest.TestCase):
             WorksLayerService, "resolve_task_id_field_name", return_value=id_field
         ), patch.object(WorksLayerService, "_prepare_required_fields", return_value=fields) as prepare:
             settings.return_value.module_main_layer_name.return_value = "layer-1"
-            result = WorksLayerService.resolve_main_layer(lang_manager=self.lang, dialogs=dialogs)
+            result = WorksLayerService.resolve_main_layer(dialogs=dialogs)
             real_dialog.assert_not_called()
             return result, layer, real_dialog if quiet else dialogs.show_warning, prepare
 
@@ -386,24 +385,24 @@ class WorksMainLayerChecksTest(unittest.TestCase):
     def test_layer_that_is_not_a_point_layer_is_refused(self) -> None:
         result, _layer, warning, prepare = self.resolve(QgsWkbTypes.PolygonGeometry)
         self.assertIsNone(result)
-        warning.assert_called_once_with(f"t:{TranslationKeys.ERROR}", f"t:{TranslationKeys.WORKS_LAYER_INVALID_GEOMETRY}")
+        warning.assert_called_once_with(self.lang.translate(TranslationKeys.ERROR), self.lang.translate(TranslationKeys.WORKS_LAYER_INVALID_GEOMETRY))
         prepare.assert_not_called()
 
     def test_layer_without_the_task_id_field_is_refused(self) -> None:
         result, _layer, warning, prepare = self.resolve(id_field=None)
         self.assertIsNone(result)
-        warning.assert_called_once_with(f"t:{TranslationKeys.ERROR}", f"t:{TranslationKeys.WORKS_LAYER_ID_FIELD_MISSING}")
+        warning.assert_called_once_with(self.lang.translate(TranslationKeys.ERROR), self.lang.translate(TranslationKeys.WORKS_LAYER_ID_FIELD_MISSING))
         prepare.assert_not_called()
 
     def test_field_problem_is_shown_with_its_own_message(self) -> None:
         result, _layer, warning, _prepare = self.resolve(fields=(False, "väli ei sobi"))
         self.assertIsNone(result)
-        warning.assert_called_once_with(f"t:{TranslationKeys.ERROR}", "väli ei sobi")
+        warning.assert_called_once_with(self.lang.translate(TranslationKeys.ERROR), "väli ei sobi")
 
     def test_field_problem_without_a_message_has_a_general_text(self) -> None:
         result, _layer, warning, _prepare = self.resolve(fields=(False, ""))
         self.assertIsNone(result)
-        warning.assert_called_once_with(f"t:{TranslationKeys.ERROR}", self.FALLBACK)
+        warning.assert_called_once_with(self.lang.translate(TranslationKeys.ERROR), self.FALLBACK)
 
     def test_lookup_without_dialogs_refuses_without_a_warning(self) -> None:
         for options in ({"geometry": QgsWkbTypes.PolygonGeometry}, {"id_field": None}, {"fields": (False, "väli ei sobi")}):
@@ -415,8 +414,7 @@ class WorksMainLayerChecksTest(unittest.TestCase):
 
 class PrepareLayerForDrawTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.lang = Mock()
-        self.lang.translate.side_effect = lambda key: f"t:{key}"
+        self.lang = LanguageManager()
 
     def prepare(self, service, *, layer="layer", fields=(True, ""), quiet=False):
         """`quiet` passes no dialogs; the real dialog is stubbed so that a stray call could never open a window."""
@@ -424,8 +422,8 @@ class PrepareLayerForDrawTest(unittest.TestCase):
         with patch.object(service, "resolve_main_layer", return_value=layer) as resolve, patch.object(
             service, "_ensure_custom_fields", return_value=fields
         ), patch.object(ModernMessageDialog, "show_warning") as real_dialog:
-            result = service.prepare_layer_for_draw(lang_manager=self.lang, dialogs=dialogs)
-            resolve.assert_called_once_with(lang_manager=self.lang, dialogs=dialogs)
+            result = service.prepare_layer_for_draw(dialogs=dialogs)
+            resolve.assert_called_once_with(dialogs=dialogs)
             real_dialog.assert_not_called()
             return result, real_dialog if quiet else dialogs.show_warning
 
@@ -448,14 +446,14 @@ class PrepareLayerForDrawTest(unittest.TestCase):
             with self.subTest(service=service.__name__):
                 result, warning = self.prepare(service, fields=(False, "väli puudub"))
                 self.assertEqual(result, (None, "väli puudub"))
-                warning.assert_called_once_with(f"t:{TranslationKeys.ERROR}", "väli puudub")
+                warning.assert_called_once_with(self.lang.translate(TranslationKeys.ERROR), "väli puudub")
 
     def test_field_problem_without_a_message_uses_the_module_text(self) -> None:
         for service, key in DRAW_SERVICES.items():
             with self.subTest(service=service.__name__):
                 result, warning = self.prepare(service, fields=(False, ""))
                 self.assertEqual(result, (None, ""))
-                warning.assert_called_once_with(f"t:{TranslationKeys.ERROR}", f"t:{key}")
+                warning.assert_called_once_with(self.lang.translate(TranslationKeys.ERROR), self.lang.translate(key))
 
     def test_preparation_without_dialogs_shows_nothing(self) -> None:
         for service in DRAW_SERVICES:

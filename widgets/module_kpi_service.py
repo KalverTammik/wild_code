@@ -15,12 +15,11 @@ class ModuleKpiService:
     def _fetch_count(
         module_key: str,
         query_name: str,
-        lang_manager,
         where: dict[str, Any] | None,
         extra_args: dict[str, Any] | None,
         root_field: str | None = None,
     ) -> int:
-        feed_logic = UnifiedFeedLogic(module_key, query_name, lang_manager, batch_size=1, root_field=root_field)
+        feed_logic = UnifiedFeedLogic(module_key, query_name, batch_size=1, root_field=root_field)
         feed_logic.set_where(where)
         if extra_args:
             feed_logic.set_extra_arguments(**extra_args)
@@ -67,7 +66,6 @@ class ModuleKpiService:
     def fetch_snapshot(
         module_key: str,
         query_name: str,
-        lang_manager=None,
         *,
         root_field: str | None = None,
         include_due_counts: bool = True,
@@ -76,7 +74,6 @@ class ModuleKpiService:
         total_count = ModuleKpiService._fetch_count(
             module_key,
             query_name,
-            lang_manager,
             where,
             extra_args,
             root_field=root_field,
@@ -90,7 +87,6 @@ class ModuleKpiService:
             overdue_count = ModuleKpiService._fetch_count(
                 module_key,
                 query_name,
-                lang_manager,
                 overdue_where,
                 extra_args,
                 root_field=root_field,
@@ -98,7 +94,6 @@ class ModuleKpiService:
             due_soon_count = ModuleKpiService._fetch_count(
                 module_key,
                 query_name,
-                lang_manager,
                 due_soon_where,
                 extra_args,
                 root_field=root_field,

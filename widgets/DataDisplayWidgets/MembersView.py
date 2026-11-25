@@ -72,9 +72,9 @@ class AvatarBubble(QLabel):
     MAX_POPUP_PARTICIPANTS = 11
 
     def __init__(self, fullname: str, salt: str = "", popup_members=None, parent=None,
-                 *, unassigned=False, responsible_members=None, lang_manager=None):
+                 *, unassigned=False, responsible_members=None):
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self.setObjectName("MemberAvatarBubble")
         self._unassigned = unassigned
         self._responsible_members = list(responsible_members or [])
@@ -284,9 +284,9 @@ class MembersView(QWidget):
     AVATAR_SPACING = 2
     SIDE_PADDING = 10
 
-    def __init__(self, item_data: dict, parent=None, lang_manager=None):
+    def __init__(self, item_data: dict, parent=None):
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._build(item_data)
 
     def _build(self, item_data: dict):
@@ -309,7 +309,7 @@ class MembersView(QWidget):
                 full = DataDisplayExtractors.extract_member_display_name(node)
                 # Attach participant nodes as popup members when hovering this responsible avatar
                 bubble = AvatarBubble(full, salt="responsible-v1", popup_members=participant_nodes,
-                                      responsible_members=responsible_nodes, lang_manager=self._lang)
+                                      responsible_members=responsible_nodes)
                 resp_layout.addWidget(bubble)
 
             layout.addLayout(resp_layout)
@@ -321,7 +321,7 @@ class MembersView(QWidget):
             self.setFixedWidth(content_width)
         else:
             bubble = AvatarBubble("", popup_members=participant_nodes, unassigned=True,
-                                  lang_manager=self._lang, parent=self)
+                                  parent=self)
             layout.addWidget(bubble, 0, Qt.AlignRight | Qt.AlignTop)
             self.setFixedWidth(self.AVATAR_SIZE + self.SIDE_PADDING)
 

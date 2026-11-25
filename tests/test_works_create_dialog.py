@@ -47,7 +47,6 @@ class WorksCreateDialogTest(unittest.TestCase):
             assignable_users=[{"id": "1", "displayName": "Kasutaja"}],
             status_options=[{"id": "a", "name": "Planeeritud", "color": "4FBF6B", "type": "OPEN", "isDefault": True}],
             priority_options=[{"value": "", "label": "Puudub"}, {"value": "HIGH", "label": "Kõrge"}],
-            lang_manager=self.lang,
         )
 
     def tearDown(self) -> None:

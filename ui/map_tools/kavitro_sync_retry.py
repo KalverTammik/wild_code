@@ -35,7 +35,6 @@ def offer_kavitro_sync_retry(
     title: str,
     log_module: str,
     first_detail: str = "",
-    lang=None,
     parent=None,
     extra: Optional[dict] = None,
     dialog_class=None,
@@ -47,7 +46,7 @@ def offer_kavitro_sync_retry(
     Returns False when the user leaves it as it is. `dialog_class` is the caller's message dialog class.
     """
     dialogs = dialog_class or ModernMessageDialog
-    lang = lang or LanguageManager()
+    lang = LanguageManager()
     retry = lang.translate(TranslationKeys.KAVITRO_SYNC_RETRY)
     keep = lang.translate(TranslationKeys.KAVITRO_SYNC_KEEP)
     note = lang.translate(TranslationKeys.KAVITRO_SYNC_DIFFERS_NOTE)

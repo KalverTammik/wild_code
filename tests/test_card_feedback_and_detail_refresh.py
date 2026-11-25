@@ -60,7 +60,7 @@ class ShowOnMapSummaryTest(DialogStubCase):
                 patch.object(buttons_module.PropertiesSelectors, "show_connected_properties_on_map",
                              return_value=layer if on_layer else None), \
                 patch.object(buttons_module.ModuleItemFocusService, "focus_item_on_map", return_value=False):
-            buttons_module.show_items_on_map("project", "5", LANG)
+            buttons_module.show_items_on_map("project", "5")
 
     def test_all_found_says_nothing(self) -> None:
         self.show(["1:1", "2:2"], ["1:1", "2:2"])
@@ -87,18 +87,18 @@ class OpenPageTest(DialogStubCase):
     def test_a_page_that_does_not_open_is_reported(self) -> None:
         with patch.object(buttons_module.OpenLink, "weblink_by_module", return_value="https://kavitro.com/project"), \
                 patch.object(buttons_module.loadWebpage, "open_webpage", return_value=False):
-            self.assertFalse(buttons_module.open_item_in_browser("project", "5", LANG))
+            self.assertFalse(buttons_module.open_item_in_browser("project", "5"))
         self.assertIn("https://kavitro.com/projects/5", self.show_warning.call_args.args[1])
 
     def test_a_missing_address_is_reported(self) -> None:
         with patch.object(buttons_module.OpenLink, "weblink_by_module", return_value=""):
-            self.assertFalse(buttons_module.open_item_in_browser("project", "5", LANG))
+            self.assertFalse(buttons_module.open_item_in_browser("project", "5"))
         self.assertEqual(self.show_warning.call_args.args[1], LANG.translate(TranslationKeys.WEB_LINK_MISSING))
 
     def test_an_opened_page_says_nothing(self) -> None:
         with patch.object(buttons_module.OpenLink, "weblink_by_module", return_value="https://kavitro.com/project"), \
                 patch.object(buttons_module.loadWebpage, "open_webpage", return_value=True):
-            self.assertTrue(buttons_module.open_item_in_browser("project", "5", LANG))
+            self.assertTrue(buttons_module.open_item_in_browser("project", "5"))
         self.show_warning.assert_not_called()
 
     def test_the_maa_amet_page_that_does_not_open_is_reported(self) -> None:
@@ -119,7 +119,7 @@ class DetailRefreshTest(DialogStubCase):
 
         config = Mock(show_detail_handle=True, detail_loader=loader, detail_open_callback=None)
         with patch.object(extra_info_module.ModuleConfigFactory, "create_config", return_value=config):
-            frame = extra_info_module.ExtraInfoFrame({"id": "1"}, "contract", lang_manager=LANG)
+            frame = extra_info_module.ExtraInfoFrame({"id": "1"}, "contract")
         self.addCleanup(frame.deleteLater)
         return frame
 

@@ -11,8 +11,8 @@ T = TypeVar("T")
 
 class DialogHelpers:
     @staticmethod
-    def open_folder_rule_dialog(lang_manager: Any, dialog: Any, dialog_class: Any, accepted_value: Any, current_value: T) -> T:
-        dlg = dialog_class(lang_manager, dialog, initial_rule=current_value)
+    def open_folder_rule_dialog(dialog: Any, dialog_class: Any, accepted_value: Any, current_value: T) -> T:
+        dlg = dialog_class(dialog, initial_rule=current_value)
         result = dlg.exec_()
         if result == accepted_value:
             return dlg.get_rule()

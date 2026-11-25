@@ -67,7 +67,6 @@ class ProjectCardActions:
 
         dialog = ProjectPreviewDialog(
             item_data=self._host.item_data,
-            lang_manager=self._host.lang_manager,
             parent=self._host.safe_parent_window(),
         )
         dialog.setAttribute(Qt.WA_DeleteOnClose, True)
@@ -86,6 +85,6 @@ class ProjectCardActions:
             return
 
         if self._map_controller is None:
-            self._map_controller = ProjectsFeatureMapController(lang_manager=self._host.lang_manager)
+            self._map_controller = ProjectsFeatureMapController()
 
         self._map_controller.start_draw(item_data=item)

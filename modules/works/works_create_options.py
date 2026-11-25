@@ -83,7 +83,6 @@ class WorksCreateOptionsMixin:
         # Fetched here: a slow GUI-thread request opens a modal wait that swallows map clicks.
         try:
             priority_options = APIModuleActions.get_task_priority_options(
-                lang_manager=self._lang,
                 include_empty=True,
             )
         except Exception as exc:
@@ -168,7 +167,7 @@ class WorksCreateOptionsMixin:
         if self._cached_priority_options:
             return list(self._cached_priority_options)
         try:
-            return APIModuleActions.get_task_priority_options(lang_manager=self._lang, include_empty=True)
+            return APIModuleActions.get_task_priority_options(include_empty=True)
         except Exception as exc:
             self._log_options_load_failed(exc, "works_create_priority_options_load_failed")
             self._load_failures.add(LOAD_FAILED_PRIORITIES)

@@ -127,14 +127,14 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
     overdue_pills = None
 
 
-    def __init__(self, parent: Optional[QWidget] = None, lang_manager=None) -> None:
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         QWidget.__init__(self, parent)
         DedupeMixin.__init__(self)
         FeedCounterMixin.__init__(self)
         ProgressiveLoadMixin.__init__(self)
         TokenMixin.__init__(self)
 
-        self.lang_manager = lang_manager
+        self.lang_manager = LanguageManager()
         self._settings_logic = SettingsLogic()
         self._filter_widgets: list[QWidget] = []
 
@@ -346,8 +346,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         if not empty_state or not feed_layout:
             return
         if not message:
-            lang_manager = self.lang_manager or LanguageManager()
-            message = lang_manager.translate(TranslationKeys.NO_VALUES_FOUND)
+            message = self.lang_manager.translate(TranslationKeys.NO_VALUES_FOUND)
 
         empty_state.setText(message)
         empty_state.setVisible(True)
@@ -357,8 +356,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         empty_state = self.empty_state
         if not empty_state:
             return
-        lang_manager = self.lang_manager or LanguageManager()
-        empty_state.setText(lang_manager.translate(TranslationKeys.LOADING))
+        empty_state.setText(self.lang_manager.translate(TranslationKeys.LOADING))
         empty_state.setVisible(True)
         empty_state.raise_()
 

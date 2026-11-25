@@ -34,9 +34,9 @@ class WorksSyncService(QObject):
     def forget_geometry_change(cls, task_id: str) -> None:
         cls._known_status_colors.pop(str(task_id or "").strip(), None)
 
-    def __init__(self, *, lang_manager=None, parent=None) -> None:
+    def __init__(self, *, parent=None) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._layer: Optional[QgsVectorLayer] = None
         self._syncing_from_backend = False
         self._syncing_geometry = False
@@ -46,7 +46,7 @@ class WorksSyncService(QObject):
         self._sync_snapshot = None
 
     def attach(self) -> Optional[QgsVectorLayer]:
-        layer = WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None)
+        layer = WorksLayerService.resolve_main_layer(dialogs=None)
         if layer is self._layer:
             return layer
 
@@ -136,7 +136,7 @@ class WorksSyncService(QObject):
         layer, task_id_field, features, task_ids, session = snapshot
         if (session != SessionManager.session_signature() or layer is not self._layer
                 or sip.isdeleted(layer) or not layer.isValid()
-                or WorksLayerService.resolve_main_layer(lang_manager=self._lang, dialogs=None) is not layer):
+                or WorksLayerService.resolve_main_layer(dialogs=None) is not layer):
             return
         if self._is_layer_editable(layer, event="works_sync_apply_skipped_layer_editable"):
             return

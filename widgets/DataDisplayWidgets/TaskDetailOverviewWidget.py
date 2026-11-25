@@ -24,9 +24,9 @@ class _FilePreviewSquareButton(QPushButton):
     THUMB_SIZE = 25
     THUMB_MAX_BYTES = 2 * 1024 * 1024
 
-    def __init__(self, *, file_info: dict, icon_path: str, lang_manager=None, parent=None) -> None:
+    def __init__(self, *, file_info: dict, icon_path: str, parent=None) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._file_info = dict(file_info or {})
         self._fallback_icon_path = str(icon_path or "").strip()
         self._preview_worker = None
@@ -136,9 +136,9 @@ class TaskFilesSummaryWidget(QWidget):
         "video/mp4": "mov.png",
     }
 
-    def __init__(self, *, item_id: str, item_name: str = "", module_name: str = "task", lang_manager=None, parent=None) -> None:
+    def __init__(self, *, item_id: str, item_name: str = "", module_name: str = "task", parent=None) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._item_id = str(item_id or "").strip()
         self._item_name = str(item_name or self._item_id).strip()
         self._module_name = str(module_name or "task").strip().lower() or "task"
@@ -270,7 +270,6 @@ class TaskFilesSummaryWidget(QWidget):
                 preview_button = _FilePreviewSquareButton(
                     file_info=file_info,
                     icon_path=self._icon_path_for_file(file_info),
-                    lang_manager=self._lang,
                     parent=row,
                 )
                 preview_button.setToolTip(TaskFilePreviewDialog.resolve_file_name(file_info=file_info))
@@ -310,7 +309,6 @@ class TaskFilesSummaryWidget(QWidget):
             item_id=self._item_id,
             item_name=self._item_name,
             module_name=self._module_name,
-            lang_manager=self._lang,
             parent=self.window(),
             initial_files=self._files,
         )
@@ -332,7 +330,6 @@ class TaskFilesSummaryWidget(QWidget):
         is_image = TaskFilePreviewDialog.is_image_preview_candidate(file_info=file_info)
         dialog = TaskFilePreviewDialog.open_preview(
             file_info=file_info,
-            lang_manager=self._lang,
             parent=self.window(),
             compact=is_image,
             lazy=is_image,
@@ -349,11 +346,10 @@ class TaskDetailOverviewWidget(QWidget):
         description_html: str = "",
         detail_widget: Optional[QWidget] = None,
         module_name: str = "task",
-        lang_manager=None,
         parent=None,
     ) -> None:
         super().__init__(parent)
-        self._lang = lang_manager or LanguageManager()
+        self._lang = LanguageManager()
         self._item_data = item_data if isinstance(item_data, dict) else {}
         self._module_name = str(module_name or "task").strip().lower() or "task"
 
@@ -369,7 +365,6 @@ class TaskDetailOverviewWidget(QWidget):
                 str(description_html or ""),
                 self,
                 inline=True,
-                lang_manager=self._lang,
             )
             layout.addWidget(description_widget)
 
@@ -380,7 +375,6 @@ class TaskDetailOverviewWidget(QWidget):
                 item_id=item_id,
                 item_name=item_name,
                 module_name=self._module_name,
-                lang_manager=self._lang,
                 parent=self,
             )
             layout.addWidget(files_widget)
