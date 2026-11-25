@@ -34,50 +34,35 @@ OTHER_KEY = {
     ProjectsLayerService: ("ext_project_number", "item_number", "projectNumber"),
     EasementLayerService: ("ext_easement_number", "item_number", "number"),
 }
-MESSAGES = {
-    AsBuiltLayerService: {
-        "invalid": "Invalid As-built layer",
-        "missing_id": "Missing backend As-built id",
-        "not_found": "Selected As-built feature was not found",
-        "start": "Could not start editing As-built layer",
-        "update": "Could not update selected As-built feature",
-        "commit": "Could not commit As-built layer changes",
-        "verify": "Updated As-built feature could not be verified on the configured main layer",
-        "fields_start": "Could not start editing As-built layer to add external fields",
-        "fields_add": "Could not add external As-built fields to layer",
-        "fields_commit": "Could not commit new As-built layer fields",
-        "events": ("asbuilt_attach_existing_save_failed", "asbuilt_attach_existing_rollback_failed"),
-        "field_events": ("asbuilt_layer_ensure_fields_failed", "asbuilt_layer_ensure_fields_rollback_failed"),
-    },
-    ProjectsLayerService: {
-        "invalid": "Invalid Projects layer",
-        "missing_id": "Missing backend project id",
-        "not_found": "Selected project area feature was not found",
-        "start": "Could not start editing Projects layer",
-        "update": "Could not update selected Projects feature",
-        "commit": "Could not commit Projects layer changes",
-        "verify": "Updated project area feature could not be verified on the configured main layer",
-        "fields_start": "Could not start editing Projects layer to add external fields",
-        "fields_add": "Could not add external project fields to layer",
-        "fields_commit": "Could not commit new Projects layer fields",
-        "events": ("project_attach_existing_save_failed", "project_attach_rollback_failed"),
-        "field_events": ("project_layer_ensure_fields_failed", "project_layer_ensure_fields_rollback_failed"),
-    },
-    EasementLayerService: {
-        "invalid": "Invalid easement main layer",
-        "missing_id": "Missing backend easement id",
-        "not_found": "Selected easement feature was not found",
-        "start": "Could not start editing easement layer",
-        "update": "Could not update selected easement feature",
-        "commit": "Could not commit easement layer changes",
-        "verify": "Updated easement feature could not be verified on the configured main layer",
-        "fields_start": "Could not start editing easement layer to add external fields",
-        "fields_add": "Could not add external easement fields to layer",
-        "fields_commit": "Could not commit new easement layer fields",
-        "events": ("easement_attach_existing_save_failed", "easement_attach_rollback_failed"),
-        "field_events": ("easement_layer_ensure_fields_failed", "easement_layer_ensure_fields_rollback_failed"),
-    },
+_TEXT_KEYS = {
+    "invalid": TranslationKeys.LAYER_EDIT_INVALID_LAYER,
+    "missing_id": TranslationKeys.LAYER_EDIT_ITEM_ID_MISSING,
+    "not_found": TranslationKeys.LAYER_EDIT_FEATURE_NOT_FOUND,
+    "start": TranslationKeys.LAYER_EDIT_START_FAILED,
+    "update": TranslationKeys.LAYER_EDIT_UPDATE_FAILED,
+    "commit": TranslationKeys.LAYER_EDIT_COMMIT_FAILED,
+    "verify": TranslationKeys.LAYER_EDIT_VERIFY_FAILED,
+    "fields_start": TranslationKeys.LAYER_EDIT_FIELDS_START_FAILED,
+    "fields_add": TranslationKeys.LAYER_EDIT_FIELDS_ADD_FAILED,
+    "fields_commit": TranslationKeys.LAYER_EDIT_FIELDS_COMMIT_FAILED,
 }
+_EVENTS = {
+    AsBuiltLayerService: {"events": ("asbuilt_attach_existing_save_failed", "asbuilt_attach_existing_rollback_failed"), "field_events": ("asbuilt_layer_ensure_fields_failed", "asbuilt_layer_ensure_fields_rollback_failed")},
+    ProjectsLayerService: {"events": ("project_attach_existing_save_failed", "project_attach_rollback_failed"), "field_events": ("project_layer_ensure_fields_failed", "project_layer_ensure_fields_rollback_failed")},
+    EasementLayerService: {"events": ("easement_attach_existing_save_failed", "easement_attach_rollback_failed"), "field_events": ("easement_layer_ensure_fields_failed", "easement_layer_ensure_fields_rollback_failed")},
+}
+
+
+class _Messages:
+    """The expected layer messages of a service, computed from the translation keys when read."""
+
+    def __getitem__(self, service):
+        texts = {name: service._layer_text(key) for name, key in _TEXT_KEYS.items()}
+        texts.update(_EVENTS[service])
+        return texts
+
+
+MESSAGES = _Messages()
 # The fields each service adds to its layer.
 CUSTOM_FIELDS = {
     AsBuiltLayerService: (
@@ -240,7 +225,7 @@ class EnsureCustomFieldsTest(_Case):
 
         layer = QgsVectorLayer("Point?crs=EPSG:3301&field=ext_job_id:long", "tood", "memory")
         with patch.object(QgsVectorLayer, "commitChanges", return_value=False):
-            self.assertEqual(WorksLayerService._prepare_required_fields(layer), (False, "Could not commit new Works layer fields"))
+            self.assertEqual(WorksLayerService._prepare_required_fields(layer), (False, WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_FIELDS_COMMIT_FAILED)))
         self.assertFalse(layer.isEditable())
 
 
@@ -536,23 +521,23 @@ class WorksWriteTest(_Case):
         fid = feature_ids(layer)[0]
         self.assertEqual(self.update(layer, fid), (True, ""))
         self.assertEqual((layer.getFeature(fid)["ext_job_id"], layer.getFeature(fid)["ext_job_name"]), (5, "Töö"))
-        self.assertEqual(self.update(layer, 99), (False, "Feature not found"))
-        self.assertEqual(self.insert(QgsVectorLayer("Point?crs=EPSG:3301", "t", "memory")), (False, "Task id field missing"))
+        self.assertEqual(self.update(layer, 99), (False, WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_FEATURE_NOT_FOUND)))
+        self.assertEqual(self.insert(QgsVectorLayer("Point?crs=EPSG:3301", "t", "memory")), (False, WorksLayerService._layer_text(TranslationKeys.WORKS_LAYER_TASK_ID_FIELD_MISSING)))
 
     def test_failed_steps_return_their_message(self) -> None:
         for name, run, method, kwargs, expected, events in (
             ("insert commit", lambda layer: self.insert(layer), "commitChanges", {"return_value": False},
-             "Could not commit works layer changes", []),
+             WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_COMMIT_FAILED), []),
             ("insert add", lambda layer: self.insert(layer), "addFeature", {"return_value": False},
-             "Could not add feature to works layer", []),
+             WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_ADD_FAILED), []),
             ("insert error", lambda layer: self.insert(layer), "addFeature", {"side_effect": RuntimeError("boom")},
              "boom", ["works_layer_insert_failed"]),
             ("update commit", lambda layer: self.update(layer, feature_ids(layer)[0]), "commitChanges",
-             {"return_value": False}, "Could not commit works layer changes", []),
+             {"return_value": False}, WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_COMMIT_FAILED), []),
             ("update error", lambda layer: self.update(layer, feature_ids(layer)[0]), "updateFeature",
              {"side_effect": RuntimeError("boom")}, "boom", ["works_layer_update_existing_failed"]),
             ("start", lambda layer: self.insert(layer), "startEditing", {"return_value": False},
-             "Could not start editing works layer", []),
+             WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_START_FAILED), []),
         ):
             with self.subTest(step=name):
                 self.events.clear()
@@ -615,8 +600,8 @@ class UpsertTest(_Case):
         # The id field holds whole numbers, so the text id is written empty. The old check found the saved feature by
         # its number or name and reported success.
         for service, verify in (
-            (ProjectsLayerService, "Saved project area feature could not be verified on the configured main layer"),
-            (EasementLayerService, "Saved easement feature could not be verified on the configured main layer"),
+            (ProjectsLayerService, ProjectsLayerService._layer_text(TranslationKeys.LAYER_EDIT_SAVED_VERIFY_FAILED)),
+            (EasementLayerService, EasementLayerService._layer_text(TranslationKeys.LAYER_EDIT_SAVED_VERIFY_FAILED)),
         ):
             for existing in (False, True):
                 with self.subTest(service=service.__name__, existing=existing):
@@ -661,12 +646,12 @@ class UpsertTest(_Case):
                 layer.rollBack()
 
     def test_failed_add_and_commit(self) -> None:
-        for service, add_text in ((ProjectsLayerService, "Could not add project area feature"),
-                                  (EasementLayerService, "Could not add easement feature")):
+        for service, add_text in ((ProjectsLayerService, ProjectsLayerService._layer_text(TranslationKeys.LAYER_EDIT_ADD_FAILED)),
+                                  (EasementLayerService, EasementLayerService._layer_text(TranslationKeys.LAYER_EDIT_ADD_FAILED))):
             with self.subTest(service=service.__name__):
                 with patch.object(QgsVectorLayer, "addFeature", return_value=False):
                     self.assertEqual(self.upsert(service, layer_for(service)), (False, add_text))
-                commit = "Could not commit Projects layer changes" if service is ProjectsLayerService else "Could not commit easement layer changes"
+                commit = service._layer_text(TranslationKeys.LAYER_EDIT_COMMIT_FAILED)
                 with patch.object(QgsVectorLayer, "commitChanges", return_value=False):
                     self.assertEqual(self.upsert(service, layer_for(service)), (False, commit))
 

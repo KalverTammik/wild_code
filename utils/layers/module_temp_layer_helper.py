@@ -12,6 +12,8 @@ from ...Logs.python_fail_logger import PythonFailLogger
 from ..MapTools.MapHelpers import MapHelpers
 from ..property.ArchiveLayerHandler import GPKGHelpers
 from ...constants.module_names import Module
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 
 
 class ModuleTempLayerHelper:
@@ -168,16 +170,16 @@ class ModuleTempLayerHelper:
     ) -> tuple[Optional[QgsVectorLayer], str]:
         normalized_name = str(layer_name or "").strip()
         if not normalized_name:
-            return None, "Layer name is empty"
+            return None, LanguageManager().translate(TranslationKeys.LAYER_TEMP_NAME_EMPTY)
 
         if not isinstance(reference_layer, QgsVectorLayer) or not reference_layer.isValid():
-            return None, "Reference layer is invalid"
+            return None, LanguageManager().translate(TranslationKeys.LAYER_TEMP_REFERENCE_INVALID)
 
         target_gpkg_path = cls._normalize_gpkg_path(
             gpkg_path or cls.gpkg_path_for_layer(reference_layer)
         )
         if not target_gpkg_path:
-            return None, "GeoPackage path is empty"
+            return None, LanguageManager().translate(TranslationKeys.LAYER_GPKG_PATH_EMPTY)
 
         existing_loaded = cls._find_loaded_layer(normalized_name, target_gpkg_path)
         if existing_loaded is not None and not overwrite_file:
@@ -200,7 +202,7 @@ class ModuleTempLayerHelper:
                 )
                 if loaded is not None and loaded.isValid():
                     return loaded, ""
-                return None, "Could not load the existing layer from the GeoPackage"
+                return None, LanguageManager().translate(TranslationKeys.LAYER_GPKG_LOAD_FAILED)
 
             created = GPKGHelpers.create_empty_gpkg_layer(
                 gpkg_path=target_gpkg_path,
@@ -211,7 +213,7 @@ class ModuleTempLayerHelper:
                 overwrite=False,
             )
             if not created:
-                return None, "Could not create the layer inside the GeoPackage"
+                return None, LanguageManager().translate(TranslationKeys.LAYER_GPKG_CREATE_FAILED)
 
             loaded = GPKGHelpers.load_layer_from_gpkg(
                 target_gpkg_path,
@@ -219,7 +221,7 @@ class ModuleTempLayerHelper:
                 group_name=group_name,
             )
             if loaded is None or not loaded.isValid():
-                return None, "Layer was created but could not be loaded into the project"
+                return None, LanguageManager().translate(TranslationKeys.LAYER_GPKG_NOT_LOADED)
             return loaded, ""
         except Exception as exc:
             PythonFailLogger.log_exception(

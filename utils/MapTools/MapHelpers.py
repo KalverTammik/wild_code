@@ -381,7 +381,7 @@ class FeatureActions:
         attribute_overrides: Optional[dict[str, object]] = None,
     ):
         if not target_layer.isEditable():
-            return False, "Target layer is not in edit mode."
+            return False, LanguageManager().translate(TranslationKeys.LAYER_NOT_IN_EDIT_MODE)
 
         new_feat = QgsFeature(target_layer.fields())
         new_feat.setGeometry(source_feature.geometry())
@@ -450,7 +450,7 @@ class FeatureActions:
         ok = target_layer.addFeature(new_feat)
 
         if not ok:
-            return False, "Layer.addFeature returned False."
+            return False, LanguageManager().translate(TranslationKeys.LAYER_ADD_FEATURE_FAILED)
 
         return True, ""
     @staticmethod

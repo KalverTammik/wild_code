@@ -352,7 +352,7 @@ class ResolveMainLayerTest(unittest.TestCase):
 
 
 class WorksMainLayerChecksTest(unittest.TestCase):
-    FALLBACK = "Configured Works layer does not match the required schema."
+    FALLBACK = LanguageManager().translate(TranslationKeys.WORKS_LAYER_SCHEMA_MISMATCH)
 
     def setUp(self) -> None:
         self.lang = LanguageManager()

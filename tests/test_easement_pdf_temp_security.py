@@ -11,6 +11,8 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.easements import easement_pdf_service
 from Kavitro_dev.modules.easements.easement_pdf_service import EasementPdfService
 
@@ -129,7 +131,7 @@ class EasementPdfTempSecurityTest(unittest.TestCase):
         ok, error = self._run_export(FailedExporter)
 
         self.assertFalse(ok)
-        self.assertIn("code 1", error)
+        self.assertEqual(error, f"{LanguageManager().translate(TranslationKeys.EASEMENT_PDF_EXPORT_FAILED)} 1")
         self.assertEqual(len(captured_path), 1)
         self.assertFalse(captured_path[0].exists())
         self.assertFalse(captured_path[0].parent.exists())

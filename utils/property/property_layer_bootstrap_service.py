@@ -13,6 +13,8 @@ from ...constants.layer_constants import PROPERTY_TAG
 from ..settings_service import SettingsService
 from ...engines.LayerCreationEngine import MailablGroupFolders, get_layer_engine
 from ...Logs.python_fail_logger import PythonFailLogger
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 from ...utils.maa_amet.Maa_amet_field_comparer import MaaAmetFieldComparer
 from ...constants.module_names import Module
 from .ArchiveLayerHandler import ArchiveLayerHandler, GPKGHelpers
@@ -70,7 +72,7 @@ class PropertyLayerBootstrapService:
         if not normalized_path:
             return PropertyLayerBootstrapResult(
                 error_code=cls.ERROR_CREATE_MAIN,
-                details="GeoPackage path is empty",
+                details=LanguageManager().translate(TranslationKeys.LAYER_GPKG_PATH_EMPTY),
             )
 
         name_conflict = cls._loaded_name_conflict()

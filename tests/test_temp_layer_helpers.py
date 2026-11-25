@@ -15,6 +15,8 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 from qgis.PyQt.QtCore import QVariant
 from qgis.core import QgsVectorLayer, QgsWkbTypes
 
+from Kavitro_dev.languages.language_manager import LanguageManager
+from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.projects.projects_temp_layer_helper import ProjectsTempLayerHelper
 from Kavitro_dev.modules.works.works_temp_layer_helper import WorksTempLayerHelper
 
@@ -25,6 +27,10 @@ SPECS = {
     WorksTempLayerHelper: ("works", "works", QgsWkbTypes.Point),
 }
 GPKG = os.path.join(os.path.abspath(os.sep), "kihid", "ajutine.gpkg")
+
+
+def text(key) -> str:
+    return LanguageManager().translate(key)
 
 
 def home_of(function):
@@ -238,10 +244,12 @@ class CreateOrLoadTest(unittest.TestCase):
     def test_bad_input_gives_its_message(self) -> None:
         for helper in HELPERS:
             with self.subTest(helper=helper.__name__):
-                self.assertEqual(self.run_helper(helper, name="  ")[0], (None, "Layer name is empty"))
-                self.assertEqual(self.run_helper(helper, reference=None)[0], (None, "Reference layer is invalid"))
+                self.assertEqual(self.run_helper(helper, name="  ")[0], (None, text(TranslationKeys.LAYER_TEMP_NAME_EMPTY)))
+                self.assertEqual(self.run_helper(helper, reference=None)[0],
+                                 (None, text(TranslationKeys.LAYER_TEMP_REFERENCE_INVALID)))
                 no_gpkg = gpkg_layer("C:/a.shp")
-                self.assertEqual(self.run_helper(helper, reference=no_gpkg)[0], (None, "GeoPackage path is empty"))
+                self.assertEqual(self.run_helper(helper, reference=no_gpkg)[0],
+                                 (None, text(TranslationKeys.LAYER_GPKG_PATH_EMPTY)))
 
     def test_loaded_layer_is_reused(self) -> None:
         found = gpkg_layer()
@@ -264,7 +272,7 @@ class CreateOrLoadTest(unittest.TestCase):
         for helper in HELPERS:
             with self.subTest(helper=helper.__name__):
                 result, _calls = self.run_helper(helper, layer_exists=True, load=None)
-                self.assertEqual(result, (None, "Could not load the existing layer from the GeoPackage"))
+                self.assertEqual(result, (None, text(TranslationKeys.LAYER_GPKG_LOAD_FAILED)))
 
     def test_new_layer_has_the_module_geometry_and_fields(self) -> None:
         for helper in HELPERS:
@@ -291,9 +299,11 @@ class CreateOrLoadTest(unittest.TestCase):
     def test_failed_creation_and_failed_load_give_their_messages(self) -> None:
         for helper in HELPERS:
             with self.subTest(helper=helper.__name__):
-                self.assertEqual(self.run_helper(helper, created=False)[0], (None, "Could not create the layer inside the GeoPackage"))
-                self.assertEqual(self.run_helper(helper, load=None)[0], (None, "Layer was created but could not be loaded into the project"))
-                self.assertEqual(self.run_helper(helper, load=gpkg_layer(valid=False))[0], (None, "Layer was created but could not be loaded into the project"))
+                not_loaded = (None, text(TranslationKeys.LAYER_GPKG_NOT_LOADED))
+                self.assertEqual(self.run_helper(helper, created=False)[0],
+                                 (None, text(TranslationKeys.LAYER_GPKG_CREATE_FAILED)))
+                self.assertEqual(self.run_helper(helper, load=None)[0], not_loaded)
+                self.assertEqual(self.run_helper(helper, load=gpkg_layer(valid=False))[0], not_loaded)
 
     def test_overwrite_replaces_the_file_even_when_loaded(self) -> None:
         found = gpkg_layer()

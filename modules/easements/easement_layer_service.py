@@ -25,24 +25,24 @@ class EasementLayerService(AttachableLayerServiceBase):
     DRAW_START_FAILED_KEY = TranslationKeys.EASEMENT_DRAW_NEW_START_FAILED
     REQUIRED_GEOMETRY = QgsWkbTypes.PolygonGeometry
     LAYER_INVALID_GEOMETRY_KEY = TranslationKeys.EASEMENT_LAYER_INVALID_GEOMETRY
-    INVALID_LAYER_TEXT = "Invalid easement main layer"
+    INVALID_LAYER_TEXT = TranslationKeys.LAYER_EDIT_INVALID_LAYER
     FIELDS_TEXTS = LayerEditTexts(
-        start_failed="Could not start editing easement layer to add external fields",
-        change_failed="Could not add external easement fields to layer",
-        commit_failed="Could not commit new easement layer fields",
+        start_failed=TranslationKeys.LAYER_EDIT_FIELDS_START_FAILED,
+        change_failed=TranslationKeys.LAYER_EDIT_FIELDS_ADD_FAILED,
+        commit_failed=TranslationKeys.LAYER_EDIT_FIELDS_COMMIT_FAILED,
         failed_event="easement_layer_ensure_fields_failed",
         rollback_event="easement_layer_ensure_fields_rollback_failed",
     )
-    MISSING_ITEM_ID_TEXT = "Missing backend easement id"
-    FEATURE_NOT_FOUND_TEXT = "Selected easement feature was not found"
+    MISSING_ITEM_ID_TEXT = TranslationKeys.LAYER_EDIT_ITEM_ID_MISSING
+    FEATURE_NOT_FOUND_TEXT = TranslationKeys.LAYER_EDIT_FEATURE_NOT_FOUND
     ATTACH_TEXTS = LayerEditTexts(
-        start_failed="Could not start editing easement layer",
-        change_failed="Could not update selected easement feature",
-        commit_failed="Could not commit easement layer changes",
+        start_failed=TranslationKeys.LAYER_EDIT_START_FAILED,
+        change_failed=TranslationKeys.LAYER_EDIT_UPDATE_FAILED,
+        commit_failed=TranslationKeys.LAYER_EDIT_COMMIT_FAILED,
         failed_event="easement_attach_existing_save_failed",
         rollback_event="easement_attach_rollback_failed",
     )
-    ATTACH_VERIFY_FAILED_TEXT = "Updated easement feature could not be verified on the configured main layer"
+    ATTACH_VERIFY_FAILED_TEXT = TranslationKeys.LAYER_EDIT_VERIFY_FAILED
 
     EXT_SYSTEM_NAME = "Kavitro"
     FIELD_EXTERNAL_ID = "ext_easement_id"
@@ -439,7 +439,7 @@ class EasementLayerService(AttachableLayerServiceBase):
     @classmethod
     def delete_feature_by_id(cls, *, layer: QgsVectorLayer, feature_id: int) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid easement main layer"
+            return False, cls._layer_text(TranslationKeys.LAYER_EDIT_INVALID_LAYER)
         feature_number = cls._feature_id_number(feature_id)
         if feature_number is None:
             return False, cls._feature_id_not_number_text(feature_id)
@@ -450,17 +450,17 @@ class EasementLayerService(AttachableLayerServiceBase):
             if not layer.isEditable():
                 started_edit = bool(layer.startEditing())
                 if not started_edit:
-                    return False, "Could not start editing easement layer"
+                    return False, cls._layer_text(TranslationKeys.LAYER_EDIT_START_FAILED)
 
             if not layer.deleteFeature(feature_id):
                 if started_edit:
                     layer.rollBack()
-                return False, "Could not delete selected easement feature"
+                return False, cls._layer_text(TranslationKeys.LAYER_EDIT_DELETE_FAILED)
 
             if started_edit and not layer.commitChanges():
                 errors = "; ".join(layer.commitErrors() or [])
                 layer.rollBack()
-                return False, errors or "Could not commit easement layer changes"
+                return False, errors or cls._layer_text(TranslationKeys.LAYER_EDIT_COMMIT_FAILED)
 
             cls._refresh_saved_layer(layer)
             try:
@@ -468,7 +468,7 @@ class EasementLayerService(AttachableLayerServiceBase):
             except (TypeError, ValueError, RuntimeError):
                 verified = object()
             if verified is not None:
-                return False, "Deleted easement feature could not be verified"
+                return False, cls._layer_text(TranslationKeys.LAYER_EDIT_DELETED_VERIFY_FAILED)
             return True, cls._layer_target_label(layer)
         except Exception as exc:
             cls._rollback_own_edit(layer, started_edit, event="easement_delete_rollback_failed")
@@ -483,7 +483,7 @@ class EasementLayerService(AttachableLayerServiceBase):
     @classmethod
     def archive_feature_by_id(cls, *, layer: QgsVectorLayer, feature_id: int, archive_status_value: str = "(puudub)") -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid easement main layer"
+            return False, cls._layer_text(TranslationKeys.LAYER_EDIT_INVALID_LAYER)
         feature_number = cls._feature_id_number(feature_id)
         if feature_number is None:
             return False, cls._feature_id_not_number_text(feature_id)
@@ -501,11 +501,11 @@ class EasementLayerService(AttachableLayerServiceBase):
             feature = None
 
         if feature is None:
-            return False, "Selected easement feature was not found"
+            return False, cls._layer_text(TranslationKeys.LAYER_EDIT_FEATURE_NOT_FOUND)
 
         status_field = cls.resolve_status_field_name(layer)
         if not status_field:
-            return False, "Easement status field was not found"
+            return False, cls._layer_text(TranslationKeys.LAYER_EDIT_STATUS_FIELD_NOT_FOUND)
 
         username = cls.current_username()
         updated_date = datetime.now()
@@ -518,17 +518,17 @@ class EasementLayerService(AttachableLayerServiceBase):
             if not layer.isEditable():
                 started_edit = bool(layer.startEditing())
                 if not started_edit:
-                    return False, "Could not start editing easement layer"
+                    return False, cls._layer_text(TranslationKeys.LAYER_EDIT_START_FAILED)
 
             if not layer.updateFeature(feature):
                 if started_edit:
                     layer.rollBack()
-                return False, "Could not archive selected easement feature"
+                return False, cls._layer_text(TranslationKeys.LAYER_EDIT_ARCHIVE_FAILED)
 
             if started_edit and not layer.commitChanges():
                 errors = "; ".join(layer.commitErrors() or [])
                 layer.rollBack()
-                return False, errors or "Could not commit easement layer changes"
+                return False, errors or cls._layer_text(TranslationKeys.LAYER_EDIT_COMMIT_FAILED)
 
             cls._refresh_saved_layer(layer)
             try:
@@ -536,7 +536,7 @@ class EasementLayerService(AttachableLayerServiceBase):
             except (TypeError, ValueError, RuntimeError):
                 verified = None
             if verified is None:
-                return False, "Archived easement feature could not be verified"
+                return False, cls._layer_text(TranslationKeys.LAYER_EDIT_ARCHIVED_VERIFY_FAILED)
             return True, cls._layer_target_label(layer)
         except Exception as exc:
             cls._rollback_own_edit(layer, started_edit, event="easement_archive_rollback_failed")
@@ -561,9 +561,9 @@ class EasementLayerService(AttachableLayerServiceBase):
         value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid easement main layer"
+            return False, cls._layer_text(TranslationKeys.LAYER_EDIT_INVALID_LAYER)
         if not isinstance(final_layer, QgsVectorLayer) or not final_layer.isValid():
-            return False, "Invalid final cut layer"
+            return False, cls._layer_text(TranslationKeys.LAYER_FINAL_CUT_INVALID)
 
         ok_fields, field_error = cls._ensure_custom_fields(layer)
         if not ok_fields:
@@ -588,11 +588,11 @@ class EasementLayerService(AttachableLayerServiceBase):
             )
             final_feature = None
         if final_feature is None:
-            return False, "Final cut layer has no geometry"
+            return False, cls._layer_text(TranslationKeys.LAYER_FINAL_CUT_NO_GEOMETRY)
 
         geometry = final_feature.geometry()
         if geometry is None or geometry.isEmpty():
-            return False, "Final cut geometry is empty"
+            return False, cls._layer_text(TranslationKeys.LAYER_FINAL_CUT_GEOMETRY_EMPTY)
 
         target_geometry = cls._geometry_in_layer_crs(geometry, source_layer=final_layer, target_layer=layer)
         # Square metres on the ellipsoid: geometry.area() is in the layer's units (degrees² for EPSG:4326).
@@ -657,14 +657,14 @@ class EasementLayerService(AttachableLayerServiceBase):
 
         def check_saved(saved_id: Optional[int]) -> tuple[bool, str]:
             if not cls._verify_attached(layer, feature_id=saved_id, item_id=item_id_text, item=item_payload):
-                return False, "Saved easement feature could not be verified on the configured main layer"
+                return False, cls._layer_text(TranslationKeys.LAYER_EDIT_SAVED_VERIFY_FAILED)
             return True, cls._layer_target_label(layer)
 
         adding = existing_feature is None
         texts = LayerEditTexts(
-            start_failed="Could not start editing easement layer",
-            change_failed="Could not add easement feature" if adding else "Could not update easement feature",
-            commit_failed="Could not commit easement layer changes",
+            start_failed=TranslationKeys.LAYER_EDIT_START_FAILED,
+            change_failed=TranslationKeys.LAYER_EDIT_ADD_FAILED if adding else TranslationKeys.LAYER_EDIT_UPDATE_FAILED,
+            commit_failed=TranslationKeys.LAYER_EDIT_COMMIT_FAILED,
             failed_event="easement_layer_save_failed",
             rollback_event="easement_layer_rollback_failed",
         )

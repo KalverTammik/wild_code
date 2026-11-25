@@ -137,7 +137,7 @@ class WorksRepositionController:
         task_id = self._task_id
 
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid() or feature_id is None:
-            return False, "Invalid works layer"
+            return False, WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_INVALID_LAYER)
 
         layer_point = WorksLayerService._point_in_layer_crs(point, layer)
         new_geometry = QgsGeometry.fromPointXY(layer_point)
@@ -147,12 +147,12 @@ class WorksRepositionController:
             if not layer.isEditable():
                 started_edit = bool(layer.startEditing())
                 if not started_edit:
-                    return False, "Could not start editing works layer"
+                    return False, WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_START_FAILED)
 
             if not layer.changeGeometry(int(feature_id), new_geometry):
                 if started_edit and layer.isEditable():
                     layer.rollBack()
-                return False, "Could not update work geometry"
+                return False, WorksLayerService._layer_text(TranslationKeys.WORKS_GEOMETRY_UPDATE_FAILED)
 
             # The commit hands the new location to the Works sync, which sends it to Kavitro.
             WorksSyncService.expect_geometry_change(task_id, status_color=self._status_color)
@@ -164,7 +164,7 @@ class WorksRepositionController:
                 errors = "; ".join(layer.commitErrors() or [])
                 if started_edit and layer.isEditable():
                     layer.rollBack()
-                return False, errors or "Could not commit works layer changes"
+                return False, errors or WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_COMMIT_FAILED)
 
             layer.triggerRepaint()
             return True, ""

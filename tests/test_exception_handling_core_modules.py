@@ -378,7 +378,7 @@ class ProjectsLayerServiceTest(LoggedExceptionTestCase):
                 layer=layer, feature_id=3, item_id="p-1", item_data={"name": "Projekt"}
             )
 
-        self.assertEqual(result, (False, "Could not update selected Projects feature"))
+        self.assertEqual(result, (False, ProjectsLayerService._layer_text(TranslationKeys.LAYER_EDIT_UPDATE_FAILED)))
         self.assertEqual(self.events(), ["project_added_fields_set_failed"])
         self.assertEqual(self.log.call_args.kwargs["extra"], {"item_id": "p-1"})
 

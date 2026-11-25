@@ -19,7 +19,6 @@ class FolderNamingRuleDialog(QDialog):
     """Three-slot rule builder dialog for project folder names."""
 
     SAMPLE_PROJECT_NUMBER = "(24)AR-3-1"
-    SAMPLE_PROJECT_NAME = "Minu lemmik projekt"
 
     def __init__(self, parent=None, initial_rule: str = ""):
         super().__init__(parent)
@@ -139,7 +138,7 @@ class FolderNamingRuleDialog(QDialog):
     def _update_preview(self) -> None:
         samples = {
             INTERNAL_PROJECT_NUMBER: self.SAMPLE_PROJECT_NUMBER,
-            INTERNAL_PROJECT_NAME: self.SAMPLE_PROJECT_NAME,
+            INTERNAL_PROJECT_NAME: self.lang_manager.translate(FolderNamingTranslationKeys.TR_SAMPLE_PROJECT_NAME),
         }
         preview_parts: List[str] = []
         for combo, symbol_input in self.slot_rows:

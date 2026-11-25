@@ -24,24 +24,24 @@ class ProjectsLayerService(AttachableLayerServiceBase):
     DRAW_START_FAILED_KEY = TranslationKeys.PROJECT_DRAW_NEW_START_FAILED
     REQUIRED_GEOMETRY = QgsWkbTypes.PolygonGeometry
     LAYER_INVALID_GEOMETRY_KEY = TranslationKeys.PROJECT_LAYER_INVALID_GEOMETRY
-    INVALID_LAYER_TEXT = "Invalid Projects layer"
+    INVALID_LAYER_TEXT = TranslationKeys.LAYER_EDIT_INVALID_LAYER
     FIELDS_TEXTS = LayerEditTexts(
-        start_failed="Could not start editing Projects layer to add external fields",
-        change_failed="Could not add external project fields to layer",
-        commit_failed="Could not commit new Projects layer fields",
+        start_failed=TranslationKeys.LAYER_EDIT_FIELDS_START_FAILED,
+        change_failed=TranslationKeys.LAYER_EDIT_FIELDS_ADD_FAILED,
+        commit_failed=TranslationKeys.LAYER_EDIT_FIELDS_COMMIT_FAILED,
         failed_event="project_layer_ensure_fields_failed",
         rollback_event="project_layer_ensure_fields_rollback_failed",
     )
-    MISSING_ITEM_ID_TEXT = "Missing backend project id"
-    FEATURE_NOT_FOUND_TEXT = "Selected project area feature was not found"
+    MISSING_ITEM_ID_TEXT = TranslationKeys.LAYER_EDIT_ITEM_ID_MISSING
+    FEATURE_NOT_FOUND_TEXT = TranslationKeys.LAYER_EDIT_FEATURE_NOT_FOUND
     ATTACH_TEXTS = LayerEditTexts(
-        start_failed="Could not start editing Projects layer",
-        change_failed="Could not update selected Projects feature",
-        commit_failed="Could not commit Projects layer changes",
+        start_failed=TranslationKeys.LAYER_EDIT_START_FAILED,
+        change_failed=TranslationKeys.LAYER_EDIT_UPDATE_FAILED,
+        commit_failed=TranslationKeys.LAYER_EDIT_COMMIT_FAILED,
         failed_event="project_attach_existing_save_failed",
         rollback_event="project_attach_rollback_failed",
     )
-    ATTACH_VERIFY_FAILED_TEXT = "Updated project area feature could not be verified on the configured main layer"
+    ATTACH_VERIFY_FAILED_TEXT = TranslationKeys.LAYER_EDIT_VERIFY_FAILED
 
     EXT_SYSTEM_NAME = "Kavitro"
 
@@ -212,7 +212,7 @@ class ProjectsLayerService(AttachableLayerServiceBase):
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
             return False, cls.INVALID_LAYER_TEXT
         if not isinstance(preview_layer, QgsVectorLayer) or not preview_layer.isValid():
-            return False, "Invalid project preview layer"
+            return False, cls._layer_text(TranslationKeys.PROJECT_PREVIEW_LAYER_INVALID)
 
         ok_fields, field_error = cls._ensure_custom_fields(layer)
         if not ok_fields:
@@ -241,11 +241,11 @@ class ProjectsLayerService(AttachableLayerServiceBase):
             preview_feature = None
 
         if preview_feature is None:
-            return False, "Project preview layer has no geometry"
+            return False, cls._layer_text(TranslationKeys.PROJECT_PREVIEW_NO_GEOMETRY)
 
         geometry = preview_feature.geometry()
         if geometry is None or geometry.isEmpty():
-            return False, "Project preview geometry is empty"
+            return False, cls._layer_text(TranslationKeys.PROJECT_PREVIEW_GEOMETRY_EMPTY)
 
         target_geometry = cls._geometry_in_layer_crs(
             geometry,
@@ -278,14 +278,14 @@ class ProjectsLayerService(AttachableLayerServiceBase):
 
         def check_saved(saved_id: Optional[int]) -> tuple[bool, str]:
             if not cls._verify_attached(layer, feature_id=saved_id, item_id=item_id_text, item=item_payload):
-                return False, "Saved project area feature could not be verified on the configured main layer"
+                return False, cls._layer_text(TranslationKeys.LAYER_EDIT_SAVED_VERIFY_FAILED)
             return True, cls._layer_target_label(layer)
 
         adding = existing_feature is None
         texts = LayerEditTexts(
-            start_failed="Could not start editing Projects layer",
-            change_failed="Could not add project area feature" if adding else "Could not update project area feature",
-            commit_failed="Could not commit Projects layer changes",
+            start_failed=TranslationKeys.LAYER_EDIT_START_FAILED,
+            change_failed=TranslationKeys.LAYER_EDIT_ADD_FAILED if adding else TranslationKeys.LAYER_EDIT_UPDATE_FAILED,
+            commit_failed=TranslationKeys.LAYER_EDIT_COMMIT_FAILED,
             failed_event="project_generated_area_save_failed",
             rollback_event="project_generated_area_rollback_failed",
         )

@@ -328,6 +328,12 @@ class ModuleLayerServiceBase:
         return None
 
     @classmethod
+    def _layer_text(cls, key: str) -> str:
+        """A layer message in the plugin language; "{module}" in it is this service's module name."""
+        lang = LanguageManager()
+        return lang.translate(key, fallback=key).format(module=lang.translate_module_name(cls.MODULE.value))
+
+    @classmethod
     def sync_status_to_feature(cls, item_id: str, values: list[tuple[tuple[str, ...], object]]) -> bool:
         """Write status-derived values onto the item's map feature; True when the feature holds them afterwards.
 
@@ -405,13 +411,13 @@ class ModuleLayerServiceBase:
             if not layer.isEditable():
                 started_edit = bool(layer.startEditing())
                 if not started_edit:
-                    return False, texts.start_failed
+                    return False, cls._layer_text(texts.start_failed)
 
             provider = layer.dataProvider()
             if provider is None or not provider.addAttributes(missing):
                 if started_edit:
                     layer.rollBack()
-                return False, texts.change_failed
+                return False, cls._layer_text(texts.change_failed)
 
             layer.updateFields()
             if not started_edit:
@@ -420,7 +426,7 @@ class ModuleLayerServiceBase:
             if not layer.commitChanges():
                 errors = "; ".join(layer.commitErrors() or [])
                 layer.rollBack()
-                return False, errors or texts.commit_failed
+                return False, errors or cls._layer_text(texts.commit_failed)
             return True, ""
         except Exception as exc:
             cls._rollback_own_edit(layer, started_edit, event=texts.rollback_event)
@@ -449,18 +455,18 @@ class ModuleLayerServiceBase:
             if not layer.isEditable():
                 started_edit = bool(layer.startEditing())
                 if not started_edit:
-                    return False, texts.start_failed
+                    return False, cls._layer_text(texts.start_failed)
 
             written = layer.addFeature(feature) if add else layer.updateFeature(feature)
             if not written:
                 if started_edit:
                     layer.rollBack()
-                return False, texts.change_failed
+                return False, cls._layer_text(texts.change_failed)
 
             if started_edit and not cls._commit_noting_added_ids(layer, committed_ids):
                 errors = "; ".join(layer.commitErrors() or [])
                 layer.rollBack()
-                return False, errors or texts.commit_failed
+                return False, errors or cls._layer_text(texts.commit_failed)
 
             cls._refresh_after_save(layer)
             if check_saved is None:
@@ -701,23 +707,23 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
             return True, ""
         if mode == cls.AREA_ADD_PART:
             if not cls.allows_multi_part(layer):
-                return False, "The layer does not allow multi-part features"
+                return False, cls._layer_text(TranslationKeys.LAYER_EDIT_MULTIPART_NOT_ALLOWED)
             kept = cls._feature_by_id(layer, keep_id)
             if kept is None:
-                return False, cls.FEATURE_NOT_FOUND_TEXT
+                return False, cls._layer_text(cls.FEATURE_NOT_FOUND_TEXT)
             combined = QgsGeometry(kept.geometry())
             for feature_id in others:
                 older = cls._feature_by_id(layer, feature_id)
                 if older is not None and not older.geometry().isEmpty():
                     combined = combined.combine(older.geometry())
             if combined.isNull() or combined.isEmpty():
-                return False, "Could not join the drawn part to the existing feature"
+                return False, cls._layer_text(TranslationKeys.LAYER_EDIT_JOIN_PART_FAILED)
             combined.convertToMultiType()
             if not layer.changeGeometry(keep_id, combined):
-                return False, "Could not join the drawn part to the existing feature"
+                return False, cls._layer_text(TranslationKeys.LAYER_EDIT_JOIN_PART_FAILED)
         for feature_id in others:
             if not layer.deleteFeature(feature_id):
-                return False, "Could not remove the older feature"
+                return False, cls._layer_text(TranslationKeys.LAYER_EDIT_REMOVE_OLD_FAILED)
         PythonFailLogger.log(
             f"{cls.MODULE.value}_existing_features_folded",
             module=cls.MODULE.value,
@@ -728,7 +734,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
     @classmethod
     def _ensure_custom_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, cls.INVALID_LAYER_TEXT
+            return False, cls._layer_text(cls.INVALID_LAYER_TEXT)
         existing = cls._field_map(layer)
         missing = [cls._custom_field(spec) for spec in cls.CUSTOM_FIELDS if spec[0].lower() not in existing]
         return cls._add_missing_fields(layer, missing, texts=cls.FIELDS_TEXTS)
@@ -750,7 +756,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
     ) -> tuple[bool, str]:
         """Links the feature to the backend item and saves it; (ok, layer label) or (False, why)."""
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, cls.INVALID_LAYER_TEXT
+            return False, cls._layer_text(cls.INVALID_LAYER_TEXT)
 
         ok_fields, field_error = cls._ensure_custom_fields(layer)
         if not ok_fields:
@@ -759,7 +765,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
         item_payload = item_data if isinstance(item_data, dict) else {}
         item_id_text = str(item_id or "").strip()
         if not item_id_text:
-            return False, cls.MISSING_ITEM_ID_TEXT
+            return False, cls._layer_text(cls.MISSING_ITEM_ID_TEXT)
 
         feature_number = cls._feature_id_number(feature_id)
         if feature_number is None:
@@ -767,7 +773,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
         feature_id = feature_number
         feature = cls._feature_by_id(layer, feature_id)
         if feature is None:
-            return False, cls.FEATURE_NOT_FOUND_TEXT
+            return False, cls._layer_text(cls.FEATURE_NOT_FOUND_TEXT)
 
         cls._write_item_attributes(
             feature,
@@ -780,7 +786,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
 
         def check_saved(saved_id: Optional[int]) -> tuple[bool, str]:
             if not cls._verify_attached(layer, feature_id=saved_id, item_id=item_id_text, item=item_payload):
-                return False, cls.ATTACH_VERIFY_FAILED_TEXT
+                return False, cls._layer_text(cls.ATTACH_VERIFY_FAILED_TEXT)
             return True, cls._layer_target_label(layer)
 
         return cls._write_feature(

@@ -49,24 +49,24 @@ class EasementPdfService:
         pdf_path: Optional[Path] = None
         try:
             if final_layer is None or not final_layer.isValid():
-                return False, "Invalid final cut layer"
+                return False, LanguageManager().translate(TranslationKeys.LAYER_FINAL_CUT_INVALID)
 
             final_features = cls._layer_features(final_layer, selected_only=False)
             if not final_features:
-                return False, "Final cut layer has no features"
+                return False, LanguageManager().translate(TranslationKeys.LAYER_FINAL_CUT_NO_FEATURES)
 
             project = QgsProject.instance()
             template_path = cls._template_path()
             if not template_path.exists():
-                return False, f"Template not found: {template_path}"
+                return False, f"{LanguageManager().translate(TranslationKeys.EASEMENT_PDF_TEMPLATE_NOT_FOUND)} {template_path}"
 
             layout = cls._load_template_layout(project, template_path)
             if layout is None:
-                return False, "Could not load easement PDF template"
+                return False, LanguageManager().translate(TranslationKeys.EASEMENT_PDF_TEMPLATE_LOAD_FAILED)
 
             map_item = cls._resolve_map_item(layout)
             if map_item is None:
-                return False, "Template map item was not found"
+                return False, LanguageManager().translate(TranslationKeys.EASEMENT_PDF_MAP_ITEM_MISSING)
 
             cls._configure_map_item(
                 map_item,
@@ -99,7 +99,7 @@ class EasementPdfService:
             result = exporter.exportToPdf(str(pdf_path), settings)
             if result != QgsLayoutExporter.Success:
                 cls.cleanup_output_pdf(pdf_path)
-                return False, f"PDF export failed with code {result}"
+                return False, f"{LanguageManager().translate(TranslationKeys.EASEMENT_PDF_EXPORT_FAILED)} {result}"
 
             return True, str(pdf_path)
         except Exception as exc:

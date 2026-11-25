@@ -586,7 +586,7 @@ class ModuleFeatureDrawController:
         try:
             if layer.commitChanges():
                 return True, ""
-            return False, "; ".join(layer.commitErrors() or []) or "Could not commit layer changes after drawing"
+            return False, "; ".join(layer.commitErrors() or []) or LanguageManager().translate(TranslationKeys.LAYER_COMMIT_AFTER_DRAW_FAILED)
         except Exception as exc:  # timer callback: nothing may escape; the feature is discarded next
             PythonFailLogger.log_exception(
                 exc,

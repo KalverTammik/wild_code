@@ -430,12 +430,12 @@ class SettingsModuleCard(
 
             if parts:
                 values_text = ", ".join(parts)
-                self._set_status_text_if_changed(f"Active layers: {values_text}")
+                self._set_status_text_if_changed(self.lang_manager.translate(TranslationKeys.SETTINGS_ACTIVE_LAYERS).format(layers=values_text))
             else:
-                self._set_status_text_if_changed("No layers configured")
+                self._set_status_text_if_changed(self.lang_manager.translate(TranslationKeys.SETTINGS_NO_LAYERS_CONFIGURED))
         except Exception as exc:
             self._log_error("settings_module_update_status_failed", exc)
-            self._set_status_text_if_changed("Settings loaded")
+            self._set_status_text_if_changed(self.lang_manager.translate(TranslationKeys.SETTINGS_LOADED))
 
 
     # --- Filter handlers & Reset ---

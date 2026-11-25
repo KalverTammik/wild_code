@@ -7,7 +7,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...ui.theme_manager import ThemeManager
 
 
-def prompt_backend_action_dialog(*, parent=None, table_frame, table, title: str = "Choose backend action") -> str | None:
+def prompt_backend_action_dialog(*, parent=None, table_frame, table, title: str | None = None) -> str | None:
     """Show the shared backend action prompt and return the chosen action."""
 
     from PyQt5.QtCore import Qt
@@ -22,7 +22,7 @@ def prompt_backend_action_dialog(*, parent=None, table_frame, table, title: str 
         action = selected_action
         dialog.accept()
 
-    dialog.setWindowTitle(title)
+    dialog.setWindowTitle(title or lang_manager.translate(TranslationKeys.BACKEND_ACTION_PROMPT_TITLE))
     dialog.setModal(True)
 
     ThemeManager.apply_module_style(dialog, [QssPaths.MAIN])

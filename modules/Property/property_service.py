@@ -5,6 +5,8 @@ from collections import OrderedDict
 from typing import Dict, Optional
 
 from ...utils.SessionManager import SessionManager
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 
 from .query_coordinator import (
     PropertiesConnectedElementsQueries,
@@ -34,7 +36,7 @@ class PropertyDataService:
 
         property_id = self._lookup.property_id_by_cadastral(normalized)
         if not property_id:
-            payload = {"entries": [], "message": "Kinnistut ei leitud"}
+            payload = {"entries": [], "message": LanguageManager().translate(TranslationKeys.PROPERTY_NOT_FOUND)}
             self._write_cache(cache_key, payload)
             return payload
 

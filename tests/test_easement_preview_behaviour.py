@@ -372,13 +372,16 @@ class DialogTest(unittest.TestCase):
         self.assertEqual(self.dialog._final_preview_name, "")
 
     def test_preview_names(self):
-        self.assertEqual(self.dialog._final_preview_layer_name(), "Easement area preview · S-1")
-        self.assertEqual(self.dialog._merged_cut_preview_name(), "Easement cut merge · S-1")
-        title = self.dialog._lang.translate(TranslationKeys.SETTINGS_BASE_LAYER_WATERPIPES)
+        translate = self.dialog._lang.translate
+        self.assertEqual(self.dialog._final_preview_layer_name(),
+                         f"{translate(TranslationKeys.PREVIEW_EASEMENT_AREA)} · S-1")
+        self.assertEqual(self.dialog._merged_cut_preview_name(),
+                         f"{translate(TranslationKeys.PREVIEW_EASEMENT_CUT_MERGE)} · S-1")
+        title = translate(TranslationKeys.SETTINGS_BASE_LAYER_WATERPIPES)
         self.assertEqual(self.dialog._preview_name_for(ProjectBaseLayerKeys.WATERPIPES),
-                         f"Easement preview · S-1 · {title}")
+                         f"{translate(TranslationKeys.PREVIEW_EASEMENT)} · S-1 · {title}")
         self.assertEqual(self.dialog._cut_preview_name_for(ProjectBaseLayerKeys.WATERPIPES),
-                         f"Easement cut preview · S-1 · {title}")
+                         f"{translate(TranslationKeys.PREVIEW_EASEMENT_CUT)} · S-1 · {title}")
 
     def test_clear_previews_removes_every_named_preview(self):
         self.dialog._preview_layer_names = {"a", "b"}

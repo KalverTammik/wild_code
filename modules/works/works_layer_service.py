@@ -70,9 +70,9 @@ class WorksLayerService(ModuleLayerServiceBase):
     FIELD_UPDATE_DATE = "update_date"
 
     REQUIRED_FIELDS_TEXTS = LayerEditTexts(
-        start_failed="Could not start editing Works layer to add missing required fields",
-        change_failed="Could not add missing required fields to Works layer",
-        commit_failed="Could not commit new Works layer fields",
+        start_failed=TranslationKeys.LAYER_EDIT_FIELDS_START_FAILED,
+        change_failed=TranslationKeys.LAYER_EDIT_FIELDS_ADD_FAILED,
+        commit_failed=TranslationKeys.LAYER_EDIT_FIELDS_COMMIT_FAILED,
         failed_event="works_layer_prepare_required_fields_failed",
         rollback_event="works_layer_prepare_required_fields_rollback_failed",
     )
@@ -144,7 +144,7 @@ class WorksLayerService(ModuleLayerServiceBase):
             if dialogs is not None:
                 dialogs.show_warning(
                     lang.translate(TranslationKeys.ERROR),
-                    str(message or "Configured Works layer does not match the required schema."),
+                    str(message or lang.translate(TranslationKeys.WORKS_LAYER_SCHEMA_MISMATCH)),
                 )
             return False
 
@@ -153,16 +153,17 @@ class WorksLayerService(ModuleLayerServiceBase):
     @classmethod
     def _prepare_required_fields(cls, layer: Optional[QgsVectorLayer]) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid Works layer"
+            return False, cls._layer_text(TranslationKeys.LAYER_EDIT_INVALID_LAYER)
 
         existing = cls._field_map(layer)
         missing_fields = [QgsField(name, field_type) for name, field_type in cls.CUSTOM_FIELDS() if name.lower() not in existing]
         incompatible_fields = cls._incompatible_required_fields(layer)
 
         if incompatible_fields:
-            message = "Configured Works layer does not match the required Geospatial schema:\n\n"
+            lang = LanguageManager()
+            message = lang.translate(TranslationKeys.WORKS_LAYER_SCHEMA_MISMATCH_DETAIL) + "\n\n"
             message += "\n".join(f"- {entry}" for entry in incompatible_fields)
-            message += "\n\nPlease reselect or recreate the Works layer with the updated schema."
+            message += "\n\n" + lang.translate(TranslationKeys.WORKS_LAYER_SCHEMA_RESELECT)
             return False, message
 
         return cls._add_missing_fields(layer, missing_fields, texts=cls.REQUIRED_FIELDS_TEXTS)
@@ -645,15 +646,15 @@ class WorksLayerService(ModuleLayerServiceBase):
         value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid works layer"
+            return False, WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_INVALID_LAYER)
 
         task_id_field = WorksLayerService.resolve_task_id_field_name(layer)
         if not task_id_field:
-            return False, "Task id field missing"
+            return False, WorksLayerService._layer_text(TranslationKeys.WORKS_LAYER_TASK_ID_FIELD_MISSING)
 
         feature = WorksLayerService.feature_by_id(layer, feature_id)
         if feature is None:
-            return False, "Feature not found"
+            return False, WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_FEATURE_NOT_FOUND)
 
         WorksLayerService._set_work_attributes(
             feature,
@@ -678,9 +679,9 @@ class WorksLayerService(ModuleLayerServiceBase):
             feature,
             add=False,
             texts=LayerEditTexts(
-                start_failed="Could not start editing works layer",
-                change_failed="Could not update works layer feature",
-                commit_failed="Could not commit works layer changes",
+                start_failed=TranslationKeys.LAYER_EDIT_START_FAILED,
+                change_failed=TranslationKeys.LAYER_EDIT_UPDATE_FAILED,
+                commit_failed=TranslationKeys.LAYER_EDIT_COMMIT_FAILED,
                 failed_event="works_layer_update_existing_failed",
                 rollback_event="works_layer_update_rollback_failed",
             ),
@@ -707,11 +708,11 @@ class WorksLayerService(ModuleLayerServiceBase):
         value_problems: Optional[list[FieldValueProblem]] = None,
     ) -> tuple[bool, str]:
         if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False, "Invalid works layer"
+            return False, WorksLayerService._layer_text(TranslationKeys.LAYER_EDIT_INVALID_LAYER)
 
         task_id_field = WorksLayerService.resolve_task_id_field_name(layer)
         if not task_id_field:
-            return False, "Task id field missing"
+            return False, WorksLayerService._layer_text(TranslationKeys.WORKS_LAYER_TASK_ID_FIELD_MISSING)
 
         feature = QgsFeature(layer.fields())
         layer_point = WorksLayerService._point_in_layer_crs(point, layer)
@@ -740,9 +741,9 @@ class WorksLayerService(ModuleLayerServiceBase):
             feature,
             add=True,
             texts=LayerEditTexts(
-                start_failed="Could not start editing works layer",
-                change_failed="Could not add feature to works layer",
-                commit_failed="Could not commit works layer changes",
+                start_failed=TranslationKeys.LAYER_EDIT_START_FAILED,
+                change_failed=TranslationKeys.LAYER_EDIT_ADD_FAILED,
+                commit_failed=TranslationKeys.LAYER_EDIT_COMMIT_FAILED,
                 failed_event="works_layer_insert_failed",
                 rollback_event="works_layer_rollback_failed",
             ),

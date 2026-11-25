@@ -144,7 +144,7 @@ class LocationFilterHelper(QObject):
         self._fill_combo(self.county_combo, [], TranslationKeys.SELECT_COUNTY)
         self._fill_combo(self.municipality_combo, [], TranslationKeys.SELECT_MUNICIPALITY)
         self._clear_cities()
-        self._on_failed('The import layer was removed')
+        self._on_failed(LanguageManager().translate(TranslationKeys.LOCATION_IMPORT_LAYER_REMOVED))
 
     def close(self):
         self._closed = True
@@ -221,7 +221,7 @@ class LocationFilterHelper(QObject):
         current = MapHelpers.get_layer_by_tag(IMPORT_PROPERTY_TAG)
         if (current is None or not current.isValid()
                 or (current.id(), current.source()) != self._loader.layer_identity):
-            self._on_failed('The import layer changed during loading')
+            self._on_failed(LanguageManager().translate(TranslationKeys.LOCATION_IMPORT_LAYER_CHANGED))
             return
         tree = result.get('tree')
         if tree is not None:

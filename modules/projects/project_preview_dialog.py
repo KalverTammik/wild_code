@@ -229,13 +229,13 @@ class ProjectPreviewDialog(QDialog):
         return container
 
     def _preview_layer_name(self) -> str:
-        return f"Project area preview · {self._item_number or self._item_id or '-'}"
+        return f"{self._lang.translate(TranslationKeys.PREVIEW_PROJECT_AREA)} · {self._item_number or self._item_id or '-'}"
 
     def _base_preview_layer_name(self) -> str:
-        return f"Project area preview base · {self._item_number or self._item_id or '-'}"
+        return f"{self._lang.translate(TranslationKeys.PREVIEW_PROJECT_AREA_BASE)} · {self._item_number or self._item_id or '-'}"
 
     def _rounded_preview_layer_name(self) -> str:
-        return f"Project area preview rounded · {self._item_number or self._item_id or '-'}"
+        return f"{self._lang.translate(TranslationKeys.PREVIEW_PROJECT_AREA_ROUNDED)} · {self._item_number or self._item_id or '-'}"
 
     def _refresh_target_layer_label(self) -> None:
         layer = ProjectsLayerService.resolve_main_layer(dialogs=None)

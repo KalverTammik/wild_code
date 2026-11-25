@@ -11,10 +11,15 @@ Rules (read with ast over every plugin source file outside tests/):
      layer or the card (not the entity) is named in ALLOWED_SECTION_LISTS with its reason.
   3. Status reading and changing is per entity through StatusActions (get_item_status, update_item_status);
      no `get_easement_status` / `update_task_status` style function per module.
+  4. Text the user reads comes from the translation tables: no literal sentence passed to a widget text call
+     or a message dialog, none returned as the message of an `(ok, message)` result, and every
+     LayerEditTexts text is a TranslationKeys member. Layer field names and values of the user's own map
+     schema, file names, CSS and log text are not user text and are not checked.
 
 ALLOWED_SECTION_LISTS only shrinks: a listed place that is gone fails until its line is deleted.
 """
 import ast
+import functools
 import os
 import re
 import sys
@@ -37,18 +42,34 @@ ALLOWED_SECTION_LISTS = {
     "widgets/DataDisplayWidgets/ModuleConnectionActions.py": "the sections whose card has no project-folder action",
 }
 
+# Widget calls whose text argument the user reads.
+USER_TEXT_CALLS = {
+    "setText", "setToolTip", "setWindowTitle", "setPlaceholderText", "setTitle", "setStatusTip", "setLabelText",
+    "addItem", "addItems", "show_warning", "show_info", "show_error", "Info_messages_modern", "pushMessage",
+    "QLabel", "QPushButton", "QCheckBox", "QGroupBox", "QAction", "QRadioButton", "setHeaderLabels",
+}
+# A literal in a user text call that is not a sentence to translate: brand text and the like.
+ALLOWED_USER_TEXT_LITERALS = {"widgets/FooterWidget.py": {"| Plugin v"}}
+
 PER_MODULE_STATUS_FUNCTION = re.compile(
     r"^(get|update|set|fetch)_(easement|task|project|contract|coordination|submission|specification|letter|works|asbuilt)_status$"
 )
 
 
-def plugin_sources():
+@functools.lru_cache(maxsize=1)
+def _parsed_sources():
+    sources = []
     for dirpath, dirs, files in os.walk(PLUGIN_ROOT):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for name in files:
             if name.endswith(".py"):
                 path = Path(dirpath) / name
-                yield path.relative_to(PLUGIN_ROOT).as_posix(), ast.parse(path.read_text(encoding="utf-8"))
+                sources.append((path.relative_to(PLUGIN_ROOT).as_posix(), ast.parse(path.read_text(encoding="utf-8"))))
+    return tuple(sources)
+
+
+def plugin_sources():
+    return iter(_parsed_sources())
 
 
 def _function_defs(tree):
@@ -141,6 +162,61 @@ class TaskSectionRuleTest(unittest.TestCase):
         for section in TASK_SECTION_VALUES:
             self.assertEqual(backend_module(section), Module.TASK.value)
         self.assertEqual(backend_module("project"), "project")
+
+
+def _call_name(node: ast.Call) -> str:
+    func = node.func
+    return func.attr if isinstance(func, ast.Attribute) else func.id if isinstance(func, ast.Name) else ""
+
+
+def _is_sentence(text: str) -> bool:
+    """Words a user would read: not a key, a file name, a CSS rule, a path or a bare symbol."""
+    stripped = text.strip()
+    if re.fullmatch(r"[A-Za-z0-9_\-./:#%{}@|<>=+*&·→ ▾]*", stripped) and " " not in stripped.replace(" · ", "|"):
+        return False
+    if re.search(r"[{};]|\.png|\.svg|\.qml|\.graphql", stripped):
+        return False
+    return len(re.findall(r"[A-Za-zÕÄÖÜõäöüšž]{2,}", stripped)) >= 2
+
+
+class UserTextRuleTest(unittest.TestCase):
+    def test_no_literal_sentence_in_a_user_text_call(self) -> None:
+        found = []
+        for rel, tree in plugin_sources():
+            if rel.startswith("languages/"):
+                continue
+            for node in ast.walk(tree):
+                if not (isinstance(node, ast.Call) and _call_name(node) in USER_TEXT_CALLS):
+                    continue
+                for argument in list(node.args) + [keyword.value for keyword in node.keywords]:
+                    for part in ast.walk(argument):
+                        if isinstance(part, ast.Constant) and isinstance(part.value, str) and _is_sentence(part.value):
+                            if part.value not in ALLOWED_USER_TEXT_LITERALS.get(rel, set()):
+                                found.append((rel, part.lineno, part.value[:60]))
+        self.assertEqual(found, [], "put the text in languages/ and translate it")
+
+    def test_no_literal_sentence_as_the_message_of_a_result(self) -> None:
+        found = []
+        for rel, tree in plugin_sources():
+            for node in ast.walk(tree):
+                if not (isinstance(node, ast.Return) and isinstance(node.value, ast.Tuple) and len(node.value.elts) == 2):
+                    continue
+                first, second = node.value.elts
+                if isinstance(first, ast.Constant) and first.value in (False, None) and isinstance(second, ast.Constant)                         and isinstance(second.value, str) and _is_sentence(second.value):
+                    found.append((rel, node.lineno, second.value[:60]))
+        self.assertEqual(found, [], "return a translated text, not a literal")
+
+    def test_layer_edit_texts_are_translation_keys(self) -> None:
+        found = []
+        for rel, tree in plugin_sources():
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call) and _call_name(node) == "LayerEditTexts":
+                    for keyword in node.keywords:
+                        if keyword.arg in ("start_failed", "change_failed", "commit_failed"):
+                            is_key = isinstance(keyword.value, ast.Attribute) and isinstance(keyword.value.value, ast.Name)                                 and keyword.value.value.id == "TranslationKeys"
+                            if not is_key and not (isinstance(keyword.value, ast.IfExp)):
+                                found.append((rel, node.lineno, keyword.arg))
+        self.assertEqual(found, [])
 
 
 class StatusFunctionRuleTest(unittest.TestCase):

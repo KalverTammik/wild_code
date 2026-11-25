@@ -55,17 +55,17 @@ class EasementPreviewLayersMixin:
 
     def _preview_name_for(self, layer_key: str) -> str:
         layer_title = self._lang.translate(self._LAYER_LABEL_KEYS[layer_key])
-        return f"Easement preview · {self._item_number or self._item_id or '-'} · {layer_title}"
+        return f"{self._lang.translate(TranslationKeys.PREVIEW_EASEMENT)} · {self._item_number or self._item_id or '-'} · {layer_title}"
 
     def _final_preview_layer_name(self) -> str:
-        return f"Easement area preview · {self._item_number or self._item_id or '-'}"
+        return f"{self._lang.translate(TranslationKeys.PREVIEW_EASEMENT_AREA)} · {self._item_number or self._item_id or '-'}"
 
     def _cut_preview_name_for(self, layer_key: str) -> str:
         layer_title = self._lang.translate(self._LAYER_LABEL_KEYS[layer_key])
-        return f"Easement cut preview · {self._item_number or self._item_id or '-'} · {layer_title}"
+        return f"{self._lang.translate(TranslationKeys.PREVIEW_EASEMENT_CUT)} · {self._item_number or self._item_id or '-'} · {layer_title}"
 
     def _merged_cut_preview_name(self) -> str:
-        return f"Easement cut merge · {self._item_number or self._item_id or '-'}"
+        return f"{self._lang.translate(TranslationKeys.PREVIEW_EASEMENT_CUT_MERGE)} · {self._item_number or self._item_id or '-'}"
 
     def _resolve_source_layer(self, layer_key: str):
         return ProjectBaseLayersService.resolve_layer(layer_key, include_legacy=True)
@@ -392,7 +392,7 @@ class EasementPreviewLayersMixin:
 
         self._refresh_property_summary_card()
 
-        self._property_preview_name = f"Easement properties preview · {self._item_number or self._item_id or '-'}"
+        self._property_preview_name = f"{self._lang.translate(TranslationKeys.PREVIEW_EASEMENT_PROPERTIES)} · {self._item_number or self._item_id or '-'}"
         property_preview = LayerProcessingService.buffer_selected_features(
             property_layer,
             distance=float(self._distance_spin.value()),

@@ -18,6 +18,7 @@ from qgis.core import QgsApplication, QgsFeature, QgsField, QgsVectorLayer
 from qgis.PyQt.QtCore import QVariant
 
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
+from Kavitro_dev.languages.translation_keys import TranslationKeys
 from Kavitro_dev.modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
 from Kavitro_dev.modules.easements import easement_pdf_service as pdf_module
 from Kavitro_dev.modules.easements.easement_distance_rules import coerce_number, format_distance
@@ -92,7 +93,7 @@ class AsBuiltLayerServiceLoggingTest(LoggedExceptionTestCase):
                 layer=layer, feature_id=3, item_id="job-1", item_data={"name": "Tood"}
             )
 
-        self.assertEqual(result, (False, "Could not update selected As-built feature"))
+        self.assertEqual(result, (False, AsBuiltLayerService._layer_text(TranslationKeys.LAYER_EDIT_UPDATE_FAILED)))
         self.assertEqual(self.events(), ["asbuilt_added_fields_set_failed"])
         self.assertEqual(self.log.call_args.kwargs["extra"], {"item_id": "job-1"})
 
@@ -143,7 +144,7 @@ class EasementLayerServiceLoggingTest(LoggedExceptionTestCase):
                 layer=layer, feature_id=3, item_id="e-1", item_data={"number": "436-2"}
             )
 
-        self.assertEqual(result, (False, "Could not update selected easement feature"))
+        self.assertEqual(result, (False, EasementLayerService._layer_text(TranslationKeys.LAYER_EDIT_UPDATE_FAILED)))
         self.assertEqual(self.events(), ["easement_added_fields_set_failed"])
         self.assertEqual(self.log.call_args.kwargs["extra"], {"item_id": "e-1"})
 

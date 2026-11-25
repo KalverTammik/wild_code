@@ -17,24 +17,24 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
     LAYER_MISSING_KEY = TranslationKeys.ASBUILT_LAYER_MISSING
     LAYER_AMBIGUOUS_KEY = TranslationKeys.ASBUILT_LAYER_MISSING
     DRAW_START_FAILED_KEY = TranslationKeys.ASBUILT_DRAW_NEW_START_FAILED
-    INVALID_LAYER_TEXT = "Invalid As-built layer"
+    INVALID_LAYER_TEXT = TranslationKeys.LAYER_EDIT_INVALID_LAYER
     FIELDS_TEXTS = LayerEditTexts(
-        start_failed="Could not start editing As-built layer to add external fields",
-        change_failed="Could not add external As-built fields to layer",
-        commit_failed="Could not commit new As-built layer fields",
+        start_failed=TranslationKeys.LAYER_EDIT_FIELDS_START_FAILED,
+        change_failed=TranslationKeys.LAYER_EDIT_FIELDS_ADD_FAILED,
+        commit_failed=TranslationKeys.LAYER_EDIT_FIELDS_COMMIT_FAILED,
         failed_event="asbuilt_layer_ensure_fields_failed",
         rollback_event="asbuilt_layer_ensure_fields_rollback_failed",
     )
-    MISSING_ITEM_ID_TEXT = "Missing backend As-built id"
-    FEATURE_NOT_FOUND_TEXT = "Selected As-built feature was not found"
+    MISSING_ITEM_ID_TEXT = TranslationKeys.LAYER_EDIT_ITEM_ID_MISSING
+    FEATURE_NOT_FOUND_TEXT = TranslationKeys.LAYER_EDIT_FEATURE_NOT_FOUND
     ATTACH_TEXTS = LayerEditTexts(
-        start_failed="Could not start editing As-built layer",
-        change_failed="Could not update selected As-built feature",
-        commit_failed="Could not commit As-built layer changes",
+        start_failed=TranslationKeys.LAYER_EDIT_START_FAILED,
+        change_failed=TranslationKeys.LAYER_EDIT_UPDATE_FAILED,
+        commit_failed=TranslationKeys.LAYER_EDIT_COMMIT_FAILED,
         failed_event="asbuilt_attach_existing_save_failed",
         rollback_event="asbuilt_attach_existing_rollback_failed",
     )
-    ATTACH_VERIFY_FAILED_TEXT = "Updated As-built feature could not be verified on the configured main layer"
+    ATTACH_VERIFY_FAILED_TEXT = TranslationKeys.LAYER_EDIT_VERIFY_FAILED
 
     EXT_SYSTEM_NAME = "Kavitro"
 
