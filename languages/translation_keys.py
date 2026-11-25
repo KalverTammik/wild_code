@@ -76,7 +76,6 @@ class TranslationKeys:
     NETWORK_CONNECTION_FAILED = "network_connection_failed"
 
     # Login dialog
-    LANGUAGE_LABEL = "Language:"
     USERNAME_LABEL = "Username:"
     PASSWORD_LABEL = "Password:"
     LOGIN_BUTTON = "login_button"
@@ -1107,7 +1106,6 @@ class DialogLabels:
 
     # Login dialog labels. The button itself uses TranslationKeys.LOGIN_BUTTON,
     # which is the one key translated in every language table.
-    LANGUAGE_LABEL = "Language:"
     USERNAME_LABEL = "Username:"
     PASSWORD_LABEL = "Password:"
 

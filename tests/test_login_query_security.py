@@ -76,6 +76,9 @@ class LoginQuerySecurityTest(unittest.TestCase):
 
     def setUp(self) -> None:
         StubSessionManager.reset()
+        language_patch = patch.object(login_dialog_module, "adopt_account_language")  # no real request in tests
+        self.adopt_language = language_patch.start()
+        self.addCleanup(language_patch.stop)
 
     def test_login_query_uses_typed_input_variable(self) -> None:
         query_path = (

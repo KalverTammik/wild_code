@@ -6,6 +6,7 @@ from ..Logs.python_fail_logger import PythonFailLogger
 from ..constants.settings_keys import (
     PLUGIN,
     PREFERRED_MODULE,
+    LANGUAGE,
     MAIN_PROPERTY_LAYER_ID,
     GEOSPATIAL_SETUP_MODE,
     MAP_CANVAS_GLASS_ACTION_BAR_ENABLED,
@@ -77,6 +78,16 @@ class SettingsService:
     # --- Named helpers --------------------------------------------------------
     def preferred_module(self, value=_UNSET, *, clear: bool = False, default: str = ""):
         return self.plugin_setting(PREFERRED_MODULE, value=value, clear=clear, default=default)
+
+    def language(self, value=_UNSET, *, clear: bool = False, default: str = ""):
+        """Language code of the last signed-in account; shows the login window in it before the next sign-in."""
+        if clear:
+            self.clear_setting(LANGUAGE)
+            return default
+        if value is _UNSET:
+            return str(self.get_setting(LANGUAGE, default) or default)
+        self.set_setting(LANGUAGE, value)
+        return value
 
     def main_property_layer_id(self, value=_UNSET, *, clear: bool = False, default: str = ""):
         return self.plugin_setting(MAIN_PROPERTY_LAYER_ID, value=value, clear=clear, default=default)

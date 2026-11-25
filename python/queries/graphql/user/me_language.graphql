@@ -1,0 +1,5 @@
+query meLanguage {
+  me {
+    language
+  }
+}

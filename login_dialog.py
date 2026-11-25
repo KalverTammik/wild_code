@@ -2,13 +2,14 @@
 from PyQt5.QtCore import pyqtSignal, Qt
 from .widgets.FooterWidget import FooterWidget
 from qgis.PyQt.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QComboBox
+    QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout
 )
 
 from .ui.theme_manager import ThemeManager
 from .constants.module_icons import IconNames
 from .constants.button_props import ButtonVariant, ButtonSize
-from .languages.language_manager import SUPPORTED_LANGUAGES, LanguageManager
+from .languages.language_manager import LanguageManager
+from .languages.language_preference import adopt_account_language
 from .utils.SessionManager import SessionManager
 #import tranlation keys
 from .languages.translation_keys import TranslationKeys, DialogLabels
@@ -40,16 +41,6 @@ class LoginDialog(QDialog):
         )
 
         layout = QVBoxLayout()
-
-        self.language_label = QLabel()
-        layout.addWidget(self.language_label)
-
-        self.language_switch = QComboBox()
-        self.language_switch.addItems(SUPPORTED_LANGUAGES)
-        self.language_switch.setCurrentText(self.lang.language)
-        self.language_switch.currentTextChanged.connect(self.change_language)
-        ThemeManager.apply_form_combo_popup_style(self.language_switch)
-        layout.addWidget(self.language_switch)
 
         self.username_label = QLabel()
         self.username_label.setObjectName(DialogLabels.USERNAME_LABEL)
@@ -142,7 +133,6 @@ class LoginDialog(QDialog):
 
     def _retranslate(self) -> None:
         self.setWindowTitle(self.lang.translate(TranslationKeys.LOGIN_BUTTON))
-        self.language_label.setText(self.lang.translate(DialogLabels.LANGUAGE_LABEL))
         self.username_label.setText(self.lang.translate(DialogLabels.USERNAME_LABEL))
         self.password_label.setText(self.lang.translate(DialogLabels.PASSWORD_LABEL))
         self.login_button.setText(self.lang.translate(TranslationKeys.LOGIN_BUTTON))
@@ -150,10 +140,6 @@ class LoginDialog(QDialog):
         self.mfa_code_label.setText(self.lang.translate(TranslationKeys.MFA_CODE_PROMPT))
         self.mfa_verify_button.setText(self.lang.translate(TranslationKeys.MFA_VERIFY_BUTTON))
         self.mfa_back_button.setText(self.lang.translate(TranslationKeys.MFA_BACK_BUTTON))
-
-    def change_language(self, language):
-        self.lang.set_language(language)
-        self._retranslate()
 
     def toggle_password_visibility(self):
         if self.toggle_password_button.isChecked():
@@ -238,6 +224,7 @@ class LoginDialog(QDialog):
             self.user,
             username=username,
         )
+        adopt_account_language()  # the plugin speaks the language of the Kavitro account from here on
         self.password_input.clear()
         self.mfa_code_input.clear()
         show_storage_warning(

@@ -70,6 +70,9 @@ class LoginMfaFlowTest(unittest.TestCase):
 
     def setUp(self) -> None:
         StubSessionManager.reset()
+        language_patch = patch.object(login_dialog_module, "adopt_account_language")  # no real request in tests
+        self.adopt_language = language_patch.start()
+        self.addCleanup(language_patch.stop)
         self.dialog = login_dialog_module.LoginDialog()
         self.addCleanup(self.dialog.deleteLater)
         self.dialog.username_input.setText("person@example.com")

@@ -358,6 +358,21 @@ class FinishedLoginWarningTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.app = QApplication.instance() or QApplication([])
 
+    def setUp(self) -> None:
+        language_patch = patch.object(login_dialog_module, "adopt_account_language")  # no real request in tests
+        self.adopt_language = language_patch.start()
+        self.addCleanup(language_patch.stop)
+
+    def test_login_adopts_the_account_language_after_the_session_is_set(self) -> None:
+        window = login_dialog_module.LoginDialog()
+        self.addCleanup(window.deleteLater)
+        order: list[str] = []
+        self.adopt_language.side_effect = lambda *a, **k: order.append("language")
+        with patch.object(login_dialog_module.SessionManager, "setSession",
+                          side_effect=lambda *a, **k: order.append("session") or session_module.SESSION_STORAGE_PERSISTENT),                 patch.object(QDialog, "accept"):
+            window._finish_login("mari", "token")
+        self.assertEqual(order, ["session", "language"])
+
     def test_login_reports_a_storage_problem_over_its_own_window(self) -> None:
         window = login_dialog_module.LoginDialog()
         self.addCleanup(window.deleteLater)

@@ -8,6 +8,7 @@ import sip  # Add this import at the top
 from .constants.module_icons import IconNames
 from .utils.SessionManager import SessionManager  # Import the SessionManager
 from .languages.language_manager import LanguageManager
+from .languages.language_preference import restore_saved_language
 from .languages.translation_keys import TranslationKeys
 from .ui.theme_manager import ThemeManager
 from .ui.messages_helper import ModernMessageDialog
@@ -38,6 +39,7 @@ class WildCodePlugin:
     def initGui(self):
         # Force final garbage collection
         gc.collect()
+        restore_saved_language()
         icon_path = IconNames.KAVITRO_ICON
 
         plugin_title = ConfigPaths.PLUGIN_NAME or LanguageManager.translate_static(TranslationKeys.KAVITRO_PLUGIN_TITLE)

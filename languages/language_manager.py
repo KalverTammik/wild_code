@@ -35,20 +35,40 @@ _MODULE_TRANSLATION_KEY_MAP = {
     "tasks": TranslationKeys.TASKS,
 }
 
+def normalize_language(value) -> str | None:
+    """Reduce a language code such as "et", "ET", "en-GB" or "et_EE" to a supported code, or None."""
+    code = str(value or "").strip().lower().replace("_", "-").split("-")[0]
+    return code if code in SUPPORTED_LANGUAGES else None
+
+
+# The language of the signed-in account. Managers built without an explicit
+# language follow it, so one choice reaches every widget and message.
+_current_language = DEFAULT_LANGUAGE
+
+
+def get_current_language() -> str:
+    return _current_language
+
+
+def set_current_language(language) -> str:
+    """Make a supported language the plugin-wide one; an unknown value keeps the Estonian default."""
+    global _current_language
+    _current_language = normalize_language(language) or DEFAULT_LANGUAGE
+    return _current_language
+
+
 class LanguageManager:
-    def __init__(self, language=DEFAULT_LANGUAGE):
-        self.language = language
+    def __init__(self, language=None):
+        # None follows the plugin-wide language; a value pins this manager (tests, fixed-language texts).
+        self._language = normalize_language(language) if language is not None else None
+
+    @property
+    def language(self) -> str:
+        return self._language or _current_language
 
     def translate(self, key, fallback: str | None = None):
-        """Lookup key in main language module first, then in module language modules.
-           Uses the modules' own TRANSLATIONS dicts without copying them."""
-        # main file
-        if self.language == "et":
-            translations = ET_TRANSLATIONS
-        elif self.language == "en":
-            translations = EN_TRANSLATIONS
-        else:
-            translations = ET_TRANSLATIONS
+        """Lookup key in the language's translation table (Estonian when the language has none)."""
+        translations = EN_TRANSLATIONS if self.language == "en" else ET_TRANSLATIONS
         value = translations.get(key)
         if value is not None:
             return value
@@ -63,10 +83,5 @@ class LanguageManager:
 
     @staticmethod
     def translate_static(key, fallback: str | None = None):
-        """Static method for global translation using default language."""
-        manager = LanguageManager()
-        return manager.translate(key, fallback)
-
-
-    def set_language(self, language):
-        self.language = language
+        """Translate with the plugin-wide language, without a manager instance."""
+        return LanguageManager().translate(key, fallback)

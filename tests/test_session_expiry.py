@@ -24,6 +24,9 @@ settings_ui_module = importlib.import_module("Kavitro_dev.modules.Settings.Setti
 ApiErrorKind = api_error_handling.ApiErrorKind
 SessionManager = session_module.SessionManager
 tag_message = api_error_handling.tag_message
+language_module = importlib.import_module("Kavitro_dev.languages.language_manager")
+LanguageManager = language_module.LanguageManager
+set_current_language = language_module.set_current_language
 
 
 class FakeUnauthorizedResponse:
@@ -199,25 +202,25 @@ class LoginDialogLanguageTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls._app = QApplication.instance() or QApplication([])
 
-    def test_switching_language_retranslates_the_visible_labels(self) -> None:
+    def tearDown(self) -> None:
+        set_current_language("et")
+
+    def test_login_window_is_shown_in_the_remembered_language(self) -> None:
+        set_current_language("en")
         dialog = login_dialog_module.LoginDialog()
         self.addCleanup(dialog.deleteLater)
-        estonian = dialog.username_label.text()
 
-        dialog.change_language("en")
-
-        self.assertNotEqual(dialog.username_label.text(), estonian)
-        self.assertEqual(dialog.login_button.text(), dialog.lang.translate(
+        self.assertEqual(dialog.username_label.text(), LanguageManager("en").translate(
+            login_dialog_module.DialogLabels.USERNAME_LABEL))
+        self.assertEqual(dialog.login_button.text(), LanguageManager("en").translate(
             login_dialog_module.TranslationKeys.LOGIN_BUTTON))
 
-    def test_only_translated_languages_are_offered(self) -> None:
+    def test_there_is_no_language_choice_because_the_account_decides(self) -> None:
         dialog = login_dialog_module.LoginDialog()
         self.addCleanup(dialog.deleteLater)
 
-        offered = [dialog.language_switch.itemText(i)
-                   for i in range(dialog.language_switch.count())]
-
-        self.assertEqual(offered, list(login_dialog_module.SUPPORTED_LANGUAGES))
+        self.assertFalse(hasattr(dialog, "language_switch"))
+        self.assertFalse(hasattr(dialog, "change_language"))
 
 
 if __name__ == "__main__":

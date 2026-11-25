@@ -504,7 +504,6 @@ TRANSLATIONS = {
     TranslationKeys.SESSION_STORAGE_MEMORY_ONLY: "QGIS secure session storage could not be opened. You can continue working during this QGIS run, but you must sign in again after closing QGIS. Neither the Kavitro password nor the access token was stored in plaintext.",
     TranslationKeys.SESSION_STORAGE_MIGRATION_PENDING: "The session was restored, but the legacy authentication entry could not be cleaned completely. You can continue working and cleanup will be retried on a later suitable startup or sign-in.",
     TranslationKeys.SESSION_STORAGE_CLEANUP_FAILED: "Removal of the legacy plaintext access token from QGIS settings could not be verified. Finish work securely and contact support; do not share the QGIS profile or its backup.",
-    TranslationKeys.LANGUAGE_LABEL: "Language:",
     TranslationKeys.UNKNOWN_MODULE: "Unknown module: {module}",
     TranslationKeys.USER: "User",
     TranslationKeys.ROLES: "Roles",

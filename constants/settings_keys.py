@@ -5,6 +5,7 @@ MODULE_SETTINGS_BASE = f"{PLUGIN}/modules"
 
 # Plugin-wide setting keys
 THEME = f"{PLUGIN}/theme"
+LANGUAGE = f"{PLUGIN}/language"
 PREFERRED_MODULE = f"{PLUGIN}/preferred_module"
 MAIN_PROPERTY_LAYER_ID = f"{PLUGIN}/main_property_layer_id"
 PLUGIN_DIALOG_GEOMETRY = f"{PLUGIN}/plugin_dialog/geometry"

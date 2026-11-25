@@ -458,7 +458,6 @@ TRANSLATIONS = {
     TranslationKeys.NETWORK_CONNECT_TIMEOUT: "serveriga ühendumine aegus",
     TranslationKeys.NETWORK_UNREACHABLE: "võrk pole kättesaadav",
     TranslationKeys.NETWORK_CONNECTION_FAILED: "serveriga ei saanud ühendust",
-    TranslationKeys.LANGUAGE_LABEL: "Keel:",
     TranslationKeys.USERNAME_LABEL: "Kasutajanimi:",
     TranslationKeys.PASSWORD_LABEL: "Parool:",
     TranslationKeys.LOGIN_BUTTON: "Logi sisse",
