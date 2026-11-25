@@ -7,7 +7,6 @@ from typing import Optional
 from qgis.PyQt.QtCore import QVariant
 from qgis.core import QgsFeature, QgsVectorLayer
 
-from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.translation_keys import TranslationKeys
 from ...utils.layers.module_layer_service_base import AttachableLayerServiceBase, FieldValueProblem, LayerEditTexts
 from ...constants.module_names import Module
@@ -215,43 +214,8 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
 
     @classmethod
     def sync_status_from_task(cls, item_id: str, task: Optional[dict]) -> bool:
-        """Write the Kavitro status of an as-built onto its map feature (`ext_job_state`); True when it matches.
-
-        Runs after a status change on the card. A layer the user is editing is left alone: committing
-        would also save the user's own pending edits.
-        """
-        item_id_text = str(item_id or "").strip()
+        """Write the Kavitro status of an as-built onto its map feature (`ext_job_state`); True when it matches."""
         status_id = cls.coerce_optional_int(((task or {}).get("status") or {}).get("id") or "")
-        if not item_id_text or status_id is None:
+        if status_id is None:
             return False
-        layer = cls.resolve_main_layer(dialogs=None)
-        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
-            return False
-        extra = {"item_id": item_id_text, "layer": layer.name()}
-        if layer.isEditable():
-            PythonFailLogger.log("asbuilt_status_sync_skipped_layer_editable", module=cls.MODULE.value, extra=extra)
-            return False
-        field_name = cls._resolve_first_field_name(layer, (cls.FIELD_EXT_JOB_STATE,))
-        feature = cls.find_feature(layer, item_id=item_id_text)
-        if not field_name or feature is None:
-            return False
-        field_index = layer.fields().indexOf(field_name)
-        if cls.coerce_optional_int(feature.attribute(field_index)) == status_id:
-            return True
-
-        started_edit = bool(layer.startEditing())
-        if not started_edit:
-            PythonFailLogger.log("asbuilt_status_sync_start_failed", module=cls.MODULE.value, extra=extra)
-            return False
-        try:
-            if layer.changeAttributeValue(feature.id(), field_index, status_id) and layer.commitChanges():
-                layer.triggerRepaint()
-                return True
-            errors = "; ".join(layer.commitErrors() or [])
-            PythonFailLogger.log(
-                "asbuilt_status_sync_failed", module=cls.MODULE.value, extra={**extra, "errors": errors},
-            )
-        except RuntimeError as exc:  # the layer was deleted meanwhile
-            PythonFailLogger.log_exception(exc, module=cls.MODULE.value, event="asbuilt_status_sync_failed", extra=extra)
-        cls._rollback_own_edit(layer, started_edit, event="asbuilt_status_sync_rollback_failed")
-        return False
+        return cls.sync_status_to_feature(item_id, [((cls.FIELD_EXT_JOB_STATE,), status_id)])

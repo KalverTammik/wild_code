@@ -382,7 +382,7 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
         created_task = APIModuleActions.get_task_data(task_id) or {}
         created_status_id = self._task_status_id_text(created_task)
         if selected_status_id and created_status_id != selected_status_id:
-            updated_status_task = APIModuleActions.update_task_status(task_id, selected_status_id)
+            updated_status_task = APIModuleActions.update_item_status(Module.WORKS.value, task_id, selected_status_id)
             if updated_status_task:
                 created_task = APIModuleActions.get_task_data(task_id) or created_task
             else:

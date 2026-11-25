@@ -78,12 +78,11 @@ class _Host:
     def __init__(self, module_name, item_id="T1"):
         self._module_name = module_name
         self._item_data = {"id": item_id}
-        self._lang = Mock()
 
 
 class StatusChangeHookTest(_Registrations):
     def _run(self, host, payload=None):
-        StatusWidget._sync_works_layer_if_needed(host, task_payload=payload)
+        StatusWidget._run_status_change_hooks(host, payload)
 
     def test_hook_runs_for_its_modules_only(self):
         hook = Mock()
@@ -93,7 +92,7 @@ class StatusChangeHookTest(_Registrations):
         self._run(works, {"id": "T1"})
         self._run(project)
 
-        hook.assert_called_once_with("T1", {"id": "T1"}, works._lang)
+        hook.assert_called_once_with("T1", {"id": "T1"})
 
     def test_no_item_id_runs_nothing(self):
         hook = Mock()
@@ -122,7 +121,7 @@ class StatusChangeHookTest(_Registrations):
             self._run(_Host(Module.WORKS.value))
 
         other.assert_called_once()
-        self.assertEqual(log.call_args.kwargs["event"], "status_widget_sync_works_layer_failed")
+        self.assertEqual(log.call_args.kwargs["event"], "status_widget_status_change_hook_failed")
 
 
 class RegistryWiringTest(_Registrations):
@@ -135,11 +134,27 @@ class RegistryWiringTest(_Registrations):
             self.assertIn("works_layer_sync", StatusWidget._status_change_hooks[module])
         # An as-built's status goes to the as-built layer; the Works layer never holds as-builts.
         self.assertEqual(list(StatusWidget._status_change_hooks[Module.ASBUILT.value]), ["asbuilt_layer_sync"])
-        self.assertNotIn(Module.PROJECT.value, StatusWidget._status_change_hooks)
+        # A project and an easement mirror their status on the map; contracts and coordinations have no layer.
+        self.assertEqual(list(StatusWidget._status_change_hooks[Module.PROJECT.value]), ["project_layer_sync"])
+        self.assertEqual(list(StatusWidget._status_change_hooks[Module.EASEMENT.value]), ["easement_layer_sync"])
+        for module in (Module.CONTRACT.value, Module.COORDINATION.value):
+            self.assertNotIn(module, StatusWidget._status_change_hooks)
 
         with patch.object(works_sync_service.WorksSyncService, "sync_task_from_backend") as sync:
-            StatusWidget._status_change_hooks[Module.WORKS.value]["works_layer_sync"]("T9", {"id": "T9"}, Mock())
+            StatusWidget._status_change_hooks[Module.WORKS.value]["works_layer_sync"]("T9", {"id": "T9"})
         sync.assert_called_once_with("T9", task={"id": "T9"})
+
+    def test_project_and_easement_hooks_write_the_status_onto_their_layers(self):
+        ModulesRegistry.register_all(Mock(), Mock())
+        project, easement = {"id": "P1", "status": {"id": "3"}}, {"id": "E1", "status": {"id": "4"}}
+
+        with patch("Kavitro_dev.modules.projects.projects_layer_service.ProjectsLayerService.sync_status_from_project") as sync_project:
+            StatusWidget._status_change_hooks[Module.PROJECT.value]["project_layer_sync"]("P1", project)
+        sync_project.assert_called_once_with("P1", project)
+
+        with patch("Kavitro_dev.modules.easements.easement_layer_service.EasementLayerService.sync_status_from_easement") as sync_easement:
+            StatusWidget._status_change_hooks[Module.EASEMENT.value]["easement_layer_sync"]("E1", easement)
+        sync_easement.assert_called_once_with("E1", easement)
 
     def test_register_all_twice_keeps_one_hook(self):
         ModulesRegistry.register_all(Mock(), Mock())

@@ -1,0 +1,13 @@
+mutation UpdateProjectStatus($input: UpdateProjectInput!) {
+  updateProject(input: $input) {
+    __typename
+    id
+    updatedAt
+    status {
+      id
+      name
+      color
+      type
+    }
+  }
+}

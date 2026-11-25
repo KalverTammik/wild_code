@@ -355,7 +355,7 @@ class EasementGeometryFormDialog(QDialog):
         if not item_id or not status_id or status_id == _status_id(self._kavitro_status):
             return True
 
-        saved = APIModuleActions.update_easement_status(item_id, status_id)
+        saved = APIModuleActions.update_item_status(Module.EASEMENT.value, item_id, status_id)
         if saved is None:
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.EASEMENT_FORM_STATUS_REJECTED_TITLE),
@@ -364,7 +364,7 @@ class EasementGeometryFormDialog(QDialog):
             )
             return False
 
-        self._kavitro_status = dict(saved)
+        self._kavitro_status = dict(saved.get("status") or {})
         return True
 
     def kavitro_status(self) -> dict:
@@ -408,7 +408,7 @@ class EasementGeometryFormDialog(QDialog):
         # Read before the form opens: a slow answer would otherwise put its wait window over the form.
         # The status is read too, because the card can be older than a change made in Kavitro.
         status_options = APIModuleActions.get_module_status_options(Module.EASEMENT.value)
-        current_status = APIModuleActions.get_easement_status(str(item.get("id") or ""))
+        current_status = APIModuleActions.get_item_status(Module.EASEMENT.value, str(item.get("id") or ""))
         dialog = cls(
             item_data=item,
             initial_values=initial_values,

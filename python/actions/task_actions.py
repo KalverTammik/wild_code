@@ -1,4 +1,4 @@
-"""Task actions: read and list tasks, change the description, status and members, and create a task."""
+"""Task actions: read and list tasks, change the description and members, create a task, and the task priorities."""
 import re
 from typing import Iterable, List, Optional
 
@@ -7,7 +7,10 @@ from ..GraphQLQueryLoader import GraphQLQueryLoader
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.api_error_handling import ApiError, ApiErrorKind
 from ...constants.module_names import Module
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
 from .geometry_actions import GeometryActions
+from .status_actions import StatusActions
 from .user_actions import UserActions
 
 
@@ -23,6 +26,56 @@ class TaskActions:
     The geometry and current-user lookups go through GeometryActions and UserActions, so the
     domain classes do not inherit from each other.
     """
+
+    # The TaskPriority enum of the Kavitro schema (kavitro.dev/docs/graphql/reference/enums/task-priority).
+    # The server refuses introspection and has no query that lists enum values, so they live here.
+    _TASK_PRIORITY_VALUES = ("URGENT", "HIGH", "MEDIUM", "LOW")
+
+    @staticmethod
+    def get_task_priority_values() -> List[str]:
+        return list(TaskActions._TASK_PRIORITY_VALUES)
+
+    @staticmethod
+    def task_priority_label(priority: str) -> str:
+        lang = LanguageManager()
+        normalized = str(priority or "").strip().upper()
+        if not normalized:
+            return lang.translate(TranslationKeys.WORKS_PRIORITY_NONE)
+
+        translation_map = {
+            "URGENT": TranslationKeys.WORKS_PRIORITY_URGENT,
+            "HIGH": TranslationKeys.WORKS_PRIORITY_HIGH,
+            "MEDIUM": TranslationKeys.WORKS_PRIORITY_MEDIUM,
+            "LOW": TranslationKeys.WORKS_PRIORITY_LOW,
+        }
+        translation_key = translation_map.get(normalized)
+        if translation_key:
+            return lang.translate(translation_key)
+
+        return normalized.replace("_", " ").title()
+
+    @staticmethod
+    def get_task_priority_options(*, include_empty: bool = True) -> List[dict[str, str]]:
+        lang = LanguageManager()
+        options: List[dict[str, str]] = []
+
+        if include_empty:
+            options.append(
+                {
+                    "value": "",
+                    "label": lang.translate(TranslationKeys.WORKS_PRIORITY_NONE),
+                }
+            )
+
+        for value in TaskActions.get_task_priority_values():
+            options.append(
+                {
+                    "value": value,
+                    "label": TaskActions.task_priority_label(value),
+                }
+            )
+
+        return options
 
     @staticmethod
     def get_task_data(item_id: str) -> Optional[dict]:
@@ -155,55 +208,6 @@ class TaskActions:
                 extra={"item_id": task_id},
             )
             return False
-
-    @staticmethod
-    def update_task_status(item_id: str, status_id: str) -> Optional[dict]:
-        """Change the task status in Kavitro; returns the updated task, or None when Kavitro did not take the change."""
-
-        task_id = str(item_id or "").strip()
-        resolved_status_id = str(status_id or "").strip()
-        if not task_id or not resolved_status_id:
-            return None
-
-        variables = {
-            "input": {
-                "id": task_id,
-                "status": resolved_status_id,
-            }
-        }
-        extra = {"item_id": task_id, "status_id": resolved_status_id}
-
-        loader = GraphQLQueryLoader()
-        client = APIClient()
-        try:
-            query = loader.load_query_by_module(Module.TASK.value, "updateTaskStatus.graphql")
-            data = client.send_query(query, variables=variables) or {}
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.TASK.value,
-                event="task_update_status_failed",
-                extra=extra,
-            )
-            return None
-
-        updated = (data.get("updateTask") or {}) if isinstance(data, dict) else {}
-        status = updated.get("status") if isinstance(updated, dict) else None
-        # An answer with another status means Kavitro did not take the change.
-        if (
-            isinstance(updated, dict)
-            and updated.get("id")
-            and isinstance(status, dict)
-            and str(status.get("id") or "").strip() == resolved_status_id
-        ):
-            return updated
-        PythonFailLogger.log_exception(
-            RuntimeError("updateTask did not return the requested status"),
-            module=Module.TASK.value,
-            event="task_update_status_not_applied",
-            extra=extra,
-        )
-        return None
 
     @staticmethod
     def update_task_members(item_id: str, members_associate: List[object]) -> bool:
@@ -409,6 +413,6 @@ class TaskActions:
         if flag_dropped and effective_responsible_id:
             TaskActions.update_task_members(task_id_text, member_payload)
         if status_payload and not include_status:
-            TaskActions.update_task_status(task_id_text, status_payload)
+            StatusActions.update_item_status(Module.TASK.value, task_id_text, status_payload)
 
         return task_id_text

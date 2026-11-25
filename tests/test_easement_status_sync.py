@@ -58,7 +58,7 @@ class EasementStatusApiTest(unittest.TestCase):
     def test_change_sends_the_status_id_in_the_easement_input(self) -> None:
         client = self._client({"updateEasement": {"id": "7", "status": SIGNED}})
 
-        self.assertEqual(APIModuleActions.update_easement_status("7", "2"), SIGNED)
+        self.assertEqual(APIModuleActions.update_item_status("easement", "7", "2"), {"id": "7", "status": SIGNED})
 
         (query,), kwargs = client.send_query.call_args
         self.assertIn("updateEasement(input: $input)", query)
@@ -67,27 +67,27 @@ class EasementStatusApiTest(unittest.TestCase):
     def test_answer_with_another_status_counts_as_refused(self) -> None:
         self._client({"updateEasement": {"id": "7", "status": PREPARING}})
 
-        self.assertIsNone(APIModuleActions.update_easement_status("7", "2"))
+        self.assertIsNone(APIModuleActions.update_item_status("easement", "7", "2"))
         self.assertEqual(self.log.call_args.kwargs["event"], "easement_update_status_not_applied")
 
     def test_failed_request_counts_as_refused(self) -> None:
         self._client(error=RuntimeError("offline"))
 
-        self.assertIsNone(APIModuleActions.update_easement_status("7", "2"))
+        self.assertIsNone(APIModuleActions.update_item_status("easement", "7", "2"))
         self.assertEqual(self.log.call_args.kwargs["event"], "easement_update_status_failed")
 
     def test_nothing_is_sent_without_an_easement_or_a_status(self) -> None:
         client = self._client({})
 
-        self.assertIsNone(APIModuleActions.update_easement_status("", "2"))
-        self.assertIsNone(APIModuleActions.update_easement_status("7", " "))
-        self.assertIsNone(APIModuleActions.get_easement_status(""))
+        self.assertIsNone(APIModuleActions.update_item_status("easement", "", "2"))
+        self.assertIsNone(APIModuleActions.update_item_status("easement", "7", " "))
+        self.assertIsNone(APIModuleActions.get_item_status("easement", ""))
         client.send_query.assert_not_called()
 
     def test_read_returns_the_status_kavitro_has_now(self) -> None:
         client = self._client({"easement": {"id": "7", "status": SIGNED}})
 
-        self.assertEqual(APIModuleActions.get_easement_status("7"), SIGNED)
+        self.assertEqual(APIModuleActions.get_item_status("easement", "7"), SIGNED)
 
         (query,), kwargs = client.send_query.call_args
         self.assertIn("easement(id: $id)", query)
@@ -97,10 +97,10 @@ class EasementStatusApiTest(unittest.TestCase):
         for response in ({"easement": None}, {"easement": {"id": "7", "status": None}}):
             with self.subTest(response=response):
                 self._client(response)
-                self.assertIsNone(APIModuleActions.get_easement_status("7"))
+                self.assertIsNone(APIModuleActions.get_item_status("easement", "7"))
 
         self._client(error=RuntimeError("offline"))
-        self.assertIsNone(APIModuleActions.get_easement_status("7"))
+        self.assertIsNone(APIModuleActions.get_item_status("easement", "7"))
         self.assertEqual(self.log.call_args.kwargs["event"], "easement_status_fetch_failed")
 
 

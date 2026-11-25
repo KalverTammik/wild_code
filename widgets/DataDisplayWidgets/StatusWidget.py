@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QDialog, QFrame, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 try:
     import sip
 except ImportError:  # pragma: no cover - depends on runtime packaging
@@ -13,11 +13,40 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...python.api_actions import APIModuleActions
+from ...python.workers import FunctionWorker, start_worker
 from ...python.responses import DataDisplayExtractors, StatusInfo
 from ...ui.window_state.popup_helpers import PopupHelpers
 from ...ui.messages_helper import ModernMessageDialog
 from ...utils.status_color_helper import StatusColorHelper
-from ...constants.module_names import Module
+from ...constants.module_names import Module, backend_module
+
+
+def _change_status(module_name: str, item_id: str, status_id: str) -> dict:
+    """Runs on a worker thread: the status change, and for a task section the card read again."""
+    updated = APIModuleActions.update_item_status(module_name, item_id, status_id)
+    refreshed = None
+    if isinstance(updated, dict) and backend_module(module_name) == Module.TASK.value:
+        refreshed = APIModuleActions.get_task_data(item_id)
+    return {"updated": updated, "refreshed": refreshed}
+
+
+class _StatusSavingDialog(QDialog):
+    """Shown only when a status change takes longer than StatusWidget.SAVING_DIALOG_DELAY_MS; it cannot be closed by hand."""
+
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(text)
+        self.setWindowFlags(Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        self.setMinimumWidth(320)
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel(text, self))
+        bar = QProgressBar(self)
+        bar.setRange(0, 0)
+        layout.addWidget(bar)
+        ModernMessageDialog.style_as_message(self)
+
+    def reject(self) -> None:
+        """Escape must not hide a write that is still running."""
 
 
 class _ClickableStatusLabel(QLabel):
@@ -114,17 +143,21 @@ class _StatusOptionsPopup(QWidget):
 
 
 class StatusWidget(QWidget):
-    """Legacy badge-style status widget kept for fallback and reference.
+    """Status menu and status change of one card item, for every module that has a status change.
 
-    The main product card surfaces now use MainStatusWidget.
+    MainStatusWidget (the card's status rail) drives it; this widget itself stays hidden.
     """
 
-    _EDITABLE_MODULES = {Module.WORKS.value, Module.ASBUILT.value, Module.TASK.value}
-
-    # module name -> {key: hook(item_id, task_payload, lang_manager)}, run after a status change
+    # module name -> {key: hook(item_id, item_payload)}, run after a status change
     # was saved. Modules register them (ui/modules_registry.py); this widget package never
     # imports modules/. Registering the same key again replaces the hook.
     _status_change_hooks: dict[str, dict] = {}
+
+    # A status change runs in the background and the card shows it inline. Only a change that is still
+    # running after this long gets a dialog of its own.
+    SAVING_DIALOG_DELAY_MS = 1000
+
+    status_change_finished = pyqtSignal(bool)
 
     @classmethod
     def register_status_change_hook(cls, module_names, key: str, hook) -> None:
@@ -138,6 +171,12 @@ class StatusWidget(QWidget):
         self._module_name = str(module_name or "").strip().lower()
         self._lang = LanguageManager()
         self._is_updating = False
+        self._previous_status: Optional[StatusInfo] = None
+        self._selected_option: dict = {}
+        self._saving_dialog: Optional[_StatusSavingDialog] = None
+        self._saving_timer = QTimer(self)
+        self._saving_timer.setSingleShot(True)
+        self._saving_timer.timeout.connect(self._show_saving_dialog)
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
         self._refresh_timer.timeout.connect(self._perform_scheduled_card_refresh)
@@ -169,7 +208,7 @@ class StatusWidget(QWidget):
 
     def _can_edit_status(self) -> bool:
         item_id = str(self._item_data.get("id") or "").strip()
-        return bool(item_id and self._module_name in self._EDITABLE_MODULES)
+        return bool(item_id and APIModuleActions.can_update_status(self._module_name))
 
     def _apply_status_info(self, status_info: StatusInfo, *, loading: bool = False) -> None:
         base_name = str(status_info.name or "-").strip() or "-"
@@ -241,43 +280,72 @@ class StatusWidget(QWidget):
     def _update_status(self, selected_option: dict) -> None:
         item_id = str(self._item_data.get("id") or "").strip()
         new_status_id = str(selected_option.get("id") or "").strip()
-        if not item_id or not new_status_id:
+        if not item_id or not new_status_id or self._is_updating:
             return
 
-        previous_status = DataDisplayExtractors.extract_status(self._item_data)
+        self._previous_status = DataDisplayExtractors.extract_status(self._item_data)
+        self._selected_option = dict(selected_option)
         self._is_updating = True
-        self._apply_status_info(previous_status, loading=True)
-        QApplication.processEvents()
-        QApplication.setOverrideCursor(Qt.WaitCursor)
+        self._apply_status_info(self._previous_status, loading=True)
 
-        try:
-            updated_task = APIModuleActions.update_task_status(item_id, new_status_id)
-        finally:
-            QApplication.restoreOverrideCursor()
-            self._is_updating = False
+        worker = FunctionWorker(_change_status, self._module_name, item_id, new_status_id)
+        worker.finished.connect(self._on_status_change_done)
+        worker.error.connect(self._on_status_change_error)
+        self._saving_timer.start(self.SAVING_DIALOG_DELAY_MS)
+        start_worker(worker)
 
-        if not isinstance(updated_task, dict):
-            self._apply_status_info(previous_status)
+    def _show_saving_dialog(self) -> None:
+        if not self._is_updating or self._saving_dialog is not None:
+            return
+        dialog = _StatusSavingDialog(self._lang.translate(TranslationKeys.API_REQUEST_RUNNING), self)
+        window = self.window()
+        if window is not None and window is not self:
+            dialog.adjustSize()
+            dialog.move(window.geometry().center() - dialog.rect().center())
+        self._saving_dialog = dialog
+        dialog.show()
+
+    def _finish_saving(self) -> None:
+        self._saving_timer.stop()
+        dialog, self._saving_dialog = self._saving_dialog, None
+        if dialog is not None:
+            dialog.hide()
+            dialog.deleteLater()
+        self._is_updating = False
+
+    def _on_status_change_error(self, _message: str = "") -> None:
+        """The worker failed outright; the change itself logged its own failure."""
+        self._on_status_change_done({"updated": None, "refreshed": None})
+
+    def _on_status_change_done(self, result: dict) -> None:
+        self._finish_saving()
+        updated_item = result.get("updated") if isinstance(result, dict) else None
+        if not isinstance(updated_item, dict):
+            self._apply_status_info(self._previous_status or DataDisplayExtractors.extract_status(self._item_data))
             ModernMessageDialog.show_warning(
                 self._lang.translate(TranslationKeys.ERROR),
                 self._lang.translate(TranslationKeys.STATUS_WIDGET_UPDATE_FAILED),
             )
+            self.status_change_finished.emit(False)
             return
 
-        refreshed_item = APIModuleActions.get_task_data(item_id)
+        # A task section shows more than the status, so its card was read again; any other module's
+        # card takes what the change returned.
+        refreshed_item = result.get("refreshed")
         if not isinstance(refreshed_item, dict):
             refreshed_item = dict(self._item_data)
-            status_payload = updated_task.get("status") if isinstance(updated_task.get("status"), dict) else None
+            status_payload = updated_item.get("status") if isinstance(updated_item.get("status"), dict) else None
             if not status_payload:
-                status_payload = self._status_payload_from_option(selected_option)
+                status_payload = self._status_payload_from_option(self._selected_option)
             refreshed_item["status"] = status_payload
-            if updated_task.get("updatedAt") is not None:
-                refreshed_item["updatedAt"] = updated_task.get("updatedAt")
+            if updated_item.get("updatedAt") is not None:
+                refreshed_item["updatedAt"] = updated_item.get("updatedAt")
 
         self._item_data = dict(refreshed_item)
         self._apply_status_info(DataDisplayExtractors.extract_status(self._item_data))
-        self._sync_works_layer_if_needed(task_payload=refreshed_item)
+        self._run_status_change_hooks(refreshed_item)
         self._schedule_card_refresh(refreshed_item)
+        self.status_change_finished.emit(True)
 
     @staticmethod
     def _status_payload_from_option(option: dict) -> dict[str, str]:
@@ -288,7 +356,7 @@ class StatusWidget(QWidget):
             "type": str(option.get("type") or "").strip().upper(),
         }
 
-    def _sync_works_layer_if_needed(self, *, task_payload: Optional[dict] = None) -> None:
+    def _run_status_change_hooks(self, item_payload: Optional[dict] = None) -> None:
         hooks = list((StatusWidget._status_change_hooks.get(self._module_name) or {}).values())
         if not hooks:
             return
@@ -299,12 +367,12 @@ class StatusWidget(QWidget):
 
         for hook in hooks:
             try:
-                hook(item_id, task_payload, self._lang)
+                hook(item_id, item_payload)
             except Exception as exc:
                 PythonFailLogger.log_exception(
                     exc,
-                    module=Module.WORKS.value,
-                    event="status_widget_sync_works_layer_failed",
+                    module=str(self._module_name or ""),
+                    event="status_widget_status_change_hook_failed",
                     extra={"source_module": self._module_name},
                 )
 

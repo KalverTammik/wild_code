@@ -123,7 +123,7 @@ class _FlowTest(unittest.TestCase):
         self.p(Controller, "_backend_point_geometry_payload", side_effect=lambda point, layer, status_color=None: {"color": status_color})
         self.create_task = self.p(APIModuleActions, "create_task", return_value="77")
         self.get_task = self.p(APIModuleActions, "get_task_data", return_value=dict(TASK))
-        self.update_status = self.p(APIModuleActions, "update_task_status", return_value={"id": "77"})
+        self.update_status = self.p(APIModuleActions, "update_item_status", return_value={"id": "77"})
         self.update_geometry = self.p(APIModuleActions, "update_task_geometry", return_value=True)
         self.resolve_props = self.p(APIModuleActions, "resolve_property_ids_by_cadastral", return_value=(["p1"], []))
         self.associate = self.p(APIModuleActions, "associate_properties")
@@ -234,7 +234,7 @@ class NewWorkFlowTest(_FlowTest):
     def test_selected_status_is_set_after_create_when_the_backend_chose_another(self):
         with patch.object(_Dialog, "selected_status_id", staticmethod(lambda: "other")):
             self.run_flow()
-        self.update_status.assert_called_once_with("77", "other")
+        self.update_status.assert_called_once_with("works", "77", "other")
         self.assertEqual(self.get_task.call_count, 2)
         self.update_status.return_value = None
         with patch.object(_Dialog, "selected_status_id", staticmethod(lambda: "other")):

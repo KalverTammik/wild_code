@@ -3,7 +3,7 @@ from qgis.PyQt.QtGui import QDesktopServices
 
 from ..config.setup import config
 from ..Logs.python_fail_logger import PythonFailLogger
-from ..constants.module_names import Module
+from ..constants.module_names import backend_module
 
 
 class loadWebpage:
@@ -51,6 +51,5 @@ class OpenLink:
     def weblink_by_module(module_path: str) -> str:
         base = (OpenLink().main or "").rstrip("/")
         suffix = (module_path or "").lstrip("/").lower()
-        if suffix in (Module.WORKS.value, Module.ASBUILT.value):
-            suffix = Module.TASK.value
+        suffix = backend_module(suffix)
         return f"{base}/{suffix}" if base and suffix else ""

@@ -905,7 +905,7 @@ class EntryPointInterfaceTest(unittest.TestCase):
 
     EXPECTED_METHODS = (
         "_geometry_input_value", "_is_unknown_input_field_error", "_is_unknown_geometry_input_error",
-        "_is_geometry_retryable_create_error", "_property_owner_module", "_status_module_value",
+        "_is_geometry_retryable_create_error", "_property_owner_module", "status_module_value",
         "_file_owner_module", "_file_model_type", "_file_query_name", "get_module_status_options",
         "get_task_priority_values", "task_priority_label", "get_task_priority_options",
         "get_current_user_payload", "get_current_user_id", "user_display_name", "get_assignable_users",
@@ -914,9 +914,9 @@ class EntryPointInterfaceTest(unittest.TestCase):
         "associate_easement_properties", "linked_cadastral_numbers_from_response", "get_task_data",
         "get_module_files", "get_tasks_by_ids",
         "get_task_description", "update_task_description", "_update_module_geometry", "update_task_geometry",
-        "update_project_geometry", "update_easement_geometry", "get_easement_status", "update_easement_status",
+        "update_project_geometry", "update_easement_geometry", "get_item_status", "update_item_status",
         "create_file_download_link", "fetch_file_preview_payload", "delete_file", "upload_module_file",
-        "update_task_status", "update_task_members", "_build_task_member_associate_payload", "create_task",
+        "update_task_members", "_build_task_member_associate_payload", "create_task",
     )
     MOVED = {
         "Kavitro_dev.python.actions.file_actions": ("FileActions", (
@@ -937,7 +937,7 @@ class EntryPointInterfaceTest(unittest.TestCase):
     )
 
     def test_entry_point_still_offers_every_method(self) -> None:
-        self.assertEqual(len(set(self.EXPECTED_METHODS)), 43)
+        self.assertEqual(len(set(self.EXPECTED_METHODS)), 42)
         for name in self.EXPECTED_METHODS:
             with self.subTest(method=name):
                 self.assertTrue(callable(getattr(APIModuleActions, name, None)), name)

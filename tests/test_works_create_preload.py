@@ -14,7 +14,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 from Kavitro_dev.modules.works import works_create_controller as controller_module
 from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper
 from Kavitro_dev.python.actions import status_actions as status_module
-from Kavitro_dev.python.actions.status_actions import StatusActions
+from Kavitro_dev.python.actions.task_actions import TaskActions
 from Kavitro_dev.python.api_actions import APIModuleActions
 
 PRIORITY_OPTIONS = [{"value": "", "label": "-"}, {"value": "HIGH", "label": "High"}]
@@ -62,7 +62,7 @@ class TaskPriorityLookupTest(unittest.TestCase):
         with patch.object(status_module, "APIClient") as client_class:
             results = [APIModuleActions.get_task_priority_values() for _ in range(3)]
         client_class.assert_not_called()
-        self.assertEqual(results, [list(StatusActions._TASK_PRIORITY_VALUES)] * 3)
+        self.assertEqual(results, [list(TaskActions._TASK_PRIORITY_VALUES)] * 3)
 
 
 if __name__ == "__main__":

@@ -36,6 +36,7 @@ from Kavitro_dev.python.api_actions import APIModuleActions
 CODE_MODULES = (
     "Kavitro_dev.python.api_actions",
     "Kavitro_dev.python.actions.status_actions",
+    "Kavitro_dev.python.actions.task_actions",
     "Kavitro_dev.python.actions.user_actions",
 )
 PRIORITY_VALUES = ["URGENT", "HIGH", "MEDIUM", "LOW"]
@@ -160,16 +161,16 @@ class StatusModuleValueTest(ActionTestCase):
     def test_blank_module_has_no_status_module(self) -> None:
         for module in ("", "  ", None):
             with self.subTest(module=module):
-                self.assertEqual(APIModuleActions._status_module_value(module), "")
+                self.assertEqual(APIModuleActions.status_module_value(module), "")
 
     def test_property_has_its_own_plural(self) -> None:
-        self.assertEqual(APIModuleActions._status_module_value("property"), "PROPERTIES")
-        self.assertEqual(APIModuleActions._status_module_value(" Property "), "PROPERTIES")
+        self.assertEqual(APIModuleActions.status_module_value("property"), "PROPERTIES")
+        self.assertEqual(APIModuleActions.status_module_value(" Property "), "PROPERTIES")
 
     def test_task_like_modules_share_the_task_statuses(self) -> None:
         for module in ("task", "works", "asbuilt", " Works ", "ASBUILT"):
             with self.subTest(module=module):
-                self.assertEqual(APIModuleActions._status_module_value(module), "TASKS")
+                self.assertEqual(APIModuleActions.status_module_value(module), "TASKS")
 
     def test_other_modules_get_an_upper_case_plural(self) -> None:
         cases = (("project", "PROJECTS"), ("contract", "CONTRACTS"), ("coordination", "COORDINATIONS"),
@@ -177,7 +178,7 @@ class StatusModuleValueTest(ActionTestCase):
                  ("nonsense", "NONSENSES"))
         for module, expected in cases:
             with self.subTest(module=module):
-                self.assertEqual(APIModuleActions._status_module_value(module), expected)
+                self.assertEqual(APIModuleActions.status_module_value(module), expected)
 
 
 class GetModuleStatusOptionsTest(ActionTestCase):
@@ -820,14 +821,12 @@ class EntryPointInterfaceTest(unittest.TestCase):
         "resolve_property_map_by_cadastral", "get_easement_property_edges", "associate_properties",
         "associate_easement_properties", "linked_cadastral_numbers_from_response",
     )
-    STATUSES = (
-        "_status_module_value", "get_module_status_options", "get_task_priority_values", "task_priority_label",
-        "get_task_priority_options", "get_easement_status", "update_easement_status",
-    )
+    STATUSES = ("status_module_value", "get_module_status_options", "get_item_status", "update_item_status")
     USERS = ("get_current_user_payload", "get_current_user_id", "user_display_name", "get_assignable_users")
     TASKS = (
-        "get_task_data", "get_tasks_by_ids", "get_task_description", "update_task_description", "update_task_status",
+        "get_task_data", "get_tasks_by_ids", "get_task_description", "update_task_description",
         "update_task_members", "_build_task_member_associate_payload", "create_task",
+        "get_task_priority_values", "task_priority_label", "get_task_priority_options",
     )
     GEOMETRY = (
         "_geometry_input_value", "_is_unknown_input_field_error", "_is_unknown_geometry_input_error",
@@ -852,8 +851,8 @@ class EntryPointInterfaceTest(unittest.TestCase):
 
     def test_entry_point_still_offers_every_method(self) -> None:
         names = [name for _class_name, group in self.MOVED.values() for name in group]
-        self.assertEqual(len(names), 43)
-        self.assertEqual(len(set(names)), 43)
+        self.assertEqual(len(names), 42)
+        self.assertEqual(len(set(names)), 42)
         for name in names:
             with self.subTest(method=name):
                 self.assertTrue(callable(getattr(APIModuleActions, name, None)), name)
@@ -895,10 +894,10 @@ class EntryPointInterfaceTest(unittest.TestCase):
         self.assertIsInstance(entry.body[0].value, ast.Constant)
 
     def test_task_priority_state_has_one_owner(self) -> None:
-        status_actions = importlib.import_module("Kavitro_dev.python.actions.status_actions").StatusActions
+        task_actions = importlib.import_module("Kavitro_dev.python.actions.task_actions").TaskActions
         for name in ("_TASK_PRIORITY_VALUES",):
             with self.subTest(attribute=name):
-                self.assertIn(name, vars(status_actions))
+                self.assertIn(name, vars(task_actions))
                 self.assertNotIn(name, vars(APIModuleActions))
 
     def test_moved_code_left_api_actions(self) -> None:

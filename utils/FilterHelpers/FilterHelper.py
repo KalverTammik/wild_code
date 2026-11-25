@@ -1,11 +1,12 @@
 from typing import List, Dict, Optional, Sequence, Tuple, Union
 from PyQt5.QtCore import Qt
 
-from ...constants.module_names import ModuleSupports, Module
+from ...constants.module_names import ModuleSupports
 
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader
 from ...python.responses import JsonResponseHandler
 from ...python.api_client import APIClient
+from ...python.actions.status_actions import StatusActions
 from ...Logs.python_fail_logger import PythonFailLogger
 
 
@@ -21,12 +22,7 @@ class FilterHelper:
             ModuleSupports.TYPES.value: f"{module}_types.graphql",
         }
 
-        if module == Module.PROPERTY.name.lower():
-            module_value = "PROPERTIES"
-        elif module in (Module.WORKS.value, Module.ASBUILT.value):
-            module_value = "TASKS"
-        else:
-            module_value = str(module).upper() + "S"
+        module_value = StatusActions.status_module_value(module)
 
         query = GraphQLQueryLoader().load_query_by_module(key, key_map.get(key))
         variables = {

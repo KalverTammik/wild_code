@@ -49,7 +49,7 @@ EXPECTED_CALL_SITES = {
     "modules/easements/easement_status_mapping_dialog.py": (0, 2),
     "modules/Settings/cards/SettingsPropertyManagement.py": (2, 3),
     "modules/asbuilt/asbuilt_feature_map_controller.py": (2, 0),
-    "modules/asbuilt/asbuilt_layer_service.py": (0, 1),
+    "utils/layers/module_layer_service_base.py": (0, 1),
     "modules/easements/easement_attach_existing_controller.py": (1, 0),
     "modules/easements/preview_dialog/final_save_mixin.py": (0, 1),
     "modules/easements/preview_dialog/property_editor_mixin.py": (1, 0),

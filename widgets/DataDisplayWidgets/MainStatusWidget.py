@@ -59,6 +59,11 @@ class MainStatusWidget(QWidget):
         self.hover_popup = None
         self._hide_timer = QTimer(self)
         self._hide_timer.setSingleShot(True)
+        # The hover popup is a window of its own. When the card is replaced after a status change this rail
+        # is deleted, and with it the timer that would hide the popup, so the popup is closed here.
+        popup_holder = {"popup": None}
+        self._hover_popup_holder = popup_holder
+        self.destroyed.connect(lambda _obj=None, holder=popup_holder: PopupHelpers.close_popup_widget(holder["popup"]))
 
         status_info = DataDisplayExtractors.extract_status(item_data)
         self._status_name = str(status_info.name or "-").strip() or "-"
@@ -188,6 +193,14 @@ class MainStatusWidget(QWidget):
             offset=self.HOVER_POPUP_OFFSET,
         )
 
+    def close_hover_popup(self) -> None:
+        PopupHelpers.hide_popup_attr(self, "hover_popup", self._hide_timer, self)
+        self._hover_popup_holder["popup"] = None
+
+    def hideEvent(self, event) -> None:  # noqa: N802 - Qt override
+        self.close_hover_popup()
+        super().hideEvent(event)
+
     def show_status_popup(self, global_pos=None) -> None:
         if not self._status_name:
             return
@@ -200,6 +213,7 @@ class MainStatusWidget(QWidget):
             popup_factory=lambda: StatusPopupWidget(self._status_name, self.window()),
             event_filter_owner=self,
         )
+        self._hover_popup_holder["popup"] = self.hover_popup
         self._reposition_status_popup(global_pos)
 
     def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
@@ -208,6 +222,7 @@ class MainStatusWidget(QWidget):
             and self._status_delegate is not None
             and self._status_delegate._can_edit_status()
         ):
+            self.close_hover_popup()  # the menu replaces the name tooltip
             self._status_delegate._show_status_menu(anchor_widget=self.rail_frame)
             event.accept()
             return

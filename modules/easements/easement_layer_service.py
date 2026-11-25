@@ -304,6 +304,14 @@ class EasementLayerService(AttachableLayerServiceBase):
         return cls._find_first_feature(layer, keys, log_extra=log_extra)
 
     @classmethod
+    def sync_status_from_easement(cls, item_id: str, easement: Optional[dict]) -> bool:
+        """Write the mapped layer status of an easement onto its map feature; False when no value is mapped."""
+        layer_status = cls.map_backend_status_to_layer_value((easement or {}).get("status") or {})
+        if not layer_status:
+            return False
+        return cls.sync_status_to_feature(item_id, [(cls.FIELD_STATUS_CANDIDATES, layer_status)])
+
+    @classmethod
     def _set_mapped_status(
         cls,
         feature: QgsFeature,

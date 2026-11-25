@@ -68,8 +68,8 @@ class _Case(unittest.TestCase):
         # Any other message path would open a real window and wait for a click.
         self._patch(ModernMessageDialog, "_create_dialog", side_effect=AssertionError("a message window was opened"))
         self._patch(EasementLayerService, "load_status_mapping_rows", return_value=[])
-        self.read = self._patch(form_module.APIModuleActions, "get_easement_status", return_value=None)
-        self.update = self._patch(form_module.APIModuleActions, "update_easement_status", return_value=SIGNED)
+        self.read = self._patch(form_module.APIModuleActions, "get_item_status", return_value=None)
+        self.update = self._patch(form_module.APIModuleActions, "update_item_status", return_value={"id": "1", "status": SIGNED})
         self._patch(form_module.APIModuleActions, "get_module_status_options", return_value=STATUSES)
 
     def _patch(self, target, name, **kwargs):
@@ -257,7 +257,7 @@ class EasementFormCheckTest(_Case):
         form.accept()
 
         self.assertEqual(form.result(), QDialog.Accepted)
-        self.update.assert_called_once_with("1", SIGNED["id"])
+        self.update.assert_called_once_with("easement", "1", SIGNED["id"])
         self.warning.assert_not_called()
 
     def test_mark_appears_when_the_field_is_left_and_goes_when_fixed(self) -> None:

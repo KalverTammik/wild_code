@@ -328,6 +328,61 @@ class ModuleLayerServiceBase:
         return None
 
     @classmethod
+    def sync_status_to_feature(cls, item_id: str, values: list[tuple[tuple[str, ...], object]]) -> bool:
+        """Write status-derived values onto the item's map feature; True when the feature holds them afterwards.
+
+        `values` are (field name candidates, value) pairs; a pair whose field the layer lacks is skipped.
+        Runs after a status change on the card. A layer the user is editing is left alone: committing
+        would also save the user's own pending edits.
+        """
+        item_id_text = str(item_id or "").strip()
+        if not item_id_text or not values:
+            return False
+        layer = cls.resolve_main_layer(dialogs=None)
+        if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+            return False
+        module = cls.MODULE.value
+        extra = {"item_id": item_id_text, "layer": layer.name()}
+        if layer.isEditable():
+            PythonFailLogger.log(f"{module}_status_sync_skipped_layer_editable", module=module, extra=extra)
+            return False
+        feature = cls.find_feature(layer, item_id=item_id_text)
+        if feature is None:
+            return False
+
+        changes: dict[int, object] = {}
+        found_field = False
+        for candidates, value in values:
+            field_name = cls._resolve_first_field_name(layer, candidates)
+            index = layer.fields().indexOf(field_name) if field_name else -1
+            if index < 0:
+                continue
+            found_field = True
+            coerced = cls.coerce_value_for_field(layer.fields().at(index), value)
+            if feature.attribute(index) != coerced:
+                changes[index] = coerced
+        if not found_field:
+            return False
+        if not changes:
+            return True
+
+        started_edit = bool(layer.startEditing())
+        if not started_edit:
+            PythonFailLogger.log(f"{module}_status_sync_start_failed", module=module, extra=extra)
+            return False
+        try:
+            written = all(layer.changeAttributeValue(feature.id(), index, value) for index, value in changes.items())
+            if written and layer.commitChanges():
+                layer.triggerRepaint()
+                return True
+            errors = "; ".join(layer.commitErrors() or [])
+            PythonFailLogger.log(f"{module}_status_sync_failed", module=module, extra={**extra, "errors": errors})
+        except RuntimeError as exc:  # the layer was deleted meanwhile
+            PythonFailLogger.log_exception(exc, module=module, event=f"{module}_status_sync_failed", extra=extra)
+        cls._rollback_own_edit(layer, started_edit, event=f"{module}_status_sync_rollback_failed")
+        return False
+
+    @classmethod
     def _rollback_own_edit(cls, layer: QgsVectorLayer, started_edit: bool, *, event: str) -> None:
         # Only the session this service opened: rolling back the user's own session would drop their other edits.
         try:

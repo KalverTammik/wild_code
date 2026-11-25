@@ -5,7 +5,7 @@ from ..api_client import APIClient
 from ..GraphQLQueryLoader import GraphQLQueryLoader
 from ..responses import JsonResponseHandler
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...constants.module_names import Module
+from ...constants.module_names import Module, backend_module
 
 
 _PROPERTIES_PAGE_SIZE = 50
@@ -16,10 +16,7 @@ class PropertyLinkActions:
 
     @staticmethod
     def _property_owner_module(module: str) -> str:
-        module_name = str(module or "").strip().lower()
-        if module_name in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value):
-            return Module.TASK.value
-        return module_name
+        return backend_module(module)
 
     @staticmethod
     def get_module_item_connected_properties(

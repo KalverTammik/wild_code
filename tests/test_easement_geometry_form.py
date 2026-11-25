@@ -97,8 +97,8 @@ class _EasementFormTest(_FormDialogTest):
     def setUp(self) -> None:
         self._patch(EasementLayerService, "load_status_mapping_rows", return_value=MAPPING)
         # No test may reach the server: without a session the login dialog would block the run.
-        self.read = self._patch(form_module.APIModuleActions, "get_easement_status", return_value=None)
-        self.update = self._patch(form_module.APIModuleActions, "update_easement_status", return_value=None)
+        self.read = self._patch(form_module.APIModuleActions, "get_item_status", return_value=None)
+        self.update = self._patch(form_module.APIModuleActions, "update_item_status", return_value=None)
         self.warning = self._patch(form_module.ModernMessageDialog, "show_warning", return_value=True)
 
     def _patch(self, target, name, **kwargs):
@@ -344,11 +344,11 @@ class EasementKavitroStatusTest(_EasementFormTest):
     def test_new_status_goes_to_kavitro_before_the_form_closes(self) -> None:
         form = self._form(PREPARING)
         form._status.set_current_status_id(SIGNED["id"])
-        self.update.return_value = SIGNED
+        self.update.return_value = {"id": "1", "status": SIGNED}
 
         form.accept()
 
-        self.update.assert_called_once_with("1", SIGNED["id"])
+        self.update.assert_called_once_with("easement", "1", SIGNED["id"])
         self.assertEqual(form.result(), QDialog.Accepted)
         self.assertEqual(form.kavitro_status(), SIGNED)
 
@@ -405,17 +405,17 @@ class EasementKavitroStatusTest(_EasementFormTest):
     def test_prompt_reads_the_status_from_kavitro_and_tells_the_card(self) -> None:
         values, reported = self._prompt(kavitro=SIGNED)
 
-        self.read.assert_called_once_with("1")
+        self.read.assert_called_once_with("easement", "1")
         self.update.assert_not_called()
         self.assertEqual(values[Form.FIELD_STATUS], "Kehtestatud")
         self.assertEqual(reported, [SIGNED])
 
     def test_prompt_tells_the_card_the_saved_status(self) -> None:
-        self.update.return_value = SIGNED
+        self.update.return_value = {"id": "1", "status": SIGNED}
 
         values, reported = self._prompt(kavitro=PREPARING, choose=SIGNED)
 
-        self.update.assert_called_once_with("1", SIGNED["id"])
+        self.update.assert_called_once_with("easement", "1", SIGNED["id"])
         self.assertEqual(values[Form.FIELD_STATUS], "Kehtestatud")
         self.assertEqual(reported, [SIGNED])
 

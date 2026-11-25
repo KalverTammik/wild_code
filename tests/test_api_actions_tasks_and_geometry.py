@@ -532,57 +532,98 @@ class UpdateTaskDescriptionTest(ActionTestCase):
         self.assert_logged(error, module="task", event="task_update_description_failed", extra={"item_id": "7"})
 
 
-class UpdateTaskStatusTest(ActionTestCase):
-    def test_blank_task_or_status_is_refused_without_a_request(self) -> None:
-        for item_id, status_id in (("", "s"), ("  ", "s"), (None, "s"), ("7", ""), ("7", "  "), ("7", None)):
-            with self.subTest(item_id=item_id, status_id=status_id):
-                self.assertIsNone(APIModuleActions.update_task_status(item_id, status_id))
+# (plugin module, Kavitro entity, mutation root, .graphql file): every task section shares the task row.
+STATUS_UPDATE_CASES = (
+    ("works", "task", "updateTask", "updateTaskStatus.graphql"),
+    ("asbuilt", "task", "updateTask", "updateTaskStatus.graphql"),
+    ("task", "task", "updateTask", "updateTaskStatus.graphql"),
+    ("easement", "easement", "updateEasement", "updateEasementStatus.graphql"),
+    ("project", "project", "updateProject", "updateProjectStatus.graphql"),
+    ("contract", "contract", "updateContract", "updateContractStatus.graphql"),
+    ("coordination", "coordination", "updateCoordination", "updateCoordinationStatus.graphql"),
+)
+
+
+class UpdateItemStatusTest(ActionTestCase):
+    def test_blank_item_or_status_is_refused_without_a_request(self) -> None:
+        for module, *_rest in STATUS_UPDATE_CASES:
+            for item_id, status_id in (("", "s"), ("  ", "s"), (None, "s"), ("7", ""), ("7", "  "), ("7", None)):
+                with self.subTest(module=module, item_id=item_id, status_id=status_id):
+                    self.assertIsNone(APIModuleActions.update_item_status(module, item_id, status_id))
         self.loader.load_query_by_module.assert_not_called()
         self.client.send_query.assert_not_called()
 
-    def test_sends_the_status_id_and_returns_the_updated_task(self) -> None:
-        updated = {"id": "7", "status": {"id": "s2"}}
-        self.client.send_query.return_value = {"updateTask": updated}
-        self.assertIs(APIModuleActions.update_task_status(" 7 ", " s2 "), updated)
-        self.assertEqual(self.loaded(), [("task", "updateTaskStatus.graphql")])
-        self.assertEqual(self.sent(), [(TASK_STATUS_QUERY, {"variables": {"input": {"id": "7", "status": "s2"}}})])
-
-    def test_answered_status_is_compared_as_text_with_the_requested_one(self) -> None:
-        updated = {"id": "7", "status": {"id": 2}}
-        self.client.send_query.return_value = {"updateTask": updated}
-        self.assertIs(APIModuleActions.update_task_status("7", " 2 "), updated)
+    def test_module_without_a_status_change_is_refused_without_a_request(self) -> None:
+        for module in ("property", "letter", "settings", "", None, "nonsense"):
+            with self.subTest(module=module):
+                self.assertIsNone(APIModuleActions.update_item_status(module, "7", "s2"))
+        self.loader.load_query_by_module.assert_not_called()
+        self.client.send_query.assert_not_called()
         self.log.assert_not_called()
 
-    def test_answer_without_the_task_or_the_requested_status_is_logged_as_not_applied(self) -> None:
-        answers = (None, {}, "text", {"updateTask": None}, {"updateTask": "x"}, {"updateTask": {}},
-                   {"updateTask": {"id": "7"}}, {"updateTask": {"id": "7", "status": "x"}},
-                   {"updateTask": {"id": "7", "status": {"name": "no id"}}},
-                   {"updateTask": {"id": "7", "status": {"id": "other"}}},
-                   {"updateTask": {"id": "", "status": {"id": "s2"}}},
-                   {"updateTask": {"status": {"id": "s2"}}})
-        for response in answers:
-            with self.subTest(response=response):
-                self.log.reset_mock()
-                self.client.send_query.return_value = response
-                self.assertIsNone(APIModuleActions.update_task_status("7", "s2"))
-                self.assert_logged(RuntimeError, module="task", event="task_update_status_not_applied",
-                                   extra={"item_id": "7", "status_id": "s2"})
-                self.assertEqual(str(self.log.call_args.args[0]), "updateTask did not return the requested status")
+    def test_sends_the_status_id_and_returns_the_updated_item(self) -> None:
+        for module, entity, root, filename in STATUS_UPDATE_CASES:
+            with self.subTest(module=module):
+                self.reset_calls()
+                updated = {"id": "7", "status": {"id": "s2"}}
+                self.client.send_query.return_value = {root: updated}
+                self.assertIs(APIModuleActions.update_item_status(module, " 7 ", " s2 "), updated)
+                self.assertEqual(self.loaded(), [(entity, filename)])
+                self.assertEqual(self.sent(), [(f"query {entity}/{filename}",
+                                                {"variables": {"input": {"id": "7", "status": "s2"}}})])
+                self.log.assert_not_called()
+
+    def test_module_name_is_normalised(self) -> None:
+        self.client.send_query.return_value = {"updateTask": {"id": "7", "status": {"id": "s2"}}}
+        self.assertIsNotNone(APIModuleActions.update_item_status(" Works ", "7", "s2"))
+        self.assertEqual(self.loaded(), [("task", "updateTaskStatus.graphql")])
+
+    def test_answered_status_is_compared_as_text_with_the_requested_one(self) -> None:
+        for module, _entity, root, _filename in STATUS_UPDATE_CASES:
+            with self.subTest(module=module):
+                updated = {"id": "7", "status": {"id": 2}}
+                self.client.send_query.return_value = {root: updated}
+                self.assertIs(APIModuleActions.update_item_status(module, "7", " 2 "), updated)
+        self.log.assert_not_called()
+
+    def test_answer_without_the_item_or_the_requested_status_is_logged_as_not_applied(self) -> None:
+        for module, entity, root, _filename in STATUS_UPDATE_CASES:
+            answers = (None, {}, "text", {root: None}, {root: "x"}, {root: {}},
+                       {root: {"id": "7"}}, {root: {"id": "7", "status": "x"}},
+                       {root: {"id": "7", "status": {"name": "no id"}}},
+                       {root: {"id": "7", "status": {"id": "other"}}},
+                       {root: {"id": "", "status": {"id": "s2"}}},
+                       {root: {"status": {"id": "s2"}}})
+            for response in answers:
+                with self.subTest(module=module, response=response):
+                    self.log.reset_mock()
+                    self.client.send_query.return_value = response
+                    self.assertIsNone(APIModuleActions.update_item_status(module, "7", "s2"))
+                    self.assert_logged(RuntimeError, module=entity, event=f"{entity}_update_status_not_applied",
+                                       extra={"item_id": "7", "status_id": "s2"})
+                    self.assertEqual(str(self.log.call_args.args[0]), f"{root} did not return the requested status")
 
     def test_failed_request_returns_none_and_is_logged(self) -> None:
-        error = RuntimeError("offline")
-        self.client.send_query.side_effect = error
-        self.assertIsNone(APIModuleActions.update_task_status(" 7 ", " s2 "))
-        self.assert_logged(error, module="task", event="task_update_status_failed",
-                           extra={"item_id": "7", "status_id": "s2"})
+        for module, entity, _root, _filename in STATUS_UPDATE_CASES:
+            with self.subTest(module=module):
+                self.log.reset_mock()
+                error = RuntimeError("offline")
+                self.client.send_query.side_effect = error
+                self.assertIsNone(APIModuleActions.update_item_status(module, " 7 ", " s2 "))
+                self.assert_logged(error, module=entity, event=f"{entity}_update_status_failed",
+                                   extra={"item_id": "7", "status_id": "s2"})
 
     def test_unloadable_query_returns_none_and_is_logged(self) -> None:
-        error = FileNotFoundError("query_file_not_found")
-        self.loader.load_query_by_module.side_effect = error
-        self.assertIsNone(APIModuleActions.update_task_status(" 7 ", " s2 "))
-        self.client.send_query.assert_not_called()
-        self.assert_logged(error, module="task", event="task_update_status_failed",
-                           extra={"item_id": "7", "status_id": "s2"})
+        for module, entity, _root, _filename in STATUS_UPDATE_CASES:
+            with self.subTest(module=module):
+                self.reset_calls()
+                self.log.reset_mock()
+                error = FileNotFoundError("query_file_not_found")
+                self.loader.load_query_by_module.side_effect = error
+                self.assertIsNone(APIModuleActions.update_item_status(module, " 7 ", " s2 "))
+                self.client.send_query.assert_not_called()
+                self.assert_logged(error, module=entity, event=f"{entity}_update_status_failed",
+                                   extra={"item_id": "7", "status_id": "s2"})
 
 
 class UpdateTaskMembersTest(ActionTestCase):
@@ -745,18 +786,47 @@ class UpdateGeometryTest(ActionTestCase):
                            extra={"item_id": "c1", "geometry_type": "Polygon"})
 
 
-class GetEasementStatusTest(ActionTestCase):
+class CanUpdateStatusTest(unittest.TestCase):
+    def test_every_module_with_a_status_change_says_yes_and_a_task_section_counts_as_a_task(self) -> None:
+        for module, *_rest in STATUS_UPDATE_CASES:
+            with self.subTest(module=module):
+                self.assertTrue(APIModuleActions.can_update_status(module))
+        self.assertTrue(APIModuleActions.can_update_status(" Works "))
+
+    def test_other_modules_say_no(self) -> None:
+        for module in ("property", "letter", "settings", "", None, "nonsense"):
+            with self.subTest(module=module):
+                self.assertFalse(APIModuleActions.can_update_status(module))
+
+    def test_every_status_change_has_its_query_file_in_the_module_folder(self) -> None:
+        loader = GraphQLQueryLoader()
+        for module, entity, root, filename in STATUS_UPDATE_CASES:
+            with self.subTest(module=module):
+                text = loader.load_query_by_module(entity, filename)
+                self.assertIn(f"{root}(input: $input)", text)
+                self.assertIn("status {", text)
+
+
+class GetItemStatusTest(ActionTestCase):
     def test_blank_id_returns_none_without_a_request(self) -> None:
         for item_id in ("", "  ", None):
             with self.subTest(item_id=item_id):
-                self.assertIsNone(APIModuleActions.get_easement_status(item_id))
+                self.assertIsNone(APIModuleActions.get_item_status("easement", item_id))
         self.loader.load_query_by_module.assert_not_called()
         self.client.send_query.assert_not_called()
+
+    def test_module_without_a_status_read_returns_none_without_a_request(self) -> None:
+        for module in ("works", "asbuilt", "task", "project", "", None):
+            with self.subTest(module=module):
+                self.assertIsNone(APIModuleActions.get_item_status(module, "7"))
+        self.loader.load_query_by_module.assert_not_called()
+        self.client.send_query.assert_not_called()
+        self.log.assert_not_called()
 
     def test_loads_the_easement_status_query_and_returns_the_status(self) -> None:
         status = {"id": "2", "name": "Allkirjastatud", "color": "2188FF"}
         self.client.send_query.return_value = {"easement": {"id": "7", "status": status}}
-        self.assertIs(APIModuleActions.get_easement_status(" 7 "), status)
+        self.assertIs(APIModuleActions.get_item_status("easement", " 7 "), status)
         self.assertEqual(self.loaded(), [("easement", "easementStatus.graphql")])
         self.assertEqual(self.sent(), [(EASEMENT_STATUS_QUERY, {"variables": {"id": "7"}})])
 
@@ -767,71 +837,21 @@ class GetEasementStatusTest(ActionTestCase):
         for response in answers:
             with self.subTest(response=response):
                 self.client.send_query.return_value = response
-                self.assertIsNone(APIModuleActions.get_easement_status("7"))
+                self.assertIsNone(APIModuleActions.get_item_status("easement", "7"))
         self.log.assert_not_called()
 
     def test_failed_request_returns_none_and_is_logged(self) -> None:
         error = RuntimeError("offline")
         self.client.send_query.side_effect = error
-        self.assertIsNone(APIModuleActions.get_easement_status(" 7 "))
+        self.assertIsNone(APIModuleActions.get_item_status("easement", " 7 "))
         self.assert_logged(error, module="easement", event="easement_status_fetch_failed", extra={"item_id": "7"})
 
     def test_unloadable_query_returns_none_and_is_logged(self) -> None:
         error = FileNotFoundError("query_file_not_found")
         self.loader.load_query_by_module.side_effect = error
-        self.assertIsNone(APIModuleActions.get_easement_status("7"))
+        self.assertIsNone(APIModuleActions.get_item_status("easement", "7"))
         self.client.send_query.assert_not_called()
         self.assert_logged(error, module="easement", event="easement_status_fetch_failed", extra={"item_id": "7"})
-
-
-class UpdateEasementStatusTest(ActionTestCase):
-    EXTRA = {"item_id": "7", "status_id": "2"}
-
-    def test_blank_easement_or_status_is_refused_without_a_request(self) -> None:
-        for item_id, status_id in (("", "2"), (" ", "2"), (None, "2"), ("7", ""), ("7", " "), ("7", None)):
-            with self.subTest(item_id=item_id, status_id=status_id):
-                self.assertIsNone(APIModuleActions.update_easement_status(item_id, status_id))
-        self.loader.load_query_by_module.assert_not_called()
-        self.client.send_query.assert_not_called()
-
-    def test_sends_the_status_id_and_returns_the_saved_status(self) -> None:
-        for answered_id in ("2", " 2 ", 2):
-            with self.subTest(answered_id=answered_id):
-                self.reset_calls()
-                status = {"id": answered_id, "name": "Allkirjastatud"}
-                self.client.send_query.return_value = {"updateEasement": {"id": "7", "status": status}}
-                self.assertIs(APIModuleActions.update_easement_status(" 7 ", " 2 "), status)
-                self.assertEqual(self.loaded(), [("easement", "updateEasementStatus.graphql")])
-                self.assertEqual(self.sent(), [(EASEMENT_UPDATE_STATUS_QUERY, {"variables": {
-                    "input": {"id": "7", "status": "2"},
-                }})])
-                self.log.assert_not_called()
-
-    def test_answer_without_the_requested_status_is_logged_as_not_applied(self) -> None:
-        answers = (None, {}, "text", {"updateEasement": None}, {"updateEasement": "x"}, {"updateEasement": {"id": "7"}},
-                   {"updateEasement": {"status": "x"}}, {"updateEasement": {"status": {"id": "1"}}},
-                   {"updateEasement": {"status": {"name": "no id"}}})
-        for response in answers:
-            with self.subTest(response=response):
-                self.log.reset_mock()
-                self.client.send_query.return_value = response
-                self.assertIsNone(APIModuleActions.update_easement_status("7", "2"))
-                self.assert_logged(RuntimeError, module="easement", event="easement_update_status_not_applied",
-                                   extra=self.EXTRA)
-                self.assertEqual(str(self.log.call_args.args[0]), "updateEasement did not return the requested status")
-
-    def test_failed_request_returns_none_and_is_logged(self) -> None:
-        error = RuntimeError("offline")
-        self.client.send_query.side_effect = error
-        self.assertIsNone(APIModuleActions.update_easement_status(" 7 ", " 2 "))
-        self.assert_logged(error, module="easement", event="easement_update_status_failed", extra=self.EXTRA)
-
-    def test_unloadable_query_returns_none_and_is_logged(self) -> None:
-        error = FileNotFoundError("query_file_not_found")
-        self.loader.load_query_by_module.side_effect = error
-        self.assertIsNone(APIModuleActions.update_easement_status("7", "2"))
-        self.client.send_query.assert_not_called()
-        self.assert_logged(error, module="easement", event="easement_update_status_failed", extra=self.EXTRA)
 
 
 class CreateTaskTestCase(ActionTestCase):
@@ -1416,15 +1436,16 @@ class TaskAndGeometryLayoutTest(unittest.TestCase):
     """The task, geometry and easement status code lives in python/actions/ (red on the single-file layout)."""
 
     TASKS = (
-        "get_task_data", "get_tasks_by_ids", "get_task_description", "update_task_description", "update_task_status",
+        "get_task_data", "get_tasks_by_ids", "get_task_description", "update_task_description",
         "update_task_members", "_build_task_member_associate_payload", "create_task",
+        "get_task_priority_values", "task_priority_label", "get_task_priority_options",
     )
     GEOMETRY = (
         "_geometry_input_value", "_is_unknown_input_field_error", "_is_unknown_geometry_input_error",
         "_is_geometry_retryable_create_error", "_update_module_geometry", "update_task_geometry",
         "update_project_geometry", "update_easement_geometry",
     )
-    EASEMENT_STATUS = ("get_easement_status", "update_easement_status")
+    EASEMENT_STATUS = ("get_item_status", "update_item_status")
     OWNERS = {
         "Kavitro_dev.python.actions.task_actions": ("TaskActions", TASKS),
         "Kavitro_dev.python.actions.geometry_actions": ("GeometryActions", GEOMETRY),

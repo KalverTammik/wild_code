@@ -8,7 +8,7 @@ import requests
 from ..api_client import APIClient
 from ..GraphQLQueryLoader import GraphQLQueryLoader
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...constants.module_names import Module
+from ...constants.module_names import Module, backend_module
 
 
 # requests puts the request URL in its error text ("... for url: https://...", urllib3's
@@ -35,10 +35,7 @@ class FileActions:
 
     @staticmethod
     def _file_owner_module(module: str) -> str:
-        module_name = str(module or "").strip().lower()
-        if module_name in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value):
-            return Module.TASK.value
-        return module_name
+        return backend_module(module)
 
     @staticmethod
     def _file_model_type(module: str) -> str:

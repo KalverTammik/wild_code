@@ -1,29 +1,46 @@
-"""Status and priority actions: the statuses of a module, the task priority values and their labels, the easement status."""
+"""Status actions: the statuses of a module, and reading and changing the status of one item."""
+from dataclasses import dataclass
 from typing import List, Optional
 
 from ..api_client import APIClient
 from ..GraphQLQueryLoader import GraphQLQueryLoader
-from ...languages.language_manager import LanguageManager
-from ...languages.translation_keys import TranslationKeys
 from ...Logs.python_fail_logger import PythonFailLogger
-from ...constants.module_names import Module
+from ...constants.module_names import Module, backend_module
+
+
+@dataclass(frozen=True)
+class _ItemStatusQueries:
+    """The GraphQL documents that read and change the status of one Kavitro entity."""
+
+    update_file: str
+    update_root: str
+    read_file: Optional[str] = None
+    read_root: Optional[str] = None
 
 
 class StatusActions:
-    """Static status, priority and easement status actions; APIModuleActions inherits them so callers keep one entry point."""
-    # The TaskPriority enum of the Kavitro schema (kavitro.dev/docs/graphql/reference/enums/task-priority).
-    # The server refuses introspection and has no query that lists enum values, so they live here.
-    _TASK_PRIORITY_VALUES = ("URGENT", "HIGH", "MEDIUM", "LOW")
+    """Static status actions; APIModuleActions inherits them so callers keep one entry point."""
+
+    # Keyed by the Kavitro entity (backend_module), so every task section (works, as-built, ...) shares the "task" row.
+    # An entity that gains a status read or change is added here with its .graphql files.
+    _ITEM_STATUS_QUERIES = {
+        Module.TASK.value: _ItemStatusQueries("updateTaskStatus.graphql", "updateTask"),
+        Module.PROJECT.value: _ItemStatusQueries("updateProjectStatus.graphql", "updateProject"),
+        Module.CONTRACT.value: _ItemStatusQueries("updateContractStatus.graphql", "updateContract"),
+        Module.COORDINATION.value: _ItemStatusQueries("updateCoordinationStatus.graphql", "updateCoordination"),
+        Module.EASEMENT.value: _ItemStatusQueries(
+            "updateEasementStatus.graphql", "updateEasement", "easementStatus.graphql", "easement",
+        ),
+    }
 
     @staticmethod
-    def _status_module_value(module: str) -> str:
-        module_name = str(module or "").strip().lower()
+    def status_module_value(module: str) -> str:
+        """The MODULE value the statuses of a plugin module are filed under in Kavitro ("TASKS" for a task section)."""
+        module_name = backend_module(module)
         if not module_name:
             return ""
         if module_name == Module.PROPERTY.value:
             return "PROPERTIES"
-        if module_name in (Module.TASK.value, Module.WORKS.value, Module.ASBUILT.value):
-            return "TASKS"
         return f"{module_name.upper()}S"
 
     @staticmethod
@@ -39,7 +56,7 @@ class StatusActions:
         itself (the status filter's worker, which logs it); the other callers treat [] as "no statuses"
         and keep the default.
         """
-        status_module = StatusActions._status_module_value(module_name)
+        status_module = StatusActions.status_module_value(module_name)
         max_items = max(1, int(limit or 0))
         if not status_module:
             return []
@@ -114,117 +131,83 @@ class StatusActions:
         return sorted(statuses_by_id.values(), key=_sort_key)
 
     @staticmethod
-    def get_task_priority_values() -> List[str]:
-        return list(StatusActions._TASK_PRIORITY_VALUES)
+    def can_update_status(module: str) -> bool:
+        """True when the status of this module's items can be changed from the plugin."""
+        return backend_module(module) in StatusActions._ITEM_STATUS_QUERIES
 
     @staticmethod
-    def task_priority_label(priority: str) -> str:
-        lang = LanguageManager()
-        normalized = str(priority or "").strip().upper()
-        if not normalized:
-            return lang.translate(TranslationKeys.WORKS_PRIORITY_NONE)
+    def get_item_status(module: str, item_id: str) -> Optional[dict]:
+        """Return the status the item has in Kavitro now, or None when it cannot be read or the module has no status read."""
 
-        translation_map = {
-            "URGENT": TranslationKeys.WORKS_PRIORITY_URGENT,
-            "HIGH": TranslationKeys.WORKS_PRIORITY_HIGH,
-            "MEDIUM": TranslationKeys.WORKS_PRIORITY_MEDIUM,
-            "LOW": TranslationKeys.WORKS_PRIORITY_LOW,
-        }
-        translation_key = translation_map.get(normalized)
-        if translation_key:
-            return lang.translate(translation_key)
-
-        return normalized.replace("_", " ").title()
-
-    @staticmethod
-    def get_task_priority_options(*, include_empty: bool = True) -> List[dict[str, str]]:
-        lang = LanguageManager()
-        options: List[dict[str, str]] = []
-
-        if include_empty:
-            options.append(
-                {
-                    "value": "",
-                    "label": lang.translate(TranslationKeys.WORKS_PRIORITY_NONE),
-                }
-            )
-
-        for value in StatusActions.get_task_priority_values():
-            options.append(
-                {
-                    "value": value,
-                    "label": StatusActions.task_priority_label(value),
-                }
-            )
-
-        return options
-
-    @staticmethod
-    def get_easement_status(item_id: str) -> Optional[dict]:
-        """Return the status the easement has in Kavitro now, or None when it cannot be read."""
-
-        easement_id = str(item_id or "").strip()
-        if not easement_id:
+        entity = backend_module(module)
+        queries = StatusActions._ITEM_STATUS_QUERIES.get(entity)
+        item_id_text = str(item_id or "").strip()
+        if queries is None or not queries.read_file or not queries.read_root or not item_id_text:
             return None
 
         loader = GraphQLQueryLoader()
         client = APIClient()
         try:
-            query = loader.load_query_by_module(Module.EASEMENT.value, "easementStatus.graphql")
-            data = client.send_query(query, variables={"id": easement_id}) or {}
+            query = loader.load_query_by_module(entity, queries.read_file)
+            data = client.send_query(query, variables={"id": item_id_text}) or {}
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module=Module.EASEMENT.value,
-                event="easement_status_fetch_failed",
-                extra={"item_id": easement_id},
+                module=entity,
+                event=f"{entity}_status_fetch_failed",
+                extra={"item_id": item_id_text},
             )
             return None
 
-        easement = (data.get("easement") or {}) if isinstance(data, dict) else {}
-        status = easement.get("status") if isinstance(easement, dict) else None
+        item = (data.get(queries.read_root) or {}) if isinstance(data, dict) else {}
+        status = item.get("status") if isinstance(item, dict) else None
         return status if isinstance(status, dict) and str(status.get("id") or "").strip() else None
 
     @staticmethod
-    def update_easement_status(item_id: str, status_id: str) -> Optional[dict]:
-        """Change the easement status in Kavitro; returns the status Kavitro saved, or None."""
+    def update_item_status(module: str, item_id: str, status_id: str) -> Optional[dict]:
+        """Change the item status in Kavitro; returns the updated item (id, updatedAt, status), or None.
 
-        easement_id = str(item_id or "").strip()
+        None means Kavitro did not take the change, the module has no status change, or the request failed.
+        """
+
+        entity = backend_module(module)
+        queries = StatusActions._ITEM_STATUS_QUERIES.get(entity)
+        item_id_text = str(item_id or "").strip()
         resolved_status_id = str(status_id or "").strip()
-        if not easement_id or not resolved_status_id:
+        if queries is None or not item_id_text or not resolved_status_id:
             return None
 
-        variables = {
-            "input": {
-                "id": easement_id,
-                "status": resolved_status_id,
-            }
-        }
-        extra = {"item_id": easement_id, "status_id": resolved_status_id}
+        variables = {"input": {"id": item_id_text, "status": resolved_status_id}}
+        extra = {"item_id": item_id_text, "status_id": resolved_status_id}
 
         loader = GraphQLQueryLoader()
         client = APIClient()
         try:
-            query = loader.load_query_by_module(Module.EASEMENT.value, "updateEasementStatus.graphql")
+            query = loader.load_query_by_module(entity, queries.update_file)
             data = client.send_query(query, variables=variables) or {}
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
-                module=Module.EASEMENT.value,
-                event="easement_update_status_failed",
+                module=entity,
+                event=f"{entity}_update_status_failed",
                 extra=extra,
             )
             return None
 
-        updated = (data.get("updateEasement") or {}) if isinstance(data, dict) else {}
+        updated = (data.get(queries.update_root) or {}) if isinstance(data, dict) else {}
         status = updated.get("status") if isinstance(updated, dict) else None
         # An answer with another status means Kavitro did not take the change.
-        if not isinstance(status, dict) or str(status.get("id") or "").strip() != resolved_status_id:
-            PythonFailLogger.log_exception(
-                RuntimeError("updateEasement did not return the requested status"),
-                module=Module.EASEMENT.value,
-                event="easement_update_status_not_applied",
-                extra=extra,
-            )
-            return None
-        return status
+        if (
+            isinstance(updated, dict)
+            and updated.get("id")
+            and isinstance(status, dict)
+            and str(status.get("id") or "").strip() == resolved_status_id
+        ):
+            return updated
+        PythonFailLogger.log_exception(
+            RuntimeError(f"{queries.update_root} did not return the requested status"),
+            module=entity,
+            event=f"{entity}_update_status_not_applied",
+            extra=extra,
+        )
+        return None

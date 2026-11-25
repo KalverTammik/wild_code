@@ -59,10 +59,11 @@ class ModulesRegistry:
         from ..widgets.DataDisplayWidgets.StatusWidget import StatusWidget
         from ..modules.projects.project_detail_config import create_project_config
         from ..modules.works.works_sync_service import WorksSyncService
+        from ..modules.projects.projects_layer_service import ProjectsLayerService
 
         ModuleConfigFactory.register(Module.PROJECT.value, create_project_config)
 
-        def sync_works_layer(item_id: str, task_payload, lang_manager) -> None:
+        def sync_works_layer(item_id: str, task_payload) -> None:
             WorksSyncService().sync_task_from_backend(item_id, task=task_payload)
 
         StatusWidget.register_status_change_hook(
@@ -71,13 +72,23 @@ class ModulesRegistry:
             sync_works_layer,
         )
 
-        def sync_asbuilt_layer(item_id: str, task_payload, lang_manager) -> None:
+        def sync_asbuilt_layer(item_id: str, task_payload) -> None:
             from ..modules.asbuilt.asbuilt_layer_service import AsBuiltLayerService
 
             AsBuiltLayerService.sync_status_from_task(item_id, task_payload)
 
         # An as-built is a task too, but its status belongs on the as-built layer, not the Works layer.
         StatusWidget.register_status_change_hook((Module.ASBUILT.value,), "asbuilt_layer_sync", sync_asbuilt_layer)
+
+        def sync_project_layer(item_id: str, project_payload) -> None:
+            ProjectsLayerService.sync_status_from_project(item_id, project_payload)
+
+        StatusWidget.register_status_change_hook((Module.PROJECT.value,), "project_layer_sync", sync_project_layer)
+
+        def sync_easement_layer(item_id: str, easement_payload) -> None:
+            EasementLayerService.sync_status_from_easement(item_id, easement_payload)
+
+        StatusWidget.register_status_change_hook((Module.EASEMENT.value,), "easement_layer_sync", sync_easement_layer)
 
         def pick_folder(_module_key: str, _key: str, current_value: str):
             return FolderHelpers.select_folder_path(dialog, start_path=current_value)

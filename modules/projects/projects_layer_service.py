@@ -115,6 +115,17 @@ class ProjectsLayerService(AttachableLayerServiceBase):
             "updatedAt": project.get("updatedAt"),
         }
 
+    @classmethod
+    def sync_status_from_project(cls, item_id: str, project: Optional[dict]) -> bool:
+        """Write the Kavitro status of a project onto its map feature (`detailed`, `active`); True when it matches."""
+        if not isinstance(project, dict) or not isinstance(project.get("status"), dict):
+            return False
+        values = [((cls.FIELD_DETAILED,), cls.detailed_from_project(project))]
+        active = cls.active_from_project(project)
+        if active is not None:
+            values.append(((cls.FIELD_ACTIVE,), active))
+        return cls.sync_status_to_feature(item_id, values)
+
     @staticmethod
     def _item_name(item: dict) -> str:
         return str(item.get("name") or item.get("title") or "").strip()
