@@ -331,7 +331,7 @@ class ModuleLayerServiceBase:
     def _layer_text(cls, key: str) -> str:
         """A layer message in the plugin language; "{module}" in it is this service's module name."""
         lang = LanguageManager()
-        return lang.translate(key, fallback=key).format(module=lang.translate_module_name(cls.MODULE.value))
+        return lang.translate(key).format(module=lang.translate_module_name(cls.MODULE.value))
 
     @classmethod
     def sync_status_to_feature(cls, item_id: str, values: list[tuple[tuple[str, ...], object]]) -> bool:

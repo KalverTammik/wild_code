@@ -149,10 +149,9 @@ class TranslationKeysInCodeTest(unittest.TestCase):
                     if any(literal_text(value) is not None for value in node.values[1:]):
                         found.append(f"{rel}:{node.lineno} translate(...) or '...'")
                 elif is_translate_call(node):
-                    fallback = node.args[1] if len(node.args) > 1 else next(
-                        (k.value for k in node.keywords if k.arg == "fallback"), None)
-                    if fallback is not None and literal_text(fallback) is not None:
-                        found.append(f"{rel}:{node.lineno} translate(key, '...')")
+                    # No fallback of any kind: not a literal, not another key, not a variable.
+                    if len(node.args) > 1 or node.keywords:
+                        found.append(f"{rel}:{node.lineno} translate(key, <fallback>)")
                 elif isinstance(node, ast.IfExp) and any(is_translate_call(b) for b in (node.body, node.orelse)):
                     if any(WORD.search(literal_text(b) or "") for b in (node.body, node.orelse)):
                         found.append(f"{rel}:{node.lineno} '...' if ... else translate(...)")

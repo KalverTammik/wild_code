@@ -20,6 +20,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from Kavitro_dev.languages import en as en_module
 from Kavitro_dev.languages import et as et_module
+from Kavitro_dev.languages import language_manager as manager_module
+from Kavitro_dev.languages import translation_keys as translation_keys_module
 from Kavitro_dev.languages.translation_keys import TranslationKeys
 
 # Gaps found when this test was written (maintenance step 9) were fixed rather than
@@ -37,6 +39,16 @@ def declared_keys() -> set:
     """Every string constant declared on TranslationKeys."""
     return {value for name, value in vars(TranslationKeys).items()
             if not name.startswith('_') and isinstance(value, str)}
+
+
+def all_declared_keys() -> set:
+    """Every string constant of every key class in languages/translation_keys.py (TranslationKeys, DialogLabels,
+    FolderNamingTranslationKeys, ...): a table may answer any of them."""
+    keys = set()
+    for value in vars(translation_keys_module).values():
+        if isinstance(value, type) and value.__module__ == translation_keys_module.__name__:
+            keys |= {v for n, v in vars(value).items() if not n.startswith('_') and isinstance(v, str)}
+    return keys
 
 
 class TranslationCompletenessTest(unittest.TestCase):
@@ -61,6 +73,29 @@ class TranslationCompletenessTest(unittest.TestCase):
 
     def test_every_declared_key_is_answered_by_english(self) -> None:
         self.assertEqual(self.keys - self.en, KNOWN_MISSING_FROM_BOTH | KNOWN_MISSING_FROM_EN)
+
+    def test_every_registered_language_answers_the_whole_catalogue_and_nothing_else(self) -> None:
+        """A language added to the registry later is held to the same standard without editing this test."""
+        self.assertGreaterEqual(len(manager_module.SUPPORTED_LANGUAGES), 2)
+        for language in manager_module.SUPPORTED_LANGUAGES:
+            table = set(manager_module._TABLES[language])
+            with self.subTest(language=language):
+                self.assertEqual(self.keys - table, set(), "keys this language does not answer")
+                self.assertEqual(table - all_declared_keys(), set(), "table entries no key class names")
+
+    def test_every_language_gives_every_key_a_non_empty_text_with_the_same_placeholders(self) -> None:
+        import re
+
+        placeholder = re.compile(r"\{[A-Za-z_][A-Za-z0-9_]*\}")
+        reference = manager_module._TABLES[manager_module.DEFAULT_LANGUAGE]
+        for language in manager_module.SUPPORTED_LANGUAGES:
+            table = manager_module._TABLES[language]
+            empty = [key for key in self.keys if not str(table[key]).strip()]
+            drift = [key for key in self.keys
+                     if set(placeholder.findall(str(table[key]))) != set(placeholder.findall(str(reference[key])))]
+            with self.subTest(language=language):
+                self.assertEqual(empty, [], "empty text")
+                self.assertEqual(drift, [], "a {placeholder} the default language does not have, or lacks")
 
 
 if __name__ == '__main__':

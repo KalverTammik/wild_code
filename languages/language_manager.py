@@ -5,9 +5,13 @@ from ..constants.module_names import Module
 
 DEFAULT_LANGUAGE = "et"  # Set Estonian as the default language
 
-# Languages that actually carry a translation table. Offering more would only
-# fall back to Estonian silently.
-SUPPORTED_LANGUAGES = ("et", "en")
+# One table per language. A language is added by registering its complete table here; nothing else
+# changes, and tests/test_translation_completeness.py then holds the new table to the whole key catalogue.
+_TABLES = {
+    "et": ET_TRANSLATIONS,
+    "en": EN_TRANSLATIONS,
+}
+SUPPORTED_LANGUAGES = tuple(_TABLES)
 
 _MODULE_TRANSLATION_KEY_MAP = {
     Module.HOME.value: TranslationKeys.MODULE_HOME,
@@ -66,15 +70,13 @@ class LanguageManager:
     def language(self) -> str:
         return self._language or _current_language
 
-    def translate(self, key, fallback: str | None = None):
-        """Lookup key in the language's translation table (Estonian when the language has none)."""
-        translations = EN_TRANSLATIONS if self.language == "en" else ET_TRANSLATIONS
-        value = translations.get(key)
-        if value is not None:
-            return value
-        if fallback is not None:
-            return fallback
-        raise KeyError(f"Missing translation for key: {key}")
+    def translate(self, key):
+        """The text of `key` in this manager's language. A missing key raises: there is no fallback text and no
+        fallback language, so a gap in a table is found by the tests instead of showing as another language."""
+        try:
+            return _TABLES[self.language][key]
+        except KeyError:
+            raise KeyError(f"Missing translation for key {key!r} in language {self.language!r}") from None
 
     def translate_module_name(self, module_name: str) -> str:
         key = (module_name or "").strip().lower()
@@ -82,6 +84,6 @@ class LanguageManager:
         return self.translate(translation_key)
 
     @staticmethod
-    def translate_static(key, fallback: str | None = None):
+    def translate_static(key):
         """Translate with the plugin-wide language, without a manager instance."""
-        return LanguageManager().translate(key, fallback)
+        return LanguageManager().translate(key)

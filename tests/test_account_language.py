@@ -85,8 +85,22 @@ class PluginWideLanguageTest(LanguageTestCase):
         keys = {v for k, v in vars(TranslationKeys).items() if not k.startswith("_") and isinstance(v, str)}
         for language in manager_module.SUPPORTED_LANGUAGES:
             manager = LanguageManager(language)
-            missing = [key for key in keys if manager.translate(key, fallback="") == ""]
-            self.assertEqual(missing, [], language)
+            for key in keys:
+                manager.translate(key)  # a gap raises KeyError
+
+    def test_a_missing_key_raises_in_every_language_and_names_it(self) -> None:
+        for language in manager_module.SUPPORTED_LANGUAGES:
+            with self.subTest(language=language):
+                with self.assertRaises(KeyError) as raised:
+                    LanguageManager(language).translate("no_such_key")
+                self.assertIn("no_such_key", str(raised.exception))
+                self.assertIn(language, str(raised.exception))
+
+    def test_translate_takes_no_fallback(self) -> None:
+        import inspect
+
+        for function in (LanguageManager.translate, LanguageManager.translate_static):
+            self.assertEqual([p for p in inspect.signature(function).parameters if p != "self"], ["key"])
 
 
 class RememberedLanguageTest(LanguageTestCase):

@@ -81,7 +81,7 @@ class _FakeWebView(QWidget):
 class _Base(unittest.TestCase):
     def setUp(self):
         self.p(ThemeManager, "apply_module_style")
-        self.p(LanguageManager, "translate", lambda self, key, fallback=None: _Text(f"T:{key}"))
+        self.p(LanguageManager, "translate", lambda self, key: _Text(f"T:{key}"))
         self.log = self.p(PythonFailLogger, "log_exception")
         self.warning = self.p(ModernMessageDialog, "show_warning")
         self.fetch = self.p(APIModuleActions, "fetch_file_preview_payload")

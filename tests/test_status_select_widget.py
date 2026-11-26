@@ -42,7 +42,7 @@ class _WidgetTest(unittest.TestCase):
         theme = patch.object(ThemeManager, "effective_theme", return_value=Theme.LIGHT)
         theme.start()
         self.addCleanup(theme.stop)
-        translate = patch.object(LanguageManager, "translate", lambda self, key, fallback=None: f"T:{key}")
+        translate = patch.object(LanguageManager, "translate", lambda self, key: f"T:{key}")
         translate.start()
         self.addCleanup(translate.stop)
         self.host = QWidget()
