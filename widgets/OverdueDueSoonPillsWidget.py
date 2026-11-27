@@ -46,14 +46,14 @@ class OverdueDueSoonPillsWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(2)
-        layout.setAlignment(Qt.AlignHCenter)
+        layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
 
         #import translation keys
 
         title = self._lang.translate(TranslationKeys.URGENT_GROUP_TITLE)
         self.title_label = QLabel(title, self)
         self.title_label.setObjectName("PillTitle")
-        self.title_label.setAlignment(Qt.AlignHCenter)
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.title_label.setToolTip(self._lang.translate(TranslationKeys.URGENT_TOOLTIP))
         layout.addWidget(self.title_label)
 
@@ -62,7 +62,7 @@ class OverdueDueSoonPillsWidget(QWidget):
         pills_layout = QHBoxLayout()
         pills_layout.setContentsMargins(2, 2, 2, 2)
         pills_layout.setSpacing(4)
-        pills_layout.setAlignment(Qt.AlignHCenter)
+        pills_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.container.setLayout(pills_layout)
         layout.addWidget(self.container)
 
@@ -72,7 +72,7 @@ class OverdueDueSoonPillsWidget(QWidget):
         # Prevent button from being triggered by Return key
         self.overdue_btn.setAutoDefault(False)
         self.overdue_btn.setDefault(False)
-        self.overdue_btn.setCursor(Qt.PointingHandCursor)
+        self.overdue_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.overdue_btn.clicked.connect(self.overdueClicked.emit)  # type: ignore
 
         self.due_soon_btn = QPushButton(self.container)
@@ -80,7 +80,7 @@ class OverdueDueSoonPillsWidget(QWidget):
         # Prevent button from being triggered by Return key
         self.due_soon_btn.setAutoDefault(False)
         self.due_soon_btn.setDefault(False)
-        self.due_soon_btn.setCursor(Qt.PointingHandCursor)
+        self.due_soon_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.due_soon_btn.clicked.connect(self.dueSoonClicked.emit)  # type: ignore
 
         pills_layout.addWidget(self.overdue_btn)

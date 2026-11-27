@@ -153,7 +153,7 @@ class AddPropertyDialog(PropertyAddRunMixin, PropertyAttentionChecksMixin, Prope
             self._build_missing_import_layer_ui()
             self.show()
             if self._dialog_mode == PropertyDialogMode.BY_LOCATION:
-                self.exec_()
+                self.exec()
             return
         MapHelpers.clear_layer_filter(self.property_layer)
 
@@ -199,7 +199,7 @@ class AddPropertyDialog(PropertyAddRunMixin, PropertyAttentionChecksMixin, Prope
 
         # Block until done (location mode)
         self._location_filter_helper.load_counties(self.property_layer)
-        self.exec_()
+        self.exec()
 
     def _init_check_controllers_and_state(self) -> None:
         """Create attention-check controllers and their state fields.
@@ -423,7 +423,7 @@ class AddPropertyDialog(PropertyAddRunMixin, PropertyAttentionChecksMixin, Prope
         self.clear_selection_btn = None
         self.reselect_from_map_btn = None
         if self._dialog_mode != PropertyDialogMode.FROM_MAP:
-            self.properties_table.setSelectionMode(QAbstractItemView.NoSelection)
+            self.properties_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
             self.selection_info.setText(
                 self.lang_manager.translate(TranslationKeys.PROPERTY_TABLE_COUNT_TEMPLATE).format(count=0))
         else:
@@ -454,8 +454,8 @@ class AddPropertyDialog(PropertyAddRunMixin, PropertyAttentionChecksMixin, Prope
         self.add_progress_label = QLabel("")
         self.add_progress_label.setObjectName("AddProgressLabel")
         self.add_progress_label.setWordWrap(True)
-        self.add_progress_label.setTextFormat(Qt.PlainText)
-        self.add_progress_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        self.add_progress_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.add_progress_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         self.add_progress_label.setVisible(False)
         parent_layout.addWidget(self.add_progress_label)
         self.add_progress_bar = GlowProgressBar()
@@ -467,8 +467,8 @@ class AddPropertyDialog(PropertyAddRunMixin, PropertyAttentionChecksMixin, Prope
         parent_layout.addWidget(self.add_progress_bar)
         self.add_detail_label = QLabel("")
         self.add_detail_label.setWordWrap(True)
-        self.add_detail_label.setTextFormat(Qt.PlainText)
-        self.add_detail_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        self.add_detail_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.add_detail_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         self.add_detail_label.hide()
         parent_layout.addWidget(self.add_detail_label)
         self.review_additions_button = QPushButton(self.lang_manager.translate(
@@ -766,7 +766,7 @@ class AddPropertyDialog(PropertyAddRunMixin, PropertyAttentionChecksMixin, Prope
         selected_features = set()
         try:
             for index in table.selectionModel().selectedRows():
-                feature = PropertyTableManager.get_cell_data(table, index.row(), 0, role=Qt.UserRole)
+                feature = PropertyTableManager.get_cell_data(table, index.row(), 0, role=Qt.ItemDataRole.UserRole)
                 if feature:
                     selected_features.add(feature)
         except Exception as exc:

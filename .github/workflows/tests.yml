@@ -1,6 +1,6 @@
 name: Tests
 
-# Runs the offline suite in the official QGIS 3.40 image on every push to main and every
+# Runs the offline suite in the official QGIS 3.40 and 4.4 images on every push to main and every
 # pull request. The release workflow calls it too and publishes only when it passes.
 # Linux also runs the tests that skip on Windows (POSIX file modes, symlinks).
 
@@ -41,14 +41,24 @@ jobs:
           ruff check .
 
   tests:
+    name: tests (${{ matrix.image }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      # Both results are wanted: a change can break one Qt version only.
+      fail-fast: false
+      matrix:
+        include:
+          - image: qgis/qgis:3.40.13-noble
+            # QGIS' own Python plugins (processing) for the tests that import them.
+            pythonpath: /usr/share/qgis/python/plugins
+          - image: qgis/qgis:4.4
+            pythonpath: /usr/share/qgis/python:/usr/share/qgis/python/plugins
     container:
-      image: qgis/qgis:3.40.13-noble
+      image: ${{ matrix.image }}
     env:
       QT_QPA_PLATFORM: offscreen
-      # QGIS' own Python plugins (processing) for the tests that import them.
-      PYTHONPATH: /usr/share/qgis/python/plugins
+      PYTHONPATH: ${{ matrix.pythonpath }}
     steps:
       # The tests import the plugin as the package "Kavitro_dev", so the checkout folder carries that name.
       - name: Checkout repository

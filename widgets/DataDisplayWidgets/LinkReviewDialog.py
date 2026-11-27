@@ -33,12 +33,12 @@ class PropertyLinkReviewDialog(QDialog):
         existing_list = QListWidget()
         for number, label in sorted(existing_display.items(), key=lambda pair: pair[1].lower()):
             item = QListWidgetItem(label)
-            item.setData(Qt.UserRole, number)
+            item.setData(Qt.ItemDataRole.UserRole, number)
             if allow_removal:
-                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                item.setCheckState(Qt.Unchecked)
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+                item.setCheckState(Qt.CheckState.Unchecked)
             else:
-                item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable)
             existing_list.addItem(item)
         existing_list.setMinimumWidth(self.LIST_MIN_WIDTH)
         self._existing_list = existing_list
@@ -81,9 +81,9 @@ class PropertyLinkReviewDialog(QDialog):
     @property
     def numbers_to_remove(self) -> list[str]:
         return [
-            str(self._existing_list.item(row).data(Qt.UserRole))
+            str(self._existing_list.item(row).data(Qt.ItemDataRole.UserRole))
             for row in range(self._existing_list.count())
-            if self._existing_list.item(row).checkState() == Qt.Checked
+            if self._existing_list.item(row).checkState() == Qt.CheckState.Checked
         ]
 
     def _update_confirm_text(self, *_args) -> None:
@@ -96,8 +96,8 @@ class PropertyLinkReviewDialog(QDialog):
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(4)
         header = QFrame()
-        header.setFrameShape(QFrame.StyledPanel)
-        header.setFrameShadow(QFrame.Raised)
+        header.setFrameShape(QFrame.Shape.StyledPanel)
+        header.setFrameShadow(QFrame.Shadow.Raised)
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(8, 6, 8, 6)
         header_layout.setSpacing(6)

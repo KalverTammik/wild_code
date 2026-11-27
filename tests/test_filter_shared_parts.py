@@ -178,8 +178,8 @@ class SelectAllStateTest(unittest.TestCase):
             with self.subTest(widget=widget.__name__):
                 fake, during = self.fake(), []
                 fake.all_cb.setCheckState.side_effect = lambda state: during.append(fake._suppress_all_cb)
-                widget._set_all_cb_state(fake, Qt.Checked)
-                fake.all_cb.setCheckState.assert_called_once_with(Qt.Checked)
+                widget._set_all_cb_state(fake, Qt.CheckState.Checked)
+                fake.all_cb.setCheckState.assert_called_once_with(Qt.CheckState.Checked)
                 fake.all_cb.setEnabled.assert_not_called()
                 self.assertEqual(during, [True])
                 self.assertFalse(fake._suppress_all_cb)
@@ -189,7 +189,7 @@ class SelectAllStateTest(unittest.TestCase):
             for enabled in (True, False):
                 with self.subTest(widget=widget.__name__, enabled=enabled):
                     fake = self.fake()
-                    widget._set_all_cb_state(fake, Qt.Unchecked, enabled=enabled)
+                    widget._set_all_cb_state(fake, Qt.CheckState.Unchecked, enabled=enabled)
                     fake.all_cb.setEnabled.assert_called_once_with(enabled)
 
     def test_suppression_ends_even_when_the_box_fails(self) -> None:
@@ -198,7 +198,7 @@ class SelectAllStateTest(unittest.TestCase):
                 fake = self.fake()
                 fake.all_cb.setCheckState.side_effect = RuntimeError("deleted")
                 with self.assertRaises(RuntimeError):
-                    widget._set_all_cb_state(fake, Qt.Checked)
+                    widget._set_all_cb_state(fake, Qt.CheckState.Checked)
                 self.assertFalse(fake._suppress_all_cb)
 
 
@@ -241,34 +241,34 @@ class SelectAllFromComboTest(unittest.TestCase):
         return owner._set_all_cb_state.call_args.args[0]
 
     def test_box_shows_how_much_is_checked(self) -> None:
-        checked, unchecked = ("a", Qt.Checked), ("b", Qt.Unchecked)
+        checked, unchecked = ("a", Qt.CheckState.Checked), ("b", Qt.CheckState.Unchecked)
         for widget in SELECT_ALL_WIDGETS:
-            for rows, expected in (([], Qt.Unchecked), ([unchecked], Qt.Unchecked), ([checked, checked], Qt.Checked),
-                                   ([checked, unchecked], Qt.PartiallyChecked)):
+            for rows, expected in (([], Qt.CheckState.Unchecked), ([unchecked], Qt.CheckState.Unchecked), ([checked, checked], Qt.CheckState.Checked),
+                                   ([checked, unchecked], Qt.CheckState.PartiallyChecked)):
                 with self.subTest(widget=widget.__name__, rows=rows):
                     self.assertEqual(self.state_for(widget, rows), expected)
 
     def test_placeholder_rows_are_not_counted(self) -> None:
         for widget in SELECT_ALL_WIDGETS:
             with self.subTest(widget=widget.__name__):
-                self.assertEqual(self.state_for(widget, [(None, Qt.Unchecked), ("a", Qt.Checked)]), Qt.Checked)
+                self.assertEqual(self.state_for(widget, [(None, Qt.CheckState.Unchecked), ("a", Qt.CheckState.Checked)]), Qt.CheckState.Checked)
 
     def test_combo_actions_are_used_when_it_has_them(self) -> None:
         for widget in SELECT_ALL_WIDGETS:
             with self.subTest(widget=widget.__name__):
-                combo = FakeComboWithActions([("a", Qt.Unchecked)])
+                combo = FakeComboWithActions([("a", Qt.CheckState.Unchecked)])
                 owner = combo_owner(combo)
                 widget._apply_select_all(owner, True)
                 combo.selectAllOptions.assert_called_once_with()
                 widget._apply_select_all(owner, False)
                 combo.deselectAllOptions.assert_called_once_with()
-                self.assertEqual(combo.rows, [("a", Qt.Unchecked)])
+                self.assertEqual(combo.rows, [("a", Qt.CheckState.Unchecked)])
 
     def test_without_combo_actions_each_real_row_is_set(self) -> None:
         for widget in SELECT_ALL_WIDGETS:
-            for checked, state in ((True, Qt.Checked), (False, Qt.Unchecked)):
+            for checked, state in ((True, Qt.CheckState.Checked), (False, Qt.CheckState.Unchecked)):
                 with self.subTest(widget=widget.__name__, checked=checked):
-                    other = Qt.Unchecked if checked else Qt.Checked
+                    other = Qt.CheckState.Unchecked if checked else Qt.CheckState.Checked
                     combo = FakeCombo([(None, other), ("a", other), ("b", other)])
                     widget._apply_select_all(combo_owner(combo), checked)
                     self.assertEqual(combo.rows, [(None, other), ("a", state), ("b", state)])
@@ -319,7 +319,7 @@ class RealFilterCase(unittest.TestCase):
     def delete_host(self) -> None:
         self.host.hide()
         self.host.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 class FilterLoadResponseTest(RealFilterCase):
@@ -456,9 +456,9 @@ class PickerControlTest(unittest.TestCase):
                 control, _clicked = self.build(control_class)
                 self.assertEqual(control.objectName(), control_name)
                 self.assertEqual(control._label.objectName(), summary_name)
-                self.assertEqual(control.cursor().shape(), Qt.PointingHandCursor)
-                self.assertEqual(control.focusPolicy(), Qt.StrongFocus)
-                self.assertTrue(control._label.testAttribute(Qt.WA_TransparentForMouseEvents))
+                self.assertEqual(control.cursor().shape(), Qt.CursorShape.PointingHandCursor)
+                self.assertEqual(control.focusPolicy(), Qt.FocusPolicy.StrongFocus)
+                self.assertTrue(control._label.testAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents))
                 self.assertEqual(control.layout().count(), 2)
 
     def test_style_targets_its_own_names_in_the_current_theme(self) -> None:
@@ -487,13 +487,13 @@ class PickerControlTest(unittest.TestCase):
 
     @staticmethod
     def press(button) -> QMouseEvent:
-        event = QMouseEvent(QEvent.MouseButtonPress, QPointF(1, 1), button, button, Qt.NoModifier)
+        event = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(1, 1), button, button, Qt.KeyboardModifier.NoModifier)
         event.ignore()
         return event
 
     @staticmethod
     def key(code) -> QKeyEvent:
-        event = QKeyEvent(QEvent.KeyPress, code, Qt.NoModifier)
+        event = QKeyEvent(QEvent.Type.KeyPress, code, Qt.KeyboardModifier.NoModifier)
         event.ignore()
         return event
 
@@ -508,7 +508,7 @@ class PickerControlTest(unittest.TestCase):
         for control_class in PICKER_CONTROLS:
             with self.subTest(control=control_class.__name__):
                 control, clicked = self.build(control_class)
-                event = self.press(Qt.LeftButton)
+                event = self.press(Qt.MouseButton.LeftButton)
                 control.mousePressEvent(event)
                 clicked.assert_called_once()
                 self.assertTrue(event.isAccepted())
@@ -517,10 +517,10 @@ class PickerControlTest(unittest.TestCase):
         for control_class in PICKER_CONTROLS:
             with self.subTest(control=control_class.__name__):
                 control, clicked = self.build(control_class)
-                right = self.press(Qt.RightButton)
+                right = self.press(Qt.MouseButton.RightButton)
                 control.mousePressEvent(right)
                 control.setEnabled(False)
-                left = self.press(Qt.LeftButton)
+                left = self.press(Qt.MouseButton.LeftButton)
                 control.mousePressEvent(left)
                 clicked.assert_not_called()
                 self.assertFalse(right.isAccepted())
@@ -528,7 +528,7 @@ class PickerControlTest(unittest.TestCase):
 
     def test_return_enter_and_space_open(self) -> None:
         for control_class in PICKER_CONTROLS:
-            for code in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+            for code in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
                 with self.subTest(control=control_class.__name__, key=code):
                     control, clicked = self.build(control_class)
                     event = self.key(code)
@@ -540,7 +540,7 @@ class PickerControlTest(unittest.TestCase):
         for control_class in PICKER_CONTROLS:
             with self.subTest(control=control_class.__name__):
                 control, clicked = self.build(control_class)
-                event = self.key(Qt.Key_A)
+                event = self.key(Qt.Key.Key_A)
                 control.keyPressEvent(event)
                 clicked.assert_not_called()
                 self.assertFalse(event.isAccepted())
@@ -583,7 +583,7 @@ class PickerPopupTest(RealFilterCase):
     def close_popups(self) -> None:
         for widget in (self.tags, self.types):
             widget._close_popup()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def test_popup_is_built_under_its_own_names_and_width(self) -> None:
         for widget, name, width in ((self.tags, "SimplePicker", 260), (self.types, "TypePicker", 420)):
@@ -593,8 +593,8 @@ class PickerPopupTest(RealFilterCase):
                 self.assertEqual(popup.objectName(), f"{name}Popup")
                 self.assertEqual(popup._frame.objectName(), f"{name}PopupFrame")
                 self.assertEqual(popup._frame.minimumWidth(), width)
-                self.assertTrue(popup.windowFlags() & Qt.Popup)
-                self.assertTrue(popup.testAttribute(Qt.WA_DeleteOnClose))
+                self.assertTrue(popup.windowFlags() & Qt.WindowType.Popup)
+                self.assertTrue(popup.testAttribute(Qt.WidgetAttribute.WA_DeleteOnClose))
                 self.assertTrue(popup.findChildren(QWidget, f"{name}ActionButton"))
 
     def test_style_targets_its_own_rows_in_the_current_theme(self) -> None:
@@ -685,7 +685,7 @@ class PickerPopupClearLayoutTest(unittest.TestCase):
                 fake = SimpleNamespace()
                 fake._clear_layout = lambda target: popup._clear_layout(fake, target)
                 popup._clear_layout(fake, layout)
-                QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+                QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
                 self.assertEqual(layout.count(), 0)
                 self.assertEqual(nested.count(), 0)

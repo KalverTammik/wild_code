@@ -40,7 +40,7 @@ SIGNED_URL = "https://files.example/abc.pdf?X-Amz-Signature=SECRET123&X-Amz-Cred
 def delete_now(widget: QWidget) -> None:
     widget.hide()
     widget.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 class QtTestCase(unittest.TestCase):

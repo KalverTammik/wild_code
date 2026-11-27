@@ -42,7 +42,7 @@ komplekti ajutises kaustas.
 
 Lint: `ruff check .` plugina juurkaustas. Reeglid on failis [.ruff.toml](.ruff.toml).
 
-GitHubis käivitab [tests.yml](.github/workflows/tests.yml) iga `main`-i push'i ja pull requesti peale ruffi ning kogu komplekti ametlikus `qgis/qgis:3.40.13-noble` konteineris. Linuxis jooksevad ka POSIX-i failiõiguste ja sümbollingi testid, mis Windowsis vahele jäävad. Väljalaske töövoog käivitab sama kontrolli enne paketi ehitamist ega avalda midagi, kui see ebaõnnestub.
+GitHubis käivitab [tests.yml](.github/workflows/tests.yml) iga `main`-i push'i ja pull requesti peale ruffi ning kogu komplekti ametlikes `qgis/qgis:3.40.13-noble` (Qt5) ja `qgis/qgis:4.4` (Qt6) konteinerites. Linuxis jooksevad ka POSIX-i failiõiguste ja sümbollingi testid, mis Windowsis vahele jäävad. Väljalaske töövoog käivitab sama kontrolli enne paketi ehitamist ega avalda midagi, kui see ebaõnnestub.
 
 Sama konteineri saab käivitada ka kohapeal (Docker Desktop), kui kaust on nimega `Kavitro_dev`:
 
@@ -51,6 +51,8 @@ docker run --rm -e QT_QPA_PLATFORM=offscreen -e PYTHONPATH=/usr/share/qgis/pytho
   -v "<kaust, kus on Kavitro_dev>:/work" -w /work/Kavitro_dev qgis/qgis:3.40.13-noble \
   python3 tools/run_tests.py
 ```
+
+QGIS 4 jaoks kasuta pilti `qgis/qgis:4.4` ja `PYTHONPATH=/usr/share/qgis/python:/usr/share/qgis/python/plugins`. Teadaolevad Qt6 erinevused, mis ootavad lahendamist, on testides märgitud `qt6_stage4`-ga ja jäävad seal vahele.
 
 ## Release
 

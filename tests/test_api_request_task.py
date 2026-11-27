@@ -180,7 +180,7 @@ class ApiRequestTaskTest(unittest.TestCase):
                 during_message.append((self._is_open(windows[0]), message.isVisible()))
                 message.accept()
             QTimer.singleShot(30, inspect_then_close)
-            message.exec_()
+            message.exec()
             self.client.send_query('query { properties { id } }')
         self.assertEqual(during_message, [(False, True)])
         self.assertEqual(len(windows), 2)

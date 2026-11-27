@@ -374,7 +374,7 @@ class SHPLayerLoader:
             self.lang_manager.translate(TranslationKeys.PROPERTY_BOOTSTRAP_SAVE_DIALOG_TITLE),
             default_path,
             "GeoPackage (*.gpkg)",
-            options=QFileDialog.DontConfirmOverwrite,
+            options=QFileDialog.Option.DontConfirmOverwrite,
         )
         if not file_path:
             return None

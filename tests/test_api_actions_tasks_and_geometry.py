@@ -1368,7 +1368,7 @@ class StatusFilterLoadErrorTest(ActionTestCase):
     def delete_host(self) -> None:
         self.host.hide()
         self.host.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def load(self) -> tuple[list, list]:
         """Run the filter's load like its worker thread would, and hand the outcome to the widget."""

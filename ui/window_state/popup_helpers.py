@@ -162,21 +162,21 @@ class PopupHelpers:
             event_type = event.type()
 
             if obj == popup_widget:
-                if event_type == QEvent.Enter:
+                if event_type == QEvent.Type.Enter:
                     PopupHelpers.stop_hide_timer(timer)
-                elif event_type == QEvent.Leave:
+                elif event_type == QEvent.Type.Leave:
                     PopupHelpers.schedule_hide_timer(timer, delay_ms)
-                elif close_on_deactivate and event_type == QEvent.WindowDeactivate:
+                elif close_on_deactivate and event_type == QEvent.Type.WindowDeactivate:
                     if callable(on_popup_deactivate):
                         on_popup_deactivate()
                 return True
 
             if callable(anchor_matcher) and anchor_matcher(obj):
-                if event_type == QEvent.Enter:
+                if event_type == QEvent.Type.Enter:
                     PopupHelpers.stop_hide_timer(timer)
                     if callable(on_anchor_enter):
                         on_anchor_enter(obj)
-                elif event_type == QEvent.Leave:
+                elif event_type == QEvent.Type.Leave:
                     PopupHelpers.schedule_hide_timer(timer, delay_ms)
                 return True
 

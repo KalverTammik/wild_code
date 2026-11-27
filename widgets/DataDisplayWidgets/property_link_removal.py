@@ -66,9 +66,9 @@ class PropertyUnlinkDialog(QDialog):
         self._list.setMinimumWidth(320)
         for entry in sorted(entries, key=lambda e: link_label(e).lower()):
             item = QListWidgetItem(link_label(entry))
-            item.setData(Qt.UserRole, dict(entry))
-            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-            item.setCheckState(Qt.Unchecked)
+            item.setData(Qt.ItemDataRole.UserRole, dict(entry))
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Unchecked)
             self._list.addItem(item)
         layout.addWidget(self._list)
 
@@ -93,9 +93,9 @@ class PropertyUnlinkDialog(QDialog):
 
     def checked_entries(self) -> list[dict]:
         return [
-            self._list.item(row).data(Qt.UserRole)
+            self._list.item(row).data(Qt.ItemDataRole.UserRole)
             for row in range(self._list.count())
-            if self._list.item(row).checkState() == Qt.Checked
+            if self._list.item(row).checkState() == Qt.CheckState.Checked
         ]
 
     def _update_buttons(self, *_args) -> None:
@@ -133,7 +133,7 @@ def unlink_properties_from_card(
         return False
 
     dialog = PropertyUnlinkDialog(entries, lang, module=module, parent=parent)
-    if dialog.exec_() != QDialog.Accepted:
+    if dialog.exec() != QDialog.DialogCode.Accepted:
         return False
     chosen = dialog.checked_entries()
     if not chosen or not confirm_link_removal(lang, module, item_label, chosen, parent=parent):

@@ -35,7 +35,7 @@ class WaitWindowStyleTest(unittest.TestCase):
     @staticmethod
     def _delete(widget: QWidget) -> None:
         widget.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def open_wait_window(self) -> api_request_task._RequestDialog:
         with patch.object(api_request_task.QApplication, "activeWindow", return_value=self.qgis_window):

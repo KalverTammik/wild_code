@@ -67,7 +67,7 @@ class Sidebar(QWidget):
         cm.addWidget(self.SidebarNavFrame)
 
         # Spacer pushes settings down
-        cm.addItem(QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding))
+        cm.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
 
         # Footer (docked meta bar) – replaces previous settingsFrame
         self.footerContainer = QFrame(self.SidebarMainFrame)
@@ -91,7 +91,7 @@ class Sidebar(QWidget):
             lambda checked=False: self._on_button_clicked(Module.SETTINGS.value, self.settingsButton)
         )
 
-        footer_layout.addWidget(self.settingsButton, 0, Qt.AlignLeft)
+        footer_layout.addWidget(self.settingsButton, 0, Qt.AlignmentFlag.AlignLeft)
         # Track for compact toggle & active styling (same as nav buttons)
         self.moduleButtons[Module.SETTINGS.value] = self.settingsButton
         self.buttonTexts[self.settingsButton] = Module.SETTINGS.value
@@ -113,7 +113,7 @@ class Sidebar(QWidget):
         # --- width animation (animate main frame min width for reliability) ---
         self.animation = QPropertyAnimation(self.SidebarMainFrame, b"minimumWidth")
         self.animation.setDuration(600)
-        self.animation.setEasingCurve(QEasingCurve.OutCubic)
+        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.animation.finished.connect(self._position_toggle)
 
         # keep min/max equal so layout respects width during animation

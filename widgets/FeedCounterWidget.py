@@ -13,7 +13,7 @@ class FeedCounterWidget(QWidget):
         self._loaded = 0
         self._total = 0
         self._label = QLabel(self)
-        self._label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self._label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._label)

@@ -550,11 +550,11 @@ class ProjectPreviewDialog(QDialog):
 
         linked_ids = self._linked_property_ids()
         dialog = PropertyLinkReviewDialog(existing_display, selected_display, self._lang, allow_removal=bool(linked_ids))
-        result = dialog.exec_()
+        result = dialog.exec()
         if dialog.reselect_requested:
             QTimer.singleShot(0, self._start_define_properties_flow)
             return
-        if result != QDialog.Accepted:
+        if result != QDialog.DialogCode.Accepted:
             self._finish_property_selection()
             return
         remove_numbers = [number for number in dialog.numbers_to_remove if number in linked_ids]

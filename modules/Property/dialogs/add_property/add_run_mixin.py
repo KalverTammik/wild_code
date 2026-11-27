@@ -315,7 +315,7 @@ class PropertyAddRunMixin:
             return
         dialog = PropertyImportReviewDialog(self._deferred_additions, lang_manager=self.lang_manager, parent=self)
         try:
-            if dialog.exec_() != QDialog.Accepted:
+            if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
             choices = dialog.selected_decisions()
         finally:

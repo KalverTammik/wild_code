@@ -85,10 +85,10 @@ class FilterRefreshHelper:
             return ThemeManager.get_qicon(IconNames.ICON_CLOSE_X)
 
         tinted = QPixmap(source.size())
-        tinted.fill(Qt.transparent)
+        tinted.fill(Qt.GlobalColor.transparent)
         painter = QPainter(tinted)
         painter.drawPixmap(0, 0, source)
-        painter.setCompositionMode(QPainter.CompositionMode_SourceIn)
+        painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
         painter.fillRect(tinted.rect(), QColor(color))
         painter.end()
 

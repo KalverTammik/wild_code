@@ -26,7 +26,7 @@ from Kavitro_dev.widgets.Filters import filter_refresh_helper as helper_module
 def delete_now(widget) -> None:
     widget.hide()
     widget.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 class FilterClearButtonTest(unittest.TestCase):

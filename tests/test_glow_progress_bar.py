@@ -28,7 +28,7 @@ class GlowProgressBarTest(unittest.TestCase):
         # A top-level widget left for deleteLater crashes a later module at shutdown.
         self.window.hide()
         self.window.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def test_theme_qss_sets_colours_for_both_themes(self):
         for theme, track in (('Light', '#e2eeec'), ('Dark', '#253038')):

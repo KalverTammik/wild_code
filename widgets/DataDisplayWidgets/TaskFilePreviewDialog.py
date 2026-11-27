@@ -208,13 +208,13 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
 
         self._meta_label = QLabel(self)
         self._meta_label.setWordWrap(True)
-        self._meta_label.setTextFormat(Qt.RichText)
+        self._meta_label.setTextFormat(Qt.TextFormat.RichText)
         self._meta_label.setObjectName("TaskFilePreviewMeta")
         layout.addWidget(self._meta_label)
 
         self._notice_label = QLabel(self)
         self._notice_label.setWordWrap(True)
-        self._notice_label.setTextFormat(Qt.PlainText)
+        self._notice_label.setTextFormat(Qt.TextFormat.PlainText)
         self._notice_label.setObjectName("TaskFilePreviewNotice")
         self._notice_label.hide()
         layout.addWidget(self._notice_label)
@@ -305,7 +305,9 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
 
     @staticmethod
     def _plain_text_as_rich_text(value) -> str:
-        return Qt.convertFromPlainText(str(value or ""), Qt.WhiteSpaceNormal)
+        """Escaped text as a rich-text paragraph that keeps its line breaks."""
+        escaped = html.escape(str(value or "").replace("\r\n", "\n"), quote=True)
+        return "<p>" + escaped.replace("\n", "<br>") + "</p>"
 
     def _clear_content(self) -> None:
         while self._content_layout.count():
@@ -328,9 +330,9 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         self._clear_content()
         label = QLabel(message, self._content_frame)
         label.setWordWrap(True)
-        label.setTextFormat(Qt.PlainText)
-        label.setAlignment(Qt.AlignCenter)
-        self._content_layout.addWidget(label, 1, Qt.AlignCenter)
+        label.setTextFormat(Qt.TextFormat.PlainText)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._content_layout.addWidget(label, 1, Qt.AlignmentFlag.AlignCenter)
 
     def _show_failed(self) -> None:
         self._show_placeholder(
@@ -477,20 +479,20 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         self._clear_content()
 
         image_label = QLabel(self._content_frame)
-        image_label.setAlignment(Qt.AlignCenter)
+        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         max_width = 640 if self._compact_mode else 1280
         max_height = 420 if self._compact_mode else 960
-        scaled = pixmap.scaled(max_width, max_height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        scaled = pixmap.scaled(max_width, max_height, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         image_label.setPixmap(scaled)
 
         container = QWidget(self._content_frame)
         container_layout = QVBoxLayout(container)
         container_layout.setContentsMargins(8, 8, 8, 8)
-        container_layout.addWidget(image_label, 1, Qt.AlignCenter)
+        container_layout.addWidget(image_label, 1, Qt.AlignmentFlag.AlignCenter)
 
         scroll = QScrollArea(self._content_frame)
         scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setWidget(container)
         self._content_layout.addWidget(scroll, 1)
 
@@ -505,7 +507,7 @@ class TaskFilePreviewDialog(TaskFilePdfPreviewMixin, QDialog):
         editor = QPlainTextEdit(self._content_frame)
         editor.setReadOnly(True)
         editor.setPlainText(text)
-        editor.setLineWrapMode(QPlainTextEdit.NoWrap)
+        editor.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
 
         self._clear_content()
         self._content_layout.addWidget(editor, 1)

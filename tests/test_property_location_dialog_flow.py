@@ -40,7 +40,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             close_buttons = [b for b in dialog.findChildren(QPushButton)]
             self.assertEqual(len(close_buttons), 1)
             close_buttons[0].click()
-            self.assertEqual(dialog.result(), QDialog.Rejected)
+            self.assertEqual(dialog.result(), QDialog.DialogCode.Rejected)
         finally:
             dialog.deleteLater()
 
@@ -123,7 +123,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                 patch.object(runner_module.ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
                 patch.object(runner_module.MainAddPropertiesFlow, 'add_single_property_item', return_value='created') as create, \
                 patch.object(runner_module.UpdatePropertyData, 'update_single_property_item') as update, \
-                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+                patch.object(AddPropertyDialog, 'exec', return_value=0):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
@@ -147,10 +147,10 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                 self.assertIn('Otsust ootab: 1', dialog.add_progress_label.text())
                 create.assert_called_once()
                 update.assert_not_called()
-                with patch.object(PropertyImportReviewDialog, 'exec_', return_value=0):
+                with patch.object(PropertyImportReviewDialog, 'exec', return_value=0):
                     dialog._on_review_additions()
                 self.assertEqual(len(dialog._deferred_additions), 1)
-                with patch.object(PropertyImportReviewDialog, 'exec_', return_value=1), \
+                with patch.object(PropertyImportReviewDialog, 'exec', return_value=1), \
                         patch.object(PropertyImportReviewDialog, 'selected_decisions', return_value={'1': 'keep'}):
                     dialog._on_review_additions()
                 self.assertEqual(dialog._deferred_additions, [])
@@ -181,7 +181,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                     initial = {'done': 82, 'total': 82, 'succeeded': 81, 'failed': 0, 'pending': 0,
                                'errors': [], 'canceled': False, 'stopped': False, 'deferred': [decision]}
                     dialog._on_add_finished(initial)
-                    with patch.object(PropertyImportReviewDialog, 'exec_', return_value=1), \
+                    with patch.object(PropertyImportReviewDialog, 'exec', return_value=1), \
                             patch.object(PropertyImportReviewDialog, 'selected_decisions', return_value={'1': 'apply'}), \
                             patch.object(AddBatchRunner, 'start'):
                         dialog._on_review_additions()
@@ -336,7 +336,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                 patch.object(PropertyDataLoader, 'prepare_data_for_import_stage1', side_effect=lambda feature: (
                     {'cadastralUnit': {'number': feature[F.tunnus]}, 'address': {'street': 'Address',
                      'houseNumber': feature[F.tunnus]}}, feature[F.tunnus], [], '2025-01-01')), \
-                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+                patch.object(AddPropertyDialog, 'exec', return_value=0):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
@@ -556,7 +556,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                           side_effect=lookup), \
                 patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
-                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+                patch.object(AddPropertyDialog, 'exec', return_value=0):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
@@ -598,7 +598,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             # Every row is always added, so there is nothing to select.
             self.assertIsNone(dialog.select_all_btn)
             self.assertIsNone(dialog.clear_selection_btn)
-            self.assertEqual(dialog.properties_table.selectionMode(), QTableView.NoSelection)
+            self.assertEqual(dialog.properties_table.selectionMode(), QTableView.SelectionMode.NoSelection)
             self.assertEqual(dialog.selection_info.text(), count_text.format(count=1))
             self.assertTrue(dialog.add_without_checks_button.isEnabled())
 
@@ -762,7 +762,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                           side_effect=lookup), \
                 patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
-                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+                patch.object(AddPropertyDialog, 'exec', return_value=0):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
@@ -778,7 +778,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
                 # A check result must not send the add buttons into the review.
                 self.assertFalse(dialog._decisions_from_import)
 
-                with patch.object(PropertyImportReviewDialog, 'exec_', return_value=1), \
+                with patch.object(PropertyImportReviewDialog, 'exec', return_value=1), \
                         patch.object(PropertyImportReviewDialog, 'selected_decisions', return_value={'1': 'apply'}), \
                         patch.object(AddBatchRunner, 'start'):
                     dialog._on_review_additions()
@@ -814,7 +814,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                          side_effect=lookup),
             patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main),
-            patch.object(AddPropertyDialog, 'exec_', return_value=0),
+            patch.object(AddPropertyDialog, 'exec', return_value=0),
         ]
         for started in patches:
             started.start()
@@ -836,7 +836,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         from Kavitro_dev.widgets.property_table.PropertyTableManager import PropertyTableWidget
         row = self.table_ids(dialog).index(tunnus)
         return PropertyTableManager.get_cell_data(
-            dialog.properties_table, row, PropertyTableWidget._COL_BACKEND_ATTENTION, role=Qt.ToolTipRole)
+            dialog.properties_table, row, PropertyTableWidget._COL_BACKEND_ATTENTION, role=Qt.ItemDataRole.ToolTipRole)
 
     def test_turning_the_attention_filter_off_keeps_the_finished_check_result(self):
         """b6: unticking "only needs attention" must not throw the finished check away.
@@ -975,7 +975,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                           side_effect=lookup), \
                 patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
-                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+                patch.object(AddPropertyDialog, 'exec', return_value=0):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
@@ -993,7 +993,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
                 def tip(row):
                     return PropertyTableManager.get_cell_data(
-                        dialog.properties_table, row, PropertyTableWidget._COL_BACKEND_ATTENTION, role=Qt.ToolTipRole)
+                        dialog.properties_table, row, PropertyTableWidget._COL_BACKEND_ATTENTION, role=Qt.ItemDataRole.ToolTipRole)
 
                 self.assertEqual(tip(0), translate(K.PROPERTY_TOOLTIP_BACKEND_OK))
                 self.assertEqual(tip(1), translate(K.PROPERTY_TOOLTIP_BACKEND_ISSUES).format(
@@ -1013,7 +1013,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                           side_effect=lookup), \
                 patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
-                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+                patch.object(AddPropertyDialog, 'exec', return_value=0):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
@@ -1026,7 +1026,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
                 def tip(row, column):
                     return PropertyTableManager.get_cell_data(
-                        dialog.properties_table, row, column, role=Qt.ToolTipRole)
+                        dialog.properties_table, row, column, role=Qt.ItemDataRole.ToolTipRole)
 
                 # Each column names only its own reason instead of one shared list.
                 self.assertEqual(tip(0, PropertyTableWidget._COL_BACKEND_ATTENTION),
@@ -1062,7 +1062,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
         with patch.object(worker_module.BackendPropertyVerifier, 'verify_properties_by_cadastral_number',
                           return_value=backend_info('1')), \
                 patch.object(ActiveLayersHelper, 'resolve_main_property_layer', return_value=main), \
-                patch.object(AddPropertyDialog, 'exec_', return_value=0):
+                patch.object(AddPropertyDialog, 'exec', return_value=0):
             dialog = AddPropertyDialog()
             try:
                 self.wait_until(lambda: dialog.county_combo.isEnabled())
@@ -1080,7 +1080,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
                 def tip(column):
                     return PropertyTableManager.get_cell_data(
-                        dialog.properties_table, 0, column, role=Qt.ToolTipRole)
+                        dialog.properties_table, 0, column, role=Qt.ItemDataRole.ToolTipRole)
 
                 self.assertEqual(tip(PropertyTableWidget._COL_ARCHIVE_BACKEND),
                                  translate(K.PROPERTY_TOOLTIP_ARCHIVE_BACKEND_PLANNED))

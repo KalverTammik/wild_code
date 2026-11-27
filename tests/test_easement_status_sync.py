@@ -121,7 +121,7 @@ class EasementCardStatusTest(unittest.TestCase):
 
         def delete() -> None:
             card.deleteLater()
-            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
         self.addCleanup(delete)
         more = next(button for button in actions.buttons if isinstance(button, MoreActionsButton))

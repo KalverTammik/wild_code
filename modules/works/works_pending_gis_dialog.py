@@ -68,18 +68,18 @@ class WorksPendingGisDialog(QDialog):
                 self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_COL_UPDATED),
             ]
         )
-        self._table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self._table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self._table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.setAlternatingRowColors(True)
         self._table.verticalHeader().setVisible(False)
         self._table.itemDoubleClicked.connect(lambda *_: self._open_selected())
         header = self._table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         root.addWidget(self._table, 1)
 
         buttons = QHBoxLayout()
@@ -117,9 +117,9 @@ class WorksPendingGisDialog(QDialog):
             )
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(value)
-                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 if column_index == 0:
-                    item.setData(Qt.UserRole, feature_id)
+                    item.setData(Qt.ItemDataRole.UserRole, feature_id)
                 self._table.setItem(row_index, column_index, item)
 
         if self._rows:
@@ -136,7 +136,7 @@ class WorksPendingGisDialog(QDialog):
         if item is None:
             return
 
-        feature_id = item.data(Qt.UserRole)
+        feature_id = item.data(Qt.ItemDataRole.UserRole)
         try:
             feature_id_int = int(feature_id)
         except (TypeError, ValueError):

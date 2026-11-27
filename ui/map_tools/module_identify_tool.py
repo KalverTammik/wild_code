@@ -100,7 +100,7 @@ class ModuleIdentifyToolController:
             canvas,
             on_selected=self.handle_map_click,
             on_cancel=self.cancel,
-            cursor=Qt.WhatsThisCursor,
+            cursor=Qt.CursorShape.WhatsThisCursor,
         )
         canvas.setMapTool(self._tool)
         return True
@@ -276,7 +276,7 @@ class ModuleIdentifyToolController:
         try:
             request = QgsFeatureRequest().setFilterRect(search_rect)
             point_geometry = QgsGeometry.fromPointXY(layer_point)
-            is_point_layer = layer.geometryType() == QgsWkbTypes.PointGeometry
+            is_point_layer = layer.geometryType() == QgsWkbTypes.GeometryType.PointGeometry
             closest_feature = None
             closest_distance = float("inf")
 

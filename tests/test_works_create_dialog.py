@@ -52,7 +52,7 @@ class WorksCreateDialogTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.dialog.hide()
         self.dialog.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def _top(self, widget) -> int:
         return widget.mapTo(self.dialog, QPoint(0, 0)).y()
@@ -122,7 +122,7 @@ class WorksCreateDialogTest(unittest.TestCase):
         for combo in (self.dialog._type_combo, self.dialog._responsible_combo, self.dialog._priority_combo):
             self.assertIsInstance(combo.itemDelegate(), QStyledItemDelegate)
             self.assertTrue(combo.view().property("kavitroFormPopup"))
-            self.assertEqual(combo.style().styleHint(QStyle.SH_ComboBox_Popup, None, combo), 0)
+            self.assertEqual(combo.style().styleHint(QStyle.StyleHint.SH_ComboBox_Popup, None, combo), 0)
 
     def test_wrapped_property_text_does_not_push_the_form_over_the_buttons(self) -> None:
         self.dialog.show()
@@ -182,7 +182,7 @@ class WorksCreateDialogTest(unittest.TestCase):
 
     def test_wrapped_property_text_and_coordinates_start_on_the_same_line(self) -> None:
         for value in (self.dialog._property_value, self.dialog._coordinates_value):
-            self.assertTrue(value.alignment() & Qt.AlignTop, value.text())
+            self.assertTrue(value.alignment() & Qt.AlignmentFlag.AlignTop, value.text())
 
     def test_status_control_is_as_tall_as_the_other_inputs(self) -> None:
         self.dialog.show()

@@ -42,7 +42,7 @@ class WorksPendingGisDialogTitleTest(unittest.TestCase):
         def delete() -> None:
             dialog.hide()
             dialog.deleteLater()
-            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
         self.addCleanup(delete)
         return dialog
@@ -62,9 +62,9 @@ class WorksPendingGisDialogTitleTest(unittest.TestCase):
                 title = self._dialog(theme).findChild(QLabel, TITLE_NAME)
                 title.ensurePolished()
 
-                self.assertGreater(title.font().weight(), QFont.Normal)
+                self.assertGreater(title.font().weight(), QFont.Weight.Normal)
                 self.assertEqual(title.font().pixelSize(), 14)
-                self.assertEqual(title.palette().color(QPalette.WindowText).name(), color)
+                self.assertEqual(title.palette().color(QPalette.ColorRole.WindowText).name(), color)
 
 
 if __name__ == "__main__":

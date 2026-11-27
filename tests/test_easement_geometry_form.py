@@ -21,6 +21,7 @@ from Kavitro_dev.modules.easements import easement_geometry_form_dialog as form_
 from Kavitro_dev.modules.easements.easement_geometry_form_dialog import EasementGeometryFormDialog as Form
 from Kavitro_dev.modules.easements.easement_layer_service import EasementLayerService
 from Kavitro_dev.widgets.form_grid import StackedFormGrid
+from qt_compat import qt6_stage4
 
 PREPARING = {"id": "1", "name": "Ettevalmistamisel", "color": "4FBF6B", "type": "OPEN"}
 SIGNED = {"id": "2", "name": "Allkirjastatud", "color": "2188FF", "type": "OPEN"}
@@ -48,7 +49,7 @@ class _FormDialogTest(unittest.TestCase):
         def delete() -> None:
             dialog.hide()
             dialog.deleteLater()
-            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
         self.addCleanup(delete)
         return dialog
@@ -229,11 +230,11 @@ class EasementStatusTest(_EasementFormTest):
 
         def accept(dialog) -> int:
             offered.append(dialog._status.count())
-            return QDialog.Accepted
+            return QDialog.DialogCode.Accepted
 
         with (
             patch.object(form_module.APIModuleActions, "get_module_status_options", return_value=STATUSES) as load,
-            patch.object(Form, "exec_", new=accept),
+            patch.object(Form, "exec", new=accept),
         ):
             values = Form.prompt(item_data={"id": "1", "status": PREPARING})
 
@@ -244,7 +245,7 @@ class EasementStatusTest(_EasementFormTest):
     def test_cancelled_prompt_returns_nothing(self) -> None:
         with (
             patch.object(form_module.APIModuleActions, "get_module_status_options", return_value=STATUSES),
-            patch.object(Form, "exec_", return_value=QDialog.Rejected),
+            patch.object(Form, "exec", return_value=QDialog.DialogCode.Rejected),
         ):
             self.assertIsNone(Form.prompt(item_data={"id": "1", "status": PREPARING}))
 
@@ -349,7 +350,7 @@ class EasementKavitroStatusTest(_EasementFormTest):
         form.accept()
 
         self.update.assert_called_once_with("easement", "1", SIGNED["id"])
-        self.assertEqual(form.result(), QDialog.Accepted)
+        self.assertEqual(form.result(), QDialog.DialogCode.Accepted)
         self.assertEqual(form.kavitro_status(), SIGNED)
 
     def test_unchanged_status_is_not_sent(self) -> None:
@@ -358,7 +359,7 @@ class EasementKavitroStatusTest(_EasementFormTest):
         form.accept()
 
         self.update.assert_not_called()
-        self.assertEqual(form.result(), QDialog.Accepted)
+        self.assertEqual(form.result(), QDialog.DialogCode.Accepted)
 
     def test_refused_status_keeps_the_form_open(self) -> None:
         form = self._show(self._form(PREPARING))
@@ -366,7 +367,7 @@ class EasementKavitroStatusTest(_EasementFormTest):
 
         form.accept()
 
-        self.assertNotEqual(form.result(), QDialog.Accepted)
+        self.assertNotEqual(form.result(), QDialog.DialogCode.Accepted)
         self.assertTrue(form.isVisible())
         self.warning.assert_called_once()
         self.assertEqual(form.kavitro_status(), PREPARING)
@@ -380,7 +381,7 @@ class EasementKavitroStatusTest(_EasementFormTest):
         form.accept()
 
         self.update.assert_called_once()
-        self.assertEqual(form.result(), QDialog.Accepted)
+        self.assertEqual(form.result(), QDialog.DialogCode.Accepted)
         self.assertEqual(form.values()[Form.FIELD_STATUS], "Ootel")
 
     def _prompt(self, *, kavitro, choose=None, accept=True):
@@ -390,14 +391,14 @@ class EasementKavitroStatusTest(_EasementFormTest):
             if choose is not None:
                 dialog._status.set_current_status_id(choose["id"])
             if not accept:
-                return QDialog.Rejected
+                return QDialog.DialogCode.Rejected
             dialog.accept()
             return dialog.result()
 
         self.read.return_value = kavitro
         with (
             patch.object(form_module.APIModuleActions, "get_module_status_options", return_value=STATUSES),
-            patch.object(Form, "exec_", new=run),
+            patch.object(Form, "exec", new=run),
         ):
             values = Form.prompt(item_data={"id": "1", "status": PREPARING}, on_status_changed=reported.append)
         return values, reported
@@ -493,6 +494,7 @@ class EasementFormLayoutTest(_EasementFormTest):
     def test_form_has_no_repeated_title_and_uses_the_form_width(self) -> None:
         self.assert_form_is_finished(self.form)
 
+    @qt6_stage4
     def test_fields_share_rows_and_line_up_on_both_edges(self) -> None:
         self.assert_rows_line_up(self.form, self.data_rows)
 
@@ -521,6 +523,7 @@ class EasementFormLayoutTest(_EasementFormTest):
         self.assertEqual(self._x(form._source), self._x(form._email))
         self.assertEqual(self._x(form._source), self._x(form._compensation))
 
+    @qt6_stage4
     def test_every_single_line_field_has_the_same_height(self) -> None:
         # The status widget's own frame fills the row; what shows is the control inside it.
         visible = [self.form._status._control if field is self.form._status else field for row in self.data_rows[:-1] for field in row]
@@ -654,6 +657,7 @@ class AsBuiltFormTest(_FormDialogTest):
         self.assert_text_area_clears_the_buttons(form, form._notes)
         self.assertGreaterEqual(form._notes.height(), 80)
 
+    @qt6_stage4
     def test_fields_share_rows_and_line_up_on_both_edges(self) -> None:
         form = self._show(self._form())
         network = form._network_checks["Vesi"].parentWidget()
@@ -733,7 +737,7 @@ class EasementFormNumberTest(_EasementFormTest):
 
         form.accept()
 
-        self.assertNotEqual(form.result(), QDialog.Accepted)
+        self.assertNotEqual(form.result(), QDialog.DialogCode.Accepted)
         self.update.assert_not_called()
         self.warning.assert_called_once()
         self.assertIn("Kaitsevööndi laius", self.warning.call_args.args[1])
@@ -744,7 +748,7 @@ class EasementFormNumberTest(_EasementFormTest):
 
         form.accept()
 
-        self.assertEqual(form.result(), QDialog.Accepted)
+        self.assertEqual(form.result(), QDialog.DialogCode.Accepted)
         self.warning.assert_not_called()
 
 

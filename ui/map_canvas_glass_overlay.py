@@ -33,10 +33,10 @@ class MapCanvasGlassOverlayBase(QWidget):
         self._lang = LanguageManager()
 
         self.setObjectName(object_name)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         if parent is None:
-            self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool)
+            self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool)
         self.setFixedSize(*self.SIZE)
 
     def _finish_init(self) -> None:
@@ -57,7 +57,7 @@ class MapCanvasGlassOverlayBase(QWidget):
         self.move(target.x(), self.START_Y)
 
     def eventFilter(self, watched, event) -> bool:  # noqa: N802
-        if watched is self._canvas and event.type() in (QEvent.Resize, QEvent.Show):
+        if watched is self._canvas and event.type() in (QEvent.Type.Resize, QEvent.Type.Show):
             if self.isVisible():
                 self.move(self._target_pos())
             else:
@@ -73,7 +73,7 @@ class MapCanvasGlassOverlayBase(QWidget):
         self._animation.setDuration(240)
         self._animation.setStartValue(self.pos())
         self._animation.setEndValue(self._target_pos())
-        self._animation.setEasingCurve(QEasingCurve.OutCubic)
+        self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._animation.start()
 
     @classmethod

@@ -61,7 +61,7 @@ class AvatarUtils:
 
 class _MembersClickPopup(QFrame):
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.hide()
             event.accept()
             return
@@ -97,15 +97,15 @@ class AvatarBubble(QLabel):
         )
 
         self.setText(AvatarUtils.initials(self.fullname))
-        self.setCursor(Qt.PointingHandCursor)
-        self.setFocusPolicy(Qt.StrongFocus)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         label = self._lang.translate(TranslationKeys.CARD_RESPONSIBLE_UNASSIGNED) if unassigned else self.fullname
         action = self._lang.translate(TranslationKeys.CARD_MEMBERS_OPEN)
         self.setAccessibleName(f"{label}. {action}")
         if unassigned:
             self.setText("")
             self.setToolTip(f"{label}\n{action}")
-        self.setAlignment(Qt.AlignCenter)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Only set tooltip for non-assignee avatars to avoid duplicate info
         if not popup_members and not unassigned:
@@ -165,20 +165,20 @@ class AvatarBubble(QLabel):
         super().paintEvent(event)
         if self._unassigned:
             painter = QPainter(self)
-            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             painter.setPen(QPen(self.palette().text().color(), 1.3))
             painter.drawEllipse(9, 5, 8, 8)
             painter.drawArc(5, 14, 16, 12, 0, 180 * 16)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self._open_members_list()
             event.accept()
             return
         super().mousePressEvent(event)
 
     def keyPressEvent(self, event):
-        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
             self._open_members_list()
             event.accept()
             return
@@ -190,7 +190,7 @@ class AvatarBubble(QLabel):
             return
         PopupHelpers.hide_popup_attr(self, "_members_popup", self._hide_timer, self)
         if self._click_popup is None:
-            popup = _MembersClickPopup(self, Qt.Popup)
+            popup = _MembersClickPopup(self, Qt.WindowType.Popup)
             popup.setObjectName("PopupFrame")
             popup.setProperty("popupKind", "members")
             layout = QVBoxLayout(popup)
@@ -210,14 +210,14 @@ class AvatarBubble(QLabel):
                 names.append((self._lang.translate(TranslationKeys.CARD_MEMBERS_EMPTY), "Label"))
             for text, role in names:
                 label = QLabel(text, body)
-                label.setTextFormat(Qt.PlainText)
+                label.setTextFormat(Qt.TextFormat.PlainText)
                 label.setObjectName(role)
                 label.setWordWrap(True)
                 body_layout.addWidget(label)
             scroll = QScrollArea(popup)
-            scroll.setFrameShape(QFrame.NoFrame)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
             scroll.setWidgetResizable(True)
-            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
             scroll.setWidget(body)
             scroll.setFixedSize(250, min(280, max(45, body.sizeHint().height() + 8)))
             layout.addWidget(scroll)
@@ -237,10 +237,10 @@ class AvatarBubble(QLabel):
                 return
 
 
-            popup = QFrame(self, Qt.ToolTip)
+            popup = QFrame(self, Qt.WindowType.ToolTip)
             popup.setObjectName('PopupFrame')
             popup.setProperty("popupKind", "members")
-            popup.setWindowFlags(Qt.ToolTip)
+            popup.setWindowFlags(Qt.WindowType.ToolTip)
             layout = QVBoxLayout(popup)
             layout.setContentsMargins(8, 8, 8, 8)
             layout.setSpacing(4)
@@ -301,7 +301,7 @@ class MembersView(QWidget):
             resp_layout = QHBoxLayout()
             resp_layout.setContentsMargins(0, 0, 0, 0)
             resp_layout.setSpacing(self.AVATAR_SPACING)
-            resp_layout.setAlignment(Qt.AlignRight | Qt.AlignTop)
+            resp_layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
 
             avatar_count = min(len(responsible_nodes), 3)
 
@@ -322,7 +322,7 @@ class MembersView(QWidget):
         else:
             bubble = AvatarBubble("", popup_members=participant_nodes, unassigned=True,
                                   parent=self)
-            layout.addWidget(bubble, 0, Qt.AlignRight | Qt.AlignTop)
+            layout.addWidget(bubble, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
             self.setFixedWidth(self.AVATAR_SIZE + self.SIDE_PADDING)
 
     def retheme(self):

@@ -94,14 +94,14 @@ class ResponsiveCornerWidget:
 
         if compact:
             if self.members_view:
-                self.layout.addWidget(self.members_view, 0, 0, 1, 2, Qt.AlignHCenter | Qt.AlignTop)
-            self.layout.addWidget(self.dates_widget, 1, 0, 1, 2, Qt.AlignHCenter | Qt.AlignTop)
-            self.layout.addWidget(self.actions_widget, 2, 0, 1, 2, Qt.AlignHCenter | Qt.AlignTop)
+                self.layout.addWidget(self.members_view, 0, 0, 1, 2, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            self.layout.addWidget(self.dates_widget, 1, 0, 1, 2, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            self.layout.addWidget(self.actions_widget, 2, 0, 1, 2, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         else:
-            self.layout.addWidget(self.dates_widget, 0, 0, Qt.AlignRight | Qt.AlignTop)
-            self.layout.addWidget(self.actions_widget, 1, 0, Qt.AlignRight | Qt.AlignTop)
+            self.layout.addWidget(self.dates_widget, 0, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+            self.layout.addWidget(self.actions_widget, 1, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
             if self.members_view:
-                self.layout.addWidget(self.members_view, 0, 1, 2, 1, Qt.AlignRight | Qt.AlignTop)
+                self.layout.addWidget(self.members_view, 0, 1, 2, 1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
 
         self.widget.updateGeometry()
 
@@ -218,7 +218,7 @@ class ModuleCardFactory:
         left_column_layout.setSpacing(6)
 
         right_column = QWidget(content)
-        right_column.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        right_column.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         right_column_layout = QVBoxLayout(right_column)
         right_column_layout.setContentsMargins(0, 1, 0, 0)
         right_column_layout.setSpacing(2)
@@ -228,7 +228,7 @@ class ModuleCardFactory:
             raise ValueError("Module feed items must include an 'id' field")
 
         header_frame = InfocardHeaderFrame(item_data, module_name=module_name)
-        left_column_layout.addWidget(header_frame, 0, Qt.AlignTop)
+        left_column_layout.addWidget(header_frame, 0, Qt.AlignmentFlag.AlignTop)
 
         dates_widget = DatesWidget(
             item_data,
@@ -256,11 +256,11 @@ class ModuleCardFactory:
         corner_widget._responsive_controller = corner_widget_controller
         left_column._responsive_source = "left-column"
 
-        right_column_layout.addWidget(corner_widget, 0, Qt.AlignRight | Qt.AlignTop)
+        right_column_layout.addWidget(corner_widget, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
         right_column_layout.addStretch(1)
 
         content_columns.addWidget(left_column, 1)
-        content_columns.addWidget(right_column, 0, Qt.AlignTop)
+        content_columns.addWidget(right_column, 0, Qt.AlignmentFlag.AlignTop)
         cl.addLayout(content_columns)
 
         contacts_widget = ContactsWidget(item_data, parent=content)

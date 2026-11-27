@@ -54,7 +54,7 @@ class _WidgetTest(unittest.TestCase):
             if widget.objectName() in ("StatusSelectPopup", "StatusMultiSelectPopup"):
                 widget.close()
         self.host.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def rows(self, popup):
         return popup.findChildren(QFrame, "StatusSelectOptionRow")
@@ -148,7 +148,7 @@ class StatusSelectWidgetTest(_WidgetTest):
         self.assertEqual(self.marked(popup), ["Töös"])
         self.assertEqual(self.rows(popup)[0].toolTip(), "Algne")
         self.assertGreaterEqual(popup.findChild(QFrame, "StatusSelectPopupFrame").minimumWidth(), 260)
-        QTest.mouseClick(self.rows(popup)[2], Qt.LeftButton)
+        QTest.mouseClick(self.rows(popup)[2], Qt.MouseButton.LeftButton)
         self.assertIsNone(widget._popup)
         changed.assert_called_once_with("3", "Valmis")
 
@@ -168,10 +168,10 @@ class StatusSelectWidgetTest(_WidgetTest):
     def test_control_click_and_keyboard_open_the_popup(self):
         widget = self.make()
         widget.set_options(OPTIONS)
-        QTest.mouseClick(widget._control, Qt.LeftButton)
+        QTest.mouseClick(widget._control, Qt.MouseButton.LeftButton)
         self.assertIsNotNone(widget._popup)
         widget._close_popup()
-        QTest.keyClick(widget._control, Qt.Key_Space)
+        QTest.keyClick(widget._control, Qt.Key.Key_Space)
         self.assertIsNotNone(widget._popup)
 
     def test_control_style(self):
@@ -181,10 +181,10 @@ class StatusSelectWidgetTest(_WidgetTest):
         style = widget._control.styleSheet()
         self.assertIn("min-height: 28px;", style)
         self.assertIn("0.12)", style)
-        self.assertEqual(widget._control.cursor().shape(), Qt.PointingHandCursor)
+        self.assertEqual(widget._control.cursor().shape(), Qt.CursorShape.PointingHandCursor)
         widget.setEnabled(False)
         self.assertIn("background-color: #f2f4f7;", widget._control.styleSheet())
-        self.assertEqual(widget._control.cursor().shape(), Qt.ArrowCursor)
+        self.assertEqual(widget._control.cursor().shape(), Qt.CursorShape.ArrowCursor)
         widget.set_current_status_id("")
         widget.setEnabled(True)
         self.assertIn("background-color: #ffffff;", widget._control.styleSheet())
@@ -272,7 +272,7 @@ class StatusMultiSelectWidgetTest(_WidgetTest):
         self.assertEqual((select_all.text(), clear.text()), ("T:Select All", "T:Clear Selection"))
         self.assertEqual((select_all.isEnabled(), clear.isEnabled()), (True, True))
 
-        QTest.mouseClick(self.rows(popup)[0], Qt.LeftButton)
+        QTest.mouseClick(self.rows(popup)[0], Qt.MouseButton.LeftButton)
         self.assertEqual(changed.call_args.args, (["Uus", "Töös"], ["1", "2"]))
         self.assertEqual(self.marked(popup), ["Uus", "Töös"])
         self.assertIs(widget._popup, popup)
@@ -292,7 +292,7 @@ class StatusMultiSelectWidgetTest(_WidgetTest):
         widget = self.make()
         widget.set_options(OPTIONS, selected_ids=["1", "3"])
         widget._toggle_popup()
-        QTest.mouseClick(self.rows(widget._popup)[2], Qt.LeftButton)
+        QTest.mouseClick(self.rows(widget._popup)[2], Qt.MouseButton.LeftButton)
         self.assertEqual(widget.selected_ids(), ["1"])
 
     def test_setting_ids_with_an_open_popup_rebuilds_it(self):

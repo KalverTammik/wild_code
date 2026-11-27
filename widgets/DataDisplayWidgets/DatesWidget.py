@@ -19,10 +19,10 @@ class DatesPopupWidget(QWidget):
         self.dates_list = dates_list
 
         # Set popup properties
-        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
-        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
-        self.setFocusPolicy(Qt.NoFocus)
+        self.setWindowFlags(Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setMouseTracking(True)
 
         # Create a frame for the content with theming
@@ -170,7 +170,7 @@ class DatesWidget(QWidget):
 
         primary_label = QLabel(f"{label_text}:")
         primary_label.setObjectName("DateLabel")
-        due_layout.addWidget(primary_label, 0, Qt.AlignHCenter if compact else Qt.AlignLeft)
+        due_layout.addWidget(primary_label, 0, Qt.AlignmentFlag.AlignHCenter if compact else Qt.AlignmentFlag.AlignLeft)
 
         due_value = QLabel(value_text)
         due_value.setObjectName("DateValue")
@@ -181,7 +181,7 @@ class DatesWidget(QWidget):
         elif state == 'soon':
             due_value.setProperty("due_soon", "true")
 
-        due_layout.addWidget(due_value, 0, Qt.AlignHCenter if compact else Qt.AlignLeft)
+        due_layout.addWidget(due_value, 0, Qt.AlignmentFlag.AlignHCenter if compact else Qt.AlignmentFlag.AlignLeft)
         if not compact:
             due_layout.addStretch()
 

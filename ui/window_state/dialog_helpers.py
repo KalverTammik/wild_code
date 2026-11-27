@@ -13,7 +13,7 @@ class DialogHelpers:
     @staticmethod
     def open_folder_rule_dialog(dialog: Any, dialog_class: Any, accepted_value: Any, current_value: T) -> T:
         dlg = dialog_class(dialog, initial_rule=current_value)
-        result = dlg.exec_()
+        result = dlg.exec()
         if result == accepted_value:
             return dlg.get_rule()
         return current_value

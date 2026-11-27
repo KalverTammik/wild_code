@@ -352,7 +352,7 @@ class PropertyManagementUI(SettingsBaseCard):
         def show_progress(done: int, _total: int) -> None:
             progress.update(value=done, text1=label)
             # Repaints only: a click must not start another action while the layer is being edited.
-            QCoreApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
+            QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
 
         try:
             ok, error, changed_count = PropertySearchFieldService.ensure_search_field(

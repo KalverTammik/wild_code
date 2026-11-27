@@ -172,7 +172,7 @@ class PropertyDataLoader:
             request = QgsFeatureRequest()
             request.setFilterExpression(PropertyDataLoader._in_expr(field_name, chunk))
             if not include_geometry:
-                request.setFlags(QgsFeatureRequest.NoGeometry)
+                request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
             for feature in layer.getFeatures(request):
                 key = str(feature.attribute(field_name) or "").strip()
                 if not key:

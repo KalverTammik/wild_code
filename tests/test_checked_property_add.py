@@ -444,7 +444,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
                 thread = controller._thread
                 if first == 'pause':
                     # Proceed only once the pause was reported, so its notices reach a deleted controller.
-                    controller._worker.waiting.connect(lambda *_: busy.set(), type=Qt.DirectConnection)
+                    controller._worker.waiting.connect(lambda *_: busy.set(), type=Qt.ConnectionType.DirectConnection)
                     gate.set()
                 try:
                     self.assertTrue(busy.wait(5))

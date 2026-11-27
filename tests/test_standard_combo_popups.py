@@ -21,6 +21,7 @@ from Kavitro_dev.modules.asbuilt.asbuilt_geometry_form_dialog import AsBuiltGeom
 from Kavitro_dev.widgets.LocationFilterWidget import LocationFilterWidget
 from Kavitro_dev.widgets.select_arrow import SelectArrow
 from Kavitro_dev.ui.theme_manager import ThemeManager
+from qt_compat import qt6_stage4
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 
@@ -40,7 +41,7 @@ class StandardComboPopupTest(unittest.TestCase):
     def _delete_later(self, widget) -> None:
         def delete() -> None:
             widget.deleteLater()
-            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
         self.addCleanup(delete)
 
@@ -67,6 +68,7 @@ class StandardComboPopupTest(unittest.TestCase):
         self.assertIsInstance(widget.city_combo, QgsCheckableComboBox)
         self.assertFalse(widget.city_combo.view().property("kavitroFormPopup"))
 
+    @qt6_stage4
     def test_settings_retheme_keeps_the_list_popup(self) -> None:
         combo = QComboBox()
         self._delete_later(combo)

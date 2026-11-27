@@ -86,7 +86,7 @@ class FilterHelper:
         try:
             for row in range(widget.combo.count()):
                 val = widget.combo.itemData(row)
-                state = Qt.Checked if str(val) in ids_set else Qt.Unchecked
+                state = Qt.CheckState.Checked if str(val) in ids_set else Qt.CheckState.Unchecked
                 widget.combo.setItemCheckState(row, state)
         finally:
             widget._suppress_emit = False

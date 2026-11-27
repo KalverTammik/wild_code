@@ -11,7 +11,7 @@ from ...python.responses import DataDisplayExtractors
 class _ContactEntryWidget(QWidget):
     def __init__(self, label_text: str, notes_text: str = "", parent=None):
         super().__init__(parent)
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -19,9 +19,9 @@ class _ContactEntryWidget(QWidget):
 
         chip = QLabel(label_text, self)
         chip.setObjectName("ContactChip")
-        chip.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        chip.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         chip.adjustSize()
-        layout.addWidget(chip, 0, Qt.AlignLeft | Qt.AlignTop)
+        layout.addWidget(chip, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
         trimmed_notes = notes_text.strip()
         if trimmed_notes:
@@ -29,14 +29,14 @@ class _ContactEntryWidget(QWidget):
             notes_label.setObjectName("ContactNote")
             notes_label.setWordWrap(False)
             notes_label.setToolTip(trimmed_notes)
-            notes_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-            layout.addWidget(notes_label, 0, Qt.AlignLeft | Qt.AlignTop)
+            notes_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+            layout.addWidget(notes_label, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
 
 class _WrappingContactsContainer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._items = []
         self._wrap_width = 0
         self._last_available_width = -1
@@ -103,7 +103,7 @@ class _WrappingContactsContainer(QWidget):
                 column = 0
                 used_width = 0
 
-            self._layout.addWidget(widget, row, column, Qt.AlignLeft | Qt.AlignTop)
+            self._layout.addWidget(widget, row, column, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
             placements.append(f"{index}:{row},{column}:{item_width}")
             used_width = item_width if column == 0 else used_width + spacing + item_width
             column += 1
@@ -136,8 +136,8 @@ class ContactsWidget(QFrame):
             self.setVisible(False)
             return
 
-        self.setFrameShape(QFrame.NoFrame)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._root = QHBoxLayout(self)
         self._root.setContentsMargins(0, 0, 0, 0)
         self._root.setSpacing(4)
@@ -146,7 +146,7 @@ class ContactsWidget(QFrame):
         self._icon_label.setObjectName("ContactsIcon")
         self._icon_label.setFixedSize(16, 16)
         self._icon_label.setPixmap(ThemeManager.get_qicon(IconNames.ICON_CONTACTS).pixmap(16, 16))
-        self._root.addWidget(self._icon_label, 0, Qt.AlignLeft | Qt.AlignTop)
+        self._root.addWidget(self._icon_label, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
         self._body = _WrappingContactsContainer(self)
         for contact in contacts:

@@ -48,7 +48,7 @@ class NotesDialogTest(unittest.TestCase):
     def _delete(dialog: AsBuiltNotesEditorDialog) -> None:
         dialog.hide()
         dialog.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     @staticmethod
     def texts(dialog: AsBuiltNotesEditorDialog, object_name: str) -> list[str]:
@@ -121,7 +121,7 @@ class NotesDialogTest(unittest.TestCase):
 
         dialog._rows()[3].delete_button.click()
         dialog._rows()[2].delete_button.click()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
         self.assertEqual(self.texts(dialog, "AsBuiltNotesGroupTitle"), ["02.04.2026"])
         self.assertEqual(dialog.get_notes(), NOTES[:2])

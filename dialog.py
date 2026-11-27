@@ -80,10 +80,10 @@ class PluginDialog(QDialog):
 
         # Window flags (only once)
         self.setWindowFlags(
-            Qt.Window |
-            Qt.WindowMinimizeButtonHint |
-            Qt.WindowMaximizeButtonHint |
-            Qt.WindowCloseButtonHint
+            Qt.WindowType.Window |
+            Qt.WindowType.WindowMinimizeButtonHint |
+            Qt.WindowType.WindowMaximizeButtonHint |
+            Qt.WindowType.WindowCloseButtonHint
         )
 
         # Title + icon
@@ -96,7 +96,7 @@ class PluginDialog(QDialog):
 
         # Core widgets
         self.moduleStack = QStackedWidget()
-        self.moduleStack.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.moduleStack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
 
         self._geometry_watcher = DialogGeometryWatcher(self)
@@ -134,7 +134,7 @@ class PluginDialog(QDialog):
 
         content_widget = QWidget()
         content_widget.setLayout(center_layout)
-        content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         content_layout.addWidget(content_widget)
 
         dialog_layout.addLayout(content_layout)

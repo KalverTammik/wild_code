@@ -42,7 +42,7 @@ class EasementCardActions:
             module_name=Module.EASEMENT.value,
             parent=self._host.window(),
         )
-        dialog.exec_()
+        dialog.exec()
 
     def _controller_for_item(self) -> Optional[EasementAttachExistingController]:
         if not DataDisplayExtractors.extract_item_id(self._host.item_data):
@@ -85,7 +85,7 @@ class EasementCardActions:
             parent=self._host.safe_parent_window(),
             on_status_changed=self._host.apply_item_status,
         )
-        dialog.setAttribute(Qt.WA_DeleteOnClose, True)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         dialog.finished.connect(self._forget_preview)
         self._preview_dialog = dialog
         dialog.show()

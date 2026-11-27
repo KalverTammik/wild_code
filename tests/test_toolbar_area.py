@@ -27,7 +27,7 @@ class ToolbarLeftSlotTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.host.hide()
         self.host.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def test_filter_sits_in_the_left_grid_without_a_wrapper(self) -> None:
         first, second = QComboBox(), QComboBox()

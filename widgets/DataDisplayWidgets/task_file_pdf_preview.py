@@ -9,7 +9,12 @@ from qgis.PyQt.QtCore import QUrl
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...languages.translation_keys import TranslationKeys
-from .task_file_external_open import create_external_temp_file, remove_temp_file_quietly
+from .task_file_external_open import (
+    create_external_temp_file,
+    remove_temp_file_quietly,
+    web_attribute,
+    webengine_classes,
+)
 from .task_file_identity import safe_int
 
 
@@ -66,7 +71,7 @@ class TaskFilePdfPreviewMixin:
             return
 
         try:
-            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView
+            settings_cls, view_cls = webengine_classes()
         except ImportError:
             self._show_placeholder(
                 self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
@@ -75,8 +80,8 @@ class TaskFilePdfPreviewMixin:
 
         if self._load_pdf_webengine_preview(
             self._local_file_path,
-            webengine_settings_cls=QWebEngineSettings,
-            webengine_view_cls=QWebEngineView,
+            webengine_settings_cls=settings_cls,
+            webengine_view_cls=view_cls,
         ):
             self._last_url = QUrl.fromLocalFile(self._local_file_path).toString()
             return
@@ -108,8 +113,7 @@ class TaskFilePdfPreviewMixin:
             return
 
         try:
-            # inline import: QtWebEngine is optional in some QGIS Qt5 builds; import lazily to avoid breaking plugin startup.
-            from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView  # noqa: F401 - availability check
+            webengine_classes()  # availability check
         except ImportError:
             self._show_placeholder(
                 self._lang.translate(TranslationKeys.TASK_FILES_PREVIEW_UNSUPPORTED)
@@ -120,8 +124,7 @@ class TaskFilePdfPreviewMixin:
         self._fetch_preview_in_background(file_uuid, self.PDF_PREVIEW_MAX_BYTES, self._apply_pdf_preview_payload)
 
     def _apply_pdf_preview_payload(self, payload: dict) -> None:
-        # inline import: checked in _load_pdf_preview before the fetch started.
-        from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView
+        settings_cls, view_cls = webengine_classes()  # checked in _load_pdf_preview before the fetch started
 
         self._last_url = str(payload.get("url") or "").strip()
         if payload.get("truncated"):
@@ -142,8 +145,8 @@ class TaskFilePdfPreviewMixin:
 
         if self._load_pdf_webengine_preview(
             temp_path,
-            webengine_settings_cls=QWebEngineSettings,
-            webengine_view_cls=QWebEngineView,
+            webengine_settings_cls=settings_cls,
+            webengine_view_cls=view_cls,
         ):
             return
 
@@ -177,15 +180,12 @@ class TaskFilePdfPreviewMixin:
             settings = None
 
         if settings is not None:
-            if hasattr(webengine_settings_cls, "PdfViewerEnabled"):
+            for name in ("PdfViewerEnabled", "PluginsEnabled"):
+                attribute = web_attribute(webengine_settings_cls, name)
+                if attribute is None:
+                    continue
                 try:
-                    settings.setAttribute(webengine_settings_cls.PdfViewerEnabled, True)
-                except (TypeError, RuntimeError):
-                    pass
-
-            if hasattr(webengine_settings_cls, "PluginsEnabled"):
-                try:
-                    settings.setAttribute(webengine_settings_cls.PluginsEnabled, True)
+                    settings.setAttribute(attribute, True)
                 except (TypeError, RuntimeError):
                     pass
 

@@ -23,7 +23,7 @@ class EasementLayerService(AttachableLayerServiceBase):
     LAYER_MISSING_KEY = TranslationKeys.EASEMENT_LAYER_MISSING
     LAYER_AMBIGUOUS_KEY = TranslationKeys.EASEMENT_MAIN_LAYER_AMBIGUOUS
     DRAW_START_FAILED_KEY = TranslationKeys.EASEMENT_DRAW_NEW_START_FAILED
-    REQUIRED_GEOMETRY = QgsWkbTypes.PolygonGeometry
+    REQUIRED_GEOMETRY = QgsWkbTypes.GeometryType.PolygonGeometry
     LAYER_INVALID_GEOMETRY_KEY = TranslationKeys.EASEMENT_LAYER_INVALID_GEOMETRY
     INVALID_LAYER_TEXT = TranslationKeys.LAYER_EDIT_INVALID_LAYER
     FIELDS_TEXTS = LayerEditTexts(

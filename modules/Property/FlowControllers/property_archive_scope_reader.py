@@ -51,7 +51,7 @@ def read_scope_features(layer, scope: PropertyArchiveScope) -> dict[str, object]
     )
     request = QgsFeatureRequest()
     request.setFilterExpression(expression)
-    request.setFlags(QgsFeatureRequest.NoGeometry)
+    request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
     result: dict[str, object] = {}
     for feature in layer.getFeatures(request):
         tunnus = str(feature.attribute(Katastriyksus.tunnus) or "").strip()
@@ -72,7 +72,7 @@ def find_import_tunnused(import_layer, tunnused: set[str]) -> set[str]:
     expression = PropertyDataLoader._in_expr(Katastriyksus.tunnus, sorted(tunnused))
     request = QgsFeatureRequest()
     request.setFilterExpression(expression)
-    request.setFlags(QgsFeatureRequest.NoGeometry)
+    request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
     found = set()
     for feature in import_layer.getFeatures(request):
         tunnus = str(feature.attribute(Katastriyksus.tunnus) or "").strip()

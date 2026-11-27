@@ -6,6 +6,7 @@ from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -658,7 +659,7 @@ class SettingsProjectBaseLayersCard(SettingsBaseCard):
 
     def _ask_geospatial_setup(self) -> None:
         dialog = GeospatialSetupDialog(lang_manager=self.lang_manager, parent=self)
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         self._pend_setup_mode = self.SETUP_MODE_GEOSPATIAL
         self._update_geospatial_mode_ui()

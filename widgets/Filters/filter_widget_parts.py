@@ -161,14 +161,14 @@ class PickerFilterMixin(FilterLoadingMixin):
             if val is None:
                 continue
             total += 1
-            if self._options_combo.itemCheckState(i) == Qt.Checked:
+            if self._options_combo.itemCheckState(i) == Qt.CheckState.Checked:
                 checked += 1
         if total == 0 or checked == 0:
-            state = Qt.Unchecked
+            state = Qt.CheckState.Unchecked
         elif checked == total:
-            state = Qt.Checked
+            state = Qt.CheckState.Checked
         else:
-            state = Qt.PartiallyChecked
+            state = Qt.CheckState.PartiallyChecked
         self._set_all_cb_state(state)
 
     def _apply_select_all(self, checked: bool) -> None:
@@ -179,7 +179,7 @@ class PickerFilterMixin(FilterLoadingMixin):
             self._options_combo.deselectAllOptions()
             return
 
-        target_state = Qt.Checked if checked else Qt.Unchecked
+        target_state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
         for i in range(self._options_combo.count()):
             if self._options_combo.itemData(i) is None:
                 continue
@@ -197,9 +197,9 @@ class PickerControlBase(QFrame):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setObjectName(self.CONTROL_NAME)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setFocusPolicy(Qt.StrongFocus)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 4, 8, 4)
@@ -207,27 +207,27 @@ class PickerControlBase(QFrame):
 
         self._label = QLabel("", self)
         self._label.setObjectName(self.SUMMARY_NAME)
-        self._label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self._label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self._label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self._label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
         self._arrow = SelectArrow(self)
 
         layout.addWidget(self._label, 1)
-        layout.addWidget(self._arrow, 0, Qt.AlignVCenter)
+        layout.addWidget(self._arrow, 0, Qt.AlignmentFlag.AlignVCenter)
         self.apply_style()
 
     def set_summary(self, text: str) -> None:
         self._label.setText(text)
 
     def mousePressEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton and self.isEnabled():
+        if event.button() == Qt.MouseButton.LeftButton and self.isEnabled():
             self.clicked.emit()
             event.accept()
             return
         super().mousePressEvent(event)
 
     def keyPressEvent(self, event) -> None:  # noqa: N802
-        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
             self.clicked.emit()
             event.accept()
             return
@@ -273,9 +273,9 @@ class PickerPopupBase(QWidget):
     ACTION_BACKGROUND = "frame_bg"
 
     def __init__(self, owner, *, min_width: int, parent=None) -> None:
-        super().__init__(parent, flags=Qt.Popup | Qt.FramelessWindowHint)
+        super().__init__(parent, flags=Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
         self.setObjectName(f"{self.NAME}Popup")
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         self._owner = owner
         self._min_width = max(self.MIN_WIDTH, min_width)
 

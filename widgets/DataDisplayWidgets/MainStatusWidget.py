@@ -7,6 +7,7 @@ from qgis.PyQt.QtWidgets import QLabel, QFrame, QHBoxLayout, QSizePolicy, QVBoxL
 
 from ...python.responses import DataDisplayExtractors
 from ...ui.window_state.popup_helpers import PopupHelpers
+from ...utils.qt_events import global_pos
 from ...utils.status_color_helper import StatusColorHelper
 from ...ui.theme_manager import ThemeManager, Theme, is_dark, styleExtras, ThemeShadowColors, IntensityLevels
 from .status_change_controller import StatusChangeController
@@ -14,12 +15,12 @@ from .status_change_controller import StatusChangeController
 
 class StatusPopupWidget(QWidget):
     def __init__(self, status_name: str, parent=None):
-        super().__init__(parent, flags=Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        super().__init__(parent, flags=Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setObjectName("StatusPopup")
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
-        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
-        self.setFocusPolicy(Qt.NoFocus)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setMouseTracking(True)
 
         layout = QVBoxLayout(self)
@@ -34,7 +35,7 @@ class StatusPopupWidget(QWidget):
 
         label = QLabel(status_name, frame)
         label.setObjectName("Value")
-        label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         frame_layout.addWidget(label)
 
         layout.addWidget(frame)
@@ -50,7 +51,7 @@ class MainStatusWidget(QWidget):
     def __init__(self, item_data, module_name: Optional[str] = None, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setObjectName("MainStatusWidget")
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self.setFixedWidth(self.RAIL_WIDTH)
         self._module_name = str(module_name or "").strip().lower()
         self.hover_popup = None
@@ -86,7 +87,7 @@ class MainStatusWidget(QWidget):
         self.rail_frame.setObjectName("MainStatusRail")
         self.rail_frame.setFixedWidth(self.RAIL_WIDTH)
         self.rail_frame.setMinimumHeight(0)
-        self.rail_frame.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.rail_frame.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
         self.rail_frame.setToolTip("")
         self.rail_frame.setMouseTracking(True)
         self.rail_frame.installEventFilter(self)
@@ -116,7 +117,7 @@ class MainStatusWidget(QWidget):
 
         rail_layout.addWidget(self.core_fill, 1)
 
-        root.addWidget(self.rail_frame, 0, Qt.AlignLeft)
+        root.addWidget(self.rail_frame, 0, Qt.AlignmentFlag.AlignLeft)
         self._apply_status_colors(str(status_info.color or "cccccc"))
 
         PopupHelpers.bind_hide_timeout_attr_for(
@@ -128,7 +129,7 @@ class MainStatusWidget(QWidget):
             event_filter_owner=self,
         )
 
-        self._idle_cursor = Qt.PointingHandCursor if self._status_changes.can_edit_status() else None
+        self._idle_cursor = Qt.CursorShape.PointingHandCursor if self._status_changes.can_edit_status() else None
         self._show_idle_cursor()
 
     def apply_status(self, item_data) -> None:
@@ -150,7 +151,7 @@ class MainStatusWidget(QWidget):
         self._busy = bool(busy)
         for widget in (self, self.rail_frame):
             if self._busy:
-                widget.setCursor(Qt.BusyCursor)
+                widget.setCursor(Qt.CursorShape.BusyCursor)
         if not self._busy:
             self._show_idle_cursor()
         self._apply_status_colors(self._status_color)
@@ -176,10 +177,10 @@ class MainStatusWidget(QWidget):
         event_type = event.type()
 
         if obj is self.rail_frame:
-            if event_type == QEvent.Enter:
-                self.show_status_popup(event.globalPos())
-            elif event_type == QEvent.MouseMove:
-                self._reposition_status_popup(event.globalPos())
+            if event_type == QEvent.Type.Enter:
+                self.show_status_popup(global_pos(event))
+            elif event_type == QEvent.Type.MouseMove:
+                self._reposition_status_popup(global_pos(event))
 
         PopupHelpers.handle_popup_hover_event(
             obj,
@@ -229,7 +230,7 @@ class MainStatusWidget(QWidget):
 
     def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
         if (
-            event.button() == Qt.LeftButton
+            event.button() == Qt.MouseButton.LeftButton
             and self._status_changes.can_edit_status()
         ):
             self.close_hover_popup()  # the menu replaces the name tooltip

@@ -24,7 +24,7 @@ from Kavitro_dev.ui.mixins.token_mixin import TokenMixin
 def delete_now(widget: QWidget) -> None:
     widget.hide()
     widget.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 class TokenOwner(TokenMixin):

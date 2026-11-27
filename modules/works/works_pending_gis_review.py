@@ -61,7 +61,7 @@ class WorksPendingGisReviewMixin:
             ),
             parent=parent_window,
         )
-        dialog.exec_()
+        dialog.exec()
         return True
 
     def _scan_pending_gis_features_with_feedback(
@@ -79,7 +79,7 @@ class WorksPendingGisReviewMixin:
             progress.show_near_anchor()
         else:
             progress.show()
-        QApplication.setOverrideCursor(Qt.WaitCursor)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         QApplication.processEvents()
 
         try:
@@ -97,7 +97,7 @@ class WorksPendingGisReviewMixin:
 
         progress = QProgressDialog(text, "", 0, 0, parent_window)
         progress.setWindowTitle(self._lang.translate(TranslationKeys.WORKS_PENDING_GIS_DIALOG_TITLE))
-        progress.setWindowModality(Qt.ApplicationModal)
+        progress.setWindowModality(Qt.WindowModality.ApplicationModal)
         progress.setMinimumDuration(0)
         progress.setCancelButton(None)
         # The same look and width as the other short waits; without it the window takes QGIS's own.

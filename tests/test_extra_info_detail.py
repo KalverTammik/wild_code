@@ -49,7 +49,7 @@ class ExtraInfoDetailTest(unittest.TestCase):
     def tearDown(self) -> None:
         for frame in self.frames:
             frame.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         ExtraInfoFrame._set_expanded_project_frame(None)
 
     def frame(self, module_name: str) -> ExtraInfoFrame:

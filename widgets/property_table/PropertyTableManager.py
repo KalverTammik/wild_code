@@ -75,7 +75,7 @@ class PropertyTableManager:
         selected_rows = table.selectionModel().selectedRows() if table.selectionModel() else []
         selected_features = set()
         for index in selected_rows:
-            feature = PropertyTableManager.get_cell_data(table, index.row(), 0, role=Qt.UserRole)
+            feature = PropertyTableManager.get_cell_data(table, index.row(), 0, role=Qt.ItemDataRole.UserRole)
             if feature:
                 selected_features.add(feature)
         return list(selected_features)
@@ -119,7 +119,7 @@ class PropertyTableManager:
                 return ("obj", id(feature))
 
         for row in rows:
-            feature = PropertyTableManager.get_cell_data(table, row, 0, role=Qt.UserRole)
+            feature = PropertyTableManager.get_cell_data(table, row, 0, role=Qt.ItemDataRole.UserRole)
             if not feature:
                 continue
             key = _feature_key(feature)
@@ -138,12 +138,12 @@ class PropertyTableManager:
             model = table.model()
             if model is None:
                 return ""
-            return str(model.data(model.index(int(row), int(col)), Qt.DisplayRole) or "").strip()
+            return str(model.data(model.index(int(row), int(col)), Qt.ItemDataRole.DisplayRole) or "").strip()
         except (TypeError, ValueError, RuntimeError):  # non-numeric row/col, or the table is already deleted
             return ""
 
     @staticmethod
-    def get_cell_data(table, row: int, col: int, *, role=Qt.UserRole) -> Any:
+    def get_cell_data(table, row: int, col: int, *, role=Qt.ItemDataRole.UserRole) -> Any:
         if table is None:
             return None
         try:
@@ -231,7 +231,7 @@ class PropertyTableManager:
             table.setRowHidden(row, False)
 
     @staticmethod
-    def get_payload_field_value(table, row: int, payload_col: int, field_key: object, *, role=Qt.UserRole) -> Any:
+    def get_payload_field_value(table, row: int, payload_col: int, field_key: object, *, role=Qt.ItemDataRole.UserRole) -> Any:
         """Read a field value from the payload stored in a table cell.
 
         Supports QgsFeature and other dict-like payloads implementing `__getitem__`.
@@ -252,7 +252,7 @@ class PropertyTableManager:
         payload_col: int,
         field_key: object,
         *,
-        role=Qt.UserRole,
+        role=Qt.ItemDataRole.UserRole,
         normalizer: Optional[Callable[[Any], Optional[str]]] = None,
         default: str = "",
     ) -> str:
@@ -355,7 +355,7 @@ class PropertyTableWidget:
 
         table_frame = QFrame()
         table_frame.setObjectName("TableFrame")
-        table_frame.setFrameStyle(QFrame.StyledPanel)
+        table_frame.setFrameStyle(QFrame.Shape.StyledPanel)
         table_layout = QVBoxLayout(table_frame)
         table_layout.setContentsMargins(6, 6, 6, 6)
         table_layout.setSpacing(6)
@@ -367,7 +367,7 @@ class PropertyTableWidget:
         properties_table.setAlternatingRowColors(True)
         try:
             properties_table.setShowGrid(True)                 # or False if you want cleaner blocks
-            properties_table.setGridStyle(Qt.SolidLine)
+            properties_table.setGridStyle(Qt.PenStyle.SolidLine)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
@@ -375,8 +375,8 @@ class PropertyTableWidget:
                 event="property_table_grid_failed",
             )
 
-        properties_table.setSelectionBehavior(QTableView.SelectRows)
-        properties_table.setSelectionMode(QTableView.MultiSelection)   # or ExtendedSelection (usually nicer)
+        properties_table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        properties_table.setSelectionMode(QTableView.SelectionMode.MultiSelection)   # or ExtendedSelection (usually nicer)
 
 
         # Make selection/hover feel nicer and avoid “full repaint storms”
@@ -416,7 +416,7 @@ class PropertyTableWidget:
         # Configure table
         header = properties_table.horizontalHeader()
         header.setStretchLastSection(True)
-        header.setSectionResizeMode(QHeaderView.Interactive)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
 
         table_layout.addWidget(properties_table)
         return table_frame, properties_table

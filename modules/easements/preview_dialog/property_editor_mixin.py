@@ -430,11 +430,11 @@ class EasementPropertyEditorMixin:
             selected_display.setdefault(num, format_property_label(num))
 
         dialog = PropertyLinkReviewDialog(existing_display, selected_display, self._lang)
-        result = dialog.exec_()
+        result = dialog.exec()
         if dialog.reselect_requested:
             QTimer.singleShot(0, self._start_define_properties_flow)
             return
-        if result != QDialog.Accepted:
+        if result != QDialog.DialogCode.Accepted:
             self._finish_property_selection()
             return
 

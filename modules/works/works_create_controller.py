@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Callable, Iterable, Optional
 
+from qgis.PyQt.QtWidgets import QDialog
 from qgis.core import QgsPointXY
 from qgis.utils import iface
 
@@ -153,7 +154,7 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             **self._resolve_dialog_options(),
             parent=parent_window,
         )
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         now = datetime.now()
@@ -266,7 +267,7 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             initial_status_id=str(pending_payload.get("status_id") or ""),
             parent=parent_window,
         )
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return False
 
         now = datetime.now()

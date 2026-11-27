@@ -285,7 +285,7 @@ class EasementPreviewDialog(EasementPreviewLayersMixin, EasementPropertyEditorMi
 
         self._property_scroll = QScrollArea(property_frame)
         self._property_scroll.setWidgetResizable(True)
-        self._property_scroll.setFrameShape(QFrame.NoFrame)
+        self._property_scroll.setFrameShape(QFrame.Shape.NoFrame)
 
         self._property_rows_container = QWidget(self._property_scroll)
         self._property_rows_layout = QVBoxLayout(self._property_rows_container)

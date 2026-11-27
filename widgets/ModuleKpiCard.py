@@ -40,7 +40,7 @@ class ModuleKpiGauge(QWidget):
     def _build_hover_popup(self) -> None:
         self._hover_popup = QFrame(self)
         self._hover_popup.setObjectName("ModuleKpiHoverPopup")
-        self._hover_popup.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._hover_popup.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self._hover_popup.hide()
         self._hover_popup.setStyleSheet(
             "QFrame#ModuleKpiHoverPopup {"
@@ -317,9 +317,9 @@ class ModuleKpiGauge(QWidget):
         target = self._popup_connector_target(popup_rect, anchor)
         line_color = QColor(segment.get("color") or QColor("#8595b5"))
 
-        pen = QPen(line_color, 1.6, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+        pen = QPen(line_color, 1.6, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
         painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
 
         if abs(target.x() - anchor.x()) > abs(target.y() - anchor.y()):
             elbow = QPointF((anchor.x() + target.x()) / 2.0, anchor.y())
@@ -374,11 +374,11 @@ class ModuleKpiGauge(QWidget):
     def paintEvent(self, event) -> None:
         super().paintEvent(event)
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         rect, center, radius, thickness = self._arc_geometry()
         if self._show_track:
-            base_pen = QPen(self._track_color, thickness, Qt.SolidLine, Qt.RoundCap)
+            base_pen = QPen(self._track_color, thickness, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
             painter.setPen(base_pen)
             track_start = int((360.0 - self.ARC_START_ANGLE) * 16)
             track_sweep = int(-self.ARC_SWEEP_TOTAL * 16)
@@ -388,7 +388,7 @@ class ModuleKpiGauge(QWidget):
             color = QColor(segment["color"])
             if segment.get("key") == self._hovered_segment:
                 color = color.lighter(120)
-            pen = QPen(color, thickness, Qt.SolidLine, Qt.RoundCap)
+            pen = QPen(color, thickness, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)
             start_angle = int((360.0 - float(segment["start"])) * 16)
             sweep_angle = int(-float(segment["sweep"]) * 16)
@@ -408,7 +408,7 @@ class ModuleKpiGauge(QWidget):
         value_font.setBold(True)
         painter.setFont(value_font)
         value_rect = QRectF(0.0, center.y() - 20.0, float(self.width()), 42.0)
-        painter.drawText(value_rect, Qt.AlignHCenter | Qt.AlignVCenter, self._center_value)
+        painter.drawText(value_rect, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter, self._center_value)
 
         painter.setPen(QColor("#7181a6"))
         label_font = QFont(self.font())
@@ -417,7 +417,7 @@ class ModuleKpiGauge(QWidget):
         subtitle_rect = QRectF(0.0, center.y() + 20.0, float(self.width()), 20.0)
         painter.drawText(
             subtitle_rect,
-            Qt.AlignHCenter | Qt.AlignVCenter,
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
             self.lang_manager.translate(TranslationKeys.HOME_KPI_TOTAL_LABEL),
         )
 
@@ -451,7 +451,7 @@ class ModuleKpiCard(QFrame):
         self.setObjectName("SetupCard")
         self.setProperty("cardTone", self.module_key)
         self.setFixedWidth(self.CARD_WIDTH)
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
         self._build()
         self.retheme()
@@ -470,8 +470,8 @@ class ModuleKpiCard(QFrame):
         self._icon = QLabel(header)
         icon_path = ModuleIconPaths.get_module_icon(self.module_key)
         if icon_path:
-            self._icon.setPixmap(QPixmap(icon_path).scaled(18, 18, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        header_layout.addWidget(self._icon, 0, Qt.AlignTop)
+            self._icon.setPixmap(QPixmap(icon_path).scaled(18, 18, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        header_layout.addWidget(self._icon, 0, Qt.AlignmentFlag.AlignTop)
 
         title_column = QVBoxLayout()
         title_column.setContentsMargins(0, 0, 0, 0)
@@ -488,7 +488,7 @@ class ModuleKpiCard(QFrame):
 
         self._gauge = ModuleKpiGauge(lang_manager=self.lang_manager, parent=self)
         self._gauge.set_detail_popup_enabled(self.show_breakdown)
-        root.addWidget(self._gauge, 0, Qt.AlignHCenter)
+        root.addWidget(self._gauge, 0, Qt.AlignmentFlag.AlignHCenter)
 
     def _apply_snapshot(self, snapshot) -> None:
         payload = snapshot or {}

@@ -67,8 +67,8 @@ class PropertyArchivePlanDialog(QDialog):
                 self._lang.translate(TranslationKeys.PROPERTY_ARCHIVE_PLAN_COLUMN_NOTE),
             ]
         )
-        table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         table.setAlternatingRowColors(True)
         table.verticalHeader().setVisible(False)
 
@@ -82,15 +82,15 @@ class PropertyArchivePlanDialog(QDialog):
             )
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
-                item.setTextAlignment(int(Qt.AlignLeft | Qt.AlignVCenter))
+                item.setTextAlignment(int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter))
                 table.setItem(row, column, item)
 
         header = table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
         table.resizeRowsToContents()
         layout.addWidget(table, 1)
 
@@ -133,4 +133,4 @@ class PropertyArchivePlanDialog(QDialog):
             candidates=candidates,
             parent=parent,
         )
-        return dialog.exec_() == QDialog.Accepted
+        return dialog.exec() == QDialog.DialogCode.Accepted

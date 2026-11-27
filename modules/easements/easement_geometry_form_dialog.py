@@ -161,7 +161,7 @@ class EasementGeometryFormDialog(QDialog):
             (self._label(self.FIELD_STATUS), self._status, 6),
         )
         # The label also names the map value, and that text must not move the other fields.
-        self._status_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+        self._status_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
 
         self._established_date = QDateEdit(tab)
         self._established_date.setCalendarPopup(True)
@@ -417,7 +417,7 @@ class EasementGeometryFormDialog(QDialog):
             value_validator=partial(EasementLayerService.geometry_form_value_problems, layer) if layer is not None else None,
             parent=parent,
         )
-        accepted = dialog.exec_() == QDialog.Accepted
+        accepted = dialog.exec() == QDialog.DialogCode.Accepted
 
         # Also after Cancel: the status read from Kavitro may be newer than the card's.
         status = dialog.kavitro_status()

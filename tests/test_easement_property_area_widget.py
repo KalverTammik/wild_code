@@ -30,7 +30,7 @@ class EasementPropertyAreaCalculationWidgetTest(unittest.TestCase):
         # A top-level widget left for deleteLater crashes a later module at shutdown.
         self.window.hide()
         self.window.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def _widget(self, *, payable: bool, read_only: bool) -> EasementPropertyAreaCalculationWidget:
         edge = {

@@ -87,7 +87,7 @@ class StatusChangeFlowTest(ControllerTestCase):
         widget.status_change_finished.connect(loop.quit)
         QTimer.singleShot(5000, loop.quit)
         widget._update_status(option)
-        loop.exec_()
+        loop.exec()
 
     def test_a_non_task_module_takes_the_card_from_the_answer_and_runs_its_hook(self) -> None:
         seen = []
@@ -253,7 +253,7 @@ class RealWorkerTest(ControllerTestCase):
         QTimer.singleShot(5000, loop.quit)
 
         widget._update_status(CLOSED)
-        loop.exec_()
+        loop.exec()
 
         self.assertEqual(len(seen), 1)
         self.assertIsNot(seen[0], threading.main_thread())
@@ -386,13 +386,13 @@ class RailBusyLookTest(ControllerTestCase):
 
         self.rail._status_changes.busy_changed.emit(True)
 
-        self.assertEqual(self.rail.cursor().shape(), Qt.BusyCursor)
-        self.assertEqual(self.rail.rail_frame.cursor().shape(), Qt.BusyCursor)
+        self.assertEqual(self.rail.cursor().shape(), Qt.CursorShape.BusyCursor)
+        self.assertEqual(self.rail.rail_frame.cursor().shape(), Qt.CursorShape.BusyCursor)
         self.assertNotEqual(self.rail.core_fill.styleSheet(), idle_style)
 
         self.rail._status_changes.busy_changed.emit(False)
 
-        self.assertEqual(self.rail.cursor().shape(), Qt.PointingHandCursor)
+        self.assertEqual(self.rail.cursor().shape(), Qt.CursorShape.PointingHandCursor)
         self.assertEqual(self.rail.core_fill.styleSheet(), idle_style)
 
     def test_a_rail_that_cannot_be_edited_goes_back_to_the_normal_cursor(self) -> None:
@@ -401,8 +401,8 @@ class RailBusyLookTest(ControllerTestCase):
         rail._status_changes.busy_changed.emit(True)
         rail._status_changes.busy_changed.emit(False)
 
-        self.assertNotEqual(rail.cursor().shape(), Qt.PointingHandCursor)
-        self.assertNotEqual(rail.cursor().shape(), Qt.BusyCursor)
+        self.assertNotEqual(rail.cursor().shape(), Qt.CursorShape.PointingHandCursor)
+        self.assertNotEqual(rail.cursor().shape(), Qt.CursorShape.BusyCursor)
 
     def test_a_saved_status_recolours_the_rail_at_once(self) -> None:
         self.rail._status_changes.status_changed.emit({"id": "7", "status": CLOSED})
@@ -437,7 +437,7 @@ class HoverPopupLifetimeTest(ControllerTestCase):
     def test_deleting_the_rail_closes_the_popup(self) -> None:
         self.rail.setParent(None)
         self.rail.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         QCoreApplication.processEvents()
 
         self.assertTrue(sip.isdeleted(self.popup) or not self.popup.isVisible())

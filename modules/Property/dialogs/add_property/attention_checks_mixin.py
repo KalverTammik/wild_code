@@ -156,7 +156,7 @@ class PropertyAttentionChecksMixin:
                 import_muudet=import_muudet,
                 # The run keeps the payload itself: the decisions it offers are
                 # collected once the attention filter may already have changed the table.
-                feature=PropertyTableManager.get_cell_data(table, row_idx, 0, role=Qt.UserRole),
+                feature=PropertyTableManager.get_cell_data(table, row_idx, 0, role=Qt.ItemDataRole.UserRole),
             ))
             event_counter += 1
             if event_counter % self._rows_process_events_every == 0:

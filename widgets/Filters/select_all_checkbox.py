@@ -10,7 +10,7 @@ class SelectAllCheckBox(QCheckBox):
 
     def nextCheckState(self) -> None:  # type: ignore[override]
         current = self.checkState()
-        if current == Qt.Checked:
-            self.setCheckState(Qt.Unchecked)
+        if current == Qt.CheckState.Checked:
+            self.setCheckState(Qt.CheckState.Unchecked)
         else:
-            self.setCheckState(Qt.Checked)
+            self.setCheckState(Qt.CheckState.Checked)

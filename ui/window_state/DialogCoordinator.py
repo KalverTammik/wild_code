@@ -101,7 +101,7 @@ class DialogCoordinator:
         except RuntimeError:
             pass
         try:
-            widget.setFocus(Qt.ActiveWindowFocusReason)
+            widget.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
         except RuntimeError:
             pass
 

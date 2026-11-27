@@ -11,7 +11,9 @@ def prompt_backend_action_dialog(*, parent=None, table_frame, table, title: str 
     """Show the shared backend action prompt and return the chosen action."""
 
     from qgis.PyQt.QtCore import Qt
-    from qgis.PyQt.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+    from qgis.PyQt.QtWidgets import (
+        QAbstractItemView, QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout,
+    )
 
     lang_manager = LanguageManager()
     dialog = QDialog(parent)
@@ -66,10 +68,10 @@ def prompt_backend_action_dialog(*, parent=None, table_frame, table, title: str 
 
     layout.addLayout(btn_row)
 
-    table.setSelectionMode(table.NoSelection)
-    table.setFocusPolicy(Qt.NoFocus)
+    table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+    table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-    ok = dialog.exec_()
+    ok = dialog.exec()
     if not ok:
         return None
     return action

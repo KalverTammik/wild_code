@@ -205,7 +205,7 @@ class AsBuiltGeometryFormDialog(QDialog):
         """`layer` is the map layer the values are saved to; its field types are checked while the form is filled."""
         validator = partial(AsBuiltLayerService.geometry_form_value_problems, layer) if layer is not None else None
         dialog = cls(item_data=item_data, value_validator=validator, parent=parent)
-        return dialog.values() if dialog.exec_() == QDialog.Accepted else None
+        return dialog.values() if dialog.exec() == QDialog.DialogCode.Accepted else None
 
     def _default_work_number(self) -> str:
         payload = self._item_data

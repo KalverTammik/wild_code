@@ -68,13 +68,13 @@ class FilteredFeedMixin:
         self.toolbar_area.set_refresh_widget(refresh_widget)
 
         self.feed_content = QWidget()
-        self.feed_content.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.feed_content.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         self.feed_layout = QVBoxLayout(self.feed_content)
         self.feed_layout.setContentsMargins(0, 0, 0, 0)
         self.feed_layout.setSpacing(6)
 
         self._empty_state = QLabel(self.lang_manager.translate(empty_state_key))
-        self._empty_state.setAlignment(Qt.AlignCenter)
+        self._empty_state.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_state.setVisible(False)
         self.feed_layout.addWidget(self._empty_state)
         self.feed_layout.addStretch(1)

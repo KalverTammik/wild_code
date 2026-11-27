@@ -22,7 +22,7 @@ class ProjectsLayerService(AttachableLayerServiceBase):
     LAYER_MISSING_KEY = TranslationKeys.PROJECT_LAYER_MISSING
     LAYER_AMBIGUOUS_KEY = TranslationKeys.PROJECT_LAYER_MISSING
     DRAW_START_FAILED_KEY = TranslationKeys.PROJECT_DRAW_NEW_START_FAILED
-    REQUIRED_GEOMETRY = QgsWkbTypes.PolygonGeometry
+    REQUIRED_GEOMETRY = QgsWkbTypes.GeometryType.PolygonGeometry
     LAYER_INVALID_GEOMETRY_KEY = TranslationKeys.PROJECT_LAYER_INVALID_GEOMETRY
     INVALID_LAYER_TEXT = TranslationKeys.LAYER_EDIT_INVALID_LAYER
     FIELDS_TEXTS = LayerEditTexts(

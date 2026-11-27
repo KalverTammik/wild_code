@@ -33,7 +33,7 @@ class _FilePreviewSquareButton(QPushButton):
         self._preview_thread = None
 
         self.setObjectName("TaskFilesSummaryPreviewButton")
-        self.setCursor(Qt.PointingHandCursor)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFlat(True)
         self.setFixedSize(self.THUMB_SIZE, self.THUMB_SIZE)
         self.setStyleSheet("padding: 0; margin: 0;")
@@ -76,8 +76,8 @@ class _FilePreviewSquareButton(QPushButton):
         scaled = pixmap.scaled(
             self.THUMB_SIZE,
             self.THUMB_SIZE,
-            Qt.KeepAspectRatioByExpanding,
-            Qt.SmoothTransformation,
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation,
         )
         self.setIcon(QIcon(scaled))
         self.setIconSize(self.size())
@@ -176,7 +176,7 @@ class TaskFilesSummaryWidget(QWidget):
         self._retry_button.setAutoDefault(False)
         self._retry_button.clicked.connect(self._load_files)
         self._retry_button.hide()
-        layout.addWidget(self._retry_button, 0, Qt.AlignLeft)
+        layout.addWidget(self._retry_button, 0, Qt.AlignmentFlag.AlignLeft)
 
         self._all_files_button = QPushButton(self)
         self._all_files_button.setObjectName("TaskFilesSummaryViewAll")
@@ -184,7 +184,7 @@ class TaskFilesSummaryWidget(QWidget):
         self._all_files_button.setAutoDefault(False)
         self._all_files_button.clicked.connect(self._open_all_files)
         self._all_files_button.hide()
-        layout.addWidget(self._all_files_button, 0, Qt.AlignLeft)
+        layout.addWidget(self._all_files_button, 0, Qt.AlignmentFlag.AlignLeft)
 
         self._load_files()
         self.retheme()
@@ -276,21 +276,21 @@ class TaskFilesSummaryWidget(QWidget):
                 preview_button.clicked.connect(
                     lambda _checked=False, payload=dict(file_info): self._open_preview(payload)
                 )
-                row_layout.addWidget(preview_button, 0, Qt.AlignVCenter)
+                row_layout.addWidget(preview_button, 0, Qt.AlignmentFlag.AlignVCenter)
             else:
                 icon_label = QLabel(row)
                 icon_label.setObjectName("TaskFilesSummaryIcon")
                 icon = QIcon(self._icon_path_for_file(file_info))
                 icon_label.setPixmap(icon.pixmap(18, 18))
                 icon_label.setFixedSize(25, 25)
-                icon_label.setAlignment(Qt.AlignCenter)
-                row_layout.addWidget(icon_label, 0, Qt.AlignVCenter)
+                icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                row_layout.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignVCenter)
 
             file_name = TaskFilePreviewDialog.resolve_file_name(file_info=file_info)
             button = QPushButton(file_name or "-", row)
             button.setObjectName("TaskFilesSummaryButton")
             button.setProperty("variant", "ghost")
-            button.setCursor(Qt.PointingHandCursor)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setFlat(True)
             button.setAutoDefault(False)
             button.setToolTip(file_name)
@@ -312,7 +312,7 @@ class TaskFilesSummaryWidget(QWidget):
             parent=self.window(),
             initial_files=self._files,
         )
-        dialog.exec_()
+        dialog.exec()
         if not sip.isdeleted(self):
             self._load_files()
 
@@ -335,7 +335,7 @@ class TaskFilesSummaryWidget(QWidget):
             lazy=is_image,
         )
         if dialog is not None:
-            dialog.exec_()
+            dialog.exec()
 
 
 class TaskDetailOverviewWidget(QWidget):

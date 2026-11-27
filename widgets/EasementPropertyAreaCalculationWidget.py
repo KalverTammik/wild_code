@@ -72,7 +72,7 @@ class EasementPropertyAreaCalculationWidget(QWidget):
             self.currency_combo.setEnabled(False)
         self.payable_checkbox.setEnabled(False)
         self.price_spin.setReadOnly(True)
-        self.price_spin.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.price_spin.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
         if self.next_payment_edit is not None:
             self.next_payment_edit.setReadOnly(True)
 

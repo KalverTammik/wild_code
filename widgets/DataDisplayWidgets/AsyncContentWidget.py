@@ -25,7 +25,7 @@ class AsyncContentWidget(QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(6)
         self._status = QLabel(self._lang.translate(TranslationKeys.LOADING), self)
-        self._status.setTextFormat(Qt.PlainText)
+        self._status.setTextFormat(Qt.TextFormat.PlainText)
         self._status.setWordWrap(True)
         self._layout.addWidget(self._status)
         self._retry = QPushButton(self._lang.translate(TranslationKeys.CARD_LOAD_RETRY), self)
@@ -33,7 +33,7 @@ class AsyncContentWidget(QWidget):
         self._retry.setAutoDefault(False)
         self._retry.clicked.connect(self.reload)
         self._retry.hide()
-        self._layout.addWidget(self._retry, 0, Qt.AlignLeft)
+        self._layout.addWidget(self._retry, 0, Qt.AlignmentFlag.AlignLeft)
         self.retheme()
         QTimer.singleShot(0, self.reload)
 

@@ -20,7 +20,7 @@ class SingleClickMapTool(QgsMapTool):
         on_selected: Callable[[object], None],
         on_cancel: Callable[[], None],
         *,
-        cursor: Qt.CursorShape = Qt.CrossCursor,
+        cursor: Qt.CursorShape = Qt.CursorShape.CrossCursor,
     ) -> None:
         super().__init__(canvas)
         self.canvas = canvas
@@ -32,7 +32,7 @@ class SingleClickMapTool(QgsMapTool):
     def canvasReleaseEvent(self, event) -> None:  # noqa: N802
         if self._finished:
             return
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             point = self.canvas.getCoordinateTransform().toMapCoordinates(event.pos())
             # A caller that is done removes the tool while handling the click; one that keeps it (nothing found
             # at the point, try again) gets further clicks.
@@ -41,11 +41,11 @@ class SingleClickMapTool(QgsMapTool):
             if self.canvas.mapTool() is self:
                 self._finished = False
             return
-        if event.button() == Qt.RightButton:
+        if event.button() == Qt.MouseButton.RightButton:
             self._cancel()
 
     def keyPressEvent(self, event) -> None:  # noqa: N802
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self._cancel()
 
     def deactivate(self) -> None:

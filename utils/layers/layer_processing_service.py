@@ -34,14 +34,14 @@ class LayerProcessingService:
         crs = layer.crs()
         if not crs.isValid() or crs.isGeographic():
             return None
-        factor = QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceMeters, crs.mapUnits())
+        factor = QgsUnitTypes.fromUnitToUnitFactor(QgsUnitTypes.DistanceUnit.DistanceMeters, crs.mapUnits())
         return float(metres) * float(factor)
 
     @classmethod
     def metric_crs(cls) -> QgsCoordinateReferenceSystem:
         project_crs = QgsProject.instance().crs()
         if (project_crs.isValid() and not project_crs.isGeographic()
-                and project_crs.mapUnits() == QgsUnitTypes.DistanceMeters):
+                and project_crs.mapUnits() == QgsUnitTypes.DistanceUnit.DistanceMeters):
             return project_crs
         return QgsCoordinateReferenceSystem(cls.METRIC_FALLBACK_CRS)
 

@@ -82,7 +82,7 @@ class _Case(unittest.TestCase):
         def delete() -> None:
             dialog.hide()
             dialog.deleteLater()
-            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
         self.addCleanup(delete)
         return dialog
@@ -228,7 +228,7 @@ class EasementFormCheckTest(_Case):
 
         form.accept()
 
-        self.assertNotEqual(form.result(), QDialog.Accepted)
+        self.assertNotEqual(form.result(), QDialog.DialogCode.Accepted)
         self.update.assert_not_called()
         self.assert_marked(form._compensation, TranslationKeys.FIELD_VALUE_EXPECTED_INTEGER)
         message = self.one_warning()
@@ -256,7 +256,7 @@ class EasementFormCheckTest(_Case):
 
         form.accept()
 
-        self.assertEqual(form.result(), QDialog.Accepted)
+        self.assertEqual(form.result(), QDialog.DialogCode.Accepted)
         self.update.assert_called_once_with("easement", "1", SIGNED["id"])
         self.warning.assert_not_called()
 
@@ -295,13 +295,13 @@ class EasementFormCheckTest(_Case):
     def test_prompt_checks_against_the_layer_it_is_given(self) -> None:
         results = []
 
-        def exec_(dialog) -> int:
+        def fake_exec(dialog) -> int:
             self._leave(dialog._compensation, "019,98")
             dialog.accept()
             results.append(dialog._compensation.property(STATE))
             return dialog.result()
 
-        with patch.object(Form, "exec_", new=exec_):
+        with patch.object(Form, "exec", new=fake_exec):
             values = Form.prompt(item_data={"id": "1", "status": PREPARING}, layer=polygon_layer())
 
         self.assertIsNone(values)
@@ -329,7 +329,7 @@ class EasementFormWithoutLayerTest(_Case):
 
         form.accept()
 
-        self.assertNotEqual(form.result(), QDialog.Accepted)
+        self.assertNotEqual(form.result(), QDialog.DialogCode.Accepted)
         self.assertIn("Kaitsevööndi laius", self.one_warning())
 
     def test_decimal_in_compensation_passes_without_the_layer_type(self) -> None:
@@ -338,7 +338,7 @@ class EasementFormWithoutLayerTest(_Case):
 
         form.accept()
 
-        self.assertEqual(form.result(), QDialog.Accepted)
+        self.assertEqual(form.result(), QDialog.DialogCode.Accepted)
         self.warning.assert_not_called()
 
 
@@ -397,7 +397,7 @@ class AsBuiltFormCheckTest(_Case):
 
         form.accept()
 
-        self.assertNotEqual(form.result(), QDialog.Accepted)
+        self.assertNotEqual(form.result(), QDialog.DialogCode.Accepted)
         self.assertIn("TJ-12", self.one_warning())
 
     def test_fixed_value_clears_the_mark_and_saves(self) -> None:
@@ -407,7 +407,7 @@ class AsBuiltFormCheckTest(_Case):
         self.assert_not_marked(form._work_number)
         form.accept()
 
-        self.assertEqual(form.result(), QDialog.Accepted)
+        self.assertEqual(form.result(), QDialog.DialogCode.Accepted)
         self.warning.assert_not_called()
 
     def test_text_field_takes_any_text(self) -> None:
@@ -416,14 +416,14 @@ class AsBuiltFormCheckTest(_Case):
 
         form.accept()
 
-        self.assertEqual(form.result(), QDialog.Accepted)
+        self.assertEqual(form.result(), QDialog.DialogCode.Accepted)
 
     def test_without_a_layer_nothing_is_checked(self) -> None:
         form = self._form()
 
         form.accept()
 
-        self.assertEqual(form.result(), QDialog.Accepted)
+        self.assertEqual(form.result(), QDialog.DialogCode.Accepted)
         self.warning.assert_not_called()
 
     def test_check_and_save_reject_the_same_values(self) -> None:

@@ -176,7 +176,7 @@ class SessionUIController:
         cancelled = False
         try:
             dlg = LoginDialog(parent=SessionUIController._login_parent(parent))
-            result = dlg.exec_()
+            result = dlg.exec()
             if SessionManager.is_session_valid():
                 QTimer.singleShot(0, SessionManager.notify_session_changed)
                 PythonFailLogger.log(

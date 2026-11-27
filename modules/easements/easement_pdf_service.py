@@ -97,7 +97,7 @@ class EasementPdfService:
             exporter = QgsLayoutExporter(layout)
             settings = QgsLayoutExporter.PdfExportSettings()
             result = exporter.exportToPdf(str(pdf_path), settings)
-            if result != QgsLayoutExporter.Success:
+            if result != QgsLayoutExporter.ExportResult.Success:
                 cls.cleanup_output_pdf(pdf_path)
                 return False, f"{LanguageManager().translate(TranslationKeys.EASEMENT_PDF_EXPORT_FAILED)} {result}"
 

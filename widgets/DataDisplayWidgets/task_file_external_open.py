@@ -39,6 +39,25 @@ DOWNLOAD_TIMEOUT = (15, 60)
 ProgressCallback = Callable[[int, Optional[int]], None]
 
 
+def webengine_classes():
+    """``(QWebEngineSettings, QWebEngineView)``; raises ImportError when this QGIS has no QtWebEngine.
+
+    Imported on use: QtWebEngine is optional in QGIS builds and must not break plugin startup.
+    """
+    from qgis.PyQt.QtWebEngineWidgets import QWebEngineView
+
+    try:
+        from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings  # Qt5
+    except ImportError:
+        from qgis.PyQt.QtWebEngineCore import QWebEngineSettings  # Qt6
+    return QWebEngineSettings, QWebEngineView
+
+
+def web_attribute(settings_cls, name: str):
+    """A QWebEngineSettings attribute, scoped under ``WebAttribute`` where the binding has it."""
+    return getattr(getattr(settings_cls, "WebAttribute", settings_cls), name, None)
+
+
 def embedded_pdf_runtime_support() -> tuple[bool, dict[str, str]]:
     qt_version = "unknown"
     pyqt_version = "unknown"
@@ -52,9 +71,9 @@ def embedded_pdf_runtime_support() -> tuple[bool, dict[str, str]]:
         pass
 
     try:
-        from qgis.PyQt.QtWebEngineWidgets import QWebEngineSettings, QWebEngineView  # noqa: F401
+        settings_cls, _view_cls = webengine_classes()
 
-        return bool(hasattr(QWebEngineSettings, "PdfViewerEnabled")), {
+        return web_attribute(settings_cls, "PdfViewerEnabled") is not None, {
             "qt": qt_version,
             "pyqt": pyqt_version,
         }

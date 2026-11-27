@@ -55,7 +55,7 @@ class LoginDialog(QDialog):
         layout.addWidget(self.password_label)
         password_row = QHBoxLayout()
         self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_input.setObjectName("passwordInput")
         self.password_input.returnPressed.connect(self.authenticate_user)
         self.password_input.textChanged.connect(self.clear_validation_state)
@@ -66,12 +66,12 @@ class LoginDialog(QDialog):
         self.toggle_password_button.setCheckable(True)
         self.toggle_password_button.setAutoDefault(False)
         self.toggle_password_button.setDefault(False)
-        self.toggle_password_button.setFocusPolicy(Qt.NoFocus)
+        self.toggle_password_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.toggle_password_button.setToolTip(self.lang.translate(TranslationKeys.TOGGLE_PASSWORD))
         self.toggle_password_button.setProperty("variant", ButtonVariant.GHOST)
         self.toggle_password_button.setProperty("btnSize", ButtonSize.SMALL)
         self.toggle_password_button.clicked.connect(self.toggle_password_visibility)
-        password_row.addWidget(self.toggle_password_button, alignment=Qt.AlignRight)
+        password_row.addWidget(self.toggle_password_button, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addLayout(password_row)
 
         self.mfa_code_label = QLabel()
@@ -143,9 +143,9 @@ class LoginDialog(QDialog):
 
     def toggle_password_visibility(self):
         if self.toggle_password_button.isChecked():
-            self.password_input.setEchoMode(QLineEdit.Normal)
+            self.password_input.setEchoMode(QLineEdit.EchoMode.Normal)
         else:
-            self.password_input.setEchoMode(QLineEdit.Password)
+            self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
 
     def clear_validation_state(self):
         self._set_field_error(self.username_input, False)
@@ -199,7 +199,7 @@ class LoginDialog(QDialog):
         self.clear_validation_state()
         self._set_field_error(self.mfa_code_input, False)
         self.toggle_password_button.setChecked(False)
-        self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self._step = self._MFA_STEP
         self._apply_step()
         self.mfa_code_input.setFocus()

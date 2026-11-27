@@ -49,11 +49,11 @@ MAIN_LAYER_KEYS = {
 
 
 def good_geometry(service):
-    return QgsWkbTypes.PointGeometry if service is WorksLayerService else QgsWkbTypes.PolygonGeometry
+    return QgsWkbTypes.GeometryType.PointGeometry if service is WorksLayerService else QgsWkbTypes.GeometryType.PolygonGeometry
 
 
 def wrong_geometry(service):
-    return QgsWkbTypes.PolygonGeometry if service is WorksLayerService else QgsWkbTypes.PointGeometry
+    return QgsWkbTypes.GeometryType.PolygonGeometry if service is WorksLayerService else QgsWkbTypes.GeometryType.PointGeometry
 
 
 def home_of(function):
@@ -261,7 +261,7 @@ class ResolveMainLayerTest(unittest.TestCase):
             self.addCleanup(patcher.stop)
 
     @staticmethod
-    def layer(geometry=QgsWkbTypes.PolygonGeometry, layer_id="layer-1") -> MagicMock:
+    def layer(geometry=QgsWkbTypes.GeometryType.PolygonGeometry, layer_id="layer-1") -> MagicMock:
         layer = valid_layer()
         layer.id.return_value = layer_id
         layer.geometryType.return_value = geometry
@@ -345,7 +345,7 @@ class ResolveMainLayerTest(unittest.TestCase):
                 setting.assert_called_with(MODULE_NAMES[service], value="layer-1")
 
     def test_as_built_layer_may_have_any_geometry(self) -> None:
-        for geometry in (QgsWkbTypes.PointGeometry, QgsWkbTypes.LineGeometry, QgsWkbTypes.PolygonGeometry):
+        for geometry in (QgsWkbTypes.GeometryType.PointGeometry, QgsWkbTypes.GeometryType.LineGeometry, QgsWkbTypes.GeometryType.PolygonGeometry):
             layer = self.layer(geometry)
             with self.subTest(geometry=geometry):
                 self.assertIs(self.resolve(AsBuiltLayerService, [layer])[0], layer)
@@ -357,7 +357,7 @@ class WorksMainLayerChecksTest(unittest.TestCase):
     def setUp(self) -> None:
         self.lang = LanguageManager()
 
-    def resolve(self, geometry=QgsWkbTypes.PointGeometry, *, id_field="ext_job_id", fields=(True, ""), quiet=False):
+    def resolve(self, geometry=QgsWkbTypes.GeometryType.PointGeometry, *, id_field="ext_job_id", fields=(True, ""), quiet=False):
         """`quiet` passes no dialogs; the real dialog is stubbed so that a stray call could never open a window."""
         layer = valid_layer()
         layer.id.return_value = "layer-1"
@@ -383,7 +383,7 @@ class WorksMainLayerChecksTest(unittest.TestCase):
         warning.assert_not_called()
 
     def test_layer_that_is_not_a_point_layer_is_refused(self) -> None:
-        result, _layer, warning, prepare = self.resolve(QgsWkbTypes.PolygonGeometry)
+        result, _layer, warning, prepare = self.resolve(QgsWkbTypes.GeometryType.PolygonGeometry)
         self.assertIsNone(result)
         warning.assert_called_once_with(self.lang.translate(TranslationKeys.ERROR), self.lang.translate(TranslationKeys.WORKS_LAYER_INVALID_GEOMETRY))
         prepare.assert_not_called()
@@ -405,7 +405,7 @@ class WorksMainLayerChecksTest(unittest.TestCase):
         warning.assert_called_once_with(self.lang.translate(TranslationKeys.ERROR), self.FALLBACK)
 
     def test_lookup_without_dialogs_refuses_without_a_warning(self) -> None:
-        for options in ({"geometry": QgsWkbTypes.PolygonGeometry}, {"id_field": None}, {"fields": (False, "väli ei sobi")}):
+        for options in ({"geometry": QgsWkbTypes.GeometryType.PolygonGeometry}, {"id_field": None}, {"fields": (False, "väli ei sobi")}):
             with self.subTest(options=options):
                 result, _layer, warning, _prepare = self.resolve(quiet=True, **options)
                 self.assertIsNone(result)
@@ -538,7 +538,7 @@ class FindFeatureAtPointTest(unittest.TestCase):
         return feature
 
     @staticmethod
-    def find(service, features, *, geometry=QgsWkbTypes.PolygonGeometry, units=1.0, interface="canvas", layer=None, **options):
+    def find(service, features, *, geometry=QgsWkbTypes.GeometryType.PolygonGeometry, units=1.0, interface="canvas", layer=None, **options):
         home = home_of(service.find_feature_at_point)
         layer = layer if layer is not None else valid_layer()
         layer.geometryType.return_value = geometry
@@ -596,11 +596,11 @@ class FindFeatureAtPointTest(unittest.TestCase):
 
     def test_as_built_point_layer_finds_the_closest_within_reach(self) -> None:
         near, nearer, far = self.feature(distance=2.0), self.feature(distance=1.0), self.feature(distance=9.0)
-        found, _layer = self.find(AsBuiltLayerService, [nearer, near, far], geometry=QgsWkbTypes.PointGeometry)
+        found, _layer = self.find(AsBuiltLayerService, [nearer, near, far], geometry=QgsWkbTypes.GeometryType.PointGeometry)
         self.assertIs(found, nearer)
 
     def test_as_built_point_out_of_reach_finds_nothing(self) -> None:
-        found, _layer = self.find(AsBuiltLayerService, [self.feature(distance=9.0)], geometry=QgsWkbTypes.PointGeometry)
+        found, _layer = self.find(AsBuiltLayerService, [self.feature(distance=9.0)], geometry=QgsWkbTypes.GeometryType.PointGeometry)
         self.assertIsNone(found)
 
 

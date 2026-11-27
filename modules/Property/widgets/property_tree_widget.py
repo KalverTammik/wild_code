@@ -37,7 +37,7 @@ class PropertyTreeWidget(QFrame):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setObjectName("PropertyTree")
-        self.setFrameStyle(QFrame.NoFrame)
+        self.setFrameStyle(QFrame.Shape.NoFrame)
         self._current_entries: List[Dict[str, Any]] = []
         self.lang_manager = LanguageManager()
 
@@ -55,7 +55,7 @@ class PropertyTreeWidget(QFrame):
 
         self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameStyle(QFrame.NoFrame)
+        self.scroll_area.setFrameStyle(QFrame.Shape.NoFrame)
         layout.addWidget(self.scroll_area, 1)
 
         self.cards_container = QWidget()
@@ -152,7 +152,7 @@ class MessageCard(QFrame):
     def __init__(self, message: str, is_loading: bool = False, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setObjectName("ModuleInfoCard")
-        self.setFrameStyle(QFrame.NoFrame)
+        self.setFrameStyle(QFrame.Shape.NoFrame)
         styleExtras.apply_chip_shadow(
             self,
             blur_radius=15,
@@ -171,7 +171,7 @@ class MessageCard(QFrame):
         layout = QVBoxLayout(content_frame)
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(10)
-        layout.setAlignment(Qt.AlignCenter)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         if is_loading:
             spinner = GradientSpinner(
@@ -184,7 +184,7 @@ class MessageCard(QFrame):
             )
             spinner.setFixedSize(120, 120)
             spinner.start()
-            layout.addWidget(spinner, alignment=Qt.AlignCenter)
+            layout.addWidget(spinner, alignment=Qt.AlignmentFlag.AlignCenter)
 
         outer.addWidget(content_frame)
 
@@ -201,7 +201,7 @@ class PropertyConnectionCard(QFrame):
         self.entry = entry or {}
         self.lang_manager = LanguageManager()
         self.setObjectName("ModuleInfoCard")
-        self.setFrameStyle(QFrame.NoFrame)
+        self.setFrameStyle(QFrame.Shape.NoFrame)
         styleExtras.apply_chip_shadow(
             self,
             blur_radius=15,
@@ -270,7 +270,7 @@ class ModuleConnectionSection(QFrame):
     ):
         super().__init__(parent)
         self.setObjectName("ModuleInfoCard")
-        self.setFrameStyle(QFrame.NoFrame)
+        self.setFrameStyle(QFrame.Shape.NoFrame)
         styleExtras.apply_chip_shadow(
             self,
             blur_radius=15,
@@ -321,7 +321,7 @@ class ModuleConnectionSection(QFrame):
         self.toggle_button = QToolButton(self)
         self.toggle_button.setCheckable(True)
         self.toggle_button.setChecked(len(self._items) <= 5)
-        self.toggle_button.setArrowType(Qt.DownArrow if self.toggle_button.isChecked() else Qt.RightArrow)
+        self.toggle_button.setArrowType(Qt.ArrowType.DownArrow if self.toggle_button.isChecked() else Qt.ArrowType.RightArrow)
         toggle_text = self._translator.translate(TranslationKeys.PROPERTY_TREE_TOGGLE_TOOLTIP)
         self.toggle_button.setToolTip(toggle_text)
         self.toggle_button.setAccessibleName(toggle_text)
@@ -344,7 +344,7 @@ class ModuleConnectionSection(QFrame):
         if checked:
             self._ensure_body_loaded()
         self.body.setVisible(checked)
-        self.toggle_button.setArrowType(Qt.DownArrow if checked else Qt.RightArrow)
+        self.toggle_button.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
 
     def _ensure_body_loaded(self) -> None:
         if self._body_built:
@@ -379,7 +379,7 @@ class ModuleConnectionSection(QFrame):
         cached = cls._pixmap_cache.get(key)
         if cached is not None:
             return cached
-        pix = QPixmap(icon_path).scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        pix = QPixmap(icon_path).scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         cls._pixmap_cache[key] = pix
         return pix
 
@@ -400,7 +400,7 @@ class ModuleConnectionRow(QFrame):
         self.item_id = self.summary.get("id")
         self.raw = self.summary.get("raw", {})
         self.setObjectName("ModuleConnectionRow")
-        self.setFrameStyle(QFrame.NoFrame)
+        self.setFrameStyle(QFrame.Shape.NoFrame)
 
         grid = QGridLayout(self)
         grid.setContentsMargins(0, 4, 0, 4)
@@ -425,11 +425,11 @@ class ModuleConnectionRow(QFrame):
         if number_text:
             number_badge = QLabel(number_text)
             number_badge.setObjectName("ProjectNumberBadge")
-            number_badge.setAlignment(Qt.AlignCenter)
-            number_badge.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+            number_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            number_badge.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
             badge_width = max(24, number_badge.fontMetrics().horizontalAdvance(number_badge.text()) + 18)
             number_badge.setFixedWidth(badge_width)
-            title_row.addWidget(number_badge, 0, Qt.AlignVCenter)
+            title_row.addWidget(number_badge, 0, Qt.AlignmentFlag.AlignVCenter)
 
         title_text = self._safe_text(
             self.summary.get("title"),
@@ -440,9 +440,9 @@ class ModuleConnectionRow(QFrame):
         title_label = QLabel(title_text)
         title_label.setObjectName("ProjectNameLabel")
         title_label.setWordWrap(True)
-        title_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        title_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        title_row.addWidget(title_label, 1, Qt.AlignVCenter)
+        title_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        title_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        title_row.addWidget(title_label, 1, Qt.AlignmentFlag.AlignVCenter)
         title_layout.addLayout(title_row)
 
         meta_texts = [
@@ -454,17 +454,17 @@ class ModuleConnectionRow(QFrame):
             meta_label = QLabel("  •  ".join(meta_texts))
             meta_label.setObjectName("ProjectClientLabel")
             meta_label.setWordWrap(True)
-            meta_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            meta_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             title_layout.addWidget(meta_label)
 
-        grid.addWidget(title_container, 0, 0, Qt.AlignVCenter)
+        grid.addWidget(title_container, 0, 0, Qt.AlignmentFlag.AlignVCenter)
 
         widget_payload = self._build_widget_payload()
         dates_widget = DatesWidget(
             widget_payload,
             parent=self,
         )
-        grid.addWidget(dates_widget, 0, 1, Qt.AlignRight | Qt.AlignTop)
+        grid.addWidget(dates_widget, 0, 1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
 
         status_widget = MainStatusWidget(
             widget_payload,
@@ -485,8 +485,8 @@ class ModuleConnectionRow(QFrame):
             actions_payload,
             parent=self,
         )
-        grid.addWidget(actions_widget, 0, 2, Qt.AlignRight | Qt.AlignTop)
-        grid.addWidget(status_widget, 0, 3, Qt.AlignRight | Qt.AlignTop)
+        grid.addWidget(actions_widget, 0, 2, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+        grid.addWidget(status_widget, 0, 3, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
         grid.setColumnStretch(1, 0)
         grid.setColumnStretch(2, 0)
         grid.setColumnStretch(3, 0)

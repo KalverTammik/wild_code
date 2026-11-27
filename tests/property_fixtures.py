@@ -163,7 +163,7 @@ def open_dialog(dialog_class, *args, **kwargs):
     ``exec_`` is patched away for the construction only: offscreen, a real modal
     loop never returns.
     """
-    with patch.object(dialog_class, 'exec_', return_value=0):
+    with patch.object(dialog_class, 'exec', return_value=0):
         return dialog_class(*args, **kwargs)
 
 
@@ -194,7 +194,7 @@ def dialog_open(case, dialog_class, *args, **kwargs):
         yield dialog
     finally:
         close_dialog(case, dialog)
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 # --------------------------------------------------------------------------- #
@@ -247,7 +247,7 @@ class LocationFilterTestCase(unittest.TestCase):
         self.wait_until(lambda: not self.helper._loader._request.busy)
         self.window.close()
         self.window.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         self.preview.stop()
         self.resolve.stop()
 
@@ -276,7 +276,7 @@ class LocationFilterTestCase(unittest.TestCase):
         combo.showPopup()
         QTest.qWait(10)
         view = combo.view()
-        QTest.mouseClick(view.viewport(), Qt.LeftButton, pos=view.visualRect(view.model().index(row, 0)).center())
+        QTest.mouseClick(view.viewport(), Qt.MouseButton.LeftButton, pos=view.visualRect(view.model().index(row, 0)).center())
         combo.hidePopup()
 
     def add_import_fields(self):

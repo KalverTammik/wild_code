@@ -987,7 +987,7 @@ class AttachableLayerServiceBase(ModuleLayerServiceBase):
                 geometry = feature.geometry()
                 if geometry is None or geometry.isEmpty():
                     continue
-                if layer.geometryType() == QgsWkbTypes.PointGeometry:
+                if layer.geometryType() == QgsWkbTypes.GeometryType.PointGeometry:
                     try:
                         distance = geometry.distance(point_geometry)
                     except TypeError:

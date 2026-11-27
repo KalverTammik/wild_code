@@ -122,7 +122,7 @@ class WorksScanProgressTest(unittest.TestCase):
     @staticmethod
     def _delete(window) -> None:
         window.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 if __name__ == "__main__":

@@ -41,9 +41,9 @@ class PriorityWidget(QWidget):
 
         self.priority_label = QLabel(self)
         self.priority_label.setObjectName("PriorityLabel")
-        self.priority_label.setAlignment(Qt.AlignCenter)
+        self.priority_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.priority_label.setScaledContents(False)
-        row.addWidget(self.priority_label, 0, Qt.AlignRight | Qt.AlignVCenter)
+        row.addWidget(self.priority_label, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         main_layout.addLayout(row)
 
@@ -64,7 +64,7 @@ class PriorityWidget(QWidget):
         icon_pixmap = QPixmap(icon_path)
         if not icon_pixmap.isNull():
             self.priority_label.setPixmap(
-                icon_pixmap.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                icon_pixmap.scaled(16, 16, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             )
         else:
             self.priority_label.clear()

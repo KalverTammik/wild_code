@@ -14,14 +14,14 @@ class SelectArrow(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setFixedSize(7, 7)
-        self.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
     def paintEvent(self, _event) -> None:  # noqa: N802 - Qt override
         color = QColor(self.COLOR)
         if not self.isEnabled():
             color.setAlpha(self.DISABLED_ALPHA)
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setPen(QPen(color, 1, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(QPen(color, 1, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
         painter.setBrush(color)
         painter.drawPolygon(QPolygonF([QPointF(0.5, 0.5), QPointF(6.5, 0.5), QPointF(3.5, 6.5)]))

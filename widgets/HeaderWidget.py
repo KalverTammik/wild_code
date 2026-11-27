@@ -35,7 +35,7 @@ class HeaderWidget(QWidget):
         self.titleLabel = QLabel(title)
         self.titleLabel.setObjectName("headerTitleLabel")
         self.titleLabel.setFixedWidth(180)
-        self.titleLabel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        self.titleLabel.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
         self.titleFrame = QFrame()
         self.titleFrame.setObjectName("headerTitleFrame")
         frame_layout = QHBoxLayout(self.titleFrame)
@@ -64,7 +64,7 @@ class HeaderWidget(QWidget):
 
         self.helpButton.clicked.connect(self.helpRequested.emit)
         frame_layout.addWidget(self.helpButton)
-        layout.addWidget(self.titleFrame, 0, Qt.AlignLeft | Qt.AlignVCenter)
+        layout.addWidget(self.titleFrame, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
         # Search (center)
         self.searchEdit = QLineEdit()
@@ -94,7 +94,7 @@ class HeaderWidget(QWidget):
         self.searchEdit.returnPressed.connect(self._perform_search)
 
         # Ensure search field maintains focus and handles Return key properly
-        self.searchEdit.setFocusPolicy(Qt.StrongFocus)
+        self.searchEdit.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         # Lazy initialization - SearchResultsWidget will be created only when first needed
         self._search_results = None
@@ -106,7 +106,7 @@ class HeaderWidget(QWidget):
         self._active_token = None
         self._activated = True
 
-        layout.addWidget(self.searchEdit, 1, Qt.AlignHCenter | Qt.AlignVCenter)
+        layout.addWidget(self.searchEdit, 1, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
 
         # Right: theme switch + logout
         self.switchButton = QPushButton()
@@ -120,7 +120,7 @@ class HeaderWidget(QWidget):
         # Rakenda tooltip keelefailist
         tooltip = self.lang_manager.translate(TranslationKeys.THEME_SWITCH_TOOLTIP)
         self.switchButton.setToolTip(tooltip)
-        layout.addWidget(self.switchButton, 0, Qt.AlignRight | Qt.AlignVCenter)
+        layout.addWidget(self.switchButton, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         self.logoutButton = QPushButton()
         self.logoutButton.setObjectName("logoutButton")
@@ -134,7 +134,7 @@ class HeaderWidget(QWidget):
         # Rakenda tooltip keelefailist
         tooltip = self.lang_manager.translate(TranslationKeys.LOGOUT_BUTTON_TOOLTIP)
         self.logoutButton.setToolTip(tooltip)
-        layout.addWidget(self.logoutButton, 0, Qt.AlignRight | Qt.AlignVCenter)
+        layout.addWidget(self.logoutButton, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         # Outer zero-margin wrapper (consistent with footer structure)
         outer = QHBoxLayout(self)

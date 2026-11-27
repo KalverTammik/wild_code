@@ -69,8 +69,8 @@ class SingleClickToolTest(CanvasCase):
 
     def test_escape_and_right_click_cancel_once(self) -> None:
         tool = self.tool()
-        tool.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_Escape, Qt.NoModifier))
-        tool.canvasReleaseEvent(release(Qt.RightButton))
+        tool.keyPressEvent(QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier))
+        tool.canvasReleaseEvent(release(Qt.MouseButton.RightButton))
         self.canvas.setMapTool(self.pan)
         QApplication.processEvents()
         self.assertEqual(self.cancelled, [1])
@@ -81,15 +81,15 @@ class SingleClickToolTest(CanvasCase):
             self.canvas.setMapTool(self.pan)  # the caller removes the tool while handling the click
 
         tool = self.tool(on_selected=done)
-        tool.canvasReleaseEvent(release(Qt.LeftButton))
+        tool.canvasReleaseEvent(release(Qt.MouseButton.LeftButton))
         QApplication.processEvents()
         self.assertEqual((len(self.selected), self.cancelled), (1, []))
 
     def test_a_kept_tool_takes_another_click(self) -> None:
         # "Nothing found here" keeps the tool for the next click.
         tool = self.tool()
-        tool.canvasReleaseEvent(release(Qt.LeftButton))
-        tool.canvasReleaseEvent(release(Qt.LeftButton))
+        tool.canvasReleaseEvent(release(Qt.MouseButton.LeftButton))
+        tool.canvasReleaseEvent(release(Qt.MouseButton.LeftButton))
         self.assertEqual(len(self.selected), 2)
         self.canvas.setMapTool(self.pan)
         QApplication.processEvents()
@@ -135,11 +135,11 @@ class RectangleSelectionTest(CanvasCase):
         self.assertEqual(self.selected, [])  # no longer listening
 
     def test_escape_ends_the_selection(self) -> None:
-        QApplication.sendEvent(self.canvas, QKeyEvent(QEvent.KeyPress, Qt.Key_Escape, Qt.NoModifier))
+        QApplication.sendEvent(self.canvas, QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier))
         self.assertEqual(self.abandoned, [1])
 
     def test_right_click_ends_the_selection(self) -> None:
-        event = QMouseEvent(QEvent.MouseButtonRelease, QPointF(3, 3), Qt.RightButton, Qt.RightButton, Qt.NoModifier)
+        event = QMouseEvent(QEvent.Type.MouseButtonRelease, QPointF(3, 3), Qt.MouseButton.RightButton, Qt.MouseButton.RightButton, Qt.KeyboardModifier.NoModifier)
         QApplication.sendEvent(self.canvas.viewport(), event)
         self.assertEqual(self.abandoned, [1])
 

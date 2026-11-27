@@ -79,7 +79,7 @@ class _Case(unittest.TestCase):
         self.link = self.p(APIModuleActions, "create_file_download_link", return_value="https://d")
         self.get = self.p(requests, "get", side_effect=AssertionError("unexpected network call"))
         self.startfile = self.p(os, "startfile", create=True)
-        self.addCleanup(lambda: QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete))
+        self.addCleanup(lambda: QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete))
 
     def p(self, target, name, *args, **kwargs):
         patcher = patch.object(target, name, *args, **kwargs)

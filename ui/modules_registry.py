@@ -105,7 +105,7 @@ class ModulesRegistry:
                 DialogHelpers.open_folder_rule_dialog,
                 dialog,
                 FolderNamingRuleDialog,
-                QDialog.Accepted,
+                QDialog.DialogCode.Accepted,
             )
         )
 

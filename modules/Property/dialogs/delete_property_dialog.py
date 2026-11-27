@@ -70,7 +70,7 @@ class DeletePropertyUI(QDialog):
         layout.addLayout(btns)
 
         self.show()
-        self.exec_()
+        self.exec()
 
     def _on_confirm_clicked(self) -> None:
         # A Qt slot: an escaping exception would abort QGIS.

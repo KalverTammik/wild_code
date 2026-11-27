@@ -602,7 +602,8 @@ class WorksSyncService(QObject):
         if not isinstance(new_geometry, QgsGeometry) or new_geometry.isEmpty():
             return False
         try:
-            return existing_geometry.equals(new_geometry)
+            # The inner geometries allow GeoJSON rounding in every QGIS; QGIS 4 compares equals() exactly.
+            return existing_geometry.constGet() == new_geometry.constGet()
         except Exception as exc:
             # Fallback kept: "not equal" makes the caller rewrite the geometry.
             PythonFailLogger.log_exception(exc, module=Module.WORKS.value, event="works_geometry_compare_failed")

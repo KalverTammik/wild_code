@@ -28,7 +28,7 @@ from Kavitro_dev.widgets.HeaderWidget import HeaderWidget
 def delete_now(widget: QWidget) -> None:
     widget.hide()
     widget.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def running_thread() -> Mock:

@@ -91,7 +91,7 @@ class CardCase(unittest.TestCase):
     def delete_host(self) -> None:
         self.host.hide()
         self.host.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def button(self, item=None, module=None, **options) -> MoreActionsButton:
         button = MoreActionsButton(dict(ITEM if item is None else item), module or self.MODULE, **options)
@@ -221,7 +221,7 @@ class PreviewCase(CardCase):
         self.assertEqual(self.built()[0]["item_data"]["id"], "7")
         self.assertIs(self.built()[0]["parent"], self.host)
         dialog = opened[0]
-        dialog.setAttribute.assert_called_once_with(Qt.WA_DeleteOnClose, True)
+        dialog.setAttribute.assert_called_once_with(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         dialog.show.assert_called_once_with()
         dialog.raise_.assert_called_once_with()
         dialog.activateWindow.assert_called_once_with()
@@ -235,7 +235,7 @@ class PreviewCase(CardCase):
         dialog.raise_.assert_called_once_with()
 
         # Closed: the next click opens a new one.
-        dialog.finished.connect.call_args.args[0](QDialog.Accepted)
+        dialog.finished.connect.call_args.args[0](QDialog.DialogCode.Accepted)
         self.open(button)
         self.assertEqual(len(opened), 2)
 
@@ -347,7 +347,7 @@ class AsBuiltNotesMenuTest(CardCase):
         dialog_class = self.replace("AsBuiltNotesEditorDialog")
         self.replace("AsBuiltNotesService").parse_notes.return_value = ["märge"]
         api.get_task_description.return_value = "<p>kirjeldus</p>"
-        dialog_class.return_value.exec_.return_value = QDialog.Rejected
+        dialog_class.return_value.exec.return_value = QDialog.DialogCode.Rejected
 
         self.trigger(self.button(), TranslationKeys.ASBUILT_UPDATE_NOTES_ACTION)
 
@@ -410,7 +410,7 @@ class EasementFilesTest(CardCase):
             self.trigger(button, TranslationKeys.TASK_FILES_ACTION)
         dialog_class.assert_called_once_with(item_id="7", item_name="Nimi", module_name="easement",
                                              parent=button.window())
-        dialog_class.return_value.exec_.assert_called_once_with()
+        dialog_class.return_value.exec.assert_called_once_with()
 
     def test_name_falls_back_to_the_id(self) -> None:
         with patch(self.PATH) as dialog_class:

@@ -243,7 +243,7 @@ class FolderNameGenerator:
 class FolderHelpers:
     @staticmethod
     def select_folder_path(parent=None, start_path: str = "") -> Optional[str]:
-        options = QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+        options = QFileDialog.Option.ShowDirsOnly | QFileDialog.Option.DontResolveSymlinks
         caption = LanguageManager().translate(TranslationKeys.SELECT_FOLDER)
         directory = QFileDialog.getExistingDirectory(parent, caption, start_path or os.path.expanduser("~"), options)
         return directory or None
@@ -268,7 +268,7 @@ class FolderHelpers:
         destination = classify_description_link(file_path)
         try:
             if destination.kind == DESCRIPTION_LINK_WEB:
-                opened = QDesktopServices.openUrl(QUrl(destination.target, QUrl.TolerantMode))
+                opened = QDesktopServices.openUrl(QUrl(destination.target, QUrl.ParsingMode.TolerantMode))
             elif destination.kind in (DESCRIPTION_LINK_LOCAL_PATH, DESCRIPTION_LINK_NETWORK_PATH):
                 target = destination.target
                 if os.path.isfile(target):

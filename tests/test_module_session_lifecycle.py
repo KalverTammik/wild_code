@@ -32,7 +32,7 @@ PluginDialog = dialog_module.PluginDialog
 def delete_now(widget: QWidget) -> None:
     widget.hide()
     widget.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 class RecordingModule(TokenMixin, QWidget):
@@ -176,7 +176,7 @@ class PluginDialogSessionTest(IsolatedModuleStateTest):
     def test_module_switch_works_in_the_dialog_opened_after_logout(self) -> None:
         old_dialog, _works = self._open_dialog_on_works()
         SessionUIController.logout(old_dialog)
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
         new_dialog = self._open_dialog()
         with patch.object(SessionManager, "is_session_valid", return_value=True):

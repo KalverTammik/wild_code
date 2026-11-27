@@ -124,7 +124,7 @@ class HtmlDescriptionLinkPolicyTest(unittest.TestCase):
                 widget._handle_anchor_clicked(QUrl.fromLocalFile(str(path)))
 
         open_preview.assert_called_once()
-        preview_dialog.exec_.assert_called_once_with()
+        preview_dialog.exec.assert_called_once_with()
 
     def test_allowlisted_non_preview_file_requires_confirmation(self) -> None:
         widget = self._widget()

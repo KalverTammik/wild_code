@@ -48,7 +48,7 @@ class WorksModule(TaskModuleBaseUI):
         self._list_controls.groupExpansionRequested.connect(self._list_view.set_groups_expanded)
         self._list_scope_label = QLabel(self.footer_area)
         self._list_scope_label.setObjectName("FeedListScope")
-        self._list_scope_label.setTextFormat(Qt.PlainText)
+        self._list_scope_label.setTextFormat(Qt.TextFormat.PlainText)
         self._list_scope_label.setWordWrap(True)
         self.footer_area.layout().addWidget(self._list_scope_label, 1)
         self._list_view.changed.connect(self._on_list_presentation_changed)
@@ -131,7 +131,7 @@ class WorksModule(TaskModuleBaseUI):
 
     def _schedule_post_batch_updates(self):
         # Cards style themselves when constructed; do not restyle the entire feed per page.
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self._update_counter_snapshot()
 
     @staticmethod

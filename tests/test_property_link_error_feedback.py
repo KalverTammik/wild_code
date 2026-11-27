@@ -195,7 +195,7 @@ class CardPropertyLinkTest(QgsCase):
         self.orchestrator.start_selection_for_layer.return_value = True
         self.start(buttons_module, "MapSelectionOrchestrator", return_value=self.orchestrator)
         self.review = self.start(buttons_module, "PropertyLinkReviewDialog").return_value
-        self.review.exec_.return_value = QDialog.Accepted
+        self.review.exec.return_value = QDialog.DialogCode.Accepted
         self.review.reselect_requested = False
         self.review.numbers_to_remove = []
 
@@ -334,7 +334,7 @@ class CardPropertyLinkTest(QgsCase):
         self.messages.show_warning.assert_not_called()
 
     def test_cancelled_review_links_nothing_and_closes_the_selection(self) -> None:
-        self.review.exec_.return_value = QDialog.Rejected
+        self.review.exec.return_value = QDialog.DialogCode.Rejected
 
         self.select()
 

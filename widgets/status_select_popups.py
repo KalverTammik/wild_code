@@ -103,10 +103,10 @@ class _StatusPopupBase(QWidget):
     FRAME_SPACING = 0
 
     def __init__(self, options: Iterable[dict[str, object]], *, object_name: str, parent=None):
-        super().__init__(parent, flags=Qt.Popup | Qt.FramelessWindowHint)
+        super().__init__(parent, flags=Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
         self.setObjectName(object_name)
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
-        self.setFocusPolicy(Qt.NoFocus)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._lang = resolve_lang()
         self._dark_theme = is_dark_theme()
         self._options = [dict(option or {}) for option in (options or [])]
@@ -129,9 +129,9 @@ class _StatusPopupBase(QWidget):
         scroll = QScrollArea(frame)
         scroll.setObjectName("StatusSelectScroll")
         scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setStyleSheet(status_scroll_style(self._dark_theme))
 
         content = QWidget(scroll)
@@ -143,7 +143,7 @@ class _StatusPopupBase(QWidget):
         for section_type, section_options in group_status_options(self._options).items():
             section_label = QLabel(section_title(self._lang, section_type), content)
             section_label.setObjectName("StatusSelectSectionLabel")
-            section_label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+            section_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
             content_layout.addWidget(section_label)
 
             for option in section_options:
@@ -218,13 +218,13 @@ class StatusMultiSelectPopup(_StatusPopupBase):
 
         self._select_all_btn = QPushButton(self._lang.translate(TranslationKeys.SELECT_ALL), actions)
         self._select_all_btn.setObjectName("StatusSelectActionButton")
-        self._select_all_btn.setCursor(Qt.PointingHandCursor)
+        self._select_all_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._select_all_btn.clicked.connect(self._select_all)
         actions_layout.addWidget(self._select_all_btn)
 
         self._clear_btn = QPushButton(self._lang.translate(TranslationKeys.CLEAR_SELECTION), actions)
         self._clear_btn.setObjectName("StatusSelectActionButton")
-        self._clear_btn.setCursor(Qt.PointingHandCursor)
+        self._clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._clear_btn.clicked.connect(self._clear_selection)
         actions_layout.addWidget(self._clear_btn)
         frame_layout.addWidget(actions)

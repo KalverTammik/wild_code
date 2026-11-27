@@ -189,14 +189,14 @@ class GeospatialLayerMapperDialog(QDialog):
             ]
         )
         header = self._table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         self._table.verticalHeader().setVisible(False)
         layout.addWidget(self._table, 1)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
-        run_button = button_box.button(QDialogButtonBox.Ok)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, parent=self)
+        run_button = button_box.button(QDialogButtonBox.StandardButton.Ok)
         if run_button is not None:
             run_button.setText(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_RUN_BUTTON))
         button_box.accepted.connect(self._on_accept)
@@ -222,7 +222,7 @@ class GeospatialLayerMapperDialog(QDialog):
         for row_index, field in enumerate(self._target_fields):
             field_name = field.name()
             item = QTableWidgetItem(field_name)
-            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             item.setToolTip(self._field_type_label(field.type()))
             self._table.setItem(row_index, 0, item)
 
@@ -755,4 +755,4 @@ class GeospatialLayerMapperDialog(QDialog):
             target_layer=target_layer,
             parent=parent,
         )
-        return dialog.exec_() == QDialog.Accepted
+        return dialog.exec() == QDialog.DialogCode.Accepted

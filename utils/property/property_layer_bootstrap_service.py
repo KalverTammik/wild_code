@@ -196,7 +196,7 @@ class PropertyLayerBootstrapService:
                 details=", ".join(missing_fields),
             )
 
-        if source_layer.geometryType() != QgsWkbTypes.PolygonGeometry:
+        if source_layer.geometryType() != QgsWkbTypes.GeometryType.PolygonGeometry:
             return PropertyLayerBootstrapResult(error_code=cls.ERROR_INVALID_GEOMETRY)
 
         if not source_layer.crs().isValid():

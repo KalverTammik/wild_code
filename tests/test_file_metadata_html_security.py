@@ -60,7 +60,7 @@ class FileMetadataHtmlSecurityTest(unittest.TestCase):
         rich_text = dialog._meta_label.text()
         rendered = self._rendered_plain_text(rich_text)
 
-        self.assertEqual(dialog._meta_label.textFormat(), Qt.RichText)
+        self.assertEqual(dialog._meta_label.textFormat(), Qt.TextFormat.RichText)
         self.assertNotIn('<font color="red">', rich_text)
         self.assertNotIn('<img src="file:///private.png">', rich_text)
         self.assertNotIn('<a href="https://evil.example">', rich_text)
@@ -87,13 +87,13 @@ class FileMetadataHtmlSecurityTest(unittest.TestCase):
         malicious = '<font color="red">FAKE WARNING</font>'
 
         dialog._set_notice(malicious)
-        self.assertEqual(dialog._notice_label.textFormat(), Qt.PlainText)
+        self.assertEqual(dialog._notice_label.textFormat(), Qt.TextFormat.PlainText)
         self.assertEqual(dialog._notice_label.text(), malicious)
 
         dialog._show_placeholder(malicious)
         placeholder = dialog._content_layout.itemAt(0).widget()
         self.assertIsInstance(placeholder, QLabel)
-        self.assertEqual(placeholder.textFormat(), Qt.PlainText)
+        self.assertEqual(placeholder.textFormat(), Qt.TextFormat.PlainText)
         self.assertEqual(placeholder.text(), malicious)
 
     def test_external_open_confirmation_treats_file_name_as_plain_text(self) -> None:

@@ -15,7 +15,7 @@ class ExtraInfoFrame(QFrame):
 
     def __init__(self, item_data, module_name=None, parent=None, handle_host=None):
         super().__init__(parent)
-        self.setFrameShape(QFrame.NoFrame)
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self.setObjectName("ExtraInfoOuterFrame")
         self._lang = LanguageManager()
         self._handle_host = handle_host if handle_host is not None else self
@@ -49,10 +49,10 @@ class ExtraInfoFrame(QFrame):
         self._expand_handle.setObjectName("ExtraInfoHandleButton")
         self._expand_handle.setAutoRaise(True)
         self._expand_handle.setFixedSize(56, 16)
-        self._expand_handle.setArrowType(Qt.DownArrow)
+        self._expand_handle.setArrowType(Qt.ArrowType.DownArrow)
         self._expand_handle.setCheckable(True)
-        self._expand_handle.setFocusPolicy(Qt.StrongFocus)
-        self._expand_handle.setCursor(Qt.PointingHandCursor)
+        self._expand_handle.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self._expand_handle.setCursor(Qt.CursorShape.PointingHandCursor)
         self._update_handle_state()
         self._expand_handle.clicked.connect(self._on_handle_clicked)
         self._expand_handle.raise_()
@@ -73,7 +73,7 @@ class ExtraInfoFrame(QFrame):
     def _init_project_detail_container(self):
         self._detail_container = QFrame(self)
         self._detail_container.setObjectName("ExtraInfoInlineDetail")
-        self._detail_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self._detail_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._detail_container.setMaximumHeight(0)
         self._detail_container.setMinimumHeight(0)
         self._detail_container.installEventFilter(self)
@@ -89,7 +89,7 @@ class ExtraInfoFrame(QFrame):
         self._refresh_button = QToolButton(self._detail_container)
         self._refresh_button.setObjectName("ExtraInfoRefreshButton")
         self._refresh_button.setAutoRaise(True)
-        self._refresh_button.setCursor(Qt.PointingHandCursor)
+        self._refresh_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._refresh_button.setText(self._lang.translate(TranslationKeys.CARD_DETAIL_REFRESH))
         self._refresh_button.clicked.connect(self.invalidate_detail)
         refresh_row.addWidget(self._refresh_button)
@@ -98,7 +98,7 @@ class ExtraInfoFrame(QFrame):
 
         self._detail_animation = QPropertyAnimation(self._detail_container, b"maximumHeight", self)
         self._detail_animation.setDuration(260)
-        self._detail_animation.setEasingCurve(QEasingCurve.OutCubic)
+        self._detail_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._detail_animation.finished.connect(self._on_detail_animation_finished)
 
     def _on_handle_clicked(self):
@@ -130,7 +130,7 @@ class ExtraInfoFrame(QFrame):
 
         detail_widget = self._extra_info_widget.load_detail_widget()
         detail_widget.setParent(self._detail_container)
-        detail_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        detail_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._detail_layout.addWidget(detail_widget)
         self._detail_widget = detail_widget
         detail_widget.installEventFilter(self)
@@ -153,14 +153,14 @@ class ExtraInfoFrame(QFrame):
         key = TranslationKeys.CARD_DETAIL_CLOSE if self._detail_expanded else TranslationKeys.CARD_DETAIL_OPEN
         text = self._lang.translate(key)
         self._expand_handle.setChecked(self._detail_expanded)
-        self._expand_handle.setArrowType(Qt.UpArrow if self._detail_expanded else Qt.DownArrow)
+        self._expand_handle.setArrowType(Qt.ArrowType.UpArrow if self._detail_expanded else Qt.ArrowType.DownArrow)
         self._expand_handle.setToolTip(text)
         self._expand_handle.setAccessibleName(text)
 
     def eventFilter(self, obj, event):
-        if obj is self._handle_host and event.type() in (QEvent.Resize, QEvent.Move, QEvent.Show, QEvent.LayoutRequest):
+        if obj is self._handle_host and event.type() in (QEvent.Type.Resize, QEvent.Type.Move, QEvent.Type.Show, QEvent.Type.LayoutRequest):
             self._schedule_position_handle()
-        if event.type() == QEvent.LayoutRequest and self._detail_expanded:
+        if event.type() == QEvent.Type.LayoutRequest and self._detail_expanded:
             if not self._height_timer.isActive():
                 self._height_timer.start(0)
         return super().eventFilter(obj, event)
@@ -168,7 +168,7 @@ class ExtraInfoFrame(QFrame):
     def _refresh_detail_height(self):
         if not self._detail_expanded or self._detail_container is None:
             return
-        if self._detail_animation.state() == QPropertyAnimation.Running:
+        if self._detail_animation.state() == QPropertyAnimation.State.Running:
             return  # The animation's finished handler picks up the new content size.
         self._detail_container.setMaximumHeight(self._project_detail_target_height())
         self.updateGeometry()
@@ -240,7 +240,7 @@ class ExtraInfoFrame(QFrame):
             self._detail_container is not None
             and self._detail_container.isVisible()
             and self._detail_animation is not None
-            and self._detail_animation.state() != QPropertyAnimation.Running
+            and self._detail_animation.state() != QPropertyAnimation.State.Running
         ):
             self._detail_container.setMaximumHeight(self._project_detail_target_height())
         self._schedule_position_handle()

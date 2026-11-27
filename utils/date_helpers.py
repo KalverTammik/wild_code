@@ -39,7 +39,7 @@ class DateHelpers:
             return f"{prefix}: –"
         qdt = QDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
         day = locale.dayName(qdt.date().dayOfWeek())
-        short = locale.toString(qdt.date(), QLocale.ShortFormat)
+        short = locale.toString(qdt.date(), QLocale.FormatType.ShortFormat)
         return f"{prefix}: {short} ({day})"
 
     @staticmethod
@@ -47,7 +47,7 @@ class DateHelpers:
         if not dt:
             return "–"
         qdt = QDateTime(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-        return locale.toString(qdt.date(), QLocale.ShortFormat)
+        return locale.toString(qdt.date(), QLocale.FormatType.ShortFormat)
 
 
     def date_to_iso_string(self, date_item):

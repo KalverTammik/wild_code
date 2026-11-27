@@ -143,7 +143,7 @@ def measure_geometry_area_sqm(geometry, layer) -> float:
         distance_area.setSourceCrs(layer.crs(), QgsProject.instance().transformContext())
         distance_area.setEllipsoid(_ellipsoid_for(layer))
         measured = distance_area.measureArea(geometry)
-        return max(0.0, float(distance_area.convertAreaMeasurement(measured, QgsUnitTypes.AreaSquareMeters)))
+        return max(0.0, float(distance_area.convertAreaMeasurement(measured, QgsUnitTypes.AreaUnit.AreaSquareMeters)))
     except (AttributeError, RuntimeError, TypeError):
         try:
             return max(0.0, float(geometry.area()))

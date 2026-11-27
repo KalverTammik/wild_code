@@ -17,16 +17,21 @@ Rules (read with ast over every plugin source file outside tests/):
      schema, file names, CSS and log text are not user text and are not checked.
   5. Qt is imported through qgis.PyQt (also sip and uic), never from PyQt5 / PyQt6 or a bare `import sip`:
      only that path works in both QGIS 3 and QGIS 4. Tests and tools follow it too.
+  6. No Qt5-only form that Qt6 refuses at run time: `exec_()`, `globalPos()` outside utils/qt_events.py,
+     `Qt.convertFromPlainText`, and a Qt enum member without its enum (`Qt.AlignLeft`).
 
 ALLOWED_SECTION_LISTS only shrinks: a listed place that is gone fails until its line is deleted.
 """
 import ast
 import functools
+import importlib
 import os
 import re
 import sys
 import unittest
 from pathlib import Path
+
+from qgis.PyQt.QtCore import QT_VERSION
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN_ROOT.parent))
@@ -251,6 +256,72 @@ class QtImportRuleTest(unittest.TestCase):
     def test_the_rule_sees_every_form_of_the_import(self) -> None:
         tree = ast.parse("import sip\nfrom PyQt5 import uic\nimport PyQt6.QtCore\nfrom qgis.PyQt import sip\n")
         self.assertEqual([line for line, _module in _direct_qt_imports(tree)], [1, 2, 3])
+
+
+QT5_ONLY_ATTRIBUTES = {"exec_", "globalPos", "convertFromPlainText"}
+GLOBAL_POS_OWNER = "utils/qt_events.py"
+
+
+def _qt_classes(tree):
+    """name -> class for what the file imports from qgis.PyQt."""
+    classes = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("qgis.PyQt"):
+            try:
+                module = importlib.import_module(node.module)
+            except ImportError:
+                continue
+            for alias in node.names:
+                value = getattr(module, alias.name, None)
+                if isinstance(value, type):
+                    classes[alias.asname or alias.name] = value
+    return classes
+
+
+def _unscoped_enum_members(tree):
+    """(line, text) for `Class.Member` where the member belongs to an enum nested in the class."""
+    classes = _qt_classes(tree)
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in classes):
+            continue
+        owner = classes[node.value.id]
+        # QGIS keeps QVariant.<Type> in both versions; moving to QMetaType is a separate step.
+        if node.value.id == "QVariant":
+            continue
+        value = getattr(owner, node.attr, None)
+        kind = type(value)
+        if value is None or isinstance(value, type) or kind is owner:
+            continue
+        if getattr(owner, kind.__name__, None) is kind:
+            yield node.lineno, f"{node.value.id}.{node.attr}"
+
+
+class Qt6RuleTest(unittest.TestCase):
+    def test_no_qt5_only_attribute(self) -> None:
+        found = [
+            (rel, node.lineno, node.attr)
+            for rel, tree in plugin_sources()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Attribute) and node.attr in QT5_ONLY_ATTRIBUTES
+            and not (node.attr == "globalPos" and rel == GLOBAL_POS_OWNER)
+        ]
+        self.assertEqual(found, [])
+
+    def test_every_qt_enum_member_names_its_enum(self) -> None:
+        found = [(rel, line, text) for rel, tree in plugin_sources() for line, text in _unscoped_enum_members(tree)]
+        self.assertEqual(found, [], "write Qt.AlignmentFlag.AlignLeft, not Qt.AlignLeft")
+
+    def test_the_enum_rule_sees_an_unscoped_member(self) -> None:
+        tree = ast.parse(
+            "from qgis.PyQt.QtCore import Qt, QEvent\n"
+            "a = Qt.AlignmentFlag.AlignLeft\n"
+            "b = QEvent.Type.Enter\n"
+            "c = Qt.AlignLeft\n"
+            "d = QEvent.Enter\n"
+        )
+        # PyQt6 has no unscoped members at all, so there the rule has nothing to see.
+        expected = [] if QT_VERSION >= 0x060000 else [4, 5]
+        self.assertEqual(sorted(line for line, _text in _unscoped_enum_members(tree)), expected)
 
 
 class StatusFunctionRuleTest(unittest.TestCase):

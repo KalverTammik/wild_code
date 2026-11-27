@@ -11,7 +11,7 @@ class ProjectsTempLayerHelper(ModuleTempLayerHelper):
     MODULE = Module.PROJECT
     EVENT_PREFIX = "projects"
     DEFAULT_LAYER_NAME = "Projects_Temp"
-    GEOMETRY_TYPE = QgsWkbTypes.Polygon
+    GEOMETRY_TYPE = QgsWkbTypes.Type.Polygon
 
     @staticmethod
     def _build_fields() -> QgsFields:

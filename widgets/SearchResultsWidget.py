@@ -6,6 +6,7 @@ from ..constants.button_props import ButtonVariant
 from ..constants.file_paths import QssPaths
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
+from ..utils.qt_events import global_pos
 
 class SearchResultsWidget(QDialog):
     """
@@ -20,16 +21,16 @@ class SearchResultsWidget(QDialog):
         # Use QDialog with translucent background for better popup control
         # Use ToolTip type to avoid stealing focus, but still float above
         self.setWindowFlags(
-            Qt.ToolTip
-            | Qt.FramelessWindowHint
-            | Qt.NoDropShadowWindowHint
+            Qt.WindowType.ToolTip
+            | Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.NoDropShadowWindowHint
             )
-        self.setAttribute(Qt.WA_TranslucentBackground)  # Enable translucent background
-        self.setAttribute(Qt.WA_ShowWithoutActivating, True)  # Keep focus on search field
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)  # Enable translucent background
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)  # Keep focus on search field
         self.setModal(False)  # Non-modal dialog
         self.setObjectName("searchResultsWidget")
         self.setProperty("mapCanvasGlass", False)
-        self.setFocusPolicy(Qt.NoFocus)  # Never accept focus
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # Never accept focus
         # Track expanded state for each module type
 
         self.expanded_modules = set()
@@ -71,11 +72,11 @@ class SearchResultsWidget(QDialog):
         self.resultsList = QListWidget()
         self.resultsList.setObjectName("searchResultsList")
         self.resultsList.setProperty("mapCanvasGlass", False)
-        self.resultsList.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.resultsList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.resultsList.setFocusPolicy(Qt.NoFocus)
+        self.resultsList.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.resultsList.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.resultsList.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.resultsList.setMouseTracking(True)
-        self.resultsList.setSelectionMode(QListWidget.SingleSelection)
+        self.resultsList.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
         styleExtras.apply_chip_shadow(
             element=self.resultsList,
             blur_radius=16,
@@ -159,7 +160,7 @@ class SearchResultsWidget(QDialog):
             header_item = QListWidgetItem()
             header_text = f"{LanguageManager().translate_module_name(module_type)} ({total_hits})"
             header_item.setText(header_text)
-            header_item.setData(Qt.UserRole, {"type": "header", "module": module_type})
+            header_item.setData(Qt.ItemDataRole.UserRole, {"type": "header", "module": module_type})
 
             # Style header
             font = header_item.font()
@@ -178,7 +179,7 @@ class SearchResultsWidget(QDialog):
                 result_item = QListWidgetItem()
                 title = hit.get("title", "").replace("\n", " ")
                 result_item.setText(f"  {title}")
-                result_item.setData(Qt.UserRole, {
+                result_item.setData(Qt.ItemDataRole.UserRole, {
                     "type": "result",
                     "module": module_type,
                     "id": hit.get("id", ""),
@@ -190,9 +191,9 @@ class SearchResultsWidget(QDialog):
             if not is_expanded and len(hits) > 5:
                 more_item = QListWidgetItem()
                 more_item.setText(LanguageManager().translate(TranslationKeys.SEARCH_SHOW_MORE).format(count=len(hits) - 5))
-                more_item.setData(Qt.UserRole, {"type": "show_more", "module": module_type})
+                more_item.setData(Qt.ItemDataRole.UserRole, {"type": "show_more", "module": module_type})
                 more_item.setForeground(QColor("#666666"))
-                more_item.setFont(QFont("Arial", 9, QFont.StyleItalic))
+                more_item.setFont(QFont("Arial", 9, QFont.Style.StyleItalic))
                 self.resultsList.addItem(more_item)
 
         # Position below search field with increased width
@@ -233,7 +234,7 @@ class SearchResultsWidget(QDialog):
         except (KeyError, IndexError, ValueError):
             message = template
         no_results_item.setText(message)
-        no_results_item.setFlags(no_results_item.flags() & ~Qt.ItemIsSelectable)  # Make it non-selectable
+        no_results_item.setFlags(no_results_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)  # Make it non-selectable
         self.resultsList.addItem(no_results_item)
 
         # Position below search field
@@ -253,14 +254,14 @@ class SearchResultsWidget(QDialog):
         status_item = None
         if self.resultsList.count() == 1:
             candidate = self.resultsList.item(0)
-            if candidate and candidate.data(Qt.UserRole) == "status_message":
+            if candidate and candidate.data(Qt.ItemDataRole.UserRole) == "status_message":
                 status_item = candidate
 
         if status_item is None:
             self.resultsList.clear()
             status_item = QListWidgetItem()
-            status_item.setData(Qt.UserRole, "status_message")
-            status_item.setFlags(status_item.flags() & ~Qt.ItemIsSelectable)
+            status_item.setData(Qt.ItemDataRole.UserRole, "status_message")
+            status_item.setFlags(status_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
             self.resultsList.addItem(status_item)
 
         color = "#b3261e" if is_error else "#666666"
@@ -278,7 +279,7 @@ class SearchResultsWidget(QDialog):
 
     def keyPressEvent(self, event):
         """Handle key press events, specifically ESC to close."""
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             self.hide_results()
             event.accept()  # Accept the event to prevent propagation
             return  # Don't call super() to prevent further processing
@@ -290,15 +291,16 @@ class SearchResultsWidget(QDialog):
         if not self._event_filter_installed:
             return False
 
-        if event.type() == QEvent.MouseButtonPress and self.isVisible():
+        if event.type() == QEvent.Type.MouseButtonPress and self.isVisible():
             # Only hide if click is outside this widget
-            if not self.geometry().contains(event.globalPos()):
-                widget_at_pos = QApplication.widgetAt(event.globalPos())
+            position = global_pos(event)
+            if not self.geometry().contains(position):
+                widget_at_pos = QApplication.widgetAt(position)
                 if widget_at_pos is None or not self.isAncestorOf(widget_at_pos):
                     self.hide_results()
                     return True
         # Never take focus, never respond to keyboard events
-        if event.type() in (QEvent.FocusIn, QEvent.FocusOut, QEvent.KeyPress, QEvent.KeyRelease):
+        if event.type() in (QEvent.Type.FocusIn, QEvent.Type.FocusOut, QEvent.Type.KeyPress, QEvent.Type.KeyRelease):
             return False
         return False
 
@@ -317,7 +319,7 @@ class SearchResultsWidget(QDialog):
 
     def _on_item_clicked(self, item):
         """Handle result item click."""
-        data = item.data(Qt.UserRole)
+        data = item.data(Qt.ItemDataRole.UserRole)
 
         if not data:
             return
@@ -380,6 +382,6 @@ class SearchResultsWidget(QDialog):
     def _set_focus_if_alive(search_field) -> None:
         # The bar can close before the timer fires; an exception escaping a Qt callback aborts QGIS.
         try:
-            search_field.setFocus(Qt.OtherFocusReason)
+            search_field.setFocus(Qt.FocusReason.OtherFocusReason)
         except RuntimeError:
             pass

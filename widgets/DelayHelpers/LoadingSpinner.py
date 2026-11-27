@@ -39,7 +39,7 @@ class GradientSpinner(QWidget):
         self._sub_text_font = sub_text_font
 
         self.setFixedSize(diameter, diameter)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
         # Spinner rotation animation
         self._anim = QPropertyAnimation(self, b"angle", self)
@@ -65,7 +65,7 @@ class GradientSpinner(QWidget):
 
     # --- public API ---
     def start(self):
-        if self._anim.state() != QPropertyAnimation.Running:
+        if self._anim.state() != QPropertyAnimation.State.Running:
             self._anim.start()
         if self._dots_enabled and not self._dots_timer.isActive():
             self._dots_timer.start()
@@ -90,7 +90,7 @@ class GradientSpinner(QWidget):
     # --- painting ---
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         # ring rect
         margin = self._border_thickness // 2 + 1
@@ -108,9 +108,9 @@ class GradientSpinner(QWidget):
         pen = QPen()
         pen.setWidth(self._border_thickness)
         pen.setBrush(grad)
-        pen.setCapStyle(Qt.RoundCap)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(rect)
 
         if self._base_text or self._dots_enabled or self._sub_text:

@@ -18,11 +18,11 @@ class MapButtonProgressBubble(QFrame):
     GAP = 8
 
     def __init__(self, *, text: str, anchor, parent=None) -> None:
-        super().__init__(parent, Qt.ToolTip | Qt.FramelessWindowHint)
+        super().__init__(parent, Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
         self._anchor = anchor
         self.setObjectName("MapButtonProgressBubble")
         self.setFixedSize(self.WIDTH, self.HEIGHT)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setStyleSheet(
             """
             QFrame#MapButtonProgressBubble {

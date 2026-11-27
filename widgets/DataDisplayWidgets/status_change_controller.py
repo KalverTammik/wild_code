@@ -44,7 +44,7 @@ class _StatusSavingDialog(QDialog):
     def __init__(self, text: str, parent=None):
         super().__init__(parent)
         self.setWindowTitle(text)
-        self.setWindowFlags(Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.CustomizeWindowHint | Qt.WindowType.WindowTitleHint)
         self.setMinimumWidth(320)
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel(text, self))
@@ -64,7 +64,7 @@ class _StatusOptionRow(QFrame):
         super().__init__(parent)
         self._option = dict(option or {})
         self.setObjectName("StatusOptionRow")
-        self.setCursor(Qt.PointingHandCursor)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
 
         status_name = str(self._option.get("name") or "-")
         status_color = str(self._option.get("color") or "cccccc")
@@ -99,7 +99,7 @@ class _StatusOptionRow(QFrame):
         )
 
     def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(self._option)
             event.accept()
             return
@@ -110,10 +110,10 @@ class _StatusOptionsPopup(QWidget):
     optionSelected = pyqtSignal(object)
 
     def __init__(self, options: list[dict], current_status_id: str, parent=None):
-        super().__init__(parent, flags=Qt.Popup | Qt.FramelessWindowHint)
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
-        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
-        self.setFocusPolicy(Qt.NoFocus)
+        super().__init__(parent, flags=Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)

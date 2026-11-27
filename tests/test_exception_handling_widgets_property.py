@@ -89,7 +89,7 @@ class WidgetCase(unittest.TestCase):
     def tearDown(self) -> None:
         self.window.hide()
         self.window.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 class AttentionRulesTest(unittest.TestCase):

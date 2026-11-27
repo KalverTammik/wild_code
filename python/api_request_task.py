@@ -57,7 +57,7 @@ class _RequestDialog(QDialog):
         super().__init__(parent.parentWidget() if isinstance(parent, _RequestDialog) else parent)
         self.lang = LanguageManager()
         self.setWindowTitle(self.lang.translate(K.API_REQUEST_TITLE))
-        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.setMinimumWidth(380)
         self.label = QLabel(self.lang.translate(K.API_REQUEST_RUNNING), self)
         self.label.setWordWrap(True)
@@ -68,7 +68,7 @@ class _RequestDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(self.label)
         layout.addWidget(bar)
-        layout.addWidget(self.cancel_button, 0, Qt.AlignRight)
+        layout.addWidget(self.cancel_button, 0, Qt.AlignmentFlag.AlignRight)
         self.cancel_event = Event()
         self.active_requests = 0
         # A zero timer runs only once the GUI thread is back in an event loop. A flow sends
@@ -166,11 +166,11 @@ def send_api_request(
             timer.start(400)
             # Block reentrant clicks until either the result or the modal wait view.
             if not thread.isFinished():
-                loop.exec_(QEventLoop.ExcludeUserInputEvents)
+                loop.exec(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
             timer.stop()
         if not thread.isFinished():
             dialog.show_window()
-            loop.exec_()
+            loop.exec()
     finally:
         thread.wait()
         if not sip.isdeleted(dialog):

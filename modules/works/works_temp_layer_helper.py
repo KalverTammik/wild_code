@@ -11,7 +11,7 @@ class WorksTempLayerHelper(ModuleTempLayerHelper):
     MODULE = Module.WORKS
     EVENT_PREFIX = "works"
     DEFAULT_LAYER_NAME = "Works_Temp"
-    GEOMETRY_TYPE = QgsWkbTypes.Point
+    GEOMETRY_TYPE = QgsWkbTypes.Type.Point
 
     @staticmethod
     def _build_fields() -> QgsFields:

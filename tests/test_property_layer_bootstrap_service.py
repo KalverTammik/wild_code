@@ -122,7 +122,7 @@ class PropertyLayerBootstrapServiceTest(unittest.TestCase):
             GPKGHelpers.create_empty_gpkg_layer(
                 target_path,
                 "Unrelated",
-                QgsWkbTypes.Point,
+                QgsWkbTypes.Type.Point,
                 source_layer.crs(),
                 unrelated_fields,
                 overwrite=False,

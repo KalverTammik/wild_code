@@ -62,6 +62,19 @@ class GeometryPayloadTest(_QgisTest):
         # QGIS. Both owners stay in variables: constGet() points into them.
         self.assertTrue(received.constGet() == original.constGet())
 
+    def test_a_work_read_back_from_kavitro_is_not_seen_as_moved(self) -> None:
+        on_layer = QgsGeometry.fromPointXY(QgsPointXY(630385.6212345678, 6457752.9798765432))
+        sent = GeometryPayloadService.from_qgs_geometry(on_layer, module="works", error_event="test")
+        from_kavitro = self._parse(json.loads(json.dumps(sent)))
+
+        self.assertTrue(WorksSyncService._geometries_equal(on_layer, from_kavitro))
+
+    def test_a_work_moved_by_a_millimetre_is_seen_as_moved(self) -> None:
+        on_layer = QgsGeometry.fromPointXY(QgsPointXY(X, Y))
+        moved = QgsGeometry.fromPointXY(QgsPointXY(X, Y + 0.001))
+
+        self.assertFalse(WorksSyncService._geometries_equal(on_layer, moved))
+
     def test_payload_that_is_not_a_geometry_gives_none(self) -> None:
         with patch("Kavitro_dev.utils.geometry_payload.PythonFailLogger.log_exception") as log_exception:
             for payload in (None, "{nonsense", "null", {}, {"type": "Feature"}, {"type": "Point", "coordinates": []}):
@@ -100,7 +113,7 @@ class GeometryForLayerTest(_QgisTest):
 
         geometry = WorksLayerService.geometry_for_layer(point_payload(X, Y), layer)
 
-        self.assertEqual(QgsWkbTypes.flatType(geometry.wkbType()), QgsWkbTypes.MultiPoint)
+        self.assertEqual(QgsWkbTypes.flatType(geometry.wkbType()), QgsWkbTypes.Type.MultiPoint)
 
 
 class WorksLocationSyncTest(_QgisTest):

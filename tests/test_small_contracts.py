@@ -66,7 +66,7 @@ class MoreActionsWithoutLanguageTest(unittest.TestCase):
     def _delete(widget: QWidget) -> None:
         widget.hide()
         widget.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 class ModuleLabelKeyTest(unittest.TestCase):

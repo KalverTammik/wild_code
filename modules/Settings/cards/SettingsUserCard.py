@@ -183,7 +183,7 @@ class UserSettingsCard(SettingsBaseCard):
 
             pill = QFrame(self.access_container)
             pill.setObjectName("AccessPill")
-            pill.setFocusPolicy(Qt.StrongFocus)  # allows focus ring via :focus-within
+            pill.setFocusPolicy(Qt.FocusPolicy.StrongFocus)  # allows focus ring via :focus-within
             hl = QHBoxLayout(pill)
             hl.setContentsMargins(2, 2, 2, 2)  # Consistent padding with roles pills
             hl.setSpacing(6)
@@ -298,7 +298,7 @@ class UserSettingsCard(SettingsBaseCard):
         self._pill_click_targets.clear()
 
     def eventFilter(self, obj, event):
-        if obj in self._pill_click_targets and event.type() == QEvent.MouseButtonRelease:
+        if obj in self._pill_click_targets and event.type() == QEvent.Type.MouseButtonRelease:
             cb = self._pill_click_targets.get(obj)
             if cb and cb.isEnabled():
                 self._toggle_checkbox_from_target(cb)

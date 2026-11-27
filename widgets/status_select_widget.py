@@ -41,8 +41,8 @@ class _StatusControlBase(QWidget):
 
         self._control = ClickableFrame(self)
         self._control.setObjectName("StatusSelectControl")
-        self._control.setFocusPolicy(Qt.StrongFocus)
-        self._control.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self._control.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self._control.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._control.clicked.connect(self._toggle_popup)
 
         control_layout = QHBoxLayout(self._control)
@@ -52,17 +52,17 @@ class _StatusControlBase(QWidget):
         self._dot = QFrame(self._control)
         self._dot.setObjectName("StatusSelectCurrentDot")
         self._dot.setFixedSize(10, 10)
-        self._dot.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        control_layout.addWidget(self._dot, 0, Qt.AlignVCenter)
+        self._dot.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        control_layout.addWidget(self._dot, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._label = QLabel(self._placeholder, self._control)
         self._label.setObjectName("StatusSelectCurrentLabel")
-        self._label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self._label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        control_layout.addWidget(self._label, 1, Qt.AlignVCenter)
+        self._label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self._label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        control_layout.addWidget(self._label, 1, Qt.AlignmentFlag.AlignVCenter)
 
         self._arrow = SelectArrow(self._control)
-        control_layout.addWidget(self._arrow, 0, Qt.AlignVCenter)
+        control_layout.addWidget(self._arrow, 0, Qt.AlignmentFlag.AlignVCenter)
 
         layout.addWidget(self._control)
         self.setFocusProxy(self._control)
@@ -164,7 +164,7 @@ class _StatusControlBase(QWidget):
             "font-weight: 600;"
             "}"
         )
-        self._control.setCursor(Qt.PointingHandCursor if self.isEnabled() else Qt.ArrowCursor)
+        self._control.setCursor(Qt.CursorShape.PointingHandCursor if self.isEnabled() else Qt.CursorShape.ArrowCursor)
 
 
 class StatusSelectWidget(_StatusControlBase):

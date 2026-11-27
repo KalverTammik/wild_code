@@ -193,7 +193,7 @@ class WorksListWidgetTest(unittest.TestCase):
         self.ui._list_view.clear()
         self.ui.close()
         self.ui.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         for p in reversed(self.patches):
             p.stop()
 
@@ -299,7 +299,7 @@ class WorksListWidgetTest(unittest.TestCase):
         card = next(iter(self.ui._list_view.cards.values()))
         card.findChild(StatusChangeController)._replace_current_card(task(1, names=['Kalver', 'Mari'], status='Valmis'))
         QTest.qWait(70)
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         self.add(task(2))
         QTest.qWait(50)
         for key, card in self.ui._list_view.cards.items():

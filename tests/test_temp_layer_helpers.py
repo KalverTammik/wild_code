@@ -23,8 +23,8 @@ from Kavitro_dev.modules.works.works_temp_layer_helper import WorksTempLayerHelp
 HELPERS = (ProjectsTempLayerHelper, WorksTempLayerHelper)
 # log module, log event prefix, geometry of a new layer
 SPECS = {
-    ProjectsTempLayerHelper: ("project", "projects", QgsWkbTypes.Polygon),
-    WorksTempLayerHelper: ("works", "works", QgsWkbTypes.Point),
+    ProjectsTempLayerHelper: ("project", "projects", QgsWkbTypes.Type.Polygon),
+    WorksTempLayerHelper: ("works", "works", QgsWkbTypes.Type.Point),
 }
 GPKG = os.path.join(os.path.abspath(os.sep), "kihid", "ajutine.gpkg")
 

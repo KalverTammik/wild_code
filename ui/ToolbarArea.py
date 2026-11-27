@@ -30,7 +30,7 @@ class ModuleToolbarArea(QFrame):
 
         self._left = QWidget(self)
         self._left.setObjectName("ToolbarLeft")
-        self._left.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+        self._left.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
 
         # Left side now uses a grid so widgets can wrap across multiple rows.
         self._left_layout = QGridLayout(self._left)
@@ -50,8 +50,8 @@ class ModuleToolbarArea(QFrame):
         self._right_layout.setSpacing(2)
 
         # Compose
-        self._layout.addWidget(self._left, 0, 0, Qt.AlignTop)
-        self._layout.addWidget(self._right, 0, 2, Qt.AlignTop)
+        self._layout.addWidget(self._left, 0, 0, Qt.AlignmentFlag.AlignTop)
+        self._layout.addWidget(self._right, 0, 2, Qt.AlignmentFlag.AlignTop)
 
         # Ensure right area absorbs remaining width
         self._layout.setColumnStretch(0, 0)
@@ -86,7 +86,7 @@ class ModuleToolbarArea(QFrame):
         """Place view controls outside the filter box, directly beside it."""
         if widget is not None:
             self._layout.setHorizontalSpacing(8)
-            self._layout.addWidget(widget, 0, 1, Qt.AlignLeft | Qt.AlignTop)
+            self._layout.addWidget(widget, 0, 1, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
     def set_refresh_widget(self, widget: QWidget) -> None:
         """Place filter actions inside the left filter grid."""
@@ -135,7 +135,7 @@ class ModuleToolbarArea(QFrame):
 
         if self._refresh_widget is not None:
             action_col = columns if self._left_widgets else 0
-            self._left_layout.addWidget(self._refresh_widget, 0, action_col, 1, 1, Qt.AlignTop)
+            self._left_layout.addWidget(self._refresh_widget, 0, action_col, 1, 1, Qt.AlignmentFlag.AlignTop)
 
         # Extra stretch column absorbs leftover horizontal room so widgets stay left-aligned.
         extra_col = columns + (1 if self._refresh_widget is not None else 0)

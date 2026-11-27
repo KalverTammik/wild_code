@@ -184,7 +184,7 @@ class ProjectBoardNoticeWidgetTest(BoardFailureTestCase):
     def dispose(self) -> None:
         self.host.hide()
         self.host.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def notice_labels(self, board_data: dict) -> list[QLabel]:
         widget = ProjectBoardOverviewWidget(board_data, self.host)

@@ -114,7 +114,7 @@ class FilterErrorTest(UserFacingCase):
     def delete_host(self) -> None:
         self.host.hide()
         self.host.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def fail(self, widget) -> None:
         widget._load_request_id = 4

@@ -23,12 +23,13 @@ from Kavitro_dev.ui.map_canvas_glass_overlay import MapCanvasGlassOverlayBase
 from Kavitro_dev.ui.map_canvas_search_bar import MapCanvasSearchBar
 from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.widgets.SearchResultsWidget import SearchResultsWidget
+from qt_compat import qt6_stage4
 
 
 def delete_now(widget) -> None:
     widget.hide()
     widget.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def logged_events(log_mock) -> list[str]:
@@ -129,12 +130,13 @@ class SearchBarFailureTest(OverlayCase):
         self.assertIs(MapCanvasSearchBar._active_instance, first)
         self.assertEqual(logged_events(log), ["map_overlay_on_ready_failed"])
 
+    @qt6_stage4
     def test_a_failing_result_click_is_logged_and_shown_in_the_results_popup(self) -> None:
         MapCanvasSearchBar.show_for_session()
         bar = MapCanvasSearchBar._active_instance
         results = bar.search_results_widget
         item = QListWidgetItem("Title")
-        item.setData(Qt.UserRole, {"type": "result", "module": "PROPERTIES", "id": "1", "title": "Title"})
+        item.setData(Qt.ItemDataRole.UserRole, {"type": "result", "module": "PROPERTIES", "id": "1", "title": "Title"})
 
         with patch("Kavitro_dev.dialog.PluginDialog.get_instance", return_value=object()), \
                 patch(

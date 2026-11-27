@@ -729,7 +729,7 @@ class ModuleFeatureEditController:
             geometry_type = None
 
         preferred_actions = []
-        if geometry_type == QgsWkbTypes.PointGeometry:
+        if geometry_type == QgsWkbTypes.GeometryType.PointGeometry:
             preferred_actions.extend(["actionMoveFeature", "actionVertexToolActiveLayer", "actionVertexTool"])
         else:
             preferred_actions.extend(["actionVertexToolActiveLayer", "actionVertexTool", "actionMoveFeature"])

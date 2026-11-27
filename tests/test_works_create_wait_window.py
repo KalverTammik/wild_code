@@ -43,7 +43,7 @@ class _FormDialog:
     def __init__(self, **_kwargs) -> None:
         pass
 
-    def exec_(self) -> int:
+    def exec(self) -> int:
         return self.Accepted
 
     title_text = staticmethod(lambda: "Avarii")
@@ -118,7 +118,7 @@ class WorksCreateWaitWindowTest(unittest.TestCase):
                 window.hide()
                 window.deleteLater()
         api_request_task._RequestDialog.open_window = None
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def _post(self, _url, json=None, headers=None, timeout=None) -> _Response:
         query = (json or {}).get("query", "")

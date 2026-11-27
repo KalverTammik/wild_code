@@ -61,7 +61,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
         for widget in self.widgets:
             widget.close()
             widget.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         self.app.processEvents()
         ExtraInfoFrame._set_expanded_project_frame(None)
         self.description_patch.stop()
@@ -140,7 +140,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
         self.wait_for(started.is_set)
         self.widgets.remove(widget)
         widget.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         gate.set()
         self.wait_for(lambda: not _ACTIVE_THREADS)
         build.assert_not_called()
@@ -159,7 +159,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
         frame._expand_handle.click()
         self.wait_for(started.is_set)
         self.assertTrue(frame._expand_handle.isChecked())
-        self.assertEqual(frame._expand_handle.arrowType(), Qt.UpArrow)
+        self.assertEqual(frame._expand_handle.arrowType(), Qt.ArrowType.UpArrow)
         frame._expand_handle.click()
         gate.set()
         self.wait_for(lambda: not _ACTIVE_THREADS)
@@ -190,18 +190,18 @@ class ModuleCardInteractionTest(unittest.TestCase):
         bubble = bubbles[0]
         self.assertEqual(bubble.text(), "")
         self.assertIn("määramata", bubble.toolTip())
-        QTest.mouseClick(bubble, Qt.LeftButton)
+        QTest.mouseClick(bubble, Qt.MouseButton.LeftButton)
         popup = bubble._click_popup
         self.assertTrue(popup.isVisible())
         texts = [label.text() for label in popup.findChildren(QLabel)]
         self.assertIn("Osaleja 19", texts)
-        QTest.keyClick(popup, Qt.Key_Escape)
+        QTest.keyClick(popup, Qt.Key.Key_Escape)
         self.assertFalse(popup.isVisible())
 
     def test_unassigned_avatar_with_no_members_has_an_empty_state(self):
         view = self.show(MembersView({}))
         bubble = view.findChild(AvatarBubble)
-        QTest.keyClick(bubble, Qt.Key_Return)
+        QTest.keyClick(bubble, Qt.Key.Key_Return)
         texts = [label.text() for label in bubble._click_popup.findChildren(QLabel)]
         self.assertIn("Liikmeid pole lisatud.", texts)
 
@@ -229,7 +229,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
             with patch("Kavitro_dev.widgets.DataDisplayWidgets.TaskDetailOverviewWidget.TaskFilesDialog") as dialog:
                 widget._all_files_button.click()
                 self.assertEqual(dialog.call_args.kwargs["initial_files"], files)
-                dialog.return_value.exec_.assert_called_once()
+                dialog.return_value.exec.assert_called_once()
             self.wait_for(lambda: not widget._loading)
 
     def test_all_files_dialog_uses_loaded_data_without_another_query(self):

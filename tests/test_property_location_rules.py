@@ -106,9 +106,9 @@ class PropertyLocationRulesTest(LocationFilterTestCase):
         # the feature from the table's UserRole cell, then calls build_import_address.
         table = QTableView()
         model = QStandardItemModel(1, 1)
-        model.setData(model.index(0, 0), stored, Qt.UserRole)
+        model.setData(model.index(0, 0), stored, Qt.ItemDataRole.UserRole)
         table.setModel(model)
-        row_feature = PropertyTableManager.get_cell_data(table, 0, 0, role=Qt.UserRole)
+        row_feature = PropertyTableManager.get_cell_data(table, 0, 0, role=Qt.ItemDataRole.UserRole)
         check_city = PropertyDataLoader.build_import_address(row_feature)['city']
 
         # The import's own retrieval: AddBatchRunner reads the complete source feature and

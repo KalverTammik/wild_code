@@ -416,11 +416,11 @@ class MoreActionsButton(CardActionButton):
 
             dialog = PropertyLinkReviewDialog(existing_display, selected_display, lang_manager,
                                               allow_removal=bool(existing_ids))
-            result = dialog.exec_()
+            result = dialog.exec()
             if dialog.reselect_requested:
                 _start_selection()
                 return
-            if result == QDialog.Accepted:
+            if result == QDialog.DialogCode.Accepted:
                 remove_numbers = [number for number in dialog.numbers_to_remove if number in existing_ids]
                 if remove_numbers and not confirm_link_removal(
                     lang_manager, module, DataDisplayExtractors.extract_item_name(item_data) or str(object_id),

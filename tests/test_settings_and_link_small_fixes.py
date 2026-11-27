@@ -90,7 +90,7 @@ class StatusMappingOneReadTest(DialogStubCase):
                 patch.object(mapping_module.EasementLayerService, "layer_status_value_options", return_value=["A"]), \
                 patch.object(mapping_module.APIModuleActions, "get_module_status_options",
                              return_value=[{"id": "1", "name": "Uus"}]) as statuses, \
-                patch.object(mapping_module.EasementStatusMappingDialog, "exec_", return_value=0):
+                patch.object(mapping_module.EasementStatusMappingDialog, "exec", return_value=0):
             mapping_module.EasementStatusMappingDialog.edit_mapping(lang_manager=LANG)
         statuses.assert_called_once()
         resolve.assert_called_once()

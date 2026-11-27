@@ -34,7 +34,7 @@ class ModernMessageDialog:
     def Info_messages_modern(title: str, message: str):
         """Show an information message dialog with modern styling."""
         dialog = ModernMessageDialog._create_dialog(title, message, IconNames.INFO)
-        dialog.exec_()
+        dialog.exec()
 
     @staticmethod
     def Warning_messages_modern(title: str, message: str, *, with_cancel: bool = False):
@@ -42,13 +42,13 @@ class ModernMessageDialog:
         dialog = ModernMessageDialog._create_dialog(
             title, message, IconNames.WARNING, with_cancel=with_cancel
         )
-        dialog.exec_()
+        dialog.exec()
 
     @staticmethod
     def Error_messages_modern(title: str, message: str):
         """Show an error message dialog with modern styling."""
         dialog = ModernMessageDialog._create_dialog(title, message, IconNames.CRITICAL)
-        dialog.exec_()
+        dialog.exec()
 
     # Convenience wrappers for consistency across codebase
     @staticmethod
@@ -60,7 +60,7 @@ class ModernMessageDialog:
         dialog = ModernMessageDialog._create_dialog(
             title, message, IconNames.WARNING, parent=parent, with_cancel=with_cancel
         )
-        return bool(dialog.exec_())
+        return bool(dialog.exec())
 
     @staticmethod
     def show_error(title: str, message: str) -> None:
@@ -114,7 +114,7 @@ class ModernMessageDialog:
             cancel=cancel,
             button_variants=button_variants,
         )
-        dialog.exec_()
+        dialog.exec()
         return result_box.get("choice")
 
     @staticmethod
@@ -135,7 +135,7 @@ class ModernMessageDialog:
             text=text,
             placeholder=placeholder,
         )
-        dialog.exec_()
+        dialog.exec()
         ok = bool(result_box.get("ok"))
         if not ok:
             return "", False
@@ -194,7 +194,7 @@ class ModernMessageDialog:
 
 
         icon_label.setFixedSize(32, 32)
-        icon_label.setAlignment(Qt.AlignTop)
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignTop)
         content_layout.addWidget(icon_label)
 
         # Text content
@@ -219,7 +219,7 @@ class ModernMessageDialog:
         layout.addLayout(content_layout)
 
         # Spacer
-        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed))
+        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
 
         # Button layout
         button_layout = QHBoxLayout()
@@ -407,7 +407,7 @@ class ModernMessageDialog:
         icon = ThemeManager.get_qicon(icon_name)
         icon_label.setPixmap(icon.pixmap(32, 32))
         icon_label.setFixedSize(36, 36)
-        icon_label.setAlignment(Qt.AlignTop)
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignTop)
         header.addWidget(icon_label)
 
         text_layout = QVBoxLayout()
@@ -434,7 +434,7 @@ class ModernMessageDialog:
             input_box.setPlaceholderText(placeholder)
         layout.addWidget(input_box)
 
-        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Fixed))
+        layout.addItem(QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
 
         result_box: dict = {"ok": False}
 

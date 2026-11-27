@@ -42,7 +42,7 @@ from Kavitro_dev.utils.secure_session_store import SecureSessionStore
 def delete_now(widget) -> None:
     widget.hide()
     widget.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 class QtCase(unittest.TestCase):
@@ -285,7 +285,7 @@ class WindowStateTest(QtCase):
     def test_a_deleted_window_is_not_minimized_and_not_alive(self) -> None:
         widget = QWidget()
         widget.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         self.assertFalse(DialogCoordinator(None).is_minimized(widget))
         self.assertFalse(PopupHelpers.is_popup_alive(widget))
 

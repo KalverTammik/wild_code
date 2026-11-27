@@ -34,8 +34,8 @@ class PropertyTableModel(QAbstractTableModel):
     def columnCount(self, parent=QModelIndex()) -> int:  # type: ignore[override]
         return 0 if parent.isValid() else len(self._headers)
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role=Qt.DisplayRole):  # type: ignore[override]
-        if role != Qt.DisplayRole or orientation != Qt.Horizontal:
+    def headerData(self, section: int, orientation: Qt.Orientation, role=Qt.ItemDataRole.DisplayRole):  # type: ignore[override]
+        if role != Qt.ItemDataRole.DisplayRole or orientation != Qt.Orientation.Horizontal:
             return None
         try:
             return self._headers[section]
@@ -44,10 +44,10 @@ class PropertyTableModel(QAbstractTableModel):
 
     def flags(self, index: QModelIndex):  # type: ignore[override]
         if not index.isValid():
-            return Qt.NoItemFlags
-        return Qt.ItemIsSelectable | Qt.ItemIsEnabled
+            return Qt.ItemFlag.NoItemFlags
+        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
 
-    def data(self, index: QModelIndex, role=Qt.DisplayRole):  # type: ignore[override]
+    def data(self, index: QModelIndex, role=Qt.ItemDataRole.DisplayRole):  # type: ignore[override]
         if not index.isValid():
             return None
 
@@ -58,17 +58,17 @@ class PropertyTableModel(QAbstractTableModel):
 
         row_data = self._rows[row]
 
-        if role == Qt.UserRole:
+        if role == Qt.ItemDataRole.UserRole:
             if col == 0:
                 return row_data.get("feature")
             return None
 
         if col <= 3:
-            if role == Qt.DisplayRole:
+            if role == Qt.ItemDataRole.DisplayRole:
                 key = ["cadastral_id", "address", "area", "settlement"][col]
                 return str(row_data.get(key, ""))
-            if role == Qt.TextAlignmentRole:
-                return int(Qt.AlignVCenter | Qt.AlignLeft)
+            if role == Qt.ItemDataRole.TextAlignmentRole:
+                return int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
             return None
 
         status_key = {
@@ -85,12 +85,12 @@ class PropertyTableModel(QAbstractTableModel):
         state = status.get("state") or "pending"
         tooltip = status.get("tooltip") or ""
 
-        if role == Qt.DecorationRole:
+        if role == Qt.ItemDataRole.DecorationRole:
             return self._icons.get(state) or self._icons["pending"]
-        if role == Qt.ToolTipRole:
+        if role == Qt.ItemDataRole.ToolTipRole:
             return tooltip
-        if role == Qt.TextAlignmentRole:
-            return int(Qt.AlignCenter)
+        if role == Qt.ItemDataRole.TextAlignmentRole:
+            return int(Qt.AlignmentFlag.AlignCenter)
 
         return None
 
@@ -120,7 +120,7 @@ class PropertyTableModel(QAbstractTableModel):
 
         self._rows[row][status_key] = {"state": state, "tooltip": tooltip}
         idx = self.index(row, col)
-        self.dataChanged.emit(idx, idx, [Qt.DecorationRole, Qt.ToolTipRole])
+        self.dataChanged.emit(idx, idx, [Qt.ItemDataRole.DecorationRole, Qt.ItemDataRole.ToolTipRole])
         return True
 
     def removeRows(self, row: int, count: int, parent=QModelIndex()) -> bool:  # type: ignore[override]

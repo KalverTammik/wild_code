@@ -75,7 +75,7 @@ class PropertyModule(TokenMixin, QWidget):
         """Create the header area with property info and tools."""
         header_frame = QFrame()
         header_frame.setObjectName("PropertyHeader")
-        header_frame.setFrameStyle(QFrame.StyledPanel)
+        header_frame.setFrameStyle(QFrame.Shape.StyledPanel)
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(self.margin_layout, self.margin_layout, self.margin_layout, self.margin_layout)
         header_layout.setSpacing(self.vertical_label_spacing)
@@ -167,11 +167,11 @@ class PropertyModule(TokenMixin, QWidget):
         try:
             self.property_selected_from_map.connect(
                 window_manager._minimize_window,
-                type=Qt.UniqueConnection,
+                type=Qt.ConnectionType.UniqueConnection,
             )
             self.property_selection_completed.connect(
                 window_manager._restore_window,
-                type=Qt.UniqueConnection,
+                type=Qt.ConnectionType.UniqueConnection,
             )
         except Exception as exc:
             PythonFailLogger.log_exception(

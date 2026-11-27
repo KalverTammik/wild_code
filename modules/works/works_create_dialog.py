@@ -123,9 +123,9 @@ class WorksCreateDialog(QDialog):
             self,
         )
         for value_label in (self._property_value, self._coordinates_value):
-            value_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            value_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             # A wrapped property text makes the row taller, and both values must start on its first line.
-            value_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+            value_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
 
         # Created in display order: the Tab key follows creation order.
         self._type_combo = QComboBox(self)

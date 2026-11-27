@@ -55,7 +55,7 @@ class _SimplePickerPopup(PickerPopupBase):
         scroll.setObjectName("SimplePickerScroll")
         scroll.setMaximumHeight(320)
         scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
 
         content = QWidget(scroll)
         content.setObjectName("SimplePickerContent")
@@ -173,7 +173,7 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
         self._loaded = False
         self._load_request_id += 1
         self.combo.clear()
-        self._set_all_cb_state(Qt.Unchecked, enabled=False)
+        self._set_all_cb_state(Qt.CheckState.Unchecked, enabled=False)
         self.combo.setEnabled(False)
         self._control.setEnabled(False)
         self._update_control_summary()
@@ -199,7 +199,7 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
             self.combo.clear()
             self.combo.setEnabled(False)
             self._control.setEnabled(False)
-            self._set_all_cb_state(Qt.Unchecked, enabled=False)
+            self._set_all_cb_state(Qt.CheckState.Unchecked, enabled=False)
             self._loaded = False
             self._update_control_summary()
         except Exception as exc:
@@ -280,7 +280,7 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
             return
         self._suppress_emit = True
         try:
-            self._apply_select_all(state == Qt.Checked)
+            self._apply_select_all(state == Qt.CheckState.Checked)
         finally:
             self._suppress_emit = False
         self._sync_all_checkbox_state()
@@ -304,7 +304,7 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
                     row,
                     self.combo.itemText(row),
                     str(value),
-                    self.combo.itemCheckState(row) == Qt.Checked,
+                    self.combo.itemCheckState(row) == Qt.CheckState.Checked,
                 )
             )
         return options
@@ -315,18 +315,18 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
         if self.combo.itemData(row) is None:
             return
         current_state = self.combo.itemCheckState(row)
-        target_state = Qt.Checked if checked else Qt.Unchecked
+        target_state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
         if current_state == target_state:
             return
-        self.combo.setItemCheckState(row, Qt.Checked if checked else Qt.Unchecked)
+        self.combo.setItemCheckState(row, Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked)
         self._emit_selection_change()
 
     def _select_all_options(self) -> None:
-        self._on_all_cb_state_changed(Qt.Checked)
+        self._on_all_cb_state_changed(Qt.CheckState.Checked)
         self._refresh_popup()
 
     def _clear_all_options(self) -> None:
-        self._on_all_cb_state_changed(Qt.Unchecked)
+        self._on_all_cb_state_changed(Qt.CheckState.Unchecked)
         self._refresh_popup()
 
     def _update_control_summary(self) -> None:

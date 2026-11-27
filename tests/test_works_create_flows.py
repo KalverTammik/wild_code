@@ -68,7 +68,7 @@ class _Dialog:
         self.kwargs = kwargs
         _Dialog.made.append(self)
 
-    def exec_(self):
+    def exec(self):
         return 1 if _Dialog.accept else 0
 
     description_text = staticmethod(lambda: "desc")
@@ -494,7 +494,7 @@ class PendingGisReviewTest(_FlowTest):
         self.assertEqual(rows, [{"type_id": "t", "status_id": "x", "type_label": "Avarii", "status_label": "x"},
                                 {"type_id": "?", "status_id": "s", "type_label": "?", "status_label": "S"}])
         self.assertEqual(self.controller._allowed_type_ids, ["t"])
-        self.review_dialog.return_value.exec_.assert_called_once_with()
+        self.review_dialog.return_value.exec.assert_called_once_with()
 
 
 if __name__ == "__main__":

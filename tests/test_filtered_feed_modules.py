@@ -68,7 +68,7 @@ THREE_FILTER_SPECS = (BY_CLASS[ContractsModule], BY_CLASS[CoordinationModule])
 def delete_now(widget) -> None:
     widget.hide()
     widget.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 class ModuleCase(unittest.TestCase):
@@ -201,7 +201,7 @@ class ModuleFeedAreaTest(ModuleCase):
             with self.subTest(module=spec.cls.__name__):
                 module = self.build(spec)
                 self.assertEqual(module._empty_state.text(), self.lang.translate(spec.empty_key))
-                self.assertEqual(module._empty_state.alignment(), Qt.AlignCenter)
+                self.assertEqual(module._empty_state.alignment(), Qt.AlignmentFlag.AlignCenter)
                 self.assertFalse(module._empty_state.isVisibleTo(module))
                 self.assertIs(module.feed_layout.itemAt(0).widget(), module._empty_state)
                 self.assertEqual(module.feed_layout.count(), 2)

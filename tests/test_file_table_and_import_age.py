@@ -49,7 +49,7 @@ class FileTableTest(unittest.TestCase):
 
     def test_size_sorts_by_bytes(self) -> None:
         dialog = self.dialog()
-        dialog._table.sortItems(1, Qt.AscendingOrder)
+        dialog._table.sortItems(1, Qt.SortOrder.AscendingOrder)
         self.assertEqual(self.column(dialog), ["c.pdf", "a.pdf", "b.pdf"])
 
     def test_a_failed_refresh_leaves_no_old_rows(self) -> None:

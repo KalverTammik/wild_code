@@ -50,7 +50,7 @@ class AsBuiltCardActions:
             notes=AsBuiltNotesService.parse_notes(source_description),
             parent=self._host.safe_parent_window(),
         )
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         latest_description = APIModuleActions.get_task_description(item_id)

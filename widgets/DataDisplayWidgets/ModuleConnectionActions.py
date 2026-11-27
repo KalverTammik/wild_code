@@ -34,7 +34,7 @@ class ModuleConnectionActions(QWidget):
             action_payload["id"] = item_id
         self._action_payload = action_payload
 
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         self._layout = QGridLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(4)

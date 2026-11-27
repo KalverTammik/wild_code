@@ -73,8 +73,8 @@ class EasementStatusMappingDialog(QDialog):
         )
         header = self._table.horizontalHeader()
         header.setStretchLastSection(True)
-        header.setSectionResizeMode(0, QHeaderView.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self._table.verticalHeader().setVisible(False)
 
         for row_index, status in enumerate(self._status_options):
@@ -83,7 +83,7 @@ class EasementStatusMappingDialog(QDialog):
             status_description = str(status.get("description") or "").strip()
 
             item = QTableWidgetItem(status_name)
-            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             if status_description:
                 item.setToolTip(status_description)
             self._table.setItem(row_index, 0, item)
@@ -106,7 +106,7 @@ class EasementStatusMappingDialog(QDialog):
 
         layout.addWidget(self._table)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, parent=self)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel, parent=self)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
@@ -169,7 +169,7 @@ class EasementStatusMappingDialog(QDialog):
         dialog = cls(lang_manager=lang_manager, stored_value=stored_value, parent=parent,
                      status_options=statuses, layer=layer)
         try:
-            if dialog.exec_() == QDialog.Accepted:
+            if dialog.exec() == QDialog.DialogCode.Accepted:
                 return dialog.serialized_mapping()
         except Exception as exc:
             PythonFailLogger.log_exception(

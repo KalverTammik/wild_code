@@ -55,7 +55,7 @@ class _DialogCase(unittest.TestCase):
 
     def _delete_dialog(self):
         self.dialog.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 # --------------------------------------------------------------------------- 1. corners and ends
@@ -122,7 +122,7 @@ class PayableFieldsWidgetTest(unittest.TestCase):
 
     def tearDown(self):
         self.widget.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def test_free_link_hides_the_payment_fields(self):
         self.assertIsNotNone(self.widget.total_label)

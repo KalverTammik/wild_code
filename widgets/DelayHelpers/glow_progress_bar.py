@@ -83,7 +83,7 @@ class GlowProgressBar(QProgressBar):
 
     def paintEvent(self, _event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         track = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
         radius = track.height() / 2
 
@@ -103,7 +103,7 @@ class GlowProgressBar(QProgressBar):
             painter.setClipping(False)
 
         painter.setPen(QPen(self._border, 1))
-        painter.setBrush(Qt.NoBrush)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawPath(track_path)
 
         if self.isTextVisible() and self.text():
@@ -111,12 +111,12 @@ class GlowProgressBar(QProgressBar):
             font.setBold(True)
             painter.setFont(font)
             painter.setPen(self._text)
-            painter.drawText(track, Qt.AlignCenter, self.text())
+            painter.drawText(track, Qt.AlignmentFlag.AlignCenter, self.text())
             if not fill_path.isEmpty():
                 # The part of the label that sits on the fill switches colour.
                 painter.setClipPath(fill_path)
                 painter.setPen(self._chunk_text)
-                painter.drawText(track, Qt.AlignCenter, self.text())
+                painter.drawText(track, Qt.AlignmentFlag.AlignCenter, self.text())
         painter.end()
 
     def _paint_fill(self, painter, fill, fill_path):
@@ -157,7 +157,7 @@ class GlowProgressBar(QProgressBar):
         glow.setColorAt(0.0, glow_color)
         glow_color.setAlpha(0)
         glow.setColorAt(1.0, glow_color)
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(glow)
         painter.drawEllipse(head, fill.height() * 1.1, fill.height() * 1.1)
 

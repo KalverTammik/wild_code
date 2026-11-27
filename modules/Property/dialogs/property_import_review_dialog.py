@@ -26,9 +26,9 @@ class PropertyImportReviewDialog(QDialog):
         self.table = QTableWidget(len(decisions), 3)
         self.table.setHorizontalHeaderLabels([tr(K.PROPERTY_ARCHIVE_PLAN_COLUMN_TUNNUS),
                                               tr(K.PROPERTY_IMPORT_REASON), tr(K.PROPERTY_IMPORT_ACTION)])
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.table.verticalHeader().hide()
         self.choices = []
         for row, item in enumerate(decisions):
@@ -46,9 +46,9 @@ class PropertyImportReviewDialog(QDialog):
             self.choices.append(choice)
             self.table.setCellWidget(row, 2, choice)
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         self.table.resizeRowsToContents()
         layout.addWidget(self.table, 1)
 
@@ -74,7 +74,7 @@ class PropertyImportReviewDialog(QDialog):
         self.details.setReadOnly(True)
         layout.addWidget(self.details, 1)
         scope = QLabel(tr(K.PROPERTY_IMPORT_WRITE_SCOPE))
-        scope.setTextFormat(Qt.PlainText)
+        scope.setTextFormat(Qt.TextFormat.PlainText)
         scope.setWordWrap(True)
         layout.addWidget(scope)
         buttons = QHBoxLayout()

@@ -195,10 +195,10 @@ class GPKGHelpers:
         create_or_overwrite_file = getattr(
             QgsVectorFileWriter,
             "CreateOrOverwriteFile",
-            QgsVectorFileWriter.CreateOrOverwriteLayer,
+            QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer,
         )
         options.actionOnExistingFile = (
-            QgsVectorFileWriter.CreateOrOverwriteLayer
+            QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
             if os.path.exists(normalized_path) and not overwrite
             else create_or_overwrite_file
         )
@@ -214,7 +214,7 @@ class GPKGHelpers:
         )
 
         try:
-            ok = bool(writer is not None and int(writer.hasError()) == int(QgsVectorFileWriter.NoError))
+            ok = bool(writer is not None and int(writer.hasError()) == int(QgsVectorFileWriter.WriterError.NoError))
             if ok:
                 return True
             try:

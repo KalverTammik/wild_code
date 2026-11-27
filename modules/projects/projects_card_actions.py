@@ -69,7 +69,7 @@ class ProjectCardActions:
             item_data=self._host.item_data,
             parent=self._host.safe_parent_window(),
         )
-        dialog.setAttribute(Qt.WA_DeleteOnClose, True)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         dialog.finished.connect(self._forget_preview)
         self._preview_dialog = dialog
         dialog.show()

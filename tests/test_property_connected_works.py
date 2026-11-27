@@ -251,7 +251,7 @@ class PropertyTreeWorksSectionTest(unittest.TestCase):
     def dispose(card) -> None:
         card.hide()
         card.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def label_texts(self, card) -> list[str]:
         return [label.text() for label in card.findChildren(QLabel)]

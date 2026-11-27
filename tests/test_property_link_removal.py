@@ -131,22 +131,22 @@ class DialogsTest(Case):
         self.addCleanup(dialog.deleteLater)
         self.assertEqual(dialog.numbers_to_remove, [])
         self.assertEqual(dialog._confirm_btn.text(), LANG.translate(TranslationKeys.LINK_REVIEW_ADD_SELECTED))
-        row = next(r for r in range(dialog._existing_list.count()) if dialog._existing_list.item(r).data(Qt.UserRole) == "2:2")
-        dialog._existing_list.item(row).setCheckState(Qt.Checked)
+        row = next(r for r in range(dialog._existing_list.count()) if dialog._existing_list.item(r).data(Qt.ItemDataRole.UserRole) == "2:2")
+        dialog._existing_list.item(row).setCheckState(Qt.CheckState.Checked)
         self.assertEqual(dialog.numbers_to_remove, ["2:2"])
         self.assertEqual(dialog._confirm_btn.text(), LANG.translate(TranslationKeys.LINK_REVIEW_SAVE_CHANGES))
 
     def test_without_ids_the_review_stays_add_only(self) -> None:
         dialog = PropertyLinkReviewDialog({"1:1": "1:1"}, {}, LANG)
         self.addCleanup(dialog.deleteLater)
-        self.assertFalse(dialog._existing_list.item(0).flags() & Qt.ItemIsUserCheckable)
+        self.assertFalse(dialog._existing_list.item(0).flags() & Qt.ItemFlag.ItemIsUserCheckable)
 
     def test_the_list_starts_with_nothing_ticked(self) -> None:
         dialog = removal_module.PropertyUnlinkDialog([P1, P2], LANG, module="project")
         self.addCleanup(dialog.deleteLater)
         self.assertEqual(dialog.checked_entries(), [])
         self.assertFalse(dialog._remove_button.isEnabled())
-        dialog._list.item(0).setCheckState(Qt.Checked)
+        dialog._list.item(0).setCheckState(Qt.CheckState.Checked)
         self.assertTrue(dialog._remove_button.isEnabled())
         self.assertEqual(len(dialog.checked_entries()), 1)
 
@@ -173,7 +173,7 @@ class MenuFlowTest(Case):
         self.api.get_linked_properties.return_value = [P1, P2]
         self.api.remove_property_links.return_value = [P2]
         self.dialog = self.start(removal_module, "PropertyUnlinkDialog").return_value
-        self.dialog.exec_.return_value = QDialog.Accepted
+        self.dialog.exec.return_value = QDialog.DialogCode.Accepted
         self.dialog.checked_entries.return_value = [P1]
         self.confirm = self.start(removal_module, "confirm_link_removal", return_value=True)
         self.changed = Mock()
@@ -194,7 +194,7 @@ class MenuFlowTest(Case):
         self.api.remove_property_links.assert_not_called()
 
     def test_a_cancelled_list_sends_nothing(self) -> None:
-        self.dialog.exec_.return_value = QDialog.Rejected
+        self.dialog.exec.return_value = QDialog.DialogCode.Rejected
         self.assertFalse(self.run_flow())
         self.api.remove_property_links.assert_not_called()
 
@@ -236,7 +236,7 @@ class ReviewFlowTest(Case):
         self.start(buttons_module, "MapSelectionOrchestrator", return_value=self.orchestrator)
         self.review_class = self.start(buttons_module, "PropertyLinkReviewDialog")
         self.review = self.review_class.return_value
-        self.review.exec_.return_value = QDialog.Accepted
+        self.review.exec.return_value = QDialog.DialogCode.Accepted
         self.review.reselect_requested = False
         self.review.numbers_to_remove = ["1:1"]
         self.button = SimpleNamespace(_map_selection_orchestrator=None, _on_properties_linked=Mock(),

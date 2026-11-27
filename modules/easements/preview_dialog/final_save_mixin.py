@@ -203,7 +203,7 @@ class EasementFinalSaveMixin:
             parent=self,
         )
         if dialog is not None:
-            dialog.exec_()
+            dialog.exec()
 
     def _publish_pdf_drawing(self) -> None:
         """Button slot: one publish at a time, the button stays disabled until it ends."""

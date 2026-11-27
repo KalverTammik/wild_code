@@ -91,7 +91,7 @@ class FilterTokenOwnerTest(unittest.TestCase):
     @staticmethod
     def _delete(widget: QWidget) -> None:
         widget.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def ask(self, widget_class, child: QWidget, token: int | None) -> bool:
         # The lookup only needs the widget's place in the tree.

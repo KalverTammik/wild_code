@@ -120,7 +120,7 @@ class MapHelpersTest(unittest.TestCase):
 class DeleteDialogMapTest(unittest.TestCase):
     def setUp(self) -> None:
         self.lang = LanguageManager("et")
-        with patch.object(DeletePropertyUI, "exec_", return_value=0):
+        with patch.object(DeletePropertyUI, "exec", return_value=0):
             self.dialog = DeletePropertyUI(None)
         self.addCleanup(self.dialog.deleteLater)
         self.dialog._id_input.setText("42")

@@ -17,7 +17,7 @@ class SettingsBaseCard(QFrame):
         super().__init__()
         self.lang_manager = lang_manager
         self.setObjectName("SetupCard")
-        self.setFrameShape(QFrame.NoFrame)
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self._confirm_btn = None
         self._content = None
         self._build(title_text, icon_path)

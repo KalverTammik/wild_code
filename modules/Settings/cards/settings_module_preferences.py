@@ -169,7 +169,7 @@ class SettingsModulePreferencesMixin:
 
     def eventFilter(self, obj, event):
         if obj in self._lazy_filter_widgets:
-            if event.type() in (QEvent.MouseButtonPress, QEvent.FocusIn, QEvent.Show):
+            if event.type() in (QEvent.Type.MouseButtonPress, QEvent.Type.FocusIn, QEvent.Type.Show):
                 ensure_loaded = getattr(obj, "ensure_loaded", None)
                 if callable(ensure_loaded):
                     try:

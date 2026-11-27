@@ -33,7 +33,7 @@ class LayerTreePicker(QWidget):
         self._popup: Optional[QFrame] = None
 
         self.setObjectName("LayerTreePicker")
-        self.setFocusPolicy(Qt.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -41,7 +41,7 @@ class LayerTreePicker(QWidget):
 
         self._container = QFrame(self)
         self._container.setObjectName("LayerTreePickerContainer")
-        self._container.setFocusPolicy(Qt.StrongFocus)
+        self._container.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         container_layout = QHBoxLayout(self._container)
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
@@ -54,7 +54,7 @@ class LayerTreePicker(QWidget):
         self._label = ComboBoxTextFrame(self._text_frame)
         self._label.setObjectName("ComboBoxTextFrame")
         self._label.setText("")
-        self._label.setTextInteractionFlags(Qt.NoTextInteraction)
+        self._label.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
         text_layout.addWidget(self._label)
         container_layout.addWidget(self._text_frame, 1)
 
@@ -64,7 +64,7 @@ class LayerTreePicker(QWidget):
         dropdown_layout.setContentsMargins(0, 0, 0, 0)
         dropdown_layout.setSpacing(0)
         self._arrow = SelectArrow(self._dropdown_frame)
-        dropdown_layout.addWidget(self._arrow, 0, Qt.AlignCenter)
+        dropdown_layout.addWidget(self._arrow, 0, Qt.AlignmentFlag.AlignCenter)
         container_layout.addWidget(self._dropdown_frame, 0)
 
         root.addWidget(self._container)
@@ -113,14 +113,14 @@ class LayerTreePicker(QWidget):
         self._apply_style()
 
     def mousePressEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.LeftButton and self.isEnabled():
+        if event.button() == Qt.MouseButton.LeftButton and self.isEnabled():
             self._toggle_popup()
             event.accept()
             return
         super().mousePressEvent(event)
 
     def keyPressEvent(self, event) -> None:  # noqa: N802
-        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
             self._toggle_popup()
             event.accept()
             return
@@ -135,9 +135,9 @@ class LayerTreePicker(QWidget):
         self._open_popup()
 
     def _open_popup(self) -> None:
-        popup = QFrame(self, flags=Qt.Popup | Qt.FramelessWindowHint)
+        popup = QFrame(self, flags=Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
         popup.setObjectName("LayerTreePopup")
-        popup.setAttribute(Qt.WA_DeleteOnClose, True)
+        popup.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         popup.destroyed.connect(lambda *_: setattr(self, "_popup", None))
         layout = QVBoxLayout(popup)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -171,7 +171,7 @@ class LayerTreePicker(QWidget):
         tree.clear()
         if self._allow_empty:
             item = QTreeWidgetItem([self._empty_text or "-"])
-            item.setData(0, Qt.UserRole, "")
+            item.setData(0, Qt.ItemDataRole.UserRole, "")
             tree.addTopLevelItem(item)
 
         project = self._project or (QgsProject.instance() if QgsProject else None)
@@ -190,7 +190,7 @@ class LayerTreePicker(QWidget):
             if layer is None or not self._layer_allowed(layer):
                 return False
             item = QTreeWidgetItem([self._layer_label(layer)])
-            item.setData(0, Qt.UserRole, layer.id())
+            item.setData(0, Qt.ItemDataRole.UserRole, layer.id())
             if parent_item is None:
                 tree.addTopLevelItem(item)
             else:
@@ -199,13 +199,13 @@ class LayerTreePicker(QWidget):
 
         if isinstance(node, QgsLayerTreeGroup):
             group_item = QTreeWidgetItem([node.name()])
-            group_item.setData(0, Qt.UserRole, None)
+            group_item.setData(0, Qt.ItemDataRole.UserRole, None)
             added = False
             for child in node.children():
                 added = self._add_tree_node(tree, group_item, child) or added
             if not added:
                 return False
-            group_item.setFlags(group_item.flags() & ~Qt.ItemIsSelectable)
+            group_item.setFlags(group_item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
             if parent_item is None:
                 tree.addTopLevelItem(group_item)
             else:
@@ -219,15 +219,15 @@ class LayerTreePicker(QWidget):
         if not target and self._allow_empty and tree.topLevelItemCount() > 0:
             tree.setCurrentItem(tree.topLevelItem(0))
             return
-        matches = tree.findItems("*", Qt.MatchWildcard | Qt.MatchRecursive)
+        matches = tree.findItems("*", Qt.MatchFlag.MatchWildcard | Qt.MatchFlag.MatchRecursive)
         for item in matches:
-            if item.data(0, Qt.UserRole) == target:
+            if item.data(0, Qt.ItemDataRole.UserRole) == target:
                 tree.setCurrentItem(item)
                 tree.scrollToItem(item)
                 return
 
     def _on_tree_item_clicked(self, item: QTreeWidgetItem, _column: int) -> None:
-        layer_id = item.data(0, Qt.UserRole)
+        layer_id = item.data(0, Qt.ItemDataRole.UserRole)
         if layer_id is None:
             return
         project = self._project or (QgsProject.instance() if QgsProject else None)
@@ -246,7 +246,7 @@ class LayerTreePicker(QWidget):
             return True
         try:
             if filters & Qgis.LayerFilter.HasGeometry:
-                if layer.type() != QgsMapLayer.VectorLayer:
+                if layer.type() != QgsMapLayer.LayerType.VectorLayer:
                     return False
                 if isinstance(layer, QgsVectorLayer) and layer.geometryType() < 0:
                     return False

@@ -58,8 +58,8 @@ class _GrowingNoteEdit(QTextEdit):
         self.setTabChangesFocus(True)
         # The stylesheet's padding spaces the text, as in the line edits next to it.
         self.document().setDocumentMargin(0)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.document().contentsChanged.connect(self.fit_height)
         self.fit_height()
 
@@ -151,7 +151,7 @@ class _NoteRow(QFrame):
         self.resolved_check.setObjectName("AsBuiltNoteResolvedCheckbox")
         self.resolved_check.setToolTip(lang.translate(TranslationKeys.ASBUILT_NOTES_COLUMN_RESOLVED))
         self.resolved_check.setChecked(bool(note.resolved))
-        check_layout.addWidget(self.resolved_check, 0, Qt.AlignCenter)
+        check_layout.addWidget(self.resolved_check, 0, Qt.AlignmentFlag.AlignCenter)
 
         self.date_edit = self._create_date_field(note.resolved_date)
         self.date_edit.setFixedWidth(DATE_WIDTH)
@@ -165,7 +165,7 @@ class _NoteRow(QFrame):
         self.delete_button.setIcon(ThemeManager.get_qicon(IconNames.ICON_DELETE))
         self.delete_button.setAutoRaise(True)
         self.delete_button.setFixedWidth(DELETE_WIDTH)
-        self.delete_button.setCursor(Qt.PointingHandCursor)
+        self.delete_button.setCursor(Qt.CursorShape.PointingHandCursor)
         delete_text = lang.translate(TranslationKeys.ASBUILT_NOTES_DELETE_ROW)
         self.delete_button.setToolTip(delete_text)
         self.delete_button.setAccessibleName(delete_text)
@@ -174,10 +174,10 @@ class _NoteRow(QFrame):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(ROW_SPACING)
-        layout.addWidget(self._check_cell, 0, Qt.AlignTop)
+        layout.addWidget(self._check_cell, 0, Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.note_edit, 1)
-        layout.addWidget(self.date_edit, 0, Qt.AlignTop)
-        layout.addWidget(self.delete_button, 0, Qt.AlignTop)
+        layout.addWidget(self.date_edit, 0, Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.delete_button, 0, Qt.AlignmentFlag.AlignTop)
 
         self.resolved_check.toggled.connect(self._on_resolved_toggled)
         if self.resolved_check.isChecked() and not self._date_text():
@@ -309,7 +309,7 @@ class AsBuiltNotesEditorDialog(QDialog):
         heading.addWidget(item_name, 1)
         self._open_count = QLabel(self)
         self._open_count.setObjectName("AsBuiltNotesOpenCount")
-        heading.addWidget(self._open_count, 0, Qt.AlignRight | Qt.AlignVCenter)
+        heading.addWidget(self._open_count, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         root.addLayout(heading)
 
         self._list = QWidget(self)
@@ -323,16 +323,16 @@ class AsBuiltNotesEditorDialog(QDialog):
         self._add_note_btn = QPushButton(self._lang.translate(TranslationKeys.ASBUILT_NOTES_ADD_NOTE), self._list)
         self._add_note_btn.setObjectName("AsBuiltNotesAddButton")
         self._add_note_btn.setIcon(ThemeManager.get_qicon(IconNames.ICON_ADD))
-        self._add_note_btn.setCursor(Qt.PointingHandCursor)
+        self._add_note_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._add_note_btn.clicked.connect(self._add_note_for_today)
-        self._list_layout.addWidget(self._add_note_btn, 0, Qt.AlignLeft)
+        self._list_layout.addWidget(self._add_note_btn, 0, Qt.AlignmentFlag.AlignLeft)
         self._list_layout.addStretch(1)
 
         self._scroll_area = _NotesScrollArea(self)
         self._scroll_area.setObjectName("AsBuiltNotesScroll")
         self._scroll_area.setWidgetResizable(True)
-        self._scroll_area.setFrameShape(QFrame.NoFrame)
-        self._scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self._scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll_area.setWidget(self._list)
         root.addWidget(self._scroll_area, 1)
 
@@ -383,7 +383,7 @@ class AsBuiltNotesEditorDialog(QDialog):
         if first_open is None:
             self._add_note_btn.setFocus()
             return
-        first_open.note_edit.moveCursor(QTextCursor.End)
+        first_open.note_edit.moveCursor(QTextCursor.MoveOperation.End)
         first_open.note_edit.setFocus()
 
     def _list_widgets(self) -> list[QWidget]:
@@ -408,7 +408,7 @@ class AsBuiltNotesEditorDialog(QDialog):
         line = QFrame(header)
         line.setObjectName("AsBuiltNotesGroupLine")
         line.setFixedHeight(1)
-        layout.addWidget(line, 1, Qt.AlignVCenter)
+        layout.addWidget(line, 1, Qt.AlignmentFlag.AlignVCenter)
 
         self._group_headers[date_key] = header
         self._list_layout.insertWidget(self._list_layout.indexOf(self._add_note_btn), header)

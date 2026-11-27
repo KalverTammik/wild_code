@@ -140,9 +140,9 @@ class MapSelectionController(QObject):
     def eventFilter(self, watched, event) -> bool:  # noqa: N802
         if self._layer is not None:
             kind = event.type()
-            if kind == QEvent.KeyPress and event.key() == Qt.Key_Escape:
+            if kind == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_Escape:
                 self._abandon(restore_pan=True)
-            elif kind == QEvent.MouseButtonRelease and event.button() == Qt.RightButton:
+            elif kind == QEvent.Type.MouseButtonRelease and event.button() == Qt.MouseButton.RightButton:
                 self._abandon(restore_pan=True)
         return False
 
@@ -301,7 +301,7 @@ class MapSelectionController(QObject):
         request.setFilterFids(feature_ids)
 
         if not self._fetch_geometry:
-            request.setFlags(QgsFeatureRequest.NoGeometry)
+            request.setFlags(QgsFeatureRequest.Flag.NoGeometry)
 
         if self._fetch_field_names:
             idxs = []

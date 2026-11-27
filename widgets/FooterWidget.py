@@ -41,9 +41,9 @@ class FooterWidget(QWidget):
                 parent=frame,
             )
             left_label.setObjectName("footerLeftLabel")
-            left_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            left_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-            left_label.setCursor(Qt.PointingHandCursor)
+            left_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            left_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+            left_label.setCursor(Qt.CursorShape.PointingHandCursor)
             layout.addWidget(left_label)
         else:
             layout.addStretch(1)
@@ -51,8 +51,8 @@ class FooterWidget(QWidget):
         if show_right:
             self._version_label = QLabel("", frame)
             self._version_label.setObjectName("footerLabel")
-            self._version_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self._version_label.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+            self._version_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            self._version_label.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
             layout.addStretch(1)
             layout.addWidget(self._version_label)
@@ -97,7 +97,7 @@ class FooterLinksLabel(QLabel):
                 html_parts.append(segment)
 
         self.setText(" | ".join(html_parts))
-        self.setTextFormat(Qt.RichText)
-        self.setTextInteractionFlags(Qt.LinksAccessibleByMouse | Qt.LinksAccessibleByKeyboard)
+        self.setTextFormat(Qt.TextFormat.RichText)
+        self.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse | Qt.TextInteractionFlag.LinksAccessibleByKeyboard)
         self.setOpenExternalLinks(False)
         self.linkActivated.connect(loadWebpage.open_webpage)

@@ -27,9 +27,9 @@ class ElidedLabel(QLabel):
         self._elide_timer = QTimer(self)
         self._elide_timer.setSingleShot(True)
         self._elide_timer.timeout.connect(self._safe_elide)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.setWordWrap(False)
-        self.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.setObjectName("ElidedLabel")
         self.setMinimumHeight(12)
 
@@ -83,7 +83,7 @@ class ElidedLabel(QLabel):
         if self.width() <= 0:
             return
         fm = self.fontMetrics()
-        elided = fm.elidedText(self._full, Qt.ElideRight, max(0, self.width()))
+        elided = fm.elidedText(self._full, Qt.TextElideMode.ElideRight, max(0, self.width()))
         if elided == self.text():
             return
         self._is_eliding = True
@@ -97,8 +97,8 @@ class WrappingTextLabel(QLabel):
     def __init__(self, text="", parent=None):
         super().__init__(text or "", parent)
         self.setWordWrap(True)
-        self.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.Preferred)
+        self.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.Preferred)
 
     def setText(self, text):
         full_text = text or ""
@@ -110,9 +110,9 @@ class InfocardHeaderFrame(QFrame):
     def __init__(self, item_data, module_name=None, parent=None):
         super().__init__(parent)
 
-        self.setFrameShape(QFrame.NoFrame)
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self.setObjectName("InfocardHeaderFrame")
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.setMinimumHeight(0)
         self._lang = LanguageManager()
         self._number_badge = None
@@ -143,31 +143,31 @@ class InfocardHeaderFrame(QFrame):
             privateIcon.setToolTip(self._lang.translate(TranslationKeys.DATA_DISPLAY_WIDGETS_INFOCARDHEADER_TOOLTIP))
             icon = ThemeManager.get_qicon(MiscIcons.ICON_IS_PRIVATE)
             privateIcon.setPixmap(icon.pixmap(12, 12))
-            nameRow.addWidget(privateIcon, 0, Qt.AlignVCenter)
+            nameRow.addWidget(privateIcon, 0, Qt.AlignmentFlag.AlignVCenter)
 
         number = DataDisplayExtractors.extract_item_number(item_data) or '-'
         if number and number != '-':
             numberBadge = QLabel(str(number))
             numberBadge.setObjectName("ProjectNumberBadge")
-            numberBadge.setAlignment(Qt.AlignCenter)
-            numberBadge.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+            numberBadge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            numberBadge.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
             self._number_badge = numberBadge
-            nameRow.addWidget(numberBadge, 0, Qt.AlignVCenter)
+            nameRow.addWidget(numberBadge, 0, Qt.AlignmentFlag.AlignVCenter)
 
         priority_widget = PriorityWidget(item_data, parent=self)
         if not priority_widget.isHidden():
-            nameRow.addWidget(priority_widget, 0, Qt.AlignVCenter)
+            nameRow.addWidget(priority_widget, 0, Qt.AlignmentFlag.AlignVCenter)
 
         name = DataDisplayExtractors.extract_item_name(item_data)
         nameLabel = WrappingTextLabel(name)
         nameLabel.setObjectName("ProjectNameLabel")
         nameLabel.setMinimumWidth(0)
-        nameRow.addWidget(nameLabel, 1, Qt.AlignVCenter)
+        nameRow.addWidget(nameLabel, 1, Qt.AlignmentFlag.AlignVCenter)
         self._name_label = nameLabel
 
         tags = DataDisplayExtractors.extract_tag_names(item_data)
         if tags:
-            nameRow.addWidget(TagsWidget(tags, compact=True), 0, Qt.AlignTop)
+            nameRow.addWidget(TagsWidget(tags, compact=True), 0, Qt.AlignmentFlag.AlignTop)
         leftL.addLayout(nameRow)
 
         type_badge = self._create_type_badge(item_data, module_name)
@@ -179,29 +179,29 @@ class InfocardHeaderFrame(QFrame):
             metaRow.setSpacing(6)
 
             if type_badge is not None:
-                metaRow.addWidget(type_badge, 0, Qt.AlignLeft | Qt.AlignVCenter)
+                metaRow.addWidget(type_badge, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
             if client:
                 icon = ThemeManager.get_qicon(MiscIcons.ICON_IS_CLIENT)
                 clientIcon = QLabel()
                 clientIcon.setPixmap(icon.pixmap(12, 12))
                 clientIcon.setObjectName("ClientIcon")
-                metaRow.addWidget(clientIcon, 0, Qt.AlignVCenter)
+                metaRow.addWidget(clientIcon, 0, Qt.AlignmentFlag.AlignVCenter)
 
                 clientLabel = WrappingTextLabel(client)
                 clientLabel.setObjectName("ProjectClientLabel")
                 clientLabel.setMinimumWidth(0)
-                metaRow.addWidget(clientLabel, 1, Qt.AlignVCenter)
+                metaRow.addWidget(clientLabel, 1, Qt.AlignmentFlag.AlignVCenter)
                 self._client_label = clientLabel
             leftL.addLayout(metaRow)
 
-        root.addWidget(left, 1, Qt.AlignVCenter)
+        root.addWidget(left, 1, Qt.AlignmentFlag.AlignVCenter)
         self._sync_number_badge_width()
         self._sync_vertical_metrics()
 
     def changeEvent(self, event):
         super().changeEvent(event)
-        if event.type() in (QEvent.StyleChange, QEvent.FontChange):
+        if event.type() in (QEvent.Type.StyleChange, QEvent.Type.FontChange):
             self._sync_number_badge_width()
             self._sync_vertical_metrics()
 
@@ -241,9 +241,9 @@ class InfocardHeaderFrame(QFrame):
 
         badge = ElidedLabel(name)
         badge.setObjectName("TypeInlineLabel")
-        badge.setAlignment(Qt.AlignCenter)
+        badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         badge.setToolTip(name)
-        badge.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        badge.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         badge.setMinimumWidth(60)
         badge.setMaximumWidth(160)
         return badge

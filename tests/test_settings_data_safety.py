@@ -77,7 +77,7 @@ class DialogCase(unittest.TestCase):
 class MapperTransactionTest(DialogCase):
     def dialog(self, target) -> GeospatialLayerMapperDialog:
         dialog = GeospatialLayerMapperDialog(lang_manager=LANG, module_name="works", target_layer=target, parent=self.window)
-        self.addCleanup(lambda: QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete))
+        self.addCleanup(lambda: QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete))
         return dialog
 
     def test_one_untransformable_feature_writes_nothing(self) -> None:

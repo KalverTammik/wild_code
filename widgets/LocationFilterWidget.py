@@ -178,7 +178,7 @@ class LocationFilterHelper(QObject):
         self._load_current_scope()
 
     def _on_city_model_changed(self, _first, _last, roles):
-        if not roles or Qt.CheckStateRole in roles or Qt.DisplayRole in roles:
+        if not roles or Qt.ItemDataRole.CheckStateRole in roles or Qt.ItemDataRole.DisplayRole in roles:
             self._on_city_checked_items_changed()
 
     def _on_city_checked_items_changed(self):
@@ -274,7 +274,7 @@ class LocationFilterWidget(QFrame):
         self.lang_manager = lang_manager
 
         self.setObjectName("FilterFrame")
-        self.setFrameStyle(QFrame.StyledPanel)
+        self.setFrameStyle(QFrame.Shape.StyledPanel)
 
         filter_layout = QVBoxLayout(self)
         filter_layout.setContentsMargins(6, 6, 6, 6)
@@ -333,7 +333,7 @@ class LocationFilterWidget(QFrame):
         refresh_label = self.lang_manager.translate(TranslationKeys.LOCATION_REFRESH)
         self.refresh_button.setToolTip(refresh_label)
         self.refresh_button.setAccessibleName(refresh_label)
-        location_layout.addWidget(self.refresh_button, 0, Qt.AlignBottom)
+        location_layout.addWidget(self.refresh_button, 0, Qt.AlignmentFlag.AlignBottom)
 
         location_layout.addStretch()
         filter_layout.addLayout(location_layout)
@@ -345,7 +345,7 @@ class LocationFilterWidget(QFrame):
         self.loading_indicator.setFixedSize(50, 6)
         self.loading_indicator.hide()
         self.status_label = QLabel(self.lang_manager.translate(TranslationKeys.SELECT_COUNTY), self)
-        self.status_label.setTextFormat(Qt.PlainText)
+        self.status_label.setTextFormat(Qt.TextFormat.PlainText)
         self.status_label.setWordWrap(True)
         self.retry_button = QPushButton(self.lang_manager.translate(TranslationKeys.CARD_LOAD_RETRY), self)
         self.retry_button.setAutoDefault(False)

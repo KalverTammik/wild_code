@@ -46,7 +46,7 @@ class WorksLayerService(ModuleLayerServiceBase):
     MODULE = Module.WORKS
     LAYER_MISSING_KEY = TranslationKeys.WORKS_LAYER_MISSING
     LAYER_AMBIGUOUS_KEY = TranslationKeys.WORKS_MAIN_LAYER_AMBIGUOUS
-    REQUIRED_GEOMETRY = QgsWkbTypes.PointGeometry
+    REQUIRED_GEOMETRY = QgsWkbTypes.GeometryType.PointGeometry
     LAYER_INVALID_GEOMETRY_KEY = TranslationKeys.WORKS_LAYER_INVALID_GEOMETRY
 
     EXT_SYSTEM_NAME = "Kavitro"
@@ -592,7 +592,7 @@ class WorksLayerService(ModuleLayerServiceBase):
             geometry = feature.geometry()
             if geometry is None or geometry.isEmpty():
                 return None
-            point = geometry.asPoint() if geometry.type() == QgsWkbTypes.PointGeometry else geometry.centroid().asPoint()
+            point = geometry.asPoint() if geometry.type() == QgsWkbTypes.GeometryType.PointGeometry else geometry.centroid().asPoint()
             point_xy = QgsPointXY(point)
         except Exception as exc:
             PythonFailLogger.log_exception(

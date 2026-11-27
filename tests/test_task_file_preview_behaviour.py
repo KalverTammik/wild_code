@@ -53,7 +53,7 @@ def png_bytes():
     pixmap.fill(QColor("red"))
     data = QByteArray()
     buffer = QBuffer(data)
-    buffer.open(QIODevice.WriteOnly)
+    buffer.open(QIODevice.OpenModeFlag.WriteOnly)
     pixmap.save(buffer, "PNG")
     return bytes(data)
 
@@ -92,7 +92,7 @@ class _Base(unittest.TestCase):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         self.p(tempfile, "tempdir", folder.name)
-        self.addCleanup(lambda: QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete))
+        self.addCleanup(lambda: QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete))
 
     def p(self, target, name, *args, **kwargs):
         patcher = patch.object(target, name, *args, **kwargs)
@@ -255,7 +255,7 @@ class RemotePreviewTest(_Base):
         self.assertIsInstance(editor, QPlainTextEdit)
         self.assertEqual(editor.toPlainText(), "ä;b")
         self.assertTrue(editor.isReadOnly())
-        self.assertEqual(editor.lineWrapMode(), QPlainTextEdit.NoWrap)
+        self.assertEqual(editor.lineWrapMode(), QPlainTextEdit.LineWrapMode.NoWrap)
         self.assertTrue(dialog._notice_label.isHidden())
         self.fetch.assert_called_with("u", max_bytes=512 * 1024)
         self.fetch.return_value = {"content": b"abc", "truncated": True}

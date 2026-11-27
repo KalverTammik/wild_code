@@ -50,27 +50,27 @@ class ProgressDialogModern(QDialog):
         self.is_cancelled = False
 
         # Use window-modal instead of app-modal
-        self.setWindowModality(Qt.WindowModal)
+        self.setWindowModality(Qt.WindowModality.WindowModal)
 
         self.setWindowTitle(title)
         # Allow resizing - remove fixed size
         self.setMinimumSize(400, 250)
 
         # Keep native title bar/chrome visible and remove only help button.
-        flags = self.windowFlags() | Qt.Window | Qt.WindowTitleHint | Qt.WindowSystemMenuHint
-        flags &= ~Qt.WindowContextHelpButtonHint
-        flags &= ~Qt.FramelessWindowHint
+        flags = self.windowFlags() | Qt.WindowType.Window | Qt.WindowType.WindowTitleHint | Qt.WindowType.WindowSystemMenuHint
+        flags &= ~Qt.WindowType.WindowContextHelpButtonHint
+        flags &= ~Qt.WindowType.FramelessWindowHint
         self.setWindowFlags(flags)
         self.setSizeGripEnabled(True)
 
         # Delete on close for memory management
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
 
         self._setup_ui()
         self._apply_theme()
 
         # ESC key to cancel
-        self.cancel_button.setShortcut(QKeySequence.Cancel)
+        self.cancel_button.setShortcut(QKeySequence.StandardKey.Cancel)
 
     def _setup_ui(self):
         """Setup the user interface."""
@@ -90,7 +90,7 @@ class ProgressDialogModern(QDialog):
         title_font.setPointSize(14)
         title_font.setBold(True)
         self.title_label.setFont(title_font)
-        self.title_label.setAlignment(Qt.AlignCenter)
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_layout.addWidget(self.title_label)
 
         layout.addWidget(title_frame)
@@ -116,7 +116,7 @@ class ProgressDialogModern(QDialog):
         # Single percentage label (remove duplication)
         self.percentage_label = QLabel("0%")
         self.percentage_label.setObjectName("ProgressPercentage")
-        self.percentage_label.setAlignment(Qt.AlignCenter)
+        self.percentage_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         percent_font = QFont()
         percent_font.setPointSize(12)
         self.percentage_label.setFont(percent_font)
@@ -248,7 +248,7 @@ class ProgressDialogModern(QDialog):
 
     def keyPressEvent(self, event):
         """Handle key press events."""
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             if self.cancel_button.isEnabled():
                 self._on_cancel_clicked()
         super().keyPressEvent(event)

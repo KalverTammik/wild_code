@@ -269,7 +269,7 @@ class SettingsModuleCardTest(LoggedExceptionTestCase):
     def dispose(self) -> None:
         self.card.hide()
         self.card.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def test_building_the_card_writes_no_settings(self) -> None:
         self.setting_writes.assert_not_called()
@@ -490,7 +490,7 @@ class WorksCreateOptionLoadsTest(LoggedExceptionTestCase):
     def dispose(widget) -> None:
         widget.hide()
         widget.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 class WorksSyncServiceTest(LoggedExceptionTestCase):
@@ -540,7 +540,7 @@ class WorksSyncServiceTest(LoggedExceptionTestCase):
 
         broken = MagicMock(spec=QgsGeometry)
         broken.isEmpty.return_value = False
-        broken.equals.side_effect = RuntimeError("geos failure")
+        broken.constGet.side_effect = RuntimeError("geos failure")
 
         self.assertFalse(WorksSyncService._geometries_equal(broken, new))
         self.assertEqual(self.events(), ["works_geometry_compare_failed"])

@@ -83,7 +83,7 @@ class MapperValueConversionTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.window.hide()
         self.window.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def _transfer(self, target: QgsVectorLayer, source: QgsVectorLayer, rows=MAPPED):
         dialog = GeospatialLayerMapperDialog(lang_manager=self.lang, module_name="works", target_layer=target, parent=self.window)

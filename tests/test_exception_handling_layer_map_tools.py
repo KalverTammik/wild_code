@@ -55,7 +55,7 @@ from Kavitro_dev.ui.module_switch_helper import ModuleSwitchHelper
 maphelpers_module = sys.modules[MapHelpers.__module__]
 
 
-def valid_layer(geometry=QgsWkbTypes.PointGeometry) -> MagicMock:
+def valid_layer(geometry=QgsWkbTypes.GeometryType.PointGeometry) -> MagicMock:
     layer = MagicMock(spec=QgsVectorLayer)
     layer.isValid.return_value = True
     layer.geometryType.return_value = geometry
@@ -104,7 +104,7 @@ class LayerServiceBaseTest(LoggedCase):
     SERVICE = AsBuiltLayerService  # inherits every helper below unchanged
 
     @classmethod
-    def find(cls, features, *, geometry=QgsWkbTypes.PolygonGeometry, units=1.0, **options):
+    def find(cls, features, *, geometry=QgsWkbTypes.GeometryType.PolygonGeometry, units=1.0, **options):
         layer = valid_layer(geometry)
         layer.getFeatures.return_value = iter(features)
         interface = Mock()
@@ -150,7 +150,7 @@ class LayerServiceBaseTest(LoggedCase):
     def test_point_whose_distance_cannot_be_measured_is_skipped(self) -> None:
         broken, near = feature_with_geometry(), feature_with_geometry(distance=1.0)
         broken.geometry.return_value.distance.side_effect = TypeError("not a geometry")
-        found, _layer = self.find([broken, near], geometry=QgsWkbTypes.PointGeometry)
+        found, _layer = self.find([broken, near], geometry=QgsWkbTypes.GeometryType.PointGeometry)
         self.assertIs(found, near)
         self.log.assert_not_called()
 
@@ -164,7 +164,7 @@ class LayerServiceBaseTest(LoggedCase):
     def test_unexpected_geometry_error_is_logged_and_finds_nothing(self) -> None:
         broken = feature_with_geometry()
         broken.geometry.return_value.distance.side_effect = RuntimeError("geometry deleted")
-        found, _layer = self.find([broken, feature_with_geometry(distance=1.0)], geometry=QgsWkbTypes.PointGeometry)
+        found, _layer = self.find([broken, feature_with_geometry(distance=1.0)], geometry=QgsWkbTypes.GeometryType.PointGeometry)
         self.assertIsNone(found)
         self.assertEqual(self.events(), ["asbuilt_feature_at_point_failed"])
 
@@ -411,7 +411,7 @@ class IdentifyToolTest(LoggedCase):
         interface.mapCanvas.return_value.mapUnitsPerPixel.return_value = 1.0
         broken, inside = feature_with_geometry(), feature_with_geometry(contains=True)
         broken.geometry.return_value.contains.side_effect = TypeError("not a geometry")
-        layer = valid_layer(QgsWkbTypes.PolygonGeometry)
+        layer = valid_layer(QgsWkbTypes.GeometryType.PolygonGeometry)
         layer.getFeatures.return_value = iter([broken, inside])
         controller = self.controller()
 
@@ -605,9 +605,9 @@ class FeatureControllersTest(LoggedCase):
 
     def test_edit_action_follows_the_geometry_type_and_tries_on_after_a_failure(self) -> None:
         for geometry, first, error in (
-            (QgsWkbTypes.PointGeometry, "actionMoveFeature", RuntimeError("deleted")),
-            (QgsWkbTypes.PolygonGeometry, "actionVertexToolActiveLayer", RuntimeError("deleted")),
-            (QgsWkbTypes.PolygonGeometry, "actionVertexToolActiveLayer", TypeError("needs an argument")),
+            (QgsWkbTypes.GeometryType.PointGeometry, "actionMoveFeature", RuntimeError("deleted")),
+            (QgsWkbTypes.GeometryType.PolygonGeometry, "actionVertexToolActiveLayer", RuntimeError("deleted")),
+            (QgsWkbTypes.GeometryType.PolygonGeometry, "actionVertexToolActiveLayer", TypeError("needs an argument")),
         ):
             with self.subTest(geometry=first, error=type(error).__name__):
                 triggered = []
@@ -704,7 +704,7 @@ class ChoiceDialogTest(LoggedCase):
         finally:
             dialog.hide()
             dialog.deleteLater()
-            QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 if __name__ == "__main__":

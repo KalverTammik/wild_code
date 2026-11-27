@@ -46,20 +46,20 @@ class HtmlDescriptionWidget(QTextBrowser):
         self.setOpenLinks(False)
         self.anchorClicked.connect(self._handle_anchor_clicked)
         self.setReadOnly(True)
-        self.setFrameShape(QFrame.NoFrame)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.document().setDocumentMargin(0)
         if inline:
-            self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-            self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+            self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         else:
-            self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-            self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setHtml(self.normalize_html(html or ""))
 
     def _handle_anchor_clicked(self, link: QUrl) -> None:
         try:
-            raw_target = link.toString(QUrl.FullyDecoded)
+            raw_target = link.toString(QUrl.ComponentFormattingOption.FullyDecoded)
         except (AttributeError, TypeError):  # Qt5/Qt6 QUrl API difference
             raw_target = link.toString()
 
@@ -99,7 +99,7 @@ class HtmlDescriptionWidget(QTextBrowser):
         if not self._ask_confirmation(message):
             return
 
-        opened = bool(QDesktopServices.openUrl(QUrl(destination.target, QUrl.TolerantMode)))
+        opened = bool(QDesktopServices.openUrl(QUrl(destination.target, QUrl.ParsingMode.TolerantMode)))
         if not opened:
             self._show_open_failed(destination.display)
 
@@ -148,7 +148,7 @@ class HtmlDescriptionWidget(QTextBrowser):
                 compact=TaskFilePreviewDialog.is_image_preview_candidate(local_file_path=path),
             )
             if dialog is not None:
-                dialog.exec_()
+                dialog.exec()
             return
 
         message = self._lang.translate(TranslationKeys.DESCRIPTION_LINK_FILE_CONFIRM).format(

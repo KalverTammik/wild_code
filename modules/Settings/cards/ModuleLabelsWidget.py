@@ -91,7 +91,7 @@ class ModuleLabelsWidget(QFrame):
             title.setObjectName("modulelabeltitle")
             title.setProperty("modulelabeltitle", "true")
             title.setMinimumWidth(300)
-            row.addWidget(title, 0, Qt.AlignLeft)
+            row.addWidget(title, 0, Qt.AlignmentFlag.AlignLeft)
 
             tool = label_def.get("tool")
             if tool == "button":
@@ -122,9 +122,9 @@ class ModuleLabelsWidget(QFrame):
                         lambda _, k=key, lbl=value_label, fn=custom_handler: self._handle_custom_click(fn, k, lbl)
                     )
                     value_label.setMinimumWidth(200)
-                    row.addWidget(value_label, 0, Qt.AlignLeft)
-                    row.addWidget(button, 0, Qt.AlignRight)
-                    row.addWidget(clear_button, 0, Qt.AlignRight)
+                    row.addWidget(value_label, 0, Qt.AlignmentFlag.AlignLeft)
+                    row.addWidget(button, 0, Qt.AlignmentFlag.AlignRight)
+                    row.addWidget(clear_button, 0, Qt.AlignmentFlag.AlignRight)
                     value_widget = value_label
 
             if tool == "checkBox":
@@ -134,7 +134,7 @@ class ModuleLabelsWidget(QFrame):
                 checkbox.stateChanged.connect(
                     lambda _, k=key, cb=checkbox: self._on_checkbox_changed(k, cb)
                 )
-                row.addWidget(checkbox, 0, Qt.AlignRight)
+                row.addWidget(checkbox, 0, Qt.AlignmentFlag.AlignRight)
                 value_widget = checkbox
             row.addStretch(1)
             layout.addLayout(row)

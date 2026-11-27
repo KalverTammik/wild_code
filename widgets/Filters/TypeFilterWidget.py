@@ -83,7 +83,7 @@ class _TypePickerPopup(PickerPopupBase):
         type_scroll.setObjectName("TypePickerScroll")
         type_scroll.setMaximumHeight(self._max_body_height)
         type_scroll.setWidgetResizable(True)
-        type_scroll.setFrameShape(QFrame.NoFrame)
+        type_scroll.setFrameShape(QFrame.Shape.NoFrame)
         type_content = QWidget(type_scroll)
         type_content.setObjectName("TypePickerContent")
         type_layout = QVBoxLayout(type_content)
@@ -96,9 +96,9 @@ class _TypePickerPopup(PickerPopupBase):
             self._add_type_row(type_layout, item)
         type_layout.addStretch(1)
         type_scroll.setWidget(type_content)
-        type_panel_layout.addWidget(type_scroll, 0, Qt.AlignTop)
+        type_panel_layout.addWidget(type_scroll, 0, Qt.AlignmentFlag.AlignTop)
         type_panel_layout.addStretch(1)
-        body.addWidget(type_panel, 1, Qt.AlignTop)
+        body.addWidget(type_panel, 1, Qt.AlignmentFlag.AlignTop)
 
     def _update_available_height(self) -> None:
         fallback = 520
@@ -248,7 +248,7 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         self._show_all_groups = False
         self.group_combo.clear()
         self.type_combo.clear()
-        self._set_all_cb_state(Qt.Unchecked, enabled=False)
+        self._set_all_cb_state(Qt.CheckState.Unchecked, enabled=False)
         self.group_combo.setEnabled(False)
         self.type_combo.setEnabled(False)
         self._control.setEnabled(False)
@@ -293,7 +293,7 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         checked_visible_ids = {
             str(self.type_combo.itemData(row) or "")
             for row in range(self.type_combo.count())
-            if self.type_combo.itemCheckState(row) == Qt.Checked
+            if self.type_combo.itemCheckState(row) == Qt.CheckState.Checked
         }
         self._selected_type_ids.difference_update(v for v in visible_ids if v)
         self._selected_type_ids.update(v for v in checked_visible_ids if v)
@@ -312,7 +312,7 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         try:
             for row in range(self.type_combo.count()):
                 val = self.type_combo.itemData(row)
-                state = Qt.Checked if str(val) in targets else Qt.Unchecked
+                state = Qt.CheckState.Checked if str(val) in targets else Qt.CheckState.Unchecked
                 self.type_combo.setItemCheckState(row, state)
         finally:
             self._suppress_type_emit = False
@@ -344,15 +344,15 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
                     continue
                 type_ids = self._group_map.get(group_name, [])
                 if not type_ids:
-                    state = Qt.Unchecked
+                    state = Qt.CheckState.Unchecked
                 else:
                     checked = sum(1 for tid in type_ids if tid in selected_type_ids)
                     if checked == 0:
-                        state = Qt.Unchecked
+                        state = Qt.CheckState.Unchecked
                     elif checked == len(type_ids):
-                        state = Qt.Checked
+                        state = Qt.CheckState.Checked
                     else:
-                        state = Qt.PartiallyChecked
+                        state = Qt.CheckState.PartiallyChecked
                 self.group_combo.setItemCheckState(row, state)
         finally:
             self._suppress_group_emit = False
@@ -539,7 +539,7 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         self.group_combo.setEnabled(False)
         self.type_combo.setEnabled(False)
         self._control.setEnabled(False)
-        self._set_all_cb_state(Qt.Unchecked, enabled=False)
+        self._set_all_cb_state(Qt.CheckState.Unchecked, enabled=False)
         self._update_control_summary()
         self._refresh_popup()
         self._loaded = False
@@ -558,7 +558,7 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
             self.group_combo.setEnabled(False)
             self.type_combo.setEnabled(False)
             self._control.setEnabled(False)
-            self._set_all_cb_state(Qt.Unchecked, enabled=False)
+            self._set_all_cb_state(Qt.CheckState.Unchecked, enabled=False)
             self._group_map.clear()
             self._all_types_payload = []
             self._selected_type_ids.clear()
@@ -594,7 +594,7 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
                 value = str(self.type_combo.itemData(row) or "")
                 self.type_combo.setItemCheckState(
                     row,
-                    Qt.Checked if value in selected_ids else Qt.Unchecked,
+                    Qt.CheckState.Checked if value in selected_ids else Qt.CheckState.Unchecked,
                 )
         finally:
             self._suppress_type_emit = False
@@ -607,11 +607,11 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
             return
         self._suppress_type_emit = True
         try:
-            self._apply_select_all(state == Qt.Checked)
+            self._apply_select_all(state == Qt.CheckState.Checked)
         finally:
             self._suppress_type_emit = False
         visible_ids = {str(self.type_combo.itemData(row) or "") for row in range(self.type_combo.count())}
-        if state == Qt.Checked:
+        if state == Qt.CheckState.Checked:
             self._selected_type_ids.update(v for v in visible_ids if v)
         else:
             self._selected_type_ids.difference_update(v for v in visible_ids if v)

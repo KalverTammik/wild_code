@@ -58,7 +58,7 @@ class LoginPromptTest(unittest.TestCase):
         install_login_prompt()
         self.dialog_class = self.start(patch.object(DIALOG_HOME, "LoginDialog"))
         self.dialog = self.dialog_class.return_value
-        self.dialog.exec_.return_value = 0
+        self.dialog.exec.return_value = 0
         self.session_valid = self.start(patch.object(SessionManager, "is_session_valid", return_value=False))
         self.log = self.start(patch.object(PythonFailLogger, "log"))
         self.log_exception = self.start(patch.object(PythonFailLogger, "log_exception"))
@@ -85,7 +85,7 @@ class LoginPromptTest(unittest.TestCase):
         self.dialog_class.assert_not_called()
         flush_events()
         self.dialog_class.assert_called_once()
-        self.dialog.exec_.assert_called_once_with()
+        self.dialog.exec.assert_called_once_with()
 
     def test_without_a_registered_prompt_nothing_opens_and_it_is_logged(self) -> None:
         SessionManager.set_login_prompt(None)
@@ -121,7 +121,7 @@ class LoginPromptTest(unittest.TestCase):
         self.dialog_class.assert_called_once_with(parent=active)
 
     def test_open_window_is_not_opened_twice(self) -> None:
-        self.dialog.exec_.side_effect = lambda: SessionManager.request_login(reason="toinen", user_initiated=True) or 0
+        self.dialog.exec.side_effect = lambda: SessionManager.request_login(reason="toinen", user_initiated=True) or 0
         SessionManager.request_login(reason="startup")
         flush_events()
         self.dialog_class.assert_called_once()
@@ -144,7 +144,7 @@ class LoginPromptTest(unittest.TestCase):
         SessionManager.register_listener(listener)
         self.addCleanup(SessionManager.unregister_listener, listener)
         self.session_valid.return_value = True
-        self.dialog.exec_.return_value = 1
+        self.dialog.exec.return_value = 1
         SessionManager.request_login(reason="startup")
         flush_events()
         listener.assert_called_once_with()
@@ -171,7 +171,7 @@ class LoginPromptTest(unittest.TestCase):
         self.assertEqual(self.dialog_class.call_count, 2)
 
     def test_accepted_window_without_a_session_is_logged_and_not_silenced(self) -> None:
-        self.dialog.exec_.return_value = 1
+        self.dialog.exec.return_value = 1
         SessionManager.request_login(reason="unauthenticated")
         flush_events()
         self.assertEqual(self.extra_of("login_dialog_no_session"), {"reason": "unauthenticated"})

@@ -62,7 +62,7 @@ class WorksCreateDialogLoadFailureTest(_Patched):
     def tearDown(self) -> None:
         self.window.hide()
         self.window.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def _dialog(self, **kwargs) -> Dialog:
         options = {
@@ -241,7 +241,7 @@ class WorksCreateControllerLoadFailureTest(_Patched):
             def __init__(self, **kwargs) -> None:
                 received.update(kwargs)
 
-            def exec_(self) -> int:
+            def exec(self) -> int:
                 return 0
 
         patches = self._lookups(fail=True) + (

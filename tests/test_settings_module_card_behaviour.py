@@ -87,7 +87,7 @@ class _CardTest(unittest.TestCase):
     def _dispose(self):
         self.card.hide()
         self.card.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def patch(self, target, attribute, **kwargs):
         patcher = patch.object(target, attribute, **kwargs)

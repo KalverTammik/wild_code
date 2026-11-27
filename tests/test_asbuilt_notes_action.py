@@ -33,7 +33,7 @@ class EditNotesTest(unittest.TestCase):
         # Stands in for the card button.
         self.button = Mock(lang_manager=self.lang)
         dialog = self.dialog_class.return_value
-        dialog.exec_.return_value = QDialog.Accepted
+        dialog.exec.return_value = QDialog.DialogCode.Accepted
         dialog.get_notes.return_value = [NOTE]
         self.api.update_task_description.return_value = True
 

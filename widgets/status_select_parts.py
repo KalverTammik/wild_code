@@ -126,15 +126,15 @@ class ClickableFrame(QFrame):
     clicked = pyqtSignal()
 
     def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
-        if event.button() == Qt.LeftButton and self.isEnabled():
-            self.setFocus(Qt.MouseFocusReason)
+        if event.button() == Qt.MouseButton.LeftButton and self.isEnabled():
+            self.setFocus(Qt.FocusReason.MouseFocusReason)
             self.clicked.emit()
             event.accept()
             return
         super().mousePressEvent(event)
 
     def keyPressEvent(self, event) -> None:  # noqa: N802 - Qt override
-        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
             self.clicked.emit()
             event.accept()
             return
@@ -150,8 +150,8 @@ class StatusOptionRow(QFrame):
         self._selected = bool(selected)
         self._dark_theme = bool(dark_theme)
         self.setObjectName("StatusSelectOptionRow")
-        self.setCursor(Qt.PointingHandCursor)
-        self.setAttribute(Qt.WA_Hover, True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
 
         row_layout = QHBoxLayout(self)
         row_layout.setContentsMargins(12, 7, 12, 7)
@@ -161,7 +161,7 @@ class StatusOptionRow(QFrame):
         dot = QFrame(self)
         dot.setObjectName("StatusSelectDot")
         dot.setFixedSize(10, 10)
-        dot.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        dot.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         dot.setStyleSheet(
             "QFrame#StatusSelectDot {"
             f"background-color: {color};"
@@ -169,23 +169,23 @@ class StatusOptionRow(QFrame):
             "border-radius: 5px;"
             "}"
         )
-        row_layout.addWidget(dot, 0, Qt.AlignVCenter)
+        row_layout.addWidget(dot, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._label = QLabel(str(self._option.get("name") or self._option.get("label") or "-"), self)
         self._label.setObjectName("StatusSelectOptionLabel")
-        self._label.setAttribute(Qt.WA_TransparentForMouseEvents, True)
-        self._label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self._label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self._label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._apply_label_style()
         description = str(self._option.get("description") or "").strip()
         if description:
             self._label.setToolTip(description)
             self.setToolTip(description)
-        row_layout.addWidget(self._label, 1, Qt.AlignVCenter)
+        row_layout.addWidget(self._label, 1, Qt.AlignmentFlag.AlignVCenter)
 
         self._marker = QFrame(self)
         self._marker.setObjectName("StatusSelectSelectedMarker")
         self._marker.setFixedSize(4, 18)
-        self._marker.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._marker.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self._marker.setVisible(self._selected)
         self._marker.setStyleSheet(
             "QFrame#StatusSelectSelectedMarker {"
@@ -193,7 +193,7 @@ class StatusOptionRow(QFrame):
             "border-radius: 2px;"
             "}"
         )
-        row_layout.addWidget(self._marker, 0, Qt.AlignVCenter)
+        row_layout.addWidget(self._marker, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._apply_style()
 
@@ -252,7 +252,7 @@ class StatusOptionRow(QFrame):
         )
 
     def mousePressEvent(self, event) -> None:  # noqa: N802 - Qt override
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(dict(self._option))
             event.accept()
             return

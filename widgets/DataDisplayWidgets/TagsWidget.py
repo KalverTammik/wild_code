@@ -16,7 +16,7 @@ class TagsWidget(QWidget):
         self._compact = bool(compact)
 
         self._tags_container = None
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         # Main layout
         main_layout = QVBoxLayout(self)
@@ -28,7 +28,7 @@ class TagsWidget(QWidget):
             # Tags container
             tags_container = QFrame(self)
             tags_container.setObjectName("TagsContainer")
-            tags_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            tags_container.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             tags_layout = QHBoxLayout(tags_container)
             tags_layout.setContentsMargins(2, 1, 2, 1) if self._compact else tags_layout.setContentsMargins(4, 2, 4, 2)
             tags_layout.setSpacing(0)
@@ -38,7 +38,7 @@ class TagsWidget(QWidget):
             icon_label = QLabel()
             icon_size = 14 if self._compact else 24
             icon_label.setPixmap(icon.pixmap(icon_size, icon_size))
-            icon_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+            icon_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             #icon_label.setToolTip("Sildid")
             tags_layout.addWidget(icon_label)
 
@@ -98,12 +98,12 @@ class TagsWidget(QWidget):
 
 class TagPopup(QWidget):
     def __init__(self, tags: list, parent=None):
-        super().__init__(parent, flags=Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        super().__init__(parent, flags=Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
         self.setObjectName("TagsPopup")
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setAttribute(Qt.WA_DeleteOnClose, True)
-        self.setAttribute(Qt.WA_ShowWithoutActivating, True)
-        self.setFocusPolicy(Qt.NoFocus)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setMouseTracking(True)
 
         lay = QVBoxLayout(self)
@@ -120,12 +120,12 @@ class TagPopup(QWidget):
         """Create a widget that displays all tags in a vertical layout."""
         container = QWidget()
         container.setObjectName("TagsContainer")
-        container.setAttribute(Qt.WA_TranslucentBackground, True)
+        container.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
-        layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
         # Show all tags without limit
         for tag_name in tag_names:
@@ -148,7 +148,7 @@ class TagPopup(QWidget):
         bubble = QLabel(frame)
         bubble.setObjectName("Value")
         bubble.setText(tag_name)
-        bubble.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        bubble.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         bubble.setToolTip(tag_name)
 
         layout.addWidget(bubble)

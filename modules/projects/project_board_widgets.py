@@ -34,7 +34,7 @@ class ProjectBoardItemWidget(QFrame):
         primary_label = QLabel(str(payload.get("primary") or "-"), self)
         primary_label.setObjectName("ProjectBoardItemPrimary")
         primary_label.setWordWrap(True)
-        primary_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        primary_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         layout.addWidget(primary_label)
 
         secondary_text = str(payload.get("secondary") or "").strip()
@@ -42,7 +42,7 @@ class ProjectBoardItemWidget(QFrame):
             secondary_label = QLabel(secondary_text, self)
             secondary_label.setObjectName("ProjectBoardItemSecondary")
             secondary_label.setWordWrap(True)
-            secondary_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            secondary_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             layout.addWidget(secondary_label)
 
         root.addWidget(content, 1)
@@ -81,7 +81,7 @@ class ProjectBoardSectionWidget(QFrame):
     ):
         super().__init__(parent)
         self.setObjectName("ProjectBoardSectionWidget")
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._accent_color = str(color or "#d0d5dd")
 
         layout = QVBoxLayout(self)
@@ -90,7 +90,7 @@ class ProjectBoardSectionWidget(QFrame):
 
         title_label = QLabel(str(title or "-"), self)
         title_label.setObjectName("ProjectBoardSectionTitle")
-        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title_label = title_label
         layout.addWidget(title_label)
 
@@ -98,7 +98,7 @@ class ProjectBoardSectionWidget(QFrame):
             empty_label = QLabel(str(empty_text or "-"), self)
             empty_label.setObjectName("ProjectBoardEmptyLabel")
             empty_label.setWordWrap(True)
-            empty_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+            empty_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
             layout.addWidget(empty_label)
             layout.addStretch(1)
             self.retheme()
@@ -114,12 +114,12 @@ class ProjectBoardSectionWidget(QFrame):
             if icon_path:
                 icon_label = QLabel(self)
                 icon_label.setPixmap(ThemeManager.get_qicon(icon_path).pixmap(14, 14))
-                group_row.addWidget(icon_label, 0, Qt.AlignVCenter)
+                group_row.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignVCenter)
 
             group_title = QLabel(str(group.get("title") or "-"), self)
             group_title.setObjectName("ProjectBoardGroupTitle")
             group_title.setWordWrap(True)
-            group_row.addWidget(group_title, 1, Qt.AlignVCenter)
+            group_row.addWidget(group_title, 1, Qt.AlignmentFlag.AlignVCenter)
             layout.addLayout(group_row)
 
             for item_payload in group.get("items") or []:
@@ -159,7 +159,7 @@ class ProjectBoardOverviewWidget(QWidget):
     def __init__(self, board_data: Optional[dict[str, Any]] = None, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setObjectName("ProjectBoardOverviewWidget")
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self._column_count = 0
 
         layout = QVBoxLayout(self)
@@ -173,7 +173,7 @@ class ProjectBoardOverviewWidget(QWidget):
             notice_label = QLabel(notice_text, self)
             notice_label.setObjectName("ProjectBoardNoticeLabel")
             notice_label.setWordWrap(True)
-            notice_label.setTextFormat(Qt.PlainText)
+            notice_label.setTextFormat(Qt.TextFormat.PlainText)
             self._notice_label = notice_label
             layout.addWidget(notice_label)
             self._apply_notice_theme()

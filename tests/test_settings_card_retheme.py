@@ -55,7 +55,7 @@ class SettingsCardRethemeTest(unittest.TestCase):
     def dispose(widget) -> None:
         widget.hide()
         widget.deleteLater()
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def test_switching_to_light_restyles_the_pickers_and_the_nested_card(self) -> None:
         self.assertIn("#303a42", self.tags._control.styleSheet())

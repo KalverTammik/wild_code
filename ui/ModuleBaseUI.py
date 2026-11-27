@@ -385,7 +385,7 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
 
     def _schedule_post_batch_updates(self) -> None:
         if self.scroll_area is not None:
-            self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+            self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
 
         self._initial_autofill_tick()
         self._update_counter_snapshot()

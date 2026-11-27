@@ -38,10 +38,10 @@ class StackedFormGrid(QGridLayout):
         column = 0
         for text, field, span in fields:
             label = QLabel(text)
-            label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+            label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
             # The span alone sets the width: a long value must not widen its column and break the line-up.
             policy = field.sizePolicy()
-            policy.setHorizontalPolicy(QSizePolicy.Ignored)
+            policy.setHorizontalPolicy(QSizePolicy.Policy.Ignored)
             field.setSizePolicy(policy)
             cell = QVBoxLayout()
             cell.setSpacing(self.LABEL_GAP)

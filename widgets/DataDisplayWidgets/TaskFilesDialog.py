@@ -99,9 +99,9 @@ class TaskFilesDialog(QDialog):
 
         self._table = QTableWidget(0, 5, self)
         self._table.setObjectName("TaskFilesTable")
-        self._table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self._table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self._table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.setAlternatingRowColors(True)
         self._table.setSortingEnabled(False)
         self._table.setHorizontalHeaderLabels(
@@ -114,11 +114,11 @@ class TaskFilesDialog(QDialog):
             ]
         )
         header = self._table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         self._table.verticalHeader().setVisible(False)
         self._table.itemSelectionChanged.connect(self._update_button_states)
         self._table.itemDoubleClicked.connect(lambda *_: self._preview_selected())
@@ -171,7 +171,7 @@ class TaskFilesDialog(QDialog):
             self._update_button_states()
 
     def _run_with_busy_cursor(self, callback):
-        QApplication.setOverrideCursor(Qt.WaitCursor)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         QApplication.processEvents()
         try:
             return callback()
@@ -234,7 +234,7 @@ class TaskFilesDialog(QDialog):
             created = self._format_created_at(file_info.get("createdAt"), locale)
 
             name_item = QTableWidgetItem(name)
-            name_item.setData(Qt.UserRole, dict(file_info))
+            name_item.setData(Qt.ItemDataRole.UserRole, dict(file_info))
             self._table.setItem(row, 0, name_item)
             self._table.setItem(row, 1, _SortableItem(size, self._size_sort_key(file_info.get("size"))))
             self._table.setItem(row, 2, QTableWidgetItem(mime_type))
@@ -250,7 +250,7 @@ class TaskFilesDialog(QDialog):
                 self._lang.translate(TranslationKeys.TASK_FILES_COUNT).format(count=count)
             )
         self._table.setSortingEnabled(True)
-        self._table.sortItems(4, Qt.DescendingOrder)
+        self._table.sortItems(4, Qt.SortOrder.DescendingOrder)
 
     @staticmethod
     def _size_sort_key(raw_size) -> int:
@@ -279,7 +279,7 @@ class TaskFilesDialog(QDialog):
         if parsed is None:
             return "–"
         try:
-            return locale.toString(parsed, QLocale.ShortFormat)
+            return locale.toString(parsed, QLocale.FormatType.ShortFormat)
         except TypeError:  # value Qt cannot convert
             return parsed.strftime("%Y-%m-%d %H:%M")
 
@@ -293,7 +293,7 @@ class TaskFilesDialog(QDialog):
         if item is None:
             return None
 
-        payload = item.data(Qt.UserRole)
+        payload = item.data(Qt.ItemDataRole.UserRole)
         return dict(payload or {}) if isinstance(payload, dict) else None
 
     def _update_button_states(self) -> None:
@@ -332,7 +332,7 @@ class TaskFilesDialog(QDialog):
             parent=self,
         )
         if dialog is not None:
-            dialog.exec_()
+            dialog.exec()
 
     @staticmethod
     def _file_name_from_info(file_info: Optional[dict]) -> str:
