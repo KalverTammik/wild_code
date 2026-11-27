@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import Optional, Tuple
 
-from PyQt5.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
     QgsField, QgsFields, QgsVectorFileWriter, QgsWkbTypes,
     QgsCoordinateReferenceSystem, QgsProject, QgsVectorLayer

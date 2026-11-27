@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QCheckBox
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QCheckBox
 
 
 class SelectAllCheckBox(QCheckBox):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from threading import Event
 
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from .property_add_flow import BackendPropertyVerifier
 from .property_import_decisions import classify_property_import

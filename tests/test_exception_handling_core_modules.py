@@ -17,7 +17,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 import requests
-from PyQt5 import sip
+from qgis.PyQt import sip
 from qgis.core import (
     QgsApplication,
     QgsCoordinateReferenceSystem,

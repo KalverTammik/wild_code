@@ -4,8 +4,8 @@ import math
 import re
 from typing import Optional
 
-from PyQt5.QtCore import QDate, QDateTime, Qt
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import QDate, QDateTime, Qt
+from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,

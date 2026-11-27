@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Sequence
 
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtWidgets import (
     QApplication,
     QFrame,
     QHBoxLayout,

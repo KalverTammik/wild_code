@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PyQt5.QtCore import QPoint, QSize
-from PyQt5.QtWidgets import QFrame, QPushButton, QVBoxLayout
+from qgis.PyQt.QtCore import QPoint, QSize
+from qgis.PyQt.QtWidgets import QFrame, QPushButton, QVBoxLayout
 
 from ..constants.module_icons import IconNames
 from ..languages.translation_keys import TranslationKeys

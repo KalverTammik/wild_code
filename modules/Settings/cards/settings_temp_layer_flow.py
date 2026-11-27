@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-from PyQt5.QtWidgets import QFileDialog, QPushButton, QWidget
+from qgis.PyQt.QtWidgets import QFileDialog, QPushButton, QWidget
 
 from ...projects.projects_entry import ProjectsTempLayerHelper
 from ...works.works_entry import WorksTempLayerHelper

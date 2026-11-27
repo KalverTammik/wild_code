@@ -11,8 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtCore import Qt, QTimer
+from qgis.PyQt.QtWidgets import QWidget
 
 
 @dataclass

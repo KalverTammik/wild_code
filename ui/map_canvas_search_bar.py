@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PyQt5.QtCore import QPoint, QSize, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLineEdit, QPushButton
+from qgis.PyQt.QtCore import QPoint, QSize, QTimer, pyqtSignal
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLineEdit, QPushButton
 
 from ..constants.button_props import ButtonSize, ButtonVariant
 from ..constants.module_icons import IconNames

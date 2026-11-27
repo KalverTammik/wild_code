@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QDialog, QFrame, QGridLayout, QLabel, QSizePolicy, QTextEdit, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QDialog, QFrame, QGridLayout, QLabel, QSizePolicy, QTextEdit, QVBoxLayout, QWidget
 
 
 def _form_separator() -> QFrame:

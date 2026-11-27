@@ -17,9 +17,9 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 import requests
-from PyQt5 import sip
-from PyQt5.QtCore import QCoreApplication, QEvent, QObject, QUrl, pyqtSignal
-from PyQt5.QtWidgets import QApplication, QWidget
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QObject, QUrl, pyqtSignal
+from qgis.PyQt.QtWidgets import QApplication, QWidget
 from qgis.core import Qgis
 
 from property_fixtures import LocationFilterTestCase, close_dialog, open_dialog

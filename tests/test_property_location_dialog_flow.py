@@ -11,9 +11,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 if os.environ.get('QGIS_PREFIX_PATH'):
     sys.path.append(str(Path(os.environ['QGIS_PREFIX_PATH']) / 'python' / 'plugins'))
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QDialog, QPushButton, QTableView
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtTest import QTest
+from qgis.PyQt.QtWidgets import QDialog, QPushButton, QTableView
 from qgis.core import QgsFeature, QgsGeometry, QgsVectorLayer
 
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
@@ -458,7 +458,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
             self.close_dialog(dialog)
 
     def test_real_dialog_archive_lookup_shows_progress_and_cancel_changes_nothing(self):
-        from PyQt5 import sip
+        from qgis.PyQt import sip
         from Kavitro_dev.modules.Property.FlowControllers.property_add_flow import MainAddPropertiesFlow
         from Kavitro_dev.modules.Property.dialogs.PropertyArchivePlanDialog import PropertyArchivePlanDialog
         from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
@@ -544,7 +544,7 @@ class PropertyLocationDialogFlowTest(LocationFilterTestCase):
 
 
     def test_real_dialog_shows_check_rate_limit_wait_and_cancel_keeps_the_dialog_open(self):
-        from PyQt5 import sip
+        from qgis.PyQt import sip
         from Kavitro_dev.modules.Property.dialogs.AddUpdatePropertyDialog import AddPropertyDialog
         from Kavitro_dev.modules.Property.FlowControllers import backend_verify_worker as worker_module
         from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER

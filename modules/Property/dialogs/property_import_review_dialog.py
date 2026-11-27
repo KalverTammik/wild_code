@@ -1,6 +1,6 @@
 """Collect explicit choices after the automatic property import has finished."""
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QHBoxLayout, QHeaderView,
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QHBoxLayout, QHeaderView,
                              QLabel, QPlainTextEdit, QPushButton, QTableWidget, QTableWidgetItem,
                              QVBoxLayout)
 

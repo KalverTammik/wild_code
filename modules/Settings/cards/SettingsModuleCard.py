@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from PyQt5.QtWidgets import QVBoxLayout,  QFrame, QWidget
-from PyQt5.QtCore import pyqtSignal, QTimer
+from qgis.PyQt.QtWidgets import QVBoxLayout,  QFrame, QWidget
+from qgis.PyQt.QtCore import pyqtSignal, QTimer
 from .SettingsBaseCard import SettingsBaseCard
 from .settings_module_card_ui import SettingsModuleCardUiMixin
 from .settings_module_preferences import SettingsModulePreferencesMixin
@@ -201,7 +201,7 @@ class SettingsModuleCard(
 
         def _flush():
             try:
-                import sip
+                from qgis.PyQt import sip
             except ImportError:
                 sip = None
 

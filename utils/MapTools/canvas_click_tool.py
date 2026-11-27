@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Callable
 
-from PyQt5 import sip
-from PyQt5.QtCore import Qt, QTimer
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.gui import QgsMapTool
 
 

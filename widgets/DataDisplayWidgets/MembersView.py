@@ -1,8 +1,8 @@
 import hashlib
 from functools import lru_cache
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QColor, QPainter, QPen
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt, QTimer
+from qgis.PyQt.QtGui import QColor, QPainter, QPen
+from qgis.PyQt.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QFrame, QScrollArea
 )
 from ...ui.theme_manager import IntensityLevels, styleExtras, ThemeShadowColors

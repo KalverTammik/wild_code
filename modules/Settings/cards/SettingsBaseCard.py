@@ -1,11 +1,11 @@
-from PyQt5.QtWidgets import QComboBox, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget
+from qgis.PyQt.QtWidgets import QComboBox, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget
 from ....languages.language_manager import LanguageManager
 from ....ui.theme_manager import ThemeManager
 from ....widgets.layer_tree_picker import LayerTreePicker
 from ....widgets.Filters.filter_widget_parts import FilterLoadingMixin
 from ....constants.file_paths import QssPaths
 from ....constants.button_props import ButtonVariant, ButtonSize
-from PyQt5.QtGui import  QPixmap
+from qgis.PyQt.QtGui import  QPixmap
 from ....languages.translation_keys import TranslationKeys
 from ....Logs.python_fail_logger import PythonFailLogger
 from ....constants.module_names import Module

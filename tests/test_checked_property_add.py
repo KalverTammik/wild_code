@@ -13,10 +13,10 @@ if os.environ.get('QGIS_PREFIX_PATH'):
 
 from property_fixtures import backend_info, missing_info, unknown_info, wait_until
 
-from PyQt5.QtCore import QThread, QTimer
-from PyQt5.QtGui import QFont, QFontDatabase
+from qgis.PyQt.QtCore import QThread, QTimer
+from qgis.PyQt.QtGui import QFont, QFontDatabase
 from qt_compat import font_families
-from PyQt5.QtTest import QTest
+from qgis.PyQt.QtTest import QTest
 from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsVectorLayer
 from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner as module
 from Kavitro_dev.python.workers import _ACTIVE_THREADS
@@ -266,7 +266,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.update.assert_not_called()
 
     def test_check_controller_interrupts_rate_limit_wait_and_ignores_a_replaced_run(self):
-        from PyQt5 import sip
+        from qgis.PyQt import sip
         from Kavitro_dev.modules.Property.FlowControllers.backend_verify_controller import BackendVerifyController
         from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
         in_flight, release = threading.Event(), threading.Event()
@@ -413,8 +413,8 @@ class CheckedPropertyAddTest(unittest.TestCase):
         self.update.assert_called_once_with('known', self.data, [], raise_on_error=True)
 
     def test_check_controller_survives_owner_deletion_during_a_request_or_a_pause(self):
-        from PyQt5 import sip
-        from PyQt5.QtCore import QObject, Qt
+        from qgis.PyQt import sip
+        from qgis.PyQt.QtCore import QObject, Qt
         from Kavitro_dev.modules.Property.FlowControllers.backend_verify_controller import BackendVerifyController
         from Kavitro_dev.python.api_rate_limit import PROCESS_RATE_LIMITER
         gate, busy, release = threading.Event(), threading.Event(), threading.Event()
@@ -517,7 +517,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
         it with date_to_iso_string before it reaches classify_property_import -- the same way
         the check already does (AddUpdatePropertyDialog._start_attention_checks) -- so a real
         QDate-typed field must arrive there as an ISO string, never as the raw QDate object."""
-        from PyQt5.QtCore import QDate, QVariant
+        from qgis.PyQt.QtCore import QDate, QVariant
         from qgis.core import QgsField
         from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
 

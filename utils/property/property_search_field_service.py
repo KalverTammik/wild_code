@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Callable, Optional
 
-from PyQt5.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant
 from qgis.core import QgsField, QgsVectorLayer
 
 from ...constants.cadastral_fields import Katastriyksus

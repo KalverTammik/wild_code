@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Union
 
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtWidgets import QWidget
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys

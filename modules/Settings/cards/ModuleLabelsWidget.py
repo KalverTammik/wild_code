@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QCheckBox
+from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QCheckBox
 
 from ....ui.theme_manager import ThemeManager
 from ....constants.module_icons import IconNames

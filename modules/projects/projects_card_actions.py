@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PyQt5.QtCore import Qt
+from qgis.PyQt.QtCore import Qt
 
 from ...utils.settings_service import SettingsService
 from ...languages.translation_keys import ToolbarTranslationKeys, TranslationKeys

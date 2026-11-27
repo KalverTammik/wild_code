@@ -1,6 +1,6 @@
 from math import ceil
 from typing import Optional
-from PyQt5.QtCore import Qt, QCoreApplication
+from qgis.PyQt.QtCore import Qt, QCoreApplication
 from ...FlowControllers.attention_display_rules import AttentionDisplayRules
 from .....widgets.property_table.PropertyTableManager import PropertyTableManager, PropertyTableWidget
 from .....utils.property.PropertyDataLoader import PropertyDataLoader

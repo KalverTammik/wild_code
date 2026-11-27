@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Iterable
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtWidgets import (
     QDialog,
     QFrame,
     QLabel,

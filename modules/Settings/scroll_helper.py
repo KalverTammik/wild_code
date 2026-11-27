@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from PyQt5.QtCore import QTimer
+from qgis.PyQt.QtCore import QTimer
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.module_names import Module
 

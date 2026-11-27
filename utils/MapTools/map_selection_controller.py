@@ -3,7 +3,7 @@ from __future__ import annotations
 from time import perf_counter
 from typing import Callable, List, Optional
 
-from PyQt5.QtCore import QEvent, QObject, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import QEvent, QObject, Qt, QTimer, pyqtSignal
 from qgis.core import QgsFeature, QgsFeatureRequest, QgsVectorLayer
 from qgis.utils import iface
 

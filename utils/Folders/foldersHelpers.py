@@ -2,9 +2,9 @@
 from typing import Callable, Optional
 import shutil
 import os
-from PyQt5.QtCore import QUrl
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import QFileDialog
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtGui import QDesktopServices
+from qgis.PyQt.QtWidgets import QFileDialog
 from ...python.module_files_path_updater import ModuleFilesPathUpdater
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys

@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional, Sequence, Tuple, Union
-from PyQt5.QtCore import Qt
+from qgis.PyQt.QtCore import Qt
 
 from ...constants.module_names import ModuleSupports
 

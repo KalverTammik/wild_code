@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-from PyQt5.QtCore import QTimer
+from qgis.PyQt.QtCore import QTimer
 from qgis.core import QgsEditFormConfig, QgsFeature, QgsVectorLayer, QgsWkbTypes
 from qgis.utils import iface
 

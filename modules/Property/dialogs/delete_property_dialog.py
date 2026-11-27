@@ -3,7 +3,7 @@ from ....languages.language_manager import LanguageManager
 from ....ui.theme_manager import ThemeManager
 from ....constants.file_paths import QssPaths
 
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
+from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton
 from ....ui.messages_helper import ModernMessageDialog
 from ..FlowControllers.property_delete import deleteProperty
 from ....utils.MapTools.MapHelpers import LayerLookupError

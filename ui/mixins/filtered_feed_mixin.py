@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from PyQt5.QtCore import Qt, QTimer, pyqtSlot
-from PyQt5.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import Qt, QTimer, pyqtSlot
+from qgis.PyQt.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...module_manager import ModuleManager

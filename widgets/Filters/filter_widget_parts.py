@@ -1,8 +1,8 @@
 """Parts the filter widgets share: loading state, the request token lookup and the picker's control and popup."""
 from __future__ import annotations
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from ...python.workers import FunctionWorker, start_worker
 from ...utils.FilterHelpers.FilterHelper import FilterHelper
@@ -84,7 +84,7 @@ class FilterLoadingMixin:
 
     def _is_widget_alive(self) -> bool:
         try:
-            import sip
+            from qgis.PyQt import sip
         except ImportError:
             sip = None
         try:

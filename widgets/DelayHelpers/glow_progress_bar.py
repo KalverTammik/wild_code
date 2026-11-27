@@ -1,8 +1,8 @@
 import math
 
-from PyQt5.QtCore import QElapsedTimer, QPointF, QRectF, QSize, Qt, QTimer, pyqtProperty
-from PyQt5.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen, QRadialGradient
-from PyQt5.QtWidgets import QProgressBar
+from qgis.PyQt.QtCore import QElapsedTimer, QPointF, QRectF, QSize, Qt, QTimer, pyqtProperty
+from qgis.PyQt.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen, QRadialGradient
+from qgis.PyQt.QtWidgets import QProgressBar
 
 
 class GlowProgressBar(QProgressBar):

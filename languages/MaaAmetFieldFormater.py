@@ -1,6 +1,6 @@
 """Helpers for formatting Maa-amet field values."""
 
-from PyQt5.QtCore import QDate
+from qgis.PyQt.QtCore import QDate
 
 from ..constants.cadastral_fields import Katastriyksus
 

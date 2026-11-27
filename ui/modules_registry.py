@@ -27,7 +27,7 @@ class ModulesRegistry:
     def register_all(module_manager: "ModuleManager", dialog: "DialogProtocol") -> None:
         """Wire module registrations onto the provided ModuleManager instance."""
         from functools import partial
-        from PyQt5.QtWidgets import QDialog
+        from qgis.PyQt.QtWidgets import QDialog
 
         from ..languages.translation_keys import DialogLabels
         from ..constants.setting_placeholders import SettingDialogPlaceholders

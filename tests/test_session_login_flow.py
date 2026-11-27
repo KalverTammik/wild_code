@@ -13,8 +13,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN_ROOT.parent))
 
-from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtWidgets import QApplication, QDialog
+from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtWidgets import QApplication, QDialog
 
 from Kavitro_dev import main as main_module
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger

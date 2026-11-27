@@ -1,7 +1,7 @@
 """Load plain data off the GUI thread and build its widgets on the GUI thread."""
 
-from PyQt5.QtCore import QTimer, Qt, pyqtSlot
-from PyQt5.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import QTimer, Qt, pyqtSlot
+from qgis.PyQt.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager

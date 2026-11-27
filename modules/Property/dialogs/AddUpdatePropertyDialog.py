@@ -1,8 +1,8 @@
 from dataclasses import replace
 from typing import Optional
 
-from PyQt5.QtCore import Qt, QTimer, QCoreApplication, QSignalBlocker
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt, QTimer, QCoreApplication, QSignalBlocker
+from qgis.PyQt.QtWidgets import (
     QAbstractItemView,
     QDialog,
     QVBoxLayout,

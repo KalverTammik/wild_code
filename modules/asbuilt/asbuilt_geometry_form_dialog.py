@@ -3,8 +3,8 @@ from __future__ import annotations
 from functools import partial
 from typing import Optional
 
-from PyQt5.QtCore import QDate
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import QDate
+from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,

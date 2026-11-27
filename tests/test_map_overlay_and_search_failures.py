@@ -12,8 +12,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
-from PyQt5.QtCore import QCoreApplication, QEvent, QPoint, Qt
-from PyQt5.QtWidgets import QLineEdit, QListWidgetItem
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QPoint, Qt
+from qgis.PyQt.QtWidgets import QLineEdit, QListWidgetItem
 from qgis.core import QgsApplication
 
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger

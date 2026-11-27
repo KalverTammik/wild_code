@@ -1,5 +1,5 @@
 
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtWidgets import QWidget
 
 from .constants.module_names import Module
 

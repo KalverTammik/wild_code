@@ -12,8 +12,8 @@ from unittest.mock import Mock, patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from PyQt5.QtCore import QUrl
-from PyQt5.QtWidgets import QApplication
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtWidgets import QApplication
 
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys

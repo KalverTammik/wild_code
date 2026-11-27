@@ -1,5 +1,5 @@
-from PyQt5.QtCore import QLocale, Qt, QTimer
-from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QFrame
+from qgis.PyQt.QtCore import QLocale, Qt, QTimer
+from qgis.PyQt.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QFrame
 import datetime
 from typing import Optional
 from ...utils.date_helpers import DateHelpers

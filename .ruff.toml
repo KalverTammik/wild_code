@@ -16,7 +16,7 @@ external = ["N802", "BLE001", "D401"]
 
 [lint.flake8-bugbear]
 # Qt's invalid index is the usual default of model methods and is never changed.
-extend-immutable-calls = ["PyQt5.QtCore.QModelIndex", "qgis.PyQt.QtCore.QModelIndex"]
+extend-immutable-calls = ["qgis.PyQt.QtCore.QModelIndex"]
 
 [lint.per-file-ignores]
 # Test modules put the plugin root on sys.path before importing it; their closures in loops

@@ -15,6 +15,8 @@ Rules (read with ast over every plugin source file outside tests/):
      or a message dialog, none returned as the message of an `(ok, message)` result, and every
      LayerEditTexts text is a TranslationKeys member. Layer field names and values of the user's own map
      schema, file names, CSS and log text are not user text and are not checked.
+  5. Qt is imported through qgis.PyQt (also sip and uic), never from PyQt5 / PyQt6 or a bare `import sip`:
+     only that path works in both QGIS 3 and QGIS 4. Tests and tools follow it too.
 
 ALLOWED_SECTION_LISTS only shrinks: a listed place that is gone fails until its line is deleted.
 """
@@ -217,6 +219,38 @@ class UserTextRuleTest(unittest.TestCase):
                             if not is_key and not (isinstance(keyword.value, ast.IfExp)):
                                 found.append((rel, node.lineno, keyword.arg))
         self.assertEqual(found, [])
+
+
+def _direct_qt_imports(tree):
+    """(line, module) for every import that names a Qt binding instead of qgis.PyQt."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom) and not node.level:
+            names = [node.module or ""]
+        else:
+            continue
+        for name in names:
+            if name.split(".")[0] in ("PyQt5", "PyQt6", "sip"):
+                yield node.lineno, name
+
+
+class QtImportRuleTest(unittest.TestCase):
+    def test_qt_is_imported_through_qgis(self) -> None:
+        found = []
+        for dirpath, dirs, files in os.walk(PLUGIN_ROOT):
+            dirs[:] = [d for d in dirs if d not in SKIP_DIRS - {"tests", "tools"}]
+            for name in files:
+                if name.endswith(".py"):
+                    path = Path(dirpath) / name
+                    tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+                    rel = path.relative_to(PLUGIN_ROOT).as_posix()
+                    found.extend((rel, line, module) for line, module in _direct_qt_imports(tree))
+        self.assertEqual(found, [], "import from qgis.PyQt")
+
+    def test_the_rule_sees_every_form_of_the_import(self) -> None:
+        tree = ast.parse("import sip\nfrom PyQt5 import uic\nimport PyQt6.QtCore\nfrom qgis.PyQt import sip\n")
+        self.assertEqual([line for line, _module in _direct_qt_imports(tree)], [1, 2, 3])
 
 
 class StatusFunctionRuleTest(unittest.TestCase):

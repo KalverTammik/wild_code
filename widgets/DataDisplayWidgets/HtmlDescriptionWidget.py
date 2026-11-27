@@ -1,9 +1,9 @@
 import os
 import re
 
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import QFrame, QSizePolicy, QTextBrowser
+from qgis.PyQt.QtCore import Qt, QUrl
+from qgis.PyQt.QtGui import QDesktopServices
+from qgis.PyQt.QtWidgets import QFrame, QSizePolicy, QTextBrowser
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys

@@ -1,6 +1,6 @@
-from PyQt5 import sip
-from PyQt5.QtCore import QObject, QTimer, QSignalBlocker, QSize, Qt, pyqtSlot
-from PyQt5.QtWidgets import (
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QObject, QTimer, QSignalBlocker, QSize, Qt, pyqtSlot
+from qgis.PyQt.QtWidgets import (
     QComboBox,
     QFrame,
     QHBoxLayout,

@@ -1,5 +1,5 @@
 
-from PyQt5.QtCore import pyqtSignal, Qt
+from qgis.PyQt.QtCore import pyqtSignal, Qt
 from .widgets.FooterWidget import FooterWidget
 from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout

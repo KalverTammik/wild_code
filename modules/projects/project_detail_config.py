@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from PyQt5.QtWidgets import QLabel, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager

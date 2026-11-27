@@ -10,8 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 if os.environ.get('QGIS_PREFIX_PATH'):
     sys.path.append(str(Path(os.environ['QGIS_PREFIX_PATH']) / 'python' / 'plugins'))
 
-from PyQt5.QtCore import Qt, QVariant
-from PyQt5.QtWidgets import QTableView
+from qgis.PyQt.QtCore import Qt, QVariant
+from qgis.PyQt.QtWidgets import QTableView
 from qgis.core import QgsFeature, QgsVariantUtils, QgsVectorLayer
 
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
@@ -90,7 +90,7 @@ class PropertyLocationRulesTest(LocationFilterTestCase):
         This is the regression guard for the mismatch the two previous production fixes
         (v2.12.27, v2.12.30) were about. Mirrors each site's own feature retrieval
         (table UserRole vs the source feature) instead of driving the whole dialog."""
-        from PyQt5.QtGui import QStandardItemModel
+        from qgis.PyQt.QtGui import QStandardItemModel
 
         # `self.layer` is what PropertyDataLoader() resolves to here (MapHelpers is patched
         # in setUp), so the extra fields it validates on construction must live on it too.
@@ -126,7 +126,7 @@ class PropertyLocationRulesTest(LocationFilterTestCase):
         also converts either representation internally, so both a raw QDate and its
         normalized ISO string must still steer classify_property_import to the same
         decision -- this is the safety net behind that internal conversion."""
-        from PyQt5.QtCore import QDate
+        from qgis.PyQt.QtCore import QDate
         from Kavitro_dev.utils.date_helpers import DateHelpers
         from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
 

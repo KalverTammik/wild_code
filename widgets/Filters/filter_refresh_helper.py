@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtGui import QColor, QIcon, QPainter, QPixmap
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton
+from qgis.PyQt.QtCore import QSize, Qt
+from qgis.PyQt.QtGui import QColor, QIcon, QPainter, QPixmap
+from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from ...constants.button_props import ButtonVariant
 from ...constants.module_icons import IconNames
 from ...languages.language_manager import LanguageManager

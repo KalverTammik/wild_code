@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit
-from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
+from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QFrame, QLineEdit
+from qgis.PyQt.QtCore import Qt, pyqtSignal, QSize, QTimer
 from ..ui.theme_manager import IntensityLevels, ThemeManager, styleExtras, ThemeShadowColors
 from ..constants.button_props import ButtonVariant, ButtonSize
 from ..constants.file_paths import QssPaths

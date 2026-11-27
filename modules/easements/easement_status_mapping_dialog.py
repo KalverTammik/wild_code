@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QHeaderView, QLabel, QTableWidget, QTableWidgetItem, QVBoxLayout
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QComboBox, QDialog, QDialogButtonBox, QHeaderView, QLabel, QTableWidget, QTableWidgetItem, QVBoxLayout
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.file_paths import QssPaths

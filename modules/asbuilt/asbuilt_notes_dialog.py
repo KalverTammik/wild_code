@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import math
 
-from PyQt5.QtCore import QDate, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QTextCursor
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import QDate, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtGui import QTextCursor
+from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QDateEdit,
     QDialog,

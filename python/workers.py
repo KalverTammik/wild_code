@@ -4,7 +4,7 @@ import time
 from typing import Any, Callable, Optional
 from threading import Event
 
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from ..Logs.switch_logger import SwitchLogger
 from ..Logs.python_fail_logger import PythonFailLogger
 from .api_rate_limit import api_request_context, RequestCancelled

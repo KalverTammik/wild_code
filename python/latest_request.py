@@ -1,5 +1,5 @@
 """One background request at a time; only the latest request may update the UI."""
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from .workers import FunctionWorker, start_worker
 

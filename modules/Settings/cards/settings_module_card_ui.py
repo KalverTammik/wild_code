@@ -3,7 +3,7 @@ filters and module labels.
 """
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QPushButton, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QPushButton, QVBoxLayout, QWidget
 from qgis.core import Qgis
 
 from .ModuleLabelsWidget import ModuleLabelsWidget

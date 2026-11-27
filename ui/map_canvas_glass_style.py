@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QGraphicsDropShadowEffect, QWidget
+from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtWidgets import QGraphicsDropShadowEffect, QWidget
 
 
 class MapCanvasGlassStyle:

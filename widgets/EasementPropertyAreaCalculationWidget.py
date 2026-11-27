@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
 
 from ..constants.cadastral_fields import AreaUnit
 from ..constants.module_names import Module

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-from PyQt5.QtCore import QEasingCurve, QEvent, QPoint, QPropertyAnimation, Qt
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtCore import QEasingCurve, QEvent, QPoint, QPropertyAnimation, Qt
+from qgis.PyQt.QtWidgets import QWidget
 from qgis.utils import iface
 
 from ..languages.language_manager import LanguageManager

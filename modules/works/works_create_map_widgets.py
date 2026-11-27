@@ -3,8 +3,8 @@ progress bubble shown next to a map toolbar button."""
 from __future__ import annotations
 
 
-from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar
+from qgis.PyQt.QtCore import QPoint, Qt
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar
 from ...utils.MapTools.canvas_click_tool import SingleClickMapTool
 
 

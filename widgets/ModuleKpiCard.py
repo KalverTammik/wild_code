@@ -3,9 +3,9 @@ from __future__ import annotations
 import math
 from functools import partial
 
-from PyQt5.QtCore import QPoint, QPointF, QRectF, Qt
-from PyQt5.QtGui import QColor, QFont, QPainter, QPen, QPixmap
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget, QSizePolicy
+from qgis.PyQt.QtCore import QPoint, QPointF, QRectF, Qt
+from qgis.PyQt.QtGui import QColor, QFont, QPainter, QPen, QPixmap
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget, QSizePolicy
 
 from ..constants.file_paths import QssPaths
 from ..constants.module_icons import ModuleIconPaths

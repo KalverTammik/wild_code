@@ -1,6 +1,6 @@
-from PyQt5.QtCore import Qt, QPropertyAnimation, pyqtProperty, QTimer
-from PyQt5.QtGui import QColor, QPainter, QConicalGradient, QPen
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtCore import Qt, QPropertyAnimation, pyqtProperty, QTimer
+from qgis.PyQt.QtGui import QColor, QPainter, QConicalGradient, QPen
+from qgis.PyQt.QtWidgets import QWidget
 
 
 class GradientSpinner(QWidget):

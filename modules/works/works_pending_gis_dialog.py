@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Callable, Iterable
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import (
     QAbstractItemView,
     QDialog,
     QHBoxLayout,

@@ -13,9 +13,9 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1].parent))
 
-from PyQt5 import sip
-from PyQt5.QtCore import QCoreApplication, QEvent, QEventLoop, Qt, QTimer
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QEventLoop, Qt, QTimer
+from qgis.PyQt.QtWidgets import QWidget
 from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsVectorLayer
 
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
@@ -452,8 +452,8 @@ class HoverPopupLifetimeTest(ControllerTestCase):
 
 
 def _left_click():
-    from PyQt5.QtCore import QEvent as _Event, QPointF, Qt
-    from PyQt5.QtGui import QMouseEvent
+    from qgis.PyQt.QtCore import QEvent as _Event, QPointF, Qt
+    from qgis.PyQt.QtGui import QMouseEvent
 
     return QMouseEvent(_Event.Type.MouseButtonPress, QPointF(2, 2), Qt.MouseButton.LeftButton,
                        Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)

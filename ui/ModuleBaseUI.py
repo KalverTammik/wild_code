@@ -11,8 +11,8 @@ Põhimõtted:
 from __future__ import annotations
 from typing import Optional, Callable, TYPE_CHECKING, Protocol, Any
 import gc
-from PyQt5.QtCore import Qt, QCoreApplication
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea
+from qgis.PyQt.QtCore import Qt, QCoreApplication
+from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QScrollArea
 
 from ..ui.ToolbarArea import ModuleToolbarArea
 from ..widgets.FeedCounterWidget import FeedCounterWidget

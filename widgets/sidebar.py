@@ -1,7 +1,7 @@
 # sidebar.py
-from PyQt5.QtCore import Qt, QSize, QEasingCurve, QTimer, pyqtSignal, QPoint, QPropertyAnimation
-from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt, QSize, QEasingCurve, QTimer, pyqtSignal, QPoint, QPropertyAnimation
+from qgis.PyQt.QtGui import QIcon, QColor
+from qgis.PyQt.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFrame, QPushButton, QToolButton,
     QSpacerItem, QSizePolicy, QGraphicsDropShadowEffect,
 )

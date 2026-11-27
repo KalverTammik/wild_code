@@ -1,10 +1,10 @@
-from PyQt5.QtCore import Qt, QTimer, QEvent
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt, QTimer, QEvent
+from qgis.PyQt.QtWidgets import (
     QLabel, QVBoxLayout, QHBoxLayout, QFrame,
     QSizePolicy
 )
 try:
-    import sip
+    from qgis.PyQt import sip
 except ImportError:  # pragma: no cover - runtime availability depends on QGIS/PyQt packaging
     sip = None
 from ...ui.theme_manager import ThemeManager

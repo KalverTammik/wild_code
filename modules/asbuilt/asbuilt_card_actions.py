@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PyQt5.QtWidgets import QDialog
+from qgis.PyQt.QtWidgets import QDialog
 
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions

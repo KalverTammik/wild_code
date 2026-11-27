@@ -5,10 +5,10 @@ from __future__ import annotations
 import time
 from typing import Optional
 
-from PyQt5.QtCore import QObject, Qt, QTimer, pyqtSignal
-from PyQt5.QtWidgets import QDialog, QFrame, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import QObject, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtWidgets import QDialog, QFrame, QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 try:
-    import sip
+    from qgis.PyQt import sip
 except ImportError:  # pragma: no cover - depends on runtime packaging
     sip = None
 

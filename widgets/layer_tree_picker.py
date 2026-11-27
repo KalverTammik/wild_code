@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
 from qgis.core import Qgis, QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMapLayer, QgsProject, QgsVectorLayer
 
 from ..constants.file_paths import QssPaths

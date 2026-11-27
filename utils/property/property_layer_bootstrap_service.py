@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
-from PyQt5.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant
 from qgis.core import QgsField, QgsFields, QgsProject, QgsVectorLayer, QgsWkbTypes
 
 from ...constants.file_paths import QmlPaths

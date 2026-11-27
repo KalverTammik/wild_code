@@ -1,6 +1,6 @@
 import re
 from typing import Optional
-from PyQt5.QtCore import QDate, QDateTime, QLocale
+from qgis.PyQt.QtCore import QDate, QDateTime, QLocale
 
 
 import datetime

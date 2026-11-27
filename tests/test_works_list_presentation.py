@@ -14,11 +14,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
-from PyQt5.QtCore import QCoreApplication, QEvent, QTimer, QThread
-from PyQt5.QtGui import QFont, QFontDatabase
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QTimer, QThread
+from qgis.PyQt.QtGui import QFont, QFontDatabase
 from qt_compat import font_families
-from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QApplication, QFrame, QLabel, QVBoxLayout
+from qgis.PyQt.QtTest import QTest
+from qgis.PyQt.QtWidgets import QApplication, QFrame, QLabel, QVBoxLayout
 
 from property_fixtures import wait_until
 from Kavitro_dev.languages.language_manager import LanguageManager

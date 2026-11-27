@@ -1,12 +1,12 @@
 from typing import Any, List, Optional
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame,
 )
 from ....ui.messages_helper import ModernMessageDialog
 from ....utils.MapTools.MapHelpers import ActiveLayersHelper
-from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtGui import QFont
+from qgis.PyQt.QtCore import pyqtSignal, Qt
+from qgis.PyQt.QtGui import QFont
 from .property_ui_tools import PropertyUITools
 from .property_tree_widget import PropertyTreeWidget
 from ....ui.theme_manager import ThemeManager,styleExtras

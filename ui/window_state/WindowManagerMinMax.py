@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PyQt5.QtCore import QRect
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtCore import QRect
+from qgis.PyQt.QtWidgets import QWidget
 from qgis.utils import iface
 
 from .DialogCoordinator import get_dialog_coordinator

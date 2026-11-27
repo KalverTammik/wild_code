@@ -1,6 +1,6 @@
 from collections import deque
 
-from PyQt5.QtCore import QTimer, QCoreApplication
+from qgis.PyQt.QtCore import QTimer, QCoreApplication
 from ..Logs.switch_logger import SwitchLogger
 
 

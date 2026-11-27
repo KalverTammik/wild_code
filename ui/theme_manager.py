@@ -1,14 +1,14 @@
 # ==== BEGIN ThemeManager v2 ====
 from functools import lru_cache
 from typing import Any, Callable
-from PyQt5.QtCore import QObject, pyqtSignal
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QStyledItemDelegate
+from qgis.PyQt.QtCore import QObject, pyqtSignal
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QStyledItemDelegate
 from qgis.PyQt import sip
 from qgis.core import QgsSettings
 import os
 import re
-from PyQt5.QtGui import QColor
+from qgis.PyQt.QtGui import QColor
 from enum import Enum
 from ..constants.file_paths import StylePaths, QssPaths
 from ..constants.module_icons import IconNames
@@ -102,7 +102,7 @@ class ThemeManager(QObject):
     def effective_theme() -> str:
         theme = ThemeManager.load_theme_setting()
         if theme == Theme.SYSTEM:
-            from PyQt5.QtWidgets import QApplication
+            from qgis.PyQt.QtWidgets import QApplication
             pal = QApplication.instance().palette()
             return Theme.DARK if pal.base().color().value() < 128 else Theme.LIGHT
         return theme
@@ -381,7 +381,7 @@ class styleExtras:
             y_offset: Vertical shadow offset (default: 2)
             alpha_level: Shadow intensity - 'low', 'medium', 'high', 'extra_high' (default: 'medium')
         """
-        from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+        from qgis.PyQt.QtWidgets import QGraphicsDropShadowEffect
 
         # Get standardized alpha value
         alpha_values = {

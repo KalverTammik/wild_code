@@ -1,6 +1,6 @@
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QPushButton
-from PyQt5.QtCore import pyqtSignal, QTimer
+from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QFrame, QHBoxLayout, QPushButton
+from qgis.PyQt.QtCore import pyqtSignal, QTimer
 from ...utils.auth.user_utils import UserUtils
 from ...ui.theme_manager import ThemeManager
 from ...utils.settings_logic import SettingsLogic

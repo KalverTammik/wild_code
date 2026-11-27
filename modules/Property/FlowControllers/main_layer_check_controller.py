@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from PyQt5.QtCore import QObject, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
 from ....constants.cadastral_fields import Katastriyksus
 from ....languages.translation_keys import TranslationKeys

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Iterable, Optional
 
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QCheckBox, QDialog, QDoubleSpinBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtWidgets import QCheckBox, QDialog, QDoubleSpinBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from qgis.core import QgsProject, QgsVectorLayer
 from qgis.utils import iface

@@ -1,8 +1,8 @@
 import os
 from typing import Any, Optional
 
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
-from PyQt5.QtGui import QIcon
+from qgis.PyQt.QtCore import QAbstractTableModel, QModelIndex, Qt
+from qgis.PyQt.QtGui import QIcon
 
 from ...constants.base_paths import PLUGIN_ROOT, RESOURCE, ICON_FOLDER
 

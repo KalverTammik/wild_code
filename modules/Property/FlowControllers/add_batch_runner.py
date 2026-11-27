@@ -1,7 +1,7 @@
 """Shared property additions: backend IO in workers, map edits on the GUI thread."""
-from PyQt5 import sip
+from qgis.PyQt import sip
 from threading import Event
-from PyQt5.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal, pyqtSlot
 from qgis.core import QgsFeatureRequest
 
 from ....widgets.property_table.PropertyTableManager import PropertyTableManager

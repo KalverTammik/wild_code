@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
+from qgis.PyQt.QtGui import QFont
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
 from ..constants.cadastral_fields import Katastriyksus
 from ..languages.MaaAmetFieldFormater import format_field

@@ -7,10 +7,10 @@ using two minimal GraphQL queries (first:1) that rely only on pageInfo.total.
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys
 
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QWidget, QHBoxLayout, QPushButton, QVBoxLayout, QLabel, QFrame
 )
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import Qt, QTimer, pyqtSignal
 from datetime import datetime, timedelta
 from typing import Optional, Tuple, Any
 

@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from typing import Callable, List, Optional, Sequence, Union
 
-from PyQt5.QtCore import QTimer, pyqtSignal
-from PyQt5.QtWidgets import QHBoxLayout, QWidget
+from qgis.PyQt.QtCore import QTimer, pyqtSignal
+from qgis.PyQt.QtWidgets import QHBoxLayout, QWidget
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...utils.api_error_handling import user_message

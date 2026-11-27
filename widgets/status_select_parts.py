@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections import OrderedDict
 from typing import Iterable
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy
+from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy
 
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys

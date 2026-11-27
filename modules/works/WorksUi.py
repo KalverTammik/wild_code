@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QLabel, QPushButton
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtCore import Qt, QTimer
+from qgis.PyQt.QtWidgets import QLabel, QPushButton
+from qgis.PyQt.QtWidgets import QWidget
 from qgis.core import QgsSettings
 
 from ..task_shared.task_module_base_ui import TaskModuleBaseUI

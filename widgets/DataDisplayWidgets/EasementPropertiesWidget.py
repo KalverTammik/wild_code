@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout, QWidget
 
 from ...constants.cadastral_fields import AreaUnit
 from ...languages.language_manager import LanguageManager

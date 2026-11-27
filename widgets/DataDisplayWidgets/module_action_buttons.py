@@ -1,7 +1,7 @@
 from typing import Optional, Iterable
 
-from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import QAction, QMenu, QPushButton, QDialog
+from qgis.PyQt.QtCore import QSize
+from qgis.PyQt.QtWidgets import QAction, QMenu, QPushButton, QDialog
 from ...widgets.DataDisplayWidgets.LinkReviewDialog import PropertyLinkReviewDialog
 
 from qgis.PyQt import sip

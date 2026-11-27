@@ -1,10 +1,10 @@
 
-# Standard PyQt5 imports
-from PyQt5.QtWidgets import (
+# Qt imports
+from qgis.PyQt.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QSpacerItem, QSizePolicy
 )
-from PyQt5.QtCore import Qt
+from qgis.PyQt.QtCore import Qt
 # Project-specific imports below violate utils/ dependency direction
 from ..constants.module_icons import IconNames
 from .theme_manager import ThemeManager

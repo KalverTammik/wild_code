@@ -1,6 +1,6 @@
 # user_card.py
-from PyQt5.QtCore import pyqtSignal, Qt, QEvent
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import pyqtSignal, Qt, QEvent
+from qgis.PyQt.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QFrame,
     QCheckBox, QButtonGroup
 )

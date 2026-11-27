@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from typing import Callable, Iterable, Optional
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QProgressDialog
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QApplication, QProgressDialog
 
 from ...languages.translation_keys import TranslationKeys
 from ...ui.messages_helper import ModernMessageDialog

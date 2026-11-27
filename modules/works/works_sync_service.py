@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from PyQt5 import sip
-from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QObject, pyqtSlot, pyqtSignal
 from qgis.core import QgsFeatureRequest, QgsGeometry, QgsVectorLayer
 
 from ...Logs.python_fail_logger import PythonFailLogger

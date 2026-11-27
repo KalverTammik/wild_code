@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtWidgets import QWidget
 
 from ..task_shared.task_module_base_ui import TaskModuleBaseUI
 from ...languages.translation_keys import TranslationKeys

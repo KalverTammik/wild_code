@@ -1,5 +1,5 @@
 from typing import Any, Dict, List
-from PyQt5.QtCore import QObject, pyqtSignal
+from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 from ...python.api_client import APIClient
 from ...python.GraphQLQueryLoader import GraphQLQueryLoader

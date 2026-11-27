@@ -3,8 +3,8 @@
 from ....constants.button_props import ButtonVariant
 from ....utils.settings_service import SettingsService
 from qgis.utils import iface
-from PyQt5.QtCore import QCoreApplication, QEventLoop
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton
+from qgis.PyQt.QtCore import QCoreApplication, QEventLoop
+from qgis.PyQt.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton
 from qgis.core import QgsProject
 
 from .SettingsBaseCard import SettingsBaseCard

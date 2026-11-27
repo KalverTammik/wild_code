@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from PyQt5.QtCore import QPointF, Qt
-from PyQt5.QtGui import QColor, QPainter, QPen, QPolygonF
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtCore import QPointF, Qt
+from qgis.PyQt.QtGui import QColor, QPainter, QPen, QPolygonF
+from qgis.PyQt.QtWidgets import QWidget
 
 
 class SelectArrow(QWidget):

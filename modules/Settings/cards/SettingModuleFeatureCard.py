@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Callable, Optional, Tuple, TypeVar
-from PyQt5.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QVBoxLayout, QFrame, QWidget
+from qgis.PyQt.QtWidgets import QGroupBox, QHBoxLayout, QLabel, QVBoxLayout, QFrame, QWidget
 
 WidgetT = TypeVar("WidgetT")
 

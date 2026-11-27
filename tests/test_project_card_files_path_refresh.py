@@ -15,7 +15,7 @@ if qgis_prefix:
     if qgis_plugins_path not in sys.path:
         sys.path.append(qgis_plugins_path)
 
-from PyQt5.QtWidgets import QApplication
+from qgis.PyQt.QtWidgets import QApplication
 
 from Kavitro_dev.constants.module_icons import IconNames
 from Kavitro_dev.utils.Folders.foldersHelpers import FolderHelpers

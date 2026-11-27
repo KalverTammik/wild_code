@@ -3,8 +3,8 @@ loading, saving, reverting, clearing and the filter widgets that pick them.
 """
 from __future__ import annotations
 
-from PyQt5.QtCore import QEvent
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtCore import QEvent
+from qgis.PyQt.QtWidgets import QWidget
 
 from ....constants.module_names import ModuleSupports
 from ....constants.setting_placeholders import SettingDialogPlaceholders

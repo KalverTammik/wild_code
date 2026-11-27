@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFrame, QLabel, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QFrame, QLabel, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from ...constants.module_icons import ModuleIconPaths
 from ...widgets.DataDisplayWidgets.MainStatusWidget import MainStatusWidget

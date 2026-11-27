@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PyQt5.QtCore import Qt
+from qgis.PyQt.QtCore import Qt
 
 from ...languages.translation_keys import TranslationKeys
 from ...python.responses import DataDisplayExtractors

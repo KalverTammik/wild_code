@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import QTimer
+from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QDialog,
     QDoubleSpinBox,

@@ -3,8 +3,8 @@ from __future__ import annotations
 import os
 from typing import Optional
 
-from PyQt5.QtCore import QLocale, Qt, pyqtSlot
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import QLocale, Qt, pyqtSlot
+from qgis.PyQt.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QDialog,

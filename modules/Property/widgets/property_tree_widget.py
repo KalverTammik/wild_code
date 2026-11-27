@@ -1,12 +1,12 @@
 from typing import Any, Dict, List, Optional
 try:
-    import sip
+    from qgis.PyQt import sip
 except ImportError:  # pragma: no cover - runtime availability depends on QGIS/PyQt packaging
     sip = None
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QPixmap
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QFont, QPixmap
+from qgis.PyQt.QtWidgets import (
     QFrame,
     QVBoxLayout,
     QLabel,

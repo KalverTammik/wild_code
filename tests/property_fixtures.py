@@ -24,11 +24,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 if os.environ.get('QGIS_PREFIX_PATH'):
     sys.path.append(str(Path(os.environ['QGIS_PREFIX_PATH']) / 'python' / 'plugins'))
 
-from PyQt5.QtCore import QCoreApplication, QEvent, Qt, QVariant
-from PyQt5.QtGui import QFont, QFontDatabase
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, Qt, QVariant
+from qgis.PyQt.QtGui import QFont, QFontDatabase
 from qt_compat import font_families
-from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QTableView, QVBoxLayout, QWidget
+from qgis.PyQt.QtTest import QTest
+from qgis.PyQt.QtWidgets import QTableView, QVBoxLayout, QWidget
 from qgis.core import QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsVectorLayer
 
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F

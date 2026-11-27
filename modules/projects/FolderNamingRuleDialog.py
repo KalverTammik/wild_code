@@ -3,10 +3,10 @@ from __future__ import annotations
 import os
 from typing import List, Optional, Tuple
 
-from PyQt5.QtWidgets import QComboBox, QDialog, QLineEdit
+from qgis.PyQt.QtWidgets import QComboBox, QDialog, QLineEdit
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import FolderNamingTranslationKeys, TranslationKeys
-from PyQt5.uic import loadUi
+from qgis.PyQt.uic import loadUi
 from ...ui.messages_helper import ModernMessageDialog
 
 INTERNAL_PROJECT_NAME = "PROJECT_NAME"

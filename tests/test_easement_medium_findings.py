@@ -17,7 +17,7 @@ PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN_ROOT.parent))
 
 from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsVectorLayer
-from PyQt5.QtCore import QCoreApplication, QEvent
+from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
 from Kavitro_dev.constants.cadastral_fields import AreaUnit
 from Kavitro_dev.languages.translation_keys import TranslationKeys

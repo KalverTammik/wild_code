@@ -72,7 +72,7 @@ class PopupHelpers:
     def is_cursor_over_widget(widget) -> bool:
         if not PopupHelpers.is_popup_alive(widget) or not widget.isVisible():
             return False
-        from PyQt5.QtGui import QCursor
+        from qgis.PyQt.QtGui import QCursor
 
         cursor_pos = widget.mapFromGlobal(QCursor.pos())
         return widget.rect().contains(cursor_pos)
@@ -157,7 +157,7 @@ class PopupHelpers:
         on_popup_deactivate=None,
     ) -> bool:
         try:
-            from PyQt5.QtCore import QEvent
+            from qgis.PyQt.QtCore import QEvent
 
             event_type = event.type()
 
@@ -204,8 +204,8 @@ class PopupHelpers:
             return
 
         try:
-            from PyQt5.QtCore import QPoint
-            from PyQt5.QtGui import QGuiApplication
+            from qgis.PyQt.QtCore import QPoint
+            from qgis.PyQt.QtGui import QGuiApplication
 
             offset = offset or QPoint(0, 0)
             popup_widget.adjustSize()
@@ -259,8 +259,8 @@ class PopupHelpers:
             return
 
         try:
-            from PyQt5.QtCore import QPoint
-            from PyQt5.QtGui import QGuiApplication
+            from qgis.PyQt.QtCore import QPoint
+            from qgis.PyQt.QtGui import QGuiApplication
 
             offset = offset or QPoint(0, 0)
             popup_widget.adjustSize()
@@ -346,7 +346,7 @@ class PopupHelpers:
         popup_factory,
         event_filter_owner=None,
     ):
-        from PyQt5.QtCore import QPoint
+        from qgis.PyQt.QtCore import QPoint
 
         profile = PopupHelpers._profile(popup_kind)
 

@@ -1,6 +1,6 @@
 from typing import Optional
-from PyQt5.QtCore import QSize, pyqtSignal
-from PyQt5.QtWidgets import QGridLayout, QWidget, QSizePolicy
+from qgis.PyQt.QtCore import QSize, pyqtSignal
+from qgis.PyQt.QtWidgets import QGridLayout, QWidget, QSizePolicy
 
 from .module_action_buttons import (
     OpenFolderActionButton,

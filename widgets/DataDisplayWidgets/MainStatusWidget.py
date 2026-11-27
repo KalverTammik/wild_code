@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PyQt5.QtCore import QEvent, QPoint, Qt, QTimer
-from PyQt5.QtWidgets import QLabel, QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import QEvent, QPoint, Qt, QTimer
+from qgis.PyQt.QtWidgets import QLabel, QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 
 from ...python.responses import DataDisplayExtractors
 from ...ui.window_state.popup_helpers import PopupHelpers

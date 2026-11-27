@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 
-from PyQt5.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication
 
 from ....python.api_client import APIClient
 from ....python.api_rate_limit import ApiRateLimitError, RequestCancelled

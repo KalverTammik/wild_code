@@ -1,5 +1,5 @@
-from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import QTimer, Qt
+from qgis.PyQt.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from ...Logs.python_fail_logger import PythonFailLogger
 from ...constants.file_paths import QssPaths

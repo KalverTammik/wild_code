@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from PyQt5.QtWidgets import QFileDialog
+from qgis.PyQt.QtWidgets import QFileDialog
 from qgis.core import QgsVectorLayer
 from qgis.PyQt.QtCore import QCoreApplication
 

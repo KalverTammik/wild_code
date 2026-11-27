@@ -4,7 +4,7 @@ from qgis.PyQt.QtWidgets import QAction
 from qgis.core import QgsProject
 
 from .dialog import PluginDialog
-import sip  # Add this import at the top
+from qgis.PyQt import sip
 from .constants.module_icons import IconNames
 from .utils.SessionManager import SessionManager  # Import the SessionManager
 from .languages.language_manager import LanguageManager

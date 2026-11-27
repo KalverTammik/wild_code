@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QPixmap
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from ...constants.module_icons import IconNames
 from ...languages.language_manager import LanguageManager

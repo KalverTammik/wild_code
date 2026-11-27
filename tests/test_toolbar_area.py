@@ -9,8 +9,8 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from PyQt5.QtCore import QCoreApplication, QEvent
-from PyQt5.QtWidgets import QApplication, QComboBox, QWidget
+from qgis.PyQt.QtCore import QCoreApplication, QEvent
+from qgis.PyQt.QtWidgets import QApplication, QComboBox, QWidget
 
 from Kavitro_dev.ui.ToolbarArea import ModuleToolbarArea
 

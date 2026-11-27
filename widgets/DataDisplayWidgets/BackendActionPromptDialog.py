@@ -10,8 +10,8 @@ from ...ui.theme_manager import ThemeManager
 def prompt_backend_action_dialog(*, parent=None, table_frame, table, title: str | None = None) -> str | None:
     """Show the shared backend action prompt and return the chosen action."""
 
-    from PyQt5.QtCore import Qt
-    from PyQt5.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
+    from qgis.PyQt.QtCore import Qt
+    from qgis.PyQt.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout
 
     lang_manager = LanguageManager()
     dialog = QDialog(parent)

@@ -4,7 +4,7 @@ from __future__ import annotations
 import gc
 from typing import Callable, Optional, Protocol, TYPE_CHECKING
 
-from PyQt5.QtWidgets import QApplication
+from qgis.PyQt.QtWidgets import QApplication
 from qgis.PyQt.QtCore import QTimer
 
 from ..Logs.python_fail_logger import PythonFailLogger

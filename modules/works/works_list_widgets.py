@@ -1,6 +1,6 @@
 """Compact Works list menus and reusable card/group presentation."""
-from PyQt5.QtCore import QObject, QPoint, QTimer, Qt, pyqtSignal
-from PyQt5.QtWidgets import QActionGroup, QHBoxLayout, QMenu, QSizePolicy, QToolButton, QWidget
+from qgis.PyQt.QtCore import QObject, QPoint, QTimer, Qt, pyqtSignal
+from qgis.PyQt.QtWidgets import QActionGroup, QHBoxLayout, QMenu, QSizePolicy, QToolButton, QWidget
 
 from ...constants.file_paths import QssPaths
 from ...languages.translation_keys import TranslationKeys as K

@@ -8,8 +8,8 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from qgis.core import QgsApplication
-from PyQt5.QtCore import QCoreApplication, QEvent
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtCore import QCoreApplication, QEvent
+from qgis.PyQt.QtWidgets import QWidget
 from Kavitro_dev.constants.cadastral_fields import AreaUnit
 from Kavitro_dev.widgets.EasementPropertyAreaCalculationWidget import EasementPropertyAreaCalculationWidget
 

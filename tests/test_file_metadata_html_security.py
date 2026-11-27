@@ -11,9 +11,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PLUGIN_ROOT.parent))
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QTextDocument
-from PyQt5.QtWidgets import QApplication, QLabel
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QTextDocument
+from qgis.PyQt.QtWidgets import QApplication, QLabel
 
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
 from Kavitro_dev.widgets.DataDisplayWidgets import TaskFilePreviewDialog as preview_module

@@ -1,9 +1,9 @@
 from typing import Optional
 
-from PyQt5.QtCore import QThread
+from qgis.PyQt.QtCore import QThread
 try:
-    import sip
-except ImportError:  # PyQt6 fallback, though project currently uses PyQt5
+    from qgis.PyQt import sip
+except ImportError:  # pragma: no cover - runtime availability depends on QGIS/PyQt packaging
     sip = None
 from ..property_service import PropertyDataService
 from ....constants.cadastral_fields import Katastriyksus

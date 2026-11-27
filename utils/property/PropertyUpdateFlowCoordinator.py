@@ -1,7 +1,7 @@
 """Cancellable background reads for the property location hierarchy and selected scope."""
 from threading import Event
 
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
 from qgis.core import QgsVectorLayerFeatureSource
 
 from ...python.latest_request import LatestRequest

@@ -17,8 +17,8 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from qgis.core import QgsApplication
-from PyQt5.QtCore import QCoreApplication, QEvent
-from PyQt5.QtWidgets import QPushButton, QVBoxLayout
+from qgis.PyQt.QtCore import QCoreApplication, QEvent
+from qgis.PyQt.QtWidgets import QPushButton, QVBoxLayout
 
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.modules.Settings.cards.SettingsBaseCard import SettingsBaseCard

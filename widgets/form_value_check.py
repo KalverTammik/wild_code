@@ -8,7 +8,7 @@ from __future__ import annotations
 from functools import partial
 from typing import Callable, Optional
 
-from PyQt5.QtWidgets import QLineEdit, QStackedWidget, QTabWidget, QWidget
+from qgis.PyQt.QtWidgets import QLineEdit, QStackedWidget, QTabWidget, QWidget
 
 from ..languages.translation_keys import TranslationKeys
 from ..utils.layers.field_value_problems import expected_text, problem_line

@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QFrame
+from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QFrame
 from ..languages.language_manager import LanguageManager
 from ..ui.mixins.token_mixin import TokenMixin
 from ..constants.module_names import Module

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtWidgets import QWidget
 
 from ..Logs.python_fail_logger import PythonFailLogger
 
@@ -52,7 +52,7 @@ class ResponsiveCornerWidget:
         right_column,
         parent=None,
     ):
-        from PyQt5.QtWidgets import QGridLayout
+        from qgis.PyQt.QtWidgets import QGridLayout
 
         self.widget = _ResponsiveCornerContainer(self, parent)
         self.widget.setObjectName("ResponsiveCornerWidget")
@@ -84,7 +84,7 @@ class ResponsiveCornerWidget:
                 self.layout.removeWidget(widget)
 
     def _apply_layout(self, compact):
-        from PyQt5.QtCore import Qt
+        from qgis.PyQt.QtCore import Qt
 
         self._clear_layout()
         self.layout.setHorizontalSpacing(2 if compact else 4)
@@ -171,8 +171,8 @@ class ResponsiveCornerWidget:
 class ModuleCardFactory:
     @staticmethod
     def create_item_card(item, module_name=None):
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QSizePolicy, QWidget
+        from qgis.PyQt.QtCore import Qt
+        from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QSizePolicy, QWidget
 
         from ..widgets.DataDisplayWidgets.ContactsWidget import ContactsWidget
         from ..widgets.DataDisplayWidgets.MainStatusWidget import MainStatusWidget

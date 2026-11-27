@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import os
-from PyQt5 import sip
+from qgis.PyQt import sip
 from typing import Optional
 
-from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import Qt, pyqtSlot
+from qgis.PyQt.QtGui import QIcon, QPixmap
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager

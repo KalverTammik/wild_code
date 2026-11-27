@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QHBoxLayout
-from PyQt5.QtCore import Qt
+from qgis.PyQt.QtWidgets import QWidget, QLabel, QHBoxLayout
+from qgis.PyQt.QtCore import Qt
 
 from ..languages.language_manager import LanguageManager
 from ..languages.translation_keys import TranslationKeys

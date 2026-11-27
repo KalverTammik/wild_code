@@ -14,10 +14,10 @@ qgis_prefix = os.environ.get("QGIS_PREFIX_PATH")
 if qgis_prefix:
     sys.path.append(str(Path(qgis_prefix) / "python" / "plugins"))
 
-from PyQt5.QtCore import QCoreApplication, QEvent, QThread, Qt
-from PyQt5.QtTest import QTest
-from PyQt5.QtGui import QFont, QFontDatabase
-from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QThread, Qt
+from qgis.PyQt.QtTest import QTest
+from qgis.PyQt.QtGui import QFont, QFontDatabase
+from qgis.PyQt.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 from property_fixtures import wait_for
 from qt_compat import font_families

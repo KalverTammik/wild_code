@@ -8,7 +8,7 @@ Consumer must define / provide:
 - _progressive_insert_card(item, insert_at_top=False) method or override
 - _activated flag (TokenMixin)
 """
-from PyQt5.QtCore import QTimer
+from qgis.PyQt.QtCore import QTimer
 from ...Logs.switch_logger import SwitchLogger
 
 class ProgressiveLoadMixin:

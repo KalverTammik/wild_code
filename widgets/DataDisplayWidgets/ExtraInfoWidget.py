@@ -1,8 +1,8 @@
 import weakref
-from PyQt5 import sip
+from qgis.PyQt import sip
 
-from PyQt5.QtCore import QEvent, QEasingCurve, QPoint, QPropertyAnimation, QTimer, Qt
-from PyQt5.QtWidgets import QHBoxLayout, QWidget, QVBoxLayout, QFrame, QToolButton, QSizePolicy
+from qgis.PyQt.QtCore import QEvent, QEasingCurve, QPoint, QPropertyAnimation, QTimer, Qt
+from qgis.PyQt.QtWidgets import QHBoxLayout, QWidget, QVBoxLayout, QFrame, QToolButton, QSizePolicy
 from ...constants.file_paths import QssPaths
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys

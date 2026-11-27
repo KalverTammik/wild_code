@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PyQt5 import sip
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QObject, QThread, pyqtSignal
 
 from .backend_verify_worker import BackendVerifyWorker
 from ....Logs.python_fail_logger import PythonFailLogger

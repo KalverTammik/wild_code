@@ -1,7 +1,7 @@
 from datetime import timedelta
 from math import ceil
 from time import monotonic
-from PyQt5.QtWidgets import QDialog, QPlainTextEdit
+from qgis.PyQt.QtWidgets import QDialog, QPlainTextEdit
 from ...FlowControllers.add_batch_runner import AddBatchRunner
 from ...FlowControllers.property_dialog_phase import AddAction, AddMode
 from .....utils.property.property_row_builder import PropertyRowBuilder

@@ -8,8 +8,8 @@ if TYPE_CHECKING:
     from .languages.language_manager import LanguageManager
     from .module_manager import ModuleManager
 from .constants.module_icons import IconNames
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget
-from PyQt5.QtGui import QMouseEvent
+from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QStackedWidget, QWidget
+from qgis.PyQt.QtGui import QMouseEvent
 from .widgets.FooterWidget import FooterWidget
 from .widgets.HeaderWidget import HeaderWidget
 # Removed unused: from qgis.PyQt.QtWidgets import QDialog as QgisQDialog
@@ -30,8 +30,8 @@ from .ui.modules_registry import ModulesRegistry
 from .constants.module_names import Module
 from .ui.module_switch_helper import ModuleSwitchHelper
 
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QSizePolicy
+from qgis.PyQt.QtCore import Qt, QTimer
+from qgis.PyQt.QtWidgets import QSizePolicy
 
 from .ui.search_result_router import SearchUIController
 from .ui.map_canvas_glass_action_bar import MapCanvasGlassActionBar

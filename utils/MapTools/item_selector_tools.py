@@ -2,7 +2,7 @@
 
 from time import perf_counter
 try:
-    import sip
+    from qgis.PyQt import sip
 except ImportError:
     sip = None
 

@@ -6,7 +6,7 @@ Erinevus teiste moodulitega: FEED_LOGIC klass, pealkiri, ning TYPE filter ON lub
 
 from typing import Optional, Type, List
 
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtWidgets import QWidget
 
 from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...ui.mixins.filtered_feed_mixin import FilteredFeedMixin
