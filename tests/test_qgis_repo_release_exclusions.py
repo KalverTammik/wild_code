@@ -1,12 +1,16 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from xml.etree import ElementTree
+
+from pyplugin_installer.version_compare import isCompatible
 
 from tools.qgis_repo_release import (
     DEFAULT_EXCLUDE_DIRS,
     _copy_repo_icon,
     _read_plugin_meta,
     _should_exclude,
+    _write_plugins_xml,
 )
 
 
@@ -81,6 +85,36 @@ class QgisRepoReleaseExclusionsTest(unittest.TestCase):
             self.assertEqual(meta.icon_path, approved_icon.as_posix())
             self.assertIsNotNone(output_icon)
             self.assertEqual(output_icon.read_bytes(), expected_bytes)
+
+    def test_the_repository_offers_the_plugin_to_qgis_3_40_and_qgis_4(self) -> None:
+        with TemporaryDirectory() as temp_dir:
+            plugin_root = Path(temp_dir) / "kavitro_live"
+            plugin_root.mkdir()
+            (plugin_root / "metadata.txt").write_text(
+                (ROOT / "metadata.release.txt").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            xml_path = Path(temp_dir) / "plugins.xml"
+            _write_plugins_xml(
+                _read_plugin_meta(plugin_root), xml_path, "https://example.invalid/a.zip", "a.zip", None
+            )
+            plugin = ElementTree.parse(xml_path).getroot().find("pyqgis_plugin")
+            minimum = plugin.findtext("qgis_minimum_version")
+            maximum = plugin.findtext("qgis_maximum_version")
+
+        # QGIS' own rule, as its plugin installer applies it
+        for version in ("3.40.0", "3.44.15", "4.0.0", "4.4.0"):
+            self.assertTrue(isCompatible(version, minimum, maximum), version)
+        for version in ("3.34.0", "5.0.0"):
+            self.assertFalse(isCompatible(version, minimum, maximum), version)
+
+    def test_dev_and_live_metadata_declare_the_same_qgis_support(self) -> None:
+        def support(name: str) -> list:
+            lines = (ROOT / name).read_text(encoding="utf-8").splitlines()
+            return [line for line in lines if line.startswith(("qgisM", "supportsQt6"))]
+
+        self.assertEqual(support("metadata.txt"), support("metadata.release.txt"))
+        self.assertIn("supportsQt6=True", support("metadata.txt"))
 
 
 if __name__ == "__main__":

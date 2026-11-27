@@ -8,7 +8,7 @@ extend-exclude = [".venv", "Temporary"]
 select = ["F", "E", "W", "B", "PIE", "RUF100"]
 ignore = [
     "E501", # line length: the code base uses long lines on purpose, a formatter pass is a separate decision
-    "B905", # zip(strict=) needs Python 3.10; metadata.txt still allows older QGIS 3 releases
+    "B905", # zip(strict=) is not used yet; enforcing it is a separate decision
 ]
 # Codes of rules that are not selected but whose noqa comments document intent:
 # N802 Qt override names (mousePressEvent), BLE001 a deliberate broad except, D401 docstring mood.

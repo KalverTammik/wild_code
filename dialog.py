@@ -52,18 +52,12 @@ class PluginDialog(QDialog):
         return PluginDialog._instance
     _instance = None
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(PluginDialog, cls).__new__(cls, *args, **kwargs)
-            cls._instance._initialized = False
-        return cls._instance
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        # Prevent reinitialization ASAP (no side-effects before this)
-        if self._initialized:
-            return
+        # The open window, for get_instance(). Set only after Qt has built the object: PyQt 6.11
+        # (QGIS 4.2 on Windows) overflows the stack if the class holds it before that.
+        PluginDialog._instance = self
 
         self._force_close = False
         self._has_shown = False
@@ -161,9 +155,6 @@ class PluginDialog(QDialog):
         ModuleSwitchHelper.set_settings_focus_handler(DialogHelpers.focus_settings_section)
 
         self.destroyed.connect(self._on_destroyed)
-
-        # Mark fully initialized only at the end
-        self._initialized = True
 
 
     def _on_destroyed(self, obj):

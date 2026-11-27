@@ -48,17 +48,15 @@ jobs:
       # Both results are wanted: a change can break one Qt version only.
       fail-fast: false
       matrix:
-        include:
-          - image: qgis/qgis:3.40.13-noble
-            # QGIS' own Python plugins (processing) for the tests that import them.
-            pythonpath: /usr/share/qgis/python/plugins
-          - image: qgis/qgis:4.4
-            pythonpath: /usr/share/qgis/python:/usr/share/qgis/python/plugins
+        image:
+          - qgis/qgis:3.40.13-noble
+          - qgis/qgis:4.4
     container:
       image: ${{ matrix.image }}
     env:
       QT_QPA_PLATFORM: offscreen
-      PYTHONPATH: ${{ matrix.pythonpath }}
+      # QGIS' own Python modules and plugins (pyplugin_installer, processing) for the tests that import them.
+      PYTHONPATH: /usr/share/qgis/python:/usr/share/qgis/python/plugins
     steps:
       # The tests import the plugin as the package "Kavitro_dev", so the checkout folder carries that name.
       - name: Checkout repository

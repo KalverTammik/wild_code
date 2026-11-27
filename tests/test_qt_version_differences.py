@@ -2,6 +2,7 @@
 import sys
 import types
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from qgis.PyQt.QtCore import QEvent, QPoint, QPointF, Qt
@@ -58,6 +59,13 @@ class WebEngineClassesTest(unittest.TestCase):
         with patch.dict(sys.modules, {"qgis.PyQt.QtWebEngineWidgets": None}):
             with self.assertRaises(ImportError):
                 webengine_classes()
+
+
+class CardMenuButtonStyleTest(unittest.TestCase):
+    def test_both_themes_leave_the_more_icon_the_whole_button(self) -> None:
+        for theme in ("Light", "Dark"):
+            qss = (Path(__file__).resolve().parents[1] / "styles" / theme / "ModuleCard.qss").read_text(encoding="utf-8")
+            self.assertRegex(qss, r"#MoreActionsButton::menu-indicator\s*\{\s*width: 0px;", theme)
 
 
 if __name__ == "__main__":

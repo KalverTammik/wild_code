@@ -21,6 +21,8 @@ Dokumentatsiooni jaotus ning säilitamisreeglid on kirjas failis
 
 ## Arendus
 
+Toetatud on QGIS 3.40 kuni 4.x (`metadata.txt` ja `metadata.release.txt`).
+
 Testid käivitatakse QGIS-i Pythoniga ilma QGIS-i aknata:
 
 ```powershell
@@ -47,12 +49,12 @@ GitHubis käivitab [tests.yml](.github/workflows/tests.yml) iga `main`-i push'i 
 Sama konteineri saab käivitada ka kohapeal (Docker Desktop), kui kaust on nimega `Kavitro_dev`:
 
 ```bash
-docker run --rm -e QT_QPA_PLATFORM=offscreen -e PYTHONPATH=/usr/share/qgis/python/plugins \
+docker run --rm -e QT_QPA_PLATFORM=offscreen -e PYTHONPATH=/usr/share/qgis/python:/usr/share/qgis/python/plugins \
   -v "<kaust, kus on Kavitro_dev>:/work" -w /work/Kavitro_dev qgis/qgis:3.40.13-noble \
   python3 tools/run_tests.py
 ```
 
-QGIS 4 jaoks kasuta pilti `qgis/qgis:4.4` ja `PYTHONPATH=/usr/share/qgis/python:/usr/share/qgis/python/plugins`. Teadaolevad Qt6 erinevused, mis ootavad lahendamist, on testides märgitud `qt6_stage4`-ga ja jäävad seal vahele.
+QGIS 4 jaoks kasuta pilti `qgis/qgis:4.4`. Teadaolevad Qt6 erinevused, mis ootavad lahendamist, on testides märgitud `qt6_stage4`-ga ja jäävad seal vahele.
 
 ## Release
 

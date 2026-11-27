@@ -62,6 +62,7 @@ class PluginMeta:
     about: str
     version: str
     qgis_minimum_version: str
+    qgis_maximum_version: str
     homepage: str
     author: str
     email: str
@@ -206,6 +207,7 @@ def _write_plugins_xml(meta: PluginMeta, out_path: Path, download_url: str, file
     add("about", meta.about)
     add("version", meta.version)
     add("qgis_minimum_version", meta.qgis_minimum_version)
+    add("qgis_maximum_version", meta.qgis_maximum_version)
     if meta.homepage:
         add("homepage", meta.homepage)
     add("file_name", file_name)
@@ -244,6 +246,8 @@ def _read_plugin_meta(plugin_root: Path) -> PluginMeta:
     name = _require(meta, "name")
     version = _require(meta, "version")
     qgis_min = _require(meta, "qgisMinimumVersion")
+    # Without it QGIS assumes "<minimum major>.99" and does not offer the plugin to QGIS 4.
+    qgis_max = _require(meta, "qgisMaximumVersion")
 
     # Recommended
     description = meta.get("description", "").strip() or name
@@ -265,6 +269,7 @@ def _read_plugin_meta(plugin_root: Path) -> PluginMeta:
         about=about,
         version=version,
         qgis_minimum_version=qgis_min,
+        qgis_maximum_version=qgis_max,
         homepage=homepage,
         author=author,
         email=email,
@@ -480,6 +485,7 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             about=meta.about,
             version=meta.version,
             qgis_minimum_version=meta.qgis_minimum_version,
+            qgis_maximum_version=meta.qgis_maximum_version,
             homepage=meta.homepage,
             author=meta.author,
             email=meta.email,

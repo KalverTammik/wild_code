@@ -136,4 +136,7 @@ QLabel#ProjectNumberBadge {
     letter-spacing: 0.2px;
 }
 
-
+/* Qt6 reserves room for the menu arrow and pushes the "more" icon half out of the button. */
+QPushButton#MoreActionsButton::menu-indicator {
+    width: 0px;
+}

@@ -20,7 +20,7 @@ Before using this process, merge the draft-first workflow and enable **Settings 
 2. Commit and push the intended release state.
 3. In GitHub, create and **save an empty draft release** with the matching tag, title, and release notes, for example `v2.00.18`. Do not publish it manually and do not attach assets.
 4. Open **Actions -> Release QGIS Plugin -> Run workflow** on the intended release commit. Enter the matching version and tag.
-   The workflow first runs ruff and the full offline test suite in the QGIS 3.40 container (`tests.yml`); if they fail, nothing is built or published.
+   The workflow first runs ruff and the full offline test suite in the QGIS 3.40 and 4.4 containers (`tests.yml`); if they fail, nothing is built or published.
 5. The workflow creates or validates the real Git tag at its checked-out commit, builds `plugins.xml`, the versioned ZIP and icon, and uploads them to the draft without overwriting existing assets.
 6. The workflow compares every local SHA-256 value with the digest reported by GitHub. Only a successful check publishes the draft and marks it as latest.
 7. Verify that GitHub marks the release **Immutable**, retains the requested tag name, and that the stable installation URL above downloads the newly generated `plugins.xml`.

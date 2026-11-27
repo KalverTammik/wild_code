@@ -19,6 +19,7 @@ Rules (read with ast over every plugin source file outside tests/):
      only that path works in both QGIS 3 and QGIS 4. Tests and tools follow it too.
   6. No Qt5-only form that Qt6 refuses at run time: `exec_()`, `globalPos()` outside utils/qt_events.py,
      `Qt.convertFromPlainText`, and a Qt enum member without its enum (`Qt.AlignLeft`).
+     No Qt class defines `__new__`: a `__new__` singleton crashes PyQt 6.11 (stack overflow).
 
 ALLOWED_SECTION_LISTS only shrinks: a listed place that is gone fails until its line is deleted.
 """
@@ -304,6 +305,17 @@ class Qt6RuleTest(unittest.TestCase):
             for node in ast.walk(tree)
             if isinstance(node, ast.Attribute) and node.attr in QT5_ONLY_ATTRIBUTES
             and not (node.attr == "globalPos" and rel == GLOBAL_POS_OWNER)
+        ]
+        self.assertEqual(found, [])
+
+    def test_no_qt_class_defines_new(self) -> None:
+        found = [
+            (rel, node.name)
+            for rel, tree in plugin_sources()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ClassDef)
+            and any(isinstance(base, ast.Name) and base.id in _qt_classes(tree) for base in node.bases)
+            and any(isinstance(item, ast.FunctionDef) and item.name == "__new__" for item in node.body)
         ]
         self.assertEqual(found, [])
 
