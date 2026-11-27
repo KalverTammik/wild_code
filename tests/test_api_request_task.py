@@ -15,6 +15,7 @@ from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QThread, QTimer
 from qgis.PyQt.QtWidgets import QDialog
 from qgis.PyQt.QtGui import QFont, QFontDatabase
+from qt_compat import font_families
 from Kavitro_dev.python import api_client, api_rate_limit, api_request_task
 from Kavitro_dev.python.latest_request import LatestRequest
 from Kavitro_dev.python.workers import _ACTIVE_THREADS
@@ -27,7 +28,7 @@ class ApiRequestTaskTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QgsApplication.instance() or QgsApplication([], False)
-        if not QFontDatabase().families():
+        if not font_families():
             QFontDatabase.addApplicationFont('C:/Windows/Fonts/segoeui.ttf')
             cls.app.setFont(QFont('Segoe UI', 9))
 

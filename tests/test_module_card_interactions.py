@@ -20,6 +20,7 @@ from PyQt5.QtGui import QFont, QFontDatabase
 from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
 
 from property_fixtures import wait_for
+from qt_compat import font_families
 
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.python.api_actions import APIModuleActions
@@ -38,7 +39,7 @@ class ModuleCardInteractionTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
-        if not QFontDatabase().families():
+        if not font_families():
             for filename in ("segoeui.ttf", "segoeuib.ttf"):
                 QFontDatabase.addApplicationFont(str(Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts" / filename))
             cls.app.setFont(QFont("Segoe UI", 9))

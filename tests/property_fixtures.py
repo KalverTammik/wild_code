@@ -26,6 +26,7 @@ if os.environ.get('QGIS_PREFIX_PATH'):
 
 from PyQt5.QtCore import QCoreApplication, QEvent, Qt, QVariant
 from PyQt5.QtGui import QFont, QFontDatabase
+from qt_compat import font_families
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QTableView, QVBoxLayout, QWidget
 from qgis.core import QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsVectorLayer
@@ -213,7 +214,7 @@ class LocationFilterTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QgsApplication.instance() or QgsApplication([], False)
         QgsApplication.initQgis()
-        if not QFontDatabase().families():
+        if not font_families():
             QFontDatabase.addApplicationFont('C:/Windows/Fonts/segoeui.ttf')
             cls.app.setFont(QFont('Segoe UI', 9))
 

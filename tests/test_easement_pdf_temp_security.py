@@ -116,6 +116,9 @@ class EasementPdfTempSecurityTest(unittest.TestCase):
         class FailedExporter:
             Success = 0
 
+            class ExportResult:
+                Success = 0
+
             class PdfExportSettings:
                 pass
 
@@ -141,6 +144,9 @@ class EasementPdfTempSecurityTest(unittest.TestCase):
 
         class RaisingExporter:
             Success = 0
+
+            class ExportResult:
+                Success = 0
 
             class PdfExportSettings:
                 pass

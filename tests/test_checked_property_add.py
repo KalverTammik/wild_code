@@ -15,6 +15,7 @@ from property_fixtures import backend_info, missing_info, unknown_info, wait_unt
 
 from PyQt5.QtCore import QThread, QTimer
 from PyQt5.QtGui import QFont, QFontDatabase
+from qt_compat import font_families
 from PyQt5.QtTest import QTest
 from qgis.core import QgsApplication, QgsFeature, QgsGeometry, QgsVectorLayer
 from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner as module
@@ -26,7 +27,7 @@ class CheckedPropertyAddTest(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QgsApplication.instance() or QgsApplication([], False)
         QgsApplication.initQgis()
-        if not QFontDatabase().families():
+        if not font_families():
             QFontDatabase.addApplicationFont('C:/Windows/Fonts/segoeui.ttf')
             cls.app.setFont(QFont('Segoe UI', 9))
 

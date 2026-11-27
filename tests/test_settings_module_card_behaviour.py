@@ -19,7 +19,8 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from qgis.core import QgsApplication
-from qgis.PyQt.QtCore import QCoreApplication, QEvent
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QPointF, Qt
+from qgis.PyQt.QtGui import QFocusEvent, QMouseEvent
 from qgis.PyQt.QtWidgets import QFileDialog, QPushButton, QWidget
 
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
@@ -48,6 +49,12 @@ class _Text(str):
 
 def _translate(key):
     return _Text(f"T:{key}")
+
+
+def _left_click():
+    # A real mouse event: a bare QEvent of this type crashes Qt6.
+    return QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(2, 2), QPointF(2, 2), Qt.MouseButton.LeftButton,
+                       Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
 
 
 def _logic():
@@ -408,8 +415,8 @@ class PreferencesTest(_CardTest):
     def test_filter_loads_its_data_on_first_focus_only(self):
         widget = self.card._type_filter_widget
         self.assertIn(widget, self.card._lazy_filter_widgets)
-        QCoreApplication.sendEvent(widget, QEvent(QEvent.FocusIn))
-        QCoreApplication.sendEvent(widget, QEvent(QEvent.FocusIn))
+        QCoreApplication.sendEvent(widget, QFocusEvent(QEvent.Type.FocusIn))
+        QCoreApplication.sendEvent(widget, QFocusEvent(QEvent.Type.FocusIn))
         widget.ensure_loaded.assert_called_once_with()
         self.assertNotIn(widget, self.card._lazy_filter_widgets)
         self.assertIn(self.card._status_filter_widget, self.card._lazy_filter_widgets)
@@ -417,7 +424,7 @@ class PreferencesTest(_CardTest):
     def test_a_failing_lazy_load_is_logged(self):
         widget = self.card._tags_filter_widget
         widget.ensure_loaded.side_effect = RuntimeError("no session")
-        QCoreApplication.sendEvent(widget, QEvent(QEvent.MouseButtonPress))
+        QCoreApplication.sendEvent(widget, _left_click())
         self.assertEqual(self.log.call_args.kwargs["event"], "settings_module_filter_lazy_load_failed")
         self.assertNotIn(widget, self.card._lazy_filter_widgets)
 

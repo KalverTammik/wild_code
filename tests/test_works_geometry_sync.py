@@ -56,7 +56,11 @@ class GeometryPayloadTest(_QgisTest):
         original = QgsGeometry.fromPointXY(QgsPointXY(630385.6212345678, 6457752.9798765432))
         sent = GeometryPayloadService.from_qgs_geometry(original, module="works", error_event="test")
 
-        self.assertTrue(self._parse(json.loads(json.dumps(sent))).equals(original))
+        received = self._parse(json.loads(json.dumps(sent)))
+
+        # GeoJSON text rounds by less than a nanometre; comparing the inner geometries allows that in every
+        # QGIS. Both owners stay in variables: constGet() points into them.
+        self.assertTrue(received.constGet() == original.constGet())
 
     def test_payload_that_is_not_a_geometry_gives_none(self) -> None:
         with patch("Kavitro_dev.utils.geometry_payload.PythonFailLogger.log_exception") as log_exception:

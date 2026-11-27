@@ -13,6 +13,7 @@ if os.environ.get('QGIS_PREFIX_PATH'):
     sys.path.append(str(Path(os.environ['QGIS_PREFIX_PATH']) / 'python' / 'plugins'))
 
 from PyQt5.QtGui import QFont, QFontDatabase
+from qt_compat import font_families
 from qgis.core import QgsApplication
 
 from Kavitro_dev.modules.Property.FlowControllers import add_batch_runner as property_flow
@@ -46,7 +47,7 @@ class PropertyRateRetryTest(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QgsApplication.instance() or QgsApplication([], False)
         QgsApplication.initQgis()
-        if not QFontDatabase().families():
+        if not font_families():
             QFontDatabase.addApplicationFont('C:/Windows/Fonts/segoeui.ttf')
             cls.app.setFont(QFont('Segoe UI', 9))
 

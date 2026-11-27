@@ -16,6 +16,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 
 from PyQt5.QtCore import QCoreApplication, QEvent, QTimer, QThread
 from PyQt5.QtGui import QFont, QFontDatabase
+from qt_compat import font_families
 from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QFrame, QLabel, QVBoxLayout
 
@@ -165,7 +166,7 @@ class WorksListWidgetTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
-        if not QFontDatabase().families():
+        if not font_families():
             for name in ('segoeui.ttf', 'segoeuib.ttf'):
                 QFontDatabase.addApplicationFont('C:/Windows/Fonts/' + name)
             cls.app.setFont(QFont('Segoe UI', 9))

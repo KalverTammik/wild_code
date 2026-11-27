@@ -455,7 +455,8 @@ def _left_click():
     from PyQt5.QtCore import QEvent as _Event, QPointF, Qt
     from PyQt5.QtGui import QMouseEvent
 
-    return QMouseEvent(_Event.MouseButtonPress, QPointF(2, 2), Qt.LeftButton, Qt.LeftButton, Qt.NoModifier)
+    return QMouseEvent(_Event.Type.MouseButtonPress, QPointF(2, 2), Qt.MouseButton.LeftButton,
+                       Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
 
 
 def memory_layer(fields: str, attributes: list, name: str) -> QgsVectorLayer:

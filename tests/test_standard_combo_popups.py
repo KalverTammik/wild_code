@@ -71,11 +71,15 @@ class StandardComboPopupTest(unittest.TestCase):
         combo = QComboBox()
         self._delete_later(combo)
 
-        for _ in range(2):
-            ThemeManager.apply_combo_popup_style(combo)
+        ThemeManager.apply_combo_popup_style(combo)
+        delegate = combo.itemDelegate()
+        delegates = len(combo.findChildren(QStyledItemDelegate))
+        ThemeManager.apply_combo_popup_style(combo)
 
+        # Qt6 keeps delegates of its own on a combo, so the check is that a retheme adds none.
         self.assert_list_popup(combo)
-        self.assertEqual(len(combo.findChildren(QStyledItemDelegate)), 1)
+        self.assertEqual(combo.itemDelegate(), delegate)
+        self.assertEqual(len(combo.findChildren(QStyledItemDelegate)), delegates)
 
     def test_every_file_with_a_plain_combo_styles_its_popup(self) -> None:
         created = re.compile(r"\b(QComboBox|QgsFieldComboBox)\(")

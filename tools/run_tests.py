@@ -18,10 +18,19 @@ import unittest
 PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def _close_qgis() -> None:
+    """Shut down the QgsApplication a test created; left to interpreter exit it segfaults on Qt6."""
+    qgis_core = sys.modules.get("qgis.core")
+    if qgis_core is not None and qgis_core.QgsApplication.instance() is not None:
+        qgis_core.QgsApplication.exitQgis()
+
+
 def main() -> int:
     pattern = sys.argv[1] if len(sys.argv) > 1 else "test*.py"
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     sys.path.insert(0, PLUGIN_ROOT)
+    # Tests import the plugin as the package "Kavitro_dev", also when one module runs alone.
+    sys.path.append(os.path.dirname(PLUGIN_ROOT))
     prefix = os.environ.get("QGIS_PREFIX_PATH")
     if prefix:
         sys.path.insert(0, os.path.join(prefix, "python", "plugins"))
@@ -35,6 +44,7 @@ def main() -> int:
         )
         return 0 if program.result.wasSuccessful() else 1
     finally:
+        _close_qgis()
         os.chdir(PLUGIN_ROOT)
         shutil.rmtree(work_dir, ignore_errors=True)
 
