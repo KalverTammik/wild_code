@@ -217,11 +217,10 @@ class FilterRefreshService:
         status_getter=None,
         type_getter=None,
         tags_getter=None,
-        reset_overdue_pills: bool = False,
         force_list_mode: bool = True,
     ) -> None:
         """``module`` is a ModuleBaseUI subclass that defines FEED_LOGIC_CLS, QUERY_FILE,
-        SINGLE_ITEM_QUERY_FILE and module_key; reset_overdue_pills also needs overdue_pills."""
+        SINGLE_ITEM_QUERY_FILE, module_key and on_filters_applied()."""
         status_filter = status_filter if status_filter is not None else module.status_filter
         type_filter = type_filter if type_filter is not None else module.type_filter
         tags_filter = tags_filter if tags_filter is not None else module.tags_filter
@@ -282,9 +281,7 @@ class FilterRefreshService:
         if feed_load_engine is not None:
             feed_load_engine.schedule_load()
 
-        if reset_overdue_pills:
-            module.overdue_pills.set_overdue_active(False)
-            module.overdue_pills.set_due_soon_active(False)
+        module.on_filters_applied(and_list, where_has_filter)
 
 
 # ------------------------------------------------------------------

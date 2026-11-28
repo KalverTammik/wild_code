@@ -51,12 +51,13 @@ class ModuleToolbarArea(QFrame):
 
         # Compose
         self._layout.addWidget(self._left, 0, 0, Qt.AlignmentFlag.AlignTop)
-        self._layout.addWidget(self._right, 0, 2, Qt.AlignmentFlag.AlignTop)
+        self._layout.addWidget(self._right, 0, 3, Qt.AlignmentFlag.AlignTop)
 
         # Ensure right area absorbs remaining width
         self._layout.setColumnStretch(0, 0)
         self._layout.setColumnStretch(1, 1)
         self._layout.setColumnStretch(2, 0)
+        self._layout.setColumnStretch(3, 0)
 
 
         # Apply toolbar + centralized combo styling (includes ComboBox.qss)
@@ -81,6 +82,11 @@ class ModuleToolbarArea(QFrame):
     def add_right(self, widget: QWidget) -> None:
         if widget is not None:
             self._right_layout.addWidget(widget)
+
+    def set_indicator(self, widget: QWidget) -> None:
+        """The module's indicator, before the right-hand buttons."""
+        self._layout.setHorizontalSpacing(8)
+        self._layout.addWidget(widget, 0, 2, Qt.AlignmentFlag.AlignTop)
 
     def add_after_filters(self, widget: QWidget) -> None:
         """Place view controls outside the filter box, directly beside it."""

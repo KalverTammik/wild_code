@@ -151,13 +151,11 @@ class ModuleFeedContractTest(unittest.TestCase):
             "coordination", support_key=ModuleSupports.STATUSES.value
         )
 
-    def test_reset_overdue_pills_clears_both_pills(self) -> None:
-        pills = self.ui.overdue_pills
-        with patch.object(pills, "set_overdue_active") as overdue, patch.object(pills, "set_due_soon_active") as due_soon:
-            FilterRefreshService.refresh_filters(self.ui, reset_overdue_pills=True)
+    def test_the_applied_filters_are_handed_to_the_indicator(self) -> None:
+        with patch.object(self.ui, "on_filters_applied") as applied:
+            FilterRefreshService.refresh_filters(self.ui, status_ids=["1"], type_ids=[], tags_ids=[])
 
-        overdue.assert_called_once_with(False)
-        due_soon.assert_called_once_with(False)
+        applied.assert_called_once_with([{"column": "STATUS", "operator": "IN", "value": ["1"]}], None)
 
 
 class SearchControllerParentContractTest(unittest.TestCase):

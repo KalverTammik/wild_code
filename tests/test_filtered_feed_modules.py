@@ -6,7 +6,7 @@ import sys
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable
 from unittest.mock import Mock, call, patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -35,6 +35,7 @@ from Kavitro_dev.widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from Kavitro_dev.widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from Kavitro_dev.widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from Kavitro_dev.widgets.Filters.filter_refresh_helper import FilterRefreshHelper
+from Kavitro_dev.widgets.home.module_indicator import ModuleIndicator
 
 
 @dataclass(frozen=True)
@@ -44,21 +45,20 @@ class Spec:
     module: Module
     empty_key: str
     supports: tuple  # types, statuses, tags, archive, as the module registry gives them
-    overdue: Optional[Module]
     event_prefix: str
 
 
 SPECS = (
     Spec(ContractsModule, lambda: ContractsModule(), Module.CONTRACT,
-         TranslationKeys.NO_CONTRACTS_FOUND, (True, True, True, False), Module.CONTRACT, "contract"),
+         TranslationKeys.NO_CONTRACTS_FOUND, (True, True, True, False), "contract"),
     Spec(CoordinationModule, lambda: CoordinationModule(), Module.COORDINATION,
-         TranslationKeys.NO_COORDINATIONS_FOUND, (True, True, True, True), Module.COORDINATION, "coordination"),
+         TranslationKeys.NO_COORDINATIONS_FOUND, (True, True, True, True), "coordination"),
     Spec(ProjectsModule, lambda: ProjectsModule(), Module.PROJECT,
-         TranslationKeys.NO_PROJECTS_FOUND, (False, True, True, False), Module.PROJECT, "projects"),
+         TranslationKeys.NO_PROJECTS_FOUND, (False, True, True, False), "projects"),
     Spec(AsBuiltModule, lambda: AsBuiltModule(), Module.ASBUILT,
-         TranslationKeys.NO_ASBUILT_FOUND, (True, True, False, False), None, "task_module"),
+         TranslationKeys.NO_ASBUILT_FOUND, (True, True, False, False), "task_module"),
     Spec(EasementsModule, lambda: EasementsModule(), Module.EASEMENT,
-         TranslationKeys.NO_EASEMENTS_FOUND, (True, True, False, False), None, "task_module"),
+         TranslationKeys.NO_EASEMENTS_FOUND, (True, True, False, False), "task_module"),
 )
 BY_CLASS = {spec.cls: spec for spec in SPECS}
 TASK_SPECS = tuple(spec for spec in SPECS if spec.event_prefix == "task_module")
@@ -81,6 +81,8 @@ class ModuleCase(unittest.TestCase):
         for patcher in (
             patch.object(APIClient, "send_query", side_effect=AssertionError("Unexpected API call")),
             patch("requests.sessions.Session.request", side_effect=AssertionError("Unexpected network request")),
+            # The toolbar indicator reads its numbers in a thread of its own.
+            patch.object(ModuleIndicator, "show_selection"),
         ):
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -133,11 +135,11 @@ class ModuleFiltersTest(ModuleCase):
                     self.assertEqual(widget._module, spec.module.value)
                     self.assertFalse(widget._auto_load)
 
-    def test_only_modules_with_due_dates_show_the_due_pills(self) -> None:
+    def test_every_list_module_has_an_indicator_for_itself(self) -> None:
         for spec in SPECS:
             with self.subTest(module=spec.cls.__name__):
                 module = self.build(spec)
-                self.assertEqual(module.overdue_pills is not None, spec.overdue is not None)
+                self.assertEqual(module.module_indicator.module_key, spec.module.value)
 
     def test_module_without_registered_filters_has_none(self) -> None:
         for spec in SPECS:
@@ -238,12 +240,8 @@ class ModuleLifecycleTest(ModuleCase):
                 order = Mock()
                 module._ensure_filters_loaded = order.ensure
                 module._refresh_filters = order.refresh
-                module.refresh_overdue_counts = order.overdue
                 module.on_first_visible()
-                expected = [call.ensure(), call.refresh()]
-                if spec.overdue is not None:
-                    expected.append(call.overdue(spec.overdue))
-                self.assertEqual(order.mock_calls, expected)
+                self.assertEqual(order.mock_calls, [call.ensure(), call.refresh()])
 
     def test_without_a_further_page_no_request_is_sent(self) -> None:
         for spec in SPECS:
@@ -470,11 +468,11 @@ class ModuleRefreshTest(ModuleCase):
                     "type_filter": module.type_filter, "tags_filter": module.tags_filter,
                 })
 
-    def test_projects_have_no_type_filter_and_reset_the_due_pills(self) -> None:
+    def test_projects_have_no_type_filter(self) -> None:
         module = self.build(BY_CLASS[ProjectsModule])
         self.assertEqual(self.refresh(module, status_ids=["1"], type_ids=["2"], tags_ids=["3"]), {
             "status_ids": ["1"], "tags_ids": ["3"], "status_filter": module.status_filter,
-            "tags_filter": module.tags_filter, "reset_overdue_pills": True,
+            "tags_filter": module.tags_filter,
         })
 
     def test_task_modules_have_no_tags_and_limit_types_to_their_scope(self) -> None:

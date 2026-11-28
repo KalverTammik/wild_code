@@ -12,6 +12,8 @@ PLUGIN_DIALOG_GEOMETRY = f"{PLUGIN}/plugin_dialog/geometry"
 GEOSPATIAL_SETUP_MODE = f"{PLUGIN}/geospatial/setup_mode"
 MAP_CANVAS_GLASS_ACTION_BAR_ENABLED = f"{PLUGIN}/map_canvas/glass_action_bar_enabled"
 MAP_CANVAS_SEARCH_BAR_ENABLED = f"{PLUGIN}/map_canvas/search_bar_enabled"
+INDICATOR_DESIGN = "indicator/design"  # the toolbar indicator of the modules
+INDICATOR_PALETTE = "indicator/palette"
 
 # Per-module suffix constants
 MODULE_SETTING_MAIN_LAYER = "element_layer_id"

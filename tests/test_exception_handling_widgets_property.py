@@ -18,7 +18,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
 
 import requests
 from qgis.PyQt import sip
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QObject, QUrl, pyqtSignal
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QUrl
 from qgis.PyQt.QtWidgets import QApplication, QWidget
 from qgis.core import Qgis
 
@@ -40,7 +40,6 @@ from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDial
 from Kavitro_dev.widgets.EasementPropertyAreaCalculationWidget import EasementPropertyAreaCalculationWidget
 from Kavitro_dev.widgets.Filters.NotStartedStatusFilterWidget import NotStartedStatusFilterWidget
 from Kavitro_dev.widgets.Filters.TypeFilterWidget import _TypePickerPopup
-from Kavitro_dev.widgets.ModuleKpiCard import ModuleKpiCard
 from Kavitro_dev.widgets.ProgressDialogModern import ProgressDialogModern
 from Kavitro_dev.widgets.PropertySummaryCard import PropertySummaryCard
 from Kavitro_dev.widgets.layer_tree_picker import LayerTreePicker
@@ -333,21 +332,6 @@ class SmallWidgetHandlersTest(WidgetCase):
         picker.setShowCrs(True)
         layer = SimpleNamespace(name=lambda: "Roads", crs=Mock(side_effect=RuntimeError("deleted")))
         self.assertEqual(picker._layer_label(layer), "Roads")
-
-    def test_kpi_card_cancels_a_worker_whose_signals_are_not_connected_or_gone(self) -> None:
-        class Worker(QObject):
-            finished = pyqtSignal(object)
-            error = pyqtSignal(str)
-
-        for gone in (False, True):
-            with self.subTest(deleted=gone):
-                worker = Worker()
-                card = SimpleNamespace(_worker=worker, _worker_thread=None,
-                                       _handle_success=lambda _payload: None, _handle_error=lambda _message: None)
-                if gone:
-                    sip.delete(worker)
-                ModuleKpiCard._cancel_worker(card)
-                self.assertIsNone(card._worker)
 
     def test_type_picker_height_falls_back_when_the_owner_is_gone(self) -> None:
         for control in (None, Mock(mapToGlobal=Mock(side_effect=RuntimeError("deleted")))):

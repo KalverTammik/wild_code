@@ -123,8 +123,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
     PREFETCH_PX: int = 300  # default; ProgressiveLoadMixin also uses this
     LOAD_DEBOUNCE_MS: int = 80
     module_key: str  # Every concrete module sets this right after ModuleBaseUI.__init__.
-    # Set by OverduePillsMixin.wire_overdue_pills in the modules that show the pills.
-    overdue_pills = None
+    # Set by FilteredFeedMixin in the modules that have an indicator in the toolbar.
+    module_indicator = None
 
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
@@ -418,8 +418,8 @@ class ModuleBaseUI(DedupeMixin, FeedCounterMixin, ProgressiveLoadMixin, TokenMix
         for widget in self._filter_widgets:
             widget.retheme()
 
-        if self.overdue_pills is not None:
-            self.overdue_pills.retheme()
+        if self.module_indicator is not None:
+            self.module_indicator.retheme()
 
         FilterRefreshHelper.retheme_refresh_widget(self._filter_refresh_widget)
 

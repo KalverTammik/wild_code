@@ -11,14 +11,13 @@ from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...ui.mixins.filtered_feed_mixin import FilteredFeedMixin
 from ...constants.module_names import Module
 from ...feed.FeedLogic import UnifiedFeedLogic as FeedLogic
-from ...widgets.OverdueDueSoonPillsWidget import OverduePillsMixin
 from ...utils.FilterHelpers.FilterHelper import FilterRefreshService
 from ...utils.search.SearchOpenItemMixin import SearchOpenItemMixin
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 
 
-class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, FilteredFeedMixin, ModuleBaseUI):
+class ProjectsModule(SearchOpenItemMixin, FilteredFeedMixin, ModuleBaseUI):
 
     FEED_LOGIC_CLS: Type[FeedLogic] = FeedLogic
     QUERY_FILE = "ListFilteredProjects.graphql"
@@ -33,15 +32,10 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, FilteredFeedMixin, 
     ) -> None:
         super().__init__(parent)
         self._init_feed_module(Module.PROJECT, LanguageManager())
-        self.wire_overdue_pills(self.toolbar_area, lang_manager=self.lang_manager)
         self._build_filters_and_feed(TranslationKeys.NO_PROJECTS_FOUND)
 
         self.feed_logic = self.FEED_LOGIC_CLS(self.module_key, self.QUERY_FILE)
         self.feed_logic.configure_single_item_query(self.SINGLE_ITEM_QUERY_FILE)
-
-    def on_first_visible(self) -> None:
-        super().on_first_visible()
-        self.refresh_overdue_counts(Module.PROJECT)
 
     def _refresh_filters(
         self,
@@ -57,5 +51,4 @@ class ProjectsModule(SearchOpenItemMixin, OverduePillsMixin, FilteredFeedMixin, 
             tags_ids=tags_ids,
             status_filter=self.status_filter,
             tags_filter=self.tags_filter,
-            reset_overdue_pills=True,
         )

@@ -11,6 +11,7 @@ from ...ui.ModuleBaseUI import ModuleBaseUI
 from ...ui.mixins.filtered_feed_mixin import FilteredFeedMixin
 from ...utils.FilterHelpers.FilterHelper import FilterRefreshService
 from ...utils.search.SearchOpenItemMixin import SearchOpenItemMixin
+from ...widgets.home.dashboard_counts import Selection
 from ...constants.module_names import Module, ModuleSupports
 
 
@@ -50,6 +51,10 @@ class TaskModuleBaseUI(SearchOpenItemMixin, FilteredFeedMixin, ModuleBaseUI):
             support_key=ModuleSupports.TYPES.value,
         )
         return [str(item_id) for item_id in (ids or []) if item_id]
+
+    def _module_scope(self) -> Selection:
+        ids = self._module_scope_type_ids() if self.supports_type_filter else []
+        return Selection(({"column": "TYPE", "operator": "IN", "value": ids},) if ids else ())
 
     def _effective_type_ids(self, type_ids: Optional[List[str]]) -> List[str]:
         scope_ids = self._module_scope_type_ids()

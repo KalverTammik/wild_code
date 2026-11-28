@@ -137,30 +137,35 @@ Tühjendamine ei kustuta seadistustes salvestatud eelistusi. Nende taastamiseks 
 
 Servituutide, tööde ja teostusjooniste liigipiirkonna erand jääb kehtima ka kogu filtrirea tühjendamisel. Tööde moodulis käivitub enne loendi laadimist sama põhikihi sünkroonimine nagu värskendamisel.
 
-## Tähtaja kiirnupud
+## Tähtaja arvud näidikul
 
-Projektide, lepingute ja kooskõlastuste filtrirea paremas osas on rühm **Kiire!**. Selles on kaks arvuga nuppu:
+Projektide, lepingute, kooskõlastuste, servituutide, tööde ja teostusjooniste filtrirea paremas osas on näidik, mis võrdleb kaht andmekogumit:
 
-| Nupp | Rakendatav kuupäevatingimus |
+| Rida | Mida loetakse |
 |---|---|
-| Vasak arv | Tähtaeg on tänasest varasem. Tänase tähtajaga kirje ei ole üle tähtaja. |
-| Parem arv | Tähtaeg on tänasest kuni kolme kalendripäeva kaugusel, mõlemad piirpäevad kaasa arvatud. |
+| **Valik** | Kirjed, mille filtrirea staatuse-, liigi- ja tunnusevalikud alles jätavad. |
+| **Kõik** | Kogu mooduli kirjed. Servituutides, töödes ja teostusjoonistes piirab neid seadistatud liigipiirkond. |
 
-Arvud laaditakse mooduli esmakordsel avamisel. Laadimise ajal kuvatakse `…` ja nupud on passiivsed. Arv näitab kogu mooduli vastava tähtajavahemiku kirjete hulka ega arvesta filtrireal parajasti valitud staatuseid, liike ega tunnuseid.
+Mõlemast näidatakse arve **kokku**, **hilinenud** ja **peagi**:
 
-### Tähtajanupu klõpsamise tegelik koosmõju
+| Näitaja | Tingimus |
+|---|---|
+| Hilinenud | Kavitro tunnus „üle tähtaja“: tähtaeg on möödas ja kirje pole lõpetatud. |
+| Peagi | Tähtaeg on tänasest kuni kolme kalendripäeva kaugusel, mõlemad piirpäevad kaasa arvatud. |
 
-- Nupp asendab tavalise loendi staatuse- ja liigitingimuse valitud kuupäevatingimusega.
-- Staatuse- ja liigivalikud jäävad filtrireal nähtavaks, kuid tähtajavaates neid päringus ei kasutata.
-- Projektide, lepingute ja kooskõlastuste parajasti valitud tunnused jäävad tähtajafiltriga kaasa.
-- Seetõttu võib nupu järel kuvatud kirjete arv olla nupul olevast arvust väiksem, kui tunnusefilter on valitud.
-- Aktiivne tähtajanupp tõstetakse esile.
-- Aktiivse nupu uuesti klõpsamine ei lülita filtrit välja, vaid rakendab sama tähtajafiltri uuesti.
-- Tavaloendisse naasmiseks muuda mõnd tavalist filtrit või kasuta **Värskenda filtreid** või **Tühjenda filtrivalikud**.
+Arvud loetakse ühe päringuga iga kord, kui filtrid rakenduvad. Laadimise ajal kuvatakse `…`, ebaõnnestumise korral `–` ja kohtspikris veateade.
 
-Projektide moodulis eemaldab tavapärase filtri rakendamine ka tähtajanupu aktiivse kujunduse. Lepingute ja kooskõlastuste praeguses teostuses võib tähtajanupu esiletõstetud kujundus pärast tavaloendisse naasmist nähtavale jääda, kuigi loend ise on juba tavaliste filtritega uuesti laaditud.
+Lepingutes, kooskõlastustes ja töödes on näidiku kõrval veel mooduli graafik (tähtajad nädalate kaupa, tähtajas osakaal, uued tööd kuude kaupa), mis arvestab filtrirea valikut. Kitsas aknas graafik peidetakse.
 
-Tähtajanupp ei väljuta koodis eraldi üksiku otsingutulemuse režiimist. Kui nuppu kasutatakse kohe pärast otsingust ühe kirje avamist ja loend ei muutu ootuspäraselt, kasuta tavaloendisse naasmiseks filtrirea värskendamise või tühjendamise ikooni.
+### Näidiku kujundus ja värvid
+
+Näidiku kõrval olev hammasrattanupp avab valikud **Kujundus** (kaheksa varianti, vaikimisi **Kolm tulpa**) ja **Värvikomplekt** (kuus komplekti, vaikimisi **Põhivärvid**). Valik salvestatakse QGIS-i seadetesse ja kehtib kõigis moodulites. Kujundusest sõltub, kas ridadeks on **Valik** ja **Kõik** või näitajad **Kokku**, **Hilinenud** ja **Peagi**; loetavad arvud ja klõpsamine on kõigis samad.
+
+### Arvu klõpsamine
+
+- Klõps nullist suuremal **hilinenud** või **peagi** arvul näitab loendis täpselt need kirjed: **Valik** real koos filtrirea valikutega, **Kõik** real ilma nendeta.
+- Aktiivne arv on piiratud joonega. Sama arvu uus klõps toob tagasi tavalise filtreeritud loendi.
+- Filtri muutmine, värskendamine või tühjendamine lõpetab samuti tähtajavaate.
 
 ## Nuppude võrdlus
 
@@ -171,7 +176,7 @@ Tähtajanupp ei väljuta koodis eraldi üksiku otsingutulemuse režiimist. Kui n
 | Tunnuse valimine või tühjendamine | Jah | Ei | Jah | Ei |
 | **Värskenda filtreid** | Jah | Ei; loeb eelistused uuesti | Jah | Üldjuhul ei; Töödes võib sünkroonida põhikihti |
 | **Tühjenda filtrivalikud** | Jah | Ei | Jah | Üldjuhul ei; Töödes võib sünkroonida põhikihti |
-| Tähtaja vasak või parem arv | Jah | Ei | Mitte eraldi | Ei |
+| Näidiku hilinenud või peagi arv | Jah | Ei | Jah | Ei |
 
 ## Soovituslikud töövõtted
 
@@ -189,10 +194,9 @@ Tähtajanupp ei väljuta koodis eraldi üksiku otsingutulemuse režiimist. Kui n
 
 ### Tähtajaliste kirjete kontroll
 
-1. Vaata rühma **Kiire!** vasakut ja paremat arvu.
-2. Klõpsa vastavalt üle tähtaja või läheneva tähtajaga kirjete nuppu.
-3. Kui tunnusefilter on aktiivne, arvesta, et loend kitseneb veel tunnuste järgi.
-4. Naase tavaloendisse filtrirea värskendamise või tühjendamise ikooniga.
+1. Vaata näidiku ridu **Valik** ja **Kõik**.
+2. Klõpsa hilinenud või peagi arvul.
+3. Naase tavaloendisse sama arvu uue klõpsuga.
 
 ## Kui filter ei anna oodatud tulemust
 
@@ -201,7 +205,7 @@ Tähtajanupp ei väljuta koodis eraldi üksiku otsingutulemuse režiimist. Kui n
 - Kui **Värskenda filtreid** toob tagasi ootamatu valiku, kontrolli mooduli eelistusi seadistustes.
 - Kui **Tühjenda filtrivalikud** ei näita töödes, teostusjoonistes või servituutides kõiki liike, kontrolli seadistatud eelistatud liikide piirkonda.
 - Kui mitme tunnuse valik annab oodatust rohkem vasteid, arvesta režiimiga **VÄHEMALT ÜKS**.
-- Kui tähtajanupu arv ja loendi kirjete arv erinevad, kontrolli aktiivset tunnusefiltrit.
+- Kui näidiku arv ja loendi kirjete arv erinevad, värskenda filtreid: arvud loetakse filtrite rakendamise hetkel.
 - Kui filtrivalikute laadimine lõpeb veaga, jääb vastav väli passiivseks; kontrolli Kavitro seanssi ja internetiühendust ning ava moodul uuesti.
 
 ## Praeguse teostuse mahupiirid

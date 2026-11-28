@@ -9,8 +9,8 @@ Lepingute ja kooskõlastuste nupud on praeguses versioonis peaaegu samad. Moodul
 | **Staatus**, **Liik**, **Tunnused** | Lepingute või kooskõlastuste loendi kohal | Filtreerivad loendi valitud väärtuste järgi. |
 | **Värskenda filtreid** | Filtrirea parem osa | Taastab salvestatud filtrieelistused ja tavaloendi. |
 | **Tühjenda filtrivalikud** | Filtrirea parem osa | Eemaldab aktiivsed tavapärased filtrid. |
-| **Üle tähtaja** arv | Rühm **Kiire!**; kohtspikker **Vajab kiiret tähelepanu** | Kuvab tänasest varasema tähtajaga kirjed. |
-| **Tähtaeg läheneb** arv | Sama rühm | Kuvab tänasest kuni kolme päeva kaugusele jääva tähtajaga kirjed. |
+| **Hilinenud** arv | Filtrirea näidik, read **Valik** ja **Kõik** | Kuvab üle tähtaja kirjed. |
+| **Peagi** arv | Sama näidik | Kuvab tänasest kuni kolme päeva kaugusele jääva tähtajaga kirjed. |
 
 ## Kirjekaardi nupud
 

@@ -6,6 +6,8 @@ from ..Logs.python_fail_logger import PythonFailLogger
 from ..constants.settings_keys import (
     PLUGIN,
     PREFERRED_MODULE,
+    INDICATOR_DESIGN,
+    INDICATOR_PALETTE,
     LANGUAGE,
     MAIN_PROPERTY_LAYER_ID,
     GEOSPATIAL_SETUP_MODE,
@@ -88,6 +90,12 @@ class SettingsService:
             return str(self.get_setting(LANGUAGE, default) or default)
         self.set_setting(LANGUAGE, value)
         return value
+
+    def indicator_design(self, value=_UNSET, *, clear: bool = False, default: str = ""):
+        return self.plugin_setting(INDICATOR_DESIGN, value=value, clear=clear, default=default)
+
+    def indicator_palette(self, value=_UNSET, *, clear: bool = False, default: str = ""):
+        return self.plugin_setting(INDICATOR_PALETTE, value=value, clear=clear, default=default)
 
     def main_property_layer_id(self, value=_UNSET, *, clear: bool = False, default: str = ""):
         return self.plugin_setting(MAIN_PROPERTY_LAYER_ID, value=value, clear=clear, default=default)

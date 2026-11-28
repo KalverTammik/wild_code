@@ -109,7 +109,6 @@ class QssPaths:
     MODULE_INFO = "ModuleInfo.qss"
     MESSAGE_BOX = "MessageBox.qss"
     SETTING_MODULE_LABELS = "ModuleLabelsWidget.qss"
-    OVERDUE_PILLS = "OverduePills.qss"
 
     LOGIN_THEME = os.path.join(PLUGIN_ROOT, STYLES, "LoginTheme.qss")
 

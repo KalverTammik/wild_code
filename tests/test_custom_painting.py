@@ -18,20 +18,17 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from qgis.core import QgsApplication
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QPointF, Qt
-from qgis.PyQt.QtGui import QMouseEvent
-from qgis.PyQt.QtWidgets import QApplication
+from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
-from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.widgets.DataDisplayWidgets.MembersView import AvatarBubble
 from Kavitro_dev.widgets.DelayHelpers.glow_progress_bar import GlowProgressBar
 from Kavitro_dev.widgets.DelayHelpers.LoadingSpinner import GradientSpinner
-from Kavitro_dev.widgets.ModuleKpiCard import ModuleKpiGauge
+from Kavitro_dev.widgets.home.dashboard_cards import PAGE, HomeCard, Snapshot
 from Kavitro_dev.widgets.select_arrow import SelectArrow
 
 _APP = QgsApplication.instance() or QgsApplication([], False)
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
-PAINTED = {"AvatarBubble", "GlowProgressBar", "GradientSpinner", "ModuleKpiGauge", "SelectArrow"}
+PAINTED = {"AvatarBubble", "GlowProgressBar", "GradientSpinner", "HomeCard", "SelectArrow"}
 
 
 class CustomPaintingTest(unittest.TestCase):
@@ -78,20 +75,9 @@ class CustomPaintingTest(unittest.TestCase):
                 bar.setState(state)
                 self._paint(bar)
 
-    def test_kpi_gauge_loading_counted_and_hovered(self) -> None:
-        gauge = ModuleKpiGauge(lang_manager=LanguageManager())
-        gauge.set_loading_state()
-        self._paint(gauge)
-        gauge.set_counts(total_count=10, overdue_count=3, due_soon_count=2)
-        segment = gauge._segment_geometry()[0]
-        point = gauge._segment_anchor_point(segment)
-        move = QMouseEvent(
-            QEvent.Type.MouseMove, point, QPointF(gauge.mapToGlobal(point.toPoint())),
-            Qt.MouseButton.NoButton, Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier)
-        QApplication.sendEvent(gauge, move)
-        self.assertIsNotNone(gauge._hovered_segment)
-        gauge.grab()
-        self.assertEqual(self.failures, [])
+    def test_home_card_before_its_numbers_arrive(self) -> None:
+        # The other states are painted in test_home_dashboard.
+        self._paint(HomeCard(PAGE[0][0][0], Snapshot()))
 
     def test_unassigned_avatar(self) -> None:
         self._paint(AvatarBubble("-", unassigned=True))

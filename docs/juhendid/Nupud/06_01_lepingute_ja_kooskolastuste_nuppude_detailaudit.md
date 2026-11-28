@@ -23,7 +23,7 @@ Lepingute ja kooskõlastuste loendis on sama nupurühm:
 
 - **Staatus**, **Liik** ja **Tunnused**;
 - **Värskenda filtreid** ja **Tühjenda filtrivalikud**;
-- **Kiire!** rühma üle tähtaja ja läheneva tähtaja arvunupud.
+- näidiku **hilinenud** ja **peagi** arvud ridadel **Valik** ja **Kõik**.
 
 Nende moodulite eripärad on järgmised:
 

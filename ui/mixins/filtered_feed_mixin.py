@@ -11,12 +11,15 @@ from ...module_manager import ModuleManager
 from ...python.latest_request import LatestRequest
 from ...utils.api_error_handling import user_message
 from ...utils.SessionManager import SessionManager
+from ...utils.FilterHelpers.due_filters import due_soon_conditions, overdue_conditions
 from ...utils.FilterHelpers.FilterHelper import FilterHelper, FilterRefreshService
 from ...constants.module_names import Module
 from ...widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from ...widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from ...widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from ...widgets.Filters.filter_refresh_helper import FilterRefreshHelper
+from ...widgets.home.dashboard_counts import SOURCES, Selection
+from ...widgets.home.module_indicator import ModuleIndicator
 
 
 class FilteredFeedMixin:
@@ -67,6 +70,11 @@ class FilteredFeedMixin:
         self._filter_refresh_widget = refresh_widget
         self.toolbar_area.set_refresh_widget(refresh_widget)
 
+        if self.module_key in SOURCES:
+            self.module_indicator = ModuleIndicator(self.module_key, self.toolbar_area)
+            self.module_indicator.dueClicked.connect(self._on_due_clicked)
+            self.toolbar_area.set_indicator(self.module_indicator)
+
         self.feed_content = QWidget()
         self.feed_content.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         self.feed_layout = QVBoxLayout(self.feed_content)
@@ -88,6 +96,8 @@ class FilteredFeedMixin:
 
     def deactivate(self) -> None:
         self._invalidate_feed_request()
+        if self.module_indicator is not None:
+            self.module_indicator.cancel()
         self._clear_filters()
         # Filter worker threads must stop before the module goes, or QThread teardown crashes.
         for name, widget in (("status", self.status_filter), ("type", self.type_filter), ("tags", self.tags_filter)):
@@ -185,6 +195,36 @@ class FilteredFeedMixin:
     def reset_feed_session(self) -> None:
         self._invalidate_feed_request()
         super().reset_feed_session()
+
+    # --- The indicator: counts what the filters leave, and filters the list by due date --------
+    def _module_scope(self) -> Selection:
+        """What narrows the module's whole data, whatever the filters say."""
+        return Selection()
+
+    def on_filters_applied(self, conditions: list, where_has) -> None:
+        if self.module_indicator is not None:
+            self.module_indicator.show_selection(Selection(tuple(conditions), where_has), self._module_scope())
+
+    def _on_due_clicked(self, whole: bool, overdue: bool) -> None:
+        """Show the records of the clicked number; the same number again returns to the filters."""
+        indicator = self.module_indicator
+        if indicator.active() == (whole, overdue):
+            self._refresh_filters()
+            return
+        selection = indicator.whole if whole else indicator.shown
+        due = overdue_conditions() if overdue else due_soon_conditions()
+        engine = self.feed_load_engine
+        if engine is not None:
+            engine.buffer.clear()
+        feed_logic = self.feed_logic
+        feed_logic.set_single_item_mode(False)
+        feed_logic.set_where({"AND": [*selection.conditions, *due]})
+        feed_logic.set_extra_arguments(whereHas=selection.where_has)
+        self.clear_feed(self.feed_layout, self._empty_state)
+        self.scroll_area.verticalScrollBar().setValue(0)
+        indicator.set_active((whole, overdue))
+        if engine is not None:
+            engine.schedule_load()
 
     def _on_status_filter_selection(self, _texts: List[str], ids: List[str]) -> None:
         self._refresh_filters(status_ids=ids)

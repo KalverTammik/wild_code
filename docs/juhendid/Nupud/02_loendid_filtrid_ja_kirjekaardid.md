@@ -22,8 +22,8 @@ Filtrite rakendumine, valikute omavaheline koosmõju, moodulierandid ja tähtaja
 
 | Nupp | Asukoht | Lühikirjeldus |
 |---|---|---|
-| **Vasak arv – üle tähtaja** | Projektide, lepingute ja kooskõlastuste filtrirea rühm **Kiire!**; kohtspikker **Vajab kiiret tähelepanu** | Filtreerib kirjed, mille tähtaeg on tänasest varasem. |
-| **Parem arv – tähtaeg läheneb** | Sama tähtajarühm | Filtreerib kirjed, mille tähtaeg on tänasest kuni kolme päeva kaugusel. |
+| **Näidiku hilinenud arv** | Filtrirea näidiku read **Valik** ja **Kõik** | Näitab loendis üle tähtaja kirjed (tähtaeg möödas ja kirje pole lõpetatud). |
+| **Näidiku peagi arv** | Sama näidik | Näitab loendis kirjed, mille tähtaeg on tänasest kuni kolme päeva kaugusel. |
 
 Nuppudel kuvatakse tekstisildi asemel kirjete arv. Aktiivne nupp on kujundusega esile tõstetud.
 
