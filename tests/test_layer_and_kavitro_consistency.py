@@ -292,7 +292,7 @@ class ProjectAreaTest(DialogStubCase):
         payload = projects_controller_module.ProjectsFeatureMapController._geometry_payload_for_item(
             layer, {"id": "5"}, linked_id)
 
-        expected = ProjectsLayerService.backend_geometry_payload_from_geometry(square(20))
+        expected = ProjectsLayerService.backend_geometry_payload_from_geometry(square(20), layer)
         self.assertEqual(payload, expected)
 
     def mode(self, layer, choice_index: int):

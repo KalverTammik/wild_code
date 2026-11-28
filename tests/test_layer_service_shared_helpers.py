@@ -207,10 +207,12 @@ class BackendGeometryPayloadTest(unittest.TestCase):
             name = MODULE_NAMES[service]
             home = home_of(service.backend_geometry_payload_from_geometry)
             with self.subTest(service=service.__name__), patch.object(home, "GeometryPayloadService") as payloads:
-                result = service.backend_geometry_payload_from_geometry(geometry)
+                layer = Mock()
+                result = service.backend_geometry_payload_from_geometry(geometry, layer)
                 self.assertIs(result, payloads.from_qgs_geometry.return_value)
                 payloads.from_qgs_geometry.assert_called_once_with(
-                    geometry, module=name, error_event=f"{name}_geometry_to_payload_failed"
+                    geometry, source_crs=layer.crs.return_value, module=name,
+                    error_event=f"{name}_geometry_to_payload_failed",
                 )
 
 

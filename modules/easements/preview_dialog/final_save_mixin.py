@@ -86,7 +86,7 @@ class EasementFinalSaveMixin:
                 item_number=str(self._item_number or "").strip(),
             )
             geometry = feature.geometry() if feature is not None else None
-            geometry_payload = EasementLayerService.backend_geometry_payload_from_geometry(geometry)
+            geometry_payload = EasementLayerService.backend_geometry_payload_from_geometry(geometry, layer)
             if geometry_payload is None:
                 PythonFailLogger.log(
                     "easement_final_geometry_backend_sync_skipped_no_geometry",

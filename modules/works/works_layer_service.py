@@ -856,14 +856,21 @@ class WorksLayerService(ModuleLayerServiceBase):
 
     @staticmethod
     def geometry_for_layer(geometry_payload, layer: QgsVectorLayer) -> Optional[QgsGeometry]:
-        """Backend location in the layer's own type, or None if it cannot be a location on this layer."""
+        """Backend location in the layer's system and type, or None if it cannot be a location on this layer."""
         geometry = WorksLayerService.geometry_from_payload(geometry_payload)
         if geometry is None or geometry.type() != layer.geometryType():
             return None
 
         # The backend field is free-form JSON: another client may have written other coordinates there.
-        extent = WorksLayerService._crs_extent(layer.crs().authid())
+        extent = WorksLayerService._crs_extent(GeometryPayloadService.KAVITRO_CRS)
         if not extent.isNull() and not extent.contains(geometry.boundingBox()):
+            return None
+
+        try:
+            geometry = GeometryPayloadService.transformed(geometry, GeometryPayloadService.kavitro_crs(), layer.crs())
+        except QgsCsException:
+            return None
+        if geometry is None:
             return None
 
         converted = layer.dataProvider().convertToProviderType(geometry)

@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import Callable, Iterable, Optional
 
 from qgis.PyQt.QtWidgets import QDialog
-from qgis.core import QgsPointXY
+from qgis.core import QgsGeometry, QgsPointXY
 from qgis.utils import iface
 
 from ...languages.language_manager import LanguageManager
@@ -352,6 +352,12 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
             works_layer,
             status_color=initial_status_color,
         )
+        if geometry_payload is None:
+            ModernMessageDialog.show_warning(
+                self._lang.translate(TranslationKeys.ERROR),
+                self._lang.translate(TranslationKeys.WORKS_CREATE_FAILED),
+            )
+            return None
         try:
             task_id = APIModuleActions.create_task(
                 title=dialog.title_text(),
@@ -637,16 +643,11 @@ class WorksCreateController(WorksCreateOptionsMixin, WorksPendingGisReviewMixin)
         )
 
     @staticmethod
-    def _backend_point_geometry_payload(point: QgsPointXY, layer=None, *, status_color: object = None) -> dict[str, object]:
-        backend_point = point
-        if layer is not None:
-            backend_point = WorksLayerService._point_in_layer_crs(point, layer)
-        payload = {
-            "type": "Point",
-            "coordinates": [backend_point.x(), backend_point.y()],
-        }
-        payload = WorksLayerService.styled_backend_geometry_payload(payload, color=status_color) or payload
-        return payload
+    def _backend_point_geometry_payload(point: QgsPointXY, layer, *, status_color: object = None) -> Optional[dict[str, object]]:
+        """The Kavitro form of a map canvas point; None when it cannot be converted."""
+        layer_point = WorksLayerService._point_in_layer_crs(point, layer)
+        payload = WorksLayerService.backend_geometry_payload_from_geometry(QgsGeometry.fromPointXY(layer_point), layer)
+        return WorksLayerService.styled_backend_geometry_payload(payload, color=status_color)
 
     @staticmethod
     def _responsible_display_name(task_data: Optional[dict], *, fallback: str = "") -> str:

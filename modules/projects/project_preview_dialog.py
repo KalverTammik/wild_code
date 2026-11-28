@@ -783,7 +783,7 @@ class ProjectPreviewDialog(QDialog):
             item_name=ProjectsLayerService._item_name(self._item),
         )
         payload = ProjectsLayerService.backend_geometry_payload_from_geometry(
-            feature.geometry() if feature is not None else None
+            feature.geometry() if feature is not None else None, layer
         )
         if payload is None:
             return False, self._lang.translate(TranslationKeys.KAVITRO_GEOMETRY_NOT_FOUND)

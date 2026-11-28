@@ -54,7 +54,8 @@ class GeometryPayloadTest(_QgisTest):
 
     def test_what_the_plugin_sends_reads_back_unchanged(self) -> None:
         original = QgsGeometry.fromPointXY(QgsPointXY(630385.6212345678, 6457752.9798765432))
-        sent = GeometryPayloadService.from_qgs_geometry(original, module="works", error_event="test")
+        sent = GeometryPayloadService.from_qgs_geometry(
+            original, source_crs=GeometryPayloadService.kavitro_crs(), module="works", error_event="test")
 
         received = self._parse(json.loads(json.dumps(sent)))
 
@@ -64,7 +65,8 @@ class GeometryPayloadTest(_QgisTest):
 
     def test_a_work_read_back_from_kavitro_is_not_seen_as_moved(self) -> None:
         on_layer = QgsGeometry.fromPointXY(QgsPointXY(630385.6212345678, 6457752.9798765432))
-        sent = GeometryPayloadService.from_qgs_geometry(on_layer, module="works", error_event="test")
+        sent = GeometryPayloadService.from_qgs_geometry(
+            on_layer, source_crs=GeometryPayloadService.kavitro_crs(), module="works", error_event="test")
         from_kavitro = self._parse(json.loads(json.dumps(sent)))
 
         self.assertTrue(WorksSyncService._geometries_equal(on_layer, from_kavitro))
@@ -97,10 +99,17 @@ class GeometryForLayerTest(_QgisTest):
 
         self.assertIsNone(WorksLayerService.geometry_for_layer(point_payload(26.5, 58.2), layer))
 
-    def test_longitude_latitude_is_a_location_on_a_geographic_layer(self) -> None:
+    def test_location_is_converted_to_a_geographic_layer(self) -> None:
         layer = QgsVectorLayer("Point?crs=EPSG:4326", "works", "memory")
 
-        self.assertIsNotNone(WorksLayerService.geometry_for_layer(point_payload(26.5, 58.2), layer))
+        point = WorksLayerService.geometry_for_layer(point_payload(X, Y), layer).asPoint()
+
+        self.assertTrue(21 < point.x() < 29 and 57 < point.y() < 60, point)
+
+    def test_longitude_latitude_is_not_a_kavitro_location(self) -> None:
+        layer = QgsVectorLayer("Point?crs=EPSG:4326", "works", "memory")
+
+        self.assertIsNone(WorksLayerService.geometry_for_layer(point_payload(26.5, 58.2), layer))
 
     def test_other_geometry_type_is_refused(self) -> None:
         layer = QgsVectorLayer("Point?crs=EPSG:3301", "works", "memory")

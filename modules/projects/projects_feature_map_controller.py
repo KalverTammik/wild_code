@@ -157,7 +157,7 @@ class ProjectsFeatureMapController:
                     item_name=str((item_payload or {}).get("name") or (item_payload or {}).get("title") or "").strip(),
                 )
             geometry = feature.geometry() if feature is not None else None
-            return ProjectsLayerService.backend_geometry_payload_from_geometry(geometry)
+            return ProjectsLayerService.backend_geometry_payload_from_geometry(geometry, layer)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,

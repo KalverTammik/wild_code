@@ -176,7 +176,7 @@ class EasementAttachExistingController:
                     item_number=str((item_payload or {}).get("number") or "").strip(),
                 )
             geometry = feature.geometry() if feature is not None else None
-            return EasementLayerService.backend_geometry_payload_from_geometry(geometry)
+            return EasementLayerService.backend_geometry_payload_from_geometry(geometry, layer)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,

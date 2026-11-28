@@ -367,7 +367,7 @@ class WorksSyncService(QObject):
                 if not task:
                     raise RuntimeError(f"Task {task_id} could not be read before geometry sync")
                 status_color = WorksLayerService.status_color_from_task(task)
-            geometry_payload = WorksLayerService.backend_geometry_payload_from_geometry(geometry or feature.geometry())
+            geometry_payload = WorksLayerService.backend_geometry_payload_from_geometry(geometry or feature.geometry(), layer)
             geometry_payload = WorksLayerService.styled_backend_geometry_payload(
                 geometry_payload, color=status_color)
             if geometry_payload is None or not APIModuleActions.update_task_geometry(task_id, geometry_payload):

@@ -3,16 +3,40 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from qgis.core import QgsGeometry, QgsJsonUtils
+from qgis.core import (
+    Qgis, QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsGeometry, QgsJsonUtils, QgsProject,
+)
 
 from ..Logs.python_fail_logger import PythonFailLogger
 
 
 class GeometryPayloadService:
+    # Kavitro stores and returns coordinates in this system; layers may use another one.
+    KAVITRO_CRS = "EPSG:3301"
+
+    @staticmethod
+    def kavitro_crs() -> QgsCoordinateReferenceSystem:
+        return QgsCoordinateReferenceSystem(GeometryPayloadService.KAVITRO_CRS)
+
+    @staticmethod
+    def transformed(
+        geometry: QgsGeometry, source: QgsCoordinateReferenceSystem, target: QgsCoordinateReferenceSystem,
+    ) -> Optional[QgsGeometry]:
+        """A copy of the geometry in `target`, or None when it cannot be converted. May raise QgsCsException."""
+        if not source.isValid() or not target.isValid():
+            return None
+        result = QgsGeometry(geometry)
+        if source != target:
+            transform = QgsCoordinateTransform(source, target, QgsProject.instance().transformContext())
+            if result.transform(transform) != Qgis.GeometryOperationResult.Success:
+                return None
+        return result
+
     @staticmethod
     def from_qgs_geometry(
         geometry: Optional[QgsGeometry],
         *,
+        source_crs: QgsCoordinateReferenceSystem,
         module: str,
         error_event: str,
         normalize_single_multipolygon: bool = True,
@@ -21,6 +45,11 @@ class GeometryPayloadService:
             return None
 
         try:
+            geometry = GeometryPayloadService.transformed(geometry, source_crs, GeometryPayloadService.kavitro_crs())
+            if geometry is None:
+                # Sending the layer's own numbers would put the object somewhere else in Kavitro.
+                PythonFailLogger.log(error_event, module=module, message=f"no transform from {source_crs.authid()!r}")
+                return None
             geometry_text = geometry.asJson()
             if not geometry_text:
                 return None

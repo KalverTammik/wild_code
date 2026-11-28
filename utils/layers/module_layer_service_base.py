@@ -567,9 +567,13 @@ class ModuleLayerServiceBase:
             return point
 
     @classmethod
-    def backend_geometry_payload_from_geometry(cls, geometry: Optional[QgsGeometry]) -> Optional[dict[str, object]]:
+    def backend_geometry_payload_from_geometry(
+        cls, geometry: Optional[QgsGeometry], layer: QgsVectorLayer,
+    ) -> Optional[dict[str, object]]:
+        """The Kavitro form of a geometry of `layer`."""
         return GeometryPayloadService.from_qgs_geometry(
             geometry,
+            source_crs=layer.crs(),
             module=cls.MODULE.value,
             error_event=f"{cls.MODULE.value}_geometry_to_payload_failed",
         )

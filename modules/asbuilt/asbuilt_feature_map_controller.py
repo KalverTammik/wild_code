@@ -180,7 +180,7 @@ class AsBuiltFeatureMapController:
                 )
                 return None
             geometry = feature.geometry()
-            return AsBuiltLayerService.backend_geometry_payload_from_geometry(geometry)
+            return AsBuiltLayerService.backend_geometry_payload_from_geometry(geometry, layer)
         except Exception as exc:
             PythonFailLogger.log_exception(
                 exc,
