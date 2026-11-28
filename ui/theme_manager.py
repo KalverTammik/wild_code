@@ -1,7 +1,7 @@
 # ==== BEGIN ThemeManager v2 ====
 from functools import lru_cache
 from typing import Any, Callable
-from qgis.PyQt.QtCore import QObject, pyqtSignal
+from qgis.PyQt.QtCore import QT_VERSION, QObject, pyqtSignal
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QStyledItemDelegate
 from qgis.PyQt import sip
@@ -15,6 +15,11 @@ from ..constants.module_icons import IconNames
 from ..Logs.python_fail_logger import PythonFailLogger
 
 settings = QgsSettings()
+
+_QT_COMBO_DELEGATES = ("QComboBoxDelegate", "QComboMenuDelegate")
+# Qt6 draws a spin or date box 3 px taller than a line edit with the same padding; Qt5 draws them equal.
+_QT6_QSS = "QAbstractSpinBox { padding-top: 5px; padding-bottom: 4px; }" if QT_VERSION >= 0x060000 else ""
+
 
 class Theme(str):
     LIGHT = "light"
@@ -190,6 +195,8 @@ class ThemeManager(QObject):
                     qss_text = fh.read()
                     qss_text = ThemeManager._resolve_qss_urls(qss_text, os.path.dirname(qss_path))
                     css += qss_text + "\n"
+                if qss_file == QssPaths.MAIN:
+                    css += _QT6_QSS  # right after the input rules; later files can still override it
         return css
 
     @staticmethod
@@ -255,7 +262,9 @@ class ThemeManager(QObject):
     @staticmethod
     def _style_list_popup(combo, theme_dir: str) -> None:
         # Otherwise Fusion draws the rows as menu items, which take the QGIS UI theme's QMenu rules.
-        if not isinstance(combo.itemDelegate(), QStyledItemDelegate):
+        # In Qt6 Qt's own combo delegate is a QStyledItemDelegate too, so it is told apart by name.
+        delegate = combo.itemDelegate()
+        if not isinstance(delegate, QStyledItemDelegate) or delegate.metaObject().className() in _QT_COMBO_DELEGATES:
             combo.setItemDelegate(QStyledItemDelegate(combo))
 
         view = combo.view()

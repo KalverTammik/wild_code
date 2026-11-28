@@ -6,7 +6,9 @@ from datetime import datetime
 from typing import Optional
 
 from qgis.PyQt.QtCore import QVariant
-from qgis.core import QgsFeature, QgsFeatureRequest, QgsMapLayer, QgsVectorLayer, QgsWkbTypes
+from qgis.core import (
+    QgsFeature, QgsFeatureRequest, QgsMapLayer, QgsVariantUtils, QgsVectorLayer, QgsWkbTypes,
+)
 
 from ...utils.settings_service import SettingsService
 from ...languages.language_manager import LanguageManager
@@ -292,7 +294,9 @@ class EasementLayerService(AttachableLayerServiceBase):
             )
             unique_values = set()
 
-        for raw_value in sorted((str(v).strip() for v in unique_values if str(v).strip()), key=str.lower):
+        # An empty field is NULL (QGIS 3) or None (QGIS 4); neither is a status to offer.
+        texts = (str(value).strip() for value in unique_values if not QgsVariantUtils.isNull(value))
+        for raw_value in sorted((text for text in texts if text), key=str.lower):
             if raw_value not in values:
                 values.append(raw_value)
         return values

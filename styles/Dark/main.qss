@@ -122,7 +122,7 @@ QTabWidget::pane {
 /* The weight goes on the bar: Qt measures a tab with the bar's font, so on ::tab alone it clips the text. */
 QTabBar {
     background: transparent;
-    font-weight: 600;
+    font-weight: bold;
 }
 QTabBar::tab {
     background: transparent;
@@ -222,11 +222,11 @@ QTableView::item:hover, QTableWidget::item:hover {
     background: #3a3f4b;
 }
 QTableView::item:selected, QTableWidget::item:selected {
-    background: rgba(9,144,143,0.55);
+    background: #1a6468;
     color: #ececf1;
 }
 QTableView::item:selected:!active, QTableWidget::item:selected:!active {
-    background: rgba(9,144,143,0.55);
+    background: #1a6468;
     color: #ececf1;
 }
 

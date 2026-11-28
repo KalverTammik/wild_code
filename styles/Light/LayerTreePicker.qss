@@ -47,7 +47,7 @@ QFrame#LayerTreePopup {
     color: #24292e;
     border: 1px solid #2188ff;
     border-radius: 8px;
-    padding: 8px;
+    padding: 4px;
 }
 
 QFrame#LayerTreePopup QTreeWidget {
@@ -56,16 +56,18 @@ QFrame#LayerTreePopup QTreeWidget {
     border: none;
     outline: none;
     font-size: 12px;
+    /* Only the row's own box marks the selection, not a platform-coloured block in the indentation. */
+    show-decoration-selected: 0;
+    selection-background-color: transparent;
 }
 
 QFrame#LayerTreePopup QTreeWidget::item {
-    min-height: 22px;
-    padding: 5px 8px;
-    margin: 1px 0;
+    min-height: 18px;
+    padding: 2px 6px;
+    margin: 0;
     border: 1px solid transparent;
     border-radius: 6px;
     color: #24292e;
-    font-weight: 600;
 }
 
 QFrame#LayerTreePopup QTreeWidget::item:selected {
@@ -88,6 +90,11 @@ QFrame#LayerTreePopup QTreeWidget::branch {
     border: none;
     width: 14px;
     height: 14px;
+}
+
+QFrame#LayerTreePopup QTreeWidget::branch:selected,
+QFrame#LayerTreePopup QTreeWidget::branch:hover {
+    background: #ffffff; /* covers the row highlight Qt paints under the indentation */
 }
 
 QFrame#LayerTreePopup QTreeWidget QScrollBar:vertical {

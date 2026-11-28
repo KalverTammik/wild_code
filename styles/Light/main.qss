@@ -125,7 +125,7 @@ QTabWidget::pane {
 /* The weight goes on the bar: Qt measures a tab with the bar's font, so on ::tab alone it clips the text. */
 QTabBar {
     background: transparent;
-    font-weight: 600;
+    font-weight: bold;
 }
 QTabBar::tab {
     background: transparent;

@@ -33,7 +33,6 @@ from qgis.PyQt.QtWidgets import (
 
 from Kavitro_dev.constants.file_paths import QssPaths, StylePaths
 from Kavitro_dev.ui.theme_manager import ThemeManager
-from qt_compat import qt6_stage4
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 # What the QGIS "Blend of Gray" UI theme sets on these subcontrols at application level.
@@ -97,7 +96,6 @@ class TableSelectionStyleTest(_StyledWindowTest):
 
         self.assertEqual(offenders, [])
 
-    @qt6_stage4
     def test_dark_table_marks_only_the_selected_row(self) -> None:
         plain, selected = self._cell_colors(StylePaths.DARK)
 
@@ -141,7 +139,6 @@ class InputButtonStyleTest(_StyledWindowTest):
                 with self.subTest(theme=theme_dir, input=name):
                     self.assertEqual(column, {field.name()})
 
-    @qt6_stage4
     def test_all_inputs_have_the_same_height(self) -> None:
         window = self._window(StylePaths.LIGHT)
         inputs = self._inputs(window)
@@ -177,7 +174,6 @@ class CalendarStyleTest(_StyledWindowTest):
 class TabStyleTest(_StyledWindowTest):
     PADDING = 28
 
-    @qt6_stage4
     def test_tab_is_wide_enough_for_its_text_in_the_weight_it_is_painted_with(self) -> None:
         for theme_dir in (StylePaths.LIGHT, StylePaths.DARK):
             window = self._window(theme_dir)

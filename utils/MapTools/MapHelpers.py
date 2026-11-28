@@ -1,6 +1,9 @@
 from typing import List, Optional, Sequence
 from ...languages.translation_keys import TranslationKeys
-from qgis.core import QgsVectorLayer, QgsFeature, QgsRectangle, QgsProject, QgsMapLayer, QgsFeatureRequest, QgsCoordinateTransform
+from qgis.core import (
+    QgsCoordinateTransform, QgsFeature, QgsFeatureRequest, QgsMapLayer, QgsProject, QgsRectangle, QgsVariantUtils,
+    QgsVectorLayer,
+)
 from qgis.utils import iface
 from ...constants.module_names import Module
 from ..settings_service import SettingsService
@@ -458,7 +461,7 @@ class FeatureActions:
         used = set()
         for f in layer.getFeatures():
             v = f.attribute(Katastriyksus.fid)
-            if v is not None:
+            if not QgsVariantUtils.isNull(v):
                 used.add(int(v))
         n = 1
         while n in used:

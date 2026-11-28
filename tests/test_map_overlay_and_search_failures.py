@@ -23,7 +23,6 @@ from Kavitro_dev.ui.map_canvas_glass_overlay import MapCanvasGlassOverlayBase
 from Kavitro_dev.ui.map_canvas_search_bar import MapCanvasSearchBar
 from Kavitro_dev.ui.messages_helper import ModernMessageDialog
 from Kavitro_dev.widgets.SearchResultsWidget import SearchResultsWidget
-from qt_compat import qt6_stage4
 
 
 def delete_now(widget) -> None:
@@ -48,6 +47,9 @@ class OverlayCase(unittest.TestCase):
         dialog_patch = patch.object(ModernMessageDialog, "_create_dialog", side_effect=AssertionError("modal opened"))
         dialog_patch.start()
         self.addCleanup(dialog_patch.stop)
+        # A wait window left by an earlier test closes on its next event loop turn and would take the focus
+        # away in the middle of this test.
+        self.app.processEvents()
         self.extra_widgets = []
 
     def tearDown(self) -> None:
@@ -130,7 +132,6 @@ class SearchBarFailureTest(OverlayCase):
         self.assertIs(MapCanvasSearchBar._active_instance, first)
         self.assertEqual(logged_events(log), ["map_overlay_on_ready_failed"])
 
-    @qt6_stage4
     def test_a_failing_result_click_is_logged_and_shown_in_the_results_popup(self) -> None:
         MapCanvasSearchBar.show_for_session()
         bar = MapCanvasSearchBar._active_instance
@@ -154,6 +155,20 @@ class SearchBarFailureTest(OverlayCase):
             results.resultsList.item(0).text(),
             LanguageManager().translate(TranslationKeys.SEARCH_RESULT_OPEN_FAILED),
         )
+
+    def test_focus_back_on_the_search_field_keeps_the_results_open(self) -> None:
+        MapCanvasSearchBar.show_for_session()
+        bar = MapCanvasSearchBar._active_instance
+        results = bar.search_results_widget
+        results.show_status_message("otsin", bar.search_edit)
+        other = QLineEdit()
+        self.addCleanup(delete_now, other)
+
+        results._on_application_focus_changed(other, bar.search_edit)
+        self.assertTrue(results.isVisible())
+
+        results._on_application_focus_changed(bar.search_edit, other)
+        self.assertFalse(results.isVisible())
 
     def test_the_deferred_message_is_skipped_once_the_bar_is_gone(self) -> None:
         class DeletedBar:

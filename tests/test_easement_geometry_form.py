@@ -21,7 +21,6 @@ from Kavitro_dev.modules.easements import easement_geometry_form_dialog as form_
 from Kavitro_dev.modules.easements.easement_geometry_form_dialog import EasementGeometryFormDialog as Form
 from Kavitro_dev.modules.easements.easement_layer_service import EasementLayerService
 from Kavitro_dev.widgets.form_grid import StackedFormGrid
-from qt_compat import qt6_stage4
 
 PREPARING = {"id": "1", "name": "Ettevalmistamisel", "color": "4FBF6B", "type": "OPEN"}
 SIGNED = {"id": "2", "name": "Allkirjastatud", "color": "2188FF", "type": "OPEN"}
@@ -494,7 +493,6 @@ class EasementFormLayoutTest(_EasementFormTest):
     def test_form_has_no_repeated_title_and_uses_the_form_width(self) -> None:
         self.assert_form_is_finished(self.form)
 
-    @qt6_stage4
     def test_fields_share_rows_and_line_up_on_both_edges(self) -> None:
         self.assert_rows_line_up(self.form, self.data_rows)
 
@@ -523,7 +521,6 @@ class EasementFormLayoutTest(_EasementFormTest):
         self.assertEqual(self._x(form._source), self._x(form._email))
         self.assertEqual(self._x(form._source), self._x(form._compensation))
 
-    @qt6_stage4
     def test_every_single_line_field_has_the_same_height(self) -> None:
         # The status widget's own frame fills the row; what shows is the control inside it.
         visible = [self.form._status._control if field is self.form._status else field for row in self.data_rows[:-1] for field in row]
@@ -657,7 +654,6 @@ class AsBuiltFormTest(_FormDialogTest):
         self.assert_text_area_clears_the_buttons(form, form._notes)
         self.assertGreaterEqual(form._notes.height(), 80)
 
-    @qt6_stage4
     def test_fields_share_rows_and_line_up_on_both_edges(self) -> None:
         form = self._show(self._form())
         network = form._network_checks["Vesi"].parentWidget()

@@ -4,7 +4,9 @@ from __future__ import annotations
 from typing import Optional
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
-from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import (
+    QAbstractItemView, QFrame, QHBoxLayout, QLabel, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+)
 from qgis.core import Qgis, QgsLayerTreeGroup, QgsLayerTreeLayer, QgsMapLayer, QgsProject, QgsVectorLayer
 
 from ..constants.file_paths import QssPaths
@@ -20,6 +22,7 @@ class LayerTreePicker(QWidget):
     """Combo-like layer picker that preserves QGIS group/subgroup structure."""
 
     layerChanged = pyqtSignal(object)
+    POPUP_TREE_MAX_HEIGHT = 360
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -148,15 +151,24 @@ class LayerTreePicker(QWidget):
         tree.setRootIsDecorated(True)
         tree.setUniformRowHeights(True)
         tree.setMinimumWidth(max(320, self.width()))
-        tree.setMaximumHeight(360)
         tree.itemClicked.connect(self._on_tree_item_clicked)
         layout.addWidget(tree)
         self._populate_tree(tree)
 
         self._popup = popup
         self._apply_style(popup)
+        self._fit_tree_height(tree)
         popup.move(self.mapToGlobal(self.rect().bottomLeft()))
         popup.show()
+
+    def _fit_tree_height(self, tree: QTreeWidget) -> None:
+        """As tall as its rows, up to the limit; the current layer is shown with what surrounds it."""
+        tree.ensurePolished()  # the row height comes from the stylesheet
+        rows = len(tree.findItems("*", Qt.MatchFlag.MatchWildcard | Qt.MatchFlag.MatchRecursive))
+        wanted = max(1, rows) * max(1, tree.sizeHintForRow(0)) + 2 * tree.frameWidth()
+        tree.setFixedHeight(min(self.POPUP_TREE_MAX_HEIGHT, wanted))
+        if tree.currentItem() is not None:
+            tree.scrollToItem(tree.currentItem(), QAbstractItemView.ScrollHint.PositionAtCenter)
 
     def _close_popup(self) -> None:
         popup = self._popup

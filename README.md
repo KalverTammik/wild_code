@@ -54,7 +54,7 @@ docker run --rm -e QT_QPA_PLATFORM=offscreen -e PYTHONPATH=/usr/share/qgis/pytho
   python3 tools/run_tests.py
 ```
 
-QGIS 4 jaoks kasuta pilti `qgis/qgis:4.4`. Teadaolevad Qt6 erinevused, mis ootavad lahendamist, on testides märgitud `qt6_stage4`-ga ja jäävad seal vahele.
+QGIS 4 jaoks kasuta pilti `qgis/qgis:4.4`.
 
 ## Release
 

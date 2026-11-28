@@ -34,6 +34,7 @@ class SearchResultsWidget(QDialog):
         # Track expanded state for each module type
 
         self.expanded_modules = set()
+        self._search_field = None  # the field the popup was last shown under
 
         # Main layout
         root_layout = QVBoxLayout(self)
@@ -313,7 +314,7 @@ class SearchResultsWidget(QDialog):
             self.hide_results()
         elif self.isVisible() and new is not None:
             # If focus moves to the search field, do not hide
-            if hasattr(self.parent(), 'searchEdit') and new == self.parent().searchEdit:
+            if new == self._search_field:
                 return
             self.hide_results()
 
@@ -363,6 +364,7 @@ class SearchResultsWidget(QDialog):
         self.hide()
 
     def set_size(self, search_field):
+        self._search_field = search_field
         width = int(search_field.width() * 1.5)
         self.setFixedWidth(width)
         pos = search_field.mapToGlobal(search_field.rect().bottomLeft())
