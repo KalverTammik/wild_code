@@ -372,4 +372,3 @@ QFrame#TagPill * {
 }
 
 /* The sample record of the tag prototype */
-QFrame#GroupedTagRecord { background: #ffffff; border: 1px solid #d7dee5; border-radius: 8px; }

@@ -43,10 +43,6 @@ class OverflowRow(QWidget):
         """How many entries there are to place."""
         raise NotImplementedError
 
-    def most_visible(self) -> int:
-        """The most entries the line may hold, however wide it is."""
-        return self.entry_count()
-
     def uncounted(self) -> int:
         """Entries that exist but cannot be placed (not read from the server); the mark counts them."""
         return 0
@@ -87,7 +83,7 @@ class OverflowRow(QWidget):
 
     def fitting_count(self, width: int) -> int:
         """As many entries as fit, but never fewer than one."""
-        for count in range(min(self.most_visible(), self.entry_count()), 1, -1):
+        for count in range(self.entry_count(), 1, -1):
             if self._width_with_mark(count) <= width:
                 return count
         return min(1, self.entry_count())
@@ -119,7 +115,7 @@ class OverflowRow(QWidget):
             self._mark.hide()
 
     def sizeHint(self) -> QSize:  # noqa: N802 - Qt override
-        return QSize(self._width_with_mark(min(self.most_visible(), self.entry_count())), self.line_height())
+        return QSize(self._width_with_mark(self.entry_count()), self.line_height())
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802
         return QSize(self._width_with_mark(min(1, self.entry_count())), self.line_height())

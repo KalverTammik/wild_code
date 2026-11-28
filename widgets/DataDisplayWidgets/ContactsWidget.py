@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import zlib
 from dataclasses import replace
-from typing import NamedTuple, Optional, Sequence
+from typing import Optional, Sequence
 
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
@@ -19,18 +19,10 @@ from ..overflow_row import OverflowRow
 _AVATAR_COLORS = ("#3b7dd8", "#2f9e6e", "#c2702b", "#8a5cd1", "#c2497a", "#4c8c9c")
 _COMPANY_FORMS = ("OÜ", "AS", "MTÜ", "TÜ", "FIE")
 _LONGEST_TEXT = 40  # characters of a name or role on a tile; the tooltip has the whole text
-
-
-class ContactLook(NamedTuple):
-    """The measures of the tiles; the defaults are the user's choice (2026-11-28)."""
-
-    shown: int = 0  # a cap on the tiles of the line; 0: only the width limits them
-    roles: bool = True
-    gap: int = 6  # between the tiles
-    radius: int = 6
-
-
-DEFAULT_LOOK = ContactLook()
+# The measures of the tiles, the user's choice (2026-11-28).
+_GAP = 6  # between the tiles
+_RADIUS = 6
+_AVATAR_SIZE = 24
 
 
 def initials(name: str) -> str:
@@ -44,18 +36,17 @@ def shortened(text: str) -> str:
     return text if len(text) <= _LONGEST_TEXT else text[:_LONGEST_TEXT - 1].rstrip() + "…"
 
 
-def contact_avatar(contact: ContactInfo, parent: QWidget, *, radius: int, size: int = 24) -> QLabel:
+def contact_avatar(contact: ContactInfo, parent: QWidget) -> QLabel:
     """The colour follows the name, so a contact looks the same on every card."""
     avatar = QLabel(initials(contact.name), parent)
     avatar.setObjectName("ContactAvatar")
     avatar.setTextFormat(Qt.TextFormat.PlainText)
-    avatar.setFixedSize(size, size)
+    avatar.setFixedSize(_AVATAR_SIZE, _AVATAR_SIZE)
     avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
     color = _AVATAR_COLORS[zlib.crc32(contact.name.encode("utf-8")) % len(_AVATAR_COLORS)]
-    corner = min(radius, size // 2) if contact.company else size // 2
-    letters = 10 if size >= 24 else 8  # two letters must fit the small circle too
+    corner = _RADIUS if contact.company else _AVATAR_SIZE // 2
     avatar.setStyleSheet(
-        f"background: {color}; color: #ffffff; font-size: {letters}px; font-weight: bold; border-radius: {corner}px;")
+        f"background: {color}; color: #ffffff; font-size: 10px; font-weight: bold; border-radius: {corner}px;")
     avatar.setToolTip("\n".join(part for part in (contact.name, contact.notes) if part))
     return avatar
 
@@ -68,21 +59,17 @@ class ContactTiles(OverflowRow):
         self._lang = LanguageManager()
         self._contacts: tuple[ContactInfo, ...] = ()
         self._total = 0
-        self._look = DEFAULT_LOOK
+        self.gap = _GAP
         self._tiles: list[QFrame] = []
 
-    def show_contacts(
-        self, contacts: Sequence[ContactInfo], *, total: Optional[int] = None, look: ContactLook = DEFAULT_LOOK,
-    ) -> None:
+    def show_contacts(self, contacts: Sequence[ContactInfo], *, total: Optional[int] = None) -> None:
         """`total` counts also the contacts that were not read."""
         self._contacts = tuple(contacts)
         self._total = max(len(self._contacts), total or 0)
-        self._look = look
         self.retheme()
 
     def retheme(self) -> None:
         self.setStyleSheet(self._style(ThemeManager.effective_theme() == "dark"))
-        self.gap = self._look.gap
         for tile in self._tiles:
             tile.hide()
             tile.deleteLater()
@@ -91,9 +78,6 @@ class ContactTiles(OverflowRow):
 
     def entry_count(self) -> int:
         return len(self._contacts)
-
-    def most_visible(self) -> int:
-        return self._look.shown or self.entry_count()
 
     def uncounted(self) -> int:
         return self._total - len(self._contacts)
@@ -139,11 +123,11 @@ class ContactTiles(OverflowRow):
         row = QHBoxLayout(tile)
         row.setContentsMargins(4, 3, 9, 3)
         row.setSpacing(6)
-        row.addWidget(contact_avatar(contact, tile, radius=self._look.radius))
+        row.addWidget(contact_avatar(contact, tile))
         column = QVBoxLayout()
         column.setSpacing(0)
         column.addWidget(self._label(shortened(contact.name), "ContactName", tile))
-        if self._look.roles and contact.notes:
+        if contact.notes:
             column.addWidget(self._label(shortened(contact.notes), "ContactRole", tile))
         row.addLayout(column)
         tile.setToolTip("\n".join(part for part in (contact.name, contact.notes) if part))
@@ -161,13 +145,12 @@ class ContactTiles(OverflowRow):
         muted = "#9aa4b2" if dark else "#6a737d"
         line = "rgba(150,150,160,0.35)" if dark else "rgba(60,80,100,0.18)"
         soft = "rgba(150,150,160,0.12)" if dark else "rgba(60,80,100,0.06)"
-        radius = self._look.radius
         return "\n".join([
             f"QLabel {{ background: transparent; color: {text}; font-size: 11px; border: none; }}",
-            f"QFrame#ContactTile {{ background: {soft}; border: 1px solid {line}; border-radius: {radius}px; }}",
+            f"QFrame#ContactTile {{ background: {soft}; border: 1px solid {line}; border-radius: {_RADIUS}px; }}",
             "QLabel#ContactName { font-weight: 600; }",
             f"QLabel#ContactRole {{ color: {muted}; font-size: 10px; }}",
-            *self.row_style(dark, radius),
+            *self.row_style(dark, _RADIUS),
         ])
 
 

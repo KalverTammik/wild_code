@@ -1,4 +1,4 @@
-"""Grouped tags (prototype): reading them, arranging them, choosing them."""
+"""Grouped tags: reading them, arranging them, choosing them."""
 from __future__ import annotations
 
 import os
@@ -26,7 +26,6 @@ from Kavitro_dev.widgets.Tags.grouped_tag_picker import GroupedTagPicker
 from Kavitro_dev.widgets.Tags.record_tags import RecordTagsView
 from Kavitro_dev.widgets.Tags.tag_catalog_store import TagCatalogStore
 from Kavitro_dev.widgets.Tags.tag_chips import TagChipsView
-from Kavitro_dev.widgets.Tags.tag_prototype_panel import TagPrototypePanel
 
 _APP = QgsApplication.instance() or QgsApplication([], False)
 
@@ -136,17 +135,6 @@ class GroupedTagPickerTest(unittest.TestCase):
         self.picker.set_catalog(TagCatalog.from_nodes(NODES + [node("99", "Uus")]))
 
         self.assertEqual(self.picker.selected_ids(), ["99"])
-
-
-class PanelTest(unittest.TestCase):
-    def test_the_panel_shows_a_failed_read(self) -> None:
-        panel = TagPrototypePanel()
-        delete_later(self, panel)
-
-        panel._on_failed("[WC-API][network] Offline")
-
-        self.assertIn("Offline", panel.status_label.text())
-        self.assertNotIn("WC-API", panel.status_label.text())
 
 
 def capsules(view) -> list[tuple[str, list[str]]]:
@@ -264,17 +252,6 @@ class CapsuleTest(unittest.TestCase):
             view.retheme()
 
         self.assertNotEqual(view.styleSheet(), light)
-
-    def test_the_prototype_settings_change_the_sample_record(self) -> None:
-        panel = TagPrototypePanel()
-        delete_later(self, panel)
-        panel._requested_module = "project"
-        panel._on_loaded(TagCatalog.from_nodes(NODES))
-
-        panel.look_spins["tag_pad"].setValue(9)
-
-        self.assertIn("padding: 1px 9px", panel.record_chips.styleSheet())
-        self.assertEqual(len(panel.record_picker.selected_ids()), 5)
 
 
 class RecordTagsTest(unittest.TestCase):

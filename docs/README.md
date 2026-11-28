@@ -19,6 +19,9 @@ mooduli juhendi lingi kaudu (`constants/help_urls.py`).
 Kaust [`juhendid/Nupud/`](juhendid/Nupud/) koondab plugina nuppude lühiülevaated ja
 nende detailauditid (eeldused, veateed, avatud leiud). Neid ei pakendata pluginaga kaasa.
 
+[`juhendid/Kujunduse_proovimine.md`](juhendid/Kujunduse_proovimine.md) kirjeldab, kuidas
+komponendi välimust avalehe proovipaneeliga valida; loe see enne uusi kujundusarutelusid.
+
 ## Arendaja referentsid
 
 Kaust [`development/`](development/) sisaldab kehtivaid tehnilisi leppeid ja

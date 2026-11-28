@@ -20,28 +20,12 @@ GROUP_TONES = 5  # groups take the strengths of the one accent colour in list or
 UNGROUPED_TONE = "none"
 _STRENGTHS = (0.70, 0.77, 0.84, 0.91, 0.98)
 
-# separator -> (text written after a tag, whether a vertical line is drawn instead)
-SEPARATORS = {"dot": ("  ·", False), "comma": (",", False), "bar": ("", True), "slash": ("  /", False), "none": ("", False)}
-SEPARATOR_KEYS = {
-    "dot": TranslationKeys.TAG_SEPARATOR_DOT, "comma": TranslationKeys.TAG_SEPARATOR_COMMA,
-    "bar": TranslationKeys.TAG_SEPARATOR_BAR, "slash": TranslationKeys.TAG_SEPARATOR_SLASH,
-    "none": TranslationKeys.TAG_SEPARATOR_NONE,
-}
-
-
-class Look(NamedTuple):
-    """The measures of a capsule; the defaults are the user's choice (2026-11-28)."""
-
-    radius: int = 6  # outer roundness
-    height: int = 0  # extra space above and below, inside the capsule
-    tag_gap: int = 3  # between the tags
-    capsule_gap: int = 6  # between the capsules
-    separator: str = "bar"
-    tag_pad: int = 2  # left and right of a tag's text
-    name_pad: int = 2  # left and right of the group name
-
-
-DEFAULT_LOOK = Look()
+# The measures of a capsule, the user's choice (2026-11-28); a vertical line separates the tags.
+RADIUS = 6  # outer roundness
+TAG_GAP = 3  # between the tags
+CAPSULE_GAP = 6  # between the capsules
+TAG_PAD = 2  # left and right of a tag's text
+NAME_PAD = 2  # left and right of the group name
 
 
 class Section(NamedTuple):
@@ -87,7 +71,7 @@ def _label(text: str, name: str, parent: QWidget, **properties: str) -> QLabel:
 class _Capsule(QFrame):
     """The name end and the tags; in the popup the tags wrap inside a capsule that is too wide."""
 
-    def __init__(self, section: Section, look: Look, parent: QWidget) -> None:
+    def __init__(self, section: Section, parent: QWidget) -> None:
         super().__init__(parent)
         self.setObjectName("TagCapsule")
         wrapping(self)
@@ -101,14 +85,12 @@ class _Capsule(QFrame):
             row.addWidget(self._name)
         body = QFrame(self)
         body.setObjectName("TagCapsuleBody")
-        self.tags = FlowLayout(body, spacing=look.tag_gap)
-        self.tags.setContentsMargins(4, 1 + look.height, 4, 1 + look.height)
+        self.tags = FlowLayout(body, spacing=TAG_GAP)
+        self.tags.setContentsMargins(4, 1, 4, 1)
         row.addWidget(body, 1)
-        suffix, _line = SEPARATORS[look.separator]
         for position, tag in enumerate(section.tags):
-            last = position == len(section.tags) - 1
-            self.tags.addWidget(_label(
-                tag.name + ("" if last else suffix), "TagName", body, place="last" if last else "inner"))
+            place = "last" if position == len(section.tags) - 1 else "inner"
+            self.tags.addWidget(_label(tag.name, "TagName", body, place=place))
 
     def hasHeightForWidth(self) -> bool:  # noqa: N802 - Qt override
         return True
@@ -146,18 +128,14 @@ class TagChipsView(OverflowRow):
 
     POPUP_WIDTH = 460
 
-    def __init__(self, parent: Optional[QWidget] = None, *, look: Look = DEFAULT_LOOK) -> None:
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._lang = LanguageManager()
-        self._look = look
+        self.gap = CAPSULE_GAP
         self._shown: Optional[tuple] = None
         self._sections: list[Section] = []
         self._widths: Optional[tuple] = None  # measured per section: (name width, [tag widths])
         self._line: list[QWidget] = []  # what stands on the line, left to right
-        self.retheme()
-
-    def set_look(self, look: Look) -> None:
-        self._look = look
         self.retheme()
 
     def show_tags(self, catalog: TagCatalog, selected_ids: Iterable[str], *, record_tags: Sequence[Tag] = ()) -> None:
@@ -169,7 +147,6 @@ class TagChipsView(OverflowRow):
         catalog, selected, record_tags = self._shown
         ungrouped = self._lang.translate(TranslationKeys.TAG_PICKER_UNGROUPED)
         self._sections = sections(catalog, selected, ungrouped, record_tags)
-        self.gap = self._look.capsule_gap
         self.reflow()
 
     def reflow(self) -> None:
@@ -182,7 +159,7 @@ class TagChipsView(OverflowRow):
         if self._widths is None:
             measured = []
             for section in self._sections:
-                capsule = _Capsule(section, self._look, self)
+                capsule = _Capsule(section, self)
                 capsule.ensurePolished()
                 labels = [*capsule.findChildren(QLabel)]
                 for label in labels:
@@ -208,7 +185,7 @@ class TagChipsView(OverflowRow):
             part = tags[:count]
             count -= len(tags)
             # name, the body's side margins, the tags with their gaps, the two border pixels
-            total += name + 8 + sum(part) + self._look.tag_gap * (len(part) - 1) + 2
+            total += name + 8 + sum(part) + TAG_GAP * (len(part) - 1) + 2
             capsules += 1
         return total + self.gap * max(0, capsules - 1)
 
@@ -227,7 +204,7 @@ class TagChipsView(OverflowRow):
         self._line = []
         x = 0
         for section in first_tags(self._sections, count):
-            capsule = _Capsule(section, self._look, self)
+            capsule = _Capsule(section, self)
             capsule.ensurePolished()
             width = capsule.sizeHint().width()
             if not self._line:
@@ -245,7 +222,7 @@ class TagChipsView(OverflowRow):
     def popup_widgets(self, count: int, parent: QWidget) -> list[QWidget]:
         widgets = []
         for section in later_tags(self._sections, count):
-            capsule = _Capsule(section, self._look, parent)
+            capsule = _Capsule(section, parent)
             capsule.ensurePolished()
             width = min(self.POPUP_WIDTH, capsule.sizeHint().width())
             capsule.setFixedSize(width, capsule.heightForWidth(width))
@@ -258,26 +235,21 @@ class TagChipsView(OverflowRow):
         text = "#d4d4de" if dark else "#24292e"
         muted = "#9aa4b2" if dark else "#6a737d"
         line = "rgba(150,150,160,0.35)" if dark else "rgba(60,80,100,0.18)"
-        look = self._look
-        # Qt draws square corners when the radius exceeds half the height, so it is kept within it.
-        outer = max(0, min(look.radius, 10 + look.height))
-        corner = max(0, min(outer - 1, 9))
-        _suffix, bar = SEPARATORS[look.separator]
+        corner = RADIUS - 1  # of the name end, inside the border
         rules = [
             f"QLabel {{ background: transparent; color: {text}; font-size: 11px; border: none; }}",
             f"QLabel#TagsEmpty {{ color: {muted}; }}",
             "QFrame#TagCapsuleBody { background: transparent; border: none; }",
-            f"QFrame#TagCapsule {{ background: transparent; border: 1px solid {line}; border-radius: {outer}px; }}",
-            f"QLabel#TagName {{ padding: 1px {look.tag_pad}px;"
-            + (f" border-right: 1px solid {line};" if bar else "") + " }",
+            f"QFrame#TagCapsule {{ background: transparent; border: 1px solid {line}; border-radius: {RADIUS}px; }}",
+            f"QLabel#TagName {{ padding: 1px {TAG_PAD}px; border-right: 1px solid {line}; }}",
             'QLabel#TagName[place="last"] { border-right: none; }',
         ]
         fills = [(str(index), f"rgba({accent},{strength})") for index, strength in enumerate(_STRENGTHS)]
         for tone, fill in fills + [(UNGROUPED_TONE, "#8b949e")]:
             rules.append(
                 f'QLabel#TagCapsuleName[tone="{tone}"] {{ background: {fill}; color: #ffffff; font-size: 10px;'
-                f"font-weight: bold; padding: 1px {look.name_pad}px;"
+                f"font-weight: bold; padding: 1px {NAME_PAD}px;"
                 f"border-top-left-radius: {corner}px; border-bottom-left-radius: {corner}px; }}")
-        self.setStyleSheet("\n".join(rules + self.row_style(dark, look.radius)))
+        self.setStyleSheet("\n".join(rules + self.row_style(dark, RADIUS)))
         if self._shown is not None:
             self._rebuild()
