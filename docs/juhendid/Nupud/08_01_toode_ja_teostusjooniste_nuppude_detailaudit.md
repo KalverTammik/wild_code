@@ -18,7 +18,7 @@ Staatus- ja liigifiltri ning filtrite värskendamise ja tühjendamise täpne kä
 | **Kontrolli sidumata GIS töid** | Otsib QGIS-i kihilt sidumata punkte ja võimaldab neist Kavitro töid luua | Kontroll ise ei muuda andmeid; rea avamise järel algab loomistöövoog |
 | Teostusjoonise **Lisa/uuenda märkmeid** | Asendab Kavitro ülesande kirjelduse struktureeritud märkmete jaotise | Enne **Salvesta** vajutamist saab katkestada |
 | Teostusjoonise **Joonista uus seotud objekt kaardile** | Lisab QGIS-i objekti, kirjutab atribuudid ja saadab geomeetria Kavitrosse | Kiht salvestatakse enne Kavitrot; Kavitro vea korral saab kohe uuesti proovida |
-| **Seosta kinnistuid** | Lisab Kavitro ülesandele kinnistuseoseid | Selle töövooga seoseid eemaldada ei saa |
+| **Seosta kinnistuid** | Lisab Kavitro ülesandele kinnistuseoseid | Selle töövooga seoseid eemaldada ei saa ✔ **Tehtud (28.11.2026):** seoseid saab eemaldada kaardimenüü **Eemalda seotud kinnistuid** kaudu (v2.12.93). |
 
 Tööde ja teostusjooniste Kavitro kirjed on tehniliselt ülesanded. Seetõttu kasutavad kirjeldus, failid, staatus, geomeetria, veebiaadress ja kinnistuseosed ülesannete teenusetoiminguid.
 
@@ -103,7 +103,7 @@ Toiming kontrollib seadistatud tööde põhikihti, peidab või minimeerib Visuaa
 
 - Vasakklõps valib tööpunkti ja avab loomise vormi.
 - Paremklõps või `Esc` katkestab ning taastab Visuaali akna.
-- Muu QGIS-i tööriista käsitsi aktiveerimine ei kutsu kontrolleri katkestust; Visuaali aken võib jääda kaardivaliku olekusse kuni järgmise lõpetava toiminguni.
+- Muu QGIS-i tööriista käsitsi aktiveerimine ei kutsu kontrolleri katkestust; Visuaali aken võib jääda kaardivaliku olekusse kuni järgmise lõpetava toiminguni. ✔ **Tehtud (28.11.2026):** kaardivaliku saab lõpetada Esc-klahvi, paremklõpsu või tööriistavahetusega ja aken taastub.
 
 Klikitud kohast otsitakse kinnistute põhikihi objekti. Kinnistu puudumine ei takista vormi avamist ega töö loomist.
 
@@ -170,6 +170,8 @@ Pärast vasakklõpsu:
 
 QGIS-i punkt salvestatakse enne eraldi geomeetriapäringut. Geomeetriapäringu tagastusväärtust ei kontrollita ja selle vale-tulemust ei kuvata kasutajale. Seetõttu võib nupp näidata edu ka siis, kui Kavitro geomeetria jäi uuendamata.
 
+> ✔ **Tehtud (28.11.2026):** ebaõnnestunud asukoha saatmine nimetatakse hoiatuses; asukoha muutmisel ei kuvata siis eduteadet.
+
 Juba redigeeritaval kihil jääb uus punkt ootele. Erind võib sama kihi kogu varasema redigeerimisseansi tagasi pöörata, mistõttu lõpeta enne toimingut muud ootel muudatused.
 
 ## Muuda asukohta
@@ -194,6 +196,8 @@ Toimingu lõpus eemaldatakse tööde kihilt objektivalik, seega algselt fokuseer
 Töövoog ainult lisab seoseid. **Vali uuesti** käivitab uue valiku, **Tühista** ei lisa midagi ja **Kinnita** ei eemalda ega asenda olemasolevaid seoseid.
 
 Kinnistu-ID lahendamise või seostamise erind võib väljuda nupukäsitlejast ilma kasutajasõbraliku veadialoogita. Objektita `Esc`-katkestamine, paremklõps või tööriistavahetus ei taasta ühises ristkülikvalikus alati Visuaali akent.
+
+> ✔ **Tehtud (28.11.2026):** seostamise vead püütakse kinni ja näidatakse kasutajale; kaardivaliku saab lõpetada Esc-klahvi, paremklõpsu või tööriistavahetusega ja aken taastub.
 
 ## Teostusjooniste Rohkem toiminguid
 
@@ -252,6 +256,8 @@ Seejärel:
 5. esimese lisatud objekti järel avaneb **Teostusjoonise andmed** vorm.
 
 Toiming ei kontrolli enne joonistamist, kas sama `ext_job_id` objekt on kihil juba olemas. Korduv kasutamine võib luua ühe Kavitro kirje jaoks mitu QGIS-i objekti.
+
+> ✔ **Tehtud (28.11.2026):** olemasoleva objekti korral küsitakse **Asenda** või **Lisa juurde**.
 
 ### Joonistamise katkestamise risk
 

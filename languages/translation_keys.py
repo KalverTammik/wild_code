@@ -543,6 +543,8 @@ class TranslationKeys:
     EASEMENT_PREVIEW_PROPERTY_SAVE_FAILED = "easement_preview_property_save_failed"
     EASEMENT_PREVIEW_PROPERTY_NONE_RESOLVED = "easement_preview_property_none_resolved"
     EASEMENT_PREVIEW_PROPERTY_INVALID_DATE = "easement_preview_property_invalid_date"
+    EASEMENT_PREVIEW_PROPERTIES_LOAD_FAILED = "easement_preview_properties_load_failed"
+    EASEMENT_PREVIEW_PROPERTY_REFRESH_FAILED = "easement_preview_property_refresh_failed"
     EASEMENT_PREVIEW_FINAL_CREATED = "easement_preview_final_created"
     EASEMENT_PREVIEW_FINAL_SKIPPED = "easement_preview_final_skipped"
     EASEMENT_PREVIEW_FINAL_FAILED = "easement_preview_final_failed"

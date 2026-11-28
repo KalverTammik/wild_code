@@ -152,7 +152,6 @@ class HeaderWidget(QWidget):
             self._search_results = SearchResultsWidget(self)
             self._search_results.setVisible(False)
             self._search_results.resultClicked.connect(self._on_search_result_clicked)
-            self._search_results.refreshRequested.connect(self._on_refresh_requested)
             # log_debug("[DEBUG] SearchResultsWidget created and connected")
         return self._search_results
 
@@ -199,13 +198,6 @@ class HeaderWidget(QWidget):
         """Handle search result selection."""
         # Emit signal for parent to handle navigation
         self.searchResultClicked.emit(module, item_id, title)
-
-    def _on_refresh_requested(self):
-        """Handle refresh request from search results widget."""
-        # Re-show the current search results with updated expansion state
-        query = self.searchEdit.text().strip()
-        if len(query) >= 3:
-            self._perform_search()
 
     def _on_search_status(self, message: str) -> None:
         self.search_results_widget.show_status_message(message, self.searchEdit)

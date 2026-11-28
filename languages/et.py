@@ -864,6 +864,8 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SAVE_FAILED: "Servituudi kinnistuandmete salvestamine ebaõnnestus. Valik ({count}): {preview}\n\nDetailid: {err}"
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_NONE_RESOLVED: "Ühtki valitud kinnistut ei leitud Kavitrost."
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_INVALID_DATE: "Kinnistu {property} järgmise makse kuupäev peab olema ISO-kujul AAAA-KK-PP."
+        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTIES_LOAD_FAILED: "Servituudi kinnistuid ei saanud Kavitrost lugeda. Sulge eelvaade ja ava uuesti.\n\nDetailid: {err}"
+        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_REFRESH_FAILED: "Servituudi {pid} kinnistuandmed salvestati Kavitrosse, aga neid ei saanud uuesti lugeda, seetõttu kaardikihile ala ei kirjutatud. Sulge eelvaade ja ava uuesti.\n\nDetailid: {err}"
         ,TranslationKeys.EASEMENT_PREVIEW_FINAL_CREATED: "Lõplik servituudiala eelvaade {preview} loodi {count} ristuva kihi põhjal."
         ,TranslationKeys.EASEMENT_PREVIEW_FINAL_SKIPPED: "Lõplikku servituudiala ei loodud, sest puhverdatud tehnovõrgu alad ei lõikunud valitud kinnistutega."
         ,TranslationKeys.EASEMENT_PREVIEW_FINAL_FAILED: "Lõpliku servituudiala eelvaate loomine ebaõnnestus."

@@ -366,6 +366,12 @@ class EasementPreviewLayersMixin:
         return final_message
 
     def _run_connected_property_preview_flow(self) -> None:
+        # A final cut made for the earlier properties or buffers must not supply the areas of these.
+        MemoryLayerResultService.remove_existing(
+            self._final_preview_name or self._final_preview_layer_name(), only_memory=True
+        )
+        self._final_preview_name = ""
+
         if not self._connected_property_numbers:
             self._property_summary_card.clear()
             for key in self._ROW_KEYS:

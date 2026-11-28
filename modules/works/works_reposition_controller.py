@@ -126,6 +126,9 @@ class WorksRepositionController:
                     extra={"task_id": task_id},
                 )
 
+        if WorksSyncService.take_geometry_failure(task_id):
+            return  # the sync listener has already warned that Kavitro does not have the new location
+
         ModernMessageDialog.show_info(
             self._lang.translate(TranslationKeys.SUCCESS),
             self._lang.translate(TranslationKeys.WORKS_REPOSITION_SUCCESS).format(task_id=task_id),

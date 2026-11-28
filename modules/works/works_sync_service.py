@@ -23,16 +23,27 @@ class WorksSyncService(QObject):
     # sends the new location without reading the task first. Class-wide, since the flow and the sync that
     # listens to the layer are different objects.
     _known_status_colors: dict[str, str] = {}
+    # Task ids whose latest location did not reach Kavitro, for the flow that moved them to ask about.
+    _failed_geometry_tasks: set[str] = set()
 
     @classmethod
     def expect_geometry_change(cls, task_id: str, *, status_color: str) -> None:
         task_id_text, color = str(task_id or "").strip(), str(status_color or "").strip()
+        cls._failed_geometry_tasks.discard(task_id_text)
         if task_id_text and color:
             cls._known_status_colors[task_id_text] = color
 
     @classmethod
     def forget_geometry_change(cls, task_id: str) -> None:
         cls._known_status_colors.pop(str(task_id or "").strip(), None)
+
+    @classmethod
+    def take_geometry_failure(cls, task_id: str) -> bool:
+        """Whether the location of this task failed to reach Kavitro since it was last expected."""
+        task_id_text = str(task_id or "").strip()
+        failed = task_id_text in cls._failed_geometry_tasks
+        cls._failed_geometry_tasks.discard(task_id_text)
+        return failed
 
     def __init__(self, *, parent=None) -> None:
         super().__init__(parent)
@@ -367,6 +378,7 @@ class WorksSyncService(QObject):
                 exc, module=Module.WORKS.value, event="works_sync_update_geometry_failed",
                 extra={"task_id": task_id},
             )
+            self._failed_geometry_tasks.add(task_id)
             return False
 
     @staticmethod

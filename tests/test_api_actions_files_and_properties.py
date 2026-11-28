@@ -718,24 +718,16 @@ class GetEasementPropertyEdgesTest(ActionTestCase):
                 self.assertEqual(APIModuleActions.get_easement_property_edges("e-1"), expected)
                 self.assertEqual(self.client.send_query.call_count, 1)
 
-    def test_unloadable_query_returns_nothing_and_is_logged(self) -> None:
+    def test_unloadable_query_raises_without_a_request(self) -> None:
         self.loader.load_query_by_module.side_effect = ValueError("unknown_module")
-        self.assertEqual(APIModuleActions.get_easement_property_edges(" e-1 "), [])
+        with self.assertRaises(ValueError):
+            APIModuleActions.get_easement_property_edges(" e-1 ")
         self.client.send_query.assert_not_called()
-        self.assertEqual(self.log.call_args.kwargs, {
-            "module": "easement",
-            "event": "easement_property_edges_query_load_failed",
-            "extra": {"item_id": "e-1"},
-        })
 
-    def test_request_failure_keeps_the_edges_already_read_and_is_logged(self) -> None:
+    def test_request_failure_raises_instead_of_returning_part_of_the_properties(self) -> None:
         self.client.send_query.side_effect = [easement_page([easement_edge("1")], "c1", True), RuntimeError("offline")]
-        self.assertEqual(APIModuleActions.get_easement_property_edges("e-1"), [easement_edge("1")])
-        self.assertEqual(self.log.call_args.kwargs, {
-            "module": "easement",
-            "event": "easement_property_edges_fetch_failed",
-            "extra": {"item_id": "e-1"},
-        })
+        with self.assertRaises(RuntimeError):
+            APIModuleActions.get_easement_property_edges("e-1")
 
 
 class AssociatePropertiesTest(ActionTestCase):

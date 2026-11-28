@@ -269,22 +269,16 @@ class PropertyLinkActions:
 
     @staticmethod
     def get_easement_property_edges(item_id: str) -> List[dict[str, object]]:
-        """Return easement-property edges with easement-specific metadata."""
+        """Return easement-property edges with easement-specific metadata.
+
+        A failed read raises: an empty or partial list would look like the easement's real properties.
+        """
         easement_id = str(item_id or "").strip()
         if not easement_id:
             return []
 
         loader = GraphQLQueryLoader()
-        try:
-            query = loader.load_query_by_module(Module.EASEMENT.value, "W_easement_id.graphql")
-        except Exception as exc:
-            PythonFailLogger.log_exception(
-                exc,
-                module=Module.EASEMENT.value,
-                event="easement_property_edges_query_load_failed",
-                extra={"item_id": easement_id},
-            )
-            return []
+        query = loader.load_query_by_module(Module.EASEMENT.value, "W_easement_id.graphql")
 
         client = APIClient()
         end_cursor: Optional[str] = None
@@ -297,16 +291,7 @@ class PropertyLinkActions:
                 "propertiesAfter": end_cursor,
                 "id": easement_id,
             }
-            try:
-                payload = client.send_query(query, variables=variables, return_raw=True) or {}
-            except Exception as exc:
-                PythonFailLogger.log_exception(
-                    exc,
-                    module=Module.EASEMENT.value,
-                    event="easement_property_edges_fetch_failed",
-                    extra={"item_id": easement_id},
-                )
-                return edges_out
+            payload = client.send_query(query, variables=variables, return_raw=True) or {}
 
             path = [Module.EASEMENT.value, "properties"]
             edges = JsonResponseHandler.get_edges_from_path(payload, path) or []

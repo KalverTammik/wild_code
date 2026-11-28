@@ -174,7 +174,7 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         self._loaded = False
         self._worker = None
         self._worker_thread = None
-        self._pending_type_ids: List[str] = []
+        self._pending_type_ids: Optional[List[str]] = None  # chosen before the types arrived
         self._selected_type_ids: set[str] = set()
         self._auto_load = auto_load
         self._settings_logic = settings_logic or SettingsLogic()
@@ -521,10 +521,9 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
         self._loaded = True
         self.all_cb.setEnabled(True)
         self._apply_preferred_types()
-        if self._pending_type_ids:
-            pending_ids = list(self._pending_type_ids)
-            self.set_selected_ids(pending_ids, emit=False)
-            self._pending_type_ids = []
+        pending, self._pending_type_ids = self._pending_type_ids, None
+        if pending is not None:
+            self.set_selected_ids(pending, emit=False)
         self._sync_all_checkbox_state()
         self._update_control_summary()
         self._refresh_popup()
@@ -564,7 +563,7 @@ class TypeFilterWidget(PickerFilterMixin, QWidget):
             self._selected_type_ids.clear()
             self._show_all_groups = False
             self._loaded = False
-            self._pending_type_ids = []
+            self._pending_type_ids = None
             self._update_control_summary()
             self._refresh_popup()
         except Exception as exc:

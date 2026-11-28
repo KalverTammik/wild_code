@@ -16,7 +16,7 @@ Staatus- ja liigifiltri ning filtrite värskendamise ja tühjendamise täpne kä
 | **Seo olemasolev joonis kaardilt** | Kirjutab olemasolevale objektile servituudi väljad ja saadab geomeetria Kavitrosse | Automaatset ühist tagasivõtmist ei ole |
 | Konflikti **Kustuta objekt** või **Arhiveeri objekt** | Kustutab QGIS-i objekti või muudab selle staatust | Kavitro kirjet ei muudeta; salvestatud kihimuudatus võib olla pöördumatu |
 | **Muuda joonise geomeetriat kaardil** | Käivitab QGIS-i redigeerimise | Muudatusi haldab QGIS; Kavitrot ei sünkroonita |
-| **Seosta kinnistuid** | Lisab Kavitro servituudile kinnistuseoseid | Selle töövooga seoseid eemaldada ei saa |
+| **Seosta kinnistuid** | Lisab Kavitro servituudile kinnistuseoseid | Selle töövooga seoseid eemaldada ei saa ✔ **Tehtud (28.11.2026):** seoseid saab eemaldada kaardimenüü **Eemalda seotud kinnistuid** kaudu (v2.12.93). |
 | Eelvaate loomise ja puhastamise nupud | Lisavad või eemaldavad QGIS-i ajutisi mälukihte ja valikuid | Jah, kuni tulemust pole põhikihile salvestatud |
 | **Salvesta servituudi kinnistuandmed** | Uuendab Kavitro seosemetaandmeid, QGIS-i põhikihti ja Kavitro geomeetriat | Kolm andmemõju ei ole ühine tehing |
 | **Avalda PDF skeem** | Laadib faili Kavitrosse; sama nimega faili korral asendab selle või lisab uue versiooni | Asendatud vana faili tagasi ei too; avaldatud faili eemaldamiseks on vaja failihaldust või veebirakendust |
@@ -154,6 +154,8 @@ Kustutamine ega arhiveerimine ei muuda Kavitro teenuse servituudikirjet. Uue obj
 
 Kui kiht oli enne toimingut redigeerimisrežiimis, jääb edukas kustutamine või arhiveerimine ootele. Erindite käsitlemise harud võivad aga kutsuda `rollBack()` ka kasutaja varem avatud redigeerimisseansile ning tühistada samal kihil muid ootel muudatusi.
 
+> ✔ **Tehtud (28.11.2026):** tagasi pööratakse ainult plugina enda avatud muutmisseanss.
+
 ## Muuda joonise geomeetriat kaardil
 
 Toiming otsib servituudi põhikihilt objekti esmalt ID ja seejärel numbri järgi, valib selle ning käivitab QGIS-i tippude tööriista või varuvariandina objekti liigutamise.
@@ -182,6 +184,8 @@ See töövoog ainult lisab seoseid. **Vali uuesti** käivitab uue valiku, **Tüh
 
 Kinnistu-ID lahendamise või seostamise erind võib väljuda nupukäsitlejast ilma kasutajasõbraliku veadialoogita. Objektita `Esc`-katkestamine, paremklõps või tööriistavahetus ei taasta selles ühises ristkülikvalikus alati Visuaali akent.
 
+> ✔ **Tehtud (28.11.2026):** seostamise vead püütakse kinni ja näidatakse kasutajale; kaardivaliku saab lõpetada Esc-klahvi, paremklõpsu või tööriistavahetusega ja aken taastub.
+
 ## Ava servituudi eelvaade
 
 Nupp avab mittemodaalse eelvaatedialoogi. Sama kirjekaardi kaudu juba avatud dialoog tuuakse uuesti ette.
@@ -195,6 +199,8 @@ Esimesel kuvamisel:
 5. igale leitud objektirühmale luuakse arvutatud või üldise kaugusega puhver.
 
 Päringud, QGIS-i valikud ja töötlemisalgoritmid käivad kasutajaliidese lõimest ning suure andmehulga korral võib dialoog ajutiselt mitte reageerida. Teenuse päringu vea korral võib tagastuda tühi või osaline kinnistuloend ilma veaseisu ja päriselt puuduva seose selge eristuseta.
+
+> ✔ **Tehtud (28.11.2026):** servituudi kinnistute lugemise viga näidatakse kasutajale; tühja ega poolikut loendit ei kuvata.
 
 ## Puhvri kaugus, Ümardatud nurgad ja Ümarad otsad
 
@@ -256,6 +262,8 @@ See ei ole ühine tehing. Teenuse seoseandmed võivad olla muudetud ka siis, kui
 
 Kinnistuandmete payload koostatakse enne seda, kui nupp vajaduse korral lõpliku lõike loob. Kui kasutaja ei vajutanud varem **Loo lõplik lõige**, on arvutatud pindalad payload'i koostamise ajal nullid ja neid ei saadeta selle salvestuskorraga Kavitrosse. Nupu hiljem loodud lõige ei käivita seosemetaandmete teist salvestamist.
 
+> ✔ **Tehtud (28.11.2026):** lõplik lõige ja pindalad arvutatakse enne andmete kogumist.
+
 Ohutu tööjärjekord on seetõttu: loo esmalt lõplik lõige, kontrolli arvutatud pindalasid ja vajuta alles siis **Salvesta servituudi kinnistuandmed**.
 
 ### QGIS-i põhikihi ja Kavitro lahknemise risk
@@ -263,8 +271,8 @@ Ohutu tööjärjekord on seetõttu: loo esmalt lõplik lõige, kontrolli arvutat
 - Olemasolev sama servituudi objekt kirjutatakse üle ilma eraldi kinnitusküsimuseta.
 - Juba redigeeritava põhikihi muudatus jääb ootele, kuigi Kavitro seosed ja geomeetria võivad olla salvestatud.
 - Kihi salvestamise järel ebaõnnestunud Kavitro geomeetriapäring ei pööra QGIS-i objekti tagasi.
-- Erindite haru võib kutsuda `rollBack()` ka kasutaja varem avatud redigeerimisseansile ja tühistada teisi ootel kihimuudatusi.
-- Olemasoleva objekti otsing võib sama numbri järgi leida varasema vale objekti enne täpset ID-vastet.
+- Erindite haru võib kutsuda `rollBack()` ka kasutaja varem avatud redigeerimisseansile ja tühistada teisi ootel kihimuudatusi. ✔ **Tehtud (28.11.2026):** tagasi pööratakse ainult plugina enda avatud muutmisseanss.
+- Olemasoleva objekti otsing võib sama numbri järgi leida varasema vale objekti enne täpset ID-vastet. ✔ **Tehtud (28.11.2026):** ID-vaste on numbri vastest eespool.
 
 Põhikihi pindalaväljale kirjutatakse ruutmeetrid sama arvutusega nagu dialoogi kinnistupindaladel (`measure_geometry_area_sqm`): projektsioonis kihil tasapinnaliselt, kraadides kihil ellipsoidil.
 
@@ -317,7 +325,7 @@ Leiud on 2026-11-23 koodi vastu üle kontrollitud: parandatud leiud on tabelist 
 
 | Prioriteet | Leid | Kasutajarisk | Soovitatav parandus |
 |---|---|---|---|
-| Kriitiline | Kinnistuandmete payload koostatakse enne puuduva lõpliku lõike loomist | Ilma eelneva **Loo lõplik lõige** vajutuseta võivad arvutatud pindalad Kavitrosse salvestamata jääda | Loo ja arvuta lõige enne payload'i kogumist või saada pärast arvutust teine kontrollitud uuendus |
+| Kriitiline | Kinnistuandmete payload koostatakse enne puuduva lõpliku lõike loomist | Ilma eelneva **Loo lõplik lõige** vajutuseta võivad arvutatud pindalad Kavitrosse salvestamata jääda | Loo ja arvuta lõige enne payload'i kogumist või saada pärast arvutust teine kontrollitud uuendus ✔ **Tehtud (28.11.2026):** pindalad arvutatakse enne andmete saatmist. |
 
 ## Soovituslik turvaline tööjärjekord
 

@@ -24,6 +24,9 @@ from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.api_actions import APIModuleActions
 from ...python.responses import DataDisplayExtractors
+from ...utils.api_error_handling import user_message
+from ...Logs.python_fail_logger import PythonFailLogger
+from ...ui.messages_helper import ModernMessageDialog
 from ...utils.project_base_layers import ProjectBaseLayerKeys, ProjectBaseLayersService
 from ...ui.window_state.dialog_helpers import DialogHelpers
 from ...utils.date_helpers import DateHelpers
@@ -448,6 +451,21 @@ class EasementPreviewDialog(EasementPreviewLayersMixin, EasementPropertyEditorMi
             return
 
         if refresh_from_backend:
-            self._set_property_edges(APIModuleActions.get_easement_property_edges(self._item_id) or [])
+            try:
+                edges = APIModuleActions.get_easement_property_edges(self._item_id)
+            except Exception as exc:
+                PythonFailLogger.log_exception(
+                    exc,
+                    module="easement",
+                    event="easement_preview_properties_load_failed",
+                    extra={"item_id": self._item_id},
+                )
+                message = self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTIES_LOAD_FAILED).format(
+                    err=user_message(exc)
+                )
+                self._status_label.setText(message)
+                ModernMessageDialog.show_warning(self._lang.translate(TranslationKeys.ERROR), message)
+                return
+            self._set_property_edges(edges)
 
         self._run_connected_property_preview_flow()

@@ -870,6 +870,8 @@ TRANSLATIONS = {
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_SAVE_FAILED: "Could not save easement property data. Pending selection ({count}): {preview}\n\nDetails: {err}"
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_NONE_RESOLVED: "None of the selected properties were found in Kavitro."
         ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_INVALID_DATE: "Next payment date for {property} must be in ISO format YYYY-MM-DD."
+        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTIES_LOAD_FAILED: "Could not read the easement's properties from Kavitro. Close the preview and open it again.\n\nDetails: {err}"
+        ,TranslationKeys.EASEMENT_PREVIEW_PROPERTY_REFRESH_FAILED: "The property data of easement {pid} was saved to Kavitro but could not be read back, so the area was not written to the map layer. Close the preview and open it again.\n\nDetails: {err}"
         ,TranslationKeys.EASEMENT_PREVIEW_FINAL_CREATED: "Final easement area preview {preview} created from {count} intersecting layer(s)."
         ,TranslationKeys.EASEMENT_PREVIEW_FINAL_SKIPPED: "Final easement area was not created because no buffered utility areas intersect the selected properties."
         ,TranslationKeys.EASEMENT_PREVIEW_FINAL_FAILED: "Final easement area preview could not be created."

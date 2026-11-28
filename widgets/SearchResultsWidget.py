@@ -14,7 +14,6 @@ class SearchResultsWidget(QDialog):
     Groups results by module type with expandable sections.
     """
     resultClicked = pyqtSignal(str, str, str)  # module, id, title
-    refreshRequested = pyqtSignal()  # Signal to request refresh of results
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -138,6 +137,11 @@ class SearchResultsWidget(QDialog):
             self.hide()
             return
 
+        self._results = results
+        self._render_results(search_field)
+
+    def _render_results(self, search_field):
+        """List the current results, each group cut to its first five unless expanded."""
         # Ensure widget is visible (in case it was manually closed)
         self.ensure_visible()
 
@@ -148,7 +152,7 @@ class SearchResultsWidget(QDialog):
         self.resultsList.clear()
 
         # Group results by module type and display
-        for module_data in results:
+        for module_data in self._results:
             module_type = module_data.get("type", "")
             total_hits = module_data.get("total", 0)
             hits = module_data.get("hits", [])
@@ -194,7 +198,9 @@ class SearchResultsWidget(QDialog):
                 more_item.setText(LanguageManager().translate(TranslationKeys.SEARCH_SHOW_MORE).format(count=len(hits) - 5))
                 more_item.setData(Qt.ItemDataRole.UserRole, {"type": "show_more", "module": module_type})
                 more_item.setForeground(QColor("#666666"))
-                more_item.setFont(QFont("Arial", 9, QFont.Style.StyleItalic))
+                more_font = QFont("Arial", 9)
+                more_font.setItalic(True)
+                more_item.setFont(more_font)
                 self.resultsList.addItem(more_item)
 
         # Position below search field with increased width
@@ -339,7 +345,7 @@ class SearchResultsWidget(QDialog):
             # Show more item - expand this module type
             module = data.get("module", "")
             self.expanded_modules.add(module)
-            self.refreshRequested.emit()
+            self._render_results(self._search_field)
 
         elif item_type == "header":
             # Header clicked - toggle expansion
@@ -348,7 +354,7 @@ class SearchResultsWidget(QDialog):
                 self.expanded_modules.remove(module)
             else:
                 self.expanded_modules.add(module)
-            self.refreshRequested.emit()
+            self._render_results(self._search_field)
 
 
     def ensure_visible(self):

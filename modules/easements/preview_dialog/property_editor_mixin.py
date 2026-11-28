@@ -276,26 +276,34 @@ class EasementPropertyEditorMixin:
 
         return payloads, invalid_dates
 
+    def _calculate_cut_areas(self) -> None:
+        """The areas to send come from the final cut, so it is made first when there is none yet."""
+        final_layer, _status = self._ensure_final_cut_layer()
+        if final_layer is not None:
+            self._apply_final_cut_area_calculations(final_layer)
+
     def _save_property_details(self) -> None:
         if not self._item_id:
             return
 
-        payloads, invalid_dates = self._collect_property_payloads()
-        if invalid_dates:
-            ModernMessageDialog.show_warning(
-                self._lang.translate(TranslationKeys.ERROR),
-                self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_INVALID_DATE).format(
-                    property=invalid_dates[0]
-                ),
-            )
-            return
-
-        unresolved_numbers = [
-            str(payload.get("cadastralUnitNumber") or "").strip()
-            for payload in payloads
-            if not str(payload.get("id") or "").strip() and str(payload.get("cadastralUnitNumber") or "").strip()
-        ]
+        payloads: list[dict[str, object]] = []
         try:
+            self._calculate_cut_areas()
+            payloads, invalid_dates = self._collect_property_payloads()
+            if invalid_dates:
+                ModernMessageDialog.show_warning(
+                    self._lang.translate(TranslationKeys.ERROR),
+                    self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_INVALID_DATE).format(
+                        property=invalid_dates[0]
+                    ),
+                )
+                return
+
+            unresolved_numbers = [
+                str(payload.get("cadastralUnitNumber") or "").strip()
+                for payload in payloads
+                if not str(payload.get("id") or "").strip() and str(payload.get("cadastralUnitNumber") or "").strip()
+            ]
             resolved_map, missing = APIModuleActions.resolve_property_map_by_cadastral(unresolved_numbers)
             save_payloads: list[dict[str, object]] = []
             for payload in payloads:
@@ -324,7 +332,23 @@ class EasementPropertyEditorMixin:
                 return
 
             APIModuleActions.associate_easement_properties(self._item_id, save_payloads)
-            refreshed_edges = APIModuleActions.get_easement_property_edges(self._item_id) or []
+            try:
+                refreshed_edges = APIModuleActions.get_easement_property_edges(self._item_id)
+            except Exception as exc:
+                # Saved, but what Kavitro holds now is unknown: keep the rows and leave the layer alone.
+                PythonFailLogger.log_exception(
+                    exc,
+                    module=Module.EASEMENT.value,
+                    event="easement_preview_property_refresh_failed",
+                    extra={"item_id": self._item_id},
+                )
+                ModernMessageDialog.show_warning(
+                    self._lang.translate(TranslationKeys.ERROR),
+                    self._lang.translate(TranslationKeys.EASEMENT_PREVIEW_PROPERTY_REFRESH_FAILED).format(
+                        pid=self._item_id, err=user_message(exc)
+                    ),
+                )
+                return
             self._set_property_edges(refreshed_edges)
             value_problems: list[FieldValueProblem] = []
             layer_saved, layer_message = self._save_final_cut_to_main_layer(refreshed_edges, value_problems)

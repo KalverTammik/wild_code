@@ -13,7 +13,7 @@ Staatus-, liigi- ja tunnusefiltri, filtrite värskendamise ja tühjendamise ning
 | **Ava kaust**, **Ava kirje brauseris** | Avavad välise asukoha | Ei |
 | **Seosta kinnistuid / Näita seotud kinnistuid kaardil** | Seoseta olekus võib pärast ülevaate kinnitamist lisada Kavitro kinnistuseoseid; seosega olekus muudab QGIS-i aktiivset kihti, objektivalikut ja kaardi ulatust | Seostamine muudab Kavitro andmeid; kaardil näitamine mitte |
 | **Rohkem toiminguid** | Avab menüü | Ei |
-| **Seosta kinnistuid** | Lisab Kavitros lepingule või kooskõlastusele kinnistuseoseid | Jah; selle töövooga seoseid eemaldada ei saa |
+| **Seosta kinnistuid** | Lisab Kavitros lepingule või kooskõlastusele kinnistuseoseid | Jah; selle töövooga seoseid eemaldada ei saa ✔ **Tehtud (28.11.2026):** seoseid saab eemaldada kaardimenüü **Eemalda seotud kinnistuid** kaudu (v2.12.93). |
 
 Seadistuste vaate üldine **Kinnita** ei kinnita ega võta tagasi ühtegi siin kirjeldatud kirjekaardi toimingut.
 
@@ -53,6 +53,8 @@ Kooskõlastuse tingimused lisatakse kirjelduse järele eraldi pealkirja alla. Ki
 Kirjeldus ja tingimused laaditakse detaili avamisel taustal (`AsyncContentWidget`), failid eraldi taustatöös; aken jääb laadimise ajal kasutatavaks.
 
 Kirjelduse ja tingimuste laadijal puudub kohalik veakäsitlus. Päringufaili, seansi või teenuse erind võib seetõttu detaili loomise katkestada ilma selle kaardi sees kuvatava kasutajasõbraliku veateateta. Faililoendi teenusepäringu viga käsitletakse eraldi ning detailis kuvatakse faili laadimise ebaõnnestumise tekst.
+
+> ✔ **Tehtud (28.11.2026):** laadimise viga kuvatakse kaardi sees.
 
 ## Failide kokkuvõtte nupud
 
@@ -117,6 +119,8 @@ Seostamisoleku klõps ise andmeid ei muuda. Seosed salvestatakse alles ülevaate
 Klõpsamisel laaditakse Kavitrost kirjega seotud katastritunnused uuesti. Kinnistute põhikihilt leitud objektid valitakse, kiht tehakse aktiivseks ning kaart liigub nende ulatusse. Varasemat aktiivset kihti, objektivalikut ega kaardiulatust ei taastata.
 
 Kui kaardiikooni klõpsamisel teenus ei tagasta tunnuseid, kinnistukiht või objekt puudub või katastritunnuse väli ei sobi, ei kuvata kasutajale veel koondhoiatust. Nupp võib seega näida mittetöötavana.
+
+> ✔ **Tehtud (28.11.2026):** puuduvate kinnistute kohta kuvatakse hoiatus.
 
 ## Rohkem toiminguid
 

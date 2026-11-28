@@ -197,7 +197,7 @@ Tähtajanupp ei väljuta koodis eraldi üksiku otsingutulemuse režiimist. Kui n
 ## Kui filter ei anna oodatud tulemust
 
 - Kui filtriväljal on laadimisteade, oota valikute laadimise lõppu.
-- Kasuta filtrirea tühjendamise ikooni pärast valikute laadimise lõppu; laadimise ajal tehtud tühjenduse järel võivad salvestatud liigi- või tunnuse-eelistused väljal uuesti nähtavale ilmuda.
+- Kasuta filtrirea tühjendamise ikooni pärast valikute laadimise lõppu; laadimise ajal tehtud tühjenduse järel võivad salvestatud liigi- või tunnuse-eelistused väljal uuesti nähtavale ilmuda. ✔ **Tehtud (28.11.2026):** laadimise ajal tehtud tühjendus jääb kehtima.
 - Kui **Värskenda filtreid** toob tagasi ootamatu valiku, kontrolli mooduli eelistusi seadistustes.
 - Kui **Tühjenda filtrivalikud** ei näita töödes, teostusjoonistes või servituutides kõiki liike, kontrolli seadistatud eelistatud liikide piirkonda.
 - Kui mitme tunnuse valik annab oodatust rohkem vasteid, arvesta režiimiga **VÄHEMALT ÜKS**.

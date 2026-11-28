@@ -68,6 +68,7 @@ class EasementPropertySaveTest(QgsCase):
             return_value=([{"id": "", "cadastralUnitNumber": self.NUMBER, "isPayable": True}], [])
         )
         self.dialog._set_property_edges = Mock()
+        self.dialog._calculate_cut_areas = Mock()
         self.dialog._save_final_cut_to_main_layer = Mock(return_value=(True, ""))
         self.dialog._rerun_automation = Mock()
 

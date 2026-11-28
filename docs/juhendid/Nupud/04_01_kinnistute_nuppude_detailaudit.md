@@ -38,6 +38,8 @@ Valik muudab QGIS-i aktiivset kihti ja objektivalikut, kuid ei kirjuta kihi atri
 
 Valikutööriist lõpetab voo alles siis, kui kihil on vähemalt üks valitud objekt. Kontroller ei kuula eraldi `Esc`-klahvi, paremklõpsu ega QGIS-i kaarditööriista vahetamist. Kui valik katkestatakse ilma objektita, ei pruugi Visuaali aken automaatselt taastuda. Sel juhul ava või too aken ette uuesti QGIS-i Visuaali tööriistariba nupuga.
 
+> ✔ **Tehtud (28.11.2026):** kaardivaliku saab lõpetada Esc-klahvi, paremklõpsu või tööriistavahetusega ja aken taastub.
+
 ### Seotud kirjete laadimise servajuht
 
 Iga valik käivitab taustal uue seoste päringu ja annab sellele oma järjekorranumbri koos katastritunnusega. Vastus kuvatakse ainult siis, kui see kuulub viimasele päringule; vanema valiku hiljem saabunud vastus või viga jäetakse kõrvale. Sama kehtib otsingust avatud kinnistu kohta: uus otsing või kaardivalik muudab varasema otsingupäringu vastuse kehtetuks. Vana päringut ennast ei katkestata, see lihtsalt ei muuda enam vaadet.

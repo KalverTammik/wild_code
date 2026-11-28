@@ -47,7 +47,6 @@ class MapCanvasSearchBar(MapCanvasGlassOverlayBase):
             self._search_results.set_glass_mode(True)
             self._search_results.setVisible(False)
             self._search_results.resultClicked.connect(self.resultClicked.emit)
-            self._search_results.refreshRequested.connect(self._on_refresh_requested)
         return self._search_results
 
     def _build_ui(self) -> None:
@@ -116,10 +115,6 @@ class MapCanvasSearchBar(MapCanvasGlassOverlayBase):
             self.search_results_widget.hide_results()
             return
         self.search_controller.search(query)
-
-    def _on_refresh_requested(self) -> None:
-        if len(self.search_edit.text().strip()) >= 3:
-            self._perform_search()
 
     def _on_search_status(self, message: str) -> None:
         self.search_results_widget.show_status_message(message, self.search_edit)

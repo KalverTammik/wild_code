@@ -109,6 +109,7 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
         self._support_key = support_key
         self._suppress_emit = False
         self._loaded = False
+        self._pending_selected_ids: Optional[list[str]] = None  # chosen before the options arrived
         self._worker = None
         self._worker_thread = None
         self._auto_load = auto_load
@@ -187,6 +188,9 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
         return FilterHelper.selected_texts(self)
 
     def set_selected_ids(self, ids: Sequence[str], emit: bool = True) -> None:
+        if not self._loaded:
+            self._pending_selected_ids = [str(value) for value in ids or []]
+            return
         FilterHelper.set_selected_ids(self, ids, emit=emit)
         self._update_control_summary()
         self._refresh_popup()
@@ -201,6 +205,7 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
             self._control.setEnabled(False)
             self._set_all_cb_state(Qt.CheckState.Unchecked, enabled=False)
             self._loaded = False
+            self._pending_selected_ids = None
             self._update_control_summary()
         except Exception as exc:
             PythonFailLogger.log_exception(exc, module=self._module, event="filter_clear_failed")
@@ -241,7 +246,10 @@ class BaseSingleFilterWidget(PickerFilterMixin, QWidget):
         self._control.setEnabled(True)
         self._loaded = True
         self.all_cb.setEnabled(True)
-        if callable(self._selected_ids_loader):
+        pending, self._pending_selected_ids = self._pending_selected_ids, None
+        if pending is not None:
+            saved_ids = pending
+        elif callable(self._selected_ids_loader):
             try:
                 saved_ids = self._selected_ids_loader() or []
             except Exception as exc:  # the loader is supplied by the caller

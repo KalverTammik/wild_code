@@ -197,9 +197,13 @@ Toetatud tulemus vahetab mooduli ja avab selle ühe kirje režiimis. Täielikku 
 
 Mittetoetatud tulemuse klõps kuvab praeguses teostuses ingliskeelse teate, et moodulit ei saa veel otsingust avada. Moodulivahetuse seadistus- ja sessioonikontrollid rakenduvad ka otsingutulemuse avamisel.
 
+> ✔ **Tehtud (28.11.2026):** teade on tõlgitud kasutaja keelde.
+
 ### Praeguse teostuse „Näita veel“ piirang
 
 Otsingupäring küsib andmerühma kohta maksimaalselt viis vastet, kuid **Show N more** rida lisatakse ainult siis, kui vastuste loendis on üle viie kirje. Lisaks käivitab rea või rühmapealkirja klõps sama viie vastega otsingu uuesti ning uus vastus tühjendab laiendatud oleku. Seetõttu ei saa **Näita veel** praeguses versioonis tavaliselt lisatulemusi nähtavale tuua. Täpsema vaste leidmiseks tuleb otsinguteksti täpsustada.
+
+> ✔ **Tehtud (28.11.2026):** otsing küsib kuni 10 vastet, näha on 5 ja **Näita veel** avab ülejäänud uue päringuta.
 
 ## QGIS-i kaardi Otsingupaan
 

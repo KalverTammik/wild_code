@@ -16,7 +16,7 @@ Servituutide töövood on juhendis „Servituutide mooduli kaarditoimingud“ ([
 
 | Toiming | Asukoht | Lühikirjeldus |
 |---|---|---|
-| **Failid** | Servituudikaart → Rohkem toiminguid | Peaks avama failihalduse dialoogi, kuid praeguses koodis puudub toimingu käsitleja ja dialoog ei avane. |
+| **Failid** | Servituudikaart → Rohkem toiminguid | Peaks avama failihalduse dialoogi, kuid praeguses koodis puudub toimingu käsitleja ja dialoog ei avane. ✔ **Tehtud (28.11.2026):** failihalduse dialoog avaneb. |
 | **Joonista uus seotud objekt kaardile** | Sama menüü | Käivitab uue servituudipolügooni joonistamise ja andmevormi. |
 | **Seo olemasolev joonis kaardilt** | Sama menüü | Lubab valida olemasoleva servituudikihi objekti ja siduda selle kirjega. |
 | **Muuda joonise geomeetriat kaardil** | Sama menüü | Käivitab seotud servituudiala geomeetria muutmise. |

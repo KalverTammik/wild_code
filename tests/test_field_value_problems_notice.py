@@ -449,6 +449,7 @@ class EasementPropertySaveNoticeTest(DialogStubCase):
         dialog._property_edges = [{"cadastralUnitNumber": "1:1:1"}]
         dialog._collect_property_payloads = Mock(return_value=([{"id": "", "cadastralUnitNumber": "1:1:1"}], []))
         dialog._set_property_edges = Mock()
+        dialog._calculate_cut_areas = Mock()
         dialog._rerun_automation = Mock()
         self.dialog = dialog
 

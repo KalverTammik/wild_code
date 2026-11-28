@@ -230,6 +230,8 @@ Pärast kihile salvestamist saadetakse sama ala Kavitrosse. Kui see ebaõnnestub
 
 Objekti otsing käib kihil objekt-haaval ning iga objekti juures kontrollitakse järjest ID-d, numbrit ja nime. Kui kihi varasemal real on sama projekti nimi või number, võib see rida sobida enne hiljem asuvat täpse `ext_project_id` vastega rida. Sellisel juhul võidakse üle kirjutada vale projektiala.
 
+> ✔ **Tehtud (28.11.2026):** ID-vaste on numbri ja nime vastest eespool.
+
 ## Puhasta eelvaade
 
 Nupp eemaldab QGIS-i projektist selle projekti nimega kuni kolm ajutist mälukihti: põhitulemuse, vahetulemuse ja ümardatud vahetulemuse.

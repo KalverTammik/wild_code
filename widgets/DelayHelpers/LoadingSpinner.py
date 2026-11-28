@@ -1,4 +1,4 @@
-from qgis.PyQt.QtCore import Qt, QPropertyAnimation, pyqtProperty, QTimer
+from qgis.PyQt.QtCore import Qt, QPointF, QPropertyAnimation, pyqtProperty, QTimer
 from qgis.PyQt.QtGui import QColor, QPainter, QConicalGradient, QPen
 from qgis.PyQt.QtWidgets import QWidget
 
@@ -97,7 +97,7 @@ class GradientSpinner(QWidget):
         rect = self.rect().adjusted(margin, margin, -margin, -margin)
 
         # Conical gradient rotated by current angle
-        grad = QConicalGradient(rect.center(), -self._angle)
+        grad = QConicalGradient(QPointF(rect.center()), -self._angle)  # Qt 6 takes no QPoint here
         c = self._border_color
 
         grad.setColorAt(0.0, QColor(c.red(), c.green(), c.blue(), 40))

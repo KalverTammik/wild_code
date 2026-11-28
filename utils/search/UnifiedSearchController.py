@@ -81,7 +81,7 @@ class UnifiedSearchController(QObject):
                     "SPECIFICATIONS",
                     "CONTRACTS",
                 ],
-                "limit": 5,
+                "limit": 10,  # the most Kavitro returns per group
             }
         }
         return api_client.send_query(gql, variables=variables)

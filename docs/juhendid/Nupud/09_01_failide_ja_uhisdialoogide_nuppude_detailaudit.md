@@ -17,7 +17,7 @@ Moodulipõhise nupu eel ja järel toimuvad sammud jäävad vastava mooduli detai
 | Eelvaate **Sulge** | Sulgeb vaate, katkestab pooleli oleva allalaadimise ja eemaldab sisemise PDF-i ajutise faili | Väliselt avatud faili ei eemaldata kohe, sest teine rakendus võib seda veel kasutada |
 | Seoste **Vali uuesti** | Loobub praegusest kinnitamata valikust ja naaseb kaardivalikusse | Jah, sest seoseid pole veel saadetud |
 | Seoste **Tühista** | Loobub kinnitamata uutest seostest | Jah, enne kinnitamist |
-| Seoste **Kinnita** | Lisab valitud kinnistuseosed Kavitrosse | Selle dialoogiga seoseid eemaldada ei saa |
+| Seoste **Kinnita** | Lisab valitud kinnistuseosed Kavitrosse | Selle dialoogiga seoseid eemaldada ei saa ✔ **Tehtud (28.11.2026):** seoseid saab eemaldada kaardimenüü **Eemalda seotud kinnistuid** kaudu (v2.12.93). |
 | Teatedialoogi **OK** | Sulgeb teate või tagastab kinnitatud sisestuse | Sõltub avavast töövoost |
 | Edenemisakna **Tühista** | Peatab SHP-impordi ja eemaldab pooliku mälukihi | Jah |
 
@@ -122,6 +122,8 @@ PDF-i jaoks peab QGIS-i Qt WebEngine sisaldama sisseehitatud PDF-vaate tuge. Kui
 
 Koodis on deklareeritud kümne PDF-lehekülje piir ja vastav tõlketekst, kuid eelvaate loogika seda piirangut ei rakenda. Kuni 40 MiB PDF laaditakse tervikuna plugina ajutisse kausta ja antakse WebEngine'i vaatele.
 
+> ✔ **Tehtud (28.11.2026):** kasutamata piir on koodist eemaldatud; lehekülgede arvu ei piirata.
+
 ## Ava väliselt
 
 Kaugfaili avamisel:
@@ -198,6 +200,8 @@ Nupp sulgeb dialoogi kinnitatud tulemusega. Alles seejärel:
 Dialoog ei ole lõpliku seoseloendi redaktor. **Kinnita** ainult lisab uued seosed ning ei eemalda olemasolevaid. Eduka teate arv kirjeldab pärast toimingut värskendatud seoste koguarvu, mitte tingimata just lisatud seoste arvu.
 
 Kinnistu-ID lahendamise ja seostamise ümber puudub ühises käsitlejas üldine erindipüüdur. Erind võib väljuda pärast dialoogi kinnitamist ilma kasutajasõbraliku veateateta ning enne kontrolleriviite tühjendamist ja akna lõplikku taastamist.
+
+> ✔ **Tehtud (28.11.2026):** seostamise vead püütakse kinni ja näidatakse kasutajale.
 
 ## Ühised teatedialoogid
 
