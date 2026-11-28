@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 if os.environ.get('QGIS_PREFIX_PATH'):
     sys.path.append(str(Path(os.environ['QGIS_PREFIX_PATH']) / 'python' / 'plugins'))
 
-from qgis.PyQt.QtCore import Qt, QVariant
+from qgis.PyQt.QtCore import Qt, QMetaType
 from qgis.PyQt.QtWidgets import QTableView
 from qgis.core import QgsFeature, QgsVariantUtils, QgsVectorLayer
 
@@ -131,7 +131,7 @@ class PropertyLocationRulesTest(LocationFilterTestCase):
         from Kavitro_dev.modules.Property.FlowControllers.property_import_decisions import classify_property_import
 
         main_layer = QgsVectorLayer(f'Point?crs=EPSG:3301&field={F.tunnus}:string', 'Main', 'memory')
-        add_fields(main_layer, (F.muudet,), QVariant.Date)
+        add_fields(main_layer, (F.muudet,), QMetaType.Type.QDate)
         main_feature = QgsFeature(main_layer.fields())
         main_feature.setAttributes(['1', QDate(2026, 1, 1)])
         main_layer.dataProvider().addFeatures([main_feature])

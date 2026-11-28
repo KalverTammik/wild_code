@@ -10,7 +10,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import (
     QgsApplication,
     QgsFeature,
@@ -117,7 +117,7 @@ class PropertyLayerBootstrapServiceTest(unittest.TestCase):
         source_layer = self._source_layer()
         target_path = os.path.join(self.temp_dir.name, "existing.gpkg")
         unrelated_fields = QgsFields()
-        unrelated_fields.append(QgsField("name", QVariant.String))
+        unrelated_fields.append(QgsField("name", QMetaType.Type.QString))
         self.assertTrue(
             GPKGHelpers.create_empty_gpkg_layer(
                 target_path,
@@ -183,7 +183,7 @@ class PropertyLayerBootstrapServiceTest(unittest.TestCase):
         layer = QgsVectorLayer("Polygon?crs=EPSG:3301", "maa_amet_source", "memory")
         required_fields, optional_fields = MaaAmetFieldComparer.logical_fields()
         for field_name in required_fields + optional_fields:
-            layer.dataProvider().addAttributes([QgsField(field_name, QVariant.String)])
+            layer.dataProvider().addAttributes([QgsField(field_name, QMetaType.Type.QString)])
         layer.updateFields()
 
         feature = QgsFeature(layer.fields())

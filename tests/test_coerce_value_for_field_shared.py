@@ -18,7 +18,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from qgis.core import NULL, QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-from qgis.PyQt.QtCore import QCoreApplication, QDate, QDateTime, QEvent, QTime, QVariant
+from qgis.PyQt.QtCore import QCoreApplication, QDate, QDateTime, QEvent, QMetaType, QTime, QVariant
 from qgis.PyQt.QtWidgets import QLineEdit, QWidget
 
 from Kavitro_dev.languages.language_manager import LanguageManager
@@ -39,80 +39,80 @@ DATE, DATE_TIME = FieldValueProblem.DATE, FieldValueProblem.DATE_TIME
 TABLE = (
     # Integer fields. Before: projects passed text through; works gave None for "3,0"/3.0;
     # easement rounded "2,5" to 2; as-built and easement passed "abc" through (a GeoPackage then refused the save).
-    (QVariant.Int, "3", 3, None),
-    (QVariant.Int, " 12 ", 12, None),
-    (QVariant.Int, "3,0", 3, None),
-    (QVariant.Int, 3.0, 3, None),
-    (QVariant.Int, "1 250", 1250, None),
-    (QVariant.Int, "1 250", 1250, None),
-    (QVariant.Int, True, 1, None),
-    (QVariant.Int, "2,5", None, INTEGER),
-    (QVariant.Int, 2.5, None, INTEGER),
-    (QVariant.Int, "abc", None, INTEGER),
-    (QVariant.Int, float("inf"), None, INTEGER),
-    (QVariant.Int, 2**31, None, INTEGER),
-    (QVariant.LongLong, "12345678901234567", 12345678901234567, None),
-    (QVariant.UInt, -1, None, INTEGER),
-    (QVariant.ULongLong, "2,5", None, INTEGER),
+    (QMetaType.Type.Int, "3", 3, None),
+    (QMetaType.Type.Int, " 12 ", 12, None),
+    (QMetaType.Type.Int, "3,0", 3, None),
+    (QMetaType.Type.Int, 3.0, 3, None),
+    (QMetaType.Type.Int, "1 250", 1250, None),
+    (QMetaType.Type.Int, "1 250", 1250, None),
+    (QMetaType.Type.Int, True, 1, None),
+    (QMetaType.Type.Int, "2,5", None, INTEGER),
+    (QMetaType.Type.Int, 2.5, None, INTEGER),
+    (QMetaType.Type.Int, "abc", None, INTEGER),
+    (QMetaType.Type.Int, float("inf"), None, INTEGER),
+    (QMetaType.Type.Int, 2**31, None, INTEGER),
+    (QMetaType.Type.LongLong, "12345678901234567", 12345678901234567, None),
+    (QMetaType.Type.UInt, -1, None, INTEGER),
+    (QMetaType.Type.ULongLong, "2,5", None, INTEGER),
     # Double fields. Before: only easement read the decimal comma; the others passed the text through.
-    (QVariant.Double, "2,5", 2.5, None),
-    (QVariant.Double, "1 250,40", 1250.4, None),
-    (QVariant.Double, "1 250,4", 1250.4, None),
-    (QVariant.Double, 3, 3.0, None),
-    (QVariant.Double, True, 1.0, None),
-    (QVariant.Double, "1,5 m", None, NUMBER),
-    (QVariant.Double, float("nan"), None, NUMBER),
+    (QMetaType.Type.Double, "2,5", 2.5, None),
+    (QMetaType.Type.Double, "1 250,40", 1250.4, None),
+    (QMetaType.Type.Double, "1 250,4", 1250.4, None),
+    (QMetaType.Type.Double, 3, 3.0, None),
+    (QMetaType.Type.Double, True, 1.0, None),
+    (QMetaType.Type.Double, "1,5 m", None, NUMBER),
+    (QMetaType.Type.Double, float("nan"), None, NUMBER),
     # Bool fields. Before: as-built made any unknown text True; projects and works knew no "jah", "ei", "t", "f".
-    (QVariant.Bool, True, True, None),
-    (QVariant.Bool, False, False, None),
-    (QVariant.Bool, "jah", True, None),
-    (QVariant.Bool, "EI", False, None),
-    (QVariant.Bool, " Yes ", True, None),
-    (QVariant.Bool, "t", True, None),
-    (QVariant.Bool, "f", False, None),
-    (QVariant.Bool, 1, True, None),
-    (QVariant.Bool, 0, False, None),
-    (QVariant.Bool, "maybe", None, YES_NO),
+    (QMetaType.Type.Bool, True, True, None),
+    (QMetaType.Type.Bool, False, False, None),
+    (QMetaType.Type.Bool, "jah", True, None),
+    (QMetaType.Type.Bool, "EI", False, None),
+    (QMetaType.Type.Bool, " Yes ", True, None),
+    (QMetaType.Type.Bool, "t", True, None),
+    (QMetaType.Type.Bool, "f", False, None),
+    (QMetaType.Type.Bool, 1, True, None),
+    (QMetaType.Type.Bool, 0, False, None),
+    (QMetaType.Type.Bool, "maybe", None, YES_NO),
     # Date fields. Before: projects had no date rule; as-built read only yyyy-MM-dd and passed datetimes through.
-    (QVariant.Date, QDate(2026, 1, 2), QDate(2026, 1, 2), None),
-    (QVariant.Date, QDateTime(2026, 1, 2, 10, 5), QDate(2026, 1, 2), None),
-    (QVariant.Date, date(2026, 1, 2), QDate(2026, 1, 2), None),
-    (QVariant.Date, datetime(2026, 1, 2, 10, 5), QDate(2026, 1, 2), None),
-    (QVariant.Date, "2026-01-02", QDate(2026, 1, 2), None),
-    (QVariant.Date, "2026-01-02 10:05:00", QDate(2026, 1, 2), None),
+    (QMetaType.Type.QDate, QDate(2026, 1, 2), QDate(2026, 1, 2), None),
+    (QMetaType.Type.QDate, QDateTime(2026, 1, 2, 10, 5), QDate(2026, 1, 2), None),
+    (QMetaType.Type.QDate, date(2026, 1, 2), QDate(2026, 1, 2), None),
+    (QMetaType.Type.QDate, datetime(2026, 1, 2, 10, 5), QDate(2026, 1, 2), None),
+    (QMetaType.Type.QDate, "2026-01-02", QDate(2026, 1, 2), None),
+    (QMetaType.Type.QDate, "2026-01-02 10:05:00", QDate(2026, 1, 2), None),
     # Estonian notation, as the user types it in a form.
-    (QVariant.Date, "02.01.2026", QDate(2026, 1, 2), None),
-    (QVariant.Date, "1.5.2024", QDate(2024, 5, 1), None),
-    (QVariant.Date, " 01.05.2024 10:05 ", QDate(2024, 5, 1), None),
-    (QVariant.Date, "31.02.2024", None, DATE),
-    (QVariant.Date, "32.01.2024", None, DATE),
-    (QVariant.Date, "01.13.2024", None, DATE),
-    (QVariant.Date, "01.05.24", None, DATE),
-    (QVariant.Date, "abc", None, DATE),
+    (QMetaType.Type.QDate, "02.01.2026", QDate(2026, 1, 2), None),
+    (QMetaType.Type.QDate, "1.5.2024", QDate(2024, 5, 1), None),
+    (QMetaType.Type.QDate, " 01.05.2024 10:05 ", QDate(2024, 5, 1), None),
+    (QMetaType.Type.QDate, "31.02.2024", None, DATE),
+    (QMetaType.Type.QDate, "32.01.2024", None, DATE),
+    (QMetaType.Type.QDate, "01.13.2024", None, DATE),
+    (QMetaType.Type.QDate, "01.05.24", None, DATE),
+    (QMetaType.Type.QDate, "abc", None, DATE),
     # DateTime fields. Before: all four agreed, except unreadable text was passed through.
-    (QVariant.DateTime, QDateTime(2026, 1, 2, 10, 5), QDateTime(2026, 1, 2, 10, 5), None),
-    (QVariant.DateTime, QDate(2026, 1, 2), QDateTime(QDate(2026, 1, 2), QTime(0, 0)), None),
-    (QVariant.DateTime, datetime(2026, 1, 2, 10, 5, 7, 999), QDateTime(2026, 1, 2, 10, 5, 7), None),
-    (QVariant.DateTime, date(2026, 1, 2), QDateTime(2026, 1, 2, 0, 0, 0), None),
-    (QVariant.DateTime, "2026-01-02 10:05:07", QDateTime(2026, 1, 2, 10, 5, 7), None),
-    (QVariant.DateTime, "2026-01-02", QDateTime(2026, 1, 2, 0, 0, 0), None),
-    (QVariant.DateTime, "01.05.2024", QDateTime(2024, 5, 1, 0, 0, 0), None),
-    (QVariant.DateTime, "1.5.2024 9:05", QDateTime(2024, 5, 1, 9, 5, 0), None),
-    (QVariant.DateTime, "01.05.2024 10:05:07", QDateTime(2024, 5, 1, 10, 5, 7), None),
-    (QVariant.DateTime, "31.02.2024 10:05", None, DATE_TIME),
-    (QVariant.DateTime, "01.05.2024 25:00", None, DATE_TIME),
-    (QVariant.DateTime, "abc", None, DATE_TIME),
+    (QMetaType.Type.QDateTime, QDateTime(2026, 1, 2, 10, 5), QDateTime(2026, 1, 2, 10, 5), None),
+    (QMetaType.Type.QDateTime, QDate(2026, 1, 2), QDateTime(QDate(2026, 1, 2), QTime(0, 0)), None),
+    (QMetaType.Type.QDateTime, datetime(2026, 1, 2, 10, 5, 7, 999), QDateTime(2026, 1, 2, 10, 5, 7), None),
+    (QMetaType.Type.QDateTime, date(2026, 1, 2), QDateTime(2026, 1, 2, 0, 0, 0), None),
+    (QMetaType.Type.QDateTime, "2026-01-02 10:05:07", QDateTime(2026, 1, 2, 10, 5, 7), None),
+    (QMetaType.Type.QDateTime, "2026-01-02", QDateTime(2026, 1, 2, 0, 0, 0), None),
+    (QMetaType.Type.QDateTime, "01.05.2024", QDateTime(2024, 5, 1, 0, 0, 0), None),
+    (QMetaType.Type.QDateTime, "1.5.2024 9:05", QDateTime(2024, 5, 1, 9, 5, 0), None),
+    (QMetaType.Type.QDateTime, "01.05.2024 10:05:07", QDateTime(2024, 5, 1, 10, 5, 7), None),
+    (QMetaType.Type.QDateTime, "31.02.2024 10:05", None, DATE_TIME),
+    (QMetaType.Type.QDateTime, "01.05.2024 25:00", None, DATE_TIME),
+    (QMetaType.Type.QDateTime, "abc", None, DATE_TIME),
     # Text fields. Before: as-built and easement passed objects through unchanged.
-    (QVariant.String, {"a": "ä"}, '{"a": "ä"}', None),
-    (QVariant.String, [1, 2], "[1, 2]", None),
-    (QVariant.String, "abc", "abc", None),
-    (QVariant.String, 5, 5, None),
-    (QVariant.String, "", "", None),
+    (QMetaType.Type.QString, {"a": "ä"}, '{"a": "ä"}', None),
+    (QMetaType.Type.QString, [1, 2], "[1, 2]", None),
+    (QMetaType.Type.QString, "abc", "abc", None),
+    (QMetaType.Type.QString, 5, 5, None),
+    (QMetaType.Type.QString, "", "", None),
     # Field types without a rule keep the value.
-    (QVariant.Time, "10:00", "10:00", None),
+    (QMetaType.Type.QTime, "10:00", "10:00", None),
 )
-CONVERTED_TYPES = (QVariant.Int, QVariant.UInt, QVariant.LongLong, QVariant.ULongLong, QVariant.Double,
-                   QVariant.Bool, QVariant.Date, QVariant.DateTime)
+CONVERTED_TYPES = (QMetaType.Type.Int, QMetaType.Type.UInt, QMetaType.Type.LongLong, QMetaType.Type.ULongLong, QMetaType.Type.Double,
+                   QMetaType.Type.Bool, QMetaType.Type.QDate, QMetaType.Type.QDateTime)
 
 
 def is_null(value) -> bool:
@@ -175,7 +175,7 @@ class SharedConversionTableTest(_Case):
         circular["self"] = circular
         for raw in (circular, {"value": object()}, {"set": {1, 2}}):
             with self.subTest(raw=type(raw)):
-                self.assertEqual(ModuleLayerServiceBase.coerce_field_value(field_of(QVariant.String), raw), (str(raw), None))
+                self.assertEqual(ModuleLayerServiceBase.coerce_field_value(field_of(QMetaType.Type.QString), raw), (str(raw), None))
 
     def test_parse_number_text_keeps_its_contract_for_the_easement_form(self) -> None:
         # The easement form asks this before it closes, through the easement service.
@@ -200,11 +200,11 @@ class FieldValueProblemRecordTest(_Case):
         )
 
     def test_label_is_the_name_when_the_field_has_no_alias(self) -> None:
-        _value, problem = ModuleLayerServiceBase.coerce_field_value(field_of(QVariant.Bool, "Vesi"), "maybe")
+        _value, problem = ModuleLayerServiceBase.coerce_field_value(field_of(QMetaType.Type.Bool, "Vesi"), "maybe")
         self.assertEqual((problem.field_name, problem.field_label), ("Vesi", "Vesi"))
 
     def test_long_value_is_cut_in_the_record(self) -> None:
-        _value, problem = ModuleLayerServiceBase.coerce_field_value(field_of(QVariant.Double), "x" * 500)
+        _value, problem = ModuleLayerServiceBase.coerce_field_value(field_of(QMetaType.Type.Double), "x" * 500)
         self.assertEqual(len(problem.raw_value), FieldValueProblem.MAX_VALUE_LENGTH)
         self.assertTrue(problem.raw_value.endswith("…"))
 
@@ -214,7 +214,7 @@ class FieldValueProblemRecordTest(_Case):
         for service, module in modules.items():
             with self.subTest(service=service.__name__):
                 self.log.reset_mock()
-                service.coerce_value_for_field(field_of(QVariant.Date, "kpv"), "31.02.2026")
+                service.coerce_value_for_field(field_of(QMetaType.Type.QDate, "kpv"), "31.02.2026")
                 self.log.assert_called_once_with(
                     f"{module}_field_value_rejected",
                     module=module,
@@ -223,7 +223,7 @@ class FieldValueProblemRecordTest(_Case):
 
     def test_accepted_value_is_not_logged_or_recorded(self) -> None:
         problems: list[FieldValueProblem] = []
-        WorksLayerService.coerce_value_for_field(field_of(QVariant.Int), "3", problems)
+        WorksLayerService.coerce_value_for_field(field_of(QMetaType.Type.Int), "3", problems)
         self.assertEqual(problems, [])
         self.log.assert_not_called()
 

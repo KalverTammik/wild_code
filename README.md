@@ -21,7 +21,9 @@ Dokumentatsiooni jaotus ning säilitamisreeglid on kirjas failis
 
 ## Arendus
 
-Toetatud on QGIS 3.40 kuni 4.x (`metadata.txt` ja `metadata.release.txt`).
+Toetatud on QGIS 3.40 kuni 4.x (`metadata.txt` ja `metadata.release.txt`). Iga arendus
+peab töötama mõlemal; reeglid on failis [REFACTOR_RULES.md](REFACTOR_RULES.md), punkt 9.
+QGIS 4 peal on testikäsu käivitaja `python-qgis.bat`.
 
 Testid käivitatakse QGIS-i Pythoniga ilma QGIS-i aknata:
 

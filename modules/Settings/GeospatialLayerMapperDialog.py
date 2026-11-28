@@ -21,7 +21,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import (
     Qgis,
     QgsCoordinateTransform,
@@ -61,7 +61,7 @@ class _DefaultValueEditor(QWidget):
 
         field_type = self._field.type() if self._field is not None else None
 
-        if field_type == QVariant.Bool:
+        if field_type == QMetaType.Type.Bool:
             self._mode = "bool"
             combo = QComboBox(self)
             combo.addItem(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_NO_DEFAULT), None)
@@ -72,7 +72,7 @@ class _DefaultValueEditor(QWidget):
             layout.addWidget(combo)
             return
 
-        if field_type == QVariant.Date:
+        if field_type == QMetaType.Type.QDate:
             self._mode = "date"
             enable = QCheckBox(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_USE_DEFAULT), self)
             edit = QDateEdit(self)
@@ -86,7 +86,7 @@ class _DefaultValueEditor(QWidget):
             layout.addWidget(edit)
             return
 
-        if field_type == QVariant.DateTime:
+        if field_type == QMetaType.Type.QDateTime:
             self._mode = "datetime"
             enable = QCheckBox(self._lang.translate(TranslationKeys.GEOSPATIAL_LAYER_MAPPER_USE_DEFAULT), self)
             edit = QDateTimeEdit(self)
@@ -642,40 +642,40 @@ class GeospatialLayerMapperDialog(QDialog):
             return False
 
         integer_types = {
-            QVariant.Int,
-            QVariant.LongLong,
-            QVariant.UInt,
-            QVariant.ULongLong,
+            QMetaType.Type.Int,
+            QMetaType.Type.LongLong,
+            QMetaType.Type.UInt,
+            QMetaType.Type.ULongLong,
         }
         if target_type in integer_types:
             return source_type in integer_types
-        if target_type == QVariant.Bool:
-            return source_type == QVariant.Bool
-        if target_type == QVariant.DateTime:
-            return source_type in {QVariant.DateTime, QVariant.Date, QVariant.String}
-        if target_type == QVariant.Date:
-            return source_type in {QVariant.Date, QVariant.DateTime, QVariant.String}
-        if target_type == QVariant.String:
+        if target_type == QMetaType.Type.Bool:
+            return source_type == QMetaType.Type.Bool
+        if target_type == QMetaType.Type.QDateTime:
+            return source_type in {QMetaType.Type.QDateTime, QMetaType.Type.QDate, QMetaType.Type.QString}
+        if target_type == QMetaType.Type.QDate:
+            return source_type in {QMetaType.Type.QDate, QMetaType.Type.QDateTime, QMetaType.Type.QString}
+        if target_type == QMetaType.Type.QString:
             return True
         return target_type == source_type
 
     @staticmethod
     def _field_type_label(field_type) -> str:
         integer_types = {
-            QVariant.Int,
-            QVariant.LongLong,
-            QVariant.UInt,
-            QVariant.ULongLong,
+            QMetaType.Type.Int,
+            QMetaType.Type.LongLong,
+            QMetaType.Type.UInt,
+            QMetaType.Type.ULongLong,
         }
         if field_type in integer_types:
             return "Integer"
-        if field_type == QVariant.String:
+        if field_type == QMetaType.Type.QString:
             return "Text"
-        if field_type == QVariant.Bool:
+        if field_type == QMetaType.Type.Bool:
             return "Boolean"
-        if field_type == QVariant.DateTime:
+        if field_type == QMetaType.Type.QDateTime:
             return "DateTime"
-        if field_type == QVariant.Date:
+        if field_type == QMetaType.Type.QDate:
             return "Date"
         return str(field_type)
 

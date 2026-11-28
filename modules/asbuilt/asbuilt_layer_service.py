@@ -4,7 +4,7 @@ from functools import partial
 from datetime import datetime
 from typing import Optional
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import QgsFeature, QgsVectorLayer
 
 from ...languages.translation_keys import TranslationKeys
@@ -71,15 +71,15 @@ class AsBuiltLayerService(AttachableLayerServiceBase):
     FIELD_HEIGHT_SYSTEM = "Kõrgussüsteem"
 
     CUSTOM_FIELDS = (
-        (FIELD_EXT_JOB_ID, QVariant.String),
-        (FIELD_EXT_SYSTEM, QVariant.String),
-        (FIELD_EXT_JOB_NAME, QVariant.String),
-        (FIELD_EXT_JOB_TYPE, QVariant.String),
-        (FIELD_EXT_JOB_STATE, QVariant.Int),
-        (FIELD_ADDED_BY, QVariant.String),
-        (FIELD_ADDED_DATE, QVariant.DateTime),
-        (FIELD_UPDATED_BY, QVariant.String),
-        (FIELD_UPDATE_DATE, QVariant.DateTime),
+        (FIELD_EXT_JOB_ID, QMetaType.Type.QString),
+        (FIELD_EXT_SYSTEM, QMetaType.Type.QString),
+        (FIELD_EXT_JOB_NAME, QMetaType.Type.QString),
+        (FIELD_EXT_JOB_TYPE, QMetaType.Type.QString),
+        (FIELD_EXT_JOB_STATE, QMetaType.Type.Int),
+        (FIELD_ADDED_BY, QMetaType.Type.QString),
+        (FIELD_ADDED_DATE, QMetaType.Type.QDateTime),
+        (FIELD_UPDATED_BY, QMetaType.Type.QString),
+        (FIELD_UPDATE_DATE, QMetaType.Type.QDateTime),
     )
     ID_FIELD_CANDIDATES = (FIELD_EXT_JOB_ID,)
 

@@ -17,7 +17,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from qgis.core import NULL, QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsPointXY, QgsVectorLayer
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 
 from Kavitro_dev.languages.language_manager import LanguageManager, set_current_language
 from Kavitro_dev.languages.translation_keys import TranslationKeys
@@ -45,7 +45,7 @@ TITLE = "Salvestatud, aga mõni väli jäi tühjaks"
 
 
 def field(name: str, alias: str = "") -> QgsField:
-    result = QgsField(name, QVariant.Double)
+    result = QgsField(name, QMetaType.Type.Double)
     result.setAlias(alias)
     return result
 

@@ -29,7 +29,7 @@ from qgis.core import (
     QgsProject,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtCore import QCoreApplication, QDateTime, QEvent, QVariant
+from qgis.PyQt.QtCore import QCoreApplication, QDateTime, QEvent, QMetaType
 from qgis.PyQt.QtWidgets import QWidget
 
 from Kavitro_dev import dialog as dialog_module
@@ -210,7 +210,7 @@ class GeospatialLayerMapperTest(LoggedExceptionTestCase):
             GeospatialLayerMapperDialog._coerce_value_for_field(broken_field, "1", [])
 
     def test_number_that_cannot_be_converted_becomes_none_and_a_deleted_layer_a_dash(self) -> None:
-        field = QgsField("count", QVariant.Int)
+        field = QgsField("count", QMetaType.Type.Int)
         problems = []
         self.assertEqual(GeospatialLayerMapperDialog._coerce_value_for_field(field, " 12 ", problems), 12)
         self.assertIsNone(GeospatialLayerMapperDialog._coerce_value_for_field(field, "abc", problems))
@@ -222,12 +222,12 @@ class GeospatialLayerMapperTest(LoggedExceptionTestCase):
         self.assertEqual(GeospatialLayerMapperDialog._layer_label(deleted_layer), "-")
 
     def test_field_with_a_broken_type_call_is_not_compatible(self) -> None:
-        field = QgsField("count", QVariant.Int)
+        field = QgsField("count", QMetaType.Type.Int)
         stub = Mock()
         stub.type.side_effect = AttributeError("no type")
 
         self.assertFalse(GeospatialLayerMapperDialog._field_types_compatible(field, stub))
-        self.assertTrue(GeospatialLayerMapperDialog._field_types_compatible(field, QgsField("n", QVariant.Int)))
+        self.assertTrue(GeospatialLayerMapperDialog._field_types_compatible(field, QgsField("n", QMetaType.Type.Int)))
 
 
 class SettingsModuleTest(LoggedExceptionTestCase):

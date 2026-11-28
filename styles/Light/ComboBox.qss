@@ -66,51 +66,24 @@ QComboBox[kavitroCheckableCombo="true"]:disabled {
     color: rgba(36,41,46,0.55);
     border: 1px dashed rgba(209,215,222,0.80);
 }
-QComboBox[kavitroCheckableCombo="true"]::drop-down {
-    width: 20px;
-    background: #ffffff;
-    margin: 0;
-    border-left-color: #2188ff;
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
-}
-QComboBox[kavitroCheckableCombo="true"]:hover::drop-down,
-QComboBox[kavitroCheckableCombo="true"]:focus::drop-down {
-    background: #f9fafb;
-    border-left-color: #2188ff;
-}
-QComboBox[kavitroCheckableCombo="true"]:pressed::drop-down,
-QComboBox[kavitroCheckableCombo="true"]:on::drop-down {
-    background: #eaeef2;
-    border-left-color: #2188ff;
-}
-QComboBox[kavitroCheckableCombo="true"]:disabled::drop-down {
-    background: #f0f2f4;
-    border-left-color: rgba(209,215,222,0.80);
-}
-
 /* -------------------- Drop-down subcontrol -------------------- */
-QComboBox::drop-down {
+/* The arrow area is part of the field: the combo alone draws the background and border. */
+QComboBox::drop-down,
+QComboBox::drop-down:editable {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
     width: 20px;
-    background: #ffffff;                 /* ensure no dark bleed-through */
-    margin: 0;
-    border-left-color: #2188ff;
-    border-top-right-radius: 6px;        /* match outer radius */
-    border-bottom-right-radius: 6px;
+    margin: 0 2px 0 0;
+    background: transparent;
+    border: none;
 }
-QComboBox:hover::drop-down,
-QComboBox:focus::drop-down {
-    background: #f9fafb;
-    border-left-color: #2188ff;
+QComboBox::down-arrow {
+    image: url(arrow_down.svg);
+    width: 7px;
+    height: 7px;
 }
-QComboBox:pressed::drop-down,
-QComboBox:on::drop-down {
-    background: #eaeef2;
-    border-left-color: #2188ff;
-}
-QComboBox:disabled::drop-down {
-    background: #f0f2f4;
-    border-left-color: rgba(209,215,222,0.80);
+QComboBox::down-arrow:disabled {
+    image: url(arrow_down_disabled.svg);
 }
 
 /* ---------------------- Popup list ---------------------- */
@@ -289,14 +262,6 @@ QTreeView QScrollBar::sub-page:vertical {
 }
 
 /* ---------------------- RTL / LTR safety ---------------------- */
-QComboBox:right-to-left::drop-down {
-    border-right: 1px solid #e1e4e8;
-    border-left: none;
-    border-top-left-radius: 6px;
-    border-bottom-left-radius: 6px;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-}
 QComboBox:right-to-left {
     padding-left: 28px;
     padding-right: 8px;

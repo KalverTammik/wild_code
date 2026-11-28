@@ -15,7 +15,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from qgis.core import QgsApplication, QgsFeature, QgsField, QgsVectorLayer
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
 from Kavitro_dev.languages.translation_keys import TranslationKeys
@@ -99,7 +99,7 @@ class AsBuiltLayerServiceLoggingTest(LoggedExceptionTestCase):
 
     def test_coerce_leaves_numbers_it_cannot_convert_empty(self) -> None:
         # Text in a number field made a GeoPackage refuse the whole save; now only that field stays empty.
-        field = QgsField("state", QVariant.Int)
+        field = QgsField("state", QMetaType.Type.Int)
         with patch.object(PythonFailLogger, "log") as log:
             for raw in ("abc", float("inf")):
                 with self.subTest(raw=raw):
@@ -163,9 +163,9 @@ class EasementLayerServiceLoggingTest(LoggedExceptionTestCase):
 
     def test_coerce_leaves_numbers_it_cannot_convert_empty(self) -> None:
         with patch.object(PythonFailLogger, "log") as log:
-            for field_type in (QVariant.Int, QVariant.Double):
+            for field_type in (QMetaType.Type.Int, QMetaType.Type.Double):
                 field = QgsField("size", field_type)
-                for raw in ("abc", float("inf") if field_type == QVariant.Int else "1,5 m"):
+                for raw in ("abc", float("inf") if field_type == QMetaType.Type.Int else "1,5 m"):
                     with self.subTest(field_type=field_type, raw=raw):
                         self.assertIsNone(EasementLayerService.coerce_value_for_field(field, raw))
         self.assertEqual([call.args[0] for call in log.call_args_list], ["easement_field_value_rejected"] * 4)

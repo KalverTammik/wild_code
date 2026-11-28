@@ -161,6 +161,7 @@ Enne ühendamist kontrolli:
     commit'i või PR-i kirjeldusse.
 13. `ruff check .` on puhas. Uus test tabab tahtliku vea: eemalda parandus koopias ja
     kontrolli, et test kukub.
+14. Muudatus töötab nii QGIS 3.40-s kui ka QGIS 4-s (vt punkt 9).
 
 ## 8. Dokumentatsiooni piir
 
@@ -168,3 +169,23 @@ Enne ühendamist kontrolli:
 - Lõpetatud teostusetapi arutelu kuulub `docs/archive/` alla ega ole spetsifikatsioon.
 - Kohalikud prompt'id, ideede töölauad ja ajutised katsemärkmed reposse ei kuulu.
 - Dokumentatsiooni täielik jaotus on failis [docs/README.md](docs/README.md).
+
+## 9. QGIS 3.40 ja QGIS 4
+
+Iga arendus peab töötama nii QGIS 3.40-s (Qt5) kui ka QGIS 4-s (Qt6) sama koodiga.
+Toetatud vahemik on `metadata.txt` ja `metadata.release.txt` failides.
+
+- Impordi Qt ainult `qgis.PyQt` kaudu.
+- Kirjuta Qt enum koos enumi nimega (`Qt.AlignmentFlag.AlignLeft`). Ära kasuta `exec_`
+  ega `convertFromPlainText`; hiire globaalne asukoht tuleb failist `utils/qt_events.py`.
+- Qt klassil ära defineeri `__new__` meetodit (PyQt 6 kukub ületäitumisega kokku).
+- Väljatüübid kirjuta kujul `QMetaType.Type.QString`, mitte `QVariant.String`.
+- QGIS-i tühja väärtust kontrolli `QgsVariantUtils.isNull(value)`-ga: Qt6-s on see `None`,
+  Qt5-s NULL `QVariant`.
+- Ära kasuta API-t, mis puudub QGIS 3.40-s või on QGIS 4-st eemaldatud. Versioonist sõltuv
+  haru on lubatud ainult siis, kui ühist lahendust pole.
+- Qt6 joonistab osa vidinaid teisiti (menüünupu nool, arvu- ja kuupäevaväljade kõrgus,
+  rippmenüü delegaat). Kontrolli UI muudatust mõlemal versioonil ja mõlemas teemas.
+- Käivita testid mõlemal versioonil (käsud on failis [README.md](README.md)). CI jooksutab
+  komplekti 3.40.13 ja 4.4 konteinerites; `tests/test_architecture_rules.py` kontrollib osa
+  neist reeglitest.

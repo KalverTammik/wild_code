@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Callable, Optional
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import QgsField, QgsVectorLayer
 
 from ...constants.cadastral_fields import Katastriyksus
@@ -108,7 +108,7 @@ class PropertySearchFieldService:
 
             search_field = cls.resolve_search_field_name(layer)
             if not search_field:
-                if not layer.addAttribute(QgsField(cls.FIELD_NAME, QVariant.String, len=512)):
+                if not layer.addAttribute(QgsField(cls.FIELD_NAME, QMetaType.Type.QString, len=512)):
                     if started_edit:
                         layer.rollBack()
                     return False, lang.translate(TranslationKeys.PROPERTY_SEARCH_FIELD_ADD_FAILED), 0

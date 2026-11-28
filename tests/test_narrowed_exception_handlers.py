@@ -14,7 +14,7 @@ if PLUGIN_PARENT not in sys.path:
 
 from qgis.core import QgsApplication, QgsFeature, QgsField, QgsFields
 from qgis.PyQt import sip
-from qgis.PyQt.QtCore import QObject, QVariant, pyqtSignal
+from qgis.PyQt.QtCore import QMetaType, QObject, pyqtSignal
 
 from Kavitro_dev.utils.auth.user_utils import UserUtils
 from Kavitro_dev.utils.date_helpers import DateHelpers
@@ -50,7 +50,7 @@ class NarrowedHandlersTest(unittest.TestCase):
 
     def test_a_missing_field_reads_as_empty_text(self) -> None:
         fields = QgsFields()
-        fields.append(QgsField("tunnus", QVariant.String))
+        fields.append(QgsField("tunnus", QMetaType.Type.QString))
         feature = QgsFeature(fields)
         feature["tunnus"] = "1:1"
         self.assertEqual(PropertyRowBuilder.read_field_text(feature, "tunnus"), "1:1")

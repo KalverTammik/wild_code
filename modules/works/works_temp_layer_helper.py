@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import QgsField, QgsFields, QgsWkbTypes
 
 from ...utils.layers.module_temp_layer_helper import ModuleTempLayerHelper
@@ -16,18 +16,18 @@ class WorksTempLayerHelper(ModuleTempLayerHelper):
     @staticmethod
     def _build_fields() -> QgsFields:
         fields = QgsFields()
-        integer_type = QVariant.LongLong
+        integer_type = QMetaType.Type.LongLong
 
         fields.append(QgsField("ext_job_id", integer_type))
-        fields.append(QgsField("ext_job_name", QVariant.String))
+        fields.append(QgsField("ext_job_name", QMetaType.Type.QString))
         fields.append(QgsField("ext_job_type", integer_type))
         fields.append(QgsField("ext_job_state", integer_type))
-        fields.append(QgsField("detailed", QVariant.String))
-        fields.append(QgsField("active", QVariant.Bool))
-        fields.append(QgsField("begin_date", QVariant.DateTime))
-        fields.append(QgsField("end_date", QVariant.DateTime))
-        fields.append(QgsField("added_by", QVariant.String))
-        fields.append(QgsField("added_date", QVariant.DateTime))
-        fields.append(QgsField("updated_by", QVariant.String))
-        fields.append(QgsField("update_date", QVariant.DateTime))
+        fields.append(QgsField("detailed", QMetaType.Type.QString))
+        fields.append(QgsField("active", QMetaType.Type.Bool))
+        fields.append(QgsField("begin_date", QMetaType.Type.QDateTime))
+        fields.append(QgsField("end_date", QMetaType.Type.QDateTime))
+        fields.append(QgsField("added_by", QMetaType.Type.QString))
+        fields.append(QgsField("added_date", QMetaType.Type.QDateTime))
+        fields.append(QgsField("updated_by", QMetaType.Type.QString))
+        fields.append(QgsField("update_date", QMetaType.Type.QDateTime))
         return fields

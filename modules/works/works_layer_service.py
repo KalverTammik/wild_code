@@ -14,7 +14,7 @@ import json
 import re
 from typing import Optional
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -79,20 +79,20 @@ class WorksLayerService(ModuleLayerServiceBase):
 
     @classmethod
     def CUSTOM_FIELDS(cls) -> tuple[tuple[str, object], ...]:
-        integer_type = QVariant.LongLong
+        integer_type = QMetaType.Type.LongLong
         return (
             (cls.FIELD_EXT_JOB_ID, integer_type),
-            (cls.FIELD_EXT_JOB_NAME, QVariant.String),
+            (cls.FIELD_EXT_JOB_NAME, QMetaType.Type.QString),
             (cls.FIELD_EXT_JOB_TYPE, integer_type),
             (cls.FIELD_EXT_JOB_STATE, integer_type),
-            (cls.FIELD_DETAILED, QVariant.String),
-            (cls.FIELD_ACTIVE, QVariant.Bool),
-            (cls.FIELD_BEGIN_DATE, QVariant.DateTime),
-            (cls.FIELD_END_DATE, QVariant.DateTime),
-            (cls.FIELD_ADDED_BY, QVariant.String),
-            (cls.FIELD_ADDED_DATE, QVariant.DateTime),
-            (cls.FIELD_UPDATED_BY, QVariant.String),
-            (cls.FIELD_UPDATE_DATE, QVariant.DateTime),
+            (cls.FIELD_DETAILED, QMetaType.Type.QString),
+            (cls.FIELD_ACTIVE, QMetaType.Type.Bool),
+            (cls.FIELD_BEGIN_DATE, QMetaType.Type.QDateTime),
+            (cls.FIELD_END_DATE, QMetaType.Type.QDateTime),
+            (cls.FIELD_ADDED_BY, QMetaType.Type.QString),
+            (cls.FIELD_ADDED_DATE, QMetaType.Type.QDateTime),
+            (cls.FIELD_UPDATED_BY, QMetaType.Type.QString),
+            (cls.FIELD_UPDATE_DATE, QMetaType.Type.QDateTime),
         )
 
     @staticmethod
@@ -193,33 +193,33 @@ class WorksLayerService(ModuleLayerServiceBase):
     @staticmethod
     def _field_type_matches(actual_type, expected_type) -> bool:
         integer_types = {
-            QVariant.Int,
-            QVariant.LongLong,
-            QVariant.UInt,
-            QVariant.ULongLong,
+            QMetaType.Type.Int,
+            QMetaType.Type.LongLong,
+            QMetaType.Type.UInt,
+            QMetaType.Type.ULongLong,
         }
         if expected_type in integer_types:
             # Accept string fields for integer-backed properties in legacy or generic layers.
-            return actual_type in integer_types or actual_type == QVariant.String
+            return actual_type in integer_types or actual_type == QMetaType.Type.QString
         return actual_type == expected_type
 
     @staticmethod
     def _variant_type_label(field_type) -> str:
         integer_types = {
-            QVariant.Int,
-            QVariant.LongLong,
-            QVariant.UInt,
-            QVariant.ULongLong,
+            QMetaType.Type.Int,
+            QMetaType.Type.LongLong,
+            QMetaType.Type.UInt,
+            QMetaType.Type.ULongLong,
         }
         if field_type in integer_types:
             return "Integer"
-        if field_type == QVariant.String:
+        if field_type == QMetaType.Type.QString:
             return "Text"
-        if field_type == QVariant.Bool:
+        if field_type == QMetaType.Type.Bool:
             return "Boolean"
-        if field_type == QVariant.DateTime:
+        if field_type == QMetaType.Type.QDateTime:
             return "DateTime"
-        if field_type == QVariant.Date:
+        if field_type == QMetaType.Type.QDate:
             return "Date"
         return str(field_type)
 

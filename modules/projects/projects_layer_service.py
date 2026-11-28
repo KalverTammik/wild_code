@@ -4,7 +4,7 @@ from functools import partial
 from datetime import datetime
 from typing import Optional
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import (
     QgsFeature,
     QgsVectorLayer,
@@ -57,16 +57,16 @@ class ProjectsLayerService(AttachableLayerServiceBase):
     FIELD_UPDATE_DATE = "update_date"
 
     CUSTOM_FIELDS = (
-        (FIELD_EXTERNAL_ID, QVariant.String),
-        (FIELD_EXTERNAL_SYSTEM, QVariant.String),
-        (FIELD_EXTERNAL_NAME, QVariant.String),
-        (FIELD_EXTERNAL_NUMBER, QVariant.String),
-        (FIELD_DETAILED, QVariant.String),
-        (FIELD_ACTIVE, QVariant.Bool),
-        (FIELD_ADDED_BY, QVariant.String),
-        (FIELD_ADDED_DATE, QVariant.DateTime),
-        (FIELD_UPDATED_BY, QVariant.String),
-        (FIELD_UPDATE_DATE, QVariant.DateTime),
+        (FIELD_EXTERNAL_ID, QMetaType.Type.QString),
+        (FIELD_EXTERNAL_SYSTEM, QMetaType.Type.QString),
+        (FIELD_EXTERNAL_NAME, QMetaType.Type.QString),
+        (FIELD_EXTERNAL_NUMBER, QMetaType.Type.QString),
+        (FIELD_DETAILED, QMetaType.Type.QString),
+        (FIELD_ACTIVE, QMetaType.Type.Bool),
+        (FIELD_ADDED_BY, QMetaType.Type.QString),
+        (FIELD_ADDED_DATE, QMetaType.Type.QDateTime),
+        (FIELD_UPDATED_BY, QMetaType.Type.QString),
+        (FIELD_UPDATE_DATE, QMetaType.Type.QDateTime),
     )
     ID_FIELD_CANDIDATES = (FIELD_EXTERNAL_ID,)
 

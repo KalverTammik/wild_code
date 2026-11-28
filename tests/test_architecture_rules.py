@@ -286,9 +286,6 @@ def _unscoped_enum_members(tree):
         if not (isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in classes):
             continue
         owner = classes[node.value.id]
-        # QGIS keeps QVariant.<Type> in both versions; moving to QMetaType is a separate step.
-        if node.value.id == "QVariant":
-            continue
         value = getattr(owner, node.attr, None)
         kind = type(value)
         if value is None or isinstance(value, type) or kind is owner:
@@ -318,6 +315,15 @@ class Qt6RuleTest(unittest.TestCase):
             and any(isinstance(item, ast.FunctionDef) and item.name == "__new__" for item in node.body)
         ]
         self.assertEqual(found, [])
+
+    def test_field_types_come_from_qmetatype(self) -> None:
+        found = [
+            (rel, node.lineno, node.attr)
+            for rel, tree in plugin_sources()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "QVariant"
+        ]
+        self.assertEqual(found, [], "write QMetaType.Type.QString, not QVariant.String")
 
     def test_every_qt_enum_member_names_its_enum(self) -> None:
         found = [(rel, line, text) for rel, tree in plugin_sources() for line, text in _unscoped_enum_members(tree)]

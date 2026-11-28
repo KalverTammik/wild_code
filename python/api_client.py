@@ -5,6 +5,8 @@ import re
 import time
 import traceback
 import mimetypes
+import unicodedata
+from enum import Enum
 import requests
 from requests import exceptions as requests_exceptions
 from qgis.core import Qgis
@@ -123,6 +125,12 @@ class APIClient:
             return QThread.currentThread() == app.thread()
         return True
 
+    @staticmethod
+    def _user_agent() -> str:
+        """ASCII only: the server fails the login on a release name such as "Belém do Pará"."""
+        text = f"QGIS/{Qgis.QGIS_VERSION} ({platform.system()} {platform.release()})"
+        return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+
     def _request_headers(self, require_auth: bool, *, json_body: bool) -> dict:
         headers = {}
         if json_body:
@@ -130,7 +138,7 @@ class APIClient:
         headers.update({
             "Accept": "application/json",
             "X-Requested-With": "XMLHttpRequest",
-            "User-Agent": f"QGIS/{Qgis.QGIS_VERSION} ({platform.system()} {platform.release()})",
+            "User-Agent": self._user_agent(),
         })
         if require_auth:
             token = self.session_manager.get_token()
@@ -457,6 +465,8 @@ class requestBuilder:
             return [requestBuilder.sanitize_for_json(v) for v in obj]
         elif isinstance(obj, QVariant):
             return None if obj.isNull() else obj.value()
+        elif isinstance(obj, Enum):  # Qt 6 enums: .value is a plain attribute
+            return requestBuilder.sanitize_for_json(obj.value)
         elif hasattr(obj, 'value'):
             return obj.value()  # handles QVariant-like types
         return obj

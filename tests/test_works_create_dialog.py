@@ -12,7 +12,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from qgis.core import QgsFeature, QgsField, QgsFields, QgsPointXY
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QPoint, QRect, Qt, QVariant
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QMetaType, QPoint, QRect, Qt
 from qgis.PyQt.QtWidgets import QApplication, QLabel, QStyle, QStyledItemDelegate
 
 from Kavitro_dev.constants.cadastral_fields import Katastriyksus
@@ -76,7 +76,7 @@ class WorksCreateDialogTest(unittest.TestCase):
 
     def test_suggested_title_skips_an_empty_address(self) -> None:
         fields = QgsFields()
-        fields.append(QgsField(Katastriyksus.l_aadress, QVariant.String))
+        fields.append(QgsField(Katastriyksus.l_aadress, QMetaType.Type.QString))
         feature = QgsFeature(fields)
         feature.setAttribute(Katastriyksus.l_aadress, None)
         dialog = self._make_dialog(feature)

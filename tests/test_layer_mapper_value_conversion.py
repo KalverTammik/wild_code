@@ -19,7 +19,7 @@ if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
 from qgis.core import NULL, QgsApplication, QgsFeature, QgsField, QgsGeometry, QgsVectorLayer
-from qgis.PyQt.QtCore import QCoreApplication, QDate, QEvent, QVariant
+from qgis.PyQt.QtCore import QCoreApplication, QDate, QEvent, QMetaType
 from qgis.PyQt.QtWidgets import QWidget
 
 from Kavitro_dev.Logs.python_fail_logger import PythonFailLogger
@@ -228,8 +228,8 @@ class MapperCoerceHelperTest(unittest.TestCase):
     def test_helper_collects_the_problem_and_returns_none(self) -> None:
         problems: list[FieldValueProblem] = []
 
-        self.assertEqual(GeospatialLayerMapperDialog._coerce_value_for_field(QgsField("n", QVariant.Int), " 12 ", problems), 12)
-        self.assertIsNone(GeospatialLayerMapperDialog._coerce_value_for_field(QgsField("n", QVariant.Int), "abc", problems))
+        self.assertEqual(GeospatialLayerMapperDialog._coerce_value_for_field(QgsField("n", QMetaType.Type.Int), " 12 ", problems), 12)
+        self.assertIsNone(GeospatialLayerMapperDialog._coerce_value_for_field(QgsField("n", QMetaType.Type.Int), "abc", problems))
         self.assertEqual([problem.expected for problem in problems], [FieldValueProblem.INTEGER])
 
     def test_field_without_a_readable_type_keeps_the_value(self) -> None:

@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from typing import Optional
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import (
     QgsFeature, QgsFeatureRequest, QgsMapLayer, QgsVariantUtils, QgsVectorLayer, QgsWkbTypes,
 )
@@ -51,9 +51,9 @@ class EasementLayerService(AttachableLayerServiceBase):
     FIELD_EXTERNAL_SYSTEM = "ext_system"
     FIELD_EXTERNAL_NUMBER = "ext_easement_number"
     CUSTOM_FIELDS = (
-        (FIELD_EXTERNAL_ID, QVariant.String, 64),
-        (FIELD_EXTERNAL_SYSTEM, QVariant.String, 32),
-        (FIELD_EXTERNAL_NUMBER, QVariant.String, 64),
+        (FIELD_EXTERNAL_ID, QMetaType.Type.QString, 64),
+        (FIELD_EXTERNAL_SYSTEM, QMetaType.Type.QString, 32),
+        (FIELD_EXTERNAL_NUMBER, QMetaType.Type.QString, 64),
     )
 
     FIELD_ID_CANDIDATES = (FIELD_EXTERNAL_ID, "ext_job_id", "easement_id", "ext_id", "external_id")
@@ -384,7 +384,7 @@ class EasementLayerService(AttachableLayerServiceBase):
             field_type = field.type() if field is not None else None
         except (AttributeError, RuntimeError):
             field_type = None
-        if field_type in (QVariant.Int, QVariant.UInt, QVariant.LongLong, QVariant.ULongLong):
+        if field_type in (QMetaType.Type.Int, QMetaType.Type.UInt, QMetaType.Type.LongLong, QMetaType.Type.ULongLong):
             return actual, int(round(area_sqm))
         return actual, round(float(area_sqm), 2)
 

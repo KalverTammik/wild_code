@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import QgsVectorLayer, QgsWkbTypes
 
 from Kavitro_dev.languages.language_manager import LanguageManager
@@ -338,18 +338,18 @@ class FieldsTest(unittest.TestCase):
 
     def test_project_fields(self) -> None:
         self.assertEqual(self.schema(ProjectsTempLayerHelper), [
-            ("ext_project_id", QVariant.String), ("ext_system", QVariant.String), ("ext_project_name", QVariant.String),
-            ("ext_project_number", QVariant.String), ("detailed", QVariant.String), ("active", QVariant.Bool),
-            ("added_by", QVariant.String), ("added_date", QVariant.DateTime), ("updated_by", QVariant.String),
-            ("update_date", QVariant.DateTime),
+            ("ext_project_id", QMetaType.Type.QString), ("ext_system", QMetaType.Type.QString), ("ext_project_name", QMetaType.Type.QString),
+            ("ext_project_number", QMetaType.Type.QString), ("detailed", QMetaType.Type.QString), ("active", QMetaType.Type.Bool),
+            ("added_by", QMetaType.Type.QString), ("added_date", QMetaType.Type.QDateTime), ("updated_by", QMetaType.Type.QString),
+            ("update_date", QMetaType.Type.QDateTime),
         ])
 
     def test_works_fields(self) -> None:
         self.assertEqual(self.schema(WorksTempLayerHelper), [
-            ("ext_job_id", QVariant.LongLong), ("ext_job_name", QVariant.String), ("ext_job_type", QVariant.LongLong),
-            ("ext_job_state", QVariant.LongLong), ("detailed", QVariant.String), ("active", QVariant.Bool),
-            ("begin_date", QVariant.DateTime), ("end_date", QVariant.DateTime), ("added_by", QVariant.String),
-            ("added_date", QVariant.DateTime), ("updated_by", QVariant.String), ("update_date", QVariant.DateTime),
+            ("ext_job_id", QMetaType.Type.LongLong), ("ext_job_name", QMetaType.Type.QString), ("ext_job_type", QMetaType.Type.LongLong),
+            ("ext_job_state", QMetaType.Type.LongLong), ("detailed", QMetaType.Type.QString), ("active", QMetaType.Type.Bool),
+            ("begin_date", QMetaType.Type.QDateTime), ("end_date", QMetaType.Type.QDateTime), ("added_by", QMetaType.Type.QString),
+            ("added_date", QMetaType.Type.QDateTime), ("updated_by", QMetaType.Type.QString), ("update_date", QMetaType.Type.QDateTime),
         ])
 
     def test_default_layer_names(self) -> None:

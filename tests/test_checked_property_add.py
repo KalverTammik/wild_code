@@ -517,11 +517,11 @@ class CheckedPropertyAddTest(unittest.TestCase):
         it with date_to_iso_string before it reaches classify_property_import -- the same way
         the check already does (AddUpdatePropertyDialog._start_attention_checks) -- so a real
         QDate-typed field must arrive there as an ISO string, never as the raw QDate object."""
-        from qgis.PyQt.QtCore import QDate, QVariant
+        from qgis.PyQt.QtCore import QDate, QMetaType
         from qgis.core import QgsField
         from Kavitro_dev.constants.cadastral_fields import Katastriyksus as F
 
-        self.target.dataProvider().addAttributes([QgsField(F.muudet, QVariant.Date)])
+        self.target.dataProvider().addAttributes([QgsField(F.muudet, QMetaType.Type.QDate)])
         self.target.updateFields()
         main_feature = QgsFeature(self.target.fields())
         main_feature.setAttributes(['1', QDate(2025, 6, 1)])

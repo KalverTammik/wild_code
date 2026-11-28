@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 if os.environ.get('QGIS_PREFIX_PATH'):
     sys.path.append(str(Path(os.environ['QGIS_PREFIX_PATH']) / 'python' / 'plugins'))
 
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, Qt, QVariant
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, Qt, QMetaType
 from qgis.PyQt.QtGui import QFont, QFontDatabase
 from qt_compat import font_families
 from qgis.PyQt.QtTest import QTest
@@ -79,7 +79,7 @@ def wait_for(case, predicate, timeout=3, message='Timed out waiting for UI state
 # Layer fields
 # --------------------------------------------------------------------------- #
 
-def add_fields(layer, names, field_type=QVariant.String):
+def add_fields(layer, names, field_type=QMetaType.Type.QString):
     """Add a block of fields to ``layer`` and publish them in one go.
 
     Adding the attributes without ``updateFields`` leaves the layer reporting the
@@ -90,7 +90,7 @@ def add_fields(layer, names, field_type=QVariant.String):
     return layer
 
 
-def add_import_fields(layer, field_type=QVariant.String):
+def add_import_fields(layer, field_type=QMetaType.Type.QString):
     """Add the add dialog's three extra fields to an offline import layer."""
     return add_fields(layer, IMPORT_EXTRA_FIELDS, field_type)
 
@@ -114,7 +114,7 @@ def make_import_layer(name='Offline location test', entries=None):
     return layer
 
 
-def make_main_layer(name='Main', extra_fields=(), field_type=QVariant.String):
+def make_main_layer(name='Main', extra_fields=(), field_type=QMetaType.Type.QString):
     """Build the main property layer the archive and check flows resolve to."""
     layer = QgsVectorLayer(f'Polygon?crs=EPSG:3301&field={F.tunnus}:string', name, 'memory')
     if extra_fields:

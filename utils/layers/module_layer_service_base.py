@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Callable, ClassVar, Optional
 
-from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant
+from qgis.PyQt.QtCore import QDate, QDateTime, QMetaType, QTime, QVariant
 from qgis.core import (
     QgsCoordinateTransform,
     QgsFeature,
@@ -75,10 +75,10 @@ class LayerEditTexts:
 
 _REJECTED = object()
 _INTEGER_RANGES = {
-    QVariant.Int: (-(2**31), 2**31 - 1),
-    QVariant.UInt: (0, 2**32 - 1),
-    QVariant.LongLong: (-(2**63), 2**63 - 1),
-    QVariant.ULongLong: (0, 2**64 - 1),
+    QMetaType.Type.Int: (-(2**31), 2**31 - 1),
+    QMetaType.Type.UInt: (0, 2**32 - 1),
+    QMetaType.Type.LongLong: (-(2**63), 2**63 - 1),
+    QMetaType.Type.ULongLong: (0, 2**64 - 1),
 }
 _TRUE_WORDS = frozenset({"1", "true", "t", "yes", "y", "jah"})
 _FALSE_WORDS = frozenset({"0", "false", "f", "no", "n", "ei"})
@@ -221,7 +221,7 @@ class ModuleLayerServiceBase:
         except (AttributeError, RuntimeError):  # not a field, or the layer was deleted
             return value, None
 
-        if field_type == QVariant.String:
+        if field_type == QMetaType.Type.QString:
             if isinstance(value, (dict, list)):
                 try:
                     return json.dumps(value, ensure_ascii=False), None
@@ -231,13 +231,13 @@ class ModuleLayerServiceBase:
 
         if field_type in _INTEGER_RANGES:
             convert, expected = ModuleLayerServiceBase._integer_value, FieldValueProblem.INTEGER
-        elif field_type == QVariant.Double:
+        elif field_type == QMetaType.Type.Double:
             convert, expected = ModuleLayerServiceBase._double_value, FieldValueProblem.NUMBER
-        elif field_type == QVariant.Bool:
+        elif field_type == QMetaType.Type.Bool:
             convert, expected = ModuleLayerServiceBase._bool_value, FieldValueProblem.YES_NO
-        elif field_type == QVariant.Date:
+        elif field_type == QMetaType.Type.QDate:
             convert, expected = ModuleLayerServiceBase._date_value, FieldValueProblem.DATE
-        elif field_type == QVariant.DateTime:
+        elif field_type == QMetaType.Type.QDateTime:
             convert, expected = ModuleLayerServiceBase._datetime_value, FieldValueProblem.DATE_TIME
         else:
             return value, None

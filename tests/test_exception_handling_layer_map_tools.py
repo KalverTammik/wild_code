@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QVariant
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QMetaType
 from qgis.core import (
     QgsApplication,
     QgsCoordinateReferenceSystem,
@@ -279,7 +279,7 @@ class WorksLayerServiceTest(LoggedCase):
                 self.assertEqual(WorksLayerService.coerce_value_for_field(field, "7"), "7")
 
     def test_text_field_gets_json_for_objects_and_str_for_what_json_rejects(self) -> None:
-        field = QgsField("detail", QVariant.String)
+        field = QgsField("detail", QMetaType.Type.QString)
         circular: dict = {}
         circular["self"] = circular
         opaque = {"value": object()}
@@ -289,7 +289,7 @@ class WorksLayerServiceTest(LoggedCase):
 
     def test_integer_field_gets_nothing_for_numbers_it_cannot_read(self) -> None:
         # The value goes through str() first, so even int(inf) never reaches an OverflowError here.
-        field = QgsField("state", QVariant.Int)
+        field = QgsField("state", QMetaType.Type.Int)
         with patch.object(PythonFailLogger, "log"):  # each rejection leaves a log line
             for raw in ("abc", float("inf"), float("nan")):
                 with self.subTest(raw=raw):

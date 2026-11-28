@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 if os.environ.get("QGIS_PREFIX_PATH"):
     sys.path.append(str(Path(os.environ["QGIS_PREFIX_PATH"]) / "python" / "plugins"))
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.PyQt.QtWidgets import QApplication
 
 from Kavitro_dev.languages.language_manager import LanguageManager
@@ -85,7 +85,7 @@ class ProjectFieldCoercionTest(unittest.TestCase):
     @staticmethod
     def _string_field() -> Mock:
         field = Mock()
-        field.type.return_value = QVariant.String
+        field.type.return_value = QMetaType.Type.QString
         return field
 
     def test_dict_is_written_as_json(self) -> None:

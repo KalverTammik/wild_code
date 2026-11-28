@@ -5,7 +5,7 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import QgsField, QgsFields, QgsProject, QgsVectorLayer, QgsWkbTypes
 
 from ...constants.file_paths import QmlPaths
@@ -212,7 +212,7 @@ class PropertyLayerBootstrapService:
 
         existing_names = {field.name().strip().lower() for field in fields}
         if "search_field" not in existing_names:
-            fields.append(QgsField("search_field", QVariant.String, len=512))
+            fields.append(QgsField("search_field", QMetaType.Type.QString, len=512))
         return fields
 
     @classmethod

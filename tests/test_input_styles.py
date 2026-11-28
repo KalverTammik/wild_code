@@ -139,6 +139,30 @@ class InputButtonStyleTest(_StyledWindowTest):
                 with self.subTest(theme=theme_dir, input=name):
                     self.assertEqual(column, {field.name()})
 
+    def test_the_combo_arrow_area_is_not_a_box_of_its_own(self) -> None:
+        # ComboBox.qss reaches form combos through the main window's stylesheet.
+        for theme_dir in (StylePaths.LIGHT, StylePaths.DARK):
+            window = self._window(theme_dir)
+            ThemeManager.apply_theme(window, theme_dir, [QssPaths.MAIN, QssPaths.COMBOBOX])
+            combos = {name: QComboBox(window) for name in ("plain", "disabled", "checkable")}
+            combos["disabled"].setEnabled(False)
+            combos["checkable"].setProperty("kavitroCheckableCombo", True)
+            for combo in combos.values():
+                window.layout().addWidget(combo)
+            image = self._show(window)
+            for name, combo in combos.items():
+                origin = combo.mapTo(window, QPoint(0, 0))
+                field = image.pixelColor(origin.x() + combo.width() // 2, origin.y() + 4)
+                # Inside the arrow area: left of the right border (and its margin), above and below the arrow.
+                columns = range(combo.width() - 26, combo.width() - 10)
+                above = {image.pixelColor(origin.x() + x, origin.y() + 4).name() for x in columns}
+                middle = range(combo.height() // 2 - 4, combo.height() // 2 + 5)
+                arrow = {image.pixelColor(origin.x() + x, origin.y() + y).name() for x in columns for y in middle}
+                with self.subTest(theme=theme_dir, combo=name):
+                    self.assertEqual(above, {field.name()})
+                    # The arrow is the plugin's own, so it is there without any QGIS UI theme too.
+                    self.assertGreater(len(arrow), 1)
+
     def test_all_inputs_have_the_same_height(self) -> None:
         window = self._window(StylePaths.LIGHT)
         inputs = self._inputs(window)

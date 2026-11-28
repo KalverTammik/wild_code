@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import Optional, Tuple
 
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QMetaType
 from qgis.core import (
     QgsField, QgsFields, QgsVectorFileWriter, QgsWkbTypes,
     QgsCoordinateReferenceSystem, QgsProject, QgsVectorLayer
@@ -243,7 +243,7 @@ class ArchiveLayerHandler:
         existing_names = {field.name().strip().lower() for field in archive_fields}
         if ArchiveLayerHandler.ARCHIVE_DATE_FIELD.lower() not in existing_names:
             archive_fields.append(
-                QgsField(ArchiveLayerHandler.ARCHIVE_DATE_FIELD, QVariant.String, len=16)
+                QgsField(ArchiveLayerHandler.ARCHIVE_DATE_FIELD, QMetaType.Type.QString, len=16)
             )
         return archive_fields
 

@@ -56,11 +56,28 @@ QLineEdit[validationState="error"]:focus {
 }
 
 /* The QGIS UI theme draws these input buttons dark; here they blend into the field like a combo box arrow. */
-QAbstractSpinBox::drop-down,
-QComboBox::drop-down:editable {
+QAbstractSpinBox::drop-down {
     margin: 0 2px 0 0;
     background: transparent;
     border: none;
+}
+/* The combo draws its own arrow, so it looks the same under every QGIS UI theme. */
+QComboBox::drop-down,
+QComboBox::drop-down:editable {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 20px;
+    margin: 0 2px 0 0;
+    background: transparent;
+    border: none;
+}
+QComboBox::down-arrow {
+    image: url(arrow_down.svg);
+    width: 7px;
+    height: 7px;
+}
+QComboBox::down-arrow:disabled {
+    image: url(arrow_down_disabled.svg);
 }
 QAbstractSpinBox::up-button,
 QAbstractSpinBox::down-button {
