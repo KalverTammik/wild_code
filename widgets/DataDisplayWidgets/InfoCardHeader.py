@@ -15,7 +15,7 @@ from ...module_manager import ModuleManager
 from ...python.responses import DataDisplayExtractors
 from ...constants.module_names import Module
 from .PriorityWidget import PriorityWidget
-from .TagsWidget import TagsWidget
+from ..Tags.record_tags import RecordTagsView
 
 
 class ElidedLabel(QLabel):
@@ -165,9 +165,6 @@ class InfocardHeaderFrame(QFrame):
         nameRow.addWidget(nameLabel, 1, Qt.AlignmentFlag.AlignVCenter)
         self._name_label = nameLabel
 
-        tags = DataDisplayExtractors.extract_tag_names(item_data)
-        if tags:
-            nameRow.addWidget(TagsWidget(tags, compact=True), 0, Qt.AlignmentFlag.AlignTop)
         leftL.addLayout(nameRow)
 
         type_badge = self._create_type_badge(item_data, module_name)
@@ -194,6 +191,10 @@ class InfocardHeaderFrame(QFrame):
                 metaRow.addWidget(clientLabel, 1, Qt.AlignmentFlag.AlignVCenter)
                 self._client_label = clientLabel
             leftL.addLayout(metaRow)
+
+        tags = DataDisplayExtractors.extract_tags(item_data)
+        if tags:
+            leftL.addWidget(RecordTagsView(module_name, tags, left))
 
         root.addWidget(left, 1, Qt.AlignmentFlag.AlignVCenter)
         self._sync_number_badge_width()

@@ -128,7 +128,7 @@ class FilterErrorTest(UserFacingCase):
         shown = {
             "status": self.status.selector._display_override,
             "type": self.types.group_combo.itemText(0),
-            "tags": self.tags.combo.itemText(0),
+            "tags": self.tags.picker._control._label.text(),
         }
         for name, text in shown.items():
             with self.subTest(filter=name):

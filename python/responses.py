@@ -3,6 +3,7 @@ import requests
 from typing import Any, Dict, List, Mapping, Optional, Union
 from ..Logs.python_fail_logger import PythonFailLogger
 from ..utils.project_folder_rules import resolve_project_number
+from .tag_catalog import Tag
 
 Json = Mapping[str, Any]
 
@@ -95,16 +96,16 @@ class DataDisplayExtractors:
         return list(edges) if isinstance(edges, list) else []
 
     @staticmethod
-    def extract_tag_names(item_data: Optional[Json]) -> List[str]:
-        names: List[str] = []
+    def extract_tags(item_data: Optional[Json]) -> List[Tag]:
+        """The record's tags with their ids; names without Kavitro's stray spaces."""
+        tags: List[Tag] = []
         for edge in DataDisplayExtractors._edges_from(item_data, GqlKeys.TAGS):
-            node = DataDisplayExtractors._as_dict(edge).get(GqlKeys.NODE) or {}
-            name = DataDisplayExtractors._as_dict(node).get(GqlKeys.NAME)
-            if isinstance(name, str):
-                trimmed = name.strip()
-                if trimmed:
-                    names.append(trimmed)
-        return names
+            node = DataDisplayExtractors._as_dict(DataDisplayExtractors._as_dict(edge).get(GqlKeys.NODE))
+            name = str(node.get(GqlKeys.NAME) or "").strip()
+            tag_id = str(node.get("id") or "").strip()
+            if name and tag_id:
+                tags.append(Tag(tag_id, name))
+        return tags
 
     @staticmethod
     def extract_contacts(item_data: Optional[Json]) -> List[ContactInfo]:

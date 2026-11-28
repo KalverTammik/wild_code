@@ -1,5 +1,4 @@
 from typing import List, Dict, Optional, Sequence, Tuple, Union
-from qgis.PyQt.QtCore import Qt
 
 from ...constants.module_names import ModuleSupports
 
@@ -80,34 +79,10 @@ class FilterHelper:
             return entries
 
     @staticmethod
-    def set_selected_ids(widget, ids: Sequence[str], emit: bool = True) -> None:
-        ids_set = {str(v) for v in ids or []}
-        widget._suppress_emit = True
-        try:
-            for row in range(widget.combo.count()):
-                val = widget.combo.itemData(row)
-                state = Qt.CheckState.Checked if str(val) in ids_set else Qt.CheckState.Unchecked
-                widget.combo.setItemCheckState(row, state)
-        finally:
-            widget._suppress_emit = False
-        if emit:
-            widget._emit_selection_change()
-
-    @staticmethod
-    def selected_ids(widget) -> List[str]:
-        values = list(widget.combo.checkedItemsData() or [])
-        return [v for v in values if v]
-
-    @staticmethod
-    def selected_texts(widget) -> List[str]:
-        values = list(widget.combo.checkedItems() or [])
-        return [v for v in values if v]
-
-    @staticmethod
     def cancel_pending_load(widget, *, invalidate_request: bool = True) -> None:
         """Stop a filter widget's background load.
 
-        ``widget`` is a StatusFilterWidget, TypeFilterWidget or BaseSingleFilterWidget
+        ``widget`` is a StatusFilterWidget, TypeFilterWidget or TagsFilterWidget
         (or None); each sets ``_load_request_id``, ``_worker`` and ``_worker_thread``
         in ``__init__`` and declares ``loadFinished``.
         """
@@ -218,7 +193,7 @@ class FilterRefreshService:
                     resolved_type = type_getter() or []
 
         if resolved_tags is None and tags_filter is not None:
-            resolved_tags = FilterHelper.selected_ids(tags_filter)
+            resolved_tags = tags_filter.selected_ids()
             if not resolved_tags and not FilterRefreshService._is_filter_loaded(tags_filter):
                 if callable(tags_getter):
                     resolved_tags = tags_getter() or []

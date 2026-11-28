@@ -840,6 +840,7 @@ class EntryPointInterfaceTest(unittest.TestCase):
         "Kavitro_dev.python.actions.user_actions": ("UserActions", USERS),
         "Kavitro_dev.python.actions.task_actions": ("TaskActions", TASKS),
         "Kavitro_dev.python.actions.geometry_actions": ("GeometryActions", GEOMETRY),
+        "Kavitro_dev.python.actions.tag_actions": ("TagActions", ("get_module_tag_catalog",)),
     }
     # Text only the moved code used; none of it may stay behind in api_actions.py.
     MOVED_TEXT = (
@@ -851,8 +852,8 @@ class EntryPointInterfaceTest(unittest.TestCase):
 
     def test_entry_point_still_offers_every_method(self) -> None:
         names = [name for _class_name, group in self.MOVED.values() for name in group]
-        self.assertEqual(len(names), 42)
-        self.assertEqual(len(set(names)), 42)
+        self.assertEqual(len(names), 43)
+        self.assertEqual(len(set(names)), 43)
         for name in names:
             with self.subTest(method=name):
                 self.assertTrue(callable(getattr(APIModuleActions, name, None)), name)

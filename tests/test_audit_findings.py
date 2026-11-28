@@ -28,7 +28,6 @@ from Kavitro_dev.modules.works.works_sync_service import WorksSyncService
 from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.utils.api_error_handling import ApiError, ApiErrorKind
 from Kavitro_dev.utils.search.UnifiedSearchController import UnifiedSearchController
-from Kavitro_dev.widgets.Filters.BaseSingleFilterWidget import BaseSingleFilterWidget
 from Kavitro_dev.widgets.Filters.TypeFilterWidget import TypeFilterWidget
 from Kavitro_dev.widgets.SearchResultsWidget import SearchResultsWidget
 
@@ -197,30 +196,8 @@ class FilterChoiceWhileLoadingTest(_Patches):
         self.settings = Mock()
         self.settings.load_module_preference_ids.return_value = ["1"]
 
-    def _tags(self) -> BaseSingleFilterWidget:
-        widget = BaseSingleFilterWidget(
-            Module.PROJECT.value, support_key="tags", label_text="Tunnused", object_name="TagsFilter", auto_load=False,
-            settings_logic=self.settings)
-        delete_later(self, widget)
-        return widget
-
     def _loaded(self, widget, payload) -> None:
         widget._handle_load_success(payload, widget._current_token(), widget._load_request_id)
-
-    def test_clearing_while_the_tags_load_stays_cleared(self) -> None:
-        widget = self._tags()
-        widget.set_selected_ids([], emit=False)
-
-        self._loaded(widget, [("Üks", "1"), ("Kaks", "2")])
-
-        self.assertEqual(widget.selected_ids(), [])
-
-    def test_without_a_choice_the_saved_tags_are_applied(self) -> None:
-        widget = self._tags()
-
-        self._loaded(widget, [("Üks", "1"), ("Kaks", "2")])
-
-        self.assertEqual(widget.selected_ids(), ["1"])
 
     def test_clearing_while_the_types_load_stays_cleared(self) -> None:
         for choice, expected in (([], []), (None, ["1"])):

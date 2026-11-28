@@ -7,9 +7,12 @@ from .actions.file_actions import FileActions
 from .actions.geometry_actions import GeometryActions
 from .actions.property_link_actions import PropertyLinkActions
 from .actions.status_actions import StatusActions
+from .actions.tag_actions import TagActions
 from .actions.task_actions import TaskActions
 from .actions.user_actions import UserActions
 
 
-class APIModuleActions(FileActions, PropertyLinkActions, StatusActions, UserActions, TaskActions, GeometryActions):
-    """Entry point for the module actions; the file, property-link, status, user, task and geometry domains live in python/actions/."""
+class APIModuleActions(
+    FileActions, PropertyLinkActions, StatusActions, UserActions, TaskActions, GeometryActions, TagActions,
+):
+    """Entry point for the module actions; the file, property-link, status, user, task, geometry and tag domains live in python/actions/."""

@@ -238,7 +238,7 @@ class OverdueDueSoonPillsActionHelper:
         )
 
         tags_filter = module.tags_filter
-        tags_ids = FilterHelper.selected_ids(tags_filter) if tags_filter else []
+        tags_ids = tags_filter.selected_ids() if tags_filter else []
         where_has_filter = FilterHelper.build_has_tags_condition(
             tags_ids, match_mode=module.tags_match_mode
         )

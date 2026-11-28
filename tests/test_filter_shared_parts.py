@@ -22,20 +22,17 @@ from Kavitro_dev.languages.language_manager import LanguageManager, set_current_
 from Kavitro_dev.python.api_actions import APIModuleActions
 from Kavitro_dev.utils.FilterHelpers.FilterHelper import FilterHelper
 from Kavitro_dev.constants.module_names import ModuleSupports
-from Kavitro_dev.widgets.Filters.BaseSingleFilterWidget import (
-    BaseSingleFilterWidget,
-    _SimplePickerControl,
-    _SimplePickerPopup,
-)
+from Kavitro_dev.python.tag_catalog import TagCatalog
 from Kavitro_dev.widgets.Filters.StatusFilterWidget import StatusFilterWidget
 from Kavitro_dev.widgets.Filters.TagsFilterWidget import TagsFilterWidget
+from Kavitro_dev.widgets.Tags.grouped_tag_picker import _TagPickerControl, _TagPickerPopup
 from Kavitro_dev.widgets.Filters.TypeFilterWidget import TypeFilterWidget, _TypePickerControl, _TypePickerPopup
 from Kavitro_dev.ui.theme_manager import ThemeManager
 
-FILTER_WIDGETS = (BaseSingleFilterWidget, StatusFilterWidget, TypeFilterWidget)
-SELECT_ALL_WIDGETS = (BaseSingleFilterWidget, TypeFilterWidget)
-PICKER_CONTROLS = (_SimplePickerControl, _TypePickerControl)
-PICKER_POPUPS = (_SimplePickerPopup, _TypePickerPopup)
+FILTER_WIDGETS = (TagsFilterWidget, StatusFilterWidget, TypeFilterWidget)
+SELECT_ALL_WIDGETS = (TypeFilterWidget,)
+PICKER_CONTROLS = (_TagPickerControl, _TypePickerControl)
+PICKER_POPUPS = (_TagPickerPopup, _TypePickerPopup)
 
 
 def alive(**fields) -> SimpleNamespace:
@@ -324,8 +321,12 @@ class RealFilterCase(unittest.TestCase):
 
 class FilterLoadResponseTest(RealFilterCase):
     def test_select_all_works_on_the_combo_holding_the_options(self) -> None:
-        self.assertIs(self.tags._options_combo, self.tags.combo)
         self.assertIs(self.types._options_combo, self.types.type_combo)
+
+    @staticmethod
+    def empty_answer(widget):
+        """What the widget's own fetch returns when there is nothing."""
+        return TagCatalog() if isinstance(widget, TagsFilterWidget) else []
 
     def finished_signal(self, widget) -> Mock:
         finished = Mock()
@@ -337,7 +338,7 @@ class FilterLoadResponseTest(RealFilterCase):
             with self.subTest(widget=type(widget).__name__):
                 finished = self.finished_signal(widget)
                 widget._load_request_id = 4
-                widget._handle_load_success([], None, 4)
+                widget._handle_load_success(self.empty_answer(widget), None, 4)
                 finished.assert_called_once_with(True)
                 self.assertTrue(widget.is_loaded())
                 finished.reset_mock()
@@ -350,7 +351,7 @@ class FilterLoadResponseTest(RealFilterCase):
             with self.subTest(widget=type(widget).__name__):
                 finished = self.finished_signal(widget)
                 widget._load_request_id = 4
-                widget._handle_load_success([], None, 3)
+                widget._handle_load_success(self.empty_answer(widget), None, 3)
                 widget._handle_load_error("katki", None, 3)
                 finished.assert_not_called()
                 self.assertFalse(widget.is_loaded())
@@ -361,7 +362,7 @@ class FilterLoadResponseTest(RealFilterCase):
                 finished = self.finished_signal(widget)
                 widget._load_request_id = 4
                 widget._is_token_active = lambda _token: False
-                widget._handle_load_success([], 9, 4)
+                widget._handle_load_success(self.empty_answer(widget), 9, 4)
                 widget._handle_load_error("katki", 9, 4)
                 finished.assert_not_called()
 
@@ -371,7 +372,7 @@ class FilterLoadResponseTest(RealFilterCase):
                 finished = self.finished_signal(widget)
                 widget._load_request_id = 4
                 widget._is_widget_alive = lambda: False
-                widget._handle_load_success([], None, 4)
+                widget._handle_load_success(self.empty_answer(widget), None, 4)
                 widget._handle_load_error("katki", None, 4)
                 finished.assert_not_called()
 
@@ -418,25 +419,23 @@ class FilterAsyncLoadTest(RealFilterCase):
     def test_each_filter_asks_for_its_own_options(self) -> None:
         with patch.object(FilterHelper, "get_filter_edges_by_key_and_module", return_value="servast") as edges, patch.object(
             APIModuleActions, "get_module_status_options", return_value="olekud"
-        ) as statuses:
-            for widget, expected, key in ((self.tags, "servast", ModuleSupports.TAGS.value),
-                                          (self.types, "servast", ModuleSupports.TYPES.value),
-                                          (self.status, "olekud", None)):
+        ) as statuses, patch.object(APIModuleActions, "get_module_tag_catalog", return_value="tunnused") as tags:
+            for widget, expected, source, call in (
+                (self.tags, "tunnused", tags, (("contract",), {})),
+                (self.types, "servast", edges, ((ModuleSupports.TYPES.value, "contract"), {})),
+                (self.status, "olekud", statuses, (("contract",), {"raise_on_error": True})),
+            ):
                 with self.subTest(widget=type(widget).__name__):
-                    edges.reset_mock()
-                    statuses.reset_mock()
+                    for mock in (edges, statuses, tags):
+                        mock.reset_mock()
                     worker_class, _start, _cancel = self.start(widget)
                     self.assertEqual(worker_class.call_args.args[0](), expected)
-                    if key is None:
-                        statuses.assert_called_once_with("contract", raise_on_error=True)
-                        edges.assert_not_called()
-                    else:
-                        edges.assert_called_once_with(key, "contract")
-                        statuses.assert_not_called()
+                    source.assert_called_once_with(*call[0], **call[1])
+                    self.assertEqual(sum(mock.call_count for mock in (edges, statuses, tags)), 1)
 
 
 class PickerControlTest(unittest.TestCase):
-    NAMES = {_SimplePickerControl: ("SimplePickerControl", "SimplePickerSummary"),
+    NAMES = {_TagPickerControl: ("GroupedTagPickerControl", "GroupedTagPickerSummary"),
              _TypePickerControl: ("TypePickerControl", "TypePickerSummary")}
 
     @classmethod
@@ -575,55 +574,46 @@ class PickerPopupTest(RealFilterCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.tags._load_request_id = self.types._load_request_id = 1
-        self.tags._handle_load_success([("Punane", "t1"), ("Sinine", "t2")], None, 1)
+        self.types._load_request_id = 1
         self.types._handle_load_success(self.TYPES, None, 1)
         self.addCleanup(self.close_popups)
 
     def close_popups(self) -> None:
-        for widget in (self.tags, self.types):
-            widget._close_popup()
+        self.types._close_popup()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def test_popup_is_built_under_its_own_names_and_width(self) -> None:
-        for widget, name, width in ((self.tags, "SimplePicker", 260), (self.types, "TypePicker", 420)):
-            with self.subTest(popup=name):
-                widget._open_picker()
-                popup = widget._popup
-                self.assertEqual(popup.objectName(), f"{name}Popup")
-                self.assertEqual(popup._frame.objectName(), f"{name}PopupFrame")
-                self.assertEqual(popup._frame.minimumWidth(), width)
-                self.assertTrue(popup.windowFlags() & Qt.WindowType.Popup)
-                self.assertTrue(popup.testAttribute(Qt.WidgetAttribute.WA_DeleteOnClose))
-                self.assertTrue(popup.findChildren(QWidget, f"{name}ActionButton"))
+        self.types._open_picker()
+        popup = self.types._popup
+        self.assertEqual(popup.objectName(), "TypePickerPopup")
+        self.assertEqual(popup._frame.objectName(), "TypePickerPopupFrame")
+        self.assertEqual(popup._frame.minimumWidth(), 420)
+        self.assertTrue(popup.windowFlags() & Qt.WindowType.Popup)
+        self.assertTrue(popup.testAttribute(Qt.WidgetAttribute.WA_DeleteOnClose))
+        self.assertTrue(popup.findChildren(QWidget, "TypePickerActionButton"))
 
     def test_style_targets_its_own_rows_in_the_current_theme(self) -> None:
-        rows = {self.tags: ("SimplePicker", ("OptionRow",), "#252932"),
-                self.types: ("TypePicker", ("GroupRow", "TypeRow"), "#2e2f38")}
-        for widget, (name, row_names, action_bg) in rows.items():
-            with self.subTest(popup=name), patch.object(ThemeManager, "effective_theme", return_value="dark"):
-                widget._open_picker()
-                style = widget._popup.styleSheet()
-                widget._close_popup()
-                selectors = ", ".join(f"QPushButton#{name}{row}:checked" for row in row_names)
-                self.assertIn(f"{selectors} {{background: rgba(9,144,143,0.28);", style)
-                self.assertIn(f"QPushButton#{name}ActionButton {{background: {action_bg};", style)
-                self.assertEqual("QFrame#TypePickerPanel" in style, name == "TypePicker")
+        with patch.object(ThemeManager, "effective_theme", return_value="dark"):
+            self.types._open_picker()
+            style = self.types._popup.styleSheet()
+        selectors = "QPushButton#TypePickerGroupRow:checked, QPushButton#TypePickerTypeRow:checked"
+        self.assertIn(f"{selectors} {{background: rgba(9,144,143,0.28);", style)
+        self.assertIn("QPushButton#TypePickerActionButton {background: #2e2f38;", style)
+        self.assertIn("QFrame#TypePickerPanel", style)
 
     def test_second_click_closes_and_unusable_control_does_not_open(self) -> None:
-        for widget in (self.tags, self.types):
-            with self.subTest(widget=type(widget).__name__):
-                widget._open_picker()
-                self.assertIsNotNone(widget._popup)
-                widget._open_picker()
-                self.assertIsNone(widget._popup)
-                widget._control.setEnabled(False)
-                widget._open_picker()
-                self.assertIsNone(widget._popup)
-                widget._control.setEnabled(True)
-                widget._loaded = False
-                widget._open_picker()
-                self.assertIsNone(widget._popup)
+        widget = self.types
+        widget._open_picker()
+        self.assertIsNotNone(widget._popup)
+        widget._open_picker()
+        self.assertIsNone(widget._popup)
+        widget._control.setEnabled(False)
+        widget._open_picker()
+        self.assertIsNone(widget._popup)
+        widget._control.setEnabled(True)
+        widget._loaded = False
+        widget._open_picker()
+        self.assertIsNone(widget._popup)
 
     def test_group_count_in_the_type_summary_is_translated(self) -> None:
         for code, expected in (("et", "2 gruppi: Vesi - Toru, Gaas - Toru"), ("en", "2 groups: Vesi - Toru, Gaas - Toru")):

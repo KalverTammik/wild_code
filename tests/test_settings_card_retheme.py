@@ -58,13 +58,13 @@ class SettingsCardRethemeTest(unittest.TestCase):
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
     def test_switching_to_light_restyles_the_pickers_and_the_nested_card(self) -> None:
-        self.assertIn("#303a42", self.tags._control.styleSheet())
+        self.assertIn("#303a42", self.tags.picker._control.styleSheet())
         self.assertIn("#17241d", self.nested.styleSheet())  # dark disabled success button
 
         self.theme = "light"
         self.card.retheme()
 
-        for picker in (self.tags, self.types):
+        for picker in (self.tags.picker, self.types):
             with self.subTest(picker=type(picker).__name__):
                 self.assertIn("#ffffff", picker._control.styleSheet())
                 self.assertNotIn("#303a42", picker._control.styleSheet())

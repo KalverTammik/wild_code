@@ -322,13 +322,8 @@ class PickerPopupBase(QWidget):
             }
         name = self.NAME
         rows = [f"QPushButton#{name}{row}" for row in self.ROW_NAMES]
-        self.setStyleSheet(
-            f"QFrame#{name}PopupFrame {{"
-            f"background: {colors['frame_bg']}; border: 1px solid {colors['border']}; border-radius: 8px;"
-            "}"
-            f"QLabel#{name}SectionLabel {{"
-            f"color: {colors['muted']}; font-size: 10px; font-weight: 800; text-transform: uppercase;"
-            "}"
+        # Without row names there is no selector, and Qt drops a whole stylesheet that has an empty one.
+        row_rules = (
             f"{', '.join(rows)} {{"
             f"background: transparent; color: {colors['text']}; border: 1px solid transparent; border-radius: 6px;"
             "padding: 5px 8px; text-align: left; font-size: 12px; font-weight: 600;"
@@ -339,6 +334,15 @@ class PickerPopupBase(QWidget):
             f"{', '.join(row + ':checked' for row in rows)} {{"
             f"background: {colors['selected']}; border-color: {colors['selected_border']};"
             "}"
+        ) if rows else ""
+        self.setStyleSheet(
+            f"QFrame#{name}PopupFrame {{"
+            f"background: {colors['frame_bg']}; border: 1px solid {colors['border']}; border-radius: 8px;"
+            "}"
+            f"QLabel#{name}SectionLabel {{"
+            f"color: {colors['muted']}; font-size: 10px; font-weight: 800; text-transform: uppercase;"
+            "}"
+            + row_rules +
             f"QPushButton#{name}ActionButton {{"
             f"background: {colors[self.ACTION_BACKGROUND]}; color: {colors['text']};"
             "border: 1px solid rgba(128,128,128,0.30); border-radius: 5px; padding: 4px 8px; font-size: 11px;"

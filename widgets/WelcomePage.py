@@ -1,9 +1,11 @@
-from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QFrame
+from qgis.PyQt.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QFrame, QScrollArea
 from ..languages.language_manager import LanguageManager
 from ..ui.mixins.token_mixin import TokenMixin
 from ..constants.module_names import Module
 from ..ui.theme_manager import ThemeManager
+from ..constants.file_paths import ConfigPaths
 from .ModuleKpiCard import ModuleKpiCard
+from .Tags.tag_prototype_panel import TagPrototypePanel
 
 
 class WelcomePage(TokenMixin, QWidget):
@@ -81,7 +83,22 @@ class WelcomePage(TokenMixin, QWidget):
         kpi_shell.setObjectName("WelcomeKpiShell")
         kpi_shell.setLayout(self._kpi_grid)
 
-        layout = QVBoxLayout(self)
+        # A prototype under review: only development builds show it, above the KPI cards and scrollable.
+        self._tag_prototype = None
+        if ConfigPaths.IS_DEV:
+            outer = QVBoxLayout(self)
+            outer.setContentsMargins(0, 0, 0, 0)
+            scroll = QScrollArea(self)
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
+            page = QWidget(scroll)
+            scroll.setWidget(page)
+            outer.addWidget(scroll)
+            layout = QVBoxLayout(page)
+            self._tag_prototype = TagPrototypePanel(page)
+            layout.addWidget(self._tag_prototype)
+        else:
+            layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(14)
         layout.addWidget(kpi_shell)
@@ -92,10 +109,14 @@ class WelcomePage(TokenMixin, QWidget):
     def activate(self):
         for card in self._kpi_cards:
             card.refresh()
+        if self._tag_prototype is not None:
+            self._tag_prototype.activate()
 
     def deactivate(self):
         for card in self._kpi_cards:
             card.deactivate()
+        if self._tag_prototype is not None:
+            self._tag_prototype.deactivate()
 
     def get_widget(self):
         """Return self as the widget for module system compatibility."""
@@ -105,3 +126,5 @@ class WelcomePage(TokenMixin, QWidget):
         ThemeManager.apply_module_style(self)
         for card in self._kpi_cards:
             card.retheme()
+        if self._tag_prototype is not None:
+            self._tag_prototype.retheme()

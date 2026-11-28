@@ -38,7 +38,6 @@ from Kavitro_dev.widgets.DataDisplayWidgets.status_change_controller import Stat
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilePreviewDialog import TaskFilePreviewDialog
 from Kavitro_dev.widgets.DataDisplayWidgets.TaskFilesDialog import TaskFilesDialog
 from Kavitro_dev.widgets.EasementPropertyAreaCalculationWidget import EasementPropertyAreaCalculationWidget
-from Kavitro_dev.widgets.Filters.BaseSingleFilterWidget import BaseSingleFilterWidget
 from Kavitro_dev.widgets.Filters.NotStartedStatusFilterWidget import NotStartedStatusFilterWidget
 from Kavitro_dev.widgets.Filters.TypeFilterWidget import _TypePickerPopup
 from Kavitro_dev.widgets.ModuleKpiCard import ModuleKpiCard
@@ -371,24 +370,6 @@ class SmallWidgetHandlersTest(WidgetCase):
         self.assertEqual(card.lbl_katastritunnus_value.text(), "—")
         call = call_for(self.log, "property_summary_card_set_feature_failed")
         self.assertEqual(call.kwargs["module"], "property")
-
-
-class FilterSavedIdsTest(WidgetCase):
-    def test_failing_saved_ids_loader_is_logged_and_the_load_still_finishes(self) -> None:
-        settings = Mock()
-        settings.load_module_preference_ids.return_value = []
-        widget = BaseSingleFilterWidget(
-            "contract", "Label", "FilterObject", "support", self.window, auto_load=False,
-            settings_logic=settings,
-            selected_ids_loader=Mock(side_effect=ValueError("bad saved ids")),
-        )
-        finished = Mock()
-        widget.loadFinished.connect(finished)
-        widget._load_request_id = 4
-        widget._handle_load_success([("A", "a")], None, 4)
-        finished.assert_called_once_with(True)
-        call = call_for(self.log, "filter_saved_ids_load_failed")
-        self.assertEqual(call.kwargs["module"], "contract")
 
 
 class NotStartedFilterLanguageTest(WidgetCase):

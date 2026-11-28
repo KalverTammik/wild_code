@@ -20,8 +20,8 @@ from Kavitro_dev.modules.Settings import SettingsUI as settings_module
 from Kavitro_dev.modules.Settings.SettingsUI import SettingsModule
 from Kavitro_dev.modules.works.works_list_service import WorksFeedLogic
 from Kavitro_dev.ui.mixins.token_mixin import TokenMixin
-from Kavitro_dev.widgets.Filters.BaseSingleFilterWidget import BaseSingleFilterWidget
 from Kavitro_dev.widgets.Filters.StatusFilterWidget import StatusFilterWidget
+from Kavitro_dev.widgets.Filters.TagsFilterWidget import TagsFilterWidget
 from Kavitro_dev.widgets.Filters.TypeFilterWidget import TypeFilterWidget
 
 
@@ -100,7 +100,7 @@ class FilterTokenOwnerTest(unittest.TestCase):
 
     def test_the_nearest_owner_decides(self) -> None:
         token = self.owner.mark_activated()
-        for widget_class in (BaseSingleFilterWidget, StatusFilterWidget, TypeFilterWidget):
+        for widget_class in (TagsFilterWidget, StatusFilterWidget, TypeFilterWidget):
             with self.subTest(widget=widget_class.__name__):
                 self.assertTrue(self.ask(widget_class, self.child, token))
                 self.assertFalse(self.ask(widget_class, self.child, token - 1))
@@ -108,14 +108,14 @@ class FilterTokenOwnerTest(unittest.TestCase):
     def test_a_deactivated_owner_rejects_its_old_token(self) -> None:
         token = self.owner.mark_activated()
         self.owner.mark_deactivated()
-        for widget_class in (BaseSingleFilterWidget, StatusFilterWidget, TypeFilterWidget):
+        for widget_class in (TagsFilterWidget, StatusFilterWidget, TypeFilterWidget):
             with self.subTest(widget=widget_class.__name__):
                 self.assertFalse(self.ask(widget_class, self.child, token))
 
     def test_without_an_owner_every_token_is_current(self) -> None:
         orphan = QWidget()
         self.addCleanup(self._delete, orphan)
-        for widget_class in (BaseSingleFilterWidget, StatusFilterWidget, TypeFilterWidget):
+        for widget_class in (TagsFilterWidget, StatusFilterWidget, TypeFilterWidget):
             with self.subTest(widget=widget_class.__name__):
                 self.assertTrue(self.ask(widget_class, QWidget(orphan), 7))
 

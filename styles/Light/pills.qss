@@ -370,3 +370,6 @@ QFrame#TagPill * {
   outline: none !important;
   spacing: 0 !important;
 }
+
+/* The sample record of the tag prototype */
+QFrame#GroupedTagRecord { background: #ffffff; border: 1px solid #d7dee5; border-radius: 8px; }
