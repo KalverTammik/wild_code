@@ -269,8 +269,6 @@ class ModuleCardFactory:
 
         def _handle_left_column_responsive_update(*, source="unknown"):
             corner_widget_controller._update_layout_mode(source=source)
-            if not contacts_widget.isHidden():
-                contacts_widget.handle_responsive_update(source=source)
 
         left_column._responsive_callback = _handle_left_column_responsive_update
 

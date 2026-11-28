@@ -43,6 +43,7 @@ query property(
           client {
             id
             displayName
+            type
           }
           description
           isPublic

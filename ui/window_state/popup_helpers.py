@@ -28,6 +28,9 @@ class PopupHelpers:
             "placement": "top_left",
             "offset": (0, 6),
         },
+        "overflow": {
+            "offset": (0, 2),
+        },
         "members": {
             "offset": (0, 6),
         },

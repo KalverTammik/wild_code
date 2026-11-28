@@ -93,10 +93,6 @@ QLabel#ProjectParticipantsLabel {
     padding: 2px 0px 1px 0px;
 }
 
-QLabel#ClientIcon {
-    color: rgba(36,41,46,0.85);
-}
-
 QLabel#TypeInlineLabel {
     color: #0b3d91;
     font-size: 11px;

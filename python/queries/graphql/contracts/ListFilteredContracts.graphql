@@ -5,7 +5,7 @@ query contracts(
   $whereHas: [ContractsWhereHasInput!]
   $propertiesFirst: Int = 1
   $propertiesAfter: String
-  $contactsFirst: Int = 5
+  $contactsFirst: Int = 50
   $contactsAfter: String
 ) {
   contracts(

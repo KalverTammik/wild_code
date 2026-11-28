@@ -14,6 +14,7 @@ from ...languages.translation_keys import TranslationKeys
 from ...module_manager import ModuleManager
 from ...python.responses import DataDisplayExtractors
 from ...constants.module_names import Module
+from .ContactsWidget import ClientWidget
 from .PriorityWidget import PriorityWidget
 from ..Tags.record_tags import RecordTagsView
 
@@ -117,7 +118,6 @@ class InfocardHeaderFrame(QFrame):
         self._lang = LanguageManager()
         self._number_badge = None
         self._name_label = None
-        self._client_label = None
         self._type_badge = None
 
         root = QHBoxLayout(self)
@@ -169,8 +169,8 @@ class InfocardHeaderFrame(QFrame):
 
         type_badge = self._create_type_badge(item_data, module_name)
         self._type_badge = type_badge
-        client = DataDisplayExtractors.extract_client_display_name(item_data)
-        if type_badge is not None or client:
+        client = DataDisplayExtractors.extract_client(item_data)
+        if type_badge is not None or client is not None:
             metaRow = QHBoxLayout()
             metaRow.setContentsMargins(0, 0, 0, 0)
             metaRow.setSpacing(6)
@@ -178,18 +178,10 @@ class InfocardHeaderFrame(QFrame):
             if type_badge is not None:
                 metaRow.addWidget(type_badge, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-            if client:
-                icon = ThemeManager.get_qicon(MiscIcons.ICON_IS_CLIENT)
-                clientIcon = QLabel()
-                clientIcon.setPixmap(icon.pixmap(12, 12))
-                clientIcon.setObjectName("ClientIcon")
-                metaRow.addWidget(clientIcon, 0, Qt.AlignmentFlag.AlignVCenter)
-
-                clientLabel = WrappingTextLabel(client)
-                clientLabel.setObjectName("ProjectClientLabel")
-                clientLabel.setMinimumWidth(0)
-                metaRow.addWidget(clientLabel, 1, Qt.AlignmentFlag.AlignVCenter)
-                self._client_label = clientLabel
+            if client is not None:
+                metaRow.addWidget(ClientWidget(client, left), 1, Qt.AlignmentFlag.AlignVCenter)
+            else:
+                metaRow.addStretch(1)
             leftL.addLayout(metaRow)
 
         tags = DataDisplayExtractors.extract_tags(item_data)
@@ -218,9 +210,6 @@ class InfocardHeaderFrame(QFrame):
         if self._name_label is not None:
             name_h = max(16, self._name_label.fontMetrics().height() + 3)
             self._name_label.setMinimumHeight(name_h)
-        if self._client_label is not None:
-            client_h = max(14, self._client_label.fontMetrics().height() + 2)
-            self._client_label.setMinimumHeight(client_h)
         if self._type_badge is not None:
             chip_h = max(16, self._type_badge.fontMetrics().height() + 5)
             self._type_badge.setFixedHeight(chip_h)

@@ -59,7 +59,6 @@ class ModuleIcons:
 
 class MiscIcons:
     ICON_IS_PRIVATE = "show.png"
-    ICON_IS_CLIENT = os.path.join(PLUGIN_ROOT, RESOURCE, ICON_FOLDER,  "icons8-client-50.png")
 
 class ModuleIconPaths:
 

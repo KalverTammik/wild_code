@@ -3,7 +3,7 @@ query coordinationModuleDataById(
   $propertiesFirst: Int = 1
   $propertiesAfter: String
   $tagsFirst: Int = 10
-  $contactsFirst: Int = 5
+  $contactsFirst: Int = 50
   $contactsAfter: String
   )
   {

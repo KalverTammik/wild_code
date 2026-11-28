@@ -74,6 +74,7 @@ class TypeInfo:
 class ContactInfo:
     name: str
     notes: str = ""
+    company: bool = False
 
 
 class DataDisplayExtractors:
@@ -119,8 +120,18 @@ class DataDisplayExtractors:
                 if trimmed:
                     notes = edge_dict.get(GqlKeys.NOTES)
                     notes_text = notes.strip() if isinstance(notes, str) else ""
-                    contacts.append(ContactInfo(name=trimmed, notes=notes_text))
+                    company = str(DataDisplayExtractors._as_dict(node).get(GqlKeys.TYPE) or "").upper() == "COMPANY"
+                    contacts.append(ContactInfo(name=trimmed, notes=notes_text, company=company))
         return contacts
+
+    @staticmethod
+    def extract_contact_total(item_data: Optional[Json]) -> int:
+        """How many contacts the record has; the list answer may carry only the first of them."""
+        data = DataDisplayExtractors._as_dict(item_data)
+        page_info = DataDisplayExtractors._as_dict(DataDisplayExtractors._as_dict(data.get(GqlKeys.CONTACTS)).get("pageInfo"))
+        total = page_info.get("total")
+        known = len(DataDisplayExtractors.extract_contacts(item_data))
+        return max(known, total) if isinstance(total, int) else known
 
     @staticmethod
     def extract_status(item_data: Optional[Json]) -> StatusInfo:
@@ -270,12 +281,14 @@ class DataDisplayExtractors:
         return str(value) if value else None
 
     @staticmethod
-    def extract_client_display_name(item_data: Optional[Json]) -> Optional[str]:
-        if not isinstance(item_data, Mapping):
+    def extract_client(item_data: Optional[Json]) -> Optional[ContactInfo]:
+        """The record's client (a Kavitro contact), without a role."""
+        client = DataDisplayExtractors._as_dict(DataDisplayExtractors._as_dict(item_data).get(GqlKeys.CLIENT))
+        name = str(client.get(GqlKeys.DISPLAY_NAME) or "").strip()
+        if not name:
             return None
-        client = DataDisplayExtractors._as_dict(item_data.get(GqlKeys.CLIENT))
-        value = client.get(GqlKeys.DISPLAY_NAME)
-        return str(value) if value else None
+        company = str(client.get(GqlKeys.TYPE) or "").upper() == "COMPANY"
+        return ContactInfo(name=name, company=company)
 
     @staticmethod
     def extract_is_public(item_data: Optional[Json]) -> bool:

@@ -1,204 +1,192 @@
-from qgis.PyQt.QtCore import QTimer, Qt
-from qgis.PyQt.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+"""The contacts of a record card as tiles: initials (round for a person, square for a company),
+the name and the role under it, on one line: as many as fit, at least one; hovering the "+N" mark
+lists the rest as the same tiles."""
+from __future__ import annotations
 
-from ...Logs.python_fail_logger import PythonFailLogger
-from ...constants.file_paths import QssPaths
-from ...constants.module_icons import IconNames
+import zlib
+from dataclasses import replace
+from typing import NamedTuple, Optional, Sequence
+
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+
+from ...languages.language_manager import LanguageManager
+from ...languages.translation_keys import TranslationKeys
+from ...python.responses import ContactInfo, DataDisplayExtractors
 from ...ui.theme_manager import ThemeManager
-from ...python.responses import DataDisplayExtractors
+from ..overflow_row import OverflowRow
+
+_AVATAR_COLORS = ("#3b7dd8", "#2f9e6e", "#c2702b", "#8a5cd1", "#c2497a", "#4c8c9c")
+_COMPANY_FORMS = ("OÜ", "AS", "MTÜ", "TÜ", "FIE")
+_LONGEST_TEXT = 40  # characters of a name or role on a tile; the tooltip has the whole text
 
 
-class _ContactEntryWidget(QWidget):
-    def __init__(self, label_text: str, notes_text: str = "", parent=None):
+class ContactLook(NamedTuple):
+    """The measures of the tiles; the defaults are the user's choice (2026-11-28)."""
+
+    shown: int = 0  # a cap on the tiles of the line; 0: only the width limits them
+    roles: bool = True
+    gap: int = 6  # between the tiles
+    radius: int = 6
+
+
+DEFAULT_LOOK = ContactLook()
+
+
+def initials(name: str) -> str:
+    """First letters of the first and last word, leaving out the company form."""
+    words = [word for word in name.split() if word.upper() not in _COMPANY_FORMS]
+    return "".join(word[0] for word in (words[:1] + words[1:][-1:])).upper() or "?"
+
+
+def shortened(text: str) -> str:
+    """A long name or note must not widen the card: the first tile of a line is never hidden."""
+    return text if len(text) <= _LONGEST_TEXT else text[:_LONGEST_TEXT - 1].rstrip() + "…"
+
+
+def contact_avatar(contact: ContactInfo, parent: QWidget, *, radius: int, size: int = 24) -> QLabel:
+    """The colour follows the name, so a contact looks the same on every card."""
+    avatar = QLabel(initials(contact.name), parent)
+    avatar.setObjectName("ContactAvatar")
+    avatar.setTextFormat(Qt.TextFormat.PlainText)
+    avatar.setFixedSize(size, size)
+    avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    color = _AVATAR_COLORS[zlib.crc32(contact.name.encode("utf-8")) % len(_AVATAR_COLORS)]
+    corner = min(radius, size // 2) if contact.company else size // 2
+    letters = 10 if size >= 24 else 8  # two letters must fit the small circle too
+    avatar.setStyleSheet(
+        f"background: {color}; color: #ffffff; font-size: {letters}px; font-weight: bold; border-radius: {corner}px;")
+    avatar.setToolTip("\n".join(part for part in (contact.name, contact.notes) if part))
+    return avatar
+
+
+class ContactTiles(OverflowRow):
+    """One line of contact tiles. It carries its own stylesheet."""
+
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self._lang = LanguageManager()
+        self._contacts: tuple[ContactInfo, ...] = ()
+        self._total = 0
+        self._look = DEFAULT_LOOK
+        self._tiles: list[QFrame] = []
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+    def show_contacts(
+        self, contacts: Sequence[ContactInfo], *, total: Optional[int] = None, look: ContactLook = DEFAULT_LOOK,
+    ) -> None:
+        """`total` counts also the contacts that were not read."""
+        self._contacts = tuple(contacts)
+        self._total = max(len(self._contacts), total or 0)
+        self._look = look
+        self.retheme()
 
-        chip = QLabel(label_text, self)
-        chip.setObjectName("ContactChip")
-        chip.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        chip.adjustSize()
-        layout.addWidget(chip, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+    def retheme(self) -> None:
+        self.setStyleSheet(self._style(ThemeManager.effective_theme() == "dark"))
+        self.gap = self._look.gap
+        for tile in self._tiles:
+            tile.hide()
+            tile.deleteLater()
+        self._tiles = [self._tile(contact, self) for contact in self._contacts]
+        self.reflow()
 
-        trimmed_notes = notes_text.strip()
-        if trimmed_notes:
-            notes_label = QLabel(trimmed_notes, self)
-            notes_label.setObjectName("ContactNote")
-            notes_label.setWordWrap(False)
-            notes_label.setToolTip(trimmed_notes)
-            notes_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-            layout.addWidget(notes_label, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+    def entry_count(self) -> int:
+        return len(self._contacts)
+
+    def most_visible(self) -> int:
+        return self._look.shown or self.entry_count()
+
+    def uncounted(self) -> int:
+        return self._total - len(self._contacts)
+
+    def _tile_width(self, tile: QFrame) -> int:
+        tile.ensurePolished()
+        for label in tile.findChildren(QLabel):
+            label.ensurePolished()
+        return tile.sizeHint().width()
+
+    def line_width(self, count: int) -> int:
+        return sum(self._tile_width(tile) for tile in self._tiles[:count]) + self.gap * max(0, count - 1)
+
+    def line_height(self) -> int:
+        heights = []
+        for tile in self._tiles:
+            tile.ensurePolished()
+            heights.append(tile.sizeHint().height())
+        return max(heights, default=20)
+
+    def place(self, count: int) -> None:
+        x = 0
+        for index, tile in enumerate(self._tiles):
+            if index >= count:
+                tile.hide()
+                continue
+            width = self._tile_width(tile)
+            tile.setGeometry(x, 0, width, self.line_height())
+            tile.show()
+            x += width + self.gap
+
+    def popup_widgets(self, count: int, parent: QWidget) -> list[QWidget]:
+        """The contacts that are not on the line, as the same tiles one under another."""
+        widgets: list[QWidget] = [self._tile(contact, parent) for contact in self._contacts[count:]]
+        if self.uncounted() > 0:
+            text = self._lang.translate(TranslationKeys.CONTACTS_AND_MORE).format(count=self.uncounted())
+            widgets.append(self._label(text, "ContactRole", parent))
+        return widgets
+
+    def _tile(self, contact: ContactInfo, parent: QWidget) -> QFrame:
+        tile = QFrame(parent)
+        tile.setObjectName("ContactTile")
+        row = QHBoxLayout(tile)
+        row.setContentsMargins(4, 3, 9, 3)
+        row.setSpacing(6)
+        row.addWidget(contact_avatar(contact, tile, radius=self._look.radius))
+        column = QVBoxLayout()
+        column.setSpacing(0)
+        column.addWidget(self._label(shortened(contact.name), "ContactName", tile))
+        if self._look.roles and contact.notes:
+            column.addWidget(self._label(shortened(contact.notes), "ContactRole", tile))
+        row.addLayout(column)
+        tile.setToolTip("\n".join(part for part in (contact.name, contact.notes) if part))
+        return tile
+
+    @staticmethod
+    def _label(text: str, name: str, parent: QWidget) -> QLabel:
+        label = QLabel(text, parent)
+        label.setObjectName(name)
+        label.setTextFormat(Qt.TextFormat.PlainText)
+        return label
+
+    def _style(self, dark: bool) -> str:
+        text = "#d4d4de" if dark else "#24292e"
+        muted = "#9aa4b2" if dark else "#6a737d"
+        line = "rgba(150,150,160,0.35)" if dark else "rgba(60,80,100,0.18)"
+        soft = "rgba(150,150,160,0.12)" if dark else "rgba(60,80,100,0.06)"
+        radius = self._look.radius
+        return "\n".join([
+            f"QLabel {{ background: transparent; color: {text}; font-size: 11px; border: none; }}",
+            f"QFrame#ContactTile {{ background: {soft}; border: 1px solid {line}; border-radius: {radius}px; }}",
+            "QLabel#ContactName { font-weight: 600; }",
+            f"QLabel#ContactRole {{ color: {muted}; font-size: 10px; }}",
+            *self.row_style(dark, radius),
+        ])
 
 
-class _WrappingContactsContainer(QWidget):
-    def __init__(self, parent=None):
+class ContactsWidget(ContactTiles):
+    """The contacts of one record; hidden when it has none."""
+
+    def __init__(self, item_data, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self._items = []
-        self._wrap_width = 0
-        self._last_available_width = -1
-        self._layout = QGridLayout(self)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setHorizontalSpacing(4)
-        self._layout.setVerticalSpacing(4)
-
-    def add_item(self, widget: QWidget):
-        widget.setParent(self)
-        self._items.append(widget)
-        self._relayout_items()
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        available_width = self._effective_available_width()
-        if available_width != self._last_available_width:
-            self._relayout_items()
-
-    def set_wrap_width(self, width: int):
-        width = max(1, int(width))
-        if width == self._wrap_width:
-            return
-        self._wrap_width = width
-        available_width = self._effective_available_width()
-        if available_width != self._last_available_width:
-            self._relayout_items()
-
-    def _clear_layout(self):
-        while self._layout.count():
-            item = self._layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                self._layout.removeWidget(widget)
-
-    def _effective_available_width(self) -> int:
-        margins = self._layout.contentsMargins()
-        requested_width = self._wrap_width or self.width()
-        actual_width = self.width()
-        if actual_width > 0:
-            requested_width = min(requested_width, actual_width)
-        return max(1, requested_width - margins.left() - margins.right())
-
-    def _relayout_items(self):
-        self._clear_layout()
-        if not self._items:
-            return
-
-        available_width = self._effective_available_width()
-        self._last_available_width = available_width
-        spacing = self._layout.horizontalSpacing()
-        row = 0
-        column = 0
-        used_width = 0
-        item_widths = []
-        placements = []
-
-        for index, widget in enumerate(self._items):
-            item_width = widget.sizeHint().width()
-            item_widths.append(item_width)
-            next_width = item_width if column == 0 else used_width + spacing + item_width
-            if column > 0 and next_width >= available_width:
-                row += 1
-                column = 0
-                used_width = 0
-
-            self._layout.addWidget(widget, row, column, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-            placements.append(f"{index}:{row},{column}:{item_width}")
-            used_width = item_width if column == 0 else used_width + spacing + item_width
-            column += 1
-
-        PythonFailLogger.log(
-            "contacts_wrap_metrics",
-            module=PythonFailLogger.LOG_MODULE_UI,
-            extra={
-                "wrap_width": available_width,
-                "container_width": self.width(),
-                "items": len(self._items),
-                "item_widths": "|".join(str(width) for width in item_widths),
-                "placements": "|".join(placements),
-                "spacing": spacing,
-            },
-        )
-
-
-class ContactsWidget(QFrame):
-    """Inline wrapping contact list for item cards."""
-
-    def __init__(self, item_data, parent=None):
-        super().__init__(parent)
-        self._body = None
-        self._icon_label = None
-        self._root = None
-        self._deferred_wrap_timer = None
         contacts = [c for c in (DataDisplayExtractors.extract_contacts(item_data) or []) if c.name]
         if not contacts:
             self.setVisible(False)
             return
+        self.show_contacts(contacts, total=DataDisplayExtractors.extract_contact_total(item_data))
 
-        self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self._root = QHBoxLayout(self)
-        self._root.setContentsMargins(0, 0, 0, 0)
-        self._root.setSpacing(4)
 
-        self._icon_label = QLabel()
-        self._icon_label.setObjectName("ContactsIcon")
-        self._icon_label.setFixedSize(16, 16)
-        self._icon_label.setPixmap(ThemeManager.get_qicon(IconNames.ICON_CONTACTS).pixmap(16, 16))
-        self._root.addWidget(self._icon_label, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+class ClientWidget(ContactTiles):
+    """The record's client as one tile, its role saying what it is."""
 
-        self._body = _WrappingContactsContainer(self)
-        for contact in contacts:
-            self._body.add_item(self._create_contact_entry(contact))
-        self._root.addWidget(self._body, 1)
-
-        self._deferred_wrap_timer = QTimer(self)
-        self._deferred_wrap_timer.setSingleShot(True)
-        self._deferred_wrap_timer.timeout.connect(self._update_wrap_width)
-
-        self._update_wrap_width()
-
-        self.retheme()
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if self._body is None:
-            return
-        self._update_wrap_width()
-        self._schedule_deferred_wrap_update()
-
-    def handle_responsive_update(self, *, source="unknown"):
-        _ = source
-        if self._body is None:
-            return
-        self._update_wrap_width()
-        self._schedule_deferred_wrap_update()
-
-    def _schedule_deferred_wrap_update(self):
-        if self._deferred_wrap_timer is None:
-            return
-        self._deferred_wrap_timer.start(0)
-
-    def _update_wrap_width(self):
-        if self._body is None:
-            return
-        self._body.set_wrap_width(self._available_wrap_width())
-
-    def _available_wrap_width(self) -> int:
-        available_width = self.contentsRect().width()
-        if self._icon_label is not None:
-            available_width -= self._icon_label.width()
-        if self._root is not None:
-            available_width -= self._root.spacing()
-        return max(1, available_width)
-
-    def _create_contact_entry(self, contact) -> QWidget:
-        return _ContactEntryWidget(contact.name, contact.notes, self)
-
-    def retheme(self):
-        """Reapply theme styles when theme changes."""
-        ThemeManager.apply_module_style(self, [QssPaths.CONTACTS])
-        # Force style refresh
-        self.style().unpolish(self)
-        self.style().polish(self)
+    def __init__(self, client: ContactInfo, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        role = self._lang.translate(TranslationKeys.CONTACT_ROLE_CLIENT)
+        self.show_contacts([replace(client, notes=role)])

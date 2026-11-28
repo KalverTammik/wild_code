@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, Qt
-from qgis.PyQt.QtWidgets import QFrame, QLabel
+from qgis.PyQt.QtWidgets import QLabel
 
 from Kavitro_dev.languages.language_manager import LanguageManager
 from Kavitro_dev.languages.translation_keys import TranslationKeys
@@ -150,15 +150,19 @@ class PanelTest(unittest.TestCase):
 
 
 def capsules(view) -> list[tuple[str, list[str]]]:
-    """(group name, tag names) of the capsules in the order they are shown."""
+    """(group name, tag names) of the capsules standing on the line, left to right."""
     result = []
-    for index in range(view._flow.count()):
-        box = view._flow.itemAt(index).widget()
+    for box in view._line:
         if box.objectName() != "TagCapsule":
             continue
         name = box.findChild(QLabel, "TagCapsuleName")
         result.append((name.text() if name else "", [label.text() for label in box.findChildren(QLabel, "TagName")]))
     return result
+
+
+def wide(view, width: int = 2000) -> None:
+    view.resize(width, view.height())
+    view.reflow()
 
 
 class TagsFilterTest(unittest.TestCase):
@@ -216,23 +220,37 @@ class CapsuleTest(unittest.TestCase):
         delete_later(self, view)
 
         view.show_tags(TagCatalog.from_nodes(NODES), ["1", "4", "5"])
+        wide(view)
 
         self.assertEqual(capsules(view), [("Raha", ["Kulu"]), ("Teed", ["kruus"]),
                                           (LanguageManager().translate(TranslationKeys.TAG_PICKER_UNGROUPED), ["Asd"])])
 
-    def test_many_tags_wrap_inside_the_card(self) -> None:
-        nodes = [node(str(i), f"pikk tunnuse nimi {i}") for i in range(1, 11)] + [node("20", "Kulu", MONEY)]
+    def test_a_narrow_line_shows_what_fits_and_counts_the_rest(self) -> None:
+        nodes = [node(str(i), f"tunnus {i}") for i in range(1, 7)] + [node("20", "Kulu", MONEY)]
         view = TagChipsView()
         delete_later(self, view)
-        view.show_tags(TagCatalog.from_nodes(nodes), [str(i) for i in range(1, 11)])
-        view.resize(420, view.layout().heightForWidth(420))  # room for the name and one tag in the test font
-        view.show()
-        QCoreApplication.processEvents()
+        view.show_tags(TagCatalog.from_nodes(nodes), [str(i) for i in range(1, 7)] + ["20"])
+        wide(view, view.line_width(3) + view.gap + view._mark_width(4))
 
-        box = view.findChild(QFrame, "TagCapsule")
-        self.assertLessEqual(box.width(), 420)
-        labels = box.findChildren(QLabel, "TagName")
-        self.assertGreater(len({label.y() for label in labels}), 1)
+        self.assertEqual([len(tags) for _name, tags in capsules(view)], [1, 2])
+        self.assertEqual(view._mark.text(), "+4")
+        view._show_popup()
+        self.addCleanup(view._close_popup)
+        listed = [label.text().rstrip() for label in view._popup.findChildren(QLabel, "TagName")]
+        self.assertEqual(listed, ["tunnus 3", "tunnus 4", "tunnus 5", "tunnus 6"])
+
+    def test_at_least_one_tag_stays_and_a_wide_line_has_no_mark(self) -> None:
+        view = TagChipsView()
+        delete_later(self, view)
+        view.show_tags(TagCatalog.from_nodes(NODES), ["1", "2", "5"])
+        wide(view, 10)
+        self.assertEqual(sum(len(tags) for _name, tags in capsules(view)), 1)
+        self.assertEqual(view._mark.text(), "+2")
+
+        wide(view)
+
+        self.assertEqual(sum(len(tags) for _name, tags in capsules(view)), 3)
+        self.assertTrue(view._mark.isHidden())
 
     def test_the_tags_carry_their_own_style_and_follow_the_theme(self) -> None:
         with patch.object(ThemeManager, "effective_theme", return_value="light"):
@@ -268,10 +286,12 @@ class RecordTagsTest(unittest.TestCase):
         self.addCleanup(store._catalogs.clear)
         view = RecordTagsView("project", DataDisplayExtractors.extract_tags(self.ITEM))
         delete_later(self, view)
+        wide(view)
         self.assertEqual(capsules(view), [("", ["Asfalt", "Asd"])])
 
         store.put("project", TagCatalog.from_nodes(NODES))
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        wide(view)
 
         self.assertEqual([names for _name, names in capsules(view)], [["Asfalt"], ["Asd"]])
 

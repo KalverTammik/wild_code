@@ -5,7 +5,7 @@ query Projects(
   $whereHas: [ProjectsWhereHasInput!]
   $propertiesFirst: Int = 1
   $propertiesAfter: String
-  $contactsFirst: Int = 5
+  $contactsFirst: Int = 50
   $contactsAfter: String
 ) {
   projects(
@@ -51,6 +51,7 @@ query Projects(
         client {
           id
           displayName
+          type
         }
         tags(first: 10) {
           edges {

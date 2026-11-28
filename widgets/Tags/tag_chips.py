@@ -1,16 +1,20 @@
 """The tags of one record as capsules: the group name on a filled left end, its tags after it,
-one capsule per group and a neutral one for the ungrouped."""
+one capsule per group and a neutral one for the ungrouped.
+
+They stand on one line: as many tags as fit, at least one; hovering the "+N" mark shows the rest."""
 from __future__ import annotations
 
 from typing import Iterable, NamedTuple, Optional, Sequence
 
-from qgis.PyQt.QtCore import QPoint, QRect, QSize, Qt
-from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QLayout, QSizePolicy, QWidget
+from qgis.PyQt.QtCore import QSize, Qt
+from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QWidget
 
 from ...languages.language_manager import LanguageManager
 from ...languages.translation_keys import TranslationKeys
 from ...python.tag_catalog import Tag, TagCatalog
 from ...ui.theme_manager import ThemeManager
+from ..flow_layout import FlowLayout, wrapping
+from ..overflow_row import OverflowRow
 
 GROUP_TONES = 5  # groups take the strengths of the one accent colour in list order
 UNGROUPED_TONE = "none"
@@ -70,84 +74,6 @@ def sections(
     return result
 
 
-class FlowLayout(QLayout):
-    """Left to right, breaking onto the next line when the width runs out.
-
-    An item wider than the whole line that can wrap itself (a holder) gets the line width and the height it needs.
-    """
-
-    def __init__(self, parent: Optional[QWidget] = None, *, spacing: int = 6) -> None:
-        super().__init__(parent)
-        self._items: list = []
-        self.setContentsMargins(0, 0, 0, 0)
-        self.setSpacing(spacing)
-
-    def addItem(self, item) -> None:  # noqa: N802 - Qt override
-        self._items.append(item)
-
-    def count(self) -> int:
-        return len(self._items)
-
-    def itemAt(self, index: int):  # noqa: N802
-        return self._items[index] if 0 <= index < len(self._items) else None
-
-    def takeAt(self, index: int):  # noqa: N802
-        return self._items.pop(index) if 0 <= index < len(self._items) else None
-
-    def hasHeightForWidth(self) -> bool:  # noqa: N802
-        return True
-
-    def heightForWidth(self, width: int) -> int:  # noqa: N802
-        return self._arrange(QRect(0, 0, width, 0), move=False)
-
-    def setGeometry(self, rect: QRect) -> None:  # noqa: N802
-        super().setGeometry(rect)
-        self._arrange(rect, move=True)
-
-    def sizeHint(self) -> QSize:  # noqa: N802
-        """Everything on one line, so that a holder asks for the width it would like."""
-        hints = [item.sizeHint() for item in self._items]
-        margins = self.contentsMargins()
-        width = sum(hint.width() for hint in hints) + self.spacing() * max(0, len(hints) - 1)
-        height = max((hint.height() for hint in hints), default=0)
-        return QSize(width + margins.left() + margins.right(), height + margins.top() + margins.bottom())
-
-    def minimumSize(self) -> QSize:  # noqa: N802
-        size = QSize()
-        for item in self._items:
-            size = size.expandedTo(item.minimumSize())
-        margins = self.contentsMargins()
-        return size + QSize(margins.left() + margins.right(), margins.top() + margins.bottom())
-
-    def _arrange(self, rect: QRect, *, move: bool) -> int:
-        margins = self.contentsMargins()
-        inner = rect.adjusted(margins.left(), margins.top(), -margins.right(), -margins.bottom())
-        x, y, line_height = inner.x(), inner.y(), 0
-        for item in self._items:
-            size = item.sizeHint()
-            if size.width() > inner.width() and item.hasHeightForWidth():
-                size = QSize(inner.width(), item.heightForWidth(inner.width()))
-            if x > inner.x() and x + size.width() > inner.x() + inner.width():
-                x, y, line_height = inner.x(), y + line_height + self.spacing(), 0
-            if move:
-                item.setGeometry(QRect(QPoint(x, y), size))
-            x += size.width() + self.spacing()
-            line_height = max(line_height, size.height())
-        return y + line_height - rect.y() + margins.bottom()
-
-
-def _wrapping(widget: QWidget) -> None:
-    policy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-    policy.setHeightForWidth(True)
-    widget.setSizePolicy(policy)
-
-
-def _wrapping(widget: QWidget) -> None:
-    policy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-    policy.setHeightForWidth(True)
-    widget.setSizePolicy(policy)
-
-
 def _label(text: str, name: str, parent: QWidget, **properties: str) -> QLabel:
     label = QLabel(text, parent)
     label.setObjectName(name)
@@ -159,12 +85,12 @@ def _label(text: str, name: str, parent: QWidget, **properties: str) -> QLabel:
 
 
 class _Capsule(QFrame):
-    """The name end and the tags; the tags wrap inside when the capsule is wider than the card."""
+    """The name end and the tags; in the popup the tags wrap inside a capsule that is too wide."""
 
     def __init__(self, section: Section, look: Look, parent: QWidget) -> None:
         super().__init__(parent)
         self.setObjectName("TagCapsule")
-        _wrapping(self)
+        wrapping(self)
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)  # the filled name end reaches the border
         row.setSpacing(0)
@@ -193,21 +119,45 @@ class _Capsule(QFrame):
         return max(name.height(), self.tags.heightForWidth(width - name.width() - frame)) + frame
 
 
-class TagChipsView(QWidget):
-    """A wrapping row of capsules. It carries its own stylesheet, so it looks the same wherever it is put."""
+def first_tags(found: Sequence[Section], count: int) -> list[Section]:
+    """The first `count` tags of the sections, keeping their grouping."""
+    result = []
+    for section in found:
+        if count <= 0:
+            break
+        result.append(section._replace(tags=section.tags[:count]))
+        count -= len(section.tags)
+    return result
+
+
+def later_tags(found: Sequence[Section], count: int) -> list[Section]:
+    """Everything after the first `count` tags."""
+    result = []
+    for section in found:
+        rest = section.tags[max(0, count):]
+        count -= len(section.tags)
+        if rest:
+            result.append(section._replace(tags=rest))
+    return result
+
+
+class TagChipsView(OverflowRow):
+    """One line of capsules. It carries its own stylesheet, so it looks the same wherever it is put."""
+
+    POPUP_WIDTH = 460
 
     def __init__(self, parent: Optional[QWidget] = None, *, look: Look = DEFAULT_LOOK) -> None:
         super().__init__(parent)
         self._lang = LanguageManager()
         self._look = look
-        _wrapping(self)
-        self._flow = FlowLayout(self, spacing=look.capsule_gap)
         self._shown: Optional[tuple] = None
+        self._sections: list[Section] = []
+        self._widths: Optional[tuple] = None  # measured per section: (name width, [tag widths])
+        self._line: list[QWidget] = []  # what stands on the line, left to right
         self.retheme()
 
     def set_look(self, look: Look) -> None:
         self._look = look
-        self._flow.setSpacing(look.capsule_gap)
         self.retheme()
 
     def show_tags(self, catalog: TagCatalog, selected_ids: Iterable[str], *, record_tags: Sequence[Tag] = ()) -> None:
@@ -217,18 +167,90 @@ class TagChipsView(QWidget):
 
     def _rebuild(self) -> None:
         catalog, selected, record_tags = self._shown
-        while self._flow.count():
-            widget = self._flow.takeAt(0).widget()
+        ungrouped = self._lang.translate(TranslationKeys.TAG_PICKER_UNGROUPED)
+        self._sections = sections(catalog, selected, ungrouped, record_tags)
+        self.gap = self._look.capsule_gap
+        self.reflow()
+
+    def reflow(self) -> None:
+        self._widths = None
+        super().reflow()
+
+    # ---- measures -----------------------------------------------------------------
+    def _measure(self) -> tuple:
+        """The widths of every name and tag, read once from throwaway capsules."""
+        if self._widths is None:
+            measured = []
+            for section in self._sections:
+                capsule = _Capsule(section, self._look, self)
+                capsule.ensurePolished()
+                labels = [*capsule.findChildren(QLabel)]
+                for label in labels:
+                    label.ensurePolished()
+                name = next((item.sizeHint().width() for item in labels if item.objectName() == "TagCapsuleName"), 0)
+                tags = [item.sizeHint().width() for item in labels if item.objectName() == "TagName"]
+                measured.append((name, tags, capsule.sizeHint().height()))
+                capsule.setParent(None)
+                capsule.deleteLater()
+            self._widths = tuple(measured)
+        return self._widths
+
+    def entry_count(self) -> int:
+        return sum(len(section.tags) for section in self._sections)
+
+    def line_width(self, count: int) -> int:
+        if not self._sections:
+            return self._empty_width()
+        total, capsules = 0, 0
+        for name, tags, _height in self._measure():
+            if count <= 0:
+                break
+            part = tags[:count]
+            count -= len(tags)
+            # name, the body's side margins, the tags with their gaps, the two border pixels
+            total += name + 8 + sum(part) + self._look.tag_gap * (len(part) - 1) + 2
+            capsules += 1
+        return total + self.gap * max(0, capsules - 1)
+
+    def _empty_width(self) -> int:
+        text = self._lang.translate(TranslationKeys.TAG_CHIPS_EMPTY)
+        return self.fontMetrics().horizontalAdvance(text) + 8
+
+    def line_height(self) -> int:
+        return max((height for _name, _tags, height in self._measure()), default=20)
+
+    # ---- the line and the popup ---------------------------------------------------
+    def place(self, count: int) -> None:
+        for widget in self._line:
             widget.hide()
             widget.deleteLater()
-        ungrouped = self._lang.translate(TranslationKeys.TAG_PICKER_UNGROUPED)
-        for section in sections(catalog, selected, ungrouped, record_tags):
-            self._flow.addWidget(_Capsule(section, self._look, self))
-        if not self._flow.count():
-            self._flow.addWidget(_label(self._lang.translate(TranslationKeys.TAG_CHIPS_EMPTY), "TagsEmpty", self))
-        for index in range(self._flow.count()):
-            self._flow.itemAt(index).widget().show()
-        self.updateGeometry()
+        self._line = []
+        x = 0
+        for section in first_tags(self._sections, count):
+            capsule = _Capsule(section, self._look, self)
+            capsule.ensurePolished()
+            width = capsule.sizeHint().width()
+            if not self._line:
+                width = min(width, max(width if self.width() <= 0 else self.width(), 1))
+            capsule.setGeometry(x, 0, width, self.line_height())
+            capsule.show()
+            self._line.append(capsule)
+            x += width + self.gap
+        if not self._sections and self._shown is not None:
+            empty = _label(self._lang.translate(TranslationKeys.TAG_CHIPS_EMPTY), "TagsEmpty", self)
+            empty.setGeometry(0, 0, self._empty_width(), self.line_height())
+            empty.show()
+            self._line.append(empty)
+
+    def popup_widgets(self, count: int, parent: QWidget) -> list[QWidget]:
+        widgets = []
+        for section in later_tags(self._sections, count):
+            capsule = _Capsule(section, self._look, parent)
+            capsule.ensurePolished()
+            width = min(self.POPUP_WIDTH, capsule.sizeHint().width())
+            capsule.setFixedSize(width, capsule.heightForWidth(width))
+            widgets.append(capsule)
+        return widgets
 
     def retheme(self) -> None:
         dark = ThemeManager.effective_theme() == "dark"
@@ -256,6 +278,6 @@ class TagChipsView(QWidget):
                 f'QLabel#TagCapsuleName[tone="{tone}"] {{ background: {fill}; color: #ffffff; font-size: 10px;'
                 f"font-weight: bold; padding: 1px {look.name_pad}px;"
                 f"border-top-left-radius: {corner}px; border-bottom-left-radius: {corner}px; }}")
-        self.setStyleSheet("\n".join(rules))
+        self.setStyleSheet("\n".join(rules + self.row_style(dark, look.radius)))
         if self._shown is not None:
             self._rebuild()

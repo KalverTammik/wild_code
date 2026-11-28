@@ -35,6 +35,7 @@ query projectModuleDataById(
     client {
       id
       displayName
+      type
     }
     tags(first: $tagsFirst) {
       edges {

@@ -5,6 +5,7 @@ from ..constants.module_names import Module
 from ..ui.theme_manager import ThemeManager
 from ..constants.file_paths import ConfigPaths
 from .ModuleKpiCard import ModuleKpiCard
+from .Contacts.contact_prototype_panel import ContactPrototypePanel
 from .Tags.tag_prototype_panel import TagPrototypePanel
 
 
@@ -83,8 +84,9 @@ class WelcomePage(TokenMixin, QWidget):
         kpi_shell.setObjectName("WelcomeKpiShell")
         kpi_shell.setLayout(self._kpi_grid)
 
-        # A prototype under review: only development builds show it, above the KPI cards and scrollable.
+        # Design prototypes: only development builds show them, above the KPI cards and scrollable.
         self._tag_prototype = None
+        self._contact_prototype = None
         if ConfigPaths.IS_DEV:
             outer = QVBoxLayout(self)
             outer.setContentsMargins(0, 0, 0, 0)
@@ -95,6 +97,8 @@ class WelcomePage(TokenMixin, QWidget):
             scroll.setWidget(page)
             outer.addWidget(scroll)
             layout = QVBoxLayout(page)
+            self._contact_prototype = ContactPrototypePanel(page)
+            layout.addWidget(self._contact_prototype)
             self._tag_prototype = TagPrototypePanel(page)
             layout.addWidget(self._tag_prototype)
         else:
@@ -128,3 +132,5 @@ class WelcomePage(TokenMixin, QWidget):
             card.retheme()
         if self._tag_prototype is not None:
             self._tag_prototype.retheme()
+        if self._contact_prototype is not None:
+            self._contact_prototype.retheme()

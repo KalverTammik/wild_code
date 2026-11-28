@@ -110,11 +110,6 @@ QLabel#ProjectClientLabel {
     font-weight: 500;
     padding: 2px 0px 1px 0px;
 }
-QLabel#ClientIcon {
-    color: rgba(197,197,210,0.85);
-    font-size: 10px;
-}
-
 QLabel#TypeInlineLabel {
     color: #a5efe8;
     font-size: 11px;

@@ -5,7 +5,7 @@ query coordinations(
   $whereHas: [CoordinationsWhereHasInput!]
   $propertiesFirst: Int = 1
   $propertiesAfter: String
-  $contactsFirst: Int = 5
+  $contactsFirst: Int = 50
   $contactsAfter: String
   )
   {
